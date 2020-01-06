@@ -42,11 +42,13 @@ int main() {
 #ifdef PS_eta
   kPartstr.eta = PS_eta;
 #endif
-#ifdef PS_circ
-  kPartstr.circ = PS_circ;
+#ifdef PS_nohf
+  kPartstr.nohf = true;
 #endif
 #endif
   boundary({vf});
+
+  kPartstr.dumpcsv = true;
 
   curvature(vf, k);
 

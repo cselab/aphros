@@ -1,19 +1,5 @@
 
 
-    if (w) {
-      coord tt[kMaxNp];
-      for (int i = 0; i < Np; ++i) {
-        tt[i] = Add(xx[i], Mul(ff[i], 1. / eta));
-        tt[i] = LocToGlb(tt[i], *w);
-      }
-      for (int i = 0; i < Np; ++i) {
-        xx[i] = LocToGlb(xx[i], *w);
-      }
-
-      AppendCsv(t * 100, Np, xx, "part", hash, -k);
-      AppendCsv(t * 100, Np, tt, "attr", hash, -k);
-    }
-
 // Writes legacy vtk polydata
 // fn: path
 // xx: points
@@ -140,25 +126,3 @@ void DumpLines(scalar c, vector nn, Partstr conf, const char* fn) {
   free(pp);
   free(xx);
 }
-
-// incid: if true increment id
-// k: attribute
-static void AppendCsv(int it, int np, coord * xx, const char* name, 
-                      double c, double k) {
-  FILE* o;
-  char on[255];
-  sprintf(on, "%s_%04d.csv", name, it);
-  if (access(on, W_OK) == -1) { // new file
-    o = fopen(on, "w");
-    fprintf(o, "x,y,z,c,k\n");
-  } else { // append
-    o = fopen(on, "a");
-  }
-
-  for (int i = 0; i < np; ++i) {
-    fprintf(o, "%g,%g,%g,%g,%g", xx[i].x, xx[i].y, xx[i].z, c, k);
-    fprintf(o, "\n");
-  }
-  fclose(o);
-}
-

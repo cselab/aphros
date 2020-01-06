@@ -8,6 +8,30 @@
 #define PI 3.14159265358979323846
 #endif
 
+// Appends csv file.
+// incid: if true increment id
+// c: attribute
+// k: attribute
+static void AppendCsv(int it, int np, coord * xx, const char* name, 
+                      double c, double k) {
+  FILE* o;
+  char on[255];
+  sprintf(on, "%s_%04d.csv", name, it);
+  if (access(on, W_OK) == -1) { // new file
+    o = fopen(on, "w");
+    fprintf(o, "x,y,z,c,k\n");
+  } else { // append
+    o = fopen(on, "a");
+  }
+
+  for (int i = 0; i < np; ++i) {
+    fprintf(o, "%g,%g,%g,%g,%g", xx[i].x, xx[i].y, xx[i].z, c, k);
+    fprintf(o, "\n");
+  }
+  fclose(o);
+}
+
+
 typedef struct {
   int Np; // number of particles per string
   int Ns; // number of strings (cross sections) per cell
@@ -16,9 +40,22 @@ typedef struct {
   int itermax; // maximum number of iterations
   double eta; // relaxation factor
   bool nohf; // disable height fuctions, always use particles
+  bool dumpcsv; // write csv files with particles and attraction points
   int stat_sh; // number of cells with height functions
   int stat_sc; // number of cells with particles
 } Partstr;
+
+// Transformation of coordinates.
+//    |n
+//    |
+//    |
+//    o-----t
+//   /
+//  /u
+typedef struct {
+  coord o; // origin
+  coord t, n, u; // orthonormal positive-oriented base
+} Trans;
 
 const int kMaxSection = 125 * 2; // maximum number of endpoints
                                  // from neighbor cells
@@ -27,12 +64,15 @@ const int kMaxFacet = 12; // maximum number of vertices per facet
 
 const int kMaxNp = 31; // maximum value of kPartstr.Np
 
+static Trans kPartstrTrans; // if dumpcsv=1, contains last transformation
+                            // used by GetCrossCurv()
+
 #if dimension == 2
 #define kNs 1
 #else
 #define kNs 3
 #endif
-static Partstr kPartstr = {7, kNs, 4., 1e-5, 20, 0.5, false};
+static Partstr kPartstr = {7, kNs, 4., 1e-5, 20, 0.5, false, false};
 #undef kNs
 
 // Unit vector at angle ph.
@@ -373,27 +413,15 @@ static void GetBase(coord n, coord* t, coord* u) {
   *u = Cross(*t, n);
 }
 
-// Transformation of coordinates.
-//    |n
-//    |
-//    |
-//    o-----t
-//   /
-//  /u
-typedef struct {
-  coord o; // origin
-  coord t, n, u; // orthonormal positive-oriented base
-} Trans;
-
 // Transformation from global to local coordinates.
 // p: global coordinates
 // o: origin
 // t,n,u: orthonormal base
 // Output:
 // *l: local coordinates of p in <o,t,n,u>
-static coord GlbToLoc(coord p, Trans w) {
-  p = Sub(p, w.o);
-  coord l = {Dot(w.t, p), Dot(w.n, p), Dot(w.u, p)};
+static coord GlbToLoc(coord p, const Trans* w) {
+  p = Sub(p, w->o);
+  coord l = {Dot(w->t, p), Dot(w->n, p), Dot(w->u, p)};
   return l;
 }
 
@@ -403,11 +431,11 @@ static coord GlbToLoc(coord p, Trans w) {
 // o: origin
 // Output:
 // *p: global coordinates
-static coord LocToGlb(coord l, Trans w) {
-  coord p = w.o;
-  p = Add(p, Mul(w.t, l.x));
-  p = Add(p, Mul(w.n, l.y));
-  p = Add(p, Mul(w.u, l.z));
+static coord LocToGlb(coord l, const Trans* w) {
+  coord p = w->o;
+  p = Add(p, Mul(w->t, l.x));
+  p = Add(p, Mul(w->n, l.y));
+  p = Add(p, Mul(w->u, l.z));
   return p;
 }
 
@@ -459,7 +487,7 @@ static coord Mycs(Point point, scalar c) {
 //     p = o + t*l.x  + t*l.y ,  [pa,pb] is one line segment
 // *nl: new size of ll
 static void Section2(
-    Point point, scalar c, vector nn, Trans w, coord* ll, int* nl) {
+    Point point, scalar c, vector nn, const Trans* w, coord* ll, int* nl) {
   foreach_neighbor(2) {
     if (c[] > 0. && c[] < 1.) {
       coord m = {nn.x[], nn.y[], nn.z[]};
@@ -474,8 +502,8 @@ static void Section2(
         coord lb = GlbToLoc(pb, w);
 
         coord dl = Sub(l, lb);
-        double mt = Dot(w.t, m);
-        double mn = Dot(w.n, m);
+        double mt = Dot(w->t, m);
+        double mn = Dot(w->n, m);
         double dt = dl.x;
         double dn = dl.y;
         if (Cross3(Coord(mt, mn, 0), Coord(dt, dn, 0)) < 0) {
@@ -502,7 +530,7 @@ static void Section2(
 //     p = o + t*l.x  + t*l.y ,  [pa,pb] is one line segment
 // *nl: new size of ll
 static void Section3(
-    Point point, scalar c, vector nn, Trans w, coord* ll, int* nl) {
+    Point point, scalar c, vector nn, const Trans* w, coord* ll, int* nl) {
   foreach_neighbor(2) {
     if (c[] > 0. && c[] < 1.) {
       int q = 0; // number of intersections found
@@ -510,7 +538,7 @@ static void Section3(
 
       // skip if cell does not intersect plane
       // TODO: enable, fix condition (current one changes results)
-      if (fabs(Dot(w.n, Sub(w.o, rn))) < Delta * 5) {
+      if (fabs(Dot(w->n, Sub(w->o, rn))) < Delta * 5) {
         coord m = {nn.x[], nn.y[], nn.z[]};
         double alpha = plane_alpha(c[], m);
         coord pp[kMaxFacet];
@@ -533,8 +561,8 @@ static void Section3(
             ll[*nl + q].z = 0.;
             if (++q == 2) {
               coord dl = Sub(ll[*nl + 1], ll[*nl]);
-              double mt = Dot(w.t, m);
-              double mn = Dot(w.n, m);
+              double mt = Dot(w->t, m);
+              double mn = Dot(w->n, m);
               double dt = dl.x;
               double dn = dl.y;
               if (Cross3(Coord(mt, mn, 0), Coord(dt, dn, 0)) > 0) {
@@ -562,7 +590,7 @@ static void Section3(
 //     p = o + t*l.x  + t*l.y ,  [pa,pb] is one line segment
 // *nl: new size of ll
 static void Section(
-    Point point, scalar c, vector nn, Trans w, coord* ll, int* nl) {
+    Point point, scalar c, vector nn, const Trans* w, coord* ll, int* nl) {
 #if dimension == 2
   Section2(point, c, nn, w, ll, nl);
 #else
@@ -607,6 +635,19 @@ static double GetLinesCurv(
 
     *res_ = res;
     *it_ = it;
+    if (conf->dumpcsv) {
+      coord tt[kMaxNp];
+      for (int i = 0; i < Np; ++i) {
+        tt[i] = Add(xx[i], Mul(ff[i], 1. / eta));
+        tt[i] = LocToGlb(tt[i], &kPartstrTrans);
+      }
+      for (int i = 0; i < Np; ++i) {
+        xx[i] = LocToGlb(xx[i], &kPartstrTrans);
+      }
+
+      AppendCsv(t * 100, Np, xx, "part", 0, -k);
+      AppendCsv(t * 100, Np, tt, "attr", 0, -k);
+    }
     return k;
   }
   return 0;
@@ -618,34 +659,37 @@ static double GetLinesCurv(
 // nn: normal
 // w: transformation to local coordinates
 static double GetCrossCurv(
-    Point point, scalar c, vector nn, Trans w, const Partstr* conf) {
+    Point point, scalar c, vector nn, const Trans* w, const Partstr* conf) {
   coord ll[kMaxSection];
   int nl = 0;
   Section(point, c, nn, w, ll, &nl);
   double res;
   int it;
+  if (conf->dumpcsv) {
+    kPartstrTrans = *w;
+  }
   return GetLinesCurv(ll, nl, Delta, conf, &res, &it);
 }
 
 // Transformation b rotated at angle.
 // s: index of cross sections
 // Ns: number of cross sections
-static Trans GetSectionTrans(int s, int Ns, Trans b) {
+static Trans GetSectionTrans(int s, int Ns, const Trans* b) {
   const double g = PI * s / Ns;
-  Trans w = b;
-  w.t = Add(Mul(b.t, cos(g)), Mul(b.u, sin(g)));
+  Trans w = *b;
+  w.t = Add(Mul(b->t, cos(g)), Mul(b->u, sin(g)));
   w.u = Cross(w.t, w.n);
   return w;
 }
 
 // Mean curvature over multiple cross sections by planes rotated around b.n
 static double GetMeanCurv(
-    Point point, scalar c, vector nn, Trans b, const Partstr* conf) {
+    Point point, scalar c, vector nn, const Trans* b, const Partstr* conf) {
   double ksum = 0;
   const int Ns = conf->Ns;
   for (int s = 0; s < Ns; ++s) {
-    Trans w = GetSectionTrans(s, Ns, b);
-    ksum += GetCrossCurv(point, c, nn, w, conf);
+    const Trans w = GetSectionTrans(s, Ns, b);
+    ksum += GetCrossCurv(point, c, nn, &w, conf);
   }
   return ksum / Ns;
 }
@@ -678,8 +722,8 @@ static void CalcNormal(scalar c, vector nn) {
 }
 
 static double partstr(Point point, scalar c, vector nn, const Partstr* conf) {
-  Trans b = GetPointTrans(point, c, nn);
-  double k = -GetMeanCurv(point, c, nn, b, conf);
+  const Trans b = GetPointTrans(point, c, nn);
+  double k = -GetMeanCurv(point, c, nn, &b, conf);
 #if dimension == 3
   k *= 2;
 #endif
