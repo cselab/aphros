@@ -70,7 +70,7 @@ int main() {
   boundary({vf});
 
 #ifndef NI
-  #define NI 100
+  #define NI 10
 #endif
 
   const int ni = NI;
@@ -85,5 +85,5 @@ int main() {
   }
   int nc = s.h + s.f + s.a + s.c; // number of interfacial cells
   printf("cstats: h=%d, f=%d, a=%d, c=%d\n", s.h, s.f, s.a, s.c);
-  printf("time elapsed: %.3f\n", kCurvTime / (nc * ni) * 1e6);
+  printf("time elapsed [us/cell]: %.3f\n", kCurvTime / (nc * ni) * 1e6);
 }
