@@ -1,6 +1,7 @@
 #include "curvature.h"
 #include "fractions.h"
 
+
 #include <assert.h>
 #include <unistd.h>
 
@@ -8,26 +9,44 @@
 #define PI 3.14159265358979323846
 #endif
 
-// Appends csv file.
-// incid: if true increment id
-// c: attribute
-// k: attribute
-static void AppendCsv(int it, int np, coord * xx, const char* name, 
-                      double c, double k) {
-  FILE* o;
-  char on[255];
-  sprintf(on, "%s_%04d.csv", name, it);
-  if (access(on, W_OK) == -1) { // new file
-    o = fopen(on, "w");
-    fprintf(o, "x,y,z,c,k\n");
-  } else { // append
-    o = fopen(on, "a");
+// Writes legacy vtk polydata
+// fn: path
+// xx: points
+// nx: size of xx
+// pp: polygons as lists of indices
+// np: number of polygons
+// ss[i] is size of polygon pp[i]
+// cm: comment
+// poly: true: polygons, false: lines
+void WriteVtkPoly(const char* fn, coord* xx, int nx,
+                  int* pp, int np, int* ss, const char* cm, bool poly) {
+  FILE* o = fopen(fn, "w");
+  fprintf(o, "# vtk DataFile Version 2.0\n");
+  fprintf(o, "%s\n", cm);
+
+  fprintf(o, "ASCII\n");
+  fprintf(o, "DATASET POLYDATA\n");
+
+  fprintf(o, "POINTS %d float\n", nx);
+  for (int i = 0; i < nx; ++i) {
+    coord x = xx[i];
+    fprintf(o, "%g %g %g\n", x.x, x.y, x.z);
   }
 
+  int na = 0; // total number of vortices
   for (int i = 0; i < np; ++i) {
-    fprintf(o, "%g,%g,%g,%g,%g", xx[i].x, xx[i].y, xx[i].z, c, k);
+    na += ss[i];
+  }
+  fprintf(o, "%s %d %d\n", poly ? "POLYGONS" : "LINES", np, np + na);
+  int k = 0;
+  for (int i = 0; i < np; ++i) {
+    fprintf(o, "%d", ss[i]);
+    for (int j = 0; j < ss[i]; ++j) {
+      fprintf(o, " %d", pp[k++]);
+    }
     fprintf(o, "\n");
   }
+
   fclose(o);
 }
 
@@ -439,17 +458,6 @@ static coord LocToGlb(coord l, const Trans* w) {
   return p;
 }
 
-// Returns the number of interfacial cells.
-static int GetNcInter(scalar c) {
-  int nc = 0;
-  foreach () {
-    if (interfacial(point, c)) {
-      ++nc;
-    }
-  }
-  return nc;
-}
-
 // Set z-copmonent to zero if 2D.
 static void SetZeroZ(coord* p) {
   (void)p;
@@ -474,6 +482,77 @@ static coord Mycs(Point point, scalar c) {
   coord m = mycs(point, c);
   SetZeroZ(&m);
   return m;
+}
+
+// Appends csv file.
+// incid: if true increment id
+// c: attribute
+// k: attribute
+static void AppendCsv(int it, int np, coord * xx, const char* name, 
+                      double c, double k) {
+  FILE* o;
+  char on[255];
+  sprintf(on, "%s_%04d.csv", name, it);
+  if (access(on, W_OK) == -1) { // new file
+    o = fopen(on, "w");
+    fprintf(o, "x,y,z,c,k\n");
+  } else { // append
+    o = fopen(on, "a");
+  }
+
+  for (int i = 0; i < np; ++i) {
+    fprintf(o, "%g,%g,%g,%g,%g", xx[i].x, xx[i].y, xx[i].z, c, k);
+    fprintf(o, "\n");
+  }
+  fclose(o);
+}
+
+// Returns the number of interfacial cells.
+static int GetNcInter(scalar c) {
+  int nc = 0;
+  foreach () {
+    if (interfacial(point, c)) {
+      ++nc;
+    }
+  }
+  return nc;
+}
+
+
+// Dumps interface fragments to vtk.
+void DumpFacets(scalar c, const char* fn) {
+  const int nc = GetNcInter(c); // number of interfacial cells
+  const int mm = nc * kMaxFacet;
+
+  coord* xx = (coord*)malloc(mm * sizeof(coord));
+  int* pp = (int*)malloc(mm * sizeof(int));
+  int* ss = (int*)malloc(mm * sizeof(int));
+  int np = 0;
+  int nx = 0;
+
+  foreach() {
+    if (interfacial (point, c)) {
+      coord m = Mycs(point, c);
+      double alpha = plane_alpha (c[], m);
+      coord p[kMaxFacet];
+      int nf = Facets(m, alpha, p);
+
+      coord r = {x, y, z};
+
+      ss[np] = nf;
+      for (int i = 0; i < nf; ++i) {
+        pp[nx] = nx;
+        xx[nx] = Add(r, Mul(p[i], Delta));
+        ++nx;
+      }
+      ++np;
+    }
+  }
+  WriteVtkPoly(fn, xx, nx, pp, np, ss, "comment", true);
+
+  free(ss);
+  free(pp);
+  free(xx);
 }
 
 // Cross-section of 2D interface from neighbor cells in plane coordinates.
@@ -721,6 +800,57 @@ static void CalcNormal(scalar c, vector nn) {
   }
 }
 
+// Dumps cross sections of the inteface fragments to vtk.
+void DumpLines(scalar c, vector nn, const Partstr* conf, const char* fn) {
+  const int Ns = conf->Ns;
+
+  const int nc = GetNcInter(c); // number of interfacial cells
+  const int mm = nc * kMaxSection;
+
+  coord* xx = (coord*)malloc(mm * sizeof(coord));
+  int* pp = (int*)malloc(mm * sizeof(int));
+  int* ss = (int*)malloc(mm * sizeof(int));
+  int nx = 0;
+  int np = 0;
+
+  foreach() {
+    if (interfacial(point, c)) {
+      const Trans b = GetPointTrans(point, c, nn);
+
+      for (int s = 0; s < Ns; ++ s) {
+        const Trans w = GetSectionTrans(s, Ns, &b);
+
+        coord ll[kMaxSection];
+        int nl = 0;
+
+        Section(point, c, nn, &w, ll, &nl);
+        GetCrossCurv(point, c, nn, &w, conf);
+
+        for (int i = 0; i < nl; ++i) {
+          ll[i] = LocToGlb(ll[i], &w);
+        }
+
+        for (int i = 0; i < nl; i += 2) {
+          ss[np] = 2;
+          pp[nx] = nx;
+          xx[nx] = ll[i];
+          ++nx;
+          pp[nx] = nx;
+          xx[nx] = ll[i + 1];
+          ++nx;
+          ++np;
+        }
+      }
+    }
+  }
+  WriteVtkPoly(fn, xx, nx, pp, np, ss, "lines", false);
+
+  free(ss);
+  free(pp);
+  free(xx);
+}
+
+
 static double partstr(Point point, scalar c, vector nn, const Partstr* conf) {
   const Trans b = GetPointTrans(point, c, nn);
   double k = -GetMeanCurv(point, c, nn, &b, conf);
@@ -741,7 +871,6 @@ void CheckConf(const Partstr* conf) {
     fprintf(stderr, "error: Np=%d is not an odd number\n", conf->Np);
     exit(1);
   }
-  return true;
 }
 
 trace cstats curvature_partstr(struct Curvature p) {
