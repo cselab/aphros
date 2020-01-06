@@ -1,0 +1,19 @@
+psy(f):= (diff(f,r,3)*r^2)/2+3*diff(f,r,2)*r+2*diff(f,r,1);
+phi(f):= -(diff(f,r,1)*r+2*f)/2;
+
+u(f):= f * cos(t);
+v(f):= phi(f) * sin(t);
+p(mu, f):= mu*psy(f) * cos(t);
+
+f0: b1/r^3 + b2/r + b3;
+f1: a1*r^2 + a2;
+
+u0: u(f0);
+v0: v(f0);
+p0: p(mu, f0);
+u1: u(f1);
+v1: v(f1);
+p1: p(mu, f1);
+
+limit(u0, r, +inf);
+limit(v0, r, +inf);
