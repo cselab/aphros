@@ -182,7 +182,7 @@ bcvtk = LegacyVTKReader(FileNames=['../bc.vtk'])
 clip1 = Clip(Input=bcvtk)
 clip1.ClipType = 'Box'
 clip1.ClipType.Position = [0.01, 0.01, 0.01]
-clip1.ClipType.Length = [1.98, 0.98, 0.98]
+clip1.ClipType.Length = [1.98, 0.98, 1.98]
 clip1Display = Show(clip1, renderView1)
 clip1Display.Representation = 'Surface'
 clip1Display.AmbientColor = [0.0, 1.0, 0.0]
