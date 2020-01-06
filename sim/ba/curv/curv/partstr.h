@@ -1,6 +1,7 @@
 #include "curvature.h"
 #include "fractions.h"
 
+#include <assert.h>
 #include <unistd.h>
 
 #ifndef PI
@@ -695,6 +696,20 @@ static double partstr(Point point, scalar c, vector nn, const Partstr* conf) {
   return k;
 }
 
+void CheckConf(const Partstr* conf) {
+  if (!(conf->Np <= kMaxNp)) {
+    fprintf(
+        stderr, "error: Too many particles per string Np=%d > %d\n", conf->Np,
+        kMaxNp);
+    exit(1);
+  }
+  if (!(conf->Np % 2 == 1)) {
+    fprintf(stderr, "error: Np=%d is not an odd number\n", conf->Np);
+    exit(1);
+  }
+  return true;
+}
+
 trace cstats curvature_partstr(struct Curvature p) {
   scalar c = p.c, kappa = p.kappa;
   double sigma = p.sigma ? p.sigma : 1.;
@@ -703,6 +718,7 @@ trace cstats curvature_partstr(struct Curvature p) {
   if (!ch.x.i) heights(c, h);
 
   Partstr* conf = &kPartstr;
+  CheckConf(conf);
 
 #if TREE
   kappa.refine = kappa.prolongation = curvature_prolongation;
