@@ -1,11 +1,5 @@
 #include <math.h>
-
-struct Adamr {
-  double mu0;
-  double mu1;
-  double a;
-  double pi;
-};
+#include "adamar.h"
 
 static double sq(double x) {
   return x * x;
@@ -30,33 +24,70 @@ static double cube(double x) {
     U = (a * (2 * mu1 + 2 * mu0) * pi) / (9 * mu0 * mu1 + 6 * sq(mu0));  \
   } while (0)
 
-void f(struct Adamr* q) {
+static void f(
+    struct Adamar* q, double r, double t, double* u, double* v, double* p) {
   DEC;
-  double r;
-  double t;
-
-  double u;
-  double v;
-  double p;
-
   DEF;
-
-  u = ((b2 * sq(r) + b3 * cube(r) + b1) * cos(t)) / (r * sq(r));
-  v = -((b2 * sq(r) + 2 * b3 * cube(r) - b1) * sin(t)) / (2 * r * sq(r));
-  p = (b2 * mu0 * cos(t) + pi * sq(r)) / sq(r);
+  q->U = U;
+  *u = ((b2 * sq(r) + b3 * cube(r) + b1) * cos(t)) / (r * sq(r));
+  *v = -((b2 * sq(r) + 2 * b3 * cube(r) - b1) * sin(t)) / (2 * r * sq(r));
+  *p = (b2 * mu0 * cos(t) + pi * sq(r)) / sq(r);
 }
 
-void g(struct Adamr* q) {
+static void g(
+    struct Adamar* q, double r, double t, double* u, double* v, double* p) {
   DEC;
+  DEF;
+  q->U = U;
+  *u = (a1 * sq(r) + a2) * cos(t);
+  *v = -(2 * a1 * sq(r) + a2) * sin(t);
+  *p = 10 * a1 * mu1 * r * cos(t);
+}
+
+static int c2s(
+    double x, double y, double z, double* pr, double* pt, double* pp) {
   double r;
   double t;
-
-  double u;
-  double v;
   double p;
 
-  DEF;
-  u = (a1 * sq(r) + a2) * cos(t);
-  v = -(2 * a1 * sq(r) + a2) * sin(t);
-  p = 10 * a1 * mu1 * r * cos(t);
+  r = sqrt(sq(x) + sq(y) + sq(z));
+  t = (r == 0) ? 0 : acos(z / r);
+  p = atan2(y, x);
+
+  *pr = r;
+  *pt = t;
+  *pp = p;
+  return 0;
+}
+
+static int s2c(
+    double r, double t, double p, double u, double v, double* x, double* y,
+    double* z) {
+  *x = cos(p) * (sin(t) * u + cos(t) * v);
+  *y = sin(p) * (sin(t) * u + cos(t) * v);
+  *z = cos(t) * u - sin(t) * v;
+
+  return 0;
+}
+
+int adamar_fields(
+    struct Adamar* q, double x, double y, double z, double* px, double* py, double *pz,
+    double* pp) {
+  double r;
+  double t;
+  double p;
+  double a;
+  double u;
+  double v;
+
+  a = q->a;
+  c2s(x, y, z, &r, &t, &p);
+  q->Inside = r < a;
+  if (q->Inside) {
+    f(q, r, t, &u, &v, pp);
+  }
+  else
+    g(q, r, t, &u, &v, pp);
+  s2c(r, t, p, u, v, px, py, pz);
+  return 0;
 }
