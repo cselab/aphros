@@ -14,6 +14,7 @@ typedef struct {
   double eps; // threshold for convergence
   int itermax; // maximum number of iterations
   double eta; // relaxation factor
+  bool nohf; // disable height fuctions, always use particles
   int stat_sh; // number of cells with height functions
   int stat_sc; // number of cells with particles
 } Partstr;
@@ -30,7 +31,7 @@ const int kMaxNp = 31; // maximum value of kPartstr.Np
 #else
 #define kNs 3
 #endif
-static Partstr kPartstr = {7, kNs, 4., 1e-5, 20, 0.5};
+static Partstr kPartstr = {7, kNs, 4., 1e-5, 20, 0.5, false};
 #undef kNs
 
 // Unit vector at angle ph.
@@ -701,6 +702,8 @@ trace cstats curvature_partstr(struct Curvature p) {
   vector ch = c.height, h = automatic(ch);
   if (!ch.x.i) heights(c, h);
 
+  Partstr* conf = &kPartstr;
+
 #if TREE
   kappa.refine = kappa.prolongation = curvature_prolongation;
   kappa.restriction = curvature_restriction;
@@ -717,12 +720,11 @@ trace cstats curvature_partstr(struct Curvature p) {
   foreach (reduction(+:sh) reduction(+:sc)) {
     if (!interfacial(point, c)) {
       k[] = nodata;
-#ifndef PS_nohf
-    } else if ((k[] = height_curvature(point, c, h)) != nodata) {
+    } else if (
+        !conf->nohf && (k[] = height_curvature(point, c, h)) != nodata) {
       sh++;
-#endif
     } else {
-      k[] = partstr(point, c, nn, &kPartstr);
+      k[] = partstr(point, c, nn, conf);
       sc++;
     }
   }
@@ -739,8 +741,8 @@ trace cstats curvature_partstr(struct Curvature p) {
   }
   boundary({kappa});
 
-  kPartstr.stat_sh = sh;
-  kPartstr.stat_sc = sc;
+  conf->stat_sh = sh;
+  conf->stat_sc = sc;
   return (cstats){sh, sf, sa, sc};
 }
 
