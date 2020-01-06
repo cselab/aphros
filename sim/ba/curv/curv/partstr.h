@@ -10,12 +10,10 @@
 typedef struct {
   int Np;       // number of particles per string
   int Ns;       // number of strings (cross sections) per cell
-  double Hp;    // lenght of string relative to cell size
+  double Hp;    // length of string relative to cell size
   double eps;   // threshold for convergence
   int itermax;  // maximum number of iterations
   double eta;   // relaxation factor
-  bool csv;     // dump csv particles and attraction points
-  bool dumpit;  // dump the number of iterations and difference
   int sh;       // number of cells with height functions
   int sc;       // number of cells with particles
 } Partstr;
@@ -30,57 +28,16 @@ const int kMaxNp = 31;           // maximum value of kPartstr.Np
 
 #if dimension == 2
 #define kNs 1
-#else 
+#else
 #define kNs 3
 #endif
 
-static Partstr kPartstr = {7, kNs, 4., 1e-5, 20, 0.5, false, false};
+static Partstr kPartstr = {7, kNs, 4., 1e-5, 20, 0.5};
 
 #undef kNs
 
-// Writes legacy vtk polydata
-// fn: path
-// xx: points
-// nx: size of xx
-// pp: polygons as lists of indices
-// np: number of polygons
-// ss[i] is size of polygon pp[i]
-// cm: comment
-// poly: true: polygons, false: lines
-void WriteVtkPoly(const char* fn, coord* xx, int nx,
-                  int* pp, int np, int* ss, const char* cm, bool poly) {
-  FILE* o = fopen(fn, "w");
-  fprintf(o, "# vtk DataFile Version 2.0\n");
-  fprintf(o, "%s\n", cm);
-
-  fprintf(o, "ASCII\n");
-  fprintf(o, "DATASET POLYDATA\n");
-
-  fprintf(o, "POINTS %d float\n", nx);
-  for (int i = 0; i < nx; ++i) {
-    coord x = xx[i];
-    fprintf(o, "%g %g %g\n", x.x, x.y, x.z);
-  }
-
-  int na = 0; // total number of vortices
-  for (int i = 0; i < np; ++i) {
-    na += ss[i];
-  }
-  fprintf(o, "%s %d %d\n", poly ? "POLYGONS" : "LINES", np, np + na);
-  int k = 0;
-  for (int i = 0; i < np; ++i) {
-    fprintf(o, "%d", ss[i]);
-    for (int j = 0; j < ss[i]; ++j) {
-      fprintf(o, " %d", pp[k++]);
-    }
-    fprintf(o, "\n");
-  }
-
-  fclose(o);
-}
-
 // Unit vector at angle ph.
-static coord E(double ph) {
+static coord Unit(double ph) {
   coord p;
   p.x = cos(ph);
   p.y = sin(ph);
@@ -88,7 +45,7 @@ static coord E(double ph) {
   return p;
 }
 
-// rotate planar vector e by planar unit vector de
+// Rotate planar vector e by planar unit vector de
 static coord Rotate(coord e, coord de) {
   coord p;
   p.x = e.x * de.x - e.y * de.y;
@@ -97,7 +54,7 @@ static coord Rotate(coord e, coord de) {
   return p;
 }
 
-// rotate planar vector e by planar unit vector de
+// Rotate planar vector e by planar unit vector de
 static coord Rotatem(coord e, coord de) {
   coord p;
   p.x = e.x * de.x + e.y * de.y;
@@ -106,8 +63,7 @@ static coord Rotatem(coord e, coord de) {
   return p;
 }
 
-
-// Third component of cross product.
+// Third component of cross product
 static double Cross3(coord a, coord b) {
   return a.x * b.y - a.y * b.x;
 }
@@ -177,10 +133,6 @@ static double Norm(coord a) {
   return sqrt(Sqnorm(a));
 }
 
-static double Norm1(coord a) {
-  return fabs(a.x) + fabs(a.y) + abs(a.z);
-}
-
 static double NormMax(coord a) {
   double r = fabs(a.x);
   if (fabs(a.y) > r) { r = fabs(a.y); }
@@ -216,9 +168,9 @@ static double Dotv(int np,
 static void X(coord p, double ph, double th, int np, double hp, coord* xx) {
   int c = np / 2;
   xx[c] = p;
-  coord ep = Mul(E(ph + 0.5 * th), hp);
-  coord em = Mul(E(ph - 0.5 * th), -hp);
-  coord de = E(th);
+  coord ep = Mul(Unit(ph + 0.5 * th), hp);
+  coord em = Mul(Unit(ph - 0.5 * th), -hp);
+  coord de = Unit(th);
   for (int j = 0; j < c; ++j) {
     xx[c + j + 1] = Add(xx[c + j], ep);
     xx[c - j - 1] = Add(xx[c - j], em);
@@ -240,14 +192,14 @@ static coord Nearest(coord a, coord b, coord x) {
 }
 
 // Derivative dX/dph
-static void DxDph(coord p, double ph, double th, 
+static void DxDph(coord p, double ph, double th,
                   int np, double hp, coord* xx) {
   (void) p;
   int c = np / 2;
   xx[c] = Zero();
-  coord ep = Mul(E(ph + 0.5 * th + PI * 0.5), hp);
-  coord em = Mul(E(ph - 0.5 * th + PI * 0.5), -hp);
-  coord de = E(th);
+  coord ep = Mul(Unit(ph + 0.5 * th + PI * 0.5), hp);
+  coord em = Mul(Unit(ph - 0.5 * th + PI * 0.5), -hp);
+  coord de = Unit(th);
   for (int j = 0; j < c; ++j) {
     xx[c + j + 1] = Add(xx[c + j], ep);
     xx[c - j - 1] = Add(xx[c - j], em);
@@ -257,14 +209,14 @@ static void DxDph(coord p, double ph, double th,
 }
 
 // Derivative dX/dth
-static void DxDth(coord p, double ph, double th, 
+static void DxDth(coord p, double ph, double th,
                   int np, double hp, coord* xx) {
   (void) p;
   int c = np / 2;
   xx[c] = Zero();
-  coord ep = Mul(E(ph + 0.5 * th + PI * 0.5), hp);
-  coord em = Mul(E(ph - 0.5 * th + PI * 0.5), hp);
-  coord de = E(th);
+  coord ep = Mul(Unit(ph + 0.5 * th + PI * 0.5), hp);
+  coord em = Mul(Unit(ph - 0.5 * th + PI * 0.5), hp);
+  coord de = Unit(th);
   for (int j = 0; j < c; ++j) {
     double jp = j + 0.5;
     xx[c + j + 1] = Add(xx[c + j], Mul(ep, jp));
@@ -276,14 +228,14 @@ static void DxDth(coord p, double ph, double th,
 
 // Forces on particles.
 // np: number of particles
-// xx: positions 
+// xx: positions
 // nl: number of points in ll
 // ll: flat array of endpoints of line segments
 // eta: relaxation factor
 // k: curvature
 // Output:
 // ff: forces
-static void F(int np, const coord* xx, int nl, const coord* ll, 
+static void F(int np, const coord* xx, int nl, const coord* ll,
               double eta, double k, coord* ff) {
   if (nl == 0) {
     for (int i = 0; i < np; ++i) {
@@ -315,7 +267,7 @@ static void F(int np, const coord* xx, int nl, const coord* ll,
 // ff, xx: modified
 // Returns maximum absolute difference.
 static double Iter(coord* p_, double* ph_, double* th_,
-                 int np, double hp, coord* ff, coord* xx) {
+                   int np, double hp, coord* ff, coord* xx) {
   coord p = *p_;
   double ph = *ph_;
   double th = *th_;
@@ -325,16 +277,15 @@ static double Iter(coord* p_, double* ph_, double* th_,
 
   X(p, ph, th, np, hp, xx);
 
-  /*
-  // correct p
-  p = Add(p, ff[c]);
-  X(p, ph, th, np, hp, tt);
-  for (int i = 0; i < np; ++i) {
-    coord dx = Sub(tt[i], xx[i]);
-    xx[i] = Add(xx[i], dx);
-    ff[i] = Sub(ff[i], dx);
-  }
-  */
+  // Skip correction of p, assume that p is initialized on a line segment
+  // // correct p
+  // p = Add(p, ff[c]);
+  // X(p, ph, th, np, hp, tt);
+  // for (int i = 0; i < np; ++i) {
+  //   coord dx = Sub(tt[i], xx[i]);
+  //   xx[i] = Add(xx[i], dx);
+  //   ff[i] = Sub(ff[i], dx);
+  // }
 
   // correct phi
   DxDph(p, ph, th, np, hp, tt);
@@ -360,27 +311,6 @@ static double Iter(coord* p_, double* ph_, double* th_,
   *ph_ = ph;
   *th_ = th;
   return r;
-}
-
-// incid: if true increment id
-// k: attribute
-static void AppendCsv(int it, int np, coord * xx, const char* name, 
-                      double c, double k) {
-  FILE* o;
-  char on[255];
-  sprintf(on, "%s_%04d.csv", name, it);
-  if (access(on, W_OK) == -1) { // new file
-    o = fopen(on, "w");
-    fprintf(o, "x,y,z,c,k\n");
-  } else { // append
-    o = fopen(on, "a");
-  }
-
-  for (int i = 0; i < np; ++i) {
-    fprintf(o, "%g,%g,%g,%g,%g", xx[i].x, xx[i].y, xx[i].z, c, k);
-    fprintf(o, "\n");
-  }
-  fclose(o);
 }
 
 static double Curv(double hp, double th) {
@@ -486,7 +416,7 @@ static coord LocToGlb(coord l, Trans w) {
 
 // Returns the number of interfacial cells.
 static int GetNcInter(scalar c) {
-  int nc = 0; 
+  int nc = 0;
   foreach() {
     if (interfacial(point, c)) {
       ++nc;
@@ -585,7 +515,7 @@ static void Section3(Point point, scalar c, vector nn, Trans w,
 
       // skip if cell does not intersect plane
       // TODO: enable, fix condition (current one changes results)
-      if (1 || fabs(Dot(w.n, Sub(w.o, rn))) < Delta) {
+      if (fabs(Dot(w.n, Sub(w.o, rn))) < Delta * 5) {
         coord m = {nn.x[], nn.y[], nn.z[]};
         double alpha = plane_alpha(c[], m);
         coord pp[kMaxFacet];
@@ -645,7 +575,7 @@ static void Section(Point point, scalar c, vector nn,
 // Output:
 // appends positions and attraction points to csv if a is not null
 static double GetLinesCurv(coord* ll, int nl, double delta, const Trans* w,
-                           Partstr conf, double* res_, int* it_, 
+                           Partstr conf, double* res_, int* it_,
                            double hash) {
   if (nl >= 4) { // require at least two segments
     const int Np = conf.Np;
@@ -672,25 +602,8 @@ static double GetLinesCurv(coord* ll, int nl, double delta, const Trans* w,
       }
     }
 
-    if (w) {
-      coord tt[kMaxNp];
-      for (int i = 0; i < Np; ++i) {
-        tt[i] = Add(xx[i], Mul(ff[i], 1. / eta));
-        tt[i] = LocToGlb(tt[i], *w);
-      }
-      for (int i = 0; i < Np; ++i) {
-        xx[i] = LocToGlb(xx[i], *w);
-      }
-
-      AppendCsv(t * 100, Np, xx, "part", hash, -k);
-      AppendCsv(t * 100, Np, tt, "attr", hash, -k);
-    }
-
     *res_ = res;
     *it_ = it;
-    if (conf.dumpit) {
-      fprintf(stderr, "%d %g \n", it, res);
-    }
     return k;
   }
   return 0;
@@ -742,42 +655,6 @@ static double GetMeanCurv(Point point, scalar c, vector nn,
   return ksum / Ns;
 }
 
-// Dumps interface fragments to vtk.
-void DumpFacets(scalar c, const char* fn) {
-  const int nc = GetNcInter(c); // number of interfacial cells
-  const int mm = nc * kMaxFacet;
-
-  coord* xx = (coord*)malloc(mm * sizeof(coord));
-  int* pp = (int*)malloc(mm * sizeof(int));
-  int* ss = (int*)malloc(mm * sizeof(int));
-  int np = 0;
-  int nx = 0;
-
-  foreach() {
-    if (interfacial (point, c)) {
-      coord m = Mycs(point, c);
-      double alpha = plane_alpha (c[], m);
-      coord p[kMaxFacet];
-      int nf = Facets(m, alpha, p);
-
-      coord r = {x, y, z};
-
-      ss[np] = nf;
-      for (int i = 0; i < nf; ++i) {
-        pp[nx] = nx;
-        xx[nx] = Add(r, Mul(p[i], Delta));
-        ++nx;
-      }
-      ++np;
-    }
-  }
-  WriteVtkPoly(fn, xx, nx, pp, np, ss, "comment", true);
-
-  free(ss);
-  free(pp);
-  free(xx);
-}
-
 // Returns transformation to local coordinates at the interface.
 static Trans GetPointTrans(Point point, scalar c, vector nn) {
   Trans b;
@@ -803,56 +680,6 @@ static void CalcNormal(scalar c, vector nn) {
     nn.y[] = n.y;
     nn.z[] = n.z;
   }
-}
-
-// Dumps cross sections of the inteface fragments to vtk.
-void DumpLines(scalar c, vector nn, Partstr conf, const char* fn) {
-  const int Ns = conf.Ns;
-
-  const int nc = GetNcInter(c); // number of interfacial cells
-  const int mm = nc * kMaxSection;
-
-  coord* xx = (coord*)malloc(mm * sizeof(coord));
-  int* pp = (int*)malloc(mm * sizeof(int));
-  int* ss = (int*)malloc(mm * sizeof(int));
-  int nx = 0;
-  int np = 0;
-
-  foreach() {
-    if (interfacial(point, c)) {
-      Trans b = GetPointTrans(point, c, nn);
-
-      for (int s = 0; s < Ns; ++ s) {
-        Trans w = GetSectionTrans(s, Ns, b);
-
-        coord ll[kMaxSection];
-        int nl = 0;
-
-        Section(point, c, nn, w, ll, &nl);
-        GetCrossCurv(point, c, nn, w, conf);
-
-        for (int i = 0; i < nl; ++i) {
-          ll[i] = LocToGlb(ll[i], w);
-        }
-
-        for (int i = 0; i < nl; i += 2) {
-          ss[np] = 2;
-          pp[nx] = nx;
-          xx[nx] = ll[i];
-          ++nx;
-          pp[nx] = nx;
-          xx[nx] = ll[i + 1];
-          ++nx;
-          ++np;
-        }
-      }
-    }
-  }
-  WriteVtkPoly(fn, xx, nx, pp, np, ss, "lines", false);
-
-  free(ss);
-  free(pp);
-  free(xx);
 }
 
 static double partstr(Point point, scalar c, vector nn) {

@@ -49,12 +49,14 @@ int main() {
 #endif
 #endif
   boundary({vf});
+
   curvature(vf, k);
 #if dimension == 2
   double kc = 1.;
 #elif dimension == 3
   double kc = 0.5;
 #endif
+
 
   {
     FILE* q = fopen("curv", "w");
