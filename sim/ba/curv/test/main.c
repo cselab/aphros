@@ -48,8 +48,6 @@ int main() {
 #endif
   boundary({vf});
 
-  kPartstr.dumpcsv = true;
-
   curvature(vf, k);
 
   {

@@ -191,6 +191,10 @@ static double Norm(coord a) {
   return sqrt(Sqnorm(a));
 }
 
+static double Norm1(coord a) {
+  return fabs(a.x) + fabs(a.y) + fabs(a.z);
+}
+
 static double NormMax(coord a) {
   double r = fabs(a.x);
   if (fabs(a.y) > r) {
@@ -613,18 +617,17 @@ static void Section3(
   foreach_neighbor(2) {
     if (c[] > 0. && c[] < 1.) {
       int q = 0; // number of intersections found
-      coord rn = {x, y, z};
+      coord rn = {x, y, z}; // neighbor cell center
 
-      // skip if cell does not intersect plane
-      // TODO: enable, fix condition (current one changes results)
-      if (fabs(Dot(w->n, Sub(w->o, rn))) <= Delta * Norm1(w->n) * 1.5) {
+      // if cell intersects plane
+      if (fabs(Dot(w->u, Sub(w->o, rn))) <= Delta * Norm1(w->u) * 0.5) {
         coord m = {nn.x[], nn.y[], nn.z[]}; // normal to facet
         double alpha = plane_alpha(c[], m);
         coord pp[kMaxFacet];
         int nf = Facets(m, alpha, pp);
         assert(nf <= kMaxFacet);
 
-        // find two intersectins with facet edge and plane
+        // find two intersections with facet edge and plane
         for (int i = 0; i < nf && q < 2; ++i) {
           int ib = (i + 1) % nf;
           coord p = Add(rn, Mul(pp[i], Delta));
@@ -753,7 +756,7 @@ static double GetCrossCurv(
 }
 
 // Transformation b rotated at angle.
-// s: index of cross sections
+// s: index of cross section
 // Ns: number of cross sections
 static Trans GetSectionTrans(int s, int Ns, const Trans* b) {
   const double g = PI * s / Ns;
