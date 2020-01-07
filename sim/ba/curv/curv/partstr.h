@@ -621,8 +621,18 @@ static void Section3(
 
       // if cell intersects plane
       if (fabs(Dot(w->u, Sub(w->o, rn))) <= Delta * Norm1(w->u) * 0.5) {
+        coord l = GlbToLoc(rn, w);
+        coord lb = GlbToLoc(Add(rn, Coord(Delta, 0, 0)), w);
+        ll[*nl].x = l.x;
+        ll[*nl].y = l.y;
+        ll[*nl].z = 0.;
+        ll[*nl + 1].x = lb.x;
+        ll[*nl + 1].y = lb.y;
+        ll[*nl + 1].z = 0.;
+        *nl += 2;
+        /*
         coord m = {nn.x[], nn.y[], nn.z[]}; // normal to facet
-        double alpha = plane_alpha(c[], m);
+        double alpha = plane_alpha(c[], m); // plane constant
         coord pp[kMaxFacet];
         int nf = Facets(m, alpha, pp);
         assert(nf <= kMaxFacet);
@@ -658,6 +668,7 @@ static void Section3(
             }
           }
         }
+        */
       }
     }
   }
