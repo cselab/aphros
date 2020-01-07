@@ -94,13 +94,13 @@ struct PartStrMeshM<M_>::Imp {
       const std::array<Vect, 3>& v, Vect xc, Scal a, const Vect& n,
       std::vector<Vect2>& lx, std::vector<size_t>& ls) {
     Vect h = m.GetCellSize(); // cell size
-    auto xx = R::GetCutPoly(xc, n, a, h); // interface polygon
     std::array<Vect, 2> e; // ends of intersection
     Vect mc = v[0]; // plane center
     Vect mx = v[1]; // unit in x
     Vect my = v[2]; // unit in y
     Vect mn = mx.cross(my); // normal to plane
-    if (R::GetInterPoly(xx, mc, mn, e)) { // intersection non-empty
+
+    if (R::PolyInter(xc, n, a, h, mc, mn, e[0], e[1])) {
       // interface normal
       auto pn = GetPlaneCoords(mc + n, v);
       // line ends
