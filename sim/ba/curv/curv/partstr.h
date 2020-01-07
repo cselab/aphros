@@ -308,11 +308,13 @@ static void F(
     return;
   }
   for (int i = 0; i < np; ++i) {
-    coord pm = Nearest(ll[0], ll[1], xx[i]);
+    const coord x = xx[i];
+    coord pm = Nearest(ll[0], ll[1], x);
+    double dist = Sqdist(xx[i], pm);
 
     for (int l = 0; l < nl; l += 2) {
-      coord p = Nearest(ll[l], ll[l + 1], xx[i]);
-      if (Sqdist(xx[i], p) < Sqdist(xx[i], pm)) {
+      coord p = Nearest(ll[l], ll[l + 1], x);
+      if (Sqdist(x, p) < dist) {
         pm = p;
       }
     }

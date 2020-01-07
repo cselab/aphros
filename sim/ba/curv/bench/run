@@ -22,7 +22,7 @@ r () {
 }
 
 #r "-DCURV_ORIG"
-r "-DCURV_PARTSTR -DPS_itermax=1 -DPS_eps=0"
-#r "-DCURV_PARTSTR -DPS_itermax=20 -DPS_eps=0"
+#r "-DCURV_PARTSTR -DPS_itermax=1 -DPS_eps=0"
+r "-DCURV_PARTSTR -DPS_itermax=20 -DPS_eps=0"
 #r "-DCURV_PARTSTR"
 #r "-DCURV_PARTSTR -DPS_Ns=2 -DPS_Np=5"
