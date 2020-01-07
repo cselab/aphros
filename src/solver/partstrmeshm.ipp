@@ -128,9 +128,6 @@ struct PartStrMeshM<M_>::Imp {
     ss[0] = (xc[im] - hh[im] - xl[im]) / t[im];
     ss[1] = (xc[im] + hh[im] - xl[im]) / t[im];
     for (int i = 0; i < dim; ++i) {
-      if (i == im) {
-        continue;
-      }
       if (!ClipSegment(
               xl[i], t[i], xc[i] - hh[i], xc[i] + hh[i], ss[0], ss[1])) {
         return false;
@@ -217,9 +214,9 @@ struct PartStrMeshM<M_>::Imp {
     Vect my = v[2]; // unit in y
     Vect mn = mx.cross(my); // normal to plane
 
-    //auto xx = R::GetCutPoly(xc, n, a, h); // interface polygon
-    //if (R::GetInterPoly(xx, mc, mn, e)) { // intersection non-empty
-    if (GetInterPoly(xc, n, a, h, mc, mn, e[0], e[1])) {
+    auto xx = R::GetCutPoly(xc, n, a, h); // interface polygon
+    if (R::GetInterPoly(xx, mc, mn, e)) { // intersection non-empty
+    //if (GetInterPoly(xc, n, a, h, mc, mn, e[0], e[1])) {
       // interface normal
       auto pn = GetPlaneCoords(mc + n, v);
       // line ends
