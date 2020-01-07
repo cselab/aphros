@@ -334,13 +334,13 @@ static void F_dist(
   }
   for (int i = 0; i < np; ++i) {
     const coord x = xx[i];
-    coord pm = Nearest(ll[0], ll[1], x);
-    double distm = Sqdist(x, pm);
+    coord pm;
+    double distm = -1;
 
-    for (int l = 2; l < nl; l += 2) {
+    for (int l = 0; l < nl; l += 2) {
       const coord p = Nearest(ll[l], ll[l + 1], x);
       const double dist = Sqdist(x, p);
-      if (dist < distm) {
+      if (distm < 0 || dist < distm) {
         pm = p;
         distm = dist;
       }
