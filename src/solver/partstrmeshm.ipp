@@ -49,7 +49,7 @@ struct PartStrMeshM<M_>::Imp {
     const Scal x0 = xc + t * s0;
     const Scal x1 = xc + t * s1;
     if (t >= 0) { // x0 < x1
-      if (x1 < xmin || x0 > xmax) {
+      if (x1 <= xmin || x0 >= xmax) {
         return false;
       }
       if (x0 < xmin) {
@@ -61,7 +61,7 @@ struct PartStrMeshM<M_>::Imp {
       return true;
     }
     // t < 0, x1 < x0
-    if (x0 < xmin || x1 > xmax) {
+    if (x0 <= xmin || x1 >= xmax) {
       return false;
     }
     if (x1 < xmin) {
@@ -116,18 +116,20 @@ struct PartStrMeshM<M_>::Imp {
     const Vect xl = xc + n * u + np * v;
     const int dim = 3;
     // intersection vector
-    const Vect t = n.cross(np);
+    Vect t = n.cross(np);
+    if (t.norm1() == 0) {
+      return false;
+    }
+    t /= t.norm1();
     // line parametrization:
     //   x = xl + t * s
     Scal ss[2];
     const int im = t.abs().argmax();
     ss[0] = (xc[im] - hh[im] - xl[im]) / t[im];
     ss[1] = (xc[im] + hh[im] - xl[im]) / t[im];
-    // clip line in other directions
     for (int i = 0; i < dim; ++i) {
-      if (i == im) continue;
-      if (std::abs(t[i]) < 1e-6) {
-        return false;
+      if (i == im) {
+        continue;
       }
       if (!ClipSegment(
               xl[i], t[i], xc[i] - hh[i], xc[i] + hh[i], ss[0], ss[1])) {
