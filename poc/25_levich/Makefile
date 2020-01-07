@@ -20,5 +20,8 @@ install: $L $H
 	cp -- $L "$(PREFIX)/lib"
 	cp -- $H "$(PREFIX)/include"
 
+main: main.c $L
+	$(CC) $(CFLAGS) $(LDFLAGS) -L. main.c -ladamar -lm -o main
+
 .PHONY: clean lint install
 clean:; rm -f -- $O $L

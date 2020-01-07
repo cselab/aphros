@@ -5,7 +5,7 @@ struct Adamar {
   double pi;
 
   double U;
-  int Inside;
+  double distance;
 };
 
 int adamar_fields(

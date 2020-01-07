@@ -51,8 +51,8 @@ static int c2s(
   double p;
 
   r = sqrt(sq(x) + sq(y) + sq(z));
-  t = (r == 0) ? 0 : acos(z / r);
-  p = atan2(y, x);
+  t = (r == 0) ? 0 : acos(x / r);
+  p = atan2(z, y);
 
   *pr = r;
   *pt = t;
@@ -63,9 +63,9 @@ static int c2s(
 static int s2c(
     double r, double t, double p, double u, double v, double* x, double* y,
     double* z) {
-  *x = cos(p) * (sin(t) * u + cos(t) * v);
-  *y = sin(p) * (sin(t) * u + cos(t) * v);
-  *z = cos(t) * u - sin(t) * v;
+  *x = cos(t) * u - sin(t) * v;
+  *y = cos(p) * (sin(t) * u + cos(t) * v);
+  *z = sin(p) * (sin(t) * u + cos(t) * v);
   return 0;
 }
 
@@ -81,7 +81,7 @@ int adamar_fields(
 
   a = q->a;
   c2s(x, y, z, &r, &t, &p);
-  if (q->Inside = (r < a)) {
+  if ((q->distance = r - a) < 0) {
     g(q, r, t, &u, &v, pp);
   }
   else

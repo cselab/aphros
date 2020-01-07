@@ -10,7 +10,7 @@ int main(int argc, const char **argv) {
     double *vx;
     double *vy;
     double *vz;
-    int *Inside;
+    double *distance;
     double *p;
     double x;
     double y;
@@ -18,44 +18,60 @@ int main(int argc, const char **argv) {
 
     q.a = 1;
     q.mu0 = 1;
-    q.mu1 = 1;
+    q.mu1 = 10;
     q.pi = 1;
 
     double lx;
     double ly;
+    double lz;
     double hx;
     double hy;
+    double hz;
     double dx;
     double dy;
+    double dz;
     int nx;
     int ny;
+    int nz;
     int n;
     int i;
     int j;
     int k;
+    int l;
     FILE *f;
     
-    lx = ly = -10;
-    hx = hy = 10;
-    nx = ny = 300;
-    n = (nx + 1) * (ny + 1);
-    dx = (hx - lx)/nx;
-    dy = (hy - ly)/ny;
+    lx = -2;
+    ly = -2;
+    lz = 0;
+    
+    hx = 2;
+    hy = 2;
+    hz = 0;
+    
+    nx = 500;
+    ny = 500;
+    nz = 0;
+    n = (nx + 1) * (ny + 1) * (nz + 1);
+    dx = nx == 0 ? 1 : (hx - lx)/nx;
+    dy = ny == 0 ? 1 : (hy - ly)/ny;
+    dz = nz == 0 ? 1 : (hz - lz)/nz;
 
     vx = malloc(n*sizeof(*vx));
     vy = malloc(n*sizeof(*vy));
     vz = malloc(n*sizeof(*vz));
     p = malloc(n*sizeof(*p));
-    Inside = malloc(n*sizeof(*Inside));
+    distance = malloc(n*sizeof(*distance));
 
-    for (i = k = 0; i < nx + 1; i++)
-	for (j = 0; j < ny + 1; j++, k++) {
-	    x = lx + dx * i;
-	    y = 0;
-	    z = ly + dy * j;
-	    adamar_fields(&q, x, y, z, &vx[k], &vz[k], &vy[k], &p[k]);
-	    vy[k] -= q.U;
-	    Inside[k] = q.Inside;
+    l = 0;
+    for (k = 0; k <= nz; k++)
+        for (j = 0; j <= ny; j++)
+            for (i = 0; i <= nx; i++) {
+		x = lx + dx * i;
+                y = ly + dy * j;
+                z = lz + dz * k;
+		adamar_fields(&q, x, y, z, &vx[l], &vy[l], &vz[l], &p[l]);
+		distance[l] = q.distance;
+		l++;
 	}
 
     f = stdout;
@@ -66,15 +82,15 @@ int main(int argc, const char **argv) {
             "DIMENSIONS %d %d %d\n"
             "ORIGIN %.16g %.16g %.16g\n"
             "SPACING %.16g %.16g %.16g\n",
-            me, nx + 1, ny + 1, 1, lx, ly, 0.0, dx, dy, 0.0);
+            me, nx + 1, ny + 1, nz + 1, lx, ly, lz, dx, dy, dz);
     fprintf(f, "POINT_DATA %d\n", n);
     fputs("VECTORS v double\n", f);
     for (i = 0; i < n; i++)
         fprintf(f, "%.16g %.16g %.16g\n", vx[i], vy[i], vz[i]);
-    fputs("SCALARS Inside int\n", f);
+    fputs("SCALARS distance double\n", f);
     fputs("LOOKUP_TABLE DEFAULT\n", f);
     for (i = 0; i < n; i++)
-        fprintf(f, "%d\n", Inside[i]);
+        fprintf(f, "%.16g\n", distance[i]);
     fputs("SCALARS p double\n", f);
     fputs("LOOKUP_TABLE DEFAULT\n", f);
     for (i = 0; i < n; i++)
@@ -84,5 +100,5 @@ int main(int argc, const char **argv) {
     free(vy);
     free(vz);
     free(p);
-    free(Inside);
+    free(distance);
 }
