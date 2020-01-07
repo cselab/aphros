@@ -8,6 +8,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <set>
 #include <vector>
 
@@ -29,6 +30,14 @@ std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
     p = " ";
   }
   return o;
+}
+
+template <class T>
+void Reorder(std::vector<T>& v, const std::vector<size_t> idx) {
+  std::vector<T> t = v;
+  for (size_t i = 0; i < v.size(); ++i) {
+    v[i] = t[idx[i]];
+  }
 }
 
 template <class M_>
@@ -53,11 +62,13 @@ struct UVof<M_>::Imp {
       std::vector<Scal> dlc; // cells index
       std::vector<Scal> dll; // layer
       std::vector<Scal> dlcl; // color
+      std::vector<Vect> dlx; // color
     } * ctx(sem);
     auto& dl = ctx->dl;
     auto& dlc = ctx->dlc;
     auto& dll = ctx->dll;
     auto& dlcl = ctx->dlcl;
+    auto& dlx = ctx->dlx;
     if (sem("local")) {
       auto h = m.GetCellSize();
       for (auto i : layers) {
@@ -72,6 +83,7 @@ struct UVof<M_>::Imp {
             dlc.push_back(m.GetHash(c));
             dll.push_back(i);
             dlcl.push_back(fccl[i] ? (*fccl[i])[c] : 0);
+            dlx.push_back(m.GetCenter(c));
           }
         }
       }
@@ -81,9 +93,21 @@ struct UVof<M_>::Imp {
       m.Reduce(std::make_shared<TS>(&dlc));
       m.Reduce(std::make_shared<TS>(&dll));
       m.Reduce(std::make_shared<TS>(&dlcl));
+      using TSV = typename M::template OpCatT<Vect>;
+      m.Reduce(std::make_shared<TSV>(&dlx));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
+        std::vector<size_t> idx(dlc.size());
+        std::iota(idx.begin(), idx.end(), 0);
+        std::stable_sort(idx.begin(), idx.end(),
+             [&](size_t i1, size_t i2) {return dlc[i1] < dlc[i2];});
+
+        Reorder(dl, idx);
+        Reorder(dlc, idx);
+        Reorder(dll, idx);
+        Reorder(dlcl, idx);
+
         std::cout << std::fixed << std::setprecision(8) << "dump"
                   << " t=" << t << " to " << fn << std::endl;
         WriteVtkPoly<Vect>(
