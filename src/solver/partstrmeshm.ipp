@@ -1,5 +1,7 @@
+#include <algorithm>
 #include <cmath>
 #include <memory>
+#include <numeric>
 #include <sstream>
 
 #include "debug/isnan.h"
@@ -294,7 +296,13 @@ struct PartStrMeshM<M_>::Imp {
           o.precision(20);
           o << "x,y,z,c,k\n";
 
-          for (size_t i = 0; i < dpx.size(); ++i) {
+          std::vector<size_t> idx(dpc.size());
+          std::iota(idx.begin(), idx.end(), 0);
+          std::stable_sort(idx.begin(), idx.end(),
+               [&dpc](size_t i1, size_t i2) {return dpc[i1] < dpc[i2];});
+
+          for (size_t j = 0; j < dpx.size(); ++j) {
+            const size_t i = idx[j];
             Vect x = dpx[i];
             o << x[0] << "," << x[1] << "," << x[2] << "," << dpc[i] << ","
               << dpk[i] << "\n";
