@@ -1,13 +1,50 @@
 #undef NDEBUG
 #include <cassert>
 #include <iostream>
-#include <string>
 #include <memory>
+#include <string>
 
 #include <geom/vect.h>
 
 using Scal = double;
 using Vect = GVect<Scal, 3>;
+
+// Clips parameterized line segment.
+// parametrization of segment:
+// x(s) = xc + t * s
+// s0,s1: endpoints
+// xmin,xmax: clipping limits, xmin < xmax
+// Returns true clipped segment is non-empty and updates s0 and s1.
+bool ClipSegment(Scal xc, Scal t, Scal xmin, Scal xmax, Scal& s0, Scal& s1) {
+  if (s0 > s1) {
+    std::swap(s0, s1);
+  }
+  const Scal x0 = xc + t * s0;
+  const Scal x1 = xc + t * s1;
+  if (t >= 0) { // [x0, x1]
+    if (x1 < xmin || x0 > xmax) {
+      return false;
+    }
+    if (x0 < xmin) {
+      s0 = (xmin - xc) / t;
+    }
+    if (x1 > xmax) {
+      s1 = (xmax - xc) / t;
+    }
+    return true;
+  }
+  // t < 0, [x1, x0]
+  if (x0 < xmin || x1 > xmax) {
+    return false;
+  }
+  if (x1 < xmin) {
+    s1 = (xmin - xc) / t;
+  }
+  if (x0 > xmax) {
+    s0 = (xmax - xc) / t;
+  }
+  return true;
+}
 
 // Intersection between PLIC polygon and plane.
 // xc,n,a,h: PLIC cell center, normal, plane constant, cell size
@@ -50,14 +87,11 @@ bool PolyInter(
   const Scal v = (r2 * m11 - r1 * m12) / det;
   // point on intersection line:
   const Vect xl = xc + n * u + np * v;
-  // check:
-  std::cout << "n: " << n.dot(xl - xc) - a << std::endl;
-  std::cout << "np: " << np.dot(xl - xp) << std::endl;
   const int dim = 3;
   // intersection vector
   const Vect t = n.cross(np);
   // line parametrization:
-  //   x = xr + t * s
+  //   x = xl + t * s
   Scal ss[2];
   const int im = t.abs().argmax();
   ss[0] = (xc[im] - hh[im] - xl[im]) / t[im];
@@ -65,16 +99,9 @@ bool PolyInter(
   // clip line in other directions
   for (int i = 0; i < dim; ++i) {
     if (i == im) continue;
-    for (Scal g : {-1., 1.}) {
-      for (int q = 0; q < 2; ++q) {
-        if ((xl[i] + t[i] * ss[q] - xc[i]) * g > hh[i] && t[i] != 0) {
-          ss[q] = (xc[i] + hh[i] * g - xl[i]) / t[i];
-        }
-      }
+    if (!ClipSegment(xl[i], t[i], xc[i] - hh[i], xc[i] + hh[i], ss[0], ss[1])) {
+      return false;
     }
-  }
-  if (std::abs(ss[1] - ss[0]) < 1e-10 * t.norm1()) {
-    return false;
   }
   x0 = xl + t * ss[0];
   x1 = xl + t * ss[1];
@@ -83,9 +110,10 @@ bool PolyInter(
 
 int main() {
   Vect x0, x1;
-  PolyInter(
-      Vect{0., 0., 0.}, Vect{1., 1., 0.}, 1, Vect{1., 1., 1.}, Vect{0.,0.,0.}, Vect{0., 1., 0.},
-      x0, x1);
+  bool q = PolyInter(
+      Vect{0., 0., 0.}, Vect{1., 1., 1.}, 0.3, Vect{1., 1., 1.}, Vect{0., 0., 0.},
+      Vect{0., 1., 0.}, x0, x1);
   std::cout << x0 << std::endl;
   std::cout << x1 << std::endl;
+  std::cout << q << std::endl;
 }
