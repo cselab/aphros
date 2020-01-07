@@ -1099,7 +1099,7 @@ class Reconst {
     }
     const Scal x0 = xc + t * s0;
     const Scal x1 = xc + t * s1;
-    if (t >= 0) { // [x0, x1]
+    if (t >= 0) { // x0 < x1
       if (x1 < xmin || x0 > xmax) {
         return false;
       }
@@ -1111,7 +1111,7 @@ class Reconst {
       }
       return true;
     }
-    // t < 0, [x1, x0]
+    // t < 0, x1 < x0
     if (x0 < xmin || x1 > xmax) {
       return false;
     }

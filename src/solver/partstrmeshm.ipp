@@ -12,6 +12,15 @@
 
 #include "partstrmeshm.h"
 
+template <class T>
+void Reorder(std::vector<T>& v, const std::vector<size_t> idx) {
+  std::vector<T> t = v;
+  for (size_t i = 0; i < v.size(); ++i) {
+    v[i] = t[idx[i]];
+  }
+}
+
+
 template <class M_>
 struct PartStrMeshM<M_>::Imp {
   static constexpr size_t dim = M::dim;
@@ -102,6 +111,8 @@ struct PartStrMeshM<M_>::Imp {
     Vect my = v[2]; // unit in y
     Vect mn = mx.cross(my); // normal to plane
 
+    //auto xx = R::GetCutPoly(xc, n, a, h); // interface polygon
+    //if (R::GetInterPoly(xx, mc, mn, e)) { // intersection non-empty
     if (R::PolyInter(xc, n, a, h, mc, mn, e[0], e[1])) {
       // interface normal
       auto pn = GetPlaneCoords(mc + n, v);
@@ -324,9 +335,6 @@ struct PartStrMeshM<M_>::Imp {
     auto& dlc = ctx->dlc;
 
     if (sem("local")) {
-      dl.clear();
-      dlc.clear();
-
       for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
         // cell containing string
         IdxCell c = vsc_[s];
@@ -353,6 +361,14 @@ struct PartStrMeshM<M_>::Imp {
     }
     if (sem("write")) {
       if (m.IsRoot()) {
+        std::vector<size_t> idx(dlc.size());
+        std::iota(idx.begin(), idx.end(), 0);
+        std::stable_sort(idx.begin(), idx.end(),
+             [&](size_t i1, size_t i2) {return dlc[i1] < dlc[i2];});
+
+        Reorder(dl, idx);
+        Reorder(dlc, idx);
+
         std::string fn = GetDumpName("sp", ".vtk", id);
         std::cout << std::fixed << std::setprecision(8) << "dump"
                   << " t=" << t << " to " << fn << std::endl;
