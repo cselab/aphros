@@ -11,34 +11,33 @@ static void usg() {
 }
 
 int main(int argc, const char** argv) {
-  struct Adamar q;
-  double* vx;
-  double* vy;
-  double* vz;
   double* distance;
-  double* p;
-  double x;
-  double y;
-  double z;
-
-  double lx;
-  double ly;
-  double lz;
-  double hx;
-  double hy;
-  double hz;
   double dx;
   double dy;
   double dz;
-  int nx;
-  int ny;
-  int nz;
-  int n;
+  double hx;
+  double hy;
+  double hz;
+  double lx;
+  double ly;
+  double lz;
+  double* p;
+  double* vx;
+  double* vy;
+  double* vz;
+  double x;
+  double y;
+  double z;
+  FILE* f;
   int i;
   int j;
   int k;
   int l;
-  FILE* f;
+  int n;
+  int nx;
+  int ny;
+  int nz;
+  struct Adamar q;
 
   q.a = 1;
   q.mu0 = 1;
