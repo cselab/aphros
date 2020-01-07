@@ -1092,7 +1092,8 @@ class Reconst {
   // s0,s1: endpoints
   // xmin,xmax: clipping limits, xmin < xmax
   // Returns true clipped segment is non-empty and updates s0 and s1.
-  bool ClipSegment(Scal xc, Scal t, Scal xmin, Scal xmax, Scal& s0, Scal& s1) {
+  static bool ClipSegment(
+      Scal xc, Scal t, Scal xmin, Scal xmax, Scal& s0, Scal& s1) {
     if (s0 > s1) {
       std::swap(s0, s1);
     }
@@ -1129,7 +1130,7 @@ class Reconst {
   // Output:
   // x0,x1: endpoints of intersection
   // Returns true if intersect.
-  bool PolyInter(
+  static bool PolyInter(
       Vect xc, Vect n, Scal a, Vect h, Vect xp, Vect np, Vect& x0, Vect& x1) {
     const Vect hh = h * 0.5;
     // plane equation: np.dot(x - xp) = 0
@@ -1176,7 +1177,8 @@ class Reconst {
     // clip line in other directions
     for (int i = 0; i < dim; ++i) {
       if (i == im) continue;
-      if (!ClipSegment(xl[i], t[i], xc[i] - hh[i], xc[i] + hh[i], ss[0], ss[1])) {
+      if (!ClipSegment(
+              xl[i], t[i], xc[i] - hh[i], xc[i] + hh[i], ss[0], ss[1])) {
         return false;
       }
     }
