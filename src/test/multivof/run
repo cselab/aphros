@@ -29,7 +29,7 @@ ap-run ap-mfer
 a=0
 for f in ref/{vx,vy,p,vf}*.dat ; do
   echo $f
-  if ! ap-diffnum "${f#ref/}" "$f" "1e-12"; then
+  if ! ap-diffnum "${f#ref/}" "$f" "1e-11"; then
     a=1
   fi
 done
