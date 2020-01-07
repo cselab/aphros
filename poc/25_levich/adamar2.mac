@@ -39,4 +39,3 @@ U0: U, %s, factor;
 limit(U0, mu1, inf), factor;
 
 v1/U, %s, factor;
-

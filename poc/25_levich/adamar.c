@@ -70,8 +70,8 @@ static int s2c(
 }
 
 int adamar_fields(
-    struct Adamar* q, double x, double y, double z, double* px, double* py, double *pz,
-    double* pp) {
+    struct Adamar* q, double x, double y, double z, double* px, double* py,
+    double* pz, double* pp) {
   double r;
   double t;
   double p;
@@ -83,8 +83,7 @@ int adamar_fields(
   c2s(x, y, z, &r, &t, &p);
   if ((q->distance = r - a) < 0) {
     g(q, r, t, &u, &v, pp);
-  }
-  else
+  } else
     f(q, r, t, &u, &v, pp);
   s2c(r, t, p, u, v, px, py, pz);
   return 0;
