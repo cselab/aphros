@@ -40,7 +40,7 @@ struct UVof<M_>::Imp {
   Imp() = default;
   ~Imp() = default;
 
-  void DumpPoly(
+  static void DumpPoly(
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Vect>*>& fcn,
@@ -48,11 +48,17 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t,
       bool bin, bool merge, M& m) {
     auto sem = m.GetSem("dumppoly");
+    struct {
+      std::vector<std::vector<Vect>> dl; // polygons
+      std::vector<Scal> dlc; // cells index
+      std::vector<Scal> dll; // layer
+      std::vector<Scal> dlcl; // color
+    } * ctx(sem);
+    auto& dl = ctx->dl;
+    auto& dlc = ctx->dlc;
+    auto& dll = ctx->dll;
+    auto& dlcl = ctx->dlcl;
     if (sem("local")) {
-      dl_.clear();
-      dlc_.clear();
-      dll_.clear();
-      dlcl_.clear();
       auto h = m.GetCellSize();
       for (auto i : layers) {
         for (auto c : m.Cells()) {
@@ -61,27 +67,27 @@ struct UVof<M_>::Imp {
             continue;
           }
           if ((*fci[i])[c]) {
-            dl_.push_back(
+            dl.push_back(
                 R::GetCutPoly(m.GetCenter(c), (*fcn[i])[c], (*fca[i])[c], h));
-            dlc_.push_back(m.GetHash(c));
-            dll_.push_back(i);
-            dlcl_.push_back(fccl[i] ? (*fccl[i])[c] : 0);
+            dlc.push_back(m.GetHash(c));
+            dll.push_back(i);
+            dlcl.push_back(fccl[i] ? (*fccl[i])[c] : 0);
           }
         }
       }
       using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dl_));
+      m.Reduce(std::make_shared<TV>(&dl));
       using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dlc_));
-      m.Reduce(std::make_shared<TS>(&dll_));
-      m.Reduce(std::make_shared<TS>(&dlcl_));
+      m.Reduce(std::make_shared<TS>(&dlc));
+      m.Reduce(std::make_shared<TS>(&dll));
+      m.Reduce(std::make_shared<TS>(&dlcl));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
         std::cout << std::fixed << std::setprecision(8) << "dump"
                   << " t=" << t << " to " << fn << std::endl;
         WriteVtkPoly<Vect>(
-            fn, dl_, nullptr, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"},
+            fn, dl, nullptr, {&dlc, &dll, &dlcl}, {"c", "l", "cl"},
             "Interface from PLIC", true, bin, merge);
       }
     }
@@ -220,12 +226,19 @@ struct UVof<M_>::Imp {
     (void)fca;
     (void)fci;
     auto sem = m.GetSem("dumppolymarch");
+    struct {
+      std::vector<std::vector<Vect>> dl; // polygons
+      std::vector<std::vector<Vect>> dln; // normal
+      std::vector<Scal> dlc; // cells index
+      std::vector<Scal> dll; // layer
+      std::vector<Scal> dlcl; // color
+    } * ctx(sem);
+    auto& dl = ctx->dl;
+    auto& dln = ctx->dln;
+    auto& dlc = ctx->dlc;
+    auto& dll = ctx->dll;
+    auto& dlcl = ctx->dlcl;
     if (sem("local")) {
-      dl_.clear();
-      dln_.clear();
-      dlc_.clear();
-      dll_.clear();
-      dlcl_.clear();
       // visited cells without color
       std::set<std::pair<size_t, Scal>> done;
       auto h = m.GetCellSize();
@@ -269,11 +282,11 @@ struct UVof<M_>::Imp {
                 std::vector<std::vector<Vect>> vv, vvn;
                 GetMarchTriangles(uun, nn, m.GetCenter(cn), h, iso, vv, vvn);
                 for (size_t j = 0; j < vv.size(); ++j) {
-                  dl_.push_back(vv[j]);
-                  dln_.push_back(vvn[j]);
-                  dlc_.push_back(m.GetHash(cn));
-                  dll_.push_back(i);
-                  dlcl_.push_back(cl);
+                  dl.push_back(vv[j]);
+                  dln.push_back(vvn[j]);
+                  dlc.push_back(m.GetHash(cn));
+                  dll.push_back(i);
+                  dlcl.push_back(cl);
                 }
               }
             }
@@ -296,29 +309,29 @@ struct UVof<M_>::Imp {
             std::vector<std::vector<Vect>> vv, vvn;
             GetMarchTriangles(uun, nn, m.GetCenter(c), h, iso, vv, vvn);
             for (size_t j = 0; j < vv.size(); ++j) {
-              dl_.push_back(vv[j]);
-              dln_.push_back(vvn[j]);
-              dlc_.push_back(m.GetHash(c));
-              dll_.push_back(-1);
-              dlcl_.push_back(-1);
+              dl.push_back(vv[j]);
+              dln.push_back(vvn[j]);
+              dlc.push_back(m.GetHash(c));
+              dll.push_back(-1);
+              dlcl.push_back(-1);
             }
           }
         }
       }
       using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dl_));
-      m.Reduce(std::make_shared<TV>(&dln_));
+      m.Reduce(std::make_shared<TV>(&dl));
+      m.Reduce(std::make_shared<TV>(&dln));
       using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dlc_));
-      m.Reduce(std::make_shared<TS>(&dll_));
-      m.Reduce(std::make_shared<TS>(&dlcl_));
+      m.Reduce(std::make_shared<TS>(&dlc));
+      m.Reduce(std::make_shared<TS>(&dll));
+      m.Reduce(std::make_shared<TS>(&dlcl));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
         std::cout << std::fixed << std::setprecision(8) << "dump"
                   << " t=" << t << " to " << fn << std::endl;
         WriteVtkPoly<Vect>(
-            fn, dl_, &dln_, {&dlc_, &dll_, &dlcl_}, {"c", "l", "cl"},
+            fn, dl, &dln, {&dlc, &dll, &dlcl}, {"c", "l", "cl"},
             "Interface from marching cubes", true, bin, merge);
       }
     }
@@ -883,12 +896,6 @@ struct UVof<M_>::Imp {
         layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfc, verb, reduce,
         grid, m);
   }
-
-  std::vector<std::vector<Vect>> dl_; // dump poly
-  std::vector<std::vector<Vect>> dln_; // dump poly normals
-  std::vector<Scal> dlc_; // dump poly cell
-  std::vector<Scal> dll_; // dump poly layer
-  std::vector<Scal> dlcl_; // dump poly color
 };
 
 template <class M_>
