@@ -9,5 +9,5 @@ struct Adamar {
 };
 
 int adamar_fields(
-    struct Adamar* q, double x, double y, double z, double* vx, double* vy,
+    struct Adamar*, double x, double y, double z, double* vx, double* vy,
     double* vz, double* p);
