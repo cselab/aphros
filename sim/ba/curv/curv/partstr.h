@@ -1,3 +1,13 @@
+// Method of connected particles for curvature estimation.
+// Petr Karnakov (pkarnakov@gmail.com), Sergey Litvinov (slitvinov@gmail.com)
+// January 08, 2020.
+//
+// based on paper
+// Karnakov P., Litvinov S. and Koumoutsakos P.,
+// A hybrid particle volume-of-fluid method for curvature estimation in
+// multiphase flows. International Journal of Multiphase Flow. 2020
+// https://arxiv.org/abs/1906.00314
+
 #include "fractions.h"
 #include "curvature.h"
 
