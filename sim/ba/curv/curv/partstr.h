@@ -256,6 +256,27 @@ static coord Nearest(coord a, coord b, coord x) {
   return a;
 }
 
+// ab: 1 / Sqdist(a, b)
+static coord NearestNodiv(coord a, coord b, coord x, double d) {
+  b = Sub(b, a);
+  x = Sub(x, a);
+  double q = Dot(b, x) * d;
+  q = clamp(q, 0., 1.);
+  a.x += b.x * q;
+  a.y += b.y * q;
+  a.z = 0;
+  return a;
+}
+
+// Point nearest to line segment [a, b]
+static double NearestSqdist(coord a, coord b, coord x) {
+  b = Sub(b, a);
+  x = Sub(x, a);
+  coord xn = Mul(b, clamp(Dot(b, x) / Dot(b, b), 0., 1.));
+  xn.z = 0;
+  return Sqdist(xn, x);
+}
+
 // Derivative dX/dph
 static void DxDph(coord p, double ph, double th, int np, double hp, coord* xx) {
   (void)p;
@@ -348,6 +369,59 @@ static void F_dist(
     ff[i] = Mul(Sub(pm, x), eta);
   }
 }
+
+// dd: array dd[l/2] = 1 / Sqdist(ll[l + 1] - ll[l])
+static void F_distdiv(
+    int np, const coord* xx, int nl, const coord* ll, const double* dd,
+    double eta, double k, coord* ff) {
+  if (nl == 0) {
+    for (int i = 0; i < np; ++i) {
+      ff[i] = Zero();
+    }
+    return;
+  }
+  for (int i = 0; i < np; ++i) {
+    const coord x = xx[i];
+    coord pm;
+    double distm = -1;
+
+    for (int l = 0; l < nl; l += 2) {
+      const coord p = NearestNodiv(ll[l], ll[l + 1], x, dd[l / 2]);
+      const double dist = Sqdist(x, p);
+      if (distm < 0 || dist < distm) {
+        pm = p;
+        distm = dist;
+      }
+    }
+    ff[i] = Mul(Sub(pm, x), eta);
+  }
+}
+
+static void F_distidx(
+    int np, const coord* xx, int nl, const coord* ll, double eta, double k,
+    coord* ff) {
+  if (nl == 0) {
+    for (int i = 0; i < np; ++i) {
+      ff[i] = Zero();
+    }
+    return;
+  }
+  for (int i = 0; i < np; ++i) {
+    const coord x = xx[i];
+    int lm = 0;
+    double distm;
+
+    for (int l = 0; l < nl; l += 2) {
+      const double dist = NearestSqdist(ll[l], ll[l + 1], x);
+      if (l == 0 || dist < distm) {
+        lm = l;
+        distm = dist;
+      }
+    }
+    ff[i] = Mul(Sub(Nearest(ll[lm], ll[lm + 1], x), x), eta);
+  }
+}
+
 // Forces on particles.
 // np: number of particles
 // xx: positions
@@ -379,7 +453,7 @@ static void F_near(
   }
 }
 
-#define F F_dist
+#define F F_distdiv
 
 // Iteration of evolution of particles.
 // p_,ph_,th_: current configuration
@@ -761,15 +835,19 @@ static double GetLinesCurv(
 
     coord xx[kMaxNp]; // positions
     coord ff[kMaxNp]; // forces
+    double dd[kMaxSection / 2]; // precomputed division for F()
     coord p = {0., 0, 0.};
     double ph = 0.;
     double th = 0.;
     double k = 0;
     double res = 0;
     int it = 0;
+    for (int l = 0; l < nl; l += 2) {
+      dd[l / 2] = 1 / Sqdist(ll[l], ll[l + 1]);
+    }
     for (it = 0; it < itermax; ++it) {
       X(p, ph, th, Np, hp, xx);
-      F(Np, xx, nl, ll, eta, k, ff);
+      F(Np, xx, nl, ll, dd, eta, k, ff);
 
       k = Curv(hp, th);
       res = Iter(&p, &ph, &th, Np, hp, ff, xx);
