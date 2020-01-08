@@ -1,7 +1,6 @@
 #include "fractions.h"
 #include "curvature.h"
 
-
 #include <assert.h>
 #include <unistd.h>
 
@@ -10,7 +9,6 @@
 #endif
 
 // Writes legacy vtk polydata
-// fn: path
 // xx: points
 // nx: size of xx
 // pp: polygons as lists of indices
@@ -18,9 +16,9 @@
 // ss[i] is size of polygon pp[i]
 // cm: comment
 // poly: true: polygons, false: lines
-void WriteVtkPoly(const char* fn, coord* xx, int nx,
+void WriteVtkPoly(const char* filename, coord* xx, int nx,
                   int* pp, int np, int* ss, const char* cm, bool poly) {
-  FILE* o = fopen(fn, "w");
+  FILE* o = fopen(filename, "w");
   fprintf(o, "# vtk DataFile Version 2.0\n");
   fprintf(o, "%s\n", cm);
 
@@ -493,14 +491,14 @@ static coord Mycs(Point point, scalar c) {
 }
 
 // Appends csv file.
-// incid: if true increment id
-// c: attribute
-// k: attribute
-static void AppendCsv(int it, int np, coord * xx, const char* name, 
+// frame: frame index for filename
+// c: attribute, cell hash
+// k: attribute, curvature
+static void AppendCsv(int frame, int np, coord * xx, const char* name,
                       double c, double k) {
   FILE* o;
-  char on[255];
-  sprintf(on, "%s_%04d.csv", name, it);
+  char on[1000];
+  sprintf(on, "%s_%04d.csv", name, frame);
   if (access(on, W_OK) == -1) { // new file
     o = fopen(on, "w");
     fprintf(o, "x,y,z,c,k\n");
@@ -516,10 +514,11 @@ static void AppendCsv(int it, int np, coord * xx, const char* name,
 }
 
 // Returns the number of interfacial cells.
-static int GetNcInter(scalar c) {
+// vf: volume fraction
+static int GetNcInter(scalar vf) {
   int nc = 0;
   foreach () {
-    if (interfacial(point, c)) {
+    if (interfacial(point, vf)) {
       ++nc;
     }
   }
@@ -528,8 +527,9 @@ static int GetNcInter(scalar c) {
 
 
 // Dumps interface fragments to vtk.
-void DumpFacets(scalar c, const char* fn) {
-  const int nc = GetNcInter(c); // number of interfacial cells
+// vf: volume fraction
+void DumpFacets(scalar vf, const char* filename) {
+  const int nc = GetNcInter(vf); // number of interfacial cells
   const int mm = nc * kMaxFacet;
 
   coord* xx = (coord*)malloc(mm * sizeof(coord));
@@ -539,9 +539,9 @@ void DumpFacets(scalar c, const char* fn) {
   int nx = 0;
 
   foreach() {
-    if (interfacial (point, c)) {
-      coord m = Mycs(point, c);
-      double alpha = plane_alpha (c[], m);
+    if (interfacial (point, vf)) {
+      coord m = Mycs(point, vf);
+      double alpha = plane_alpha (vf[], m);
       coord p[kMaxFacet];
       int nf = Facets(m, alpha, p);
 
@@ -556,7 +556,7 @@ void DumpFacets(scalar c, const char* fn) {
       ++np;
     }
   }
-  WriteVtkPoly(fn, xx, nx, pp, np, ss, "comment", true);
+  WriteVtkPoly(filename, xx, nx, pp, np, ss, "comment", true);
 
   free(ss);
   free(pp);
@@ -565,7 +565,7 @@ void DumpFacets(scalar c, const char* fn) {
 
 // Cross-section of 2D interface from neighbor cells in plane coordinates.
 // point: center cell
-// c: volume fraction
+// vf: volume fraction
 // w: transformation
 // ll: buffer for at least kMaxSection more points
 // *nl: current size of ll
@@ -574,11 +574,11 @@ void DumpFacets(scalar c, const char* fn) {
 //     p = o + t*l.x  + t*l.y ,  [pa,pb] is one line segment
 // *nl: new size of ll
 static void Section2(
-    Point point, scalar c, vector nn, const Trans* w, coord* ll, int* nl) {
+    Point point, scalar vf, vector nn, const Trans* w, coord* ll, int* nl) {
   foreach_neighbor(2) {
-    if (c[] > 0. && c[] < 1.) {
+    if (vf[] > 0. && vf[] < 1.) {
       coord m = {nn.x[], nn.y[], nn.z[]};
-      double alpha = plane_alpha(c[], m);
+      double alpha = plane_alpha(vf[], m);
       coord pp[kMaxFacet];
       int nf = Facets(m, alpha, pp);
       coord rn = {x, y, z};
@@ -608,7 +608,7 @@ static void Section2(
 
 // Cross-section of 3D interface from neighbor cells in plane coordinates.
 // point: center cell
-// c: volume fraction
+// vf: volume fraction
 // w: transformation
 // ll: buffer for at least kMaxSection more points
 // *nl: current size of ll
@@ -617,16 +617,16 @@ static void Section2(
 //     p = o + t*l.x  + t*l.y ,  [pa,pb] is one line segment
 // *nl: new size of ll
 static void Section3(
-    Point point, scalar c, vector nn, const Trans* w, coord* ll, int* nl) {
+    Point point, scalar vf, vector nn, const Trans* w, coord* ll, int* nl) {
   foreach_neighbor(2) {
-    if (c[] > 0. && c[] < 1.) {
+    if (vf[] > 0. && vf[] < 1.) {
       int q = 0; // number of intersections found
       coord rn = {x, y, z}; // neighbor cell center
 
       // if cell intersects plane
       if (fabs(Dot(w->u, Sub(w->o, rn))) <= Delta * Norm1(w->u) * 0.5) {
         coord m = {nn.x[], nn.y[], nn.z[]}; // normal to facet
-        double alpha = plane_alpha(c[], m); // plane constant
+        double alpha = plane_alpha(vf[], m); // plane constant
         coord pp[kMaxFacet];
         int nf = Facets(m, alpha, pp);
         assert(nf <= kMaxFacet);
@@ -669,7 +669,7 @@ static void Section3(
 
 // Cross-section of interface from neighbor cells in plane coordinates.
 // point: center cell
-// c: volume fraction
+// vf: volume fraction
 // w: transformation
 // ll: buffer for at least kMaxSection more points
 // *nl: current size of ll
@@ -678,11 +678,11 @@ static void Section3(
 //     p = o + t*l.x  + t*l.y ,  [pa,pb] is one line segment
 // *nl: new size of ll
 static void Section(
-    Point point, scalar c, vector nn, const Trans* w, coord* ll, int* nl) {
+    Point point, scalar vf, vector nn, const Trans* w, coord* ll, int* nl) {
 #if dimension == 2
-  Section2(point, c, nn, w, ll, nl);
+  Section2(point, vf, nn, w, ll, nl);
 #else
-  Section3(point, c, nn, w, ll, nl);
+  Section3(point, vf, nn, w, ll, nl);
 #endif
 }
 
@@ -743,14 +743,14 @@ static double GetLinesCurv(
 
 // Curvature of cross section by plane through a.n,a.t and point a.o
 // point: target cell
-// c: volume fraction
+// vf: volume fraction
 // nn: normal
 // w: transformation to local coordinates
 static double GetCrossCurv(
-    Point point, scalar c, vector nn, const Trans* w, const Partstr* conf) {
+    Point point, scalar vf, vector nn, const Trans* w, const Partstr* conf) {
   coord ll[kMaxSection];
   int nl = 0;
-  Section(point, c, nn, w, ll, &nl);
+  Section(point, vf, nn, w, ll, &nl);
   double res;
   int it;
   if (conf->dumpcsv) {
@@ -772,21 +772,21 @@ static Trans GetSectionTrans(int s, int Ns, const Trans* b) {
 
 // Mean curvature over multiple cross sections by planes rotated around b.n
 static double GetMeanCurv(
-    Point point, scalar c, vector nn, const Trans* b, const Partstr* conf) {
+    Point point, scalar vf, vector nn, const Trans* b, const Partstr* conf) {
   double ksum = 0;
   const int Ns = conf->Ns;
   for (int s = 0; s < Ns; ++s) {
     const Trans w = GetSectionTrans(s, Ns, b);
-    ksum += GetCrossCurv(point, c, nn, &w, conf);
+    ksum += GetCrossCurv(point, vf, nn, &w, conf);
   }
   return ksum / Ns;
 }
 
 // Returns transformation to local coordinates at the interface.
-static Trans GetPointTrans(Point point, scalar c, vector nn) {
+static Trans GetPointTrans(Point point, scalar vf, vector nn) {
   Trans b;
   coord n = {nn.x[], nn.y[], nn.z[]};
-  double alpha = plane_alpha(c[], n);
+  double alpha = plane_alpha(vf[], n);
 
   coord o;
   plane_area_center(n, alpha, &o);
@@ -800,9 +800,9 @@ static Trans GetPointTrans(Point point, scalar c, vector nn) {
   return b;
 }
 
-static void CalcNormal(scalar c, vector nn) {
+static void CalcNormal(scalar vf, vector nn) {
   foreach () {
-    coord n = Mycs(point, c);
+    coord n = Mycs(point, vf);
     nn.x[] = n.x;
     nn.y[] = n.y;
     nn.z[] = n.z;
@@ -810,10 +810,13 @@ static void CalcNormal(scalar c, vector nn) {
 }
 
 // Dumps cross sections of the inteface fragments to vtk.
-void DumpLines(scalar c, vector nn, const Partstr* conf, const char* fn) {
+// vf: volume fraction
+// nn: normal
+void DumpLines(
+    scalar vf, vector nn, const Partstr* conf, const char* filename) {
   const int Ns = conf->Ns;
 
-  const int nc = GetNcInter(c); // number of interfacial cells
+  const int nc = GetNcInter(vf); // number of interfacial cells
   const int mm = nc * kMaxSection;
 
   coord* xx = (coord*)malloc(mm * sizeof(coord));
@@ -823,8 +826,8 @@ void DumpLines(scalar c, vector nn, const Partstr* conf, const char* fn) {
   int np = 0;
 
   foreach() {
-    if (interfacial(point, c)) {
-      const Trans b = GetPointTrans(point, c, nn);
+    if (interfacial(point, vf)) {
+      const Trans b = GetPointTrans(point, vf, nn);
 
       for (int s = 0; s < Ns; ++ s) {
         const Trans w = GetSectionTrans(s, Ns, &b);
@@ -832,8 +835,8 @@ void DumpLines(scalar c, vector nn, const Partstr* conf, const char* fn) {
         coord ll[kMaxSection];
         int nl = 0;
 
-        Section(point, c, nn, &w, ll, &nl);
-        GetCrossCurv(point, c, nn, &w, conf);
+        Section(point, vf, nn, &w, ll, &nl);
+        GetCrossCurv(point, vf, nn, &w, conf);
 
         for (int i = 0; i < nl; ++i) {
           ll[i] = LocToGlb(ll[i], &w);
@@ -852,17 +855,17 @@ void DumpLines(scalar c, vector nn, const Partstr* conf, const char* fn) {
       }
     }
   }
-  WriteVtkPoly(fn, xx, nx, pp, np, ss, "lines", false);
+  WriteVtkPoly(filename, xx, nx, pp, np, ss, "lines", false);
 
   free(ss);
   free(pp);
   free(xx);
 }
 
-
-static double partstr(Point point, scalar c, vector nn, const Partstr* conf) {
-  const Trans b = GetPointTrans(point, c, nn);
-  double k = -GetMeanCurv(point, c, nn, &b, conf);
+static double partstr_curvature(
+    Point point, scalar vf, vector nn, const Partstr* conf) {
+  const Trans b = GetPointTrans(point, vf, nn);
+  double k = -GetMeanCurv(point, vf, nn, &b, conf);
 #if dimension == 3
   k *= 2;
 #endif
@@ -912,7 +915,7 @@ trace cstats curvature_partstr(struct Curvature p) {
         !conf->nohf && (k[] = height_curvature(point, c, h)) != nodata) {
       sh++;
     } else {
-      k[] = partstr(point, c, nn, conf);
+      k[] = partstr_curvature(point, c, nn, conf);
       sc++;
     }
   }

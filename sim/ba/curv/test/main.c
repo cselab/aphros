@@ -52,6 +52,8 @@ int main() {
 
   curvature(vf, k);
 
+  DumpFacets(vf, "facets.vtk");
+
   {
     FILE* q = fopen("curv", "w");
     foreach() {
