@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -eu
+
+s=~/work/ethz/proj/electrochem/ch/src
+
+#q=good
+q=bad
+
+rsync -v $s/solver/simple{_$q,}.ipp
+(cd $s && make -j)
+make cleanrun

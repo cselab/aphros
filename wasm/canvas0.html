@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Canvas example</title>
+    <style>
+      .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
+      textarea.emscripten { font-family: monospace; width: 80%;}
+      canvas.emscripten { border: 0px none; background-color: black; }
+      div.emscripten { text-align: center; }
+      .button {width: 200px; height: 60px; font-size: 20pt; }
+    </style>
+  </head>
+  <body>
+    <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
+
+    <div class="emscripten">
+      <input type="button" class="button" value="faster"
+        onclick="Module.ccall('MulSpeed', 'number', ['number'], [1.5])">
+      <input type="button" class="button" value="slower"
+        onclick="Module.ccall('MulSpeed', 'number', ['number'], [1/1.5])">
+    </div>
+
+
+    <textarea class="emscripten" id="output" rows="30"></textarea>
+
+    <script type='text/javascript'>
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: (function() {
+          var element = document.getElementById('output');
+          if (element) element.value = '';
+          return function(text) {
+            if (arguments.length > 1) {
+              text = Array.prototype.slice.call(arguments).join(' ');
+            }
+            console.log(text);
+            if (element) {
+              element.value += text + "\n";
+              element.scrollTop = element.scrollHeight;
+            }
+          };
+        })(),
+        printErr: function(text) {
+          if (arguments.length > 1) {
+            text = Array.prototype.slice.call(arguments).join(' ');
+          }
+          console.error(text);
+        },
+        canvas: (function() { return document.getElementById('canvas'); })(),
+        setStatus: function(text) {},
+      };
+    </script>
+
+    <script async src=canvas.js></script>
+  </body>
+</html>

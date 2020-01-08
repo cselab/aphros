@@ -1,0 +1,160 @@
+body {
+    margin: auto;
+    max-width: 44em;
+    font-family: Verdana, sans-serif;
+}
+
+ol.simple p, ul.simple p {
+    margin-bottom: 0;
+}
+
+ol.simple > li:not(:first-child) > p, ul.simple > li:not(:first-child) > p {
+    margin-top: 0;
+}
+
+a {
+  color: #0082BB;
+}
+
+h1, h2, h3, h4, h5 {
+    color: #009ADE;
+    padding-bottom: 2px;
+    border-bottom: 1px solid black;
+}
+
+pre {
+    border: 1px dotted gray;
+    padding: 0.25em;
+}
+
+img.math {
+    vertical-align: middle;
+}
+
+img.align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+div.body div.math p {
+    text-align: center;
+}
+
+span.eqno {
+    float: right;
+}
+
+span.eqno a.headerlink {
+    position: absolute;
+    z-index: 1;
+}
+
+div.math:hover a.headerlink {
+    visibility: visible;
+}
+
+table.align-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+dt code {
+    font-weight: bold;
+}
+
+dl.citation > dt {
+    float: left;
+    margin-right: 0.5em;
+}
+
+dl.citation > dd {
+    margin-bottom: 0em;
+}
+
+dl.citation > dd:after {
+    content: "";
+    clear: both;
+}
+
+dl.field-list {
+    display: grid;
+    grid-template-columns: fit-content(30%) auto;
+}
+
+dl.field-list > dt {
+    font-weight: bold;
+    word-break: break-word;
+    padding-left: 0.5em;
+    padding-right: 5px;
+}
+
+dl.field-list > dt:after {
+    content: ":";
+}
+
+dl.field-list > dd {
+    padding-left: 0.5em;
+    margin-top: 0em;
+    margin-left: 0em;
+    margin-bottom: 0em;
+}
+
+dl {
+    margin-bottom: 15px;
+}
+
+a.headerlink {
+    visibility: hidden;
+}
+
+table.docutils {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border: 0;
+    border-collapse: collapse;
+}
+
+table.align-default {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+body div.math p {
+    text-align: center;
+}
+
+div.math:hover a.headerlink {
+    visibility: visible;
+}
+
+h1:hover > a.headerlink,
+h2:hover > a.headerlink,
+h3:hover > a.headerlink,
+h4:hover > a.headerlink,
+h5:hover > a.headerlink,
+h6:hover > a.headerlink,
+dt:hover > a.headerlink,
+caption:hover > a.headerlink,
+p.caption:hover > a.headerlink,
+div.code-block-caption:hover > a.headerlink {
+    visibility: visible;
+}
+
+table.docutils td, table.docutils th {
+    padding: 1px 8px 1px 5px;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 1px solid #aaa;
+}
+
+th > :first-child,
+td > :first-child {
+    margin-top: 0px;
+}
+
+th > :last-child,
+td > :last-child {
+    margin-bottom: 0px;
+}

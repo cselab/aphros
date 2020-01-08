@@ -1,0 +1,1445 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="canonical" href="https://cselab.github.io/aphros/curv.html" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      textarea {
+        white-space: pre;
+        overflow-wrap: normal;
+        overflow-x: scroll;
+        margin: 0;
+        padding: 0;
+      }
+      button {
+        align-items: center;
+        font-size: 100%;
+        line-height: 100%;
+        margin: 0;
+        padding: 0;
+        vertical-align: top;
+      }
+      #linksTag {
+        position: absolute;
+        width: 100%;
+        top: 3%;
+        text-align: center;
+      }
+      #buttons {
+        text-align:center;
+        line-height: 50%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="buttons">
+      <button onclick="SetSize(5,5);" style="font-size: 60%">
+        &#9632;&#9632;<br />
+        &#9632;&#9632;<br />
+      </button><!---
+   --><button onclick="SetSize(7,7);" style="font-size: 40%">
+        &#9632;&#9632;&#9632;<br />
+        &#9632;&#9632;&#9632;<br />
+        &#9632;&#9632;&#9632;<br />
+      </button><!--
+   --><button onclick="SetSize(9,9);" style="font-size: 30%">
+        &#9632;&#9632;&#9632;&#9632;<br />
+        &#9632;&#9632;&#9632;&#9632;<br />
+        &#9632;&#9632;&#9632;&#9632;<br />
+        &#9632;&#9632;&#9632;&#9632;<br />
+      </button><!--
+   --><button onclick="StartSelectShape(1);" style="font-size: 50%">
+        &#9899
+      </button><!--
+   --><button onclick="StartSelectShape(1.5);" style="font-size: 75%">
+        &#9899
+      </button><!--
+   --><button onclick="StartSelectShape(2);" style="font-size: 100%">
+        &#9899
+      </button><!--
+   --><button onclick="StartSelect();" style="font-size: 60%;" id="selectcell">
+       &#9632
+      </button>
+    </div>
+    <div id="paint" style="text-align:center;position:relative">
+      <canvas id="myCanvas"></canvas>
+      <div id="linksTag">
+        Source code and applications: <a href="https://github.com/cselab/aphros">Aphros</a>
+      </div>
+    </div>
+    <div style="text-align:center">
+      <textarea id="myTextarea" rows="5"></textarea>
+    </div>
+
+    <script>
+      "use strict";
+      function matrix_read(file) {
+    var a, nr, NR, l, line, i, j, x, m
+    var lines = require('fs').readFileSync(file, 'ascii')
+        .split('\n')
+        .filter(Boolean)
+    NR = lines.length
+    if (NR < 0)
+        throw new Error("no lines in file " + file)
+    nr = 0
+    line = lines[nr++]
+    l = line.trim().split(" ")
+    if (l.length != 2)
+        throw new Error("expecting 'M N' got " + line)
+    M = parseInt(l[0])
+    if (Number.isNaN(M))
+        throw new Error("expecting 'M', got " + l[0])
+    N = parseInt(l[1])
+    if (Number.isNaN(N))
+        throw new Error("expecting 'N', got " + l[1])
+    a = matrix_new(M, N)
+
+    for (i = 0; i < M; i++) {
+        if (nr >= NR)
+            throw new Error("too few lines in ${file}, expecting ${NR}, got ${nr}")
+        line = lines[nr++]
+        l = line.trim().split(" ")
+        if (l.length != N)
+            throw new Error("expecting ${N} numbers, got '${line}'")
+        for (j = 0; j < N; j++) {
+            x = parseFloat(l[j])
+            if (Number.isNaN(x))
+                throw new Error("expecting float, got " + l[i])
+            a[i][j] = x
+        }
+    }
+    return a
+}
+
+function matrix_write(stream, M, N, a) {
+    var i, j
+    if (!Array.isArray(a))
+        throw new Error("a is not an array: " + a)
+    stream.write(M + " " + N + "\n")
+    for (i = 0; i < M; i++) {
+        if (a[i] === void 0)
+            throw new Error("a[${i}] is undefined, M = ${M}, N = ${N}")
+        for (j = 0; j < N; j++) {
+            if (j > 0)
+                stream.write(" ")
+            stream.write(a[i][j] + "")
+        }
+        stream.write("\n")
+    }
+}
+
+function matrix_lh_write(stream, m, n, M, N, a) {
+    var i, j
+    if (!Array.isArray(a))
+        throw new Error("a is not an array: " + a)
+    stream.write(M - m + " " + N - n + "\n")
+    for (i = m; i < M; i++) {
+        if (a[i] == void 0)
+            throw new Error("a[${i}] is undefined, M = ${M}, N = ${N}")
+        for (j = n; j < N; j++) {
+            if (j > n) stream.write(" ")
+            stream.write(a[i][j] + "")
+        }
+        stream.write("\n")
+    }
+}
+
+function matrix_new(M, N) {
+    var i, a
+    a = new Array(M)
+    for (i = 0; i < M; i++)
+        a[i] = new Array(N)
+    return a
+}
+
+function matrix_copy(M, N, a) {
+    var b, i, j
+    if (!Array.isArray(a))
+        throw new Error("a is not an array: " + a)
+    b = []
+    for (i = 0; i < M; i++) {
+        b[i] = []
+        for (j = 0; j < N; j++)
+            b[i][j] = a[i][j]
+    }
+    return b
+}
+
+function matrix_zero(M, N) {
+    var i, j, a
+    a = matrix_new(M, N)
+    for (i = 0; i < M; i++)
+        for (j = 0; j < M; j++)
+            a[i][j] = 0
+    return a
+}
+
+function matrix_halo_zero(M, N, h, a) {
+    var i, j
+    if (!Array.isArray(a))
+        throw new Error("a is not an array: " + a)
+    for (i = -h; i <     0; i++) a[i] = []
+    for (i =  M; i < M + h; i++) a[i] = []
+
+    for (i = -h; i < 0; i++)
+        for (j = -h; j < N + h; j++) a[i][j] = 0;
+
+    for (i = 0; i < M; i++) {
+        for (j = -h; j < 0;      j++) a[i][j] = 0;
+        for (j =   N; j < N + h; j++) a[i][j] = 0;
+    }
+
+    for (i = M; i < M + h; i++)
+        for (j = -h; j < N + h; j++) a[i][j] = 0;
+}
+
+function matrix_transpose(M, N, a) {
+    var i, j, b
+    if (!Array.isArray(a))
+        throw new Error("a is not an array: " + a)
+    b = matrix_new(N, M)
+    for (i = 0; i < M; i++)
+        for (j = 0; j < M; j++)
+            b[j][i] = a[i][j]
+    return b
+}
+
+      /* static */
+function _max(a, b) { return a > b ? a : b }
+function _sq(a) { return a*a }
+function _E(a) { return [Math.cos(a), Math.sin(a)] }
+function _axpy(a, x, y,   /**/ b) {
+    var X = 0, Y = 1
+    b[X] = a*x[X] + y[X]
+    b[Y] = a*x[Y] + y[Y]
+}
+function _line(nx, ny, u) {
+    var u1
+    u1 = 0.5 * nx / ny
+    if (u <= u1)
+        return -0.5 * (nx + ny) + Math.sqrt(2*nx*ny*u)
+    else
+        return ny * (u - 0.5)
+}
+
+function _minus(n, a, b, /**/ c) {
+    var X = 0, Y = 1
+    var i
+    for (i = 0; i < n; i++) {
+        c[i][X] = a[i][X] - b[i][X]
+        c[i][Y] = a[i][Y] - b[i][Y]
+    }
+}
+function _substr(n, a, /**/ b) {
+    var X = 0, Y = 1
+    var i
+    for (i = 0; i < n; i++) {
+        b[i][X] -= a[i][X]
+        b[i][Y] -= a[i][Y]
+    }
+}
+function _append(n, a, b /**/) {
+    var X = 0, Y = 1
+    var i
+    for (i = 0; i < n; i++) {
+        b[i][X] += a[i][X]
+        b[i][Y] += a[i][Y]
+    }
+}
+function _dot(n, a, b) {
+    var X = 0, Y = 1
+    var i, d
+    d = 0
+    for (i = 0; i < n; i++) {
+        d += a[i][X]*b[i][X]
+        d += a[i][Y]*b[i][Y]
+    }
+    return d
+}
+
+function _abs(x) { return x > 0 ? x : -x }
+function _absmax(n, a) {
+    var X = 0, Y = 1
+    var m, c, i, b
+    m = 0
+    for (i = 0; i < n; i++) {
+        b = a[i]
+        c = _max(_abs(b[X]), _abs(b[Y]))
+        if (c > m) m = c
+    }
+    return m
+}
+
+/**/
+
+
+function partstr_norm(i, j, u) {
+    var nx, ny, n, p
+    var X = 0, Y = 1
+    p = Array(2)
+    nx = (u[i+1][j+1]+2*u[i+1][j]+u[i+1][j-1]-u[i-1][j+1]-2*u[i-1][j]-u[i-1][j-1])/8
+    ny = (u[i+1][j+1]-u[i+1][j-1]+2*u[i][j+1]-2*u[i][j-1]+u[i-1][j+1]-u[i-1][j-1])/8
+    n =  -(Math.abs(nx) + Math.abs(ny) + 1e-10)
+    nx /= n
+    ny /= n
+    p[X] = nx
+    p[Y] = ny
+    return p
+}
+
+function partstr_line(nx, ny, u) {
+    var t
+    nx = Math.abs(nx)
+    ny = Math.abs(ny)
+    if (ny < nx) {
+        t = nx; nx = ny; ny = t
+    }
+    if (u < 0.5)
+        return _line(nx, ny, u)
+    else
+        return -_line(nx, ny, 1 - u)
+}
+
+function partstr_vof_line(M, N, u, /**/ a) {
+    var X = 0, Y = 1
+    var i, j
+    var n, u0, a0
+    for (i = 0; i < M; i++)
+        for (j = 0; j < N; j++) {
+            n = partstr_norm(i, j, u)
+            u0 = u[i][j]
+            a0 = partstr_line(n[X], n[Y], u0)
+            a[i][j] = a0
+        }
+}
+
+function partstr_vof_ends(M, N, u, /**/ ends) {
+    var X = 0, Y = 1
+    var AX = 0, AY = 1, BX = 2, BY = 3
+    var h = 1.0
+    var n, a, i, j;
+    var e = Array(4)
+    for (i = 0; i < M; i++)
+        for (j = 0; j < N; j++) {
+            if (u[i][j] <= 0 || u[i][j] >= 1)
+                continue
+            n = partstr_norm(i, j, u)
+            a = partstr_line(n[X], n[Y], u[i][j])
+            partstr_ends(n[X], n[Y], a, /**/ e)
+            e[AX] += i*h + h/2; e[AY] += j*h + h/2
+            e[BX] += i*h + h/2; e[BY] += j*h + h/2
+            ends[i][j] = e.slice()
+        }
+}
+
+function partstr_ends(M, N, a, /**/ e) {
+    var AX = 0, AY = 1, BX = 2, BY = 3
+    var h  = 0.5
+    var x, y, u, v, cross, t
+    var j
+
+    x = (a + h*N)/M
+    y = (a + h*M)/N
+
+    u = (a - h*N)/M
+    v = (a - h*M)/N
+
+    e[0] = e[1] = e[2] = e[3] = 0
+    j = 0
+    if (-h <= x && x <= h) {
+        e[2*j] = x; e[2*j+1] = -h; j++
+    }
+
+    if (-h <= u && u <= h) {
+        e[2*j] = u; e[2*j + 1] = h; j++
+    }
+
+    if (j < 2 && -h <= y && y <= h) {
+        e[2*j] = -h; e[2*j + 1] = y; j++
+    }
+
+    if (j < 2 && -h <= v && v <= h) {
+        e[2*j] = h; e[2*j + 1] = v; j++
+    }
+
+    if (j == 1) {
+        e[2*j] = e[0]; e[2*j + 1] = e[1]
+    }
+
+    cross = (e[BY]-e[AY])*M-(e[BX]-e[AX])*N
+    if (cross > 0) {
+        t = e[AX]; e[AX] = e[BX]; e[BX] = t
+        t = e[AY]; e[AY] = e[BY]; e[BY] = t
+    }
+}
+
+function partstr_cell_ends(M, N, m, n, ends) {
+    var s = 2
+    var e, ans, i, j, k
+    if (m >= M)
+        throw new Error("m=" + m + " >= M=" + M)
+    if (n >= N)
+        throw new Error("n=" + n + " >= n=" + N)
+    if (ends[m][n] === undefined)
+        throw new Error("ends[" + m + "][" + n + "] is undefined")
+    ans = []; k = 1
+    for (i = m - s; i < m + s + 1; i++) {
+        if (i <  0) continue
+        if (i >= M) continue
+        for (j = n - s; j < n + s + 1; j++) {
+            if (j <  0) continue
+            if (j >= N) continue
+            e = ends[i][j]
+            if (e === undefined) continue
+            if (i == m && j == n)
+                ans[0] = e
+            else
+                ans[k++] = e
+        }
+    }
+    return ans
+}
+
+function partstr_ends_read(file) {
+    var ans, M, N
+    ans = matrix_read(file)
+    M = ans.length
+    N = ans[0].length
+    if (N !== 4)
+        throw new Error("wrong matrix size " + [M, N])
+    return ans
+}
+
+function partstr_ends_write(stream, ends) {
+    var n
+    n = ends.length
+    matrix_write(stream, n, 4, ends)
+}
+
+function partstr_cell_ends_gnuplot(stream, n, ends) {
+    var AX = 0, AY = 1, BX = 2, BY = 3
+    var X = 0, Y = 1
+    var i, e
+    for (i = 0; i < n; i++) {
+        e = ends[i]
+        if (e === undefined) continue
+        if (i > 0)
+            stream.write("\n")
+        stream.write(e[AX] + " " + e[AY] + "\n")
+        stream.write(e[BX] + " " + e[BY] + "\n")
+    }
+}
+
+function partstr_ends_gnuplot(stream, M, N, ends) {
+    var AX = 0, AY = 1, BX = 2, BY = 3
+    var X = 0, Y = 1
+    var i, e
+    for (i = 0; i < M; i++)
+        for (j = 0; j < N; j++) {
+            e = ends[i][j]
+            if (e === undefined) continue
+            if (i != 0 || j != 0)
+                stream.write("\n")
+            stream.write(e[AX] + " " + e[AY] + "\n")
+            stream.write(e[BX] + " " + e[BY] + "\n")
+        }
+}
+
+function partstr_part(nh, hp, p, a, t, /**/ xx) {
+    var n, j, jp
+    if (!Array.isArray(xx))
+        throw new Error("xx is not an array: " + xx)
+    n = 2*nh + 1
+    xx[nh] = p.slice()
+    for (j = 0; j < nh; j++) {
+        jp = j + 0.5
+        _axpy( hp, _E(a + t*jp), xx[nh + j], /**/ xx[nh + j + 1])
+        _axpy(-hp, _E(a - t*jp), xx[nh - j], /**/ xx[nh - j - 1])
+    }
+}
+
+function partstr_segcirc(k, l, d) {
+    var t1, t2
+    t1 = 1 - _sq(k*l)
+    t2 = 1 - _sq(k*d)
+    if (t1 < 0)
+        throw new Error("t1=${t1} < 0, k=${k}, l=${l}, d=${d}\n")
+    if (t2 < 0)
+        throw new Error("t2=${t2} < 0, k=${k}, l=${l}, d=${d}\n")
+    t1 = Math.sqrt(t1)
+    t2 = Math.sqrt(t2)
+    if (t1 + t2 === 0.0)
+        throw new Error("t1 + t2 === 0, k=${k}, l=${l}, d=${d}\n")
+    return k*(l*l - d*d)/(t1 + t2)
+}
+
+function partstr_shsegcirc(k, a, b, x) {
+    var X = 0, Y = 1
+    var sc = 1
+    var u, v, p, q, g, dc, mdc, s
+    u = b[X] - a[X]
+    v = b[Y] - a[Y]
+    p = 0.5*(b[X] + a[X]) - x[X]
+    q = 0.5*(b[Y] + a[Y]) - x[Y]
+
+    mdc = _sq(u) + _sq(v)
+    mdc = Math.sqrt(mdc)/2.0
+
+    dc =  _sq(p) + _sq(q)
+    dc = Math.sqrt(dc)
+
+    g = _sq(u) + _sq(v)
+    if (g > 0) {
+        g = Math.sqrt(g)
+        u /= g
+        v /= g
+    }
+
+    s = sc*partstr_segcirc(k, mdc, dc);
+    return [x[X] + s*v, x[Y] - s*u]
+}
+
+function partstr_nearest(a, b, x) {
+    var X = 0, Y = 1
+    var u, v, p, q, k, g
+
+    u = b[X] - a[X]
+    v = b[Y] - a[Y]
+
+    p = x[X] - a[X]
+    q = x[Y] - a[Y]
+
+    k = u*p + v*q
+    g = _sq(u) + _sq(v)
+    if (g > 0)
+        k /= g
+
+    if (k < 0) k = 0
+    if (k > 1) k = 1
+
+    return [a[X] + k*u, a[Y] + k*v]
+}
+
+function partstr_nearest_ends(n, ends, x, k) {
+    var X = 0, Y = 1
+    var AX = 0, AY = 1, BX = 2, BY = 3
+    var i, a, b, e, y, z, d
+    var m, j
+    if (!Array.isArray(ends))
+        throw new Error("ends is not an array: " + ends)
+    a = Array(2); b = Array(2)
+    for (i = 0; i < n; i++) {
+        e = ends[i]
+        if (!Array.isArray(e))
+            throw new Error("e is not an array: " + e)
+        a[X] = e[AX]; a[Y] = e[AY]
+        b[X] = e[BX]; b[Y] = e[BY]
+        y = partstr_nearest(a, b, x)
+        d = _sq(x[X] - y[X]) + _sq(x[Y] - y[Y])
+        if (i == 0 || d < m) {
+            m = d
+            j = i
+            z = partstr_shsegcirc(k, a, b, y)
+        }
+    }
+    return z
+}
+
+function partstr_force(ne, ends, np, xx, k, eta, /**/ ff) {
+    var X = 0, Y = 1
+    var i, x, y
+    if (!Array.isArray(ends))
+        throw new Error("ends is not an array: " + ends)
+    if (!Array.isArray(xx))
+        throw new Error("xx is not an array: " + xx)
+    if (!Array.isArray(ff))
+        throw new Error("ff is not an array: " + ff)
+    for (i = 0; i < np; i++) {
+        x = xx[i]
+        y = partstr_nearest_ends(ne, ends, x, k)
+        ff[i][X] = eta*(y[X] - x[X])
+        ff[i][Y] = eta*(y[Y] - x[Y])
+    }
+}
+
+function partstr_force_write(stream, n, xx, ff) {
+    var X = 0, Y = 1
+    var i, x, f
+    if (!Array.isArray(ff))
+        throw new Error("ff is not an array: " + ff)
+    if (!Array.isArray(xx))
+        throw new Error("xx is not an array: " + xx)
+
+    for (i = 0; i < n; i++) {
+        x = xx[i]; f = ff[i]
+        stream.write(x[X] + " " + x[Y] + " " + f[X] + " " + f[Y] + "\n")
+    }
+}
+
+function partstr_dxda(nh, hp, a, t, /**/ xx) {
+    var n, j, jp, pi
+    if (!Array.isArray(xx))
+        throw new Error("xx is not an array: " + xx)
+    n = 2*nh + 1
+    pi = Math.PI
+    xx[nh] = [0, 0]
+    for (j = 0; j < nh; j++) {
+        jp = j + 0.5
+        _axpy( hp, _E(a + t*jp + pi/2), xx[nh + j], /**/ xx[nh + j + 1])
+        _axpy(-hp, _E(a - t*jp + pi/2), xx[nh - j], /**/ xx[nh - j - 1])
+    }
+}
+
+function partstr_dxdt(nh, hp, a, t, /**/ xx) {
+    var n, j, jp, pi
+    if (!Array.isArray(xx))
+        throw new Error("xx is not an array: " + xx)
+    n = 2*nh + 1
+    pi = Math.PI
+    xx[nh] = [0, 0]
+    for (j = 0; j < nh; j++) {
+        jp = j + 0.5
+        _axpy(hp*jp, _E(a + t*jp + pi/2), xx[nh + j], /**/ xx[nh + j + 1])
+        _axpy(hp*jp, _E(a - t*jp + pi/2), xx[nh - j], /**/ xx[nh - j - 1])
+    }
+}
+
+function partstr_curv(hp, t) {
+    return Math.sqrt(2)/hp*Math.sin(t)/Math.sqrt(1.0 + Math.cos(t))
+}
+
+function partstr_step(nh, ff, eta, hp, /*io*/ State) {
+    var X = 0, Y = 1
+    var p, a, t, x0, x1, f, n, dx, dd
+
+    p = State.p.slice()
+    a = State.a
+    t = State.t
+
+    f = ff[nh]
+    n = 2*nh + 1
+
+    x0 = matrix_new(n, 2) /**/
+    x1 = matrix_new(n, 2) /* todo */
+    dx = matrix_new(n, 2) /**/
+    dd = matrix_new(n, 2) /**/
+
+    /* p */
+    partstr_part(nh, hp, p, a, t, /**/ x0)
+    p[X] += f[X]
+    p[Y] += f[Y]
+    partstr_part(nh, hp, p, a, t, /**/ x1)
+    _minus(n, x1, x0, /**/ dx)
+    _append(n, dx, /**/ x0)
+
+    /* a */
+    partstr_dxda(nh, hp, a, t, /**/ dd)
+    a += _dot(n, ff, dd)/_dot(n, dd, dd)
+    partstr_part(nh, hp, p, a, t, /**/ x1)
+    _minus(n, x1, x0, /**/ dx)
+
+    /* t */
+    partstr_dxdt(nh, hp, a, t, /**/ dd)
+    t += _dot(n, ff, dd)/_dot(n, dd, dd)
+
+    State.p = p.slice()
+    State.a = a
+    State.t = t
+}
+
+function Partstr(nh, hp, eta) {
+    var n = 2*nh + 1
+    this.nh = nh
+    this.hp = hp
+    this.eta = eta
+    this.ff = matrix_new(n, 2)
+    this.xx = matrix_new(n, 2)
+    this.dx = matrix_new(n, 2) /* dx = old - new */
+
+    this.start = function(ne, ends, a, t, p) {
+        if (!Array.isArray(ends))
+            throw new Error("ends is not an array: " + ends)
+        if (!Array.isArray(p))
+            throw new Error("p is not an array: " + p)
+        this.ne = ne
+        this.ends = ends
+        this.State = {a: a, t: t, p: p.slice() }
+    }
+
+    this.step = function() {
+        var a, ends, eta, ff, hp, k, key, n, ne, nh, p, State, t, xx
+        nh = this.nh
+        n = 2*nh + 1
+        hp = this.hp
+        eta = this.eta
+        ends = this.ends
+        ne = this.ne
+        xx = this.xx
+        ff = this.ff
+        State = this.State
+        this.Prev = {}
+        for (key in State)
+            this.Prev[key] = State[key]
+
+        k = partstr_curv(hp, State.t)
+        partstr_part(nh, hp, State.p, State.a, State.t, /**/ xx)
+        partstr_force(ne, ends, n, xx, k, eta,     ff)
+        partstr_step(nh, ff, eta, hp, /*io*/ State)
+        this.k = partstr_curv(hp, State.t)
+        this.xx = xx
+        this.ff = ff
+    }
+
+    this.diff = function() {
+        var nh, hp, n, State, Prev, dx, xx
+        if (this.Prev === undefined)
+            throw new Error("diff() is called before step()")
+        nh = this.nh
+        hp = this.hp
+        n = 2*nh + 1
+        State = this.State
+        Prev = this.Prev
+        dx = this.dx
+        xx = this.xx
+        if (Prev.p === undefined)
+            throw new Error("call diff() before step()")
+        partstr_part(nh, hp, Prev.p, Prev.a, Prev.t, /**/ dx)
+        partstr_part(nh, hp, State.p, State.a, State.t, /**/ xx)
+        _substr(n, xx, /*io*/ dx)
+        this.r = _absmax(n, dx)/this.eta
+        return this.r
+    }
+
+    this.converge = function(eps, itermax) {
+        if (eps === undefined)
+            throw new Error("eps is undefined")
+
+        var i
+        for (i = 0; i < itermax; i++) {
+            this.step()
+            this.diff()
+        }
+        return itermax
+    }
+}
+
+      function vof_trapz(M, N, f, param, x, y, u, v) {
+    var i, j;
+    var p, q, dx, dy;
+    var s, a, b;
+    if (v === undefined)
+        throw new Error("v is undefined")
+    if (typeof f !== "function")
+        throw new Error("f should be a function:" + f)
+    s = 0
+    dx = (u - x)/M
+    dy = (v - y)/N
+    for (i = 0; i < M + 1; i++) {
+        a = (i == 0 || i == M) ? 1 : 2
+        p = x + i*dx
+        for (j = 0; j < N + 1; j++) {
+            b = (j == 0 || j == N) ? 1 : 2
+            q = y + j*dy
+            s += a * b * f(p, q, param)
+        }
+    }
+    return s/(4*N*M)
+}
+
+function vof_comosite(x, y, Param) {
+    var f, g, p, q, a, b
+
+    f = Param.f[0]
+    g = Param.f[1]
+
+    p = Param.param[0]
+    q = Param.param[1]
+
+    if (typeof f !== "function")
+        throw new Error("f should be a function: " + f)
+    if (typeof g !== "function")
+        throw new Error("g should be a function: " + g)
+
+    a = f(x, y, p)
+    b = g(x, y, q)
+
+    return a > b ? a : b
+}
+
+function vof_ellipse(x, y, param) {
+    var x0, y0, a, b
+    x0 = param.x0
+    y0 = param.y0
+    a = param.a
+    b = param.b
+
+    x -= x0
+    y -= y0
+    return (x*x)/(a*a) + (y*y)/(b*b) < 1
+}
+
+
+function Vof(dx, dy, f, param) {
+    if (typeof f !== "function")
+        throw new Error("f should be a function: " + f)
+    this.dx = dx
+    this.dy = dy
+    this.f  = f
+    this.param = param
+    this.cell = function(i, j) {
+        var M = 20, N = 20
+        var x, y, u, v
+        x = this.dx*i; y = this.dy*j
+        u = this.dx*(i + 1); v = this.dy*(j + 1)
+        return vof_trapz(M, N, this.f, this.param, x, y, u, v)
+    }
+
+    this.grid = function(M, N, /**/ a) {
+        var i, j
+        if (!Array.isArray(a))
+            throw new Error("a is not an array: " + a)
+        for (i = 0; i < M; i++)
+            for (j = 0; j < N; j++)
+                a[i][j] = this.cell(i, j)
+    }
+}
+
+      // naming conventions
+// x,y: screen coordinates
+// xp,yp: physical space
+// i,j: indices on the grid
+
+
+function Clip(a,l,h) {
+    if (isFinite(a)) {
+        return Math.min(Math.max(a, l), h);
+    }
+    return 0.0
+}
+
+function sqr(a)  { return a*a }
+function abs(a)  { return a > 0 ? a : -a }
+function sign(a) { return  a == 0 ? 0 : (a >  0 ? 1 : -1) }
+
+function ScreenToIdx(x, y) {
+    var i, j
+    i = Clip(Math.floor((x - base.x) / w), 0, nx - 1)
+    j = ny - Clip(Math.floor((y - base.y) / w), 0, ny - 1) - 1
+    return [i, j]
+}
+
+function ValidScreen(x, y) {
+    var i, j;
+    i = Math.floor((x - base.x) / w);
+    j = ny - Math.floor((y - base.y) / w) - 1;
+    return i >= 0 && i < nx && j >= 0 && j < ny;
+}
+
+function ValidIdx(i, j) {
+    return i >= 0 && i < nx && j >= 0 && j < ny
+}
+
+function IdxToScreen(i, j) {
+    var x, y
+    x = base.x + i * w
+    y = base.y + (ny - j - 1) * w
+    return [x, y]
+}
+
+function PhysToScreen(xp, yp) {
+    var x, y
+    x = base.x + xp * w
+    y = base.y + (ny - yp) * w
+    return [x, y]
+}
+
+function ScreenToPhys(x, y) {
+    var xp, yp
+    xp = (x - base.x) / w
+    yp = ny - (y - base.y) / w
+    return [xp, yp]
+}
+
+function RGBToHex(r,g,b) {
+    r = Clip(r, 0, 255);
+    g = Clip(g, 0, 255);
+    b = Clip(b, 0, 255);
+
+    r = r.toString(16);
+    g = g.toString(16);
+    b = b.toString(16);
+
+    if (r.length == 1)
+        r = "0" + r;
+    if (g.length == 1)
+        g = "0" + g;
+    if (b.length == 1)
+        b = "0" + b;
+    return "#" + r + g + b;
+}
+
+function IncCell() {
+    var wk = wx * barl_
+
+    var ij = ScreenToIdx(start.x, start.y)
+    var i = ij[0]
+    var j = ij[1]
+
+    var dirx = (abs(mouse.x - start.x) >= abs(mouse.y - start.y));
+    // range of u correction: [dum,dup]
+    var dup = 1.0 - ustart[i][j]
+    var dum = -ustart[i][j]
+    // displacement [px]
+    var dy = (dirx ? mouse.x - start.x : -(mouse.y - start.y))
+    // normalize
+    var dyn = dy / wk
+
+    var dyp = dup * wk
+    var dym = dum * wk
+
+    dy = Clip(dy, dym, dyp)
+
+    // correction
+    var du = dy / wk
+
+    u[i][j] = Clip(ustart[i][j] + du, 0.0, 1.0);
+    return [dy, dym, dyp, dirx]
+}
+
+
+function DrawCellFill(q, x, y) {
+    ctx.strokeRect(x, y, w, w);
+    q = Math.floor((1-q) * 255 + q * 127);
+    ctx.fillStyle = RGBToHex(q, q, q);
+    ctx.fillRect(x, y, w, w);
+}
+
+function DrawCellText(q, x, y) {
+    ctx.font = "20px Arial";
+    ctx.fillStyle = "#000000";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(q.toFixed(2), x + w * 0.5, y + w * 0.5);
+}
+
+function DrawGrid(u) {
+    var i, j, q, xy
+    for (j = 0 ; j < ny; j++) {
+        for (i = 0 ; i < nx; i++) {
+            q = u[i][j];
+            xy = IdxToScreen(i, j)
+            DrawCellFill(q, xy[0], xy[1])
+            /* DrawCellText(q, xy[0], xy[1]) */
+        }
+    }
+}
+
+function DrawLines(ee, u) {
+    var i, j;
+    for (j = 0 ; j < ny; j++) {
+        for (i = 0 ; i < nx; i++) {
+            var e = ee[i][j]
+            if (e === undefined) continue
+            var xya = PhysToScreen(e[0], e[1])
+            var xyb = PhysToScreen(e[2], e[3])
+            var xa = xya[0], ya = xya[1]
+            var xb = xyb[0], yb = xyb[1]
+
+            // unit normal
+            var mx = -(yb - ya)
+            var my = (xb - xa)
+            var mm = Math.sqrt(mx * mx + my * my)
+            mx /= mm
+            my /= mm
+            // shift [px]
+            var sh = ctx.lineWidth * 0.2
+            var dx = sh * mx
+            var dy = sh * my
+
+            ctx.strokeStyle = "#ffffff"
+            ctx.beginPath();
+            ctx.moveTo(xa - dx, ya - dy)
+            ctx.lineTo(xb - dx, yb - dy)
+            ctx.closePath()
+            ctx.stroke()
+
+            ctx.strokeStyle = "#000000"
+            ctx.beginPath();
+            ctx.moveTo(xa + dx, ya + dy)
+            ctx.lineTo(xb + dx, yb + dy)
+            ctx.closePath()
+            ctx.stroke()
+        }
+    }
+}
+
+function DrawString(pp, color) {
+    var i
+    for (i = 1 ; i < pp.length; ++i) {
+        var xya = PhysToScreen(pp[i - 1][0], pp[i - 1][1])
+        var xyb = PhysToScreen(pp[i][0], pp[i][1])
+        var xa = xya[0], ya = xya[1]
+        var xb = xyb[0], yb = xyb[1]
+
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(xa, ya)
+        ctx.lineTo(xb, yb)
+        ctx.closePath();
+        ctx.stroke()
+    }
+
+    for (i = 0 ; i < pp.length; ++i) {
+        var xy = PhysToScreen(pp[i][0], pp[i][1])
+        var x = xy[0], y = xy[1]
+
+        ctx.strokeStyle = "black";
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.closePath();
+        ctx.stroke();
+    }
+}
+
+function DrawBar(dy, dym, dyp, dirx) {
+    var x = start.x, y = start.y;
+    var q = barw_ * wx
+    var qh = q / 2
+    var qq = q / 2
+    var qqh = qq / 2
+    ctx.fillStyle = '#a0a0a0';
+    if (dirx) {
+        ctx.fillRect(x+dym-qqh, y-qh, dyp-dym+qh, q);
+    } else {
+        ctx.fillRect(x-qh, y-dyp-qqh, q, dyp-dym+qh);
+    }
+    ctx.fillStyle = 'blue';
+    if (dirx) {
+        ctx.fillRect(x, y-qqh, dy, qq);
+    } else {
+        ctx.fillRect(x-qqh, y, qq, -dy);
+    }
+    ctx.fillStyle = 'green';
+    ctx.fillRect(x-qh, y-qh, q, q);
+}
+
+function GridToText(u, ny) {
+    var t = ""
+    var i, j
+    for (j = 0; j < ny; ++j) {
+        t += (j == 0 ? "" : "\n")
+        for (i = 0; i < nx; ++i) {
+            t += (i == 0 ? "" : " ") + u[i][ny - j - 1].toFixed(3)
+        }
+    }
+    return t
+}
+
+function SplitText(t) {
+    var ll = []
+    var ss = t.split(/[\r\n]+/g);
+    var ns = ss.length;
+    var j;
+    for (j = 0; j < ns; ++j) {
+        var s = ss[j].replace(/\s+/g, ' ')
+        s = s.replace(/^\s+|\s+$/g, '')
+        ll[j] = s.split(' ')
+    }
+    return ll
+}
+
+function TextToSize(t) {
+    var ll = SplitText(t)
+    var ny = ll.length;
+    var nx = 0;
+    if (ny > 0) {
+        var j;
+        for (j = 0; j < ny; ++j) {
+            nx = Math.max(nx, ll[j].length)
+        }
+    }
+    return [nx, ny]
+}
+
+function TextToGrid(t, nx, ny, /**/ u) {
+    var ll = SplitText(t)
+    var i, j
+    for (j = 0; j < ny; j++) {
+        for (i = 0; i < nx; i++) {
+            u[i][ny - j - 1] = Clip(parseFloat(ll[j][i]), 0.0, 1.0)
+        }
+    }
+    return u
+}
+
+function UpdateText0(t) {
+    textarea.value = t
+}
+
+function UpdateText() {
+    UpdateText0(GridToText(u, ny))
+}
+
+function UpdateGrid() {
+    var t = textarea.value
+    var nxy = TextToSize(t)
+    if (nxy[0] != nx || nxy[1] != ny) {
+        SetSize0(nxy[0], nxy[1])
+    }
+    TextToGrid(t, nx, ny, u)
+}
+
+function DrawSelect(i, j, next) {
+    var xy = IdxToScreen(i, j)
+    var x = xy[0] + w/2, y = xy[1] + w/2;
+    var q = w / 10
+    ctx.fillStyle = (next ? cl_next : cl_curr)
+    ctx.fillRect(x - q, y - q, 2 * q, 2 * q);
+}
+
+function DrawSelectCurr(i, j) {
+    DrawSelect(i, j, false)
+}
+
+function DrawSelectNext(i, j) {
+    DrawSelect(i, j, true)
+}
+
+function DrawSelectShape(xp, yp) {
+    var xy = PhysToScreen(xp, yp)
+    var x = xy[0], y = xy[1];
+    ctx.strokeStyle = "black";
+    ctx.beginPath();
+    ctx.arc(x, y, circrad * w, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.stroke();
+}
+
+function DrawStringRun(i0, j0, color) {
+    var AX = 0, AY = 1, BX = 2, BY = 3
+    if (ValidIdx(i0, j0) && ends[i0][j0] !== undefined) {
+        var end = partstr_cell_ends(nx, ny, i0, j0, ends)
+        var ne = end.length
+        var nh = 4
+        var hp = 4.0 / (2.0*nh)
+        var eta = 0.5
+        var eps = 1e-5
+        var itermax = 20
+        var t = 0.0
+        var n = 2*nh + 1
+        var partstr = new Partstr(nh, hp, eta)
+        var e = end[0]
+        var p = [(e[AX] + e[BX]) * 0.5, (e[AY] + e[BY]) * 0.5]
+        var dx = e[BX] - e[AX]
+        var dy = e[BY] - e[AY]
+        var a = Math.atan2(dy, dx)
+        partstr.start(ne, end, a, t, p)
+        partstr.converge(eps, itermax)
+        DrawString(partstr.xx, color)
+    }
+}
+
+
+function DrawAll() {
+    var AX = 0, AY = 1, BX = 2, BY = 3
+
+    matrix_halo_zero(nx, ny, 2, u)
+    ends = matrix_new(nx, ny)
+    partstr_vof_ends(nx, ny, u, ends)
+    DrawGrid(u)
+    DrawSelectCurr(i0, j0)
+    DrawLines(ends, u)
+    DrawStringRun(i0, j0, cl_curr)
+}
+
+function Clear() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+var onPaint = function() {
+    Clear()
+
+    DrawAll()
+
+    if (selectcell) {
+        if (ValidScreen(mouse.x, mouse.y)) {
+            var ij = ScreenToIdx(mouse.x, mouse.y)
+            DrawSelectNext(ij[0], ij[1])
+            DrawStringRun(ij[0], ij[1], cl_next)
+        }
+    } else if (selectshape) {
+        var xyp = ScreenToPhys(mouse.x, mouse.y)
+        DrawSelectShape(xyp[0], xyp[1])
+    } else if (mousepressed) { // dragging cell
+        var dd = IncCell()
+        DrawBar(dd[0], dd[1], dd[2], dd[3])
+        UpdateText()
+    }
+}
+
+function StartSelect() {
+    StopSelect()
+    StopSelectShape()
+
+    selectcell = true;
+    onPaint()
+    canvas.addEventListener('mousemove', onPaint, false);
+    canvas.addEventListener('touchmove', onPaint, false);
+}
+
+function ApplySelect() {
+    var x = mouse.x, y = mouse.y;
+    if (ValidScreen(x, y)) {
+        var ij = ScreenToIdx(x, y)
+        SetCell(ij[0], ij[1])
+    }
+}
+
+function SetCell(i0a, j0a) {
+    i0 = i0a
+    j0 = j0a
+}
+
+function StopSelect() {
+    selectcell = false;
+    onPaint()
+    canvas.removeEventListener('mousemove', onPaint, false);
+    canvas.removeEventListener('touchmove', onPaint, false);
+}
+
+// cr: cicle radius in cells
+function StartSelectShape(cr) {
+    StopSelect()
+    StopSelectShape()
+
+    circrad = cr
+
+    selectshape = true;
+    onPaint()
+    canvas.addEventListener('mousemove', onPaint, false);
+    canvas.addEventListener('touchmove', onPaint, false);
+}
+
+// xp,yp: center 
+// rp: radius
+// physical coordinates
+function PutCircle(xp, yp, rp) {
+    var lx = 1
+    var dx = lx / nx
+    var dy = dx
+    var el = {x0: xp * dx, y0: yp * dy, a: rp * dx, b: rp * dy}
+    var vof = new Vof(dx, dy, vof_ellipse, el)
+    var du = matrix_new(nx, ny)
+    vof.grid(nx, ny, /**/ du)
+    var i, j
+    for (i = 0; i < nx; i++) {
+        for (j = 0; j < ny; j++) {
+            u[i][j] = Clip(u[i][j] + du[i][j], 0, 1)
+        }
+    }
+}
+
+function ApplySelectShape() {
+    // draw shape at (mouse.x mouse.y)
+    var xyp = ScreenToPhys(mouse.x, mouse.y)
+    PutCircle(xyp[0], xyp[1], circrad)
+    UpdateText()
+}
+
+function StopSelectShape() {
+    selectshape = false;
+    onPaint()
+    canvas.removeEventListener('mousemove', onPaint, false);
+    canvas.removeEventListener('touchmove', onPaint, false);
+}
+
+function SetSize0(nxa, nya) {
+    nx = nxa
+    ny = nya
+    InitFields()
+    UpdateViewport()
+}
+
+function SetSize(nxa, nya) {
+    SetSize0(nxa, nya)
+    UpdateText()
+    onPaint()
+}
+
+
+// initial
+var nx = 7, ny = 7      // grid size
+var i0 = 4, j0 = 4      // select cell
+
+// sizes relative to wx
+var barl_ = 0.2         // bar length
+var barw_ = 0.02        // bar length
+var marx_ = barl_ * 0.5 // x-margin
+var mary_ = barl_ * 0.5 // y-margin
+var hb_ = 0.1           // button height
+var wab_ = 0.9          // button row width
+var ht_ = 0.3           // text area height
+var wt_ = 0.9           // texte area width
+var hfb_ = 0.05          // button font height
+var hf_ = 0.025          // font height
+var wl_ = 0.005          // line width
+var cl_curr = "red"
+var cl_next = "green"
+
+// global
+var u, ustart, ends
+var wx                  // screen width
+var w                   // cell width
+var base                // left top corner of grid
+var circrad             // circle radius
+var ctx                 // canvas context
+
+
+function GetWindowWidth(nx, ny) {
+    var wx, wy, w
+    wx = window.innerWidth || document.documentElement.clientWidth  || document.body.clientWidth;
+    wy = window.innerHeight || document.documentElement.clientHeight  || document.body.clientHeight;
+    w = wx * (1 - marx_ * 2) / nx
+    w = Math.min(w, 
+        wy / (ny + nx * (mary_ * 2 + hb_ + ht_) / (1 - marx_ * 2)))
+
+    wx = w * nx / (1 - marx_ * 2)
+    wy = w * ny + wx * (mary_ * 2 + hb_ + ht_)
+
+    return [wx, wy, w]
+}
+
+function InitFields() {
+    u = matrix_zero(nx, ny)
+    ustart = matrix_copy(nx, ny, u)
+    ends = matrix_new(nx, ny)
+}
+
+function UpdateViewport() {
+    var nm = Math.max(nx, ny)
+    var ww = GetWindowWidth(nm, nm)
+
+    wx = ww[0]
+    w = ww[2]
+
+    base = {x: wx * marx_ , y: wx * mary_}
+
+    canvas.width = w * nx + base.x * 2
+    canvas.height = w * ny + base.y * 2
+    canvas.style.width = canvas.width.toString() + "px"
+    canvas.style.height = canvas.height.toString() + "px"
+
+    ctx = canvas.getContext('2d');
+
+    var d = document.getElementById('buttons');
+    d.style.fontSize = (hfb_ * wx) + "px"
+    var bb = d.getElementsByTagName('button');
+    var i, bl = bb.length;
+    for (i = 0, bl = bb.length; i < bl; ++i) {
+        var b = bb[i]
+        b.style.width = (wab_ * wx / bl).toString() + "px"
+        b.style.height = (hb_ * wx).toString() + "px"
+    }
+    document.getElementById('selectcell').style.color = cl_curr;
+
+    textarea.style.width = (wt_ * wx) + "px"
+    var k_ = 0.9 // XXX: factor to avoid vertical scrolling
+    textarea.style.height = (ht_ * wx * k_) + "px"
+    textarea.style.fontSize = (hf_ * wx) + "px"
+    ctx.lineWidth = (wl_ * wx)
+
+    linksTag.style.fontSize = (hf_ * wx) + "px"
+
+    mouse.x = base.x
+    mouse.y = base.y
+    start.x = base.x
+    start.y = base.y
+}
+
+function addListenerMulti(element, eventNames, listener) {
+    var events = eventNames.split(' ')
+    var i, ie;
+    for (i = 0, ie = events.length; i < ie; i++) {
+        element.addEventListener(events[i], listener, false);
+    }
+}
+
+function SetEvents() {
+    addListenerMulti(canvas, 'mousemove mousedown', function(e) {
+        let rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+    });
+
+    addListenerMulti(canvas, 'touchmove touchstart', function(e) {
+        let rect = canvas.getBoundingClientRect();
+        mouse.x = e.touches[0].clientX - rect.left;
+        mouse.y = e.touches[0].clientY - rect.top;
+    });
+
+    addListenerMulti(canvas, 'mousedown touchstart', function(e) {
+        if (selectcell) {
+            ApplySelect()
+            StopSelect()
+        } else if (selectshape) {
+            ApplySelectShape()
+            StopSelectShape()
+        } else {
+            mousepressed = true; // start dragging cell
+            ustart = matrix_copy(nx, ny, u);
+            start.x = mouse.x
+            start.y = mouse.y
+            canvas.addEventListener('mousemove', onPaint, false);
+            canvas.addEventListener('touchmove', onPaint, false);
+            onPaint()
+        }
+    });
+
+    addListenerMulti(canvas, 'mouseup mouseout touchend touchcancel',
+            function(e) {
+        if (mousepressed) {
+            canvas.removeEventListener('mousemove', onPaint, false);
+            canvas.removeEventListener('touchmove', onPaint, false);
+            mousepressed = false;
+            onPaint()
+        }
+    });
+
+    addListenerMulti(textarea, 'change input keyup onpaste oncut',
+            function(e) {
+        UpdateGrid()
+        Clear()
+        DrawAll()
+    }, false);
+
+    addListenerMulti(window, 'resize',
+            function(e) {
+        UpdateViewport()
+        Clear()
+        DrawAll()
+    }, false);
+}
+
+var canvas = document.getElementById('myCanvas');
+var textarea = document.getElementById("myTextarea");
+var linksTag = document.getElementById("linksTag");
+var mouse = {x: 0, y: 0}
+var start = {x: 0, y: 0}
+var mousepressed = false
+var selectcell = false
+var selectshape = false
+
+SetSize(nx, ny)
+PutCircle(nx / 2 - 1.2, ny / 2 + 1.3, 2)
+PutCircle(nx / 2 + 2.1, ny / 2 - 1.8, 1)
+SetEvents()
+onPaint()
+
+    </script>
+  </body>
+</html>

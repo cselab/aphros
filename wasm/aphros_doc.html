@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Aphros Explorer documentation</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="aphros_doc.css" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Aphros Explorer documentation</h1>
+</header>
+<p>Interactive <a href="https://github.com/cselab/aphros/tree/master/examples/107_wasm">open-source</a> fluid solver <a href="aphros.html">Aphros Explorer</a> running in the web browser. The interactive version illustrates the full solver <a href="https://github.com/cselab/aphros">Aphros</a> for scientific flow simulations.</p>
+<p>The domain is filled by a mixture of two liquids with different densities and viscosities. Effects of gravity and surface tension are included. Many <a href="#parameters">parameters</a> can be changed dynamically. Various <a href="#bc">boundary conditions</a> can be set on the edges of the domain or a solid body. <a href="#visualization">Visualization</a> and <a href="#controls">controls</a> are parameterized through a plain text configuration.</p>
+<h1 id="language"><a name="language"></a> <a href="#language">Language</a></h1>
+<p>The input configuration is defined using commands</p>
+<pre><code>[FROMSLIDER] set TYPE NAME VALUE</code></pre>
+<p>where <code>TYPE</code> is <code>int</code>, <code>double</code>, <code>vect</code> or <code>string</code>. Expressions <code>$VAR_NAME</code> and <code>${VAR_NAME}</code> are expanded to the value of the variable <code>VAR_NAME</code> that must be already defined. Lines that depend on expansions of variables defined by <a href="#sliders">sliders</a> need to start with <code>FROMSLIDER</code>.</p>
+<p>Examples:</p>
+<pre><code>set int i 0
+set double d 1.5
+set vect v 1 2 3
+set string s text
+set string s_m &quot;
+  line1
+  line2 $s
+&quot;
+set string sub $i $v $s
+FROMSLIDER set vect gravity $g 0</code></pre>
+<h1 id="parameters"><a name="parameters"></a> <a href="#parameters">Parameters</a></h1>
+<h2 id="type-int">Type <code>int</code></h2>
+<dl>
+<dt><code>enable_embed</code> (0, 1)</dt>
+<dd>Enable solid bodies using embedded boundaries (cut cells). Default is 0
+</dd>
+<dt><code>enable_advection</code> (0, 1)</dt>
+<dd>Enable advection solver for two-component flows. Default is 1
+</dd>
+<dt><code>hypre_periodic_x</code>, <code>hypre_periodic_y</code> (0, 1)</dt>
+<dd>Make the domain periodic in the x- and y-directions. Default is 0
+</dd>
+<dt><code>sharpen</code> (0, 1)</dt>
+<dd>Enable interface sharpening based on PLIC forward-backward advection. Default is 1
+</dd>
+<dt><code>steps_per_frame</code></dt>
+<dd>Number of time steps per rendering frame. Default is 1
+</dd>
+<dt><code>stokes</code> (0, 1)</dt>
+<dd>Disable convective fluxes to approach the Stokes limit of no inertia. High viscosity or steady state still needed. Default is 0
+</dd>
+</dl>
+<h2 id="type-double">Type <code>double</code></h2>
+<dl>
+<dt><code>cfl</code>, <code>cfla</code>, <code>cflst</code></dt>
+<dd>CFL numbers for fluid, advection, and surface tension. Defaults are <code>cfl=0.8</code>, <code>cfla=0.8</code>, and <code>cflst=1</code>
+</dd>
+<dt><code>extent</code></dt>
+<dd>Domain size. Default is 1
+</dd>
+<dt><code>mu1</code>, <code>mu2</code></dt>
+<dd>Viscosities of components 1 and 2. Default is 0.01
+</dd>
+<dt><code>rho1</code>, <code>rho2</code></dt>
+<dd>Densities of components 1 and 2. Default is 1
+</dd>
+<dt><code>sigma</code></dt>
+<dd>Surface tension. Default is 0
+</dd>
+<dt><code>spawn_r</code></dt>
+<dd>Radius of circle spawned on mouse click, relative to the domain size. Default is 0.05
+</dd>
+</dl>
+<h2 id="type-vect">Type <code>vect</code></h2>
+<dl>
+<dt><code>force</code></dt>
+<dd>Body force. Default is <code>0 0</code>.
+</dd>
+<dt><code>gravity</code></dt>
+<dd>Gravitational acceleration. Default is <code>0 0</code>.
+</dd>
+</dl>
+<h2 id="type-string">Type <code>string</code></h2>
+<dl>
+<dt><code>advection_solver</code> (<code>vof</code>, <code>vofm</code>)</dt>
+<dd>Advection solver to use. Standard volume-of-fluid (<code>vof</code>) and multilayer volume-of-fluid for coalescence prevention (<code>vofm</code>). Default is <code>vof</code>
+</dd>
+<dt><code>bc_path</code></dt>
+<dd><a href="#bc">Boundary conditions</a>
+</dd>
+<dt><code>eb_list_path</code></dt>
+<dd><a href="#primitives">Primitives</a> composing the solid body
+</dd>
+<dt><code>init_vf</code>, <code>list_path</code></dt>
+<dd><a href="#initvf">Initial volume fraction</a> with a list of primitives
+</dd>
+<dt><code>sliders</code></dt>
+<dd><a href="#sliders">Sliders</a>
+</dd>
+<dt><code>title</code></dt>
+<dd>Window title. Default is <code>Aphros Explorer</code>.
+</dd>
+<dt><code>visual</code></dt>
+<dd>Fields to <a href="#visualization">visualize</a>
+</dd>
+<dt><code>print_vars</code></dt>
+<dd>Names of variables to print in the output window
+</dd>
+</dl>
+<h2 id="other-parameters">Other parameters</h2>
+<p><a href="https://github.com/cselab/aphros/blob/master/deploy/scripts/sim_base.conf">Base configuration file</a> together with <a href="https://github.com/cselab/aphros/blob/master/examples/107_wasm/conf/std.conf">additional configuration</a> list other available parameters and their default values.</p>
+<h1 id="controls"><a name="controls"></a> <a href="#controls">Controls</a></h1>
+<p>The Apply button sends the input configuration to the solver. Changes of some parameters have an immediate effect (density, viscosity, surface tension, and gravity). Others will only be considered after the next restart (boundary conditions, shape of the solid body, initial fields, and choice of advection solver). To restart the simulation, click on any button that selects the mesh size (16, 32, 64, 128) including the one currently selected.</p>
+<p>Mouse click on the canvas creates a circle of radius <code>spawn_r</code> filled with component 2.</p>
+<p><a href="#sliders">Sliders</a> are defined by parameter <code>sliders</code> and appear under the canvas.</p>
+<h1 id="visualization"><a name="visualization"></a> <a href="#visualization">Visualization</a></h1>
+<p>Parameter <code>visual</code> defines a list of scalar fields to visualize.</p>
+<pre><code>set string visual &quot;
+FIELD {
+  set vect values VALUES
+  set vect colors COLORS
+  set vect opacities OPACITIES
+}
+...
+&quot;</code></pre>
+<p>Valid values of <code>FIELD</code>:</p>
+<dl>
+<dt><code>pressure</code></dt>
+<dd>Pressure
+</dd>
+<dt><code>vorticity</code></dt>
+<dd>Vorticity
+</dd>
+<dt><code>embed fraction</code></dt>
+<dd>Fraction of cells occupied by fluid, zero inside solid body
+</dd>
+<dt><code>volume fraction</code></dt>
+<dd>Fraction of cells occupied by second component (gas or liquid)
+</dd>
+<dt><code>velocity magnitude</code></dt>
+<dd>Velocity magnitude
+</dd>
+<dt><code>velocity x</code></dt>
+<dd>Component <code>x</code> of velocity
+</dd>
+<dt><code>velocity y</code></dt>
+<dd>Component <code>y</code> of velocity
+</dd>
+</dl>
+<p>Fields are rendered sequentially, with the colormap and opacities defined by</p>
+<ul>
+<li>field values in <code>VALUES</code>,</li>
+<li>flattened RGB color components between 0 and 1 in <code>COLORS</code>,</li>
+<li>opacities between 0 and 1 in <code>OPACITIES</code>.</li>
+</ul>
+<p>Predefined colors that expand to RGB components, based on <a href="https://github.com/OrdnanceSurvey/GeoDataViz-Toolkit/tree/master/Colours">palette</a>:</p>
+<pre><code>set string Cred 1 0.12 0.35
+set string Cgreen 0 0.8 0.42
+set string Cblue 0 0.6 0.87
+set string Cpurple 0.686 0.345 0.729
+set string Cyellow 1 0.776 0.118
+set string Corange 0.949 0.522 0.133
+set string Cwhite 1 1 1
+set string Cblack 0 0 0
+set string Cgray 0.627 0.694 0.729</code></pre>
+<p>Example with the <code>x</code>-component of velocity overlayed by the volume fraction:</p>
+<pre><code>set string visual &quot;
+  velocity x {
+    set vect values -1 0 1
+    set vect colors $Cblue $Cwhite $Cred
+  }
+
+  volume fraction {
+    set vect values 0 1
+    set vect colors $Cgreen $Cgreen
+    set vect opacities 0 0.5
+  }
+&quot;</code></pre>
+<h1 id="geometric-primitives"><a name="primitives"></a> <a href="#primitives">Geometric primitives</a></h1>
+<p>Primitives are used to specify initial and boundary conditions. Valid values of <code>PRIMITIVE</code>:</p>
+<dl>
+<dt><code>sphere CX CY 0 RX [RY=RX]</code></dt>
+<dd>Ellipsoid centered at <code>CX,CY</code> with principal semi-axes <code>RX,RY</code>
+</dd>
+<dt><code>box CX CY 0 RX [RY=RX]</code></dt>
+<dd>Box centered at <code>CX,CY</code> with half-size <code>RX,RY</code>
+</dd>
+</dl>
+<p>Primitives also accept modifiers, negation (<code>-</code>) and intersection (<code>&amp;</code>), used to subtract the primitive from the current shape. See the <a href="https://cselab.github.io/aphros/doc/#geometric-primitives">documentation</a> of the full solver for more details.</p>
+<p>Examples:</p>
+<pre><code>sphere 0 0 0 1
+sphere 0 1 0 1 2
+box 0 0 0 1
+box 0 1 0 1 2
+&amp;-sphere 0 0 0 0.5</code></pre>
+<h1 id="initial-volume-fraction"><a name="initvf"></a> <a href="#initvf">Initial volume fraction</a></h1>
+<p>Parameter <code>init_vf</code> defines the initial volume fraction field. Valid values of <code>init_vf</code>:</p>
+<dl>
+<dt><code>zero</code></dt>
+<dd>zero field
+</dd>
+<dt><code>list</code></dt>
+<dd>initial field defined in <code>list_path</code>
+</dd>
+</dl>
+<p>Parameter <code>list_path</code> defines a list of primitives</p>
+<pre><code>set string list_path &quot;inline
+  PRIMITIVE
+  ...
+&quot;</code></pre>
+<p>The initial volume fraction is 1 inside the primitives and 0 elsewhere.</p>
+<h1 id="solid-bodies"><a name="bodies"></a> <a href="#bodies">Solid bodies</a></h1>
+<p>Flows in complex geometries around solid bodies are activated by</p>
+<pre><code>set int enable_embed 1</code></pre>
+<p>Parameter <code>eb_list_path</code> defines a list of primitives that compose the solid body</p>
+<pre><code>set string eb_list_path &quot;inline
+  PRIMITIVE
+  ...
+&quot;</code></pre>
+<h1 id="boundary-conditions"><a name="bc"></a> <a href="#bc">Boundary conditions</a></h1>
+<p>Parameter <code>bc_path</code> defines boundary conditions</p>
+<pre><code>set string bc_path &quot;inline
+BCTYPE {
+  PRIMITIVE
+  ...
+}
+...
+&quot;</code></pre>
+<p>The boundary conditions are set to <code>BCTYPE</code> on domain edges and edges of solid bodies that fall inside the primitives. Valid values of <code>BCTYPE</code>:</p>
+<dl>
+<dt><code>wall VX VY 0</code></dt>
+<dd>No-slip wall with velocity <code>VX,VY</code>
+</dd>
+<dt><code>slipwall</code></dt>
+<dd>Free-slip wall
+</dd>
+<dt><code>inlet VX VY 0</code></dt>
+<dd>Inlet with velocity <code>VX,VY</code>
+</dd>
+<dt><code>outlet</code></dt>
+<dd>Outlet
+</dd>
+<dt><code>inletpressure P</code></dt>
+<dd>Inlet with fixed pressure <code>P</code>
+</dd>
+<dt><code>outletpressure P</code></dt>
+<dd>Outlet with fixed pressure <code>P</code>
+</dd>
+</dl>
+<p>Example setting walls with velocity <code>(1,0)</code> at <code>y=0</code> and <code>y=1</code> and walls with zero velocity elsewhere:</p>
+<pre><code>set string bc_path &quot;inline
+wall 0 0 0 {
+  box 0 0 0 100
+}
+wall 1 0 0 {
+  box 0 0 0 100 1e-6
+  box 0 1 0 100 1e-6
+}
+&quot;</code></pre>
+<h1 id="sliders"><a name="sliders"></a> <a href="#sliders">Sliders</a></h1>
+<p>Parameter <code>sliders</code> defines a list of sliders</p>
+<pre><code>set string sliders &quot;
+  SLIDER
+  ...
+&quot;</code></pre>
+<p>where <code>SLIDER</code> describes one slider</p>
+<pre><code>VAR MIN MAX [LABEL=VAR]</code></pre>
+<p>that sets a variable named <code>VAR</code> with the range between <code>MIN</code> and <code>MAX</code>. Initially, the slider takes the value from the current configuration if <code>VAR</code> defined and the default <code>(MIN+MAX)/2</code> otherwise. Variables set by sliders are expanded in the input configuration. Lines that depend on such expansions need to start with <code>FROMSLIDER</code>.</p>
+<p>Examples:</p>
+<pre><code>set double g 5   # initial value
+set string sliders &quot;
+  rho1 1 10 density 1
+  sigma 0 1 surface tension
+  g 0 10 gravity
+&quot;
+FROMSLIDER set vect gravity 0 -$g</code></pre>
+</body>
+</html>

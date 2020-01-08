@@ -1,0 +1,6 @@
+set -eu
+
+git apply patch
+(cd deploy && ./all)
+(cd src && make -j)
+

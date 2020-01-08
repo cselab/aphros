@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Advection-Diffusion</title>
+    <style>
+      .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; touch-action: manipulation; }
+      textarea.emscripten { font-family: monospace; width: 500px; }
+      canvas.emscripten { border: 0px none; background-color: black; }
+      div.emscripten { text-align: center; }
+      .button {width: 80px; height: 60px; font-size: 12pt; padding: 0pt; margin: 0pt; touch-action: manipulation; }
+      .button2 {width: 80px; height: 60px; font-size: 15pt; padding: 0pt; margin: 0pt; touch-action: manipulation; }
+    </style>
+  </head>
+  <body>
+    <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
+
+    <div class="emscripten">
+      <input type="button" class="button" value="init"
+        onclick="Module.ccall('Init', 'number', [])">
+      <input type="button" class="button" value="pause"
+        onclick="Module.ccall('TogglePause', 'number', [])">
+      <input type="button" class="button" value="diff-"
+        onclick="Module.ccall('MulDiffusion', 'number', ['number'], [0.5])">
+      <input type="button" class="button" value="diff+"
+        onclick="Module.ccall('MulDiffusion', 'number', ['number'], [2])">
+      <input type="button" class="button" value="left"
+        onclick="Module.ccall('AddVelocityAngle', 'number', ['number'], [30])">
+      <input type="button" class="button" value="right"
+        onclick="Module.ccall('AddVelocityAngle', 'number', ['number'], [-30])">
+      <br>
+      <input type="button" class="button2" value="16"
+        onclick="Module.ccall('SetMesh', 'number', ['number'], [16])">
+      <input type="button" class="button2" value="32"
+        onclick="Module.ccall('SetMesh', 'number', ['number'], [32])">
+      <input type="button" class="button2" value="64"
+        onclick="Module.ccall('SetMesh', 'number', ['number'], [64])">
+      <input type="button" class="button2" value="128"
+        onclick="Module.ccall('SetMesh', 'number', ['number'], [128])">
+      <input type="button" class="button2" value="256"
+        onclick="Module.ccall('SetMesh', 'number', ['number'], [256])">
+      <input type="button" class="button2" value="512"
+        onclick="Module.ccall('SetMesh', 'number', ['number'], [512])">
+    </div>
+
+
+    <textarea class="emscripten" id="output" rows="20"></textarea>
+
+    <script type='text/javascript'>
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: (function() {
+          var element = document.getElementById('output');
+          if (element) element.value = '';
+          return function(text) {
+            if (arguments.length > 1) {
+              text = Array.prototype.slice.call(arguments).join(' ');
+            }
+            console.log(text);
+            if (element) {
+              element.value += text + "\n";
+              element.scrollTop = element.scrollHeight;
+            }
+          };
+        })(),
+        printErr: function(text) {
+          if (arguments.length > 1) {
+            text = Array.prototype.slice.call(arguments).join(' ');
+          }
+          console.error(text);
+        },
+        canvas: (function() { return document.getElementById('canvas'); })(),
+        setStatus: function(text) {},
+      };
+    </script>
+
+    <script async src="diffusion.js"></script>
+  </body>
+</html>

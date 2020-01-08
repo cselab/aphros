@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <link rel="icon" type="image/png" href="electrochem-icon.png">
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=640, initial-scale=0.55">
+    <title>Electrochemical Reactor</title>
+    <style>
+      html *
+      {
+         font-family: Arial, Helvetica, sans-serif;
+      }
+      .emscripten {
+        padding-right: 0;
+        padding: 5px;
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+        touch-action: manipulation;
+      }
+      textarea.emscripten { font-family: monospace; width: 500px; }
+      canvas.emscripten { border: 0px none; background-color: white; }
+      div.emscripten { text-align: center; }
+      .slider {
+        outline: none;
+        width: 300px;
+        height: 30px;
+        padding-top: 0px;
+      }
+      .label {
+        margin-top: 0px;
+      }
+      .emscripten span {
+        display: inline-block;
+        white-space: nowrap;
+        line-height: 42px;
+        vertical-align: text-bottom;
+        width: 150px;
+        text-align:left;
+      }
+
+      a {
+        color: #0082BB;
+      }
+      a:link {
+        text-decoration: none;
+      }
+      a:visited {
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .button {
+        display: inline-block;
+        color: #000000;
+        background: #ffffff;
+        vertical-align: baseline;
+        border-radius: 0;
+        border: none;
+        border: 0.15em solid #808080;
+        margin: 0 0;
+        padding: 0;
+        text-align: center;
+        text-decoration: none;
+        font-size: 1.2em;
+        height: 1.8em;
+        width: 3.25em;
+        touch-action: manipulation;
+      }
+      .button:hover {
+        border-color: #000000;
+      }
+      .button:active {
+        background: #808080;
+      }
+      .pressed {
+        border: 0.22em solid #000000;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="text-align:center;">
+      Water electrolysis. Dissolved hydrogen and oxygen gases (red)
+      nucleate into bubbles (green)
+      <br>
+      <a class="github-button" href="https://github.com/cselab/aphros" data-size="large" data-show-count="true" aria-label="Star cselab/aphros on GitHub">Star</a>
+      <span style="position: relative; bottom: 0.45em;">
+        <a href="https://github.com/cselab/aphros">github.com/cselab/aphros</a>
+        |
+        <a href="https://github.com/cselab/aphros/tree/master/examples/107_wasm">wasm</a>
+      </span>
+    </div>
+    <noscript>
+      <div style="color:red; text-align:center;">
+        This simulation needs JavaScript
+      </div>
+    </noscript>
+    <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
+
+    <div class="emscripten" style="padding: 5px;">
+    [space] pause, [click] draw a bubble
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <input type="button" class="button" id="button_pause" value="pause" onclick="TogglePause();">
+      <input type="button" class="button" value="clear"
+        onclick="SetExtraConfig(); Module.ccall('Init', null, [])">
+      <input type="button" class="button" id="button_16" value="16" onclick="Init(16)">
+      <input type="button" class="button" id="button_32" value="32" onclick="Init(32)">
+      <input type="button" class="button" id="button_64" value="64" onclick="Init(64)">
+      <input type="button" class="button" id="button_128" value="128" onclick="Init(128)">
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label"><input type="range" class="slider" min="0" max="20" value="10" step="1" id="range_gravity"
+        onchange="SetGravity(this.value);">
+        <span>gravity</span></label>
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label"><input type="range" class="slider" min="0" max="1" value="0.2" step="0.01" id="range_sigma"
+        onchange="SetSigma(this.value);">
+        <span>surface tension</span></label>
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label"><input type="range" class="slider" min="0" max="0.02" value="0.001" step="0.0002" id="range_mu"
+        onchange="SetMu(this.value);">
+        <span>viscosity</span></label>
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label"><input type="range" class="slider" min="0" max="0.5" value="0.1" step="0.01" id="range_rate"
+        onchange="SetRate(this.value);">
+        <span>reaction rate</span></label>
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label"><input type="range" class="slider" min="0.0005" max="0.05" value="0.005" step="0.0005" id="range_diffusion"
+        onchange="SetDiffusion(this.value);">
+        <span>molecular diffusion</span></label>
+    </div>
+    <div class="emscripten" style="padding-top: 15px;">
+      demos:
+      <a href="hydro.html">drops</a>
+      |
+      <a href="aphros.html">explorer</a>
+      <br>
+      videos:
+      <a href="https://www.youtube.com/watch?v=iGdphpztCJQ">waves</a>
+      |
+      <a href="https://www.youtube.com/watch?v=0Cj8pPYNJGY">waterfall</a>
+      |
+      <a href="https://www.youtube.com/watch?v=pRWGhGoQjyI">coalescence</a>
+    </div>
+
+    <script src="electrochem_defs.js"></script>
+    <script async src="electrochem.js"></script>
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
+  </body>
+</html>

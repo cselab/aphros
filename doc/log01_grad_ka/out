@@ -1,0 +1,279 @@
+Loading config from 'a.conf'
+
+=== config begin ===
+set string advection_solver vof
+set string convsc quick
+set string dumpformat default
+set string dumplist vx vy vz p vf cl 
+set string hypre_gen_solver gmres
+set string hypre_symm_solver pcg
+set string init_vf list
+set string list_path ../b.dat
+set string surftens kn
+set string vel_init uniform
+set int bsx 16
+set int bsy 16
+set int bsz 1
+set int bx 1
+set int by 1
+set int bz 1
+set int clip_vf 0
+set int comm_size 8
+set int curvgrad 0
+set int dim 2
+set int dump_field_max 10000
+set int dump_part_max 10000
+set int dump_stat_max 1000000
+set int dump_traj_max 10000
+set int dump_trep_max 10000
+set int dumpinit 0
+set int dumppoly 1
+set int enable_advection 1
+set int enable_color 1
+set int enable_fluid 1
+set int enable_surftens 1
+set int hl 2
+set int hypre_gen_maxiter 30
+set int hypre_periodic_x 1
+set int hypre_periodic_y 1
+set int hypre_periodic_z 1
+set int hypre_print 0
+set int hypre_symm_maxiter 100
+set int inletflux_numid 1
+set int list_ls 1
+set int loc 1
+set int max_iter 2
+set int max_step 1000000
+set int min_iter 1
+set int normalnode 0
+set int output 1
+set int part 1
+set int part_bendmean 1
+set int part_constr 1
+set int part_dump_fr 1
+set int part_itermax 100
+set int part_k 1
+set int part_n 0
+set int part_np 21
+set int part_ns 2
+set int part_report_fr 1
+set int part_verb 0
+set int px 1
+set int py 1
+set int pz 1
+set int second_order 1
+set int simpler 0
+set int split 0
+set int verbose 0
+set int verbose_stages 1
+set int vf_init_sm 0
+set int vfsmooth 0
+set int vfsmoothst 0
+set double abortvel 1e+10
+set double bcc_k0 1
+set double bcc_k1 1
+set double bcc_t0 -1
+set double bcc_t1 -1
+set double bcc_y0 -1e+10
+set double bcc_y1 1e+10
+set double cfl 1e+10
+set double cfla 1e+10
+set double cflst 1e+10
+set double clipth 1e-10
+set double color_th 0.5
+set double contangk 1
+set double contangy0 -1e+10
+set double contangy1 1e+10
+set double convdf 1
+set double dt0 1e-06
+set double dtmax 0.0025
+set double dump_field_dt 0.05
+set double dump_field_t0 0
+set double dump_part_dt 0.05
+set double dump_part_t0 0
+set double dump_stat_dt 0
+set double dump_traj_dt 1
+set double dump_traj_t0 0
+set double dump_trep_dt 1
+set double dump_trep_t0 0
+set double extent 1
+set double hypre_tol 0.001
+set double mu1 0.01
+set double mu2 0.01
+set double part_anglim 120
+set double part_dtmax 10
+set double part_h 3
+set double part_intth 1e-06
+set double part_kattr 1
+set double part_kbend 1
+set double part_kstr 1
+set double part_relax 0.5
+set double part_segcirc 0.5
+set double part_tmax 180
+set double part_tol 1e-05
+set double poly_intth 0
+set double prelax 0.9
+set double rhie 1
+set double rho1 1
+set double rho2 1
+set double sharp 0
+set double sharpo 0
+set double sigma 1
+set double stdiag 1
+set double tmax 5
+set double tol 0.001
+set double vrelax 0.8
+set double zerostx0 1e+10
+set double zerostx1 1e+10
+set vect force 0 0 0 
+set vect gravity 0 0 0 
+set vect vel 0 0 0 
+=== config end ===
+
+o=(0,0,0) dom=(0,0,0),(1,1,0.0625) h=0.0625
+h from gm = 0.0625
+o=(0,0,0) n=0 i=(0,0,0)
+Read 1 particles from '../b.dat'
+global mesh=(16,16,1)
+surface tension dt=6.23347e+07
+color: Read 1 particles from '../b.dat'
+Found events: 
+=====
+=====
+STEP=0 t=0.00000000 dt=0.00000100 ta=0.00000000 dta=0.00000100
+> k_mn=0.00000000000000000000e+00, k_mx=0.00000000000000000000e+00, k_sum=0.00000000000000000000e+00
+> p_mn=0.00000000000000000000e+00, p_mx=0.00000000000000000000e+00, p_sum=0.00000000000000000000e+00
+> vf_mn=0.00000000000000000000e+00, vf_mx=1.00000000000000000000e+00, vf_sum=7.98464146566161755980e-03
+> vx_mn=0.00000000000000000000e+00, vx_mx=0.00000000000000000000e+00, vx_sum=0.00000000000000000000e+00
+> vy_mn=0.00000000000000000000e+00, vy_mx=0.00000000000000000000e+00, vy_sum=0.00000000000000000000e+00
+> vz_mn=0.00000000000000000000e+00, vz_mx=0.00000000000000000000e+00, vz_sum=0.00000000000000000000e+00
+.....iter=1, diff=0.0000000000000000e+00
+dump t=0.00000100 to s_0000.vtk
+dump t=0.00000100 to partit_0000.csv
+dump t=0.00000100 to sp_0000.vtk
+.....adv: t=0.00000100 dt=0.00000100
+Dump n=0 t=1e-06 target=0
+Dump 0: format=vtk
+dump t=0.00000100 to traj_0000.csv
+timer report t=0.00000100 to trep_0000.log
+STEP=1 t=0.00000100 dt=0.00250000 ta=0.00000100 dta=0.00250000
+> k_mn=4.46866319623172003617e+00, k_mx=5.32315546043093057449e+00, k_sum=nan
+> p_mn=0.00000000000000000000e+00, p_mx=0.00000000000000000000e+00, p_sum=0.00000000000000000000e+00
+> vf_mn=0.00000000000000000000e+00, vf_mx=1.00000000000000000000e+00, vf_sum=7.98464146566161755980e-03
+> vx_mn=0.00000000000000000000e+00, vx_mx=0.00000000000000000000e+00, vx_sum=0.00000000000000000000e+00
+> vy_mn=0.00000000000000000000e+00, vy_mx=0.00000000000000000000e+00, vy_sum=0.00000000000000000000e+00
+> vz_mn=0.00000000000000000000e+00, vz_mx=0.00000000000000000000e+00, vz_sum=0.00000000000000000000e+00
+.....iter=1, diff=4.2302404506053388e-02
+.....iter=2, diff=3.9579911846425132e-03
+.....adv: t=0.00250100 dt=0.00250000
+STEP=2 t=0.00250100 dt=0.00250000 ta=0.00250100 dta=0.00250000
+> k_mn=4.46924946500150532813e+00, k_mx=5.32349002862528219993e+00, k_sum=nan
+> p_mn=-6.80592671417556638325e-01, p_mx=4.52184671140254135224e+00, p_sum=-2.78097857242531887323e-17
+> vf_mn=0.00000000000000000000e+00, vf_mx=1.00000000000000000000e+00, vf_sum=7.98464147293787701587e-03
+> vx_mn=-3.14774122778549913723e-03, vx_mx=2.83901505260287633642e-03, vx_sum=3.37343702697709466670e-07
+> vy_mn=-3.48047679813154363718e-03, vy_mx=2.39710999466150303377e-03, vy_sum=-2.30302258879475915877e-06
+> vz_mn=0.00000000000000000000e+00, vz_mx=0.00000000000000000000e+00, vz_sum=0.00000000000000000000e+00
+.....iter=1, diff=3.8467139175578104e-03
+.....iter=2, diff=7.7067968874614359e-04
+.....adv: t=0.00500100 dt=0.00250000
+STEP=3 t=0.00500100 dt=0.00250000 ta=0.00500100 dta=0.00250000
+> k_mn=4.47072836144853091866e+00, k_mx=5.32428922417375272147e+00, k_sum=nan
+> p_mn=-7.00065602476821591260e-01, p_mx=4.53411512093862345552e+00, p_sum=-2.23887748618256665623e-17
+> vf_mn=0.00000000000000000000e+00, vf_mx=1.00000000000000000000e+00, vf_sum=7.98464147238278458552e-03
+> vx_mn=-8.00316629360528150605e-03, vx_mx=7.42264583866822542924e-03, vx_sum=3.01988637463925153033e-06
+> vy_mn=-8.88374748481887861751e-03, vy_mx=6.35870458679712799444e-03, vy_sum=-8.38782736361782395014e-06
+> vz_mn=0.00000000000000000000e+00, vz_mx=0.00000000000000000000e+00, vz_sum=0.00000000000000000000e+00
+.....iter=1, diff=4.2139066008859537e-03
+.....iter=2, diff=8.4123392884421990e-04
+.....adv: t=0.00750100 dt=0.00250000
+STEP=4 t=0.00750100 dt=0.00250000 ta=0.00750100 dta=0.00250000
+> k_mn=4.47318243383407576630e+00, k_mx=5.32554347821832774201e+00, k_sum=nan
+> p_mn=-7.01161384525852970917e-01, p_mx=4.53378974913919030598e+00, p_sum=-3.27158005547500962962e-17
+> vf_mn=0.00000000000000000000e+00, vf_mx=1.00000000000000000000e+00, vf_sum=7.98464147161718693080e-03
+> vx_mn=-1.31111917679976805462e-02, vx_mx=1.23843909404603123858e-02, vx_sum=6.45797085623324660779e-06
+> vy_mn=-1.46036120731276482243e-02, vy_mx=1.06885228020607188359e-02, vy_sum=-1.56533573614832709827e-05
+> vz_mn=0.00000000000000000000e+00, vz_mx=0.00000000000000000000e+00, vz_sum=0.00000000000000000000e+00
+.....iter=1, diff=4.1664396507231491e-03
+.....iter=2, diff=8.3249429554434738e-04
+.....adv: t=0.01000100 dt=0.00250000
+STEP=5 t=0.01000100 dt=0.00250000 ta=0.01000100 dta=0.00250000
+> k_mn=4.47663452974154374431e+00, k_mx=5.32723075496625675385e+00, k_sum=nan
+> p_mn=-7.01175596394443823023e-01, p_mx=4.53607117930865832989e+00, p_sum=-2.25514051876984922274e-17
+> vf_mn=0.00000000000000000000e+00, vf_mx=1.00000000000000000000e+00, vf_sum=7.98464146839659126564e-03
+> vx_mn=-1.80692092927010466985e-02, vx_mx=1.72956051353068684939e-02, vx_sum=1.01475932365265661547e-05
+> vy_mn=-2.01937080979705252393e-02, vy_mx=1.49844119453177975626e-02, vy_sum=-2.32552889920305895554e-05
+> vz_mn=0.00000000000000000000e+00, vz_mx=0.00000000000000000000e+00, vz_sum=0.00000000000000000000e+00
+.....iter=1, diff=4.0127106102455113e-03
+.....iter=2, diff=8.0304184386172041e-04
+.....adv: t=0.01250100 dt=0.00250000
+
+
+STEP=1443 t=3.60500100 dt=0.00250000 ta=3.60500100 dta=0.00250000
+> k_mn=-8.09598891435865120059e+00, k_mx=2.60738396184422498436e+01, k_sum=nan
+> p_mn=-2.03557621561621925000e+15, p_mx=-2.03557621561619800000e+15, p_sum=-1.27223513476012843750e+14
+> vf_mn=0.00000000000000000000e+00, vf_mx=1.00000000000000000000e+00, vf_sum=7.96368336767428429412e-03
+> vx_mn=-9.23429293358276170878e-01, vx_mx=1.61531716622801835292e+00, vx_sum=-4.74684757623054093267e-03
+> vy_mn=-1.62864428442212560988e+00, vy_mx=1.08174411427821715037e+00, vy_sum=-4.13211280414213771167e-03
+> vz_mn=0.00000000000000000000e+00, vz_mx=0.00000000000000000000e+00, vz_sum=0.00000000000000000000e+00
+.....iter=1, diff=4.7821993357273614e-02
+.....iter=2, diff=1.2187672929529325e-02
+.....adv: t=3.60750100 dt=0.00250000
+STEP=1444 t=3.60750100 dt=0.00250000 ta=3.60750100 dta=0.00250000
+> k_mn=-8.17197430184327622271e+00, k_mx=2.59655045054557831463e+01, k_sum=nan
+> p_mn=-2.03557621561621850000e+15, p_mx=-2.03557621561619725000e+15, p_sum=-1.27223513476012843750e+14
+> vf_mn=0.00000000000000000000e+00, vf_mx=1.00000000000000000000e+00, vf_sum=7.96368358192712025301e-03
+> vx_mn=-8.88807043783924499714e-01, vx_mx=1.62614975376317327793e+00, vx_sum=-4.64914764886579633812e-03
+> vy_mn=-1.71306997153817630597e+00, vy_mx=1.09933136342088699777e+00, vy_sum=-4.08358945630245794012e-03
+> vz_mn=0.00000000000000000000e+00, vz_mx=0.00000000000000000000e+00, vz_sum=0.00000000000000000000e+00
+.....iter=1, diff=4.2747144857244415e-02
+.....iter=2, diff=1.2189397711975612e-02
+.....adv: t=3.61000100 dt=0.00250000
+STEP=1445 t=3.61000100 dt=0.00250000 ta=3.61000100 dta=0.00250000
+> k_mn=-8.23933371317587237570e+00, k_mx=2.50945106080549429350e+01, k_sum=nan
+> p_mn=-2.03557621561621850000e+15, p_mx=-2.03557621561619725000e+15, p_sum=-1.27223513476012843750e+14
+> vf_mn=0.00000000000000000000e+00, vf_mx=1.00000000000000000000e+00, vf_sum=7.96368319831321572200e-03
+> vx_mn=-8.51673324569519940574e-01, vx_mx=1.63525459179683840816e+00, vx_sum=-4.54762571652837701425e-03
+> vy_mn=-1.79925053067923812478e+00, vy_mx=1.11705389145592937084e+00, vy_sum=-4.03686634612339650258e-03
+> vz_mn=0.00000000000000000000e+00, vz_mx=0.00000000000000000000e+00, vz_sum=0.00000000000000000000e+00
+.....iter=1, diff=1.4558744389117581e-01
+.....iter=2, diff=9.2347305041903079e+08
+.....adv: t=3.61250100 dt=0.00250000
+STEP=1446 t=3.61250100 dt=0.00250000 ta=3.61250100 dta=0.00250000
+> k_mn=-1.15553191466755293959e+02, k_mx=1.75720149532842555118e+02, k_sum=nan
+> p_mn=-1.09184277750519936000e+17, p_mx=-1.03510877446023376000e+17, p_sum=-6.64484673293326100000e+15
+> vf_mn=0.00000000000000000000e+00, vf_mx=1.00000000000000000000e+00, vf_sum=6.14409822870976615045e-03
+> vx_mn=-3.96607225048620703125e+13, vx_mx=4.98709468490725234375e+13, vx_sum=5.78803979847819447517e+08
+> vy_mn=-4.78714238770650625000e+13, vy_mx=1.66833779598722539062e+13, vy_sum=-1.55307591695267295837e+10
+> vz_mn=0.00000000000000000000e+00, vz_mx=0.00000000000000000000e+00, vz_sum=0.00000000000000000000e+00
+terminate called after throwing an instance of 'std::runtime_error'
+  what():  abortvel exceeded at x=(0.65625,0.15625,0.03125)
+[lenovo:27111] *** Process received signal ***
+[lenovo:27111] Signal: Aborted (6)
+[lenovo:27111] Signal code:  (-6)
+[lenovo:27111] [ 0] /usr/lib/libpthread.so.0(+0x123c0)[0x7fea21a053c0]
+[lenovo:27111] [ 1] /usr/lib/libc.so.6(gsignal+0x10f)[0x7fea21866d7f]
+[lenovo:27111] [ 2] /usr/lib/libc.so.6(abort+0x125)[0x7fea21851672]
+[lenovo:27111] [ 3] /usr/lib/libstdc++.so.6(+0x8958e)[0x7fea21ab758e]
+[lenovo:27111] [ 4] /usr/lib/libstdc++.so.6(+0x8fdfa)[0x7fea21abddfa]
+[lenovo:27111] [ 5] /usr/lib/libstdc++.so.6(+0x8fe57)[0x7fea21abde57]
+[lenovo:27111] [ 6] /usr/lib/libstdc++.so.6(+0x900ac)[0x7fea21abe0ac]
+[lenovo:27111] [ 7] ch.mfer(_ZN5HydroI14MeshStructuredIdLm3EEE8CalcStatEv+0x143e)[0x55f2b049432e]
+[lenovo:27111] [ 8] ch.mfer(_ZN5HydroI14MeshStructuredIdLm3EEE3RunEv+0xc10)[0x55f2b049f360]
+[lenovo:27111] [ 9] ch.mfer(_ZN9DistrMeshI17KernelMeshFactoryI14MeshStructuredIdLm3EEEE3RunEv+0x297)[0x55f2b05174d7]
+[lenovo:27111] [10] ch.mfer(_Z4MainP19ompi_communicator_tR4Vars+0x11d)[0x55f2b0474f8d]
+[lenovo:27111] [11] ch.mfer(_Z6RunMpiiPPKcSt8functionIFvP19ompi_communicator_tR4VarsEE+0x89b)[0x55f2b04a0a9b]
+[lenovo:27111] [12] ch.mfer(main+0x57)[0x55f2b0473ed7]
+[lenovo:27111] [13] /usr/lib/libc.so.6(__libc_start_main+0xf3)[0x7fea21853223]
+[lenovo:27111] [14] ch.mfer(_start+0x2e)[0x55f2b04746de]
+[lenovo:27111] *** End of error message ***
+-------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+-------------------------------------------------------
+--------------------------------------------------------------------------
+mpirun noticed that process rank 0 with PID 0 on node lenovo exited on signal 6 (Aborted).
+--------------------------------------------------------------------------
+
+real	0m36.695s
+user	0m32.144s
+sys	0m1.364s

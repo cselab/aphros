@@ -1,0 +1,17 @@
+gData = [
+{'rev': '27c7ea70', 'runtime': 21.9315, 'url': 'https://github.com/cselab/aphros-dev/commits/27c7ea70', 'date': '2019-11-14'},
+{'rev': '6d94fab4', 'runtime': 21.19152, 'url': 'https://github.com/cselab/aphros-dev/commits/6d94fab4', 'date': '2019-11-20'},
+{'rev': 'cd5d5520', 'runtime': 21.51351, 'url': 'https://github.com/cselab/aphros-dev/commits/cd5d5520', 'date': '2019-11-21'},
+{'rev': '495d5844', 'runtime': 21.30148, 'url': 'https://github.com/cselab/aphros-dev/commits/495d5844', 'date': '2019-11-23'},
+{'rev': 'ee54332d', 'runtime': 15.16251, 'url': 'https://github.com/cselab/aphros-dev/commits/ee54332d', 'date': '2020-02-22'},
+{'rev': '20f06afc', 'runtime': 15.98133, 'url': 'https://github.com/cselab/aphros-dev/commits/20f06afc', 'date': '2020-06-04'},
+{'rev': 'c0633df6', 'runtime': 14.69196, 'url': 'https://github.com/cselab/aphros-dev/commits/c0633df6', 'date': '2020-07-17'},
+{'rev': '4e644908', 'runtime': 14.45623, 'url': 'https://github.com/cselab/aphros-dev/commits/4e644908', 'date': '2020-09-30'},
+{'rev': '041255a5', 'runtime': 14.4294, 'url': 'https://github.com/cselab/aphros-dev/commits/041255a5', 'date': '2020-10-04'},
+{'rev': 'a8a9c57d', 'runtime': 13.71154, 'url': 'https://github.com/cselab/aphros-dev/commits/a8a9c57d', 'date': '2020-10-05'},
+{'rev': '947b5bea', 'runtime': 13.886, 'url': 'https://github.com/cselab/aphros-dev/commits/947b5bea', 'date': '2020-10-22'},
+{'rev': 'ae4c1b25', 'runtime': 13.35075, 'url': 'https://github.com/cselab/aphros-dev/commits/ae4c1b25', 'date': '2020-10-23'},
+{'rev': '3f9ebc43', 'runtime': 10.998, 'url': 'https://github.com/cselab/aphros-dev/commits/3f9ebc43', 'date': '2020-11-27'},
+{'rev': '3f9ebc43', 'runtime': 11.039, 'url': 'https://github.com/cselab/aphros-dev/commits/3f9ebc43', 'date': '2020-11-27'},
+{'rev': '274fc417', 'runtime': 11.017, 'url': 'https://github.com/cselab/aphros-dev/commits/274fc417', 'date': '2020-12-26'},
+]

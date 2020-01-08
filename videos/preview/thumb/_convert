@@ -1,0 +1,16 @@
+#!/bin/sh -eu
+
+e () {
+  echo "$@"
+  eval "$@"
+}
+
+for f in ../*.jpg ; do
+  g=$(basename "$f")
+  g=${g%.*}.jpg
+  if [ -f "$g" ] ; then
+    echo "skip existing '$g'"
+    continue
+  fi
+  e convert -resize 35% "$f" "$g"
+done

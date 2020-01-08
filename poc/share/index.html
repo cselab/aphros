@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  </head>
+  <body onLoad="update();">
+    <script src="libs/lz-string.js"></script>
+    <script src="main.js"></script>
+
+    <textarea id="text_input" rows=10 style="width: 700px;">
+set string visual "
+
+vorticity {
+set vect values -2 0 2
+set vect colors $Cblue $Cwhite $Cred
+set vect opacities 1 1 1
+}
+
+volume fraction {
+set vect values 0 1
+set vect colors $Cgreen $Cgreen
+set vect opacities 0 1
+}
+"
+set string print_string mu=$mu1 sigma=$sigma g=($gravity)
+    </textarea>
+    <br>
+    <button onClick="update();">Update</button>
+    <button onClick="clearURL();">Clear URL</button>
+    <button onClick="requestGithub();">Request Github</button>
+    <button onClick="requestTinyurl();">Request Tinyurl</button>
+    <br>
+    <textarea id="text_compressed" rows=10 style="width: 700px; word-break: break-all;">
+    </textarea>
+    <br>
+    <div id="div_info">
+    </div>
+  </body>
+</html>

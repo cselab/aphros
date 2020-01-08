@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -eu
+
+echo 256 > np
+echo 1440 > tl
+
+# ./gencase nx=512 tmax=0.4 np=1024 ba=0 symm=1 nfr=40 suff=_itermin10
+# XXX adhoc np=256
+# np=1024
+# nx=512
+# r=0.01
+# ns=2
+# symm=1
+# nfr=40
+# ba=0
+# ch=1
+# tmax=0.4
+# wall=0
+# La=40000
+
+./gen -nx 512 -np 256 -mode osc -dim 3 -pos center \
+  -We 0 -La 40000 -tmax 0.4 -br 0.15 \
+  -mu 0.01 -rho 0.01 \
+  -symmxy 1 -wallz 0 \
+  -bcod 0 0 0 -bcor 0 0 0 \
+  -b2xr 2 0 0 -b2rr 1 \
+  -nb 2 -nfr 40
+
+
+cat > ch/add.conf << EOF
+set string dumpformat default
+set string dumplist vf omz
+set int part_ns 2
+set int min_iter 10
+set int max_iter 100
+set double tol 0.0001
+EOF
+
+
+echo > r_ba
+

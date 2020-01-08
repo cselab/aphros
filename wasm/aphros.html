@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <link rel="icon" type="image/png" href="electrochem-icon.png">
+    <meta charset="utf-8">
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=640, initial-scale=0.55">
+    <title>Aphros Explorer</title>
+    <style>
+      html *
+      {
+         font-family: Arial, Helvetica, sans-serif;
+      }
+      .emscripten {
+        padding-right: 0;
+        padding: 5px;
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+        touch-action: manipulation;
+      }
+      textarea.emscripten { font-family: monospace; width: 430px; }
+      canvas.emscripten { border: 0px none; background-color: white; }
+      div.emscripten { text-align: center; }
+      .slider {
+        outline: none;
+        width: 200px;
+        height: 30px;
+        padding-top: 0px;
+      }
+      .label {
+        margin-top: 0px;
+      }
+      .emscripten span {
+        display: inline-block;
+        white-space: nowrap;
+        line-height: 42px;
+        vertical-align: text-bottom;
+        width: 150px;
+        text-align:left;
+      }
+
+      a {
+        color: #0082BB;
+      }
+      a:link {
+        text-decoration: none;
+      }
+      a:visited {
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .button {
+        display: inline-block;
+        color: #000000;
+        background: #ffffff;
+        vertical-align: baseline;
+        border-radius: 0;
+        border: none;
+        border: 0.15em solid #808080;
+        margin: 0 0;
+        padding: 0;
+        text-align: center;
+        text-decoration: none;
+        font-size: 1.2em;
+        height: 1.8em;
+        width: 3.25em;
+        touch-action: manipulation;
+      }
+      .button:hover {
+        border-color: #000000;
+      }
+      .button:active {
+        background: #808080;
+      }
+      .pressed {
+        border: 0.22em solid #000000;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="text-align: center; padding: 5px; vertical-align: top;">
+      <span style="display: inline-block; ">
+        <a href="https://github.com/cselab/aphros/wiki/Aphros-Explorer">
+          <img src="https://github.com/cselab/aphros/wiki/images/thumb/tile.jpg" width="50">
+          <br>
+          gallery
+        </a>
+      </span>
+      <span style="display: inline-block; ">
+        <a href="?config=M4UwLgBMYE4JYDsDmExzAGxBARAGTgBMBaQ-ANxAQgGMBDc9ATxwChXRJCB7AVwCMsEctxiQAjAAZ2AMQBKAeQCyAZTwBJACIBROVHBRYiFI2C86GXK3nK1W3cNFoazCAG9ri1Rp16I-yEoaQIteEGAIYgASETEISQgYp09bHwd_TmEQYNpuDFEIqIBhQTDEooB3AAt0bGKYEEIU73s9AF9mu18rDgMeASEQAA8wKgl2TOh4ZAh-GgB9AAc6MCrcRAxEEFYKi0sEg_dWf35uIfiLhKlWDt2MS3FLo5Ozi8erq5BiADYb1jZelw-IJsABbXjvAB0khhAGYJgYpsYoJtCCAYBE2OD3vFoZJYcI4MAaNxgMxWLFIAkAEwJUF0c6UuAuMBMf5AA=">
+          <img src="https://github.com/cselab/aphros/wiki/images/thumb/cavity.jpg" width="50">
+          <br>
+          cavity
+        </a>
+      </span>
+      <span style="display: inline-block; ">
+        <a href="?config=M4UwLgBMYE4JYDsDmExzAGxBARAYQHsBDLYAYxAQogIDMIAjAVwYdJwCgPRJp5kIANzjAmJXB0EEYaMugCeEAN4cIUcEJBlIgkkxDAIAWgBMEAAwQTq9Tq2QyBDNMMASPG30R3AdwAW6NjuMCAAJhwAvlxSGEwAtti0METacAQIyjY8mtpCegYWEACMWRqC9hCOzjBuePIgGM4-3nUNTaV2uQQADinocAWWJVGc3BqhBCxYECAAHmCUkAAcY5ATU9jAcEhxRMWrEOts2DB-BGbmAHTmJdlH03FMF9clXNl8iCiI6AD6gvQYERgA4fASA6A_XpgPy4RCAhAgLLdPwgEIQADMxQgABY1Ps1MBkajsABWLG4tQlHBAA">
+          <img src="https://github.com/cselab/aphros/wiki/images/thumb/coalescence.jpg" width="50">
+          <br>
+          coalescence
+        </a>
+      </span>
+      <span style="display: inline-block; ">
+        <a href="?config=M4UwLgBMYE4JYDsDmExzAGxBARASQFsAHAVw2DgDcQMBPKMAQxjBABMIBjWjRNkGDgBQQ0JGjxkESnGAlGGXEMoB7FnE7p6AbyEQo4aSE6RKCkiGAQAtAEYIABgi29B08cicVGNVYAkAMIARhgWEIEA7gAW6NiBMOxCAL4iIARB7BAAZjCMJnAqCBC6-mJGJtLmlo7OrmXUFV4-MP4BSLn0ge2MtHWGDZAqRHnocNX2DslCwqKGbCokIdggAB6sCJAArLOQiJAgCIxLAPppGRwuZXsQUbRECcdEAgVsGscrtVcbN3cPT_AqV6cY70S6GCSIFDUDDHRDoCAkBBwLJqAg7cruRQTdHzRZYCAEEgTAB0DgcLnREKkICCx140EejDAUVwiF4CBAdSIUQE2FsxIA7JsIAAmYnCpwuGY4hZLH73EDHYC0AgEY5gbzOEDWEXo663BVKlVqgiMFaxGDOMmTMq4uVsMBOBykimU2CQqC8fgtJSEiaOUki4UyYBeChgXo4IA==">
+          <img src="https://github.com/cselab/aphros/wiki/images/thumb/cylinder.jpg" width="50">
+          <br>
+          cylinder
+        </a>
+      </span>
+      <span style="display: inline-block; ">
+        <a href="?config=M4UwLgBMYE4JYDsDmExzAGxBARAERgHsAHCOAW2IEMBjMHAKAdEmnmQgDc5gBXKjLgadCMNDXQBPCAG8GEKOC4g6XAbxDAIAWgCMABgiGD8xZE4rINQhlFaAJAGEARhg0QnAdwAW6bE5gQABMGAF8mETdybAAzGFo0QgRZUxZlVU51TSMIXVSlC1VrWxgHRyRAkGSnCpAq_PNLCBJadDhsw30AOgBWMIZGZiUgwl5XbBAADzAqyDy0xEhvSWJAgH1iEHhCILgaNcncodZYRBREdDXOGIgMHjBjqFOOO-gNqjBvXEQ7hBBTZyEQ6dHIGIy9IypYjeLbYbo9cEADhy3V0fUGaRGYywEBg3kIuiOmNG41x-IATBByY8saTyLxCd19PNhiScfTKUzqcTsdhgHAkOQqOCWZBaTiUHp9AwAGIAJQA8gBZADKABkAJJ4ACicrM6UgFSo3DA0kM9iQTB5pJoMQw0HBfTSbDOECoQUKiQQa2ANgsMC4hBi5CtShdHGAdyCWy0jAUkrBYKNJskqQFQtBUF4MBitGwMwQ_KSAyAA===">
+          <img src="https://github.com/cselab/aphros/wiki/images/thumb/drop.jpg" width="50">
+          <br>
+          drop
+        </a>
+      </span>
+      <span style="display: inline-block; ">
+        <a href="?config=M4UwLgBMYE4JYDsDmExzAGxBARAMQwHsB3RFAYxgE9oBDDHAKEdEmnmQgDc5gBXerkZdCGPgFtsAMxi1yaQgggBvRhCjhuIed3p8QwCAAYIARjUbIXbZHKjCMQwBIAwlRAYixCK_eeSFqxaOoQADnLocAbGZowAvoxMLJoAJoR8AEZYECAAHmAgCJAArMmQiJCFtFkgAPog4hkgKbFlEBU5GbWI6N0I1o7YRm3sZJ21GLxgteFgABa4iJMIIBYZhLkQAEwAdMXbezEHABzGOwDMaxsQxTsmu_smEOc7W2cA7InMQaOcGeQzWjzRYIZardTEegYGImEzKCDrTawmKmEwJdRLTSmGHqeGInEmUwgAC0ADYzGiLOlMJo8ddHiiSeTURAEkkgmlMtkACpmHbmIIdKo1WoZTJIQqxPAAJQA8gBZADKABkAJIAEQAotLLBBOTUEeLCrUUpAnNyRrAxmKMhKEIDgUtENh8UYdu8Dgy3e9Hq9Scw2vrsqbYfzLRwULQUtZ5HBFLVgKIBtxCFJxIH0gbgHAkOJaGcthmudgYHNCNiBalM9lxHxsW6jEZShzqyWy283ZXIEHsLWO3dG82q8WIOQpBhoGdSuGxsBJikQI4hOpeW6AJx884QO2LoFxpShRdxlKJIA===">
+          <img src="https://github.com/cselab/aphros/wiki/images/thumb/crystal.jpg" width="50">
+          <br>
+          crystal
+        </a>
+      </span>
+    </div>
+    <div style="text-align: center; padding: 5px;">
+      <input type="button" class="button" id="button_url" title="Sends encoded configuration to tinyurl.com" value="tinyurl" onclick="UpdateShortUrl();">
+      <input type="text" id="text_shorturl" readonly style="width:250px;height:1.8em;">
+      <!--<a href="" id="a_fullurl">full link</a>-->
+    </div>
+
+    <noscript>
+      <div style="color:red;" class="emscripten">
+        This simulation needs JavaScript
+      </div>
+    </noscript>
+    <div style="text-align: center;">
+      <div style="display: inline; vertical-align: top;">
+        <div style="display: inline-block; vertical-align: top; margin-top: 4px;">
+          <textarea class="emscripten" id="input_conf" rows="40" style="height:500px;">
+set string visual "
+vorticity {
+  set vect values -2 0 2
+  set vect colors $Cblue $Cwhite $Cred
+  set vect opacities 1 1 1
+}
+
+volume fraction {
+  set vect values 0 1
+  set vect colors $Cgreen $Cgreen
+  set vect opacities 0 1
+}
+"
+
+set double extent 8
+
+set double sigma 1
+set string init_vf list
+set string list_path "inline
+  sphere 3 1 4   1
+  sphere 5 1 4   1
+"
+
+set double rho2 0.01
+set double mu2 0.01
+</textarea>
+          <div class="emscripten" style="padding: 8px;">
+            <input type="button" class="button" id="button_apply" style="position: relative;" value="apply" onclick="ApplyConfig();">
+            <span style="position: absolute; padding-left: 0.5em; margin-top: -0.2em">
+              <a href="aphros_doc.html">documentation</a>
+            </span>
+          </div>
+        </div>
+
+        <div style="display: inline-block; vertical-align: top;">
+          <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
+          <div class="emscripten" style="padding: 5px;">
+            <input type="button" class="button" id="button_pause" value="pause" onclick="TogglePause();">
+            <input type="button" class="button" id="button_restart" value="restart" onclick="Restart();">
+            <input type="button" class="button" id="button_16" value="16" onclick="Init(16)">
+            <input type="button" class="button" id="button_32" value="32" onclick="Init(32)">
+            <input type="button" class="button" id="button_64" value="64" onclick="Init(64)">
+            <input type="button" class="button" id="button_128" value="128" onclick="Init(128)">
+          </div>
+          <div class="emscripten" id="div_sliders" style="padding: 5px;">
+          </div>
+          <div class="emscripten" style="padding-top: 20px;">
+            demos:
+            <a href="hydro.html">drops</a>
+            |
+            <a href="electrochem.html">electrochemistry</a>
+            <br>
+            videos:
+            <a href="https://www.youtube.com/watch?v=iGdphpztCJQ">waves</a>
+            |
+            <a href="https://www.youtube.com/watch?v=0Cj8pPYNJGY">waterfall</a>
+            |
+            <a href="https://www.youtube.com/watch?v=pRWGhGoQjyI">coalescence</a>
+          </div>
+          <div style="text-align: center; padding-top: 5px;">
+            <a class="github-button" href="https://github.com/cselab/aphros" data-size="large" data-show-count="true" aria-label="Star cselab/aphros on GitHub">Star</a>
+            <span style="position: relative; bottom: 0.5em;">
+              ETH Zurich, <a href="https://www.cse-lab.ethz.ch">CSElab</a>
+            </span>
+            <br>
+          </div>
+        </div>
+
+        <div style="display: inline-block; vertical-align: top; margin-top: 4px;">
+          <textarea class="emscripten" id="output" rows="20" style="height:244px;"></textarea>
+          <textarea class="emscripten" id="outputerr" rows="20" style="height:244px;"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <script src="libs/lz-string.js"></script>
+    <script src="aphros_defs.js"></script>
+    <script async src="aphros.js"></script>
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
+  </body>
+</html>

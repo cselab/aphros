@@ -1,0 +1,33 @@
+.content {
+  max-width: 500px;
+  align-items: center;
+  margin: auto;
+}
+.bar {
+  fill: #009ADE;
+}
+.bar:hover {
+  fill: #F28522;
+}
+.tooltip {
+  position: absolute;
+  text-align: center;
+  text-anchor: middle;
+  width: 70px;
+  height: 42px;
+  padding: 2px;
+  font: 11px sans-serif;
+  background: lightgray;
+  border: 0px;
+  border-radius: 5px;
+  pointer-events: none;
+}
+.xticklabel {
+  text-anchor: end;
+}
+.yticklabel {
+}
+.ylabel {
+  text-anchor: middle;
+  font: 12px sans-serif;
+}
