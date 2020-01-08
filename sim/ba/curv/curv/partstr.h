@@ -453,7 +453,7 @@ static void F_near(
   }
 }
 
-#define F F_distdiv
+#define F F_dist
 
 // Iteration of evolution of particles.
 // p_,ph_,th_: current configuration
@@ -835,19 +835,15 @@ static double GetLinesCurv(
 
     coord xx[kMaxNp]; // positions
     coord ff[kMaxNp]; // forces
-    double dd[kMaxSection / 2]; // precomputed division for F()
     coord p = {0., 0, 0.};
     double ph = 0.;
     double th = 0.;
     double k = 0;
     double res = 0;
     int it = 0;
-    for (int l = 0; l < nl; l += 2) {
-      dd[l / 2] = 1 / Sqdist(ll[l], ll[l + 1]);
-    }
     for (it = 0; it < itermax; ++it) {
       X(p, ph, th, Np, hp, xx);
-      F(Np, xx, nl, ll, dd, eta, k, ff);
+      F(Np, xx, nl, ll, eta, k, ff);
 
       k = Curv(hp, th);
       res = Iter(&p, &ph, &th, Np, hp, ff, xx);
