@@ -244,7 +244,7 @@ static void X(coord p, double ph, double th, int np, double hp, coord* xx) {
   }
 }
 
-// Point nearest to line segment [a, b]
+// Returns nearest to x point on line segment [a, b].
 static coord Nearest(coord a, coord b, coord x) {
   b = Sub(b, a);
   x = Sub(x, a);
@@ -254,27 +254,6 @@ static coord Nearest(coord a, coord b, coord x) {
   a.y += b.y * q;
   a.z = 0;
   return a;
-}
-
-// ab: 1 / Sqdist(a, b)
-static coord NearestNodiv(coord a, coord b, coord x, double d) {
-  b = Sub(b, a);
-  x = Sub(x, a);
-  double q = Dot(b, x) * d;
-  q = clamp(q, 0., 1.);
-  a.x += b.x * q;
-  a.y += b.y * q;
-  a.z = 0;
-  return a;
-}
-
-// Point nearest to line segment [a, b]
-static double NearestSqdist(coord a, coord b, coord x) {
-  b = Sub(b, a);
-  x = Sub(x, a);
-  coord xn = Mul(b, clamp(Dot(b, x) / Dot(b, b), 0., 1.));
-  xn.z = 0;
-  return Sqdist(xn, x);
 }
 
 // Derivative dX/dph
@@ -319,32 +298,7 @@ static void DxDth(coord p, double ph, double th, int np, double hp, coord* xx) {
 // k: curvature
 // Output:
 // ff: forces
-static void F_point(
-    int np, const coord* xx, int nl, const coord* ll, double eta, double k,
-    coord* ff) {
-  if (nl == 0) {
-    for (int i = 0; i < np; ++i) {
-      ff[i] = Zero();
-    }
-    return;
-  }
-  for (int i = 0; i < np; ++i) {
-    const coord x = xx[i];
-    double distm = fmin(Sqdist(x, ll[0]), Sqdist(x, ll[1]));
-    int lm = 0;
-
-    for (int l = 2; l < nl; l += 2) {
-      const double dist = fmin(Sqdist(x, ll[l]), Sqdist(x, ll[l + 1]));
-      if (dist < distm) {
-        distm = dist;
-        lm = l;
-      }
-    }
-    ff[i] = Mul(Sub(Nearest(ll[lm], ll[lm + 1], x), x), eta);
-  }
-}
-
-static void F_dist(
+static void F(
     int np, const coord* xx, int nl, const coord* ll, double eta, double k,
     coord* ff) {
   if (nl == 0) {
@@ -369,91 +323,6 @@ static void F_dist(
     ff[i] = Mul(Sub(pm, x), eta);
   }
 }
-
-// dd: array dd[l/2] = 1 / Sqdist(ll[l + 1] - ll[l])
-static void F_distdiv(
-    int np, const coord* xx, int nl, const coord* ll, const double* dd,
-    double eta, double k, coord* ff) {
-  if (nl == 0) {
-    for (int i = 0; i < np; ++i) {
-      ff[i] = Zero();
-    }
-    return;
-  }
-  for (int i = 0; i < np; ++i) {
-    const coord x = xx[i];
-    coord pm;
-    double distm = -1;
-
-    for (int l = 0; l < nl; l += 2) {
-      const coord p = NearestNodiv(ll[l], ll[l + 1], x, dd[l / 2]);
-      const double dist = Sqdist(x, p);
-      if (distm < 0 || dist < distm) {
-        pm = p;
-        distm = dist;
-      }
-    }
-    ff[i] = Mul(Sub(pm, x), eta);
-  }
-}
-
-static void F_distidx(
-    int np, const coord* xx, int nl, const coord* ll, double eta, double k,
-    coord* ff) {
-  if (nl == 0) {
-    for (int i = 0; i < np; ++i) {
-      ff[i] = Zero();
-    }
-    return;
-  }
-  for (int i = 0; i < np; ++i) {
-    const coord x = xx[i];
-    int lm = 0;
-    double distm;
-
-    for (int l = 0; l < nl; l += 2) {
-      const double dist = NearestSqdist(ll[l], ll[l + 1], x);
-      if (l == 0 || dist < distm) {
-        lm = l;
-        distm = dist;
-      }
-    }
-    ff[i] = Mul(Sub(Nearest(ll[lm], ll[lm + 1], x), x), eta);
-  }
-}
-
-// Forces on particles.
-// np: number of particles
-// xx: positions
-// nl: number of points in ll
-// ll: flat array of endpoints of line segments
-// eta: relaxation factor
-// k: curvature
-// Output:
-// ff: forces
-static void F_near(
-    int np, const coord* xx, int nl, const coord* ll, double eta, double k,
-    coord* ff) {
-  if (nl == 0) {
-    for (int i = 0; i < np; ++i) {
-      ff[i] = Zero();
-    }
-    return;
-  }
-  for (int i = 0; i < np; ++i) {
-    coord pm = Nearest(ll[0], ll[1], xx[i]);
-
-    for (int l = 0; l < nl; l += 2) {
-      coord p = Nearest(ll[l], ll[l + 1], xx[i]);
-      if (Sqdist(xx[i], p) < Sqdist(xx[i], pm)) {
-        pm = p;
-      }
-    }
-    ff[i] = Mul(Sub(pm, xx[i]), eta);
-  }
-}
-
-#define F F_dist
 
 // Iteration of evolution of particles.
 // p_,ph_,th_: current configuration
