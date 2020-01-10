@@ -89,7 +89,8 @@ class Embed {
   Type GetType(IdxFace f) const {
     return fft_[f];
   }
-  Filter<GRangeIn<IdxCell, dim>> Cells() const {
+  // Cell indices of cells with embedded boundaries.
+  Filter<GRangeIn<IdxCell, dim>> CFaces() const {
     return MakeFilter(
         m.Cells(), [this](IdxCell c) { return GetType(c) == Type::cut; });
   }
@@ -101,6 +102,11 @@ class Embed {
     return MakeFilter(m.Nci(c), [this, c](size_t q) {
       return GetType(m.GetFace(c, q)) != Type::excluded;
     });
+  }
+  // Cell indices of not excluded cells.
+  Filter<GRangeIn<IdxCell, dim>> Cells() const {
+    return MakeFilter(
+        m.Cells(), [this](IdxCell c) { return GetType(c) != Type::excluded; });
   }
   // Returns outer normal (towards excluded domain) in cut cells.
   Vect GetNormal(IdxCell c) const {
