@@ -78,7 +78,7 @@ void Run(M& m, Vars&) {
         for (auto f : eb.Faces()) {
           feun[f] = feg[f].dot(eb.GetNormal(f));
         }
-        for (auto c : eb.Cells()) {
+        for (auto c : eb.CFaces()) {
           feun[c] = feg[c].dot(eb.GetNormal(c));
           const Scal a = eb.GetRedistr(c);
           feun[c] = feunc[c] * a + feun[c] * (1 - a);
@@ -130,7 +130,7 @@ void Run(M& m, Vars&) {
       auto& eb = *ctx->eb;
       std::ofstream out(GetDumpName("ebf", ".csv", frame));
       out << "x,y,z,face,type,u\n";
-      for (auto c : eb.Cells()) {
+      for (auto c : eb.CFaces()) {
         auto x = eb.GetFaceCenter(c);
         out << x[0] << "," << x[1] << "," << x[2];
         out << "," << 0;

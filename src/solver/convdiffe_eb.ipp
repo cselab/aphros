@@ -65,7 +65,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
         for (auto f : eb.Faces()) {
           feq[f] *= fev[f];
         }
-        for (auto c : eb.Cells()) {
+        for (auto c : eb.CFaces()) {
           feq[c] *= fev[c];
         }
         // Append
@@ -85,7 +85,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
         for (auto f : eb.Faces()) {
           feq[f] *= (-(*fed_)[f]) * eb.GetArea(f);
         }
-        for (auto c : eb.Cells()) {
+        for (auto c : eb.CFaces()) {
           feq[c] *= (-(*fed_)[c]) * eb.GetArea(c);
         }
         // Append
