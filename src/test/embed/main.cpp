@@ -17,7 +17,7 @@ using R = Reconst<Scal>;
 using EB = Embed<M>;
 using Type = typename EB::Type;
 
-void Run(M& m, Vars&) {
+void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
   struct {
     std::unique_ptr<EB> eb;
@@ -30,23 +30,7 @@ void Run(M& m, Vars&) {
   auto& frame = ctx->frame;
 
   if (sem("init")) {
-    FieldNode<Scal> fnl(m, 0);
-    for (auto n : m.AllNodes()) {
-      const Vect x = m.GetNode(n);
-      const Vect xc(0.5, 0.5, 0.5);
-      const Vect s(1., 1., 1.);
-      auto rot = [](Vect xx) {
-        const Scal a = 3.14159265358979323 * 0;
-        const Scal as = std::sin(a);
-        const Scal ac = std::cos(a);
-        const Scal x = xx[0];
-        const Scal y = xx[1];
-        const Scal z = xx[2];
-        return Vect(x * ac - y * as, x * as + y * ac, z);
-      };
-      fnl[n] = (rot(x - xc) / s).norm() - 0.35;
-      fnl[n] *= -1;
-    }
+    auto fnl = InitEmbed(m, var);
     ctx->eb.reset(new EB(m, fnl));
     fcu.Reinit(m, 0);
   }
@@ -159,6 +143,16 @@ set int bz 1
 set int bsx 16
 set int bsy 16
 set int bsz 16
+
+set string eb_init box
+set vect eb_box_c 0.5 0.5 0.5
+#set vect eb_box_r 0.249 0.249 0.249
+set vect eb_box_r 10 0.249 10
+
+set string eb_init sphere
+set vect eb_sphere_c 0.5 0.5 0.5
+set vect eb_sphere_r 0.249 0.249 0.249
+set double eb_sphere_angle 0
 )EOF";
   return RunMpiBasic<M>(argc, argv, Run, conf);
 }

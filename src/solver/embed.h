@@ -10,6 +10,42 @@
 #include "reconst.h"
 #include "solver.h"
 
+template <class M>
+FieldNode<typename M::Scal> InitEmbed(const M& m, const Vars& var) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  FieldNode<Scal> fnl(m); // level-set
+  const auto name = var.String["eb_init"];
+  if (name == "none") {
+    fnl.Reinit(m, 1);
+  } else if (name == "box") {
+    const Vect xc(var.Vect["eb_box_c"]);
+    const Vect r(var.Vect["eb_box_r"]);
+    for (auto n : m.AllNodes()) {
+      const Vect x = m.GetNode(n);
+      fnl[n] =
+          (1 - ((x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
+    }
+  } else if (name == "sphere") {
+    const Vect xc(var.Vect["eb_sphere_c"]);
+    const Vect r(var.Vect["eb_sphere_r"]);
+    const Scal angle = M_PI * var.Double["eb_sphere_angle"];
+    for (auto n : m.AllNodes()) {
+      const Vect x = m.GetNode(n);
+      auto rot = [angle](Vect xx) {
+        const Scal sin = std::sin(angle);
+        const Scal cos = std::cos(angle);
+        const Scal x = xx[0];
+        const Scal y = xx[1];
+        const Scal z = xx[2];
+        return Vect(x * cos - y * sin, x * sin + y * cos, z);
+      };
+      fnl[n] = (rot(x - xc) / r).norm() - 1;
+    }
+  }
+  return fnl;
+}
+
 template <class T>
 class FieldEmbed {
  public:
