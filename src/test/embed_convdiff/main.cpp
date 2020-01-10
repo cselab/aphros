@@ -69,12 +69,10 @@ void Run(M& m, Vars&) {
       ffv[f] = vel.dot(m.GetSurface(f));
     }
     fcu.Reinit(m);
-    for (auto c : m.AllCells()) {
-      if (eb->GetType(c) != Type::excluded) {
-        const Scal a = 12;
-        fcu[c] =
-            std::sin(m.GetCenter(c)[0] * a) * std::sin(m.GetCenter(c)[1] * a);
-      }
+    for (auto c : eb->AllCells()) {
+      const Scal a = 12;
+      fcu[c] =
+          std::sin(m.GetCenter(c)[0] * a) * std::sin(m.GetCenter(c)[1] * a);
     }
     const size_t bc = 0;
     const Scal bcu = 0;

@@ -85,10 +85,7 @@ void Run(M& m, Vars&) {
         }
       }
 
-      for (auto c : m.Cells()) {
-        if (eb.GetType(c) == Type::excluded) {
-          continue;
-        }
+      for (auto c : eb.Cells()) {
         Scal s = 0;
         if (eb.GetType(c) == Type::cut) {
           s += feun[c] * eb.GetArea(c);
@@ -117,13 +114,11 @@ void Run(M& m, Vars&) {
       auto& eb = *ctx->eb;
       std::ofstream out(GetDumpName("eb", ".csv", frame));
       out << "x,y,z,type,u\n";
-      for (auto c : m.Cells()) {
-        if (eb.GetType(c) == Type::regular || eb.GetType(c) == Type::cut) {
-          auto x = eb.GetCellCenter(c);
-          out << x[0] << "," << x[1] << "," << x[2];
-          out << "," << size_t(eb.GetType(c));
-          out << "," << fcu[c] << "\n";
-        }
+      for (auto c : eb.Cells()) {
+        auto x = eb.GetCellCenter(c);
+        out << x[0] << "," << x[1] << "," << x[2];
+        out << "," << size_t(eb.GetType(c));
+        out << "," << fcu[c] << "\n";
       }
     }
     if (sem("dumpcsvface")) {

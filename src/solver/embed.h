@@ -108,6 +108,18 @@ class Embed {
     return MakeFilter(
         m.Cells(), [this](IdxCell c) { return GetType(c) != Type::excluded; });
   }
+  // Cell indices of not excluded cells.
+  Filter<GRangeIn<IdxCell, dim>> SuCells() const {
+    return MakeFilter(m.SuCells(), [this](IdxCell c) {
+      return GetType(c) != Type::excluded;
+    });
+  }
+  // Cell indices of not excluded cells.
+  Filter<GRangeIn<IdxCell, dim>> AllCells() const {
+    return MakeFilter(m.AllCells(), [this](IdxCell c) {
+      return GetType(c) != Type::excluded;
+    });
+  }
   // Returns outer normal (towards excluded domain) in cut cells.
   Vect GetNormal(IdxCell c) const {
     return fcn_[c];
