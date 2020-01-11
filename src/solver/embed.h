@@ -156,6 +156,12 @@ class Embed {
       return GetType(c) != Type::excluded;
     });
   }
+  M& GetMesh() {
+    return m;
+  }
+  const M& GetMesh() const {
+    return m;
+  }
   // Returns outer normal (towards excluded domain) in cut cells.
   Vect GetNormal(IdxCell c) const {
     return fcn_[c];
