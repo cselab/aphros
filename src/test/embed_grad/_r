@@ -3,4 +3,4 @@
 set -eu
 
 make
-ap-run ./t.embed
+ap-run ./t.embed_grad
