@@ -5,6 +5,7 @@
 #include <map>
 
 #include "geom/filter.h"
+#include "geom/transform.h"
 #include "geom/range.h"
 
 #define E(x)                   \
@@ -17,12 +18,12 @@
 int main() {
   E(for (auto i : GRange<size_t>(10, 20)) { std::cout << i << " "; });
   E(for (auto i
-         : MakeFilter(GRange<size_t>(10, 20), [](size_t a) {
+         : MakeFilterIterator(GRange<size_t>(10, 20), [](size_t a) {
            return a % 2 == 0;
          })) { std::cout << i << " "; });
   E(for (auto i
-         : MakeFilter(
-             MakeFilter(
+         : MakeFilterIterator(
+             MakeFilterIterator(
                  GRange<size_t>(10, 20), [](size_t a) { return a % 2 == 0; }),
              [](size_t a) { return a % 3 == 0; })) { std::cout << i << " "; });
 }
