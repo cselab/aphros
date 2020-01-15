@@ -61,10 +61,11 @@ void Run(M& m, Vars&) {
   if (sem("init")) {
     eb.reset(new EB(m, GetLevelSet(m)));
     ctx->fcr.Reinit(m, 1);
-    ctx->fed.Reinit(m, 0);
+    ctx->fed.Reinit(m, 1);
     ctx->fcs.Reinit(m, 0);
     ffv.Reinit(m, 0);
-    const Vect vel(1., 0.5, 0.25);
+    //const Vect vel(1., 0.5, 0.25);
+    const Vect vel(0);
     for (auto f : m.Faces()) {
       ffv[f] = vel.dot(m.GetSurface(f));
     }
@@ -76,7 +77,7 @@ void Run(M& m, Vars&) {
     }
     const size_t bc = 0;
     const Scal bcu = 0;
-    const Scal dt = 0.005;
+    const Scal dt = 0.001;
     typename CD::Par par;
     cd.reset(new CD(
         m, *eb, fcu, mfc, bc, bcu, &ctx->fcr, &ctx->fed, &ctx->fcs, &ctx->ffv,

@@ -75,7 +75,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
             IdxFace f = m.GetFace(c, q);
             s += feq[f] * m.GetOutwardFactor(c, q);
           }
-          fclb[c] += s / m.GetVolume(c) * (*owner_->fcr_)[c];
+          fclb[c] += s * (*owner_->fcr_)[c];
         }
       }
 
@@ -95,8 +95,13 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
             IdxFace f = m.GetFace(c, q);
             s += feq[f] * m.GetOutwardFactor(c, q);
           }
-          fclb[c] += s / m.GetVolume(c);
+          fclb[c] += s;
         }
+      }
+
+      fclb = eb.RedistributeCutCells(fclb);
+      for (IdxCell c : eb.Cells()) {
+        fclb[c] /= eb.GetVolume(c);
       }
 
       // time derivative coeffs
