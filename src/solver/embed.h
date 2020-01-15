@@ -123,6 +123,13 @@ class Embed {
     InitFaces(fnl_, fft_, ffpoly_, ffs_, m);
     InitCells(fnl_, ffs_, fct_, fcn_, fca_, fcs_, fcv_, m);
     InitRedistr(fct_, fcv_, fcs_, fc_redistr_, mc_redistr_, m);
+
+    fcvst3_.Reinit(m, 0);
+    for (auto c : eb.Cells()) {
+      for (auto cn : eb.Stencil(c)) {
+        fcvst3_[c] += eb.GetVolume(cn);
+      }
+    }
   }
   Type GetType(IdxCell c) const {
     return fct_[c];
@@ -390,6 +397,28 @@ class Embed {
           sumv += vn;
         }
         fcr[c] = sum / sumv;
+      }
+    }
+    return fcr;
+  }
+  template <class T>
+  FieldCell<T> RedistributeCutCells(const FieldCell<T>& fcu) const {
+    FieldCell<T> fcr = fcu;
+    const Scal v0 = m.GetCellSize().prod();
+    for (auto c : eb.Cells()) {
+      const Scal v = eb.GetVolume(c);
+      // excess quantity
+      const Scal du = fcu[c] * (1 - v / v0);
+      // subtract from current cell
+      fcr[c] -= du;
+      // add from neighbor cells proportional to their volume
+      for (auto cn : eb.Stencil(c)) {
+        if (c != cn) {
+          const Scal vn = eb.GetVolume(cn);
+          // excess quantity in cell cn
+          const Scal dun = fcu[cn] * (1 - vn / v0);
+          fcr[c] += dun * (v / (fcvst3_[cn] - vn));
+        }
       }
     }
     return fcr;
@@ -716,4 +745,6 @@ class Embed {
   // redistribution coefficients
   MapCell<std::vector<std::pair<IdxCell, Scal>>> mc_redistr_;
   FieldCell<Scal> fc_redistr_;
+  // volume of neighbor cells
+  FieldCell<Scal> fcvst3_; // volume of neighbors in stencil 3x3x3
 };
