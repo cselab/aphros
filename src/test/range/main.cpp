@@ -5,8 +5,8 @@
 #include <map>
 
 #include "geom/filter.h"
-#include "geom/transform.h"
 #include "geom/range.h"
+#include "geom/transform.h"
 
 #define E(x)                   \
   {                            \
@@ -26,4 +26,12 @@ int main() {
              MakeFilterIterator(
                  GRange<size_t>(10, 20), [](size_t a) { return a % 2 == 0; }),
              [](size_t a) { return a % 3 == 0; })) { std::cout << i << " "; });
+  E(for (auto i
+         : MakeTransformIterator<size_t>(GRange<size_t>(10, 20), [](size_t a) {
+           return a;
+         })) { std::cout << i << " "; });
+  E(for (auto i
+         : MakeTransformIterator<double>(GRange<size_t>(10, 20), [](size_t a) {
+           return a + 0.5;
+         })) { std::cout << i << " "; });
 }
