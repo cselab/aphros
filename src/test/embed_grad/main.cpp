@@ -24,15 +24,16 @@ std::tuple<Vect, Vect, Vect> GetStat(
   Vect mean(0);
   Vect max(-1e10);
   Vect min(1e10);
-  Scal w = 0;
+  Scal sumv = 0;
   for (auto c : eb.Cells()) {
     auto& g = fcg[c];
-    mean += g;
+    const Scal v = eb.GetVolume(c);
+    mean += g * v;
+    sumv += v;
     max = max.max(g);
     min = min.min(g);
-    w += 1;
   }
-  mean /= w;
+  mean /= sumv;
   return {mean, min, max};
 }
 
@@ -47,7 +48,7 @@ FieldEmbed<Scal> GetNoise(const EB& eb, size_t seed) {
   FieldEmbed<Scal> fe(eb.GetMesh());
   std::default_random_engine gen(seed);
   std::uniform_real_distribution<double> dis(-1, 1);
-  for (auto f : eb.Faces()) {
+  for (auto f : eb.GetMesh().AllFaces()) {
     fe[f] = dis(gen);
   }
   return fe;
@@ -97,13 +98,6 @@ void Run(M& m, Vars& var) {
     fcg = eb.AverageCutCells(fcg);
     PrintStat(GetStat(fcg, eb));
 
-    fcg.Reinit(m, Vect(0));
-    for (auto c : eb.Cells()) {
-      for (auto cn : eb.Stencil(c)) {
-        fcg[c][0] += 1;
-      }
-    }
-
     m.Dump(&fcg, 0, "gx");
     m.Dump(&fcg, 1, "gy");
     m.Dump(&fcg, 2, "gz");
@@ -125,13 +119,14 @@ set string eb_init box
 set vect eb_box_c 0.5 0.5 0.5
 #set vect eb_box_r 0.249 0.249 0.249
 set vect eb_box_r 0.251 0.251 0.251
-
 #set vect eb_box_r 10 0.249 10
 
-#set string eb_init sphere
-#set vect eb_sphere_c 0.5 0.5 0.5
-#set vect eb_sphere_r 0.249 0.249 0.249
-#set double eb_sphere_angle 0
+set string eb_init sphere
+set vect eb_sphere_c 0.5 0.5 0.5
+set vect eb_sphere_r 0.249 0.249 0.249
+set double eb_sphere_angle 0
+
+set int eb_init_inverse 1
 )EOF";
     return RunMpiBasic<M>(argc, argv, Run, conf);
   }

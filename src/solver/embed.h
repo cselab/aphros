@@ -43,6 +43,11 @@ FieldNode<typename M::Scal> InitEmbed(const M& m, const Vars& var) {
       fnl[n] = (rot(x - xc) / r).norm() - 1;
     }
   }
+  if (var.Int["eb_init_inverse"]) {
+    for (auto n : m.AllNodes()) {
+      fnl[n] = -fnl[n];
+    }
+  }
   return fnl;
 }
 
@@ -379,7 +384,7 @@ class Embed {
         const Scal v = eb.GetVolume(c);
         T sum = fcu[c] * v;
         Scal sumv = v;
-        for (IdxCell cn : m.Stencil(c)) {
+        for (IdxCell cn : eb.Stencil(c)) {
           const Scal vn = eb.GetVolume(cn);
           sum += fcu[cn] * vn;
           sumv += vn;
