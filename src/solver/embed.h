@@ -139,21 +139,35 @@ class Embed {
       return GetType(m.GetFace(c, q)) != Type::excluded;
     });
   }
-  // Cell indices of not excluded cells.
+  // Cell indices of non-excluded cells.
   FilterIterator<GRangeIn<IdxCell, dim>> Cells() const {
     return MakeFilterIterator(
         m.Cells(), [this](IdxCell c) { return GetType(c) != Type::excluded; });
   }
-  // Cell indices of not excluded cells.
+  // Cell indices of non-excluded cells.
   FilterIterator<GRangeIn<IdxCell, dim>> SuCells() const {
     return MakeFilterIterator(m.SuCells(), [this](IdxCell c) {
       return GetType(c) != Type::excluded;
     });
   }
-  // Cell indices of not excluded cells.
+  // Cell indices of non-excluded cells.
   FilterIterator<GRangeIn<IdxCell, dim>> AllCells() const {
     return MakeFilterIterator(m.AllCells(), [this](IdxCell c) {
       return GetType(c) != Type::excluded;
+    });
+  }
+  // Cell indices of non-excluded cells from a 3x3x3 stencil.
+  FilterIterator<TransformIterator<IdxCell, GBlock<size_t, dim>>> Stencil(
+      IdxCell c) const {
+    return MakeFilterIterator(m.Stencil(c), [this](IdxCell cn) {
+      return GetType(cn) != Type::excluded;
+    });
+  }
+  // Cell indices of non-excluded cells from a 3x3x3 stencil.
+  FilterIterator<TransformIterator<IdxCell, GBlock<size_t, dim>>> Stencil5(
+      IdxCell c) const {
+    return MakeFilterIterator(m.Stencil5(c), [this](IdxCell cn) {
+      return GetType(cn) != Type::excluded;
     });
   }
   M& GetMesh() {
