@@ -6,6 +6,7 @@
 #include <random>
 #include <string>
 #include <utility>
+#include <tuple>
 
 #include "distr/distrbasic.h"
 #include "solver/embed.h"
@@ -18,7 +19,8 @@ using R = Reconst<Scal>;
 using EB = Embed<M>;
 using Type = typename EB::Type;
 
-void PrintStat(const FieldCell<Vect>& fcg, const EB& eb) {
+std::tuple<Vect, Vect, Vect> GetStat(
+    const FieldCell<Vect>& fcg, const EB& eb) {
   Vect mean(0);
   Vect max(-1e10);
   Vect min(1e10);
@@ -31,9 +33,14 @@ void PrintStat(const FieldCell<Vect>& fcg, const EB& eb) {
     w += 1;
   }
   mean /= w;
-  std::cout << "mean=" << mean << std::endl;
-  std::cout << "min=" << min << std::endl;
-  std::cout << "max=" << max << std::endl;
+  return {mean, min, max};
+}
+
+void PrintStat(const std::tuple<Vect, Vect, Vect>& s) {
+  std::cout << "mean=" << std::get<0>(s) << " ";
+  std::cout << "min=" << std::get<1>(s) << " ";
+  std::cout << "max=" << std::get<2>(s) << " ";
+  std::cout << std::endl;
 }
 
 FieldEmbed<Scal> GetNoise(const EB& eb, size_t seed) {
@@ -61,7 +68,9 @@ void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
   struct {
     std::unique_ptr<EB> eb;
+    FieldCell<Vect> fcg;
   } * ctx(sem);
+  auto& fcg = ctx->fcg;
 
   if (sem("init")) {
     auto fnl = InitEmbed(m, var);
@@ -82,9 +91,18 @@ void Run(M& m, Vars& var) {
       feu[c] = func(eb.GetFaceCenter(c));
     }
     feu = Add(feu, GetNoise(eb, 0), eb);
-    const FieldCell<Vect> fcg = eb.Gradient(feu); // compact gradient
-    PrintStat(fcg, eb);
+    fcg = eb.Gradient(feu); // compact gradient
+    std::cout << "1/h=" << 1 / m.GetCellSize()[0] << std::endl;
+    PrintStat(GetStat(fcg, eb));
+    fcg = eb.AverageCutCells(fcg);
+    PrintStat(GetStat(fcg, eb));
+    fcg = eb.AverageCutCellsStencil(fcg);
+    PrintStat(GetStat(fcg, eb));
+    m.Dump(&fcg, 0, "gx");
+    m.Dump(&fcg, 1, "gy");
+    m.Dump(&fcg, 2, "gz");
   }
+  if (sem()) {}
 }
 
   int main(int argc, const char** argv) {
@@ -99,8 +117,8 @@ set int bsz 16
 
 set string eb_init box
 set vect eb_box_c 0.5 0.5 0.5
-set vect eb_box_r 0.249 0.249 0.249
-#set vect eb_box_r 0.251 0.251 0.251
+#set vect eb_box_r 0.249 0.249 0.249
+set vect eb_box_r 0.251 0.251 0.251
 
 #set vect eb_box_r 10 0.249 10
 

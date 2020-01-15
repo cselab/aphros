@@ -171,6 +171,17 @@ void TestMesh() {
   m.Comm(&fc);
   auto p = dynamic_cast<typename M::CoFcs*>(m.GetComm()[0].get());
   CMP(p->f, &fc);
+
+  // Stencil indices
+  {
+    std::cout << "\nStencilIndices" << std::endl;
+    auto& bc = m.GetIndexCells();
+    IdxCell c(bc.GetIdx(m.GetInBlockCells().GetBegin() + MIdx(1)));
+    std::cout << "c: " << c.GetRaw() << " " << bc.GetMIdx(c) << std::endl;
+    for (IdxCell cn : m.Stencil(c)) {
+      std::cout << cn.GetRaw() << " " << bc.GetMIdx(cn) << std::endl;
+    }
+  }
 }
 
 int main() {
@@ -185,7 +196,7 @@ int main() {
     int hl = 0; // halos
     M m = InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
 
-    std::cout << "m.GetAllBlockCells()" << std::endl;
+    std::cout << "\nm.GetAllBlockCells()" << std::endl;
     auto bca = m.GetAllBlockCells();
     auto bc = m.GetIndexCells();
     for (auto w : bca) {
@@ -193,7 +204,7 @@ int main() {
     }
     std::cout << std::endl;
 
-    std::cout << "m.GetAllBlockFaces()" << std::endl;
+    std::cout << "\nm.GetAllBlockFaces()" << std::endl;
     auto bfa = m.GetAllBlockFaces();
     auto bf = m.GetIndexFaces();
     for (auto p : bfa) {
@@ -202,7 +213,7 @@ int main() {
     }
     std::cout << std::endl;
 
-    std::cout << "(MIdx,Dir) <-> IdxFace" << std::endl;
+    std::cout << "\n(MIdx,Dir) <-> IdxFace" << std::endl;
     GBlock<IdxFace, 3> sb(b, s);
     GIndex<IdxFace, 3> ind(b, s + MIdx(1));
     for (auto p : sb) { // p: (w,d)
