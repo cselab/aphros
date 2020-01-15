@@ -211,11 +211,11 @@ class MeshStructured {
     });
   }
   // Cell indices over 3x3x3 stencil
-  TransformIterator<IdxCell, GBlock<size_t, dim>> Stencil(IdxCell c) const {
+  auto Stencil(IdxCell c) const {
     return StencilGeneral<1>(c);
   }
   // Cell indices over 5x5x5 stencil
-  TransformIterator<IdxCell, GBlock<size_t, dim>> Stencil5(IdxCell c) const {
+  auto Stencil5(IdxCell c) const {
     return StencilGeneral<2>(c);
   }
   // Returns id of cell adjacent to c by face f.
