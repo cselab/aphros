@@ -126,46 +126,44 @@ class Embed {
     return fft_[f];
   }
   // Cell indices of cells with embedded boundaries.
-  FilterIterator<GRangeIn<IdxCell, dim>> CFaces() const {
+  auto CFaces() const {
     return MakeFilterIterator(
         m.Cells(), [this](IdxCell c) { return GetType(c) == Type::cut; });
   }
-  FilterIterator<GRangeIn<IdxFace, dim>> Faces() const {
+  auto Faces() const {
     return MakeFilterIterator(
         m.Faces(), [this](IdxFace f) { return GetType(f) != Type::excluded; });
   }
-  FilterIterator<GRange<size_t>> Nci(IdxCell c) const {
+  auto Nci(IdxCell c) const {
     return MakeFilterIterator(m.Nci(c), [this, c](size_t q) {
       return GetType(m.GetFace(c, q)) != Type::excluded;
     });
   }
   // Cell indices of non-excluded cells.
-  FilterIterator<GRangeIn<IdxCell, dim>> Cells() const {
+  auto Cells() const {
     return MakeFilterIterator(
         m.Cells(), [this](IdxCell c) { return GetType(c) != Type::excluded; });
   }
   // Cell indices of non-excluded cells.
-  FilterIterator<GRangeIn<IdxCell, dim>> SuCells() const {
+  auto SuCells() const {
     return MakeFilterIterator(m.SuCells(), [this](IdxCell c) {
       return GetType(c) != Type::excluded;
     });
   }
   // Cell indices of non-excluded cells.
-  FilterIterator<GRangeIn<IdxCell, dim>> AllCells() const {
+  auto AllCells() const {
     return MakeFilterIterator(m.AllCells(), [this](IdxCell c) {
       return GetType(c) != Type::excluded;
     });
   }
   // Cell indices of non-excluded cells from a 3x3x3 stencil.
-  FilterIterator<TransformIterator<IdxCell, GBlock<size_t, dim>>> Stencil(
-      IdxCell c) const {
+  auto Stencil(IdxCell c) const {
     return MakeFilterIterator(m.Stencil(c), [this](IdxCell cn) {
       return GetType(cn) != Type::excluded;
     });
   }
   // Cell indices of non-excluded cells from a 3x3x3 stencil.
-  FilterIterator<TransformIterator<IdxCell, GBlock<size_t, dim>>> Stencil5(
-      IdxCell c) const {
+  auto Stencil5(IdxCell c) const {
     return MakeFilterIterator(m.Stencil5(c), [this](IdxCell cn) {
       return GetType(cn) != Type::excluded;
     });
@@ -375,25 +373,6 @@ class Embed {
   }
   template <class T>
   FieldCell<T> AverageCutCells(const FieldCell<T>& fcu) const {
-    FieldCell<T> fcr = fcu;
-    for (auto c : eb.Cells()) {
-      if (eb.GetType(c) == Type::cut) {
-        const Scal v = eb.GetVolume(c);
-        T sum = fcu[c] * v;
-        Scal sumv = v;
-        for (auto q : eb.Nci(c)) {
-          const IdxCell cn = m.GetCell(c, q);
-          const Scal vn = eb.GetVolume(cn);
-          sum += fcu[cn] * vn;
-          sumv += vn;
-        }
-        fcr[c] = sum / sumv;
-      }
-    }
-    return fcr;
-  }
-  template <class T>
-  FieldCell<T> AverageCutCellsStencil(const FieldCell<T>& fcu) const {
     FieldCell<T> fcr = fcu;
     for (auto c : eb.Cells()) {
       if (eb.GetType(c) == Type::cut) {
