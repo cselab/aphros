@@ -19,28 +19,52 @@ using R = Reconst<Scal>;
 using EB = Embed<M>;
 using Type = typename EB::Type;
 
-std::tuple<Vect, Vect, Vect> GetStat(
-    const FieldCell<Vect>& fcg, const EB& eb) {
-  Vect mean(0);
-  Vect max(-1e10);
-  Vect min(1e10);
+template <class T>
+T Max(T a, T b) {
+  return std::max<T>(a, b);
+}
+
+template <>
+Vect Max<Vect>(Vect a, Vect b) {
+  return a.max(b);
+}
+
+template <class T>
+T Min(T a, T b) {
+  return std::min<T>(a, b);
+}
+
+template <>
+Vect Min<Vect>(Vect a, Vect b) {
+  return a.min(b);
+}
+
+template <class T>
+std::tuple<T, T, T, T> GetStat(const FieldCell<T>& fcg, const EB& eb) {
+  T mean(0);
+  T sum(0);
+  T max(-1e10);
+  T min(1e10);
   Scal sumv = 0;
   for (auto c : eb.Cells()) {
     auto& g = fcg[c];
     const Scal v = eb.GetVolume(c);
     mean += g * v;
+    sum += g;
     sumv += v;
-    max = max.max(g);
-    min = min.min(g);
+    min = Min(min, g);
+    max = Max(max, g);
   }
   mean /= sumv;
-  return {mean, min, max};
+  return {mean, sum, min, max};
 }
 
-void PrintStat(const std::tuple<Vect, Vect, Vect>& s) {
+template <class T>
+void PrintStat(const std::tuple<T, T, T, T>& s) {
   std::cout << "mean=" << std::get<0>(s) << " ";
-  std::cout << "min=" << std::get<1>(s) << " ";
-  std::cout << "max=" << std::get<2>(s) << " ";
+  std::cout << "sum=" << std::get<1>(s) << " ";
+  std::cout << "min=" << std::get<2>(s) << " ";
+  std::cout << "max=" << std::get<3>(s) << " ";
   std::cout << std::endl;
 }
 
@@ -70,8 +94,10 @@ void Run(M& m, Vars& var) {
   struct {
     std::unique_ptr<EB> eb;
     FieldCell<Vect> fcg;
+    FieldCell<Scal> fcu;
   } * ctx(sem);
   auto& fcg = ctx->fcg;
+  auto& fcu = ctx->fcu;
 
   if (sem("init")) {
     auto fnl = InitEmbed(m, var);
@@ -94,13 +120,19 @@ void Run(M& m, Vars& var) {
     feu = Add(feu, GetNoise(eb, 0), eb);
     fcg = eb.Gradient(feu); // compact gradient
     std::cout << "1/h=" << 1 / m.GetCellSize()[0] << std::endl;
-    PrintStat(GetStat(fcg, eb));
+    PrintStat(GetStat<Vect>(fcg, eb));
     fcg = eb.AverageCutCells(fcg);
-    PrintStat(GetStat(fcg, eb));
+    PrintStat(GetStat<Vect>(fcg, eb));
 
     m.Dump(&fcg, 0, "gx");
     m.Dump(&fcg, 1, "gy");
     m.Dump(&fcg, 2, "gz");
+
+    fcu.Reinit(m, 1);
+    PrintStat(GetStat<Scal>(fcu, eb));
+    fcu = eb.RedistributeCutCells(fcu);
+    PrintStat(GetStat<Scal>(fcu, eb));
+    m.Dump(&fcu, "u");
   }
   if (sem()) {}
 }
