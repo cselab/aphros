@@ -2,8 +2,9 @@
 
 #include <functional>
 
+// analog of boost::filter_iterator
 template <class Range>
-class Filter {
+class FilterIterator {
  public:
   using Iterator = decltype(((const Range*)0)->begin());
   using Value = decltype(**((Iterator*)0));
@@ -11,7 +12,7 @@ class Filter {
 
   class iterator {
    public:
-    explicit iterator(Iterator it, const Filter* owner)
+    explicit iterator(Iterator it, const FilterIterator* owner)
         : it_(it), owner_(owner) {
       while (it_ != owner_->range_.end() && !owner_->func_(*it_)) {
         ++it_;
@@ -40,10 +41,10 @@ class Filter {
 
    private:
     Iterator it_;
-    const Filter* owner_;
+    const FilterIterator* owner_;
   };
 
-  Filter(Range range, Func func) : range_(range), func_(func) {}
+  FilterIterator(Range range, Func func) : range_(range), func_(func) {}
 
   iterator begin() const {
     return iterator(range_.begin(), this);
@@ -58,6 +59,7 @@ class Filter {
 };
 
 template <class R>
-Filter<R> MakeFilter(R range, typename Filter<R>::Func func) {
-  return Filter<R>(range, func);
+FilterIterator<R> MakeFilterIterator(
+    R range, typename FilterIterator<R>::Func func) {
+  return FilterIterator<R>(range, func);
 }

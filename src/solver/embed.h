@@ -23,8 +23,7 @@ FieldNode<typename M::Scal> InitEmbed(const M& m, const Vars& var) {
     const Vect r(var.Vect["eb_box_r"]);
     for (auto n : m.AllNodes()) {
       const Vect x = m.GetNode(n);
-      fnl[n] =
-          (1 - ((x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
+      fnl[n] = (1 - ((x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
     }
   } else if (name == "sphere") {
     const Vect xc(var.Vect["eb_sphere_c"]);
@@ -114,7 +113,7 @@ class Embed {
  public:
   enum class Type { regular, cut, excluded };
   // fnl: level-set function on nodes, interface at fnl=0
-  Embed(M& m, const FieldNode<Scal>& fnl) : m(m), fnl_(fnl) {
+  Embed(M& m, const FieldNode<Scal>& fnl) : m(m), eb(*this), fnl_(fnl) {
     InitFaces(fnl_, fft_, ffpoly_, ffs_, m);
     InitCells(fnl_, ffs_, fct_, fcn_, fca_, fcs_, fcv_, m);
     InitRedistr(fct_, fcv_, fcs_, fc_redistr_, mc_redistr_, m);
@@ -126,33 +125,45 @@ class Embed {
     return fft_[f];
   }
   // Cell indices of cells with embedded boundaries.
-  Filter<GRangeIn<IdxCell, dim>> CFaces() const {
-    return MakeFilter(
+  FilterIterator<GRangeIn<IdxCell, dim>> CFaces() const {
+    return MakeFilterIterator(
         m.Cells(), [this](IdxCell c) { return GetType(c) == Type::cut; });
   }
-  Filter<GRangeIn<IdxFace, dim>> Faces() const {
-    return MakeFilter(
+  FilterIterator<GRangeIn<IdxFace, dim>> Faces() const {
+    return MakeFilterIterator(
         m.Faces(), [this](IdxFace f) { return GetType(f) != Type::excluded; });
   }
-  Filter<GRange<size_t>> Nci(IdxCell c) const {
-    return MakeFilter(m.Nci(c), [this, c](size_t q) {
+  FilterIterator<GRange<size_t>> Nci(IdxCell c) const {
+    return MakeFilterIterator(m.Nci(c), [this, c](size_t q) {
       return GetType(m.GetFace(c, q)) != Type::excluded;
     });
   }
+  /*
+  FuncRange<IdxCell> Stencil(IdxCell c) const {
+    auto& bc = m.GetIndexCells();
+    static constexpr size_t sw = 1; // stencil half-width
+    static constexpr size_t sn = sw * 2 + 1;
+    GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
+    return MakeFuncRange(bo, [this, c](MIdx wo) {
+      auto& bc = m.GetIndexCells();
+      return bc.GetIdx(bc.GetMIdx(c) + wo);
+    });
+  }
+  */
   // Cell indices of not excluded cells.
-  Filter<GRangeIn<IdxCell, dim>> Cells() const {
-    return MakeFilter(
+  FilterIterator<GRangeIn<IdxCell, dim>> Cells() const {
+    return MakeFilterIterator(
         m.Cells(), [this](IdxCell c) { return GetType(c) != Type::excluded; });
   }
   // Cell indices of not excluded cells.
-  Filter<GRangeIn<IdxCell, dim>> SuCells() const {
-    return MakeFilter(m.SuCells(), [this](IdxCell c) {
+  FilterIterator<GRangeIn<IdxCell, dim>> SuCells() const {
+    return MakeFilterIterator(m.SuCells(), [this](IdxCell c) {
       return GetType(c) != Type::excluded;
     });
   }
   // Cell indices of not excluded cells.
-  Filter<GRangeIn<IdxCell, dim>> AllCells() const {
-    return MakeFilter(m.AllCells(), [this](IdxCell c) {
+  FilterIterator<GRangeIn<IdxCell, dim>> AllCells() const {
+    return MakeFilterIterator(m.AllCells(), [this](IdxCell c) {
       return GetType(c) != Type::excluded;
     });
   }
@@ -358,6 +369,42 @@ class Embed {
       }
     }
     return fcg;
+  }
+  template <class T>
+  FieldCell<T> AverageAllCells(const FieldCell<T>& fcu) const {
+    FieldCell<T> fcr(m, T(0));
+    for (auto c : eb.Cells()) {
+      const Scal v = eb.GetVolume(c);
+      T sum = fcu[c] * v;
+      Scal sumv = v;
+      for (auto q : eb.Nci(c)) {
+        const IdxCell cn = m.GetCell(c, q);
+        const Scal vn = eb.GetVolume(cn);
+        sum += fcu[cn] * vn;
+        sumv += vn;
+      }
+      fcr[c] = sum / sumv;
+    }
+    return fcr;
+  }
+  template <class T>
+  FieldCell<T> AverageCutCells(const FieldCell<T>& fcu) const {
+    FieldCell<T> fcr = fcu;
+    for (auto c : eb.Cells()) {
+      if (eb.GetType(c) == Type::cut) {
+        const Scal v = eb.GetVolume(c);
+        T sum = fcu[c] * v;
+        Scal sumv = v;
+        for (auto q : eb.Nci(c)) {
+          const IdxCell cn = m.GetCell(c, q);
+          const Scal vn = eb.GetVolume(cn);
+          sum += fcu[cn] * vn;
+          sumv += vn;
+        }
+        fcr[c] = sum / sumv;
+      }
+    }
+    return fcr;
   }
   // fcu: field [a]
   // bc: boundary conditions type, 0: value, 1: grad
@@ -665,6 +712,7 @@ class Embed {
   }
 
   M& m;
+  const Embed& eb;
   // nodes
   FieldNode<Scal> fnl_; // level-set
   // faces
