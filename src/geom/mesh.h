@@ -16,6 +16,7 @@
 #include "map.h"
 #include "range.h"
 #include "rangein.h"
+#include "transform.h"
 #include "util/histogram.h"
 #include "util/suspender.h"
 #include "vect.h"
@@ -197,6 +198,15 @@ class MeshStructured {
   // Neighbour cell indices
   GRange<size_t> Nci(IdxCell c) const {
     return GRange<size_t>(0, GetNumFaces(c));
+  }
+  TransformIterator<IdxCell, GBlock<size_t, dim>> Stencil(IdxCell c) const {
+    constexpr size_t sw = 1; // stencil half-width
+    constexpr size_t sn = sw * 2 + 1;
+    GBlock<size_t, dim> bo(MIdx(-sw), MIdx(sn));
+    return MakeTransformIterator<IdxCell>(bo, [this, c](MIdx wo) {
+      auto& bc = GetIndexCells();
+      return bc.GetIdx(bc.GetMIdx(c) + wo);
+    });
   }
   // Returns id of cell adjacent to c by face f.
   // -1 if f and c are not neighbours

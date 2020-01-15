@@ -7,6 +7,7 @@
 #include "dump/dumper.h"
 #include "dump/vtk.h"
 #include "geom/filter.h"
+#include "geom/transform.h"
 #include "reconst.h"
 #include "solver.h"
 
@@ -138,18 +139,6 @@ class Embed {
       return GetType(m.GetFace(c, q)) != Type::excluded;
     });
   }
-  /*
-  FuncRange<IdxCell> Stencil(IdxCell c) const {
-    auto& bc = m.GetIndexCells();
-    static constexpr size_t sw = 1; // stencil half-width
-    static constexpr size_t sn = sw * 2 + 1;
-    GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
-    return MakeFuncRange(bo, [this, c](MIdx wo) {
-      auto& bc = m.GetIndexCells();
-      return bc.GetIdx(bc.GetMIdx(c) + wo);
-    });
-  }
-  */
   // Cell indices of not excluded cells.
   FilterIterator<GRangeIn<IdxCell, dim>> Cells() const {
     return MakeFilterIterator(
@@ -371,23 +360,6 @@ class Embed {
     return fcg;
   }
   template <class T>
-  FieldCell<T> AverageAllCells(const FieldCell<T>& fcu) const {
-    FieldCell<T> fcr(m, T(0));
-    for (auto c : eb.Cells()) {
-      const Scal v = eb.GetVolume(c);
-      T sum = fcu[c] * v;
-      Scal sumv = v;
-      for (auto q : eb.Nci(c)) {
-        const IdxCell cn = m.GetCell(c, q);
-        const Scal vn = eb.GetVolume(cn);
-        sum += fcu[cn] * vn;
-        sumv += vn;
-      }
-      fcr[c] = sum / sumv;
-    }
-    return fcr;
-  }
-  template <class T>
   FieldCell<T> AverageCutCells(const FieldCell<T>& fcu) const {
     FieldCell<T> fcr = fcu;
     for (auto c : eb.Cells()) {
@@ -397,6 +369,24 @@ class Embed {
         Scal sumv = v;
         for (auto q : eb.Nci(c)) {
           const IdxCell cn = m.GetCell(c, q);
+          const Scal vn = eb.GetVolume(cn);
+          sum += fcu[cn] * vn;
+          sumv += vn;
+        }
+        fcr[c] = sum / sumv;
+      }
+    }
+    return fcr;
+  }
+  template <class T>
+  FieldCell<T> AverageCutCellsStencil(const FieldCell<T>& fcu) const {
+    FieldCell<T> fcr = fcu;
+    for (auto c : eb.Cells()) {
+      if (eb.GetType(c) == Type::cut) {
+        const Scal v = eb.GetVolume(c);
+        T sum = fcu[c] * v;
+        Scal sumv = v;
+        for (IdxCell cn : m.Stencil(c)) {
           const Scal vn = eb.GetVolume(cn);
           sum += fcu[cn] * vn;
           sumv += vn;
