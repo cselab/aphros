@@ -98,6 +98,14 @@ void Run(M& m, Vars& var) {
     PrintStat(GetStat(fcg, eb));
     fcg = eb.AverageCutCellsStencil(fcg);
     PrintStat(GetStat(fcg, eb));
+
+    fcg.Reinit(m, Vect(0));
+    for (auto c : eb.Cells()) {
+      for (auto cn : eb.Stencil(c)) {
+        fcg[c][0] += 1;
+      }
+    }
+
     m.Dump(&fcg, 0, "gx");
     m.Dump(&fcg, 1, "gy");
     m.Dump(&fcg, 2, "gz");

@@ -199,14 +199,22 @@ class MeshStructured {
   GRange<size_t> Nci(IdxCell c) const {
     return GRange<size_t>(0, GetNumFaces(c));
   }
-  TransformIterator<IdxCell, GBlock<size_t, dim>> Stencil(IdxCell c) const {
-    constexpr size_t sw = 1; // stencil half-width
+  // sw: stencil width
+  template <size_t sw>
+  TransformIterator<IdxCell, GBlock<size_t, dim>> StencilGeneral(
+      IdxCell c) const {
     constexpr size_t sn = sw * 2 + 1;
-    GBlock<size_t, dim> bo(MIdx(-sw), MIdx(sn));
+    const GBlock<size_t, dim> bo(MIdx(-sw), MIdx(sn));
     return MakeTransformIterator<IdxCell>(bo, [this, c](MIdx wo) {
       auto& bc = GetIndexCells();
       return bc.GetIdx(bc.GetMIdx(c) + wo);
     });
+  }
+  TransformIterator<IdxCell, GBlock<size_t, dim>> Stencil(IdxCell c) const {
+    return StencilGeneral<3>(c);
+  }
+  TransformIterator<IdxCell, GBlock<size_t, dim>> Stencil5(IdxCell c) const {
+    return StencilGeneral<5>(c);
   }
   // Returns id of cell adjacent to c by face f.
   // -1 if f and c are not neighbours
