@@ -47,15 +47,14 @@ void Run(M& m, Vars& var) {
   }
   if (sem("init")) {
     ctx->fcr.Reinit(m, 1);
-    ctx->fed.Reinit(m, 1);
+    ctx->fed.Reinit(m, 0);
     ctx->fcs.Reinit(m, 0);
     ffv.Reinit(m, 0);
-    //const Vect vel(1., 0.5, 0.25);
-    const Vect vel(0);
+    const Vect vel(1., 1., 1.);
     for (auto f : m.Faces()) {
       ffv[f] = vel.dot(m.GetSurface(f));
     }
-    fcu.Reinit(m, 0);
+    fcu.Reinit(m, 1);
     /*
     for (auto c : eb->AllCells()) {
       const Scal a = 12;
@@ -66,10 +65,14 @@ void Run(M& m, Vars& var) {
     const size_t bc = 0;
     const Scal bcu = 1;
     const Scal dt0 = 0.5 * sqr(m.GetCellSize()[0]);
-    const Scal dt = dt0 * 0.5;
+    const Scal dt0a = 1 / vel.abs().max() * m.GetCellSize()[0];
+    //const Scal dt = dt0 * 0.5;
+    const Scal dt = dt0a * 0.05;
     std::cout << "dt0=" << dt0 << " "
+              << "dt0a=" << dt0a << " "
               << "dt=" << dt << " "
-              << "dt/dt0=" << dt / dt0 << " " << std::endl;
+              << "dt/dt0=" << dt / dt0 << "dt/dt0a=" << dt / dt0a << " "
+              << std::endl;
     typename CD::Par par;
     cd.reset(new CD(
         m, *eb, fcu, mfc, bc, bcu, &ctx->fcr, &ctx->fed, &ctx->fcs, &ctx->ffv,
