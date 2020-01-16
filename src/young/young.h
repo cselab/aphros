@@ -1,4 +1,4 @@
-// Created by Petr Karnakov on 04.11.2018
+// Created by Sergey Litvinov on 02.11.2018
 // Copyright 2018 ETH Zurich
 
 typedef struct YoungParam YoungParam;

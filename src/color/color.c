@@ -1,4 +1,4 @@
-// Created by Petr Karnakov on 26.08.2019
+// Created Sergey Litvinov on 26.08.2019
 // Copyright 2019 ETH Zurich
 
 #include "color.h"
