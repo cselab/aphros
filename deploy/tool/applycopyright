@@ -2,16 +2,18 @@
 
 set -eu
 
-if [ "$#" != "1" ] ; then
-  echo "usage: $0 FILE
-Adds copyright notice to FILE if 'Copyright' if not found in first 10 lines
-"
+if [ "$#" != "1" ] || [ "$1" = "-h" ] ; then
+  cat << EOF
+usage: $(basename "$0") [-h] FILE
+Adds copyright notice to FILE if 'copyright' if not found in first 10 lines.
+EOF
   exit 1
 fi
 
 file=$1
 
-if head -n 10 "$file" | grep -qi "copyright" ; then
+head=$(head -n 10 -- "$file" )
+if echo "$head" | grep -qi "copyright" ; then
   exit 1
 fi
 
