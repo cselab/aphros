@@ -19,7 +19,8 @@ if [ -z "$list" ] ; then
   exit 1
 fi
 
-rev=$(git log --follow --pretty=%H -- "$file" | tail -n 1)
+# revision of oldest line
+rev=$(git blame -l -e -t -- "$file" | sed -En 's/([0-9a-z]*)[^>]*>\s*([0-9]*).*/\2 \1/p' | sort | awk 'NR==1{print $2}')
 git=`git log --date=format:'%d.%m.%Y' "$rev" | head -n3`
 author=`echo "$git" | sed -En 's/.*Author: (.*?) <.*/\1/p'`
 date=`echo "$git" | sed -En 's/.*Date:   (.*?)/\1/p'`
