@@ -1,5 +1,8 @@
-// Created by Petr Karnakov on 25.11.2019
-// Copyright 2019 ETH Zurich
+/*
+ *  Created by Fabian Wermelinger on 12.11.2019.
+ *  Copyright 2010 ETH Zurich. All rights reserved.
+ *
+ */
 
 #pragma once
 
