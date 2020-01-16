@@ -11,21 +11,14 @@ fi
 
 file=$1
 
-tmp=/tmp/copyrightapply.tmp.$$
-trap 'rm -f $tmp; exit 2' 1 2 3 4 15
-
-if head -n 10 "$file" | grep -q "Copyright" ; then
+if head -n 10 "$file" | grep -qi "copyright" ; then
   exit 1
 fi
 
 echo "adding copyright to '$file'" 1>&2
 
-ap-copyright "$file" > $tmp
-echo >> $tmp
-cat "$file" >> $tmp
+head=$(ap-copyright "$file")
+text=$(cat "$file")
 
-cat $tmp > "$file"
-
-status=$?
-rm -f $tmp
-exit $status
+echo "$head" > $file
+echo "$text" >> $file
