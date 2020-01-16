@@ -54,7 +54,11 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
     auto sem = m.GetSem("assemble");
 
     if (sem("assemble")) {
-      // FieldCell<Vect> fcg = eb.Gradient(eb.Interpolate(fcu, bc_, bcu_), m);
+      //const FieldCell<Vect> fcg =
+      //    eb.AverageCutCells(eb.Gradient(eb.Interpolate(fcu, bc_, bcu_)));
+      const FieldCell<Vect> fcg = eb.Gradient(eb.Interpolate(fcu, bc_, bcu_));
+      //const FieldCell<Vect> fcg =
+      //    eb.RedistributeCutCells(eb.Gradient(eb.Interpolate(fcu, bc_, bcu_)));
 
       fcla.Reinit(m);
       fclb.Reinit(m, 0.);
@@ -70,7 +74,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
         }
         // Append
         for (IdxCell c : eb.Cells()) {
-          Scal s = 0.; // sum
+          Scal s = feq[c]; // sum
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetFace(c, q);
             s += feq[f] * m.GetOutwardFactor(c, q);
@@ -81,7 +85,15 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
 
       // Diffusive fluxes
       if (fed_) {
-        FieldEmbed<Scal> feq = eb.Gradient(fcu, bc_, bcu_);
+        //FieldEmbed<Scal> feq = eb.Gradient(fcu, bc_, bcu_);
+        const FieldEmbed<Vect> feg = eb.Interpolate(fcg, 1, Vect(0));
+        FieldEmbed<Scal> feq(m);
+        for (auto f : eb.Faces()) {
+          feq[f] = feg[f].dot(eb.GetNormal(f));
+        }
+        for (auto c : eb.CFaces()) {
+          feq[c] = feg[c].dot(eb.GetNormal(c));
+        }
         for (auto f : eb.Faces()) {
           feq[f] *= (-(*fed_)[f]) * eb.GetArea(f);
         }
@@ -90,7 +102,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
         }
         // Append
         for (IdxCell c : m.Cells()) {
-          Scal s = 0.; // sum
+          Scal s = feq[c]; // sum
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetFace(c, q);
             s += feq[f] * m.GetOutwardFactor(c, q);
