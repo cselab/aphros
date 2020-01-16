@@ -2,6 +2,13 @@
 
 set -eu
 
+if [ "$#" != "1" ] ; then
+  echo "usage: $0 FILE
+Adds copyright notice to FILE if 'Copyright' if not found in first 10 lines
+"
+  exit 1
+fi
+
 file=$1
 
 tmp=/tmp/copyrightapply.tmp.$$
