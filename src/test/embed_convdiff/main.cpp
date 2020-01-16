@@ -18,27 +18,7 @@ using EB = Embed<M>;
 using Type = typename EB::Type;
 using CD = ConvDiffScalExpEmbed<M>;
 
-FieldNode<Scal> GetLevelSet(const M& m) {
-  FieldNode<Scal> fnl(m, 0);
-  for (auto n : m.AllNodes()) {
-    const Vect x = m.GetNode(n);
-    const Vect xc(0.5, 0.5, 0.5);
-    const Vect s(1., 1., 1.);
-    auto rot = [](Vect xx) {
-      const Scal a = 3.14159265358979323 * 0;
-      const Scal as = std::sin(a);
-      const Scal ac = std::cos(a);
-      const Scal x = xx[0];
-      const Scal y = xx[1];
-      const Scal z = xx[2];
-      return Vect(x * ac - y * as, x * as + y * ac, z);
-    };
-    fnl[n] = (rot(x - xc) / s).norm() - 0.2;
-  }
-  return fnl;
-}
-
-void Run(M& m, Vars&) {
+void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
   struct {
     std::unique_ptr<EB> eb;
@@ -58,8 +38,11 @@ void Run(M& m, Vars&) {
   auto& mfc = ctx->mfc;
   auto& frame = ctx->frame;
 
+  if (sem("initeb")) {
+    auto fnl = InitEmbed(m, var);
+    ctx->eb.reset(new EB(m, fnl));
+  }
   if (sem("init")) {
-    eb.reset(new EB(m, GetLevelSet(m)));
     ctx->fcr.Reinit(m, 1);
     ctx->fed.Reinit(m, 1);
     ctx->fcs.Reinit(m, 0);
@@ -76,8 +59,12 @@ void Run(M& m, Vars&) {
           std::sin(m.GetCenter(c)[0] * a) * std::sin(m.GetCenter(c)[1] * a);
     }
     const size_t bc = 0;
-    const Scal bcu = 0;
-    const Scal dt = 0.001;
+    const Scal bcu = 1;
+    const Scal dt0 = 0.5 * sqr(m.GetCellSize()[0]);
+    const Scal dt = 0.0001;
+    std::cout << "dt0=" << dt0 << " "
+              << "dt=" << dt << " "
+              << "dt/dt0=" << dt / dt0 << " " << std::endl;
     typename CD::Par par;
     cd.reset(new CD(
         m, *eb, fcu, mfc, bc, bcu, &ctx->fcr, &ctx->fed, &ctx->fcs, &ctx->ffv,
@@ -119,6 +106,19 @@ set int bz 1
 set int bsx 16
 set int bsy 16
 set int bsz 16
+
+set string eb_init box
+set vect eb_box_c 0.5 0.5 0.5
+#set vect eb_box_r 0.249 0.249 0.249
+set vect eb_box_r 0.251 0.251 0.251
+#set vect eb_box_r 10 0.249 10
+
+#set string eb_init sphere
+#set vect eb_sphere_c 0.5 0.5 0.5
+#set vect eb_sphere_r 0.249 0.249 0.249
+#set double eb_sphere_angle 0
+
+set int eb_init_inverse 0
 )EOF";
   return RunMpiBasic<M>(argc, argv, Run, conf);
 }

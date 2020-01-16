@@ -408,7 +408,7 @@ class Embed {
     for (auto c : eb.Cells()) {
       const Scal v = eb.GetVolume(c);
       // excess quantity
-      const Scal du = fcu[c] * (1 - v / v0);
+      const T du = fcu[c] * (1 - v / v0);
       // subtract from current cell
       fcr[c] -= du;
       // add from neighbor cells proportional to their volume
@@ -416,7 +416,7 @@ class Embed {
         if (c != cn) {
           const Scal vn = eb.GetVolume(cn);
           // excess quantity in cell cn
-          const Scal dun = fcu[cn] * (1 - vn / v0);
+          const T dun = fcu[cn] * (1 - vn / v0);
           fcr[c] += dun * (v / (fcvst3_[cn] - vn));
         }
       }
