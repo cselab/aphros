@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 29.08.2019
+// Copyright 2019 ETH Zurich
+
 struct March {
   double (*f)(double[3], void*);
   void* fdata;

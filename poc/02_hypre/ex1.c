@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 09.02.2018
+// Copyright 2018 ETH Zurich
+
 /*
    Example 1
 

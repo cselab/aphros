@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 16.03.2019
+// Copyright 2019 ETH Zurich
+
 #include <stdio.h>
 #include <stdlib.h>
 

@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 24.10.2019
+// Copyright 2019 ETH Zurich
+
 #define ERR(x)                                              \
   do {                                                      \
     fprintf(stderr, "%s: %s:%d: ", me, __FILE__, __LINE__); \

@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 11.03.2019
+// Copyright 2019 ETH Zurich
+
 #include "geom/mesh.h"
 
 int main() {

@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 10.08.2019
+// Copyright 2019 ETH Zurich
+
 #include "distr/distrsolver.h"
 #include "kernel/hydro.h"
 #include "kernel/kernelmeshpar.h"

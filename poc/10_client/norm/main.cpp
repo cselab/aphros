@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 11.03.2019
+// Copyright 2019 ETH Zurich
+
 #undef NDEBUG
 #include "geom/mesh.h"
 #include "solver/normal.h"

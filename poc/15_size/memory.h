@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 24.10.2019
+// Copyright 2019 ETH Zurich
+
 #define MALLOC(n, p)                                    \
   do {                                                  \
     *(p) = malloc(n * sizeof(**(p)));                   \

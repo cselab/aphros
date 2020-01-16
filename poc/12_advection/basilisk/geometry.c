@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 03.01.2020
+// Copyright 2020 ETH Zurich
+
 #include <math.h>
 #include <assert.h>
 #define swap(type,a,b) { type tmp = a; a = b; b = tmp; }

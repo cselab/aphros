@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 18.11.2019
+// Copyright 2019 ETH Zurich
+
 #include <stdio.h>
 #include "err.h"
 #include "hash.h"

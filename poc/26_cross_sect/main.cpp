@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 07.01.2020
+// Copyright 2020 ETH Zurich
+
 #undef NDEBUG
 #include <cassert>
 #include <iostream>

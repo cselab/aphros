@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 30.09.2019
+// Copyright 2019 ETH Zurich
+
 }
 
 event out(t += DUMPDT; t <= TMAX + DUMPDT) {

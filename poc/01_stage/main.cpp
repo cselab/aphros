@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 28.01.2018
+// Copyright 2018 ETH Zurich
+
 #include <omp.h>
 #include <array>
 #include <cassert>

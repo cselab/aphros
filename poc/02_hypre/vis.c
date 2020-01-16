@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 09.02.2018
+// Copyright 2018 ETH Zurich
+
 /* Save a structured n x n mesh of square elements on the unit square into a
    GLVis mesh file with the given name. */
 void GLVis_PrintGlobalSquareMesh(const char* meshfile, int n) {

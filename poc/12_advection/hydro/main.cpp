@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 27.08.2019
+// Copyright 2019 ETH Zurich
+
 #undef NDEBUG
 #include <mpi.h>
 #include <cassert>

@@ -1,3 +1,6 @@
+// Created by Fabian Wermelinger on 27.11.2019
+// Copyright 2019 ETH Zurich
+
 #include <stdio.h>
 #include <mpi.h>
 #include <omp.h>

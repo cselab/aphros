@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 12.11.2019
+// Copyright 2019 ETH Zurich
+
 void* memory_malloc(int);
 void* memory_realloc(void*, int);
 void memory_free(void*);
