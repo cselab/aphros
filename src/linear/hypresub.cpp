@@ -160,8 +160,9 @@ struct HypreSub::Imp {
   };
 
   static ServerState state;
-  static constexpr MPI_Datatype MPI_SCAL =
-      (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
+  static auto GetMpiScal() {
+    return sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT;
+  }
   static constexpr int tag = 1;
 
   // Returns partition of blocks for one rank
@@ -309,10 +310,10 @@ struct HypreSub::Imp {
     MPI_Recv(&a, 1, MPI_INT, rank, tag, comm, MSI);
   }
   static void Send(const Scal& a, int rank, MPI_Comm comm) {
-    MPI_Send(&a, 1, MPI_SCAL, rank, tag, comm);
+    MPI_Send(&a, 1, GetMpiScal(), rank, tag, comm);
   }
   static void Recv(Scal& a, int rank, MPI_Comm comm) {
-    MPI_Recv(&a, 1, MPI_SCAL, rank, tag, comm, MSI);
+    MPI_Recv(&a, 1, GetMpiScal(), rank, tag, comm, MSI);
   }
   static void Send(const std::string& s, int rank, MPI_Comm comm) {
     int size = s.size();
@@ -329,13 +330,13 @@ struct HypreSub::Imp {
   static void Send(const std::vector<Scal>& v, int rank, MPI_Comm comm) {
     int size = v.size();
     MPI_Send(&size, 1, MPI_INT, rank, tag, comm);
-    MPI_Send(v.data(), size, MPI_SCAL, rank, tag, comm);
+    MPI_Send(v.data(), size, GetMpiScal(), rank, tag, comm);
   }
   static void Recv(std::vector<Scal>& v, int rank, MPI_Comm comm) {
     int size;
     MPI_Recv(&size, 1, MPI_INT, rank, tag, comm, MSI);
     v.resize(size);
-    MPI_Recv(v.data(), size, MPI_SCAL, rank, tag, comm, MSI);
+    MPI_Recv(v.data(), size, GetMpiScal(), rank, tag, comm, MSI);
   }
   static void Send(const Block& b, int rank, MPI_Comm comm) {
     // bounding box
