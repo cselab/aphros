@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 24.08.2019
+// Copyright 2019 ETH Zurich
+
 #pragma once
 
 #include <limits>

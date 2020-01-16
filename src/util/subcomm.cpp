@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 28.11.2019
+// Copyright 2019 ETH Zurich
+
 #include <errno.h>
 #include <mpi.h>
 #include <omp.h>

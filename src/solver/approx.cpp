@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 29.12.2019
+// Copyright 2019 ETH Zurich
+
 #include "approx.ipp"
 #include "linear/linear.h"
 

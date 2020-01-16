@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 02.04.2019
+// Copyright 2019 ETH Zurich
+
 #include "geom/vect.h"
 
 // Returns volume of intersection of cell and sphere.

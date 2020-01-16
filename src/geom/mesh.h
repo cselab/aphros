@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 25.04.2018
+// Copyright 2018 ETH Zurich
+
 // vim: expandtab:smarttab:sw=2:ts=2
 #pragma once
 

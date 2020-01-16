@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 27.11.2019
+// Copyright 2019 ETH Zurich
+
 #include <cassert>
 #include <chrono>
 #include <iostream>

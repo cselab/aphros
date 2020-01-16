@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 04.11.2018
+// Copyright 2018 ETH Zurich
+
 #include <math.h>
 #include <stddef.h>
 

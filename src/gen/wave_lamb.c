@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 28.09.2019
+// Copyright 2019 ETH Zurich
+
 #include <stdio.h>
 #include <tgmath.h>
 
