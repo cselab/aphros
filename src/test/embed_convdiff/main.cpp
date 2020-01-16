@@ -55,16 +55,18 @@ void Run(M& m, Vars& var) {
     for (auto f : m.Faces()) {
       ffv[f] = vel.dot(m.GetSurface(f));
     }
-    fcu.Reinit(m);
+    fcu.Reinit(m, 0);
+    /*
     for (auto c : eb->AllCells()) {
       const Scal a = 12;
       fcu[c] =
           std::sin(m.GetCenter(c)[0] * a) * std::sin(m.GetCenter(c)[1] * a);
     }
+    */
     const size_t bc = 0;
     const Scal bcu = 1;
     const Scal dt0 = 0.5 * sqr(m.GetCellSize()[0]);
-    const Scal dt = 0.0001;
+    const Scal dt = dt0 * 0.5;
     std::cout << "dt0=" << dt0 << " "
               << "dt=" << dt << " "
               << "dt/dt0=" << dt / dt0 << " " << std::endl;
@@ -116,10 +118,12 @@ set vect eb_box_c 0.5 0.5 0.5
 set vect eb_box_r 0.251 0.251 0.251
 #set vect eb_box_r 10 0.249 10
 
-#set string eb_init sphere
-#set vect eb_sphere_c 0.5 0.5 0.5
-#set vect eb_sphere_r 0.249 0.249 0.249
-#set double eb_sphere_angle 0
+set vect eb_box_r 0.3 0.3 0.3
+
+set string eb_init sphere
+set vect eb_sphere_c 0.5 0.5 0.5
+set vect eb_sphere_r 0.249 0.249 0.249
+set double eb_sphere_angle 0
 
 set int eb_init_inverse 0
 )EOF";
