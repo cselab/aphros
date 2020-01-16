@@ -14,6 +14,7 @@ instfnd diff
 instfnd diffnum
 instfnd downsample
 instfnd downsampleall
+instfnd findsource
 instfnd format
 instfnd genxmf
 instfnd genxmfall
