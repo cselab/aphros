@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -eu
+
+file=$1
+
+tmp=/tmp/copyrightapply.tmp.$$
+trap 'rm -f $tmp; exit 2' 1 2 3 4 15
+
+if head -n 10 "$file" | grep -q "Copyright" ; then
+  exit 1
+fi
+
+echo "adding copyright to '$file'" 1>&2
+
+ap-copyright "$file" > $tmp
+echo >> $tmp
+cat "$file" >> $tmp
+
+cat $tmp > "$file"
+
+status=$?
+rm -f $tmp
+exit $status

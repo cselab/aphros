@@ -5,6 +5,7 @@ set -eu
 . ap-setenv
 . ../util
 
+instfnd applycopyright
 instfnd argmax
 instfnd argmaxall
 instfnd cawk
