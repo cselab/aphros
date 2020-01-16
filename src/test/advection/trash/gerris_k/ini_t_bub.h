@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 11.07.2018
+// Copyright 2018 ETH Zurich
+
 #define MAXBUB 10000
 #define FBUB "../b.dat"
 

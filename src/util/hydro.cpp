@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 20.11.2019
+// Copyright 2019 ETH Zurich
+
 #include "hydro.ipp"
 
 using M = MeshStructured<double, 3>;

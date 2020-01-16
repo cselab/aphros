@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 20.11.2019
+// Copyright 2019 ETH Zurich
+
 #include "convdiff.h"
 
 #include "solver/convdiffe.h"

@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 07.08.2018
+// Copyright 2018 ETH Zurich
+
 #include <cassert>
 #include <fstream>
 #include <sstream>

@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 09.07.2019
+// Copyright 2019 ETH Zurich
+
 #pragma once
 
 #include <vector>

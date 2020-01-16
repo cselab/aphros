@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 25.11.2019
+// Copyright 2019 ETH Zurich
+
 #undef NDEBUG
 #include <omp.h>
 #include <sched.h>

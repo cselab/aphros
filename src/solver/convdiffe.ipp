@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 30.04.2019
+// Copyright 2019 ETH Zurich
+
 #include <cmath>
 #include <sstream>
 #include <stdexcept>

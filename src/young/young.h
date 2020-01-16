@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 04.11.2018
+// Copyright 2018 ETH Zurich
+
 typedef struct YoungParam YoungParam;
 struct YoungParam {
   double rhov, rhou, muv, muu, hv, hu, gamma1, gamma0, T1, T0;

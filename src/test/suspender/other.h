@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 17.10.2019
+// Copyright 2019 ETH Zurich
+
 namespace other {
 
 using S = Suspender;

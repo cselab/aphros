@@ -1,3 +1,6 @@
+// Created by Fabian Wermelinger on 29.11.2019
+// Copyright 2019 ETH Zurich
+
 #pragma once
 
 #include <mpi.h>

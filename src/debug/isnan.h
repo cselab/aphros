@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 03.10.2018
+// Copyright 2018 ETH Zurich
+
 #pragma once
 
 #include <exception>

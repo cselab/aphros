@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 30.05.2018
+// Copyright 2018 ETH Zurich
+
 #pragma once
 
 #include <algorithm> // min, max

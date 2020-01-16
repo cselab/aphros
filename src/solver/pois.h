@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 06.11.2018
+// Copyright 2018 ETH Zurich
+
 #pragma once
 
 #include <cmath>

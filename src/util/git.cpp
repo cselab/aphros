@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 16.06.2019
+// Copyright 2019 ETH Zurich
+
 #include "git.h"
 
 extern const char* kGitRev;
