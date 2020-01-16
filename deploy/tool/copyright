@@ -2,9 +2,19 @@
 
 set -eu
 
+if [ "$#" != "1" ] || [ "$1" = "-h" ] ; then
+  cat << EOF
+usage: $(basename "$0") [-h] FILE
+Prints copyright notice for FILE fetching author and date from git index.
+EOF
+  exit 1
+fi
+
+
 file=$1
 
-if [ -z `git ls-files "$file"` ] ; then
+list=$(git ls-files -- "$file" )
+if [ -z "$list" ] ; then
   echo "File '$file' not found in index" 1>&2
   exit 1
 fi
