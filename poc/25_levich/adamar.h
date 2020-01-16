@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 06.01.2020
+// Copyright 2020 ETH Zurich
+
 struct Adamar {
   double mu0;
   double mu1;
