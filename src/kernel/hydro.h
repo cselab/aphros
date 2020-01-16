@@ -579,10 +579,10 @@ void Hydro<M>::Init() {
       IdxFace i = it.GetIdx();
       auto& cb = it.GetValue();
       size_t nci = cb->GetNci();
-      if (cb.Get<Symm<M>>()) {
-        mf_cond_vfsm_[i].Set<CondFaceReflect>(nci);
+      if (cb.template Get<Symm<M>>()) {
+        mf_cond_vfsm_[i].template Set<CondFaceReflect>(nci);
       } else {
-        mf_cond_vfsm_[i].Set<CondFaceGradFixed<Scal>>(Scal(0), nci);
+        mf_cond_vfsm_[i].template Set<CondFaceGradFixed<Scal>>(Scal(0), nci);
       }
     }
   }
@@ -592,7 +592,7 @@ void Hydro<M>::Init() {
     for (auto it : mf_fluid_) {
       IdxFace f = it.GetIdx();
       auto& cb = it.GetValue();
-      if (auto cd = cb.Get<NoSlipWallFixed<M>>()) {
+      if (auto cd = cb.template Get<NoSlipWallFixed<M>>()) {
         IdxCell c = m.GetCell(f, cd->GetNci());
         cd->SetVelocity(fcvel[c]);
       }

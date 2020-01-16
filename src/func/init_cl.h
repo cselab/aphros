@@ -61,7 +61,7 @@ CreateInitCl(const Vars& par, bool verb) {
     auto pp = UPrimList<Scal>::Parse(fin, verb, edim);
 
     return
-        [edim, pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf, const M& m) {
+        [pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf, const M& m) {
           cl.Reinit(m, kClNone);
           if (pp.empty()) {
             return;

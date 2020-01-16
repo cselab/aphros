@@ -3,4 +3,4 @@
 
 #include "curv.ipp"
 
-template class UCurv<MeshStructured<double, 3>>;
+template struct UCurv<MeshStructured<double, 3>>;

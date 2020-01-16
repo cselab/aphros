@@ -105,21 +105,21 @@ struct Simple<M_>::Imp {
       auto& cb = it.GetValue();
       size_t nci = cb->GetNci();
 
-      mfcf_[f].Set<CondFaceGradFixed<Vect>>(Vect(0), nci);
-      mfcp_[f].Set<CondFaceExtrap>(nci);
-      mfcpc_[f].Set<CondFaceExtrap>(nci);
-      mfcd_[f].Set<CondFaceGradFixed<Scal>>(0., nci);
+      mfcf_[f].template Set<CondFaceGradFixed<Vect>>(Vect(0), nci);
+      mfcp_[f].template Set<CondFaceExtrap>(nci);
+      mfcpc_[f].template Set<CondFaceExtrap>(nci);
+      mfcd_[f].template Set<CondFaceGradFixed<Scal>>(0., nci);
 
-      if (cb.Get<NoSlipWall<M>>()) {
+      if (cb.template Get<NoSlipWall<M>>()) {
         // nop
-      } else if (cb.Get<Inlet<M>>()) {
+      } else if (cb.template Get<Inlet<M>>()) {
         // nop
-      } else if (cb.Get<Outlet<M>>()) {
+      } else if (cb.template Get<Outlet<M>>()) {
         // nop
-      } else if (cb.Get<SlipWall<M>>() || cb.Get<Symm<M>>()) {
-        mfcf_[f].Set<CondFaceReflect>(nci);
-        mfcp_[f].Set<CondFaceGradFixed<Scal>>(0., nci);
-        mfcpc_[f].Set<CondFaceGradFixed<Scal>>(0, nci);
+      } else if (cb.template Get<SlipWall<M>>() || cb.template Get<Symm<M>>()) {
+        mfcf_[f].template Set<CondFaceReflect>(nci);
+        mfcp_[f].template Set<CondFaceGradFixed<Scal>>(0., nci);
+        mfcpc_[f].template Set<CondFaceGradFixed<Scal>>(0, nci);
       } else {
         throw std::runtime_error("proj: unknown condition");
       }
