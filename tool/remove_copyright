@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# removes copyright from files if it differs from output of 'ap-copyright'
+
+msg () {
+  echo "$@" 1>&2
+}
+
+ap-findsource |
+while read file ; do
+  a=$(head -n2 "$file")
+  b=$(ap-copyright "$file")
+  if [ "$(grep '// Created by' <<< "$a")" ] && [ "$a" != "$b" ] ; then
+    msg "$file"
+    text=$(tail -n +4 "$file")
+    echo "$text" > "$file"
+  fi
+done 
