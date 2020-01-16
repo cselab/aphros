@@ -67,6 +67,10 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
       {
         FieldEmbed<Scal> feq = eb.Interpolate(fcu, bc_, bcu_);
         for (auto f : eb.Faces()) {
+          // upwind cell
+          const IdxCell c = (fev[f] > 0 ? m.GetCell(f, 0) : m.GetCell(f, 1));
+          //feq[f] += fcg[c].dot(eb.GetCellCenter(c) - eb.GetFaceCenter(f));
+          feq[f] = fcu[c];
           feq[f] *= fev[f];
         }
         for (auto c : eb.CFaces()) {
@@ -76,7 +80,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
         for (IdxCell c : eb.Cells()) {
           Scal s = feq[c]; // sum
           for (auto q : m.Nci(c)) {
-            IdxFace f = m.GetFace(c, q);
+            const IdxFace f = m.GetFace(c, q);
             s += feq[f] * m.GetOutwardFactor(c, q);
           }
           fclb[c] += s * (*owner_->fcr_)[c];
