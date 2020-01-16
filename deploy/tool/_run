@@ -8,6 +8,7 @@ set -eu
 instfnd argmax
 instfnd argmaxall
 instfnd cawk
+instfnd copyright
 instfnd deriv
 instfnd diff
 instfnd diffnum
