@@ -144,7 +144,7 @@ struct UPrimList {
           return (1. - xd.sqrnorm()) * sqr(p.r.min());
         };
 
-        p.inter = [edim, p](const Rect<Vect>& rect) -> bool {
+        p.inter = [p](const Rect<Vect>& rect) -> bool {
           const Rect<Vect> rectbig(rect.lb - p.r, rect.rt + p.r);
           return rectbig.IsInside(p.c);
         };
@@ -174,7 +174,7 @@ struct UPrimList {
           return sqr(p.th) - (sqr(xn) + sqr(xt - r));
         };
 
-        p.inter = [edim, p](const Rect<Vect>&) -> bool { return true; };
+        p.inter = [p](const Rect<Vect>&) -> bool { return true; };
 
         pp.push_back(p);
       }
@@ -201,7 +201,7 @@ struct UPrimList {
           return (1. - xd.abs().max());
         };
 
-        p.inter = [edim, p](const Rect<Vect>&) -> bool { return true; };
+        p.inter = [p](const Rect<Vect>&) -> bool { return true; };
 
         pp.push_back(p);
       }

@@ -503,8 +503,9 @@ FieldCell<typename M::Vect> Gradient(
 // Convention: Use Get/Set for fast procedures and Calc for those requiring
 // computation: GetValue(field, idx) vs GetNorm(field)
 
-template <class Field, class M, class Scal = typename M::Scal>
-Scal CalcDiff(const Field& fa, const Field& fb, const M& m) {
+template <class Field, class M>
+typename M::Scal CalcDiff(const Field& fa, const Field& fb, const M& m) {
+  using Scal = typename M::Scal;
   Scal r = 0.;
   using Idx = typename Field::Idx;
   for (Idx i : m.template GetIn<Idx>()) {
@@ -513,10 +514,11 @@ Scal CalcDiff(const Field& fa, const Field& fb, const M& m) {
   return r;
 }
 
-template <class Idx, class M, class Scal = typename M::Scal>
-Scal CalcDiff(
+template <class Idx, class M>
+typename M::Scal CalcDiff(
     const GField<typename M::Vect, Idx>& fa,
     const GField<typename M::Vect, Idx>& fb, const M& m) {
+  using Scal = typename M::Scal;
   Scal r = 0.;
   for (Idx i : m.template GetIn<Idx>()) {
     r = std::max<Scal>(r, (fa[i] - fb[i]).norminf());

@@ -23,7 +23,7 @@ struct Tvd<M_>::Imp {
     fcu_.time_curr = fcu;
     for (auto it : mfc_) {
       IdxFace f = it.GetIdx();
-      mfvz_[f].Set<CondFaceGradFixed<Vect>>(Vect(0), it.GetValue().GetNci());
+      mfvz_[f].template Set<CondFaceGradFixed<Vect>>(Vect(0), it.GetValue().GetNci());
     }
   }
   void StartStep() {

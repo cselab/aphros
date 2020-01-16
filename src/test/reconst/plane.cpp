@@ -23,7 +23,7 @@ int main(int, char** argc) {
   nz = atof(argc[4]);
   v = atof(argc[5]);
 
-  Scal r;
+  Scal r = 0;
   if (f == "alpha_ba") {
     r = R::plane_alpha(v, nx, ny, nz);
   } else if (f == "alpha_ch") {

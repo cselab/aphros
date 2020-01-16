@@ -246,9 +246,9 @@ class FaceValB : public Approx<IdxFace, Expr> {
       IdxCell cp = m.GetCell(f, 1);
       e.InsertTerm(0, cm);
       e.InsertTerm(0, cp);
-      if (auto cd = cb->Get<CondFaceVal<Scal>>()) {
+      if (auto cd = cb->template Get<CondFaceVal<Scal>>()) {
         e.SetConstant(cd->GetValue());
-      } else if (auto cd = cb->Get<CondFaceGrad<Scal>>()) {
+      } else if (auto cd = cb->template Get<CondFaceGrad<Scal>>()) {
         size_t id = cd->GetNci();
         IdxCell c = m.GetCell(f, id);
         Scal g = (id == 0 ? 1. : -1.);
@@ -302,9 +302,9 @@ class FaceGradB : public Approx<IdxFace, Expr> {
       IdxCell cp = m.GetCell(f, 1);
       e.InsertTerm(0, cm);
       e.InsertTerm(0, cp);
-      if (auto cd = cb->Get<CondFaceGrad<Scal>>()) {
+      if (auto cd = cb->template Get<CondFaceGrad<Scal>>()) {
         e.SetConstant(cd->GetGrad());
-      } else if (auto cd = cb->Get<CondFaceVal<Scal>>()) {
+      } else if (auto cd = cb->template Get<CondFaceVal<Scal>>()) {
         size_t id = cd->GetNci();
         IdxCell c = m.GetCell(f, id);
         Scal g = (id == 0 ? 1. : -1.);

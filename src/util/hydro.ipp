@@ -1183,7 +1183,7 @@ void DumpBcFaces(
 }
 
 // FIXME: only fills SuFaces, more halo faces AllFaces may be needed
-template <class M, class Scal = typename M::Scal>
+template <class M, class Scal>
 void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,
@@ -1209,7 +1209,7 @@ void AppendBodyCond(
 }
 
 // Computes velocity fcvel from vorticity fcvort
-template <class M, class Vect = typename M::Vect>
+template <class M, class Vect>
 void InitVort(
     const FieldCell<Vect>& fcvort, FieldCell<Vect>& fcvel,
     const MapCondFaceFluid& mf_fluid, bool verb, M& m) {
@@ -1275,8 +1275,7 @@ void DumpTraj(
     std::vector<Scal> colors; // color reduce: cl
     std::vector<std::vector<Scal>> values; // color reduce: vector
     std::unique_ptr<SA> sphavg; // spherical averages
-    using Sph = typename SA::Sph;
-    std::vector<Sph> vsph;
+    std::vector<typename SA::Sph> vsph;
   } * ctx(sem);
   auto& names = ctx->names;
   auto& colors = ctx->colors;

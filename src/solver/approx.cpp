@@ -74,10 +74,10 @@ template void SmoothenNode(FieldCell<T>& fc, M& m, size_t rep);
 template FieldCell<typename M::Vect> Gradient(
     const FieldFace<typename M::Scal>& ff, const M& m);
 
-template <class Field, class M, class Scal = typename M::Scal>
+template <class Field, class M>
 Scal CalcDiff(const Field& fa, const Field& fb, const M& m);
 
-template <class Idx, class M, class Scal = typename M::Scal>
+template <class Idx, class M>
 Scal CalcDiff(
     const GField<typename M::Vect, Idx>& fa,
     const GField<typename M::Vect, Idx>& fb, const M& m);
