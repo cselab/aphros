@@ -2,6 +2,6 @@
 
 set -eu
 
-make
-make -C ../../ install
+make > /dev/null
+make -C ../../ install > /dev/null
 ap-run ./t.embed_convdiff

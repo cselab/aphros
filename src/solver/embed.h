@@ -434,39 +434,22 @@ class Embed {
   template <class T>
   FieldEmbed<T> Gradient(const FieldCell<T>& fcu, size_t bc, T bcv) const {
     FieldEmbed<T> feu(m, T(0)); // FIXME should be nan
-    for (auto f : m.SuFaces()) {
-      switch (fft_[f]) {
-        case Type::regular:
-        case Type::cut: {
-          IdxCell cm = m.GetCell(f, 0);
-          IdxCell cp = m.GetCell(f, 1);
-          const Scal dn =
-              (GetCellCenter(cp) - GetCellCenter(cm)).dot(GetNormal(f));
-          feu[f] = (fcu[cp] - fcu[cm]) / dn;
-          break;
-        }
-        case Type::excluded: {
-          break;
-        }
-      }
+    for (auto f : eb.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      Scal dn =
+          (eb.GetCellCenter(cp) - eb.GetCellCenter(cm)).dot(eb.GetNormal(f));
+      dn = (dn > 0 ? 1 : -1) * std::max(std::abs(dn), m.GetCellSize()[0] * 0.5);
+      feu[f] = (fcu[cp] - fcu[cm]) / dn;
     }
-    for (auto c : m.SuCells()) {
-      switch (fct_[c]) {
-        case Type::cut: {
-          if (bc == 0) {
-            feu[c] = (bcv - fcu[c]) / GetFaceOffset(c);
-          } else if (bc == 1) {
-            feu[c] = bcv;
-          } else {
-            throw std::runtime_error(
-                "Gradient: unknown bc=" + std::to_string(bc));
-          }
-          break;
-        }
-        case Type::regular:
-        case Type::excluded: {
-          break;
-        }
+    for (auto c : eb.CFaces()) {
+      if (bc == 0) {
+        const Scal dn = std::max(eb.GetFaceOffset(c), m.GetCellSize()[0] * 0.5);
+        feu[c] = (bcv - fcu[c]) / dn;
+      } else if (bc == 1) {
+        feu[c] = bcv;
+      } else {
+        throw std::runtime_error("Gradient: unknown bc=" + std::to_string(bc));
       }
     }
     return feu;
