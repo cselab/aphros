@@ -5,6 +5,7 @@
 
 #include <memory>
 
+#include "convdiffe_eb.h"
 #include "convdiffv.h"
 #include "embed.h"
 
@@ -32,7 +33,7 @@ class ConvDiffVectEmbed final : public ConvDiffVect<M_> {
   // par: parameters
   ConvDiffVectEmbed(
       M& m, const Embed<M>& eb, const FieldCell<Vect>& fcvel,
-      const MapCondFace& mfc, size_t bc, Scal bcu, const FieldCell<Scal>* fcr,
+      const MapCondFace& mfc, size_t bc, Vect bcvel, const FieldCell<Scal>* fcr,
       const FieldEmbed<Scal>* fed, const FieldCell<Vect>* fcs,
       const FieldFace<Scal>* ffv, double t, double dt, Par par);
   ~ConvDiffVectEmbed();
