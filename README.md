@@ -1,11 +1,11 @@
-# Cubism-hydro
+# Aphros
 
-Distributed version of **hydro** based on **Cubism**.
+Solver for incompressible multiphase flows with surface tension.
 
 ## Clone
 
-    git clone git@gitlab.ethz.ch:mavt-cse/Cubism-hydro.git
-    cd Cubism-hydro
+    git clone git@github.com:cselab/aphros.git
+    cd aphros
     git config pull.rebase merges
 
 ## Documentation
@@ -63,55 +63,16 @@ Simulation setups in `sim` provide a makefile to submit jobs that run `ch.mfer`
 
 ## Other repos
 
+
+### Cubism-hydro
+
+    git clone git@gitlab.ethz.ch:mavt-cse/Cubism-hydro.git
+    git clone git@github.com:cselab/Cubism-hydro.git
+
 ### hydro
 
-    git clone https://github.com/divfree/hydro.git 
+    git clone https://github.com/divfree/hydro.git
 
 ### mfer
 
     git clone git@gitlab.ethz.ch:mavt-cse/mfer.git
-
-## Intro
-
-### Solver
-
-Finite volume solver for multiphase flows.
-
-Fluid solver based on SIMPLE 
-(Semi-Implicit Method for Pressure Linked Equations) 
-method coupled
-with TVD Superbee advection scheme for concentration (diffuse interface method).
-
-Advantages compared to Gerris:
-
-* moving mesh: ability to solve in the frame of reference of bubble 
-which reduces numerical diffusion 
-
-* conservation of mass up to machine precision 
-(depending on the accuracy of linear solvers)
-
-* potentially high performance of CUBISM framework
-  - cache-aware (computation by blocks)
-  - hiding of communication time (inner blocks processed first)
-  - distributed MPI I/O 
-
-* extendability to multiphysics (easy to add more fluid components or phenomena)
-
-
-Design following CUBISM framework 
-
-* layers:   
-  - core: computation in a single block
-  - node: processing of blocks on a single node 
-  - cluster: communication between nodes
-
-* ability to run on a single node without MPI
-
-### Simulations:
-
-* hydrodynamic interaction of bubbles
-* bubble coalescence
-* bubble growth on surfaces
-
-
-  
