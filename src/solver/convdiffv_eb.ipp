@@ -7,22 +7,25 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "convdiffv_eb.h"
 #include "convdiffv.h"
+#include "convdiffv_eb.h"
 #include "util/convdiff.h"
 #include "util/metrics.h"
 
-template <class M_, class CD_>
-struct ConvDiffVectEmbed<M_, CD_>::Imp {
-  using Owner = ConvDiffVectEmbed<M_, CD_>;
+template <class M_>
+struct ConvDiffVectEmbed<M_>::Imp {
+  using Owner = ConvDiffVectEmbed<M_>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
-      const MapCell<std::shared_ptr<CondCell>>& mcc)
+      const Embed<M>& eb0, const FieldEmbed<Scal>* fed, size_t bc, Vect bcvel)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
       , mfc_(mfc)
-      , mcc_(mcc)
+      , eb(eb0)
+      , fed_(fed)
+      , bc_(bc)
+      , bcvel_(bcvel)
       , dr_(0, m.GetEdim()) {
     for (auto d : dr_) {
       UpdateDerivedCond(d);
@@ -34,30 +37,15 @@ struct ConvDiffVectEmbed<M_, CD_>::Imp {
 
       // Initialize solver
       vs_[d] = std::make_shared<CD>(
-          m, GetComponent(fcvel, d), vmfc_[d], vmcc_[d], owner_->fcr_,
-          owner_->ffd_, &(vfcs_[d]), owner_->ffv_, owner_->GetTime(),
+          m, eb, GetComponent(fcvel, d), vmfc_[d], bc_, bcvel_[d], owner_->fcr_,
+          fed_, &(vfcs_[d]), owner_->ffv_, owner_->GetTime(),
           owner_->GetTimeStep(), par);
     }
     CopyToVect(Step::time_curr, fcvel_);
     lvel_ = Step::time_curr;
   }
   void UpdateDerivedCond(size_t d) {
-    // Face conditions for each velocity component
     vmfc_[d] = GetScalarCond(mfc_, d, m);
-
-    // Cell conditions for each velocity component
-    for (auto it : mcc_) {
-      IdxCell c = it.GetIdx();
-      CondCell* cb = it.GetValue().get(); // cond base
-
-      if (auto cd = dynamic_cast<CondCellVal<Vect>*>(cb)) {
-        // TODO: revise with CondCellValComp
-        vmcc_[d][c] =
-            std::make_shared<CondCellValFixed<Scal>>(cd->GetValue()[d]);
-      } else {
-        throw std::runtime_error("convdiffvg: unknown cell condition");
-      }
-    }
   }
   // Copy from solvers to vector field.
   // l: layer in component solvers
@@ -170,11 +158,14 @@ struct ConvDiffVectEmbed<M_, CD_>::Imp {
   Owner* owner_;
   const Par& par;
   M& m; // mesh
+  const MapCondFace& mfc_; // vect face cond
+  const Embed<M>& eb;
+  const FieldEmbed<Scal>* fed_;
+  size_t bc_; // boundary conditions, 0: value, 1: gradient
+  Vect bcvel_; // value or grad.dot.outer_normal
 
   FieldCell<Vect> fcvel_;
   Step lvel_; // current level loaded in fcvel_
-  const MapCondFace& mfc_; // vect face cond
-  MapCell<std::shared_ptr<CondCell>> mcc_; // vect cell cond
   GRange<size_t> dr_; // effective dimension range
 
   template <class T>
@@ -182,7 +173,6 @@ struct ConvDiffVectEmbed<M_, CD_>::Imp {
 
   // Scalar components
   Array<MapCondFace> vmfc_; // face cond
-  Array<MapCell<std::shared_ptr<CondCell>>> vmcc_; // cell cond
   Array<std::shared_ptr<CD>> vs_; // solver
   Array<FieldCell<Scal>> vfcs_; // force
   Array<FieldCell<Scal>> vfct_; // tmp
