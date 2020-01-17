@@ -23,4 +23,5 @@ head=$(ap-copyright "$file")
 text=$(cat "$file")
 
 echo "$head" > $file
+echo >> $file
 echo "$text" >> $file
