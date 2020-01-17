@@ -178,67 +178,67 @@ struct ConvDiffVectEmbed<M_>::Imp {
   Array<FieldCell<Scal>> vfct_; // tmp
 };
 
-template <class M_, class CD_>
-ConvDiffVectEmbed<M_, CD_>::ConvDiffVectEmbed(
-    M& m, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
-    const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
-    const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
+template <class M_>
+ConvDiffVectEmbed<M_>::ConvDiffVectEmbed(
+    M& m, const Embed<M>& eb, const FieldCell<Vect>& fcvel,
+    const MapCondFace& mfc, size_t bc, Vect bcvel, const FieldCell<Scal>* fcr,
+    const FieldEmbed<Scal>* fed, const FieldCell<Vect>* fcs,
     const FieldFace<Scal>* ffv, double t, double dt, Par par)
-    : ConvDiffVect<M>(t, dt, m, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcvel, mfc, mcc)) {}
+    : ConvDiffVect<M>(t, dt, m, par, fcr, nullptr, fcs, ffv)
+    , imp(new Imp(this, fcvel, mfc, eb, fed, bc, bcvel)) {}
 
-template <class M_, class CD_>
-ConvDiffVectEmbed<M_, CD_>::~ConvDiffVectEmbed() = default;
+template <class M_>
+ConvDiffVectEmbed<M_>::~ConvDiffVectEmbed() = default;
 
-template <class M_, class CD_>
-void ConvDiffVectEmbed<M_, CD_>::Assemble(
+template <class M_>
+void ConvDiffVectEmbed<M_>::Assemble(
     const FieldCell<Vect>& fcw, const FieldFace<Scal>& ffv) {
   imp->Assemble(fcw, ffv);
 }
 
-template <class M_, class CD_>
-void ConvDiffVectEmbed<M_, CD_>::CorrectVelocity(
+template <class M_>
+void ConvDiffVectEmbed<M_>::CorrectVelocity(
     Step l, const FieldCell<Vect>& u) {
   imp->CorrectVelocity(l, u);
 }
 
-template <class M_, class CD_>
-auto ConvDiffVectEmbed<M_, CD_>::GetDiag(size_t d) const -> FieldCell<Scal> {
+template <class M_>
+auto ConvDiffVectEmbed<M_>::GetDiag(size_t d) const -> FieldCell<Scal> {
   return imp->vs_[d]->GetDiag();
 }
 
-template <class M_, class CD_>
-auto ConvDiffVectEmbed<M_, CD_>::GetConst(size_t d) const -> FieldCell<Scal> {
+template <class M_>
+auto ConvDiffVectEmbed<M_>::GetConst(size_t d) const -> FieldCell<Scal> {
   return imp->vs_[d]->GetConst();
 }
 
-template <class M_, class CD_>
-auto ConvDiffVectEmbed<M_, CD_>::GetVelocityCond(size_t d) -> MapCondFace& {
+template <class M_>
+auto ConvDiffVectEmbed<M_>::GetVelocityCond(size_t d) -> MapCondFace& {
   return imp->vmfc_[d];
 }
 
-template <class M_, class CD_>
-void ConvDiffVectEmbed<M_, CD_>::StartStep() {
+template <class M_>
+void ConvDiffVectEmbed<M_>::StartStep() {
   imp->StartStep();
 }
 
-template <class M_, class CD_>
-void ConvDiffVectEmbed<M_, CD_>::MakeIteration() {
+template <class M_>
+void ConvDiffVectEmbed<M_>::MakeIteration() {
   imp->MakeIteration();
 }
 
-template <class M_, class CD_>
-void ConvDiffVectEmbed<M_, CD_>::FinishStep() {
+template <class M_>
+void ConvDiffVectEmbed<M_>::FinishStep() {
   imp->FinishStep();
 }
 
-template <class M_, class CD_>
-double ConvDiffVectEmbed<M_, CD_>::GetError() const {
+template <class M_>
+double ConvDiffVectEmbed<M_>::GetError() const {
   return imp->GetError();
 }
 
-template <class M_, class CD_>
-auto ConvDiffVectEmbed<M_, CD_>::GetVelocity(Step l) const
+template <class M_>
+auto ConvDiffVectEmbed<M_>::GetVelocity(Step l) const
     -> const FieldCell<Vect>& {
   return imp->GetVelocity(l);
 }
