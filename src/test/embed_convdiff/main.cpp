@@ -10,7 +10,7 @@
 #include <utility>
 
 #include "distr/distrbasic.h"
-#include "solver/convdiffe_eb.h"
+#include "solver/convdiffv_eb.h"
 #include "solver/embed.h"
 #include "solver/reconst.h"
 
@@ -19,24 +19,24 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using EB = Embed<M>;
 using Type = typename EB::Type;
-using CD = ConvDiffScalExpEmbed<M>;
+using CD = ConvDiffVectEmbed<M>;
 
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
   struct {
     std::unique_ptr<EB> eb;
     std::unique_ptr<CD> cd;
-    FieldCell<Scal> fcu;
+    FieldCell<Vect> fcvel;
     MapCondFace mfc;
     FieldCell<Scal> fcr;
     FieldEmbed<Scal> fed;
-    FieldCell<Scal> fcs;
+    FieldCell<Vect> fcs;
     FieldFace<Scal> ffv;
     size_t frame = 0;
   } * ctx(sem);
   auto& eb = ctx->eb;
   auto& cd = ctx->cd;
-  auto& fcu = ctx->fcu;
+  auto& fcvel = ctx->fcvel;
   auto& ffv = ctx->ffv;
   auto& mfc = ctx->mfc;
   auto& frame = ctx->frame;
@@ -48,22 +48,22 @@ void Run(M& m, Vars& var) {
   if (sem("init")) {
     ctx->fcr.Reinit(m, 1);
     ctx->fed.Reinit(m, 0);
-    ctx->fcs.Reinit(m, 0);
+    ctx->fcs.Reinit(m, Vect(0));
     ffv.Reinit(m, 0);
-    const Vect vel(1., 1., 1.);
+    const Vect vel(1., 0.5, 0.25);
     for (auto f : m.Faces()) {
       ffv[f] = vel.dot(m.GetSurface(f));
     }
-    fcu.Reinit(m, 1);
+    fcvel.Reinit(m, Vect(1., 1., 1.));
     /*
     for (auto c : eb->AllCells()) {
       const Scal a = 12;
-      fcu[c] =
+      fcvel[c] =
           std::sin(m.GetCenter(c)[0] * a) * std::sin(m.GetCenter(c)[1] * a);
     }
     */
     const size_t bc = 0;
-    const Scal bcu = 1;
+    const Vect bcvel(1);
     const Scal dt0 = 0.5 * sqr(m.GetCellSize()[0]);
     const Scal dt0a = 1 / vel.abs().max() * m.GetCellSize()[0];
     //const Scal dt = dt0 * 0.5;
@@ -75,8 +75,8 @@ void Run(M& m, Vars& var) {
               << std::endl;
     typename CD::Par par;
     cd.reset(new CD(
-        m, *eb, fcu, mfc, bc, bcu, &ctx->fcr, &ctx->fed, &ctx->fcs, &ctx->ffv,
-        0, dt, par));
+        m, *eb, fcvel, mfc, bc, bcvel, &ctx->fcr, &ctx->fed, &ctx->fcs,
+        &ctx->ffv, 0, dt, par));
   }
   if (sem.Nested("dumppoly")) {
     eb->DumpPoly();
@@ -97,7 +97,9 @@ void Run(M& m, Vars& var) {
       continue;
     }
     if (sem("dump")) {
-      m.Dump(&cd->GetField(), "u");
+      m.Dump(&cd->GetVelocity(), 0, "vx");
+      m.Dump(&cd->GetVelocity(), 1, "vy");
+      m.Dump(&cd->GetVelocity(), 2, "vz");
       ++frame;
     }
   }
