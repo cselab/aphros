@@ -22,7 +22,7 @@ master_doc = 'index'
 
 
 project = 'Aphros'
-#copyright = '2019, ETH Zurich'
+copyright = '2020 ETH Zurich'
 #author = 'ETH Zurich'
 author = ''
 
