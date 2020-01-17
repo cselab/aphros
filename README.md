@@ -16,11 +16,11 @@ generated from `doc/sphinx`
 
 ## Build and install
 
-*   Follow instructions from `<ROOT>/deploy/README.md` to
+Follow instructions from `<ROOT>/deploy/README.md` to
 prepare environment and install dependencies.
-*   Configure, build and install
 
-     ```
+Configure, build and install
+
      cd <ROOT>/src
 
      ./conf                # release
@@ -28,38 +28,29 @@ prepare environment and install dependencies.
 
      make
      # make target=mfer    # to only build ch.mfer
-     ```
 
-*   Run tests
+Run tests
 
-     ```
      make test
-     ```
 
-*   Install documentation
+Install documentation
 
-     ```
      cd <ROOT>/doc/sphinx
      make               # man pages in $CHPREFIX/man
      make web           # html in <ROOT>/doc/sphinx/build/singlehtml
-     ```
 
 ## Submitting jobs
 
-    ```
     echo NP > np
     echo TL > tl
     ch.submit ARGS  # submit job with NP tasks and time limit TL minutes
     OMP_NUM_THREADS=N ch.submit ARGS  # submit job with NP tasks total and N tasks per node
-    ```
 
 Simulation setups in `sim` provide a makefile to submit jobs that run `ch.mfer`
 
-    ```
     echo NP > np
     echo TL > tl
     make submit  # submit job with NP tasks and time limit TL minutes
-    ```
 
 ## Other repos
 
