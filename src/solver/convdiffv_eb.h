@@ -6,9 +6,9 @@
 #include <memory>
 
 #include "convdiffv.h"
-#include "linear/linear.h"
+#include "embed.h"
 
-template <class M_, class CD_>
+template <class M_>
 class ConvDiffVectEmbed final : public ConvDiffVect<M_> {
  public:
   using M = M_;
@@ -16,8 +16,7 @@ class ConvDiffVectEmbed final : public ConvDiffVect<M_> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr size_t dim = M::dim;
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
-  using CD = CD_;
+  using CD = ConvDiffScalExpEmbed<M_>;
   using Par = typename CD::Par;
 
   // Constructor.
@@ -32,9 +31,9 @@ class ConvDiffVectEmbed final : public ConvDiffVect<M_> {
   // dt: time step
   // par: parameters
   ConvDiffVectEmbed(
-      M& m, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
-      const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
-      const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
+      M& m, const Embed<M>& eb, const FieldCell<Vect>& fcvel,
+      const MapCondFace& mfc, size_t bc, Scal bcu, const FieldCell<Scal>* fcr,
+      const FieldEmbed<Scal>* fed, const FieldCell<Vect>* fcs,
       const FieldFace<Scal>* ffv, double t, double dt, Par par);
   ~ConvDiffVectEmbed();
   // ...
