@@ -10,7 +10,7 @@
 #include "util/convdiff.h"
 
 template <class M_>
-class Proj final : public FluidSolver<M_> {
+class ProjEmbed final : public FluidSolver<M_> {
  public:
   using M = M_;
   using P = FluidSolver<M>; // parent
@@ -43,13 +43,14 @@ class Proj final : public FluidSolver<M_> {
   // t: initial time
   // dt: time step
   // par: parameters
-  Proj(
+  ProjEmbed(
       M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
+      const Embed<M>& eb, size_t bc, Vect bcvel,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
       FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
       FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt,
       Par par);
-  ~Proj();
+  ~ProjEmbed();
   const Par& GetPar() const;
   void SetPar(Par);
   // ...

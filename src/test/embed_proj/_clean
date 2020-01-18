@@ -1,0 +1,1 @@
+rm *.{xmf,h5,csv,vtk}
