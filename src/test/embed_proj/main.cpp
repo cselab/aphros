@@ -14,6 +14,7 @@
 #include "solver/convdiffv_eb.h"
 #include "solver/embed.h"
 #include "solver/fluid.h"
+#include "solver/proj_eb.h"
 #include "solver/reconst.h"
 
 using M = MeshStructured<double, 3>;
@@ -21,11 +22,10 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using EB = Embed<M>;
 using Type = typename EB::Type;
-using CD = ConvDiffVectEmbed<M>;
 
 template <class M>
 FieldCell<typename M::Scal> GetDivergence(
-    FieldEmbed<typename M::Scal>& fev, const M& m, const Embed<M>& eb) {
+    const FieldEmbed<typename M::Scal>& fev, const M& m, const Embed<M>& eb) {
   using Scal = typename M::Scal;
   FieldCell<Scal> fcdiv(m, 0);
   for (auto c : eb.Cells()) {
@@ -40,7 +40,7 @@ FieldCell<typename M::Scal> GetDivergence(
 
 template <class M>
 FieldCell<typename M::Scal> GetDivergence(
-    FieldFace<typename M::Scal>& ffv, const M& m, const Embed<M>& eb) {
+    const FieldFace<typename M::Scal>& ffv, const M& m, const Embed<M>& eb) {
   using Scal = typename M::Scal;
   FieldCell<Scal> fcdiv(m, 0);
   for (auto c : eb.Cells()) {
@@ -53,121 +53,22 @@ FieldCell<typename M::Scal> GetDivergence(
   return fcdiv;
 }
 
-template <class M>
-FieldCell<typename M::Scal> ProjectVolumeFlux(
-    FieldFace<typename M::Scal>& ffv, const MapCondFaceFluid& mfc, M& m,
-    const Embed<M>& eb) {
-  using Scal = typename M::Scal;
-  using ExprFace = GVect<Scal, 3>;
-  using Expr = GVect<Scal, M::dim * 2 + 2>;
-
-  auto sem = m.GetSem();
-  struct {
-    FieldFace<ExprFace> ffe; // expression for corrected volume flux [i]
-    FieldCell<Expr> fce; // linear system for pressure [i]
-    FieldFace<bool> ffbd; // true for faces with boundary conditions
-    FieldCell<Scal> fcp; // pressure (up to a constant)
-  } * ctx(sem);
-  auto& ffe = ctx->ffe;
-  auto& fce = ctx->fce;
-  auto& ffbd = ctx->ffbd;
-  auto& fcp = ctx->fcp;
-
-  if (sem("init")) {
-    ffbd.Reinit(m, false);
-    for (auto p : mfc) {
-      ffbd[p.GetIdx()] = true;
-    }
-
-    ffe.Reinit(m);
-    for (auto f : eb.Faces()) {
-      auto& e = ffe[f];
-      if (!ffbd[f]) { // inner
-        Scal a = -eb.GetArea(f);
-        e[0] = -a;
-        e[1] = a;
-      } else { // boundary
-        e[0] = 0;
-        e[1] = 0;
-      }
-      e[2] = ffv[f];
-    }
-
-    // initialize as diagonal system
-    fce.Reinit(m, Expr(0));
-    for (auto c : m.Cells()) {
-      auto& e = fce[c];
-      e[0] = 1;
-      e[Expr::dim - 1] = 0;
-    }
-    // overwrite with div=0 equation in non-excluded cells
-    for (auto c : eb.Cells()) {
-      auto& e = fce[c];
-      for (auto q : eb.Nci(c)) {
-        const IdxFace f = m.GetFace(c, q);
-        const ExprFace v = ffe[f] * m.GetOutwardFactor(c, q);
-        e[0] += v[1 - q % 2];
-        e[1 + q] += v[q % 2];
-        e[Expr::dim - 1] += v[2];
-      }
-    }
-  }
-  if (sem("solve")) {
-    std::vector<Scal>* lsa;
-    std::vector<Scal>* lsb;
-    std::vector<Scal>* lsx;
-    m.GetSolveTmp(lsa, lsb, lsx);
-    lsx->resize(m.GetInBlockCells().size());
-    size_t i = 0;
-    for (auto c : m.Cells()) {
-      (void)c;
-      (*lsx)[i++] = 0;
-    }
-    auto l = ConvertLsCompact(fce, *lsa, *lsb, *lsx, m);
-    using T = typename M::LS::T;
-    l.t = T::symm;
-    m.Solve(l);
-  }
-  if (sem("copy")) {
-    std::vector<Scal>* lsa;
-    std::vector<Scal>* lsb;
-    std::vector<Scal>* lsx;
-    m.GetSolveTmp(lsa, lsb, lsx);
-
-    fcp.Reinit(m);
-    size_t i = 0;
-    for (auto c : m.Cells()) {
-      fcp[c] = (*lsx)[i++];
-    }
-    m.Comm(&fcp);
-  }
-  if (sem("apply")) {
-    for (auto f : eb.Faces()) {
-      const IdxCell cm = m.GetCell(f, 0);
-      const IdxCell cp = m.GetCell(f, 1);
-      const auto& e = ffe[f];
-      ffv[f] = e[0] * fcp[cm] + e[1] * fcp[cp] + e[2];
-    }
-  }
-  return fcp;
-}
-
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
   struct {
     std::unique_ptr<EB> eb;
-    std::unique_ptr<CD> cd;
-    MapCondFace mfc;
-    FieldCell<Scal> fcr;
-    FieldCell<Scal> fcp;
-    FieldEmbed<Scal> fed;
-    FieldCell<Vect> fcs;
-    FieldFace<Scal> ffv;
+    std::unique_ptr<ProjEmbed<M>> cd;
+    MapCondFaceFluid mfc;
     FieldCell<Scal> fcdiv;
+    FieldCell<Scal> fcr;
+    FieldCell<Scal> fcd;
+    FieldCell<Vect> fcf;
+    FieldFace<Scal> ffbp;
+    FieldCell<Scal> fcsv;
+    FieldCell<Scal> fcsm;
     size_t frame = 0;
   } * ctx(sem);
   auto& cd = ctx->cd;
-  auto& ffv = ctx->ffv;
   auto& fcdiv = ctx->fcdiv;
   auto& mfc = ctx->mfc;
   auto& frame = ctx->frame;
@@ -183,14 +84,11 @@ void Run(M& m, Vars& var) {
   if (sem("init")) {
     auto& eb = *ctx->eb;
     ctx->fcr.Reinit(m, 1);
-    ctx->fed.Reinit(m, 1);
-    ctx->fcs.Reinit(m, Vect(0));
-    ctx->fcp.Reinit(m, 0);
-
-    ffv.Reinit(m, 0);
-    for (auto f : m.Faces()) {
-      ffv[f] = vel.dot(m.GetSurface(f));
-    }
+    ctx->fcd.Reinit(m, 1);
+    ctx->fcf.Reinit(m, Vect(0));
+    ctx->fcsv.Reinit(m, 0);
+    ctx->fcsm.Reinit(m, 0);
+    ctx->ffbp.Reinit(m, 0);
 
     FieldCell<Vect> fcvel(m, vel);
     const Scal dt0 = 0.5 * sqr(m.GetCellSize()[0]);
@@ -202,9 +100,10 @@ void Run(M& m, Vars& var) {
               << "dt=" << dt << " "
               << "dt/dt0=" << dt / dt0 << "dt/dt0a=" << dt / dt0a << " "
               << std::endl;
-    typename CD::Par par;
-    cd.reset(new CD(
-        m, eb, fcvel, mfc, bc, bcvel, &ctx->fcr, &ctx->fed, &ctx->fcs, &ffv, 0,
+    typename ProjEmbed<M>::Par par;
+    cd.reset(new ProjEmbed<M>(
+        m, fcvel, mfc, eb, bc, bcvel, MapCell<std::shared_ptr<CondCellFluid>>(),
+        &ctx->fcr, &ctx->fcd, &ctx->fcf, &ctx->ffbp, &ctx->fcsv, &ctx->fcsm, 0,
         dt, par));
   }
   if (sem.Nested("dumppoly")) {
@@ -213,19 +112,9 @@ void Run(M& m, Vars& var) {
   const size_t maxt = 100;
   const size_t nfr = 100;
   for (size_t t = 0; t < maxt; ++t) {
-    if (sem("flux-init")) {
-      auto& eb = *ctx->eb;
-      auto fevel = eb.Interpolate(cd->GetVelocity(), bc, bcvel);
-      for (auto f : eb.Faces()) {
-        ffv[f] = fevel[f].dot(eb.GetNormal(f) * eb.GetArea(f));
-      }
-    }
-    if (sem.Nested("flux-proj")) {
-      ctx->fcp = ProjectVolumeFlux(ffv, MapCondFaceFluid(), m, *ctx->eb);
-    }
     if (sem("div")) {
       auto& eb = *ctx->eb;
-      fcdiv = GetDivergence(ffv, m, eb);
+      fcdiv = GetDivergence(cd->GetVolumeFlux(), m, eb);
     }
     if (sem.Nested("convdiff-start")) {
       cd->StartStep();
@@ -244,7 +133,6 @@ void Run(M& m, Vars& var) {
       m.Dump(&cd->GetVelocity(), 1, "vy");
       m.Dump(&cd->GetVelocity(), 2, "vz");
       m.Dump(&fcdiv, "div");
-      m.Dump(&ctx->fcp, "p");
       ++frame;
     }
   }
