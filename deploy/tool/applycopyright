@@ -2,26 +2,42 @@
 
 set -eu
 
-if [ "$#" != "1" ] || [ "$1" = "-h" ] ; then
+me=$(basename "$0")
+
+if [ "$#" -lt "1" ] || [ "$1" = "-h" ] ; then
   cat << EOF
-usage: $(basename "$0") [-h] FILE
-Adds copyright notice to FILE if 'copyright' if not found in first 10 lines.
+usage: $me [-h] [--author AUTHOR] FILES
+Adds copyright notice to FILES if 'copyright' not found in first 10 lines.
 EOF
   exit 1
 fi
 
-file=$1
-
-head=$(head -n 10 -- "$file" )
-if echo "$head" | grep -qi "copyright" ; then
-  exit 1
+author=
+if [ "$1" == "--author" ] ; then
+  author=$2
+  shift 2
 fi
 
-echo "adding copyright to '$file'" 1>&2
+code=0
+for file in "$@" ; do
+  if ! [ -f "$file" ] ; then
+    echo "$me: cannot access '$file': No such file or directory"
+    code=2
+    continue
+  fi
+  head=$(head -n 10 -- "$file" )
+  if echo "$head" | grep -qi "copyright" ; then
+    continue
+  fi
 
-head=$(ap-copyright "$file")
-text=$(cat "$file")
+  echo "adding copyright to '$file'" 1>&2
 
-echo "$head" > $file
-echo >> $file
-echo "$text" >> $file
+  head=$(ap-copyright "$file" "$author")
+  text=$(cat "$file")
+
+  echo "$head" > $file
+  echo >> $file
+  echo "$text" >> $file
+done
+
+exit $code
