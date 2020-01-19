@@ -177,7 +177,7 @@ struct ProjEmbed<M_>::Imp {
         e[0] = 1.;
         e[Expr::dim - 1] = pc;
         // override neighbours
-        for (size_t q : m.Nci(c)) {
+        for (size_t q : eb.Nci(c)) {
           IdxCell cn = m.GetCell(c, q);
           auto& en = fcs[cn];
           size_t qn = (q % 2 == 0 ? q + 1 : q - 1); // id of c from cn
@@ -196,7 +196,7 @@ struct ProjEmbed<M_>::Imp {
   // ffe [i], v=ffe[c] stores expression: v[0]*cm + v[1]*cp + v[2]
   FieldFace<ExprFace> CalcFlux(
       const FieldFace<Scal>& ffk, const FieldFace<Scal>& ffv) {
-    FieldFace<ExprFace> ffe(m);
+    FieldFace<ExprFace> ffe(m, ExprFace(0));
     for (auto f : eb.Faces()) {
       auto& e = ffe[f];
       if (!ffbd_[f]) { // inner
@@ -206,7 +206,7 @@ struct ProjEmbed<M_>::Imp {
             (eb.GetCellCenter(cp) - eb.GetCellCenter(cm)).dot(eb.GetNormal(f));
         dn = (dn > 0 ? 1 : -1) *
              std::max(std::abs(dn), m.GetCellSize()[0] * 0.5);
-        const Scal a = -eb.GetArea(f) / (ffk[f] * dn);
+        const Scal a = -eb.GetArea(f) / (ffk[f] * dn); // XXX
         e[0] = -a;
         e[1] = a;
       } else { // boundary
@@ -225,10 +225,11 @@ struct ProjEmbed<M_>::Imp {
   // fce: result [i]
   FieldCell<Expr> CalcFluxSum(
       const FieldFace<ExprFace>& ffv, const FieldCell<Scal>& fcsv) {
-    FieldCell<Expr> fce(m, Expr(0));
-    for (auto c : m.Cells()) {
-      auto& e = fce[c];
-      for (auto q : m.Nci(c)) {
+    // initialize as diagonal system
+    FieldCell<Expr> fce(m, Expr::GetUnit(0));
+    for (auto c : eb.Cells()) {
+      Expr e(0);
+      for (auto q : eb.Nci(c)) {
         const IdxFace f = m.GetFace(c, q);
         const ExprFace v = ffv[f] * m.GetOutwardFactor(c, q);
         e[0] += v[1 - q % 2];
@@ -236,6 +237,7 @@ struct ProjEmbed<M_>::Imp {
         e[Expr::dim - 1] += v[2];
       }
       e[Expr::dim - 1] -= fcsv[c] * m.GetVolume(c);
+      fce[c] = e;
     }
     return fce;
   }
@@ -291,11 +293,11 @@ struct ProjEmbed<M_>::Imp {
       fck.Reinit(m, 0);
       for (auto d : dr_) {
         auto fct = cd_->GetDiag(d);
-        for (auto c : m.Cells()) {
+        for (auto c : eb.Cells()) {
           fck[c] += fct[c];
         }
       }
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         fck[c] /= dr_.size();
       }
 
@@ -304,8 +306,7 @@ struct ProjEmbed<M_>::Imp {
       m.Comm(&fck);
     }
     if (sem("interp")) {
-      ffk.Reinit(m);
-      InterpolateI(fck, ffk, m);
+      ffk = eb.Interpolate(fck, 1, 0.).GetFieldFace();
     }
   }
   // Append explicit part of viscous force.
@@ -318,9 +319,9 @@ struct ProjEmbed<M_>::Imp {
       auto wfo = GetComponent(wf, d);
       auto gc = Gradient(wfo, m);
       auto gf = Interpolate(gc, mfcf_, m); // XXX adhoc zero-deriv cond
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         Vect s(0);
-        for (auto q : m.Nci(c)) {
+        for (auto q : eb.Nci(c)) {
           IdxFace f = m.GetFace(c, q);
           s += gf[f] * (fed_[f] * m.GetOutwardSurface(c, q)[d]);
         }
@@ -381,7 +382,7 @@ struct ProjEmbed<M_>::Imp {
       ffve_.Reinit(m, 0);
       auto& ffbp = *owner_->ffbp_;
       for (auto f : eb.Faces()) {
-        ffve_[f] = fetv[f].dot(m.GetSurface(f));
+        ffve_[f] = fetv[f].dot(eb.GetSurface(f));
         ffv_.iter_curr[f] = ffve_[f];
         if (!ffbd_[f]) { // inner
           ffv_.iter_curr[f] += ffbp[f] * eb.GetArea(f) / ffk_[f];
@@ -412,7 +413,7 @@ struct ProjEmbed<M_>::Imp {
       }
 
       // Acceleration and correction to center velocity
-      auto fegp = eb.Gradient(fcp_curr, 0, 0.);
+      const auto fegp = eb.Gradient(fcp_curr, 1, 0.);
       fcwc_.Reinit(m, Vect(0));
       const auto& ffbp = *owner_->ffbp_;
       for (auto c : eb.Cells()) {
@@ -457,7 +458,7 @@ struct ProjEmbed<M_>::Imp {
   double GetAutoTimeStep() {
     double dt = 1e10;
     auto& flux = ffv_.time_curr;
-    for (auto c : m.Cells()) {
+    for (auto c : eb.Cells()) {
       for (size_t i = 0; i < m.GetNumFaces(c); ++i) {
         IdxFace f = m.GetFace(c, i);
         if (flux[f] != 0.) {
