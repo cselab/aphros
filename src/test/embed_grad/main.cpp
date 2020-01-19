@@ -155,6 +155,7 @@ set vect eb_box_c 0.5 0.5 0.5
 #set vect eb_box_r 0.249 0.249 0.249
 set vect eb_box_r 0.251 0.251 0.251
 #set vect eb_box_r 10 0.249 10
+set double eb_box_angle 0
 
 set string eb_init sphere
 set vect eb_sphere_c 0.5 0.5 0.5

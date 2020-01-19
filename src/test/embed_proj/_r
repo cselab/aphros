@@ -4,4 +4,12 @@ set -eu
 
 make > /dev/null
 make -C ../../ install > /dev/null
+
+echo "
+set double eb_box_angle 0.5
+set vect vel 0 0 0
+set vect force 1 0 0
+set double cflvis 0.5
+" > add.conf
+
 ap-run ./t.embed_proj

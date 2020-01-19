@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <streambuf>
 #include <string>
 #include <utility>
 
@@ -57,7 +58,7 @@ void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
   struct {
     std::unique_ptr<EB> eb;
-    std::unique_ptr<ProjEmbed<M>> cd;
+    std::unique_ptr<ProjEmbed<M>> fs;
     MapCondFaceFluid mfc;
     FieldCell<Scal> fcdiv;
     FieldCell<Scal> fcr;
@@ -68,12 +69,12 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fcsm;
     size_t frame = 0;
   } * ctx(sem);
-  auto& cd = ctx->cd;
+  auto& fs = ctx->fs;
   auto& fcdiv = ctx->fcdiv;
   auto& mfc = ctx->mfc;
   auto& frame = ctx->frame;
 
-  const Vect vel(1., 1., 0.);
+  const Vect vel(var.Vect["vel"]);
   const size_t bc = 0;
   const Vect bcvel(0);
 
@@ -90,18 +91,24 @@ void Run(M& m, Vars& var) {
     ctx->fcsm.Reinit(m, 0);
     ctx->ffbp.Reinit(m, 0);
 
+    const Vect force(var.Vect["force"]);
+    for (auto f : m.AllFaces()) {
+      ctx->ffbp[f] = force.dot(m.GetNormal(f));
+    }
+
     FieldCell<Vect> fcvel(m, vel);
     const Scal dt0 = 0.5 * sqr(m.GetCellSize()[0]);
     const Scal dt0a = 1 / vel.abs().max() * m.GetCellSize()[0];
-    const Scal dt = dt0 * 0.5;
-    //const Scal dt = dt0a * 0.05;
+    const Scal cflvis = var.Double["cflvis"];
+    const Scal dt = dt0 * cflvis;
+    // const Scal dt = dt0a * 0.05;
     std::cout << "dt0=" << dt0 << " "
               << "dt0a=" << dt0a << " "
               << "dt=" << dt << " "
               << "dt/dt0=" << dt / dt0 << "dt/dt0a=" << dt / dt0a << " "
               << std::endl;
     typename ProjEmbed<M>::Par par;
-    cd.reset(new ProjEmbed<M>(
+    fs.reset(new ProjEmbed<M>(
         m, fcvel, mfc, eb, bc, bcvel, MapCell<std::shared_ptr<CondCellFluid>>(),
         &ctx->fcr, &ctx->fcd, &ctx->fcf, &ctx->ffbp, &ctx->fcsv, &ctx->fcsm, 0,
         dt, par));
@@ -114,24 +121,25 @@ void Run(M& m, Vars& var) {
   for (size_t t = 0; t < maxt; ++t) {
     if (sem("div")) {
       auto& eb = *ctx->eb;
-      fcdiv = GetDivergence(cd->GetVolumeFlux(), m, eb);
+      fcdiv = GetDivergence(fs->GetVolumeFlux(), m, eb);
     }
     if (sem.Nested("convdiff-start")) {
-      cd->StartStep();
+      fs->StartStep();
     }
     if (sem.Nested("convdiff-iter")) {
-      cd->MakeIteration();
+      fs->MakeIteration();
     }
     if (sem.Nested("convdiff-finish")) {
-      cd->FinishStep();
+      fs->FinishStep();
     }
     if (t % std::max<size_t>(1, maxt / nfr) != 0) {
       continue;
     }
     if (sem("dump")) {
-      m.Dump(&cd->GetVelocity(), 0, "vx");
-      m.Dump(&cd->GetVelocity(), 1, "vy");
-      m.Dump(&cd->GetVelocity(), 2, "vz");
+      m.Dump(&fs->GetVelocity(), 0, "vx");
+      m.Dump(&fs->GetVelocity(), 1, "vy");
+      m.Dump(&fs->GetVelocity(), 2, "vz");
+      m.Dump(&fs->GetPressure(), "p");
       m.Dump(&fcdiv, "div");
       ++frame;
     }
@@ -153,17 +161,24 @@ set int bsz 16
 set string eb_init box
 set vect eb_box_c 0.5 0.5 0.5
 #set vect eb_box_r 0.249 0.249 0.249
-set vect eb_box_r 0.251 0.251 0.251
+set vect eb_box_r 2 0.251 2
 #set vect eb_box_r 10 0.249 10
-
-set vect eb_box_r 0.3 0.3 0.3
+set double eb_box_angle 0.05
 
 #set string eb_init sphere
 set vect eb_sphere_c 0.5 0.5 0.5
 set vect eb_sphere_r 0.249 0.249 0.249
 set double eb_sphere_angle 0
 
+set vect vel 0 0 0
+set vect force 1 0 0
+
 set int eb_init_inverse 0
 )EOF";
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+
+  std::ifstream fin("add.conf");
+  std::string add;
+  add.assign(
+      std::istreambuf_iterator<char>(fin), std::istreambuf_iterator<char>());
+  return RunMpiBasic<M>(argc, argv, Run, conf + add);
 }
