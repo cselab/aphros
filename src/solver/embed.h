@@ -25,9 +25,18 @@ FieldNode<typename M::Scal> InitEmbed(const M& m, const Vars& var) {
   } else if (name == "box") {
     const Vect xc(var.Vect["eb_box_c"]);
     const Vect r(var.Vect["eb_box_r"]);
+    const Scal angle = M_PI * var.Double["eb_box_angle"];
     for (auto n : m.AllNodes()) {
       const Vect x = m.GetNode(n);
-      fnl[n] = (1 - ((x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
+      auto rot = [angle](Vect xx) {
+        const Scal sin = std::sin(angle);
+        const Scal cos = std::cos(angle);
+        const Scal x = xx[0];
+        const Scal y = xx[1];
+        const Scal z = xx[2];
+        return Vect(x * cos - y * sin, x * sin + y * cos, z);
+      };
+      fnl[n] = (1 - (rot(x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
     }
   } else if (name == "sphere") {
     const Vect xc(var.Vect["eb_sphere_c"]);
@@ -204,6 +213,12 @@ class Embed {
   }
   Scal GetArea(IdxCell c) const {
     return fcs_[c];
+  }
+  Vect GetSurface(IdxFace f) const {
+    return GetNormal(f) * GetArea(f);
+  }
+  Vect GetSurface(IdxCell c) const {
+    return GetNormal(c) * GetArea(c);
   }
   Scal GetFaceOffset(IdxCell c, size_t nci) const {
     IdxFace f = m.GetFace(c, nci);
