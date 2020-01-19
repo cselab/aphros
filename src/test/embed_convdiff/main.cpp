@@ -94,15 +94,10 @@ FieldCell<typename M::Scal> ProjectVolumeFlux(
     }
 
     // initialize as diagonal system
-    fce.Reinit(m, Expr(0));
-    for (auto c : m.Cells()) {
-      auto& e = fce[c];
-      e[0] = 1;
-      e[Expr::dim - 1] = 0;
-    }
+    fce.Reinit(m, Expr::GetUnit(0));
     // overwrite with div=0 equation in non-excluded cells
     for (auto c : eb.Cells()) {
-      auto& e = fce[c];
+      Expr e(0);
       for (auto q : eb.Nci(c)) {
         const IdxFace f = m.GetFace(c, q);
         const ExprFace v = ffe[f] * m.GetOutwardFactor(c, q);
@@ -110,6 +105,7 @@ FieldCell<typename M::Scal> ProjectVolumeFlux(
         e[1 + q] += v[q % 2];
         e[Expr::dim - 1] += v[2];
       }
+      fce[c] = e;
     }
   }
   if (sem("solve")) {
