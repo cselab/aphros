@@ -43,6 +43,7 @@
 #include "solver/multi.h"
 #include "solver/normal.h"
 #include "solver/proj.h"
+#include "solver/proj_eb.h"
 #include "solver/reconst.h"
 #include "solver/simple.h"
 #include "solver/solver.h"
@@ -70,6 +71,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using Multi = Multi<T>;
   static constexpr size_t dim = M::dim;
 
+  // TODO: issue warning if variable in Vars was not used
+  // but differs from default (like in CMake)
   Hydro(Vars&, const MyBlockInfo&, Par&);
   void Run() override;
   M& GetMesh() {
@@ -105,6 +108,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using FS = FluidSolver<M>;
   using FSS = Simple<M>;
   using FSP = Proj<M>;
+  using FSP_EB = ProjEmbed<M>;
   using AST = Tvd<M>; // advection TVD
   using ASV = Vof<M>; // advection VOF
   using ASVM = Vofm<M>; // advection VOF
@@ -388,7 +392,12 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   }
 
   std::string fs = var.String["fluid_solver"];
-  if (fs == "simple") {
+  if (eb_) {
+    auto p = ParsePar<FSP>()(var);
+    fs_.reset(new FSP_EB(
+        m, fc_vel, mf_fluid_, *eb_, 0, Vect(0), mc_velcond_, &fc_rho_, &fc_mu_,
+        &fc_force_, &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+  } else if (fs == "simple") {
     auto p = ParsePar<FSS>()(var);
     fs_.reset(new FSS(
         m, fc_vel, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,

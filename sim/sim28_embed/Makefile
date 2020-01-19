@@ -1,9 +1,9 @@
-include par.make
+m = 16 16 16
+bs = 16 16 16
+np = 1
+tl = 1440
 
 include $(shell ap-makesim)
 
-par.make par.conf bc.conf: pargen
-	./pargen
-
 clean::
-	rm -f _m _bs _np _tl par.conf b.dat par.make
+	rm -vrf sc

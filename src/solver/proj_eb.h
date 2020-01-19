@@ -7,6 +7,7 @@
 
 #include "fluid.h"
 #include "linear/linear.h"
+#include "solver/proj.h"
 #include "util/convdiff.h"
 
 template <class M_>
@@ -19,17 +20,7 @@ class ProjEmbed final : public FluidSolver<M_> {
   static constexpr size_t dim = M::dim;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
-  struct Par {
-    Scal vrelax = 1; // velocity relaxation factor [0,1]
-    Scal prelax = 1.; // pressure relaxation factor [0,1]
-    bool second = true; // second order in time
-    Vect meshvel = Vect(0); // relative mesh velocity
-    size_t inletflux_numid = 0; // reduction for id from 0 to numid-1
-    ConvSc convsc = ConvSc::quick; // convection scheme
-    Scal convdf = 1.; // deferred correction factor
-    bool linreport = false; // report linear solvers
-    Conv conv = Conv::imp; // convection-diffusion solver
-  };
+  using Par = typename Proj<M>::Par;
   // Constructor.
   // fcw: initial velocity
   // mfc: face conditions
