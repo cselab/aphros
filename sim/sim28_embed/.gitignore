@@ -1,0 +1,4 @@
+*.vtk
+bc.conf
+par.conf
+par.make
