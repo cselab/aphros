@@ -470,7 +470,7 @@ class Embed {
     return feu;
   }
   void DumpPoly() const {
-    const std::string fn = GetDumpName("eb", ".vtk", 0);
+    const std::string fn = "eb.vtk";
     DumpPoly(fn, ffs_, fft_, fcs_, fct_, fcn_, fca_, ffpoly_, m);
   }
 

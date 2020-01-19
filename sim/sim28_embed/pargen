@@ -28,7 +28,7 @@ def Sim(c):
     Re,We,Fr = (c['Re'], c['We'], c['Fr'])
 
     # domain 
-    lx = 2
+    lx = 1
     ly = 1
     lz = 1.
     lys = 0.5 # position of free surface
@@ -59,7 +59,7 @@ def Sim(c):
     def rnd(a): return int(a + 0.5)
 
     # mesh
-    nn = 96
+    nn = 16
     nx = rnd(nn * lx)
     ny = rnd(nn * ly)
     nz = rnd(nn * lz)
@@ -68,7 +68,7 @@ def Sim(c):
     bs = 16
     bsz = bs
     # cores
-    np = 216
+    np = 1
     # time limit in minutes
     tl = 1440
 
