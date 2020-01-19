@@ -39,6 +39,7 @@
 #include "solver/advection.h"
 #include "solver/approx.h"
 #include "solver/curv.h"
+#include "solver/embed.h"
 #include "solver/multi.h"
 #include "solver/normal.h"
 #include "solver/proj.h"
@@ -82,6 +83,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
  private:
   void Init();
+  void InitEmbed();
   void InitFluid(const FieldCell<Vect>& fc_vel);
   void InitAdvection(const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl);
   void InitStat();
@@ -237,6 +239,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapCell<std::shared_ptr<CondCell>> mc_cond_;
   MapCell<std::shared_ptr<CondCellFluid>> mc_velcond_;
 
+  std::unique_ptr<Embed<M>> eb_;
   std::unique_ptr<AdvectionSolver<M>> as_; // advection solver
   std::unique_ptr<FS> fs_; // fluid solver
 
@@ -362,6 +365,13 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper dmptrep_; // dumper for timer report
   std::unique_ptr<Events> events_; // events from var
 };
+
+template <class M>
+void Hydro<M>::InitEmbed() {
+  if (var.Int["enable_embed"]) {
+    eb_.reset(new Embed<M>(m, ::InitEmbed(m, var)));
+  }
+}
 
 template <class M>
 void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
@@ -717,6 +727,8 @@ void Hydro<M>::Init() {
   }
 
   if (sem("solv")) {
+    InitEmbed();
+
     InitFluid(fcvel);
 
     InitAdvection(fcvf, fccl);
@@ -747,6 +759,9 @@ void Hydro<M>::Init() {
   }
   if (var.Int["dumpbc"] && sem.Nested()) {
     DumpBcFaces(mf_adv_, mf_fluid_, "bc.vtk", m);
+  }
+  if (eb_ && sem.Nested()) {
+    eb_->DumpPoly();
   }
 }
 
