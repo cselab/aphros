@@ -165,13 +165,14 @@ set vect eb_box_r 2 0.251 2
 #set vect eb_box_r 10 0.249 10
 set double eb_box_angle 0.05
 
-#set string eb_init sphere
+set string eb_init sphere
 set vect eb_sphere_c 0.5 0.5 0.5
-set vect eb_sphere_r 0.249 0.249 0.249
-set double eb_sphere_angle 0
+set vect eb_sphere_r 0.3 0.2 0.2
+set double eb_sphere_angle 0.2
 
 set vect vel 0 0 0
 set vect force 1 0 0
+set double cflvis 0.5
 
 set int eb_init_inverse 0
 )EOF";
