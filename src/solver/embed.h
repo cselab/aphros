@@ -469,9 +469,19 @@ class Embed {
     }
     return feu;
   }
+  void DumpPoly(std::string filename, bool vtkbin, bool vtkmerge) const {
+    DumpPoly(
+        filename, ffs_, fft_, fcs_, fct_, fcn_, fca_, ffpoly_, vtkbin, vtkmerge,
+        m);
+  }
   void DumpPoly() const {
-    const std::string fn = "eb.vtk";
-    DumpPoly(fn, ffs_, fft_, fcs_, fct_, fcn_, fca_, ffpoly_, m);
+    DumpPoly(
+        "eb.vtk", ffs_, fft_, fcs_, fct_, fcn_, fca_, ffpoly_, true, true, m);
+  }
+  void DumpPoly(bool vtkbin, bool vtkmerge) const {
+    DumpPoly(
+        "eb.vtk", ffs_, fft_, fcs_, fct_, fcn_, fca_, ffpoly_, vtkbin, vtkmerge,
+        m);
   }
 
  private:
@@ -488,7 +498,7 @@ class Embed {
       const FieldFace<Type>& fft, const FieldCell<Scal>& fcs,
       const FieldCell<Type>& fct, const FieldCell<Vect>& fcn,
       const FieldCell<Scal>& fca, const FieldFace<std::vector<Vect>>& ffpoly,
-      M& m) {
+      bool vtkbin, bool vtkmerge, M& m) {
     auto sem = m.GetSem("dumppoly");
     struct {
       std::vector<std::vector<Vect>> dl; // polygon
@@ -533,6 +543,8 @@ class Embed {
       m.Reduce(std::make_shared<TV>(&dl));
       using TS = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<TS>(&dld));
+      m.Reduce(std::make_shared<TS>(&dls));
+      m.Reduce(std::make_shared<TS>(&dlf));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
@@ -540,7 +552,7 @@ class Embed {
                   << " to " << fn << std::endl;
         WriteVtkPoly<Vect>(
             fn, dl, nullptr, {&dld, &dls, &dlf}, {"dir", "area", "face"},
-            "Embedded boundary", true, true, true);
+            "Embedded boundary", true, vtkbin, vtkmerge);
       }
     }
   }
