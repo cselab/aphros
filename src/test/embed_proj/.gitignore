@@ -10,5 +10,5 @@ pressure
 job.id*
 out
 arg
-eb_*.vtk
+eb.vtk
 add.conf

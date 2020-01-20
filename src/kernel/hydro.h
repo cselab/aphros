@@ -770,7 +770,7 @@ void Hydro<M>::Init() {
     DumpBcFaces(mf_adv_, mf_fluid_, "bc.vtk", m);
   }
   if (eb_ && sem.Nested()) {
-    eb_->DumpPoly();
+    eb_->DumpPoly(var.Int["vtkbin"], var.Int["vtkmerge"]);
   }
 }
 

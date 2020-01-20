@@ -65,13 +65,11 @@ struct UVof<M_>::Imp {
       std::vector<Scal> dlc; // cells index
       std::vector<Scal> dll; // layer
       std::vector<Scal> dlcl; // color
-      std::vector<Vect> dlx; // color
     } * ctx(sem);
     auto& dl = ctx->dl;
     auto& dlc = ctx->dlc;
     auto& dll = ctx->dll;
     auto& dlcl = ctx->dlcl;
-    auto& dlx = ctx->dlx;
     if (sem("local")) {
       auto h = m.GetCellSize();
       for (auto i : layers) {
@@ -86,7 +84,6 @@ struct UVof<M_>::Imp {
             dlc.push_back(m.GetHash(c));
             dll.push_back(i);
             dlcl.push_back(fccl[i] ? (*fccl[i])[c] : 0);
-            dlx.push_back(m.GetCenter(c));
           }
         }
       }
@@ -96,8 +93,6 @@ struct UVof<M_>::Imp {
       m.Reduce(std::make_shared<TS>(&dlc));
       m.Reduce(std::make_shared<TS>(&dll));
       m.Reduce(std::make_shared<TS>(&dlcl));
-      using TSV = typename M::template OpCatT<Vect>;
-      m.Reduce(std::make_shared<TSV>(&dlx));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
