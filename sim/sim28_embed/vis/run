@@ -1,0 +1,1 @@
+./omm.py ../omm_*.xmf || true
