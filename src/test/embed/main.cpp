@@ -26,11 +26,13 @@ void Run(M& m, Vars& var) {
     std::unique_ptr<EB> eb;
     FieldCell<Scal> fcu;
     FieldEmbed<Scal> feu;
+    MapCondFace mfc;
     size_t frame = 0;
   } * ctx(sem);
   auto& fcu = ctx->fcu;
   auto& feu = ctx->feu;
   auto& frame = ctx->frame;
+  auto& mfc = ctx->mfc;
 
   if (sem("init")) {
     auto fnl = InitEmbed(m, var);
@@ -53,15 +55,16 @@ void Run(M& m, Vars& var) {
       const size_t bc = 0;
       const Scal bcu = 1;
 
-      feu = eb.Interpolate(fcu, bc, bcu);
+      feu = eb.Interpolate(fcu, mfc, bc, bcu);
       FieldEmbed<Scal> feun(m);
 
-      const auto feunc = eb.Gradient(fcu, bc, bcu); // compact gradient
+      const auto feunc = eb.Gradient(fcu, mfc, bc, bcu); // compact gradient
       if (compact) {
         feun = feunc;
       } else {
         const FieldCell<Vect> fcg = eb.Gradient(feu);
-        const FieldEmbed<Vect> feg = eb.Interpolate(fcg, 1, Vect(0));
+        const FieldEmbed<Vect> feg =
+            eb.Interpolate(fcg, MapCondFace(), 1, Vect(0));
         for (auto f : eb.Faces()) {
           feun[f] = feg[f].dot(eb.GetNormal(f));
         }

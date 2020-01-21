@@ -105,10 +105,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void StepAdvection();
   void StepBubgen();
 
-  using FS = FluidSolver<M>;
-  using FSS = Simple<M>;
-  using FSP = Proj<M>;
-  using FSP_EB = ProjEmbed<M>;
   using AST = Tvd<M>; // advection TVD
   using ASV = Vof<M>; // advection VOF
   using ASVM = Vofm<M>; // advection VOF
@@ -244,8 +240,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapCell<std::shared_ptr<CondCellFluid>> mc_velcond_;
 
   std::unique_ptr<Embed<M>> eb_;
-  std::unique_ptr<AdvectionSolver<M>> as_; // advection solver
-  std::unique_ptr<FS> fs_; // fluid solver
+  std::unique_ptr<AdvectionSolver<M>> as_;
+  std::unique_ptr<FluidSolver<M>> fs_;
 
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
   FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_
@@ -393,18 +389,18 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
 
   std::string fs = var.String["fluid_solver"];
   if (eb_) {
-    auto p = ParsePar<FSP>()(var);
-    fs_.reset(new FSP_EB(
+    auto p = ParsePar<Proj<M>>()(var);
+    fs_.reset(new ProjEmbed<M>(
         m, fc_vel, mf_fluid_, *eb_, 0, Vect(0), mc_velcond_, &fc_rho_, &fc_mu_,
         &fc_force_, &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else if (fs == "simple") {
-    auto p = ParsePar<FSS>()(var);
-    fs_.reset(new FSS(
+    auto p = ParsePar<Simple<M>>()(var);
+    fs_.reset(new Simple<M>(
         m, fc_vel, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
         &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else if (fs == "proj") {
-    auto p = ParsePar<FSP>()(var);
-    fs_.reset(new FSP(
+    auto p = ParsePar<Proj<M>>()(var);
+    fs_.reset(new Proj<M>(
         m, fc_vel, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
         &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else {
@@ -1084,11 +1080,11 @@ void Hydro<M>::CalcStat() {
         st_.meshvel = meshvel;
         st_.meshpos += st_.meshvel * st_.dt;
       };
-      if (auto fs = dynamic_cast<FSS*>(fs_.get())) {
+      if (auto fs = dynamic_cast<Simple<M>*>(fs_.get())) {
         auto par = fs->GetPar();
         upd(par.meshvel);
         fs->SetPar(par);
-      } else if (auto fs = dynamic_cast<FSP*>(fs_.get())) {
+      } else if (auto fs = dynamic_cast<Proj<M>*>(fs_.get())) {
         auto par = fs->GetPar();
         upd(par.meshvel);
         fs->SetPar(par);
@@ -1638,10 +1634,10 @@ void Hydro<M>::Run() {
   CheckAbort(sem, ctx->nabort);
 
   if (sem("updatepar")) {
-    if (auto fs = dynamic_cast<FSS*>(fs_.get())) {
-      fs->SetPar(ParsePar<FSS>()(var));
-    } else if (auto fs = dynamic_cast<FSP*>(fs_.get())) {
-      fs->SetPar(ParsePar<FSP>()(var));
+    if (auto fs = dynamic_cast<Simple<M>*>(fs_.get())) {
+      fs->SetPar(ParsePar<Simple<M>>()(var));
+    } else if (auto fs = dynamic_cast<Proj<M>*>(fs_.get())) {
+      fs->SetPar(ParsePar<Proj<M>>()(var));
     }
     UpdateAdvectionPar();
     fcvm_ = fs_->GetVelocity();

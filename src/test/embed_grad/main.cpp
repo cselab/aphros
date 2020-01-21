@@ -137,10 +137,9 @@ void Run(M& m, Vars& var) {
     PrintStat(GetStat<Scal>(fcu, eb));
     m.Dump(&fcu, "u");
   }
-  if (sem()) {}
 }
 
-  int main(int argc, const char** argv) {
+int main(int argc, const char** argv) {
     std::string conf = R"EOF(
 set int bx 1
 set int by 1

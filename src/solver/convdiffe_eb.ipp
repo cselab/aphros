@@ -58,18 +58,18 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
 
     if (sem("assemble")) {
       const FieldCell<Vect> fcg =
-          eb.AverageCutCells(eb.Gradient(eb.Interpolate(fcu, bc_, bcu_)));
+          eb.AverageCutCells(eb.Gradient(eb.Interpolate(fcu, mfc_, bc_, bcu_)));
 
       fcla.Reinit(m);
       fclb.Reinit(m, 0.);
 
       // Convective fluxes
       {
-        FieldEmbed<Scal> feq = eb.Interpolate(fcu, bc_, bcu_);
+        FieldEmbed<Scal> feq = eb.Interpolate(fcu, mfc_, bc_, bcu_);
         for (auto f : eb.Faces()) {
           // upwind cell
           const IdxCell c = (fev[f] > 0 ? m.GetCell(f, 0) : m.GetCell(f, 1));
-          //feq[f] += fcg[c].dot(eb.GetCellCenter(c) - eb.GetFaceCenter(f));
+          // feq[f] += fcg[c].dot(eb.GetCellCenter(c) - eb.GetFaceCenter(f));
           feq[f] = fcu[c];
           feq[f] *= fev[f];
         }
@@ -89,7 +89,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
 
       // Diffusive fluxes
       if (fed_) {
-        FieldEmbed<Scal> feq = eb.Gradient(fcu, bc_, bcu_);
+        FieldEmbed<Scal> feq = eb.Gradient(fcu, mfc_, bc_, bcu_);
         for (auto f : eb.Faces()) {
           feq[f] *= (-(*fed_)[f]) * eb.GetArea(f);
         }

@@ -14,6 +14,13 @@
 #include "geom/transform.h"
 #include "reconst.h"
 #include "solver.h"
+#include "approx.h"
+
+template <class Scal>
+struct CondEmbed {
+  enum class Type {value, gradient};
+  Scal u; // value or normal gradient
+};
 
 template <class M>
 FieldNode<typename M::Scal> InitEmbed(const M& m, const Vars& var) {
@@ -120,12 +127,9 @@ class FieldEmbed {
   FieldFace<Value> df_;
 };
 
-/*
-// Idx_: instance of GIdx
 template <class T>
 class MapEmbed {
  public:
-  using Idx = Idx_;
   using Value = T;
   using Container = std::unordered_map<size_t, Value>;
 
@@ -143,44 +147,56 @@ class MapEmbed {
     df_.clear();
   }
   Value& operator[](const IdxCell& c) {
-    return dc_[c.GetRaw()];
+    return dc_[c];
   }
-  const Value& operator[](const IdxCell& c) const {
-    return dc_[c.GetRaw()];
+  const Value& at(const IdxCell& c) const {
+    return dc_.at(c);
   }
   Value& operator[](const IdxFace& f) {
-    return df_[f.GetRaw()];
+    return df_[f];
   }
-  const Value& operator[](const IdxFace& f) const {
-    return df_[f.GetRaw()];
+  const Value& at(const IdxFace& f) const {
+    return df_.at(f);
   }
   Value* find(IdxCell c) {
-    auto it = dc_.find(c.GetRaw());
+    auto it = dc_.find(c);
     return it != dc_.end() ? &it->second : nullptr;
   }
   const Value* find(IdxCell c) const {
-    auto it = dc_.find(c.GetRaw());
+    auto it = dc_.find(c);
     return it != dc_.end() ? &it->second : nullptr;
   }
   Value* find(IdxFace f) {
-    auto it = df_.find(f.GetRaw());
+    auto it = df_.find(f);
     return it != df_.end() ? &it->second : nullptr;
   }
   const Value* find(IdxFace f) const {
-    auto it = df_.find(f.GetRaw());
+    auto it = df_.find(f);
     return it != df_.end() ? &it->second : nullptr;
   }
   void erase(const IdxCell& c) {
-    dc_.erase(c.GetRaw());
+    dc_.erase(c);
   }
   void erase(const IdxFace& f) {
-    df_.erase(f.GetRaw());
+    df_.erase(f);
+  }
+  MapCell<Value>& GetMapCell() {
+    return dc_;
+  }
+  const MapCell<Value>& GetMapCell() const {
+    return dc_;
+  }
+  MapFace<Value>& GetMapFace() {
+    return df_;
+  }
+  const MapFace<Value>& GetMapFace() const {
+    return df_;
   }
 
  private:
-  Cont d_;
+  MapCell<Value> dc_;
+  MapFace<Value> df_;
 };
-*/
 
 // Embedded boundaries.
 template <class M_>
@@ -394,7 +410,8 @@ class Embed {
   // Returns:
   // field on embedded boundaries [s]
   template <class T>
-  FieldEmbed<T> Interpolate(const FieldCell<T>& fcu, size_t bc, T bcv) const {
+  FieldEmbed<T> Interpolate(
+      const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
     FieldEmbed<T> feu(m, T(0)); // FIXME should be nan
     for (auto f : m.SuFaces()) {
       switch (fft_[f]) {
@@ -430,6 +447,7 @@ class Embed {
         }
       }
     }
+    InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
     return feu;
   }
   // feu: field on embedded boundaries [a]
@@ -510,7 +528,8 @@ class Embed {
   // Returns:
   // grad dot GetNormal on embedded boundaries [s]
   template <class T>
-  FieldEmbed<T> Gradient(const FieldCell<T>& fcu, size_t bc, T bcv) const {
+  FieldEmbed<T> Gradient(
+      const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
     FieldEmbed<T> feu(m, T(0)); // FIXME should be nan
     for (auto f : eb.Faces()) {
       const IdxCell cm = m.GetCell(f, 0);
@@ -530,6 +549,7 @@ class Embed {
         throw std::runtime_error("Gradient: unknown bc=" + std::to_string(bc));
       }
     }
+    GradientB(fcu, mfc, m, feu.GetFieldFace());
     return feu;
   }
   void DumpPoly(std::string filename, bool vtkbin, bool vtkmerge) const {
