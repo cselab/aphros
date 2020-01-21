@@ -259,15 +259,15 @@ MapCondFace GetVelCond(const M& m, const MapCondFaceFluid& mff) {
     size_t nci = cb->GetNci();
 
     using namespace fluid_condition;
-    if (auto cd = cb.Get<NoSlipWall<M>>()) {
+    if (auto cd = cb.template Get<NoSlipWall<M>>()) {
       mf[f].Set<CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
-    } else if (auto cd = cb.Get<Inlet<M>>()) {
+    } else if (auto cd = cb.template Get<Inlet<M>>()) {
       mf[f].Set<CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
-    } else if (auto cd = cb.Get<Outlet<M>>()) {
+    } else if (auto cd = cb.template Get<Outlet<M>>()) {
       mf[f].Set<CondFaceValFixed<Vect>>(cd->GetVelocity(), nci);
-    } else if (auto cd = cb.Get<SlipWall<M>>()) {
+    } else if (auto cd = cb.template Get<SlipWall<M>>()) {
       mf[f].Set<CondFaceReflect>(nci);
-    } else if (auto cd = cb.Get<Symm<M>>()) {
+    } else if (auto cd = cb.template Get<Symm<M>>()) {
       mf[f].Set<CondFaceReflect>(nci);
     } else {
       throw std::runtime_error("GetVelCond: unknown condition");

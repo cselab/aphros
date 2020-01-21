@@ -588,10 +588,10 @@ void BcApply(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
     Vect n = m.GetNormal(f);
     IdxCell cmm, cm, cp, cpp;
     GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);
-    if (cb.Get<CondFaceReflect>()) {
+    if (cb.template Get<CondFaceReflect>()) {
       uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
       uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
-    } else if (auto cd = cb.Get<CondFaceVal<T>>()) {
+    } else if (auto cd = cb.template Get<CondFaceVal<T>>()) {
       uc[cm] = cd->second();
       uc[cmm] = cd->second();
     }

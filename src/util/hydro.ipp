@@ -34,13 +34,13 @@ FieldCell<typename M::Scal> GetBcField(MapCondFaceFluid& mf, const M& m) {
     auto& cb = it.second;
     const size_t nci = cb->GetNci();
     const IdxCell c = m.GetCell(f, nci);
-    if (cb.Get<fluid_condition::NoSlipWall<M>>()) {
+    if (cb.template Get<fluid_condition::NoSlipWall<M>>()) {
       fc[c] = 1.;
-    } else if (cb.Get<fluid_condition::SlipWall<M>>()) {
+    } else if (cb.template Get<fluid_condition::SlipWall<M>>()) {
       fc[c] = 2.;
-    } else if (cb.Get<fluid_condition::Inlet<M>>()) {
+    } else if (cb.template Get<fluid_condition::Inlet<M>>()) {
       fc[c] = 3.;
-    } else if (cb.Get<fluid_condition::Outlet<M>>()) {
+    } else if (cb.template Get<fluid_condition::Outlet<M>>()) {
       fc[c] = 4.;
     } else {
       fc[c] = -1.;
