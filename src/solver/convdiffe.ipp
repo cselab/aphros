@@ -111,11 +111,11 @@ struct ConvDiffScalExp<M_>::Imp {
 
       // Overwrite with cell conditions
       for (auto p : mcc_) {
-        IdxCell c(p.GetIdx());
-        CondCell* cb = p.GetValue().get(); // cond base
+        IdxCell c = p.first;
+        CondCell* cb = p.second.get(); // cond base
         if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
           fcla[c] = 1.;
-          fclb[c] = cd->GetValue() - fcu[c];
+          fclb[c] = cd->second() - fcu[c];
         }
       }
     }

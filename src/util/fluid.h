@@ -41,9 +41,9 @@ class UFluid {
 
       // Extrapolate velocity to outlet from neighbour cells,
       // and compute total fluxes
-      for (auto p : mfc) {
-        IdxFace f = p.GetIdx();
-        auto& cb = p.GetValue(); // cond base
+      for (auto& p : mfc) {
+        IdxFace f = p.first;
+        auto& cb = p.second; // cond base
 
         size_t nci = cb->GetNci();
         IdxCell c = m.GetCell(f, nci);
@@ -78,9 +78,9 @@ class UFluid {
       Scal velcor = (fi - fo) / ao; // Additive correction for velocity
 
       // Apply correction on outlet faces
-      for (auto it : mfc) {
-        IdxFace f = it.GetIdx();
-        auto& cb = it.GetValue(); // cond base
+      for (auto& it : mfc) {
+        IdxFace f = it.first;
+        auto& cb = it.second; // cond base
 
         if (auto cd = cb.Get<Outlet<M>>()) {
           size_t nci = cd->GetNci();
@@ -123,9 +123,9 @@ class UFluid {
 
       // Extrapolate velocity to inlet from neighbour cells
       // and compute total fluxes
-      for (auto it : mfc) {
-        IdxFace f = it.GetIdx();
-        auto& cb = it.GetValue();
+      for (auto& it : mfc) {
+        IdxFace f = it.first;
+        auto& cb = it.second;
 
         size_t nci = cb->GetNci();
         IdxCell c = m.GetCell(f, nci);
@@ -157,9 +157,9 @@ class UFluid {
       for (size_t id = 0; id < nid; ++id) {
         // additive correction of velocity
         Scal dv = (ft[id] - fe[id]) / ai[id];
-        for (auto it : mfc) {
-          IdxFace f = it.GetIdx();
-          auto& cb = it.GetValue();
+        for (auto& it : mfc) {
+          IdxFace f = it.first;
+          auto& cb = it.second;
 
           if (auto cd = cb.Get<InletFlux<M>>()) {
             size_t nci = cd->GetNci();

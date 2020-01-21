@@ -75,8 +75,8 @@ FieldCell<typename M::Scal> ProjectVolumeFlux(
 
   if (sem("init")) {
     ffbd.Reinit(m, false);
-    for (auto p : mfc) {
-      ffbd[p.GetIdx()] = true;
+    for (auto& p : mfc) {
+      ffbd[p.first] = true;
     }
 
     ffe.Reinit(m);

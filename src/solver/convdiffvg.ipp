@@ -45,14 +45,14 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
     vmfc_[d] = GetScalarCond(mfc_, d, m);
 
     // Cell conditions for each velocity component
-    for (auto it : mcc_) {
-      IdxCell c = it.GetIdx();
-      CondCell* cb = it.GetValue().get(); // cond base
+    for (auto& it : mcc_) {
+      const IdxCell c = it.first;
+      const CondCell* cb = it.second.get(); // cond base
 
-      if (auto cd = dynamic_cast<CondCellVal<Vect>*>(cb)) {
+      if (auto cd = dynamic_cast<const CondCellVal<Vect>*>(cb)) {
         // TODO: revise with CondCellValComp
         vmcc_[d][c] =
-            std::make_shared<CondCellValFixed<Scal>>(cd->GetValue()[d]);
+            std::make_shared<CondCellValFixed<Scal>>(cd->second()[d]);
       } else {
         throw std::runtime_error("convdiffvg: unknown cell condition");
       }

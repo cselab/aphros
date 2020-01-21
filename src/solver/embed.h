@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <limits>
 #include <stdexcept>
+#include <unordered_map>
 
 #include "dump/dumper.h"
 #include "dump/vtk.h"
@@ -118,6 +119,68 @@ class FieldEmbed {
   FieldCell<Value> dc_;
   FieldFace<Value> df_;
 };
+
+/*
+// Idx_: instance of GIdx
+template <class T>
+class MapEmbed {
+ public:
+  using Idx = Idx_;
+  using Value = T;
+  using Container = std::unordered_map<size_t, Value>;
+
+  MapEmbed() = default;
+  MapEmbed(const MapEmbed&) = default;
+  MapEmbed(MapEmbed&&) = default;
+  MapEmbed& operator=(const MapEmbed&) = default;
+  MapEmbed& operator=(MapEmbed&&) = default;
+
+  size_t size() const {
+    return dc_.size() + df_.size();
+  }
+  void clear() {
+    dc_.clear();
+    df_.clear();
+  }
+  Value& operator[](const IdxCell& c) {
+    return dc_[c.GetRaw()];
+  }
+  const Value& operator[](const IdxCell& c) const {
+    return dc_[c.GetRaw()];
+  }
+  Value& operator[](const IdxFace& f) {
+    return df_[f.GetRaw()];
+  }
+  const Value& operator[](const IdxFace& f) const {
+    return df_[f.GetRaw()];
+  }
+  Value* find(IdxCell c) {
+    auto it = dc_.find(c.GetRaw());
+    return it != dc_.end() ? &it->second : nullptr;
+  }
+  const Value* find(IdxCell c) const {
+    auto it = dc_.find(c.GetRaw());
+    return it != dc_.end() ? &it->second : nullptr;
+  }
+  Value* find(IdxFace f) {
+    auto it = df_.find(f.GetRaw());
+    return it != df_.end() ? &it->second : nullptr;
+  }
+  const Value* find(IdxFace f) const {
+    auto it = df_.find(f.GetRaw());
+    return it != df_.end() ? &it->second : nullptr;
+  }
+  void erase(const IdxCell& c) {
+    dc_.erase(c.GetRaw());
+  }
+  void erase(const IdxFace& f) {
+    df_.erase(f.GetRaw());
+  }
+
+ private:
+  Cont d_;
+};
+*/
 
 // Embedded boundaries.
 template <class M_>

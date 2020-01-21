@@ -27,7 +27,7 @@ std::string P(const CondFace* b) {
 template <class T>
 std::string P(const CondFaceVal<T>* d) {
   std::stringstream ss;
-  ss << " " << d->GetNci() << " " << d->GetValue();
+  ss << " " << d->GetNci() << " " << d->second();
   return ss.str();
 }
 
@@ -49,7 +49,7 @@ template <class V>
 class CondFaceValCustom : public CondFaceVal<V> {
  public:
   CondFaceValCustom(const V& v, size_t nci) : CondFaceVal<V>(nci), v_(v) {}
-  V GetValue() const override {
+  V second() const override {
     return v_;
   }
 

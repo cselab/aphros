@@ -67,7 +67,7 @@ struct ConvDiffScalImp<M_>::Imp {
       // overwrite with bc
       FaceValB<M, Expr> ub(m, mfc_);
       for (auto& it : mfc_) {
-        IdxFace f = it.GetIdx();
+        const IdxFace f = it.first;
         Expr e = ub.GetExpr(f);
         e.SortTerms();
         ffq[f] = e * (*owner_->ffv_)[f];
@@ -104,8 +104,8 @@ struct ConvDiffScalImp<M_>::Imp {
         }
         // overwrite with bc
         FaceGradB<M, Expr> gb(m, mfc_);
-        for (auto it = mfc_.cbegin(); it != mfc_.cend(); ++it) {
-          IdxFace f = it->GetIdx();
+        for (auto& it : mfc_) {
+          const IdxFace f = it.first;
           Expr e = gb.GetExpr(f);
           e.SortTerms();
           ffq[f] = e * (-(*owner_->ffd_)[f]) * m.GetArea(f);
@@ -136,11 +136,11 @@ struct ConvDiffScalImp<M_>::Imp {
 
       // Overwrite with cell conditions
       for (auto p : mcc_) {
-        IdxCell c(p.GetIdx());
-        CondCell* cb = p.GetValue().get(); // cond base
+        const IdxCell c = p.first;
+        CondCell* cb = p.second.get(); // cond base
         auto& e = fcl[c];
         if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
-          Scal v = cd->GetValue() - fcu[c];
+          Scal v = cd->second() - fcu[c];
           e.SetKnownValueDiag(c, v);
         }
       }

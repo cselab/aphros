@@ -100,10 +100,10 @@ struct ProjEmbed<M_>::Imp {
     mfcp_.clear();
     mfcpc_.clear();
     mfcd_.clear();
-    for (auto it : mfc_) {
-      IdxFace f = it.GetIdx();
+    for (auto& it : mfc_) {
+      IdxFace f = it.first;
       ffbd_[f] = true;
-      auto& cb = it.GetValue();
+      auto& cb = it.second;
       size_t nci = cb->GetNci();
 
       mfcf_[f].template Set<CondFaceGradFixed<Vect>>(Vect(0), nci);
@@ -129,9 +129,9 @@ struct ProjEmbed<M_>::Imp {
     mccp_.clear();
     mccp_.clear();
     mccw_.clear();
-    for (auto it : mcc_) {
-      IdxCell c = it.GetIdx();
-      CondCellFluid* cb = it.GetValue().get(); // cond base
+    for (auto& it : mcc_) {
+      const IdxCell c = it.first;
+      CondCellFluid* cb = it.second.get(); // cond base
 
       if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
         mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
@@ -166,12 +166,12 @@ struct ProjEmbed<M_>::Imp {
   // fcs: linear system for pressure [i]
   void ApplyCellCond(const FieldCell<Scal>& fcpb, FieldCell<Expr>& fcs) {
     (void)fcpb;
-    for (auto it : mccp_) {
-      IdxCell c(it.GetIdx()); // target cell
-      CondCell* cb = it.GetValue().get(); // cond base
-      if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
+    for (auto& it : mccp_) {
+      const IdxCell c = it.first; // target cell
+      const CondCell* cb = it.second.get(); // cond base
+      if (auto cd = dynamic_cast<const CondCellVal<Scal>*>(cb)) {
         auto& e = fcs[c];
-        Scal pc = cd->GetValue(); // new value for p[c]
+        Scal pc = cd->second(); // new value for p[c]
         e = Expr(0);
         // override target cell
         e[0] = 1.;

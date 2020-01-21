@@ -28,7 +28,7 @@ std::string P(const CondFace* b) {
 template <class T>
 std::string P(const CondFaceVal<T>* d) {
   std::stringstream ss;
-  ss << " " << d->GetNci() << " " << d->GetValue();
+  ss << " " << d->GetNci() << " " << d->second();
   return ss.str();
 }
 

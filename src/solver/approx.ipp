@@ -160,8 +160,8 @@ void GradientB(
   using Scal = typename M::Scal;
 
   for (const auto& it : mfc) {
-    IdxFace f = it.GetIdx();
-    const CondFace* cb = it.GetValue().Get(); // cond base
+    IdxFace f = it.first;
+    const CondFace* cb = it.second.Get(); // cond base
     if (auto cd = dynamic_cast<const CondFaceGrad<T>*>(cb)) {
       ff[f] = cd->GetGrad();
     } else if (auto cd = dynamic_cast<const CondFaceVal<T>*>(cb)) {
@@ -170,7 +170,7 @@ void GradientB(
       Scal g = (id == 0 ? 1. : -1.);
       Scal hr = m.GetArea(f) / m.GetVolume(c);
       Scal a = hr * 2 * g;
-      ff[f] = (cd->GetValue() - fc[c]) * a;
+      ff[f] = (cd->second() - fc[c]) * a;
     } else {
       throw std::runtime_error("GradientB: unknown cond");
     }
@@ -297,11 +297,11 @@ void InterpolateB(
   using Vect = typename M::Vect;
 
   for (const auto& it : mfc) {
-    IdxFace f = it.GetIdx();
-    const CondFace* cb = it.GetValue().Get(); // cond base
+    IdxFace f = it.first;
+    const CondFace* cb = it.second.Get(); // cond base
     size_t nci = cb->GetNci();
     if (auto cd = dynamic_cast<const CondFaceVal<T>*>(cb)) {
-      ff[f] = cd->GetValue();
+      ff[f] = cd->second();
     } else if (auto cd = dynamic_cast<const CondFaceGrad<T>*>(cb)) {
       IdxCell c = m.GetCell(f, nci);
       Scal w = (nci == 0 ? 1. : -1.);
@@ -501,7 +501,7 @@ FieldCell<typename M::Vect> Gradient(
 }
 
 // Convention: Use Get/Set for fast procedures and Calc for those requiring
-// computation: GetValue(field, idx) vs GetNorm(field)
+// computation: second(field, idx) vs GetNorm(field)
 
 template <class Field, class M>
 typename M::Scal CalcDiff(const Field& fa, const Field& fb, const M& m) {
@@ -583,8 +583,8 @@ void BcApply(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   for (const auto& it : mfc) {
-    IdxFace f = it.GetIdx();
-    auto& cb = it.GetValue();
+    IdxFace f = it.first;
+    auto& cb = it.second;
     Vect n = m.GetNormal(f);
     IdxCell cmm, cm, cp, cpp;
     GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);
@@ -592,8 +592,8 @@ void BcApply(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
       uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
       uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
     } else if (auto cd = cb.Get<CondFaceVal<T>>()) {
-      uc[cm] = cd->GetValue();
-      uc[cmm] = cd->GetValue();
+      uc[cm] = cd->second();
+      uc[cmm] = cd->second();
     }
   }
 }
@@ -605,8 +605,8 @@ void BcReflectAll(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   for (const auto& it : mfc) {
-    IdxFace f = it.GetIdx();
-    auto& cb = it.GetValue();
+    IdxFace f = it.first;
+    auto& cb = it.second;
     Vect n = m.GetNormal(f);
     IdxCell cmm, cm, cp, cpp;
     GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);

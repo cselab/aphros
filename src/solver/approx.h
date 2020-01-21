@@ -202,7 +202,7 @@ FieldCell<typename M::Vect> Gradient(
     const FieldFace<typename M::Scal>& ff, const M& m);
 
 // Convention: Use Get/Set for fast procedures and Calc for those requiring
-// computation: GetValue(field, idx) vs GetNorm(field)
+// computation: second(field, idx) vs GetNorm(field)
 
 template <class Field, class M, class Scal = typename M::Scal>
 Scal CalcDiff(const Field& fa, const Field& fb, const M& m);
@@ -247,7 +247,7 @@ class FaceValB : public Approx<IdxFace, Expr> {
       e.InsertTerm(0, cm);
       e.InsertTerm(0, cp);
       if (auto cd = cb->template Get<CondFaceVal<Scal>>()) {
-        e.SetConstant(cd->GetValue());
+        e.SetConstant(cd->second());
       } else if (auto cd = cb->template Get<CondFaceGrad<Scal>>()) {
         size_t id = cd->GetNci();
         IdxCell c = m.GetCell(f, id);
@@ -310,7 +310,7 @@ class FaceGradB : public Approx<IdxFace, Expr> {
         Scal g = (id == 0 ? 1. : -1.);
         Scal hr = m.GetArea(f) / m.GetVolume(c);
         Scal a = hr * 2 * g;
-        e.SetConstant(a * cd->GetValue());
+        e.SetConstant(a * cd->second());
         e.InsertTerm(-a, c);
       } else {
         throw std::runtime_error("FaceGradB: unknown cond");

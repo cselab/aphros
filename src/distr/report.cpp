@@ -68,7 +68,7 @@ void ParseReport(const std::map<std::string, double>& mp, std::ostream& out) {
   std::vector<std::string> ss0; // list of strings previous
   N r("all"); // root
   // split strings, mp stores graph traversal in depth-first order
-  for (auto it : mp) {
+  for (auto& it : mp) {
     std::vector<std::string> ss = Split(it.first);
     if (ss.empty() || (ss.size() == 1 && ss[0] == "")) {
       ss = {"other"};
