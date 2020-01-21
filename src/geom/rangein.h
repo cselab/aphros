@@ -5,57 +5,60 @@
 
 #include "block.h"
 
-// TODO: Rename RangeIn
 template <class Idx_, int dim_>
 class GRangeIn {
   using Idx = Idx_;
-  using B = GBlock<Idx, dim_>; // block
-  using IND = GIndex<Idx, dim_>; // index
-  using I = typename B::iterator; // block iterator
-  const IND& ba_; // block all
-  const B& bi_; // block inner
+  using Block = GBlock<Idx, dim_>;
+  using Indexer = GIndex<Idx, dim_>;
+  const Indexer& indexer_;
+  const Block& block_;
 
  public:
   class iterator {
-    const IND& ba_; // block all
-    const B& bi_; // block inner
-    I i_; // block iterator over bi
-    size_t nlite_; // number of simple inc operations
-    Idx xlite_; // last idx lite
+    const Indexer& indexer_;
+    const Block& block_;
+    typename Block::iterator block_iter_;
+    size_t nlite_; // number of calls to operator++ equivalent to ++idx_
+    Idx idx_;
+
    public:
-    explicit iterator(const IND& ba, const B& bi, const I& i)
-        : ba_(ba), bi_(bi), i_(i), nlite_(0), xlite_(ba_.GetIdx(*i_)) {}
+    explicit iterator(
+        const Indexer& indexer, const Block& block,
+        const typename Block::iterator& block_iter)
+        : indexer_(indexer)
+        , block_(block)
+        , block_iter_(block_iter)
+        , nlite_(0)
+        , idx_(indexer_.GetIdx(*block_iter_)) {}
     iterator& operator++() {
       if (nlite_ == 0) {
-        ++i_;
-        nlite_ = i_.GetLite();
-        xlite_ = ba_.GetIdx(*i_);
-        i_.IncLite(nlite_);
+        ++block_iter_;
+        nlite_ = block_iter_.GetNumLite();
+        idx_ = indexer_.GetIdx(*block_iter_);
+        block_iter_.LiteInc(nlite_);
       } else {
         --nlite_;
-        xlite_.AddRaw(1);
+        ++idx_;
       }
       return *this;
     }
     bool operator==(const iterator& o) const {
-      return xlite_ == o.xlite_;
+      return idx_ == o.idx_;
     }
     bool operator!=(const iterator& o) const {
       return !(*this == o);
     }
     Idx operator*() const {
-      return xlite_;
+      return idx_;
     }
   };
 
-  // ba: index
-  // bi: block
-  // TODO: rename ba,bi
-  GRangeIn(const IND& ba, const B& bi) : ba_(ba), bi_(bi) {}
+  GRangeIn(const Indexer& indexer, const Block& block)
+      : indexer_(indexer), block_(block) {}
   iterator begin() const {
-    return iterator(ba_, bi_, bi_.begin());
+    return iterator(indexer_, block_, block_.begin());
   }
   iterator end() const {
-    return iterator(ba_, bi_, bi_.end());
+    return iterator(indexer_, block_, block_.end());
   }
 };

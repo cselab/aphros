@@ -27,8 +27,9 @@ class GIdx {
   size_t GetRaw() const {
     return i_;
   }
-  void AddRaw(IntIdx a) {
-    i_ += a;
+  GIdx& operator++() {
+    ++i_;
+    return *this;
   }
   bool operator==(GIdx o) const {
     return i_ == o.i_;
