@@ -3,40 +3,40 @@
 
 #pragma once
 
-template <class Iter_>
+template <class T>
 class GRange {
  public:
-  using Iter = Iter_;
+  using Value = T;
 
   class iterator {
    public:
-    explicit iterator(Iter it) : it_(it) {}
+    explicit iterator(Value i) : i_(i) {}
     iterator() = default;
     iterator(const iterator&) = default;
     iterator(iterator&&) = default;
     iterator& operator=(const iterator&) = default;
     iterator& operator=(iterator&&) = default;
     iterator& operator++() {
-      ++it_;
+      ++i_;
       return *this;
     }
     bool operator==(const iterator& o) const {
-      return it_ == o.it_;
+      return i_ == o.i_;
     }
     bool operator!=(const iterator& o) const {
-      return it_ != o.it_;
+      return i_ != o.i_;
     }
-    Iter operator*() const {
-      return it_;
+    Value operator*() const {
+      return i_;
     }
 
    private:
-    Iter it_;
+    Value i_;
   };
 
   GRange() : b_(0), e_(0) {}
-  explicit GRange(Iter e) : b_(0), e_(e) {}
-  GRange(Iter b, Iter e) : b_(b), e_(e) {}
+  explicit GRange(Value e) : b_(0), e_(e) {}
+  GRange(Value b, Value e) : b_(b), e_(e) {}
 
   iterator begin() const {
     return iterator(b_);
@@ -58,6 +58,6 @@ class GRange {
   }
 
  private:
-  Iter b_;
-  Iter e_;
+  Value b_;
+  Value e_;
 };
