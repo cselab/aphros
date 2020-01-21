@@ -3,38 +3,40 @@
 
 #pragma once
 
-template <class Idx_>
+template <class Iter_>
 class GRange {
  public:
-  using Idx = Idx_;
+  using Iter = Iter_;
 
   class iterator {
    public:
-    explicit iterator(size_t i) : i_(i) {}
+    explicit iterator(Iter it) : it_(it) {}
     iterator() = default;
     iterator(const iterator&) = default;
+    iterator(iterator&&) = default;
     iterator& operator=(const iterator&) = default;
+    iterator& operator=(iterator&&) = default;
     iterator& operator++() {
-      ++i_;
+      ++it_;
       return *this;
     }
     bool operator==(const iterator& o) const {
-      return i_ == o.i_;
+      return it_ == o.it_;
     }
     bool operator!=(const iterator& o) const {
-      return !(*this == o);
+      return it_ != o.it_;
     }
-    Idx operator*() const {
-      return Idx(i_);
+    Iter operator*() const {
+      return it_;
     }
 
    private:
-    size_t i_;
+    Iter it_;
   };
 
   GRange() : b_(0), e_(0) {}
-  explicit GRange(size_t e) : b_(0), e_(e) {}
-  GRange(size_t b, size_t e) : b_(b), e_(e) {}
+  explicit GRange(Iter e) : b_(0), e_(e) {}
+  GRange(Iter b, Iter e) : b_(b), e_(e) {}
 
   iterator begin() const {
     return iterator(b_);
@@ -43,14 +45,10 @@ class GRange {
     return iterator(e_);
   }
   size_t size() const {
-    return e_ - b_;
-  }
-  void swap(GRange& o) {
-    std::swap(b_, o.b_);
-    std::swap(e_, o.e_);
+    return static_cast<size_t>(e_ - b_);
   }
   void clear() {
-    GRange().swap(*this);
+    (*this) = GRange();
   }
   bool operator==(const GRange& o) const {
     return b_ == o.b_ && e_ == o.e_;
@@ -60,5 +58,6 @@ class GRange {
   }
 
  private:
-  size_t b_, e_;
+  Iter b_;
+  Iter e_;
 };

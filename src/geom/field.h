@@ -19,7 +19,7 @@ class GField {
   // Constructs field for empty range
   GField() : d_(nullptr) {}
   // Constructs field for range r
-  explicit GField(const Range& r) : r_(r), d_(new Value[r_.size()]) {}
+  explicit GField(const Range& r) : r_(r), d_(new Value[size()]) {}
   // Copy constructor
   GField(const GField& o) : GField(o.r_) {
     for (auto i : r_) {
@@ -60,7 +60,7 @@ class GField {
     return *this;
   }
   size_t size() const {
-    return r_.size();
+    return static_cast<size_t>(*r_.end());
   }
   bool empty() const {
     return size() == 0;
@@ -88,7 +88,7 @@ class GField {
     return r_;
   }
   void swap(GField& o) {
-    r_.swap(o.r_);
+    std::swap(r_, o.r_);
     std::swap(d_, o.d_);
   }
   Value* data() {
@@ -98,11 +98,11 @@ class GField {
     return d_;
   }
   Value& operator[](const Idx& i) {
-    assert(size_t(i) >= 0 && size_t(i) < r_.size());
+    assert(size_t(i) >= 0 && size_t(i) < size_t(*r_.end()));
     return d_[size_t(i)];
   }
   const Value& operator[](const Idx& i) const {
-    assert(size_t(i) >= 0 && size_t(i) < r_.size());
+    assert(size_t(i) >= 0 && size_t(i) < size_t(*r_.end()));
     return d_[size_t(i)];
   }
 

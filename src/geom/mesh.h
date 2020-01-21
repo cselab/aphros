@@ -258,33 +258,24 @@ class MeshStructured {
     return bci_.GetBegin() <= w && w < bci_.GetEnd();
   }
 
-  // Returns range of raw indices
+  GIndex<IdxCell, dim> GetIndexer(IdxCell*) const {
+    return bcr_;
+  }
+  GIndex<IdxFace, dim> GetIndexer(IdxFace*) const {
+    return bfr_;
+  }
+  GIndex<IdxNode, dim> GetIndexer(IdxNode*) const {
+    return bnr_;
+  }
   template <class Idx>
-  GRange<Idx> GetRaw() const {
-    return GetRaw((Idx*)0);
+  GIndex<Idx, dim> GetIndexer() const {
+    return GetIndexer((Idx*)nullptr);
   }
-  GRange<IdxCell> GetRaw(IdxCell*) const {
-    return GRange<IdxCell>(0, bcr_.size());
-  }
-  GRange<IdxFace> GetRaw(IdxFace*) const {
-    return GRange<IdxFace>(0, bfr_.size());
-  }
-  GRange<IdxNode> GetRaw(IdxNode*) const {
-    return GRange<IdxNode>(0, bnr_.size());
-  }
-  GRange<IdxCell> RawCells() const {
-    return GetRaw<IdxCell>();
-  }
-  GRange<IdxFace> RawFaces() const {
-    return GetRaw<IdxFace>();
-  }
-  GRange<IdxNode> RawNodes() const {
-    return GetRaw<IdxNode>();
-  }
+
   // Type-cast to GRange required for GField initialization
   template <class Idx>
   operator GRange<Idx>() const {
-    return GetRaw<Idx>();
+    return GRange<Idx>(Idx(GetIndexer<Idx>().size()));
   }
 
   // Returns range of inner indices
