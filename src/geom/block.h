@@ -134,7 +134,7 @@ class GIndex {
     return s_.prod();
   }
   GRange<Idx> Range() const {
-    return GRange<Idx>(0, size());
+    return GRange<Idx>(Idx(size()));
   }
   operator GRange<Idx>() const {
     return Range();

@@ -27,6 +27,9 @@ class GIdx {
   size_t GetRaw() const {
     return i_;
   }
+  IntIdx operator-(GIdx o) const {
+    return i_ - o.i_;
+  }
   GIdx& operator++() {
     ++i_;
     return *this;
