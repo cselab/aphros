@@ -22,11 +22,11 @@ MapCondFace GetScalarCond(const MapCondFace& mfv, size_t d, const M& m) {
   for (auto& it : mfv) {
     IdxFace f = it.first;
     auto& cb = it.second;
-    if (cb.Get<CondFaceVal<Vect>>()) {
+    if (cb.template Get<CondFaceVal<Vect>>()) {
       mfs[f] = EvalComp<Vect>(cb, d);
-    } else if (cb.Get<CondFaceGrad<Vect>>()) {
+    } else if (cb.template Get<CondFaceGrad<Vect>>()) {
       mfs[f] = EvalComp<Vect>(cb, d);
-    } else if (cb.Get<CondFaceReflect>()) {
+    } else if (cb.template Get<CondFaceReflect>()) {
       auto nci = cb->GetNci();
       // XXX: adhoc for cartesian grid
       if (d == m.GetNormal(f).abs().argmax()) {

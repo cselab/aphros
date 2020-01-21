@@ -48,7 +48,7 @@ class UFluid {
         size_t nci = cb->GetNci();
         IdxCell c = m.GetCell(f, nci);
         if (m.IsInner(c)) {
-          if (auto cd = cb.Get<Outlet<M>>()) {
+          if (auto cd = cb.template Get<Outlet<M>>()) {
             Scal q = (nci == 0 ? 1. : -1.);
             Vect vc = fcw[c];
             Vect s = m.GetSurface(f);
@@ -57,7 +57,7 @@ class UFluid {
             cd->SetVelocity(vc);
             fo += cd->GetVelocity().dot(s) * q;
             ao += m.GetArea(f);
-          } else if (auto cd = cb.Get<Inlet<M>>()) {
+          } else if (auto cd = cb.template Get<Inlet<M>>()) {
             Scal q = (nci == 0 ? -1. : 1.);
             fi += cd->GetVelocity().dot(m.GetSurface(f)) * q;
           }
@@ -82,7 +82,7 @@ class UFluid {
         IdxFace f = it.first;
         auto& cb = it.second; // cond base
 
-        if (auto cd = cb.Get<Outlet<M>>()) {
+        if (auto cd = cb.template Get<Outlet<M>>()) {
           size_t nci = cd->GetNci();
           Scal q = (nci == 0 ? 1. : -1.);
           Vect n = m.GetNormal(f);
@@ -130,7 +130,7 @@ class UFluid {
         size_t nci = cb->GetNci();
         IdxCell c = m.GetCell(f, nci);
         if (m.IsInner(c)) {
-          if (auto cd = cb.Get<InletFlux<M>>()) {
+          if (auto cd = cb.template Get<InletFlux<M>>()) {
             size_t id = cd->GetId();
             assert(id < ft.size());
             Scal q = (nci == 0 ? -1. : 1.);
@@ -161,7 +161,7 @@ class UFluid {
           IdxFace f = it.first;
           auto& cb = it.second;
 
-          if (auto cd = cb.Get<InletFlux<M>>()) {
+          if (auto cd = cb.template Get<InletFlux<M>>()) {
             size_t nci = cd->GetNci();
             Scal q = (nci == 0 ? -1. : 1.);
             Vect n = m.GetNormal(f);
