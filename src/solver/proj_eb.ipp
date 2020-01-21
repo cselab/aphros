@@ -78,7 +78,7 @@ struct ProjEmbed<M_>::Imp {
     fcp_.time_prev = fcp_.time_curr;
 
     // Calc initial volume fluxes
-    auto ffwe = eb.Interpolate(cd_->GetVelocity(), bc_, bcvel_);
+    auto ffwe = eb.Interpolate(cd_->GetVelocity(), mfcw_, bc_, bcvel_);
     ffv_.time_curr.Reinit(m, 0.);
     for (auto f : eb.Faces()) {
       ffv_.time_curr[f] = ffwe[f].dot(eb.GetSurface(f));
@@ -306,7 +306,7 @@ struct ProjEmbed<M_>::Imp {
       m.Comm(&fck);
     }
     if (sem("interp")) {
-      ffk = eb.Interpolate(fck, 1, 0.).GetFieldFace();
+      ffk = eb.Interpolate(fck, MapCondFace(), 1, 0.).GetFieldFace();
     }
   }
   // Append explicit part of viscous force.
@@ -351,7 +351,7 @@ struct ProjEmbed<M_>::Imp {
       cd_->SetPar(UpdateConvDiffPar(cd_->GetPar(), par));
 
       // interpolate visosity
-      fed_ = eb.Interpolate(*owner_->fcd_, 1, 0.);
+      fed_ = eb.Interpolate(*owner_->fcd_, mfcd_, 1, 0.);
 
       // rotate layers
       fcp_prev = fcp_curr;
@@ -378,7 +378,7 @@ struct ProjEmbed<M_>::Imp {
       // Acceleration
       // mean flux
       auto fetv =
-          eb.Interpolate(cd_->GetVelocity(Step::iter_curr), bc_, bcvel_);
+          eb.Interpolate(cd_->GetVelocity(Step::iter_curr), mfcw_, bc_, bcvel_);
       ffve_.Reinit(m, 0);
       auto& ffbp = *owner_->ffbp_;
       for (auto f : eb.Faces()) {
@@ -413,7 +413,8 @@ struct ProjEmbed<M_>::Imp {
       }
 
       // Acceleration and correction to center velocity
-      const auto fegp = eb.Gradient(fcp_curr, 1, 0.);
+      // XXX adhoc , using mfcd_ but should be zero-derivatie
+      const auto fegp = eb.Gradient(fcp_curr, mfcd_, 1, 0.);
       fcwc_.Reinit(m, Vect(0));
       const auto& ffbp = *owner_->ffbp_;
       for (auto c : eb.Cells()) {

@@ -5,6 +5,6 @@ set(EXE t.${p})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} distrbasic solver)
+target_link_libraries(${EXE} distrbasic solver approx)
 
 add_test(NAME ${p}-loc COMMAND ap-run ./${EXE} a.conf)

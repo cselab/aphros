@@ -192,7 +192,7 @@ void Run(M& m, Vars& var) {
     const Scal dt0 = 0.5 * sqr(m.GetCellSize()[0]);
     const Scal dt0a = 1 / vel.abs().max() * m.GetCellSize()[0];
     const Scal dt = dt0 * 0.5;
-    //const Scal dt = dt0a * 0.05;
+    // const Scal dt = dt0a * 0.05;
     std::cout << "dt0=" << dt0 << " "
               << "dt0a=" << dt0a << " "
               << "dt=" << dt << " "
@@ -211,7 +211,8 @@ void Run(M& m, Vars& var) {
   for (size_t t = 0; t < maxt; ++t) {
     if (sem("flux-init")) {
       auto& eb = *ctx->eb;
-      auto fevel = eb.Interpolate(cd->GetVelocity(), bc, bcvel);
+      auto fevel =
+          eb.Interpolate(cd->GetVelocity(), MapCondFace(), bc, bcvel);
       for (auto f : eb.Faces()) {
         ffv[f] = fevel[f].dot(eb.GetNormal(f) * eb.GetArea(f));
       }
