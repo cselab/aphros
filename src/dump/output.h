@@ -75,7 +75,7 @@ template <class V>
 class OutScal : public Out {
  public:
   OutScal(std::string n) : Out(n) {}
-  virtual V GetValue() = 0;
+  virtual V second() = 0;
 };
 
 template <class V>
@@ -89,7 +89,7 @@ class OutScalFunc : public OutScal<V> {
 
   void Prepare() override {}
 
-  V GetValue() override {
+  V second() override {
     return u_();
   }
 
@@ -125,9 +125,9 @@ class SerScalPlain : public Ser {
     for (auto& og : vo_) { // out generic
       og->Prepare();
       if (auto o = dynamic_cast<OutScal<Scal>*>(og.get())) {
-        out_ << o->GetValue() << " ";
+        out_ << o->second() << " ";
       } else if (auto o = dynamic_cast<OutScal<int>*>(og.get())) {
-        out_ << o->GetValue() << " ";
+        out_ << o->second() << " ";
       } else {
         throw std::runtime_error("SerScalPlain: Unknown entry type");
       }

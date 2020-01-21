@@ -7,159 +7,73 @@
 
 #include "field.h"
 
+template <class Idx>
+struct GIdxHash {
+  size_t operator()(Idx i) const noexcept {
+    return size_t(i);
+  }
+};
+
+template <class Idx>
+struct GIdxLess {
+  bool operator()(Idx a, Idx b) const noexcept {
+    return size_t(a) < size_t(b);
+  }
+};
+
 // Idx_: instance of GIdx
 template <class Value_, class Idx_>
 class GMap {
  public:
   using Idx = Idx_;
   using Value = Value_;
-  using Cont = std::map<size_t, Value>; // container
+  using Container = std::map<Idx, Value, GIdxLess<Idx>>;
 
-  GMap() {}
-  explicit GMap(const GField<Value, Idx>& u) {
-    for (size_t i = 0; i < u.size(); ++i) {
-      d_[i] = u[Idx(i)];
-    }
-  }
   size_t size() const {
     return d_.size();
   }
   void clear() {
     d_.clear();
   }
-  Value& operator[](const Idx& i) {
-    return d_[i.GetRaw()];
+  Value& operator[](Idx i) {
+    return d_[i];
   }
-  const Value& operator[](const Idx& i) const {
-    return d_[i.GetRaw()];
+  const Value& at(Idx i) const {
+    return d_.at(i);
   }
-  Value* find(const Idx& i) {
-    auto it = d_.find(i.GetRaw());
-    if (it != d_.end()) {
-      return &it->second;
-    }
-    return nullptr;
+  Value* find(Idx i) {
+    auto it = d_.find(i);
+    return it != d_.end() ? &it->second : nullptr;
   }
-  const Value* find(const Idx& i) const {
-    auto it = d_.find(i.GetRaw());
-    if (it != d_.end()) {
-      return &it->second;
-    }
-    return nullptr;
+  const Value* find(Idx i) const {
+    auto it = d_.find(i);
+    return it != d_.end() ? &it->second : nullptr;
   }
-  void erase(const Idx& i) {
-    d_.erase(i.GetRaw());
+  void erase(Idx i) {
+    d_.erase(i);
   }
 
-  class iterator {
-    class Proxy {
-      typename Cont::iterator it_;
-
-     public:
-      explicit Proxy(const typename Cont::iterator& it) : it_(it) {}
-      Idx GetIdx() const {
-        return Idx(it_->first);
-      }
-      Value& GetValue() {
-        return it_->second;
-      }
-      const Value& GetValue() const {
-        return it_->second;
-      }
-    };
-
-    typename Cont::iterator it_;
-    Proxy p_;
-
-   public:
-    explicit iterator(const typename Cont::iterator& it) : it_(it), p_(it_) {}
-    iterator& operator++() {
-      ++it_;
-      p_ = Proxy(it_);
-      return *this;
-    }
-    iterator& operator--() {
-      --it_;
-      p_ = Proxy(it_);
-      return *this;
-    }
-    bool operator==(const iterator& other) const {
-      return it_ == other.it_;
-    }
-    bool operator!=(const iterator& other) const {
-      return !(*this == other);
-    }
-    const Proxy& operator*() {
-      return p_;
-    }
-    Proxy const* operator->() {
-      return &p_;
-    }
-  };
-  iterator begin() {
-    return iterator(d_.begin());
+  auto begin() {
+    return d_.begin();
   }
-  iterator end() {
-    return iterator(d_.end());
+  auto end() {
+    return d_.end();
   }
-  class const_iterator {
-    class Proxy {
-      typename Cont::const_iterator it_;
-
-     public:
-      explicit Proxy(const typename Cont::const_iterator& it) : it_(it) {}
-      Idx GetIdx() const {
-        return Idx(it_->first);
-      }
-      const Value& GetValue() const {
-        return it_->second;
-      }
-    };
-
-    typename Cont::const_iterator it_;
-    Proxy p_;
-
-   public:
-    explicit const_iterator(const typename Cont::const_iterator& it)
-        : it_(it), p_(it_) {}
-    const_iterator& operator++() {
-      ++it_;
-      p_ = Proxy(it_);
-      return *this;
-    }
-    const_iterator& operator--() {
-      --it_;
-      p_ = Proxy(it_);
-      return *this;
-    }
-    bool operator==(const const_iterator& other) const {
-      return it_ == other.it_;
-    }
-    bool operator!=(const const_iterator& other) const {
-      return !(*this == other);
-    }
-    const Proxy& operator*() {
-      return p_;
-    }
-    Proxy const* operator->() {
-      return &p_;
-    }
-  };
-  const_iterator begin() const {
-    return const_iterator(d_.cbegin());
+  auto begin() const {
+    return d_.begin();
   }
-  const_iterator end() const {
-    return const_iterator(d_.cend());
+  auto end() const {
+    return d_.end();
   }
-  const_iterator cbegin() const {
-    return const_iterator(d_.cbegin());
+  auto cbegin() const {
+    return d_.cbegin();
   }
-  const_iterator cend() const {
-    return const_iterator(d_.cend());
+  auto cend() const {
+    return d_.cend();
   }
 
  private:
-  Cont d_;
+  Container d_;
 };
 
 template <class T>

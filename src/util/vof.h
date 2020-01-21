@@ -82,8 +82,8 @@ class UVof {
   static void BcClear(
       FieldCell<Scal>& uc, const MapCondFaceAdvection<Scal>& mfc, const M& m) {
     for (const auto& it : mfc) {
-      auto& cfa = it.GetValue();
-      IdxCell c = m.GetCell(it.GetIdx(), cfa.GetNci());
+      auto& cfa = it.second;
+      const IdxCell c = m.GetCell(it.first, cfa.GetNci());
       auto& u = uc[c];
       if (u < cfa.clear0) {
         u = 0;
@@ -99,8 +99,8 @@ class UVof {
       const MapCondFaceAdvection<Scal>& mfc, const M& m) {
     static constexpr Scal kClNone = -1;
     for (const auto& it : mfc) {
-      auto& cfa = it.GetValue();
-      IdxCell c = m.GetCell(it.GetIdx(), cfa.GetNci());
+      auto& cfa = it.second;
+      const IdxCell c = m.GetCell(it.first, cfa.GetNci());
       auto& u = uc[c];
       if (u < cfa.clear0) {
         u = 0;

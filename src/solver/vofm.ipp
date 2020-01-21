@@ -278,8 +278,7 @@ struct Vofm<M_>::Imp {
         FieldFace<Scal> ffv(m, m.GetCellSize().prod() * sgn * par.sharpen_cfl);
         // zero flux on boundaries
         for (const auto& it : mfc_) {
-          IdxFace f = it.GetIdx();
-          ffv[f] = 0;
+          ffv[it.first] = 0;
         }
         Sweep(
             mfcu, d, layers, ffv, fccl_, fcim_, fcn_, fca_, mfc_vf_, 3, nullptr,
@@ -430,10 +429,10 @@ struct Vofm<M_>::Imp {
       InterpolateB(fcu, mfc, ffu, m);
       // override boundary flux
       for (const auto& it : mfc) {
-        IdxFace f = it.GetIdx();
+        const IdxFace f = it.first;
         if (ffcl[f] != kClNone) {
           Scal v = ffv[f];
-          if ((it.GetValue()->GetNci() == 0) != (v > 0.)) {
+          if ((it.second->GetNci() == 0) != (v > 0.)) {
             ffvu[f] = v * ffu[f];
           }
         }

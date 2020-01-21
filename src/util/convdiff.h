@@ -19,9 +19,9 @@ MapCondFace GetScalarCond(const MapCondFace& mfv, size_t d, const M& m) {
   using Vect = typename M::Vect;
   MapCondFace mfs;
   // Face conditions for each velocity component
-  for (auto it : mfv) {
-    IdxFace f = it.GetIdx();
-    auto& cb = it.GetValue();
+  for (auto& it : mfv) {
+    IdxFace f = it.first;
+    auto& cb = it.second;
     if (cb.Get<CondFaceVal<Vect>>()) {
       mfs[f] = EvalComp<Vect>(cb, d);
     } else if (cb.Get<CondFaceGrad<Vect>>()) {

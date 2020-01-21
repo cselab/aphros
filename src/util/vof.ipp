@@ -984,9 +984,9 @@ void UVof<M_>::GetAdvectionFaceCond(
   mfc_n.clear();
   mfc_a.clear();
   using Halo = typename CondFaceAdvection<Scal>::Halo;
-  for (auto it : mfc) {
-    IdxFace f = it.GetIdx();
-    const auto& cb = it.GetValue();
+  for (auto& it : mfc) {
+    IdxFace f = it.first;
+    const auto& cb = it.second;
     size_t nci = cb.GetNci();
     switch (cb.halo) {
       case Halo::reflect:

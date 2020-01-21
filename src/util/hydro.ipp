@@ -29,18 +29,18 @@ using namespace fluid_condition;
 template <class M>
 FieldCell<typename M::Scal> GetBcField(MapCondFaceFluid& mf, const M& m) {
   FieldCell<typename M::Scal> fc(m, 0);
-  for (auto it : mf) {
-    IdxFace f = it.GetIdx();
-    auto* b = it.GetValue().Get();
-    size_t nci = b->GetNci();
-    IdxCell c = m.GetCell(f, nci);
-    if (dynamic_cast<fluid_condition::NoSlipWall<M>*>(b)) {
+  for (const auto& it : mf) {
+    const IdxFace f = it.first;
+    auto& cb = it.second;
+    const size_t nci = cb->GetNci();
+    const IdxCell c = m.GetCell(f, nci);
+    if (cb.Get<fluid_condition::NoSlipWall<M>>()) {
       fc[c] = 1.;
-    } else if (dynamic_cast<fluid_condition::SlipWall<M>*>(b)) {
+    } else if (cb.Get<fluid_condition::SlipWall<M>>()) {
       fc[c] = 2.;
-    } else if (dynamic_cast<fluid_condition::Inlet<M>*>(b)) {
+    } else if (cb.Get<fluid_condition::Inlet<M>>()) {
       fc[c] = 3.;
-    } else if (dynamic_cast<fluid_condition::Outlet<M>*>(b)) {
+    } else if (cb.Get<fluid_condition::Outlet<M>>()) {
       fc[c] = 4.;
     } else {
       fc[c] = -1.;
@@ -878,10 +878,10 @@ void GetFluidFaceCond(
         Vect a(var.Vect[k + "_a"]);
         Vect b(var.Vect[k + "_b"]);
         Rect<Vect> r(a, b);
-        for (auto it : mff) {
-          IdxFace f = it.GetIdx();
+        for (auto& it : mff) {
+          const IdxFace f = it.first;
           if (r.IsInside(m.GetCenter(f))) {
-            auto& cff = it.GetValue();
+            auto& cff = it.second;
             auto nci = cff->GetNci();
             cff.Set(nullptr);
             set_bc(f, nci, *str);
@@ -920,9 +920,9 @@ void GetFluidFaceCond(
           return GetLevelSetVolume<Scal>(ls, m.GetCenter(c), m.GetCellSize());
         };
 
-        for (auto it : mff) {
-          IdxFace f = it.GetIdx();
-          CondFaceFluid* cb = it.GetValue().Get();
+        for (auto& it : mff) {
+          IdxFace f = it.first;
+          CondFaceFluid* cb = it.second.Get();
           auto nci = cb->GetNci();
           IdxCell c = m.GetCell(f, nci);
           Scal inter = V(c);
@@ -1114,8 +1114,8 @@ void DumpBcFaces(
   auto& vblock = ctx->vblock;
   if (sem("local")) {
     for (auto& it : mfa) {
-      IdxFace f = it.GetIdx();
-      const CondFaceAdvection<Scal>& b = it.GetValue();
+      IdxFace f = it.first;
+      const CondFaceAdvection<Scal>& b = it.second;
       if (!m.IsInner(m.GetCell(f, b.GetNci()))) {
         continue;
       }
@@ -1355,7 +1355,7 @@ void DumpTraj(
     // copy to vector
     colors.clear();
     values.clear();
-    for (auto it : mp) {
+    for (auto& it : mp) {
       colors.push_back(it.first); // color
       values.push_back(it.second); // vector
     }
@@ -1612,9 +1612,8 @@ void CalcSurfaceTension(
     }
 
     // zero on boundaries
-    for (auto it : mf_sig) {
-      IdxFace f = it.GetIdx();
-      ff_st[f] = 0.;
+    for (auto& it : mf_sig) {
+      ff_st[it.first] = 0.;
     }
 
     // Surface tension decay between x0 and x1
@@ -1681,8 +1680,8 @@ void ProjectVolumeFlux(
 
   if (sem("init")) {
     ffbd.Reinit(m, false);
-    for (auto p : mfc) {
-      ffbd[p.GetIdx()] = true;
+    for (auto& p : mfc) {
+      ffbd[p.first] = true;
     }
 
     ffe.Reinit(m);

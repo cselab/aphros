@@ -344,7 +344,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       out.precision(16);
       out << std::scientific << std::setprecision(20);
       size_t i = 0;
-      for (auto it : mst) {
+      for (auto& it : mst) {
         if (i % 3 == 0) {
           out << "> ";
           dl = "";
@@ -594,23 +594,23 @@ void Hydro<M>::Init() {
     GetFluidFaceCond(var, m, mf_fluid_, mf_adv_);
 
     // boundary conditions for smoothing of volume fraction
-    for (auto it : mf_fluid_) {
-      IdxFace i = it.GetIdx();
-      auto& cb = it.GetValue();
+    for (auto& it : mf_fluid_) {
+      const IdxFace f = it.first;
+      auto& cb = it.second;
       size_t nci = cb->GetNci();
       if (cb.template Get<Symm<M>>()) {
-        mf_cond_vfsm_[i].template Set<CondFaceReflect>(nci);
+        mf_cond_vfsm_[f].template Set<CondFaceReflect>(nci);
       } else {
-        mf_cond_vfsm_[i].template Set<CondFaceGradFixed<Scal>>(Scal(0), nci);
+        mf_cond_vfsm_[f].template Set<CondFaceGradFixed<Scal>>(Scal(0), nci);
       }
     }
   }
 
   if (var.Int["bc_wall_init_vel"] && sem("bc_wall_init_vel")) {
     // velocity on walls from neighbour cells
-    for (auto it : mf_fluid_) {
-      IdxFace f = it.GetIdx();
-      auto& cb = it.GetValue();
+    for (auto& it : mf_fluid_) {
+      const IdxFace f = it.first;
+      auto& cb = it.second;
       if (auto cd = cb.template Get<NoSlipWallFixed<M>>()) {
         IdxCell c = m.GetCell(f, cd->GetNci());
         cd->SetVelocity(fcvel[c]);
@@ -755,7 +755,7 @@ void Hydro<M>::Init() {
     if (var.Int["fill_halo_nan"]) {
       std::vector<std::pair<IdxFace, size_t>> vf;
       for (auto& p : mf_adv_) {
-        vf.emplace_back(p.GetIdx(), p.GetValue().GetNci());
+        vf.emplace_back(p.first, p.second.GetNci());
       }
       m.SetNanFaces(vf);
     }
@@ -1109,9 +1109,9 @@ void Hydro<M>::CalcStat() {
       Vect slipvel(var.Vect["slipvel"]);
       // XXX: adhoc, overwrite wall conditions
       auto& fa = as_->GetField();
-      for (auto it : mf_fluid_) {
-        IdxFace f = it.GetIdx();
-        CondFaceFluid* cb = it.GetValue().Get();
+      for (auto& it : mf_fluid_) {
+        const IdxFace f = it.first;
+        CondFaceFluid* cb = it.second.Get();
         if (auto cd = dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(cb)) {
           size_t nci = cd->GetNci();
           IdxCell c = m.GetCell(f, nci);
@@ -1128,9 +1128,9 @@ void Hydro<M>::CalcStat() {
       // const auto& fa = as_->GetField();
       const auto& fa = fc_smvf_;
       const auto& fv = fs_->GetVelocity();
-      for (auto it : mf_fluid_) {
-        IdxFace f = it.GetIdx();
-        CondFaceFluid* cb = it.GetValue().Get();
+      for (auto& it : mf_fluid_) {
+        const IdxFace f = it.first;
+        CondFaceFluid* cb = it.second.Get();
         if (auto cd = dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(cb)) {
           size_t nci = cd->GetNci();
           IdxCell c = m.GetCell(f, nci);
@@ -1145,9 +1145,9 @@ void Hydro<M>::CalcStat() {
     const Scal slipnormal = var.Double["slipnormal"];
     if (slipnormal != 0) {
       const auto& fa = fc_smvf_;
-      for (auto it : mf_fluid_) {
-        IdxFace f = it.GetIdx();
-        CondFaceFluid* cb = it.GetValue().Get();
+      for (auto& it : mf_fluid_) {
+        const IdxFace f = it.first;
+        CondFaceFluid* cb = it.second.Get();
         if (auto cd = dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(cb)) {
           size_t nci = cd->GetNci();
           IdxCell c = m.GetCell(f, nci);
@@ -1161,10 +1161,10 @@ void Hydro<M>::CalcStat() {
   if (sem("young")) {
     if (var.Int["youngbc"]) {
       InitYoung();
-      for (auto it : mf_fluid_) {
-        IdxFace f = it.GetIdx();
+      for (auto& it : mf_fluid_) {
+        const IdxFace f = it.first;
         Vect x = m.GetCenter(f);
-        CondFaceFluid* cb = it.GetValue().Get();
+        CondFaceFluid* cb = it.second.Get();
         if (auto cd = dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(cb)) {
           cd->SetVelocity(GetYoungVel(x));
         }
@@ -1428,8 +1428,8 @@ void Hydro<M>::DumpFields() {
     if (dl.count("cellcond")) {
       auto& fc = ctx->fc_cellcond;
       fc.Reinit(m, 0);
-      for (auto it : mc_velcond_) {
-        fc[it.GetIdx()] = 1;
+      for (auto& it : mc_velcond_) {
+        fc[it.first] = 1;
       }
       m.Dump(&fc, "cellcond");
     }

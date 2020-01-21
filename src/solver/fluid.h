@@ -253,9 +253,9 @@ MapCondFace GetVelCond(const M& m, const MapCondFaceFluid& mff) {
   using Vect = typename M::Vect;
   (void)m;
   MapCondFace mf;
-  for (auto it : mff) {
-    IdxFace f = it.GetIdx();
-    auto& cb = it.GetValue();
+  for (auto& it : mff) {
+    IdxFace f = it.first;
+    auto& cb = it.second;
     size_t nci = cb->GetNci();
 
     using namespace fluid_condition;

@@ -43,7 +43,7 @@ template <class V>
 class CondFaceVal : public CondFace {
  public:
   CondFaceVal(size_t nci) : CondFace(nci) {}
-  virtual V GetValue() const = 0;
+  virtual V second() const = 0;
 };
 
 // Extract single component from a Vect condition
@@ -54,8 +54,8 @@ class CondFaceValComp : public CondFaceVal<typename Vect::value_type> {
   using P = CondFaceVal<Scal>; // parent
   CondFaceValComp(CondFaceVal<Vect>* o, size_t d)
       : P(o->GetNci()), o_(o), d_(d) {}
-  Scal GetValue() const override {
-    return o_->GetValue()[d_];
+  Scal second() const override {
+    return o_->second()[d_];
   }
 
  private:
@@ -68,7 +68,7 @@ template <class V>
 class CondFaceValFixed : public CondFaceVal<V> {
  public:
   CondFaceValFixed(const V& v, size_t nci) : CondFaceVal<V>(nci), v_(v) {}
-  V GetValue() const override {
+  V second() const override {
     return v_;
   }
   void Set(const V& v) {
@@ -125,7 +125,7 @@ class CondFaceGradFixed : public CondFaceGrad<V> {
 template <class T>
 UniquePtr<CondFace> Eval(const UniquePtr<CondFace>& b) {
   if (auto d = b.Get<CondFaceVal<T>>()) {
-    return UniquePtr<CondFaceValFixed<T>>(d->GetValue(), d->GetNci());
+    return UniquePtr<CondFaceValFixed<T>>(d->second(), d->GetNci());
   }
   if (auto d = b.Get<CondFaceGrad<T>>()) {
     return UniquePtr<CondFaceGradFixed<T>>(d->GetGrad(), d->GetNci());
@@ -144,7 +144,7 @@ template <class Vect>
 UniquePtr<CondFace> EvalComp(const UniquePtr<CondFace>& b, size_t i) {
   using Scal = typename Vect::value_type;
   if (auto d = b.Get<CondFaceVal<Vect>>()) {
-    return UniquePtr<CondFaceValFixed<Scal>>(d->GetValue()[i], d->GetNci());
+    return UniquePtr<CondFaceValFixed<Scal>>(d->second()[i], d->GetNci());
   }
   if (auto d = b.Get<CondFaceGrad<Vect>>()) {
     return UniquePtr<CondFaceGradFixed<Scal>>(d->GetGrad()[i], d->GetNci());
@@ -167,7 +167,7 @@ class CondCell {
 template <class V>
 class CondCellVal : public CondCell {
  public:
-  virtual V GetValue() const = 0;
+  virtual V second() const = 0;
 };
 
 // Given value
@@ -175,7 +175,7 @@ template <class V>
 class CondCellValFixed : public CondCellVal<V> {
  public:
   explicit CondCellValFixed(const V& v) : v_(v) {}
-  V GetValue() const override {
+  V second() const override {
     return v_;
   }
   void Set(const V& v) {
@@ -191,9 +191,9 @@ using MapCondFace = MapFace<UniquePtr<CondFace>>;
 template <class T, class Map>
 MapCondFace GetCondZeroGrad(const Map& mf) {
   MapCondFace r;
-  for (auto it : mf) {
-    IdxFace f = it.GetIdx();
-    r[f].Set<CondFaceGradFixed<T>>(T(0), it.GetValue()->GetNci());
+  for (auto& it : mf) {
+    const IdxFace f = it.first;
+    r[f].Set<CondFaceGradFixed<T>>(T(0), it.second->GetNci());
   }
   return r;
 }

@@ -21,9 +21,9 @@ struct Tvd<M_>::Imp {
       const MapCondFaceAdvection<Scal>& mfc, Par par)
       : owner_(owner), par(par), m(owner_->m), mfc_(mfc), fck_(m, 0) {
     fcu_.time_curr = fcu;
-    for (auto it : mfc_) {
-      IdxFace f = it.GetIdx();
-      mfvz_[f].template Set<CondFaceGradFixed<Vect>>(Vect(0), it.GetValue().GetNci());
+    for (auto& it : mfc_) {
+      mfvz_[it.first].template Set<CondFaceGradFixed<Vect>>(
+          Vect(0), it.second.GetNci());
     }
   }
   void StartStep() {
