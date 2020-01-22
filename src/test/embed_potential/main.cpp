@@ -211,6 +211,8 @@ set string eb_init list
 set string eb_list_path body.dat
 set int eb_init_inverse 1
 
+set string dumpformat plain
+
 set int dim 2
 
 set int hypre_periodic_z 1
