@@ -854,7 +854,7 @@ void GetFluidFaceCond(
 
   // Set face conditions on domain boundaries
   for (auto& b : bb) {
-    if (auto str = var.String(std::get<0>(b))) {
+    if (auto str = var.String.Find(std::get<0>(b))) {
       for (auto f : m.AllFaces()) {
         if (std::get<1>(b)(f)) {
           set_bc(f, std::get<2>(b), *str);
@@ -874,7 +874,7 @@ void GetFluidFaceCond(
     const int nmax = 100;
     while (true) {
       std::string k = "box" + std::to_string(n);
-      if (auto str = var.String(k)) {
+      if (auto str = var.String.Find(k)) {
         Vect a(var.Vect[k + "_a"]);
         Vect b(var.Vect[k + "_b"]);
         Rect<Vect> r(a, b);
@@ -905,7 +905,7 @@ void GetFluidFaceCond(
     const int nmax = 100;
     while (true) {
       std::string k = "inlet_sph" + std::to_string(n) + "_";
-      if (auto p = var.Vect(k + "c")) {
+      if (auto p = var.Vect.Find(k + "c")) {
         Vect xc(var.Vect[k + "c"]);
         Vect r(var.Vect[k + "r"]);
         Vect vel(var.Vect[k + "vel"]);
@@ -955,7 +955,7 @@ void GetFluidFaceCond(
     while (true) {
       ++n;
       std::string k = "face" + std::to_string(n);
-      if (auto str = var.String(k)) {
+      if (auto str = var.String.Find(k)) {
         // set boundary conditions on faces of box (a,b)
         // normal to d with outer normal towards (b-a)[d]
         Vect a(var.Vect[k + "_a"]);
@@ -1014,7 +1014,7 @@ void GetFluidCellCond(
   auto& pdist = ctx->pdist;
 
   if (sem("reduce")) {
-    if (auto* p = var.Double("pfixed")) {
+    if (auto* p = var.Double.Find("pfixed")) {
       Vect x(var.Vect["pfixed_x"]);
       // Find cell nearest to pfixed_x
       IdxCell c = m.FindNearestCell(x);
@@ -1026,7 +1026,7 @@ void GetFluidCellCond(
 
   if (sem("set")) {
     // Fix pressure at one cell
-    if (auto* p = var.Double("pfixed")) {
+    if (auto* p = var.Double.Find("pfixed")) {
       if (pdist.second == m.GetId()) {
         Vect x(var.Vect["pfixed_x"]);
         IdxCell c = m.FindNearestCell(x);
@@ -1042,7 +1042,7 @@ void GetFluidCellCond(
     while (true) {
       ++n;
       std::string k = "cellbox" + std::to_string(n);
-      if (auto p = var.String(k)) {
+      if (auto p = var.String.Find(k)) {
         // set boundary conditions on faces of box (a,b)
         // normal to d with outer normal towards (b-a)[d]
         Vect a(var.Vect[k + "_a"]);

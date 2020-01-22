@@ -14,22 +14,22 @@ class Vars {
   template <class T>
   class Map {
    public:
-    using ValueType = T;
-    using M = std::map<Key, T>;
+    using Value = T;
+    using M = std::map<Key, Value>;
     using Iterator = typename M::iterator;
     using ConstIterator = typename M::const_iterator;
     std::string GetTypeName() const;
     std::string GetStr(Key) const;
     void SetStr(Key, std::string val);
-    T* operator()(Key);
-    const T* operator()(Key) const;
-    T& operator[](Key);
-    const T& operator[](Key) const;
-    T Get(Key, T /*default*/) const;
-    void Set(Key, const T& val);
-    bool Exists(Key) const;
+    Value operator()(Key, Value);
+    Value& operator[](Key);
+    Value* Find(Key);
+    const Value* Find(Key) const;
+    const Value& operator[](Key) const;
+    void Set(Key, const Value& val);
+    bool Contains(Key) const;
     void Del(Key);
-    bool DelIfExists(Key);
+    bool DelIfContains(Key);
     Iterator begin() {
       return m_.begin();
     }
@@ -48,15 +48,15 @@ class Vars {
   };
 
   // Returns map by type
-  template <class T>
-  Map<T>& Get();
-  template <class T>
-  const Map<T>& Get() const;
+  template <class Value>
+  Map<Value>& Get();
+  template <class Value>
+  const Map<Value>& Get() const;
 
   std::string GetStr(std::string type, Key) const;
   void SetStr(std::string type, Key, std::string val);
-  // Returns a type name for which entry with given k exists
-  // (if multiple found, returns one; if none, returns "")
+  // Returns type name of variable by key
+  // (if multiple types found, returns one; if none, returns "")
   std::string GetTypeName(Key) const;
   // Deletes entry by key for all types, returns true if found
   bool Del(Key);
