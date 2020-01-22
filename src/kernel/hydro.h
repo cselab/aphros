@@ -115,6 +115,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void CalcStat();
   void CalcDt();
   void ReportStep();
+  void ReportIter();
   // Issue sem.LoopBreak if abort conditions met
   void CheckAbort(Sem& sem, Scal& nabort);
   void StepFluid();
@@ -1595,7 +1596,9 @@ void Hydro<M>::Dump() {
   }
   if (sem("dumpstat")) {
     if (m.IsRoot()) {
-      ost_->Write(0., "");
+      if (st_.step % var.Int("stat_step_every", 1) == 0) {
+        ost_->Write(0., "");
+      }
     }
   }
   if (auto as = dynamic_cast<ASV*>(as_.get())) {
@@ -1654,7 +1657,9 @@ void Hydro<M>::Run() {
       sem.LoopBreak();
     } else {
       if (m.IsRoot()) {
-        ReportStep();
+        if (st_.step % var.Int("report_step_every", 1) == 0) {
+          ReportStep();
+        }
       }
       m.SeedSample();
     }
@@ -1730,6 +1735,14 @@ void Hydro<M>::ReportStep() {
 }
 
 template <class M>
+void Hydro<M>::ReportIter() {
+  std::cout << std::scientific << std::setprecision(16)
+            << ".....iter=" << fs_->GetIter() << ", diff=" << diff_
+            << std::endl;
+}
+
+
+template <class M>
 void Hydro<M>::CheckAbort(Sem& sem, Scal& nabort) {
   if (sem("abort-local")) {
     nabort = 0.;
@@ -1779,9 +1792,9 @@ void Hydro<M>::StepFluid() {
       this->var_mutable.Int["iter"] = st_.iter;
     }
     if (m.IsRoot()) {
-      std::cout << std::scientific << std::setprecision(16)
-                << ".....iter=" << fs_->GetIter() << ", diff=" << diff_
-                << std::endl;
+      if (st_.step % var.Int("report_step_every", 1) == 0) {
+        ReportIter();
+      }
     }
   }
   if (sem("convcheck")) {
