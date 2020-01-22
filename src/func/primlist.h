@@ -121,6 +121,9 @@ struct UPrimList {
       // sphere
       d = Parse("s", s, "x y z rx ry rz", 4);
       if (d.empty()) {
+        d = Parse("sphere", s, "x y z rx ry rz", 4);
+      }
+      if (d.empty()) {
         d = Parse("", s, "x y z rx ry rz", 4);
       }
 

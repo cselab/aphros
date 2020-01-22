@@ -37,7 +37,7 @@ void Run(M& m, Vars& var) {
 
   if (sem("ctor")) {
     ctx->eb.reset(new EB(m));
-    ctx->fnl = InitEmbed(m, var);
+    ctx->fnl = InitEmbed(m, var, m.IsRoot());
     fcu.Reinit(m, 0);
   }
   if (sem.Nested("init")) {

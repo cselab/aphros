@@ -400,7 +400,7 @@ void Hydro<M>::InitEmbed() {
     } * ctx(sem);
     if (sem("ctor")) {
       eb_.reset(new Embed<M>(m));
-      ctx->fnl = ::InitEmbed(m, var);
+      ctx->fnl = ::InitEmbed(m, var, m.IsRoot());
     }
     if (sem.Nested("init")) {
       eb_->Init(ctx->fnl);
