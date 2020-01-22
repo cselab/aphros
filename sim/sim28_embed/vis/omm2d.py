@@ -72,8 +72,6 @@ ffb = list(map(os.path.basename, ff))
 ffd = list(map(os.path.dirname, ff))
 # steps
 ss = [int(re.findall("_([0-9]*)", fb)[0]) for fb in ffb]
-# omm input
-ffomm = [os.path.join(d, "omm_{:04d}.xmf".format(s)) for d,s in zip(ffd,ss)]
 
 
 # output pattern (:0 substituted by frame number)
@@ -133,8 +131,9 @@ renderView1.OSPRayMaterialLibrary = materialLibrary1
 # BEGIN READERS
 # ----------------------------------------------------------------
 
-omm = XDMFReader(FileNames=ffomm)
-omm.CellArrayStatus = ['omm']
+omm = XDMFReader(FileNames=ff)
+ommname = 'omz'
+omm.CellArrayStatus = [ommname]
 omm.GridStatus = ['Grid_1']
 
 
@@ -157,20 +156,24 @@ vft = [omm]
 k = 1
 ommDisplay = Show(omm, renderView1)
 
-# get color transfer function/color map for 'omm'
-ommLUT = GetColorTransferFunction('omm')
+ommLUT = GetColorTransferFunction(ommname)
 ommLUT.AutomaticRescaleRangeMode = 'Never'
-ommLUT.RGBPoints = [0.0*k, 0.231373, 0.298039, 0.752941, 12.500000000000004*k, 0.865003, 0.865003, 0.865003, 25.0*k, 0.705882, 0.0156863, 0.14902]
+if ommname == 'omz':
+    ommLUT.RGBPoints = [-25.0*k, 0.231373, 0.298039, 0.752941, 0*k, 0.865003, 0.865003, 0.865003, 25.0*k, 0.705882, 0.0156863, 0.14902]
+else:
+    ommLUT.RGBPoints = [0.0*k, 0.231373, 0.298039, 0.752941, 12.500000000000004*k, 0.865003, 0.865003, 0.865003, 25.0*k, 0.705882, 0.0156863, 0.14902]
 ommLUT.ScalarRangeInitialized = 1.0
 
-# get opacity transfer function/opacity map for 'omm'
-ommPWF = GetOpacityTransferFunction('omm')
-ommPWF.Points = [0.0*k, 1.0, 0.5, 0.0, 25.0*k, 1.0, 0.5, 0.0]
+ommPWF = GetOpacityTransferFunction(ommname)
+if ommname == 'omz':
+    ommPWF.Points = [-25.0*k, 1.0, 0.5, 0.0, 25.0*k, 1.0, 0.5, 0.0]
+else:
+    ommPWF.Points = [0.0*k, 1.0, 0.5, 0.0, 25.0*k, 1.0, 0.5, 0.0]
 ommPWF.ScalarRangeInitialized = 1
 
 # trace defaults for the display properties.
 ommDisplay.Representation = 'Surface'
-ommDisplay.ColorArrayName = ['CELLS', 'omm']
+ommDisplay.ColorArrayName = ['CELLS', ommname]
 ommDisplay.LookupTable = ommLUT
 
 ebvtk = LegacyVTKReader(FileNames=['../eb.vtk'])

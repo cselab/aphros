@@ -1,9 +1,12 @@
-m = 64 32 1
-bs = 32 32 1
-np = 1
+m = 128 64 1
+bs = 8 8 1
+np = 128
 tl = 1440
 
-default: cleanrun
+default:
+	killall ap-mfer || true
+	make cleanall
+	make run
 
 include $(shell ap-makesim)
 
