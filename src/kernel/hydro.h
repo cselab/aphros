@@ -106,6 +106,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void InitFluid(const FieldCell<Vect>& fc_vel);
   void InitAdvection(const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl);
   void InitStat();
+  static Vect CalcDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb);
   void DumpFields();
   void Dump();
   // Calc rho, mu and force based on volume fraction
@@ -321,6 +322,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Scal dissip, dissip1, dissip2; // energy dissipation rate
     Scal edis, edis1, edis2; // dissipated energy
     std::vector<Vofm> vofm;
+    Vect eb_drag; // drag on embedded boundaries
 
     std::map<std::string, Scal> mst; // map stat
     // Add scalar field for stat.
@@ -567,6 +569,11 @@ void Hydro<M>::InitStat() {
         con.push_back(op("vofm_sum_vf" + sl, &s.vofm[l].sum_vf));
         con.push_back(op("vofm_hist" + std::to_string(l + 1), &s.vofm[l].hist));
       }
+    }
+    if (eb_) {
+      con.push_back(op("eb_drag_x", &s.eb_drag[0]));
+      con.push_back(op("eb_drag_y", &s.eb_drag[1]));
+      con.push_back(op("eb_drag_z", &s.eb_drag[2]));
     }
     ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
   }
@@ -1054,6 +1061,12 @@ void Hydro<M>::CalcStat() {
         for (auto l : layers) {
           m.Reduce(&s.vofm[l].hist, "sum");
         }
+      }
+    }
+    if (eb_) {
+      st_.eb_drag = CalcDrag(fs_->GetPressure(), *eb_);
+      for (size_t d = 0; d < dim; ++d) {
+        m.Reduce(&st_.eb_drag[d], "sum");
       }
     }
   }
@@ -1732,6 +1745,16 @@ void Hydro<M>::ReportStep() {
   std::cout << std::fixed << std::setprecision(8) << "STEP=" << st_.step
             << " t=" << st_.t << " dt=" << st_.dt << " ta=" << as_->GetTime()
             << " dta=" << as_->GetTimeStep() << std::endl;
+}
+
+template <class M>
+auto Hydro<M>::CalcDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb) -> Vect {
+  auto fep = eb.Interpolate(fcp, MapCondFace(), 1, 0.);
+  Vect sum(0);
+  for (auto c : eb.CFaces()) {
+    sum += eb.GetSurface(c) * fep[c];
+  }
+  return sum;
 }
 
 template <class M>
