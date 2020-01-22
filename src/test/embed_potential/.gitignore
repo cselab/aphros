@@ -11,3 +11,5 @@ job.id*
 out
 arg
 eb.vtk
+*_*.vtk
+*_*.dat
