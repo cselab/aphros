@@ -49,9 +49,9 @@ void Dumper::Report() {
 std::string GetDumpName(std::string fld, std::string ext, int t, int it) {
   std::stringstream s;
   s << fld;
-  s << "_" << std::setfill('0') << std::setw(5) << t;
+  s << "_" << std::setfill('0') << std::setw(4) << t;
   if (it != -1) {
-    s << "_" << std::setfill('0') << std::setw(5) << it;
+    s << "_" << std::setfill('0') << std::setw(4) << it;
   }
   s << ext;
   return s.str();
