@@ -3,6 +3,7 @@
 
 #undef NDEBUG
 #include <cassert>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -161,9 +162,7 @@ void Run(M& m, Vars& var) {
   }
   if (sem("eb_ctor")) {
     auto& eb = *eb_;
-    auto isclose = [](Scal a, Scal b) {
-      return std::abs(a - b) < 1e-6;
-    };
+    auto isclose = [](Scal a, Scal b) { return std::abs(a - b) < 1e-6; };
     for (auto f : eb.Faces()) {
       const Vect x = eb.GetFaceCenter(f);
       if (isclose(x[0], 0.)) {
@@ -196,13 +195,16 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-  std::string conf = R"EOF(
-set int bx 1
-set int by 1
-set int bz 1
+  const int bsx = 32;
+  int nx = 128; // mesh size
+  if (argc > 1) {
+    nx = atoi(argv[1]);
+  }
+  assert(nx % bsx == 0);
+  const int bx = nx / bsx;
 
-set int bsx 16
-set int bsy 16
+  std::string conf = R"EOF(
+set int bz 1
 set int bsz 1
 
 set string eb_init list
@@ -212,7 +214,15 @@ set int eb_init_inverse 1
 set int dim 2
 
 set int hypre_periodic_z 1
+set double hypre_symm_tol 1e-6
+set int hypre_symm_maxiter 1000
 
 )EOF";
+
+  conf += "set int bx " + std::to_string(bx) + "\n";
+  conf += "set int by " + std::to_string(bx) + "\n";
+  conf += "set int bsx " + std::to_string(bsx) + "\n";
+  conf += "set int bsy " + std::to_string(bsx) + "\n";
+
   return RunMpiBasic<M>(argc, argv, Run, conf);
 }

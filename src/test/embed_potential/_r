@@ -4,4 +4,4 @@ set -eu
 
 make > /dev/null
 make -C ../../ install > /dev/null
-ap-run ./t.embed_potential
+ap-run ./t.embed_potential 256
