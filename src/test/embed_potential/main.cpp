@@ -23,6 +23,22 @@ using EB = Embed<M>;
 using Type = typename EB::Type;
 
 template <class M>
+FieldCell<typename M::Scal> GetDivergence(
+    FieldFace<typename M::Scal>& ffv, const Embed<M>& eb) {
+  auto& m = eb.GetMesh();
+  using Scal = typename M::Scal;
+  FieldCell<Scal> fcdiv(m, 0);
+  for (auto c : eb.Cells()) {
+    Scal div = 0;
+    for (auto q : eb.Nci(c)) {
+      div += ffv[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
+    }
+    fcdiv[c] = div / eb.GetVolume(c);
+  }
+  return fcdiv;
+}
+
+template <class M>
 void CalcPotential(
     const MapCondFace& mfc, M& m, const Embed<M>& eb, FieldCell<Scal>& fcp,
     FieldFace<Scal>& ffv) {
@@ -42,14 +58,28 @@ void CalcPotential(
     ffe.Reinit(m);
     for (auto f : eb.Faces()) {
       ExprFace e(0);
-      Scal a = -eb.GetArea(f);
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      Scal dn =
+          (eb.GetCellCenter(cp) - eb.GetCellCenter(cm)).dot(eb.GetNormal(f));
+      dn = (dn > 0 ? 1 : -1) * std::max(std::abs(dn), m.GetCellSize()[0] * 0.5);
+      const Scal a = eb.GetArea(f) / dn;
       e[0] = -a;
       e[1] = a;
       ffe[f] = e;
     }
     // overwrite boundary conditions
-    // TODO
-    // ...
+    for (auto& it : mfc) {
+      const IdxFace f = it.first;
+      const auto& cb = it.second;
+      if (auto* cd = cb.template Get<CondFaceGrad<Scal>>()) {
+        ExprFace e(0);
+        e[2] = cd->GetGrad() * eb.GetArea(f);
+        ffe[f] = e;
+      } else {
+        throw std::runtime_error("unknown bc");
+      }
+    }
 
     // initialize as diagonal system
     fce.Reinit(m, Expr::GetUnit(0));
@@ -120,21 +150,44 @@ void Run(M& m, Vars& var) {
   auto& mfc = ctx->mfc;
   auto& fcp = ctx->fcp;
   auto& ffv = ctx->ffv;
+  auto& eb_ = ctx->eb;
 
-  if (sem("ctor")) {
-    ctx->eb.reset(new EB(m));
+  if (sem("eb_ctor")) {
+    eb_.reset(new EB(m));
     ctx->fnl = InitEmbed(m, var, m.IsRoot());
   }
-  if (sem.Nested("init")) {
-    ctx->eb->Init(ctx->fnl);
+  if (sem.Nested("eb_init")) {
+    eb_->Init(ctx->fnl);
   }
-  if (sem.Nested("dumppoly")) {
-    ctx->eb->DumpPoly();
+  if (sem("eb_ctor")) {
+    auto& eb = *eb_;
+    auto isclose = [](Scal a, Scal b) {
+      return std::abs(a - b) < 1e-6;
+    };
+    for (auto f : eb.Faces()) {
+      const Vect x = eb.GetFaceCenter(f);
+      if (isclose(x[0], 0.)) {
+        mfc[f] = UniquePtr<CondFaceGradFixed<Scal>>(1., 1);
+      }
+      if (isclose(x[0], 1.)) {
+        mfc[f] = UniquePtr<CondFaceGradFixed<Scal>>(1., 0);
+      }
+      if (isclose(x[1], 0.)) {
+        mfc[f] = UniquePtr<CondFaceGradFixed<Scal>>(0., 1);
+      }
+      if (isclose(x[1], 1.)) {
+        mfc[f] = UniquePtr<CondFaceGradFixed<Scal>>(0., 0);
+      }
+    }
+  }
+  if (sem.Nested("eb_dumppoly")) {
+    eb_->DumpPoly();
   }
   if (sem.Nested("flux-proj")) {
-    CalcPotential(mfc, m, *ctx->eb, fcp, ffv);
+    CalcPotential(mfc, m, *eb_, fcp, ffv);
   }
   if (sem("dump")) {
+    fcdiv = GetDivergence(ffv, *eb_);
     m.Dump(&fcdiv, "div");
     m.Dump(&ctx->fcp, "p");
   }
@@ -152,11 +205,11 @@ set int bsx 16
 set int bsy 16
 set int bsz 1
 
-set string eb_init sphere
-set vect eb_sphere_c 0.5 0.5 0.5
-set vect eb_sphere_r 0.249 0.249 0.249
-set double eb_sphere_angle 0
-set int eb_init_inverse 0
+set string eb_init list
+set string eb_list_path body.dat
+set int eb_init_inverse 1
+
+set int dim 2
 
 set int hypre_periodic_z 1
 
