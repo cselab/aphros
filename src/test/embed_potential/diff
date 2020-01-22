@@ -39,22 +39,36 @@ sa = ua.shape
 sb = ub.shape
 sm = np.minimum(sa, sb)
 
-zm,ym,xm = np.mgrid[:sm[0],:sm[1],:sm[2]]
-zm,ym,xm = np.mgrid[:sm[0],2:8,2:8]
-xa = xm * sa[0] // sm[0]
-ya = ym * sa[1] // sm[1]
-za = zm * sa[2] // sm[2]
-xb = xm * sb[0] // sm[0]
-yb = ym * sb[1] // sm[1]
-zb = zm * sb[2] // sm[2]
+assert all(sa % sm == 0)
+assert all(sb % sm == 0)
+
+ha = sa // sm
+hb = sb // sm
+
+da = np.mgrid[:ha[0],:ha[1],:ha[2]]
+db = np.mgrid[:hb[0],:hb[1],:hb[2]]
+da = np.reshape(da, (3,da[0].size))
+db = np.reshape(db, (3,db[0].size))
+
+im = np.mgrid[:sm[0],:sm[1],:sm[2]]
+im = np.mgrid[:sm[0],:90,:90]
+
+sa = np.reshape(sa, (3,1,1,1))
+sb = np.reshape(sb, (3,1,1,1))
+sm = np.reshape(sm, (3,1,1,1))
+
+ia = im * sa // sm
+ib = im * sb // sm
+ia = ia[:,:,:,:,np.newaxis] + da[:,np.newaxis,np.newaxis,np.newaxis,:]
+ib = ib[:,:,:,:,np.newaxis] + db[:,np.newaxis,np.newaxis,np.newaxis,:]
 
 # resample
-ra = ua[za,ya,xa]
-rb = ub[zb,yb,xb]
+ra = np.mean(ua[ia[0],ia[1],ia[2]], axis=-1)
+rb = np.mean(ub[ib[0],ib[1],ib[2]], axis=-1)
 
 # center
-ra -= ra[0,0,0]
-rb -= rb[0,0,0]
+#ra -= ra[0,0,0]
+#rb -= rb[0,0,0]
 
 d = abs(ra - rb)
 
