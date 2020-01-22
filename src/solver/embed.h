@@ -8,22 +8,23 @@
 #include <stdexcept>
 #include <unordered_map>
 
+#include "approx.h"
 #include "dump/dumper.h"
 #include "dump/vtk.h"
+#include "func/primlist.h"
 #include "geom/filter.h"
 #include "geom/transform.h"
 #include "reconst.h"
 #include "solver.h"
-#include "approx.h"
 
 template <class Scal>
 struct CondEmbed {
-  enum class Type {value, gradient};
+  enum class Type { value, gradient };
   Scal u; // value or normal gradient
 };
 
 template <class M>
-FieldNode<typename M::Scal> InitEmbed(const M& m, const Vars& var) {
+FieldNode<typename M::Scal> InitEmbed(const M& m, const Vars& var, bool verb) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   FieldNode<Scal> fnl(m); // level-set
@@ -62,7 +63,31 @@ FieldNode<typename M::Scal> InitEmbed(const M& m, const Vars& var) {
       };
       fnl[n] = (rot(x - xc) / r).norm() - 1;
     }
+  } else if (name == "list") {
+    // TODO revise with bcast
+    const std::string fn = var.String["eb_list_path"];
+    const size_t edim = var.Int["dim"];
+    std::ifstream fin(fn);
+    if (verb) {
+      std::cout << "Open list of primitives '" << fn << "' for embed"
+                << std::endl;
+    }
+    if (!fin.good()) {
+      throw std::runtime_error("Can't open list of primitives");
+    }
+    auto pp = UPrimList<Scal>::Parse(fin, verb, edim);
+
+    for (auto n : m.AllNodes()) {
+      Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
+      for (auto& p : pp) {
+        lmax = std::max(lmax, p.ls(m.GetNode(n)));
+      }
+      fnl[n] = lmax;
+    }
+  } else {
+    throw std::runtime_error("Unknown eb_init=" + name);
   }
+
   if (var.Int["eb_init_inverse"]) {
     for (auto n : m.AllNodes()) {
       fnl[n] = -fnl[n];
