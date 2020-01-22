@@ -1,8 +1,13 @@
 #!/bin/bash
 
-./_r > /dev/null
+set -eu
+
+#./_r > /dev/null
 ea=`./diff p_128.dat p_256.dat`
 eb=`./diff p_256.dat p_512.dat`
+
+echo $ea
+echo $eb
 
 echo -e "$ea\n$eb" | python -c "
 import sys
