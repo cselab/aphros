@@ -53,6 +53,7 @@
 #include "util/convdiff.h"
 #include "util/events.h"
 #include "util/hydro.h"
+#include "util/metrics.h"
 #include "young/young.h"
 
 class GPar {};
@@ -389,6 +390,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper dmptraj_; // dumper for traj
   Dumper dmptrep_; // dumper for timer report
   std::unique_ptr<Events> events_; // events from var
+  SingleTimer timer_;
 };
 
 template <class M>
@@ -1758,7 +1760,8 @@ template <class M>
 void Hydro<M>::ReportStep() {
   std::cout << std::fixed << std::setprecision(8) << "STEP=" << st_.step
             << " t=" << st_.t << " dt=" << st_.dt << " ta=" << as_->GetTime()
-            << " dta=" << as_->GetTimeStep() << std::endl;
+            << " dta=" << as_->GetTimeStep() << " wt=" << timer_.GetSeconds()
+            << std::endl;
 }
 
 template <class M>
