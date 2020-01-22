@@ -269,7 +269,7 @@ void Convdiff<M>::TestSolve(
         {"bc_yp", gyp}, {"bc_zm", gzm}, {"bc_zp", gzp}};
 
     for (auto p : pp) {
-      if (auto bc = var.String(p.first)) {
+      if (auto bc = var.String.Find(p.first)) {
         for (auto i : ff) {
           p.second(i) && set_bc(i, *bc);
         }
@@ -350,7 +350,7 @@ void Convdiff<M>::Run() {
   Scal dx = m.GetCellSize()[0];
   Vect vel(var.Vect["vel"]);
   Scal ns = var.Int["num_steps"];
-  if (auto pcfl = var.Double("cfl")) {
+  if (auto pcfl = var.Double.Find("cfl")) {
     Scal cfl = *pcfl;
     Scal dt = dx * cfl / vel.norminf();
     this->var_mutable.Double.Set("dt", dt);

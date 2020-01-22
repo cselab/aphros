@@ -324,7 +324,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
     };
   } else if (v == "sin") {
     Vect k;
-    if (auto p = par.Vect("sin_k")) {
+    if (auto p = par.Vect.Find("sin_k")) {
       k = Vect(*p);
     } else {
       k = Vect(2. * M_PI);

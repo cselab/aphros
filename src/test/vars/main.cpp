@@ -56,14 +56,14 @@ void TestPtr(const T& v /*value*/, const T& vo /*other*/) {
   m.Set(k, v);
   const auto& cm = m;
   assert(m[k] == v);
-  assert(*m(k) == v);
+  assert(*m.Find(k) == v);
   assert(cm[k] == v);
-  assert(*cm(k) == v);
+  assert(*cm.Find(k) == v);
 
   m[k] = vo;
   assert(cm[k] == vo);
 
-  *m(k) = v;
+  *m.Find(k) = v;
   assert(cm[k] == v);
 }
 
@@ -73,9 +73,9 @@ void TestDel(std::string s) {
   std::string k = "key";
   auto& m = vars.Get<T>();
   m.SetStr(k, s);
-  assert(m.Exists(k));
+  assert(m.Contains(k));
   m.Del(k);
-  assert(!m.Exists(k));
+  assert(!m.Contains(k));
 }
 
 void Test() {

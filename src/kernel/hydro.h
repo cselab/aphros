@@ -138,7 +138,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   // Surface tension time step
   Scal GetStDt() {
     const Scal sig = var.Double["sigma"];
-    const Scal* cflst = var.Double("cflst");
+    const Scal* cflst = var.Double.Find("cflst");
     if (cflst && sig != 0.) {
       Scal pi = M_PI;
       Scal h3 = m.GetVolume(IdxCell(0));
@@ -157,7 +157,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     const Scal nu1 = mu1 / rho1;
     const Scal nu2 = mu2 / rho2;
     const Scal num = std::max(nu1, nu2);
-    const Scal* cflvis = var.Double("cflvis");
+    const Scal* cflvis = var.Double.Find("cflvis");
     if (cflvis && num != 0.) {
       const Scal h2 = sqr(m.GetCellSize()[0]); // XXX adhoc cubic cell
       return (*cflvis) * h2 / num;
@@ -1079,7 +1079,7 @@ void Hydro<M>::CalcStat() {
     s.edis1 += s.dissip1 * dt;
     s.edis2 += s.dissip2 * dt;
 
-    if (const std::string* s = var.String("meshvel_auto")) {
+    if (const std::string* s = var.String.Find("meshvel_auto")) {
       auto upd = [this, s](Vect& meshvel) {
         Vect vel(0);
         if (*s == "v") {
@@ -1202,7 +1202,7 @@ void Hydro<M>::CalcDt() {
   }
   if (sem("reduce")) {
     // set from cfl if defined
-    if (auto* cfl = var.Double("cfl")) {
+    if (auto* cfl = var.Double.Find("cfl")) {
       st_.dt = st_.dtt * (*cfl);
       st_.dt = std::min<Scal>(st_.dt, var.Double["dtmax"]);
     }
@@ -1219,7 +1219,7 @@ void Hydro<M>::CalcDt() {
     }
 
     // set from cfla if defined
-    if (auto* cfla = var.Double("cfla")) {
+    if (auto* cfla = var.Double.Find("cfla")) {
       st_.dta = st_.dtt * (*cfla);
       st_.dta = std::min<Scal>(st_.dta, var.Double["dtmax"]);
     }
@@ -1790,7 +1790,7 @@ void Hydro<M>::StepAdvection() {
   auto sem = m.GetSem("steps"); // sem nested
   sem.LoopBegin();
   if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-    const Scal* const voidpenal = var.Double("voidpenal");
+    const Scal* const voidpenal = var.Double.Find("voidpenal");
     if (voidpenal && sem("void-penal")) {
       auto fccl = as->GetColor();
       auto fcu = as->GetFieldM();

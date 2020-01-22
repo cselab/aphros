@@ -14,7 +14,7 @@ bool Dumper::Try(double t, double dt) {
   if (pt_ == t) {
     return true;
   }
-  if (const double* t0 = var.Double(pre_ + "t0")) {
+  if (const double* t0 = var.Double.Find(pre_ + "t0")) {
     if (t < *t0 - dt * 0.5) {
       return false;
     }

@@ -17,7 +17,7 @@ void Events::Parse() {
   const int nmax = 100;
   while (true) {
     std::string k = "ev" + std::to_string(n);
-    if (auto p = var_.String(k)) {
+    if (auto p = var_.String.Find(k)) {
       Event e;
       std::stringstream b(*p); // buf
       b >> std::skipws;

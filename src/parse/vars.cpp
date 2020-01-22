@@ -68,16 +68,16 @@ std::string Vars::Map<std::vector<double>>::GetTypeName() const {
 }
 
 std::string Vars::GetTypeName(Key k) const {
-  if (String.Exists(k)) {
+  if (String.Contains(k)) {
     return String.GetTypeName();
   }
-  if (Int.Exists(k)) {
+  if (Int.Contains(k)) {
     return Int.GetTypeName();
   }
-  if (Double.Exists(k)) {
+  if (Double.Contains(k)) {
     return Double.GetTypeName();
   }
-  if (Vect.Exists(k)) {
+  if (Vect.Contains(k)) {
     return Vect.GetTypeName();
   }
   return "";
@@ -152,46 +152,43 @@ void Vars::Map<std::string>::SetStr(Key k, std::string s) {
 
 template <class T>
 const T& Vars::Map<T>::operator[](Key k) const {
-  if (!m_.count(k)) {
+  auto it = m_.find(k);
+  if (it == m_.end()) {
     std::cerr << "variable '" << k << "' of type '" << GetTypeName()
               << "' not found" << std::endl;
     throw std::runtime_error("Vars::GetStr(): Variable not found");
   }
-  return m_.at(k);
-}
-
-template <class T>
-T Vars::Map<T>::Get(Key k, T def) const {
-  if (m_.count(k)) {
-    return m_.at(k);
-  }
-  return def;
+  return it->second;
 }
 
 template <class T>
 T& Vars::Map<T>::operator[](Key k) {
-  if (!m_.count(k)) {
+  auto it = m_.find(k);
+  if (it == m_.end()) {
     std::cerr << "variable '" << k << "' of type '" << GetTypeName()
               << "' not found" << std::endl;
     throw std::runtime_error("Vars::GetStr(): Variable not found");
   }
-  return m_.at(k);
+  return it->second;
 }
 
 template <class T>
-const T* Vars::Map<T>::operator()(Key k) const {
-  if (m_.count(k)) {
-    return &m_.at(k);
-  }
-  return nullptr;
+auto Vars::Map<T>::Find(Key k) -> Value* {
+  auto it = m_.find(k);
+  return it != m_.end() ? &it->second : nullptr;
 }
 
 template <class T>
-T* Vars::Map<T>::operator()(Key k) {
-  if (m_.count(k)) {
-    return &m_.at(k);
-  }
-  return nullptr;
+auto Vars::Map<T>::Find(Key k) const -> const Value* {
+  auto it = m_.find(k);
+  return it != m_.end() ? &it->second : nullptr;
+}
+
+
+template <class T>
+auto Vars::Map<T>::operator()(Key k, Value v) -> Value {
+  auto it = m_.find(k);
+  return it != m_.end() ? it->second : v;
 }
 
 template <class T>
@@ -200,7 +197,7 @@ void Vars::Map<T>::Set(Key k, const T& v) {
 }
 
 template <class T>
-bool Vars::Map<T>::Exists(Key k) const {
+bool Vars::Map<T>::Contains(Key k) const {
   return m_.count(k);
 }
 
@@ -210,8 +207,8 @@ void Vars::Map<T>::Del(Key k) {
 }
 
 template <class T>
-bool Vars::Map<T>::DelIfExists(Key k) {
-  if (Exists(k)) {
+bool Vars::Map<T>::DelIfContains(Key k) {
+  if (Contains(k)) {
     Del(k);
     return true;
   }
@@ -220,10 +217,10 @@ bool Vars::Map<T>::DelIfExists(Key k) {
 
 bool Vars::Del(Key k) {
   bool r = false;
-  r = r || String.DelIfExists(k);
-  r = r || Int.DelIfExists(k);
-  r = r || Double.DelIfExists(k);
-  r = r || Vect.DelIfExists(k);
+  r = r || String.DelIfContains(k);
+  r = r || Int.DelIfContains(k);
+  r = r || Double.DelIfContains(k);
+  r = r || Vect.DelIfContains(k);
   return r;
 }
 

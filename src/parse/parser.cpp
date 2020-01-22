@@ -64,7 +64,7 @@ void Parser::CmdSetNext(std::string s) {
   std::getline(b, val);
   val = c + val;
 
-  if (!v_.Int.Exists(key)) {
+  if (!v_.Int.Contains(key)) {
     v_.Int.Set(key, 0);
   }
   int& id = v_.Int[key];
