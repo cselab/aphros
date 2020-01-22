@@ -57,6 +57,22 @@
 
 class GPar {};
 
+template <class M>
+FieldCell<typename M::Scal> GetDivergence(
+    const FieldFace<typename M::Scal>& ffv, const M& m, const Embed<M>& eb) {
+  using Scal = typename M::Scal;
+  FieldCell<Scal> fcdiv(m, 0);
+  for (auto c : eb.Cells()) {
+    Scal div = 0;
+    for (auto q : eb.Nci(c)) {
+      div += ffv[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
+    }
+    fcdiv[c] = div / eb.GetVolume(c);
+  }
+  return fcdiv;
+}
+
+
 template <class M_>
 class Hydro : public KernelMeshPar<M_, GPar> {
  public:
@@ -197,9 +213,11 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     }
   }
   FieldCell<Scal> GetDiv() {
-    FieldCell<Scal> fc(m, 0); // result
     auto& ffv = fs_->GetVolumeFlux();
-
+    if (eb_) {
+      return GetDivergence(ffv, m, *eb_);
+    }
+    FieldCell<Scal> fc(m, 0); // result
     for (auto c : m.Cells()) {
       for (auto q : m.Nci(c)) {
         IdxFace f = m.GetFace(c, q);
