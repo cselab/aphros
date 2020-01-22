@@ -21,7 +21,7 @@ class Vars {
     std::string GetTypeName() const;
     std::string GetStr(Key) const;
     void SetStr(Key, std::string val);
-    Value operator()(Key, Value);
+    Value operator()(Key, Value) const;
     Value& operator[](Key);
     Value* Find(Key);
     const Value* Find(Key) const;

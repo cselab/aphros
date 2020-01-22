@@ -218,13 +218,16 @@ class Embed {
       InitFaces(fnl_, fft_, ffpoly_, ffs_, m);
       InitCells(fnl_, ffs_, fct_, fcn_, fca_, fcs_, fcv_, m);
       InitRedistr(fct_, fcv_, fcs_, fc_redistr_, mc_redistr_, m);
+      m.Comm(&fc_redistr_);
 
+      // volume of neighbor cells
       fcvst3_.Reinit(m, 0);
       for (auto c : eb.Cells()) {
         for (auto cn : eb.Stencil(c)) {
           fcvst3_[c] += eb.GetVolume(cn);
         }
       }
+      m.Comm(&fcvst3_);
     }
   }
   Type GetType(IdxCell c) const {
@@ -689,13 +692,13 @@ class Embed {
       std::vector<Vect> xx;
       bool cut = false;
       for (size_t e = 0; e < em; ++e) {
-        size_t ep = (e + 1) % em;
-        IdxNode n = m.GetNode(f, e);
-        IdxNode np = m.GetNode(f, ep);
-        Scal l = fnl[n];
-        Scal lp = fnl[np];
-        Vect x = m.GetNode(n);
-        Vect xp = m.GetNode(np);
+        const size_t ep = (e + 1) % em;
+        const IdxNode n = m.GetNode(f, e);
+        const IdxNode np = m.GetNode(f, ep);
+        const Scal l = fnl[n];
+        const Scal lp = fnl[np];
+        const Vect x = m.GetNode(n);
+        const Vect xp = m.GetNode(np);
         if (l > 0) {
           xx.push_back(x);
         }
@@ -799,19 +802,12 @@ class Embed {
       const FieldCell<Scal>& fcs, FieldCell<Scal>& fc_redistr,
       MapCell<std::vector<std::pair<IdxCell, Scal>>>& mc_redistr, const M& m) {
     fc_redistr.Reinit(m, 1);
-    const int sw = 1; // stencil halfwidth
-    using MIdx = typename M::MIdx;
-    auto& bc = m.GetIndexCells();
-    GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1)); // offsets
     const Scal hreg = m.GetCellSize()[0]; // XXX adhoc cubic cells
     for (auto c : m.Cells()) {
       if (fct[c] == Type::cut) {
         const Scal a = std::min(1., fcv[c] / (hreg * fcs[c]));
         std::vector<std::pair<IdxCell, Scal>> vp;
-        const MIdx w = bc.GetMIdx(c);
-        for (auto wo : bo) {
-          const MIdx wn = w + wo;
-          const IdxCell cn = bc.GetIdx(wn);
+        for (auto cn : m.Stencil(c)) {
           if (fct[cn] != Type::excluded && cn != c) {
             vp.push_back({cn, 1});
           }
