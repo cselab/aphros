@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import numpy as np
+
+# Read uniform grid data
+# p: path
+# Format:
+# <nx> <ny> <nz>
+# <u[0,0,0]> <u[0,0,1]> ...
+# Return:
+# array of shape (nx, ny, nz)
+# None if file not found
+def ReadPlain(p):
+  if not os.path.isfile(p):
+    return None
+  with open(p) as f:
+    ll = f.readlines()
+    # shape x,y,z
+    s = np.array(ll[0].split(), dtype=int)
+    # shape z,y,x
+    ss = tuple(reversed(s))
+    # data flat
+    u = np.array(ll[1].split(), dtype=float)
+    # data z,y,x
+    u = u.reshape(ss)
+    return u
+
+av = sys.argv
+
+pa = av[1]
+pb = av[2]
+
+ua = ReadPlain(pa)
+ub = ReadPlain(pb)
+
+sa = ua.shape
+sb = ub.shape
+sm = np.minimum(sa, sb)
+
+zm,ym,xm = np.mgrid[:sm[0],:sm[1],:sm[2]]
+zm,ym,xm = np.mgrid[:sm[0],2:8,2:8]
+xa = xm * sa[0] // sm[0]
+ya = ym * sa[1] // sm[1]
+za = zm * sa[2] // sm[2]
+xb = xm * sb[0] // sm[0]
+yb = ym * sb[1] // sm[1]
+zb = zm * sb[2] // sm[2]
+
+# resample
+ra = ua[za,ya,xa]
+rb = ub[zb,yb,xb]
+
+# center
+ra -= ra[0,0,0]
+rb -= rb[0,0,0]
+
+d = abs(ra - rb)
+
+l1 = d.mean()
+l2 = (d ** 2).mean() ** 0.5
+linf = d.max()
+
+print("{:} {:} {:}".format(l1, l2, linf))
