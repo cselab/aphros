@@ -216,7 +216,7 @@ set string dumpformat plain
 set int dim 2
 
 set int hypre_periodic_z 1
-set double hypre_symm_tol 1e-6
+set double hypre_symm_tol 1e-4
 set int hypre_symm_maxiter 1000
 
 )EOF";
