@@ -72,7 +72,6 @@ FieldCell<typename M::Scal> GetDivergence(
   return fcdiv;
 }
 
-
 template <class M_>
 class Hydro : public KernelMeshPar<M_, GPar> {
  public:
@@ -106,7 +105,10 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void InitFluid(const FieldCell<Vect>& fc_vel);
   void InitAdvection(const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl);
   void InitStat();
-  static Vect CalcDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb);
+  static Vect CalcPressureDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb);
+  static Vect CalcViscousDrag(
+      const FieldCell<Vect>& fcvel, const FieldCell<Scal>& fcmu,
+      const Embed<M>& eb);
   void DumpFields();
   void Dump();
   // Calc rho, mu and force based on volume fraction
@@ -322,7 +324,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Scal dissip, dissip1, dissip2; // energy dissipation rate
     Scal edis, edis1, edis2; // dissipated energy
     std::vector<Vofm> vofm;
-    Vect eb_drag; // drag on embedded boundaries
+    Vect eb_pdrag; // pressure drag on embedded boundaries
+    Vect eb_vdrag; // viscous drag
+    Vect eb_drag; // total drag
 
     std::map<std::string, Scal> mst; // map stat
     // Add scalar field for stat.
@@ -571,9 +575,15 @@ void Hydro<M>::InitStat() {
       }
     }
     if (eb_) {
-      con.push_back(op("eb_drag_x", &s.eb_drag[0]));
-      con.push_back(op("eb_drag_y", &s.eb_drag[1]));
-      con.push_back(op("eb_drag_z", &s.eb_drag[2]));
+      con.push_back(op("pdragx", &s.eb_pdrag[0]));
+      con.push_back(op("pdragy", &s.eb_pdrag[1]));
+      con.push_back(op("pdragz", &s.eb_pdrag[2]));
+      con.push_back(op("vdragx", &s.eb_vdrag[0]));
+      con.push_back(op("vdragy", &s.eb_vdrag[1]));
+      con.push_back(op("vdragz", &s.eb_vdrag[2]));
+      con.push_back(op("dragx", &s.eb_drag[0]));
+      con.push_back(op("dragy", &s.eb_drag[1]));
+      con.push_back(op("dragz", &s.eb_drag[2]));
     }
     ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
   }
@@ -1064,8 +1074,12 @@ void Hydro<M>::CalcStat() {
       }
     }
     if (eb_) {
-      st_.eb_drag = CalcDrag(fs_->GetPressure(), *eb_);
+      st_.eb_pdrag = CalcPressureDrag(fs_->GetPressure(), *eb_);
+      st_.eb_vdrag = CalcViscousDrag(fs_->GetVelocity(), fc_mu_, *eb_);
+      st_.eb_drag = st_.eb_pdrag + st_.eb_vdrag;
       for (size_t d = 0; d < dim; ++d) {
+        m.Reduce(&st_.eb_pdrag[d], "sum");
+        m.Reduce(&st_.eb_vdrag[d], "sum");
         m.Reduce(&st_.eb_drag[d], "sum");
       }
     }
@@ -1748,11 +1762,25 @@ void Hydro<M>::ReportStep() {
 }
 
 template <class M>
-auto Hydro<M>::CalcDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb) -> Vect {
+auto Hydro<M>::CalcPressureDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb)
+    -> Vect {
   auto fep = eb.Interpolate(fcp, MapCondFace(), 1, 0.);
   Vect sum(0);
   for (auto c : eb.CFaces()) {
     sum += eb.GetSurface(c) * fep[c];
+  }
+  return sum;
+}
+
+template <class M>
+auto Hydro<M>::CalcViscousDrag(
+    const FieldCell<Vect>& fcvel, const FieldCell<Scal>& fcmu,
+    const Embed<M>& eb) -> Vect {
+  auto feg = eb.Gradient(fcvel, MapCondFace(), 0, Vect(0));
+  auto femu = eb.Interpolate(fcmu, MapCondFace(), 1, 0.);
+  Vect sum(0);
+  for (auto c : eb.CFaces()) {
+    sum += feg[c] * (-eb.GetArea(c) * femu[c]);
   }
   return sum;
 }
@@ -1763,7 +1791,6 @@ void Hydro<M>::ReportIter() {
             << ".....iter=" << fs_->GetIter() << ", diff=" << diff_
             << std::endl;
 }
-
 
 template <class M>
 void Hydro<M>::CheckAbort(Sem& sem, Scal& nabort) {
