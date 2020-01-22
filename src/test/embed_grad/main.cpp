@@ -98,13 +98,17 @@ void Run(M& m, Vars& var) {
     std::unique_ptr<EB> eb;
     FieldCell<Vect> fcg;
     FieldCell<Scal> fcu;
+    FieldNode<Scal> fnl;
   } * ctx(sem);
   auto& fcg = ctx->fcg;
   auto& fcu = ctx->fcu;
 
-  if (sem("init")) {
-    auto fnl = InitEmbed(m, var);
-    ctx->eb.reset(new EB(m, fnl));
+  if (sem("ctor")) {
+    ctx->eb.reset(new EB(m));
+    ctx->fnl = InitEmbed(m, var);
+  }
+  if (sem.Nested("init")) {
+    ctx->eb->Init(ctx->fnl);
   }
   if (sem.Nested("dumppoly")) {
     auto& eb = *ctx->eb;

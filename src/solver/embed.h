@@ -210,15 +210,20 @@ class Embed {
  public:
   enum class Type { regular, cut, excluded };
   // fnl: level-set function on nodes, interface at fnl=0
-  Embed(M& m, const FieldNode<Scal>& fnl) : m(m), eb(*this), fnl_(fnl) {
-    InitFaces(fnl_, fft_, ffpoly_, ffs_, m);
-    InitCells(fnl_, ffs_, fct_, fcn_, fca_, fcs_, fcv_, m);
-    InitRedistr(fct_, fcv_, fcs_, fc_redistr_, mc_redistr_, m);
+  Embed(M& m) : m(m), eb(*this) {}
+  void Init(const FieldNode<Scal>& fnl) {
+    auto sem = m.GetSem("init");
+    if (sem()) {
+      fnl_ = fnl;
+      InitFaces(fnl_, fft_, ffpoly_, ffs_, m);
+      InitCells(fnl_, ffs_, fct_, fcn_, fca_, fcs_, fcv_, m);
+      InitRedistr(fct_, fcv_, fcs_, fc_redistr_, mc_redistr_, m);
 
-    fcvst3_.Reinit(m, 0);
-    for (auto c : eb.Cells()) {
-      for (auto cn : eb.Stencil(c)) {
-        fcvst3_[c] += eb.GetVolume(cn);
+      fcvst3_.Reinit(m, 0);
+      for (auto c : eb.Cells()) {
+        for (auto cn : eb.Stencil(c)) {
+          fcvst3_[c] += eb.GetVolume(cn);
+        }
       }
     }
   }

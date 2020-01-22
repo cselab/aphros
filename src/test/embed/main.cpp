@@ -27,6 +27,7 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fcu;
     FieldEmbed<Scal> feu;
     MapCondFace mfc;
+    FieldNode<Scal> fnl;
     size_t frame = 0;
   } * ctx(sem);
   auto& fcu = ctx->fcu;
@@ -34,10 +35,13 @@ void Run(M& m, Vars& var) {
   auto& frame = ctx->frame;
   auto& mfc = ctx->mfc;
 
-  if (sem("init")) {
-    auto fnl = InitEmbed(m, var);
-    ctx->eb.reset(new EB(m, fnl));
+  if (sem("ctor")) {
+    ctx->eb.reset(new EB(m));
+    ctx->fnl = InitEmbed(m, var);
     fcu.Reinit(m, 0);
+  }
+  if (sem.Nested("init")) {
+    ctx->eb->Init(ctx->fnl);
   }
   if (sem.Nested("dumppoly")) {
     auto& eb = *ctx->eb;

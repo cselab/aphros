@@ -387,7 +387,17 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 template <class M>
 void Hydro<M>::InitEmbed() {
   if (var.Int["enable_embed"]) {
-    eb_.reset(new Embed<M>(m, ::InitEmbed(m, var)));
+    auto sem = m.GetSem("embed");
+    struct {
+      FieldNode<Scal> fnl;
+    } * ctx(sem);
+    if (sem("ctor")) {
+      eb_.reset(new Embed<M>(m));
+      ctx->fnl = ::InitEmbed(m, var);
+    }
+    if (sem.Nested("init")) {
+      eb_->Init(ctx->fnl);
+    }
   }
 }
 
@@ -748,10 +758,11 @@ void Hydro<M>::Init() {
       this->var_mutable.Double.Set("dta", st_.dta);
     }
   }
+  if (sem.Nested("embed")) {
+    InitEmbed();
+  }
 
   if (sem("solv")) {
-    InitEmbed();
-
     InitFluid(fcvel);
 
     InitAdvection(fcvf, fccl);

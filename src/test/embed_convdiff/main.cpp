@@ -160,6 +160,7 @@ void Run(M& m, Vars& var) {
     FieldCell<Vect> fcs;
     FieldFace<Scal> ffv;
     FieldCell<Scal> fcdiv;
+    FieldNode<Scal> fnl;
     size_t frame = 0;
   } * ctx(sem);
   auto& cd = ctx->cd;
@@ -172,9 +173,12 @@ void Run(M& m, Vars& var) {
   const size_t bc = 0;
   const Vect bcvel(0);
 
-  if (sem("initeb")) {
-    auto fnl = InitEmbed(m, var);
-    ctx->eb.reset(new EB(m, fnl));
+  if (sem("ctor")) {
+    ctx->eb.reset(new EB(m));
+    ctx->fnl = InitEmbed(m, var);
+  }
+  if (sem.Nested("init")) {
+    ctx->eb->Init(ctx->fnl);
   }
   if (sem("init")) {
     auto& eb = *ctx->eb;
