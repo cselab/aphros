@@ -35,6 +35,10 @@ template void GradientB(
     const FieldCell<T>& fc, const MapCondFace& mfc, const M& m,
     FieldFace<T>& ff);
 
+template void GradientB(
+    const FieldCell<TV>& fc, const MapCondFace& mfc, const M& m,
+    FieldFace<TV>& ff);
+
 template void Gradient(
     const FieldCell<T>& fc, const MapCondFace& mfc, const M& m,
     FieldFace<T>& ff);
