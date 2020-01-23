@@ -197,8 +197,7 @@ void ConvDiffVectEmbed<M_>::Assemble(
 }
 
 template <class M_>
-void ConvDiffVectEmbed<M_>::CorrectVelocity(
-    Step l, const FieldCell<Vect>& u) {
+void ConvDiffVectEmbed<M_>::CorrectVelocity(Step l, const FieldCell<Vect>& u) {
   imp->CorrectVelocity(l, u);
 }
 

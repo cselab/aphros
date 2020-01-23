@@ -23,7 +23,6 @@ void Reorder(std::vector<T>& v, const std::vector<size_t> idx) {
   }
 }
 
-
 template <class M_>
 struct PartStrMeshM<M_>::Imp {
   static constexpr size_t dim = M::dim;
@@ -219,7 +218,7 @@ struct PartStrMeshM<M_>::Imp {
 
     auto xx = R::GetCutPoly(xc, n, a, h); // interface polygon
     if (R::GetInterPoly(xx, mc, mn, e)) { // intersection non-empty
-    //if (GetInterPoly(xc, n, a, h, mc, mn, e[0], e[1])) {
+      // if (GetInterPoly(xc, n, a, h, mc, mn, e[0], e[1])) {
       // interface normal
       auto pn = GetPlaneCoords(mc + n, v);
       // line ends
@@ -415,8 +414,9 @@ struct PartStrMeshM<M_>::Imp {
 
           std::vector<size_t> idx(dpc.size());
           std::iota(idx.begin(), idx.end(), 0);
-          std::stable_sort(idx.begin(), idx.end(),
-               [&dpc](size_t i1, size_t i2) {return dpc[i1] < dpc[i2];});
+          std::stable_sort(
+              idx.begin(), idx.end(),
+              [&dpc](size_t i1, size_t i2) { return dpc[i1] < dpc[i2]; });
 
           for (size_t j = 0; j < dpx.size(); ++j) {
             const size_t i = idx[j];
@@ -469,8 +469,9 @@ struct PartStrMeshM<M_>::Imp {
       if (m.IsRoot()) {
         std::vector<size_t> idx(dlc.size());
         std::iota(idx.begin(), idx.end(), 0);
-        std::stable_sort(idx.begin(), idx.end(),
-             [&](size_t i1, size_t i2) {return dlc[i1] < dlc[i2];});
+        std::stable_sort(idx.begin(), idx.end(), [&](size_t i1, size_t i2) {
+          return dlc[i1] < dlc[i2];
+        });
 
         Reorder(dl, idx);
         Reorder(dlc, idx);

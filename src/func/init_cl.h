@@ -60,31 +60,30 @@ CreateInitCl(const Vars& par, bool verb) {
     }
     auto pp = UPrimList<Scal>::Parse(fin, verb, edim);
 
-    return
-        [pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf, const M& m) {
-          cl.Reinit(m, kClNone);
-          if (pp.empty()) {
-            return;
-          }
+    return [pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf, const M& m) {
+      cl.Reinit(m, kClNone);
+      if (pp.empty()) {
+        return;
+      }
 
-          for (auto c : m.Cells()) {
-            if (vf[c] > 0.) {
-              auto x = m.GetCenter(c);
-              Scal fm = -std::numeric_limits<Scal>::max(); // maximum level-set
-              size_t im = 0;
-              ; // index of maximum
-              for (size_t i = 0; i < pp.size(); ++i) {
-                auto& p = pp[i];
-                Scal fi = p.ls(x);
-                if (fi > fm) {
-                  fm = fi;
-                  im = i;
-                }
-              }
-              cl[c] = im;
+      for (auto c : m.Cells()) {
+        if (vf[c] > 0.) {
+          auto x = m.GetCenter(c);
+          Scal fm = -std::numeric_limits<Scal>::max(); // maximum level-set
+          size_t im = 0;
+          ; // index of maximum
+          for (size_t i = 0; i < pp.size(); ++i) {
+            auto& p = pp[i];
+            Scal fi = p.ls(x);
+            if (fi > fm) {
+              fm = fi;
+              im = i;
             }
           }
-        };
+          cl[c] = im;
+        }
+      }
+    };
   } else if (v == "box") {
     Vect xc(par.Vect["box_c"]);
     Scal s = par.Double["box_s"];

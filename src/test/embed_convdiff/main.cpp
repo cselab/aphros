@@ -215,8 +215,7 @@ void Run(M& m, Vars& var) {
   for (size_t t = 0; t < maxt; ++t) {
     if (sem("flux-init")) {
       auto& eb = *ctx->eb;
-      auto fevel =
-          eb.Interpolate(cd->GetVelocity(), MapCondFace(), bc, bcvel);
+      auto fevel = eb.Interpolate(cd->GetVelocity(), MapCondFace(), bc, bcvel);
       for (auto f : eb.Faces()) {
         ffv[f] = fevel[f].dot(eb.GetNormal(f) * eb.GetArea(f));
       }

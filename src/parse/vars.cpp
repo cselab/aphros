@@ -184,7 +184,6 @@ auto Vars::Map<T>::Find(Key k) const -> const Value* {
   return it != m_.end() ? &it->second : nullptr;
 }
 
-
 template <class T>
 auto Vars::Map<T>::operator()(Key k, Value v) const -> Value {
   auto it = m_.find(k);

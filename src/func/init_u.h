@@ -358,9 +358,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
       }
     };
   } else if (v == "readplain") {
-    return [](FieldCell<Scal>& fc, const M& m) {
-      fc.Reinit(m, 1);
-    };
+    return [](FieldCell<Scal>& fc, const M& m) { fc.Reinit(m, 1); };
   } else if (v == "zero") {
     return [](FieldCell<Scal>& fc, const M& m) {
       for (auto c : m.Cells()) {

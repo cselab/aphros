@@ -8,8 +8,8 @@
 #include <memory>
 #include <random>
 #include <string>
-#include <utility>
 #include <tuple>
+#include <utility>
 
 #include "distr/distrbasic.h"
 #include "solver/embed.h"
@@ -144,7 +144,7 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-    std::string conf = R"EOF(
+  std::string conf = R"EOF(
 set int bx 1
 set int by 1
 set int bz 1
@@ -167,5 +167,5 @@ set double eb_sphere_angle 0
 
 set int eb_init_inverse 1
 )EOF";
-    return RunMpiBasic<M>(argc, argv, Run, conf);
-  }
+  return RunMpiBasic<M>(argc, argv, Run, conf);
+}
