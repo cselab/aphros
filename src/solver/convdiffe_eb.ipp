@@ -57,27 +57,27 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
     auto sem = m.GetSem("assemble");
 
     if (sem("assemble")) {
+      /*
       const FieldCell<Vect> fcg =
           eb.AverageCutCells(eb.Gradient(eb.Interpolate(fcu, mfc_, bc_, bcu_)));
+          */
 
+      // diagonal linear system la * x + lb = 0
       fcla.Reinit(m);
       fclb.Reinit(m, 0.);
 
       // Convective fluxes
       {
-        FieldEmbed<Scal> feq = eb.Interpolate(fcu, mfc_, bc_, bcu_);
+        FieldEmbed<Scal> feq =
+            eb.InterpolateUpwind(fcu, fev.GetFieldFace(), mfc_, bc_, bcu_);
         for (auto f : eb.Faces()) {
-          // upwind cell
-          const IdxCell c = (fev[f] > 0 ? m.GetCell(f, 0) : m.GetCell(f, 1));
-          // feq[f] += fcg[c].dot(eb.GetCellCenter(c) - eb.GetFaceCenter(f));
-          feq[f] = fcu[c];
           feq[f] *= fev[f];
         }
         for (auto c : eb.CFaces()) {
           feq[c] *= fev[c];
         }
         // Append
-        for (IdxCell c : eb.Cells()) {
+        for (auto c : eb.Cells()) {
           Scal s = feq[c]; // sum
           for (auto q : m.Nci(c)) {
             const IdxFace f = m.GetFace(c, q);
@@ -91,13 +91,13 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
       if (fed_) {
         FieldEmbed<Scal> feq = eb.Gradient(fcu, mfc_, bc_, bcu_);
         for (auto f : eb.Faces()) {
-          feq[f] *= (-(*fed_)[f]) * eb.GetArea(f);
+          feq[f] *= -(*fed_)[f] * eb.GetArea(f);
         }
         for (auto c : eb.CFaces()) {
-          feq[c] *= (-(*fed_)[c]) * eb.GetArea(c);
+          feq[c] *= -(*fed_)[c] * eb.GetArea(c);
         }
         // Append
-        for (IdxCell c : m.Cells()) {
+        for (auto c : m.Cells()) {
           Scal s = feq[c]; // sum
           for (auto q : m.Nci(c)) {
             IdxFace f = m.GetFace(c, q);

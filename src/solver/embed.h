@@ -437,6 +437,7 @@ class Embed {
     }
     return fcu;
   }
+  // Mid-point interpolation.
   // fcu: field [a]
   // bc: boundary conditions type, 0: value, 1: grad
   // bcv: value or normal gradient (grad dot GetNormal)
@@ -445,39 +446,51 @@ class Embed {
   template <class T>
   FieldEmbed<T> Interpolate(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
-    FieldEmbed<T> feu(m, T(0)); // FIXME should be nan
-    for (auto f : m.SuFaces()) {
-      switch (fft_[f]) {
-        case Type::regular:
-        case Type::cut: {
-          IdxCell cm = m.GetCell(f, 0);
-          IdxCell cp = m.GetCell(f, 1);
-          Scal a = 0.5;
-          feu[f] = fcu[cm] * (1 - a) + fcu[cp] * a;
-          break;
-        }
-        case Type::excluded: {
-          break;
-        }
+    FieldEmbed<T> feu(m, T(0));
+    for (auto f : eb.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      const Scal a = 0.5;
+      feu[f] = fcu[cm] * (1 - a) + fcu[cp] * a;
+    }
+    for (auto c : eb.CFaces()) {
+      if (bc == 0) {
+        feu[c] = bcv;
+      } else if (bc == 1) {
+        feu[c] = fcu[c] + bcv * GetFaceOffset(c);
+      } else {
+        throw std::runtime_error(
+            "Interpolate: unknown bc=" + std::to_string(bc));
       }
     }
-    for (auto c : m.SuCells()) {
-      switch (fct_[c]) {
-        case Type::cut: {
-          if (bc == 0) {
-            feu[c] = bcv;
-          } else if (bc == 1) {
-            feu[c] = fcu[c] + bcv * GetFaceOffset(c);
-          } else {
-            throw std::runtime_error(
-                "Interpolate: unknown bc=" + std::to_string(bc));
-          }
-          break;
-        }
-        case Type::regular:
-        case Type::excluded: {
-          break;
-        }
+    InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
+    return feu;
+  }
+  // Upwind interpolation.
+  // fcu: field [a]
+  // ffv: volume flux
+  // mfc: conditions on faces
+  // bc: boundary conditions type, 0: value, 1: grad
+  // bcv: value or normal gradient (grad dot GetNormal)
+  // Returns:
+  // field on embedded boundaries [s]
+  template <class T>
+  FieldEmbed<T> InterpolateUpwind(
+      const FieldCell<T>& fcu, const FieldFace<T>& ffv, const MapCondFace& mfc,
+      size_t bc, T bcv) const {
+    FieldEmbed<T> feu(m, T(0));
+    for (auto f : eb.Faces()) {
+      const IdxCell c = (ffv[f] > 0 ? m.GetCell(f, 0) : m.GetCell(f, 1));
+      feu[f] = fcu[c];
+    }
+    for (auto c : eb.CFaces()) {
+      if (bc == 0) {
+        feu[c] = bcv;
+      } else if (bc == 1) {
+        feu[c] = fcu[c] + bcv * GetFaceOffset(c);
+      } else {
+        throw std::runtime_error(
+            "Interpolate: unknown bc=" + std::to_string(bc));
       }
     }
     InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
