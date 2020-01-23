@@ -20,14 +20,16 @@ template <class Scal>
 struct GPrimitive {
   static constexpr size_t dim = 3;
   using Vect = GVect<Scal, dim>;
-  Vect c; // center
-  Vect r; // axes in coordinate directions
-  Vect n; // normal
-  Scal th; // ring thickness
-  Scal magn; // magnitude
-  std::function<Scal(const GVect<Scal, 3>&)> ls; // level-set
-  std::function<Scal(const Rect<GVect<Scal, 3>>&)> inter; // true if intersects
-  std::function<Vect(const GVect<Scal, 3>&)> vel; // velocity
+  std::function<Scal(const Vect&)> ls; // level-set
+  std::function<bool(const Rect<Vect>&)> inter; // true if intersects rectangle
+  std::function<Vect(const Vect&)> vel; // velocity
+
+  Vect c; // center XXX adhoc for GetSphereOverlap
+  Vect r; // radius XXX adhoc for GetSphereOverlap
+
+  GPrimitive() {
+    inter = [](const Rect<Vect>&) -> bool { return true; };
+  }
 };
 
 template <class Scal>
@@ -105,8 +107,8 @@ struct UPrimList {
 
     f >> std::skipws;
 
-    // default
-    auto def = [](std::map<std::string, Scal>& d, std::string k, Scal a) {
+    // sets default
+    auto setdef = [](std::map<std::string, Scal>& d, std::string k, Scal a) {
       if (!d.count(k)) {
         d[k] = a;
       }
@@ -128,28 +130,26 @@ struct UPrimList {
       }
 
       if (!d.empty()) {
-        def(d, "ry", d["rx"]);
-        def(d, "rz", d["ry"]);
+        setdef(d, "ry", d["rx"]);
+        setdef(d, "rz", d["ry"]);
 
         Primitive p;
-        p.c[0] = d["x"];
-        p.c[1] = d["y"];
-        p.c[2] = d["z"];
-        p.r[0] = d["rx"];
-        p.r[1] = d["ry"];
-        p.r[2] = d["rz"];
+        const Vect xc(d["x"], d["y"], d["z"]); // center
+        const Vect r(d["rx"], d["ry"], d["rz"]); // radius (semi-axes)
+        p.c = xc;
+        p.r = r;
 
-        p.ls = [edim, p](const Vect& x) -> Scal {
-          Vect xd = (x - p.c) / p.r;
+        p.ls = [edim, xc, r](const Vect& x) -> Scal {
+          Vect xd = (x - xc) / r;
           if (edim == 2) {
             xd[2] = 0.;
           }
-          return (1. - xd.sqrnorm()) * sqr(p.r.min());
+          return (1. - xd.sqrnorm()) * sqr(r.min());
         };
 
-        p.inter = [p](const Rect<Vect>& rect) -> bool {
-          const Rect<Vect> rectbig(rect.lb - p.r, rect.rt + p.r);
-          return rectbig.IsInside(p.c);
+        p.inter = [xc, r](const Rect<Vect>& rect) -> bool {
+          const Rect<Vect> rectbig(rect.lb - r, rect.rt + r);
+          return rectbig.IsInside(xc);
         };
 
         pp.push_back(p);
@@ -159,25 +159,19 @@ struct UPrimList {
       d = Parse("ring", s, "x y z nx ny nz r th", 8);
       if (!d.empty()) {
         Primitive p;
-        p.c[0] = d["x"];
-        p.c[1] = d["y"];
-        p.c[2] = d["z"];
-        p.r[0] = d["r"];
-        p.n[0] = d["nx"];
-        p.n[1] = d["ny"];
-        p.n[2] = d["nz"];
-        p.th = d["th"];
-        p.n /= p.n.norm();
 
-        p.ls = [p](const Vect& x) -> Scal {
-          Vect d = x - p.c;
-          Scal xn = d.dot(p.n);
-          Scal xt = (d - p.n * xn).norm();
-          Scal r = p.r[0];
-          return sqr(p.th) - (sqr(xn) + sqr(xt - r));
+        const Vect xc(d["x"], d["y"], d["z"]); // center
+        Vect n(d["nx"], d["ny"], d["nz"]); // normal
+        n /= n.norm();
+        const Scal r = d["r"]; // radius
+        const Scal th = d["th"]; // thickness
+
+        p.ls = [xc, n, r, th](const Vect& x) -> Scal {
+          const Vect dx = x - xc;
+          const Scal xn = dx.dot(n);
+          const Scal xt = (dx - n * xn).norm();
+          return sqr(th) - (sqr(xn) + sqr(xt - r));
         };
-
-        p.inter = [p](const Rect<Vect>&) -> bool { return true; };
 
         pp.push_back(p);
       }
@@ -185,23 +179,19 @@ struct UPrimList {
       // box
       d = Parse("box", s, "x y z rx ry rz", 4);
       if (!d.empty()) {
-        def(d, "ry", d["rx"]);
-        def(d, "rz", d["ry"]);
+        setdef(d, "ry", d["rx"]);
+        setdef(d, "rz", d["ry"]);
 
         Primitive p;
-        p.c[0] = d["x"];
-        p.c[1] = d["y"];
-        p.c[2] = d["z"];
-        p.r[0] = d["rx"];
-        p.r[1] = d["ry"];
-        p.r[2] = d["rz"];
+        const Vect xc(d["x"], d["y"], d["z"]); // center
+        const Vect r(d["rx"], d["ry"], d["rz"]); // radius (semi-axes)
 
-        p.ls = [edim, p](const Vect& x) -> Scal {
-          Vect xd = (x - p.c) / p.r;
+        p.ls = [edim, xc, r](const Vect& x) -> Scal {
+          Vect dx = (x - xc) / r;
           if (edim == 2) {
-            xd[2] = 0.;
+            dx[2] = 0.;
           }
-          return (1. - xd.abs().max());
+          return 1. - dx.abs().max();
         };
 
         p.inter = [p](const Rect<Vect>&) -> bool { return true; };
@@ -228,12 +218,12 @@ struct UPrimList {
     f >> std::skipws;
 
     // default
-    auto def = [](std::map<std::string, Scal>& d, std::string k, Scal a) {
+    auto setdef = [](std::map<std::string, Scal>& d, std::string k, Scal a) {
       if (!d.count(k)) {
         d[k] = a;
       }
     };
-    (void)def;
+    (void)setdef;
 
     // Read until eof
     while (f) {
@@ -245,29 +235,25 @@ struct UPrimList {
       d = Parse("ring", s, "x y z nx ny nz r th magn", 9);
       if (!d.empty()) {
         Primitive p;
-        p.c[0] = d["x"];
-        p.c[1] = d["y"];
-        p.c[2] = d["z"];
-        p.r[0] = d["r"];
-        p.n[0] = d["nx"];
-        p.n[1] = d["ny"];
-        p.n[2] = d["nz"];
-        p.th = d["th"];
-        p.magn = d["magn"];
-        p.n /= p.n.norm();
+        const Vect xc(d["x"], d["y"], d["z"]); // center
+        Vect n(d["nx"], d["ny"], d["nz"]); // normal
+        n /= n.norm();
+        const Scal r = d["r"]; // radius
+        const Scal th = d["th"]; // thickness
+        const Scal magn = d["magn"]; // magnitude
 
-        p.vel = [p](const Vect& x) -> Vect {
+        p.vel = [xc, n, r, th, magn](const Vect& x) -> Vect {
           const Scal eps = 1e-10;
-          Vect d = x - p.c;
-          Scal xn = d.dot(p.n);
-          Scal xt = (d - p.n * xn).norm();
-          Scal s2 = sqr(xn) + sqr(xt - p.r[0]);
-          Scal sig2 = sqr(p.th);
+          const Vect dx = x - xc;
+          const Scal xn = dx.dot(n);
+          const Scal xt = (dx - n * xn).norm();
+          const Scal s2 = sqr(xn) + sqr(xt - r);
+          const Scal sig2 = sqr(th);
           // unit radial along plane
-          Vect et = (d - p.n * xn) / std::max(eps, xt);
+          const Vect et = (dx - n * xn) / std::max(eps, xt);
           // unit along circle
-          Vect es = p.n.cross(et);
-          Scal om = p.magn / (M_PI * sig2) * std::exp(-s2 / sig2);
+          const Vect es = n.cross(et);
+          const Scal om = magn / (M_PI * sig2) * std::exp(-s2 / sig2);
           return es * om;
         };
 
@@ -282,10 +268,3 @@ struct UPrimList {
     return pp;
   }
 };
-
-template <class Scal>
-std::ostream& operator<<(std::ostream& o, const GPrimitive<Scal>& p) {
-  o << "c=" << p.c << " r=" << p.r << " n=" << p.n << " th=" << p.r
-    << " inv=" << p.inv;
-  return o;
-}
