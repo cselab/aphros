@@ -194,22 +194,26 @@ struct UPrimList {
     //  +   +   +  /c   -   -  -       |
     // ------------                    |n
     //  -   -   -   -   -   -  -
-    auto d = Parse("smooth_step", s, "cx cy cz nx ny nz tx ty tz ", 4);
+    auto d = Parse("smooth_step", s, "cx cy cz nx ny nz tx ty tz ln lt", 4);
     if (d.empty()) {
       return false;
     }
 
-    const Vect xc(d["x"], d["y"], d["z"]); // center
+    const Vect xc(d["cx"], d["cy"], d["cz"]); // center
     Vect n(d["nx"], d["ny"], d["nz"]); // normal
     n /= n.norm();
-    const Scal r = d["r"]; // radius
-    const Scal th = d["th"]; // thickness
+    Vect t(d["tx"], d["ty"], d["tz"]); // tangent
+    t -= n * n.dot(t);
+    t /= t.norm();
+    const Scal ln = d["ln"]; // half-length in normal direction
+    const Scal lt = d["lt"]; // half-length in tangential direction
 
-    p.ls = [xc, n, r, th](const Vect& x) -> Scal {
+    p.ls = [xc, n, t, ln, lt](const Vect& x) -> Scal {
       const Vect dx = x - xc;
-      const Scal xn = dx.dot(n);
-      const Scal xt = (dx - n * xn).norm();
-      return sqr(th) - (sqr(xn) + sqr(xt - r));
+      const Scal dn = n.dot(dx) / ln;
+      const Scal dt = t.dot(dx) / lt;
+      const Scal q = dt < -1 ? 1 : dt > 1 ? -1 : -std::sin(M_PI * 0.5 * dt);
+      return q - dn;
     };
     return true;
   }
@@ -259,14 +263,6 @@ struct UPrimList {
     }
 
     f >> std::skipws;
-
-    // default
-    auto setdef = [](std::map<std::string, Scal>& d, std::string k, Scal a) {
-      if (!d.count(k)) {
-        d[k] = a;
-      }
-    };
-    (void)setdef;
 
     // Read until eof
     while (f) {
