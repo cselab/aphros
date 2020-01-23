@@ -43,7 +43,8 @@ class VofEmbed final : public AdvectionSolver<M_> {
   };
 
   // Constructor
-  VofEmbed(M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
+  VofEmbed(
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
       const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
       const FieldCell<Scal>* fcs, double t, double dt, Par par);
   ~VofEmbed();

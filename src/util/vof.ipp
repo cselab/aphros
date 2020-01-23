@@ -98,8 +98,9 @@ struct UVof<M_>::Imp {
       if (m.IsRoot()) {
         std::vector<size_t> idx(dlc.size());
         std::iota(idx.begin(), idx.end(), 0);
-        std::stable_sort(idx.begin(), idx.end(),
-             [&](size_t i1, size_t i2) {return dlc[i1] < dlc[i2];});
+        std::stable_sort(idx.begin(), idx.end(), [&](size_t i1, size_t i2) {
+          return dlc[i1] < dlc[i2];
+        });
 
         Reorder(dl, idx);
         Reorder(dlc, idx);

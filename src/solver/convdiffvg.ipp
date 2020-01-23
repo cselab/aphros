@@ -51,8 +51,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
       if (auto cd = dynamic_cast<const CondCellVal<Vect>*>(cb)) {
         // TODO: revise with CondCellValComp
-        vmcc_[d][c] =
-            std::make_shared<CondCellValFixed<Scal>>(cd->second()[d]);
+        vmcc_[d][c] = std::make_shared<CondCellValFixed<Scal>>(cd->second()[d]);
       } else {
         throw std::runtime_error("convdiffvg: unknown cell condition");
       }

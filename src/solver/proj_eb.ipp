@@ -362,7 +362,7 @@ struct ProjEmbed<M_>::Imp {
 
     if (sem("forceinit")) {
       fcfcd_.Reinit(m, Vect(0));
-      //AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_); // XXX
+      // AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_); // XXX
     }
 
     if (sem.Nested("convdiff-iter")) {
