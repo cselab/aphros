@@ -61,6 +61,8 @@ def CheckFlag(name):
 cam = 1  # view from side perspective
 if CheckFlag('-C1'):
     cam = 1
+if CheckFlag('-C2'):
+    cam = 2
 
 draft = CheckFlag('-draft')
 
@@ -98,13 +100,19 @@ C1 = [
     [0, 1, 0],
     0.5,
     ]
+C2 = [
+    [2, 0.5, 3],
+    [2, 0.5, -3],
+    [0, 1, 0],
+    0.5,
+    ]
 
-CC = [C1]
+CC = [C1, C2]
 C = CC[cam - 1]
 
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
-renderView1.ViewSize = [2000, 1000]
+renderView1.ViewSize = [4000, 1000] if cam == 2 else [2000, 1000]
 if draft:
     renderView1.ViewSize[0] = renderView1.ViewSize[0] // 2
     renderView1.ViewSize[1] = renderView1.ViewSize[1] // 2
@@ -117,7 +125,7 @@ renderView1.CameraViewUp = C[2]
 renderView1.CameraParallelScale = C[3]
 renderView1.CameraParallelProjection = 1
 renderView1.Background = [1.]*3
-renderView1.UseLight = 1
+renderView1.UseLight = 0
 renderView1.KeyLightWarmth = 0.5
 renderView1.FillLightWarmth = 0.5
 renderView1.OSPRayMaterialLibrary = materialLibrary1
@@ -183,9 +191,9 @@ ebvtk.Scalars = ['CELLS', 'face']
 ebvtk.Value = 0.5
 ebvtkDisplay = Show(ebvtk, renderView1)
 ebvtkDisplay.Representation = 'Wireframe'
-ebvtkDisplay.AmbientColor = [0.0, 1.0, 0.0]
+ebvtkDisplay.AmbientColor = [0.0, 0.0, 0.0]
 ebvtkDisplay.ColorArrayName = ['POINTS', '']
-ebvtkDisplay.DiffuseColor = [0.0, 1.0, 0.0]
+ebvtkDisplay.DiffuseColor = [0.0, 0.0, 0.0]
 ebvtkDisplay.LineWidth = 5.
 
 #####################################################
