@@ -376,19 +376,17 @@ struct ProjEmbed<M_>::Imp {
 
     if (sem("pcorr-assemble")) {
       // Acceleration
-      // mean flux
-      auto fetv =
+      const auto fevel =
           eb.Interpolate(cd_->GetVelocity(Step::iter_curr), mfcw_, bc_, bcvel_);
-      ffve_.Reinit(m, 0);
       auto& ffbp = *owner_->ffbp_;
       for (auto f : eb.Faces()) {
-        ffve_[f] = fetv[f].dot(eb.GetSurface(f));
-        ffv_.iter_curr[f] = ffve_[f];
+        Scal v = fevel[f].dot(eb.GetSurface(f));
         if (!ffbd_[f]) { // inner
-          ffv_.iter_curr[f] += ffbp[f] * eb.GetArea(f) / ffk_[f];
+          v += ffbp[f] * eb.GetArea(f) / ffk_[f];
         } else { // boundary
           // nop, keep the mean flux
         }
+        ffv_.iter_curr[f] = v;
       }
 
       // Projection
@@ -519,7 +517,6 @@ struct ProjEmbed<M_>::Imp {
 
   // Face fields:
   FieldEmbed<Scal> fed_; // dynamic viscosity
-  FieldFace<Scal> ffve_; // predicted volume flux [i]
   FieldFace<Scal> ffk_; // diag coeff of velocity equation
   FieldFace<ExprFace> ffvc_; // expression for corrected volume flux [i]
 };
