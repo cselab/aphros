@@ -20,6 +20,7 @@
 #include "solver/pois.h"
 #include "solver/sphavg.h"
 #include "solver/vof.h"
+#include "solver/vof_eb.h"
 #include "solver/vofm.h"
 
 #include "hydro.h"
@@ -1607,8 +1608,12 @@ void CalcSurfaceTension(
     if (auto as = dynamic_cast<const Vofm<M>*>(asb)) {
       AppendSurfaceTension(
           m, ff_st, layers, as->GetFieldM(), as->GetColor(), fck, ff_sig);
+    } else if (auto as = dynamic_cast<const VofEmbed<M>*>(asb)) {
+      AppendSurfaceTension(m, ff_st, as->GetField(), *fck[0], ff_sig);
     } else if (auto as = dynamic_cast<const Vof<M>*>(asb)) {
       AppendSurfaceTension(m, ff_st, as->GetField(), *fck[0], ff_sig);
+    } else {
+      throw std::runtime_error("CalcSurfaceTension: unknown advection solver");
     }
 
     // zero on boundaries

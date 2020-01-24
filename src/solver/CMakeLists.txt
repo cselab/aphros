@@ -26,7 +26,7 @@ target_link_libraries(${T} approx)
 
 set(T "curv")
 add_library(${T} curv.cpp)
-target_link_libraries(${T} partstrmeshm normal vof vofm)
+target_link_libraries(${T} partstrmeshm normal vof vofm vof_eb)
 
 set(T "partstrmeshm")
 add_library(${T} partstrmeshm.cpp)
