@@ -120,6 +120,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void CalcStat();
   void CalcDt();
   void ReportStep();
+  void ReportStepAdv();
   void ReportIter();
   // Issue sem.LoopBreak if abort conditions met
   void CheckAbort(Sem& sem, Scal& nabort);
@@ -1776,6 +1777,13 @@ void Hydro<M>::ReportStep() {
 }
 
 template <class M>
+void Hydro<M>::ReportStepAdv() {
+  std::cout << std::fixed << std::setprecision(8)
+            << ".....adv: t=" << as_->GetTime() << " dt=" << as_->GetTimeStep()
+            << std::endl;
+}
+
+template <class M>
 auto Hydro<M>::CalcPressureDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb)
     -> Vect {
   auto fep = eb.Interpolate(fcp, MapCondFace(), 1, 0.);
@@ -1914,9 +1922,9 @@ void Hydro<M>::StepAdvection() {
   }
   if (sem("report")) {
     if (m.IsRoot()) {
-      std::cout << std::fixed << std::setprecision(8)
-                << ".....adv: t=" << as_->GetTime()
-                << " dt=" << as_->GetTimeStep() << std::endl;
+      if (st_.step % var.Int("report_step_every", 1) == 0) {
+        ReportStepAdv();
+      }
     }
   }
   if (sem("convcheck")) {
