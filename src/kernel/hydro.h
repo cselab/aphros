@@ -1535,6 +1535,14 @@ void Hydro<M>::DumpFields() {
       if (dl.count("cls")) m.Dump(&as->GetColor(), "cls");
       if (dl.count("k")) m.Dump(&fck_[0], "k");
     }
+    // TODO reuse ASV code
+    if (auto as = dynamic_cast<ASVEB*>(as_.get())) {
+      if (dl.count("nx")) m.Dump(&as->GetNormal(), 0, "nx");
+      if (dl.count("ny")) m.Dump(&as->GetNormal(), 1, "ny");
+      if (dl.count("nz")) m.Dump(&as->GetNormal(), 2, "nz");
+      if (dl.count("cls")) m.Dump(&as->GetColor(), "cls");
+      if (dl.count("k")) m.Dump(&fck_[0], "k");
+    }
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       for (auto l : layers) {
         auto sl = std::to_string(l);
@@ -1617,6 +1625,10 @@ void Hydro<M>::Dump() {
         if (auto as = dynamic_cast<ASVM*>(as_.get())) {
           fcu = as->GetFieldM();
           fccl = as->GetColor();
+        } else if (auto as = dynamic_cast<ASVEB*>(as_.get())) {
+          // TODO reuse ASV code
+          fcu[0] = &as->GetField();
+          fccl[0] = &as->GetColor();
         } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
           fcu[0] = &as->GetField();
           fccl[0] = &as->GetColor();
@@ -1643,6 +1655,19 @@ void Hydro<M>::Dump() {
     }
   }
   if (auto as = dynamic_cast<ASV*>(as_.get())) {
+    if (psm_ && dumper_.Try(st_.t, st_.dt)) {
+      if (var.Int["dumppart"] && sem.Nested("part-dump")) {
+        psm_->DumpParticles(
+            &as->GetAlpha(), &as->GetNormal(), dumper_.GetN(), st_.t);
+      }
+      if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
+        psm_->DumpPartInter(
+            &as->GetAlpha(), &as->GetNormal(), dumper_.GetN(), st_.t);
+      }
+    }
+  }
+  // TODO reuse ASV code
+  if (auto as = dynamic_cast<ASVEB*>(as_.get())) {
     if (psm_ && dumper_.Try(st_.t, st_.dt)) {
       if (var.Int["dumppart"] && sem.Nested("part-dump")) {
         psm_->DumpParticles(

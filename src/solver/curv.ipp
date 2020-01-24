@@ -16,6 +16,7 @@
 #include "tvd.h"
 #include "util/vof.h"
 #include "vof.h"
+#include "vof_eb.h"
 #include "vofm.h"
 
 #include "curv.h"
@@ -158,10 +159,10 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     return CalcCurvPart(
         layers, as->GetAlpha(), as->GetNormal(), as->GetMask(), as->GetColor(),
         par, fck, m);
-  } else {
-    for (auto l : layers) {
-      fck[l]->Reinit(m, GetNan<Scal>());
-    }
-    return nullptr;
+  } else if (auto as = dynamic_cast<const VofEmbed<M>*>(asbase)) {
+    return CalcCurvPart(
+        layers, &as->GetAlpha(), &as->GetNormal(), &as->GetMask(), nullptr, par,
+        fck, m);
   }
+  throw std::runtime_error("CalcCurvPart: unknown advection solver");
 }
