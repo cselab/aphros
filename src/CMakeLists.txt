@@ -57,7 +57,7 @@ add_library(${T} INTERFACE)
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
     "${CHPREFIX}/include/hydro")
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES
-    distrsolver solver vof vofm normal tvd convdiffvg simple proj proj_eb
+    distrsolver solver vof vofm vof_eb normal tvd convdiffvg simple proj proj_eb
     init young utilhydro events curv approx)
 
 # binary

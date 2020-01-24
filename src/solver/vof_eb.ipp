@@ -29,11 +29,13 @@ struct VofEmbed<M_>::Imp {
   using Sem = typename M::Sem;
   using MIdx = typename M::MIdx;
 
-  Imp(Owner* owner, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-      const MapCondFaceAdvection<Scal>& mfc, Par par)
+  Imp(Owner* owner, const Embed<M>& eb0, const FieldCell<Scal>& fcu,
+      const FieldCell<Scal>& fccl, const MapCondFaceAdvection<Scal>& mfc,
+      Par par)
       : owner_(owner)
       , par(par)
       , m(owner_->m)
+      , eb(eb0)
       , layers(1)
       , mfc_(mfc)
       , fccl_(fccl)
@@ -481,6 +483,7 @@ struct VofEmbed<M_>::Imp {
   Owner* owner_;
   Par par;
   M& m;
+  const Embed<M>& eb;
   GRange<size_t> layers;
 
   StepData<FieldCell<Scal>> fcu_;
@@ -506,11 +509,12 @@ struct VofEmbed<M_>::Imp {
 
 template <class M_>
 VofEmbed<M_>::VofEmbed(
-    M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-    const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
-    const FieldCell<Scal>* fcs, double t, double dt, Par par)
+    M& m, const Embed<M>& eb, const FieldCell<Scal>& fcu,
+    const FieldCell<Scal>& fccl, const MapCondFaceAdvection<Scal>& mfc,
+    const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t, double dt,
+    Par par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
-    , imp(new Imp(this, fcu, fccl, mfc, par)) {}
+    , imp(new Imp(this, eb, fcu, fccl, mfc, par)) {}
 
 template <class M_>
 VofEmbed<M_>::~VofEmbed() = default;

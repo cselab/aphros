@@ -8,6 +8,7 @@
 #include "parse/solver.h"
 #include "solver/vof.h"
 #include "solver/vofm.h"
+#include "solver/vof_eb.h"
 
 template <class M>
 struct ParsePar<Vof<M>> {
@@ -54,6 +55,14 @@ struct ParsePar<Vof<M>> {
 template <class M>
 struct ParsePar<Vofm<M>> {
   using Par = typename Vofm<M>::Par;
+  Par operator()(const Vars& var) {
+    return ParsePar<Vof<M>>()(var);
+  }
+};
+
+template <class M>
+struct ParsePar<VofEmbed<M>> {
+  using Par = typename VofEmbed<M>::Par;
   Par operator()(const Vars& var) {
     return ParsePar<Vof<M>>()(var);
   }

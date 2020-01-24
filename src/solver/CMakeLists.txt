@@ -12,6 +12,10 @@ set(T "vof")
 add_library(${T} vof.cpp)
 target_link_libraries(${T} solver normal utilvof)
 
+set(T "vof_eb")
+add_library(${T} vof_eb.cpp)
+target_link_libraries(${T} solver normal utilvof)
+
 set(T "tvd")
 add_library(${T} tvd.cpp)
 target_link_libraries(${T} solver)
