@@ -1,1 +1,2 @@
-./omm.py ../omm_*.xmf || true
+./omm.py ../omz_*.xmf || true
+r.pngmp4

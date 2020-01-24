@@ -133,8 +133,9 @@ renderView1.OSPRayMaterialLibrary = materialLibrary1
 # BEGIN READERS
 # ----------------------------------------------------------------
 
-omm = XDMFReader(FileNames=ffomm)
-omm.CellArrayStatus = ['omm']
+omm = XDMFReader(FileNames=ff)
+ommname = 'omz'
+omm.CellArrayStatus = [ommname]
 omm.GridStatus = ['Grid_1']
 
 
@@ -154,18 +155,25 @@ vft = [omm]
 # END READERS
 # ----------------------------------------------------------------
 
-k = 3
-ommLUT = GetColorTransferFunction('omm')
+k = 1
+ommLUT = GetColorTransferFunction(ommname)
 ommLUT.AutomaticRescaleRangeMode = 'Never'
-ommLUT.RGBPoints = [1.*k, 0.231373, 0.298039, 0.752941, 3.*k, 0.865003, 0.865003, 0.865003, 5.*k, 0.705882, 0.0156863, 0.14902]
+if ommname == 'omz':
+    ommLUT.RGBPoints = [-25.0*k, 0.231373, 0.298039, 0.752941, 0*k, 0.865003, 0.865003, 0.865003, 25.0*k, 0.705882, 0.0156863, 0.14902]
+else:
+    ommLUT.RGBPoints = [0.0*k, 0.231373, 0.298039, 0.752941, 12.500000000000004*k, 0.865003, 0.865003, 0.865003, 25.0*k, 0.705882, 0.0156863, 0.14902]
 ommLUT.ScalarRangeInitialized = 1.0
-ommPWF = GetOpacityTransferFunction('omm')
-ommPWF.Points = [1.0*k, 0.0, 0.5, 0.0, 3.*k, 0.07236842066049576, 0.5, 0.0, 5.*k, 0.2565789520740509, 0.5, 0.0]
+
+ommPWF = GetOpacityTransferFunction(ommname)
+if ommname == 'omz':
+    ommPWF.Points = [-25.0*k, 1.0, 0.5, 0.0, 0*k, 0.0, 0.5, 0.0, 25.0*k, 1.0, 0.5, 0.0]
+else:
+    ommPWF.Points = [0.0*k, 1.0, 0.5, 0.0, 25.0*k, 1.0, 0.5, 0.0]
 ommPWF.ScalarRangeInitialized = 1
 
 gradDisplay = Show(omm, renderView1)
 gradDisplay.Representation = 'Volume'
-gradDisplay.ColorArrayName = ['CELLS', 'omm']
+gradDisplay.ColorArrayName = ['CELLS', ommname]
 gradDisplay.LookupTable = ommLUT
 gradDisplay.ScalarOpacityUnitDistance = 0.04251092259923938
 gradDisplay.ScalarOpacityFunction = ommPWF
