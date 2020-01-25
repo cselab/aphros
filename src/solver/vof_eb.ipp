@@ -158,7 +158,7 @@ struct VofEmbed<M_>::Imp {
         continue;
       }
 
-      const Scal v = ffv[f]; // mixture flux
+      const Scal v = ffv[f] / eb.GetAreaFraction(f); // mixture flux
       const IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
       if (uc[c] > 0 && uc[c] < 1) { // interfacial cell
         switch (type) {
@@ -247,11 +247,6 @@ struct VofEmbed<M_>::Imp {
         fccl[c] = kClNone;
         fcim[c] = TRM::Pack(MIdx(0));
       }
-    }
-
-    // clip volume fraction in cut cells
-    for (auto c : eb.CFaces()) {
-      uc[c] = std::min(uc[c], eb.GetVolumeFraction(c));
     }
   }
   void CommRec(

@@ -327,6 +327,9 @@ class Embed {
   Scal GetArea(IdxFace f) const {
     return ffs_[f];
   }
+  Scal GetAreaFraction(IdxFace f) const {
+    return ffs_[f] / m.GetArea(f);
+  }
   Scal GetArea(IdxCell c) const {
     return fcs_[c];
   }

@@ -1393,7 +1393,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     if (eb_) {
       auto& eb = *eb_;
       for (auto f : m.AllFaces()) {
-        if (eb.GetType(f) != Embed<M>::Type::regular) {
+        if (eb.GetType(f) == Embed<M>::Type::excluded) {
           ffbp_[f] = 0;
         }
       }
