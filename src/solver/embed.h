@@ -342,6 +342,9 @@ class Embed {
   Scal GetVolume(IdxCell c) const {
     return fcv_[c];
   }
+  Scal GetVolumeFraction(IdxCell c) const {
+    return GetVolume(c) / m.GetVolume(c);
+  }
   std::vector<Vect> GetFacePoly(IdxFace f) const {
     switch (fft_[f]) {
       case Type::regular:
@@ -549,8 +552,8 @@ class Embed {
   template <class T>
   FieldCell<T> RedistributeCutCells(const FieldCell<T>& fcu) const {
     FieldCell<T> fcr = fcu;
-    const Scal v0 = m.GetCellSize().prod();
     for (auto c : eb.Cells()) {
+      const Scal v0 = m.GetVolume(c);
       const Scal v = eb.GetVolume(c);
       // excess quantity
       const T du = fcu[c] * (1 - v / v0);

@@ -62,6 +62,13 @@ struct VofEmbed<M_>::Imp {
     DetectInterface(uc);
     // Compute fcn_ [s]
     UNormal<M>::CalcNormal(m, uc, fci_, par.dim, fcn_);
+    for (auto c : eb.CFaces()) {
+      if (fci_[c]) {
+        const Scal a = uc[c] / eb.GetVolumeFraction(c);
+        Vect n = eb.GetNormal(c) * (fcn_[c].norm() / eb.GetNormal(c).norm());
+        fcn_[c] = n * a + fcn_[c] * (1 - a);
+      }
+    }
     auto h = m.GetCellSize();
     // Compute fca_ [s]
     for (auto c : m.SuCells()) {
@@ -127,11 +134,12 @@ struct VofEmbed<M_>::Imp {
       FieldCell<Scal>& fccl, FieldCell<Scal>& fcim, const FieldCell<Vect>& fcn,
       const FieldCell<Scal>& fca, const MapCondFace* mfc, int type,
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
-      const FieldCell<Scal>* fcuu, Scal dt, Scal clipth, const M& m) {
+      const FieldCell<Scal>* fcuu, Scal dt, Scal clipth, const Embed<M>& eb) {
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
     Dir md(d); // direction as Dir
     MIdx wd(md); // offset in direction d
+    auto& m = eb.GetMesh();
     auto& bc = m.GetIndexCells();
     auto& bf = m.GetIndexFaces();
     MIdx gs = m.GetGlobalSize();
@@ -225,6 +233,11 @@ struct VofEmbed<M_>::Imp {
         fcim[c] = TRM::Pack(MIdx(0));
       }
     }
+
+    // clip volume fraction in embedded boundaries
+    for (auto c : eb.Cells()) {
+      uc[c] = std::min(uc[c], eb.GetVolumeFraction(c));
+    }
   }
   void CommRec(
       Sem& sem, FieldCell<Scal>& uc, FieldCell<Scal>& fccl,
@@ -284,7 +297,7 @@ struct VofEmbed<M_>::Imp {
         Sweep(
             uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
             id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
-            owner_->GetTimeStep() * vsc, par.clipth, m);
+            owner_->GetTimeStep() * vsc, par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -319,7 +332,7 @@ struct VofEmbed<M_>::Imp {
       if (sem("sweep")) {
         Sweep(
             uc, dd[id], *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_, type,
-            nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), par.clipth, m);
+            nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -354,7 +367,7 @@ struct VofEmbed<M_>::Imp {
         }
         Sweep(
             uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_vf_, 3, nullptr, nullptr,
-            &fcuu_, 1., par.clipth, m);
+            &fcuu_, 1., par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
