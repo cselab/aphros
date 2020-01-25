@@ -1509,16 +1509,43 @@ void AppendSurfaceTension(
     const FieldFace<typename M::Scal>& ffsig) {
   using Scal = typename M::Scal;
   for (auto f : m.Faces()) {
-    IdxCell cm = m.GetCell(f, 0);
-    IdxCell cp = m.GetCell(f, 1);
-    Scal um = fcu[cm];
-    Scal up = fcu[cp];
-    Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
-    Scal hi = m.GetArea(f) / m.GetVolume(cp);
-    Scal ga = (up - um) * hi;
+    const IdxCell cm = m.GetCell(f, 0);
+    const IdxCell cp = m.GetCell(f, 1);
+    const Scal um = fcu[cm];
+    const Scal up = fcu[cp];
+    const Scal k =
+        (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
+    const Scal hi = m.GetArea(f) / m.GetVolume(cp);
+    const Scal ga = (up - um) * hi;
     if (ga != 0.) {
-      k = (IsNan(k) ? 0 : k);
-      ffst[f] += ga * k * ffsig[f];
+      ffst[f] += ga * (IsNan(k) ? 0 : k) * ffsig[f];
+    }
+  }
+}
+
+// ffst: force projections to append
+// fcu: volume fraction
+// fck: curvature
+// ffsig: surface tension coefficient
+template <class M>
+void AppendSurfaceTension(
+    const Embed<M>& eb, FieldFace<typename M::Scal>& ffst,
+    const FieldCell<typename M::Scal>& fcu,
+    const FieldCell<typename M::Scal>& fck,
+    const FieldFace<typename M::Scal>& ffsig) {
+  const auto& m = eb.GetMesh();
+  using Scal = typename M::Scal;
+  const auto fegp = eb.Gradient(fcu, MapCondFace(), 0, 0.);
+  for (auto f : eb.Faces()) {
+    const Scal gu = fegp[f];
+    if (gu != 0.) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      const Scal um = fcu[cm];
+      const Scal up = fcu[cp];
+      const Scal k =
+          (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
+      ffst[f] += gu * (IsNan(k) ? 0 : k) * ffsig[f];
     }
   }
 }
@@ -1609,7 +1636,8 @@ void CalcSurfaceTension(
       AppendSurfaceTension(
           m, ff_st, layers, as->GetFieldM(), as->GetColor(), fck, ff_sig);
     } else if (auto as = dynamic_cast<const VofEmbed<M>*>(asb)) {
-      AppendSurfaceTension(m, ff_st, as->GetField(), *fck[0], ff_sig);
+      AppendSurfaceTension(
+          as->GetEmbed(), ff_st, as->GetField(), *fck[0], ff_sig);
     } else if (auto as = dynamic_cast<const Vof<M>*>(asb)) {
       AppendSurfaceTension(m, ff_st, as->GetField(), *fck[0], ff_sig);
     } else {

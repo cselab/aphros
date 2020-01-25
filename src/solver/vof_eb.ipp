@@ -550,6 +550,11 @@ template <class M_>
 VofEmbed<M_>::~VofEmbed() = default;
 
 template <class M_>
+auto VofEmbed<M_>::GetEmbed() const -> const Embed<M>& {
+  return imp->eb;
+}
+
+template <class M_>
 auto VofEmbed<M_>::GetPar() const -> const Par& {
   return imp->par;
 }

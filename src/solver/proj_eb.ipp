@@ -206,7 +206,7 @@ struct ProjEmbed<M_>::Imp {
             (eb.GetCellCenter(cp) - eb.GetCellCenter(cm)).dot(eb.GetNormal(f));
         dn = (dn > 0 ? 1 : -1) *
              std::max(std::abs(dn), m.GetCellSize()[0] * 0.5);
-        const Scal a = -eb.GetArea(f) / (ffk[f] * dn); // XXX
+        const Scal a = -eb.GetArea(f) / (ffk[f] * dn);
         e[0] = -a;
         e[1] = a;
       } else { // boundary
