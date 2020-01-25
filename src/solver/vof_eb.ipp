@@ -115,24 +115,26 @@ struct VofEmbed<M_>::Imp {
       }
     }
   }
+  enum class SweepType {
+    plain, // sum of fluxes
+    EI, // Euler Implicit (aulisa2009)
+    LE, // Lagrange Explicit (aulisa2009)
+    weymouth, // sum of fluxes and divergence (weymouth2010)
+  };
   // Makes advection sweep in one direction, updates uc [i]
   // uc: volume fraction [s]
   // d: direction
   // ffv: mixture flux [i]
   // fcn,fca: normal and plane constant [s]
   // mfc: face conditions, nullptr to keep boundary fluxes
-  // type: 0: plain,
-  //       1: Euler Explicit,
-  //       2: Lagrange Explicit,
-  //       3: Weymouth 2010
-  // fcfm,fcfp: upwind mixture flux, required if type=2 [s]
+  // fcfm,fcfp: upwind mixture flux, required if type=LE [s]
   // fcuu: volume fraction for Weymouth div term
   // dt: time step
   // clipth: threshold for clipping, values outside [th,1-th] are clipped
   static void Sweep(
       FieldCell<Scal>& uc, size_t d, const FieldFace<Scal>& ffv,
       FieldCell<Scal>& fccl, FieldCell<Scal>& fcim, const FieldCell<Vect>& fcn,
-      const FieldCell<Scal>& fca, const MapCondFace* mfc, int type,
+      const FieldCell<Scal>& fca, const MapCondFace* mfc, SweepType type,
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
       const FieldCell<Scal>* fcuu, Scal dt, Scal clipth, const Embed<M>& eb) {
     using Dir = typename M::Dir;
@@ -147,13 +149,8 @@ struct VofEmbed<M_>::Imp {
 
     FieldFace<Scal> ffvu(m); // phase 2 flux
 
-    if (!(type >= 0 && type <= 3)) {
-      throw std::runtime_error(
-          "Sweep(): unknown type '" + std::to_string(type) + "'");
-    }
-
     // compute fluxes [i] and propagate color to downwind cells
-    for (auto f : m.Faces()) {
+    for (auto f : eb.Faces()) {
       auto p = bf.GetMIdxDir(f);
       Dir df = p.second;
 
@@ -164,11 +161,18 @@ struct VofEmbed<M_>::Imp {
       const Scal v = ffv[f]; // mixture flux
       IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
       if (uc[c] > 0 && uc[c] < 1) { // interfacial cell
-        if (type == 0 || type == 1 || type == 3) {
-          ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v, dt, d);
-        } else if (type == 2) { // Lagrange Explicit
-          Scal vu = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
-          ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v, vu, dt, d);
+        switch (type) {
+          case SweepType::plain:
+          case SweepType::EI:
+          case SweepType::weymouth: {
+            ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v, dt, d);
+            break;
+          }
+          case SweepType::LE: {
+            Scal vu = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
+            ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v, vu, dt, d);
+            break;
+          }
         }
       } else { // pure cell
         ffvu[f] = v * uc[c];
@@ -212,14 +216,23 @@ struct VofEmbed<M_>::Imp {
       // phase 2 cfl
       const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / lc;
       auto& u = uc[c];
-      if (type == 0) { // plain
-        u += -dl;
-      } else if (type == 1) { // Euler Implicit
-        u = (u - dl) / (1. - ds);
-      } else if (type == 2) { // Lagrange Explicit
-        u += u * ds - dl;
-      } else if (type == 3) { // Weymouth
-        u += (*fcuu)[c] * ds - dl;
+      switch (type) {
+        case SweepType::plain: {
+          u += -dl;
+          break;
+        }
+        case SweepType::EI: {
+          u = (u - dl) / (1. - ds);
+          break;
+        }
+        case SweepType::LE: {
+          u += u * ds - dl;
+          break;
+        }
+        case SweepType::weymouth: {
+          u += (*fcuu)[c] * ds - dl;
+          break;
+        }
       }
       // clip
       if (!(u >= clipth)) {
@@ -296,8 +309,8 @@ struct VofEmbed<M_>::Imp {
       if (sem("sweep")) {
         Sweep(
             uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
-            id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
-            owner_->GetTimeStep() * vsc, par.clipth, eb);
+            id % 2 == 0 ? SweepType::EI : SweepType::LE, &fcfm_,
+            &fcfp_, nullptr, owner_->GetTimeStep() * vsc, par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -310,7 +323,7 @@ struct VofEmbed<M_>::Imp {
       }
     }
   }
-  void AdvPlain(Sem& sem, int type) {
+  void AdvPlain(Sem& sem, SweepType type) {
     std::vector<size_t> dd; // sweep directions
     if (par.dim == 3) { // 3d
       if (count_ % 3 == 0) {
@@ -366,8 +379,8 @@ struct VofEmbed<M_>::Imp {
           ffv[it.first] = 0;
         }
         Sweep(
-            uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_vf_, 3, nullptr, nullptr,
-            &fcuu_, 1., par.clipth, eb);
+            uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_vf_, SweepType::weymouth,
+            nullptr, nullptr, &fcuu_, 1., par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -392,13 +405,13 @@ struct VofEmbed<M_>::Imp {
     using Scheme = typename Par::Scheme;
     switch (par.scheme) {
       case Scheme::plain:
-        AdvPlain(sem, 0);
+        AdvPlain(sem, SweepType::plain);
         break;
       case Scheme::aulisa:
         AdvAulisa(sem);
         break;
       case Scheme::weymouth:
-        AdvPlain(sem, 3);
+        AdvPlain(sem, SweepType::weymouth);
         break;
     }
 
