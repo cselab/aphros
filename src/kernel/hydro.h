@@ -1390,7 +1390,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           GetCondZeroGrad<Scal>(mf_fluid_), fck_, fc_vf0, af, as_.get());
     }
 
-    if (eb_) {
+    if (0&&eb_) {
       auto& eb = *eb_;
       for (auto f : m.AllFaces()) {
         if (eb.GetType(f) == Embed<M>::Type::excluded) {

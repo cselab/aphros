@@ -27,6 +27,7 @@ class VofEmbed final : public AdvectionSolver<M_> {
       const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t,
       double dt, Par par);
   ~VofEmbed();
+  const Embed<M>& GetEmbed() const;
   const Par& GetPar() const;
   void SetPar(Par);
   void StartStep() override;
