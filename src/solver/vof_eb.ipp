@@ -65,7 +65,7 @@ struct VofEmbed<M_>::Imp {
     for (auto c : eb.SuCFaces()) {
       if (fci_[c]) {
         const Scal a = uc[c] / eb.GetVolumeFraction(c);
-        Vect n = eb.GetNormal(c) * (fcn_[c].norm() / eb.GetNormal(c).norm());
+        Vect n = eb.GetNormal(c) * (fcn_[c].norm1() / eb.GetNormal(c).norm1());
         fcn_[c] = n * a + fcn_[c] * (1 - a);
       }
     }
@@ -91,7 +91,7 @@ struct VofEmbed<M_>::Imp {
     // cell is u=1 and neighbour is u=0
     for (auto c : eb.SuCells()) {
       if (uc[c] == 1) {
-        for (auto q : m.Nci(c)) {
+        for (auto q : eb.Nci(c)) {
           IdxCell cn = m.GetCell(c, q);
           if (uc[cn] == 0) {
             fci_[c] = true;
@@ -165,11 +165,13 @@ struct VofEmbed<M_>::Imp {
           case SweepType::plain:
           case SweepType::EI:
           case SweepType::weymouth: {
+            // TODO revise name GetLineFlux
             ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v, dt, d);
             break;
           }
           case SweepType::LE: {
             const Scal vu = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
+            // TODO revise name GetLineFluxStr
             ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v, vu, dt, d);
             break;
           }
