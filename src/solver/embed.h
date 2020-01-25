@@ -266,6 +266,10 @@ class Embed {
     return MakeFilterIterator(
         m.Cells(), [this](IdxCell c) { return GetType(c) == Type::cut; });
   }
+  auto SuCFaces() const {
+    return MakeFilterIterator(
+        m.SuCells(), [this](IdxCell c) { return GetType(c) == Type::cut; });
+  }
   auto Faces() const {
     return MakeFilterIterator(
         m.Faces(), [this](IdxFace f) { return GetType(f) != Type::excluded; });

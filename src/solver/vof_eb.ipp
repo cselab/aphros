@@ -58,11 +58,11 @@ struct VofEmbed<M_>::Imp {
   }
   // reconstruct interface
   // uc: volume fraction [a]
-  void Rec(const FieldCell<Scal>& uc) {
+  void ReconstPlanes(const FieldCell<Scal>& uc) {
     DetectInterface(uc);
     // Compute fcn_ [s]
     UNormal<M>::CalcNormal(m, uc, fci_, par.dim, fcn_);
-    for (auto c : eb.CFaces()) {
+    for (auto c : eb.SuCFaces()) {
       if (fci_[c]) {
         const Scal a = uc[c] / eb.GetVolumeFraction(c);
         Vect n = eb.GetNormal(c) * (fcn_[c].norm() / eb.GetNormal(c).norm());
@@ -71,7 +71,7 @@ struct VofEmbed<M_>::Imp {
     }
     auto h = m.GetCellSize();
     // Compute fca_ [s]
-    for (auto c : m.SuCells()) {
+    for (auto c : eb.SuCells()) {
       if (fci_[c]) {
         fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
       } else {
@@ -82,14 +82,14 @@ struct VofEmbed<M_>::Imp {
   void DetectInterface(const FieldCell<Scal>& uc) {
     fci_.Reinit(m, false);
     // cell is 0<u<1
-    for (auto c : m.AllCells()) {
+    for (auto c : eb.AllCells()) {
       Scal u = uc[c];
       if (u > 0. && u < 1.) {
         fci_[c] = true;
       }
     }
     // cell is u=1 and neighbour is u=0
-    for (auto c : m.SuCells()) {
+    for (auto c : eb.SuCells()) {
       if (uc[c] == 1) {
         for (auto q : m.Nci(c)) {
           IdxCell cn = m.GetCell(c, q);
@@ -111,7 +111,7 @@ struct VofEmbed<M_>::Imp {
 
     if (owner_->GetTime() == 0.) {
       if (sem("reconst")) {
-        Rec(fcu_.time_curr);
+        ReconstPlanes(fcu_.time_curr);
       }
     }
   }
@@ -139,27 +139,27 @@ struct VofEmbed<M_>::Imp {
       const FieldCell<Scal>* fcuu, Scal dt, Scal clipth, const Embed<M>& eb) {
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
-    Dir md(d); // direction as Dir
-    MIdx wd(md); // offset in direction d
-    auto& m = eb.GetMesh();
-    auto& bc = m.GetIndexCells();
-    auto& bf = m.GetIndexFaces();
-    MIdx gs = m.GetGlobalSize();
-    auto h = m.GetCellSize();
+    const Dir md(d); // direction as Dir
+    const MIdx wd(md); // offset in direction d
+    const auto& m = eb.GetMesh();
+    const auto& bc = m.GetIndexCells();
+    const auto& bf = m.GetIndexFaces();
+    const MIdx gs = m.GetGlobalSize();
+    const auto h = m.GetCellSize();
 
-    FieldFace<Scal> ffvu(m); // phase 2 flux
+    FieldFace<Scal> ffvu(m, 0); // phase 2 flux
 
     // compute fluxes [i] and propagate color to downwind cells
     for (auto f : eb.Faces()) {
-      auto p = bf.GetMIdxDir(f);
-      Dir df = p.second;
+      const auto p = bf.GetMIdxDir(f);
+      const Dir df = p.second;
 
       if (df != md) {
         continue;
       }
 
       const Scal v = ffv[f]; // mixture flux
-      IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
+      const IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
       if (uc[c] > 0 && uc[c] < 1) { // interfacial cell
         switch (type) {
           case SweepType::plain:
@@ -169,7 +169,7 @@ struct VofEmbed<M_>::Imp {
             break;
           }
           case SweepType::LE: {
-            Scal vu = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
+            const Scal vu = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
             ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v, vu, dt, d);
             break;
           }
@@ -180,10 +180,10 @@ struct VofEmbed<M_>::Imp {
 
       // propagate color to downwind cell if empty
       if (fccl[c] != kClNone) {
-        IdxCell cd = m.GetCell(f, v > 0. ? 1 : 0); // downwind cell
+        const IdxCell cd = m.GetCell(f, v > 0. ? 1 : 0); // downwind cell
         if (fccl[cd] == kClNone) {
           fccl[cd] = fccl[c];
-          MIdx w = bc.GetMIdx(c);
+          const MIdx w = bc.GetMIdx(c);
           MIdx im = TRM::Unpack(fcim[c]);
           if (w[d] < 0) im[d] += 1;
           if (w[d] >= gs[d]) im[d] -= 1;
@@ -197,8 +197,8 @@ struct VofEmbed<M_>::Imp {
       FieldFace<Scal> ffu(m);
       InterpolateB(uc, *mfc, ffu, m);
       for (const auto& it : *mfc) {
-        IdxFace f = it.first;
-        Scal v = ffv[f];
+        const IdxFace f = it.first;
+        const Scal v = ffv[f];
         if ((it.second->GetNci() == 0) != (v > 0.)) {
           ffvu[f] = v * ffu[f];
         }
@@ -206,11 +206,11 @@ struct VofEmbed<M_>::Imp {
     }
 
     // update volume fraction [i]
-    for (auto c : m.Cells()) {
+    for (auto c : eb.Cells()) {
       auto w = bc.GetMIdx(c);
       const Scal lc = m.GetVolume(c);
-      IdxFace fm = bf.GetIdx(w, md);
-      IdxFace fp = bf.GetIdx(w + wd, md);
+      const IdxFace fm = bf.GetIdx(w, md);
+      const IdxFace fp = bf.GetIdx(w + wd, md);
       // mixture cfl
       const Scal ds = (ffv[fp] - ffv[fm]) * dt / lc;
       // phase 2 cfl
@@ -235,10 +235,10 @@ struct VofEmbed<M_>::Imp {
         }
       }
       // clip
-      if (!(u >= clipth)) {
+      if (u < clipth) {
         u = 0;
-      } else if (!(u <= 1 - clipth)) {
-        u = 1;
+      } else if (u > eb.GetVolumeFraction(c) - clipth) {
+        u = eb.GetVolumeFraction(c);
       }
       // clear color
       if (u == 0) {
@@ -247,8 +247,8 @@ struct VofEmbed<M_>::Imp {
       }
     }
 
-    // clip volume fraction in embedded boundaries
-    for (auto c : eb.Cells()) {
+    // clip volume fraction in cut cells
+    for (auto c : eb.CFaces()) {
       uc[c] = std::min(uc[c], eb.GetVolumeFraction(c));
     }
   }
@@ -266,7 +266,7 @@ struct VofEmbed<M_>::Imp {
       BcApply(fcim, mfc_im_, m);
     }
     if (sem("reconst")) {
-      Rec(uc);
+      ReconstPlanes(uc);
     }
   }
   void AdvAulisa(Sem& sem) {
@@ -297,7 +297,7 @@ struct VofEmbed<M_>::Imp {
           auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
           fcfm_.Reinit(m);
           fcfp_.Reinit(m);
-          for (auto c : m.Cells()) {
+          for (auto c : eb.Cells()) {
             fcfm_[c] = ffv[m.GetFace(c, 2 * d)];
             fcfp_[c] = ffv[m.GetFace(c, 2 * d + 1)];
           }
@@ -373,7 +373,13 @@ struct VofEmbed<M_>::Imp {
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
         const Scal sgn = (id % 2 == count_ / par.dim % 2 ? -1 : 1);
-        FieldFace<Scal> ffv(m, m.GetCellSize().prod() * sgn * par.sharpen_cfl);
+        FieldFace<Scal> ffv(m, 0);
+        for (auto f : eb.Faces()) {
+          const IdxCell cm = m.GetCell(f, 0);
+          const IdxCell cp = m.GetCell(f, 1);
+          ffv[f] = std::min(eb.GetVolume(cm), eb.GetVolume(cp)) * sgn *
+                   par.sharpen_cfl;
+        }
         // zero flux on boundaries
         for (const auto& it : mfc_vf_) {
           ffv[it.first] = 0;
@@ -396,9 +402,10 @@ struct VofEmbed<M_>::Imp {
       const Scal dt = owner_->GetTimeStep();
       auto& fcs = *owner_->fcs_;
       fcuu_.Reinit(m);
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         uc[c] = fcu_.time_prev[c] + dt * fcs[c];
-        fcuu_[c] = (uc[c] < 0.5 ? 0 : 1);
+        const Scal u0 = eb.GetVolumeFraction(c);
+        fcuu_[c] = (uc[c] < u0 * 0.5 ? 0 : u0);
       }
     }
 
@@ -424,7 +431,7 @@ struct VofEmbed<M_>::Imp {
     if (sem("resetcolor")) {
       auto& fcu = fcu_.iter_curr;
       fcclm = fccl_;
-      for (auto c : m.AllCells()) {
+      for (auto c : eb.AllCells()) {
         fccl_[c] = (fcu[c] > 0.5 ? 0 : kClNone);
       }
       BcApply(fccl_, mfc_cl_, m);
@@ -438,7 +445,7 @@ struct VofEmbed<M_>::Imp {
     if (sem("propagate")) {
       auto& u = fcu_.iter_curr;
       auto& cl = fccl_;
-      for (auto f : m.Faces()) {
+      for (auto f : eb.Faces()) {
         for (size_t q : {0, 1}) {
           auto c = m.GetCell(f, q);
           auto cn = m.GetCell(f, 1 - q);
