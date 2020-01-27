@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cmath>
+#include <limits>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -455,14 +456,11 @@ struct ProjEmbed<M_>::Imp {
     }
   }
   double GetAutoTimeStep() {
-    double dt = 1e10;
-    auto& flux = ffv_.time_curr;
-    for (auto c : eb.Cells()) {
-      for (size_t i = 0; i < m.GetNumFaces(c); ++i) {
-        IdxFace f = m.GetFace(c, i);
-        if (flux[f] != 0.) {
-          dt = std::min<Scal>(dt, std::abs(m.GetVolume(c) / flux[f]));
-        }
+    Scal dt = std::numeric_limits<Scal>::max();
+    for (auto f : eb.Faces()) {
+      const Scal vel = ffv_.time_curr[f] / m.GetArea(f);
+      if (vel != 0.) {
+        dt = std::min<Scal>(dt, std::abs(m.GetCellSize()[0] / vel));
       }
     }
     return dt;
