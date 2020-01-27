@@ -1,0 +1,6 @@
+killall ap-mfer || true
+#make m="128 64 1" np=8 cleanrun
+#make m="256 128 1" np=32 cleanrun
+#make m="512 256 1" np=128 cleanrun
+make m="1024 512 1" np=256 cleanrun
+#make m="2048 1024 1" np=256 cleanrun

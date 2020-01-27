@@ -15,7 +15,7 @@ nx=${nx#*(}
 nx=${nx%%,*}
 extent=$(getval 'set double extent')
 r=$(awk '{print $4}' < body.dat)
-nd=$(python -c "print('{:.0f}'.format(2 * $r * $nx /  $extent))")
+nd=$(python -c "print('{:03d}'.format(int(2 * $r * $nx /  $extent)))")
 
 mu=$(getval 'set double mu1')
 re=$(python -c "print('{:.0f}'.format(2 * $r / $mu))")
