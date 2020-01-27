@@ -506,6 +506,54 @@ class Embed {
     InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
     return feu;
   }
+  // Upwind interpolation.
+  // fcu: field [s]
+  // fcg: gradient [s]
+  // mfc: conditions on faces
+  // bc: boundary conditions type, 0: value, 1: grad
+  // bcv: value or normal gradient (grad dot GetNormal)
+  // ffv: volume flux [i]
+  // sc: interpolation scheme
+  // Returns:
+  // field on embedded boundaries [s]
+  FieldEmbed<Scal> InterpolateUpwind(
+      const FieldCell<Scal>& fcu, const FieldCell<typename M::Vect>& fcg,
+      const MapCondFace& mfc, size_t bc, Scal bcv, const FieldFace<Scal>& ffv,
+      ConvSc sc) const {
+    FieldEmbed<Scal> feu(m, 0.);
+    // f = fmm*a[0] + fm*a[1] + fp*a[2]
+    const std::array<Scal, 3> a = GetCoeff<Scal>(sc);
+    for (auto f : eb.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      if (GetType(cm) == Type::regular && GetType(cp) == Type::regular) {
+        if (ffv[f] > 0) {
+          feu[f] = 4. * a[0] * fcg[cm].dot(m.GetVectToCell(f, 0)) +
+                   a[1] * fcu[cm] + (a[2] + a[0]) * fcu[cp];
+        } else if (ffv[f] < 0) {
+          feu[f] = 4. * a[0] * fcg[cp].dot(m.GetVectToCell(f, 1)) +
+                   a[1] * fcu[cp] + (a[2] + a[0]) * fcu[cm];
+        } else {
+          feu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+        }
+      } else {
+        const IdxCell c = (ffv[f] > 0 ? cm : cp);
+        feu[f] = fcu[c];
+      }
+    }
+    for (auto c : eb.CFaces()) {
+      if (bc == 0) {
+        feu[c] = bcv;
+      } else if (bc == 1) {
+        feu[c] = fcu[c] + bcv * GetFaceOffset(c);
+      } else {
+        throw std::runtime_error(
+            "Interpolate: unknown bc=" + std::to_string(bc));
+      }
+    }
+    InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
+    return feu;
+  }
   // feu: field on embedded boundaries [a]
   // Returns:
   // gradient on cells [a]
