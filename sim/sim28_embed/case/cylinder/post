@@ -14,7 +14,7 @@ nx=$(getval 'global mesh=')
 nx=${nx#*(}
 nx=${nx%%,*}
 extent=$(getval 'set double extent')
-r=$(awk '{print $4}' < body.dat)
+r=$(awk 'NR==1{print $4}' < body.dat)
 nd=$(python -c "print('{:03d}'.format(int(2 * $r * $nx /  $extent + 0.5)))")
 
 mu=$(getval 'set double mu1')
