@@ -1,0 +1,16 @@
+#!/bin/sh
+
+set -eu
+
+e () {
+  echo "$@" 1>&2
+  eval "$@"
+}
+
+bdat="body.dat"
+cx=`cat $bdat | awk '{print $1}'`
+cy=`cat $bdat | awk '{print $2}'`
+r=`cat $bdat | awk '{print $4}'`
+hdf=$1
+extent=2
+e "./separation0 $cx $cy $r "$hdf" $extent"

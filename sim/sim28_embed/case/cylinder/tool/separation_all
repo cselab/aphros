@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -eu
+
+rm sep_*
+
+tmp=tmp.$$
+for f in vx_*.h5 ; do
+  echo "$f"
+  out=`basename "$f"`
+  out=sep_${out#*_}
+  out=${out%.h5}
+  if [ -f "$out" ] ; then
+    echo "skip existing $out"
+    continue
+  fi
+  ./separation $f > $tmp
+  mv $tmp $out
+done

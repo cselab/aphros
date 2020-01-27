@@ -1,0 +1,45 @@
+#!/usr/bin/env python
+
+import h5py
+import numpy as np
+import matplotlib.pyplot as plt
+import sys
+import os
+
+av = sys.argv
+
+if len(av) != 6 or av[1] == '-h':
+  print("""usage: ./{:} CX CY R VELX_HDF EXTENT
+Prints separation length behind cylinder normalized by diameter.
+CX: x-component of cylinder center
+CY: y-component of cylinder center
+R: cylinder radius
+VELX_HDF: x-velocity dimensions (nx,ny,nz,1)
+EXTENT: domain extent
+""".format(os.path.basename(av[0])))
+  exit(1)
+
+cx = float(av[1])
+cy = float(av[2])
+r = float(av[3])
+velx_hdf = av[4]
+extent = float(av[5])
+
+h = h5py.File(velx_hdf, 'r')
+u = h['data']
+u = np.array(u)
+h.close()
+u = u[0,:,:,0]
+
+hx = extent / max(u.shape)
+
+icx = int(cx / hx + 0.5)
+icy = int(cy / hx + 0.5)
+
+ucy = u[icy,:]
+
+sep_ix = max(np.where((ucy < 0))[0])
+sep_x = sep_ix * hx
+sep_x -= cx + r
+print(sep_x / (2 * r))
+
