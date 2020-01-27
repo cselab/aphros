@@ -234,8 +234,10 @@ class Embed {
 
  public:
   enum class Type { regular, cut, excluded };
+  // Constructor
   // fnl: level-set function on nodes, interface at fnl=0
-  Embed(M& m) : m(m), eb(*this) {}
+  Embed(M& m, Scal gradlim) : m(m), eb(*this), gradlim_(gradlim) {}
+  Embed(M& m) : Embed(m, 0.5) {}
   void Init(const FieldNode<Scal>& fnl) {
     auto sem = m.GetSem("init");
     if (sem()) {
@@ -554,6 +556,10 @@ class Embed {
     InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
     return feu;
   }
+  Scal ClipGradDenom(Scal dn) const {
+    return (dn > 0 ? 1 : -1) *
+           std::max(std::abs(dn), m.GetCellSize()[0] * gradlim_);
+  }
   // feu: field on embedded boundaries [a]
   // Returns:
   // gradient on cells [a]
@@ -638,14 +644,13 @@ class Embed {
     for (auto f : eb.Faces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
-      Scal dn =
-          (eb.GetCellCenter(cp) - eb.GetCellCenter(cm)).dot(eb.GetNormal(f));
-      dn = (dn > 0 ? 1 : -1) * std::max(std::abs(dn), m.GetCellSize()[0] * 0.5);
+      const Scal dn = ClipGradDenom(
+          (eb.GetNormal(f)).dot(eb.GetCellCenter(cp) - eb.GetCellCenter(cm)));
       feu[f] = (fcu[cp] - fcu[cm]) / dn;
     }
     for (auto c : eb.CFaces()) {
       if (bc == 0) {
-        const Scal dn = std::max(eb.GetFaceOffset(c), m.GetCellSize()[0] * 0.5);
+        const Scal dn = ClipGradDenom(eb.GetFaceOffset(c));
         feu[c] = (bcv - fcu[c]) / dn;
       } else if (bc == 1) {
         feu[c] = bcv;
@@ -923,6 +928,7 @@ class Embed {
 
   M& m;
   const Embed& eb;
+  const Scal gradlim_;
   // nodes
   FieldNode<Scal> fnl_; // level-set
   // faces

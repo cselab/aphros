@@ -447,7 +447,7 @@ void Hydro<M>::InitEmbed() {
       FieldNode<Scal> fnl;
     } * ctx(sem);
     if (sem("ctor")) {
-      eb_.reset(new Embed<M>(m));
+      eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
       ctx->fnl = ::InitEmbed(m, var, m.IsRoot());
     }
     if (sem.Nested("init")) {
