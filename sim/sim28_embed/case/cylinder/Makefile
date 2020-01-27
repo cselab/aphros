@@ -5,5 +5,5 @@ tl = 1440
 
 include $(shell ap-makesim)
 
-clean::
-	rm -vrf sc
+cleandat::
+	rm -vrf sep_????
