@@ -203,10 +203,8 @@ struct ProjEmbed<M_>::Imp {
       if (!ffbd_[f]) { // inner
         const IdxCell cm = m.GetCell(f, 0);
         const IdxCell cp = m.GetCell(f, 1);
-        Scal dn =
-            (eb.GetCellCenter(cp) - eb.GetCellCenter(cm)).dot(eb.GetNormal(f));
-        dn = (dn > 0 ? 1 : -1) *
-             std::max(std::abs(dn), m.GetCellSize()[0] * 0.5);
+        const Scal dn = eb.ClipGradDenom(
+            eb.GetNormal(f).dot(eb.GetCellCenter(cp) - eb.GetCellCenter(cm)));
         const Scal a = -eb.GetArea(f) / (ffk[f] * dn);
         e[0] = -a;
         e[1] = a;
