@@ -1132,6 +1132,12 @@ void Hydro<M>::CalcStat() {
       st_.eb_pdrag = CalcPressureDrag(fs_->GetPressure(), *eb_);
       st_.eb_vdrag = CalcViscousDrag(fs_->GetVelocity(), fc_mu_, *eb_);
       st_.eb_drag = st_.eb_pdrag + st_.eb_vdrag;
+      if (m.GetEdim() == 2) {
+        const Scal h = m.GetCellSize()[2];
+        st_.eb_pdrag /= h;
+        st_.eb_vdrag /= h;
+        st_.eb_drag /= h;
+      }
       for (size_t d = 0; d < dim; ++d) {
         m.Reduce(&st_.eb_pdrag[d], "sum");
         m.Reduce(&st_.eb_vdrag[d], "sum");
