@@ -38,8 +38,12 @@ icy = int(cy / hx + 0.5)
 
 ucy = u[icy,:]
 
-sep_ix = max(np.where((ucy < 0))[0])
-sep_x = sep_ix * hx
-sep_x -= cx + r
+wh = np.where((ucy < 0))[0]
+if len(wh):
+    sep_ix = max(wh)
+    sep_x = sep_ix * hx
+    sep_x -= cx + r
+else:
+    sep_x = 0
 print(sep_x / (2 * r))
 

@@ -7,10 +7,17 @@ e () {
   eval "$@"
 }
 
+getval () {
+  prefix=$1
+  r=$(grep "$prefix" out)
+  echo ${r#$prefix}
+}
+
+
 bdat="body.dat"
 cx=`cat $bdat | awk '{print $1}'`
 cy=`cat $bdat | awk '{print $2}'`
 r=`cat $bdat | awk '{print $4}'`
 hdf=$1
-extent=2
+extent=$(getval 'set double extent')
 e "./separation0 $cx $cy $r "$hdf" $extent"
