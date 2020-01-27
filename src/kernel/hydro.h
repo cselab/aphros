@@ -74,6 +74,43 @@ FieldCell<typename M::Scal> GetDivergence(
   return fcdiv;
 }
 
+template <class M>
+const FieldEmbed<typename M::Scal> GetComponent(
+    const FieldEmbed<typename M::Vect>& fv, size_t n, const Embed<M>& eb) {
+  using Scal = typename M::Scal;
+  auto& m = eb.GetMesh();
+  FieldEmbed<Scal> fs(m);
+  for (auto c : m.Cells()) {
+    fs[c] = fv[c][n];
+  }
+  for (auto f : m.Faces()) {
+    fs[f] = fv[f][n];
+  }
+  return fs;
+}
+
+template <class M>
+FieldCell<typename M::Vect> GetVort(
+    const FieldCell<typename M::Vect>& fcv, const MapCondFace& mf,
+    Embed<M>& eb) {
+  auto& m = eb.GetMesh();
+  using Vect = typename M::Vect;
+  auto fev = eb.Interpolate(fcv, mf, 0, Vect(0));
+
+  auto d0 = eb.Gradient(GetComponent(fev, 0, eb));
+  auto d1 = eb.Gradient(GetComponent(fev, 1, eb));
+  auto d2 = eb.Gradient(GetComponent(fev, 2, eb));
+
+  FieldCell<Vect> r(m, Vect(0));
+  for (auto c : eb.Cells()) {
+    r[c][0] = d2[c][1] - d1[c][2];
+    r[c][1] = d0[c][2] - d2[c][0];
+    r[c][2] = d1[c][0] - d0[c][1];
+  }
+
+  return r;
+}
+
 template <class M_>
 class Hydro : public KernelMeshPar<M_, GPar> {
  public:
@@ -194,7 +231,11 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   }
   void CalcVort() {
     auto& fcv = fs_->GetVelocity();
-    fcom_ = GetVort(fcv, fs_->GetVelocityCond(), m);
+    if (eb_) {
+      fcom_ = GetVort(fcv, fs_->GetVelocityCond(), *eb_);
+    } else {
+      fcom_ = GetVort(fcv, fs_->GetVelocityCond(), m);
+    }
     fcomm_.Reinit(m);
     for (auto c : m.Cells()) {
       fcomm_[c] = fcom_[c].norm();
@@ -1390,7 +1431,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           GetCondZeroGrad<Scal>(mf_fluid_), fck_, fc_vf0, af, as_.get());
     }
 
-    if (0&&eb_) {
+    if (0 && eb_) {
       auto& eb = *eb_;
       for (auto f : m.AllFaces()) {
         if (eb.GetType(f) == Embed<M>::Type::excluded) {
