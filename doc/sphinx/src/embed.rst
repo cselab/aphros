@@ -169,3 +169,44 @@ These routines are sufficient to implement an advection solver
       fcu[c] += sum * dt / eb.GetVolume(c);
     }
   }
+
+The previous implementation suffers from the problem of small cells.
+Stability requires that the change of the conserved quantity at one time
+step does not exceed the cell volume.
+Therefore, small cells lead to strong restrictions on the time step.
+One common remedy is redistribution of the conserved quantity
+to neighboring cells.
+Function ``eb.RedistributeCutCells()`` redistributes a conserved quantity
+from cut cells to their neighboring cells such that the integral of the
+quantity does not change.
+The operation is linear with respect to the conserved quantity.
+Using this function in the advection solver results in
+
+.. code-block:: cpp
+
+  void Advection2(FieldCell<Scal>& fcu, const MapEmbedCond& mec,
+                  Vect vel, Scal dt) {
+    const auto feu = eb.Interpolate(fcu, mec);
+    // Compute flux through all faces, zero in regular cells.
+    FieldEmbed<Scal> fevu(m, 0);
+    for (auto f : eb.Faces()) {
+      fevu[f] = feu[f] * vel.dot(eb.GetSurface(f));
+    }
+    for (auto c : eb.CFaces()) {
+      fevu[c] = feu[c] * vel.dot(eb.GetSurface(c));
+    }
+    // Compute the change at one time step.
+    FieldCell<Scal> fcd(m, 0);
+    for (auto c : eb.Cells()) {
+      Scal sum = fevu[c];
+      for (auto q : eb.Nci(c)) {
+        sum += fevu[eb.GetFace(c, q)] * eb.GetOutwardFactor(c, q);
+      }
+      fcd[c] = sum * dt;
+    }
+    fcd = eb.RedistributeCutCells(fcd);
+    // Advance in time.
+    for (auto c : eb.Cells()) {
+      fcu[c] += fcd[c] / eb.GetVolume(c);
+    }
+  }
