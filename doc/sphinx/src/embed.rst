@@ -210,3 +210,5 @@ Using this function in the advection solver results in
       fcu[c] += fcd[c] / eb.GetVolume(c);
     }
   }
+
+See full example :linkpath:`examples/103_embed_advection/main.cpp`.
