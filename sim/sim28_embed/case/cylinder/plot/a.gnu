@@ -18,18 +18,19 @@ set xrange [0:40]
 
 nn="-E '51'"
 
+llstat=system("echo ref2/quick_ext40_lim01/stat_{re40_nd026,re40_nd051}")
+llsep=system("echo ref2/quick_ext40_lim01/sep_{re40_nd026,re40_nd051}")
+
 set output "drag.pdf"
 set ylabel "{/:Italic C}_D"
-plot [][1.2:2.5] for [f in system(\
-  "echo ref*/quick*/stat_* | tr ' ' '\n' | grep lim01 | grep ".nn)." stat.dat"]\
+plot [][1.2:2.5] for [f in llstat]\
   f u "t":(column("dragx")*2) w l t flt(f) ,\
-1.52 w l lw 2 lc rgb "black" t "Choi2007,Re=40" ,\
-2.02 w l lw 2 lc rgb "black" t "Choi2007,Re=20"
+1.52 w l ls 1 dt '-' t "Choi2007,Re=40" ,\
+2.02 w l ls 2 dt '-' t "Choi2007,Re=20"
 
 set output "vdrag.pdf"
 set ylabel "{/:Italic C}_{D,vis}"
-plot [][0.45:0.8] for [f in system(\
-  "echo ref*/quick*/stat_* | tr ' ' '\n'  | grep lim01 | grep ".nn)." stat.dat"]\
+plot [][0.45:0.8] for [f in llsep]\
   f u "t":(column("vdragx")*2) w l t flt(f) ,\
 
 set output "sep.pdf"
