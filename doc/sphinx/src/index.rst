@@ -9,6 +9,7 @@ Aphros
    comm
    convdiff
    fluid
+   embed
    output
    lib1/index
    lib3/index
