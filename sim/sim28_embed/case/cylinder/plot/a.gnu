@@ -1,7 +1,7 @@
 #!/usr/bin/env gnuplot
 
 #!rm -f {vx,vy}_*.{xmf,h5}
-!./rs
+#!./rs
 
 termsize="3,2"
 load "style.gp"
@@ -16,7 +16,7 @@ set xlabel lbt
 set xtics 5
 set xrange [0:40]
 
-nn="-E '26'"
+nn="-E '51'"
 
 set output "drag.pdf"
 set ylabel "{/:Italic C}_D"
