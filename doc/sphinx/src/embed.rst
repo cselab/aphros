@@ -78,14 +78,14 @@ stored in a node-field:
 Regular cells are those for which :math:`\varphi>0` in all adjacent nodes,
 excluded cells are those for which :math:`\varphi<0` in all adjacent nodes,
 and other cells are cut cells.
-The ``Embed<M>`` class redefines ranges ``Cells()`` and ``Faces()``
+The ``Embed<M>`` class defines ranges ``eb.Cells()`` and ``eb.Faces()``
 such that they include regular and cut cells but not excluded cells.
-Another range ``CFaces()`` traverses only cut cells.
-The name ``CFaces()`` comes from *Cell Faces*.
-Together, ``Faces()`` and ``CFaces()`` include all indices
+Another range ``eb.CFaces()`` traverses only cut cells.
+The name ``CFaces`` comes from *Cell Faces*.
+Together, ``eb.Faces()`` and ``eb.CFaces()`` include all indices
 for which an embed-field can be defined.
-The following code traverses non-excluded faces and cut cells
-and assigns a value to the field
+The following code assigns a value to the embed-field
+in cut cells, regular faces and cut faces:
 
 .. code-block:: cpp
 
@@ -96,4 +96,76 @@ and assigns a value to the field
     fe[f] = 1;
   }
 
+Class ``Embed<M>`` also defines geometric routines
+such as ``eb.GetVolume()`` and ``eb.GetArea()``.
+The following code computes the total volume of the domain
+and the total area of all boundaries:
 
+.. code-block:: cpp
+
+  Scal vol = 0;
+  for (IdxCell c : eb.Cells()) {
+    vol += eb.GetVolume(c);
+  }
+  Scal area = 0;
+  for (IdxFace f : eb.Faces()) {
+    area += eb.GetArea(f);
+  }
+  for (IdxCell c : eb.CFaces()) {
+    area += eb.GetArea(c);
+  }
+
+The range of neighbor indices ``eb.Nci()`` is limited to non-excluded neighbor
+faces.  The name ``Nci`` stands for *Neighbor Cell Index*.
+The following code sums up the values over all faces of one cut cell ``c``:
+
+.. code-block:: cpp
+
+  IdxCell c;
+  Scal sum = fe[c];
+  for (size_t q : eb.Nci()) {
+    IdxFace f = eb.GetFace(c, q);
+    sum += fe[f];
+  }
+
+The header defines numerical routines for interpolation
+and computation of gradients. Some of them require boundary conditions.
+
+.. code-block:: cpp
+
+  MapEmbedCond mec; // boundary conditions
+  FieldEmbed<Scal> feu(m);
+  FieldCell<Scal> fcu(m);
+  FieldCell<Scal> fci = eb.Interpolate(feu);
+  FieldEmbed<Scal> fei = eb.Interpolate(fcu, mec);
+  FieldCell<Vect> fcg = eb.Gradient(feu);
+  FieldEmbed<Scal> feg = eb.Gradient(fcu, mec);
+
+These routines are sufficient to implement an advection solver
+
+.. code-block:: cpp
+
+  // fcu: quantity to advect
+  // mec: boundary conditions
+  // vel: advection velocity
+  // dt:: time step
+  void Advection(FieldCell<Scal>& fcu, const MapEmbedCond& mec,
+                 Vect vel, Scal dt) {
+    const auto feu = eb.Interpolate(fcu, mec);
+    // Compute flux through all faces, zero in regular cells.
+    FieldEmbed<Scal> fevu(m, 0);
+    for (auto f : eb.Faces()) {
+      fevu[f] = feu[f] * vel.dot(eb.GetSurface(f));
+    }
+    for (auto c : eb.CFaces()) {
+      fevu[c] = feu[c] * vel.dot(eb.GetSurface(c));
+    }
+    // Advance in time.
+    for (auto c : eb.Cells()) {
+      Scal sum = fevu[c];
+      for (auto q : eb.Nci(c)) {
+        sum += fevu[eb.GetFace(c, q)] * eb.GetOutwardFactor(c, q);
+      }
+      fcu[c] += sum * dt / eb.GetVolume(c);
+    }
+  }
