@@ -211,4 +211,9 @@ Using this function in the advection solver results in
     }
   }
 
+
+.. includecode:: examples/103_embed_advection/main.cpp
+  :func: Advection
+  :impl:
+
 See full example :linkpath:`examples/103_embed_advection/main.cpp`.

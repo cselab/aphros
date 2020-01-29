@@ -32,15 +32,15 @@ class includecode(nodes.Element):
 
 # Extracts function prototype from text
 # text: text
-# f: function name
+# func: function name
 # comment: if True, include comments above the prototype
 # impl: if True, adds function implementation
-def GetFunc(text, f, comment=True, impl=False):
-    p = "(^.*" + f + "\([^)]*?\)[^\{]*)"
+def GetFunc(text, func, filename, comment=True, impl=False):
+    p = "(^.*?\s+" + func + "\([^\)]*?\)[^:\{;=\$]*)([:\{;=\$]*[^\}]+\})?"
     m = re.search(p, text, re.MULTILINE)
-    if not f or not m:
-        text = "// Error: function '{:}' not found in '{:}'".format(
-                f, filename)
+    if not func or not m:
+        res = "      // Error: function '{:}' not found in '{:}'".format(
+                func, filename)
     else:
         if comment:
             s = m.start(0)
@@ -48,11 +48,17 @@ def GetFunc(text, f, comment=True, impl=False):
             i = 0
             while i > -len(ll) and re.search(" *//", ll[i - 1]):
                 i -= 1
-            text = "".join(ll[i:]) if i != 0 else ""
+            res = "".join(ll[i:]) if i != 0 else ""
         else:
-            text = ""
-        text += m.group(0)
-    return text
+            res = ""
+        res += m.group(1)
+        if impl:
+            if m.lastindex > 1:
+                res += m.group(2)
+            else:
+                res += "\n      // Error: impl=True but implementation not found'".\
+                        format(func, filename)
+    return res
 
 # Extracts struct definition.
 # text: text
@@ -91,10 +97,10 @@ class LiteralIncludeReader:
             with open(filename, encoding=self.encoding, errors='strict') as f:
                 text = f.read()
                 if 'func' in self.options:
-                    f = self.options['func'].strip()
-                    c = 'comment' in self.options
-                    i = 'impl' in self.options
-                    text = GetFunc(text, f, c, i)
+                    func = self.options['func'].strip()
+                    comment = 'comment' in self.options
+                    impl = 'impl' in self.options
+                    text = GetFunc(text, func, filename, comment, impl)
                 if 'struct' in self.options:
                     f = self.options['struct'].strip()
                     text = GetStruct(text, f)
