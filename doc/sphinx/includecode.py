@@ -33,6 +33,8 @@ def ExtractBraces(text):
     pos = 0
     s = 0
     r = []
+    def peek():
+        return text[pos] if pos < len(text) else ''
     while pos < len(text):
         c = text[pos]
         pos += 1
@@ -49,12 +51,25 @@ def ExtractBraces(text):
                     break
             if c == '"':
                 s = 2
+            if c == '/' and peek() == '/':
+                s = 3
+            if c == '/' and peek() == '*':
+                s = 4
+            if c == "'":
+                pos += 1
         elif s == 2: # inside string
             if c == '\\':
                 pos += 1
             if c == '"':
                 s = 1
-    # TODO: skip comments
+        elif s == 3: # inside // comment
+            if c == '\\':
+                pos += 1
+            if c == '\n':
+                s = 1
+        elif s == 4: # inside /* comment
+            if c == '*' and peek() == '/':
+                s = 1
     if pos + 1 < len(text) and text[pos] == ';':
         pos += 1
     return text[:pos]
