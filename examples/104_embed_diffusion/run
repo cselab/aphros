@@ -1,10 +1,13 @@
 set -eu
 
 for e in 0 1 ; do
-  ./main $e
-  d="case$e"
-  mkdir -p $d
-  ./plot u_0000.dat
-  ./plot u_0001.dat
-  mv u_000{0,1}.svg $d
+  for gl in 0 0.2 ; do
+    d="case${e}_gradlim${gl}"
+    echo $d
+    ./main $e $gl
+    mkdir -p $d
+    ./plot u_0000.dat
+    ./plot u_0001.dat
+    mv u_000{0,1}.svg $d
+  done
 done

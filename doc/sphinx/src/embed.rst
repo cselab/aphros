@@ -227,9 +227,9 @@ The following function implements a diffusion solver using this approximation
   :comment:
   :impl:
 
-.. |ex104_0_0| image:: ../../../examples/104_embed_diffusion/case0/u_0000.svg
+.. |ex104_0_0| image:: ../../../examples/104_embed_diffusion/case0_gradlim0/u_0000.svg
 
-.. |ex104_0_1| image:: ../../../examples/104_embed_diffusion/case0/u_0001.svg
+.. |ex104_0_1| image:: ../../../examples/104_embed_diffusion/case0_gradlim0/u_0001.svg
 
 .. table:: Results of diffusion solver ``Diffusion0()``: 
    initial (left) and final (right). Instabilities develop near the boundary.
@@ -244,9 +244,9 @@ The following function implements a diffusion solver using this approximation
   :comment:
   :impl:
 
-.. |ex104_1_0| image:: ../../../examples/104_embed_diffusion/case1/u_0000.svg
+.. |ex104_1_0| image:: ../../../examples/104_embed_diffusion/case1_gradlim0/u_0000.svg
 
-.. |ex104_1_1| image:: ../../../examples/104_embed_diffusion/case1/u_0001.svg
+.. |ex104_1_1| image:: ../../../examples/104_embed_diffusion/case1_gradlim0/u_0001.svg
 
 .. table:: Results of diffusion solver ``Diffusion1()``: 
    initial (left) and final (right). Redistribution from cut cells
@@ -256,3 +256,16 @@ The following function implements a diffusion solver using this approximation
    +-------------+-------------+
    | |ex104_1_0| | |ex104_1_1| |
    +-------------+-------------+
+
+.. |ex104_1a_0| image:: ../../../examples/104_embed_diffusion/case1_gradlim0.2/u_0000.svg
+
+.. |ex104_1a_1| image:: ../../../examples/104_embed_diffusion/case1_gradlim0.2/u_0001.svg
+
+.. table:: Results of diffusion solver ``Diffusion1()`` with limited gradient: 
+   initial (left) and final (right).
+   Limiting the gradient stabilizes the method.
+   :align: center
+
+   +--------------+--------------+
+   | |ex104_1a_0| | |ex104_1a_1| |
+   +--------------+--------------+
