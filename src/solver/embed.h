@@ -493,21 +493,25 @@ class Embed {
   // field on embedded boundaries [s]
   template <class T>
   FieldEmbed<T> InterpolateUpwind(
-      const FieldCell<T>& fcu, const FieldFace<T>& ffv, const MapCondFace& mfc,
+      const FieldCell<T>& fcu, const FieldEmbed<T>& fev, const MapCondFace& mfc,
       size_t bc, T bcv) const {
     FieldEmbed<T> feu(m, T(0));
     for (auto f : eb.Faces()) {
-      const IdxCell c = (ffv[f] > 0 ? m.GetCell(f, 0) : m.GetCell(f, 1));
+      const IdxCell c = (fev[f] > 0 ? m.GetCell(f, 0) : m.GetCell(f, 1));
       feu[f] = fcu[c];
     }
     for (auto c : eb.CFaces()) {
-      if (bc == 0) {
-        feu[c] = bcv;
-      } else if (bc == 1) {
-        feu[c] = fcu[c] + bcv * GetFaceOffset(c);
+      if (fev[c] > 0) {
+        feu[c] = fcu[c];
       } else {
-        throw std::runtime_error(
-            "Interpolate: unknown bc=" + std::to_string(bc));
+        if (bc == 0) {
+          feu[c] = bcv;
+        } else if (bc == 1) {
+          feu[c] = fcu[c] + bcv * GetFaceOffset(c);
+        } else {
+          throw std::runtime_error(
+              "Interpolate: unknown bc=" + std::to_string(bc));
+        }
       }
     }
     InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
@@ -523,6 +527,8 @@ class Embed {
   // sc: interpolation scheme
   // Returns:
   // field on embedded boundaries [s]
+  // TODO: interpolation from upwind cell on embedded boundaries
+  //       (see InterpolateUpwind() above)
   FieldEmbed<Scal> InterpolateUpwind(
       const FieldCell<Scal>& fcu, const FieldCell<typename M::Vect>& fcg,
       const MapCondFace& mfc, size_t bc, Scal bcv, const FieldFace<Scal>& ffv,
