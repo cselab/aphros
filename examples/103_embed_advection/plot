@@ -45,14 +45,15 @@ def HideAxis(ax):
 def PlotGrid(ax, x1, y1):
     ax.set_xticks(x1)
     ax.set_yticks(y1)
-    ax.grid(True, lw=0.2, c='0.', alpha=0.2)
+    ax.grid(True, lw=0.5, c='0.', alpha=0.2)
 
 pathdat = sys.argv[1]
 u = ReadPlain(pathdat)
 u = u[0,:,:]
 
-resx = 512
-dpi = 512
+figsize = 3.2
+resx = 640
+dpi = resx / figsize
 fig = plt.figure(figsize=(resx/dpi,resx/dpi))
 ax = plt.Axes(fig, [0., 0., 1., 1.])
 fig.add_axes(ax)
@@ -72,9 +73,8 @@ if os.path.isfile(patheb):
     xy = np.vstack((eb[:,0], eb[:,3], eb[:,1], eb[:,4]))
     xy = xy.T
     xy = xy.reshape((eb.shape[0] * 2, 2))
-    ax.plot(*xy, lw=0.3, c='0.', alpha=1)
+    ax.plot(*xy, lw=1, c='0.', alpha=1)
 
-pathfig = os.path.splitext(pathdat)[0] + ".pdf"
+pathfig = os.path.splitext(pathdat)[0] + ".svg"
 print(pathfig)
 plt.savefig(pathfig, dpi=dpi)
-

@@ -6,5 +6,5 @@ for e in 0 1 ; do
   mkdir -p $d
   ./plot u_0000.dat
   ./plot u_0001.dat
-  mv u_0000.pdf u_0001.pdf $d
+  mv u_000{0,1}.svg $d
 done
