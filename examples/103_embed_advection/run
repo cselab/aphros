@@ -1,1 +1,3 @@
-./main
+./main 0
+./plot u_0000.dat
+./plot u_0001.dat

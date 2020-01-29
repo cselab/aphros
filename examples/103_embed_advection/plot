@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+
+import numpy as np
+import sys
+import os
+import matplotlib.pyplot as plt
+
+# Read uniform grid data
+# p: path
+# Format:
+# <nx> <ny> <nz>
+# <u[0,0,0]> <u[0,0,1]> ...
+# Return:
+# array of shape (nx, ny, nz)
+# None if file not found
+def ReadPlain(fn):
+  if not os.path.isfile(fn):
+    return None
+  with open(fn) as f:
+    ll = f.readlines()
+    # shape x,y,z
+    s = np.array(ll[0].split(), dtype=int)
+    # shape z,y,x
+    ss = tuple(reversed(s))
+    # data flat
+    u = np.array(ll[1].split(), dtype=float)
+    # data z,y,x
+    u = u.reshape(ss)
+    return u
+
+pathdat = sys.argv[1]
+u = ReadPlain(pathdat)
+
+u = u[0,:,:]
+plt.imshow(np.flipud(u), vmin=0, vmax=1)
+
+pathfig = os.path.splitext(pathdat)[0] + ".pdf"
+print(pathfig)
+plt.savefig(pathfig)
+
