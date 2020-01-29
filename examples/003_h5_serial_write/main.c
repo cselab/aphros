@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 24.12.2019
+// Copyright 2019 ETH Zurich
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <h5serial.h>

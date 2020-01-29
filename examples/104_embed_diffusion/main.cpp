@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 29.01.2020
+// Copyright 2020 ETH Zurich
+
 #include <cassert>
 #include <cstdio>
 #include <iostream>
