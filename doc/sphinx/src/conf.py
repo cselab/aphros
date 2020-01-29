@@ -56,7 +56,8 @@ html_sidebars = {
 htmlhelp_basename = 'hydrodoc'
 
 html_math_renderer = 'imgmath'
-#html_math_renderer = ''
+imgmath_image_format = 'svg'
+imgmath_font_size = 14
 
 # latex
 latex_elements = {}
