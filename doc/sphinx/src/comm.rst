@@ -60,4 +60,3 @@ Structure describes a linear system to solve:
 
 .. includecode:: src/geom/mesh.h
   :struct: LS
-

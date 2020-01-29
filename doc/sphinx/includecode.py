@@ -29,6 +29,36 @@ if False:
 class includecode(nodes.Element):
     pass
 
+def ExtractBraces(text):
+    pos = 0
+    s = 0
+    r = []
+    while pos < len(text):
+        c = text[pos]
+        pos += 1
+        if s == 0: # inside outer brace
+            if c == '{':
+                cnt = 1
+                s = 1
+        elif s == 1: # inside inner brace
+            if c == '{':
+                cnt += 1
+            if c == '}':
+                cnt -= 1
+                if cnt == 0:
+                    break
+            if c == '"':
+                s = 2
+        elif s == 2: # inside string
+            if c == '\\':
+                pos += 1
+            if c == '"':
+                s = 1
+    # TODO: skip comments
+    if pos + 1 < len(text) and text[pos] == ';':
+        pos += 1
+    return text[:pos]
+
 
 # Extracts function prototype from text
 # text: text
@@ -54,7 +84,7 @@ def GetFunc(text, func, filename, comment=True, impl=False):
         res += m.group(1)
         if impl:
             if m.lastindex > 1:
-                res += m.group(2)
+                res += ExtractBraces(text[m.end(1):])
             else:
                 res += "\n      // Error: impl=True but implementation not found'".\
                         format(func, filename)
@@ -70,7 +100,7 @@ def GetStruct(text, f):
         text = "// Error: struct '{:}' not found in '{:}'".format(
                 f, filename)
     else:
-        text = m.group(0)
+        text = ExtractBraces(text[m.start(1):])
     return text
 
 class LiteralIncludeReader:
