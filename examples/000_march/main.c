@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 24.12.2019
+// Copyright 2019 ETH Zurich
+
 #undef NDEBUG
 #include <assert.h>
 #include <math.h>
