@@ -143,15 +143,9 @@ and computation of gradients. Some of them require boundary conditions.
 
 These routines are sufficient to implement an advection solver
 
-.. code-block:: cpp
-
-  // fcu: quantity to advect
-  // mec: boundary conditions
-  // vel: advection velocity
-  // dt:: time step
-
 .. includecode:: examples/103_embed_advection/main.cpp
   :func: Advection
+  :comment:
   :impl:
 
 
