@@ -371,6 +371,7 @@ class Embed {
     }
     return GetNan<Vect>();
   }
+  // TODO: cache
   Vect GetFaceCenter(IdxFace f) const {
     switch (fft_[f]) {
       case Type::regular:
@@ -381,6 +382,10 @@ class Embed {
         return GetNan<Vect>();
     }
   }
+  std::vector<Vect> GetCutPoly(IdxCell c) const {
+    return R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], m.GetCellSize());
+  }
+  // TODO: cache
   Vect GetCellCenter(IdxCell c) const {
     switch (fct_[c]) {
       case Type::regular:
@@ -667,13 +672,20 @@ class Embed {
         m);
   }
   void DumpPoly() const {
-    DumpPoly(
-        "eb.vtk", ffs_, fft_, fcs_, fct_, fcn_, fca_, ffpoly_, true, true, m);
+    DumpPoly("eb.vtk", true, true);
   }
   void DumpPoly(bool vtkbin, bool vtkmerge) const {
-    DumpPoly(
-        "eb.vtk", ffs_, fft_, fcs_, fct_, fcn_, fca_, ffpoly_, vtkbin, vtkmerge,
-        m);
+    DumpPoly("eb.vtk", vtkbin, vtkmerge);
+  }
+  // xc: plane origin
+  // n: plane normal
+  void DumpPlaneSection(std::string filename, Vect xc, Vect n) const {
+    DumpPlaneSection(filename, fct_, fcn_, fca_, xc, n, m);
+  }
+  // xc: plane origin
+  // n: plane normal
+  void DumpPlaneSection(Vect xc, Vect n) const {
+    DumpPlaneSection("eb.dat", xc, n);
   }
 
  private:
@@ -745,6 +757,47 @@ class Embed {
         WriteVtkPoly<Vect>(
             fn, dl, nullptr, {&dld, &dls, &dlf}, {"dir", "area", "face"},
             "Embedded boundary", true, vtkbin, vtkmerge);
+      }
+    }
+  }
+  // Writes line segments of cross-section of cut cells
+  // fct: cell types
+  // fcn: normals
+  // fca: plane constants
+  // plane_x: plane origin
+  // plane_n: plane normal
+  static void DumpPlaneSection(
+      const std::string fn, const FieldCell<Type>& fct,
+      const FieldCell<Vect>& fcn, const FieldCell<Scal>& fca, Vect plane_x,
+      Vect plane_n, M& m) {
+    auto sem = m.GetSem("dumpplanesection");
+    struct {
+      std::vector<std::vector<Vect>> dl;
+    } * ctx(sem);
+    auto& dl = ctx->dl;
+    if (sem("local")) {
+      for (auto c : m.Cells()) {
+        if (fct[c] == Type::cut) {
+          auto xx =
+              R::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], m.GetCellSize());
+          std::array<Vect, 2> e; // ends of intersection
+          if (R::GetInterPoly(xx, plane_x, plane_n, e)) {
+            dl.push_back({e[0], e[1]});
+          }
+        }
+      }
+      using TV = typename M::template OpCatVT<Vect>;
+      m.Reduce(std::make_shared<TV>(&dl));
+    }
+    if (sem("write")) {
+      if (m.IsRoot()) {
+        std::cout << std::fixed << std::setprecision(8) << "dump"
+                  << " to " << fn << std::endl;
+        std::ofstream f(fn);
+        for (auto e : dl) {
+          f << e[0][0] << ' ' << e[0][1] << ' ' << e[0][2] << ' ';
+          f << e[1][0] << ' ' << e[1][1] << ' ' << e[1][2] << '\n';
+        }
       }
     }
   }
