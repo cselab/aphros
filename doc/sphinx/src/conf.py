@@ -57,7 +57,8 @@ htmlhelp_basename = 'hydrodoc'
 
 html_math_renderer = 'imgmath'
 imgmath_image_format = 'svg'
-imgmath_font_size = 14
+imgmath_font_size = 15
+imgmath_use_preview = True
 
 # latex
 latex_elements = {}
