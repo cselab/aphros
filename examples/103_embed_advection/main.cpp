@@ -20,7 +20,7 @@ void Advection0(
     FieldCell<Scal>& fcu, const MapCondFace& mec, const FieldEmbed<Scal>& fev,
     Scal dt, const Embed<M>& eb) {
   const auto& m = eb.GetMesh();
-  const auto feu = eb.InterpolateUpwind(fcu, fev.GetFieldFace(), mec, 0, 1.);
+  const auto feu = eb.InterpolateUpwind(fcu, fev, mec, 0, 1.);
   // Compute flux.
   FieldEmbed<Scal> fevu(m, 0);
   for (auto f : eb.Faces()) {
@@ -44,7 +44,7 @@ void Advection1(
     FieldCell<Scal>& fcu, const MapCondFace& mec, const FieldEmbed<Scal>& fev,
     Scal dt, const Embed<M>& eb) {
   const auto& m = eb.GetMesh();
-  const auto feu = eb.InterpolateUpwind(fcu, fev.GetFieldFace(), mec, 0, 1.);
+  const auto feu = eb.InterpolateUpwind(fcu, fev, mec, 0, 1.);
   // Compute flux.
   FieldEmbed<Scal> fevu(m, 0);
   for (auto f : eb.Faces()) {
