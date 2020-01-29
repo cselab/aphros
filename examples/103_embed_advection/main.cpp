@@ -57,18 +57,18 @@ void Advection1(
     fevu[c] = feu[c] * fev[c];
   }
   // Compute the change at one time step.
-  FieldCell<Scal> fcd(m, 0);
+  FieldCell<Scal> fct(m, 0);
   for (auto c : eb.Cells()) {
     Scal sum = fevu[c];
     for (auto q : eb.Nci(c)) {
       sum += fevu[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
     }
-    fcd[c] = -sum * dt;
+    fct[c] = -sum * dt;
   }
-  fcd = eb.RedistributeCutCells(fcd);
+  fct = eb.RedistributeCutCells(fct);
   // Advance in time.
   for (auto c : eb.Cells()) {
-    fcu[c] += fcd[c] / eb.GetVolume(c);
+    fcu[c] += fct[c] / eb.GetVolume(c);
   }
 }
 
@@ -126,6 +126,9 @@ void Run(M& m, Vars& var) {
   }
   sem.LoopBegin();
   if (sem("step")) {
+    if (m.IsRoot()) {
+      std::cout << "t=" << t << std::endl;
+    }
     switch (var.Int["case"]) {
       case 0:
         Advection0(fcu, mfc, fev, dt, *ctx->eb_);

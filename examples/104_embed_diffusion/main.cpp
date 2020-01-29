@@ -14,61 +14,60 @@ using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 
-// Advection solver.
+// Diffusion solver.
 // fcu: quantity to advect
 // mec: boundary conditions
-// vel: advection velocity
+// diff: diffusion coefficient
 // dt: time step
-void Advection0(
-    FieldCell<Scal>& fcu, const MapCondFace& mec, const FieldEmbed<Scal>& fev,
-    Scal dt, const Embed<M>& eb) {
+void Diffusion0(
+    FieldCell<Scal>& fcu, const MapCondFace& mec, Scal diff, Scal dt,
+    const Embed<M>& eb) {
   const auto& m = eb.GetMesh();
-  const auto feu = eb.InterpolateUpwind(fcu, fev, mec, 0, 1.);
+  const auto feg = eb.Gradient(fcu, mec, 0, 1.);
   // Compute flux.
-  FieldEmbed<Scal> fevu(m, 0);
+  FieldEmbed<Scal> fed(m, 0);
   for (auto f : eb.Faces()) {
-    fevu[f] = feu[f] * fev[f];
+    fed[f] = feg[f] * diff * eb.GetArea(f);
   }
   for (auto c : eb.CFaces()) {
-    fevu[c] = feu[c] * fev[c];
+    fed[c] = feg[c] * diff * eb.GetArea(c);
   }
   // Advance in time.
   for (auto c : eb.Cells()) {
-    Scal sum = fevu[c]; // sum of fluxes
+    Scal sum = fed[c]; // sum of fluxes
     for (auto q : eb.Nci(c)) {
-      sum += fevu[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
+      sum += fed[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
     }
-    fcu[c] -= sum * dt / eb.GetVolume(c);
+    fcu[c] += sum * dt / eb.GetVolume(c);
   }
 }
 
-// Advection solver with redistribution from cut cells.
-void Advection1(
-    FieldCell<Scal>& fcu, const MapCondFace& mec, const FieldEmbed<Scal>& fev,
-    Scal dt, const Embed<M>& eb) {
+void Diffusion1(
+    FieldCell<Scal>& fcu, const MapCondFace& mec, Scal diff, Scal dt,
+    const Embed<M>& eb) {
   const auto& m = eb.GetMesh();
-  const auto feu = eb.InterpolateUpwind(fcu, fev, mec, 0, 1.);
+  const auto feg = eb.Gradient(fcu, mec, 0, 1.);
   // Compute flux.
-  FieldEmbed<Scal> fevu(m, 0);
+  FieldEmbed<Scal> fed(m, 0);
   for (auto f : eb.Faces()) {
-    fevu[f] = feu[f] * fev[f];
+    fed[f] = feg[f] * diff * eb.GetArea(f);
   }
   for (auto c : eb.CFaces()) {
-    fevu[c] = feu[c] * fev[c];
+    fed[c] = feg[c] * diff * eb.GetArea(c);
   }
   // Compute the change at one time step.
-  FieldCell<Scal> fcd(m, 0);
+  FieldCell<Scal> fct(m, 0);
   for (auto c : eb.Cells()) {
-    Scal sum = fevu[c];
+    Scal sum = fed[c];
     for (auto q : eb.Nci(c)) {
-      sum += fevu[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
+      sum += fed[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
     }
-    fcd[c] = -sum * dt;
+    fct[c] = sum * dt;
   }
-  fcd = eb.RedistributeCutCells(fcd);
+  fct = eb.RedistributeCutCells(fct);
   // Advance in time.
   for (auto c : eb.Cells()) {
-    fcu[c] += fcd[c] / eb.GetVolume(c);
+    fcu[c] += fct[c] / eb.GetVolume(c);
   }
 }
 
@@ -77,24 +76,22 @@ void Run(M& m, Vars& var) {
   struct {
     FieldNode<Scal> fnl;
     FieldCell<Scal> fcu;
-    FieldEmbed<Scal> fev;
     MapCondFace mfc; // boundary conditions
     Scal t = 0;
-    Vect vel;
+    Scal diff;
     Scal dt;
     std::unique_ptr<Embed<M>> eb_;
   } * ctx(sem);
   auto& fnl = ctx->fnl;
   auto& fcu = ctx->fcu;
-  auto& fev = ctx->fev;
   auto& mfc = ctx->mfc;
   auto& t = ctx->t;
   auto& dt = ctx->dt;
-  auto& vel = ctx->vel;
+  auto& diff = ctx->diff;
 
   if (sem("init")) {
-    vel = Vect(var.Vect["vel"]);
-    dt = var.Double["cfl"] * m.GetCellSize()[0] / vel.norm1();
+    diff = var.Double["diff"];
+    dt = var.Double["cfl"] * sqr(m.GetCellSize()[0]) * diff;
     fcu.Reinit(m, 0);
     for (auto c : m.AllCells()) {
       auto x = m.GetCenter(c);
@@ -111,27 +108,20 @@ void Run(M& m, Vars& var) {
   if (sem.Nested("eb-init")) {
     ctx->eb_->Init(fnl);
   }
-  if (sem("flux")) {
-    auto& eb = *ctx->eb_;
-    fev.Reinit(m, 0);
-    for (auto f : eb.Faces()) {
-      fev[f] = eb.GetSurface(f).dot(vel);
-    }
-    for (auto c : eb.CFaces()) {
-      fev[c] = eb.GetSurface(c).dot(vel);
-    }
-  }
   if (sem.Nested("eb-dump")) {
     ctx->eb_->DumpPlaneSection(Vect(0., 0., 1e-3), Vect(0., 0., 1.));
   }
   sem.LoopBegin();
   if (sem("step")) {
+    if (m.IsRoot()) {
+      std::cout << "t=" << t << std::endl;
+    }
     switch (var.Int["case"]) {
       case 0:
-        Advection0(fcu, mfc, fev, dt, *ctx->eb_);
+        Diffusion0(fcu, mfc, diff, dt, *ctx->eb_);
         break;
       case 1:
-        Advection1(fcu, mfc, fev, dt, *ctx->eb_);
+        Diffusion1(fcu, mfc, diff, dt, *ctx->eb_);
         break;
       default:
         throw std::runtime_error(
@@ -165,9 +155,9 @@ set int bsz 1
 
 set string dumpformat plain
 
-set double tmax 0.1
-set vect vel 2 1 0
-set double cfl 0.5
+set double tmax 0.0025
+set double diff 1
+set double cfl 0.25
 
 set int case 0
 )EOF";
