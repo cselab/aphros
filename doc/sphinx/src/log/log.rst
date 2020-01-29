@@ -5,7 +5,7 @@ Surface tension as gradient
 
 **Goal**: zero integral of force
 
-**What**: surface tension as :math:``\nabla (\kappa \alpha)`` on faces,
+**What**: surface tension as :math:`\nabla (\kappa \alpha)` on faces,
 curvature in cells copied from neighbour faces if nan.
 
 **Result**: instability for test of single drop equilibrium,
@@ -13,9 +13,9 @@ curvature in cells copied from neighbour faces if nan.
 **Data**: `log01_grad_ka <log01_grad_ka>`__
 
 -  `grad_ka.mp4 <log01_grad_ka/grad_ka.mp4>`__: surface tension as
-   :math:``\nabla (\kappa * \alpha)``
+   :math:`\nabla (\kappa * \alpha)`
 -  `k_grad_a.mp4 <log01_grad_ka/k_grad_a.mp4>`__: surface tension as
-   :math:``\kappa \nabla \alpha``
+   :math:`\kappa \nabla \alpha`
 -  `k_grad_a_kmean.mp4 <log01_grad_ka/k_grad_a_kmean.mp4>`__: mean
    curvature on face if both cells contain interface
 

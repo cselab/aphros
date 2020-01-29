@@ -190,5 +190,14 @@ Using this function in the advection solver results in
     }
   }
 
-
 See full example :linkpath:`examples/103_embed_advection/main.cpp`.
+
+The fraction of redistributed quantities ``eb.RedistributeCutCells()`` does not
+depend on the velocity or the time step.  While this makes a stable method,
+the unnecessary redistribution of values may reduce the accuracy.
+Another approach is to use a local stability criterion
+depending on the velocity
+
+.. math::
+
+   \frac{v_f \Delta t}{S_f |\mathbf{x}_c - \mathbf{x}_f|} < \texttt{CFL}_0
