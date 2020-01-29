@@ -239,6 +239,9 @@ The following function implements a diffusion solver using this approximation
    | |ex104_0_0| | |ex104_0_1| |
    +-------------+-------------+
 
+See full example in :linkpath:`examples/104_embed_diffusion/main.cpp`.
+
+
 .. includecode:: examples/104_embed_diffusion/main.cpp
   :func: Diffusion1
   :comment:
