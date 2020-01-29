@@ -103,7 +103,7 @@ def GetFunc(text, func, filename, comment=True, impl=False):
             else:
                 res += "\n      // Error: impl=True but implementation not found'".\
                         format(func, filename)
-    return res
+    return res.rstrip()
 
 # Extracts struct definition.
 # text: text
