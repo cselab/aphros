@@ -14,7 +14,7 @@ using Vect = typename M::Vect;
 // fcu: quantity to advect
 // mec: boundary conditions
 // vel: advection velocity
-// dt:: time step
+// dt: time step
 void Advection(FieldCell<Scal>& fcu, const MapCondFace& mec,
                Vect vel, Scal dt, const Embed<M>& eb) {
   const auto& m = eb.GetMesh();
