@@ -43,7 +43,14 @@ Install documentation
      make               # man pages in $CHPREFIX/man
      make web           # html in <ROOT>/doc/sphinx/build/singlehtml
 
-## Submitting jobs
+## Add copyright notice
+
+Add copyright notice to C/C++ source files found recursively in current
+directory (if `copyright` is not found in first 10 lines of the file)
+
+    ap-applycopyright `ap-findsource`
+
+## Submit job
 
     echo NP > np
     echo TL > tl
