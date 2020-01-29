@@ -2,7 +2,4 @@ set -eu
 make
 ./clean
 echo 1 > np
-ap-run ./main
-
-#echo 64 > np
-#ap-run ./main 256 8
+ap-run ./main 64 1 0.013 10

@@ -276,7 +276,7 @@ void Run(M& m, Vars& var) {
   auto& frame = ctx->frame;
 
   auto& as = ctx->as;
-  const Scal tmax = 10;
+  const Scal tmax = var.Double["tmax"];
   const Scal dtmax = 0.1;
   const Scal cfl = 0.5;
 
@@ -333,10 +333,10 @@ void Run(M& m, Vars& var) {
     dt = std::min(dt, dtmax);
     as->SetTimeStep(dt);
     if (m.IsRoot()) {
-      std::cout << "dt=" << dt << std::endl;
+      std::cout << "t=" << as->GetTime() << " dt=" << dt << std::endl;
     }
   }
-  const size_t dumpskip = 100;
+  const size_t dumpskip = var.Int["dumpskip"];
   const bool dump = (step % dumpskip == 0);
   if (sem.Nested()) {
     if (dump) {
@@ -373,18 +373,9 @@ int main(int argc, const char** argv) {
   assert(nx % (bsx * px) == 0);
   const int bx = nx / (bsx * px);
   std::string conf = R"EOF(
-set int bx 1
-set int by 1
-set int bz 1
-
-set int bsx 32
-set int bsy 32
-set int bsz 1
-
 set int dim 2
-
-set int px 8
-set int py 8
+set int bz 1
+set int bsz 1
 set int pz 1
 
 set double bcc_clear0 0
@@ -400,12 +391,26 @@ set double hypre_symm_tol 1e-10
 set int hypre_symm_maxiter 1000
 set int hypre_periodic_x 0
 set int hypre_periodic_y 0
+
+set double tmax 10
+set int dumpskip 100
 )EOF";
 
+  conf += "set int bsx " + std::to_string(bsx) + "\n";
+  conf += "set int bsy " + std::to_string(bsx) + "\n";
   conf += "set int bx " + std::to_string(bx) + "\n";
   conf += "set int by " + std::to_string(bx) + "\n";
   conf += "set int px " + std::to_string(px) + "\n";
   conf += "set int py " + std::to_string(px) + "\n";
+
+  if (argc > 3) {
+    const double tmax = atof(argv[3]);
+    conf += "set double tmax " + std::to_string(tmax) + "\n";
+  }
+  if (argc > 3) {
+    const int dumpskip = atoi(argv[4]);
+    conf += "set int dumpskip " + std::to_string(dumpskip) + "\n";
+  }
 
   return RunMpiBasic<M>(argc, argv, Run, conf);
 }
