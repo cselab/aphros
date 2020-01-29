@@ -144,10 +144,23 @@ and computation of gradients. Some of them require boundary conditions.
 These routines are sufficient to implement an advection solver
 
 .. includecode:: examples/103_embed_advection/main.cpp
-  :func: Advection
+  :func: Advection0
   :comment:
   :impl:
 
+.. |ex103_0_0| image:: ../../../examples/103_embed_advection/example0/u_0000.svg
+
+.. |ex103_0_1| image:: ../../../examples/103_embed_advection/example0/u_0001.svg
+
+.. table:: Results of advection solver ``Advection0()``: 
+   initial (left) and final (right). Instabilities develop near the boundary.
+   :align: center
+
+   +-------------+-------------+
+   | |ex103_0_0| | |ex103_0_1| |
+   +-------------+-------------+
+
+See full example in :linkpath:`examples/103_embed_advection/main.cpp`.
 
 The previous implementation suffers from the problem of small cells.
 Stability requires that the change of the conserved quantity at one time
@@ -158,39 +171,25 @@ to neighboring cells.
 Function ``eb.RedistributeCutCells()`` redistributes a conserved quantity
 from cut cells to their neighboring cells such that the integral of the
 quantity does not change.
-The operation is linear with respect to the conserved quantity.
 Using this function in the advection solver results in
 
-.. code-block:: cpp
+.. includecode:: examples/103_embed_advection/main.cpp
+  :func: Advection1
+  :comment:
+  :impl:
 
-  void Advection2(FieldCell<Scal>& fcu, const MapEmbedCond& mec,
-                  Vect vel, Scal dt) {
-    const auto feu = eb.Interpolate(fcu, mec);
-    // Compute flux through all faces, zero in regular cells.
-    FieldEmbed<Scal> fevu(m, 0);
-    for (auto f : eb.Faces()) {
-      fevu[f] = feu[f] * vel.dot(eb.GetSurface(f));
-    }
-    for (auto c : eb.CFaces()) {
-      fevu[c] = feu[c] * vel.dot(eb.GetSurface(c));
-    }
-    // Compute the change at one time step.
-    FieldCell<Scal> fcd(m, 0);
-    for (auto c : eb.Cells()) {
-      Scal sum = fevu[c];
-      for (auto q : eb.Nci(c)) {
-        sum += fevu[eb.GetFace(c, q)] * eb.GetOutwardFactor(c, q);
-      }
-      fcd[c] = sum * dt;
-    }
-    fcd = eb.RedistributeCutCells(fcd);
-    // Advance in time.
-    for (auto c : eb.Cells()) {
-      fcu[c] += fcd[c] / eb.GetVolume(c);
-    }
-  }
+.. |ex103_1_0| image:: ../../../examples/103_embed_advection/example1/u_0000.svg
 
-See full example :linkpath:`examples/103_embed_advection/main.cpp`.
+.. |ex103_1_1| image:: ../../../examples/103_embed_advection/example1/u_0001.svg
+
+.. table:: Results of advection solver ``Advection1()``:
+   initial (left) and final (right).
+   Resdistribution from cut cells stabilized the method.
+   :align: center
+
+   +-------------+-------------+
+   | |ex103_1_0| | |ex103_1_1| |
+   +-------------+-------------+
 
 The fraction of redistributed quantities ``eb.RedistributeCutCells()`` does not
 depend on the velocity or the time step.  While this makes a stable method,
