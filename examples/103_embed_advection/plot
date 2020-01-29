@@ -7,9 +7,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import re
 
-def WE(m):
-    sys.stderr.write(str(m) + "\n")
-
 # Read uniform grid data
 # p: path
 # Format:

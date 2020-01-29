@@ -141,7 +141,12 @@ and computation of gradients. Some of them require boundary conditions.
   FieldCell<Vect> fcg = eb.Gradient(feu);
   FieldEmbed<Scal> feg = eb.Gradient(fcu, mec);
 
-These routines are sufficient to implement an advection solver
+.. _s:embed_advection:
+
+Advection solver
+----------------
+
+The routines described above are sufficient to implement an advection solver.
 
 .. includecode:: examples/103_embed_advection/main.cpp
   :func: Advection0
@@ -194,9 +199,60 @@ Using this function in the advection solver results in
 The fraction of redistributed quantities ``eb.RedistributeCutCells()`` does not
 depend on the velocity or the time step.  While this makes a stable method,
 the unnecessary redistribution of values may reduce the accuracy.
-Another approach is to use a local stability criterion
+Another approach would be to use a local stability criterion
 depending on the velocity
 
 .. math::
 
    \frac{v_f \Delta t}{S_f |\mathbf{x}_c - \mathbf{x}_f|} < \texttt{CFL}_0
+
+Diffusion solver
+----------------
+
+The diffusion equation illustrates another problem of small cells which arises
+in computation of gradients.
+The diffusive fluxes are proportional to the normal gradient of the quantity.
+Approximations of normal gradients contain the distance
+between the face and cell centroids in the denominator.
+
+.. math::
+
+    \Big(\frac{\delta u}{\delta n}\Big) =
+   \frac{u_c - u_f}{(\mathbf{x}_c - \mathbf{x}_f) \cdot \mathbf{n}_f}
+
+The following function implements a diffusion solver using this approximation
+
+.. includecode:: examples/104_embed_diffusion/main.cpp
+  :func: Diffusion0
+  :comment:
+  :impl:
+
+.. |ex104_0_0| image:: ../../../examples/104_embed_diffusion/case0/u_0000.svg
+
+.. |ex104_0_1| image:: ../../../examples/104_embed_diffusion/case0/u_0001.svg
+
+.. table:: Results of diffusion solver ``Diffusion0()``: 
+   initial (left) and final (right). Instabilities develop near the boundary.
+   :align: center
+
+   +-------------+-------------+
+   | |ex104_0_0| | |ex104_0_1| |
+   +-------------+-------------+
+
+.. includecode:: examples/104_embed_diffusion/main.cpp
+  :func: Diffusion1
+  :comment:
+  :impl:
+
+.. |ex104_1_0| image:: ../../../examples/104_embed_diffusion/case1/u_0000.svg
+
+.. |ex104_1_1| image:: ../../../examples/104_embed_diffusion/case1/u_0001.svg
+
+.. table:: Results of diffusion solver ``Diffusion1()``: 
+   initial (left) and final (right). Redistribution from cut cells
+   reduced but not eliminated instabilities.
+   :align: center
+
+   +-------------+-------------+
+   | |ex104_1_0| | |ex104_1_1| |
+   +-------------+-------------+
