@@ -97,7 +97,7 @@ void Run(M& m, Vars& var) {
       auto x = m.GetCenter(c);
       fcu[c] = ((Vect(0.5, 0.5, 0) - x).norminf() < 0.1);
     }
-    ctx->eb_.reset(new Embed<M>(m));
+    ctx->eb_.reset(new Embed<M>(m, var.Double["gradlim"]));
     fnl.Reinit(m, 0);
     for (auto n : m.AllNodes()) {
       auto x = m.GetNode(n);
@@ -155,9 +155,11 @@ set int bsz 1
 
 set string dumpformat plain
 
-set double tmax 0.0025
+set double tmax 0.002
 set double diff 1
-set double cfl 0.25
+set double cfl 0.2
+
+set double gradlim 0
 
 set int case 0
 )EOF";
@@ -165,6 +167,11 @@ set int case 0
   if (argc > 1) {
     const int case_ = atoi(argv[1]);
     conf += "\nset int case " + std::to_string(case_);
+  }
+
+  if (argc > 2) {
+    const double gradlim = atof(argv[2]);
+    conf += "\nset double gradlim " + std::to_string(gradlim);
   }
 
   return RunMpiBasic<M>(argc, argv, Run, conf);
