@@ -1,3 +1,10 @@
-./main 1
-./plot u_0000.dat
-./plot u_0001.dat
+set -eu
+
+for e in 0 1 ; do
+  ./main $e
+  d="example$e"
+  mkdir -p $d
+  ./plot u_0000.dat
+  ./plot u_0001.dat
+  mv u_0000.pdf u_0001.pdf $d
+done
