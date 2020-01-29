@@ -11,6 +11,7 @@ using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 
+// Advection solver.
 // fcu: quantity to advect
 // mec: boundary conditions
 // vel: advection velocity
@@ -35,6 +36,36 @@ void Advection0(
       sum += fevu[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
     }
     fcu[c] -= sum * dt / eb.GetVolume(c);
+  }
+}
+
+// Advection solver with redistribution from cut cells.
+void Advection1(
+    FieldCell<Scal>& fcu, const MapCondFace& mec, const FieldEmbed<Scal>& fev,
+    Scal dt, const Embed<M>& eb) {
+  const auto& m = eb.GetMesh();
+  const auto feu = eb.InterpolateUpwind(fcu, fev.GetFieldFace(), mec, 0, 1.);
+  // Compute flux.
+  FieldEmbed<Scal> fevu(m, 0);
+  for (auto f : eb.Faces()) {
+    fevu[f] = feu[f] * fev[f];
+  }
+  for (auto c : eb.CFaces()) {
+    fevu[c] = feu[c] * fev[c];
+  }
+  // Compute the change at one time step.
+  FieldCell<Scal> fcd(m, 0);
+  for (auto c : eb.Cells()) {
+    Scal sum = fevu[c];
+    for (auto q : eb.Nci(c)) {
+      sum += fevu[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
+    }
+    fcd[c] = -sum * dt;
+  }
+  fcd = eb.RedistributeCutCells(fcd);
+  // Advance in time.
+  for (auto c : eb.Cells()) {
+    fcu[c] += fcd[c] / eb.GetVolume(c);
   }
 }
 
@@ -64,7 +95,7 @@ void Run(M& m, Vars& var) {
     fcu.Reinit(m, 0);
     for (auto c : m.AllCells()) {
       auto x = m.GetCenter(c);
-      fcu[c] = ((Vect(0.4, 0.4, 0) - x).norminf() < 0.2);
+      fcu[c] = ((Vect(0.4, 0.4, 0) - x).norminf() < 0.1);
     }
     ctx->eb_.reset(new Embed<M>(m));
     fnl.Reinit(m, 0);
@@ -96,6 +127,9 @@ void Run(M& m, Vars& var) {
       case 0:
         Advection0(fcu, mfc, fev, dt, *ctx->eb_);
         break;
+      case 1:
+        Advection1(fcu, mfc, fev, dt, *ctx->eb_);
+        break;
       default:
         throw std::runtime_error(
             "Unknown example=" + std::to_string(var.Int["example"]));
@@ -117,8 +151,8 @@ void Run(M& m, Vars& var) {
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
 # domain size in blocks
-set int bx 1
-set int by 1
+set int bx 2
+set int by 2
 set int bz 1
 
 # block size in cells
@@ -128,8 +162,8 @@ set int bsz 1
 
 set string dumpformat plain
 
-set double tmax 0.2
-set vect vel 1 1 0
+set double tmax 0.1
+set vect vel 2 1 0
 set double cfl 0.5
 
 set int example 0
