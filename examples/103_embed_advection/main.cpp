@@ -1,8 +1,8 @@
-#undef NDEBUG
 #include <cassert>
+#include <cstdio>
 #include <iostream>
-#include <string>
 #include <memory>
+#include <string>
 
 #include "distr/distrbasic.h"
 #include "solver/embed.h"
@@ -15,12 +15,13 @@ using Vect = typename M::Vect;
 // mec: boundary conditions
 // vel: advection velocity
 // dt: time step
-void Advection(FieldCell<Scal>& fcu, const MapCondFace& mec,
-               Vect vel, Scal dt, const Embed<M>& eb) {
+void Advection0(
+    FieldCell<Scal>& fcu, const MapCondFace& mec, Vect vel, Scal dt,
+    const Embed<M>& eb) {
   const auto& m = eb.GetMesh();
   const auto feu = eb.Interpolate(fcu, mec, 0, 0.);
-  // Compute flux through all faces, zero in regular cells.
-  FieldEmbed<Scal> fevu(m, 0);
+  // Compute flux.
+  FieldEmbed<Scal> fevu(m, 0); // quantity flux
   for (auto f : eb.Faces()) {
     fevu[f] = feu[f] * vel.dot(eb.GetSurface(f));
   }
@@ -29,7 +30,7 @@ void Advection(FieldCell<Scal>& fcu, const MapCondFace& mec,
   }
   // Advance in time.
   for (auto c : eb.Cells()) {
-    Scal sum = fevu[c];
+    Scal sum = fevu[c]; // sum of fluxes
     for (auto q : eb.Nci(c)) {
       sum += fevu[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
     }
@@ -39,27 +40,26 @@ void Advection(FieldCell<Scal>& fcu, const MapCondFace& mec,
 
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
-
   struct {
     FieldNode<Scal> fnl;
     FieldCell<Scal> fcu;
-    MapCondFace mfc; // face conditions
+    MapCondFace mfc; // boundary conditions
     Scal t = 0;
     std::unique_ptr<Embed<M>> eb_;
   } * ctx(sem);
 
-  auto& fcu = ctx->fcu;
-  const Scal tmax = 0.3;
-  const Vect vel(0.5, 0.3, 0.1);
-  const Scal cfl = 0.5;
-
   if (sem("init")) {
-    fcu.Reinit(m, 0);
-    for (auto c : m.Cells()) {
-      fcu[c] = (m.GetCenter(c).dist(Vect(0.5, 0.5, 0.5)) < 0.2);
+    ctx->fcu.Reinit(m, 0);
+    for (auto c : m.AllCells()) {
+      auto x = m.GetCenter(c);
+      ctx->fcu[c] = ((Vect(0.5, 0.5, 0) - x).norminf() < 0.2);
     }
     ctx->eb_.reset(new Embed<M>(m));
-    ctx->fnl = InitEmbed(m, var, m.IsRoot());
+    ctx->fnl.Reinit(m, 0);
+    for (auto n : m.AllNodes()) {
+      auto x = m.GetNode(n);
+      ctx->fnl[n] = (0.4 - (Vect(0.5, 0.5, 0) - x).norm());
+    }
   }
   if (sem.Nested("eb-init")) {
     ctx->eb_->Init(ctx->fnl);
@@ -69,43 +69,54 @@ void Run(M& m, Vars& var) {
   }
   sem.LoopBegin();
   if (sem("step")) {
-    const Scal dt = cfl * m.GetCellSize()[0] / vel.norm1();
-    Advection(fcu, ctx->mfc, vel, dt, *ctx->eb_);
+    const Vect vel(var.Vect["vel"]);
+    const Scal dt = var.Double["cfl"] * m.GetCellSize()[0] / vel.norm1();
+    switch (var.Int["example"]) {
+      case 0:
+        Advection0(ctx->fcu, ctx->mfc, vel, dt, *ctx->eb_);
+        break;
+      default:
+        throw std::runtime_error(
+            "Unknown example=" + std::to_string(var.Int["example"]));
+    }
     ctx->t += dt;
   }
-  if (sem("checkloop")) {
-    if (ctx->t >= tmax) {
+  if (sem("loopbreak")) {
+    if (ctx->t >= var.Double["tmax"]) {
       sem.LoopBreak();
     }
   }
   if (sem("dump")) {
-    m.Dump(&fcu, "u");
-  }
-  if (sem()) {
+    m.Dump(&ctx->fcu, "u");
   }
   sem.LoopEnd();
 }
 
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
+# domain size in blocks
 set int bx 1
 set int by 1
 set int bz 1
 
+# block size in cells
 set int bsx 32
 set int bsy 32
-set int bsz 32
+set int bsz 1
 
-set int px 1
-set int py 1
-set int pz 1
+set string dumpformat plain
 
-set string eb_init sphere
-set vect eb_sphere_c 0.5 0.5 0.5
-set vect eb_sphere_r 0.4 0.4 0.4
-set double eb_sphere_angle 0
-set int eb_init_inverse 1
+set double tmax 1
+set vect vel 0.5 0.3 0
+set double cfl 0.5
+
+set int example 0
 )EOF";
+
+  if (argc > 1) {
+    const int example = atoi(argv[1]);
+    conf += "\nset int example " + std::to_string(example);
+  }
 
   return RunMpiBasic<M>(argc, argv, Run, conf);
 }
