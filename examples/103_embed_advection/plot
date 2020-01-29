@@ -5,6 +5,10 @@ import sys
 import os
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import re
+
+def WE(m):
+    sys.stderr.write(str(m) + "\n")
 
 # Read uniform grid data
 # p: path
@@ -29,18 +33,48 @@ def ReadPlain(fn):
     u = u.reshape(ss)
     return u
 
+def HideAxis(ax):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    plt.setp(ax.get_xticklabels(), visible=False)
+    plt.setp(ax.get_yticklabels(), visible=False)
+    ax.tick_params(axis='both', which='both', length=0)
+
+def PlotGrid(ax, x1, y1):
+    ax.set_xticks(x1)
+    ax.set_yticks(y1)
+    ax.grid(True, lw=0.2, c='0.', alpha=0.2)
+
 pathdat = sys.argv[1]
 u = ReadPlain(pathdat)
 u = u[0,:,:]
 
-fig = plt.figure(figsize=(1,1))
+resx = 512
+dpi = 512
+fig = plt.figure(figsize=(resx/dpi,resx/dpi))
 ax = plt.Axes(fig, [0., 0., 1., 1.])
-ax.set_axis_off()
 fig.add_axes(ax)
-ax.imshow(np.flipud(u), vmin=-1, vmax=1, interpolation='nearest',
-        cmap=plt.get_cmap("coolwarm"))
+ax.set_xlim(0, 1)
+ax.set_ylim(0, 1)
+x1 = np.linspace(0, 1, u.shape[1] + 1, endpoint=True)
+y1 = np.linspace(0, 1, u.shape[0] + 1, endpoint=True)
+HideAxis(ax)
+PlotGrid(ax, x1, y1)
+
+ax.imshow(np.flipud(u), vmin=-1, vmax=1, extent=(0, 1, 0, 1),
+        interpolation='nearest', cmap=plt.get_cmap("coolwarm"))
+
+patheb = "eb.dat"
+if os.path.isfile(patheb):
+    eb = np.loadtxt(patheb)
+    xy = np.vstack((eb[:,0], eb[:,3], eb[:,1], eb[:,4]))
+    xy = xy.T
+    xy = xy.reshape((eb.shape[0] * 2, 2))
+    ax.plot(*xy, lw=0.3, c='0.', alpha=1)
 
 pathfig = os.path.splitext(pathdat)[0] + ".pdf"
 print(pathfig)
-plt.savefig(pathfig)
+plt.savefig(pathfig, dpi=dpi)
 

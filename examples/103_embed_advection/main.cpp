@@ -95,13 +95,13 @@ void Run(M& m, Vars& var) {
     fcu.Reinit(m, 0);
     for (auto c : m.AllCells()) {
       auto x = m.GetCenter(c);
-      fcu[c] = ((Vect(0.4, 0.4, 0) - x).norminf() < 0.1);
+      fcu[c] = ((Vect(0.5, 0.5, 0) - x).norminf() < 0.1);
     }
     ctx->eb_.reset(new Embed<M>(m));
     fnl.Reinit(m, 0);
     for (auto n : m.AllNodes()) {
       auto x = m.GetNode(n);
-      fnl[n] = (0.4 - (Vect(0.5, 0.5, 0) - x).norm());
+      fnl[n] = (0.4 - (Vect(0.5, 0.5, 0) - Vect(x[0], x[1], 0.)).norm());
     }
     m.Dump(&fcu, "u");
   }
@@ -119,7 +119,7 @@ void Run(M& m, Vars& var) {
     }
   }
   if (sem.Nested("eb-dump")) {
-    ctx->eb_->DumpPoly();
+    ctx->eb_->DumpPlaneSection(Vect(0., 0., 1e-3), Vect(0., 0., 1.));
   }
   sem.LoopBegin();
   if (sem("step")) {
@@ -151,8 +151,8 @@ void Run(M& m, Vars& var) {
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
 # domain size in blocks
-set int bx 2
-set int by 2
+set int bx 1
+set int by 1
 set int bz 1
 
 # block size in cells
