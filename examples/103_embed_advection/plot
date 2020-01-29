@@ -47,6 +47,7 @@ def PlotGrid(ax, x1, y1):
     ax.set_yticks(y1)
     ax.grid(True, lw=0.5, c='0.', alpha=0.2)
 
+
 pathdat = sys.argv[1]
 u = ReadPlain(pathdat)
 u = u[0,:,:]
@@ -75,6 +76,7 @@ if os.path.isfile(patheb):
     xy = xy.reshape((eb.shape[0] * 2, 2))
     ax.plot(*xy, lw=1, c='0.', alpha=1)
 
+mpl.rcParams['svg.hashsalt'] = 123 # for reproducible svg
 pathfig = os.path.splitext(pathdat)[0] + ".svg"
 print(pathfig)
 plt.savefig(pathfig, dpi=dpi)
