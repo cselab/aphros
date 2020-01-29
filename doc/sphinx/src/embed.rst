@@ -149,26 +149,11 @@ These routines are sufficient to implement an advection solver
   // mec: boundary conditions
   // vel: advection velocity
   // dt:: time step
-  void Advection(FieldCell<Scal>& fcu, const MapEmbedCond& mec,
-                 Vect vel, Scal dt) {
-    const auto feu = eb.Interpolate(fcu, mec);
-    // Compute flux through all faces, zero in regular cells.
-    FieldEmbed<Scal> fevu(m, 0);
-    for (auto f : eb.Faces()) {
-      fevu[f] = feu[f] * vel.dot(eb.GetSurface(f));
-    }
-    for (auto c : eb.CFaces()) {
-      fevu[c] = feu[c] * vel.dot(eb.GetSurface(c));
-    }
-    // Advance in time.
-    for (auto c : eb.Cells()) {
-      Scal sum = fevu[c];
-      for (auto q : eb.Nci(c)) {
-        sum += fevu[eb.GetFace(c, q)] * eb.GetOutwardFactor(c, q);
-      }
-      fcu[c] += sum * dt / eb.GetVolume(c);
-    }
-  }
+
+.. includecode:: examples/103_embed_advection/main.cpp
+  :func: Advection
+  :impl:
+
 
 The previous implementation suffers from the problem of small cells.
 Stability requires that the change of the conserved quantity at one time
@@ -211,9 +196,5 @@ Using this function in the advection solver results in
     }
   }
 
-
-.. includecode:: examples/103_embed_advection/main.cpp
-  :func: Advection
-  :impl:
 
 See full example :linkpath:`examples/103_embed_advection/main.cpp`.
