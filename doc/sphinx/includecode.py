@@ -34,8 +34,9 @@ class includecode(nodes.Element):
 # text: text
 # f: function name
 # comment: if True, include comments above the prototype
-def GetFunc(text, f, comment=True):
-    p = "(^.*" + f + "\([\w\W]*?\).*?$)"
+# impl: if True, adds function implementation
+def GetFunc(text, f, comment=True, impl=False):
+    p = "(^.*" + f + "\([^)]*?\)[^\{]*)"
     m = re.search(p, text, re.MULTILINE)
     if not f or not m:
         text = "// Error: function '{:}' not found in '{:}'".format(
@@ -92,7 +93,8 @@ class LiteralIncludeReader:
                 if 'func' in self.options:
                     f = self.options['func'].strip()
                     c = 'comment' in self.options
-                    text = GetFunc(text, f, c)
+                    i = 'impl' in self.options
+                    text = GetFunc(text, f, c, i)
                 if 'struct' in self.options:
                     f = self.options['struct'].strip()
                     text = GetStruct(text, f)
@@ -152,6 +154,7 @@ class IncludeCode(SphinxDirective):
         'dedent': int,
         'linenos': directives.flag,
         'comment': directives.flag,
+        'impl': directives.flag,
         'tab-width': int,
         'language': directives.unchanged_required,
         'encoding': directives.encoding,
