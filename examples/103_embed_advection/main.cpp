@@ -123,7 +123,7 @@ void Run(M& m, Vars& var) {
   }
   sem.LoopBegin();
   if (sem("step")) {
-    switch (var.Int["example"]) {
+    switch (var.Int["case"]) {
       case 0:
         Advection0(fcu, mfc, fev, dt, *ctx->eb_);
         break;
@@ -132,7 +132,7 @@ void Run(M& m, Vars& var) {
         break;
       default:
         throw std::runtime_error(
-            "Unknown example=" + std::to_string(var.Int["example"]));
+            "Unknown example=" + std::to_string(var.Int["case"]));
     }
     t += dt;
     m.Comm(&fcu);
@@ -166,12 +166,12 @@ set double tmax 0.1
 set vect vel 2 1 0
 set double cfl 0.5
 
-set int example 0
+set int case 0
 )EOF";
 
   if (argc > 1) {
-    const int example = atoi(argv[1]);
-    conf += "\nset int example " + std::to_string(example);
+    const int case_ = atoi(argv[1]);
+    conf += "\nset int case " + std::to_string(case_);
   }
 
   return RunMpiBasic<M>(argc, argv, Run, conf);

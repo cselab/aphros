@@ -148,9 +148,9 @@ These routines are sufficient to implement an advection solver
   :comment:
   :impl:
 
-.. |ex103_0_0| image:: ../../../examples/103_embed_advection/example0/u_0000.svg
+.. |ex103_0_0| image:: ../../../examples/103_embed_advection/case0/u_0000.svg
 
-.. |ex103_0_1| image:: ../../../examples/103_embed_advection/example0/u_0001.svg
+.. |ex103_0_1| image:: ../../../examples/103_embed_advection/case0/u_0001.svg
 
 .. table:: Results of advection solver ``Advection0()``: 
    initial (left) and final (right). Instabilities develop near the boundary.
@@ -178,9 +178,9 @@ Using this function in the advection solver results in
   :comment:
   :impl:
 
-.. |ex103_1_0| image:: ../../../examples/103_embed_advection/example1/u_0000.svg
+.. |ex103_1_0| image:: ../../../examples/103_embed_advection/case1/u_0000.svg
 
-.. |ex103_1_1| image:: ../../../examples/103_embed_advection/example1/u_0001.svg
+.. |ex103_1_1| image:: ../../../examples/103_embed_advection/case1/u_0001.svg
 
 .. table:: Results of advection solver ``Advection1()``:
    initial (left) and final (right).
