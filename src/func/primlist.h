@@ -22,6 +22,10 @@ template <class Scal>
 struct Primitive {
   static constexpr size_t dim = 3;
   using Vect = GVect<Scal, dim>;
+  enum class Mod { plus, minus, star };
+
+  std::string name;
+  Mod mod;
   std::function<Scal(const Vect&)> ls; // level-set
   std::function<bool(const Rect<Vect>&)> inter; // true if intersects rectangle
   std::function<Vect(const Vect&)> vel; // velocity
@@ -29,8 +33,20 @@ struct Primitive {
   Vect c; // center XXX adhoc for GetSphereOverlap
   Vect r; // radius XXX adhoc for GetSphereOverlap
 
-  Primitive() {
-    inter = [](const Rect<Vect>&) -> bool { return true; };
+  Primitive(std::string name)
+      : name(name)
+      , mod(Mod::plus)
+      , inter([](const Rect<Vect>&) -> bool { return true; }) {}
+  Primitive() : Primitive("") {}
+
+  friend std::ostream& operator<<(std::ostream& o, const Primitive<Scal>& p) {
+    o << "name='" << p.name << "'";
+    std::string smod;
+    if (p.mod == Mod::plus) smod = "+";
+    if (p.mod == Mod::minus) smod = "-";
+    if (p.mod == Mod::star) smod = "*";
+    o << " mod='" << smod << "'";
+    return o;
   }
 };
 
@@ -43,12 +59,9 @@ struct UPrimList {
   using Primitive = generic::Primitive<Scal>;
 
   static bool ParseSphere(std::string s, size_t edim, Primitive& p) {
-    auto d = GetMap("s", s, "cx cy cz rx ry rz", 4);
+    auto d = GetMap("sphere", s, "cx cy cz rx ry rz", 4);
     if (d.empty()) {
-      d = GetMap("sphere", s, "cx cy cz rx ry rz", 4);
-    }
-    if (d.empty()) {
-      d = GetMap("", s, "cx cy cz rx ry rz", 4);
+      d = GetMap("s", s, "cx cy cz rx ry rz", 4);
     }
     if (d.empty()) {
       return false;
@@ -73,6 +86,7 @@ struct UPrimList {
       const Rect<Vect> rectbig(rect.lb - r, rect.rt + r);
       return rectbig.IsInside(xc);
     };
+    p.name = "sphere";
     return true;
   }
   static bool ParseRing(std::string s, Primitive& p) {
@@ -92,6 +106,7 @@ struct UPrimList {
       const Scal xt = (dx - n * xn).norm();
       return sqr(th) - (sqr(xn) + sqr(xt - r));
     };
+    p.name = "ring";
     return true;
   }
   static bool ParseBox(std::string s, size_t edim, Primitive& p) {
@@ -112,6 +127,7 @@ struct UPrimList {
       }
       return (1 - dx.abs().max()) * r.min();
     };
+    p.name = "box";
     return true;
   }
   static bool ParseSmoothStep(std::string s, Primitive& p) {
@@ -142,6 +158,7 @@ struct UPrimList {
       const Scal q = dt < -1 ? 1 : dt > 1 ? -1 : -std::sin(M_PI * 0.5 * dt);
       return (q - dn) * lt;
     };
+    p.name = "smooth_step";
     return true;
   }
   static bool ParseCylinder(std::string s, Primitive& p) {
@@ -167,6 +184,7 @@ struct UPrimList {
       const Scal dr = (dx - t * dt).norm();
       return dt < t0 ? dt - t0 : dt > t1 ? t1 - dt : r - dr;
     };
+    p.name = "cylinder";
     return true;
   }
 
@@ -185,6 +203,10 @@ struct UPrimList {
       s = RemoveComment(s);
       if (IsEmpty(s)) {
         continue;
+      }
+
+      if (IsNumber(GetWord(s, 0))) {
+        s = "sphere " + s;
       }
 
       Primitive p;
@@ -262,33 +284,26 @@ struct UPrimList {
     }
     return pp;
   }
-  // Parses string of format:
-  // <name> <r[k1]> <r[k2]> ...
-  // and returns map r[k] if name matches, otherwise returns empty map.
-  // name: prefix
-  // sv: list of values
-  // sk: list of keys
-  // n: number of required fields
+  // Parses string describing a primitive.
+  //   target: target name
+  //   str: string to parse
+  //   keys: string with keys "k0 k1 k2 ..."
+  //   nreq: number of required fields
+  // Format of string:
+  //   name v0 v1 ...
+  // where v0, v1 ... are floating point numbers,
+  // If target matches `name`, returns map r={k0:v0, k1:v1, ...}
+  // Otherwise, returns empty map.
   static std::map<std::string, Scal> GetMap(
-      std::string name, std::string sv, std::string sk, size_t n) {
-    std::string pre; // name
-    std::stringstream vv(sv);
+      std::string target, std::string str, std::string keys, size_t nreq) {
+    std::stringstream vv(str);
     vv >> std::skipws;
-    {
-      std::stringstream tt(sv);
-      Scal a;
-      tt >> std::skipws;
-      tt >> a;
-      if (tt.good()) { // first is number
-        pre = "";
-      } else {
-        vv >> pre;
-      }
-    }
-    if (name != pre) {
+    std::string name;
+    vv >> name;
+    if (target != name) {
       return std::map<std::string, Scal>();
     }
-    std::stringstream kk(sk);
+    std::stringstream kk(keys);
     std::map<std::string, Scal> d;
     std::string k;
     Scal v;
@@ -301,24 +316,23 @@ struct UPrimList {
         break;
       }
     }
-    if (d.size() < n && kk) {
+    if (d.size() < nreq && kk) {
       throw std::runtime_error(
-          "PrimList: missing field '" + k + "' in '" + sv +
-          "' while parsing keys '" + sk + "'");
+          "PrimList: missing field '" + k + "' in '" + str +
+          "' while parsing keys '" + keys + "'");
     }
-    if (d.size() < n && !kk) {
+    if (d.size() < nreq && !kk) {
       throw std::runtime_error(
-          "PrimList: no keys for " + std::to_string(n) +
-          " required fields in '" + sk + "'");
+          "PrimList: no keys for " + std::to_string(nreq) +
+          " required fields in '" + keys + "'");
     }
     if (vv && !kk) {
       throw std::runtime_error(
-          "PrimList: no key for '" + std::to_string(v) + "' in '" + sv +
-          "' while parsing keys '" + sk + "'");
+          "PrimList: no key for '" + std::to_string(v) + "' in '" + str +
+          "' while parsing keys '" + keys + "'");
     }
     return d;
   }
-
 
  private:
   static std::string RemoveComment(std::string s) {
@@ -334,11 +348,30 @@ struct UPrimList {
     return false;
   }
 
+  static std::string GetWord(std::string s, size_t n) {
+    std::stringstream ss(s);
+    ss >> std::skipws;
+    size_t i = 0;
+    std::string word;
+    while (ss >> word) {
+      if (i++ == n) {
+        return word;
+      }
+    }
+    return "";
+  }
+
+  static bool IsNumber(std::string s) {
+    std::stringstream ss(s);
+    Scal a;
+    ss >> a;
+    return ss.good();
+  }
+
   static void SetDefault(
       std::map<std::string, Scal>& d, std::string key, Scal value) {
     if (!d.count(key)) {
       d[key] = value;
     }
   }
-
 };
