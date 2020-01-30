@@ -210,13 +210,36 @@ struct UPrimList {
       }
 
       Primitive p;
-      bool r = false;
 
+      using Mod = typename Primitive::Mod;
+      auto pair = ExtractModifier(s);
+      s = pair.second;
+      switch (pair.first) {
+        case ' ':
+        case '+':
+          p.mod = Mod::plus;
+          break;
+        case '-':
+          p.mod = Mod::minus;
+          break;
+        case '*':
+          p.mod = Mod::star;
+          break;
+        default:
+          throw std::runtime_error(
+              std::string("PrimList: unknown mod='") + pair.first + "'");
+      }
+
+      bool r = false;
       if (!r) r = ParseSphere(s, edim, p);
       if (!r) r = ParseRing(s, p);
       if (!r) r = ParseBox(s, edim, p);
       if (!r) r = ParseSmoothStep(s, p);
       if (!r) r = ParseCylinder(s, p);
+
+      if (p.mod == Mod::minus) {
+        p.inter = [](const Rect<Vect>&) -> bool { return true; };
+      }
 
       if (!r) {
         throw std::runtime_error(
@@ -339,6 +362,23 @@ struct UPrimList {
     return s.substr(0, s.find('#', 0));
   }
 
+  static std::pair<char, std::string> ExtractModifier(std::string s) {
+    std::stringstream ss(s);
+    ss >> std::skipws;
+    std::string word;
+    ss >> word;
+    if (word.empty()) {
+      return {' ', s};
+    }
+    const char c = word[0];
+    if (c == '+' || c == '-' || c == '*') {
+      std::string rest;
+      std::getline(ss, rest);
+      return {c, word.substr(1) + ' ' + rest};
+    }
+    return {' ', s};
+  }
+
   static bool IsEmpty(std::string s) {
     s = RemoveComment(s);
     if (std::all_of(
@@ -351,21 +391,22 @@ struct UPrimList {
   static std::string GetWord(std::string s, size_t n) {
     std::stringstream ss(s);
     ss >> std::skipws;
-    size_t i = 0;
     std::string word;
-    while (ss >> word) {
-      if (i++ == n) {
-        return word;
+    for (size_t i = 0; i < n + 1; ++i) {
+      if (ss.good()) {
+        ss >> word;
+      } else {
+        return "";
       }
     }
-    return "";
+    return word;
   }
 
   static bool IsNumber(std::string s) {
     std::stringstream ss(s);
     Scal a;
     ss >> a;
-    return ss.good();
+    return !ss.fail();
   }
 
   static void SetDefault(
