@@ -21,10 +21,14 @@ Example of a list of primitives
 .. includecode:: examples/200_primlist/b.dat
   :language: none
 
+Characters ``+``, ``-``, ``*`` are modifiers:
+
+* ``+``: original level-set, default,
+* ``-``: level-set multiplied by -1,
+* ``*``: if level-set is negative, overrides all entries above.
+
 (see setup in :linkpath:`examples/200_primlist`)
 
 .. image:: ../../../examples/200_primlist/a.jpg
   :width: 400
   :align: center
-
-
