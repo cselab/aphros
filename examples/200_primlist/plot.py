@@ -15,14 +15,19 @@ sm = LegacyVTKReader(FileNames=['sm_0000.vtk'])
 
 surf = Threshold(Input=sm)
 surf.Scalars = ['CELLS', 'cl']
-surf.ThresholdRange = [0.0, 3.0]
+surf.ThresholdRange = [0.0, 10]
 
 surfDisplay = Show(surf, renderView1)
 clLUT = GetColorTransferFunction('cl')
 clLUT.AutomaticRescaleRangeMode = 'Never'
-clLUT.RGBPoints = [-1.5, 0.0, 0.0, 0.5625, -0.9444449999999996, 0.0, 0.0, 1.0,
-    0.3253975, 0.0, 1.0, 1.0, 0.9603174999999999, 0.5, 1.0, 0.5,
-    1.5952374999999996, 1.0, 1.0, 0.0, 2.86508, 1.0, 0.0, 0.0, 3.5, 0.5, 0.0, 0.0]
+clLUT.RGBPoints = [
+        -1.5, 0.0, 0.0, 0.5625,
+        -0.9444449999999996, 0.0, 0.0, 1.0,
+        0.3253975, 0.0, 1.0, 1.0,
+        1, 0.5, 1.0, 0.5,
+        2, 1.0, 1.0, 0.0,
+        4, 1, 0.0, 0.0,
+        ]
 clLUT.ColorSpace = 'RGB'
 clLUT.NanColor = [0.498039215686, 0.498039215686, 0.498039215686]
 clLUT.ScalarRangeInitialized = 1.0

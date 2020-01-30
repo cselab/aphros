@@ -1,5 +1,4 @@
 // Created by Petr Karnakov on 22.09.2019
-//
 // Copyright 2019 ETH Zurich
 
 #pragma once
@@ -17,8 +16,10 @@
 
 #include "geom/vect.h"
 
+namespace generic {
+
 template <class Scal>
-struct GPrimitive {
+struct Primitive {
   static constexpr size_t dim = 3;
   using Vect = GVect<Scal, dim>;
   std::function<Scal(const Vect&)> ls; // level-set
@@ -28,24 +29,26 @@ struct GPrimitive {
   Vect c; // center XXX adhoc for GetSphereOverlap
   Vect r; // radius XXX adhoc for GetSphereOverlap
 
-  GPrimitive() {
+  Primitive() {
     inter = [](const Rect<Vect>&) -> bool { return true; };
   }
 };
+
+} // namespace generic
 
 template <class Scal>
 struct UPrimList {
   static constexpr size_t dim = 3;
   using Vect = GVect<Scal, dim>;
-  using Primitive = GPrimitive<Scal>;
+  using Primitive = generic::Primitive<Scal>;
 
   static bool ParseSphere(std::string s, size_t edim, Primitive& p) {
-    auto d = GetMap("s", s, "x y z rx ry rz", 4);
+    auto d = GetMap("s", s, "cx cy cz rx ry rz", 4);
     if (d.empty()) {
-      d = GetMap("sphere", s, "x y z rx ry rz", 4);
+      d = GetMap("sphere", s, "cx cy cz rx ry rz", 4);
     }
     if (d.empty()) {
-      d = GetMap("", s, "x y z rx ry rz", 4);
+      d = GetMap("", s, "cx cy cz rx ry rz", 4);
     }
     if (d.empty()) {
       return false;
@@ -53,7 +56,7 @@ struct UPrimList {
     SetDefault(d, "ry", d["rx"]);
     SetDefault(d, "rz", d["ry"]);
 
-    const Vect xc(d["x"], d["y"], d["z"]); // center
+    const Vect xc(d["cx"], d["cy"], d["cz"]); // center
     const Vect r(d["rx"], d["ry"], d["rz"]); // radius (semi-axes)
     p.c = xc;
     p.r = r;
@@ -73,11 +76,11 @@ struct UPrimList {
     return true;
   }
   static bool ParseRing(std::string s, Primitive& p) {
-    auto d = GetMap("ring", s, "x y z nx ny nz r th", 8);
+    auto d = GetMap("ring", s, "cx cy cz nx ny nz r th", 8);
     if (d.empty()) {
       return false;
     }
-    const Vect xc(d["x"], d["y"], d["z"]); // center
+    const Vect xc(d["cx"], d["cy"], d["cz"]); // center
     Vect n(d["nx"], d["ny"], d["nz"]); // normal
     n /= n.norm();
     const Scal r = d["r"]; // radius
@@ -92,14 +95,14 @@ struct UPrimList {
     return true;
   }
   static bool ParseBox(std::string s, size_t edim, Primitive& p) {
-    auto d = GetMap("box", s, "x y z rx ry rz", 4);
+    auto d = GetMap("box", s, "cx cy cz rx ry rz", 4);
     if (d.empty()) {
       return false;
     }
     SetDefault(d, "ry", d["rx"]);
     SetDefault(d, "rz", d["ry"]);
 
-    const Vect xc(d["x"], d["y"], d["z"]); // center
+    const Vect xc(d["cx"], d["cy"], d["cz"]); // center
     const Vect r(d["rx"], d["ry"], d["rz"]); // radius (semi-axes)
 
     p.ls = [edim, xc, r](const Vect& x) -> Scal {
@@ -141,6 +144,31 @@ struct UPrimList {
     };
     return true;
   }
+  static bool ParseCylinder(std::string s, Primitive& p) {
+    // c: center
+    // t: axis
+    // r: radius
+    // t0,t1: length between center
+    auto d = GetMap("cylinder", s, "cx cy cz tx ty tz r t0 t1 ", 4);
+    if (d.empty()) {
+      return false;
+    }
+
+    const Vect xc(d["cx"], d["cy"], d["cz"]);
+    Vect t(d["tx"], d["ty"], d["tz"]);
+    t /= t.norm();
+    const Scal r = d["r"];
+    const Scal t0 = d["t0"];
+    const Scal t1 = d["t1"];
+
+    p.ls = [xc, t, r, t0, t1](const Vect& x) -> Scal {
+      const Vect dx = x - xc;
+      const Scal dt = t.dot(dx);
+      const Scal dr = (dx - t * dt).norm();
+      return dt < t0 ? dt - t0 : dt > t1 ? t1 - dt : r - dr;
+    };
+    return true;
+  }
 
   // Parses a list of primitives in stream f.
   // verb: verbosity (debug messages to std::cout)
@@ -166,6 +194,7 @@ struct UPrimList {
       if (!r) r = ParseRing(s, p);
       if (!r) r = ParseBox(s, edim, p);
       if (!r) r = ParseSmoothStep(s, p);
+      if (!r) r = ParseCylinder(s, p);
 
       if (!r) {
         throw std::runtime_error(
@@ -198,10 +227,10 @@ struct UPrimList {
       std::map<std::string, Scal> d;
 
       // ring
-      d = GetMap("ring", s, "x y z nx ny nz r th magn", 9);
+      d = GetMap("ring", s, "cx cy cz nx ny nz r th magn", 9);
       if (!d.empty()) {
         Primitive p;
-        const Vect xc(d["x"], d["y"], d["z"]); // center
+        const Vect xc(d["cx"], d["cy"], d["cz"]); // center
         Vect n(d["nx"], d["ny"], d["nz"]); // normal
         n /= n.norm();
         const Scal r = d["r"]; // radius
