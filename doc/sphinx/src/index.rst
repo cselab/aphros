@@ -10,6 +10,7 @@ Aphros
    convdiff
    fluid
    embed
+   primlist
    output
    lib1/index
    lib3/index
