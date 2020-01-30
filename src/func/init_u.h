@@ -10,6 +10,7 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "debug/isnan.h"
 #include "geom/block.h"
 #include "geom/field.h"
 #include "geom/vect.h"
@@ -54,11 +55,154 @@ Scal GetLevelSetVolume(
   return lsc > 0. ? 1. : 0.;
 }
 
+// Returns point at which interpolant has value 0.
+// x0,x1: points
+// f0,f1: values
+template <class Scal, class Vect>
+Vect GetIso(Vect x0, Vect x1, Scal f0, Scal f1) {
+  return (x0 * f1 - x1 * f0) / (f1 - f0);
+}
+
+// Returns fraction of face area for which ls>0.
+// eu: fraction of edge length for which ls>0
+//       3
+//   -------
+//  0|     |
+//   |     | 2
+//   -------
+//     1
+template <class Scal>
+Scal GetFaceAreaFraction(std::array<Scal, 4> eu) {
+  using R = Reconst<Scal>;
+  // equation of line
+  //   n.dot(x) = a
+  if (eu[0] < e[2]) std::swap(eu[0], eu[2]);
+  if (eu[1] < e[3]) std::swap(eu[3], eu[3]);
+  // normal
+  Scal nx = eu[2] - eu[0];
+  Scal ny = eu[3] - eu[1];
+  // line constant
+  Scal a = 
+    (-nx - ny)
+}
+
+// Copmutes face area for which ls > 0.
+// fnl: level-set function ls on nodes [i]
+template <class M>
+FieldFace<typename M::Scal> GetPositiveArea(
+    const FieldNode<typename M::Scal>& fnl, const M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  using R = Reconst<Scal>;
+  FieldFace<Scal> ffs(m, 0);
+  for (auto f : m.Faces()) {
+    const size_t em = m.GetNumNodes(f);
+    std::vector<Vect> xx;
+    bool cut = false;
+    for (size_t e = 0; e < em; ++e) {
+      const size_t ep = (e + 1) % em;
+      const IdxNode n = m.GetNode(f, e);
+      const IdxNode np = m.GetNode(f, ep);
+      const Scal l = fnl[n];
+      const Scal lp = fnl[np];
+      const Vect x = m.GetNode(n);
+      const Vect xp = m.GetNode(np);
+      if (l > 0) {
+        xx.push_back(x);
+      }
+      if ((l < 0) != (lp < 0)) {
+        xx.push_back(GetIso(x, xp, l, lp));
+        cut = true;
+      }
+    }
+    Scal s;
+    if (xx.empty()) {
+      s = 0;
+    } else if (cut) {
+      s = R::GetArea(xx, m.GetNormal(f));
+    } else {
+      s = m.GetArea(f);
+    }
+    ffs[f] = s;
+  }
+  return ffs;
+}
+
+// fnl: level-set function ls computed on nodes [i]
+template <class M>
+FieldCell<typename M::Scal> GetPositiveVolumeFraction(
+    const FieldNode<typename M::Scal>& fnl, const M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  using R = Reconst<Scal>;
+  auto ffs = GetPositiveArea(fnl, m);
+  FieldCell<Scal> fcu(m, 0);
+  for (auto c : m.Cells()) {
+    size_t q = 0; // number of nodes with fnl > 0
+    const size_t mi = m.GetNumNodes(c);
+    for (size_t i = 0; i < mi; ++i) {
+      if (fnl[m.GetNode(c, i)] > 1e-16) { // FIXME may lead to zero area
+        ++q;
+      }
+    }
+    Scal u;
+    if (q == mi) { // cell inside
+      u = 1;
+    } else if (q > 0) { // cut cell
+      Vect nn(0); // normal
+      for (auto q : m.Nci(c)) {
+        const IdxFace f = m.GetFace(c, q);
+        nn += m.GetNormal(f) * ffs[f] * m.GetOutwardFactor(c, q);
+      }
+      if (nn.norm1() == 0 || IsNan(nn.norm1())) {
+        for (auto q : m.Nci(c)) {
+          const IdxFace f = m.GetFace(c, q);
+          std::cout <<  m.GetNormal(f) * ffs[f] * m.GetOutwardFactor(c, q) << " ";
+          std::cout << std::endl;
+        }
+        for (size_t i = 0; i < mi; ++i) {
+          std::cout << fnl[m.GetNode(c, i)] << " ";
+          std::cout << std::endl;
+        }
+        std::terminate();
+      }
+      nn /= -nn.norm1();
+
+      Scal a = 0; // plane constant
+      Scal aw = 0;
+      for (auto q : m.Nci(c)) {
+        const IdxFace f = m.GetFace(c, q);
+        const size_t em = m.GetNumNodes(f);
+        for (size_t e = 0; e < em; ++e) {
+          const size_t ep = (e + 1) % em; // next node
+          const IdxNode n = m.GetNode(f, e);
+          const IdxNode np = m.GetNode(f, ep);
+          const Scal l = fnl[n];
+          const Scal lp = fnl[np];
+          const Vect x = m.GetNode(n);
+          const Vect xp = m.GetNode(np);
+
+          if ((l < 0) != (lp < 0)) {
+            a += nn.dot(GetIso(x, xp, l, lp) - m.GetCenter(c));
+            aw += 1;
+          }
+        }
+      }
+      a /= aw;
+      u = R::GetLineU(nn, a, m.GetCellSize());
+    } else { // cell outside
+      u = 0;
+    }
+    fcu[c] = u;
+  }
+  return fcu;
+}
+
 // Fills volume fraction field from list of primitives.
 // fc: field to fill
 // list: list of primitives
 // edim: effective dimension
-// approx: 0: stepwise, 1: level-set, 2: overlap
+// approx: 0: stepwise, 1: level-set, 2: overlap, 3: level-set on nodes
 template <class M>
 void InitVfList(
     FieldCell<typename M::Scal>& fc, std::istream& list, int approx,
@@ -85,8 +229,7 @@ void InitVfList(
     fc.Reinit(m, 0.);
   } else {
     using Mod = typename Primitive::Mod;
-    for (auto c : m.Cells()) {
-      auto x = m.GetCenter(c);
+    auto lsmax = [&pp](Vect x) -> std::pair<Scal, size_t> {
       Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
       size_t imax = 0; // index of maximum
       for (size_t i = 0; i < pp.size(); ++i) {
@@ -105,23 +248,38 @@ void InitVfList(
           }
         }
       }
-      auto& p = pp[imax];
-      if (approx == 0) { // stepwise
-        fc[c] = (lmax >= 0. ? 1. : 0.);
-      } else if (approx == 1) { // level set
-        fc[c] = GetLevelSetVolume<Scal>(p.ls, x, h);
-      } else if (approx == 2) { // overlap
-        Vect qx = (x - p.c) / p.r;
-        Vect qh = h / p.r;
-        if (edim == 2) {
-          qh[2] *= 1e-3; // XXX: adhoc, thin cell in 2d
-          qx[2] = 0.;
+      return {lmax, imax};
+    };
+    if (approx == 3) { // level-set on nodes
+      FieldNode<Scal> fnl(m);
+      for (auto n : m.Nodes()) {
+        fnl[n] = lsmax(m.GetNode(n)).first;
+      }
+      fc = GetPositiveVolumeFraction(fnl, m);
+    } else {
+      for (auto c : m.Cells()) {
+        auto x = m.GetCenter(c);
+        auto pair = lsmax(x);
+        Scal lmax = pair.first;
+        size_t imax = pair.second;
+        auto& p = pp[imax];
+        if (approx == 0) { // stepwise
+          fc[c] = (lmax >= 0. ? 1. : 0.);
+        } else if (approx == 1) { // level set
+          fc[c] = GetLevelSetVolume<Scal>(p.ls, x, h);
+        } else if (approx == 2) { // overlap
+          Vect qx = (x - p.c) / p.r;
+          Vect qh = h / p.r;
+          if (edim == 2) {
+            qh[2] *= 1e-3; // XXX: adhoc, thin cell in 2d
+            qx[2] = 0.;
+          }
+          fc[c] = GetSphereOverlap(qx, qh, Vect(0), 1.);
+        } else {
+          throw std::runtime_error(
+              std::string(__func__) +
+              " unknown approx=" + std::to_string(approx));
         }
-        fc[c] = GetSphereOverlap(qx, qh, Vect(0), 1.);
-      } else {
-        throw std::runtime_error(
-            std::string(__func__) +
-            " unknown approx=" + std::to_string(approx));
       }
     }
   }
