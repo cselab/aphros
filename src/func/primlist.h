@@ -66,7 +66,7 @@ struct UPrimList {
       if (edim == 2) {
         xd[2] = 0.;
       }
-      return (1. - xd.sqrnorm()) * sqr(r.min());
+      return (1 - xd.norm()) * r.min();
     };
 
     p.inter = [xc, r](const Rect<Vect>& rect) -> bool {
@@ -90,7 +90,7 @@ struct UPrimList {
       const Vect dx = x - xc;
       const Scal xn = dx.dot(n);
       const Scal xt = (dx - n * xn).norm();
-      return sqr(th) - (sqr(xn) + sqr(xt - r));
+      return th - std::sqrt(sqr(xn) + sqr(xt - r));
     };
     return true;
   }
@@ -110,7 +110,7 @@ struct UPrimList {
       if (edim == 2) {
         dx[2] = 0.;
       }
-      return 1. - dx.abs().max();
+      return (1 - dx.abs().max()) * r.min();
     };
     return true;
   }
@@ -140,7 +140,7 @@ struct UPrimList {
       const Scal dn = n.dot(dx) / ln;
       const Scal dt = t.dot(dx) / lt;
       const Scal q = dt < -1 ? 1 : dt > 1 ? -1 : -std::sin(M_PI * 0.5 * dt);
-      return q - dn;
+      return (q - dn) * lt;
     };
     return true;
   }
