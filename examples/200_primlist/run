@@ -1,6 +1,6 @@
 make cleanrun
 
-if which pvbatch 2> /dev/null ; then
+if which pvbatch ; then
   pvbatch ./plot.py
 fi
 
