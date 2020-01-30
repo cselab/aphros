@@ -624,11 +624,6 @@ void TestArea() {
   }
 }
 
-// test init from level-set
-void TestLevelSetNodes() {
-  std::cerr << "check volume from level-set on nodes" << std::endl;
-}
-
 int main() {
   TestArea();
   TestOverlap();
@@ -643,5 +638,4 @@ int main() {
   TestVolStr();
   TestCenter();
   TestLineNearest();
-  TestLevelSetNodes();
 }

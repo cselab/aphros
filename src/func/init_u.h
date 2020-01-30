@@ -63,8 +63,16 @@ Vect GetIso(Vect x0, Vect x1, Scal f0, Scal f1) {
   return (x0 * f1 - x1 * f0) / (f1 - f0);
 }
 
+template <class Scal>
+Scal GetPositiveEdgeFraction(Scal l0, Scal l1) {
+  if (l0 * l1 < 0) {
+    return l0 < l1 ? l1 / (l1 - l0) : l0 / (l0 - l1);
+  }
+  return l0 + l1 > 0;
+}
+
 // Returns fraction of face area for which ls>0.
-// eu: fraction of edge length for which ls>0
+// ee: fraction of edge length for which ls>0
 //       3
 //   -------
 //  0|     |
@@ -72,58 +80,63 @@ Vect GetIso(Vect x0, Vect x1, Scal f0, Scal f1) {
 //   -------
 //     1
 template <class Scal>
-Scal GetFaceAreaFraction(std::array<Scal, 4> eu) {
+Scal GetFaceAreaFraction(std::array<Scal, 4> ee) {
   using R = Reconst<Scal>;
-  // equation of line
+  // face center is x=0 y=0
+  // line equation
   //   n.dot(x) = a
-  if (eu[0] < e[2]) std::swap(eu[0], eu[2]);
-  if (eu[1] < e[3]) std::swap(eu[3], eu[3]);
+  if (ee[0] < ee[2]) std::swap(ee[0], ee[2]);
+  if (ee[1] < ee[3]) std::swap(ee[1], ee[3]);
+
+  constexpr size_t ni = 4;
+
+  const std::array<Scal, ni> xx{-0.5, ee[1] - 0.5, 0.5, ee[3] - 0.5};
+  const std::array<Scal, ni> yy{ee[0] - 0.5, -0.5, ee[2] - 0.5, 0.5};
+
   // normal
-  Scal nx = eu[2] - eu[0];
-  Scal ny = eu[3] - eu[1];
-  // line constant
-  Scal a = 
-    (-nx - ny)
+  Scal nx = ee[0] - ee[2];
+  Scal ny = ee[1] - ee[3];
+
+  Scal a = 0;
+  size_t aw = 0;
+  for (size_t i = 0; i < ni; ++i) {
+    const auto& e = ee[i];
+    if (e > 0 && e < 1) {
+      a += xx[i] * nx + yy[i] * ny;
+      ++aw;
+    }
+  }
+  if (aw == 0 || nx + ny == 0) {
+    return (ee[0] + ee[1] + ee[2] + ee[3]) / ni;
+  }
+  a /= aw;
+
+  if (nx > ny) {
+    std::swap(nx, ny);
+  }
+  if (a < 0) {
+    return R::GetLineU0(nx, ny, a);
+  }
+  return 1 - R::GetLineU0(nx, ny, -a);
 }
 
 // Copmutes face area for which ls > 0.
 // fnl: level-set function ls on nodes [i]
 template <class M>
-FieldFace<typename M::Scal> GetPositiveArea(
+FieldFace<typename M::Scal> GetPositiveAreaFraction(
     const FieldNode<typename M::Scal>& fnl, const M& m) {
   using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  using R = Reconst<Scal>;
   FieldFace<Scal> ffs(m, 0);
   for (auto f : m.Faces()) {
-    const size_t em = m.GetNumNodes(f);
-    std::vector<Vect> xx;
-    bool cut = false;
+    constexpr size_t em = 4;
+    std::array<Scal, em> ll;
     for (size_t e = 0; e < em; ++e) {
       const size_t ep = (e + 1) % em;
       const IdxNode n = m.GetNode(f, e);
       const IdxNode np = m.GetNode(f, ep);
-      const Scal l = fnl[n];
-      const Scal lp = fnl[np];
-      const Vect x = m.GetNode(n);
-      const Vect xp = m.GetNode(np);
-      if (l > 0) {
-        xx.push_back(x);
-      }
-      if ((l < 0) != (lp < 0)) {
-        xx.push_back(GetIso(x, xp, l, lp));
-        cut = true;
-      }
+      ll[e] = GetPositiveEdgeFraction(fnl[n], fnl[np]);
+      ffs[f] = GetFaceAreaFraction(ll);
     }
-    Scal s;
-    if (xx.empty()) {
-      s = 0;
-    } else if (cut) {
-      s = R::GetArea(xx, m.GetNormal(f));
-    } else {
-      s = m.GetArea(f);
-    }
-    ffs[f] = s;
   }
   return ffs;
 }
@@ -135,7 +148,7 @@ FieldCell<typename M::Scal> GetPositiveVolumeFraction(
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using R = Reconst<Scal>;
-  auto ffs = GetPositiveArea(fnl, m);
+  auto ffs = GetPositiveAreaFraction(fnl, m);
   FieldCell<Scal> fcu(m, 0);
   for (auto c : m.Cells()) {
     size_t q = 0; // number of nodes with fnl > 0
