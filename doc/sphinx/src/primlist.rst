@@ -8,7 +8,7 @@ for a list of geometric primitives such as spheres and boxes.
 A primitive is described by
 
 .. includecode:: src/func/primlist.h
-  :struct: GPrimitive
+  :struct: Primitive
 
 Function ``Parse()`` parses a stream with a list of primitives.
 
