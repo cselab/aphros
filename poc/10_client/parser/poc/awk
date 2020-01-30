@@ -4,7 +4,7 @@ BEGIN {
     SPACE = "^[\\t ]+"
     TOK = "^[_a-zA-Z][_0-9a-zA-Z]*"
     COMMANDS = "^(set)|(include)|(del)$"
-    TYPES = "^(double)|(int)|(string)$"
+    TYPES = "^(double)|(int)|(string)|(vect)$"
     
     File = ARGV[1]
     while (getline < File > 0) {
