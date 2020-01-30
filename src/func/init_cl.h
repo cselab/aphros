@@ -49,7 +49,8 @@ CreateInitCl(const Vars& par, bool verb) {
     const std::string fn = par.String["list_path"];
     const size_t edim = par.Int["dim"];
 
-    // TODO revise with bcast
+    // TODO revise with bcast and filter by bounding box,
+    // but keep original index for color
     std::ifstream fin(fn);
     if (verb) {
       std::cout << "Open list of primitives '" << fn << "' for colors"
@@ -66,21 +67,29 @@ CreateInitCl(const Vars& par, bool verb) {
         return;
       }
 
+      using Mod = typename UPrimList<Scal>::Primitive::Mod;
       for (auto c : m.Cells()) {
         if (vf[c] > 0.) {
           auto x = m.GetCenter(c);
-          Scal fm = -std::numeric_limits<Scal>::max(); // maximum level-set
-          size_t im = 0;
-          ; // index of maximum
+          Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
+          size_t imax = 0; // index of maximum
           for (size_t i = 0; i < pp.size(); ++i) {
             auto& p = pp[i];
-            Scal fi = p.ls(x);
-            if (fi > fm) {
-              fm = fi;
-              im = i;
+            Scal li = p.ls(x);
+            if (p.mod == Mod::minus) {
+              li = -li;
+            }
+            if (p.mod == Mod::star && li <= 0) {
+              lmax = li;
+              imax = i;
+            } else {
+              if (li > lmax) {
+                lmax = li;
+                imax = i;
+              }
             }
           }
-          cl[c] = im;
+          cl[c] = imax;
         }
       }
     };

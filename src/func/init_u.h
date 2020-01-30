@@ -19,42 +19,39 @@
 #include "solver/reconst.h"
 
 // Volume fraction cut by interface defined by level-set function
-// f: level-set function, interface f=0, f>0 for volume fraction 1
+// ls: level-set function, interface ls=0, ls>0 for volume fraction 1
 // xc: cell center
 // h: cell size
 template <class Scal, size_t dim = 3>
 Scal GetLevelSetVolume(
-    std::function<Scal(const GVect<Scal, 3>&)> f, const GVect<Scal, 3>& xc,
+    std::function<Scal(const GVect<Scal, 3>&)> ls, const GVect<Scal, 3>& xc,
     const GVect<Scal, 3>& h) {
   using Vect = GVect<Scal, dim>;
   using MIdx = GVect<IntIdx, dim>;
 
   const Scal dx = 1e-3; // step to compute gradient relative to h
 
-  GBlockCells<dim> b(MIdx(2));
-
-  Scal fc = f(xc);
+  GBlock<size_t, dim> b(MIdx(2));
+  const Scal lsc = ls(xc);
+  // traverse nodes of cell
   for (auto w : b) {
-    Vect x = xc + (Vect(w) - Vect(0.5)) * h;
-    if ((fc > 0.) != (f(x) > 0.)) {
+    const Vect x = xc + (Vect(w) - Vect(0.5)) * h;
+    if ((lsc > 0.) != (ls(x) > 0.)) { // cell crossed by interface
       // linear approximation
-      // f(x) = f(xc) + (x - xc).dot(grad(f, xc))
+      // ls(x) = ls(xc) + (x - xc).dot(grad(ls, xc))
       Vect n; // normal
       for (size_t i = 0; i < dim; ++i) {
         Vect xp(xc), xm(xc);
-        Scal dxh = dx * h[i];
+        const Scal dxh = dx * h[i];
         xp[i] += dxh * 0.5;
         xm[i] -= dxh * 0.5;
-        n[i] = (f(xp) - f(xm)) / dxh;
+        n[i] = (ls(xp) - ls(xm)) / dxh;
       }
-      Scal a; // line constant
-      a = f(xc);
-
-      return Reconst<Scal>::GetLineU(n, a, h);
+      return Reconst<Scal>::GetLineU(n, lsc, h);
     }
   }
 
-  return fc > 0. ? 1. : 0.;
+  return lsc > 0. ? 1. : 0.;
 }
 
 // Fills volume fraction field from list of primitives.
@@ -87,21 +84,30 @@ void InitVfList(
   if (pp.empty()) {
     fc.Reinit(m, 0.);
   } else {
+    using Mod = typename Primitive::Mod;
     for (auto c : m.Cells()) {
       auto x = m.GetCenter(c);
-      Scal fm = -std::numeric_limits<Scal>::max(); // maximum level-set
-      size_t im; // index of maximum
+      Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
+      size_t imax = 0; // index of maximum
       for (size_t i = 0; i < pp.size(); ++i) {
         auto& p = pp[i];
-        Scal fi = p.ls(x);
-        if (fi > fm) {
-          fm = fi;
-          im = i;
+        Scal li = p.ls(x);
+        if (p.mod == Mod::minus) {
+          li = -li;
+        }
+        if (p.mod == Mod::star && li <= 0) {
+          lmax = li;
+          imax = i;
+        } else {
+          if (li > lmax) {
+            lmax = li;
+            imax = i;
+          }
         }
       }
-      auto& p = pp[im];
+      auto& p = pp[imax];
       if (approx == 0) { // stepwise
-        fc[c] = (fm >= 0. ? 1. : 0.);
+        fc[c] = (lmax >= 0. ? 1. : 0.);
       } else if (approx == 1) { // level set
         fc[c] = GetLevelSetVolume<Scal>(p.ls, x, h);
       } else if (approx == 2) { // overlap
