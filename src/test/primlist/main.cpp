@@ -19,7 +19,7 @@ int main(int an, char* av[]) {
   }
   try {
     std::map<std::string, Scal> r =
-        UPrimList<Scal>::Parse(av[1], av[2], av[3], atoi(av[4]));
+        UPrimList<Scal>::GetMap(av[1], av[2], av[3], atoi(av[4]));
     for (auto k : r) {
       std::cout << k.first << ":" << k.second << " ";
     }
