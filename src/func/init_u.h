@@ -151,38 +151,21 @@ FieldCell<typename M::Scal> GetPositiveVolumeFraction(
   auto ffs = GetPositiveAreaFraction(fnl, m);
   FieldCell<Scal> fcu(m, 0);
   for (auto c : m.Cells()) {
-    size_t q = 0; // number of nodes with fnl > 0
-    const size_t mi = m.GetNumNodes(c);
-    for (size_t i = 0; i < mi; ++i) {
-      if (fnl[m.GetNode(c, i)] > 1e-16) { // FIXME may lead to zero area
-        ++q;
-      }
+    Vect nn(0); // normal
+    for (auto q : m.Nci(c)) {
+      const IdxFace f = m.GetFace(c, q);
+      nn += m.GetNormal(f) * ffs[f] * m.GetOutwardFactor(c, q);
     }
-    Scal u;
-    if (q == mi) { // cell inside
-      u = 1;
-    } else if (q > 0) { // cut cell
-      Vect nn(0); // normal
+    Scal u = 0;
+    if (nn.norm1() == 0) {
       for (auto q : m.Nci(c)) {
-        const IdxFace f = m.GetFace(c, q);
-        nn += m.GetNormal(f) * ffs[f] * m.GetOutwardFactor(c, q);
+        u += ffs[m.GetFace(c, q)];
       }
-      if (nn.norm1() == 0 || IsNan(nn.norm1())) {
-        for (auto q : m.Nci(c)) {
-          const IdxFace f = m.GetFace(c, q);
-          std::cout <<  m.GetNormal(f) * ffs[f] * m.GetOutwardFactor(c, q) << " ";
-          std::cout << std::endl;
-        }
-        for (size_t i = 0; i < mi; ++i) {
-          std::cout << fnl[m.GetNode(c, i)] << " ";
-          std::cout << std::endl;
-        }
-        std::terminate();
-      }
+      u /= m.Nci(c).size();
+    } else {
       nn /= -nn.norm1();
-
       Scal a = 0; // plane constant
-      Scal aw = 0;
+      size_t aw = 0;
       for (auto q : m.Nci(c)) {
         const IdxFace f = m.GetFace(c, q);
         const size_t em = m.GetNumNodes(f);
@@ -195,16 +178,15 @@ FieldCell<typename M::Scal> GetPositiveVolumeFraction(
           const Vect x = m.GetNode(n);
           const Vect xp = m.GetNode(np);
 
-          if ((l < 0) != (lp < 0)) {
+          if (l * lp < 0) {
             a += nn.dot(GetIso(x, xp, l, lp) - m.GetCenter(c));
             aw += 1;
           }
         }
       }
+      assert(aw > 0);
       a /= aw;
       u = R::GetLineU(nn, a, m.GetCellSize());
-    } else { // cell outside
-      u = 0;
     }
     fcu[c] = u;
   }
@@ -241,19 +223,17 @@ void InitVfList(
   if (pp.empty()) {
     fc.Reinit(m, 0.);
   } else {
-    using Mod = typename Primitive::Mod;
     auto lsmax = [&pp](Vect x) -> std::pair<Scal, size_t> {
       Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
       size_t imax = 0; // index of maximum
       for (size_t i = 0; i < pp.size(); ++i) {
         auto& p = pp[i];
         Scal li = p.ls(x);
-        if (p.mod == Mod::minus) {
+        if (p.mod_minus) {
           li = -li;
         }
-        if (p.mod == Mod::star && li <= 0) {
-          lmax = li;
-          imax = i;
+        if (p.mod_and) {
+          lmax = std::min(lmax, li);
         } else {
           if (li > lmax) {
             lmax = li;

@@ -67,29 +67,28 @@ CreateInitCl(const Vars& par, bool verb) {
         return;
       }
 
-      using Mod = typename UPrimList<Scal>::Primitive::Mod;
       for (auto c : m.Cells()) {
         if (vf[c] > 0.) {
           auto x = m.GetCenter(c);
           Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
-          size_t imax = 0; // index of maximum
+          Scal clmax = 0; // color of maximum
           for (size_t i = 0; i < pp.size(); ++i) {
             auto& p = pp[i];
             Scal li = p.ls(x);
-            if (p.mod == Mod::minus) {
+            if (p.mod_minus) {
               li = -li;
             }
-            if (p.mod == Mod::star && li <= 0) {
+            if (p.mod_and && li < 0 && lmax >= 0) {
               lmax = li;
-              imax = i;
+              clmax = kClNone;
             } else {
               if (li > lmax) {
                 lmax = li;
-                imax = i;
+                clmax = i;
               }
             }
           }
-          cl[c] = imax;
+          cl[c] = clmax;
         }
       }
     };
