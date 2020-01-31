@@ -21,7 +21,7 @@
 const int dim = 3;
 using MIdx = GMIdx<dim>;
 using Scal = double;
-using Vect = GVect<Scal, dim>;
+using Vect = generic::Vect<Scal, dim>;
 using Mesh = MeshStructured<Scal, dim>;
 
 /*

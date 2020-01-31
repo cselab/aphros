@@ -10,7 +10,7 @@
 
 // Returns true if a < b (lex starting from end)
 template <class T, size_t d>
-bool Cmp(const GVect<T, d>& a, const GVect<T, d>& b) {
+bool Cmp(const generic::Vect<T, d>& a, const generic::Vect<T, d>& b) {
   int i = a.size();
   while (i--) {
     if (a[i] != b[i]) {
@@ -24,7 +24,7 @@ const int dim = 3;
 using MIdx = GMIdx<dim>;
 using Dir = GDir<dim>;
 using Scal = double;
-using Vect = GVect<Scal, dim>;
+using Vect = generic::Vect<Scal, dim>;
 
 void TestBlock() {
   const size_t hl = 1;

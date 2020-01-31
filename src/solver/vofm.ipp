@@ -26,7 +26,7 @@ struct Vofm<M_>::Imp {
   using R = Reconst<Scal>;
   using TRM = Trackerm<M>;
   static constexpr size_t dim = M::dim;
-  using Vect2 = GVect<Scal, 2>;
+  using Vect2 = generic::Vect<Scal, 2>;
   using Sem = typename M::Sem;
 
   Imp(Owner* owner, const GRange<size_t> layers0,

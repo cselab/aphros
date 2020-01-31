@@ -25,7 +25,7 @@ struct VofEmbed<M_>::Imp {
   using R = Reconst<Scal>;
   using TRM = Trackerm<M>;
   static constexpr size_t dim = M::dim;
-  using Vect2 = GVect<Scal, 2>;
+  using Vect2 = generic::Vect<Scal, 2>;
   using Sem = typename M::Sem;
   using MIdx = typename M::MIdx;
 
@@ -306,8 +306,8 @@ struct VofEmbed<M_>::Imp {
       if (sem("sweep")) {
         Sweep(
             uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
-            id % 2 == 0 ? SweepType::EI : SweepType::LE, &fcfm_,
-            &fcfp_, nullptr, owner_->GetTimeStep() * vsc, par.clipth, eb);
+            id % 2 == 0 ? SweepType::EI : SweepType::LE, &fcfm_, &fcfp_,
+            nullptr, owner_->GetTimeStep() * vsc, par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }

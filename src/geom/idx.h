@@ -11,7 +11,7 @@ using IntIdx = std::ptrdiff_t;
 
 // Integer multi-index
 template <size_t dim>
-using GMIdx = GVect<IntIdx, dim>;
+using GMIdx = generic::Vect<IntIdx, dim>;
 
 // Typed index, instances distinct by id_.
 template <int id_>

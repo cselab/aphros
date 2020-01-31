@@ -42,9 +42,9 @@ struct Simple<M_>::Imp {
   using Owner = Simple<M_>;
   using CD = ConvDiffVect<M>;
   // Expression on face: v[0] * cm + v[1] * cp + v[2]
-  using ExprFace = GVect<Scal, 3>;
+  using ExprFace = generic::Vect<Scal, 3>;
   // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
-  using Expr = GVect<Scal, M::dim * 2 + 2>;
+  using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par)

@@ -21,7 +21,7 @@ namespace generic {
 template <class Scal>
 struct Primitive {
   static constexpr size_t dim = 3;
-  using Vect = GVect<Scal, dim>;
+  using Vect = generic::Vect<Scal, dim>;
 
   std::string name;
   bool mod_minus = false;
@@ -49,7 +49,7 @@ struct Primitive {
 template <class Scal>
 struct UPrimList {
   static constexpr size_t dim = 3;
-  using Vect = GVect<Scal, dim>;
+  using Vect = generic::Vect<Scal, dim>;
   using Primitive = generic::Primitive<Scal>;
 
   static bool ParseSphere(std::string s, size_t edim, Primitive& p) {

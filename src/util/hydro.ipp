@@ -1696,8 +1696,8 @@ template <class M>
 void ProjectVolumeFlux(
     FieldFace<typename M::Scal>& ffv, const MapCondFaceFluid& mfc, M& m) {
   using Scal = typename M::Scal;
-  using ExprFace = GVect<Scal, 3>;
-  using Expr = GVect<Scal, M::dim * 2 + 2>;
+  using ExprFace = generic::Vect<Scal, 3>;
+  using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
 
   auto sem = m.GetSem();
   struct {

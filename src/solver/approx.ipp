@@ -259,7 +259,7 @@ void InterpolateS(const FieldCell<T>& fc, FieldFace<T>& ff, const M& m) {
 template <class Scal>
 class UReflectFace {
  public:
-  using Vect = GVect<Scal, 3>;
+  using Vect = generic::Vect<Scal, 3>;
   // v: value
   // n: normal to face
   static Scal Get(Scal v, const Vect& /*n*/) {
@@ -273,7 +273,7 @@ class UReflectFace {
 template <class Scal>
 class UReflectCell {
  public:
-  using Vect = GVect<Scal, 3>;
+  using Vect = generic::Vect<Scal, 3>;
   // v: value
   // n: normal to face
   static Scal Get(Scal v, const Vect& /*n*/) {
