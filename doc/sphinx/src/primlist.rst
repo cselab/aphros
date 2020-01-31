@@ -16,16 +16,26 @@ Function ``Parse()`` parses a stream with a list of primitives.
   :func: Parse
   :comment:
 
+Available primitives and their parameters:
+
+* ``sphere``: ``cx cy cz`` (center), ``rx ry rz`` (half-size)
+* ``box``: ``cx cy cz`` (center), ``rx ry rz`` (half-size)
+* ``ring``: ``cx cy cz`` (center), ``nx ny nz`` (normal),
+  ``r`` (radius), ``th`` (thickness)
+* ``smooth_step``: ``cx cy cz`` (center), ``nx ny nz`` (normal),
+  ``tx ty tz`` (tangent), ``ln`` (size along normal), ``lt`` (size along tangent)
+* ``cylinder``: ``cx cy cz`` (center), ``tx ty tz`` (axis), ``r`` (radius),
+  ``t0 t1`` (coordinates relative to center)
+
 Example of a list of primitives
 
 .. includecode:: examples/200_primlist/b.dat
   :language: none
 
-Characters ``+``, ``-``, ``*`` are modifiers:
+Characters ``&`` and ``-`` are modifiers:
 
-* ``+``: original level-set, default,
-* ``-``: level-set multiplied by -1,
-* ``*``: if level-set is negative, overrides all entries above.
+* ``&``: intersection, take minimum with level-set from all entries above.
+* ``-``: minus, multiply level-set by -1,
 
 (see setup in :linkpath:`examples/200_primlist`)
 
