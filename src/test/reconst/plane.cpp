@@ -10,8 +10,8 @@
 #include "solver/reconst.h"
 
 using Scal = double;
-using Vect = GVect<Scal, 3>;
-using Vect2 = GVect<Scal, 2>;
+using Vect = generic::Vect<Scal, 3>;
+using Vect2 = generic::Vect<Scal, 2>;
 using R = Reconst<Scal, false>;
 
 int main(int, char** argc) {

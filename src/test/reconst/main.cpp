@@ -18,8 +18,8 @@
 #include "solver/vof.h"
 
 using Scal = double;
-using Vect = GVect<Scal, 3>;
-using Vect2 = GVect<Scal, 2>;
+using Vect = generic::Vect<Scal, 3>;
+using Vect2 = generic::Vect<Scal, 2>;
 using R = Reconst<Scal>;
 
 template <class T>
@@ -436,7 +436,7 @@ void TestFit() {
   std::cerr << "check plane fitting" << std::endl;
 
   using V = Vect;
-  using VV = GVect<V, 3>;
+  using VV = generic::Vect<V, 3>;
 
   auto f = [](const VV& a, const V& xe) {
     auto x = R::SolveSingular(a);

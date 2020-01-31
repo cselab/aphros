@@ -7,8 +7,8 @@
 
 #include "parse/solver.h"
 #include "solver/vof.h"
-#include "solver/vofm.h"
 #include "solver/vof_eb.h"
+#include "solver/vofm.h"
 
 template <class M>
 struct ParsePar<Vof<M>> {

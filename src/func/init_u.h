@@ -25,10 +25,10 @@
 // h: cell size
 template <class Scal, size_t dim = 3>
 Scal GetLevelSetVolume(
-    std::function<Scal(const GVect<Scal, 3>&)> ls, const GVect<Scal, 3>& xc,
-    const GVect<Scal, 3>& h) {
-  using Vect = GVect<Scal, dim>;
-  using MIdx = GVect<IntIdx, dim>;
+    std::function<Scal(const generic::Vect<Scal, 3>&)> ls,
+    const generic::Vect<Scal, 3>& xc, const generic::Vect<Scal, 3>& h) {
+  using Vect = generic::Vect<Scal, dim>;
+  using MIdx = generic::Vect<IntIdx, dim>;
 
   const Scal dx = 1e-3; // step to compute gradient relative to h
 

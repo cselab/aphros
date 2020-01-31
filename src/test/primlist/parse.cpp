@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <cassert>
 #include <iostream>
-#include <sstream>
 #include <map>
+#include <sstream>
 
 #include "func/primlist.h"
 
@@ -14,8 +14,7 @@ using Scal = double;
 
 int main(int an, char* av[]) {
   if (an < 2) {
-    std::cerr << "usage: " << av[0] << " primitive"
-              << std::endl;
+    std::cerr << "usage: " << av[0] << " primitive" << std::endl;
     return 1;
   }
   using U = UPrimList<Scal>;

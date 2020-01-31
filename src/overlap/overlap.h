@@ -9,5 +9,5 @@
 // c: sphere center
 // r: radius
 double GetSphereOverlap(
-    const GVect<double, 3>& x, const GVect<double, 3>& h,
-    const GVect<double, 3>& c, double r);
+    const generic::Vect<double, 3>& x, const generic::Vect<double, 3>& h,
+    const generic::Vect<double, 3>& c, double r);

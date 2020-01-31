@@ -24,8 +24,20 @@ inline double GetNan<double>() {
   return std::numeric_limits<double>::quiet_NaN();
 }
 
+template <class Scal>
+bool IsFinite(Scal a) {
+  return std::isfinite(a);
+}
+
+template <class Scal>
+bool IsNan(Scal a) {
+  return std::isnan(a);
+}
+
+namespace generic {
+
 template <class Scal, size_t dim_>
-class GVect {
+class Vect {
  public:
   static constexpr size_t dim = dim_;
   using value_type = Scal;
@@ -34,55 +46,55 @@ class GVect {
   std::array<Scal, dim> comp_;
 
  public:
-  friend void swap(GVect& first, GVect& second) {
+  friend void swap(Vect& first, Vect& second) {
     using std::swap;
     swap(first.comp_, second.comp_);
   }
-  GVect() {}
-  GVect(const GVect& vect) : comp_(vect.comp_) {}
+  Vect() {}
+  Vect(const Vect& vect) : comp_(vect.comp_) {}
   size_t size() const {
     return comp_.size();
   }
-  explicit GVect(Scal value) {
+  explicit Vect(Scal value) {
     for (auto& a : comp_) {
       a = value;
     }
   }
   template <class... Args>
-  explicit GVect(Scal first, Args... args) : comp_{{first, args...}} {
+  explicit Vect(Scal first, Args... args) : comp_{{first, args...}} {
     constexpr size_t num_args = 1 + sizeof...(args);
     static_assert(
         num_args == dim,
         "Vect braced initializer must contain exactly 'dim' arguments");
   }
   template <class OtherScal>
-  explicit GVect(const GVect<OtherScal, dim>& other) {
+  explicit Vect(const Vect<OtherScal, dim>& other) {
     for (size_t i = 0; i < dim; ++i) {
       comp_[i] = static_cast<Scal>(other[i]);
     }
   }
   template <class OtherScal>
-  explicit GVect(const std::vector<OtherScal>& v) {
+  explicit Vect(const std::vector<OtherScal>& v) {
     // TODO dim instead of dim_ causes linker error
     for (size_t i = 0; i < dim; ++i) {
       comp_[i] = (i < v.size() ? static_cast<Scal>(v[i]) : 0);
     }
   }
   template <class OtherScal>
-  explicit GVect(const std::array<OtherScal, dim>& v) {
+  explicit Vect(const std::array<OtherScal, dim>& v) {
     // TODO dim instead of dim_ causes linker error
     for (size_t i = 0; i < dim; ++i) {
       comp_[i] = static_cast<Scal>(v[i]);
     }
   }
   template <class OtherScal>
-  explicit GVect(const OtherScal* v) {
+  explicit Vect(const OtherScal* v) {
     // TODO dim instead of dim_ causes linker error
     for (size_t i = 0; i < dim_; ++i) {
       comp_[i] = static_cast<Scal>(v[i]);
     }
   }
-  GVect& operator=(GVect other) {
+  Vect& operator=(Vect other) {
     comp_ = other.comp_;
     return *this;
   }
@@ -92,79 +104,79 @@ class GVect {
   const Scal& operator[](size_t i) const {
     return comp_[i];
   }
-  GVect& operator+=(const GVect& vect) {
+  Vect& operator+=(const Vect& vect) {
     for (size_t i = 0; i < dim; ++i) {
       comp_[i] += vect.comp_[i];
     }
     return *this;
   }
-  GVect& operator-=(const GVect& other) {
+  Vect& operator-=(const Vect& other) {
     for (size_t i = 0; i < dim; ++i) {
       comp_[i] -= other.comp_[i];
     }
     return *this;
   }
-  GVect& operator*=(Scal k) {
+  Vect& operator*=(Scal k) {
     for (size_t i = 0; i < dim; ++i) {
       comp_[i] *= k;
     }
     return *this;
   }
-  GVect& operator/=(Scal k) {
+  Vect& operator/=(Scal k) {
     for (size_t i = 0; i < dim; ++i) {
       comp_[i] /= k;
     }
     return *this;
   }
-  GVect operator+(GVect other) const {
+  Vect operator+(Vect other) const {
     other += *this;
     return other;
   }
-  GVect operator-(GVect other) const {
-    GVect tmp(*this);
+  Vect operator-(Vect other) const {
+    Vect tmp(*this);
     tmp -= other;
     return tmp;
   }
-  GVect operator-() const {
-    GVect tmp(*this);
+  Vect operator-() const {
+    Vect tmp(*this);
     for (size_t i = 0; i < dim; ++i) {
       tmp[i] = -tmp[i];
     }
     return tmp;
   }
-  GVect operator*(Scal k) const {
-    GVect tmp(*this);
+  Vect operator*(Scal k) const {
+    Vect tmp(*this);
     tmp *= k;
     return tmp;
   }
-  GVect operator/(Scal k) const {
-    GVect tmp(*this);
+  Vect operator/(Scal k) const {
+    Vect tmp(*this);
     tmp /= k;
     return tmp;
   }
-  GVect& operator*=(const GVect& other) {
+  Vect& operator*=(const Vect& other) {
     for (size_t i = 0; i < dim; ++i) {
       comp_[i] *= other.comp_[i];
     }
     return *this;
   }
-  GVect operator*(const GVect& other) const {
-    GVect tmp(*this);
+  Vect operator*(const Vect& other) const {
+    Vect tmp(*this);
     tmp *= other;
     return tmp;
   }
-  GVect& operator/=(const GVect& other) {
+  Vect& operator/=(const Vect& other) {
     for (size_t i = 0; i < dim; ++i) {
       comp_[i] /= other.comp_[i];
     }
     return *this;
   }
-  GVect operator/(const GVect& other) const {
-    GVect tmp(*this);
+  Vect operator/(const Vect& other) const {
+    Vect tmp(*this);
     tmp /= other;
     return tmp;
   }
-  bool operator==(const GVect& other) const {
+  bool operator==(const Vect& other) const {
     for (size_t i = 0; i < dim; ++i) {
       if (!(comp_[i] == other.comp_[i])) {
         return false;
@@ -172,10 +184,10 @@ class GVect {
     }
     return true;
   }
-  bool operator!=(const GVect& other) const {
+  bool operator!=(const Vect& other) const {
     return !(*this == other);
   }
-  bool operator<(const GVect& other) const {
+  bool operator<(const Vect& other) const {
     for (size_t i = 0; i < dim; ++i) {
       if (!(comp_[i] < other.comp_[i])) {
         return false;
@@ -183,7 +195,7 @@ class GVect {
     }
     return true;
   }
-  bool operator<=(const GVect& other) const {
+  bool operator<=(const Vect& other) const {
     for (size_t i = 0; i < dim; ++i) {
       if (!(comp_[i] <= other.comp_[i])) {
         return false;
@@ -191,14 +203,14 @@ class GVect {
     }
     return true;
   }
-  bool lexless(const GVect& o) const {
+  bool lexless(const Vect& o) const {
     return comp_ < o.comp_;
   }
-  // TODO: remove, replace with GVect(0)
-  static const GVect kZero;
-  // TODO: remove, replace with GVect(1)
-  static GVect GetUnit(size_t i) {
-    GVect res = kZero;
+  // TODO: remove, replace with Vect(0)
+  static const Vect kZero;
+  // TODO: remove, replace with Vect(1)
+  static Vect GetUnit(size_t i) {
+    Vect res = kZero;
     res[i] = 1;
     return res;
   }
@@ -212,28 +224,28 @@ class GVect {
   Scal norm() const {
     return std::sqrt(sqrnorm());
   }
-  Scal dot(const GVect& other) const {
+  Scal dot(const Vect& other) const {
     Scal sum = 0;
     for (size_t i = 0; i < dim; ++i) {
       sum += comp_[i] * other.comp_[i];
     }
     return sum;
   }
-  Scal cross_third(const GVect& other) const {
+  Scal cross_third(const Vect& other) const {
     return comp_[0] * other.comp_[1] - comp_[1] * other.comp_[0];
   }
-  GVect cross(const GVect& other) const {
-    const GVect& a = *this;
-    const GVect& b = other;
-    return GVect(
+  Vect cross(const Vect& other) const {
+    const Vect& a = *this;
+    const Vect& b = other;
+    return Vect(
         a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
         a[0] * b[1] - a[1] * b[0]);
   }
-  Scal dist(GVect other) const {
+  Scal dist(Vect other) const {
     other -= *this;
     return other.norm();
   }
-  Scal sqrdist(GVect o) const {
+  Scal sqrdist(Vect o) const {
     o -= *this;
     return o.sqrnorm();
   }
@@ -297,26 +309,26 @@ class GVect {
     }
     return r;
   }
-  GVect abs() const {
-    GVect r = *this;
+  Vect abs() const {
+    Vect r = *this;
     for (size_t i = 0; i < dim; ++i) {
       r[i] = std::abs(r[i]);
     }
     return r;
   }
-  GVect max(GVect o) const {
+  Vect max(Vect o) const {
     for (size_t i = 0; i < dim; ++i) {
       o[i] = std::max(comp_[i], o[i]);
     }
     return o;
   }
-  GVect min(GVect o) const {
+  Vect min(Vect o) const {
     for (size_t i = 0; i < dim; ++i) {
       o[i] = std::min(comp_[i], o[i]);
     }
     return o;
   }
-  GVect clip(const GVect& v0, const GVect& v1) const {
+  Vect clip(const Vect& v0, const Vect& v1) const {
     return (*this).max(v0).min(v1);
   }
   // TODO: revise, may lead to undesired conversion
@@ -334,40 +346,38 @@ class GVect {
   }
   class LexLess {
    public:
-    bool operator()(GVect a, GVect b) const {
+    bool operator()(Vect a, Vect b) const {
       return a.lexless(b);
     }
   };
+  friend std::ostream& operator<<(std::ostream& out, const Vect& v) {
+    out << "(";
+    for (size_t i = 0; i < dim; ++i) {
+      if (i != 0) {
+        out << ",";
+      }
+      out << v[i];
+    }
+    out << ")";
+    return out;
+  }
+
+  friend std::istream& operator>>(std::istream& in, Vect& v) {
+    for (size_t i = 0; i < dim; ++i) {
+      in >> v[i];
+    }
+    return in;
+  }
 };
 
 template <class Scal, size_t dim>
-const GVect<Scal, dim> GVect<Scal, dim>::kZero =
-    GVect<Scal, dim>(static_cast<Scal>(0.));
+const Vect<Scal, dim> Vect<Scal, dim>::kZero =
+    Vect<Scal, dim>(static_cast<Scal>(0.));
 
-template <class Scal, size_t dim>
-std::ostream& operator<<(std::ostream& out, const GVect<Scal, dim>& vect) {
-  out << "(";
-  for (size_t i = 0; i < dim; ++i) {
-    if (i != 0) {
-      out << ",";
-    }
-    out << vect[i];
-  }
-  out << ")";
-  return out;
-}
+} // namespace generic
 
-template <class Scal, size_t dim>
-std::istream& operator>>(std::istream& in, GVect<Scal, dim>& vect) {
-  for (size_t i = 0; i < dim; ++i) {
-    in >> vect[i];
-  }
-  return in;
-}
-
-template <class _Vect>
+template <class Vect>
 struct Rect {
-  using Vect = _Vect;
   static constexpr size_t dim = Vect::dim;
 
   Vect lb, rt;
@@ -387,6 +397,6 @@ struct Rect {
 };
 
 template <>
-inline GVect<double, 3> GetNan<GVect<double, 3>>() {
-  return GVect<double, 3>(GetNan<double>());
+inline generic::Vect<double, 3> GetNan<generic::Vect<double, 3>>() {
+  return generic::Vect<double, 3>(GetNan<double>());
 }

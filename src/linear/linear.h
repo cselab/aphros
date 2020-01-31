@@ -324,7 +324,7 @@ typename M::LS ConvertLs(
 // lx: initial guess
 template <
     class M, class Scal = typename M::Scal,
-    class V = GVect<Scal, M::dim * 2 + 2>>
+    class V = generic::Vect<Scal, M::dim * 2 + 2>>
 typename M::LS ConvertLsCompact(
     const FieldCell<V>& fce, std::vector<Scal>& la, std::vector<Scal>& lb,
     std::vector<Scal>& lx, const M& m) {

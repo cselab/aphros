@@ -6,11 +6,11 @@
 #include <sstream>
 #include <string>
 
-#include "geom/vect.h"
 #include "func/init_u.h"
+#include "geom/vect.h"
 
 using Scal = double;
-using Vect = GVect<Scal, 3>;
+using Vect = generic::Vect<Scal, 3>;
 
 int main(int, char** argc) {
   std::string f = argc[1];

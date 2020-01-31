@@ -44,8 +44,8 @@ void CalcPotential(
     const MapCondFace& mfc, M& m, const Embed<M>& eb, FieldCell<Scal>& fcp,
     FieldFace<Scal>& ffv) {
   using Scal = typename M::Scal;
-  using ExprFace = GVect<Scal, 3>;
-  using Expr = GVect<Scal, M::dim * 2 + 2>;
+  using ExprFace = generic::Vect<Scal, 3>;
+  using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
 
   auto sem = m.GetSem();
   struct {

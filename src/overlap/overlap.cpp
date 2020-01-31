@@ -6,8 +6,8 @@
 #include "overlap.h"
 
 double GetSphereOverlap(
-    const GVect<double, 3>& x, const GVect<double, 3>& h,
-    const GVect<double, 3>& c, double r) {
+    const generic::Vect<double, 3>& x, const generic::Vect<double, 3>& h,
+    const generic::Vect<double, 3>& c, double r) {
   std::array<vector_t, 8> vv{vector_t{-1, -1, -1}, vector_t{1, -1, -1},
                              vector_t{1, 1, -1},   vector_t{-1, 1, -1},
                              vector_t{-1, -1, 1},  vector_t{1, -1, 1},
@@ -21,8 +21,9 @@ double GetSphereOverlap(
     v[0] = x[0] + v[0] * hh[0];
     v[1] = x[1] + v[1] * hh[1];
     v[2] = x[2] + v[2] * hh[2];
-    bool in = GVect<double, 3>(v[0], v[1], v[2]).sqrdist(c) < sqr(r);
-    bool out = GVect<double, 3>(v[0], v[1], v[2]).sqrdist(c) > sqr(r + h.max());
+    bool in = generic::Vect<double, 3>(v[0], v[1], v[2]).sqrdist(c) < sqr(r);
+    bool out = generic::Vect<double, 3>(v[0], v[1], v[2]).sqrdist(c) >
+               sqr(r + h.max());
     ai = ai && in;
     ao = ao && out;
   }

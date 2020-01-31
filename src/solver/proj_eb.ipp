@@ -43,9 +43,9 @@ struct ProjEmbed<M_>::Imp {
   using Owner = ProjEmbed<M_>;
   using CD = ConvDiffVectEmbed<M>; // convdiff solver
   // Expression on face: v[0] * cm + v[1] * cp + v[2]
-  using ExprFace = GVect<Scal, 3>;
+  using ExprFace = generic::Vect<Scal, 3>;
   // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
-  using Expr = GVect<Scal, M::dim * 2 + 2>;
+  using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
       const Embed<M>& eb0, size_t bc, Vect bcvel,

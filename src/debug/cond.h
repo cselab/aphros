@@ -13,7 +13,7 @@ namespace debugimpl {
 
 const int dim = 3;
 using Scal = double;
-using Vect = GVect<Scal, dim>;
+using Vect = generic::Vect<Scal, dim>;
 
 std::string P(const void*) {
   return std::string();

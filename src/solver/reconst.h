@@ -15,8 +15,8 @@
 template <class Scal, bool ba = false>
 class Reconst {
  public:
-  using Vect2 = GVect<Scal, 2>;
-  using Vect = GVect<Scal, 3>;
+  using Vect2 = generic::Vect<Scal, 2>;
+  using Vect = generic::Vect<Scal, 3>;
 
   static void Clip(Scal& a, Scal l, Scal u) {
     a = std::max(l, std::min(u, a));
@@ -110,8 +110,8 @@ class Reconst {
   }
 
   // Returns sequence of indices r such that v[r] would be sorted
-  static GVect<size_t, 3> Argsort(Vect v) {
-    GVect<size_t, 3> r(0ul, 1ul, 2ul);
+  static generic::Vect<size_t, 3> Argsort(Vect v) {
+    generic::Vect<size_t, 3> r(0ul, 1ul, 2ul);
     if (v[1] < v[0]) {
       std::swap(v[0], v[1]);
       std::swap(r[0], r[1]);
@@ -590,12 +590,12 @@ class Reconst {
   // a: matrix a of rank 2, a[i] is row (equation)
   // Returns:
   // x: solution
-  static Vect SolveSingular(const GVect<Vect, 3>& a) {
+  static Vect SolveSingular(const generic::Vect<Vect, 3>& a) {
     auto p = [](size_t i) { return (i + 1) % 3; };
     auto pp = [](size_t i) { return (i + 2) % 3; };
 
     // d[i][j] is det of matrix without row i and column j
-    GVect<Vect, 3> d;
+    generic::Vect<Vect, 3> d;
     for (size_t i = 0; i < 3; ++i) {
       for (size_t j = 0; j < 3; ++j) {
         d[i][j] =
@@ -604,7 +604,7 @@ class Reconst {
     }
 
     // mi[j] = argmax_i(d[i][j])
-    GVect<size_t, 3> mi(0);
+    generic::Vect<size_t, 3> mi(0);
     for (size_t j = 0; j < 3; ++j) {
       for (size_t i = 1; i < 3; ++i) {
         if (std::abs(d[i][j]) > std::abs(d[mi[j]][j])) {
@@ -645,7 +645,7 @@ class Reconst {
       x -= xc;
     }
 
-    GVect<Vect, 3> a;
+    generic::Vect<Vect, 3> a;
     for (size_t i = 0; i < 3; ++i) {
       a[i] = Vect(0);
       for (auto& x : xx) {

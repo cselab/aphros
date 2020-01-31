@@ -57,10 +57,11 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
     auto sem = m.GetSem("assemble");
 
     if (sem("assemble")) {
-      //const FieldCell<Vect> fcg =
-      //    eb.AverageCutCells(eb.Gradient(eb.Interpolate(fcu, mfc_, bc_, bcu_)));
-      const FieldCell<Vect> fcg =Gradient(Interpolate(fcu, mfc_, m), m);
-          //eb.AverageCutCells(eb.Gradient(eb.Interpolate(fcu, mfc_, bc_, bcu_)));
+      // const FieldCell<Vect> fcg =
+      //    eb.AverageCutCells(eb.Gradient(eb.Interpolate(fcu, mfc_, bc_,
+      //    bcu_)));
+      const FieldCell<Vect> fcg = Gradient(Interpolate(fcu, mfc_, m), m);
+      // eb.AverageCutCells(eb.Gradient(eb.Interpolate(fcu, mfc_, bc_, bcu_)));
 
       // diagonal linear system la * x + lb = 0
       fcla.Reinit(m);

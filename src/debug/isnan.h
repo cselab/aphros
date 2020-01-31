@@ -12,11 +12,6 @@
 #include "geom/range.h"
 #include "geom/vect.h"
 
-template <class Scal>
-bool IsFinite(Scal a) {
-  return std::isfinite(a);
-}
-
 template <class T, class Idx>
 bool IsFinite(const GField<T, Idx>& u) {
   for (auto i : u.GetRange()) {
@@ -27,13 +22,8 @@ bool IsFinite(const GField<T, Idx>& u) {
   return true;
 }
 
-template <class Scal>
-bool IsNan(Scal a) {
-  return std::isnan(a);
-}
-
 template <class Scal, size_t dim>
-bool IsNan(const GVect<Scal, dim>& a) {
+bool IsNan(const generic::Vect<Scal, dim>& a) {
   for (size_t i = 0; i < dim; ++i) {
     if (IsNan(a[i])) {
       return true;

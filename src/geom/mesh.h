@@ -44,7 +44,7 @@ class MeshStructured {
  public:
   using Scal = Scal_;
   static constexpr size_t dim = dim_;
-  using Vect = GVect<Scal, dim>;
+  using Vect = generic::Vect<Scal, dim>;
   using Dir = GDir<dim>;
   using MIdx = GMIdx<dim>;
   using BlockCells = GBlockCells<dim>;

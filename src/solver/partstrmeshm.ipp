@@ -26,7 +26,7 @@ void Reorder(std::vector<T>& v, const std::vector<size_t> idx) {
 template <class M_>
 struct PartStrMeshM<M_>::Imp {
   static constexpr size_t dim = M::dim;
-  using Vect2 = GVect<Scal, 2>;
+  using Vect2 = generic::Vect<Scal, 2>;
   using R = Reconst<Scal>;
   static constexpr Scal kClNone = -1;
 

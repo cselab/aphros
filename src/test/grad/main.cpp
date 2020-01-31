@@ -19,7 +19,7 @@ using IdxCell = IdxCell;
 using IdxFace = IdxFace;
 using Dir = GDir<dim>;
 using Scal = double;
-using Vect = GVect<Scal, dim>;
+using Vect = generic::Vect<Scal, dim>;
 using Mesh = MeshStructured<Scal, dim>;
 
 bool Cmp(Scal a, Scal b) {

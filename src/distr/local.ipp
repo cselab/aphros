@@ -49,7 +49,7 @@ class Local : public DistrMesh<M_> {
   M gm; // global mesh
   std::unique_ptr<output::Ser> oser_; // output series
   std::vector<MyBlockInfo> bb_;
-  GVect<bool, 3> per_; // periodic in direction
+  generic::Vect<bool, 3> per_; // periodic in direction
 
   size_t WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m);
   size_t WriteBuffer(const FieldCell<Vect>& f, size_t d, size_t e, M& m);

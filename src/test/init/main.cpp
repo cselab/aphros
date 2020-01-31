@@ -19,7 +19,7 @@
 #include "young/young.h"
 
 using Scal = double;
-using Vect = GVect<Scal, 3>;
+using Vect = generic::Vect<Scal, 3>;
 using R = Reconst<Scal>;
 
 template <class T>
