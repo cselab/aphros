@@ -22,10 +22,10 @@ template <class Scal>
 struct Primitive {
   static constexpr size_t dim = 3;
   using Vect = GVect<Scal, dim>;
-  enum class Mod { plus, minus, star };
 
   std::string name;
-  Mod mod;
+  bool mod_minus = false;
+  bool mod_and = false;
   std::function<Scal(const Vect&)> ls; // level-set
   std::function<bool(const Rect<Vect>&)> inter; // true if intersects rectangle
   std::function<Vect(const Vect&)> vel; // velocity
@@ -34,18 +34,12 @@ struct Primitive {
   Vect r; // radius XXX adhoc for GetSphereOverlap
 
   Primitive(std::string name)
-      : name(name)
-      , mod(Mod::plus)
-      , inter([](const Rect<Vect>&) -> bool { return true; }) {}
+      : name(name), inter([](const Rect<Vect>&) -> bool { return true; }) {}
   Primitive() : Primitive("") {}
 
   friend std::ostream& operator<<(std::ostream& o, const Primitive<Scal>& p) {
     o << "name='" << p.name << "'";
-    std::string smod;
-    if (p.mod == Mod::plus) smod = "+";
-    if (p.mod == Mod::minus) smod = "-";
-    if (p.mod == Mod::star) smod = "*";
-    o << " mod='" << smod << "'";
+    o << " mod='" << (p.mod_minus ? "-" : "") << (p.mod_and ? "&" : "") << "'";
     return o;
   }
 };
@@ -182,7 +176,10 @@ struct UPrimList {
       const Vect dx = x - xc;
       const Scal dt = t.dot(dx);
       const Scal dr = (dx - t * dt).norm();
-      return dt < t0 ? dt - t0 : dt > t1 ? t1 - dt : r - dr;
+      Scal q = r - dr;
+      if (dt < t0) q = std::min(q, dt - t0);
+      if (dt > t1) q = std::min(q, t1 - dt);
+      return q;
     };
     p.name = "cylinder";
     return true;
@@ -211,23 +208,23 @@ struct UPrimList {
 
       Primitive p;
 
-      using Mod = typename Primitive::Mod;
-      auto pair = ExtractModifier(s);
-      s = pair.second;
-      switch (pair.first) {
-        case ' ':
-        case '+':
-          p.mod = Mod::plus;
+      while (true) {
+        auto pair = ExtractModifier(s, "-&");
+        if (pair.first == ' ') {
           break;
-        case '-':
-          p.mod = Mod::minus;
-          break;
-        case '*':
-          p.mod = Mod::star;
-          break;
-        default:
-          throw std::runtime_error(
-              std::string("PrimList: unknown mod='") + pair.first + "'");
+        }
+        s = pair.second;
+        switch (pair.first) {
+          case '-':
+            p.mod_minus = true;
+            break;
+          case '&':
+            p.mod_and = true;
+            break;
+          default:
+            throw std::runtime_error(
+                std::string("PrimList: unknown mod='") + pair.first + "'");
+        }
       }
 
       bool r = false;
@@ -237,7 +234,7 @@ struct UPrimList {
       if (!r) r = ParseSmoothStep(s, p);
       if (!r) r = ParseCylinder(s, p);
 
-      if (p.mod == Mod::minus) {
+      if (p.mod_minus) {
         p.inter = [](const Rect<Vect>&) -> bool { return true; };
       }
 
@@ -362,7 +359,9 @@ struct UPrimList {
     return s.substr(0, s.find('#', 0));
   }
 
-  static std::pair<char, std::string> ExtractModifier(std::string s) {
+  // mods: string with allowed modifier characters (e.g. "-*")
+  static std::pair<char, std::string> ExtractModifier(
+      std::string s, std::string mods) {
     std::stringstream ss(s);
     ss >> std::skipws;
     std::string word;
@@ -371,7 +370,7 @@ struct UPrimList {
       return {' ', s};
     }
     const char c = word[0];
-    if (c == '+' || c == '-' || c == '*') {
+    if (mods.find(c) != std::string::npos) {
       std::string rest;
       std::getline(ss, rest);
       return {c, word.substr(1) + ' ' + rest};
