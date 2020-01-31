@@ -1425,9 +1425,23 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
     // Append gravity to force
     for (auto f : m.AllFaces()) {
-      Vect n = m.GetNormal(f);
+      const Vect n = m.GetNormal(f);
       ffbp_[f] += force.dot(n);
       ffbp_[f] += grav.dot(n) * ff_rho[f];
+    }
+
+    if (eb_) {
+      auto& eb = *eb_;
+      FieldCell<Scal> fcp(m);
+      for (auto c : eb.AllCells()) {
+        const auto x = eb.GetCellCenter(c);
+        fcp[c] = grav.dot(x);
+      }
+      ffbp_ = eb.Gradient(fcp, GetCondZeroGrad<Scal>(mf_fluid_), 0, 0.)
+                  .GetFieldFace();
+      for (auto f : m.AllFaces()) {
+        ffbp_[f] *= ff_rho[f];
+      }
     }
 
     // Surface tension

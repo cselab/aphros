@@ -300,7 +300,7 @@ struct ProjEmbed<M_>::Imp {
         fck[c] /= dr_.size();
       }
 
-      CHECKNAN(fck, m.CN())
+      CHECKNAN(fck, m.CN());
 
       m.Comm(&fck);
     }
@@ -361,6 +361,7 @@ struct ProjEmbed<M_>::Imp {
 
     if (sem("forceinit")) {
       fcfcd_.Reinit(m, Vect(0));
+      // FIXME: not implemented
       // AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_); // XXX
     }
 
@@ -410,7 +411,7 @@ struct ProjEmbed<M_>::Imp {
       }
 
       // Acceleration and correction to center velocity
-      // XXX adhoc , using mfcd_ but should be zero-derivatie
+      // XXX adhoc , using mfcd_ but should be zero-derivative
       const auto fegp = eb.Gradient(fcp_curr, mfcd_, 1, 0.);
       fcwc_.Reinit(m, Vect(0));
       const auto& ffbp = *owner_->ffbp_;
@@ -420,11 +421,13 @@ struct ProjEmbed<M_>::Imp {
           const IdxFace f = m.GetFace(c, q);
           if (!ffbd_[f]) { // inner
             const Scal a = (ffbp[f] - fegp[f]) / ffk_[f];
-            s += eb.GetNormal(f) * a * 0.5;
+            s += eb.GetNormal(f) * (a * 0.5) * eb.GetAreaFraction(f); // XXX
+            //s += eb.GetNormal(f) * (a * 0.5);
           } else {
-            // nop, no accelaration
+            // nop, no acceleration
           }
         }
+        //s = Vect(0., 0, 0.); // XXX
         fcwc_[c] = s;
       }
     }
