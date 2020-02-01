@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -eu
+
+for f in omz_*.dat ; do
+  ap-plain2vtk "$f"
+done

@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -eu
+
+e () {
+  echo "$@"
+  eval "$@"
+}
+
+run0 () {
+  dt=${1:-0.1}
+  second=${2:-1}
+
+  make cleanall &> /dev/null
+
+  cat > par.conf << EOF
+set double dt0 $dt
+set int second_order $second
+EOF
+
+  make run &> /dev/null
+}
+
+i=0
+for dt in 0.016 0.008 0.004 0.002 0.001 ; do
+  e "run0 $dt"
+  dat=omz_${i}.dat
+  mv omz_0000.dat $dat
+  ap-plain2vtk $dat
+  let "i+=1"
+done
+
