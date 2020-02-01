@@ -8,25 +8,28 @@ e () {
 }
 
 run0 () {
-  dt=${1:-0.1}
-  second=${2:-1}
+  nx=$1
+  np=$2
 
   make cleanall &> /dev/null
 
   cat > par.conf << EOF
-set double dt0 $dt
-set int second_order $second
+#
 EOF
 
-  make run &> /dev/null
+  make run m="$nx $nx 1" np=$np &> /dev/null
 }
 
-i=0
-for dt in 0.016 0.008 0.004 0.002 0.001 ; do
-  e "run0 $dt"
+vnx=(16 32 64 128 256)
+vnp=(1  2  2  2   2)
+
+for i in "${!vnx[@]}" ; do
+  nx=${vnx[$i]}
+  np=${vnp[$i]}
+  time e "run0 $nx $np"
   dat=omz_${i}.dat
   mv omz_0000.dat $dat
-  ap-plain2vtk $dat
-  let "i+=1"
+  ./plot $dat
 done
 
+./run_diff > order

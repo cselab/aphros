@@ -4,8 +4,8 @@ set -eu
 
 ord () {
   echo grids $1 $2 $3
-  ea=`./diff omz_$1.dat omz_$2.dat`
-  eb=`./diff omz_$2.dat omz_$3.dat`
+  ea=`./diff2 omz_$1.dat omz_$2.dat`
+  eb=`./diff2 omz_$2.dat omz_$3.dat`
 
   echo error $ea
   echo error $eb
