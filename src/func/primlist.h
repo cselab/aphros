@@ -296,6 +296,24 @@ struct UPrimList {
 
         pp.push_back(p);
       }
+      // ring
+      d = GetMap("gauss2d", s, "cx cy sig magn", 4);
+      if (!d.empty()) {
+        Primitive p;
+        const Vect xc(d["cx"], d["cy"], 0.); // center
+        const Scal sig = d["sig"]; // sigma
+        const Scal magn = d["magn"]; // magnitude
+
+        p.vel = [xc, sig, magn](const Vect& x) -> Vect {
+          Vect dx = x - xc;
+          dx[2] = 0;
+          const Scal sig2 = sqr(sig);
+          const Scal omz =
+              magn / (2 * M_PI * sig2) * std::exp(-dx.sqrnorm() / sig2);
+          return Vect(0., 0., omz);
+        };
+        pp.push_back(p);
+      }
     }
 
     if (verb) {
