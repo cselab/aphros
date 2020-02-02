@@ -17,6 +17,90 @@ struct Parser::Imp {
   static std::string RemoveComment(std::string s) {
     return s.substr(0, s.find('#', 0));
   }
+  static bool IsNameChar(char c) {
+    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') ||
+           (c >= 'A' && c <= 'Z') || c == '_';
+  }
+  std::string GetStr(std::string key) const {
+    auto type = v_.GetTypeName(key);
+    if (type != "") {
+      return v_.GetStr(type, key);
+    }
+    throw std::runtime_error("GetStr(): undefined variable '" + key + "'");
+  }
+  std::string ExpandVariables(std::string str) const {
+    enum class S { normal, dollar, varname, expand, varname_braced};
+    S s = S::normal; // state
+    size_t i = 0;
+    std::string res; // result
+    std::string varname;
+    try {
+      while (i < str.size()) {
+        char c = str[i];
+        auto next = [&i]() { ++i; };
+        switch (s) {
+          case S::normal: {
+            if (c == '$') {
+              s = S::dollar;
+              next();
+            } else {
+              res += c;
+              next();
+            }
+            break;
+          }
+          case S::dollar: {
+            if (c == '{') {
+              s = S::varname_braced;
+              next();
+            } else if (IsNameChar(c)) {
+              s = S::varname;
+            } else {
+              throw std::runtime_error(
+                  std::string() + "S::dollar: invalid character '" + c + "'");
+            }
+            break;
+          }
+          case S::varname: {
+            if (IsNameChar(c) && c != '_') {
+              varname += c;
+              next();
+            } else {
+              s = S::expand;
+            }
+            break;
+          }
+          case S::varname_braced: {
+            if (IsNameChar(c)) {
+              varname += c;
+              next();
+            } else if (c == '}') {
+              s = S::expand;
+              next();
+            } else {
+              throw std::runtime_error(
+                  std::string() + "S::varname_braced: invalid character '" + c +
+                  "'");
+            }
+            break;
+          }
+          case S::expand: {
+            res += GetStr(varname);
+            varname = "";
+            s = S::normal;
+            break;
+          }
+        }
+      }
+      if (varname != "") {
+        res += GetStr(varname);
+      }
+    } catch (const std::runtime_error& e) {
+      throw std::runtime_error(
+          "ExpandVariables(): error while parsing '" + str + "'\n" + e.what());
+    }
+    return res;
+  }
   // Executes single command
   void Cmd(std::string);
   // set <type> <key> <value>
@@ -39,6 +123,7 @@ Parser::~Parser() = default;
 
 void Parser::Imp::Cmd(std::string s) {
   s = RemoveComment(s);
+  s = ExpandVariables(s);
   std::stringstream b(s);
   std::string cmd;
   b >> cmd;

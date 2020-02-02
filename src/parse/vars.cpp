@@ -112,7 +112,7 @@ void Vars::Map<T>::SetStr(Key k, std::string v) {
     std::cerr << "Trailing characters when parsing '" << v << "' as "
               << GetTypeName() << std::endl;
     ;
-    throw std::runtime_error("Vars::GetStr(): Trailing characters");
+    throw std::runtime_error("Vars::SetStr(): Trailing characters");
   }
 }
 
