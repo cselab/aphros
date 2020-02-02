@@ -4,6 +4,7 @@
 #pragma once
 
 #include <iostream>
+#include <memory>
 #include <string>
 
 #include "vars.h"
@@ -11,6 +12,11 @@
 class Parser {
  public:
   Parser(Vars& v);
+  Parser(const Parser&) = delete;
+  Parser(Parser&&) = delete;
+  ~Parser();
+  Parser& operator=(const Parser&) = delete;
+  Parser& operator=(Parser&&) = delete;
   // Executes single command
   void Run(std::string);
   // Executes single line from stream
@@ -26,18 +32,6 @@ class Parser {
   void PrintAll() const;
 
  private:
-  static std::string RemoveComment(std::string s);
-  // Executes single command
-  void Cmd(std::string);
-  // set <type> <key> <value>
-  void CmdSet(std::string);
-  // setnext <type> <key> <value>
-  // Sets value with name key+id and increments id stored in v_.Int[key]
-  void CmdSetNext(std::string);
-  // del <name>
-  void CmdDel(std::string);
-  // include <filename>
-  void CmdInclude(std::string);
-
-  Vars& v_;
+  struct Imp;
+  std::unique_ptr<Imp> imp;
 };
