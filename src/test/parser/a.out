@@ -1,10 +1,22 @@
+
+Simple
 set string a 1
 set int b 1
 set double c 1
 set vect d 1 
+
+TestFile
 set string c a b   s c    
 set string s 
+set string sub [sub]
+set string sub_2 a[sub]b
+set string sub_3 aa[sub]bb
+set string sub_4 a[sub]_2b
+set string suball [9] [9.1] [1 2 3 ]
 set int b 123
+set int subint 9
 set double a 2.9
 set double e 3.1
+set double subdouble 9.1
 set vect f 1 2 34 5 
+set vect subvect 1 2 3 

@@ -13,6 +13,7 @@
 namespace simple {
 
 void Simple() {
+  std::cout << "\n" << __func__ << std::endl;
   Vars par;
   Parser ip(par);
 
@@ -23,7 +24,7 @@ void Simple() {
   s << "set vect d 1" << std::endl;
 
   ip.RunAll(s);
-  ip.PrintAll();
+  ip.PrintAll(std::cout);
 
   assert(par.String["a"] == "1");
   assert(par.Int["b"] == 1);
@@ -34,6 +35,7 @@ void Simple() {
 } // namespace simple
 
 void TestFile() {
+  std::cout << "\n" << __func__ << std::endl;
   // open script
   std::string ni = "a.conf";
   std::ifstream fi(ni);
