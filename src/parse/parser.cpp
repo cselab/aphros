@@ -92,8 +92,10 @@ struct Parser::Imp {
           }
         }
       }
-      if (varname != "") {
+      if (s == S::varname && varname != "") {
         res += GetStr(varname);
+      } else if (s == S::varname_braced) {
+        throw std::runtime_error("unmatched brace {");
       }
     } catch (const std::runtime_error& e) {
       throw std::runtime_error(

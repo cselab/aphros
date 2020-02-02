@@ -12,7 +12,8 @@ set string sub [sub]
 set string sub_2 a[sub]b
 set string sub_3 aa[sub]bb
 set string sub_4 a[sub]_2b
-set string suball [9] [9.1] [1 2 3 ]
+set string suball [9] [9.1] [1 2 3 ] 
+set string suball2 
 set int b 123
 set int subint 9
 set double a 2.9
