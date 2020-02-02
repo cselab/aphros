@@ -9,13 +9,35 @@
 #include "parser.h"
 #include "vars.h"
 
-Parser::Parser(Vars& v) : v_(v) {}
+struct Parser::Imp {
+  using Owner = Parser;
 
-std::string Parser::RemoveComment(std::string s) {
-  return s.substr(0, s.find('#', 0));
-}
+  Imp(Owner* owner, Vars& v) : owner_(owner), v_(v) {}
 
-void Parser::Cmd(std::string s) {
+  static std::string RemoveComment(std::string s) {
+    return s.substr(0, s.find('#', 0));
+  }
+  // Executes single command
+  void Cmd(std::string);
+  // set <type> <key> <value>
+  void CmdSet(std::string);
+  // setnext <type> <key> <value>
+  // Sets value with name key+id and increments id stored in v_.Int[key]
+  void CmdSetNext(std::string);
+  // del <name>
+  void CmdDel(std::string);
+  // include <filename>
+  void CmdInclude(std::string);
+
+  Owner* owner_;
+  Vars& v_;
+};
+
+Parser::Parser(Vars& v) : imp(new Imp(this, v)) {}
+
+Parser::~Parser() = default;
+
+void Parser::Imp::Cmd(std::string s) {
   s = RemoveComment(s);
   std::stringstream b(s);
   std::string cmd;
@@ -35,7 +57,7 @@ void Parser::Cmd(std::string s) {
   }
 }
 
-void Parser::CmdSet(std::string s) {
+void Parser::Imp::CmdSet(std::string s) {
   std::string cmd, type, key, val;
   std::stringstream b(s);
   b >> std::skipws;
@@ -52,7 +74,7 @@ void Parser::CmdSet(std::string s) {
   v_.SetStr(type, key, val);
 }
 
-void Parser::CmdSetNext(std::string s) {
+void Parser::Imp::CmdSetNext(std::string s) {
   std::string cmd, type, key, val;
   std::stringstream b(s);
   b >> std::skipws;
@@ -72,7 +94,7 @@ void Parser::CmdSetNext(std::string s) {
   ++id;
 }
 
-void Parser::CmdDel(std::string s) {
+void Parser::Imp::CmdDel(std::string s) {
   std::string cmd, key;
   std::stringstream b(s);
   b >> cmd >> key;
@@ -81,7 +103,7 @@ void Parser::CmdDel(std::string s) {
   }
 }
 
-void Parser::CmdInclude(std::string s) {
+void Parser::Imp::CmdInclude(std::string s) {
   std::string cmd, fn;
   std::stringstream b(s);
   b >> cmd >> fn;
@@ -95,17 +117,17 @@ void Parser::CmdInclude(std::string s) {
   r << f.rdbuf();
   f.close();
 
-  RunAll(r);
+  owner_->RunAll(r);
 }
 
 void Parser::Run(std::string s) {
-  Cmd(s);
+  imp->Cmd(s);
 }
 
 void Parser::RunNext(std::istream& in) {
   std::string s;
   std::getline(in, s);
-  Cmd(s);
+  imp->Cmd(s);
 }
 
 void Parser::RunAll(std::istream& in) {
@@ -123,10 +145,10 @@ void Parser::Print(const Vars::Map<T>& m, std::ostream& out) {
 }
 
 void Parser::PrintAll(std::ostream& out) const {
-  Print(v_.String, out);
-  Print(v_.Int, out);
-  Print(v_.Double, out);
-  Print(v_.Vect, out);
+  Print(imp->v_.String, out);
+  Print(imp->v_.Int, out);
+  Print(imp->v_.Double, out);
+  Print(imp->v_.Vect, out);
 }
 
 void Parser::PrintAll() const {
