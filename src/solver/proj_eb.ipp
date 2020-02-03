@@ -421,8 +421,7 @@ struct ProjEmbed<M_>::Imp {
           const IdxFace f = m.GetFace(c, q);
           if (!ffbd_[f]) { // inner
             const Scal a = (ffbp[f] - fegp[f]) / ffk_[f];
-            s += eb.GetNormal(f) * (a * 0.5) * eb.GetAreaFraction(f); // XXX
-            //s += eb.GetNormal(f) * (a * 0.5);
+            s += eb.GetNormal(f) * (a * 0.5);
           } else {
             // nop, no acceleration
           }

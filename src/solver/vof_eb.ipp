@@ -56,6 +56,12 @@ struct VofEmbed<M_>::Imp {
     UVof<M>::GetAdvectionFaceCond(
         m, mfc, mfc_vf_, mfc_cl_, mfc_im_, mfc_n_, mfc_a_);
   }
+  static Scal Clip(Scal u) {
+    return std::min<Scal>(1, std::max<Scal>(0, u));
+  }
+  static Scal Clip(Scal u, Scal umin, Scal umax) {
+    return std::min<Scal>(umax, std::max<Scal>(umin, u));
+  }
   // reconstruct interface
   // uc: volume fraction [a]
   void ReconstPlanes(const FieldCell<Scal>& uc) {
@@ -64,9 +70,9 @@ struct VofEmbed<M_>::Imp {
     UNormal<M>::CalcNormal(m, uc, fci_, par.dim, fcn_);
     for (auto c : eb.SuCFaces()) {
       if (fci_[c]) {
-        const Scal a = uc[c] / eb.GetVolumeFraction(c);
+        const Scal w = Clip(uc[c] / eb.GetVolumeFraction(c));
         Vect n = eb.GetNormal(c) * (fcn_[c].norm1() / eb.GetNormal(c).norm1());
-        fcn_[c] = n * a + fcn_[c] * (1 - a);
+        fcn_[c] = n * w + fcn_[c] * (1 - w);
       }
     }
     auto h = m.GetCellSize();
@@ -158,7 +164,10 @@ struct VofEmbed<M_>::Imp {
         continue;
       }
 
-      const Scal v = ffv[f] / eb.GetAreaFraction(f); // mixture flux
+      // flux through face (maybe cut)
+      const Scal v = ffv[f];
+      // flux through full face that would give the same velocity
+      const Scal v0 = v / eb.GetAreaFraction(f);
       const IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
       if (uc[c] > 0 && uc[c] < 1) { // interfacial cell
         switch (type) {
@@ -166,13 +175,18 @@ struct VofEmbed<M_>::Imp {
           case SweepType::EI:
           case SweepType::weymouth: {
             // TODO revise name GetLineFlux
-            ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v, dt, d);
+            const Scal vu0 = R::GetLineFlux(fcn[c], fca[c], h, v0, dt, d);
+            ffvu[f] = (v >= 0 ? std::min(vu0, v) : std::max(vu0, v));
+            ffvu[f] = vu0;
             break;
           }
           case SweepType::LE: {
-            const Scal vu = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
+            const Scal vc = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
             // TODO revise name GetLineFluxStr
-            ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v, vu, dt, d);
+            const Scal vu0 =
+                R::GetLineFluxStr(fcn[c], fca[c], h, v0, vc, dt, d);
+            ffvu[f] = (v >= 0 ? std::min(vu0, v) : std::max(vu0, v));
+            ffvu[f] = vu0;
             break;
           }
         }
@@ -209,14 +223,13 @@ struct VofEmbed<M_>::Imp {
 
     // update volume fraction [i]
     for (auto c : eb.Cells()) {
-      auto w = bc.GetMIdx(c);
-      const Scal lc = m.GetVolume(c);
-      const IdxFace fm = bf.GetIdx(w, md);
-      const IdxFace fp = bf.GetIdx(w + wd, md);
+      const Scal vol = m.GetVolume(c);
+      const IdxFace fm = m.GetFace(c, d * 2);
+      const IdxFace fp = m.GetFace(c, d * 2 + 1);
       // mixture cfl
-      const Scal ds = (ffv[fp] - ffv[fm]) * dt / lc;
+      const Scal ds = (ffv[fp] - ffv[fm]) * dt / vol;
       // phase 2 cfl
-      const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / lc;
+      const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / vol;
       auto& u = uc[c];
       switch (type) {
         case SweepType::plain: {
@@ -239,8 +252,8 @@ struct VofEmbed<M_>::Imp {
       // clip
       if (u < clipth) {
         u = 0;
-      } else if (u > eb.GetVolumeFraction(c) - clipth) {
-        u = eb.GetVolumeFraction(c);
+      } else if (u > 1 - clipth) {
+        u = 1;
       }
       // clear color
       if (u == 0) {
@@ -248,6 +261,18 @@ struct VofEmbed<M_>::Imp {
         fcim[c] = TRM::Pack(MIdx(0));
       }
     }
+    /*
+    for (auto c : eb.Cells()) {
+      Scal du = std::max(0., uc[c] - eb.GetVolumeFraction(c));
+      for (auto cn : eb.Stencil(c)) {
+        const Scal dun =
+            std::min(du, std::max(0., uc[cn] - eb.GetVolumeFraction(cn)));
+        uc[cn] += dun;
+        uc[c] -= dun;
+        du -= dun;
+      }
+    }
+    */
   }
   void CommRec(
       Sem& sem, FieldCell<Scal>& uc, FieldCell<Scal>& fccl,
