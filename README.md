@@ -26,7 +26,7 @@ prepare environment and install dependencies.
 Configure, build and install
 
      cd <ROOT>/src
-     make
+     make -j4
      # make target=mfer    # to only build ch.mfer
 
 Run tests
