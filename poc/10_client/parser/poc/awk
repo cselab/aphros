@@ -1,12 +1,18 @@
-#!/usr/bin/awk -f
+#!/bin/sh
 
+${AWK=awk} '
 BEGIN {
     SPACE = "^[\\t ]+"
     TOK = "^[_a-zA-Z][_0-9a-zA-Z]*"
     COMMANDS = "^(set)|(include)|(del)$"
     TYPES = "^(double)|(int)|(string)|(vect)$"
-    
-    File = ARGV[1]
+    INT = "^[+-]?[0-9][0-9]*$"
+    DOUBLE = "^[+-]?([0-9]+[.]?[0-9]*|[.][0-9]+)([eE][+-]?[0-9]+)?$"
+    STRING = ".*"
+    parse(ARGV[1])
+}
+
+function parse(File) {
     while (getline < File > 0) {
         No++
         line = $0
@@ -15,9 +21,10 @@ BEGIN {
         nxt(SPACE)
         if (!nxt(TOK))
             err("expecting command")
-        if (Match !~ COMMANDS)
+        Command = Match
+        if (Command !~ COMMANDS)
             err("unexpected command \"%s\"", Match)
-        if (Match == "set") {
+        if (eq(Command, "set")) {
             if (!nxt(SPACE))
                 err("no space after set")
             if (!nxt(TOK))
@@ -30,11 +37,59 @@ BEGIN {
             if (!nxt(TOK))
                 err("not a valid variable name")
             Key = Match
+            nxt(SPACE)            
+            if (eq(Type, "string")) {
+                nxt(STRING)
+                Value = Match
+            } else if (eq(Type, "int")) {
+                if (!nxt(INT))
+                    err("not an integer")
+                Value = Match
+            } else if (eq(Type, "double")) {
+                if (!nxt(DOUBLE))
+                    err("not a double")
+                Value = Match
+            } else if (eq(Type, "vect")) {
+                nxt(STRING)
+                Value = Match
+                n = split(Value, Vect)
+                if (n == 0)
+                    err("empty vector")
+                for (i = 1; i <= n; i++) {
+                    if (Vect[i] !~ DOUBLE)
+                        err("not a double \"%s\"", Vect[i])
+                    Vect[i] += 0
+                }
+            }
+            if (!empty($0))
+                err("unknown string at the end of set")
+            if (!eq(Type, "vect"))
+                msg("%s:%s:%s:%s", Command, Key, Type, Value)
+            else {
+                msg("%s:%s:%s[%d]:%g [..] %g",
+                    Command, Key, Type, n, Vect[1], Vect[n])
+            }
+        } else if (Command == "del") {
             if (!nxt(SPACE))
-                err("no space after variable name")
-            Val = $0
-        } else if (Set == "del") {
-            
+                err("no space after set")
+            if (!nxt(TOK))
+                err("expecting a variable name")
+            Key = Match
+            nxt(SPACE)
+            if (!empty($0))
+                err("unknown string at the end of del")
+            msg("%s:%s", Command, Key)
+        } else if (Command == "include") {
+            if (!nxt(SPACE))
+                err("no space after include")
+            nxt(STRING)
+            Path = Match
+            msg("file: %s", Path)
+            filep(Path)
+            parse(Path)
+            # TODO
+        } else {
+            msg("unknown command: %s", Command)
         }
     }
 }
@@ -47,10 +102,38 @@ function nxt(e) {
     return 1
 }
 
-function err(f, a, b, c, d)
+function err(f, a, b, c, d, e, g)
+{
+    msg(f, a, b, c, d, e, g)
+    exit(2)
+}
+
+function msg(f, a, b, c, d, e, g)
 {
     printf "%s:%d:", File, No | "cat >&2"
-    printf " " f, a , b, c, d  | "cat >&2"
+    printf " " f, a , b, c, d, e, g  | "cat >&2"
     printf "\n" | "cat >&2"
-    exit
 }
+
+function empty(s)
+{
+    return length(s) == 0
+}
+
+function eq(a, b)
+{
+    return a "" == b ""
+}
+
+function filep(path,   c)
+{
+    c = sprintf("test -f %s", quote(path))
+    msg(system(c))
+}
+
+function quote(s)
+{
+    return "'\''" s "'\''"
+}
+
+' "$@"
