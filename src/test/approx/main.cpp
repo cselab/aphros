@@ -17,6 +17,7 @@ using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
+auto Dirs = GRange<size_t>(3);
 
 template <class T>
 class Func {
@@ -32,18 +33,60 @@ class Quad : public Func<T> {
  public:
   Quad() = default;
   virtual ~Quad() = default;
-  override std::function<T(Vect)> operator()() const {
+  std::function<T(Vect)> operator()() const override {
     return [](Vect v) {
       const T x(v[0]), y(v[1]), z(v[2]);
       return x * x + y * y + z * z;
     };
   }
-  override std::function<T(Vect)> Dx(size_t d) const {
+  std::function<T(Vect)> Dx(size_t d) const override {
     return [d](Vect v) { return T(2 * v[d]); };
   }
-  override std::function<T(Vect)> Dxx(size_t d, size_t dd) const {
-    return [d, dd](Vect v) { return T(2 * (d == dd)); };
+  std::function<T(Vect)> Dxx(size_t d, size_t dd) const override {
+    return [d, dd](Vect) { return T(2 * (d == dd)); };
   }
+};
+
+class Sin : public Func<Scal> {
+ public:
+  Sin(size_t seed = 0) : om_(std::sin(seed + 1) * 10) {}
+  virtual ~Sin() = default;
+  std::function<Scal(Vect)> operator()() const override {
+    return [this](Vect v) {
+      v *= om_;
+      const Scal x(v[0]), y(v[1]), z(v[2]);
+      return std::sin(x) * std::sin(y) * std::sin(z);
+    };
+  }
+  std::function<Scal(Vect)> Dx(size_t d) const override {
+    return [d, this](Vect v) {
+      v *= om_;
+      Scal r = 1;
+      for (auto q : Dirs) {
+        r *= (q == d ? om_[q] * std::cos(v[q]) : std::sin(v[q]));
+      }
+      return r;
+    };
+  }
+  std::function<Scal(Vect)> Dxx(size_t d, size_t dd) const override {
+    return [d, dd, this](Vect v) {
+      v *= om_;
+      Scal r = 1;
+      if (d == dd) {
+        for (auto q : Dirs) {
+          r *= (q == d ? -sqr(om_[q]) * std::sin(v[q]) : std::sin(v[q]));
+        }
+      } else {
+        for (auto q : Dirs) {
+          r *= (q == d || q == dd ? om_[q] * std::cos(v[q]) : std::sin(v[q]));
+        }
+      }
+      return r;
+    };
+  }
+
+ private:
+  const Vect om_;
 };
 
 std::function<Vect(Vect)> Gradient(const Func<Scal>& u) {
@@ -102,7 +145,8 @@ int main() {
   const Scal h0 = 1. / 32;
   for (auto h : {h0, h0 / 2, h0 / 4}) {
     auto m = GetMesh(h);
-    Quad<Scal> u;
+    // Quad<Scal> u;
+    Sin u;
     auto fcu = GetField<Scal, IdxCell>(u(), m);
     auto ffu = GetField<Scal, IdxFace>(u(), m);
     auto fcui = Average(ffu, m);
