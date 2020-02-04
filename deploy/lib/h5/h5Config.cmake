@@ -1,2 +1,2 @@
-include("$ENV{CHPREFIX}/include/h5.dep.cmake")
-include("$ENV{CHPREFIX}/include/h5.lib.cmake")
+include("$ENV{CHPREFIX}/cmake/aphros/h5.dep.cmake")
+include("$ENV{CHPREFIX}/cmake/aphros/h5.lib.cmake")

@@ -1,6 +1,6 @@
 BUILD = build
 MAKEFILE = $(BUILD)/Makefile
-CMAKE = cmake
+CMAKE = ap-conf
 
 all: $(MAKEFILE)
 	+make -C $(BUILD) $(target)
@@ -15,5 +15,8 @@ install: $(MAKEFILE)
 
 test:
 	(cd $(BUILD) && ctest -j`nproc --all`)
+
+clean:
+	rm -rf $(BUILD)
 
 .PHONY: all install test
