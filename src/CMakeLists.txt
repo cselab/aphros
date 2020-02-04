@@ -6,8 +6,8 @@ set(EXE "mfer")
 
 set(CHPREFIX $ENV{CHPREFIX})
 
-include("client.cmake")
-include("$ENV{CHPREFIX}/include/march.cmake")
+include(client.cmake)
+find_package(aphros/march)
 
 # git revision
 set(P "${PROJECT_SOURCE_DIR}/..")
@@ -70,6 +70,6 @@ target_link_libraries(${EXE} hydro)
 add_subdirectory(test)
 enable_testing()
 
-install(EXPORT export FILE export.cmake DESTINATION ${CHPREFIX}/include)
-install(FILES client.cmake hydro.cmake DESTINATION ${CHPREFIX}/include)
+install(EXPORT export FILE export.cmake DESTINATION ${CHPREFIX}/cmake/aphros)
+install(FILES client.cmake hydroConfig.cmake DESTINATION ${CHPREFIX}/cmake/aphros)
 include(header.cmake)

@@ -6,7 +6,7 @@ Prepare the environment and install dependencies:
 *   install all packages except for hypre
 
      ```
-     P=prefix ./all
+     P=prefix make
      ```
 
     to `prefix` and files `ap-prefix` and `ap-setenv` to `$HOME/bin`
@@ -19,8 +19,7 @@ Prepare the environment and install dependencies:
 *   install hypre
 
      ```
-     cd hypre
-     ./_run
+     cd hypre && make
      ```
 
 *   (optional) install basilisk from `mfer:/ba/deploy`
@@ -33,15 +32,6 @@ Prepare the environment and install dependencies:
 * Read from `$P` if set
 * Else from ap-prefix if found in `PATH`
 * Else defaults to `prefix`
-
-## Run all packages
-
-    ./all
-
-## Run a single package (e.g. hypre)
-
-    cd hypre
-    ./_run
 
 ## Setenv
 
