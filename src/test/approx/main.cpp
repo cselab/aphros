@@ -104,52 +104,105 @@ GField<T, Idx> GetField(const std::function<T(Vect)>& u, const M& m) {
 
 // h: cell size
 M GetMesh(Scal h) {
-  const MIdx size(32);
+  const MIdx size(16);
   Rect<Vect> dom(Vect(0), Vect(h) * Vect(size));
   return InitUniformMesh<M>(dom, MIdx(0), size, 2, true, true, size, 0);
 }
 
 template <class Idx, class M>
-Scal GetNorm1(const GField<Scal, Idx>& u, const M& m) {
+Scal Norm1(const GField<Scal, Idx>& u, const M& m) {
   Scal sum = 0;
   Scal sumv = 0;
-  for (auto i : m.template GetAll<Idx>()) {
-    sum += std::abs(u[i]) * m.GetVolume(i);
-    sumv += m.GetVolume(i);
+  for (auto i : m.template GetIn<Idx>()) {
+    sum += std::abs(u[i]);
+    sumv += 1;
   }
   return sum / sumv;
 }
 
 template <class Idx>
-Scal GetNorm2(const GField<Scal, Idx>& u, const M& m) {
+Scal Norm2(const GField<Scal, Idx>& u, const M& m) {
   Scal sum = 0;
   Scal sumv = 0;
-  for (auto i : m.template GetAll<Idx>()) {
-    sum += sqr(u[i]) * m.GetVolume(i);
-    sumv += m.GetVolume(i);
+  for (auto i : m.template GetIn<Idx>()) {
+    sum += sqr(u[i]);
+    sumv += 1;
   }
   return std::sqrt(sum / sumv);
 }
 
 template <class T, class Idx>
-GField<T, Idx> Subtract(
+GField<T, Idx> Add(
     const GField<T, Idx>& u0, const GField<T, Idx>& u1, const M& m) {
   GField<Scal, Idx> d(m);
   for (auto i : m.template GetAll<Idx>()) {
-    d[i] = u0[i] - u1[i];
+    d[i] = u0[i] + u1[i];
   }
   return d;
 }
 
+template <class T, class Idx>
+GField<T, Idx> Subtract(
+    const GField<T, Idx>& u0, const GField<T, Idx>& u1, const M& m) {
+  GField<Scal, Idx> r(m);
+  for (auto i : m.template GetAll<Idx>()) {
+    r[i] = u0[i] - u1[i];
+  }
+  return r;
+}
+
+template <class T, class Idx>
+GField<T, Idx> Mul(const GField<T, Idx>& u, Scal k, const M& m) {
+  GField<Scal, Idx> r(m);
+  for (auto i : m.template GetAll<Idx>()) {
+    r[i] = u[i] * k;
+  }
+  return r;
+}
+
+template <class T, class Idx>
+GField<T, Idx> Abs(const GField<T, Idx>& u, const M& m) {
+  GField<Scal, Idx> r(m);
+  for (auto i : m.template GetAll<Idx>()) {
+    r[i] = std::abs(u[i]);
+  }
+  return r;
+}
+
 int main() {
-  const Scal h0 = 1. / 32;
-  for (auto h : {h0, h0 / 2, h0 / 4}) {
-    auto m = GetMesh(h);
-    // Quad<Scal> u;
-    Sin u;
-    auto fcu = GetField<Scal, IdxCell>(u(), m);
-    auto ffu = GetField<Scal, IdxFace>(u(), m);
-    auto fcui = Average(ffu, m);
-    std::cout << GetNorm2(Subtract(fcu, fcui, m), m) << std::endl;
+  const Scal h0 = 1. / 10000;
+  const size_t nsamp = 100;
+  const std::vector<Scal> hh = {h0, h0 / 2, h0 / 4};
+  std::vector<Scal> ee(hh.size());
+  for (size_t i = 0; i < hh.size(); ++i) {
+    const auto m = GetMesh(hh[i]);
+    /*
+    FieldCell<Scal> avg(m, 0);
+    for (size_t seed = 0; seed < nsamp; ++seed) {
+      const Sin u(seed);
+      auto fcu = GetField<Scal, IdxCell>(u(), m);
+      auto ffu = GetField<Scal, IdxFace>(u(), m);
+      auto fcui = Average(ffu, m);
+      avg = Add(avg, Abs(Subtract(fcu, fcui, m), m), m);
+    }
+    */
+    FieldFace<Scal> avg(m, 0);
+    for (size_t seed = 0; seed < nsamp; ++seed) {
+      const Sin u(seed);
+      auto fcu = GetField<Scal, IdxCell>(u(), m);
+      FieldFace<Scal> ffg(m);
+      GradientI(fcu, m, ffg);
+      FieldFace<Scal> ffgex(m, 0);
+      for (auto f : m.AllFaces()) {
+        const auto x = m.GetCenter(f);
+        ffgex[f] = Gradient(u)(x).dot(m.GetNormal(f));
+      }
+      avg = Add(avg, Abs(Subtract(ffg, ffgex, m), m), m);
+    }
+    avg = Mul(avg, 1. / nsamp, m);
+    ee[i] = Norm1(avg, m);
+  }
+  for (size_t i = 1; i < hh.size(); ++i) {
+    std::cout << std::log(ee[i - 1] / ee[i]) << std::endl;
   }
 }
