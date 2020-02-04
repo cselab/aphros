@@ -40,24 +40,28 @@ class Func {
 
 class Quad : public Func<Scal> {
  public:
-  explicit Quad(int seed) : Func<Scal>(seed) {}
+  explicit Quad(int seed)
+      : Func<Scal>(seed), origin_(Vect(1) + Vect(G(), G(), G()) * 0.1) {}
   virtual ~Quad() = default;
   std::function<Scal(Vect)> operator()() const override {
-    return [](Vect v) {
-      v += Vect(1);
+    return [this](Vect v) {
+      v += origin_;
       const Scal x(v[0]), y(v[1]), z(v[2]);
       return x * x + y * y + z * z;
     };
   }
   std::function<Scal(Vect)> Dx(size_t d) const override {
-    return [d](Vect v) {
-      v += Vect(1);
+    return [d,this](Vect v) {
+      v += origin_;
       return 2 * v[d];
     };
   }
   std::function<Scal(Vect)> Dxx(size_t d, size_t dd) const override {
     return [d, dd](Vect) { return 2 * (d == dd); };
   }
+
+ private:
+  const Vect origin_;
 };
 
 class Sin : public Func<Scal> {
@@ -238,24 +242,24 @@ void VaryFunc(
 }
 
 int main() {
-  std::cout << "\nGradientI() returning FieldFace<Scal>" << std::endl;
+  std::cout << "\n" << "GradientI() returning FieldFace<Scal>" << std::endl;
   VaryFunc<Scal, IdxFace>(
       [](const Func<Scal>& func, const M& m) {
-        const auto u = GetField<Scal, IdxCell>(func(), m);
-        FieldFace<Scal> g(m);
-        GradientI(u, m, g);
-        return g;
+        const auto fcu = GetField<Scal, IdxCell>(func(), m);
+        FieldFace<Scal> ffg(m);
+        GradientI(fcu, m, ffg);
+        return ffg;
       },
       [](const Func<Scal>& func, const M& m) {
-        FieldFace<Scal> g(m, 0);
+        FieldFace<Scal> ffg(m, 0);
         for (auto f : m.AllFaces()) {
           const auto x = m.GetCenter(f);
-          g[f] = Gradient(func)(x).dot(m.GetNormal(f));
+          ffg[f] = Gradient(func)(x).dot(m.GetNormal(f));
         }
-        return g;
+        return ffg;
       });
 
-  std::cout << "\nAverage() returning FieldCell<Scal> " << std::endl;
+  std::cout << "\n" << "Average() returning FieldCell<Scal> " << std::endl;
   VaryFunc<Scal, IdxCell>(
       [](const Func<Scal>& func, const M& m) {
         const auto ffu = GetField<Scal, IdxFace>(func(), m);
@@ -264,5 +268,34 @@ int main() {
       },
       [](const Func<Scal>& func, const M& m) {
         return GetField<Scal, IdxCell>(func(), m);
+      });
+
+  std::cout << "\n" << "Laplace returning FieldCell<Scal> " << std::endl;
+  VaryFunc<Scal, IdxCell>(
+      [](const Func<Scal>& func, const M& m) {
+        const auto fcu = GetField<Scal, IdxCell>(func(), m);
+        FieldFace<Scal> ffg(m);
+        GradientI(fcu, m, ffg);
+        FieldCell<Scal> fcl(m);
+        for (auto c : m.Cells()) {
+          Scal sum = 0;
+          for (auto nci : m.Nci(c)) {
+            const IdxFace f = m.GetFace(c, nci);
+            sum += ffg[f] * m.GetArea(f) * m.GetOutwardFactor(c, nci);
+          }
+          fcl[c] = sum / m.GetVolume(c);
+        }
+        return fcl;
+      },
+      [](const Func<Scal>& func, const M& m) {
+        FieldCell<Scal> r(m, 0);
+        for (auto c : m.AllCells()) {
+          const auto x = m.GetCenter(c);
+          const Scal uxx = func.Dxx(0, 0)(x);
+          const Scal uyy = func.Dxx(1, 1)(x);
+          const Scal uzz = func.Dxx(2, 2)(x);
+          r[c] = uxx + uyy + uzz;
+        }
+        return r;
       });
 }
