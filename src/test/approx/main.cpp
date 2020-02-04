@@ -51,7 +51,7 @@ class Quad : public Func<Scal> {
     };
   }
   std::function<Scal(Vect)> Dx(size_t d) const override {
-    return [d,this](Vect v) {
+    return [d, this](Vect v) {
       v += origin_;
       return 2 * v[d];
     };
@@ -114,6 +114,47 @@ std::function<Vect(Vect)> Gradient(const Func<Scal>& u) {
   return [&u](Vect x) { return Vect(u.Dx(0)(x), u.Dx(1)(x), u.Dx(2)(x)); };
 }
 
+template <class F>
+class FuncVect : public Func<Vect> {
+ public:
+  FuncVect(int seed) : Func<Vect>(seed), dr_(Vect::dim) {
+    for (size_t d = 0; d < Vect::dim; ++d) {
+      vfunc_.emplace_back(int(G() * 100));
+    }
+  };
+  std::function<Vect(Vect)> operator()() const override {
+    return [this](Vect v) {
+      Vect r;
+      for (auto i : dr_) {
+        r[i] = vfunc_[i]()(v);
+      }
+      return r;
+    };
+  }
+  std::function<Vect(Vect)> Dx(size_t d) const override {
+    return [d, this](Vect v) {
+      Vect r;
+      for (auto i : dr_) {
+        r[i] = vfunc_[i].Dx(d)(v);
+      }
+      return r;
+    };
+  }
+  std::function<Vect(Vect)> Dxx(size_t d, size_t dd) const override {
+    return [d, dd, this](Vect v) {
+      Vect r;
+      for (auto i : dr_) {
+        r[i] = vfunc_[i].Dxx(d, dd)(v);
+      }
+      return r;
+    };
+  }
+
+ private:
+  std::vector<F> vfunc_;
+  GRange<size_t> dr_;
+};
+
 template <class T, class Idx>
 GField<T, Idx> GetField(const std::function<T(Vect)>& u, const M& m) {
   GField<T, Idx> r(m);
@@ -130,32 +171,10 @@ M GetMesh(Scal h) {
   return InitUniformMesh<M>(dom, MIdx(0), size, 2, true, true, size, 0);
 }
 
-template <class Idx, class M>
-Scal Norm1(const GField<Scal, Idx>& u, const M& m) {
-  Scal sum = 0;
-  Scal sumv = 0;
-  for (auto i : m.template GetIn<Idx>()) {
-    sum += std::abs(u[i]);
-    sumv += 1;
-  }
-  return sum / sumv;
-}
-
-template <class Idx>
-Scal Norm2(const GField<Scal, Idx>& u, const M& m) {
-  Scal sum = 0;
-  Scal sumv = 0;
-  for (auto i : m.template GetIn<Idx>()) {
-    sum += sqr(u[i]);
-    sumv += 1;
-  }
-  return std::sqrt(sum / sumv);
-}
-
 template <class T, class Idx>
 GField<T, Idx> Add(
     const GField<T, Idx>& u0, const GField<T, Idx>& u1, const M& m) {
-  GField<Scal, Idx> d(m);
+  GField<T, Idx> d(m);
   for (auto i : m.template GetAll<Idx>()) {
     d[i] = u0[i] + u1[i];
   }
@@ -165,7 +184,7 @@ GField<T, Idx> Add(
 template <class T, class Idx>
 GField<T, Idx> Subtract(
     const GField<T, Idx>& u0, const GField<T, Idx>& u1, const M& m) {
-  GField<Scal, Idx> r(m);
+  GField<T, Idx> r(m);
   for (auto i : m.template GetAll<Idx>()) {
     r[i] = u0[i] - u1[i];
   }
@@ -174,33 +193,60 @@ GField<T, Idx> Subtract(
 
 template <class T, class Idx>
 GField<T, Idx> Mul(const GField<T, Idx>& u, Scal k, const M& m) {
-  GField<Scal, Idx> r(m);
+  GField<T, Idx> r(m);
   for (auto i : m.template GetAll<Idx>()) {
     r[i] = u[i] * k;
   }
   return r;
 }
 
+Scal Abs(Scal a) {
+  return std::abs(a);
+}
+
+Vect Abs(Vect a) {
+  return a.abs();
+}
+
+Scal Norm1(Scal a) {
+  return std::abs(a);
+}
+
+Scal Norm1(Vect a) {
+  return a.norm1();
+}
+
 template <class T, class Idx>
 GField<T, Idx> Abs(const GField<T, Idx>& u, const M& m) {
-  GField<Scal, Idx> r(m);
+  GField<T, Idx> r(m);
   for (auto i : m.template GetAll<Idx>()) {
-    r[i] = std::abs(u[i]);
+    r[i] = Abs(u[i]);
   }
   return r;
 }
 
+template <class T, class Idx, class M>
+Scal Norm1(const GField<T, Idx>& u, const M& m) {
+  Scal sum = 0;
+  Scal sumv = 0;
+  for (auto i : m.template GetIn<Idx>()) {
+    sum += Norm1(u[i]);
+    sumv += 1;
+  }
+  return sum / sumv;
+}
+
 // Evaluates error on meshes and estimates convergence order.
-// F: function to evaluate, derived from Func, constructable from int
+// F: function to evaluate, derived from Func<FT>, constructable from int
 // func: function to evaluate
 // estimator: estimator of field
 // exact: exact field
 // Returns:
 // tuple(error0, error1, order)
-template <class F, class T, class Idx>
+template <class F, class FT, class T, class Idx>
 std::tuple<Scal, Scal, Scal> EstimateOrder(
-    std::function<GField<Scal, Idx>(const Func<T>&, const M&)> estimator,
-    std::function<GField<Scal, Idx>(const Func<T>&, const M&)> exact) {
+    std::function<GField<T, Idx>(const Func<FT>&, const M&)> estimator,
+    std::function<GField<T, Idx>(const Func<FT>&, const M&)> exact) {
   using Field = GField<T, Idx>;
   const Scal h0 = 1e-3;
   const size_t nsamp = 10;
@@ -208,7 +254,7 @@ std::tuple<Scal, Scal, Scal> EstimateOrder(
   std::vector<Scal> ee(hh.size());
   for (size_t i = 0; i < hh.size(); ++i) {
     const auto m = GetMesh(hh[i]);
-    Field avg(m, 0);
+    Field avg(m, T(0));
     for (size_t seed = 0; seed < nsamp; ++seed) {
       const F func(seed);
       auto f0 = estimator(func, m);
@@ -222,12 +268,13 @@ std::tuple<Scal, Scal, Scal> EstimateOrder(
       ee[0], ee[1], std::log(ee[0] / ee[1]) / std::log(hh[0] / hh[1]));
 }
 
-template <class F, class T, class Idx>
+// F derived from Func<FT>
+template <class F, class FT, class T, class Idx>
 void PrintEstimateOrder(
-    std::function<GField<T, Idx>(const Func<Scal>&, const M&)> estimator,
-    std::function<GField<T, Idx>(const Func<Scal>&, const M&)> exact) {
+    std::function<GField<T, Idx>(const Func<FT>&, const M&)> estimator,
+    std::function<GField<T, Idx>(const Func<FT>&, const M&)> exact) {
   std::cout << "func=" << typeid(F).name() << std::endl;
-  auto t = EstimateOrder<F, T, Idx>(estimator, exact);
+  auto t = EstimateOrder<F, FT, T, Idx>(estimator, exact);
   printf(
       "order=%5.3f   coarse=%.5e   fine=%.5e\n", std::get<2>(t), std::get<0>(t),
       std::get<1>(t));
@@ -237,12 +284,21 @@ template <class T, class Idx>
 void VaryFunc(
     std::function<GField<T, Idx>(const Func<Scal>&, const M&)> estimator,
     std::function<GField<T, Idx>(const Func<Scal>&, const M&)> exact) {
-  PrintEstimateOrder<Quad, Scal, Idx>(estimator, exact);
-  PrintEstimateOrder<Sin, Scal, Idx>(estimator, exact);
+  PrintEstimateOrder<Quad, Scal, T, Idx>(estimator, exact);
+  PrintEstimateOrder<Sin, Scal, T, Idx>(estimator, exact);
+}
+
+template <class T, class Idx>
+void VaryFuncVect(
+    std::function<GField<T, Idx>(const Func<Vect>&, const M&)> estimator,
+    std::function<GField<T, Idx>(const Func<Vect>&, const M&)> exact) {
+  PrintEstimateOrder<FuncVect<Quad>, Vect, T, Idx>(estimator, exact);
+  PrintEstimateOrder<FuncVect<Sin>, Vect, T, Idx>(estimator, exact);
 }
 
 int main() {
-  std::cout << "\n" << "GradientI() returning FieldFace<Scal>" << std::endl;
+  std::cout << "\n"
+            << "GradientI() returning FieldFace<Scal>" << std::endl;
   VaryFunc<Scal, IdxFace>(
       [](const Func<Scal>& func, const M& m) {
         const auto fcu = GetField<Scal, IdxCell>(func(), m);
@@ -259,7 +315,8 @@ int main() {
         return ffg;
       });
 
-  std::cout << "\n" << "Average() returning FieldCell<Scal> " << std::endl;
+  std::cout << "\n"
+            << "Average() returning FieldCell<Scal> " << std::endl;
   VaryFunc<Scal, IdxCell>(
       [](const Func<Scal>& func, const M& m) {
         const auto ffu = GetField<Scal, IdxFace>(func(), m);
@@ -270,7 +327,8 @@ int main() {
         return GetField<Scal, IdxCell>(func(), m);
       });
 
-  std::cout << "\n" << "Laplace returning FieldCell<Scal> " << std::endl;
+  std::cout << "\n"
+            << "Laplace returning FieldCell<Scal> " << std::endl;
   VaryFunc<Scal, IdxCell>(
       [](const Func<Scal>& func, const M& m) {
         const auto fcu = GetField<Scal, IdxCell>(func(), m);
@@ -297,5 +355,17 @@ int main() {
           r[c] = uxx + uyy + uzz;
         }
         return r;
+      });
+
+  std::cout << "\n"
+            << "Average() returning FieldCell<Vect> " << std::endl;
+  VaryFuncVect<Vect, IdxCell>(
+      [](const Func<Vect>& func, const M& m) {
+        const auto ffu = GetField<Vect, IdxFace>(func(), m);
+        const auto fcu = Average(ffu, m);
+        return fcu;
+      },
+      [](const Func<Vect>& func, const M& m) {
+        return GetField<Vect, IdxCell>(func(), m);
       });
 }
