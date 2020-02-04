@@ -16,25 +16,22 @@ Solver for incompressible multiphase flows with surface tension.
 
 <https://cselab.github.io/hydro/doc/>
 
-generated from `doc/sphinx`
+generated from `<ROOT>/doc/sphinx`
 
 ## Build and install
 
-Follow instructions from `<ROOT>/deploy/README.md` to
+Follow instructions from `deploy/README.md` to
 prepare environment and install dependencies.
 
 Configure, build and install
 
      cd <ROOT>/src
-
-     ./conf                # release
-     # ./confdeb           # debug
-
      make
      # make target=mfer    # to only build ch.mfer
 
 Run tests
 
+     cd <ROOT>/src
      make test
 
 Install documentation
