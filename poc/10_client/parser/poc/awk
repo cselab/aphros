@@ -85,7 +85,8 @@ function parse(File) {
             nxt(STRING)
             Path = Match
             msg("file: %s", Path)
-            filep(Path)
+            if (filep(Path))
+                err("fail to read %s", quote(Path))
             parse(Path)
             # TODO
         } else {
@@ -128,7 +129,7 @@ function eq(a, b)
 function filep(path,   c)
 {
     c = sprintf("test -f %s", quote(path))
-    msg(system(c))
+    return system(c) == 0
 }
 
 function quote(s)
