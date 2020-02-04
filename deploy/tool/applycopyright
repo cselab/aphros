@@ -6,16 +6,10 @@ me=$(basename "$0")
 
 if [ "$#" -lt "1" ] || [ "$1" = "-h" ] ; then
   cat << EOF
-usage: $me [-h] [--author AUTHOR] FILES
+usage: $me [-h] FILES
 Adds copyright notice to FILES if 'copyright' not found in first 10 lines.
 EOF
   exit 1
-fi
-
-author=
-if [ "$1" == "--author" ] ; then
-  author=$2
-  shift 2
 fi
 
 code=0
@@ -32,7 +26,7 @@ for file in "$@" ; do
 
   echo "adding copyright to '$file'" 1>&2
 
-  head=$(ap-copyright "$file" "$author")
+  head=$(ap-copyright "$file")
   text=$(cat "$file")
 
   echo "$head" > $file
