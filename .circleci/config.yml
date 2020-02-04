@@ -21,11 +21,10 @@ jobs:
             export PATH=\$HOME/bin:\$PATH
             cd /root/project
             cd deploy
-            ./all
+            make
             . ap-setenv
-            (cd hypre ; ./_run)
+            (cd hypre ; make)
             cd ../src
-            ./conf
             make -j1
             make test
             cd ../examples
