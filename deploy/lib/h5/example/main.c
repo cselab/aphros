@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <h5.h>
 #include <mpi.h>
+#include <h5serial.h>
+#include <h5.h>
 
 static double buf[64 * 64 * 64 * 2];
 enum { X, Y, Z };
