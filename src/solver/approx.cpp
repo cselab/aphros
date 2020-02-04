@@ -31,6 +31,8 @@ template void InterpolateI(
 
 template void GradientI(const FieldCell<T>& fc, const M& m, FieldFace<T>& ff);
 
+template void GradientI(const FieldCell<TV>& fc, const M& m, FieldFace<TV>& ff);
+
 template void GradientB(
     const FieldCell<T>& fc, const MapCondFace& mfc, const M& m,
     FieldFace<T>& ff);
