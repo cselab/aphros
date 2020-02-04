@@ -439,6 +439,41 @@ int main() {
         return r;
       });
 
+  std::cout << "\n"
+            << "ExplViscous returning FieldCell<Vect> " << std::endl;
+  VaryFuncVect<Vect, IdxCell>(
+      [](const Func<Vect>& func, const M& m) {
+        FieldCell<Vect> fcr(m);
+        const auto fcu = GetField<Vect, IdxCell>(func(), m);
+        auto wf = Interpolate(fcu, MapCondFace(), m);
+        for (auto d : GRange<size_t>(Vect::dim)) {
+          auto wfo = GetComponent(wf, d);
+          auto gc = Gradient(wfo, m);
+          auto gf = Interpolate(gc, MapCondFace(), m);
+          for (auto c : m.Cells()) {
+            Vect s(0);
+            for (auto q : m.Nci(c)) {
+              const IdxFace f = m.GetFace(c, q);
+              s += gf[f] * m.GetOutwardSurface(c, q)[d];
+            }
+            fcr[c] += s / m.GetVolume(c);
+          }
+        }
+
+        return fcr;
+      },
+      [](const Func<Vect>& func, const M& m) {
+        FieldCell<Vect> r(m, Vect(0));
+        for (auto c : m.AllCells()) {
+          const auto x = m.GetCenter(c);
+          const Vect uxx = func.Dxx(0, 0)(x);
+          const Vect uyy = func.Dxx(1, 1)(x);
+          const Vect uzz = func.Dxx(2, 2)(x);
+          r[c] = uxx + uyy + uzz;
+        }
+        return r;
+      });
+
 
   std::cout << "\n"
             << "Laplace dump error field FieldScal<Scal>" << std::endl;
