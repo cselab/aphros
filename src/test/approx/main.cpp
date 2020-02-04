@@ -443,18 +443,17 @@ int main() {
             << "ExplViscous returning FieldCell<Vect> " << std::endl;
   VaryFuncVect<Vect, IdxCell>(
       [](const Func<Vect>& func, const M& m) {
-        FieldCell<Vect> fcr(m);
+        FieldCell<Vect> fcr(m, Vect(0));
         const auto fcu = GetField<Vect, IdxCell>(func(), m);
-        auto wf = Interpolate(fcu, MapCondFace(), m);
+        auto ffu = Interpolate(fcu, MapCondFace(), m);
         for (auto d : GRange<size_t>(Vect::dim)) {
-          auto wfo = GetComponent(wf, d);
-          auto gc = Gradient(wfo, m);
-          auto gf = Interpolate(gc, MapCondFace(), m);
+          auto fcg = Gradient(GetComponent(ffu, d), m);
+          auto ffg = Interpolate(fcg, MapCondFace(), m);
           for (auto c : m.Cells()) {
             Vect s(0);
             for (auto q : m.Nci(c)) {
               const IdxFace f = m.GetFace(c, q);
-              s += gf[f] * m.GetOutwardSurface(c, q)[d];
+              s += ffg[f] * m.GetOutwardSurface(c, q)[d];
             }
             fcr[c] += s / m.GetVolume(c);
           }
@@ -462,16 +461,17 @@ int main() {
 
         return fcr;
       },
-      [](const Func<Vect>& func, const M& m) {
-        FieldCell<Vect> r(m, Vect(0));
+      [](const Func<Vect>& u, const M& m) {
+        FieldCell<Vect> fcr(m, Vect(0));
         for (auto c : m.AllCells()) {
           const auto x = m.GetCenter(c);
-          const Vect uxx = func.Dxx(0, 0)(x);
-          const Vect uyy = func.Dxx(1, 1)(x);
-          const Vect uzz = func.Dxx(2, 2)(x);
-          r[c] = uxx + uyy + uzz;
+          Vect r;
+          r[0] = u.Dxx(0, 0)(x)[0] + u.Dxx(0, 1)(x)[1] + u.Dxx(0, 2)(x)[2];
+          r[1] = u.Dxx(1, 0)(x)[0] + u.Dxx(1, 1)(x)[1] + u.Dxx(1, 2)(x)[2];
+          r[2] = u.Dxx(2, 0)(x)[0] + u.Dxx(2, 1)(x)[1] + u.Dxx(2, 2)(x)[2];
+          fcr[c] = r;
         }
-        return r;
+        return fcr;
       });
 
 
