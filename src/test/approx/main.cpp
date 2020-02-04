@@ -10,6 +10,7 @@
 #include <random>
 #include <sstream>
 
+#include "dump/dump.h"
 #include "geom/mesh.h"
 #include "solver/approx.h"
 #include "solver/cond.h"
@@ -247,7 +248,41 @@ Scal Norm1(const GField<T, Idx>& u, const M& m) {
   return sum / sumv;
 }
 
-// Evaluates error on meshes and estimates convergence order.
+// Computes mean error field of estimator compared to exact values.
+// F: function to evaluate, derived from Func<FT>, constructable from int
+// func: function to evaluate
+// estimator: estimator of field
+// exact: exact field
+// h: mesh step
+// Returns:
+// tuple(error0, error1, order)
+template <class F, class FT, class T, class Idx>
+GField<T, Idx> GetErrorField(
+    std::function<GField<T, Idx>(const Func<FT>&, const M&)> estimator,
+    std::function<GField<T, Idx>(const Func<FT>&, const M&)> exact, Scal h) {
+  using Field = GField<T, Idx>;
+  const size_t nsamp = 10;
+  const auto m = GetMesh(h);
+  Field avg(m, T(0));
+  for (size_t seed = 0; seed < nsamp; ++seed) {
+    const F func(seed);
+    auto f0 = estimator(func, m);
+    auto f1 = exact(func, m);
+    avg = Add(avg, Abs(Subtract(f0, f1, m), m), m);
+  }
+  avg = Mul(avg, 1. / nsamp, m);
+  return avg;
+}
+
+/// Computes mean error field of estimator compared to exact values.
+/// @param F function to evaluate, derived from Func<FT>, constructable from int
+/// @param func function to evaluate
+/// @param estimator estimator of field
+/// @param exact exact field
+/// @param h mesh step
+/// @return tuple(error0, error1, order)
+
+// Evaluates error on two meshes and estimates the order of accuracy.
 // F: function to evaluate, derived from Func<FT>, constructable from int
 // func: function to evaluate
 // estimator: estimator of field
@@ -255,25 +290,15 @@ Scal Norm1(const GField<T, Idx>& u, const M& m) {
 // Returns:
 // tuple(error0, error1, order)
 template <class F, class FT, class T, class Idx>
-std::tuple<Scal, Scal, Scal> EstimateOrder(
+std::tuple<Scal, Scal, Scal> CalcOrder(
     std::function<GField<T, Idx>(const Func<FT>&, const M&)> estimator,
     std::function<GField<T, Idx>(const Func<FT>&, const M&)> exact) {
-  using Field = GField<T, Idx>;
   const Scal h0 = 1e-3;
-  const size_t nsamp = 10;
   const std::vector<Scal> hh = {h0, h0 * 0.5};
   std::vector<Scal> ee(hh.size());
   for (size_t i = 0; i < hh.size(); ++i) {
-    const auto m = GetMesh(hh[i]);
-    Field avg(m, T(0));
-    for (size_t seed = 0; seed < nsamp; ++seed) {
-      const F func(seed);
-      auto f0 = estimator(func, m);
-      auto f1 = exact(func, m);
-      avg = Add(avg, Abs(Subtract(f0, f1, m), m), m);
-    }
-    avg = Mul(avg, 1. / nsamp, m);
-    ee[i] = Norm1(avg, m);
+    ee[i] = Norm1(
+        GetErrorField<F, FT, T, Idx>(estimator, exact, hh[i]), GetMesh(hh[i]));
   }
   return std::make_tuple(
       ee[0], ee[1], std::log(ee[0] / ee[1]) / std::log(hh[0] / hh[1]));
@@ -281,30 +306,34 @@ std::tuple<Scal, Scal, Scal> EstimateOrder(
 
 // F derived from Func<FT>
 template <class F, class FT, class T, class Idx>
-void PrintEstimateOrder(
+void PrintOrder(
     std::function<GField<T, Idx>(const Func<FT>&, const M&)> estimator,
     std::function<GField<T, Idx>(const Func<FT>&, const M&)> exact) {
   std::cout << "func=" << F::GetName() << std::endl;
-  auto t = EstimateOrder<F, FT, T, Idx>(estimator, exact);
+  auto t = CalcOrder<F, FT, T, Idx>(estimator, exact);
   printf(
       "order=%5.3f   coarse=%.5e   fine=%.5e\n", std::get<2>(t), std::get<0>(t),
       std::get<1>(t));
+}
+
+void DumpField(const FieldCell<Scal>& fc, std::string filename, const M& m) {
+  Dump(fc, m.GetIndexCells(), m.GetInBlockCells(), filename);
 }
 
 template <class T, class Idx>
 void VaryFunc(
     std::function<GField<T, Idx>(const Func<Scal>&, const M&)> estimator,
     std::function<GField<T, Idx>(const Func<Scal>&, const M&)> exact) {
-  PrintEstimateOrder<Quadratic, Scal, T, Idx>(estimator, exact);
-  PrintEstimateOrder<Sine, Scal, T, Idx>(estimator, exact);
+  PrintOrder<Quadratic, Scal, T, Idx>(estimator, exact);
+  PrintOrder<Sine, Scal, T, Idx>(estimator, exact);
 }
 
 template <class T, class Idx>
 void VaryFuncVect(
     std::function<GField<T, Idx>(const Func<Vect>&, const M&)> estimator,
     std::function<GField<T, Idx>(const Func<Vect>&, const M&)> exact) {
-  PrintEstimateOrder<FuncVect<Quadratic>, Vect, T, Idx>(estimator, exact);
-  PrintEstimateOrder<FuncVect<Sine>, Vect, T, Idx>(estimator, exact);
+  PrintOrder<FuncVect<Quadratic>, Vect, T, Idx>(estimator, exact);
+  PrintOrder<FuncVect<Sine>, Vect, T, Idx>(estimator, exact);
 }
 
 int main() {
@@ -409,4 +438,36 @@ int main() {
         }
         return r;
       });
+
+
+  std::cout << "\n"
+            << "Laplace dump error field FieldScal<Scal>" << std::endl;
+  DumpField(GetErrorField<Sine, Scal, Scal, IdxCell>(
+      [](const Func<Scal>& func, const M& m) {
+        const auto fcu = GetField<Scal, IdxCell>(func(), m);
+        FieldFace<Scal> ffg(m);
+        GradientI(fcu, m, ffg);
+        FieldCell<Scal> fcl(m);
+        for (auto c : m.Cells()) {
+          Scal sum = 0;
+          for (auto nci : m.Nci(c)) {
+            const IdxFace f = m.GetFace(c, nci);
+            sum += ffg[f] * m.GetArea(f) * m.GetOutwardFactor(c, nci);
+          }
+          fcl[c] = sum / m.GetVolume(c);
+        }
+        return fcl;
+      },
+      [](const Func<Scal>& func, const M& m) {
+        FieldCell<Scal> r(m, 0);
+        for (auto c : m.AllCells()) {
+          const auto x = m.GetCenter(c);
+          const Scal uxx = func.Dxx(0, 0)(x);
+          const Scal uyy = func.Dxx(1, 1)(x);
+          const Scal uzz = func.Dxx(2, 2)(x);
+          r[c] = uxx + uyy + uzz;
+        }
+        return r;
+      }, 1e-3), "error.dat", GetMesh(1));
+
 }
