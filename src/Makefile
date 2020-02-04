@@ -1,13 +1,19 @@
-b = build
+BUILD = build
+MAKEFILE = $(BUILD)/Makefile
+CMAKE = cmake
 
-all:
-	+make -C $(b) $(target)
-	+make -C $(b) install 
+all: $(MAKEFILE)
+	+make -C $(BUILD) $(target)
+	+make -C $(BUILD) install 
 
-install:
-	+make -C $(b) install 
+$(MAKEFILE):
+	mkdir -p "$(BUILD)"
+	(cd "$(BUILD)" && $(CMAKE) ..)
+
+install: $(MAKEFILE)
+	+make -C $(BUILD) install 
 
 test:
-	(cd $b && ctest -j`nproc --all`)
+	(cd $(BUILD) && ctest -j`nproc --all`)
 
-.PHONY: all test install
+.PHONY: all install test
