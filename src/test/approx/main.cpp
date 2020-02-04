@@ -4,9 +4,12 @@
 #undef NDEBUG
 #include <cassert>
 #include <cmath>
+#include <cstdio>
 #include <functional>
 #include <iostream>
+#include <random>
 #include <sstream>
+#include <typeinfo>
 
 #include "geom/mesh.h"
 #include "solver/approx.h"
@@ -22,63 +25,76 @@ auto Dirs = GRange<size_t>(3);
 template <class T>
 class Func {
  public:
+  explicit Func(int seed) : gen_(seed) {}
   virtual ~Func() = default;
   virtual std::function<T(Vect)> operator()() const = 0;
   virtual std::function<T(Vect)> Dx(size_t d) const = 0;
   virtual std::function<T(Vect)> Dxx(size_t d, size_t dd) const = 0;
+
+ protected:
+  Scal G(Scal min = 0, Scal max = 1) {
+    return std::uniform_real_distribution<Scal>(min, max)(gen_);
+  }
+  std::default_random_engine gen_;
 };
 
-template <class T>
-class Quad : public Func<T> {
+class Quad : public Func<Scal> {
  public:
-  Quad() = default;
+  explicit Quad(int seed) : Func<Scal>(seed) {}
   virtual ~Quad() = default;
-  std::function<T(Vect)> operator()() const override {
+  std::function<Scal(Vect)> operator()() const override {
     return [](Vect v) {
-      const T x(v[0]), y(v[1]), z(v[2]);
+      v += Vect(1);
+      const Scal x(v[0]), y(v[1]), z(v[2]);
       return x * x + y * y + z * z;
     };
   }
-  std::function<T(Vect)> Dx(size_t d) const override {
-    return [d](Vect v) { return T(2 * v[d]); };
+  std::function<Scal(Vect)> Dx(size_t d) const override {
+    return [d](Vect v) {
+      v += Vect(1);
+      return 2 * v[d];
+    };
   }
-  std::function<T(Vect)> Dxx(size_t d, size_t dd) const override {
-    return [d, dd](Vect) { return T(2 * (d == dd)); };
+  std::function<Scal(Vect)> Dxx(size_t d, size_t dd) const override {
+    return [d, dd](Vect) { return 2 * (d == dd); };
   }
 };
 
 class Sin : public Func<Scal> {
  public:
-  Sin(size_t seed = 0) : om_(std::sin(seed + 1) * 10) {}
+  explicit Sin(int seed)
+      : Func<Scal>(seed)
+      , freq_(Vect(G(), G(), G()) + Vect(10))
+      , phase_(Vect(0.5) + Vect(G(), G(), G()) * 10) {}
   virtual ~Sin() = default;
   std::function<Scal(Vect)> operator()() const override {
     return [this](Vect v) {
-      v *= om_;
+      v = freq_ * v + phase_;
       const Scal x(v[0]), y(v[1]), z(v[2]);
       return std::sin(x) * std::sin(y) * std::sin(z);
     };
   }
   std::function<Scal(Vect)> Dx(size_t d) const override {
     return [d, this](Vect v) {
-      v *= om_;
+      v = freq_ * v + phase_;
       Scal r = 1;
       for (auto q : Dirs) {
-        r *= (q == d ? om_[q] * std::cos(v[q]) : std::sin(v[q]));
+        r *= (q == d ? freq_[q] * std::cos(v[q]) : std::sin(v[q]));
       }
       return r;
     };
   }
   std::function<Scal(Vect)> Dxx(size_t d, size_t dd) const override {
     return [d, dd, this](Vect v) {
-      v *= om_;
+      v = freq_ * v + phase_;
       Scal r = 1;
       if (d == dd) {
         for (auto q : Dirs) {
-          r *= (q == d ? -sqr(om_[q]) * std::sin(v[q]) : std::sin(v[q]));
+          r *= (q == d ? -sqr(freq_[q]) * std::sin(v[q]) : std::sin(v[q]));
         }
       } else {
         for (auto q : Dirs) {
-          r *= (q == d || q == dd ? om_[q] * std::cos(v[q]) : std::sin(v[q]));
+          r *= (q == d || q == dd ? freq_[q] * std::cos(v[q]) : std::sin(v[q]));
         }
       }
       return r;
@@ -86,7 +102,8 @@ class Sin : public Func<Scal> {
   }
 
  private:
-  const Vect om_;
+  const Vect freq_;
+  const Vect phase_;
 };
 
 std::function<Vect(Vect)> Gradient(const Func<Scal>& u) {
@@ -169,40 +186,83 @@ GField<T, Idx> Abs(const GField<T, Idx>& u, const M& m) {
   return r;
 }
 
-int main() {
-  const Scal h0 = 1. / 10000;
-  const size_t nsamp = 100;
-  const std::vector<Scal> hh = {h0, h0 / 2, h0 / 4};
+// Evaluates error on meshes and estimates convergence order.
+// F: function to evaluate, derived from Func, constructable from int
+// func: function to evaluate
+// estimator: estimator of field
+// exact: exact field
+// Returns:
+// tuple(error0, error1, order)
+template <class F, class T, class Idx>
+std::tuple<Scal, Scal, Scal> EstimateOrder(
+    std::function<GField<Scal, Idx>(const Func<T>&, const M&)> estimator,
+    std::function<GField<Scal, Idx>(const Func<T>&, const M&)> exact) {
+  using Field = GField<T, Idx>;
+  const Scal h0 = 1e-3;
+  const size_t nsamp = 10;
+  const std::vector<Scal> hh = {h0, h0 * 0.5};
   std::vector<Scal> ee(hh.size());
   for (size_t i = 0; i < hh.size(); ++i) {
     const auto m = GetMesh(hh[i]);
-    /*
-    FieldCell<Scal> avg(m, 0);
+    Field avg(m, 0);
     for (size_t seed = 0; seed < nsamp; ++seed) {
-      const Sin u(seed);
-      auto fcu = GetField<Scal, IdxCell>(u(), m);
-      auto ffu = GetField<Scal, IdxFace>(u(), m);
-      auto fcui = Average(ffu, m);
-      avg = Add(avg, Abs(Subtract(fcu, fcui, m), m), m);
-    }
-    */
-    FieldFace<Scal> avg(m, 0);
-    for (size_t seed = 0; seed < nsamp; ++seed) {
-      const Sin u(seed);
-      auto fcu = GetField<Scal, IdxCell>(u(), m);
-      FieldFace<Scal> ffg(m);
-      GradientI(fcu, m, ffg);
-      FieldFace<Scal> ffgex(m, 0);
-      for (auto f : m.AllFaces()) {
-        const auto x = m.GetCenter(f);
-        ffgex[f] = Gradient(u)(x).dot(m.GetNormal(f));
-      }
-      avg = Add(avg, Abs(Subtract(ffg, ffgex, m), m), m);
+      const F func(seed);
+      auto f0 = estimator(func, m);
+      auto f1 = exact(func, m);
+      avg = Add(avg, Abs(Subtract(f0, f1, m), m), m);
     }
     avg = Mul(avg, 1. / nsamp, m);
     ee[i] = Norm1(avg, m);
   }
-  for (size_t i = 1; i < hh.size(); ++i) {
-    std::cout << std::log(ee[i - 1] / ee[i]) << std::endl;
-  }
+  return std::make_tuple(
+      ee[0], ee[1], std::log(ee[0] / ee[1]) / std::log(hh[0] / hh[1]));
+}
+
+template <class F, class T, class Idx>
+void PrintEstimateOrder(
+    std::function<GField<T, Idx>(const Func<Scal>&, const M&)> estimator,
+    std::function<GField<T, Idx>(const Func<Scal>&, const M&)> exact) {
+  std::cout << "func=" << typeid(F).name() << std::endl;
+  auto t = EstimateOrder<F, T, Idx>(estimator, exact);
+  printf(
+      "order=%5.3f   coarse=%.5e   fine=%.5e\n", std::get<2>(t), std::get<0>(t),
+      std::get<1>(t));
+}
+
+template <class T, class Idx>
+void VaryFunc(
+    std::function<GField<T, Idx>(const Func<Scal>&, const M&)> estimator,
+    std::function<GField<T, Idx>(const Func<Scal>&, const M&)> exact) {
+  PrintEstimateOrder<Quad, Scal, Idx>(estimator, exact);
+  PrintEstimateOrder<Sin, Scal, Idx>(estimator, exact);
+}
+
+int main() {
+  std::cout << "\nGradientI() returning FieldFace<Scal>" << std::endl;
+  VaryFunc<Scal, IdxFace>(
+      [](const Func<Scal>& func, const M& m) {
+        const auto u = GetField<Scal, IdxCell>(func(), m);
+        FieldFace<Scal> g(m);
+        GradientI(u, m, g);
+        return g;
+      },
+      [](const Func<Scal>& func, const M& m) {
+        FieldFace<Scal> g(m, 0);
+        for (auto f : m.AllFaces()) {
+          const auto x = m.GetCenter(f);
+          g[f] = Gradient(func)(x).dot(m.GetNormal(f));
+        }
+        return g;
+      });
+
+  std::cout << "\nAverage() returning FieldCell<Scal> " << std::endl;
+  VaryFunc<Scal, IdxCell>(
+      [](const Func<Scal>& func, const M& m) {
+        const auto ffu = GetField<Scal, IdxFace>(func(), m);
+        const auto fcu = Average(ffu, m);
+        return fcu;
+      },
+      [](const Func<Scal>& func, const M& m) {
+        return GetField<Scal, IdxCell>(func(), m);
+      });
 }
