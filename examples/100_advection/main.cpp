@@ -7,8 +7,8 @@
 #include <string>
 #include <memory>
 
-#include "distr/distrbasic.h"
-#include "solver/vof.h"
+#include <distr/distrbasic.h>
+#include <solver/vof.h>
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
