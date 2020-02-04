@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.3.0)
 project(main)
-
-include("$ENV{CHPREFIX}/include/hydro.cmake")
+find_package(aphros/hydro)
 
 set(EXE main)
 add_executable(${EXE} main.cpp)

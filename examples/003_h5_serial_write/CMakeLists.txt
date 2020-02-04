@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.3.0)
 project(main C)
-include("$ENV{CHPREFIX}/include/h5.cmake")
+find_package(aphros/h5)
 
 set(T main)
 add_executable(${T} main.c)
