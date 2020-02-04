@@ -141,9 +141,9 @@ void GradientI(const FieldCell<T>& fc, const M& m, FieldFace<T>& ff) {
 
   ff.Reinit(m);
   for (auto f : m.Faces()) {
-    IdxCell cm = m.GetCell(f, 0);
-    IdxCell cp = m.GetCell(f, 1);
-    Scal a = m.GetArea(f) / m.GetVolume(cp);
+    const IdxCell cm = m.GetCell(f, 0);
+    const IdxCell cp = m.GetCell(f, 1);
+    const Scal a = m.GetArea(f) / m.GetVolume(cp);
     ff[f] = (fc[cp] - fc[cm]) * a;
   }
 }

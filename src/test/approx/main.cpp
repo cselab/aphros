@@ -9,7 +9,6 @@
 #include <iostream>
 #include <random>
 #include <sstream>
-#include <typeinfo>
 
 #include "geom/mesh.h"
 #include "solver/approx.h"
@@ -30,6 +29,9 @@ class Func {
   virtual std::function<T(Vect)> operator()() const = 0;
   virtual std::function<T(Vect)> Dx(size_t d) const = 0;
   virtual std::function<T(Vect)> Dxx(size_t d, size_t dd) const = 0;
+  static std::string GetName() {
+    return "";
+  }
 
  protected:
   Scal G(Scal min = 0, Scal max = 1) {
@@ -38,11 +40,11 @@ class Func {
   std::default_random_engine gen_;
 };
 
-class Quad : public Func<Scal> {
+class Quadratic : public Func<Scal> {
  public:
-  explicit Quad(int seed)
+  explicit Quadratic(int seed)
       : Func<Scal>(seed), origin_(Vect(1) + Vect(G(), G(), G()) * 0.1) {}
-  virtual ~Quad() = default;
+  virtual ~Quadratic() = default;
   std::function<Scal(Vect)> operator()() const override {
     return [this](Vect v) {
       v += origin_;
@@ -59,18 +61,21 @@ class Quad : public Func<Scal> {
   std::function<Scal(Vect)> Dxx(size_t d, size_t dd) const override {
     return [d, dd](Vect) { return 2 * (d == dd); };
   }
+  static std::string GetName() {
+    return "Quadratic";
+  }
 
  private:
   const Vect origin_;
 };
 
-class Sin : public Func<Scal> {
+class Sine : public Func<Scal> {
  public:
-  explicit Sin(int seed)
+  explicit Sine(int seed)
       : Func<Scal>(seed)
       , freq_(Vect(G(), G(), G()) + Vect(10))
       , phase_(Vect(0.5) + Vect(G(), G(), G()) * 10) {}
-  virtual ~Sin() = default;
+  virtual ~Sine() = default;
   std::function<Scal(Vect)> operator()() const override {
     return [this](Vect v) {
       v = freq_ * v + phase_;
@@ -103,6 +108,9 @@ class Sin : public Func<Scal> {
       }
       return r;
     };
+  }
+  static std::string GetName() {
+    return "Sine";
   }
 
  private:
@@ -148,6 +156,9 @@ class FuncVect : public Func<Vect> {
       }
       return r;
     };
+  }
+  static std::string GetName() {
+    return "Vect" + F::GetName();
   }
 
  private:
@@ -273,7 +284,7 @@ template <class F, class FT, class T, class Idx>
 void PrintEstimateOrder(
     std::function<GField<T, Idx>(const Func<FT>&, const M&)> estimator,
     std::function<GField<T, Idx>(const Func<FT>&, const M&)> exact) {
-  std::cout << "func=" << typeid(F).name() << std::endl;
+  std::cout << "func=" << F::GetName() << std::endl;
   auto t = EstimateOrder<F, FT, T, Idx>(estimator, exact);
   printf(
       "order=%5.3f   coarse=%.5e   fine=%.5e\n", std::get<2>(t), std::get<0>(t),
@@ -284,16 +295,16 @@ template <class T, class Idx>
 void VaryFunc(
     std::function<GField<T, Idx>(const Func<Scal>&, const M&)> estimator,
     std::function<GField<T, Idx>(const Func<Scal>&, const M&)> exact) {
-  PrintEstimateOrder<Quad, Scal, T, Idx>(estimator, exact);
-  PrintEstimateOrder<Sin, Scal, T, Idx>(estimator, exact);
+  PrintEstimateOrder<Quadratic, Scal, T, Idx>(estimator, exact);
+  PrintEstimateOrder<Sine, Scal, T, Idx>(estimator, exact);
 }
 
 template <class T, class Idx>
 void VaryFuncVect(
     std::function<GField<T, Idx>(const Func<Vect>&, const M&)> estimator,
     std::function<GField<T, Idx>(const Func<Vect>&, const M&)> exact) {
-  PrintEstimateOrder<FuncVect<Quad>, Vect, T, Idx>(estimator, exact);
-  PrintEstimateOrder<FuncVect<Sin>, Vect, T, Idx>(estimator, exact);
+  PrintEstimateOrder<FuncVect<Quadratic>, Vect, T, Idx>(estimator, exact);
+  PrintEstimateOrder<FuncVect<Sine>, Vect, T, Idx>(estimator, exact);
 }
 
 int main() {
@@ -367,5 +378,35 @@ int main() {
       },
       [](const Func<Vect>& func, const M& m) {
         return GetField<Vect, IdxCell>(func(), m);
+      });
+
+  std::cout << "\n"
+            << "Laplace returning FieldCell<Vect> " << std::endl;
+  VaryFuncVect<Vect, IdxCell>(
+      [](const Func<Vect>& func, const M& m) {
+        const auto fcu = GetField<Vect, IdxCell>(func(), m);
+        FieldFace<Vect> ffg(m);
+        GradientI(fcu, m, ffg);
+        FieldCell<Vect> fcl(m);
+        for (auto c : m.Cells()) {
+          Vect sum(0);
+          for (auto nci : m.Nci(c)) {
+            const IdxFace f = m.GetFace(c, nci);
+            sum += ffg[f] * m.GetArea(f) * m.GetOutwardFactor(c, nci);
+          }
+          fcl[c] = sum / m.GetVolume(c);
+        }
+        return fcl;
+      },
+      [](const Func<Vect>& func, const M& m) {
+        FieldCell<Vect> r(m, Vect(0));
+        for (auto c : m.AllCells()) {
+          const auto x = m.GetCenter(c);
+          const Vect uxx = func.Dxx(0, 0)(x);
+          const Vect uyy = func.Dxx(1, 1)(x);
+          const Vect uzz = func.Dxx(2, 2)(x);
+          r[c] = uxx + uyy + uzz;
+        }
+        return r;
       });
 }
