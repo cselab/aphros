@@ -18,6 +18,7 @@ add_library(${T} SHARED
                  vofi_stddecl.h)
 
 set(CHPREFIX $ENV{CHPREFIX})
+set(CMAKEPREFIX ${CHPREFIX}/cmake/aphros)
 
 set_target_properties(${T} PROPERTIES PUBLIC_HEADER "vofi.h")
 
@@ -26,4 +27,4 @@ install(TARGETS ${T}
     PUBLIC_HEADER DESTINATION ${CHPREFIX}/include)
 target_include_directories(${T} PUBLIC "${CHPREFIX}/include")
 target_link_libraries(${T} PUBLIC m)
-install(EXPORT export FILE vofi.cmake DESTINATION ${CHPREFIX}/include)
+install(EXPORT export FILE vofiConfig.cmake DESTINATION ${CMAKEPREFIX})

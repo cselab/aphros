@@ -8,6 +8,8 @@ add_library(${T} SHARED
   overlap.hpp
 )
 set(CHPREFIX $ENV{CHPREFIX})
+set(CMAKEPREFIX ${CHPREFIX}/cmake/aphros)
+
 set_target_properties(${T} PROPERTIES PUBLIC_HEADER "overlap.h")
 install(TARGETS ${T} 
     EXPORT export DESTINATION ${CHPREFIX}/lib
@@ -17,4 +19,4 @@ target_include_directories(${T} PRIVATE $ENV{EIGEN3_INCLUDE_DIR})
 set_property(TARGET ${T} PROPERTY CXX_STANDARD 11)
 target_link_libraries(${T} PUBLIC m)
 target_link_libraries(${T} PUBLIC stdc++)
-install(EXPORT export FILE overlap.cmake DESTINATION ${CHPREFIX}/include)
+install(EXPORT export FILE overlapConfig.cmake DESTINATION ${CMAKEPREFIX})
