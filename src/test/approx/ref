@@ -1,0 +1,38 @@
+
+GradientI() returning FieldFace<Scal>
+func=Quadratic
+order=-0.903   coarse=3.02945e-13   fine=5.66377e-13
+func=Sine
+order=1.996   coarse=1.32448e-05   fine=3.32006e-06
+
+Average() returning FieldCell<Scal> 
+func=Quadratic
+order=2.000   coarse=2.50000e-07   fine=6.25000e-08
+func=Sine
+order=2.003   coarse=5.26832e-06   fine=1.31478e-06
+
+Laplace returning FieldCell<Scal> 
+func=Quadratic
+order=-1.821   coarse=1.17866e-09   fine=4.16317e-09
+func=Sine
+order=2.002   coarse=1.17206e-03   fine=2.92561e-04
+
+Average() returning FieldCell<Vect> 
+func=VectQuadratic
+order=2.000   coarse=7.50000e-07   fine=1.87500e-07
+func=VectSine
+order=2.002   coarse=1.19977e-05   fine=2.99500e-06
+
+Laplace returning FieldCell<Vect> 
+func=VectQuadratic
+order=-1.827   coarse=3.52665e-09   fine=1.25163e-08
+func=VectSine
+order=2.001   coarse=2.66647e-03   fine=6.66290e-04
+
+ExplViscous returning FieldCell<Vect> 
+func=VectQuadratic
+order=-2.112   coarse=7.65480e-10   fine=3.30837e-09
+func=VectSine
+order=2.002   coarse=5.20354e-03   fine=1.29895e-03
+
+Laplace dump error field FieldScal<Scal>
