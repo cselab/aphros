@@ -374,6 +374,25 @@ Field GetErrorField(
   return avg;
 }
 
+template <class F, class FT, class Field>
+Field GetErrorField(
+    std::function<Field(const Func<FT>&, const Embed<M>&)> estimator,
+    std::function<Field(const Func<FT>&, const Embed<M>&)> exact, Scal h) {
+  const size_t nsamp = 10;
+  auto m = GetMesh(h);
+  const auto eb = GetEmbed(m);
+  using Value = typename Field::Value;
+  Field avg(m, Value(0));
+  for (size_t seed = 0; seed < nsamp; ++seed) {
+    const F func(seed);
+    auto f0 = estimator(func, eb);
+    auto f1 = exact(func, eb);
+    avg = Add(avg, Abs(Sub(f0, f1, eb), eb), eb);
+  }
+  avg = Mul(avg, 1. / nsamp, eb);
+  return avg;
+}
+
 /// Computes mean error field of estimator compared to exact values.
 /// @param F function to evaluate, derived from Func<FT>, constructable from int
 /// @param func function to evaluate
@@ -608,8 +627,18 @@ void TestMesh() {
       "error.dat", GetMesh(1));
 }
 
-/*
 void TestEmbed() {
+  GetErrorField<Sine, Scal, FieldEmbed<Scal>>(
+      [](const Func<Scal>& func, const Embed<M>& eb) {
+        FieldEmbed<Scal> feu(eb.GetMesh(), 0);
+        return feu;
+      },
+      [](const Func<Scal>& func, const Embed<M>& eb) {
+        FieldEmbed<Scal> feu(eb.GetMesh(), 1);
+        return feu;
+      },
+      1e-3);
+  /*
   std::cout << "\n"
             << "eb.Interpolate() returning FieldCell<Scal>" << std::endl;
   VaryFunc<Scal, IdxCell>(
@@ -627,10 +656,10 @@ void TestEmbed() {
         }
         return ffg;
       });
+      */
 }
-*/
 
 int main() {
-  TestMesh();
-  //TestEmbed();
+  //TestMesh();
+  TestEmbed();
 }
