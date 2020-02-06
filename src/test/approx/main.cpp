@@ -370,7 +370,9 @@ std::unique_ptr<EB> CreateEmbed(M& m) {
   auto h = m.GetCellSize();
   for (auto n : m.AllNodes()) {
     const auto x = m.GetNode(n) / h / Vect(block);
-    fnl[n] = 0.41 - Vect(0.5).dist(x);
+    auto dx = Vect(0.5) - x;
+    //dx[0] = 0;
+    fnl[n] = 0.41 - dx.norm();
   }
   do {
     peb->Init(fnl);
@@ -751,6 +753,32 @@ void TestMesh() {
       "error.dat", *CreateMesh(1));
 }
 
+void DumpEmbedCsv() {
+  auto pm = CreateMesh(1. / 16);
+  auto peb = ConvertMesh<EB>(pm);
+  auto& eb = *peb;
+  std::ofstream out("eb_faces.csv");
+  out << "x,y,z,nx,ny,nz,face,type\n";
+  for (auto c : eb.CFaces()) {
+    auto x = eb.GetFaceCenter(c);
+    auto n = eb.GetSurface(c);
+    out << x[0] << "," << x[1] << "," << x[2];
+    out << "," << n[0] << "," << n[1] << "," << n[2];
+    out << "," << 0;
+    out << "," << size_t(eb.GetType(c));
+    out << "\n";
+  }
+  for (auto f : eb.Faces()) {
+    auto x = eb.GetFaceCenter(f);
+    auto n = eb.GetSurface(f);
+    out << x[0] << "," << x[1] << "," << x[2];
+    out << "," << n[0] << "," << n[1] << "," << n[2];
+    out << "," << 1;
+    out << "," << size_t(eb.GetType(f));
+    out << "\n";
+  }
+}
+
 void DumpEmbedPoly() {
   auto pm = CreateMesh(1. / 16);
   auto peb = ConvertMesh<EB>(pm);
@@ -771,6 +799,7 @@ void DumpEmbedField() {
 
 void TestEmbed() {
   DumpEmbedPoly();
+  DumpEmbedCsv();
   std::cout << "\n"
             << "eb.Interpolate() returning FieldEmbed<Scal> " << std::endl;
   VaryFunc<FieldEmbed<Scal>, EB>(
@@ -816,10 +845,10 @@ void TestEmbed() {
       GetOrderField<Sine, FieldCell<Scal>, EB>(
           [](const Func<Scal>& func, const EB& eb) {
             auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-            return GetComponent(eb.Gradient(fe), 1);
+            return GetComponent(eb.Gradient(fe), 0);
           },
           [](const Func<Scal>& func, const EB& eb) {
-            return Eval<FieldCell<Scal>>(func.Dx(1), eb);
+            return Eval<FieldCell<Scal>>(func.Dx(0), eb);
           }),
       "error_eb.dat", *CreateMesh(1));
 }
