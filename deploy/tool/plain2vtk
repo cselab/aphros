@@ -68,7 +68,7 @@ if len(av) < 2 or '-h' in av:
 
 fn = av[1]
 fno = os.path.splitext(fn)[0] + ".vtk"
-name = re.findall("([^_]+?)", os.path.basename(fn))[0]
+name = re.findall("([^_.]*)", os.path.basename(fn))[0]
 
 u = ReadPlain(fn)
 WriteVtk(fno, u, name)
