@@ -170,14 +170,15 @@ class FuncVect : public Func<Vect> {
   const GRange<size_t> dr_;
 };
 
+namespace eval_impl_1 {
 template <class Field, class MEB>
-struct GetFieldHelper {
+struct EvalHelper {
   using Value = typename Field::Value;
   Field operator()(const std::function<Value(Vect)>& u, const MEB& meb);
 };
 
 template <class Field>
-struct GetFieldHelper<Field, M> {
+struct EvalHelper<Field, M> {
   using Value = typename Field::Value;
   using Idx = typename Field::Idx;
   Field operator()(const std::function<Value(Vect)>& u, const M& m) {
@@ -190,7 +191,7 @@ struct GetFieldHelper<Field, M> {
 };
 
 template <class T>
-struct GetFieldHelper<FieldCell<T>, EB> {
+struct EvalHelper<FieldCell<T>, EB> {
   using Value = T;
   using Field = FieldCell<Value>;
   Field operator()(const std::function<Value(Vect)>& u, const EB& eb) {
@@ -203,25 +204,151 @@ struct GetFieldHelper<FieldCell<T>, EB> {
 };
 
 template <class T>
-struct GetFieldHelper<FieldEmbed<T>, EB> {
+struct EvalHelper<FieldEmbed<T>, EB> {
   using Value = T;
   using Field = FieldEmbed<Value>;
   Field operator()(const std::function<Value(Vect)>& u, const EB& eb) {
     Field r(eb, Value(0));
+    for (auto c : eb.CFaces()) {
+      r[c] = u(eb.GetFaceCenter(c));
+    }
     for (auto f : eb.Faces()) {
       r[f] = u(eb.GetFaceCenter(f));
     }
+    return r;
+  }
+};
+} // namespace eval_impl_1
+
+template <class Field, class MEB>
+Field Eval(
+    const std::function<typename Field::Value(Vect)>& u, const MEB& meb) {
+  return eval_impl_1::EvalHelper<Field, MEB>()(u, meb);
+}
+
+namespace eval_impl_2 {
+
+template <class Field, class MEB>
+struct EvalHelper {
+  using Value = typename Field::Value;
+  Field operator()(
+      const std::function<Value(Value)>& func, const Field& u0, const MEB& meb);
+};
+template <class Field>
+struct EvalHelper<Field, M> {
+  using Value = typename Field::Value;
+  using Idx = typename Field::Idx;
+  Field operator()(
+      const std::function<Value(Value)>& func, const Field& u0, const M& m) {
+    Field r(m, Value(0));
+    for (auto i : m.template GetAll<Idx>()) {
+      r[i] = func(u0[i]);
+    }
+    return r;
+  }
+};
+template <class T>
+struct EvalHelper<FieldCell<T>, EB> {
+  using Value = T;
+  using Field = FieldCell<Value>;
+  Field operator()(
+      const std::function<Value(Value)>& func, const Field& u0, const EB& eb) {
+    Field r(eb, Value(0));
+    for (auto c : eb.Cells()) {
+      r[c] = func(u0[c]);
+    }
+    return r;
+  }
+};
+template <class T>
+struct EvalHelper<FieldEmbed<T>, EB> {
+  using Value = T;
+  using Field = FieldEmbed<Value>;
+  Field operator()(
+      const std::function<Value(Value)>& func, const Field& u0, const EB& eb) {
+    Field r(eb, Value(0));
     for (auto c : eb.CFaces()) {
-      r[c] = u(eb.GetFaceCenter(c));
+      r[c] = func(u0[c]);
+    }
+    for (auto f : eb.Faces()) {
+      r[f] = func(u0[f]);
     }
     return r;
   }
 };
 
+} // namespace eval_impl_2
+
 template <class Field, class MEB>
 Field Eval(
-    const std::function<typename Field::Value(Vect)>& u, const MEB& meb) {
-  return GetFieldHelper<Field, MEB>()(u, meb);
+    const std::function<typename Field::Value(typename Field::Value)>& func,
+    const Field& u0, const MEB& meb) {
+  return eval_impl_2::EvalHelper<Field, MEB>()(func, u0, meb);
+}
+
+namespace eval_impl_3 {
+
+template <class Field, class MEB>
+struct EvalHelper {
+  using Value = typename Field::Value;
+  Field operator()(
+      const std::function<Value(Value, Value)>& func, const Field& u0,
+      const Field& u1, const MEB& meb);
+};
+template <class Field>
+struct EvalHelper<Field, M> {
+  using Value = typename Field::Value;
+  using Idx = typename Field::Idx;
+  Field operator()(
+      const std::function<Value(Value, Value)>& func, const Field& u0,
+      const Field& u1, const M& m) {
+    Field r(m, Value(0));
+    for (auto i : m.template GetAll<Idx>()) {
+      r[i] = func(u0[i], u1[i]);
+    }
+    return r;
+  }
+};
+template <class T>
+struct EvalHelper<FieldCell<T>, EB> {
+  using Value = T;
+  using Field = FieldCell<Value>;
+  Field operator()(
+      const std::function<Value(Value, Value)>& func, const Field& u0,
+      const Field& u1, const EB& eb) {
+    Field r(eb, Value(0));
+    for (auto c : eb.Cells()) {
+      r[c] = func(u0[c], u1[c]);
+    }
+    return r;
+  }
+};
+template <class T>
+struct EvalHelper<FieldEmbed<T>, EB> {
+  using Value = T;
+  using Field = FieldEmbed<Value>;
+  Field operator()(
+      const std::function<Value(Value, Value)>& func, const Field& u0,
+      const Field& u1, const EB& eb) {
+    Field r(eb, Value(0));
+    for (auto c : eb.CFaces()) {
+      r[c] = func(u0[c], u1[c]);
+    }
+    for (auto f : eb.Faces()) {
+      r[f] = func(u0[f], u1[f]);
+    }
+    return r;
+  }
+};
+
+} // namespace eval_impl_3
+
+template <class Field, class MEB>
+Field Eval(
+    const std::function<typename Field::Value(
+        typename Field::Value, typename Field::Value)>& func,
+    const Field& u0, const Field& u1, const MEB& meb) {
+  return eval_impl_3::EvalHelper<Field, MEB>()(func, u0, u1, meb);
 }
 
 // h: cell size
@@ -264,94 +391,28 @@ std::unique_ptr<EB> ConvertMesh<EB>(std::unique_ptr<M>& pm) {
   return CreateEmbed(*pm);
 }
 
-template <class T, class Idx, class MEB>
-GField<T, Idx> Add(
-    const GField<T, Idx>& u0, const GField<T, Idx>& u1, const MEB& meb) {
-  GField<T, Idx> r(meb, T(0));
-  for (auto i : GRange<Idx>(meb)) {
-    r[i] = u0[i] + u1[i];
-  }
-  return r;
+template <class Field, class MEB>
+Field Add(const Field& u0, const Field& u1, const MEB& meb) {
+  using Value = typename Field::Value;
+  return Eval([](Value a0, Value a1) { return a0 + a1; }, u0, u1, meb);
 }
 
-template <class T, class Idx, class MEB>
-GField<T, Idx> Sub(
-    const GField<T, Idx>& u0, const GField<T, Idx>& u1, const MEB& meb) {
-  GField<T, Idx> r(meb, T(0));
-  for (auto i : GRange<Idx>(meb)) {
-    r[i] = u0[i] - u1[i];
-  }
-  return r;
+template <class Field, class MEB>
+Field Sub(const Field& u0, const Field& u1, const MEB& meb) {
+  using Value = typename Field::Value;
+  return Eval([](Value a0, Value a1) { return a0 - a1; }, u0, u1, meb);
 }
 
-template <class T, class Idx, class MEB>
-GField<T, Idx> Div(
-    const GField<T, Idx>& u0, const GField<T, Idx>& u1, const MEB& meb) {
-  GField<T, Idx> r(meb, T(0));
-  for (auto i : GRange<Idx>(meb)) {
-    r[i] = u0[i] / u1[i];
-  }
-  return r;
+template <class Field, class MEB>
+Field Div(const Field& u0, const Field& u1, const MEB& meb) {
+  using Value = typename Field::Value;
+  return Eval([](Value a0, Value a1) { return a0 / a1; }, u0, u1, meb);
 }
 
-template <class T, class Idx, class MEB>
-GField<T, Idx> Mul(const GField<T, Idx>& u, Scal k, const MEB& meb) {
-  GField<T, Idx> r(meb, T(0));
-  for (auto i : GRange<Idx>(meb)) {
-    r[i] = u[i] * k;
-  }
-  return r;
-}
-
-template <class T>
-FieldEmbed<T> Add(
-    const FieldEmbed<T>& u0, const FieldEmbed<T>& u1, const EB& eb) {
-  FieldEmbed<T> r(eb, T(0));
-  for (auto c : eb.CFaces()) {
-    r[c] = u0[c] + u1[c];
-  }
-  for (auto f : eb.Faces()) {
-    r[f] = u0[f] + u1[f];
-  }
-  return r;
-}
-
-template <class T>
-FieldEmbed<T> Sub(
-    const FieldEmbed<T>& u0, const FieldEmbed<T>& u1, const EB& eb) {
-  FieldEmbed<T> r(eb, T(0));
-  for (auto c : eb.CFaces()) {
-    r[c] = u0[c] - u1[c];
-  }
-  for (auto f : eb.Faces()) {
-    r[f] = u0[f] - u1[f];
-  }
-  return r;
-}
-
-template <class T>
-FieldEmbed<T> Div(
-    const FieldEmbed<T>& u0, const FieldEmbed<T>& u1, const EB& eb) {
-  FieldEmbed<T> r(eb, T(0));
-  for (auto c : eb.CFaces()) {
-    r[c] = u0[c] / u1[c];
-  }
-  for (auto f : eb.Faces()) {
-    r[f] = u0[f] / u1[f];
-  }
-  return r;
-}
-
-template <class T>
-FieldEmbed<T> Mul(const FieldEmbed<T>& u, Scal k, const EB& eb) {
-  FieldEmbed<T> r(eb);
-  for (auto c : eb.CFaces()) {
-    r[c] = u[c] * k;
-  }
-  for (auto f : eb.Faces()) {
-    r[f] = u[f] * k;
-  }
-  return r;
+template <class Field, class MEB>
+Field Mul(const Field& u0, Scal k, const MEB& meb) {
+  using Value = typename Field::Value;
+  return Eval([k](Value a0) { return a0 * k; }, u0, meb);
 }
 
 Scal Abs(Scal a) {
@@ -362,6 +423,12 @@ Vect Abs(Vect a) {
   return a.abs();
 }
 
+template <class Field, class MEB>
+Field Abs(const Field& u0, const MEB& meb) {
+  using Value = typename Field::Value;
+  return Eval([](Value a0) { return Abs(a0); }, u0, meb);
+}
+
 Scal Norm1(Scal a) {
   return std::abs(a);
 }
@@ -370,14 +437,6 @@ Scal Norm1(Vect a) {
   return a.norm1();
 }
 
-template <class T, class Idx, class MEB>
-GField<T, Idx> Abs(const GField<T, Idx>& u, const MEB& meb) {
-  GField<T, Idx> r(meb);
-  for (auto i : GRange<Idx>(meb)) {
-    r[i] = Abs(u[i]);
-  }
-  return r;
-}
 
 template <class T, class Idx, class MEB>
 Scal Norm1(const GField<T, Idx>& u, const MEB& meb) {
@@ -388,18 +447,6 @@ Scal Norm1(const GField<T, Idx>& u, const MEB& meb) {
     sumv += 1;
   }
   return sum / sumv;
-}
-
-template <class T>
-FieldEmbed<T> Abs(const FieldEmbed<T>& u, const EB& eb) {
-  FieldEmbed<T> r(eb);
-  for (auto c : eb.CFaces()) {
-    r[c] = Abs(u[c]);
-  }
-  for (auto f : eb.Faces()) {
-    r[f] = Abs(u[f]);
-  }
-  return r;
 }
 
 template <class T>
