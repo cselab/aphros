@@ -370,7 +370,7 @@ std::unique_ptr<EB> CreateEmbed(M& m) {
   auto h = m.GetCellSize();
   for (auto n : m.AllNodes()) {
     const auto x = m.GetNode(n) / h / Vect(block);
-    fnl[n] = 0.4 - Vect(0.5).dist(x);
+    fnl[n] = 0.41 - Vect(0.5).dist(x);
   }
   do {
     peb->Init(fnl);
@@ -816,10 +816,10 @@ void TestEmbed() {
       GetOrderField<Sine, FieldCell<Scal>, EB>(
           [](const Func<Scal>& func, const EB& eb) {
             auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-            return GetComponent(eb.Gradient(fe), 0);
+            return GetComponent(eb.Gradient(fe), 1);
           },
           [](const Func<Scal>& func, const EB& eb) {
-            return Eval<FieldCell<Scal>>(func.Dx(0), eb);
+            return Eval<FieldCell<Scal>>(func.Dx(1), eb);
           }),
       "error_eb.dat", *CreateMesh(1));
 }
