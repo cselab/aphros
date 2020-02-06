@@ -219,7 +219,7 @@ struct GetFieldHelper<FieldEmbed<T>, EB> {
 };
 
 template <class Field, class MEB>
-Field GetField(
+Field Eval(
     const std::function<typename Field::Value(Vect)>& u, const MEB& meb) {
   return GetFieldHelper<Field, MEB>()(u, meb);
 }
@@ -491,7 +491,7 @@ void TestMesh() {
             << "GradientI() returning FieldFace<Scal>" << std::endl;
   VaryFunc<FieldFace<Scal>, M>(
       [](const Func<Scal>& func, const M& m) {
-        const auto fcu = GetField<FieldCell<Scal>>(func(), m);
+        const auto fcu = Eval<FieldCell<Scal>>(func(), m);
         FieldFace<Scal> ffg(m);
         GradientI(fcu, m, ffg);
         return ffg;
@@ -509,19 +509,19 @@ void TestMesh() {
             << "Average() returning FieldCell<Scal> " << std::endl;
   VaryFunc<FieldCell<Scal>, M>(
       [](const Func<Scal>& func, const M& m) {
-        const auto ffu = GetField<FieldFace<Scal>>(func(), m);
+        const auto ffu = Eval<FieldFace<Scal>>(func(), m);
         const auto fcu = Average(ffu, m);
         return fcu;
       },
       [](const Func<Scal>& func, const M& m) {
-        return GetField<FieldCell<Scal>>(func(), m);
+        return Eval<FieldCell<Scal>>(func(), m);
       });
 
   std::cout << "\n"
             << "Laplace returning FieldCell<Scal> " << std::endl;
   VaryFunc<FieldCell<Scal>, M>(
       [](const Func<Scal>& func, const M& m) {
-        const auto fcu = GetField<FieldCell<Scal>>(func(), m);
+        const auto fcu = Eval<FieldCell<Scal>>(func(), m);
         FieldFace<Scal> ffg(m);
         GradientI(fcu, m, ffg);
         FieldCell<Scal> fcl(m);
@@ -551,19 +551,19 @@ void TestMesh() {
             << "Average() returning FieldCell<Vect> " << std::endl;
   VaryFuncVect<FieldCell<Vect>, M>(
       [](const Func<Vect>& func, const M& m) {
-        const auto ffu = GetField<FieldFace<Vect>>(func(), m);
+        const auto ffu = Eval<FieldFace<Vect>>(func(), m);
         const auto fcu = Average(ffu, m);
         return fcu;
       },
       [](const Func<Vect>& func, const M& m) {
-        return GetField<FieldCell<Vect>>(func(), m);
+        return Eval<FieldCell<Vect>>(func(), m);
       });
 
   std::cout << "\n"
             << "Laplace returning FieldCell<Vect> " << std::endl;
   VaryFuncVect<FieldCell<Vect>, M>(
       [](const Func<Vect>& func, const M& m) {
-        const auto fcu = GetField<FieldCell<Vect>>(func(), m);
+        const auto fcu = Eval<FieldCell<Vect>>(func(), m);
         FieldFace<Vect> ffg(m);
         GradientI(fcu, m, ffg);
         FieldCell<Vect> fcl(m);
@@ -594,7 +594,7 @@ void TestMesh() {
   VaryFuncVect<FieldCell<Vect>, M>(
       [](const Func<Vect>& func, const M& m) {
         FieldCell<Vect> fcr(m, Vect(0));
-        const auto fcu = GetField<FieldCell<Vect>>(func(), m);
+        const auto fcu = Eval<FieldCell<Vect>>(func(), m);
         auto ffu = Interpolate(fcu, MapCondFace(), m);
         for (auto d : GRange<size_t>(Vect::dim)) {
           auto fcg = Gradient(GetComponent(ffu, d), m);
@@ -629,7 +629,7 @@ void TestMesh() {
   DumpField(
       GetErrorField<Sine, FieldCell<Scal>, M>(
           [](const Func<Scal>& func, const M& m) {
-            const auto fcu = GetField<FieldCell<Scal>>(func(), m);
+            const auto fcu = Eval<FieldCell<Scal>>(func(), m);
             FieldFace<Scal> ffg(m);
             GradientI(fcu, m, ffg);
             FieldCell<Scal> fcl(m);
@@ -670,7 +670,7 @@ void DumpEmbedField() {
   auto pm = CreateMesh(1e-3);
   auto peb = ConvertMesh<EB>(pm);
   DumpField(
-      GetField<FieldCell<Scal>>(
+      Eval<FieldCell<Scal>>(
           //[](Vect x) { return x[0]; },
           Sine(0)(), *peb),
       "error_eb.dat", *pm);
@@ -682,21 +682,21 @@ void TestEmbed() {
             << "Interpolate() returning FieldEmbed<Scal> " << std::endl;
   VaryFunc<FieldEmbed<Scal>, EB>(
       [](const Func<Scal>& func, const EB& eb) {
-        auto fc = GetField<FieldCell<Scal>>(func(), eb);
+        auto fc = Eval<FieldCell<Scal>>(func(), eb);
         return eb.Interpolate(fc, MapCondFace(), 1, 0.);
       },
       [](const Func<Scal>& func, const EB& eb) {
-        return GetField<FieldEmbed<Scal>>(func(), eb);
+        return Eval<FieldEmbed<Scal>>(func(), eb);
       });
 
   DumpField(
       GetErrorField<Sine, FieldCell<Scal>, EB>(
           [](const Func<Scal>& func, const EB& eb) {
-            auto fe = GetField<FieldEmbed<Scal>>(func(), eb);
+            auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
             return eb.Interpolate(fe);
           },
           [](const Func<Scal>& func, const EB& eb) {
-            return GetField<FieldCell<Scal>>(func(), eb);
+            return Eval<FieldCell<Scal>>(func(), eb);
           },
           1e-3),
       "error_eb.dat", *CreateMesh(1));
