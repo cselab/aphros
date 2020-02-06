@@ -1,3 +1,4 @@
-error.vtk
-error.dat
+error*.vtk
+error*.dat
 out
+eb.vtk

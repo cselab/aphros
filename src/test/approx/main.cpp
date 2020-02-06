@@ -194,7 +194,7 @@ struct GetFieldHelper<FieldCell<T>, EB> {
   using Value = T;
   using Field = FieldCell<Value>;
   Field operator()(const std::function<Value(Vect)>& u, const EB& eb) {
-    Field r(eb);
+    Field r(eb, Value(0));
     for (auto c : eb.Cells()) {
       r[c] = u(eb.GetCellCenter(c));
     }
@@ -207,7 +207,7 @@ struct GetFieldHelper<FieldEmbed<T>, EB> {
   using Value = T;
   using Field = FieldEmbed<Value>;
   Field operator()(const std::function<Value(Vect)>& u, const EB& eb) {
-    Field r(eb);
+    Field r(eb, Value(0));
     for (auto f : eb.Faces()) {
       r[f] = u(eb.GetFaceCenter(f));
     }
@@ -232,16 +232,22 @@ std::unique_ptr<M> CreateMesh(Scal h) {
       InitUniformMesh<M>(dom, MIdx(0), size, 2, true, true, size, 0));
 }
 
+// TODO: rename GetInBlockCells to GetBlockInCells()
+// TODO: rename SuCells to Cells(1)
+// TODO: rename AllCells to Cells(2)
+
 std::unique_ptr<EB> CreateEmbed(M& m) {
   auto peb = std::make_unique<EB>(m);
   FieldNode<Scal> fnl(m);
-  auto block = m.GetInBlockNodes().GetSize();
+  auto block = m.GetInBlockCells().GetSize();
   auto h = m.GetCellSize();
   for (auto n : m.AllNodes()) {
     const auto x = m.GetNode(n) / h / Vect(block);
-    fnl[n] = (0.4 - (Vect(0.5, 0.5, 0.) - Vect(x[0], x[1], 0.)).norm());
+    fnl[n] = 0.4 - Vect(0.5).dist(x);
   }
-  peb->Init(fnl);
+  do {
+    peb->Init(fnl);
+  } while (m.Pending());
   return peb;
 }
 
@@ -652,51 +658,48 @@ void TestMesh() {
       "error.dat", *CreateMesh(1));
 }
 
+void DumpEmbedPoly() {
+  auto pm = CreateMesh(1. / 16);
+  auto peb = ConvertMesh<EB>(pm);
+  do {
+    peb->DumpPoly();
+  } while (pm->Pending());
+}
+
+void DumpEmbedField() {
+  auto pm = CreateMesh(1e-3);
+  auto peb = ConvertMesh<EB>(pm);
+  DumpField(
+      GetField<FieldCell<Scal>>(
+          //[](Vect x) { return x[0]; },
+          Sine(0)(), *peb),
+      "error_eb.dat", *pm);
+}
+
 void TestEmbed() {
+  DumpEmbedPoly();
   std::cout << "\n"
             << "Interpolate() returning FieldEmbed<Scal> " << std::endl;
   VaryFunc<FieldEmbed<Scal>, EB>(
       [](const Func<Scal>& func, const EB& eb) {
-        FieldEmbed<Scal> feu(eb, 0);
-        return feu;
+        auto fc = GetField<FieldCell<Scal>>(func(), eb);
+        return eb.Interpolate(fc, MapCondFace(), 1, 0.);
       },
       [](const Func<Scal>& func, const EB& eb) {
-        FieldEmbed<Scal> feu(eb, 1);
-        return feu;
+        return GetField<FieldEmbed<Scal>>(func(), eb);
       });
 
   DumpField(
       GetErrorField<Sine, FieldCell<Scal>, EB>(
           [](const Func<Scal>& func, const EB& eb) {
-            FieldCell<Scal> feu(eb, 0);
-            return feu;
+            auto fe = GetField<FieldEmbed<Scal>>(func(), eb);
+            return eb.Interpolate(fe);
           },
           [](const Func<Scal>& func, const EB& eb) {
-            FieldCell<Scal> feu(eb, 1);
-            return feu;
+            return GetField<FieldCell<Scal>>(func(), eb);
           },
           1e-3),
       "error_eb.dat", *CreateMesh(1));
-
-  /*
-  std::cout << "\n"
-            << "eb.Interpolate() returning FieldCell<Scal>" << std::endl;
-  VaryFunc<Scal, IdxCell>(
-      [](const Func<Scal>& func, const M& m) {
-        const auto fcu = GetField<FieldCell<Scal>>(func(), m);
-        FieldFace<Scal> ffg(m);
-        GradientI(fcu, m, ffg);
-        return ffg;
-      },
-      [](const Func<Scal>& func, const M& m) {
-        FieldFace<Scal> ffg(m, 0);
-        for (auto f : m.AllFaces()) {
-          const auto x = m.GetCenter(f);
-          ffg[f] = Gradient(func)(x).dot(m.GetNormal(f));
-        }
-        return ffg;
-      });
-      */
 }
 
 int main() {
