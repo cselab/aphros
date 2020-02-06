@@ -41,7 +41,7 @@ class Func {
   Scal G(Scal min = 0, Scal max = 1) {
     return std::uniform_real_distribution<Scal>(min, max)(gen_);
   }
-  std::default_random_engine gen_;
+  std::mt19937 gen_;
 };
 
 class Quadratic : public Func<Scal> {
