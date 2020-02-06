@@ -364,7 +364,7 @@ std::unique_ptr<M> CreateMesh(Scal h) {
 // TODO: rename AllCells to Cells(2)
 
 std::unique_ptr<EB> CreateEmbed(M& m) {
-  auto peb = std::make_unique<EB>(m);
+  auto peb = std::make_unique<EB>(m, 0);
   FieldNode<Scal> fnl(m);
   auto block = m.GetInBlockCells().GetSize();
   auto h = m.GetCellSize();
@@ -772,7 +772,7 @@ void DumpEmbedField() {
 void TestEmbed() {
   DumpEmbedPoly();
   std::cout << "\n"
-            << "Interpolate() returning FieldEmbed<Scal> " << std::endl;
+            << "eb.Interpolate() returning FieldEmbed<Scal> " << std::endl;
   VaryFunc<FieldEmbed<Scal>, EB>(
       [](const Func<Scal>& func, const EB& eb) {
         auto fc = Eval<FieldCell<Scal>>(func(), eb);
@@ -782,14 +782,44 @@ void TestEmbed() {
         return Eval<FieldEmbed<Scal>>(func(), eb);
       });
 
+  std::cout << "\n"
+            << "eb.Gradient() returning FieldEmbed<Scal>" << std::endl;
+  VaryFunc<FieldEmbed<Scal>, EB>(
+      [](const Func<Scal>& func, const EB& eb) {
+        const auto fcu = Eval<FieldCell<Scal>>(func(), eb);
+        return eb.Gradient(fcu, MapCondFace(), 1, 0.);
+      },
+      [](const Func<Scal>& func, const EB& eb) {
+        FieldEmbed<Scal> fe(eb, 0);
+        for (auto c : eb.CFaces()) {
+          fe[c] = 0;
+        }
+        for (auto f : eb.Faces()) {
+          const auto x = eb.GetFaceCenter(f);
+          fe[f] = Gradient(func)(x).dot(eb.GetNormal(f));
+        }
+        return fe;
+      });
+
+  std::cout << "\n"
+            << "eb.Gradient() returning FieldCell<Vect>" << std::endl;
+  VaryFunc<FieldCell<Vect>, EB>(
+      [](const Func<Scal>& func, const EB& eb) {
+        auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
+        return eb.Gradient(fe);
+      },
+      [](const Func<Scal>& func, const EB& eb) {
+        return Eval<FieldCell<Vect>>(Gradient(func), eb);
+      });
+
   DumpField(
       GetOrderField<Sine, FieldCell<Scal>, EB>(
           [](const Func<Scal>& func, const EB& eb) {
             auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-            return eb.Interpolate(fe);
+            return GetComponent(eb.Gradient(fe), 0);
           },
           [](const Func<Scal>& func, const EB& eb) {
-            return Eval<FieldCell<Scal>>(func(), eb);
+            return Eval<FieldCell<Scal>>(func.Dx(0), eb);
           }),
       "error_eb.dat", *CreateMesh(1));
 }
