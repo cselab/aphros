@@ -27,6 +27,7 @@ using EB = Embed<M>;
 template <class T>
 class Func {
  public:
+  using Result = T;
   explicit Func(int seed) : gen_(seed) {}
   virtual ~Func() = default;
   virtual std::function<T(Vect)> operator()() const = 0;
@@ -169,13 +170,58 @@ class FuncVect : public Func<Vect> {
   const GRange<size_t> dr_;
 };
 
-template <class T, class Idx>
-GField<T, Idx> GetField(const std::function<T(Vect)>& u, const M& m) {
-  GField<T, Idx> r(m);
-  for (auto i : m.template GetAll<Idx>()) {
-    r[i] = u(m.GetCenter(i));
+template <class Field, class MEB>
+struct GetFieldHelper {
+  using Value = typename Field::Value;
+  Field operator()(const std::function<Value(Vect)>& u, const MEB& meb);
+};
+
+template <class Field>
+struct GetFieldHelper<Field, M> {
+  using Value = typename Field::Value;
+  using Idx = typename Field::Idx;
+  Field operator()(const std::function<Value(Vect)>& u, const M& m) {
+    Field r(m);
+    for (auto i : m.template GetAll<Idx>()) {
+      r[i] = u(m.GetCenter(i));
+    }
+    return r;
   }
-  return r;
+};
+
+template <class T>
+struct GetFieldHelper<FieldCell<T>, EB> {
+  using Value = T;
+  using Field = FieldCell<Value>;
+  Field operator()(const std::function<Value(Vect)>& u, const EB& eb) {
+    Field r(eb);
+    for (auto c : eb.Cells()) {
+      r[c] = u(eb.GetCellCenter(c));
+    }
+    return r;
+  }
+};
+
+template <class T>
+struct GetFieldHelper<FieldEmbed<T>, EB> {
+  using Value = T;
+  using Field = FieldEmbed<Value>;
+  Field operator()(const std::function<Value(Vect)>& u, const EB& eb) {
+    Field r(eb);
+    for (auto f : eb.Faces()) {
+      r[f] = u(eb.GetFaceCenter(f));
+    }
+    for (auto c : eb.CFaces()) {
+      r[c] = u(eb.GetFaceCenter(c));
+    }
+    return r;
+  }
+};
+
+template <class Field, class MEB>
+Field GetField(
+    const std::function<typename Field::Value(Vect)>& u, const MEB& meb) {
+  return GetFieldHelper<Field, MEB>()(u, meb);
 }
 
 // h: cell size
@@ -189,8 +235,10 @@ std::unique_ptr<M> CreateMesh(Scal h) {
 std::unique_ptr<EB> CreateEmbed(M& m) {
   auto peb = std::make_unique<EB>(m);
   FieldNode<Scal> fnl(m);
+  auto block = m.GetInBlockNodes().GetSize();
+  auto h = m.GetCellSize();
   for (auto n : m.AllNodes()) {
-    const auto x = m.GetNode(n);
+    const auto x = m.GetNode(n) / h / Vect(block);
     fnl[n] = (0.4 - (Vect(0.5, 0.5, 0.) - Vect(x[0], x[1], 0.)).norm());
   }
   peb->Init(fnl);
@@ -210,55 +258,33 @@ std::unique_ptr<EB> ConvertMesh<EB>(std::unique_ptr<M>& pm) {
   return CreateEmbed(*pm);
 }
 
-template <class T, class Idx>
+template <class T, class Idx, class MEB>
 GField<T, Idx> Add(
-    const GField<T, Idx>& u0, const GField<T, Idx>& u1, const M& m) {
-  GField<T, Idx> d(m);
-  for (auto i : m.template GetAll<Idx>()) {
+    const GField<T, Idx>& u0, const GField<T, Idx>& u1, const MEB& meb) {
+  GField<T, Idx> d(meb);
+  for (auto i : GRange<Idx>(meb)) {
     d[i] = u0[i] + u1[i];
   }
   return d;
 }
 
-template <class T, class Idx>
+template <class T, class Idx, class MEB>
 GField<T, Idx> Sub(
-    const GField<T, Idx>& u0, const GField<T, Idx>& u1, const M& m) {
-  GField<T, Idx> r(m);
-  for (auto i : m.template GetAll<Idx>()) {
+    const GField<T, Idx>& u0, const GField<T, Idx>& u1, const MEB& meb) {
+  GField<T, Idx> r(meb);
+  for (auto i : GRange<Idx>(meb)) {
     r[i] = u0[i] - u1[i];
   }
   return r;
 }
 
-template <class T, class Idx>
-GField<T, Idx> Mul(const GField<T, Idx>& u, Scal k, const M& m) {
-  GField<T, Idx> r(m);
-  for (auto i : m.template GetAll<Idx>()) {
+template <class T, class Idx, class MEB>
+GField<T, Idx> Mul(const GField<T, Idx>& u, Scal k, const MEB& meb) {
+  GField<T, Idx> r(meb);
+  for (auto i : GRange<Idx>(meb)) {
     r[i] = u[i] * k;
   }
   return r;
-}
-
-template <class T>
-FieldEmbed<T> GetFieldEmbed(
-    const std::function<T(Vect)>& u, const EB& eb) {
-  FieldEmbed<T> fe(eb);
-  for (auto f : eb.Faces()) {
-    fe[f] = u(eb.GetFaceCenter(f));
-  }
-  for (auto c : eb.CFaces()) {
-    fe[c] = u(eb.GetFaceCenter(c));
-  }
-  return fe;
-}
-
-template <class T>
-FieldCell<T> GetFieldCell(const std::function<T(Vect)>& u, const EB& eb) {
-  FieldCell<T> fc(eb);
-  for (auto c : eb.Cells()) {
-    fc[c] = u(eb.GetCellCenter(c));
-  }
-  return fc;
 }
 
 template <class T>
@@ -315,20 +341,20 @@ Scal Norm1(Vect a) {
   return a.norm1();
 }
 
-template <class T, class Idx>
-GField<T, Idx> Abs(const GField<T, Idx>& u, const M& m) {
-  GField<T, Idx> r(m);
-  for (auto i : m.template GetAll<Idx>()) {
+template <class T, class Idx, class MEB>
+GField<T, Idx> Abs(const GField<T, Idx>& u, const MEB& meb) {
+  GField<T, Idx> r(meb);
+  for (auto i : GRange<Idx>(meb)) {
     r[i] = Abs(u[i]);
   }
   return r;
 }
 
-template <class T, class Idx, class M>
-Scal Norm1(const GField<T, Idx>& u, const M& m) {
+template <class T, class Idx, class MEB>
+Scal Norm1(const GField<T, Idx>& u, const MEB& meb) {
   Scal sum = 0;
   Scal sumv = 0;
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : GRange<Idx>(meb)) {
     sum += Norm1(u[i]);
     sumv += 1;
   }
@@ -363,54 +389,36 @@ Scal Norm1(const FieldEmbed<T>& u, const EB& eb) {
 }
 
 // Computes mean error field of estimator compared to exact values.
-// F: function to evaluate, derived from Func<FT>, constructable from int
+// F: function to evaluate, derived from Func, constructable from int
 // func: function to evaluate
 // estimator: estimator of field
 // exact: exact field
 // h: mesh step
 // Returns:
 // tuple(error0, error1, order)
-template <class F, class FT, class Field>
+template <class F, class Field, class MEB>
 Field GetErrorField(
-    std::function<Field(const Func<FT>&, const M&)> estimator,
-    std::function<Field(const Func<FT>&, const M&)> exact, Scal h) {
-  const size_t nsamp = 10;
-  const auto pm = CreateMesh(h);
-  auto& m = *pm;
-  using Value = typename Field::Value;
-  Field avg(m, Value(0));
-  for (size_t seed = 0; seed < nsamp; ++seed) {
-    const F func(seed);
-    auto f0 = estimator(func, m);
-    auto f1 = exact(func, m);
-    avg = Add(avg, Abs(Sub(f0, f1, m), m), m);
-  }
-  avg = Mul(avg, 1. / nsamp, m);
-  return avg;
-}
-
-template <class F, class FT, class Field>
-Field GetErrorField(
-    std::function<Field(const Func<FT>&, const EB&)> estimator,
-    std::function<Field(const Func<FT>&, const EB&)> exact, Scal h) {
+    std::function<Field(const Func<typename F::Result>&, const MEB&)> estimator,
+    std::function<Field(const Func<typename F::Result>&, const MEB&)> exact,
+    Scal h) {
   const size_t nsamp = 10;
   auto pm = CreateMesh(h);
-  const auto peb = CreateEmbed(*pm);
-  auto& eb = *peb;
+  auto pmeb = ConvertMesh<MEB>(pm);
+  auto& meb = *pmeb;
   using Value = typename Field::Value;
-  Field avg(*pm, Value(0));
+  Field avg(meb, Value(0));
   for (size_t seed = 0; seed < nsamp; ++seed) {
     const F func(seed);
-    auto f0 = estimator(func, eb);
-    auto f1 = exact(func, eb);
-    avg = Add(avg, Abs(Sub(f0, f1, eb), eb), eb);
+    auto f0 = estimator(func, meb);
+    auto f1 = exact(func, meb);
+    avg = Add(avg, Abs(Sub(f0, f1, meb), meb), meb);
   }
-  avg = Mul(avg, 1. / nsamp, eb);
+  avg = Mul(avg, 1. / nsamp, meb);
   return avg;
 }
 
 /// Computes mean error field of estimator compared to exact values.
-/// @param F function to evaluate, derived from Func<FT>, constructable from int
+/// @param F function to evaluate, derived from Func, constructable from int
 /// @param func function to evaluate
 /// @param estimator estimator of field
 /// @param exact exact field
@@ -418,36 +426,35 @@ Field GetErrorField(
 /// @return tuple(error0, error1, order)
 
 // Evaluates error on two meshes and estimates the order of accuracy.
-// F: function to evaluate, derived from Func<FT>, constructable from int
+// F: function to evaluate, derived from Func, constructable from int
 // func: function to evaluate
 // estimator: estimator of field
 // exact: exact field
 // Returns:
 // tuple(error0, error1, order)
-template <class F, class FT, class Field, class MEB>
+template <class F, class Field, class MEB>
 std::tuple<Scal, Scal, Scal> CalcOrder(
-    std::function<Field(const Func<FT>&, const MEB&)> estimator,
-    std::function<Field(const Func<FT>&, const MEB&)> exact) {
+    std::function<Field(const Func<typename F::Result>&, const MEB&)> estimator,
+    std::function<Field(const Func<typename F::Result>&, const MEB&)> exact) {
   const Scal h0 = 1e-3;
   const std::vector<Scal> hh = {h0, h0 * 0.5};
   std::vector<Scal> ee(hh.size());
   for (size_t i = 0; i < hh.size(); ++i) {
     auto pm = CreateMesh(hh[i]);
     auto pmeb = ConvertMesh<MEB>(pm);
-    ee[i] = Norm1(
-        GetErrorField<F, FT, Field>(estimator, exact, hh[i]), *pmeb);
+    ee[i] = Norm1(GetErrorField<F, Field, MEB>(estimator, exact, hh[i]), *pmeb);
   }
   return std::make_tuple(
       ee[0], ee[1], std::log(ee[0] / ee[1]) / std::log(hh[0] / hh[1]));
 }
 
-// F derived from Func<FT>
-template <class F, class FT, class Field, class MEB>
+// F derived from Func
+template <class F, class Field, class MEB>
 void PrintOrder(
-    std::function<Field(const Func<FT>&, const MEB&)> estimator,
-    std::function<Field(const Func<FT>&, const MEB&)> exact) {
+    std::function<Field(const Func<typename F::Result>&, const MEB&)> estimator,
+    std::function<Field(const Func<typename F::Result>&, const MEB&)> exact) {
   std::cout << "func=" << F::GetName() << std::endl;
-  auto t = CalcOrder<F, FT, Field>(estimator, exact);
+  auto t = CalcOrder<F, Field>(estimator, exact);
   printf(
       "order=%5.3f   coarse=%.5e   fine=%.5e\n", std::get<2>(t), std::get<0>(t),
       std::get<1>(t));
@@ -461,16 +468,16 @@ template <class Field, class MEB>
 void VaryFunc(
     std::function<Field(const Func<Scal>&, const MEB&)> estimator,
     std::function<Field(const Func<Scal>&, const MEB&)> exact) {
-  PrintOrder<Quadratic, Scal, Field>(estimator, exact);
-  PrintOrder<Sine, Scal, Field>(estimator, exact);
+  PrintOrder<Quadratic, Field>(estimator, exact);
+  PrintOrder<Sine, Field>(estimator, exact);
 }
 
 template <class Field, class MEB>
 void VaryFuncVect(
     std::function<Field(const Func<Vect>&, const MEB&)> estimator,
     std::function<Field(const Func<Vect>&, const MEB&)> exact) {
-  PrintOrder<FuncVect<Quadratic>, Vect, Field>(estimator, exact);
-  PrintOrder<FuncVect<Sine>, Vect, Field>(estimator, exact);
+  PrintOrder<FuncVect<Quadratic>, Field>(estimator, exact);
+  PrintOrder<FuncVect<Sine>, Field>(estimator, exact);
 }
 
 void TestMesh() {
@@ -478,7 +485,7 @@ void TestMesh() {
             << "GradientI() returning FieldFace<Scal>" << std::endl;
   VaryFunc<FieldFace<Scal>, M>(
       [](const Func<Scal>& func, const M& m) {
-        const auto fcu = GetField<Scal, IdxCell>(func(), m);
+        const auto fcu = GetField<FieldCell<Scal>>(func(), m);
         FieldFace<Scal> ffg(m);
         GradientI(fcu, m, ffg);
         return ffg;
@@ -496,19 +503,19 @@ void TestMesh() {
             << "Average() returning FieldCell<Scal> " << std::endl;
   VaryFunc<FieldCell<Scal>, M>(
       [](const Func<Scal>& func, const M& m) {
-        const auto ffu = GetField<Scal, IdxFace>(func(), m);
+        const auto ffu = GetField<FieldFace<Scal>>(func(), m);
         const auto fcu = Average(ffu, m);
         return fcu;
       },
       [](const Func<Scal>& func, const M& m) {
-        return GetField<Scal, IdxCell>(func(), m);
+        return GetField<FieldCell<Scal>>(func(), m);
       });
 
   std::cout << "\n"
             << "Laplace returning FieldCell<Scal> " << std::endl;
   VaryFunc<FieldCell<Scal>, M>(
       [](const Func<Scal>& func, const M& m) {
-        const auto fcu = GetField<Scal, IdxCell>(func(), m);
+        const auto fcu = GetField<FieldCell<Scal>>(func(), m);
         FieldFace<Scal> ffg(m);
         GradientI(fcu, m, ffg);
         FieldCell<Scal> fcl(m);
@@ -538,19 +545,19 @@ void TestMesh() {
             << "Average() returning FieldCell<Vect> " << std::endl;
   VaryFuncVect<FieldCell<Vect>, M>(
       [](const Func<Vect>& func, const M& m) {
-        const auto ffu = GetField<Vect, IdxFace>(func(), m);
+        const auto ffu = GetField<FieldFace<Vect>>(func(), m);
         const auto fcu = Average(ffu, m);
         return fcu;
       },
       [](const Func<Vect>& func, const M& m) {
-        return GetField<Vect, IdxCell>(func(), m);
+        return GetField<FieldCell<Vect>>(func(), m);
       });
 
   std::cout << "\n"
             << "Laplace returning FieldCell<Vect> " << std::endl;
   VaryFuncVect<FieldCell<Vect>, M>(
       [](const Func<Vect>& func, const M& m) {
-        const auto fcu = GetField<Vect, IdxCell>(func(), m);
+        const auto fcu = GetField<FieldCell<Vect>>(func(), m);
         FieldFace<Vect> ffg(m);
         GradientI(fcu, m, ffg);
         FieldCell<Vect> fcl(m);
@@ -581,7 +588,7 @@ void TestMesh() {
   VaryFuncVect<FieldCell<Vect>, M>(
       [](const Func<Vect>& func, const M& m) {
         FieldCell<Vect> fcr(m, Vect(0));
-        const auto fcu = GetField<Vect, IdxCell>(func(), m);
+        const auto fcu = GetField<FieldCell<Vect>>(func(), m);
         auto ffu = Interpolate(fcu, MapCondFace(), m);
         for (auto d : GRange<size_t>(Vect::dim)) {
           auto fcg = Gradient(GetComponent(ffu, d), m);
@@ -614,9 +621,9 @@ void TestMesh() {
   std::cout << "\n"
             << "Laplace dump error field FieldScal<Scal>" << std::endl;
   DumpField(
-      GetErrorField<Sine, Scal, FieldCell<Scal>>(
+      GetErrorField<Sine, FieldCell<Scal>, M>(
           [](const Func<Scal>& func, const M& m) {
-            const auto fcu = GetField<Scal, IdxCell>(func(), m);
+            const auto fcu = GetField<FieldCell<Scal>>(func(), m);
             FieldFace<Scal> ffg(m);
             GradientI(fcu, m, ffg);
             FieldCell<Scal> fcl(m);
@@ -658,27 +665,25 @@ void TestEmbed() {
         return feu;
       });
 
-  /*
   DumpField(
-      GetErrorField<Sine, Scal, FieldEmbed<Scal>>(
+      GetErrorField<Sine, FieldCell<Scal>, EB>(
           [](const Func<Scal>& func, const EB& eb) {
-            FieldEmbed<Scal> feu(eb, 0);
+            FieldCell<Scal> feu(eb, 0);
             return feu;
           },
           [](const Func<Scal>& func, const EB& eb) {
-            FieldEmbed<Scal> feu(eb, 1);
+            FieldCell<Scal> feu(eb, 1);
             return feu;
           },
           1e-3),
       "error_eb.dat", *CreateMesh(1));
-      */
 
   /*
   std::cout << "\n"
             << "eb.Interpolate() returning FieldCell<Scal>" << std::endl;
   VaryFunc<Scal, IdxCell>(
       [](const Func<Scal>& func, const M& m) {
-        const auto fcu = GetField<Scal, IdxCell>(func(), m);
+        const auto fcu = GetField<FieldCell<Scal>>(func(), m);
         FieldFace<Scal> ffg(m);
         GradientI(fcu, m, ffg);
         return ffg;
