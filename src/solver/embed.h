@@ -108,10 +108,19 @@ class FieldEmbed {
       : dc_(fc), df_(ff) {}
   FieldEmbed& operator=(const FieldEmbed& o) = default;
   FieldEmbed& operator=(FieldEmbed&& o) = default;
+
   template <class M>
   explicit FieldEmbed(const M& m) : dc_(m), df_(m) {}
+
   template <class M>
   explicit FieldEmbed(const M& m, const Value& v) : dc_(m, v), df_(m, v) {}
+
+  explicit FieldEmbed(const std::pair<GRange<IdxCell>, GRange<IdxFace>>& p)
+      : dc_(p.first), df_(p.second) {}
+  explicit FieldEmbed(
+      const std::pair<GRange<IdxCell>, GRange<IdxFace>>& p, const Value& v)
+      : dc_(p.first, v), df_(p.second, v) {}
+
   template <class M>
   void Reinit(const M& m) {
     dc_.Reinit(m);
@@ -238,6 +247,13 @@ class Embed {
   // fnl: level-set function on nodes, interface at fnl=0
   Embed(M& m, Scal gradlim) : m(m), eb(*this), gradlim_(gradlim) {}
   Embed(M& m) : Embed(m, 0.5) {}
+  template <class Idx>
+  operator GRange<Idx>() const {
+    return GRange<Idx>(m);
+  }
+  operator std::pair<GRange<IdxCell>, GRange<IdxFace>>() const {
+    return {GRange<IdxCell>(m), GRange<IdxFace>(m)};
+  }
   void Init(const FieldNode<Scal>& fnl) {
     auto sem = m.GetSem("init");
     if (sem()) {
