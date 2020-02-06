@@ -357,6 +357,9 @@ class Embed {
   Vect GetSurface(IdxCell c) const {
     return GetNormal(c) * GetArea(c);
   }
+  Vect GetOutwardSurface(IdxCell c, size_t q) const {
+    return GetSurface(m.GetFace(c, q)) * m.GetOutwardFactor(c, q);
+  }
   Scal GetFaceOffset(IdxCell c, size_t nci) const {
     IdxFace f = m.GetFace(c, nci);
     return (GetFaceCenter(f) - GetCellCenter(c)).dot(m.GetNormal(f));
@@ -591,26 +594,26 @@ class Embed {
   // Returns:
   // gradient on cells [a]
   FieldCell<Vect> Gradient(const FieldEmbed<Scal>& feu) const {
-    FieldCell<Vect> fcg(m, Vect(0)); // FIXME should be nan
+    auto& eb = *this;
+    FieldCell<Vect> fcg(m, Vect(0));
     for (auto c : m.AllCells()) {
       switch (fct_[c]) {
         case Type::regular: {
           Vect sum(0);
           for (auto q : m.Nci(c)) {
-            IdxFace f = m.GetFace(c, q);
+            const IdxFace f = m.GetFace(c, q);
             sum += m.GetOutwardSurface(c, q) * feu[f];
           }
           fcg[c] = sum / m.GetVolume(c);
           break;
         }
         case Type::cut: {
-          Vect sum = GetNormal(c) * (GetArea(c) * feu[c]);
-          for (auto q : this->Nci(c)) {
-            IdxFace f = m.GetFace(c, q);
-            sum +=
-                GetNormal(f) * (m.GetOutwardFactor(c, q) * GetArea(f) * feu[f]);
+          Vect sum = eb.GetSurface(c) * feu[c];
+          for (auto q : eb.Nci(c)) {
+            const IdxFace f = m.GetFace(c, q);
+            sum += eb.GetOutwardSurface(c, q) * feu[f];
           }
-          fcg[c] = sum / GetVolume(c);
+          fcg[c] = sum / eb.GetVolume(c);
           break;
         }
         case Type::excluded:
