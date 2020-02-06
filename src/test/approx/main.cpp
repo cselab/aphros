@@ -267,17 +267,17 @@ std::unique_ptr<EB> ConvertMesh<EB>(std::unique_ptr<M>& pm) {
 template <class T, class Idx, class MEB>
 GField<T, Idx> Add(
     const GField<T, Idx>& u0, const GField<T, Idx>& u1, const MEB& meb) {
-  GField<T, Idx> d(meb);
+  GField<T, Idx> r(meb, T(0));
   for (auto i : GRange<Idx>(meb)) {
-    d[i] = u0[i] + u1[i];
+    r[i] = u0[i] + u1[i];
   }
-  return d;
+  return r;
 }
 
 template <class T, class Idx, class MEB>
 GField<T, Idx> Sub(
     const GField<T, Idx>& u0, const GField<T, Idx>& u1, const MEB& meb) {
-  GField<T, Idx> r(meb);
+  GField<T, Idx> r(meb, T(0));
   for (auto i : GRange<Idx>(meb)) {
     r[i] = u0[i] - u1[i];
   }
@@ -285,8 +285,18 @@ GField<T, Idx> Sub(
 }
 
 template <class T, class Idx, class MEB>
+GField<T, Idx> Div(
+    const GField<T, Idx>& u0, const GField<T, Idx>& u1, const MEB& meb) {
+  GField<T, Idx> r(meb, T(0));
+  for (auto i : GRange<Idx>(meb)) {
+    r[i] = u0[i] / u1[i];
+  }
+  return r;
+}
+
+template <class T, class Idx, class MEB>
 GField<T, Idx> Mul(const GField<T, Idx>& u, Scal k, const MEB& meb) {
-  GField<T, Idx> r(meb);
+  GField<T, Idx> r(meb, T(0));
   for (auto i : GRange<Idx>(meb)) {
     r[i] = u[i] * k;
   }
@@ -296,7 +306,7 @@ GField<T, Idx> Mul(const GField<T, Idx>& u, Scal k, const MEB& meb) {
 template <class T>
 FieldEmbed<T> Add(
     const FieldEmbed<T>& u0, const FieldEmbed<T>& u1, const EB& eb) {
-  FieldEmbed<T> r(eb);
+  FieldEmbed<T> r(eb, T(0));
   for (auto c : eb.CFaces()) {
     r[c] = u0[c] + u1[c];
   }
@@ -309,12 +319,25 @@ FieldEmbed<T> Add(
 template <class T>
 FieldEmbed<T> Sub(
     const FieldEmbed<T>& u0, const FieldEmbed<T>& u1, const EB& eb) {
-  FieldEmbed<T> r(eb);
+  FieldEmbed<T> r(eb, T(0));
   for (auto c : eb.CFaces()) {
     r[c] = u0[c] - u1[c];
   }
   for (auto f : eb.Faces()) {
     r[f] = u0[f] - u1[f];
+  }
+  return r;
+}
+
+template <class T>
+FieldEmbed<T> Div(
+    const FieldEmbed<T>& u0, const FieldEmbed<T>& u1, const EB& eb) {
+  FieldEmbed<T> r(eb, T(0));
+  for (auto c : eb.CFaces()) {
+    r[c] = u0[c] / u1[c];
+  }
+  for (auto f : eb.Faces()) {
+    r[f] = u0[f] / u1[f];
   }
   return r;
 }
@@ -396,12 +419,11 @@ Scal Norm1(const FieldEmbed<T>& u, const EB& eb) {
 
 // Computes mean error field of estimator compared to exact values.
 // F: function to evaluate, derived from Func, constructable from int
-// func: function to evaluate
 // estimator: estimator of field
 // exact: exact field
 // h: mesh step
 // Returns:
-// tuple(error0, error1, order)
+// mean error field
 template <class F, class Field, class MEB>
 Field GetErrorField(
     std::function<Field(const Func<typename F::Result>&, const MEB&)> estimator,
@@ -421,6 +443,40 @@ Field GetErrorField(
   }
   avg = Mul(avg, 1. / nsamp, meb);
   return avg;
+}
+
+// Computes field with estimated order of accuracy.
+// F: function to evaluate, derived from Func, constructable from int
+// estimator: estimator of field
+// exact: exact field
+// Returns:
+// tuple(error0, error1, order)
+template <class F, class Field, class MEB>
+Field GetOrderField(
+    std::function<Field(const Func<typename F::Result>&, const MEB&)> estimator,
+    std::function<Field(const Func<typename F::Result>&, const MEB&)> exact,
+    Scal h) {
+  const size_t nsamp = 10;
+  auto pm = CreateMesh(h);
+  auto pmeb = ConvertMesh<MEB>(pm);
+  auto& meb = *pmeb;
+  using Value = typename Field::Value;
+  Field avg(meb, Value(0));
+  for (size_t seed = 0; seed < nsamp; ++seed) {
+    const F func(seed);
+    auto f0 = estimator(func, meb);
+    auto f1 = exact(func, meb);
+    avg = Add(avg, Abs(Sub(f0, f1, meb), meb), meb);
+  }
+  avg = Mul(avg, 1. / nsamp, meb);
+  return avg;
+
+  const Scal h0 = 1e-3;
+  const Scal h1 = h0 * 0.5;
+
+  auto er0 = GetErrorField<F, Field, MEB>(estimator, exact, h0);
+  auto er1 = GetErrorField<F, Field, MEB>(estimator, exact, h1);
+  return Div(er0 / er1, meb);
 }
 
 /// Computes mean error field of estimator compared to exact values.
