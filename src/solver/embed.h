@@ -854,6 +854,27 @@ class Embed {
     }
     return xx;
   }
+  // Area of plane convex polygon.
+  // xx: points of polygon
+  // n: normal to plane
+  // Returns:
+  // a: area, positive if <xx[0]-xc,xx[1]-xc,n> is positively oriented
+  static Scal GetArea0(const std::vector<Vect>& xx, Vect n) {
+    size_t sx = xx.size();
+
+    if (!sx) {
+      return 0.;
+    }
+    // unit normal
+    n /= n.norm();
+
+    Scal a = 0.;
+    for (size_t i = 1; i < sx; ++i) {
+      const size_t ip = (i + 1 == sx ? 0 : i + 1);
+      a += (xx[i] - xx[0]).cross(xx[ip] - xx[0]).dot(n) * 0.5;
+    }
+    return a;
+  }
   // Determines the face types, constructs polygons and computes fractions.
   // fnl: level-set on nodes, fnl > 0 inside regular cells [a]
   // Output:

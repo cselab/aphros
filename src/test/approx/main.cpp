@@ -814,13 +814,14 @@ void DumpEmbedCsv() {
   auto peb = ConvertMesh<EB>(pm);
   auto& eb = *peb;
   std::ofstream out("eb_faces.csv");
-  out << "x,y,z,nx,ny,nz,face,type\n";
+  out << "x,y,z,nx,ny,nz,face,area,type\n";
   for (auto c : eb.CFaces()) {
     auto x = eb.GetFaceCenter(c);
     auto n = eb.GetNormal(c);
     out << x[0] << "," << x[1] << "," << x[2];
     out << "," << n[0] << "," << n[1] << "," << n[2];
     out << "," << 0;
+    out << "," << eb.GetArea(c);
     out << "," << size_t(eb.GetType(c));
     out << "\n";
   }
@@ -830,6 +831,7 @@ void DumpEmbedCsv() {
     out << x[0] << "," << x[1] << "," << x[2];
     out << "," << n[0] << "," << n[1] << "," << n[2];
     out << "," << 1;
+    out << "," << eb.GetArea(f);
     out << "," << size_t(eb.GetType(f));
     out << "\n";
   }
