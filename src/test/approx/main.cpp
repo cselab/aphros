@@ -895,7 +895,7 @@ void TestEmbed() {
         return Eval<FieldCell<Vect>>(Gradient(func), eb);
       });
 
-  using F = Const;
+  using F = Quadratic;
   DumpField(
       GetOrderField<F, FieldCell<Scal>, EB>(
           [](const Func<Scal>& func, const EB& eb) {
@@ -937,6 +937,6 @@ void TestEmbed() {
 }
 
 int main() {
-  // TestMesh();
+  TestMesh();
   TestEmbed();
 }
