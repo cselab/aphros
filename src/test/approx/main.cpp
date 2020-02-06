@@ -48,17 +48,16 @@ class Quadratic : public Func<Scal> {
  public:
   explicit Quadratic(int seed)
       : Func<Scal>(seed), origin_(Vect(1) + Vect(G(), G(), G()) * 0.1) {}
-  virtual ~Quadratic() = default;
   std::function<Scal(Vect)> operator()() const override {
     return [this](Vect v) {
-      v += origin_;
+      v -= origin_;
       const Scal x(v[0]), y(v[1]), z(v[2]);
       return x * x + y * y + z * z;
     };
   }
   std::function<Scal(Vect)> Dx(size_t d) const override {
     return [d, this](Vect v) {
-      v += origin_;
+      v -= origin_;
       return 2 * v[d];
     };
   }
@@ -73,13 +72,56 @@ class Quadratic : public Func<Scal> {
   const Vect origin_;
 };
 
+class Linear : public Func<Scal> {
+ public:
+  explicit Linear(int seed)
+      : Func<Scal>(seed), origin_(Vect(1) + Vect(G(), G(), G()) * 0.1) {}
+  std::function<Scal(Vect)> operator()() const override {
+    return [this](Vect v) {
+      v -= origin_;
+      return v.dot(Vect(1));
+    };
+  }
+  std::function<Scal(Vect)> Dx(size_t) const override {
+    return [this](Vect) { return 1; };
+  }
+  std::function<Scal(Vect)> Dxx(size_t, size_t) const override {
+    return [](Vect) { return 0; };
+  }
+  static std::string GetName() {
+    return "Linear";
+  }
+
+ private:
+  const Vect origin_;
+};
+
+class Const : public Func<Scal> {
+ public:
+  explicit Const(int seed) : Func<Scal>(seed), const_(1 + G() * 0.1) {}
+  std::function<Scal(Vect)> operator()() const override {
+    return [this](Vect) { return const_; };
+  }
+  std::function<Scal(Vect)> Dx(size_t) const override {
+    return [this](Vect) { return 0; };
+  }
+  std::function<Scal(Vect)> Dxx(size_t, size_t) const override {
+    return [](Vect) { return 0; };
+  }
+  static std::string GetName() {
+    return "Const";
+  }
+
+ private:
+  const Scal const_;
+};
+
 class Sine : public Func<Scal> {
  public:
   explicit Sine(int seed)
       : Func<Scal>(seed)
       , freq_(Vect(G(), G(), G()) + Vect(10))
       , phase_(Vect(0.5) + Vect(G(), G(), G()) * 10) {}
-  virtual ~Sine() = default;
   std::function<Scal(Vect)> operator()() const override {
     return [this](Vect v) {
       v = freq_ * v + phase_;
@@ -371,7 +413,7 @@ std::unique_ptr<EB> CreateEmbed(M& m) {
   for (auto n : m.AllNodes()) {
     const auto x = m.GetNode(n) / h / Vect(block);
     auto dx = Vect(0.5) - x;
-    //dx[0] = 0;
+    // dx[0] = 0;
     fnl[n] = 0.41 - dx.norm();
   }
   do {
@@ -463,6 +505,16 @@ Scal Norm1(const FieldEmbed<T>& u, const EB& eb) {
     sumv += 1;
   }
   return sum / sumv;
+}
+
+template <class F, class Field, class MEB>
+Field Eval(
+    std::function<Field(const Func<typename F::Result>&, const MEB&)> estimator,
+    Scal h) {
+  auto pm = CreateMesh(h);
+  auto pmeb = ConvertMesh<MEB>(pm);
+  auto& meb = *pmeb;
+  return estimator(F(0), meb);
 }
 
 // Computes mean error field of estimator compared to exact values.
@@ -563,6 +615,10 @@ void PrintOrder(
 
 void DumpField(const FieldCell<Scal>& fc, std::string filename, const M& m) {
   Dump(fc, m.GetIndexCells(), m.GetInBlockCells(), filename);
+}
+
+void DumpField(const FieldCell<Scal>& fc, std::string filename) {
+  DumpField(fc, filename, *CreateMesh(1));
 }
 
 template <class Field, class MEB>
@@ -750,7 +806,7 @@ void TestMesh() {
             return r;
           },
           1e-3),
-      "error.dat", *CreateMesh(1));
+      "error.dat");
 }
 
 void DumpEmbedCsv() {
@@ -761,7 +817,7 @@ void DumpEmbedCsv() {
   out << "x,y,z,nx,ny,nz,face,type\n";
   for (auto c : eb.CFaces()) {
     auto x = eb.GetFaceCenter(c);
-    auto n = eb.GetSurface(c);
+    auto n = eb.GetNormal(c);
     out << x[0] << "," << x[1] << "," << x[2];
     out << "," << n[0] << "," << n[1] << "," << n[2];
     out << "," << 0;
@@ -770,7 +826,7 @@ void DumpEmbedCsv() {
   }
   for (auto f : eb.Faces()) {
     auto x = eb.GetFaceCenter(f);
-    auto n = eb.GetSurface(f);
+    auto n = eb.GetNormal(f);
     out << x[0] << "," << x[1] << "," << x[2];
     out << "," << n[0] << "," << n[1] << "," << n[2];
     out << "," << 1;
@@ -790,11 +846,7 @@ void DumpEmbedPoly() {
 void DumpEmbedField() {
   auto pm = CreateMesh(1e-3);
   auto peb = ConvertMesh<EB>(pm);
-  DumpField(
-      Eval<FieldCell<Scal>>(
-          //[](Vect x) { return x[0]; },
-          Sine(0)(), *peb),
-      "error_eb.dat", *pm);
+  DumpField(Eval<FieldCell<Scal>>(Sine(0)(), *peb), "error_eb.dat", *pm);
 }
 
 void TestEmbed() {
@@ -841,8 +893,9 @@ void TestEmbed() {
         return Eval<FieldCell<Vect>>(Gradient(func), eb);
       });
 
+  using F = Const;
   DumpField(
-      GetOrderField<Sine, FieldCell<Scal>, EB>(
+      GetOrderField<F, FieldCell<Scal>, EB>(
           [](const Func<Scal>& func, const EB& eb) {
             auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
             return GetComponent(eb.Gradient(fe), 0);
@@ -850,7 +903,35 @@ void TestEmbed() {
           [](const Func<Scal>& func, const EB& eb) {
             return Eval<FieldCell<Scal>>(func.Dx(0), eb);
           }),
-      "error_eb.dat", *CreateMesh(1));
+      "order.dat");
+
+  DumpField(
+      Eval<F, FieldCell<Scal>, EB>(
+          [](const Func<Scal>& func, const EB& eb) {
+            auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
+            return GetComponent(eb.Gradient(fe), 0);
+          },
+          1e-3),
+      "estimator.dat");
+
+  DumpField(
+      Eval<F, FieldCell<Scal>, EB>(
+          [](const Func<Scal>& func, const EB& eb) {
+            return Eval<FieldCell<Scal>>(func.Dx(0), eb);
+          },
+          1e-3),
+      "exact.dat");
+
+  DumpField(
+      Eval<F, FieldCell<Scal>, EB>(
+          [](const Func<Scal>& func, const EB& eb) {
+            auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
+            return Sub(
+                GetComponent(eb.Gradient(fe), 0),
+                Eval<FieldCell<Scal>>(func.Dx(0), eb), eb);
+          },
+          1e-3),
+      "error.dat");
 }
 
 int main() {
