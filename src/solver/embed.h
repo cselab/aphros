@@ -990,7 +990,13 @@ class Embed {
         const auto h = m.GetCellSize();
 
         auto xx = R::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
-        fcs[c] = std::abs(R::GetArea(xx, fcn[c]));
+        Vect sum(0);
+        for (auto q : m.Nci(c)) {
+          const IdxFace f = m.GetFace(c, q);
+          sum += m.GetNormal(f) * ffs[f] * m.GetOutwardFactor(c, q);
+        }
+        fcs[c] = -sum.dot(fcn[c]);
+
         fcv[c] = R::GetLineU(fcn[c], fca[c], h) * m.GetVolume(c);
       } else if (fct[c] == Type::regular) {
         fcv[c] = m.GetVolume(c);
