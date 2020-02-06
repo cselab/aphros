@@ -1,38 +1,57 @@
 
 GradientI() returning FieldFace<Scal>
 func=Quadratic
-order=-0.903   coarse=3.02945e-13   fine=5.66377e-13
+order=-0.474   coarse=9.08650e-01   fine=1.26204e+00
 func=Sine
-order=1.996   coarse=1.32448e-05   fine=3.32006e-06
+order=-0.015   coarse=1.22238e+00   fine=1.23483e+00
 
 Average() returning FieldCell<Scal> 
 func=Quadratic
-order=2.000   coarse=2.50000e-07   fine=6.25000e-08
+order=2.000   coarse=2.15959e-07   fine=5.39898e-08
 func=Sine
-order=2.003   coarse=5.26832e-06   fine=1.31478e-06
+order=2.000   coarse=4.54188e-06   fine=1.13519e-06
 
 Laplace returning FieldCell<Scal> 
 func=Quadratic
-order=-1.821   coarse=1.17866e-09   fine=4.16317e-09
+order=0.000   coarse=1.76682e+00   fine=1.76678e+00
 func=Sine
-order=2.002   coarse=1.17206e-03   fine=2.92561e-04
+order=0.020   coarse=5.58399e+01   fine=5.50882e+01
 
 Average() returning FieldCell<Vect> 
 func=VectQuadratic
-order=2.000   coarse=7.50000e-07   fine=1.87500e-07
+order=2.000   coarse=6.47878e-07   fine=1.61970e-07
 func=VectSine
-order=2.002   coarse=1.19977e-05   fine=2.99500e-06
+order=2.001   coarse=1.03580e-05   fine=2.58693e-06
 
 Laplace returning FieldCell<Vect> 
 func=VectQuadratic
-order=-1.827   coarse=3.52665e-09   fine=1.25163e-08
+order=0.000   coarse=5.29470e+00   fine=5.29457e+00
 func=VectSine
-order=2.001   coarse=2.66647e-03   fine=6.66290e-04
+order=-0.047   coarse=2.28631e+02   fine=2.36249e+02
 
 ExplViscous returning FieldCell<Vect> 
 func=VectQuadratic
-order=-2.112   coarse=7.65480e-10   fine=3.30837e-09
+order=-0.000   coarse=2.52932e+00   fine=2.52932e+00
 func=VectSine
-order=2.002   coarse=5.20354e-03   fine=1.29895e-03
+order=0.004   coarse=5.98589e+01   fine=5.96933e+01
 
 Laplace dump error field FieldScal<Scal>
+dump to eb.vtk
+
+eb.Interpolate() returning FieldEmbed<Scal> 
+func=Quadratic
+func=Sine
+
+eb.Gradient() returning FieldEmbed<Scal>
+func=Quadratic
+func=Sine
+
+eb.Gradient() returning FieldCell<Vect>
+func=Quadratic
+func=Sine
+order=0.995   coarse=1.70843e-04   fine=8.57242e-05
+order=1.011   coarse=2.93537e-04   fine=1.45643e-04
+order=-0.006   coarse=1.49106e-01   fine=1.49677e-01
+order=0.003   coarse=2.57847e-01   fine=2.57358e-01
+order=0.022   coarse=2.54243e-04   fine=2.50408e-04
+order=0.451   coarse=8.22309e-04   fine=6.01689e-04
