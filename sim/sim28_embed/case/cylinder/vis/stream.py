@@ -160,17 +160,29 @@ vft = [vx, vy]
 # END READERS
 # ----------------------------------------------------------------
 
-ebvtk = LegacyVTKReader(FileNames=['../eb.vtk'])
-ebvtk = Clip(Input=ebvtk)
-ebvtk.ClipType = 'Scalar'
-ebvtk.Scalars = ['CELLS', 'face']
-ebvtk.Value = 0.5
-ebvtkDisplay = Show(ebvtk, renderView1)
-ebvtkDisplay.Representation = 'Wireframe'
-ebvtkDisplay.AmbientColor = [0.0, 0.0, 0.0]
-ebvtkDisplay.ColorArrayName = ['POINTS', '']
-ebvtkDisplay.DiffuseColor = [0.0, 0.0, 0.0]
-ebvtkDisplay.LineWidth = 5.
+ebvtk = "../eb.vtk"
+if os.path.isfile(ebvtk):
+    ebvtk = LegacyVTKReader(FileNames=[ebvtk])
+    ebvtk = Clip(Input=ebvtk)
+    ebvtk.ClipType = 'Scalar'
+    ebvtk.Scalars = ['CELLS', 'face']
+    ebvtk.Value = 0.5
+    ebvtkDisplay = Show(ebvtk, renderView1)
+    ebvtkDisplay.Representation = 'Wireframe'
+    ebvtkDisplay.AmbientColor = [0.0, 0.0, 0.0]
+    ebvtkDisplay.ColorArrayName = ['POINTS', '']
+    ebvtkDisplay.DiffuseColor = [0.0, 0.0, 0.0]
+    ebvtkDisplay.LineWidth = 5.
+
+bcvtk = "../bc.vtk"
+if os.path.isfile(bcvtk):
+    bcvtk = LegacyVTKReader(FileNames=[bcvtk])
+    bcvtkDisplay = Show(bcvtk, renderView1)
+    bcvtkDisplay.Representation = 'Wireframe'
+    bcvtkDisplay.AmbientColor = [0.0, 0.0, 0.0]
+    bcvtkDisplay.ColorArrayName = ['POINTS', '']
+    bcvtkDisplay.DiffuseColor = [0.0, 0.0, 0.0]
+    bcvtkDisplay.LineWidth = 5.
 
 
 # create a new 'Append Attributes'
