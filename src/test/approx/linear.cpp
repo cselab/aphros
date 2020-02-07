@@ -14,8 +14,10 @@
 #include "solver/embed.h"
 #include "geom/vect.h"
 
-int main() {
-  using Scal = double;
+using Scal = double;
+using Vect = generic::Vect<Scal, 3>;
+
+void TestSolveLinear() {
   constexpr size_t N = 4;
   std::array<Scal, N * N> a = {
     0, 0, 0.1, 9.8,
@@ -31,4 +33,28 @@ int main() {
   std::cout << "x=" << V(x) << std::endl;
   std::cout << "b=" << V(b) << std::endl;
   std::cout << "a*x=" << V(Mul(a, x)) << std::endl;
+}
+
+void TestFitLinear(const std::vector<Vect>& xx, const std::vector<Scal>& uu) {
+  std::cout << '\n' << __func__ << std::endl;
+  auto p = FitLinear<Vect>(xx, uu);
+  std::cout << "xx[uu]: ";
+  for (size_t i = 0; i < xx.size(); ++i) {
+    std::cout << xx[i] << "[" << uu[i] << "]   ";
+  }
+  std::cout << std::endl;
+  std::cout << "g=" << p.first << " u0=" << p.second << std::endl;
+}
+
+int main() {
+  TestSolveLinear();
+  TestFitLinear(
+      {Vect(0., 0., 0.), Vect(1., 0., 0.), Vect(0., 1., 0.), Vect(0., 0., 1.)},
+      {1., 1., 1., 1.});
+  TestFitLinear(
+      {Vect(0., 0., 0.), Vect(1., 0., 0.), Vect(0., 1., 0.), Vect(0., 0., 1.)},
+      {-1., 1., 1., 1.});
+  TestFitLinear(
+      {Vect(0., 0., 0.), Vect(1., 0., 0.), Vect(0., 2., 0.), Vect(0., 0., 3.)},
+      {0., 1., 1., 1.});
 }
