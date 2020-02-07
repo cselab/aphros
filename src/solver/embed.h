@@ -515,6 +515,51 @@ class Embed {
     InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
     return feu;
   }
+  // High order gradient-based interpolation with extrapolation
+  // boundary conditions.
+  // fcu: field [a]
+  // bc: boundary conditions type, 0: value, 1: grad
+  // bcv: value or normal gradient (grad dot GetNormal)
+  // Returns:
+  // field on embedded boundaries [s]
+  template <class T>
+  FieldEmbed<T> Interpolate2(
+      const FieldCell<T>& fcu) const {
+    // interpolate from cells to faces with zero-derivative conditions
+    auto feu = Interpolate(fcu, MapCondFace(), 1, T(0));
+
+    FieldCell<Vect> fcg(m, Vect(0));
+
+    for (size_t i = 0; i < 100; ++i) {
+      // compute gradient from current interpolant
+      fcg = Gradient(feu);
+
+      // goal: compute first-order accurate gradient
+      // and using the gradient, do second-order accurate interpolation
+
+      // update feu from fcu and fcg
+      for (auto f : eb.Faces()) {
+        const IdxCell cm = m.GetCell(f, 0);
+        const IdxCell cp = m.GetCell(f, 1);
+        if (GetType(cm) == Type::regular && GetType(cp) == Type::regular) {
+          feu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+        } else {
+          const Vect xm = eb.GetCellCenter(cm);
+          const Vect xp = eb.GetCellCenter(cp);
+          const Vect xf = eb.GetFaceCenter(f);
+          feu[f] =
+              (fcu[cm] + fcg[cm].dot(xf - xm) + fcu[cp] + fcg[cp].dot(xf - xp)) *
+              0.5;
+        }
+      }
+      for (auto c : eb.CFaces()) {
+        const Vect xc = eb.GetCellCenter(c);
+        const Vect xf = eb.GetFaceCenter(c);
+        feu[c] = fcu[c] + fcg[c].dot(xf - xc);
+      }
+    }
+    return feu;
+  }
   // Upwind interpolation.
   // fcu: field [a]
   // ffv: volume flux
@@ -703,6 +748,30 @@ class Embed {
     }
     GradientB(fcu, mfc, m, feu.GetFieldFace());
     return feu;
+  }
+  // fcu: field [a]
+  // bc: boundary conditions type, 0: value, 1: grad
+  // bcv: value or normal gradient (grad dot GetNormal)
+  // Returns:
+  // grad dot GetNormal on embedded boundaries [s]
+  template <class T>
+  FieldEmbed<T> Gradient2(const FieldCell<T>& fcu) const {
+    auto feu = Interpolate2(fcu);
+    auto fcg = Gradient(feu);
+    FieldEmbed<T> feg(m, T(0));
+    for (auto f : eb.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      if (GetType(cm) == Type::regular && GetType(cp) == Type::regular) {
+        feg[f] = (fcu[cp] - fcu[cm]) / m.GetCellSize()[0];
+      } else {
+        feg[f] = (fcg[cm] + fcg[cp]).dot(eb.GetNormal(f)) * 0.5;
+      }
+    }
+    for (auto c : eb.CFaces()) {
+      feg[c] = fcg[c].dot(eb.GetNormal(c));
+    }
+    return feg;
   }
   void DumpPoly(std::string filename, bool vtkbin, bool vtkmerge) const {
     DumpPoly(
