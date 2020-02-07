@@ -256,6 +256,9 @@ class Vect {
     }
     return r;
   }
+  Scal mean() const {
+    return sum() / dim;
+  }
   Scal prod() const {
     Scal r = comp_[0];
     for (size_t i = 1; i < dim; ++i) {

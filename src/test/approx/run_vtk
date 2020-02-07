@@ -1,0 +1,5 @@
+make
+./t.approx
+for d in *.dat ; do
+  ap-plain2vtk $d
+done
