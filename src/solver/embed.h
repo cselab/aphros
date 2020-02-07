@@ -161,6 +161,13 @@ class FieldEmbed {
   FieldFace<Value> df_;
 };
 
+template <class Vect>
+const FieldEmbed<typename Vect::value_type> GetComponent(
+    const FieldEmbed<Vect>& fev, size_t d) {
+  return FieldEmbed<typename Vect::value_type>(
+      GetComponent(fev.GetFieldCell(), d), GetComponent(fev.GetFieldFace(), d));
+}
+
 template <class T>
 class MapEmbed {
  public:
@@ -291,6 +298,12 @@ class Embed {
   auto Faces() const {
     return MakeFilterIterator(
         m.Faces(), [this](IdxFace f) { return GetType(f) != Type::excluded; });
+  }
+  auto GetFace(IdxCell c, size_t q) const {
+    return m.GetFace(c, q);
+  }
+  auto GetCell(IdxFace f, size_t q) const {
+    return m.GetCell(f, q);
   }
   auto Nci(IdxCell c) const {
     return MakeFilterIterator(m.Nci(c), [this, c](size_t q) {
@@ -1052,3 +1065,4 @@ class Embed {
   // volume of neighbor cells
   FieldCell<Scal> fcvst3_; // volume of neighbors in stencil 3x3x3
 };
+

@@ -246,7 +246,7 @@ void Simple<M>::TestReduce() {
     m.Reduce(&r_, "max");
   }
   if (sem("max-check")) {
-    Scal s = std::numeric_limits<Scal>::min();
+    Scal s = -std::numeric_limits<Scal>::max();
     for (auto b : bq) {
       s = std::max(s, f(b));
     }
@@ -286,7 +286,7 @@ void Simple<M>::TestReduce() {
     m.Reduce(std::make_shared<typename M::OpMaxloc>(&rsi_));
   }
   if (sem("maxloc-check")) {
-    Scal s = std::numeric_limits<Scal>::min();
+    Scal s = -std::numeric_limits<Scal>::max();
     MIdx ws;
     for (auto w : bq) {
       if (f(w) > s) {
