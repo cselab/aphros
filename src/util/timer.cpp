@@ -39,3 +39,24 @@ void Timer::B() {
     F();
   }
 }
+
+struct SingleTimer::Imp {
+  using Clock = std::chrono::steady_clock;
+  Clock clock_;
+  Clock::time_point start_ = clock_.now();
+
+  Imp() = default;
+
+  //Imp() : start_(clock_.now()) {}
+};
+
+SingleTimer::SingleTimer() : imp(new Imp()) {}
+//SingleTimer::SingleTimer(const SingleTimer&) = delete;
+//SingleTimer::SingleTimer(SingleTimer&&) = default;
+//SingleTimer& SingleTimer::operator=(const SingleTimer&) = delete;
+//SingleTimer& SingleTimer::operator=(SingleTimer&&) = default;
+SingleTimer::~SingleTimer() = default;
+
+double SingleTimer::GetSeconds() const {
+  return std::chrono::duration<double>(imp->clock_.now() - imp->start_).count();
+}

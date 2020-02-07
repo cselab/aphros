@@ -5,8 +5,8 @@ set(EXE t.${p})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} suspender)
-     
+target_link_libraries(${EXE} suspender timer)
+
 #add_test(NAME ${p} COMMAND /bin/bash -c "diff ref <(./${EXE})")
 add_test(NAME ${p} COMMAND ${EXE})
 

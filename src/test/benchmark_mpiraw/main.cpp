@@ -8,7 +8,7 @@
 #include <iostream>
 #include <vector>
 
-#include "util/metrics.h"
+#include "util/timer.h"
 
 auto comm = MPI_COMM_WORLD;
 int sc, rank;

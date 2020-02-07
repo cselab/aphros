@@ -70,6 +70,8 @@ class MeshStructured {
       MIdx gs, int id);
   MeshStructured(const MeshStructured&) = delete;
   MeshStructured(MeshStructured&&) = default;
+  MeshStructured& operator=(const MeshStructured&) = delete;
+  MeshStructured& operator=(MeshStructured&&) = delete;
   MIdx GetGlobalSize() const {
     return gs_;
   }

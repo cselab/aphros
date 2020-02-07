@@ -5,6 +5,6 @@ set(EXE t.${p})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} suspender approx)
+target_link_libraries(${EXE} suspender approx timer)
 
 add_test(NAME ${p} COMMAND ./run)

@@ -14,6 +14,7 @@
 #include "geom/field.h"
 #include "geom/mesh.h"
 #include "geom/range.h"
+#include "util/timer.h"
 
 // try-catch
 #define TR(...)                           \
@@ -43,19 +44,18 @@ M GetMesh() {
 }
 
 void TestRange() {
-  PF
+  PF;
 
-      GRange<size_t>
-          r(0, 10);
+  GRange<size_t> r(0, 10);
   GField<Scal, size_t> f(r);
   f[0] = GetNan<Scal>();
   TR(CheckNan(f, "f", r);)
 }
 
 void TestMesh() {
-  PF
+  PF;
 
-      M m = GetMesh();
+  M m = GetMesh();
   m.SetCN(true);
   FieldCell<Scal> f(m);
   f[IdxCell(0)] = GetNan<Scal>();

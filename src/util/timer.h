@@ -5,6 +5,7 @@
 
 #include <string>
 #include <utility>
+#include <memory>
 
 class Timer {
  public:
@@ -31,4 +32,19 @@ class Timer {
   std::string n_; // name
   double to_; // timeout
   size_t b_; // batch size
+};
+
+class SingleTimer {
+ public:
+  SingleTimer();
+  SingleTimer(const SingleTimer&) = delete;
+  SingleTimer(SingleTimer&&) = delete;
+  SingleTimer& operator=(const SingleTimer&) = delete;
+  SingleTimer& operator=(SingleTimer&&) = delete;
+  ~SingleTimer();
+  double GetSeconds() const;
+
+ private:
+  struct Imp;
+  std::unique_ptr<Imp> imp;
 };

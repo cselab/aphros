@@ -7,6 +7,6 @@ include_directories(${S})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE})
+target_link_libraries(${EXE} timer)
 
 #add_test(NAME ${p} COMMAND ./${EXE})

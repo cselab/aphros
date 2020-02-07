@@ -9,18 +9,22 @@
 #include <string>
 #include <vector>
 
-#include "metrics.h"
+#include "timer.h"
 
 class Sampler {
  public:
   Sampler(const bool active = true) : active_(active) {}
+  Sampler(const Sampler&) = delete;
+  Sampler(Sampler&&) = default;
+  Sampler& operator=(const Sampler&) = delete;
+  Sampler& operator=(Sampler&&) = delete;
   virtual ~Sampler() {}
 
   using SampleMap = std::map<std::string, std::vector<double>>;
 
   void SeedSample() {
     if (active_) {
-      timers_.push(SingleTimer());
+      timers_.emplace();
     }
   }
 

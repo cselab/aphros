@@ -7,18 +7,6 @@
 #include <map>
 #include <stack>
 
-class SingleTimer {
-  using Clock = std::chrono::steady_clock;
-  Clock clock_;
-  Clock::time_point start_;
-
- public:
-  SingleTimer() : start_(clock_.now()) {}
-  double GetSeconds() const {
-    return std::chrono::duration<double>(clock_.now() - start_).count();
-  }
-};
-
 template <class Key_>
 class MultiTimer {
  public:
