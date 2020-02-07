@@ -37,3 +37,4 @@ target_link_libraries(${T} sysinfo openmp)
 
 set(T "histogram")
 add_library(${T} histogram.cpp)
+target_link_libraries(${T} timer)

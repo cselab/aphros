@@ -1,4 +1,6 @@
-add_library(solver solver.cpp)
+set(T "solver")
+add_library(${T} solver.cpp)
+target_link_libraries(${T} timer)
 
 set(T "approx")
 add_library(${T} approx.cpp)
