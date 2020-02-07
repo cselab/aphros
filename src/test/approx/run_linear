@@ -2,9 +2,9 @@
 
 set -eu
 
-a=ref
-b=out
-./t.approx > "$b"
+a=ref_linear
+b=out_linear
+./t.approx.linear > "$b"
 
 if ! diff -u "$a" "$b" ; then
   exit 1

@@ -8,3 +8,5 @@ add_executable(${EXE} main.cpp)
 target_link_libraries(${EXE} suspender approx timer)
 
 add_test(NAME ${p} COMMAND ./run)
+
+add_executable(${EXE}.linear linear.cpp)
