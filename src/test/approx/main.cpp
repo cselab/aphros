@@ -44,7 +44,7 @@ class Func {
   std::mt19937 gen_;
 };
 
-class Quadratic : public Func<Scal> {
+class Quadratic final : public Func<Scal> {
  public:
   explicit Quadratic(int seed)
       : Func<Scal>(seed), origin_(Vect(1) + Vect(G(), G(), G()) * 0.1) {}
@@ -72,7 +72,7 @@ class Quadratic : public Func<Scal> {
   const Vect origin_;
 };
 
-class Linear : public Func<Scal> {
+class Linear final : public Func<Scal> {
  public:
   explicit Linear(int seed)
       : Func<Scal>(seed), origin_(Vect(1) + Vect(G(), G(), G()) * 0.1) {}
@@ -96,7 +96,7 @@ class Linear : public Func<Scal> {
   const Vect origin_;
 };
 
-class Const : public Func<Scal> {
+class Const final : public Func<Scal> {
  public:
   explicit Const(int seed) : Func<Scal>(seed), const_(1 + G() * 0.1) {}
   std::function<Scal(Vect)> operator()() const override {
@@ -116,7 +116,7 @@ class Const : public Func<Scal> {
   const Scal const_;
 };
 
-class Sine : public Func<Scal> {
+class Sine final : public Func<Scal> {
  public:
   explicit Sine(int seed)
       : Func<Scal>(seed)
@@ -169,7 +169,7 @@ std::function<Vect(Vect)> Gradient(const Func<Scal>& u) {
 }
 
 template <class F>
-class FuncVect : public Func<Vect> {
+class FuncVect final : public Func<Vect> {
  public:
   FuncVect(int seed) : Func<Vect>(seed), dr_(Vect::dim) {
     for (size_t d = 0; d < Vect::dim; ++d) {
@@ -764,6 +764,7 @@ void VaryFuncVect(
   PrintOrder<FuncVect<Sine>>(estimator, exact);
 }
 
+template <int dummy_ = 0>
 void TestMesh() {
   std::cout << "\n" << __func__ << std::endl;
   {
@@ -943,6 +944,7 @@ void TestMesh() {
       "error.dat");
 }
 
+template <int dummy_ = 0>
 void DumpEmbedCsv() {
   auto pm = CreateMesh(1. / 16);
   auto peb = ConvertMesh<EB>(pm);
@@ -971,6 +973,7 @@ void DumpEmbedCsv() {
   }
 }
 
+template <int dummy_ = 0>
 void DumpEmbedPoly() {
   auto pm = CreateMesh(1. / 16);
   auto peb = ConvertMesh<EB>(pm);
@@ -979,16 +982,16 @@ void DumpEmbedPoly() {
   } while (pm->Pending());
 }
 
+template <int dummy_ = 0>
 void DumpEmbedField() {
   auto pm = CreateMesh(1e-3);
   auto peb = ConvertMesh<EB>(pm);
   DumpField(Eval<FieldCell<Scal>>(Sine(0)(), *peb), "error_eb.dat", *pm);
 }
 
+template <int dummy_ = 0>
 void TestEmbed() {
   std::cout << "\n" << __func__ << std::endl;
-  DumpEmbedPoly();
-  DumpEmbedCsv();
   std::cout << "\n"
             << "eb.Interpolate() returning FieldEmbed<Scal> " << std::endl;
   VaryFunc<FieldEmbed<Scal>, EB>(
@@ -1108,7 +1111,66 @@ void TestEmbed() {
   }
 }
 
+template <int dummy_ = 0>
+void TestEmbedSelected() {
+  {
+    std::cout << "\n" << __func__ << std::endl;
+    auto estimator = [](const Func<Scal>& func, const EB& eb) {
+      auto fc = Eval<FieldCell<Scal>>(func(), eb);
+      return eb.Interpolate(fc, MapCondFace(), 1, 0.);
+    };
+    auto estimator2 = [](const Func<Scal>& func, const EB& eb) {
+      auto fc = Eval<FieldCell<Scal>>(func(), eb);
+      return eb.Interpolate2(fc);
+    };
+    auto exact = [](const Func<Scal>& func, const EB& eb) {
+      return Eval<FieldEmbed<Scal>>(func(), eb);
+    };
+    std::cout << "\n"
+              << "eb.Interpolate() returning FieldEmbed<Scal> " << std::endl;
+    VaryFunc<FieldEmbed<Scal>, EB>(estimator, exact);
+    std::cout << "\n"
+              << "eb.Interpolate2() returning FieldEmbed<Scal> " << std::endl;
+    VaryFunc<FieldEmbed<Scal>, EB>(estimator2, exact);
+  }
+
+  {
+    auto estimator = [](const Func<Scal>& func, const EB& eb) {
+      const auto fcu = Eval<FieldCell<Scal>>(func(), eb);
+      return eb.Gradient(fcu, MapCondFace(), 1, 0.);
+    };
+    auto estimator2 = [](const Func<Scal>& func, const EB& eb) {
+      const auto fcu = Eval<FieldCell<Scal>>(func(), eb);
+      return eb.Gradient2(fcu);
+    };
+    auto exact = [](const Func<Scal>& func, const EB& eb) {
+      FieldEmbed<Scal> fe(eb, 0);
+      for (auto c : eb.CFaces()) {
+        const auto x = eb.GetFaceCenter(c);
+        fe[c] = Gradient(func)(x).dot(eb.GetNormal(c));
+      }
+      for (auto f : eb.Faces()) {
+        const auto x = eb.GetFaceCenter(f);
+        fe[f] = Gradient(func)(x).dot(eb.GetNormal(f));
+      }
+      return fe;
+    };
+    std::cout << "\n"
+              << "eb.Gradient() returning FieldEmbed<Scal>" << std::endl;
+    VaryFunc<FieldEmbed<Scal>, EB>(estimator, exact);
+    std::cout << "\n"
+              << "eb.Gradient2() returning FieldEmbed<Scal>" << std::endl;
+    VaryFunc<FieldEmbed<Scal>, EB>(estimator2, exact);
+  }
+}
+
 int main() {
+#if 0
   TestMesh();
   TestEmbed();
+  DumpEmbedPoly();
+  DumpEmbedCsv();
+#else
+  TestEmbedSelected();
+#endif
 }

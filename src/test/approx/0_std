@@ -1,0 +1,27 @@
+[ 16%] Built target timer
+[ 50%] Built target solver
+[ 66%] Built target approx
+[ 83%] Built target suspender
+[100%] Built target t.approx
+
+TestEmbedSelected
+
+eb.Interpolate() returning FieldEmbed<Scal> 
+> func=Quadratic
+>> regular faces between regular cells:
+   order [error]: min= 2.000 [ 2.500e-07]   max= 2.000 [ 2.500e-07]   mean= 2.000 [ 2.500e-07]
+>> regular faces near cut cell:
+   order [error]: min= 0.864 [ 1.237e-06]   max= 1.097 [ 1.704e-06]   mean= 0.994 [ 9.212e-05]
+>> cut faces:
+   order [error]: min= 0.965 [ 2.694e-05]   max= 1.038 [ 2.977e-05]   mean= 0.995 [ 3.162e-04]
+>> embed faces:
+   order [error]: min= 0.926 [ 3.747e-05]   max= 1.053 [ 4.462e-05]   mean= 0.994 [ 3.996e-04]
+> func=Sine
+>> regular faces between regular cells:
+   order [error]: min= 2.010 [ 3.745e-06]   max= 2.051 [ 3.745e-06]   mean= 2.030 [ 3.760e-06]
+>> regular faces near cut cell:
+   order [error]: min= 0.809 [ 1.119e-05]   max= 1.374 [ 7.553e-06]   mean= 1.045 [ 1.483e-04]
+>> cut faces:
+   order [error]: min= 0.917 [ 2.036e-05]   max= 1.141 [ 1.098e-04]   mean= 1.013 [ 4.863e-04]
+>> embed faces:
+   order [error]: min= 0.906 [ 5.255e-04]   max= 1.153 [ 1.200e-03]   mean= 1.016 [ 6.947e-04]
