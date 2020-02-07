@@ -17,6 +17,69 @@
 #include "reconst.h"
 #include "solver.h"
 
+template <class Scal, size_t N>
+static std::array<Scal, N> Mul(
+    std::array<Scal, N * N> a, std::array<Scal, N> x) {
+  using Int = size_t;
+  std::array<Scal, N> r;
+  for (Int i = 0; i < N; ++i) {
+    r[i] = 0;
+    for (Int j = 0; j < N; ++j) {
+      r[i] += a[i * N + j] * x[j];
+    }
+  }
+  return r;
+}
+
+// Solves linear system a*x=b.
+template <class Scal, size_t N>
+static std::array<Scal, N> SolveLinear(
+    std::array<Scal, N * N> a, std::array<Scal, N> b) {
+  using Int = size_t;
+  auto aa = [&a](Int i, Int j) -> Scal& { return a[i * N + j]; };
+  auto swaprows = [&aa, &b](Int i, Int ip) {
+    if (i == ip) {
+      return;
+    }
+    for (Int j = 0; j < N; ++j) {
+      std::swap(aa(i, j), aa(ip, j));
+    }
+    std::swap(b[i], b[ip]);
+  };
+  auto ipivot = [&aa](const Int j) {
+    Int imax = j;
+    for (Int i = j + 1; i < N; ++i) {
+      if (std::abs(aa(i, j)) > std::abs(aa(imax, j))) {
+        imax = i;
+      }
+    }
+    return imax;
+  };
+  auto addrow = [&aa, &b](Int i, Int ip, Scal ap) {
+    for (Int j = 0; j < N; ++j) {
+      aa(i, j) += aa(ip, j) * ap;
+    }
+    b[i] += b[ip] * ap;
+  };
+  for (Int j = 0; j < N; ++j) {
+    const Int ip = ipivot(j);
+    swaprows(ip, j);
+    for (Int i = j + 1; i < N; ++i) {
+      addrow(i, j, -aa(i, j) / aa(j, j));
+    }
+  }
+  std::array<Scal, N> x;
+  for (Int i = N; i > 0;) {
+    --i;
+    Scal t = b[i];
+    for (Int j = i + 1; j < N; ++j) {
+      t -= aa(i, j) * x[j];
+    }
+    x[i] = t / aa(i, i);
+  }
+  return x;
+}
+
 template <class Scal>
 struct CondEmbed {
   enum class Type { value, gradient };
@@ -523,14 +586,13 @@ class Embed {
   // Returns:
   // field on embedded boundaries [s]
   template <class T>
-  FieldEmbed<T> Interpolate2(
-      const FieldCell<T>& fcu) const {
+  FieldEmbed<T> Interpolate2(const FieldCell<T>& fcu) const {
     // interpolate from cells to faces with zero-derivative conditions
     auto feu = Interpolate(fcu, MapCondFace(), 1, T(0));
 
     FieldCell<Vect> fcg(m, Vect(0));
 
-    for (size_t i = 0; i < 100; ++i) {
+    for (size_t i = 0; i < 20; ++i) {
       // compute gradient from current interpolant
       fcg = Gradient(feu);
 
@@ -547,9 +609,9 @@ class Embed {
           const Vect xm = eb.GetCellCenter(cm);
           const Vect xp = eb.GetCellCenter(cp);
           const Vect xf = eb.GetFaceCenter(f);
-          feu[f] =
-              (fcu[cm] + fcg[cm].dot(xf - xm) + fcu[cp] + fcg[cp].dot(xf - xp)) *
-              0.5;
+          feu[f] = (fcu[cm] + fcg[cm].dot(xf - xm) + fcu[cp] +
+                    fcg[cp].dot(xf - xp)) *
+                   0.5;
         }
       }
       for (auto c : eb.CFaces()) {
@@ -1134,4 +1196,3 @@ class Embed {
   // volume of neighbor cells
   FieldCell<Scal> fcvst3_; // volume of neighbors in stencil 3x3x3
 };
-
