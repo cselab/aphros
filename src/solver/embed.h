@@ -7,6 +7,7 @@
 #include <limits>
 #include <stdexcept>
 #include <unordered_map>
+#include <utility>
 
 #include "approx.h"
 #include "dump/dumper.h"
@@ -627,7 +628,7 @@ class Embed {
 
     for (size_t i = 0; i < 20; ++i) {
       // compute gradient from current interpolant
-      fcg = Gradient(feu);
+      fcg = Gradient2(feu);
 
       // goal: compute first-order accurate gradient
       // and using the gradient, do second-order accurate interpolation
@@ -775,6 +776,43 @@ class Embed {
     }
     return fcg;
   }
+  // feu: field on embedded boundaries [a]
+  // Returns:
+  // gradient on cells [a]
+  FieldCell<Vect> Gradient2(const FieldEmbed<Scal>& feu) const {
+    auto& eb = *this;
+    FieldCell<Vect> fcg(m, Vect(0));
+    for (auto c : m.AllCells()) {
+      switch (fct_[c]) {
+        case Type::regular: {
+          Vect sum(0);
+          for (auto q : m.Nci(c)) {
+            const IdxFace f = m.GetFace(c, q);
+            sum += m.GetOutwardSurface(c, q) * feu[f];
+          }
+          fcg[c] = sum / m.GetVolume(c);
+          break;
+        }
+        case Type::cut: {
+          std::vector<Vect> xx;
+          std::vector<Scal> uu;
+          xx.push_back(eb.GetFaceCenter(c));
+          uu.push_back(feu[c]);
+          for (auto q : eb.Nci(c)) {
+            const IdxFace f = m.GetFace(c, q);
+            xx.push_back(eb.GetFaceCenter(f));
+            uu.push_back(feu[f]);
+          }
+          auto p = FitLinear(xx, uu);
+          fcg[c] = p.first;
+          break;
+        }
+        case Type::excluded:
+          break;
+      }
+    }
+    return fcg;
+  }
   template <class T>
   FieldCell<T> AverageCutCells(const FieldCell<T>& fcu) const {
     FieldCell<T> fcr = fcu;
@@ -852,7 +890,7 @@ class Embed {
   template <class T>
   FieldEmbed<T> Gradient2(const FieldCell<T>& fcu) const {
     auto feu = Interpolate2(fcu);
-    auto fcg = Gradient(feu);
+    auto fcg = Gradient2(feu);
     FieldEmbed<T> feg(m, T(0));
     for (auto f : eb.Faces()) {
       const IdxCell cm = m.GetCell(f, 0);
@@ -865,6 +903,61 @@ class Embed {
     }
     for (auto c : eb.CFaces()) {
       feg[c] = fcg[c].dot(eb.GetNormal(c));
+    }
+    return feg;
+  }
+  // fcu: field [a]
+  // bc: boundary conditions type, 0: value, 1: grad
+  // bcv: value or normal gradient (grad dot GetNormal)
+  // Returns:
+  // grad dot GetNormal on embedded boundaries [s]
+  template <class T>
+  FieldEmbed<T> Gradient3(const FieldCell<T>& fcu) const {
+    FieldEmbed<T> feg(m, T(0));
+    for (auto f : eb.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      const Scal h = m.GetCellSize()[0];
+      if (GetType(cm) == Type::regular && GetType(cp) == Type::regular) {
+        feg[f] = (fcu[cp] - fcu[cm]) / h;
+      } else {
+        const Vect n = eb.GetNormal(cm);
+        const size_t qz = m.GetNci(cm, f); // f == GetFace(cm, qz)
+        // cp == GetCell(cm, qz)
+        //                                             //
+        //            ---------------------            //
+        //            |         |         |            //
+        //            |   cmy   |   cmxy  |            //
+        //            |         |         |            //
+        //            |\--------|---------|            //
+        //            | \       |         |            //
+        //            |  \  cm  |   cmx   |            //
+        //            |   \     |         |            //
+        //            -----\---------------            //
+        //                                             //
+        const size_t dz = qz / 2; // face direction
+        const size_t dx = (dz + 1) % 3; // other directions
+        const size_t dy = (dz + 2) % 3; // other directions
+        const size_t qx = dx * 2 + (n[dx] < 0 ? 1 : 0);
+        const size_t qy = dy * 2 + (n[dy] < 0 ? 1 : 0);
+        const IdxCell cmx = m.GetCell(cm, qx);
+        const IdxCell cmy = m.GetCell(cm, qy);
+        const IdxCell cmxy = m.GetCell(cmx, qy);
+        const Scal tx =
+            1 - std::abs(eb.GetFaceCenter(f)[dx] - m.GetCenter(f)[dx]) / h;
+        const Scal ty =
+            1 - std::abs(eb.GetFaceCenter(f)[dy] - m.GetCenter(f)[dy]) / h;
+        const Scal g = (fcu[m.GetCell(cm, qz)] - fcu[cm]) / h;
+        const Scal gx = (fcu[m.GetCell(cmx, qz)] - fcu[cmx]) / h;
+        const Scal gy = (fcu[m.GetCell(cmy, qz)] - fcu[cmy]) / h;
+        const Scal gxy = (fcu[m.GetCell(cmxy, qz)] - fcu[cmxy]) / h;
+        const Scal gy0 = gx * tx + g * (1 - tx);
+        const Scal gy1 = gxy * tx + gy * (1 - tx);
+        feg[f] = gy0 * ty + gy1 * (1 - ty);
+      }
+    }
+    for (auto c : eb.CFaces()) {
+      feg[c] = 0;
     }
     return feg;
   }

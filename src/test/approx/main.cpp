@@ -1113,7 +1113,7 @@ void TestEmbed() {
 
 template <int dummy_ = 0>
 void TestEmbedSelected() {
-  {
+  if (0) {
     std::cout << "\n" << __func__ << std::endl;
     auto estimator = [](const Func<Scal>& func, const EB& eb) {
       auto fc = Eval<FieldCell<Scal>>(func(), eb);
@@ -1134,7 +1134,7 @@ void TestEmbedSelected() {
     VaryFunc<FieldEmbed<Scal>, EB>(estimator2, exact);
   }
 
-  {
+  if (1) {
     auto estimator = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb);
       return eb.Gradient(fcu, MapCondFace(), 1, 0.);
@@ -1142,6 +1142,10 @@ void TestEmbedSelected() {
     auto estimator2 = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb);
       return eb.Gradient2(fcu);
+    };
+    auto estimator3 = [](const Func<Scal>& func, const EB& eb) {
+      const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
+      return eb.Gradient3(fcu);
     };
     auto exact = [](const Func<Scal>& func, const EB& eb) {
       FieldEmbed<Scal> fe(eb, 0);
@@ -1158,9 +1162,32 @@ void TestEmbedSelected() {
     std::cout << "\n"
               << "eb.Gradient() returning FieldEmbed<Scal>" << std::endl;
     VaryFunc<FieldEmbed<Scal>, EB>(estimator, exact);
+    //std::cout << "\n"
+    //          << "eb.Gradient2() returning FieldEmbed<Scal>" << std::endl;
+    //VaryFunc<FieldEmbed<Scal>, EB>(estimator2, exact);
     std::cout << "\n"
-              << "eb.Gradient2() returning FieldEmbed<Scal>" << std::endl;
-    VaryFunc<FieldEmbed<Scal>, EB>(estimator2, exact);
+              << "eb.Gradient3() returning FieldEmbed<Scal>" << std::endl;
+    VaryFunc<FieldEmbed<Scal>, EB>(estimator3, exact);
+  }
+
+  if (0) {
+    auto estimator = [](const Func<Scal>& func, const EB& eb) {
+      auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
+      return eb.Gradient(fe);
+    };
+    auto estimator2 = [](const Func<Scal>& func, const EB& eb) {
+      auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
+      return eb.Gradient2(fe);
+    };
+    auto exact = [](const Func<Scal>& func, const EB& eb) {
+      return Eval<FieldCell<Vect>>(Gradient(func), eb);
+    };
+    std::cout << "\n"
+              << "eb.Gradient() returning FieldCell<Vect>" << std::endl;
+    VaryFunc<FieldCell<Vect>, EB>(estimator, exact);
+    std::cout << "\n"
+              << "eb.Gradient2() returning FieldCell<Vect>" << std::endl;
+    VaryFunc<FieldCell<Vect>, EB>(estimator2, exact);
   }
 }
 
