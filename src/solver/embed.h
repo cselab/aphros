@@ -612,6 +612,7 @@ class Embed {
     InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
     return feu;
   }
+  // Interpolation using gradient with iterative correction.
   // High order gradient-based interpolation with extrapolation
   // boundary conditions.
   // fcu: field [a]
@@ -620,7 +621,7 @@ class Embed {
   // Returns:
   // field on embedded boundaries [s]
   template <class T>
-  FieldEmbed<T> Interpolate2(const FieldCell<T>& fcu) const {
+  FieldEmbed<T> InterpolateIterative(const FieldCell<T>& fcu) const {
     // interpolate from cells to faces with zero-derivative conditions
     auto feu = Interpolate(fcu, MapCondFace(), 1, T(0));
 
@@ -628,7 +629,7 @@ class Embed {
 
     for (size_t i = 0; i < 20; ++i) {
       // compute gradient from current interpolant
-      fcg = Gradient2(feu);
+      fcg = GradientLinearFit(feu);
 
       // goal: compute first-order accurate gradient
       // and using the gradient, do second-order accurate interpolation
@@ -776,10 +777,11 @@ class Embed {
     }
     return fcg;
   }
+  // Gradient from linear fit to face centers.
   // feu: field on embedded boundaries [a]
   // Returns:
   // gradient on cells [a]
-  FieldCell<Vect> Gradient2(const FieldEmbed<Scal>& feu) const {
+  FieldCell<Vect> GradientLinearFit(const FieldEmbed<Scal>& feu) const {
     auto& eb = *this;
     FieldCell<Vect> fcg(m, Vect(0));
     for (auto c : m.AllCells()) {
@@ -853,6 +855,7 @@ class Embed {
     }
     return fcr;
   }
+  // Gradient on faces with limited denominator.
   // fcu: field [a]
   // bc: boundary conditions type, 0: value, 1: grad
   // bcv: value or normal gradient (grad dot GetNormal)
@@ -882,15 +885,16 @@ class Embed {
     GradientB(fcu, mfc, m, feu.GetFieldFace());
     return feu;
   }
+  // Gradient from iterative interpolation.
   // fcu: field [a]
   // bc: boundary conditions type, 0: value, 1: grad
   // bcv: value or normal gradient (grad dot GetNormal)
   // Returns:
   // grad dot GetNormal on embedded boundaries [s]
   template <class T>
-  FieldEmbed<T> Gradient2(const FieldCell<T>& fcu) const {
-    auto feu = Interpolate2(fcu);
-    auto fcg = Gradient2(feu);
+  FieldEmbed<T> GradientIterative(const FieldCell<T>& fcu) const {
+    auto feu = InterpolateIterative(fcu);
+    auto fcg = GradientLinearFit(feu);
     FieldEmbed<T> feg(m, T(0));
     for (auto f : eb.Faces()) {
       const IdxCell cm = m.GetCell(f, 0);
@@ -906,13 +910,14 @@ class Embed {
     }
     return feg;
   }
+  // Bilinear interpolation for gradient (Schwartz,2006)
   // fcu: field [a]
   // bc: boundary conditions type, 0: value, 1: grad
   // bcv: value or normal gradient (grad dot GetNormal)
   // Returns:
   // grad dot GetNormal on embedded boundaries [s]
   template <class T>
-  FieldEmbed<T> Gradient3(
+  FieldEmbed<T> GradientBilinear(
       const FieldCell<T>& fcu, const GMap<Scal, IdxCell>& bc) const {
     FieldEmbed<T> feg(m, T(0));
     for (auto f : eb.Faces()) {
