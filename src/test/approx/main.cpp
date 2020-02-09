@@ -843,9 +843,9 @@ template <class Field, class MEB>
 void VaryFunc(
     std::function<Field(const Func<Scal>&, const MEB&)> estimator,
     std::function<Field(const Func<Scal>&, const MEB&)> exact) {
-  PrintOrder<QuadraticBilinear>(estimator, exact);
-  PrintOrder<Trilinear>(estimator, exact);
   PrintOrder<Linear>(estimator, exact);
+  PrintOrder<Trilinear>(estimator, exact);
+  PrintOrder<QuadraticBilinear>(estimator, exact);
   PrintOrder<Sine>(estimator, exact);
 }
 
@@ -1206,15 +1206,19 @@ void TestEmbed() {
 
 template <int dummy_ = 0>
 void TestEmbedSelected() {
-  if (0) {
+  if (1) {
     std::cout << "\n" << __func__ << std::endl;
     auto estimator = [](const Func<Scal>& func, const EB& eb) {
       auto fc = Eval<FieldCell<Scal>>(func(), eb);
       return eb.Interpolate(fc, MapCondFace(), 1, 0.);
     };
-    auto estimator2 = [](const Func<Scal>& func, const EB& eb) {
-      auto fc = Eval<FieldCell<Scal>>(func(), eb);
-      return eb.InterpolateIterative(fc);
+    auto estimator_bi = [](const Func<Scal>& func, const EB& eb) {
+      const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
+      GMap<Scal, IdxCell> bc;
+      for (auto c : eb.CFaces()) {
+        bc[c] = func()(eb.GetFaceCenter(c));
+      }
+      return eb.InterpolateBilinear(fcu, bc);
     };
     auto exact = [](const Func<Scal>& func, const EB& eb) {
       return Eval<FieldEmbed<Scal>>(func(), eb);
@@ -1223,21 +1227,17 @@ void TestEmbedSelected() {
               << "eb.Interpolate() returning FieldEmbed<Scal> " << std::endl;
     VaryFunc<FieldEmbed<Scal>, EB>(estimator, exact);
     std::cout << "\n"
-              << "eb.InterpolateIterative() returning FieldEmbed<Scal> "
+              << "eb.InterpolateBilinear() returning FieldEmbed<Scal> "
               << std::endl;
-    VaryFunc<FieldEmbed<Scal>, EB>(estimator2, exact);
+    VaryFunc<FieldEmbed<Scal>, EB>(estimator_bi, exact);
   }
 
-  if (1) {
+  if (0) {
     auto estimator = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb);
       return eb.Gradient(fcu, MapCondFace(), 1, 0.);
     };
-    auto estimator2 = [](const Func<Scal>& func, const EB& eb) {
-      const auto fcu = Eval<FieldCell<Scal>>(func(), eb);
-      return eb.GradientIterative(fcu);
-    };
-    auto estimator3 = [](const Func<Scal>& func, const EB& eb) {
+    auto estimator_bi = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
       GMap<Scal, IdxCell> bc;
       for (auto c : eb.CFaces()) {
@@ -1260,14 +1260,10 @@ void TestEmbedSelected() {
     std::cout << "\n"
               << "eb.Gradient() returning FieldEmbed<Scal>" << std::endl;
     VaryFunc<FieldEmbed<Scal>, EB>(estimator, exact);
-    // std::cout << "\n"
-    //          << "eb.GradientIterative() returning FieldEmbed<Scal>" <<
-    //          std::endl;
-    // VaryFunc<FieldEmbed<Scal>, EB>(estimator2, exact);
     std::cout << "\n"
               << "eb.GradientBilinear() returning FieldEmbed<Scal>"
               << std::endl;
-    VaryFunc<FieldEmbed<Scal>, EB>(estimator3, exact);
+    VaryFunc<FieldEmbed<Scal>, EB>(estimator_bi, exact);
   }
 
   if (0) {

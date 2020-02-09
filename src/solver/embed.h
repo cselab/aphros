@@ -965,7 +965,30 @@ class Embed {
     }
     return ffb;
   }
-  // Bilinear interpolation for gradient (Schwartz,2006)
+  // Gradient with bilinear interpolation in cut faces
+  // and linear fit in embed faces.
+  // fcu: field [a]
+  // bc: boundary conditions type, 0: value, 1: grad
+  // bcv: value or normal gradient (grad dot GetNormal)
+  // Returns:
+  // grad dot GetNormal on embedded boundaries [s]
+  template <class T>
+  FieldEmbed<T> InterpolateBilinear(
+      const FieldCell<T>& fcu, const GMap<Scal, IdxCell>& bc) const {
+    FieldEmbed<T> feu(m, T(0));
+    for (auto f : eb.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      feu[f] = (fcu[cp] + fcu[cm]) * 0.5;
+    }
+    feu.GetFieldFace() = InterpolateBilinearFromRegular(feu.GetFieldFace());
+    for (auto c : eb.CFaces()) {
+      feu[c] = bc.at(c);
+    }
+    return feu;
+  }
+  // Intepolaton with bilinear interpolation in cut faces
+  // and linear fit in embed faces.
   // fcu: field [a]
   // bc: boundary conditions type, 0: value, 1: grad
   // bcv: value or normal gradient (grad dot GetNormal)
