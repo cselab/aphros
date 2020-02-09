@@ -912,7 +912,8 @@ class Embed {
   // Returns:
   // grad dot GetNormal on embedded boundaries [s]
   template <class T>
-  FieldEmbed<T> Gradient3(const FieldCell<T>& fcu) const {
+  FieldEmbed<T> Gradient3(
+      const FieldCell<T>& fcu, const GMap<Scal, IdxCell>& bc) const {
     FieldEmbed<T> feg(m, T(0));
     for (auto f : eb.Faces()) {
       const IdxCell cm = m.GetCell(f, 0);
@@ -957,7 +958,15 @@ class Embed {
       }
     }
     for (auto c : eb.CFaces()) {
-      feg[c] = 0;
+      const Scal ubc = bc.at(c);
+      std::vector<Vect> xx;
+      std::vector<Scal> uu;
+      for (auto cn : eb.Stencil(c)) {
+        xx.push_back(m.GetCenter(cn));
+        uu.push_back(fcu[cn] - ubc);
+      }
+      auto p = FitLinear(xx, uu);
+      feg[c] = p.first.dot(eb.GetNormal(c));
     }
     return feg;
   }
