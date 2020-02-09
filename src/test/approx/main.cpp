@@ -1121,7 +1121,7 @@ void TestEmbedSelected() {
     };
     auto estimator2 = [](const Func<Scal>& func, const EB& eb) {
       auto fc = Eval<FieldCell<Scal>>(func(), eb);
-      return eb.Interpolate2(fc);
+      return eb.InterpolateIterative(fc);
     };
     auto exact = [](const Func<Scal>& func, const EB& eb) {
       return Eval<FieldEmbed<Scal>>(func(), eb);
@@ -1130,7 +1130,8 @@ void TestEmbedSelected() {
               << "eb.Interpolate() returning FieldEmbed<Scal> " << std::endl;
     VaryFunc<FieldEmbed<Scal>, EB>(estimator, exact);
     std::cout << "\n"
-              << "eb.Interpolate2() returning FieldEmbed<Scal> " << std::endl;
+              << "eb.InterpolateIterative() returning FieldEmbed<Scal> "
+              << std::endl;
     VaryFunc<FieldEmbed<Scal>, EB>(estimator2, exact);
   }
 
@@ -1141,11 +1142,15 @@ void TestEmbedSelected() {
     };
     auto estimator2 = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb);
-      return eb.Gradient2(fcu);
+      return eb.GradientIterative(fcu);
     };
     auto estimator3 = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
-      return eb.Gradient3(fcu);
+      GMap<Scal, IdxCell> bc;
+      for (auto c : eb.CFaces()) {
+        bc[c] = func()(eb.GetFaceCenter(c));
+      }
+      return eb.GradientBilinear(fcu, bc);
     };
     auto exact = [](const Func<Scal>& func, const EB& eb) {
       FieldEmbed<Scal> fe(eb, 0);
@@ -1162,11 +1167,13 @@ void TestEmbedSelected() {
     std::cout << "\n"
               << "eb.Gradient() returning FieldEmbed<Scal>" << std::endl;
     VaryFunc<FieldEmbed<Scal>, EB>(estimator, exact);
-    //std::cout << "\n"
-    //          << "eb.Gradient2() returning FieldEmbed<Scal>" << std::endl;
-    //VaryFunc<FieldEmbed<Scal>, EB>(estimator2, exact);
+    // std::cout << "\n"
+    //          << "eb.GradientIterative() returning FieldEmbed<Scal>" <<
+    //          std::endl;
+    // VaryFunc<FieldEmbed<Scal>, EB>(estimator2, exact);
     std::cout << "\n"
-              << "eb.Gradient3() returning FieldEmbed<Scal>" << std::endl;
+              << "eb.GradientBilinear() returning FieldEmbed<Scal>"
+              << std::endl;
     VaryFunc<FieldEmbed<Scal>, EB>(estimator3, exact);
   }
 
@@ -1177,7 +1184,7 @@ void TestEmbedSelected() {
     };
     auto estimator2 = [](const Func<Scal>& func, const EB& eb) {
       auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-      return eb.Gradient2(fe);
+      return eb.GradientLinearFit(fe);
     };
     auto exact = [](const Func<Scal>& func, const EB& eb) {
       return Eval<FieldCell<Vect>>(Gradient(func), eb);
