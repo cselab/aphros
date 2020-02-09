@@ -933,32 +933,36 @@ class Embed {
         //                                             //
         //            ---------------------            //
         //            |         |         |            //
-        //            |   cmy   |   cmxy  |            //
+        //            |   cm01  |   cm11  |            //
         //            |         |         |            //
         //            |\--------|---------|            //
         //            | \       |         |            //
-        //            |  \  cm  |   cmx   |            //
+        //            |  \ cm00 |   cm10  |            //
         //            |   \     |         |            //
         //            -----\---------------            //
         //                                             //
         const size_t dz = qz / 2; // face direction
-        const size_t dx = (dz + 1) % 3; // other directions
-        const size_t dy = (dz + 2) % 3; // other directions
+        const size_t dx = (dz + 1) % dim; // other directions
+        const size_t dy = (dz + 2) % dim; // other directions
         const size_t qx = dx * 2 + (n[dx] < 0 ? 1 : 0);
         const size_t qy = dy * 2 + (n[dy] < 0 ? 1 : 0);
-        const IdxCell cmx = m.GetCell(cm, qx);
-        const IdxCell cmy = m.GetCell(cm, qy);
-        const IdxCell cmxy = m.GetCell(cmx, qy);
+        const IdxCell cm00 = cm;
+        const IdxCell cm10 = m.GetCell(cm00, qx);
+        const IdxCell cm01 = m.GetCell(cm00, qy);
+        const IdxCell cm11 = m.GetCell(cm10, qy);
         const Scal tx =
             1 - std::abs(eb.GetFaceCenter(f)[dx] - m.GetCenter(f)[dx]) / h;
         const Scal ty =
             1 - std::abs(eb.GetFaceCenter(f)[dy] - m.GetCenter(f)[dy]) / h;
-        const Scal g = (fcu[m.GetCell(cm, qz)] - fcu[cm]) / h;
-        const Scal gx = (fcu[m.GetCell(cmx, qz)] - fcu[cmx]) / h;
-        const Scal gy = (fcu[m.GetCell(cmy, qz)] - fcu[cmy]) / h;
-        const Scal gxy = (fcu[m.GetCell(cmxy, qz)] - fcu[cmxy]) / h;
-        const Scal gy0 = gx * tx + g * (1 - tx);
-        const Scal gy1 = gxy * tx + gy * (1 - tx);
+        auto g = [&fcu, this, qz, h](IdxCell c) {
+          return (fcu[m.GetCell(c, qz)] - fcu[c]) / h;
+        };
+        const Scal g00 = g(cm00);
+        const Scal g10 = g(cm10);
+        const Scal g01 = g(cm01);
+        const Scal g11 = g(cm11);
+        const Scal gy0 = g00 * tx + g10 * (1 - tx);
+        const Scal gy1 = g01 * tx + g11 * (1 - tx);
         feg[f] = gy0 * ty + gy1 * (1 - ty);
       }
     }
