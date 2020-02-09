@@ -910,6 +910,61 @@ class Embed {
     }
     return feg;
   }
+  // Updates flux in cut faces using bilinear interpolation from regular faces
+  // (Schwartz,2006).
+  // feu: field [a]
+  // bc: boundary conditions type, 0: value, 1: grad
+  // bcv: value or normal gradient (grad dot GetNormal)
+  // Returns:
+  // grad dot GetNormal on embedded boundaries [s]
+  template <class T>
+  FieldFace<T> InterpolateBilinearFromRegular(const FieldFace<T>& ffu) const {
+    FieldFace<T> ffb(m, T(0));
+    for (auto f : eb.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      const Scal h = m.GetCellSize()[0];
+      if (GetType(cm) == Type::regular && GetType(cp) == Type::regular) {
+        ffb[f] = ffu[f];
+      } else {
+        const size_t qz = m.GetNci(cm, f); // f == GetFace(c, qz)
+        //                                             //
+        //            ---------------------            //
+        //            |         |         |            //
+        //            |   c01   |   c11   |            //
+        //            |         |         |            //
+        //            |\--------|---------|            //
+        //            | \       |         |            //
+        //            |  \ c00  |   c10   |            //
+        //            |   \     |         |            //
+        //            -----\---------------            //
+        //                                             //
+        const size_t dz = qz / 2; // face direction
+        const size_t dx = (dz + 1) % dim; // other directions
+        const size_t dy = (dz + 2) % dim; // other directions
+        const Vect n = eb.GetNormal(cm);
+        const size_t qx = dx * 2 + (n[dx] < 0 ? 1 : 0);
+        const size_t qy = dy * 2 + (n[dy] < 0 ? 1 : 0);
+        const IdxCell c00 = cm;
+        const IdxCell c10 = m.GetCell(c00, qx);
+        const IdxCell c01 = m.GetCell(c00, qy);
+        const IdxCell c11 = m.GetCell(c10, qy);
+        const IdxFace f00 = m.GetFace(c00, qz);
+        const IdxFace f10 = m.GetFace(c10, qz);
+        const IdxFace f01 = m.GetFace(c01, qz);
+        const IdxFace f11 = m.GetFace(c11, qz);
+        assert(f == f00);
+        const Scal tx =
+            1 - std::abs(eb.GetFaceCenter(f)[dx] - m.GetCenter(f)[dx]) / h;
+        const Scal ty =
+            1 - std::abs(eb.GetFaceCenter(f)[dy] - m.GetCenter(f)[dy]) / h;
+        const Scal fy0 = ffu[f00] * tx + ffu[f10] * (1 - tx);
+        const Scal fy1 = ffu[f01] * tx + ffu[f11] * (1 - tx);
+        ffb[f] = fy0 * ty + fy1 * (1 - ty);
+      }
+    }
+    return ffb;
+  }
   // Bilinear interpolation for gradient (Schwartz,2006)
   // fcu: field [a]
   // bc: boundary conditions type, 0: value, 1: grad
@@ -924,48 +979,9 @@ class Embed {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       const Scal h = m.GetCellSize()[0];
-      if (GetType(cm) == Type::regular && GetType(cp) == Type::regular) {
-        feg[f] = (fcu[cp] - fcu[cm]) / h;
-      } else {
-        const Vect n = eb.GetNormal(cm);
-        const size_t qz = m.GetNci(cm, f); // f == GetFace(cm, qz)
-        // cp == GetCell(cm, qz)
-        //                                             //
-        //            ---------------------            //
-        //            |         |         |            //
-        //            |   cm01  |   cm11  |            //
-        //            |         |         |            //
-        //            |\--------|---------|            //
-        //            | \       |         |            //
-        //            |  \ cm00 |   cm10  |            //
-        //            |   \     |         |            //
-        //            -----\---------------            //
-        //                                             //
-        const size_t dz = qz / 2; // face direction
-        const size_t dx = (dz + 1) % dim; // other directions
-        const size_t dy = (dz + 2) % dim; // other directions
-        const size_t qx = dx * 2 + (n[dx] < 0 ? 1 : 0);
-        const size_t qy = dy * 2 + (n[dy] < 0 ? 1 : 0);
-        const IdxCell cm00 = cm;
-        const IdxCell cm10 = m.GetCell(cm00, qx);
-        const IdxCell cm01 = m.GetCell(cm00, qy);
-        const IdxCell cm11 = m.GetCell(cm10, qy);
-        const Scal tx =
-            1 - std::abs(eb.GetFaceCenter(f)[dx] - m.GetCenter(f)[dx]) / h;
-        const Scal ty =
-            1 - std::abs(eb.GetFaceCenter(f)[dy] - m.GetCenter(f)[dy]) / h;
-        auto g = [&fcu, this, qz, h](IdxCell c) {
-          return (fcu[m.GetCell(c, qz)] - fcu[c]) / h;
-        };
-        const Scal g00 = g(cm00);
-        const Scal g10 = g(cm10);
-        const Scal g01 = g(cm01);
-        const Scal g11 = g(cm11);
-        const Scal gy0 = g00 * tx + g10 * (1 - tx);
-        const Scal gy1 = g01 * tx + g11 * (1 - tx);
-        feg[f] = gy0 * ty + gy1 * (1 - ty);
-      }
+      feg[f] = (fcu[cp] - fcu[cm]) / h;
     }
+    feg.GetFieldFace() = InterpolateBilinearFromRegular(feg.GetFieldFace());
     for (auto c : eb.CFaces()) {
       const Scal ubc = bc.at(c);
       std::vector<Vect> xx;
