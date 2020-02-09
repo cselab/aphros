@@ -72,6 +72,97 @@ class Quadratic final : public Func<Scal> {
   const Vect origin_;
 };
 
+class QuadraticBilinear final : public Func<Scal> {
+ public:
+  const size_t dim = Vect::dim;
+  explicit QuadraticBilinear(int seed)
+      : Func<Scal>(seed), origin_(Vect(1) + Vect(G(), G(), G()) * 0.1) {}
+  std::function<Scal(Vect)> operator()() const override {
+    return [this](Vect v) {
+      v -= origin_;
+      const Scal x(v[0]), y(v[1]), z(v[2]);
+      return x * x * y * z + y * y * x * z + z * z * x * y;
+    };
+  }
+  std::function<Scal(Vect)> Dx(size_t d) const override {
+    return [d, this](Vect v) {
+      v -= origin_;
+      const size_t dx = d;
+      const size_t dy = (d + 1) % dim;
+      const size_t dz = (d + 2) % dim;
+      const Scal x(v[dx]), y(v[dy]), z(v[dz]);
+      return 2 * x * y * z + y * y * z + z * z * y;
+    };
+  }
+  std::function<Scal(Vect)> Dxx(size_t d, size_t dd) const override {
+    return [d, dd, this](Vect v) {
+      v -= origin_;
+      const size_t dx = d;
+      size_t dy = (d + 1) % dim;
+      size_t dz = (d + 2) % dim;
+      if (d == dd) {
+        const Scal y(v[dy]), z(v[dz]);
+        return 2 * y * z;
+      }
+      if (dy != dd) {
+        std::swap(dy, dz);
+      }
+      const Scal x(v[dx]), y(v[dy]), z(v[dz]);
+      return 2 * x * z + 2 * y * z + z * z;
+    };
+  }
+  static std::string GetName() {
+    return "QuadraticBilinear";
+  }
+
+ private:
+  const Vect origin_;
+};
+
+class Trilinear final : public Func<Scal> {
+ public:
+  const size_t dim = Vect::dim;
+  explicit Trilinear(int seed)
+      : Func<Scal>(seed), origin_(Vect(1) + Vect(G(), G(), G()) * 0.1) {}
+  std::function<Scal(Vect)> operator()() const override {
+    return [this](Vect v) {
+      v -= origin_;
+      const Scal x(v[0]), y(v[1]), z(v[2]);
+      return  x * y * z;
+    };
+  }
+  std::function<Scal(Vect)> Dx(size_t d) const override {
+    return [d, this](Vect v) {
+      v -= origin_;
+      const size_t dy = (d + 1) % dim;
+      const size_t dz = (d + 2) % dim;
+      const Scal y(v[dy]), z(v[dz]);
+      return y * z;
+    };
+  }
+  std::function<Scal(Vect)> Dxx(size_t d, size_t dd) const override {
+    return [d, dd, this](Vect v) {
+      v -= origin_;
+      size_t dy = (d + 1) % dim;
+      size_t dz = (d + 2) % dim;
+      if (d == dd) {
+        return 0.;
+      }
+      if (dy != dd) {
+        std::swap(dy, dz);
+      }
+      return v[dz];
+    };
+  }
+  static std::string GetName() {
+    return "Trilinear";
+  }
+
+ private:
+  const Vect origin_;
+};
+
+
 class Linear final : public Func<Scal> {
  public:
   explicit Linear(int seed)
@@ -752,7 +843,9 @@ template <class Field, class MEB>
 void VaryFunc(
     std::function<Field(const Func<Scal>&, const MEB&)> estimator,
     std::function<Field(const Func<Scal>&, const MEB&)> exact) {
-  PrintOrder<Quadratic>(estimator, exact);
+  PrintOrder<QuadraticBilinear>(estimator, exact);
+  PrintOrder<Trilinear>(estimator, exact);
+  PrintOrder<Linear>(estimator, exact);
   PrintOrder<Sine>(estimator, exact);
 }
 
@@ -760,7 +853,7 @@ template <class Field, class MEB>
 void VaryFuncVect(
     std::function<Field(const Func<Vect>&, const MEB&)> estimator,
     std::function<Field(const Func<Vect>&, const MEB&)> exact) {
-  PrintOrder<FuncVect<Quadratic>>(estimator, exact);
+  PrintOrder<FuncVect<QuadraticBilinear>>(estimator, exact);
   PrintOrder<FuncVect<Sine>>(estimator, exact);
 }
 
