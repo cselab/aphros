@@ -1227,7 +1227,7 @@ class Embed {
   FieldEmbed<T> GradientBilinear(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
     MapCell<T> mcu;
-    for (auto c : eb.CFaces()) {
+    for (auto c : eb.SuCFaces()) {
       mcu[c] = bcv;
     }
     auto feg = GradientBilinear(fcu, bc, mcu);
