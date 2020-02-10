@@ -1084,127 +1084,7 @@ void DumpEmbedField() {
 template <int dummy_ = 0>
 void TestEmbed() {
   std::cout << "\n" << __func__ << std::endl;
-  std::cout << "\n"
-            << "eb.Interpolate() returning FieldEmbed<Scal> " << std::endl;
-  VaryFunc<FieldEmbed<Scal>, EB>(
-      [](const Func<Scal>& func, const EB& eb) {
-        auto fc = Eval<FieldCell<Scal>>(func(), eb);
-        return eb.Interpolate(fc, MapCondFace(), 1, 0.);
-      },
-      [](const Func<Scal>& func, const EB& eb) {
-        return Eval<FieldEmbed<Scal>>(func(), eb);
-      });
 
-  std::cout << "\n"
-            << "eb.Gradient() returning FieldEmbed<Scal>" << std::endl;
-  VaryFunc<FieldEmbed<Scal>, EB>(
-      [](const Func<Scal>& func, const EB& eb) {
-        const auto fcu = Eval<FieldCell<Scal>>(func(), eb);
-        return eb.Gradient(fcu, MapCondFace(), 1, 0.);
-      },
-      [](const Func<Scal>& func, const EB& eb) {
-        FieldEmbed<Scal> fe(eb, 0);
-        for (auto c : eb.CFaces()) {
-          fe[c] = 0;
-        }
-        for (auto f : eb.Faces()) {
-          const auto x = eb.GetFaceCenter(f);
-          fe[f] = Gradient(func)(x).dot(eb.GetNormal(f));
-        }
-        return fe;
-      });
-
-  std::cout << "\n"
-            << "eb.Gradient() returning FieldCell<Vect>" << std::endl;
-  VaryFunc<FieldCell<Vect>, EB>(
-      [](const Func<Scal>& func, const EB& eb) {
-        auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-        return eb.Gradient(fe);
-      },
-      [](const Func<Scal>& func, const EB& eb) {
-        return Eval<FieldCell<Vect>>(Gradient(func), eb);
-      });
-
-  using F = Quadratic;
-  DumpField(
-      GetOrderField<F, FieldCell<Scal>, EB>(
-          [](const Func<Scal>& func, const EB& eb) {
-            auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-            return GetComponent(eb.Gradient(fe), 0);
-          },
-          [](const Func<Scal>& func, const EB& eb) {
-            return Eval<FieldCell<Scal>>(func.Dx(0), eb);
-          }),
-      "order.dat");
-
-  DumpField(
-      Eval<F, FieldCell<Scal>, EB>(
-          [](const Func<Scal>& func, const EB& eb) {
-            auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-            return GetComponent(eb.Gradient(fe), 0);
-          },
-          1e-3),
-      "estimator.dat");
-
-  DumpField(
-      Eval<F, FieldCell<Scal>, EB>(
-          [](const Func<Scal>& func, const EB& eb) {
-            return Eval<FieldCell<Scal>>(func.Dx(0), eb);
-          },
-          1e-3),
-      "exact.dat");
-
-  DumpField(
-      Eval<F, FieldCell<Scal>, EB>(
-          [](const Func<Scal>& func, const EB& eb) {
-            auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-            return Sub(
-                GetComponent(eb.Gradient(fe), 0),
-                Eval<FieldCell<Scal>>(func.Dx(0), eb), eb);
-          },
-          1e-3),
-      "error.dat");
-
-  {
-    std::cout << "\n"
-              << "ExplViscous returning FieldCell<Vect> " << std::endl;
-    auto estimator = [](const Func<Vect>& func, const EB& m) {
-      FieldCell<Vect> fcr(m, Vect(0));
-      const auto fcu = Eval<FieldCell<Vect>>(func(), m);
-      auto feu = m.Interpolate(fcu, MapCondFace(), 1, Vect(0));
-      for (auto d : GRange<size_t>(Vect::dim)) {
-        auto fcg = m.Gradient(GetComponent(feu, d));
-        auto feg = m.Interpolate(fcg, MapCondFace(), 1, Vect(0));
-        for (auto c : m.Cells()) {
-          Vect s(0);
-          for (auto q : m.Nci(c)) {
-            const IdxFace f = m.GetFace(c, q);
-            s += feg[f] * m.GetOutwardSurface(c, q)[d];
-          }
-          fcr[c] += s / m.GetVolume(c);
-        }
-      }
-
-      return fcr;
-    };
-    auto exact = [](const Func<Vect>& u, const EB& m) {
-      FieldCell<Vect> fcr(m, Vect(0));
-      for (auto c : m.AllCells()) {
-        const auto x = m.GetCellCenter(c);
-        Vect r;
-        r[0] = u.Dxx(0, 0)(x)[0] + u.Dxx(0, 1)(x)[1] + u.Dxx(0, 2)(x)[2];
-        r[1] = u.Dxx(1, 0)(x)[0] + u.Dxx(1, 1)(x)[1] + u.Dxx(1, 2)(x)[2];
-        r[2] = u.Dxx(2, 0)(x)[0] + u.Dxx(2, 1)(x)[1] + u.Dxx(2, 2)(x)[2];
-        fcr[c] = r;
-      }
-      return fcr;
-    };
-    VaryFuncVect<FieldCell<Vect>, EB>(estimator, exact);
-  }
-}
-
-template <int dummy_ = 0>
-void TestEmbedSelected() {
   if (1) {
     std::cout << "\n" << __func__ << std::endl;
     auto estimator = [](const Func<Scal>& func, const EB& eb) {
@@ -1291,12 +1171,12 @@ void TestEmbedSelected() {
     VaryFunc<FieldEmbed<Scal>, EB>(estimator_bi_bc1, exact);
   }
 
-  if (0) {
+  if (1) {
     auto estimator = [](const Func<Scal>& func, const EB& eb) {
       auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
       return eb.Gradient(fe);
     };
-    auto estimator2 = [](const Func<Scal>& func, const EB& eb) {
+    auto estimator_lin = [](const Func<Scal>& func, const EB& eb) {
       auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
       return eb.GradientLinearFit(fe);
     };
@@ -1307,13 +1187,107 @@ void TestEmbedSelected() {
               << "eb.Gradient() returning FieldCell<Vect>" << std::endl;
     VaryFunc<FieldCell<Vect>, EB>(estimator, exact);
     std::cout << "\n"
-              << "eb.Gradient2() returning FieldCell<Vect>" << std::endl;
-    VaryFunc<FieldCell<Vect>, EB>(estimator2, exact);
+              << "eb.GradientLinearFit() returning FieldCell<Vect>"
+              << std::endl;
+    VaryFunc<FieldCell<Vect>, EB>(estimator_lin, exact);
+  }
+
+  if (1) {
+    std::cout << "\n"
+              << "eb.Gradient() returning FieldCell<Vect>" << std::endl;
+    VaryFunc<FieldCell<Vect>, EB>(
+        [](const Func<Scal>& func, const EB& eb) {
+          auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
+          return eb.Gradient(fe);
+        },
+        [](const Func<Scal>& func, const EB& eb) {
+          return Eval<FieldCell<Vect>>(Gradient(func), eb);
+        });
+  }
+
+  using F = Quadratic;
+  DumpField(
+      GetOrderField<F, FieldCell<Scal>, EB>(
+          [](const Func<Scal>& func, const EB& eb) {
+            auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
+            return GetComponent(eb.Gradient(fe), 0);
+          },
+          [](const Func<Scal>& func, const EB& eb) {
+            return Eval<FieldCell<Scal>>(func.Dx(0), eb);
+          }),
+      "order.dat");
+
+  DumpField(
+      Eval<F, FieldCell<Scal>, EB>(
+          [](const Func<Scal>& func, const EB& eb) {
+            auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
+            return GetComponent(eb.Gradient(fe), 0);
+          },
+          1e-3),
+      "estimator.dat");
+
+  DumpField(
+      Eval<F, FieldCell<Scal>, EB>(
+          [](const Func<Scal>& func, const EB& eb) {
+            return Eval<FieldCell<Scal>>(func.Dx(0), eb);
+          },
+          1e-3),
+      "exact.dat");
+
+  DumpField(
+      Eval<F, FieldCell<Scal>, EB>(
+          [](const Func<Scal>& func, const EB& eb) {
+            auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
+            return Sub(
+                GetComponent(eb.Gradient(fe), 0),
+                Eval<FieldCell<Scal>>(func.Dx(0), eb), eb);
+          },
+          1e-3),
+      "error.dat");
+
+  {
+    std::cout << "\n"
+              << "ExplViscous returning FieldCell<Vect> " << std::endl;
+    auto estimator = [](const Func<Vect>& func, const EB& m) {
+      FieldCell<Vect> fcr(m, Vect(0));
+      const auto fcu = Eval<FieldCell<Vect>>(func(), m);
+      auto feu = m.Interpolate(fcu, MapCondFace(), 1, Vect(0));
+      for (auto d : GRange<size_t>(Vect::dim)) {
+        auto fcg = m.Gradient(GetComponent(feu, d));
+        auto feg = m.Interpolate(fcg, MapCondFace(), 1, Vect(0));
+        for (auto c : m.Cells()) {
+          Vect s(0);
+          for (auto q : m.Nci(c)) {
+            const IdxFace f = m.GetFace(c, q);
+            s += feg[f] * m.GetOutwardSurface(c, q)[d];
+          }
+          fcr[c] += s / m.GetVolume(c);
+        }
+      }
+
+      return fcr;
+    };
+    auto exact = [](const Func<Vect>& u, const EB& m) {
+      FieldCell<Vect> fcr(m, Vect(0));
+      for (auto c : m.AllCells()) {
+        const auto x = m.GetCellCenter(c);
+        Vect r;
+        r[0] = u.Dxx(0, 0)(x)[0] + u.Dxx(0, 1)(x)[1] + u.Dxx(0, 2)(x)[2];
+        r[1] = u.Dxx(1, 0)(x)[0] + u.Dxx(1, 1)(x)[1] + u.Dxx(1, 2)(x)[2];
+        r[2] = u.Dxx(2, 0)(x)[0] + u.Dxx(2, 1)(x)[1] + u.Dxx(2, 2)(x)[2];
+        fcr[c] = r;
+      }
+      return fcr;
+    };
+    VaryFuncVect<FieldCell<Vect>, EB>(estimator, exact);
   }
 }
 
+template <int dummy_ = 0>
+void TestEmbedSelected() {}
+
 int main() {
-#if 0
+#if 1
   TestMesh();
   TestEmbed();
   DumpEmbedPoly();
