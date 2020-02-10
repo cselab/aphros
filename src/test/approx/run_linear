@@ -9,5 +9,3 @@ b=out_linear
 if ! diff -u "$a" "$b" ; then
   exit 1
 fi
-
-rm "$b"
