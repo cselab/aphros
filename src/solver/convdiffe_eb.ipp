@@ -57,13 +57,9 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
     auto sem = m.GetSem("assemble");
 
     if (sem("assemble")) {
-      // const FieldCell<Vect> fcg =
-      //    eb.AverageCutCells(eb.Gradient(eb.Interpolate(fcu, mfc_, bc_,
-      //    bcu_)));
       const FieldCell<Vect> fcg =
           eb.GradientLinearFit(
               eb.InterpolateBilinear(fcu, mfc_, bc_, bcu_));
-      // eb.AverageCutCells(eb.Gradient(eb.Interpolate(fcu, mfc_, bc_, bcu_)));
 
       // diagonal linear system la * x + lb = 0
       fcla.Reinit(m);
@@ -81,12 +77,12 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
         }
         // Append
         for (auto c : eb.Cells()) {
-          Scal s = feq[c]; // sum
-          for (auto q : m.Nci(c)) {
+          Scal sum = feq[c];
+          for (auto q : eb.Nci(c)) {
             const IdxFace f = m.GetFace(c, q);
-            s += feq[f] * m.GetOutwardFactor(c, q);
+            sum += feq[f] * m.GetOutwardFactor(c, q);
           }
-          fclb[c] += s * (*owner_->fcr_)[c];
+          fclb[c] += sum * (*owner_->fcr_)[c];
         }
       }
 
@@ -100,13 +96,13 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
           feq[c] *= -(*fed_)[c] * eb.GetArea(c);
         }
         // Append
-        for (auto c : m.Cells()) {
-          Scal s = feq[c]; // sum
-          for (auto q : m.Nci(c)) {
+        for (auto c : eb.Cells()) {
+          Scal sum = feq[c];
+          for (auto q : eb.Nci(c)) {
             IdxFace f = m.GetFace(c, q);
-            s += feq[f] * m.GetOutwardFactor(c, q);
+            sum += feq[f] * m.GetOutwardFactor(c, q);
           }
-          fclb[c] += s;
+          fclb[c] += sum;
         }
       }
 
@@ -120,7 +116,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
       const std::vector<Scal> ac =
           GetGradCoeffs(0., {-(dt + dtp_), -dt, 0.}, par.second ? 0 : 1);
 
-      for (IdxCell c : m.Cells()) {
+      for (IdxCell c : eb.Cells()) {
         // time derivative
         Scal r = (*owner_->fcr_)[c];
         fcla[c] = ac[2] * r;
@@ -157,8 +153,8 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
   void Solve(
       const FieldCell<Scal>& fcla, const FieldCell<Scal>& fclb,
       FieldCell<Scal>& fcu) {
-    fcu.Reinit(m);
-    for (auto c : m.Cells()) {
+    fcu.Reinit(m, 0);
+    for (auto c : eb.Cells()) {
       fcu[c] = -fclb[c] / fcla[c];
     }
   }
@@ -181,7 +177,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
       CalcError();
 
       // apply, store result in curr
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         curr[c] += prev[c];
       }
       m.Comm(&curr);
@@ -200,7 +196,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
     auto& prev = fcu_.iter_prev;
     auto& curr = fcu_.iter_curr;
     Scal a = 0;
-    for (auto c : m.Cells()) {
+    for (auto c : eb.Cells()) {
       a = std::max<Scal>(a, std::abs(curr[c] - prev[c]));
     }
     er_ = a;
@@ -216,7 +212,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
     auto sem = m.GetSem("corr");
     if (sem("apply")) {
       auto& u = fcu_.Get(l);
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         u[c] += uc[c];
       }
       CalcError();
