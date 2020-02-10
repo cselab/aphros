@@ -12,7 +12,6 @@ for i in "${!vcase[@]}" ; do
   echo $d
   ./main $case $gradlim
   mkdir -p $d
-  ./plot u_0000.dat
-  ./plot u_0001.dat
-  mv u_000{0,1}.svg $d
+  [ "$i" = "0" ] && ./plot u_0000.dat && mv u_0000.svg $d
+  ./plot u_0001.dat && mv u_0001.svg $d
 done
