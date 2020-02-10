@@ -84,9 +84,11 @@ static std::array<Scal, N> SolveLinear(
 // Fits linear function to set of points and values
 //   u = g.dot(x) + u0
 // Returns {g, u0}.
-template <class Vect, class Scal = typename Vect::value_type>
-std::pair<Vect, Scal> FitLinear(
-    const std::vector<Vect>& xx, const std::vector<Scal>& uu) {
+template <class Scal>
+std::pair<generic::Vect<Scal, 3>, Scal> FitLinear(
+    const std::vector<generic::Vect<Scal, 3>>& xx,
+    const std::vector<Scal>& uu) {
+  using Vect = generic::Vect<Scal, 3>;
   assert(xx.size() == uu.size());
   // sum 0.5 * [ (g.dot(x[k]) + u0 - u[k]) ** 2 ] -> min
   using Int = size_t;
@@ -112,8 +114,40 @@ std::pair<Vect, Scal> FitLinear(
     b[dim] += uu[k];
   }
 
-  auto x = SolveLinear(a, b);
-  return {Vect(x[0], x[1], x[2]), x[3]};
+  auto v = SolveLinear(a, b);
+  return {Vect(v[0], v[1], v[2]), v[3]};
+}
+
+// Fits linear function to set of points and values
+//   u = g.dot(x) + u0
+// Returns {g, u0}.
+template <class Scal>
+std::pair<generic::Vect<generic::Vect<Scal, 3>, 3>, generic::Vect<Scal, 3>> 
+FitLinear(const std::vector<generic::Vect<Scal, 3>>& xx,
+          const std::vector<generic::Vect<Scal, 3>>& uu) {
+  using Vect = generic::Vect<Scal, 3>;
+  std::pair<generic::Vect<Vect, 3>, Vect> p;
+  for (size_t d = 0; d < 3; ++d) {
+    std::vector<Scal> uud;
+    for (auto u : uu) {
+      uud.push_back(u[d]);
+    }
+    auto pd = FitLinear(xx, uud);
+    p.second[d] = pd.second;
+    p.first[0][d] = pd.first[0];
+    p.first[1][d] = pd.first[1];
+    p.first[2][d] = pd.first[2];
+  }
+  return p;
+}
+
+template <class T, class Scal>
+T EvalLinear(
+    const std::pair<generic::Vect<T, 3>, T>& p,
+    const generic::Vect<Scal, 3>& x) {
+  auto& g = p.first;
+  auto& u0 = p.second;
+  return g[0] * x[0] + g[1] * x[1] + g[2] * x[2] + u0;
 }
 
 template <class Scal>
@@ -1010,8 +1044,8 @@ class Embed {
             1 - std::abs(eb.GetFaceCenter(f)[dx] - m.GetCenter(f)[dx]) / h;
         const Scal ty =
             1 - std::abs(eb.GetFaceCenter(f)[dy] - m.GetCenter(f)[dy]) / h;
-        const Scal fy0 = ffu[f00] * tx + ffu[f10] * (1 - tx);
-        const Scal fy1 = ffu[f01] * tx + ffu[f11] * (1 - tx);
+        const T fy0 = ffu[f00] * tx + ffu[f10] * (1 - tx);
+        const T fy1 = ffu[f01] * tx + ffu[f11] * (1 - tx);
         ffb[f] = fy0 * ty + fy1 * (1 - ty);
       }
     }
@@ -1038,7 +1072,7 @@ class Embed {
   // feu: field on embed faces [i]
   template <class T>
   void InterpolateEmbedFaces(
-      const FieldCell<T>& fcu, size_t bc, const MapCell<Scal>& mcu,
+      const FieldCell<T>& fcu, size_t bc, const MapCell<T>& mcu,
       FieldEmbed<T>& feu) const {
     if (bc == 0) {
       for (auto c : eb.CFaces()) {
@@ -1047,7 +1081,7 @@ class Embed {
     } else if (bc == 1) {
       for (auto c : eb.CFaces()) {
         std::vector<Vect> xx;
-        std::vector<Scal> uu;
+        std::vector<T> uu;
         for (auto cn : eb.Stencil(c)) {
           xx.push_back(m.GetCenter(cn));
           uu.push_back(fcu[cn]);
@@ -1055,7 +1089,7 @@ class Embed {
         auto p = FitLinear(xx, uu);
         const Scal h = m.GetCellSize()[0];
         const Vect xc = eb.GetFaceCenter(c) - eb.GetNormal(c) * h;
-        const Scal uc = p.first.dot(xc) + p.second;
+        const T uc = EvalLinear(p, xc);
         feu[c] = uc + mcu.at(c) * h;
       }
     } else {
@@ -1093,7 +1127,7 @@ class Embed {
           auto p = FitLinear(xx, uu);
           const Scal h = m.GetCellSize()[0];
           const Vect xc = eb.GetFaceCenter(c) - eb.GetNormal(c) * h;
-          const Scal uc = p.first.dot(xc) + p.second;
+          const Scal uc = EvalLinear(p, xc);
           feu[c] = uc + mcu.at(c) * h;
         }
       }
@@ -1108,7 +1142,7 @@ class Embed {
   // feu: field on embed faces [i]
   template <class T>
   FieldEmbed<T> InterpolateBilinear(
-      const FieldCell<T>& fcu, size_t bc, const MapCell<Scal>& mcu) const {
+      const FieldCell<T>& fcu, size_t bc, const MapCell<T>& mcu) const {
     FieldEmbed<T> feu(m);
     feu.GetFieldFace() = InterpolateBilinear(fcu);
     InterpolateEmbedFaces(fcu, bc, mcu, feu);
@@ -1117,7 +1151,7 @@ class Embed {
   template <class T>
   FieldEmbed<T> InterpolateBilinear(
       const FieldCell<T>& fcu, size_t bc, T bcv) const {
-    MapCell<Scal> mcu;
+    MapCell<T> mcu;
     for (auto c : CFaces()) {
       mcu[c] = bcv;
     }
@@ -1126,7 +1160,7 @@ class Embed {
   template <class T>
   FieldEmbed<T> InterpolateBilinear(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
-    MapCell<Scal> mcu;
+    MapCell<T> mcu;
     for (auto c : CFaces()) {
       mcu[c] = bcv;
     }
@@ -1158,22 +1192,22 @@ class Embed {
   // grad dot GetNormal on embedded boundaries [s]
   template <class T>
   FieldEmbed<T> GradientBilinear(
-      const FieldCell<T>& fcu, size_t bc, const MapCell<Scal>& mcu) const {
+      const FieldCell<T>& fcu, size_t bc, const MapCell<T>& mcu) const {
     FieldEmbed<T> feg(m);
     feg.GetFieldFace() = GradientBilinear(fcu);
     if (bc == 0) {
       for (auto c : eb.CFaces()) {
         std::vector<Vect> xx;
-        std::vector<Scal> uu;
+        std::vector<T> uu;
         for (auto cn : eb.Stencil(c)) {
           xx.push_back(m.GetCenter(cn));
           uu.push_back(fcu[cn]);
         }
         auto p = FitLinear(xx, uu);
-        const Scal ub = mcu.at(c);
+        const T ub = mcu.at(c);
         const Scal h = m.GetCellSize()[0];
         const Vect xc = eb.GetFaceCenter(c) - eb.GetNormal(c) * h;
-        const Scal uc = p.first.dot(xc) + p.second;
+        const T uc = EvalLinear(p, xc);
         feg[c] = (ub - uc) / h;
       }
     } else if (bc == 1) {
@@ -1188,7 +1222,7 @@ class Embed {
   template <class T>
   FieldEmbed<T> GradientBilinear(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
-    MapCell<Scal> mcu;
+    MapCell<T> mcu;
     for (auto c : CFaces()) {
       mcu[c] = bcv;
     }
