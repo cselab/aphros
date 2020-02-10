@@ -252,8 +252,6 @@ See full example in :linkpath:`examples/104_embed_diffusion/main.cpp`.
   :comment:
   :impl:
 
-.. |ex104_1_0| image:: ../../../examples/104_embed_diffusion/case1_gradlim0/u_0000.svg
-
 .. |ex104_1_1| image:: ../../../examples/104_embed_diffusion/case1_gradlim0/u_0001.svg
 
 .. table:: Results of diffusion solver ``Diffusion1()``: 
@@ -261,37 +259,25 @@ See full example in :linkpath:`examples/104_embed_diffusion/main.cpp`.
    reduced but not eliminated instabilities.
    :align: center
 
-   +-------------+-------------+
-   | |ex104_1_0| | |ex104_1_1| |
-   +-------------+-------------+
-
-.. |ex104_1a_0| image:: ../../../examples/104_embed_diffusion/case1_gradlim0.2/u_0000.svg
-
-.. |ex104_1a_1| image:: ../../../examples/104_embed_diffusion/case1_gradlim0.2/u_0001.svg
-
-.. table:: Results of diffusion solver ``Diffusion1()`` with limited gradient: 
-   initial (left) and final (right).
-   Limiting the gradient stabilizes the method.
-   :align: center
-
-   +--------------+--------------+
-   | |ex104_1a_0| | |ex104_1a_1| |
-   +--------------+--------------+
+   +-------------+
+   | |ex104_1_1| |
+   +-------------+
 
 .. includecode:: examples/104_embed_diffusion/main.cpp
   :func: Diffusion2
   :comment:
   :impl:
 
-.. |ex104_2_0| image:: ../../../examples/104_embed_diffusion/case2_gradlim0/u_0000.svg
+.. |ex104_1a_1| image:: ../../../examples/104_embed_diffusion/case1_gradlim0.2/u_0001.svg
 
 .. |ex104_2_1| image:: ../../../examples/104_embed_diffusion/case2_gradlim0/u_0001.svg
 
-.. table:: Results of diffusion solver ``Diffusion2()``: 
-   initial (left) and final (right). Gradient computed from a linear fit
-   to cell centers.
+.. table:: Results of diffusion solver ``Diffusion1()`` with limited gradient
+   (left) and ``Diffusion2()`` using a linear fit to cell centers (right).
+   Limiting the gradient stabilizes the method but introduces a parameter.
+   Using a linear fit stabilizes the method without additional parameters.
    :align: center
 
-   +-------------+-------------+
-   | |ex104_2_0| | |ex104_2_1| |
-   +-------------+-------------+
+   +--------------+-------------+
+   | |ex104_1a_1| | |ex104_2_1| |
+   +--------------+-------------+
