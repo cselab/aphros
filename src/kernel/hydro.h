@@ -95,11 +95,11 @@ FieldCell<typename M::Vect> GetVort(
     Embed<M>& eb) {
   auto& m = eb.GetMesh();
   using Vect = typename M::Vect;
-  auto fev = eb.Interpolate(fcv, mf, 0, Vect(0));
+  auto fev = eb.InterpolateBilinear(fcv, mf, 0, Vect(0));
 
-  auto d0 = eb.Gradient(GetComponent(fev, 0, eb));
-  auto d1 = eb.Gradient(GetComponent(fev, 1, eb));
-  auto d2 = eb.Gradient(GetComponent(fev, 2, eb));
+  auto d0 = eb.GradientLinearFit(GetComponent(fev, 0, eb));
+  auto d1 = eb.GradientLinearFit(GetComponent(fev, 1, eb));
+  auto d2 = eb.GradientLinearFit(GetComponent(fev, 2, eb));
 
   FieldCell<Vect> r(m, Vect(0));
   for (auto c : eb.Cells()) {
@@ -1437,8 +1437,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         const auto x = eb.GetCellCenter(c);
         fcp[c] = grav.dot(x);
       }
-      ffbp_ = eb.Gradient(fcp, GetCondZeroGrad<Scal>(mf_fluid_), 0, 0.)
-                  .GetFieldFace();
+      ffbp_ = eb.GradientBilinear(
+          fcp, GetCondZeroGrad<Scal>(mf_fluid_), 0, 0.).GetFieldFace();
       for (auto f : m.AllFaces()) {
         ffbp_[f] *= ff_rho[f];
       }
@@ -1881,7 +1881,7 @@ void Hydro<M>::ReportStepAdv() {
 template <class M>
 auto Hydro<M>::CalcPressureDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb)
     -> Vect {
-  auto fep = eb.Interpolate(fcp, MapCondFace(), 1, 0.);
+  auto fep = eb.InterpolateBilinear(fcp, MapCondFace(), 1, 0.);
   Vect sum(0);
   for (auto c : eb.CFaces()) {
     sum += eb.GetSurface(c) * fep[c];
@@ -1893,8 +1893,8 @@ template <class M>
 auto Hydro<M>::CalcViscousDrag(
     const FieldCell<Vect>& fcvel, const FieldCell<Scal>& fcmu,
     const Embed<M>& eb) -> Vect {
-  auto feg = eb.Gradient(fcvel, MapCondFace(), 0, Vect(0));
-  auto femu = eb.Interpolate(fcmu, MapCondFace(), 1, 0.);
+  auto feg = eb.GradientBilinear(fcvel, MapCondFace(), 0, Vect(0));
+  auto femu = eb.InterpolateBilinear(fcmu, MapCondFace(), 1, 0.);
   Vect sum(0);
   for (auto c : eb.CFaces()) {
     sum += feg[c] * (-eb.GetArea(c) * femu[c]);
