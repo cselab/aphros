@@ -272,3 +272,21 @@ See full example in :linkpath:`examples/104_embed_diffusion/main.cpp`.
    +--------------+--------------+
    | |ex104_1a_0| | |ex104_1a_1| |
    +--------------+--------------+
+
+.. includecode:: examples/104_embed_diffusion/main.cpp
+  :func: Diffusion2
+  :comment:
+  :impl:
+
+.. |ex104_2_0| image:: ../../../examples/104_embed_diffusion/case2_gradlim0/u_0000.svg
+
+.. |ex104_2_1| image:: ../../../examples/104_embed_diffusion/case2_gradlim0/u_0001.svg
+
+.. table:: Results of diffusion solver ``Diffusion2()``: 
+   initial (left) and final (right). Gradient computed from a linear fit
+   to cell centers.
+   :align: center
+
+   +-------------+-------------+
+   | |ex104_2_0| | |ex104_2_1| |
+   +-------------+-------------+

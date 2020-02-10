@@ -71,6 +71,34 @@ void Diffusion1(
   }
 }
 
+void Diffusion2(
+    FieldCell<Scal>& fcu, const MapCondFace& mec, Scal diff, Scal dt,
+    const Embed<M>& eb) {
+  const auto& m = eb.GetMesh();
+  const auto feg = eb.GradientBilinear(fcu, mec, 0, 1.);
+  // Compute flux.
+  FieldEmbed<Scal> fed(m, 0);
+  for (auto f : eb.Faces()) {
+    fed[f] = feg[f] * diff * eb.GetArea(f);
+  }
+  for (auto c : eb.CFaces()) {
+    fed[c] = feg[c] * diff * eb.GetArea(c);
+  }
+  // Compute the change at one time step.
+  FieldCell<Scal> fct(m, 0);
+  for (auto c : eb.Cells()) {
+    Scal sum = fed[c];
+    for (auto q : eb.Nci(c)) {
+      sum += fed[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
+    }
+    fct[c] = sum * dt;
+  }
+  fct = eb.RedistributeCutCells(fct);
+  // Advance in time.
+  for (auto c : eb.Cells()) {
+    fcu[c] += fct[c] / eb.GetVolume(c);
+  }
+}
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
   struct {
@@ -123,9 +151,12 @@ void Run(M& m, Vars& var) {
       case 1:
         Diffusion1(fcu, mfc, diff, dt, *ctx->eb_);
         break;
+      case 2:
+        Diffusion2(fcu, mfc, diff, dt, *ctx->eb_);
+        break;
       default:
         throw std::runtime_error(
-            "Unknown example=" + std::to_string(var.Int["case"]));
+            "Unknown case=" + std::to_string(var.Int["case"]));
     }
     t += dt;
     m.Comm(&fcu);
