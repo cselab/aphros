@@ -35,9 +35,10 @@ void TestSolveLinear() {
   std::cout << "a*x=" << V(Mul(a, x)) << std::endl;
 }
 
-void TestFitLinear(const std::vector<Vect>& xx, const std::vector<Scal>& uu) {
+template <class T>
+void TestFitLinear(const std::vector<Vect>& xx, const std::vector<T>& uu) {
   std::cout << '\n' << __func__ << std::endl;
-  auto p = FitLinear<Vect>(xx, uu);
+  auto p = FitLinear(xx, uu);
   std::cout << "xx[uu]: ";
   for (size_t i = 0; i < xx.size(); ++i) {
     std::cout << xx[i] << "[" << uu[i] << "]   ";
@@ -48,13 +49,17 @@ void TestFitLinear(const std::vector<Vect>& xx, const std::vector<Scal>& uu) {
 
 int main() {
   TestSolveLinear();
-  TestFitLinear(
+  TestFitLinear<Scal>(
       {Vect(0., 0., 0.), Vect(1., 0., 0.), Vect(0., 1., 0.), Vect(0., 0., 1.)},
       {1., 1., 1., 1.});
-  TestFitLinear(
+  TestFitLinear<Scal>(
       {Vect(0., 0., 0.), Vect(1., 0., 0.), Vect(0., 1., 0.), Vect(0., 0., 1.)},
       {-1., 1., 1., 1.});
-  TestFitLinear(
+  TestFitLinear<Scal>(
       {Vect(0., 0., 0.), Vect(1., 0., 0.), Vect(0., 2., 0.), Vect(0., 0., 3.)},
       {0., 1., 1., 1.});
+
+  TestFitLinear<Vect>(
+      {Vect(0., 0., 0.), Vect(1., 0., 0.), Vect(0., 2., 0.), Vect(0., 0., 3.)},
+      {Vect(0.,0.,0.), Vect(1.,2.,3.), Vect(1.,2.,3.), Vect(1.,2.,3.)});
 }
