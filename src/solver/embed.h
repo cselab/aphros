@@ -954,26 +954,26 @@ class Embed {
   template <class T>
   FieldEmbed<T> Gradient(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
-    FieldEmbed<T> feu(m, T(0));
+    FieldEmbed<T> feg(m, T(0));
     for (auto f : eb.SuFaces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       const Scal dn = ClipGradDenom(
           (eb.GetNormal(f)).dot(eb.GetCellCenter(cp) - eb.GetCellCenter(cm)));
-      feu[f] = (fcu[cp] - fcu[cm]) / dn;
+      feg[f] = (fcu[cp] - fcu[cm]) / dn;
     }
     for (auto c : eb.SuCFaces()) {
       if (bc == 0) {
         const Scal dn = ClipGradDenom(eb.GetFaceOffset(c));
-        feu[c] = (bcv - fcu[c]) / dn;
+        feg[c] = (bcv - fcu[c]) / dn;
       } else if (bc == 1) {
-        feu[c] = bcv;
+        feg[c] = bcv;
       } else {
         throw std::runtime_error("Gradient: unknown bc=" + std::to_string(bc));
       }
     }
-    GradientB(fcu, mfc, m, feu.GetFieldFace());
-    return feu;
+    GradientB(fcu, mfc, m, feg.GetFieldFace());
+    return feg;
   }
   // Gradient from iterative interpolation.
   // fcu: field [a]
@@ -1043,6 +1043,7 @@ class Embed {
         const IdxFace f10 = m.GetFace(c10, qz);
         const IdxFace f01 = m.GetFace(c01, qz);
         const IdxFace f11 = m.GetFace(c11, qz);
+
         assert(f == f00);
         const Scal tx =
             1 - std::abs(eb.GetFaceCenter(f)[dx] - m.GetCenter(f)[dx]) / h;
@@ -1147,7 +1148,7 @@ class Embed {
   template <class T>
   FieldEmbed<T> InterpolateBilinear(
       const FieldCell<T>& fcu, size_t bc, const MapCell<T>& mcu) const {
-    FieldEmbed<T> feu(m);
+    FieldEmbed<T> feu(m, T(0));
     feu.GetFieldFace() = InterpolateBilinear(fcu);
     InterpolateEmbedFaces(fcu, bc, mcu, feu);
     return feu;
@@ -1197,7 +1198,7 @@ class Embed {
   template <class T>
   FieldEmbed<T> GradientBilinear(
       const FieldCell<T>& fcu, size_t bc, const MapCell<T>& mcu) const {
-    FieldEmbed<T> feg(m);
+    FieldEmbed<T> feg(m, T(0));
     feg.GetFieldFace() = GradientBilinear(fcu);
     if (bc == 0) {
       for (auto c : eb.SuCFaces()) {
