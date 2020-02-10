@@ -432,6 +432,10 @@ class Embed {
     return MakeFilterIterator(
         m.Faces(), [this](IdxFace f) { return GetType(f) != Type::excluded; });
   }
+  auto SuFaces() const {
+    return MakeFilterIterator(
+        m.SuFaces(), [this](IdxFace f) { return GetType(f) != Type::excluded; });
+  }
   auto GetFace(IdxCell c, size_t q) const {
     return m.GetFace(c, q);
   }
@@ -629,13 +633,13 @@ class Embed {
   FieldEmbed<T> Interpolate(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
     FieldEmbed<T> feu(m, T(0));
-    for (auto f : eb.Faces()) {
+    for (auto f : eb.SuFaces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       const Scal a = 0.5;
       feu[f] = fcu[cm] * (1 - a) + fcu[cp] * a;
     }
-    for (auto c : eb.CFaces()) {
+    for (auto c : eb.SuCFaces()) {
       if (bc == 0) {
         feu[c] = bcv;
       } else if (bc == 1) {
@@ -671,7 +675,7 @@ class Embed {
       // and using the gradient, do second-order accurate interpolation
 
       // update feu from fcu and fcg
-      for (auto f : eb.Faces()) {
+      for (auto f : eb.SuFaces()) {
         const IdxCell cm = m.GetCell(f, 0);
         const IdxCell cp = m.GetCell(f, 1);
         if (GetType(cm) == Type::regular && GetType(cp) == Type::regular) {
@@ -685,7 +689,7 @@ class Embed {
                    0.5;
         }
       }
-      for (auto c : eb.CFaces()) {
+      for (auto c : eb.SuCFaces()) {
         const Vect xc = eb.GetCellCenter(c);
         const Vect xf = eb.GetFaceCenter(c);
         feu[c] = fcu[c] + fcg[c].dot(xf - xc);
@@ -706,11 +710,11 @@ class Embed {
       const FieldCell<T>& fcu, const FieldEmbed<Scal>& fev,
       const MapCondFace& mfc, size_t bc, T bcv) const {
     FieldEmbed<T> feu(m, T(0));
-    for (auto f : eb.Faces()) {
+    for (auto f : eb.SuFaces()) {
       const IdxCell c = (fev[f] > 0 ? m.GetCell(f, 0) : m.GetCell(f, 1));
       feu[f] = fcu[c];
     }
-    for (auto c : eb.CFaces()) {
+    for (auto c : eb.SuCFaces()) {
       if (fev[c] > 0) {
         feu[c] = fcu[c];
       } else {
@@ -741,7 +745,7 @@ class Embed {
     FieldFace<Scal> ffu(m, 0.);
     // f = fmm*a[0] + fm*a[1] + fp*a[2]
     const std::array<Scal, 3> a = GetCoeff<Scal>(sc);
-    for (auto f : eb.Faces()) {
+    for (auto f : eb.SuFaces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       if (ffv[f] > 0) {
@@ -772,7 +776,7 @@ class Embed {
       const MapCondFace& mfc, size_t bc, Scal bcv, const FieldEmbed<Scal>& fev,
       ConvSc sc) const {
     MapCell<Scal> mcu;
-    for (auto c : CFaces()) {
+    for (auto c : eb.SuCFaces()) {
       mcu[c] = bcv;
     }
     return InterpolateUpwindBilinear(fcu, fcg, mfc, bc, mcu, fev, sc);
@@ -796,7 +800,7 @@ class Embed {
     FieldEmbed<Scal> feu(m, 0.);
     // f = fmm*a[0] + fm*a[1] + fp*a[2]
     const std::array<Scal, 3> a = GetCoeff<Scal>(sc);
-    for (auto f : eb.Faces()) {
+    for (auto f : eb.SuFaces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       if (GetType(cm) == Type::regular && GetType(cp) == Type::regular) {
@@ -823,7 +827,7 @@ class Embed {
       const MapCondFace& mfc, size_t bc, Scal bcv,
       const FieldEmbed<Scal>& fev, ConvSc sc) const {
     MapCell<Scal> mcu;
-    for (auto c : CFaces()) {
+    for (auto c : eb.SuCFaces()) {
       mcu[c] = bcv;
     }
     return InterpolateUpwind(fcu, fcg, mfc, bc, mcu, fev, sc);
@@ -951,14 +955,14 @@ class Embed {
   FieldEmbed<T> Gradient(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
     FieldEmbed<T> feu(m, T(0));
-    for (auto f : eb.Faces()) {
+    for (auto f : eb.SuFaces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       const Scal dn = ClipGradDenom(
           (eb.GetNormal(f)).dot(eb.GetCellCenter(cp) - eb.GetCellCenter(cm)));
       feu[f] = (fcu[cp] - fcu[cm]) / dn;
     }
-    for (auto c : eb.CFaces()) {
+    for (auto c : eb.SuCFaces()) {
       if (bc == 0) {
         const Scal dn = ClipGradDenom(eb.GetFaceOffset(c));
         feu[c] = (bcv - fcu[c]) / dn;
@@ -982,7 +986,7 @@ class Embed {
     auto feu = InterpolateIterative(fcu);
     auto fcg = GradientLinearFit(feu);
     FieldEmbed<T> feg(m, T(0));
-    for (auto f : eb.Faces()) {
+    for (auto f : eb.SuFaces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       if (GetType(cm) == Type::regular && GetType(cp) == Type::regular) {
@@ -991,7 +995,7 @@ class Embed {
         feg[f] = (fcg[cm] + fcg[cp]).dot(eb.GetNormal(f)) * 0.5;
       }
     }
-    for (auto c : eb.CFaces()) {
+    for (auto c : eb.SuCFaces()) {
       feg[c] = fcg[c].dot(eb.GetNormal(c));
     }
     return feg;
@@ -1006,7 +1010,7 @@ class Embed {
   template <class T>
   FieldFace<T> InterpolateBilinearFaces(const FieldFace<T>& ffu) const {
     FieldFace<T> ffb(m, T(0));
-    for (auto f : eb.Faces()) {
+    for (auto f : eb.SuFaces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       const Scal h = m.GetCellSize()[0];
@@ -1058,7 +1062,7 @@ class Embed {
   template <class T>
   FieldFace<T> InterpolateBilinear(const FieldCell<T>& fcu) const {
     FieldFace<T> ffu(m, T(0));
-    for (auto f : eb.Faces()) {
+    for (auto f : eb.SuFaces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       ffu[f] = (fcu[cp] + fcu[cm]) * 0.5;
@@ -1075,11 +1079,11 @@ class Embed {
       const FieldCell<T>& fcu, size_t bc, const MapCell<T>& mcu,
       FieldEmbed<T>& feu) const {
     if (bc == 0) {
-      for (auto c : eb.CFaces()) {
+      for (auto c : eb.SuCFaces()) {
         feu[c] = mcu.at(c);
       }
     } else if (bc == 1) {
-      for (auto c : eb.CFaces()) {
+      for (auto c : eb.SuCFaces()) {
         std::vector<Vect> xx;
         std::vector<T> uu;
         for (auto cn : eb.Stencil(c)) {
@@ -1106,7 +1110,7 @@ class Embed {
       const FieldCell<T>& fcu, size_t bc, const MapCell<Scal>& mcu,
       const FieldEmbed<Scal>& fev, FieldEmbed<T>& feu) const {
     if (bc == 0) {
-      for (auto c : eb.CFaces()) {
+      for (auto c : eb.SuCFaces()) {
         if (fev[c] > 0) {
           feu[c] = fcu[c];
         } else if (fev[c] <= 0) {
@@ -1114,7 +1118,7 @@ class Embed {
         }
       }
     } else if (bc == 1) {
-      for (auto c : eb.CFaces()) {
+      for (auto c : eb.SuCFaces()) {
         if (fev[c] > 0) {
           feu[c] = fcu[c];
         } else if (fev[c] <= 0) {
@@ -1152,7 +1156,7 @@ class Embed {
   FieldEmbed<T> InterpolateBilinear(
       const FieldCell<T>& fcu, size_t bc, T bcv) const {
     MapCell<T> mcu;
-    for (auto c : CFaces()) {
+    for (auto c : SuCFaces()) {
       mcu[c] = bcv;
     }
     return InterpolateBilinear(fcu, bc, mcu);
@@ -1161,7 +1165,7 @@ class Embed {
   FieldEmbed<T> InterpolateBilinear(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
     MapCell<T> mcu;
-    for (auto c : CFaces()) {
+    for (auto c : SuCFaces()) {
       mcu[c] = bcv;
     }
     auto feu = InterpolateBilinear(fcu, bc, mcu);
@@ -1177,7 +1181,7 @@ class Embed {
   FieldFace<T> GradientBilinear(const FieldCell<T>& fcu) const {
     FieldFace<T> ffg(m, T(0));
     const Scal h = m.GetCellSize()[0];
-    for (auto f : eb.Faces()) {
+    for (auto f : eb.SuFaces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       ffg[f] = (fcu[cp] - fcu[cm]) / h;
@@ -1196,7 +1200,7 @@ class Embed {
     FieldEmbed<T> feg(m);
     feg.GetFieldFace() = GradientBilinear(fcu);
     if (bc == 0) {
-      for (auto c : eb.CFaces()) {
+      for (auto c : eb.SuCFaces()) {
         std::vector<Vect> xx;
         std::vector<T> uu;
         for (auto cn : eb.Stencil(c)) {
@@ -1211,7 +1215,7 @@ class Embed {
         feg[c] = (ub - uc) / h;
       }
     } else if (bc == 1) {
-      for (auto c : eb.CFaces()) {
+      for (auto c : eb.SuCFaces()) {
         feg[c] = mcu.at(c);
       }
     } else {
@@ -1223,7 +1227,7 @@ class Embed {
   FieldEmbed<T> GradientBilinear(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
     MapCell<T> mcu;
-    for (auto c : CFaces()) {
+    for (auto c : eb.CFaces()) {
       mcu[c] = bcv;
     }
     auto feg = GradientBilinear(fcu, bc, mcu);
