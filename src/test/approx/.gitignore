@@ -1,6 +1,7 @@
 error*.vtk
 error*.dat
 out
+out_linear
 eb.vtk
 a.pvsm
 a.py
