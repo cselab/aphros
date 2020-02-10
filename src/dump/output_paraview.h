@@ -142,7 +142,6 @@ class SerVtkStruct : public SerVtk {
   void CreateFile(std::string fn) {
     std::ofstream out(fn);
     out.precision(20);
-    out.sync_with_stdio(false);
     FileHead(out);
     FileData(out);
     FileFoot(out);
