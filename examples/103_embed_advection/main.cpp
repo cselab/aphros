@@ -42,12 +42,48 @@ void Advection0(
   }
 }
 
-// Advection solver with redistribution from cut cells.
+// Advection solver with redistribution from cut cells
+// and first order upwind scheme.
 void Advection1(
     FieldCell<Scal>& fcu, const MapCondFace& mec, const FieldEmbed<Scal>& fev,
     Scal dt, const Embed<M>& eb) {
   const auto& m = eb.GetMesh();
   const auto feu = eb.InterpolateUpwind(fcu, fev, mec, 0, 1.);
+  // Compute flux.
+  FieldEmbed<Scal> fevu(m, 0);
+  for (auto f : eb.Faces()) {
+    fevu[f] = feu[f] * fev[f];
+  }
+  for (auto c : eb.CFaces()) {
+    fevu[c] = feu[c] * fev[c];
+  }
+  // Compute the change at one time step.
+  FieldCell<Scal> fct(m, 0);
+  for (auto c : eb.Cells()) {
+    Scal sum = fevu[c];
+    for (auto q : eb.Nci(c)) {
+      sum += fevu[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
+    }
+    fct[c] = -sum * dt;
+  }
+  fct = eb.RedistributeCutCells(fct);
+  // Advance in time.
+  for (auto c : eb.Cells()) {
+    fcu[c] += fct[c] / eb.GetVolume(c);
+  }
+}
+
+// Advection solver with redistribution from cut cells
+// and second order upwind scheme.
+void Advection2(
+    FieldCell<Scal>& fcu, const MapCondFace& mec, const FieldEmbed<Scal>& fev,
+    Scal dt, const Embed<M>& eb) {
+  const auto& m = eb.GetMesh();
+  const size_t bc = 0;
+  const Scal bcv = 1;
+  const auto fcg = eb.GradientLinearFit(eb.InterpolateBilinear(fcu, bc, bcv));
+  auto feu =
+      eb.InterpolateUpwindBilinear(fcu, fcg, mec, bc, bcv, fev, ConvSc::sou);
   // Compute flux.
   FieldEmbed<Scal> fevu(m, 0);
   for (auto f : eb.Faces()) {
@@ -136,6 +172,9 @@ void Run(M& m, Vars& var) {
       case 1:
         Advection1(fcu, mfc, fev, dt, *ctx->eb_);
         break;
+      case 2:
+        Advection2(fcu, mfc, fev, dt, *ctx->eb_);
+        break;
       default:
         throw std::runtime_error(
             "Unknown example=" + std::to_string(var.Int["case"]));
@@ -170,7 +209,7 @@ set string dumpformat plain
 
 set double tmax 0.1
 set vect vel 2 1 0
-set double cfl 0.5
+set double cfl 0.25
 
 set int case 0
 )EOF";

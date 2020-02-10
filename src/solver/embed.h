@@ -724,7 +724,7 @@ class Embed {
   }
   FieldEmbed<Scal> InterpolateUpwindBilinear(
       const FieldCell<Scal>& fcu, const FieldCell<typename M::Vect>& fcg,
-      const MapCondFace& mfc, size_t bc, MapCell<Scal> mcu,
+      const MapCondFace& mfc, size_t bc, const MapCell<Scal>& mcu,
       const FieldEmbed<Scal>& fev, ConvSc sc) const {
     FieldEmbed<Scal> feu(m, 0);
     feu.GetFieldFace() =
@@ -735,13 +735,13 @@ class Embed {
   }
   FieldEmbed<Scal> InterpolateUpwindBilinear(
       const FieldCell<Scal>& fcu, const FieldCell<typename M::Vect>& fcg,
-      const MapCondFace& mfc, size_t bc, Scal bcv, const FieldEmbed<Scal>& ffv,
+      const MapCondFace& mfc, size_t bc, Scal bcv, const FieldEmbed<Scal>& fev,
       ConvSc sc) const {
     MapCell<Scal> mcu;
     for (auto c : CFaces()) {
       mcu[c] = bcv;
     }
-    return InterpolateUpwindBilinear(fcu, fcg, mfc, bc, mcu, ffv, sc);
+    return InterpolateUpwindBilinear(fcu, fcg, mfc, bc, mcu, fev, sc);
   }
   // Upwind interpolation.
   // fcu: field [s]
@@ -757,8 +757,8 @@ class Embed {
   //       (see InterpolateUpwind() above)
   FieldEmbed<Scal> InterpolateUpwind(
       const FieldCell<Scal>& fcu, const FieldCell<typename M::Vect>& fcg,
-      const MapCondFace& mfc, size_t bc, Scal bcv, const FieldEmbed<Scal>& ffv,
-      ConvSc sc) const {
+      const MapCondFace& mfc, size_t bc, const MapCell<Scal>& mcu,
+      const FieldEmbed<Scal>& fev, ConvSc sc) const {
     FieldEmbed<Scal> feu(m, 0.);
     // f = fmm*a[0] + fm*a[1] + fp*a[2]
     const std::array<Scal, 3> a = GetCoeff<Scal>(sc);
@@ -766,32 +766,33 @@ class Embed {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       if (GetType(cm) == Type::regular && GetType(cp) == Type::regular) {
-        if (ffv[f] > 0) {
+        if (fev[f] > 0) {
           feu[f] = 4. * a[0] * fcg[cm].dot(m.GetVectToCell(f, 0)) +
                    a[1] * fcu[cm] + (a[2] + a[0]) * fcu[cp];
-        } else if (ffv[f] < 0) {
+        } else if (fev[f] < 0) {
           feu[f] = 4. * a[0] * fcg[cp].dot(m.GetVectToCell(f, 1)) +
                    a[1] * fcu[cp] + (a[2] + a[0]) * fcu[cm];
         } else {
           feu[f] = (fcu[cm] + fcu[cp]) * 0.5;
         }
       } else {
-        const IdxCell c = (ffv[f] > 0 ? cm : cp);
+        const IdxCell c = (fev[f] > 0 ? cm : cp);
         feu[f] = fcu[c];
       }
     }
-    for (auto c : eb.CFaces()) {
-      if (bc == 0) {
-        feu[c] = bcv;
-      } else if (bc == 1) {
-        feu[c] = fcu[c] + bcv * GetFaceOffset(c);
-      } else {
-        throw std::runtime_error(
-            "Interpolate: unknown bc=" + std::to_string(bc));
-      }
-    }
+    InterpolateUpwindEmbedFaces(fcu, bc, mcu, fev, feu);
     InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
     return feu;
+  }
+  FieldEmbed<Scal> InterpolateUpwind(
+      const FieldCell<Scal>& fcu, const FieldCell<typename M::Vect>& fcg,
+      const MapCondFace& mfc, size_t bc, Scal bcv,
+      const FieldEmbed<Scal>& fev, ConvSc sc) const {
+    MapCell<Scal> mcu;
+    for (auto c : CFaces()) {
+      mcu[c] = bcv;
+    }
+    return InterpolateUpwind(fcu, fcg, mfc, bc, mcu, fev, sc);
   }
   Scal ClipGradDenom(Scal dn) const {
     return (dn > 0 ? 1 : -1) *
@@ -834,7 +835,6 @@ class Embed {
   // Returns:
   // gradient on cells [a]
   FieldCell<Vect> GradientLinearFit(const FieldEmbed<Scal>& feu) const {
-    auto& eb = *this;
     FieldCell<Vect> fcg(m, Vect(0));
     for (auto c : m.AllCells()) {
       switch (fct_[c]) {
@@ -916,7 +916,7 @@ class Embed {
   template <class T>
   FieldEmbed<T> Gradient(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
-    FieldEmbed<T> feu(m, T(0)); // FIXME should be nan
+    FieldEmbed<T> feu(m, T(0));
     for (auto f : eb.Faces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
@@ -1113,6 +1113,15 @@ class Embed {
     feu.GetFieldFace() = InterpolateBilinear(fcu);
     InterpolateEmbedFaces(fcu, bc, mcu, feu);
     return feu;
+  }
+  template <class T>
+  FieldEmbed<T> InterpolateBilinear(
+      const FieldCell<T>& fcu, size_t bc, T bcv) const {
+    MapCell<Scal> mcu;
+    for (auto c : CFaces()) {
+      mcu[c] = bcv;
+    }
+    return InterpolateBilinear(fcu, bc, mcu);
   }
   template <class T>
   FieldEmbed<T> InterpolateBilinear(

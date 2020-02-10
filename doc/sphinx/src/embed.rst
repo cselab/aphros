@@ -183,17 +183,22 @@ Using this function in the advection solver results in
   :comment:
   :impl:
 
-.. |ex103_1_0| image:: ../../../examples/103_embed_advection/case1/u_0000.svg
+.. includecode:: examples/103_embed_advection/main.cpp
+  :func: Advection2
+  :comment:
+  :impl:
 
 .. |ex103_1_1| image:: ../../../examples/103_embed_advection/case1/u_0001.svg
 
-.. table:: Results of advection solver ``Advection1()``:
-   initial (left) and final (right).
-   Resdistribution from cut cells stabilized the method.
+.. |ex103_2_1| image:: ../../../examples/103_embed_advection/case2/u_0001.svg
+
+.. table:: Results of first order upwind scheme ``Advection1()`` (left)
+   and second order upwind scheme ``Advection2()`` (right).
+   Resdistribution from cut cells stabilizes the method in both cases.
    :align: center
 
    +-------------+-------------+
-   | |ex103_1_0| | |ex103_1_1| |
+   | |ex103_1_1| | |ex103_2_1| |
    +-------------+-------------+
 
 The fraction of redistributed quantities ``eb.RedistributeCutCells()`` does not
