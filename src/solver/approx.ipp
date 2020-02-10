@@ -3,6 +3,14 @@
 
 #include "approx.h"
 
+// Retuns coefficients of interpolation scheme.
+//   f = GetFace(cm, 1)
+//   uf = u[cmm]*a[0] + u[cm]*a[1] + [cp]*a[2]
+//    -------------------------------            //
+//    |         |         |         |            //
+//    |   cmm   |   cm    |f   cp   |            //
+//    |         |         |         |            //
+//    -------------------------------            //
 // sc: scheme:
 //   - fou: first order upwind
 //   - cd: central differences (mean value)

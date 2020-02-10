@@ -1284,10 +1284,78 @@ void TestEmbed() {
 }
 
 template <int dummy_ = 0>
-void TestEmbedSelected() {}
+void TestEmbedSelected() {
+  if (1) {
+    std::cout << "\n" << __func__ << std::endl;
+    auto fluxdir = [](const EB& eb) {
+      FieldEmbed<Scal> fev(eb); // flux direction, depends only on indices
+      for (auto f : eb.Faces()) {
+        fev[f] = std::sin(size_t(f));
+      }
+      for (auto c : eb.CFaces()) {
+        fev[c] = std::sin(size_t(c));
+      }
+      return fev;
+    };
+    auto estimator = [&fluxdir](const Func<Scal>& func, const EB& eb) {
+      const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
+      return eb.InterpolateUpwind(fcu, fluxdir(eb), MapCondFace(), 1, 0.);
+    };
+    ConvSc sc = ConvSc::fou; // interpolation scheme
+    auto estimator_sc = [&fluxdir, &sc](const Func<Scal>& func, const EB& eb) {
+      MapCell<Scal> bc;
+      for (auto c : eb.CFaces()) {
+        bc[c] = func()(eb.GetFaceCenter(c));
+      }
+      const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
+      const auto feu = eb.InterpolateBilinear(fcu, 0, bc);
+      const auto fcg = eb.GradientLinearFit(feu);
+      return eb.InterpolateUpwind(
+          fcu, fcg, MapCondFace(), 1, 0., fluxdir(eb), sc);
+    };
+    auto estimator_sc_bi = [&fluxdir, &sc](
+                              const Func<Scal>& func, const EB& eb) {
+      MapCell<Scal> bc;
+      for (auto c : eb.CFaces()) {
+        bc[c] = func()(eb.GetFaceCenter(c));
+      }
+      const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
+      const auto feu = eb.InterpolateBilinear(fcu, 0, bc);
+      const auto fcg = eb.GradientLinearFit(feu);
+      return eb.InterpolateUpwindBilinear(
+          fcu, fcg, MapCondFace(), 0, bc, fluxdir(eb), sc);
+    };
+    auto exact = [](const Func<Scal>& func, const EB& eb) {
+      return Eval<FieldEmbed<Scal>>(func(), eb);
+    };
+    std::cout << "\n"
+              << "eb.InterpolateUpwind() returning FieldEmbed<Scal>"
+              << std::endl;
+    VaryFunc<FieldEmbed<Scal>, EB>(estimator, exact);
+
+    sc = ConvSc::sou;
+    std::cout << "\n"
+              << "eb.InterpolateUpwind() sc=sou returning FieldEmbed<Scal>"
+              << std::endl;
+    VaryFunc<FieldEmbed<Scal>, EB>(estimator_sc, exact);
+
+    sc = ConvSc::quick;
+    std::cout << "\n"
+              << "eb.InterpolateUpwind() sc=quick returning FieldEmbed<Scal>"
+              << std::endl;
+    VaryFunc<FieldEmbed<Scal>, EB>(estimator_sc, exact);
+
+    sc = ConvSc::quick;
+    std::cout
+        << "\n"
+        << "eb.InterpolateUpwindBilinear() sc=quick returning FieldEmbed<Scal>"
+        << std::endl;
+    VaryFunc<FieldEmbed<Scal>, EB>(estimator_sc_bi, exact);
+  }
+}
 
 int main() {
-#if 1
+#if 0
   TestMesh();
   TestEmbed();
   DumpEmbedPoly();

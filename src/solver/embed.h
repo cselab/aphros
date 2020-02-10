@@ -669,8 +669,8 @@ class Embed {
   // field on embedded boundaries [s]
   template <class T>
   FieldEmbed<T> InterpolateUpwind(
-      const FieldCell<T>& fcu, const FieldEmbed<T>& fev, const MapCondFace& mfc,
-      size_t bc, T bcv) const {
+      const FieldCell<T>& fcu, const FieldEmbed<Scal>& fev,
+      const MapCondFace& mfc, size_t bc, T bcv) const {
     FieldEmbed<T> feu(m, T(0));
     for (auto f : eb.Faces()) {
       const IdxCell c = (fev[f] > 0 ? m.GetCell(f, 0) : m.GetCell(f, 1));
@@ -693,6 +693,56 @@ class Embed {
     InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
     return feu;
   }
+  // Interpolates field from cells to faces with an upwind scheme,
+  // bilinear in cut faces, and first order upwind in embed faces.
+  // fcu: field [s]
+  // fcg: gradient [s]
+  // ffv: volume flux [i]
+  // sc: interpolation scheme
+  // Returns:
+  // field on faces boundaries [s]
+  FieldFace<Scal> InterpolateUpwindBilinear(
+      const FieldCell<Scal>& fcu, const FieldCell<typename M::Vect>& fcg,
+      const FieldFace<Scal>& ffv, ConvSc sc) const {
+    FieldFace<Scal> ffu(m, 0.);
+    // f = fmm*a[0] + fm*a[1] + fp*a[2]
+    const std::array<Scal, 3> a = GetCoeff<Scal>(sc);
+    for (auto f : eb.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      if (ffv[f] > 0) {
+        ffu[f] = 4. * a[0] * fcg[cm].dot(m.GetVectToCell(f, 0)) +
+                 a[1] * fcu[cm] + (a[2] + a[0]) * fcu[cp];
+      } else if (ffv[f] < 0) {
+        ffu[f] = 4. * a[0] * fcg[cp].dot(m.GetVectToCell(f, 1)) +
+                 a[1] * fcu[cp] + (a[2] + a[0]) * fcu[cm];
+      } else {
+        ffu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+      }
+    }
+    return InterpolateBilinearFaces(ffu);
+  }
+  FieldEmbed<Scal> InterpolateUpwindBilinear(
+      const FieldCell<Scal>& fcu, const FieldCell<typename M::Vect>& fcg,
+      const MapCondFace& mfc, size_t bc, MapCell<Scal> mcu,
+      const FieldEmbed<Scal>& fev, ConvSc sc) const {
+    FieldEmbed<Scal> feu(m, 0);
+    feu.GetFieldFace() =
+        InterpolateUpwindBilinear(fcu, fcg, fev.GetFieldFace(), sc);
+    InterpolateUpwindEmbedFaces(fcu, bc, mcu, fev, feu);
+    InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
+    return feu;
+  }
+  FieldEmbed<Scal> InterpolateUpwindBilinear(
+      const FieldCell<Scal>& fcu, const FieldCell<typename M::Vect>& fcg,
+      const MapCondFace& mfc, size_t bc, Scal bcv, const FieldEmbed<Scal>& ffv,
+      ConvSc sc) const {
+    MapCell<Scal> mcu;
+    for (auto c : CFaces()) {
+      mcu[c] = bcv;
+    }
+    return InterpolateUpwindBilinear(fcu, fcg, mfc, bc, mcu, ffv, sc);
+  }
   // Upwind interpolation.
   // fcu: field [s]
   // fcg: gradient [s]
@@ -707,7 +757,7 @@ class Embed {
   //       (see InterpolateUpwind() above)
   FieldEmbed<Scal> InterpolateUpwind(
       const FieldCell<Scal>& fcu, const FieldCell<typename M::Vect>& fcg,
-      const MapCondFace& mfc, size_t bc, Scal bcv, const FieldFace<Scal>& ffv,
+      const MapCondFace& mfc, size_t bc, Scal bcv, const FieldEmbed<Scal>& ffv,
       ConvSc sc) const {
     FieldEmbed<Scal> feu(m, 0.);
     // f = fmm*a[0] + fm*a[1] + fp*a[2]
@@ -968,9 +1018,9 @@ class Embed {
     return ffb;
   }
   // Interpolates field from cells to faces, bilinear in cut faces.
-  // fcu: field on cells [eb_s]
+  // fcu: field on cells [s]
   // Returns:
-  // ffu: field on faces [eb_i]
+  // ffu: field on faces [i]
   template <class T>
   FieldFace<T> InterpolateBilinear(const FieldCell<T>& fcu) const {
     FieldFace<T> ffu(m, T(0));
@@ -981,16 +1031,15 @@ class Embed {
     }
     return InterpolateBilinearFaces(ffu);
   }
-  // Interpolates field from cells to combined field, bilinear in cut faces.
+  // Interpolates field from cells to embed faces.
   // fcu: field on cells [s]
   // mcu: value of on embed faces
   // Returns:
   // feu: field on embed faces [i]
   template <class T>
-  FieldEmbed<T> InterpolateBilinear(
-      const FieldCell<T>& fcu, size_t bc, const MapCell<Scal>& mcu) const {
-    FieldEmbed<T> feu(m);
-    feu.GetFieldFace() = InterpolateBilinear(fcu);
+  void InterpolateEmbedFaces(
+      const FieldCell<T>& fcu, size_t bc, const MapCell<Scal>& mcu,
+      FieldEmbed<T>& feu) const {
     if (bc == 0) {
       for (auto c : eb.CFaces()) {
         feu[c] = mcu.at(c);
@@ -1012,6 +1061,57 @@ class Embed {
     } else {
       throw std::runtime_error("not implemented");
     }
+  }
+  // Interpolates field from cells to embed faces.
+  // fcu: field on cells [s]
+  // mcu: value of on embed faces
+  // Returns:
+  // feu: field on embed faces [i]
+  template <class T>
+  void InterpolateUpwindEmbedFaces(
+      const FieldCell<T>& fcu, size_t bc, const MapCell<Scal>& mcu,
+      const FieldEmbed<Scal>& fev, FieldEmbed<T>& feu) const {
+    if (bc == 0) {
+      for (auto c : eb.CFaces()) {
+        if (fev[c] > 0) {
+          feu[c] = fcu[c];
+        } else if (fev[c] <= 0) {
+          feu[c] = mcu.at(c);
+        }
+      }
+    } else if (bc == 1) {
+      for (auto c : eb.CFaces()) {
+        if (fev[c] > 0) {
+          feu[c] = fcu[c];
+        } else if (fev[c] <= 0) {
+          std::vector<Vect> xx;
+          std::vector<Scal> uu;
+          for (auto cn : eb.Stencil(c)) {
+            xx.push_back(m.GetCenter(cn));
+            uu.push_back(fcu[cn]);
+          }
+          auto p = FitLinear(xx, uu);
+          const Scal h = m.GetCellSize()[0];
+          const Vect xc = eb.GetFaceCenter(c) - eb.GetNormal(c) * h;
+          const Scal uc = p.first.dot(xc) + p.second;
+          feu[c] = uc + mcu.at(c) * h;
+        }
+      }
+    } else {
+      throw std::runtime_error("not implemented");
+    }
+  }
+  // Interpolates field from cells to combined field, bilinear in cut faces.
+  // fcu: field on cells [s]
+  // mcu: value of on embed faces
+  // Returns:
+  // feu: field on embed faces [i]
+  template <class T>
+  FieldEmbed<T> InterpolateBilinear(
+      const FieldCell<T>& fcu, size_t bc, const MapCell<Scal>& mcu) const {
+    FieldEmbed<T> feu(m);
+    feu.GetFieldFace() = InterpolateBilinear(fcu);
+    InterpolateEmbedFaces(fcu, bc, mcu, feu);
     return feu;
   }
   template <class T>
