@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -eu
+
+getval () {
+  prefix=$1
+  r=$(grep "$prefix" out)
+  echo ${r#$prefix}
+}
+
+nx=$(getval 'global mesh=')
+nx=${nx#*(}
+nx=${nx%%,*}
+extent=$(getval 'set double extent')
+r=$(awk 'NR==1{print $4}' < body.dat)
+nd=$(python -c "print('{:03d}'.format(int(2 * $r * $nx /  $extent + 0.5)))")
+
+mu=$(getval 'set double mu1')
+re=$(python -c "print('{:.0f}'.format(2 * $r / $mu))")
+
+sel="t dragx dragy vdragx vdragy ekin"
+selcmd=$(for name in $sel ; do printf "<(ap-getcol $name) " ; done)
+cmd="paste -d' ' $selcmd"
+nl=$(ap-getcol t | wc -l)
+every=$(python -c "print(max(1, $nl // 1000))")
+out=stat_re${re}_nd${nd}
+echo "writing every '$every' record to '$out'"
+echo "$cmd"
+echo "$sel" > $out
+eval "$cmd" | awk "NR%$every==0{print}" >> $out
