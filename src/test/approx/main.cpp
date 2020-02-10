@@ -1284,7 +1284,7 @@ void TestEmbed() {
 }
 
 template <int dummy_ = 0>
-void TestEmbedSelected() {
+void TestEmbedUpwind() {
   if (1) {
     std::cout << "\n" << __func__ << std::endl;
     auto fluxdir = [](const EB& eb) {
@@ -1354,10 +1354,14 @@ void TestEmbedSelected() {
   }
 }
 
+template <int dummy_ = 0>
+void TestEmbedSelected() {}
+
 int main() {
-#if 0
+#if 1
   TestMesh();
   TestEmbed();
+  TestEmbedUpwind();
   DumpEmbedPoly();
   DumpEmbedCsv();
 #else
