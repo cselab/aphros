@@ -81,7 +81,9 @@ static std::array<Scal, N> SolveLinear(
   return x;
 }
 
-// Fits linear function to set of points and values.
+// Fits linear function to set of points and values
+//   u = g.dot(x) + u0
+// Returns {g, u0}.
 template <class Vect, class Scal = typename Vect::value_type>
 std::pair<Vect, Scal> FitLinear(
     const std::vector<Vect>& xx, const std::vector<Scal>& uu) {
@@ -918,7 +920,7 @@ class Embed {
   // Returns:
   // grad dot GetNormal on embedded boundaries [s]
   template <class T>
-  FieldFace<T> InterpolateBilinearFromRegular(const FieldFace<T>& ffu) const {
+  FieldFace<T> InterpolateBilinearFaces(const FieldFace<T>& ffu) const {
     FieldFace<T> ffb(m, T(0));
     for (auto f : eb.Faces()) {
       const IdxCell cm = m.GetCell(f, 0);
@@ -965,57 +967,124 @@ class Embed {
     }
     return ffb;
   }
-  // Gradient with bilinear interpolation in cut faces
-  // and linear fit in embed faces.
-  // fcu: field [a]
-  // bc: boundary conditions type, 0: value, 1: grad
-  // bcv: value or normal gradient (grad dot GetNormal)
+  // Interpolates field from cells to faces, bilinear in cut faces.
+  // fcu: field on cells [eb_s]
   // Returns:
-  // grad dot GetNormal on embedded boundaries [s]
+  // ffu: field on faces [eb_i]
   template <class T>
-  FieldEmbed<T> InterpolateBilinear(
-      const FieldCell<T>& fcu, const GMap<Scal, IdxCell>& bc) const {
-    FieldEmbed<T> feu(m, T(0));
+  FieldFace<T> InterpolateBilinear(const FieldCell<T>& fcu) const {
+    FieldFace<T> ffu(m, T(0));
     for (auto f : eb.Faces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
-      feu[f] = (fcu[cp] + fcu[cm]) * 0.5;
+      ffu[f] = (fcu[cp] + fcu[cm]) * 0.5;
     }
-    feu.GetFieldFace() = InterpolateBilinearFromRegular(feu.GetFieldFace());
-    for (auto c : eb.CFaces()) {
-      feu[c] = bc.at(c);
+    return InterpolateBilinearFaces(ffu);
+  }
+  // Interpolates field from cells to combined field, bilinear in cut faces.
+  // fcu: field on cells [s]
+  // mcu: value of on embed faces
+  // Returns:
+  // feu: field on embed faces [i]
+  template <class T>
+  FieldEmbed<T> InterpolateBilinear(
+      const FieldCell<T>& fcu, size_t bc, const MapCell<Scal>& mcu) const {
+    FieldEmbed<T> feu(m);
+    feu.GetFieldFace() = InterpolateBilinear(fcu);
+    if (bc == 0) {
+      for (auto c : eb.CFaces()) {
+        feu[c] = mcu.at(c);
+      }
+    } else if (bc == 1) {
+      for (auto c : eb.CFaces()) {
+        std::vector<Vect> xx;
+        std::vector<Scal> uu;
+        for (auto cn : eb.Stencil(c)) {
+          xx.push_back(m.GetCenter(cn));
+          uu.push_back(fcu[cn]);
+        }
+        auto p = FitLinear(xx, uu);
+        const Scal h = m.GetCellSize()[0];
+        const Vect xc = eb.GetFaceCenter(c) - eb.GetNormal(c) * h;
+        const Scal uc = p.first.dot(xc) + p.second;
+        feu[c] = uc + mcu.at(c) * h;
+      }
+    } else {
+      throw std::runtime_error("not implemented");
     }
     return feu;
   }
-  // Intepolaton with bilinear interpolation in cut faces
+  template <class T>
+  FieldEmbed<T> InterpolateBilinear(
+      const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
+    MapCell<Scal> mcu;
+    for (auto c : CFaces()) {
+      mcu[c] = bcv;
+    }
+    auto feu = InterpolateBilinear(fcu, bc, mcu);
+    InterpolateB(fcu, mfc, feu.GetFieldFace(), m);
+    return feu;
+  }
+  // Gradient with bilinear interpolation in cut faces
   // and linear fit in embed faces.
   // fcu: field [a]
-  // bc: boundary conditions type, 0: value, 1: grad
-  // bcv: value or normal gradient (grad dot GetNormal)
+  // Returns:
+  // grad dot GetNormal on faces [s]
+  template <class T>
+  FieldFace<T> GradientBilinear(const FieldCell<T>& fcu) const {
+    FieldFace<T> ffg(m, T(0));
+    const Scal h = m.GetCellSize()[0];
+    for (auto f : eb.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      ffg[f] = (fcu[cp] - fcu[cm]) / h;
+    }
+    return InterpolateBilinearFaces(ffg);
+  }
+  // Gradient with bilinear interpolation in cut faces
+  // and linear fit in embed faces.
+  // fcu: field [a]
+  // mcu: value (bc=0) or derivative (bc=1)
   // Returns:
   // grad dot GetNormal on embedded boundaries [s]
   template <class T>
   FieldEmbed<T> GradientBilinear(
-      const FieldCell<T>& fcu, const GMap<Scal, IdxCell>& bc) const {
-    FieldEmbed<T> feg(m, T(0));
-    for (auto f : eb.Faces()) {
-      const IdxCell cm = m.GetCell(f, 0);
-      const IdxCell cp = m.GetCell(f, 1);
-      const Scal h = m.GetCellSize()[0];
-      feg[f] = (fcu[cp] - fcu[cm]) / h;
-    }
-    feg.GetFieldFace() = InterpolateBilinearFromRegular(feg.GetFieldFace());
-    for (auto c : eb.CFaces()) {
-      const Scal ubc = bc.at(c);
-      std::vector<Vect> xx;
-      std::vector<Scal> uu;
-      for (auto cn : eb.Stencil(c)) {
-        xx.push_back(m.GetCenter(cn));
-        uu.push_back(fcu[cn] - ubc);
+      const FieldCell<T>& fcu, size_t bc, const MapCell<Scal>& mcu) const {
+    FieldEmbed<T> feg(m);
+    feg.GetFieldFace() = GradientBilinear(fcu);
+    if (bc == 0) {
+      for (auto c : eb.CFaces()) {
+        std::vector<Vect> xx;
+        std::vector<Scal> uu;
+        for (auto cn : eb.Stencil(c)) {
+          xx.push_back(m.GetCenter(cn));
+          uu.push_back(fcu[cn]);
+        }
+        auto p = FitLinear(xx, uu);
+        const Scal ub = mcu.at(c);
+        const Scal h = m.GetCellSize()[0];
+        const Vect xc = eb.GetFaceCenter(c) - eb.GetNormal(c) * h;
+        const Scal uc = p.first.dot(xc) + p.second;
+        feg[c] = (ub - uc) / h;
       }
-      auto p = FitLinear(xx, uu);
-      feg[c] = p.first.dot(eb.GetNormal(c));
+    } else if (bc == 1) {
+      for (auto c : eb.CFaces()) {
+        feg[c] = mcu.at(c);
+      }
+    } else {
+      throw std::runtime_error("not implemented");
     }
+    return feg;
+  }
+  template <class T>
+  FieldEmbed<T> GradientBilinear(
+      const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv) const {
+    MapCell<Scal> mcu;
+    for (auto c : CFaces()) {
+      mcu[c] = bcv;
+    }
+    auto feg = GradientBilinear(fcu, bc, mcu);
+    GradientB(fcu, mfc, m, feg.GetFieldFace());
     return feg;
   }
   void DumpPoly(std::string filename, bool vtkbin, bool vtkmerge) const {
