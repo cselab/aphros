@@ -69,8 +69,8 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
 
       // Convective fluxes
       {
-        FieldEmbed<Scal> feq = eb.InterpolateUpwind(
-            fcu, fcg, mfc_, bc_, bcu_, fev.GetFieldFace(), par.sc);
+        FieldEmbed<Scal> feq =
+            eb.InterpolateUpwind(fcu, fcg, mfc_, bc_, bcu_, fev, par.sc);
         for (auto f : eb.Faces()) {
           feq[f] *= fev[f];
         }
