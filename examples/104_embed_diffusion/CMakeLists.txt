@@ -4,5 +4,5 @@ find_package(aphros/hydro)
 
 set(EXE main)
 add_executable(${EXE} main.cpp)
-target_link_libraries(${EXE} distrbasic approx)
+target_link_libraries(${EXE} distrbasic approx approx_eb)
 
