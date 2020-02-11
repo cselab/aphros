@@ -7,33 +7,36 @@ e () {
   eval "$@"
 }
 
-if [ "${1:-x}" == "-h" ] ; then
-  echo "usage: $0 [-y]
+if [ "${1:-x}" = "-h" ] || [ "${1:-x}" = "--help" ] ; then
+  echo "usage: $0 [--help] [-y]
 Run clang-format for C/C++ files found recursively from current directory.
 Options:
   -y
-      Force 'yes' to all questions.
-      "
+      Proceed without confirmation.
+"
   exit 1
 fi
 
 force=0
-if [[ "${1:-x}" == "-y" ]] ; then
+if [ "${1:-x}" = "-y" ] ; then
   force=1
+  shift
 fi
 
 list=/tmp/clang-format-list.$$
 tmp=/tmp/tmp.$$
 trap 'rm -f $list $tmp; exit 2' 1 2 3 4 15
 
-e "find . -type f \
--name '*.h' -or \
--name '*.hpp' -or \
--name '*.ipp' -or \
--name '*.cpp' -or \
--name '*.c' | grep -v CMake > $list"
+if [ "$#" -gt "0" ] ; then
+  rm -f "$list"
+  for arg in "$@" ; do
+    echo "$arg" >> "$list"
+  done
+else
+  e "ap.findsource > '$list'"
+fi
 
-# 'clang-format -i' replaces symlinks with regular files
+# exclude symlinks, 'clang-format -i' replaces symlinks with regular files
 echo "Excluded symlinks:"
 rm -f "$tmp"
 while read line ; do
@@ -58,7 +61,7 @@ else
   read -r -p "Proceed? [y/N] " re
 fi
 
-if [[ "$re" == "y" ]] ; then
+if [ "$re" = "y" ] ; then
     cat "$list" | xargs $cmd
     rm -v "$list"
     echo Done
