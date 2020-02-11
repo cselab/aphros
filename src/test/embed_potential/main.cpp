@@ -14,6 +14,7 @@
 #include "linear/linear.h"
 #include "solver/convdiffv_eb.h"
 #include "solver/embed.h"
+#include "solver/approx_eb.h"
 #include "solver/fluid.h"
 #include "solver/reconst.h"
 
@@ -21,6 +22,7 @@ using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using EB = Embed<M>;
+using UEB = UEmbed<M>;
 using Type = typename EB::Type;
 
 template <class M>
@@ -155,7 +157,7 @@ void Run(M& m, Vars& var) {
 
   if (sem("eb_ctor")) {
     eb_.reset(new EB(m));
-    ctx->fnl = InitEmbed(m, var, m.IsRoot());
+    ctx->fnl = UEB::InitEmbed(m, var, m.IsRoot());
   }
   if (sem.Nested("eb_init")) {
     eb_->Init(ctx->fnl);

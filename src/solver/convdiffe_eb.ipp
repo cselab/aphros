@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "approx.h"
+#include "approx_eb.h"
 #include "convdiffe_eb.h"
 #include "debug/isnan.h"
 
@@ -14,6 +15,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
   using Owner = ConvDiffScalExpEmbed<M_>;
   using Vect = typename M::Vect;
   using EB = Embed<M>;
+  using UEB = UEmbed<M>;
   using Type = typename EB::Type;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
@@ -57,8 +59,8 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
     auto sem = m.GetSem("assemble");
 
     if (sem("assemble")) {
-      const FieldCell<Vect> fcg =
-          eb.GradientLinearFit(eb.InterpolateBilinear(fcu, mfc_, bc_, bcu_));
+      const FieldCell<Vect> fcg = UEB::GradientLinearFit(
+          UEB::InterpolateBilinear(fcu, mfc_, bc_, bcu_, eb), eb);
 
       // diagonal linear system la * x + lb = 0
       fcla.Reinit(m);
@@ -66,8 +68,8 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
 
       // Convective fluxes
       {
-        FieldEmbed<Scal> feq = eb.InterpolateUpwindBilinear(
-            fcu, fcg, mfc_, bc_, bcu_, fev, par.sc);
+        FieldEmbed<Scal> feq = UEB::InterpolateUpwindBilinear(
+            fcu, fcg, mfc_, bc_, bcu_, fev, par.sc, eb);
         for (auto f : eb.Faces()) {
           feq[f] *= fev[f];
         }
@@ -87,7 +89,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
 
       // Diffusive fluxes
       if (fed_) {
-        FieldEmbed<Scal> feq = eb.GradientBilinear(fcu, mfc_, bc_, bcu_);
+        FieldEmbed<Scal> feq = UEB::GradientBilinear(fcu, mfc_, bc_, bcu_, eb);
         for (auto f : eb.Faces()) {
           feq[f] *= -(*fed_)[f] * eb.GetArea(f);
         }
@@ -105,7 +107,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
         }
       }
 
-      fclb = eb.RedistributeCutCells(fclb);
+      fclb = UEB::RedistributeCutCells(fclb, eb);
       for (IdxCell c : eb.Cells()) {
         fclb[c] /= eb.GetVolume(c);
       }

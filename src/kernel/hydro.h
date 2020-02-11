@@ -38,6 +38,7 @@
 #include "parse/vof.h"
 #include "solver/advection.h"
 #include "solver/approx.h"
+#include "solver/approx_eb.h"
 #include "solver/curv.h"
 #include "solver/embed.h"
 #include "solver/multi.h"
@@ -75,31 +76,16 @@ FieldCell<typename M::Scal> GetDivergence(
 }
 
 template <class M>
-const FieldEmbed<typename M::Scal> GetComponent(
-    const FieldEmbed<typename M::Vect>& fv, size_t n, const Embed<M>& eb) {
-  using Scal = typename M::Scal;
-  auto& m = eb.GetMesh();
-  FieldEmbed<Scal> fs(m);
-  for (auto c : m.Cells()) {
-    fs[c] = fv[c][n];
-  }
-  for (auto f : m.Faces()) {
-    fs[f] = fv[f][n];
-  }
-  return fs;
-}
-
-template <class M>
 FieldCell<typename M::Vect> GetVort(
     const FieldCell<typename M::Vect>& fcv, const MapCondFace& mf,
     Embed<M>& eb) {
   auto& m = eb.GetMesh();
   using Vect = typename M::Vect;
-  auto fev = eb.InterpolateBilinear(fcv, mf, 0, Vect(0));
+  auto fev = UEmbed<M>::InterpolateBilinear(fcv, mf, 0, Vect(0), eb);
 
-  auto d0 = eb.GradientLinearFit(GetComponent(fev, 0, eb));
-  auto d1 = eb.GradientLinearFit(GetComponent(fev, 1, eb));
-  auto d2 = eb.GradientLinearFit(GetComponent(fev, 2, eb));
+  auto d0 = UEmbed<M>::GradientLinearFit(GetComponent(fev, 0), eb);
+  auto d1 = UEmbed<M>::GradientLinearFit(GetComponent(fev, 1), eb);
+  auto d2 = UEmbed<M>::GradientLinearFit(GetComponent(fev, 2), eb);
 
   FieldCell<Vect> r(m, Vect(0));
   for (auto c : eb.Cells()) {
@@ -448,7 +434,7 @@ void Hydro<M>::InitEmbed() {
     } * ctx(sem);
     if (sem("ctor")) {
       eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
-      ctx->fnl = ::InitEmbed(m, var, m.IsRoot());
+      ctx->fnl = UEmbed<M>::InitEmbed(m, var, m.IsRoot());
     }
     if (sem.Nested("init")) {
       eb_->Init(ctx->fnl);
@@ -1437,7 +1423,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         const auto x = eb.GetCellCenter(c);
         fcp[c] = grav.dot(x);
       }
-      ffbp_ = eb.GradientBilinear(fcp, GetCondZeroGrad<Scal>(mf_fluid_), 0, 0.)
+      ffbp_ = UEmbed<M>::GradientBilinear(
+                  fcp, GetCondZeroGrad<Scal>(mf_fluid_), 0, 0., eb)
                   .GetFieldFace();
       for (auto f : m.AllFaces()) {
         ffbp_[f] *= ff_rho[f];
@@ -1881,7 +1868,7 @@ void Hydro<M>::ReportStepAdv() {
 template <class M>
 auto Hydro<M>::CalcPressureDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb)
     -> Vect {
-  auto fep = eb.InterpolateBilinear(fcp, MapCondFace(), 1, 0.);
+  auto fep = UEmbed<M>::InterpolateBilinear(fcp, MapCondFace(), 1, 0., eb);
   Vect sum(0);
   for (auto c : eb.CFaces()) {
     sum += eb.GetSurface(c) * fep[c];
@@ -1893,8 +1880,8 @@ template <class M>
 auto Hydro<M>::CalcViscousDrag(
     const FieldCell<Vect>& fcvel, const FieldCell<Scal>& fcmu,
     const Embed<M>& eb) -> Vect {
-  auto feg = eb.GradientBilinear(fcvel, MapCondFace(), 0, Vect(0));
-  auto femu = eb.InterpolateBilinear(fcmu, MapCondFace(), 1, 0.);
+  auto feg = UEmbed<M>::GradientBilinear(fcvel, MapCondFace(), 0, Vect(0), eb);
+  auto femu = UEmbed<M>::InterpolateBilinear(fcmu, MapCondFace(), 1, 0., eb);
   Vect sum(0);
   for (auto c : eb.CFaces()) {
     sum += feg[c] * (-eb.GetArea(c) * femu[c]);

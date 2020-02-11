@@ -11,6 +11,7 @@
 
 #include "approx.h"
 #include "convdiffv_eb.h"
+#include "approx_eb.h"
 #include "debug/isnan.h"
 #include "fluid.h"
 #include "proj_eb.h"
@@ -46,6 +47,7 @@ struct ProjEmbed<M_>::Imp {
   using ExprFace = generic::Vect<Scal, 3>;
   // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
   using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
+  using UEB = UEmbed<M>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
       const Embed<M>& eb0, size_t bc, Vect bcvel,
@@ -79,7 +81,8 @@ struct ProjEmbed<M_>::Imp {
     fcp_.time_prev = fcp_.time_curr;
 
     // Calc initial volume fluxes
-    auto ffwe = eb.InterpolateBilinear(cd_->GetVelocity(), mfcw_, bc_, bcvel_);
+    auto ffwe =
+        UEB::InterpolateBilinear(cd_->GetVelocity(), mfcw_, bc_, bcvel_, eb);
     ffv_.time_curr.Reinit(m, 0.);
     for (auto f : eb.Faces()) {
       ffv_.time_curr[f] = ffwe[f].dot(eb.GetSurface(f));
@@ -305,7 +308,8 @@ struct ProjEmbed<M_>::Imp {
       m.Comm(&fck);
     }
     if (sem("interp")) {
-      ffk = eb.InterpolateBilinear(fck, MapCondFace(), 1, 0.).GetFieldFace();
+      ffk = UEB::InterpolateBilinear(fck, MapCondFace(), 1, 0., eb)
+                .GetFieldFace();
     }
   }
   // Append explicit part of viscous force.
@@ -350,7 +354,7 @@ struct ProjEmbed<M_>::Imp {
       cd_->SetPar(UpdateConvDiffPar(cd_->GetPar(), par));
 
       // interpolate visosity
-      fed_ = eb.InterpolateBilinear(*owner_->fcd_, mfcd_, 1, 0.);
+      fed_ = UEB::InterpolateBilinear(*owner_->fcd_, mfcd_, 1, 0., eb);
 
       // rotate layers
       fcp_prev = fcp_curr;
@@ -376,8 +380,8 @@ struct ProjEmbed<M_>::Imp {
 
     if (sem("pcorr-assemble")) {
       // Acceleration
-      const auto fevel = eb.InterpolateBilinear(
-          cd_->GetVelocity(Step::iter_curr), mfcw_, bc_, bcvel_);
+      const auto fevel = UEB::InterpolateBilinear(
+          cd_->GetVelocity(Step::iter_curr), mfcw_, bc_, bcvel_, eb);
       auto& ffbp = *owner_->ffbp_;
       for (auto f : eb.Faces()) {
         Scal v = fevel[f].dot(eb.GetSurface(f));
@@ -412,7 +416,7 @@ struct ProjEmbed<M_>::Imp {
 
       // Acceleration and correction to center velocity
       // XXX adhoc , using mfcd_ but should be zero-derivative
-      const auto fegp = eb.GradientBilinear(fcp_curr, mfcd_, 1, 0.);
+      const auto fegp = UEB::GradientBilinear(fcp_curr, mfcd_, 1, 0., eb);
       fcwc_.Reinit(m, Vect(0));
       const auto& ffbp = *owner_->ffbp_;
       for (auto c : eb.Cells()) {

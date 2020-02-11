@@ -16,6 +16,7 @@
 #include "func/primlist.h"
 #include "parse/util.h"
 #include "solver/approx.h"
+#include "solver/approx_eb.h"
 #include "solver/cond.h"
 #include "solver/pois.h"
 #include "solver/sphavg.h"
@@ -1535,7 +1536,7 @@ void AppendSurfaceTension(
     const FieldFace<typename M::Scal>& ffsig) {
   const auto& m = eb.GetMesh();
   using Scal = typename M::Scal;
-  const auto fegp = eb.Gradient(fcu, MapCondFace(), 0, 0.);
+  const auto fegp = UEmbed<M>::GradientBilinear(fcu, MapCondFace(), 0, 0., eb);
   for (auto f : eb.Faces()) {
     const Scal gu = fegp[f];
     if (gu != 0.) {

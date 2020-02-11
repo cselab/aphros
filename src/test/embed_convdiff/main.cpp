@@ -13,6 +13,7 @@
 #include "linear/linear.h"
 #include "solver/convdiffv_eb.h"
 #include "solver/embed.h"
+#include "solver/approx_eb.h"
 #include "solver/fluid.h"
 #include "solver/reconst.h"
 
@@ -175,7 +176,7 @@ void Run(M& m, Vars& var) {
 
   if (sem("ctor")) {
     ctx->eb.reset(new EB(m));
-    ctx->fnl = InitEmbed(m, var, m.IsRoot());
+    ctx->fnl = UEmbed<M>::InitEmbed(m, var, m.IsRoot());
   }
   if (sem.Nested("init")) {
     ctx->eb->Init(ctx->fnl);
@@ -215,7 +216,8 @@ void Run(M& m, Vars& var) {
   for (size_t t = 0; t < maxt; ++t) {
     if (sem("flux-init")) {
       auto& eb = *ctx->eb;
-      auto fevel = eb.Interpolate(cd->GetVelocity(), MapCondFace(), bc, bcvel);
+      auto fevel = UEmbed<M>::Interpolate(
+          cd->GetVelocity(), MapCondFace(), bc, bcvel, eb);
       for (auto f : eb.Faces()) {
         ffv[f] = fevel[f].dot(eb.GetNormal(f) * eb.GetArea(f));
       }

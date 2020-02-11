@@ -13,6 +13,7 @@
 
 #include "distr/distrbasic.h"
 #include "solver/embed.h"
+#include "solver/approx_eb.h"
 #include "solver/reconst.h"
 
 using M = MeshStructured<double, 3>;
@@ -20,6 +21,7 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using R = Reconst<Scal>;
 using EB = Embed<M>;
+using UEB = UEmbed<M>;
 using Type = typename EB::Type;
 
 template <class T>
@@ -105,7 +107,7 @@ void Run(M& m, Vars& var) {
 
   if (sem("ctor")) {
     ctx->eb.reset(new EB(m));
-    ctx->fnl = InitEmbed(m, var, m.IsRoot());
+    ctx->fnl = UEB::InitEmbed(m, var, m.IsRoot());
   }
   if (sem.Nested("init")) {
     ctx->eb->Init(ctx->fnl);
@@ -125,10 +127,10 @@ void Run(M& m, Vars& var) {
       feu[c] = func(eb.GetFaceCenter(c));
     }
     feu = Add(feu, GetNoise(eb, 0), eb);
-    fcg = eb.Gradient(feu); // compact gradient
+    fcg = UEB::Gradient(feu, eb);
     std::cout << "1/h=" << 1 / m.GetCellSize()[0] << std::endl;
     PrintStat(GetStat<Vect>(fcg, eb));
-    fcg = eb.AverageCutCells(fcg);
+    fcg = UEB::AverageCutCells(fcg, eb);
     PrintStat(GetStat<Vect>(fcg, eb));
 
     m.Dump(&fcg, 0, "gx");
@@ -137,7 +139,7 @@ void Run(M& m, Vars& var) {
 
     fcu.Reinit(m, 1);
     PrintStat(GetStat<Scal>(fcu, eb));
-    fcu = eb.RedistributeCutCells(fcu);
+    fcu = UEB::RedistributeCutCells(fcu, eb);
     PrintStat(GetStat<Scal>(fcu, eb));
     m.Dump(&fcu, "u");
   }
