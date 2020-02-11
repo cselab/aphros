@@ -6,6 +6,10 @@ set(T "approx")
 add_library(${T} approx.cpp)
 target_link_libraries(${T} solver)
 
+set(T "approx_eb")
+add_library(${T} approx_eb.cpp)
+target_link_libraries(${T} approx)
+
 set(T "vofm")
 add_library(${T} vofm.cpp)
 target_link_libraries(${T} solver normal utilvof)
