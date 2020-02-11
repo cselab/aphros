@@ -15,6 +15,7 @@
 #include "solver/approx.h"
 #include "solver/cond.h"
 #include "solver/embed.h"
+#include "solver/approx_eb.h"
 #include "solver/solver.h"
 
 using M = MeshStructured<double, 3>;
@@ -23,6 +24,7 @@ using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 auto Dirs = GRange<size_t>(3);
 using EB = Embed<M>;
+using UEB = UEmbed<M>;
 
 template <class T>
 class Func {
@@ -1089,7 +1091,7 @@ void TestEmbed() {
     std::cout << "\n" << __func__ << std::endl;
     auto estimator = [](const Func<Scal>& func, const EB& eb) {
       auto fc = Eval<FieldCell<Scal>>(func(), eb);
-      return eb.Interpolate(fc, MapCondFace(), 1, 0.);
+      return UEB::Interpolate(fc, MapCondFace(), 1, 0., eb);
     };
     auto estimator_bi_bc0 = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
@@ -1097,7 +1099,7 @@ void TestEmbed() {
       for (auto c : eb.CFaces()) {
         bc[c] = func()(eb.GetFaceCenter(c));
       }
-      return eb.InterpolateBilinear(fcu, 0, bc);
+      return UEB::InterpolateBilinear(fcu, 0, bc, eb);
     };
     auto estimator_bi_bc1 = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
@@ -1106,7 +1108,7 @@ void TestEmbed() {
         const auto x = eb.GetFaceCenter(c);
         bc[c] = Gradient(func)(x).dot(eb.GetNormal(c));
       }
-      return eb.InterpolateBilinear(fcu, 1, bc);
+      return UEB::InterpolateBilinear(fcu, 1, bc, eb);
     };
     auto exact = [](const Func<Scal>& func, const EB& eb) {
       return Eval<FieldEmbed<Scal>>(func(), eb);
@@ -1127,7 +1129,7 @@ void TestEmbed() {
   if (1) {
     auto estimator = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb);
-      return eb.Gradient(fcu, MapCondFace(), 1, 0.);
+      return UEB::Gradient(fcu, MapCondFace(), 1, 0., eb);
     };
     auto estimator_bi_bc0 = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
@@ -1135,7 +1137,7 @@ void TestEmbed() {
       for (auto c : eb.CFaces()) {
         bc[c] = func()(eb.GetFaceCenter(c));
       }
-      return eb.GradientBilinear(fcu, 0, bc);
+      return UEB::GradientBilinear(fcu, 0, bc, eb);
     };
     auto estimator_bi_bc1 = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
@@ -1144,7 +1146,7 @@ void TestEmbed() {
         const auto x = eb.GetFaceCenter(c);
         bc[c] = Gradient(func)(x).dot(eb.GetNormal(c));
       }
-      return eb.GradientBilinear(fcu, 1, bc);
+      return UEB::GradientBilinear(fcu, 1, bc, eb);
     };
     auto exact = [](const Func<Scal>& func, const EB& eb) {
       FieldEmbed<Scal> fe(eb, 0);
@@ -1174,11 +1176,11 @@ void TestEmbed() {
   if (1) {
     auto estimator = [](const Func<Scal>& func, const EB& eb) {
       auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-      return eb.Gradient(fe);
+      return UEB::Gradient(fe, eb);
     };
     auto estimator_lin = [](const Func<Scal>& func, const EB& eb) {
       auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-      return eb.GradientLinearFit(fe);
+      return UEB::GradientLinearFit(fe, eb);
     };
     auto exact = [](const Func<Scal>& func, const EB& eb) {
       return Eval<FieldCell<Vect>>(Gradient(func), eb);
@@ -1198,7 +1200,7 @@ void TestEmbed() {
     VaryFunc<FieldCell<Vect>, EB>(
         [](const Func<Scal>& func, const EB& eb) {
           auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-          return eb.Gradient(fe);
+          return UEB::Gradient(fe, eb);
         },
         [](const Func<Scal>& func, const EB& eb) {
           return Eval<FieldCell<Vect>>(Gradient(func), eb);
@@ -1210,7 +1212,7 @@ void TestEmbed() {
       GetOrderField<F, FieldCell<Scal>, EB>(
           [](const Func<Scal>& func, const EB& eb) {
             auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-            return GetComponent(eb.Gradient(fe), 0);
+            return GetComponent(UEB::Gradient(fe, eb), 0);
           },
           [](const Func<Scal>& func, const EB& eb) {
             return Eval<FieldCell<Scal>>(func.Dx(0), eb);
@@ -1221,7 +1223,7 @@ void TestEmbed() {
       Eval<F, FieldCell<Scal>, EB>(
           [](const Func<Scal>& func, const EB& eb) {
             auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-            return GetComponent(eb.Gradient(fe), 0);
+            return GetComponent(UEB::Gradient(fe, eb), 0);
           },
           1e-3),
       "estimator.dat");
@@ -1239,7 +1241,7 @@ void TestEmbed() {
           [](const Func<Scal>& func, const EB& eb) {
             auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
             return Sub(
-                GetComponent(eb.Gradient(fe), 0),
+                GetComponent(UEB::Gradient(fe, eb), 0),
                 Eval<FieldCell<Scal>>(func.Dx(0), eb), eb);
           },
           1e-3),
@@ -1248,29 +1250,29 @@ void TestEmbed() {
   {
     std::cout << "\n"
               << "ExplViscous returning FieldCell<Vect> " << std::endl;
-    auto estimator = [](const Func<Vect>& func, const EB& m) {
-      FieldCell<Vect> fcr(m, Vect(0));
-      const auto fcu = Eval<FieldCell<Vect>>(func(), m);
-      auto feu = m.Interpolate(fcu, MapCondFace(), 1, Vect(0));
+    auto estimator = [](const Func<Vect>& func, const EB& eb) {
+      FieldCell<Vect> fcr(eb, Vect(0));
+      const auto fcu = Eval<FieldCell<Vect>>(func(), eb);
+      auto feu = UEB::Interpolate(fcu, MapCondFace(), 1, Vect(0), eb);
       for (auto d : GRange<size_t>(Vect::dim)) {
-        auto fcg = m.Gradient(GetComponent(feu, d));
-        auto feg = m.Interpolate(fcg, MapCondFace(), 1, Vect(0));
-        for (auto c : m.Cells()) {
+        auto fcg = UEB::Gradient(GetComponent(feu, d), eb);
+        auto feg = UEB::Interpolate(fcg, MapCondFace(), 1, Vect(0), eb);
+        for (auto c : eb.Cells()) {
           Vect s(0);
-          for (auto q : m.Nci(c)) {
-            const IdxFace f = m.GetFace(c, q);
-            s += feg[f] * m.GetOutwardSurface(c, q)[d];
+          for (auto q : eb.Nci(c)) {
+            const IdxFace f = eb.GetFace(c, q);
+            s += feg[f] * eb.GetOutwardSurface(c, q)[d];
           }
-          fcr[c] += s / m.GetVolume(c);
+          fcr[c] += s / eb.GetVolume(c);
         }
       }
 
       return fcr;
     };
-    auto exact = [](const Func<Vect>& u, const EB& m) {
-      FieldCell<Vect> fcr(m, Vect(0));
-      for (auto c : m.AllCells()) {
-        const auto x = m.GetCellCenter(c);
+    auto exact = [](const Func<Vect>& u, const EB& eb) {
+      FieldCell<Vect> fcr(eb, Vect(0));
+      for (auto c : eb.AllCells()) {
+        const auto x = eb.GetCellCenter(c);
         Vect r;
         r[0] = u.Dxx(0, 0)(x)[0] + u.Dxx(0, 1)(x)[1] + u.Dxx(0, 2)(x)[2];
         r[1] = u.Dxx(1, 0)(x)[0] + u.Dxx(1, 1)(x)[1] + u.Dxx(1, 2)(x)[2];
@@ -1299,7 +1301,7 @@ void TestEmbedUpwind() {
     };
     auto estimator = [&fluxdir](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
-      return eb.InterpolateUpwind(fcu, fluxdir(eb), MapCondFace(), 1, 0.);
+      return UEB::InterpolateUpwind(fcu, fluxdir(eb), MapCondFace(), 1, 0., eb);
     };
     ConvSc sc = ConvSc::fou; // interpolation scheme
     auto estimator_sc = [&fluxdir, &sc](const Func<Scal>& func, const EB& eb) {
@@ -1308,10 +1310,10 @@ void TestEmbedUpwind() {
         bc[c] = func()(eb.GetFaceCenter(c));
       }
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
-      const auto feu = eb.InterpolateBilinear(fcu, 0, bc);
-      const auto fcg = eb.GradientLinearFit(feu);
-      return eb.InterpolateUpwind(
-          fcu, fcg, MapCondFace(), 1, 0., fluxdir(eb), sc);
+      const auto feu = UEB::InterpolateBilinear(fcu, 0, bc, eb);
+      const auto fcg = UEB::GradientLinearFit(feu, eb);
+      return UEB::InterpolateUpwind(
+          fcu, fcg, MapCondFace(), 1, 0., fluxdir(eb), sc, eb);
     };
     auto estimator_sc_bi = [&fluxdir, &sc](
                                const Func<Scal>& func, const EB& eb) {
@@ -1320,10 +1322,10 @@ void TestEmbedUpwind() {
         bc[c] = func()(eb.GetFaceCenter(c));
       }
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
-      const auto feu = eb.InterpolateBilinear(fcu, 0, bc);
-      const auto fcg = eb.GradientLinearFit(feu);
-      return eb.InterpolateUpwindBilinear(
-          fcu, fcg, MapCondFace(), 0, bc, fluxdir(eb), sc);
+      const auto feu = UEB::InterpolateBilinear(fcu, 0, bc, eb);
+      const auto fcg = UEB::GradientLinearFit(feu, eb);
+      return UEB::InterpolateUpwindBilinear(
+          fcu, fcg, MapCondFace(), 0, bc, fluxdir(eb), sc, eb);
     };
     auto exact = [](const Func<Scal>& func, const EB& eb) {
       return Eval<FieldEmbed<Scal>>(func(), eb);
