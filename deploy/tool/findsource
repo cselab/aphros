@@ -7,9 +7,10 @@ e () {
   eval "$@"
 }
 
-if [ "${1:-x}" == "-h" ] ; then
-  echo "usage: $0 [-y]
-Finds C/C++ source files recursively from current directory.
+if [ "${1:-x}" = "-h" ] || [ "${1:-x}" = "--help" ] || [ "$#" != "0" ] ; then
+  echo "usage: $0
+Finds C/C++ source files recursively from current directory exluding symlinks
+and files containing 'CMake'
 "
   exit 1
 fi
@@ -25,7 +26,7 @@ eval "find . -type f \
 -name '*.cpp' -or \
 -name '*.c' | grep -v CMake > $list"
 
-# 'clang-format -i' replaces symlinks with regular files
+# exclude symlinks
 rm -f "$tmp"
 while read line ; do
   if [ -L "$line" ] ; then
