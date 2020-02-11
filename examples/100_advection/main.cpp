@@ -4,8 +4,8 @@
 #undef NDEBUG
 #include <cassert>
 #include <iostream>
-#include <string>
 #include <memory>
+#include <string>
 
 #include <distr/distrbasic.h>
 #include <solver/vof.h>

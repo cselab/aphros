@@ -48,7 +48,8 @@ void Run(M& m, Vars&) {
   if (sem("dump")) {
     m.Dump(&fck, "k");
   }
-  if (sem()) {}
+  if (sem()) {
+  }
 }
 
 int main(int argc, const char** argv) {

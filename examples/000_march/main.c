@@ -6,10 +6,9 @@
 #include <math.h>
 #include <march.h>
 
-
 int main() {
   enum { X, Y, Z };
-  enum {N = 3 * 3 * MARCH_NTRI};
+  enum { N = 3 * 3 * MARCH_NTRI };
   double u[] = {-1, 1, 1, 1, 1, 1, 1, -1}, tri[N], offset[N], x, a, b;
   int first[N], second[N], i, n;
 
