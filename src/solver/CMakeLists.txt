@@ -6,9 +6,13 @@ set(T "approx")
 add_library(${T} approx.cpp)
 target_link_libraries(${T} solver)
 
+set(T "embed")
+add_library(${T} embed.cpp)
+target_link_libraries(${T})
+
 set(T "approx_eb")
 add_library(${T} approx_eb.cpp)
-target_link_libraries(${T} approx)
+target_link_libraries(${T} approx embed)
 
 set(T "vofm")
 add_library(${T} vofm.cpp)
@@ -20,7 +24,7 @@ target_link_libraries(${T} solver normal utilvof)
 
 set(T "vof_eb")
 add_library(${T} vof_eb.cpp)
-target_link_libraries(${T} solver normal utilvof)
+target_link_libraries(${T} solver normal utilvof approx_eb)
 
 set(T "tvd")
 add_library(${T} tvd.cpp)
@@ -48,7 +52,7 @@ target_link_libraries(${T} solver approx)
 
 set(T "convdiffe_eb")
 add_library(${T} convdiffe_eb.cpp)
-target_link_libraries(${T} solver approx)
+target_link_libraries(${T} solver approx_eb)
 
 set(T "convdiffv_eb")
 add_library(${T} convdiffv_eb.cpp)
@@ -68,4 +72,4 @@ target_link_libraries(${T} convdiffvg utilconvdiff)
 
 set(T "proj_eb")
 add_library(${T} proj_eb.cpp)
-target_link_libraries(${T} convdiffv_eb utilconvdiff)
+target_link_libraries(${T} convdiffv_eb utilconvdiff approx_eb)
