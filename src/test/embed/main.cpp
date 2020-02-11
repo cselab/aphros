@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "distr/distrbasic.h"
+#include "solver/approx_eb.h"
 #include "solver/embed.h"
 #include "solver/reconst.h"
 
@@ -18,6 +19,7 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using R = Reconst<Scal>;
 using EB = Embed<M>;
+using UEB = UEmbed<M>;
 using Type = typename EB::Type;
 
 void Run(M& m, Vars& var) {
@@ -37,7 +39,7 @@ void Run(M& m, Vars& var) {
 
   if (sem("ctor")) {
     ctx->eb.reset(new EB(m));
-    ctx->fnl = InitEmbed(m, var, m.IsRoot());
+    ctx->fnl = UEB::InitEmbed(m, var, m.IsRoot());
     fcu.Reinit(m, 0);
   }
   if (sem.Nested("init")) {
@@ -59,16 +61,16 @@ void Run(M& m, Vars& var) {
       const size_t bc = 0;
       const Scal bcu = 1;
 
-      feu = eb.Interpolate(fcu, mfc, bc, bcu);
+      feu = UEB::Interpolate(fcu, mfc, bc, bcu, eb);
       FieldEmbed<Scal> feun(m);
 
-      const auto feunc = eb.Gradient(fcu, mfc, bc, bcu); // compact gradient
+      const auto feunc = UEB::Gradient(fcu, mfc, bc, bcu, eb);
       if (compact) {
         feun = feunc;
       } else {
-        const FieldCell<Vect> fcg = eb.Gradient(feu);
+        const FieldCell<Vect> fcg = UEB::Gradient(feu, eb);
         const FieldEmbed<Vect> feg =
-            eb.Interpolate(fcg, MapCondFace(), 1, Vect(0));
+            UEB::Interpolate(fcg, MapCondFace(), 1, Vect(0), eb);
         for (auto f : eb.Faces()) {
           feun[f] = feg[f].dot(eb.GetNormal(f));
         }

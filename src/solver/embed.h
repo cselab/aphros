@@ -322,6 +322,9 @@ class Embed {
   Scal GetVolumeFraction(IdxCell c) const {
     return GetVolume(c) / m.GetVolume(c);
   }
+  Scal GetVolumeStencilSum(IdxCell c) const {
+    return fcvst3_[c];
+  }
   std::vector<Vect> GetFacePoly(IdxFace f) const {
     switch (fft_[f]) {
       case Type::regular:
@@ -352,6 +355,9 @@ class Embed {
   }
   std::vector<Vect> GetCutPoly(IdxCell c) const {
     return R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], m.GetCellSize());
+  }
+  Vect GetNode(IdxNode n) const {
+    return m.GetNode(n);
   }
   // TODO: cache
   Vect GetCellCenter(IdxCell c) const {
@@ -726,9 +732,6 @@ class Embed {
         mc_redistr[c] = vp;
       }
     }
-  }
-  Scal GetVolumeStencilSum(IdxCell c) const {
-    return fcvst3_[c];
   }
 
   M& m;

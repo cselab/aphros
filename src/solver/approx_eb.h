@@ -159,18 +159,17 @@ struct UEmbed {
     Scal u; // value or normal gradient
   };
 
-  static FieldNode<Scal> InitEmbed(
-      const M& m, const Vars& var, bool verb, const EB& eb) {
+  static FieldNode<Scal> InitEmbed(const M& m, const Vars& var, bool verb) {
     FieldNode<Scal> fnl(m); // level-set
     const auto name = var.String["eb_init"];
     if (name == "none") {
-      fnl.Reinit(eb, 1);
+      fnl.Reinit(m, 1);
     } else if (name == "box") {
       const Vect xc(var.Vect["eb_box_c"]);
       const Vect r(var.Vect["eb_box_r"]);
       const Scal angle = M_PI * var.Double["eb_box_angle"];
       for (auto n : m.AllNodes()) {
-        const Vect x = eb.GetNode(n);
+        const Vect x = m.GetNode(n);
         auto rot = [angle](Vect xx) {
           const Scal sin = std::sin(angle);
           const Scal cos = std::cos(angle);
@@ -180,14 +179,14 @@ struct UEmbed {
           return Vect(x * cos - y * sin, x * sin + y * cos, z);
         };
         fnl[n] =
-            (1 - (rot(x - xc) / r).norminf()) * (r / eb.GetCellSize()).min();
+            (1 - (rot(x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
       }
     } else if (name == "sphere") {
       const Vect xc(var.Vect["eb_sphere_c"]);
       const Vect r(var.Vect["eb_sphere_r"]);
       const Scal angle = M_PI * var.Double["eb_sphere_angle"];
       for (auto n : m.AllNodes()) {
-        const Vect x = eb.GetNode(n);
+        const Vect x = m.GetNode(n);
         auto rot = [angle](Vect xx) {
           const Scal sin = std::sin(angle);
           const Scal cos = std::cos(angle);
@@ -215,7 +214,7 @@ struct UEmbed {
       for (auto n : m.AllNodes()) {
         Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
         for (auto& p : pp) {
-          lmax = std::max(lmax, p.ls(eb.GetNode(n)));
+          lmax = std::max(lmax, p.ls(m.GetNode(n)));
         }
         fnl[n] = lmax;
       }
