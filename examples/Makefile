@@ -10,7 +10,7 @@ build: $(DIRS)
 
 $(DIRS):
 	@echo "$@"
-	@(cd "$@" && ! test -f CMakeLists.txt ||  ap-conf . ) $(REDIR)
+	@(cd "$@" && ! test -f CMakeLists.txt ||  ap.conf . ) $(REDIR)
 	@+make -s -C "$@" $(REDIR)
 
 run:

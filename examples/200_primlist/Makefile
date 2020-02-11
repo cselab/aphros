@@ -5,4 +5,4 @@ bs = 32 32 32
 default:; @:
 .PHONY: default
 
-include $(shell ap-makesim)
+include $(shell ap.makesim)
