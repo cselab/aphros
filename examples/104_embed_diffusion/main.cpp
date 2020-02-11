@@ -9,6 +9,7 @@
 
 #include "distr/distrbasic.h"
 #include "solver/embed.h"
+#include "solver/approx_eb.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -23,7 +24,7 @@ void Diffusion0(
     FieldCell<Scal>& fcu, const MapCondFace& mec, Scal diff, Scal dt,
     const Embed<M>& eb) {
   const auto& m = eb.GetMesh();
-  const auto feg = eb.Gradient(fcu, mec, 0, 1.);
+  const auto feg = UEmbed<M>::Gradient(fcu, mec, 0, 1., eb);
   // Compute flux.
   FieldEmbed<Scal> fed(m, 0);
   for (auto f : eb.Faces()) {
@@ -46,7 +47,7 @@ void Diffusion1(
     FieldCell<Scal>& fcu, const MapCondFace& mec, Scal diff, Scal dt,
     const Embed<M>& eb) {
   const auto& m = eb.GetMesh();
-  const auto feg = eb.Gradient(fcu, mec, 0, 1.);
+  const auto feg = UEmbed<M>::Gradient(fcu, mec, 0, 1., eb);
   // Compute flux.
   FieldEmbed<Scal> fed(m, 0);
   for (auto f : eb.Faces()) {
@@ -64,7 +65,7 @@ void Diffusion1(
     }
     fct[c] = sum * dt;
   }
-  fct = eb.RedistributeCutCells(fct);
+  fct = UEmbed<M>::RedistributeCutCells(fct, eb);
   // Advance in time.
   for (auto c : eb.Cells()) {
     fcu[c] += fct[c] / eb.GetVolume(c);
@@ -75,7 +76,7 @@ void Diffusion2(
     FieldCell<Scal>& fcu, const MapCondFace& mec, Scal diff, Scal dt,
     const Embed<M>& eb) {
   const auto& m = eb.GetMesh();
-  const auto feg = eb.GradientBilinear(fcu, mec, 0, 1.);
+  const auto feg = UEmbed<M>::GradientBilinear(fcu, mec, 0, 1., eb);
   // Compute flux.
   FieldEmbed<Scal> fed(m, 0);
   for (auto f : eb.Faces()) {
@@ -93,7 +94,7 @@ void Diffusion2(
     }
     fct[c] = sum * dt;
   }
-  fct = eb.RedistributeCutCells(fct);
+  fct = UEmbed<M>::RedistributeCutCells(fct, eb);
   // Advance in time.
   for (auto c : eb.Cells()) {
     fcu[c] += fct[c] / eb.GetVolume(c);

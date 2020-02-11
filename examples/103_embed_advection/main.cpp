@@ -9,6 +9,7 @@
 
 #include <distr/distrbasic.h>
 #include <solver/embed.h>
+#include <solver/approx_eb.h>
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -23,7 +24,7 @@ void Advection0(
     FieldCell<Scal>& fcu, const MapCondFace& mec, const FieldEmbed<Scal>& fev,
     Scal dt, const Embed<M>& eb) {
   const auto& m = eb.GetMesh();
-  const auto feu = eb.InterpolateUpwind(fcu, fev, mec, 0, 1.);
+  const auto feu = UEmbed<M>::InterpolateUpwind(fcu, fev, mec, 0, 1., eb);
   // Compute flux.
   FieldEmbed<Scal> fevu(m, 0);
   for (auto f : eb.Faces()) {
@@ -48,7 +49,7 @@ void Advection1(
     FieldCell<Scal>& fcu, const MapCondFace& mec, const FieldEmbed<Scal>& fev,
     Scal dt, const Embed<M>& eb) {
   const auto& m = eb.GetMesh();
-  const auto feu = eb.InterpolateUpwind(fcu, fev, mec, 0, 1.);
+  const auto feu = UEmbed<M>::InterpolateUpwind(fcu, fev, mec, 0, 1., eb);
   // Compute flux.
   FieldEmbed<Scal> fevu(m, 0);
   for (auto f : eb.Faces()) {
@@ -66,7 +67,7 @@ void Advection1(
     }
     fct[c] = -sum * dt;
   }
-  fct = eb.RedistributeCutCells(fct);
+  fct = UEmbed<M>::RedistributeCutCells(fct, eb);
   // Advance in time.
   for (auto c : eb.Cells()) {
     fcu[c] += fct[c] / eb.GetVolume(c);
@@ -81,9 +82,10 @@ void Advection2(
   const auto& m = eb.GetMesh();
   const size_t bc = 0;
   const Scal bcv = 1;
-  const auto fcg = eb.GradientLinearFit(eb.InterpolateBilinear(fcu, bc, bcv));
-  auto feu =
-      eb.InterpolateUpwindBilinear(fcu, fcg, mec, bc, bcv, fev, ConvSc::sou);
+  const auto fcg = UEmbed<M>::GradientLinearFit(
+      UEmbed<M>::InterpolateBilinear(fcu, bc, bcv, eb), eb);
+  auto feu = UEmbed<M>::InterpolateUpwindBilinear(
+      fcu, fcg, mec, bc, bcv, fev, ConvSc::sou, eb);
   // Compute flux.
   FieldEmbed<Scal> fevu(m, 0);
   for (auto f : eb.Faces()) {
@@ -101,7 +103,7 @@ void Advection2(
     }
     fct[c] = -sum * dt;
   }
-  fct = eb.RedistributeCutCells(fct);
+  fct = UEmbed<M>::RedistributeCutCells(fct, eb);
   // Advance in time.
   for (auto c : eb.Cells()) {
     fcu[c] += fct[c] / eb.GetVolume(c);
