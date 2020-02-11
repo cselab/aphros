@@ -1437,8 +1437,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         const auto x = eb.GetCellCenter(c);
         fcp[c] = grav.dot(x);
       }
-      ffbp_ = eb.GradientBilinear(
-          fcp, GetCondZeroGrad<Scal>(mf_fluid_), 0, 0.).GetFieldFace();
+      ffbp_ = eb.GradientBilinear(fcp, GetCondZeroGrad<Scal>(mf_fluid_), 0, 0.)
+                  .GetFieldFace();
       for (auto f : m.AllFaces()) {
         ffbp_[f] *= ff_rho[f];
       }

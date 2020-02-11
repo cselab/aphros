@@ -58,8 +58,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
 
     if (sem("assemble")) {
       const FieldCell<Vect> fcg =
-          eb.GradientLinearFit(
-              eb.InterpolateBilinear(fcu, mfc_, bc_, bcu_));
+          eb.GradientLinearFit(eb.InterpolateBilinear(fcu, mfc_, bc_, bcu_));
 
       // diagonal linear system la * x + lb = 0
       fcla.Reinit(m);
@@ -68,7 +67,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
       // Convective fluxes
       {
         FieldEmbed<Scal> feq = eb.InterpolateUpwindBilinear(
-                fcu, fcg, mfc_, bc_, bcu_, fev, par.sc);
+            fcu, fcg, mfc_, bc_, bcu_, fev, par.sc);
         for (auto f : eb.Faces()) {
           feq[f] *= fev[f];
         }

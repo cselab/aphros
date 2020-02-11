@@ -3,9 +3,9 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 #include <utility>
-#include <memory>
 
 class Timer {
  public:

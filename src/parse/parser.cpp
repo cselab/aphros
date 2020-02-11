@@ -29,7 +29,7 @@ struct Parser::Imp {
     throw std::runtime_error("GetStr(): undefined variable '" + key + "'");
   }
   std::string ExpandVariables(std::string str) const {
-    enum class S { normal, dollar, varname, expand, varname_braced};
+    enum class S { normal, dollar, varname, expand, varname_braced };
     S s = S::normal; // state
     size_t i = 0;
     std::string res; // result

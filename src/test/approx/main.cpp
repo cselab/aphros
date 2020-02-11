@@ -1314,7 +1314,7 @@ void TestEmbedUpwind() {
           fcu, fcg, MapCondFace(), 1, 0., fluxdir(eb), sc);
     };
     auto estimator_sc_bi = [&fluxdir, &sc](
-                              const Func<Scal>& func, const EB& eb) {
+                               const Func<Scal>& func, const EB& eb) {
       MapCell<Scal> bc;
       for (auto c : eb.CFaces()) {
         bc[c] = func()(eb.GetFaceCenter(c));
