@@ -17,29 +17,29 @@ m="32 32 1"
 bs="$b $b 1"
 
 ./clean
-ap-base
-ap-aconf
+ap.base
+ap.aconf
 
 # write np
 echo $n > np
 
 # partition mesh
-ap-part $m $bs `cat np` > mesh.conf
+ap.part $m $bs `cat np` > mesh.conf
 
 # run in foreground
-ap-run ap-mfer "$c"
+ap.run ap.mfer "$c"
 
 a=0
 for f in ref/{vx,vy,vz,p,vf}*.dat ; do
   echo $f
-  if ! ap-diffnum "${f#ref/}" "$f" "1e-12"; then
+  if ! ap.diffnum "${f#ref/}" "$f" "1e-12"; then
     a=1
   fi
 done
 
 for f in ref/*.csv ; do
   echo $f
-  if ! ap-diffnum "${f#ref/}" "$f" "1e-10" sort rel; then
+  if ! ap.diffnum "${f#ref/}" "$f" "1e-10" sort rel; then
     a=1
   fi
 done

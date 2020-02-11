@@ -69,8 +69,8 @@ latex_documents = [
 # man
 man_pages = [
     (master_doc, 'hydro', u'Aphros documentation', '', 1),
-    ('log/index', 'ap-log', u'development log', '', 7),
-    ('styleguide', 'ap-styleguide', u'coding style guide', '', 7),
+    ('log/index', 'ap.log', u'development log', '', 7),
+    ('styleguide', 'ap.styleguide', u'coding style guide', '', 7),
 ]
 
 

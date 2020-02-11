@@ -26,7 +26,7 @@ for file in "$@" ; do
 
   echo "adding copyright to '$file'" 1>&2
 
-  head=$(ap-copyright "$file")
+  head=$(ap.copyright "$file")
   text=$(cat "$file")
 
   echo "$head" > $file

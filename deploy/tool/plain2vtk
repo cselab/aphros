@@ -43,7 +43,7 @@ def WriteVtk(fn, u, name, report=True):
     nc = nx * ny * nz
 
     f.write('''# vtk DataFile Version 2.0
-converted by ap-plain2vtk
+converted by ap.plain2vtk
 ASCII
 DATASET STRUCTURED_POINTS
 DIMENSIONS {nxp} {nyp} {nzp}

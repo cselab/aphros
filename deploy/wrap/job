@@ -17,7 +17,7 @@ echo running > $js
 
 [[ -f pre ]] && rt ./pre
 
-rt "ap-mpirun $(cat arg)"
+rt "ap.mpirun $(cat arg)"
 
 [[ -f post ]] && rt ./post
 

@@ -6,7 +6,7 @@ Format
 Synopsis
 --------
 
-ap-format [-y]
+ap.format [-y]
 
 runs clang-format for all C/C++ files found recursively from current directory.
 

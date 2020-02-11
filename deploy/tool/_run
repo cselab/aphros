@@ -2,7 +2,7 @@
 
 set -eu
 
-. ap-setenv
+. ap.setenv
 . ../util
 
 instfnd applycopyright

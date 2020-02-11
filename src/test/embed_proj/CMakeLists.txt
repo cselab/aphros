@@ -7,4 +7,4 @@ add_executable(${EXE} main.cpp)
 
 target_link_libraries(${EXE} distrbasic solver proj_eb)
 
-add_test(NAME ${p} COMMAND ap-run ./${EXE})
+add_test(NAME ${p} COMMAND ap.run ./${EXE})

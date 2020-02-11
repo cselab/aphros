@@ -7,6 +7,6 @@ Examples in this directory have numbers from the following categories:
   Clients for numerical solvers in **hydro**.
 
 **200..299**
-  Simulation setups for **ap-mfer**.
+  Simulation setups for **ap.mfer**.
 
 

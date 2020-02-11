@@ -1,6 +1,6 @@
 BUILD = build
 MAKEFILE = $(BUILD)/Makefile
-CMAKE = ap-conf
+CMAKE = ap.conf
 
 all: $(MAKEFILE)
 	+make -C $(BUILD) $(target)
