@@ -13,6 +13,7 @@
 #include "embed.h"
 #include "geom/mesh.h"
 #include "solver.h"
+#include "parse/vars.h"
 
 template <class Scal_>
 struct ULinear {
