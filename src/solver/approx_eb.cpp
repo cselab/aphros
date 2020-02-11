@@ -13,3 +13,4 @@ using TV = Vect;
 constexpr size_t dim = M::dim;
 
 template struct ULinear<Scal>;
+template struct UEmbed<M>;

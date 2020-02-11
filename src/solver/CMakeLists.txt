@@ -12,7 +12,7 @@ target_link_libraries(${T})
 
 set(T "approx_eb")
 add_library(${T} approx_eb.cpp)
-target_link_libraries(${T} approx embed)
+target_link_libraries(${T} approx embed vars)
 
 set(T "vofm")
 add_library(${T} vofm.cpp)
