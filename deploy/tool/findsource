@@ -9,8 +9,7 @@ e () {
 
 if [ "${1:-x}" = "-h" ] || [ "${1:-x}" = "--help" ] || [ "$#" != "0" ] ; then
   echo "usage: $0
-Finds C/C++ source files recursively from current directory exluding symlinks
-and files containing 'CMake'
+Finds C/C++ source files recursively from current directory exluding symlinks and files containing 'CMake'
 "
   exit 1
 fi
@@ -29,9 +28,7 @@ eval "find . -type f \
 # exclude symlinks
 rm -f "$tmp"
 while read line ; do
-  if [ -L "$line" ] ; then
-    echo "$line"
-  else
+  if ! [ -L "$line" ] ; then
     echo "$line" >> "$tmp"
   fi
 done < "$list"
@@ -39,6 +36,4 @@ mv "$tmp" "$list"
 
 cat $list
 
-status=$?
 rm -f $list
-exit $status
