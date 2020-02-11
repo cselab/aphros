@@ -118,76 +118,7 @@ struct UEmbed {
     Scal u; // value or normal gradient
   };
 
-  static FieldNode<Scal> InitEmbed(const M& m, const Vars& var, bool verb) {
-    FieldNode<Scal> fnl(m); // level-set
-    const auto name = var.String["eb_init"];
-    if (name == "none") {
-      fnl.Reinit(m, 1);
-    } else if (name == "box") {
-      const Vect xc(var.Vect["eb_box_c"]);
-      const Vect r(var.Vect["eb_box_r"]);
-      const Scal angle = M_PI * var.Double["eb_box_angle"];
-      for (auto n : m.AllNodes()) {
-        const Vect x = m.GetNode(n);
-        auto rot = [angle](Vect xx) {
-          const Scal sin = std::sin(angle);
-          const Scal cos = std::cos(angle);
-          const Scal x = xx[0];
-          const Scal y = xx[1];
-          const Scal z = xx[2];
-          return Vect(x * cos - y * sin, x * sin + y * cos, z);
-        };
-        fnl[n] =
-            (1 - (rot(x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
-      }
-    } else if (name == "sphere") {
-      const Vect xc(var.Vect["eb_sphere_c"]);
-      const Vect r(var.Vect["eb_sphere_r"]);
-      const Scal angle = M_PI * var.Double["eb_sphere_angle"];
-      for (auto n : m.AllNodes()) {
-        const Vect x = m.GetNode(n);
-        auto rot = [angle](Vect xx) {
-          const Scal sin = std::sin(angle);
-          const Scal cos = std::cos(angle);
-          const Scal x = xx[0];
-          const Scal y = xx[1];
-          const Scal z = xx[2];
-          return Vect(x * cos - y * sin, x * sin + y * cos, z);
-        };
-        fnl[n] = (rot(x - xc) / r).norm() - 1;
-      }
-    } else if (name == "list") {
-      // TODO revise with bcast
-      const std::string fn = var.String["eb_list_path"];
-      const size_t edim = var.Int["dim"];
-      std::ifstream fin(fn);
-      if (verb) {
-        std::cout << "Open list of primitives '" << fn << "' for embed"
-                  << std::endl;
-      }
-      if (!fin.good()) {
-        throw std::runtime_error("Can't open list of primitives");
-      }
-      auto pp = UPrimList<Scal>::Parse(fin, verb, edim);
-
-      for (auto n : m.AllNodes()) {
-        Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
-        for (auto& p : pp) {
-          lmax = std::max(lmax, p.ls(m.GetNode(n)));
-        }
-        fnl[n] = lmax;
-      }
-    } else {
-      throw std::runtime_error("Unknown eb_init=" + name);
-    }
-
-    if (var.Int["eb_init_inverse"]) {
-      for (auto n : m.AllNodes()) {
-        fnl[n] = -fnl[n];
-      }
-    }
-    return fnl;
-  }
+  static FieldNode<Scal> InitEmbed(const M& m, const Vars& var, bool verb);
 
   // feu: field on embedded boundaries [a]
   // Returns:
