@@ -3,7 +3,7 @@ bs = 16 16 16
 np = 1728
 tl = 1440
 
-include $(shell ap-makesim)
+include $(shell ap.makesim)
 
 clean::
 	rm -vrf sc

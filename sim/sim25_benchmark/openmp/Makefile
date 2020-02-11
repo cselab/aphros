@@ -9,6 +9,6 @@ runomp:
 runmpi:
 	OMP_NUM_THREADS=1 make run
 
-include $(shell ap-makesim)
+include $(shell ap.makesim)
 
 .PHONY: runomp runmpi

@@ -5,7 +5,7 @@ tl = 1440
 
 default: cleanrun
 
-include $(shell ap-makesim)
+include $(shell ap.makesim)
 
 clean::
 	rm -vrf sc

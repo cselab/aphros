@@ -63,7 +63,7 @@ set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES
 # binary
 add_executable(${EXE} main.cpp)
 install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
-set_target_properties(${EXE} PROPERTIES PREFIX "ap-")
+set_target_properties(${EXE} PROPERTIES PREFIX "ap.")
 target_link_libraries(${EXE} hydro)
 
 # test

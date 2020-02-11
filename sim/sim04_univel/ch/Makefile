@@ -1,4 +1,4 @@
-include $(shell ap-makesim)
+include $(shell ap.makesim)
 
 clean::
 	rm -f done

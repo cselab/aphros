@@ -2,12 +2,12 @@
 
 set -eu
 
-. ap-setenv > /dev/null
+. ap.setenv > /dev/null
 
 b=/scratch/snx3000/karnakov/fountain
 
 for f in `eval "echo $@"` ; do
   p=$b/$f
   echo "$p" >&2
-  ap-gettrajcol r "$p"
+  ap.gettrajcol r "$p"
 done

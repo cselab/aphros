@@ -5,4 +5,4 @@ set -eu
 echo 12 > np
 echo 1440 > tl
 
-ap-submit0 ./runvisall
+ap.submit0 ./runvisall

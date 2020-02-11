@@ -3,4 +3,4 @@ make
 ./clean
 
 echo 64 > np
-ap-run ./main 256 8
+ap.run ./main 256 8

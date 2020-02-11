@@ -17,7 +17,7 @@ a () {
   eval "$@" >> "$o"
 }
 
-a 'ap-sysinfo'
+a 'ap.sysinfo'
 a 'cat out'
 
 d=history$(cat np)

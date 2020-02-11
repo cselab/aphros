@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Submit job found as ap-job in PATH,
+# Submit job found as ap.job in PATH,
 # read number of tasts from np
 # read time limit in minutes from tl
 
@@ -11,9 +11,9 @@ if [ -f job.id ]; then
   exit 1
 fi
 
-ap-writearg "$@"
+ap.writearg "$@"
 
-: ${JOB=ap-job}
+: ${JOB=ap.job}
 job="`type -p $JOB`"
 
 np=`cat np`

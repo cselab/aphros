@@ -2,6 +2,6 @@
 
 set -eu
 
-ap-base
+ap.base
 make clean
 make cleandat

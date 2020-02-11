@@ -3,7 +3,7 @@ bs = 16 16 16
 np = 72
 tl = 10
 
-include $(shell ap-makesim)
+include $(shell ap.makesim)
 
 clean::
 	rm -f _m _bs _np _tl

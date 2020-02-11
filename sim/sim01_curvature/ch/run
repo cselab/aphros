@@ -2,7 +2,7 @@
 
 set -eu
 
-a=`ap-makearg ../`
+a=`ap.makearg ../`
 
 make cleanall
 
@@ -11,5 +11,5 @@ make cleanall
 c="make $a conf"
 eval "$c"
 
-ap-run t.advection &> /dev/null
+ap.run t.advection &> /dev/null
 

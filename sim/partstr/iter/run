@@ -3,8 +3,8 @@
 set -eu
 
 ./clean
-ap-base
+ap.base
 echo 1 > np
-ap-run ./t.advection
+ap.run ./t.advection
 #./partit.filt
 #./plot

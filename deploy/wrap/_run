@@ -2,7 +2,7 @@
 
 set -eu
 
-. ap-setenv
+. ap.setenv
 . ../util
 
 instfnd conf
@@ -19,7 +19,7 @@ instfnd submit0
 instfnd kill 
 instfnd sysinfo
 
-mp="$BB/ap-base.makefile"
+mp="$BB/ap.base.makefile"
 cp -vf ../../sim/base.makefile "$mp"
 echo "echo '$mp'" | instin ${PRE}makesim
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eu
-killall ap-mfer || true
+killall ap.mfer || true
 make cleanall
 ./pargen
 make run

@@ -7,5 +7,5 @@ set(EXE t.${p})
 
 #target_link_libraries(${EXE} normal overlap partstrmeshm distrsolver)
 
-#add_test(NAME ${p} COMMAND ap-run ./${EXE})
+#add_test(NAME ${p} COMMAND ap.run ./${EXE})
 

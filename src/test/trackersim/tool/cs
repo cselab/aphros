@@ -1,1 +1,1 @@
-(cd ../ ; ap-gettrajsh $1) | cut -d' ' -f$2
+(cd ../ ; ap.gettrajsh $1) | cut -d' ' -f$2

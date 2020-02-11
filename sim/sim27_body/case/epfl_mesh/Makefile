@@ -1,6 +1,6 @@
 include par.make
 
-include $(shell ap-makesim)
+include $(shell ap.makesim)
 
 par.make par.conf bc.conf: pargen bodygen
 	./pargen

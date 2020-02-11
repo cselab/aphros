@@ -10,10 +10,10 @@ m () {
 }
 
 m0 "Compute nodes:"
-ap-mpirun hostname | sort | uniq
+ap.mpirun hostname | sort | uniq
 
 m "CPU models:"
-ap-mpirun sh -c 'grep "model name" /proc/cpuinfo | head -n 1' | sort | uniq
+ap.mpirun sh -c 'grep "model name" /proc/cpuinfo | head -n 1' | sort | uniq
 
 m "Compiler version:"
 if command -v CC > /dev/null ; then

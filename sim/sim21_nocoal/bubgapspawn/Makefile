@@ -3,4 +3,4 @@ bs = 16 16 16
 np = 512
 tl = 1440
 
-include $(shell ap-makesim)
+include $(shell ap.makesim)

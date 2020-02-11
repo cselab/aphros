@@ -11,7 +11,7 @@ if [ "$dim" == "3" ] ; then
   g="multigrid3D"
 fi
 
-ap-conf . -DEXTRA="-grid=$g $extra"
+ap.conf . -DEXTRA="-grid=$g $extra"
 make
 
 ba.env ba.run -n "$np" main.s

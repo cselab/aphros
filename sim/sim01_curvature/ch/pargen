@@ -2,7 +2,7 @@
 
 import ch
 
-c = ap-ReadPar('..')
+c = ap.ReadPar('..')
 
 o = "par.conf"
 

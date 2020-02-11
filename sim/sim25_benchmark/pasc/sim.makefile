@@ -1,3 +1,3 @@
 include par.make
 
-include $(shell ap-makesim)
+include $(shell ap.makesim)

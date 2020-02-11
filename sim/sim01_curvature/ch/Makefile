@@ -1,1 +1,1 @@
-include $(shell ap-makesim)
+include $(shell ap.makesim)

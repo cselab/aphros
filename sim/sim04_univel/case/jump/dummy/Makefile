@@ -1,4 +1,4 @@
-include $(shell ap-makesim)
+include $(shell ap.makesim)
 
 cleandat::
 	cd ch ; make cleanall

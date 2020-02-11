@@ -45,7 +45,7 @@ Install documentation
 Add copyright notice to C/C++ source files found recursively in current
 directory (if `copyright` is not found in first 10 lines of the file)
 
-    ap-applycopyright `ap-findsource`
+    ap.applycopyright `ap.findsource`
 
 ## Submit job
 

@@ -10,6 +10,6 @@ while read f ; do
   fo=`basename $f`
   i=${fo#*_}
   i=${i%.*}
-  c=`ap-argmax $f $e`
+  c=`ap.argmax $f $e`
   echo $i $c
 done

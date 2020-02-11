@@ -9,7 +9,7 @@ cl=${cl%.csv}
 : ${vtkin=../sm_%04d.vtk}
 : ${vtkout=smcl_${cl}_%.vtk}
 
-ap-cawk -v vtkin="$vtkin" -v vtkout="$vtkout" '
+ap.cawk -v vtkin="$vtkin" -v vtkout="$vtkout" '
   { 
     R($n, $cl)
     mn = max(mn, $n)
@@ -25,7 +25,7 @@ ap-cawk -v vtkin="$vtkin" -v vtkout="$vtkout" '
     return a > b ? a : b
   }
   function R(n, cl,   s, err) {
-    s = sprintf("ap-filter -f cl -p %%s -- %%d -- %s", vtkin)
+    s = sprintf("ap.filter -f cl -p %%s -- %%d -- %s", vtkin)
     s = sprintf(s, vtkout, cl, n)
     print s | "cat >&2"
     err=system(s) 

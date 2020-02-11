@@ -12,5 +12,5 @@ for f in ../vf_*.h5 ; do
     continue
   fi
   ./meanhdfz $f $h
-  ap-genxmf $h 2
+  ap.genxmf $h 2
 done

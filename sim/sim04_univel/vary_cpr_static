@@ -94,5 +94,5 @@ set int min_iter 3
 " > aphros/add.conf
 '''.format(**locals())
 
-    sh("ap-task {:} {:} > {:} <<< '{:}'".format(dummy, od, ot, cf))
+    sh("ap.task {:} {:} > {:} <<< '{:}'".format(dummy, od, ot, cf))
     sh("chmod +x {:}".format(ot))

@@ -5,5 +5,5 @@ e () {
   eval "$@"
 }
 
-#e "ssh daint '. ap-setenv > /dev/null ; for f in $@ ; do echo $f >&2 ; ap-gettrajcol r \"s/scratch/fountain/$f\" ; done'"
+#e "ssh daint '. ap.setenv > /dev/null ; for f in $@ ; do echo $f >&2 ; ap.gettrajcol r \"s/scratch/fountain/$f\" ; done'"
 e "ssh daint s/scratch/fountain/gettrajcolall $@"

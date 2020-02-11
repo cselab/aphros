@@ -89,5 +89,5 @@ set int min_iter 3
 " > ch/add.conf
 '''.format(**locals())
 
-    sh("ap-task {:} {:} > {:} << 'EOF'\n {:}\nEOF".format(dummy, od, ot, cf))
+    sh("ap.task {:} {:} > {:} << 'EOF'\n {:}\nEOF".format(dummy, od, ot, cf))
     sh("chmod +x {:}".format(ot))

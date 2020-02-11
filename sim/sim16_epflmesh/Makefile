@@ -4,5 +4,5 @@ m ?= 256 128 128
 bs ?= 16 16 16
 np ?= 512
 
-include $(shell ap-makesim)
+include $(shell ap.makesim)
 

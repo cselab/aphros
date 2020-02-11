@@ -1,4 +1,4 @@
-killall ap-mfer
+killall ap.mfer
 make cleanall
 ./pargen
 make run

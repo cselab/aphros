@@ -4,5 +4,5 @@ set -eu
 
 for d in b_*/ ; do
   echo $d
-  (cd $d && ap-gettraj 0 > traj.csv)
+  (cd $d && ap.gettraj 0 > traj.csv)
 done

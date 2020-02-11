@@ -8,7 +8,7 @@ s() {
   mkdir -p "$d"
   echo 2 > $d/np
   echo 1440 > $d/tl
-  (cd "$d" && ap-submit0 ../_run "'$suf'")
+  (cd "$d" && ap.submit0 ../_run "'$suf'")
 }
 
 s w0 "{0,5}"

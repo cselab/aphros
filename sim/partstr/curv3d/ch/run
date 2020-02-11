@@ -3,7 +3,7 @@
 set -eu
 
 ./clean
-ap-base
+ap.base
 ./t.advection
 ./partit.filt
 ./plot

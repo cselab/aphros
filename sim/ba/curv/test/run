@@ -4,7 +4,7 @@ set -eu
 
 ./clean
 make -C ../../ install
-ap-conf . -DEXTRA='-grid=multigrid3D -DCURV_PARTSTR'
+ap.conf . -DEXTRA='-grid=multigrid3D -DCURV_PARTSTR'
 make
 ba.env ba.run main.s
 
@@ -12,7 +12,7 @@ a=0
 r=ref
 for f in $r/* ; do
   echo $f
-  if ! ap-diffnum "${f#$r/}" "$f" "1e-13" sort rel; then
+  if ! ap.diffnum "${f#$r/}" "$f" "1e-13" sort rel; then
     a=1
   fi
 done

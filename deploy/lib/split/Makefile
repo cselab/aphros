@@ -1,5 +1,5 @@
 .POSIX:
-PRE = ap-
+PRE = ap.
 LINK = $(CC)
 CFLAGS = -g -Og
 GSL_LDFLAGS = `gsl-config --libs`

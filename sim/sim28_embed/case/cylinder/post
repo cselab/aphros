@@ -25,9 +25,9 @@ dumpdt=$(getval 'set double dump_field_dt')
 cat sep_???? | awk -v dumpdt=$dumpdt 'BEGIN{t=0};{print t,$1;t+=dumpdt}' > $out
 
 sel="t dragx dragy vdragx vdragy ekin"
-selcmd=$(for name in $sel ; do printf "<(ap-getcol $name) " ; done)
+selcmd=$(for name in $sel ; do printf "<(ap.getcol $name) " ; done)
 cmd="paste -d' ' $selcmd"
-nl=$(ap-getcol t | wc -l)
+nl=$(ap.getcol t | wc -l)
 every=$(python -c "print(max(1, $nl // 100))")
 out=stat_re${re}_nd${nd}
 echo "writing every '$every' record to '$out'"

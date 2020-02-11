@@ -24,7 +24,7 @@ echo "Output to $o"
 r=run_$o
 
 
-ap-task $d $o > $r << EOF
+ap.task $d $o > $r << EOF
 echo "set double part_segcirc $segcirc
 set int part_np $np
 set int part_ns $ns

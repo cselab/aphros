@@ -21,4 +21,4 @@ set double eb_sphere_angle 0.2
 set int eb_init_inverse 0
 " > add.conf
 
-ap-run ./t.embed_proj
+ap.run ./t.embed_proj

@@ -10,5 +10,5 @@ do
     continue
   fi
   echo "$i"
-  ap-vtkcolor < "$i" > "$b"
+  ap.vtkcolor < "$i" > "$b"
 done

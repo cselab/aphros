@@ -6,7 +6,7 @@ set -eu
 
 if [ -z "${P+x}" ] ; then      # if P not defined
   pf="`type -p ${PRE}prefix || true`"
-  if [ -f "$pf" ] ; then     # if ap-prefix found in PATH
+  if [ -f "$pf" ] ; then     # if ap.prefix found in PATH
     . "$pf"
   else               # else default
     P='../prefix'

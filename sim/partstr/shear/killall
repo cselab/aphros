@@ -7,7 +7,7 @@ for d in nx* ; do
     echo "skip $d without job.id"
     continue
   fi
-  c="(cd $d && ap-kill)"
+  c="(cd $d && ap.kill)"
   read -r -p "$c , continue? [Y/n] " re
   if [ "${re,,}" == "y" ] || [ "$re" == "" ] ; then
     eval "$c"
