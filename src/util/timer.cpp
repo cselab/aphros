@@ -46,15 +46,9 @@ struct SingleTimer::Imp {
   Clock::time_point start_ = clock_.now();
 
   Imp() = default;
-
-  //Imp() : start_(clock_.now()) {}
 };
 
 SingleTimer::SingleTimer() : imp(new Imp()) {}
-//SingleTimer::SingleTimer(const SingleTimer&) = delete;
-//SingleTimer::SingleTimer(SingleTimer&&) = default;
-//SingleTimer& SingleTimer::operator=(const SingleTimer&) = delete;
-//SingleTimer& SingleTimer::operator=(SingleTimer&&) = default;
 SingleTimer::~SingleTimer() = default;
 
 double SingleTimer::GetSeconds() const {

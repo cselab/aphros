@@ -426,7 +426,7 @@ struct ProjEmbed<M_>::Imp {
             // nop, no acceleration
           }
         }
-        //s = Vect(0., 0, 0.); // XXX
+        // s = Vect(0., 0, 0.); // XXX
         fcwc_[c] = s;
       }
     }

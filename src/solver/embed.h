@@ -122,9 +122,10 @@ std::pair<generic::Vect<Scal, 3>, Scal> FitLinear(
 //   u = g.dot(x) + u0
 // Returns {g, u0}.
 template <class Scal>
-std::pair<generic::Vect<generic::Vect<Scal, 3>, 3>, generic::Vect<Scal, 3>> 
-FitLinear(const std::vector<generic::Vect<Scal, 3>>& xx,
-          const std::vector<generic::Vect<Scal, 3>>& uu) {
+std::pair<generic::Vect<generic::Vect<Scal, 3>, 3>, generic::Vect<Scal, 3>>
+FitLinear(
+    const std::vector<generic::Vect<Scal, 3>>& xx,
+    const std::vector<generic::Vect<Scal, 3>>& uu) {
   using Vect = generic::Vect<Scal, 3>;
   std::pair<generic::Vect<Vect, 3>, Vect> p;
   for (size_t d = 0; d < 3; ++d) {
@@ -433,8 +434,9 @@ class Embed {
         m.Faces(), [this](IdxFace f) { return GetType(f) != Type::excluded; });
   }
   auto SuFaces() const {
-    return MakeFilterIterator(
-        m.SuFaces(), [this](IdxFace f) { return GetType(f) != Type::excluded; });
+    return MakeFilterIterator(m.SuFaces(), [this](IdxFace f) {
+      return GetType(f) != Type::excluded;
+    });
   }
   auto GetFace(IdxCell c, size_t q) const {
     return m.GetFace(c, q);
@@ -824,8 +826,8 @@ class Embed {
   }
   FieldEmbed<Scal> InterpolateUpwind(
       const FieldCell<Scal>& fcu, const FieldCell<typename M::Vect>& fcg,
-      const MapCondFace& mfc, size_t bc, Scal bcv,
-      const FieldEmbed<Scal>& fev, ConvSc sc) const {
+      const MapCondFace& mfc, size_t bc, Scal bcv, const FieldEmbed<Scal>& fev,
+      ConvSc sc) const {
     MapCell<Scal> mcu;
     for (auto c : eb.SuCFaces()) {
       mcu[c] = bcv;
