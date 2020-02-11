@@ -14,9 +14,10 @@
 #include "geom/mesh.h"
 #include "solver.h"
 
-template <class Scal>
+template <class Scal_>
 struct ULinear {
   static constexpr size_t dim = 3;
+  using Scal = Scal_;
   using Vect = generic::Vect<Scal, dim>;
 
   template <size_t N>
@@ -86,59 +87,17 @@ struct ULinear {
   //   u = g.dot(x) + u0
   // Returns {g, u0}.
   static std::pair<Vect, Scal> FitLinear(
-      const std::vector<Vect>& xx, const std::vector<Scal>& uu) {
-    assert(xx.size() == uu.size());
-    // sum 0.5 * [ (g.dot(x[k]) + u0 - u[k]) ** 2 ] -> min
-    using Int = size_t;
-    constexpr Int N = dim + 1;
-    std::array<Scal, N * N> a;
-    std::array<Scal, N> b;
-    auto aa = [&a](Int i, Int j) -> Scal& { return a[i * N + j]; };
-    std::fill(a.begin(), a.end(), 0);
-    std::fill(b.begin(), b.end(), 0);
-    for (size_t k = 0; k < xx.size(); ++k) {
-      for (Int i = 0; i < dim; ++i) {
-        for (Int j = 0; j < dim; ++j) {
-          aa(i, j) += xx[k][j] * xx[k][i];
-        }
-        aa(i, dim) += xx[k][i];
-        b[i] += uu[k] * xx[k][i];
-      }
-      for (Int j = 0; j < dim; ++j) {
-        aa(dim, j) += xx[k][j];
-      }
-      aa(dim, dim) += 1;
-      b[dim] += uu[k];
-    }
-
-    auto v = SolveLinear(a, b);
-    return {Vect(v[0], v[1], v[2]), v[3]};
-  }
+      const std::vector<Vect>& xx, const std::vector<Scal>& uu);
 
   // Fits linear function to set of points and values
   //   u = g.dot(x) + u0
   // Returns {g, u0}.
   static std::pair<generic::Vect<Vect, dim>, Vect> FitLinear(
-      const std::vector<Vect>& xx, const std::vector<Vect>& uu) {
-    std::pair<generic::Vect<Vect, dim>, Vect> p;
-    for (size_t d = 0; d < dim; ++d) {
-      std::vector<Scal> uud;
-      for (auto u : uu) {
-        uud.push_back(u[d]);
-      }
-      auto pd = FitLinear(xx, uud);
-      p.second[d] = pd.second;
-      p.first[0][d] = pd.first[0];
-      p.first[1][d] = pd.first[1];
-      p.first[2][d] = pd.first[2];
-    }
-    return p;
-  }
+      const std::vector<Vect>& xx, const std::vector<Vect>& uu);
 
   template <class T>
   static T EvalLinear(
-      const std::pair<generic::Vect<T, dim>, T>& p,
-      const generic::Vect<Scal, dim>& x) {
+      const std::pair<generic::Vect<T, dim>, T>& p, const Vect& x) {
     auto& g = p.first;
     auto& u0 = p.second;
     return g[0] * x[0] + g[1] * x[1] + g[2] * x[2] + u0;
