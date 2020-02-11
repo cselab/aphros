@@ -22,7 +22,7 @@ jobs:
             cd /root/project
             cd deploy
             make
-            . ap-setenv
+            . ap.setenv
             (cd hypre ; make)
             cd ../src
             make -j1
