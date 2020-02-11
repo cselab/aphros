@@ -8,8 +8,8 @@ e () {
 }
 
 if [ "${1:-x}" = "-h" ] || [ "${1:-x}" = "--help" ] ; then
-  echo "usage: $0 [--help] [-y]
-Run clang-format for C/C++ files found recursively from current directory.
+  echo "usage: $0 [--help] [-y] [FILE=\`ap.findsource\`] ...
+Run clang-format for C/C++ files found recursively from current directory or specified in arguments.
 Options:
   -y
       Proceed without confirmation.
@@ -33,7 +33,7 @@ if [ "$#" -gt "0" ] ; then
     echo "$arg" >> "$list"
   done
 else
-  e "ap.findsource > '$list'"
+  ap.findsource > "$list"
 fi
 
 # exclude symlinks, 'clang-format -i' replaces symlinks with regular files
