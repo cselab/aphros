@@ -8,7 +8,7 @@ target_link_libraries(${T} solver)
 
 set(T "embed")
 add_library(${T} embed.cpp)
-target_link_libraries(${T})
+target_link_libraries(${T} suspender)
 
 set(T "approx_eb")
 add_library(${T} approx_eb.cpp)

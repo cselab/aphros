@@ -3,6 +3,9 @@
 
 #include "approx_eb.h"
 
+#include "approx.h"
+#include "func/primlist.h"
+
 template <class Scal>
 auto ULinear<Scal>::FitLinear(
     const std::vector<Vect>& xx, const std::vector<Scal>& uu)
