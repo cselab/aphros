@@ -110,12 +110,26 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
     }
     auto pp = UPrimList<Scal>::Parse(fin, verb, edim);
 
-    for (auto n : m.AllNodes()) {
+    auto lsmax = [&pp](Vect x) {
       Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
-      for (auto& p : pp) {
-        lmax = std::max(lmax, p.ls(m.GetNode(n)));
+      for (size_t i = 0; i < pp.size(); ++i) {
+        const auto& p = pp[i];
+        Scal li = p.ls(x);
+        if (p.mod_minus) {
+          li = -li;
+        }
+        if (p.mod_and) {
+          lmax = std::min(lmax, li);
+        } else {
+          if (li > lmax) {
+            lmax = li;
+          }
+        }
       }
-      fnl[n] = lmax;
+      return lmax;
+    };
+    for (auto n : m.AllNodes()) {
+      fnl[n] = lsmax(m.GetNode(n));
     }
   } else {
     throw std::runtime_error("Unknown eb_init=" + name);
