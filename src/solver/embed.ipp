@@ -4,6 +4,7 @@
 #include "embed.h"
 #include "dump/dumper.h"
 #include "dump/vtk.h"
+#include "func/init_u.h"
 
 template <class M>
 void Embed<M>::Init(const FieldNode<Scal>& fnl) {
@@ -147,15 +148,16 @@ void Embed<M>::InitFaces(
       const Scal lp = fnl[np];
       const Vect x = m.GetNode(n);
       const Vect xp = m.GetNode(np);
-      if (l > 0) {
+      if (l >= 0) {
         xx.push_back(x);
       }
-      if ((l < 0) != (lp < 0)) {
+      if (l * lp < 0) {
         xx.push_back(GetIso(x, xp, l, lp));
         cut = true;
       }
     }
-    fft[f] = (cut ? Type::cut : xx.empty() ? Type::excluded : Type::regular);
+    fft[f] =
+        (cut ? Type::cut : xx.size() <= 2 ? Type::excluded : Type::regular);
     switch (fft[f]) {
       case Type::regular:
         ffs[f] = m.GetArea(f);
@@ -197,7 +199,7 @@ void Embed<M>::InitCells(
       {
         Vect n(0);
         for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetFace(c, q);
+          const IdxFace f = m.GetFace(c, q);
           n += m.GetNormal(f) * ffs[f] * m.GetOutwardFactor(c, q);
         }
         fcn[c] = -n / n.norm();
@@ -219,7 +221,7 @@ void Embed<M>::InitCells(
             Vect x = m.GetNode(n);
             Vect xp = m.GetNode(np);
 
-            if ((l < 0) != (lp < 0)) {
+            if (l * lp < 0) {
               a += fcn[c].dot(GetIso(x, xp, l, lp) - m.GetCenter(c));
               aw += 1.;
             }
@@ -230,7 +232,6 @@ void Embed<M>::InitCells(
 
       const auto h = m.GetCellSize();
 
-      auto xx = R::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
       Vect sum(0);
       for (auto q : m.Nci(c)) {
         const IdxFace f = m.GetFace(c, q);

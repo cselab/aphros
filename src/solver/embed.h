@@ -409,12 +409,6 @@ class Embed {
     }
     return sum / suma;
   }
-  // Returns point at which interpolant has value 0.
-  // x0,x1: points
-  // f0,f1: values
-  static Vect GetIso(Vect x0, Vect x1, Scal f0, Scal f1) {
-    return (x0 * f1 - x1 * f0) / (f1 - f0);
-  }
   static std::vector<Vect> GetRegularFacePoly(IdxFace f, const M& m) {
     std::vector<Vect> xx;
     for (size_t e = 0; e < m.GetNumNodes(f); ++e) {
