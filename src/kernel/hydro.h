@@ -787,7 +787,7 @@ void Hydro<M>::Init() {
     varbody.String.Set("init_vf", var.String["body_init"]);
     varbody.String.Set("list_path", var.String["body_list_path"]);
     varbody.Int.Set("dim", var.Int["dim"]);
-    varbody.Int.Set("list_ls", 0);
+    varbody.Int.Set("list_ls", 3);
   }
   if (sem.Nested("body-mask")) {
     InitVf(ctx->fcbody, ctx->varbody, m);
@@ -802,6 +802,11 @@ void Hydro<M>::Init() {
     fc.Reinit(m, false);
     for (auto c : m.AllCells()) {
       fc[c] = (ctx->fcbody[c] > 0.5);
+    }
+    if (var.Int["body_init_inverse"]) {
+      for (auto c : m.AllCells()) {
+        fc[c] = !fc[c];
+      }
     }
     AppendBodyCond<M>(
         fc, var.String["body_bc"], m, clear0, clear1, inletcl, fill_vf, nullptr,
