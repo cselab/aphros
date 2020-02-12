@@ -1423,8 +1423,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         const auto x = eb.GetCellCenter(c);
         fcp[c] = grav.dot(x);
       }
-      ffbp_ = UEmbed<M>::GradientBilinear(
-                  fcp, GetCondZeroGrad<Scal>(mf_fluid_), 0, 0., eb)
+      //ffbp_ = UEmbed<M>::GradientBilinear(
+      ffbp_ = UEmbed<M>::Gradient(
+                  fcp, GetCondZeroGrad<Scal>(mf_fluid_), 1, 0., eb)
                   .GetFieldFace();
       for (auto f : m.AllFaces()) {
         ffbp_[f] *= ff_rho[f];
