@@ -19,9 +19,9 @@ mu=$(getval 'set double mu1')
 re=$(python -c "print('{:.0f}'.format(2 * $r / $mu))")
 
 sel="t dragx dragy vdragx vdragy ekin"
-selcmd=$(for name in $sel ; do printf "<(ap-getcol $name) " ; done)
+selcmd=$(for name in $sel ; do printf "<(ap.getcol $name) " ; done)
 cmd="paste -d' ' $selcmd"
-nl=$(ap-getcol t | wc -l)
+nl=$(ap.getcol t | wc -l)
 every=$(python -c "print(max(1, $nl // 1000))")
 out=stat_re${re}_nd${nd}
 echo "writing every '$every' record to '$out'"
