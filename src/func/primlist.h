@@ -104,18 +104,26 @@ struct UPrimList {
     return true;
   }
   static bool ParseBox(std::string s, size_t edim, Primitive& p) {
-    auto d = GetMap("box", s, "cx cy cz rx ry rz", 4);
+    auto d = GetMap("box", s, "cx cy cz rx ry rz rotz", 4);
     if (d.empty()) {
       return false;
     }
     SetDefault(d, "ry", d["rx"]);
     SetDefault(d, "rz", d["ry"]);
+    SetDefault(d, "rotz", 0);
 
     const Vect xc(d["cx"], d["cy"], d["cz"]); // center
     const Vect r(d["rx"], d["ry"], d["rz"]); // radius (semi-axes)
+    const Scal rotz = d["rotz"]; // rotation angle around z in degrees
+    const Scal rotz_cos = std::cos(M_PI * rotz / 180.);
+    const Scal rotz_sin = std::sin(M_PI * rotz / 180.);
 
-    p.ls = [edim, xc, r](const Vect& x) -> Scal {
-      Vect dx = (x - xc) / r;
+    p.ls = [edim, xc, r, rotz_cos, rotz_sin](const Vect& x) -> Scal {
+      Vect dx = x - xc;
+      dx = Vect(
+          dx[0] * rotz_cos - dx[1] * rotz_sin,
+          dx[0] * rotz_sin + dx[1] * rotz_cos, dx[2]);
+      dx /= r;
       if (edim == 2) {
         dx[2] = 0.;
       }
