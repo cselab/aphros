@@ -68,13 +68,6 @@ struct VofEmbed<M_>::Imp {
     DetectInterface(uc);
     // Compute fcn_ [s]
     UNormal<M>::CalcNormal(m, uc, fci_, par.dim, fcn_);
-    for (auto c : eb.SuCFaces()) {
-      if (fci_[c]) {
-        const Scal w = Clip(uc[c] / eb.GetVolumeFraction(c));
-        Vect n = eb.GetNormal(c) * (fcn_[c].norm1() / eb.GetNormal(c).norm1());
-        fcn_[c] = n * w + fcn_[c] * (1 - w);
-      }
-    }
     auto h = m.GetCellSize();
     // Compute fca_ [s]
     for (auto c : eb.SuCells()) {
@@ -174,19 +167,15 @@ struct VofEmbed<M_>::Imp {
           case SweepType::plain:
           case SweepType::EI:
           case SweepType::weymouth: {
-            // TODO revise name GetLineFlux
             const Scal vu0 = R::GetLineFlux(fcn[c], fca[c], h, v0, dt, d);
             ffvu[f] = (v >= 0 ? std::min(vu0, v) : std::max(vu0, v));
-            ffvu[f] = vu0;
             break;
           }
           case SweepType::LE: {
             const Scal vc = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
-            // TODO revise name GetLineFluxStr
             const Scal vu0 =
                 R::GetLineFluxStr(fcn[c], fca[c], h, v0, vc, dt, d);
             ffvu[f] = (v >= 0 ? std::min(vu0, v) : std::max(vu0, v));
-            ffvu[f] = vu0;
             break;
           }
         }
