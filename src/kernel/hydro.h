@@ -645,10 +645,20 @@ void Hydro<M>::Init() {
   auto& fcvel = ctx->fcvel;
   auto& fcvf = ctx->fcvf;
   auto& fccl = ctx->fccl;
+  if (sem.Nested("embed")) {
+    InitEmbed();
+  }
   if (sem.Nested()) {
     InitVf(fcvf, var, m);
   }
   if (sem("fields")) {
+    if (eb_) {
+      auto& eb = *eb_;
+      for (auto c : m.AllCells()) {
+        fcvf[c] = std::min(fcvf[c], eb.GetVolumeFraction(c));
+      }
+    }
+
     fc_src_.Reinit(m, 0.);
     fc_src2_.Reinit(m, 0.);
     fc_srcm_.Reinit(m, 0.);
@@ -822,10 +832,6 @@ void Hydro<M>::Init() {
       this->var_mutable.Double.Set("dta", st_.dta);
     }
   }
-  if (sem.Nested("embed")) {
-    InitEmbed();
-  }
-
   if (sem("solv")) {
     InitFluid(fcvel);
 
