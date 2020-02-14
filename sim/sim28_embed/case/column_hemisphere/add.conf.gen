@@ -1,0 +1,19 @@
+#!/bin/bash
+
+aw () {
+  awk "END{print $@}" < /dev/null
+}
+
+angle=0
+#angle=0
+angle=`aw "3.1415926 / 180 * $angle"`
+mag=5
+sin=`aw "-sin($angle)*$mag"`
+cos=`aw "-cos($angle)*$mag"`
+
+echo "
+#set string body_init list
+#set int enable_embed 0
+
+set vect gravity $sin $cos 0
+" > add.conf
