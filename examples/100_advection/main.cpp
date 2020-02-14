@@ -46,7 +46,8 @@ void Run(M& m, Vars&) {
     }
     const Scal dt = cfl * m.GetCellSize()[0] / vel.norm();
     typename Vof<M>::Par p;
-    as.reset(new Vof<M>(m, fcu, fccl, mf_cond, &ff_flux, &fc_src, 0., dt, p));
+    as.reset(
+        new Vof<M>(m, m, fcu, fccl, mf_cond, &ff_flux, &fc_src, 0., dt, p));
   }
   sem.LoopBegin();
   if (sem.Nested("start")) {
