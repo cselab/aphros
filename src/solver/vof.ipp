@@ -133,7 +133,7 @@ struct Vof<M_>::Imp {
     using MIdx = typename M::MIdx;
     const Dir md(d); // direction as Dir
     const MIdx wd(md); // offset in direction d
-    auto& m = eb;
+    const auto& m = eb.GetMesh();
     const auto& bc = m.GetIndexCells();
     const auto& bf = m.GetIndexFaces();
     const MIdx gs = m.GetGlobalSize();
@@ -150,20 +150,26 @@ struct Vof<M_>::Imp {
         continue;
       }
 
-      // flux through face
+      // flux through face (maybe cut)
       const Scal v = ffv[f];
+      // flux through full face that would give the same velocity
+      const Scal v0 = v / eb.GetAreaFraction(f);
       const IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
       if (uc[c] > 0 && uc[c] < 1) { // interfacial cell
         switch (type) {
           case SweepType::plain:
           case SweepType::EI:
           case SweepType::weymouth: {
-            ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v, dt, d);
+            const Scal vu0 = R::GetLineFlux(fcn[c], fca[c], h, v0, dt, d);
+            ffvu[f] = (v >= 0 ? std::min(vu0, v) : std::max(vu0, v));
             break;
           }
           case SweepType::LE: {
             const Scal vc = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
-            ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v, vc, dt, d);
+            const Scal vc0 = vc / eb.GetAreaFraction(f);
+            const Scal vu0 =
+                R::GetLineFluxStr(fcn[c], fca[c], h, v0, vc0, dt, d);
+            ffvu[f] = (v >= 0 ? std::min(vu0, v) : std::max(vu0, v));
             break;
           }
         }
@@ -360,7 +366,13 @@ struct Vof<M_>::Imp {
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
         const Scal sgn = (id % 2 == count_ / par.dim % 2 ? -1 : 1);
-        FieldFace<Scal> ffv(m, m.GetCellSize().prod() * sgn * par.sharpen_cfl);
+        FieldFace<Scal> ffv(m, 0);
+        for (auto f : eb.Faces()) {
+          const IdxCell cm = m.GetCell(f, 0);
+          const IdxCell cp = m.GetCell(f, 1);
+          ffv[f] = std::min(eb.GetVolume(cm), eb.GetVolume(cp)) * sgn *
+                   par.sharpen_cfl;
+        }
         // zero flux on boundaries
         for (const auto& it : mfc_vf_) {
           ffv[it.first] = 0;
@@ -383,9 +395,10 @@ struct Vof<M_>::Imp {
       const Scal dt = owner_->GetTimeStep();
       auto& fcs = *owner_->fcs_;
       fcuu_.Reinit(m);
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         uc[c] = fcu_.time_prev[c] + dt * fcs[c];
-        fcuu_[c] = (uc[c] < 0.5 ? 0 : 1);
+        const Scal u0 = eb.GetVolumeFraction(c);
+        fcuu_[c] = (uc[c] < u0 * 0.5 ? 0 : u0);
       }
     }
 
