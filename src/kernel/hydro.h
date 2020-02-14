@@ -1395,7 +1395,12 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   if (sem("calc")) {
     FieldCell<Scal>& a = fc_smvf_;
     FieldFace<Scal>& af = ff_smvf_;
-    af = Interpolate(a, mf_cond_vfsm_, m);
+    if (eb_) {
+      af = UEmbed<M>::InterpolateBilinear(a, mf_cond_vfsm_, 1, 0., *eb_)
+               .GetFieldFace();
+    } else {
+      af = Interpolate(a, mf_cond_vfsm_, m);
+    }
 
     const Vect force(var.Vect["force"]);
     const Vect grav(var.Vect["gravity"]);
