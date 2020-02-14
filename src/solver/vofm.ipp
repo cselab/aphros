@@ -20,22 +20,23 @@
 #include "util/vof.h"
 #include "vofm.h"
 
-template <class M_>
-struct Vofm<M_>::Imp {
-  using Owner = Vofm<M_>;
+template <class EB_>
+struct Vofm<EB_>::Imp {
+  using Owner = Vofm<EB_>;
   using R = Reconst<Scal>;
   using TRM = Trackerm<M>;
   static constexpr size_t dim = M::dim;
   using Vect2 = generic::Vect<Scal, 2>;
   using Sem = typename M::Sem;
 
-  Imp(Owner* owner, const GRange<size_t> layers0,
+  Imp(Owner* owner, const EB& eb0, const GRange<size_t> layers0,
       const Multi<const FieldCell<Scal>*>& fcu0,
       const Multi<const FieldCell<Scal>*>& fccl0,
       const MapCondFaceAdvection<Scal>& mfc, Par par)
       : owner_(owner)
       , par(par)
       , m(owner_->m)
+      , eb(eb0)
       , layers(layers0)
       , fcuu_(layers, m)
       , fccls_(m, kClNone)
@@ -104,7 +105,7 @@ struct Vofm<M_>::Imp {
         const int sw = 1; // stencil halfwidth
         using MIdx = typename M::MIdx;
         GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
-        for (auto c : m.SuCells()) {
+        for (auto c : eb.SuCells()) {
           if (fci[c]) {
             auto uu = GetStencil<M, 1>{}(layers, uc, fccl_, c, fccl[c], m);
             fcn[c] = UNormal<M>::GetNormalYoungs(uu);
@@ -116,7 +117,7 @@ struct Vofm<M_>::Imp {
       }
 
       // Override with average fcn_ [s]
-      for (auto c : m.SuCells()) {
+      for (auto c : eb.SuCells()) {
         Vect na(0); // sum of normals
         Scal w = 0; // number of normals
         Scal us = 0; // sum of volume fraction
@@ -155,8 +156,8 @@ struct Vofm<M_>::Imp {
         auto& fcu = *uc[i];
         auto& fca = fca_[i];
 
-        auto h = m.GetCellSize();
-        for (auto c : m.SuCells()) {
+        auto h = eb.GetCellSize();
+        for (auto c : eb.SuCells()) {
           if (fci[c]) {
             fca[c] = R::GetLineA(fcn[c], fcu[c], h);
           } else {
@@ -172,19 +173,19 @@ struct Vofm<M_>::Imp {
       auto& fci = fci_[i];
       auto& fcu = *uc[i];
       fci.Reinit(m, false);
-      for (auto c : m.AllCells()) {
+      for (auto c : eb.AllCells()) {
         Scal u = fcu[c];
         if (u > 0. && u < 1.) {
           fci[c] = true;
         }
       }
       // cell is u=1 and neighbour is u=0
-      for (auto c : m.SuCells()) {
+      for (auto c : eb.SuCells()) {
         if (fcu[c] == 1) {
-          for (auto q : m.Nci(c)) {
+          for (auto q : eb.Nci(c)) {
             bool b = false;
             for (auto j : layers) {
-              IdxCell cn = m.GetCell(c, q);
+              IdxCell cn = eb.GetCell(c, q);
               if (fccl_[j][cn] == fccl_[i][c]) {
                 if ((*uc[j])[cn] == 0) {
                   fci[c] = true;
@@ -217,6 +218,12 @@ struct Vofm<M_>::Imp {
       UpdateBc(mfc_);
     }
   }
+  enum class SweepType {
+    plain, // sum of fluxes
+    EI, // Euler Implicit (aulisa2009)
+    LE, // Lagrange Explicit (aulisa2009)
+    weymouth, // sum of fluxes and divergence (weymouth2010)
+  };
   void DumpInterface(std::string filename) {
     uvof_.DumpPoly(
         layers, fcu_.time_curr, fccl_, fcn_, fca_, fci_, filename,
@@ -275,14 +282,21 @@ struct Vofm<M_>::Imp {
       size_t d = dd[id]; // direction as index
       if (sem("sweep")) {
         const Scal sgn = (id % 2 == count_ / par.dim % 2 ? -1 : 1);
-        FieldFace<Scal> ffv(m, m.GetCellSize().prod() * sgn * par.sharpen_cfl);
+        FieldFace<Scal> ffv(m, 0);
+        for (auto f : eb.Faces()) {
+          const IdxCell cm = m.GetCell(f, 0);
+          const IdxCell cp = m.GetCell(f, 1);
+          ffv[f] = std::min(eb.GetVolume(cm), eb.GetVolume(cp)) * sgn *
+                   par.sharpen_cfl;
+        }
         // zero flux on boundaries
         for (const auto& it : mfc_) {
           ffv[it.first] = 0;
         }
         Sweep(
-            mfcu, d, layers, ffv, fccl_, fcim_, fcn_, fca_, mfc_vf_, 3, nullptr,
-            nullptr, fcuu_, 1., par.clipth, m);
+            mfcu, d, layers, ffv, fccl_, fcim_, fcn_, fca_, mfc_vf_,
+            SweepType::weymouth, nullptr, nullptr, fcuu_, 1., par.clipth,
+            eb);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
     }
@@ -295,7 +309,7 @@ struct Vofm<M_>::Imp {
       }
     }
   }
-  void AdvPlain(Sem& sem, const Multi<FieldCell<Scal>*>& mfcu, int type) {
+  void AdvPlain(Sem& sem, const Multi<FieldCell<Scal>*>& mfcu, SweepType type) {
     std::vector<size_t> dd; // sweep directions
     if (par.dim == 3) { // 3d
       if (count_ % 3 == 0) {
@@ -318,7 +332,7 @@ struct Vofm<M_>::Imp {
         Sweep(
             mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, mfc_vf_,
             type, nullptr, nullptr, fcuu_, owner_->GetTimeStep(), par.clipth,
-            m);
+            eb);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
     }
@@ -331,10 +345,7 @@ struct Vofm<M_>::Imp {
   // mfcim: image [s]
   // mfcn,mfca: normal and plane constant [s]
   // mfc: face conditions
-  // type: 0: plain,
-  //       1: Euler Explicit,
-  //       2: Lagrange Explicit,
-  //       3: Weymouth 2010
+  // type: sweep type
   // fcfm,fcfp: upwind mixture flux, required if type=2 [s]
   // fcuu: volume fraction for Weymouth div term
   // dt: time step
@@ -346,25 +357,21 @@ struct Vofm<M_>::Imp {
       const Multi<FieldCell<Scal>*>& mfcim,
       const Multi<const FieldCell<Vect>*>& mfcn,
       const Multi<const FieldCell<Scal>*>& mfca, const MapCondFace& mfc,
-      int type, const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
+      SweepType type, const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
       const Multi<const FieldCell<Scal>*>& mfcuu, Scal dt, Scal clipth,
-      const M& m) {
+      const EB& eb) {
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
-    Dir md(d); // direction as Dir
-    MIdx wd(md); // offset in direction d
-    auto& bc = m.GetIndexCells();
-    auto& bf = m.GetIndexFaces();
-    MIdx gs = m.GetGlobalSize();
-    auto h = m.GetCellSize();
+    const Dir md(d); // direction as Dir
+    const MIdx wd(md); // offset in direction d
+    const auto& m = eb.GetMesh();
+    const auto& bc = m.GetIndexCells();
+    const auto& bf = m.GetIndexFaces();
+    const MIdx gs = m.GetGlobalSize();
+    const auto h = m.GetCellSize();
 
     Multi<FieldFace<Scal>> mffvu(layers); // phase 2 flux
     Multi<FieldFace<Scal>> mffcl(layers); // face color
-
-    if (!(type >= 0 && type <= 3)) {
-      throw std::runtime_error(
-          "Sweep(): unknown type '" + std::to_string(type) + "'");
-    }
 
     for (auto i : layers) {
       auto& fcu = *mfcu[i];
@@ -377,7 +384,7 @@ struct Vofm<M_>::Imp {
       // compute fluxes [i] and propagate color to downwind cells
       ffvu.Reinit(m, 0);
       ffcl.Reinit(m, kClNone);
-      for (auto f : m.Faces()) {
+      for (auto f : eb.Faces()) {
         auto p = bf.GetMIdxDir(f);
         Dir df = p.second;
 
@@ -385,23 +392,37 @@ struct Vofm<M_>::Imp {
           continue;
         }
 
-        const Scal v = ffv[f]; // mixture flux
-        IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
+        // flux through face (maybe cut)
+        const Scal v = ffv[f];
+        // flux through full face that would give the same velocity
+        const Scal v0 = v / eb.GetAreaFraction(f);
+        const IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
         if (fccl[c] != kClNone) {
           ffcl[f] = fccl[c];
           if (fcu[c] > 0 && fcu[c] < 1) {
-            if (type == 0 || type == 1 || type == 3) {
-              ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v, dt, d);
-            } else if (type == 2) {
-              Scal vu = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
-              ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v, vu, dt, d);
+            switch (type) {
+              case SweepType::plain:
+              case SweepType::EI:
+              case SweepType::weymouth: {
+                const Scal vu0 = R::GetLineFlux(fcn[c], fca[c], h, v0, dt, d);
+                ffvu[f] = (v >= 0 ? std::min(vu0, v) : std::max(vu0, v));
+                break;
+              }
+              case SweepType::LE: {
+                const Scal vc = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
+                const Scal vc0 = vc / eb.GetAreaFraction(f);
+                const Scal vu0 =
+                    R::GetLineFluxStr(fcn[c], fca[c], h, v0, vc0, dt, d);
+                ffvu[f] = (v >= 0 ? std::min(vu0, v) : std::max(vu0, v));
+                break;
+              }
             }
           } else { // pure cell
             ffvu[f] = v * fcu[c];
           }
 
           // propagate to downwind cell if empty
-          IdxCell cd = m.GetCell(f, v > 0. ? 1 : 0); // downwind cell
+          IdxCell cd = eb.GetCell(f, v > 0. ? 1 : 0); // downwind cell
           bool found = false; // found same color downwind
           for (auto j : layers) {
             if ((*mfccl[j])[cd] == fccl[c]) {
@@ -444,14 +465,14 @@ struct Vofm<M_>::Imp {
       auto& fcu = *mfcu[i];
       auto& fcuu = *mfcuu[i];
       auto& fccl = *mfccl[i];
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         if (fccl[c] != kClNone) {
           auto w = bc.GetMIdx(c);
-          const Scal lc = m.GetVolume(c);
+          const Scal vol = m.GetVolume(c);
           IdxFace fm = bf.GetIdx(w, md);
           IdxFace fp = bf.GetIdx(w + wd, md);
           // mixture cfl
-          const Scal ds = (ffv[fp] - ffv[fm]) * dt / lc;
+          const Scal ds = (ffv[fp] - ffv[fm]) * dt / vol;
           // phase 2 cfl
           Scal vm = 0;
           Scal vp = 0;
@@ -467,19 +488,29 @@ struct Vofm<M_>::Imp {
               break;
             }
           }
-          const Scal dl = (vp - vm) * dt / lc;
+          const Scal dl = (vp - vm) * dt / vol;
           auto& u = fcu[c];
-          if (type == 0) { // plain
-            u += -dl;
-          } else if (type == 1) { // Euler Implicit
-            u = (u - dl) / (1. - ds);
-          } else if (type == 2) { // Lagrange Explicit
-            u += u * ds - dl;
-          } else if (type == 3) { // Weymouth
-            u += fcuu[c] * ds - dl;
+          switch (type) {
+            case SweepType::plain: {
+              u += -dl;
+              break;
+            }
+            case SweepType::EI: {
+              u = (u - dl) / (1. - ds);
+              break;
+            }
+            case SweepType::LE: {
+              u += u * ds - dl;
+              break;
+            }
+            case SweepType::weymouth: {
+              u += fcuu[c] * ds - dl;
+              break;
+            }
           }
+
           // clip
-          if (!(u >= clipth)) {
+          if (!(u >= clipth)) { // u < clipth or nan
             u = 0;
           } else if (!(u <= 1 - clipth)) {
             u = 1;
@@ -553,9 +584,9 @@ struct Vofm<M_>::Imp {
           auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
           fcfm_.Reinit(m);
           fcfp_.Reinit(m);
-          for (auto c : m.Cells()) {
-            fcfm_[c] = ffv[m.GetFace(c, 2 * d)];
-            fcfp_[c] = ffv[m.GetFace(c, 2 * d + 1)];
+          for (auto c : eb.Cells()) {
+            fcfm_[c] = ffv[eb.GetFace(c, 2 * d)];
+            fcfp_[c] = ffv[eb.GetFace(c, 2 * d + 1)];
           }
           m.Comm(&fcfm_);
           m.Comm(&fcfp_);
@@ -564,8 +595,8 @@ struct Vofm<M_>::Imp {
       if (sem("sweep")) {
         Sweep(
             mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, mfc_vf_,
-            id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
-            owner_->GetTimeStep() * vsc, par.clipth, m);
+            id % 2 == 0 ? SweepType::EI : SweepType::LE, &fcfm_, &fcfp_,
+            nullptr, owner_->GetTimeStep() * vsc, par.clipth, eb);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
     }
@@ -583,7 +614,7 @@ struct Vofm<M_>::Imp {
         fcuu.Reinit(m);
         const Scal dt = owner_->GetTimeStep();
         auto& fcs = *owner_->fcs_;
-        for (auto c : m.Cells()) {
+        for (auto c : eb.Cells()) {
           uc[c] = ucm[c] + dt * fcs[c];
           fcuu[c] = (uc[c] < 0.5 ? 0 : 1);
         }
@@ -595,13 +626,13 @@ struct Vofm<M_>::Imp {
     Multi<FieldCell<Scal>*> mfcu = fcu_.iter_curr;
     switch (par.scheme) {
       case Scheme::plain:
-        AdvPlain(sem, mfcu, 0);
+        AdvPlain(sem, mfcu, SweepType::plain);
         break;
       case Scheme::aulisa:
         AdvAulisa(sem, mfcu);
         break;
       case Scheme::weymouth:
-        AdvPlain(sem, mfcu, 3);
+        AdvPlain(sem, mfcu, SweepType::weymouth);
         break;
     }
 
@@ -673,6 +704,7 @@ struct Vofm<M_>::Imp {
   Owner* owner_;
   Par par;
   M& m;
+  const EB& eb;
 
   GRange<size_t> layers;
   StepData<Multi<FieldCell<Scal>>> fcu_;
@@ -703,123 +735,124 @@ struct Vofm<M_>::Imp {
   UVof<M> uvof_;
 };
 
-template <class M>
-constexpr typename M::Scal Vofm<M>::kClNone;
+template <class EB_>
+constexpr typename EB_::M::Scal Vofm<EB_>::kClNone;
 
-template <class M_>
-Vofm<M_>::Vofm(
-    M& m, const FieldCell<Scal>& fcu0, const FieldCell<Scal>& fccl0,
-    const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
-    const FieldCell<Scal>* fcs, double t, double dt, Par par)
+template <class EB_>
+Vofm<EB_>::Vofm(
+    M& m, const EB& eb, const FieldCell<Scal>& fcu0,
+    const FieldCell<Scal>& fccl0, const MapCondFaceAdvection<Scal>& mfc,
+    const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t, double dt,
+    Par par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs) {
   const GRange<size_t> layers(par.layers);
   Multi<FieldCell<Scal>> fcu(layers, m, 0);
   Multi<FieldCell<Scal>> fccl(layers, m, kClNone);
   fcu[0] = fcu0;
   fccl[0] = fccl0;
-  imp.reset(new Imp(this, layers, fcu, fccl, mfc, par));
+  imp.reset(new Imp(this, eb, layers, fcu, fccl, mfc, par));
 }
 
-template <class M_>
-Vofm<M_>::Vofm(
-    M& m, const Multi<const FieldCell<Scal>*>& fcu0,
+template <class EB_>
+Vofm<EB_>::Vofm(
+    M& m, const EB& eb, const Multi<const FieldCell<Scal>*>& fcu0,
     const Multi<const FieldCell<Scal>*>& fccl0,
     const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
     const FieldCell<Scal>* fcs, double t, double dt, Par par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs) {
   const GRange<size_t> layers(par.layers);
-  imp.reset(new Imp(this, layers, fcu0, fccl0, mfc, par));
+  imp.reset(new Imp(this, eb, layers, fcu0, fccl0, mfc, par));
 }
 
-template <class M_>
-Vofm<M_>::~Vofm() = default;
+template <class EB_>
+Vofm<EB_>::~Vofm() = default;
 
-template <class M_>
-auto Vofm<M_>::GetPar() const -> const Par& {
+template <class EB_>
+auto Vofm<EB_>::GetPar() const -> const Par& {
   return imp->par;
 }
 
-template <class M_>
-void Vofm<M_>::SetPar(Par par) {
+template <class EB_>
+void Vofm<EB_>::SetPar(Par par) {
   imp->par = par;
 }
 
-template <class M_>
-void Vofm<M_>::StartStep() {
+template <class EB_>
+void Vofm<EB_>::StartStep() {
   imp->StartStep();
 }
 
-template <class M_>
-void Vofm<M_>::MakeIteration() {
+template <class EB_>
+void Vofm<EB_>::MakeIteration() {
   imp->MakeIteration();
 }
 
-template <class M_>
-void Vofm<M_>::FinishStep() {
+template <class EB_>
+void Vofm<EB_>::FinishStep() {
   imp->FinishStep();
 }
 
-template <class M_>
-auto Vofm<M_>::GetField(Step l) const -> const FieldCell<Scal>& {
+template <class EB_>
+auto Vofm<EB_>::GetField(Step l) const -> const FieldCell<Scal>& {
   return imp->fcus_.Get(l);
 }
 
-template <class M_>
-auto Vofm<M_>::GetField(Step l, size_t i) const -> const FieldCell<Scal>& {
+template <class EB_>
+auto Vofm<EB_>::GetField(Step l, size_t i) const -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l)[i];
 }
 
-template <class M_>
-auto Vofm<M_>::GetFieldM() const -> Multi<const FieldCell<Scal>*> {
+template <class EB_>
+auto Vofm<EB_>::GetFieldM() const -> Multi<const FieldCell<Scal>*> {
   return imp->fcu_.Get(Step::time_curr);
 }
 
-template <class M_>
-auto Vofm<M_>::GetAlpha() const -> Multi<const FieldCell<Scal>*> {
+template <class EB_>
+auto Vofm<EB_>::GetAlpha() const -> Multi<const FieldCell<Scal>*> {
   return imp->fca_;
 }
 
-template <class M_>
-auto Vofm<M_>::GetImage(size_t l, IdxCell c) const -> MIdx {
+template <class EB_>
+auto Vofm<EB_>::GetImage(size_t l, IdxCell c) const -> MIdx {
   return Trackerm<M>::Unpack(imp->fcim_[l][c]);
 }
 
-template <class M_>
-auto Vofm<M_>::GetMask() const -> Multi<const FieldCell<bool>*> {
+template <class EB_>
+auto Vofm<EB_>::GetMask() const -> Multi<const FieldCell<bool>*> {
   return imp->fci_;
 }
 
-template <class M_>
-auto Vofm<M_>::GetColor() const -> Multi<const FieldCell<Scal>*> {
+template <class EB_>
+auto Vofm<EB_>::GetColor() const -> Multi<const FieldCell<Scal>*> {
   return imp->fccl_;
 }
 
-template <class M_>
-auto Vofm<M_>::GetColorSum() const -> const FieldCell<Scal>& {
+template <class EB_>
+auto Vofm<EB_>::GetColorSum() const -> const FieldCell<Scal>& {
   return imp->fccls_;
 }
 
-template <class M_>
-size_t Vofm<M_>::GetNumLayers() const {
+template <class EB_>
+size_t Vofm<EB_>::GetNumLayers() const {
   return imp->layers.size();
 }
 
-template <class M_>
-auto Vofm<M_>::GetNormal() const -> Multi<const FieldCell<Vect>*> {
+template <class EB_>
+auto Vofm<EB_>::GetNormal() const -> Multi<const FieldCell<Vect>*> {
   return imp->fcn_;
 }
 
-template <class M_>
-void Vofm<M_>::PostStep() {
+template <class EB_>
+void Vofm<EB_>::PostStep() {
   return imp->PostStep();
 }
 
-template <class M_>
-void Vofm<M_>::DumpInterface(std::string fn) const {
+template <class EB_>
+void Vofm<EB_>::DumpInterface(std::string fn) const {
   return imp->DumpInterface(fn);
 }
 
-template <class M_>
-void Vofm<M_>::DumpInterfaceMarch(std::string fn) const {
+template <class EB_>
+void Vofm<EB_>::DumpInterfaceMarch(std::string fn) const {
   return imp->DumpInterfaceMarch(fn);
 }
