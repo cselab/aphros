@@ -52,8 +52,9 @@ struct ParsePar<Vof<M>> {
   }
 };
 
-template <class M>
-struct ParsePar<Vofm<M>> {
+template <class EB>
+struct ParsePar<Vofm<EB>> {
+  using M = typename EB::M;
   using Par = typename Vofm<M>::Par;
   Par operator()(const Vars& var) {
     return ParsePar<Vof<M>>()(var);

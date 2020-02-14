@@ -153,8 +153,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   using AST = Tvd<M>; // advection TVD
   using ASV = Vof<M>; // advection VOF
-  using ASVM = Vofm<M>; // advection VOF
+  using ASVM = Vofm<M>; // advection multi VOF
   using ASVEB = Vof<Embed<M>>; // advection VOF embed
+  using ASVMEB = Vofm<Embed<M>>; // advection multi VOF embed
   static constexpr Scal kClNone = ASVM::kClNone;
 
   void UpdateAdvectionPar() {
@@ -166,6 +167,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       as->SetPar(ParsePar<ASVM>()(var));
     } else if (auto as = dynamic_cast<ASVEB*>(as_.get())) {
       as->SetPar(ParsePar<ASVEB>()(var));
+    } else if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
+      as->SetPar(ParsePar<ASVMEB>()(var));
     }
   }
   // Surface tension time step
@@ -502,12 +505,21 @@ void Hydro<M>::InitAdvection(
     }
     layers = GRange<size_t>(1);
   } else if (as == "vofm") {
-    auto p = ParsePar<ASVM>()(var);
-    auto as = new ASVM(
-        m, m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
-        &fc_src2_, 0., st_.dta, p);
-    as_.reset(as);
-    layers = GRange<size_t>(as->GetNumLayers());
+    if (eb_) {
+      auto p = ParsePar<ASVMEB>()(var);
+      auto as = new ASVMEB(
+          m, *eb_, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
+          &fc_src2_, 0., st_.dta, p);
+      as_.reset(as);
+      layers = GRange<size_t>(as->GetNumLayers());
+    } else {
+      auto p = ParsePar<ASVM>()(var);
+      auto as = new ASVM(
+          m, m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
+          &fc_src2_, 0., st_.dta, p);
+      as_.reset(as);
+      layers = GRange<size_t>(as->GetNumLayers());
+    }
   } else {
     throw std::runtime_error("Unknown advection_solver=" + as);
   }
@@ -1452,15 +1464,15 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         const auto x = m.GetCenter(c);
         fcp[c] = grav.dot(x);
       }
-      #if 1
+#if 1
       ffbp_ = UEmbed<M>::GradientBilinear(
                   fcp, GetCondZeroGrad<Scal>(mf_fluid_), 1, 0., eb)
                   .GetFieldFace();
-      #else // XXX exactbalance
+#else // XXX exactbalance
       ffbp_ =
           UEmbed<M>::Gradient(fcp, GetCondZeroGrad<Scal>(mf_fluid_), 1, 0., eb)
               .GetFieldFace();
-      #endif
+#endif
       for (auto f : m.AllFaces()) {
         ffbp_[f] *= ff_rho[f];
       }
@@ -1670,6 +1682,7 @@ void Hydro<M>::DumpFields() {
         }
       }
     }
+    // TODO add ASVMEB
   }
   if (sem()) {
   } // XXX: empty stage, otherwise ctx is destroyed before dump
@@ -1715,6 +1728,10 @@ void Hydro<M>::Dump() {
         Multi<const FieldCell<Scal>*> fcu(layers);
         Multi<const FieldCell<Scal>*> fccl(layers);
         if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+          fcu = as->GetFieldM();
+          fccl = as->GetColor();
+        } else if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
+          // TODO reuse ASVM code
           fcu = as->GetFieldM();
           fccl = as->GetColor();
         } else if (auto as = dynamic_cast<ASVEB*>(as_.get())) {
@@ -1772,6 +1789,19 @@ void Hydro<M>::Dump() {
     }
   }
   if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+    if (psm_ && dumper_.Try(st_.t, st_.dt)) {
+      if (var.Int["dumppart"] && sem.Nested("part-dump")) {
+        psm_->DumpParticles(
+            as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
+      }
+      if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
+        psm_->DumpPartInter(
+            as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
+      }
+    }
+  }
+  // TODO reuse ASVM code
+  if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
     if (psm_ && dumper_.Try(st_.t, st_.dt)) {
       if (var.Int["dumppart"] && sem.Nested("part-dump")) {
         psm_->DumpParticles(

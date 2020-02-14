@@ -1600,6 +1600,54 @@ void AppendSurfaceTension(
   }
 }
 
+// TODO reuse Vofm<M> code
+template <class M>
+void AppendSurfaceTension(
+    const Embed<M>& eb, FieldFace<typename M::Scal>& ffst,
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Scal>*> fcu,
+    const Multi<const FieldCell<typename M::Scal>*> fccl,
+    const Multi<const FieldCell<typename M::Scal>*> fck,
+    const FieldFace<typename M::Scal>& ffsig) {
+  using Scal = typename M::Scal;
+  constexpr Scal kClNone = -1;
+  for (auto f : eb.Faces()) {
+    const IdxCell cm = eb.GetCell(f, 0);
+    const IdxCell cp = eb.GetCell(f, 1);
+    std::set<Scal> s;
+    for (auto i : layers) {
+      const Scal clm = (*fccl[i])[cm];
+      const Scal clp = (*fccl[i])[cp];
+      if (clm != kClNone) s.insert(clm);
+      if (clp != kClNone) s.insert(clp);
+    }
+    for (auto cl : s) {
+      Scal um = 0;
+      Scal up = 0;
+      Scal km = 0;
+      Scal kp = 0;
+      for (auto i : layers) {
+        if ((*fccl[i])[cm] == cl) {
+          um = (*fcu[i])[cm];
+          km = (*fck[i])[cm];
+        }
+        if ((*fccl[i])[cp] == cl) {
+          up = (*fcu[i])[cp];
+          kp = (*fck[i])[cp];
+        }
+      }
+      Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
+      const Scal dn = eb.ClipGradDenom(
+          eb.GetNormal(f).dot(eb.GetCellCenter(cp) - eb.GetCellCenter(cm)));
+      const Scal ga = (up - um) / dn;
+      if (ga != 0.) {
+        k = (IsNan(k) ? 0 : k);
+        ffst[f] += ga * k * ffsig[f];
+      }
+    }
+  }
+}
+
 template <class M>
 void CalcSurfaceTension(
     const M& m, const GRange<size_t>& layers, const Vars& var,
@@ -1640,11 +1688,15 @@ void CalcSurfaceTension(
     if (auto as = dynamic_cast<const Vofm<M>*>(asb)) {
       AppendSurfaceTension(
           m, ff_st, layers, as->GetFieldM(), as->GetColor(), fck, ff_sig);
+    } else if (auto as = dynamic_cast<const Vofm<Embed<M>>*>(asb)) {
+      AppendSurfaceTension(
+          as->GetEmbed(), ff_st, layers, as->GetFieldM(), as->GetColor(), fck,
+          ff_sig);
+    } else if (auto as = dynamic_cast<const Vof<M>*>(asb)) {
+      AppendSurfaceTension(m, ff_st, as->GetField(), *fck[0], ff_sig);
     } else if (auto as = dynamic_cast<const Vof<Embed<M>>*>(asb)) {
       AppendSurfaceTension(
           as->GetEmbed(), ff_st, as->GetField(), *fck[0], ff_sig);
-    } else if (auto as = dynamic_cast<const Vof<M>*>(asb)) {
-      AppendSurfaceTension(m, ff_st, as->GetField(), *fck[0], ff_sig);
     } else {
       throw std::runtime_error("CalcSurfaceTension: unknown advection solver");
     }

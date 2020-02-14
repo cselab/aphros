@@ -163,6 +163,10 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     return CalcCurvPart(
         layers, &as->GetAlpha(), &as->GetNormal(), &as->GetMask(), nullptr, par,
         fck, m);
+  } else if (auto as = dynamic_cast<const Vofm<Embed<M>>*>(asbase)) {
+    return CalcCurvPart(
+        layers, as->GetAlpha(), as->GetNormal(), as->GetMask(), as->GetColor(),
+        par, fck, m);
   }
   throw std::runtime_error("CalcCurvPart: unknown advection solver");
 }
