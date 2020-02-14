@@ -768,6 +768,11 @@ template <class EB_>
 Vofm<EB_>::~Vofm() = default;
 
 template <class EB_>
+auto Vofm<EB_>::GetEmbed() const -> const EB& {
+  return imp->eb;
+}
+
+template <class EB_>
 auto Vofm<EB_>::GetPar() const -> const Par& {
   return imp->par;
 }
