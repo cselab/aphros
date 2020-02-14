@@ -8,10 +8,11 @@
 #include "advection.h"
 #include "partstrmeshm.h"
 
-template <class M_>
-class Vof final : public AdvectionSolver<M_> {
+template <class EB_>
+class Vof final : public AdvectionSolver<typename EB_::M> {
  public:
-  using M = M_;
+  using EB = EB_;
+  using M = typename EB::M;
   using P = AdvectionSolver<M>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
@@ -43,10 +44,12 @@ class Vof final : public AdvectionSolver<M_> {
   };
 
   // Constructor
-  Vof(M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-      const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
-      const FieldCell<Scal>* fcs, double t, double dt, Par par);
+  Vof(M& m, const EB& eb, const FieldCell<Scal>& fcu,
+      const FieldCell<Scal>& fccl, const MapCondFaceAdvection<Scal>& mfc,
+      const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t,
+      double dt, Par par);
   ~Vof();
+  const EB& GetEmbed() const;
   const Par& GetPar() const;
   void SetPar(Par);
   void StartStep() override;
@@ -71,6 +74,6 @@ class Vof final : public AdvectionSolver<M_> {
   void DumpInterfaceMarch(std::string filename) const override;
 
  private:
-  struct Imp; // implementation
+  struct Imp;
   std::unique_ptr<Imp> imp;
 };

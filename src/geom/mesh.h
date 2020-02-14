@@ -53,6 +53,7 @@ class MeshStructured {
   using IndexCells = GIndex<IdxCell, dim>;
   using IndexFaces = GIndex<IdxFace, dim>;
   using IndexNodes = GIndex<IdxNode, dim>;
+  using M = MeshStructured;
   static constexpr size_t kCellNumNeighbourFaces = 6;
   static constexpr size_t kCellNumNeighbourNodes = 8;
   static constexpr size_t kFaceNumNeighbourNodes = 4;
