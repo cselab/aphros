@@ -34,6 +34,7 @@ struct Vof<M_>::Imp {
       : owner_(owner)
       , par(par)
       , m(owner_->m)
+      , eb(m)
       , layers(1)
       , mfc_(mfc)
       , fccl_(fccl)
@@ -56,13 +57,13 @@ struct Vof<M_>::Imp {
   }
   // reconstruct interface
   // uc: volume fraction [a]
-  void Rec(const FieldCell<Scal>& uc) {
+  void ReconstPlanes(const FieldCell<Scal>& uc) {
     DetectInterface(uc);
     // Compute fcn_ [s]
     UNormal<M>::CalcNormal(m, uc, fci_, par.dim, fcn_);
     auto h = m.GetCellSize();
     // Compute fca_ [s]
-    for (auto c : m.SuCells()) {
+    for (auto c : eb.SuCells()) {
       if (fci_[c]) {
         fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
       } else {
@@ -73,16 +74,16 @@ struct Vof<M_>::Imp {
   void DetectInterface(const FieldCell<Scal>& uc) {
     fci_.Reinit(m, false);
     // cell is 0<u<1
-    for (auto c : m.AllCells()) {
+    for (auto c : eb.AllCells()) {
       Scal u = uc[c];
       if (u > 0. && u < 1.) {
         fci_[c] = true;
       }
     }
     // cell is u=1 and neighbour is u=0
-    for (auto c : m.SuCells()) {
+    for (auto c : eb.SuCells()) {
       if (uc[c] == 1) {
-        for (auto q : m.Nci(c)) {
+        for (auto q : eb.Nci(c)) {
           IdxCell cn = m.GetCell(c, q);
           if (uc[cn] == 0) {
             fci_[c] = true;
@@ -102,63 +103,69 @@ struct Vof<M_>::Imp {
 
     if (owner_->GetTime() == 0.) {
       if (sem("reconst")) {
-        Rec(fcu_.time_curr);
+        ReconstPlanes(fcu_.time_curr);
       }
     }
   }
+  enum class SweepType {
+    plain, // sum of fluxes
+    EI, // Euler Implicit (aulisa2009)
+    LE, // Lagrange Explicit (aulisa2009)
+    weymouth, // sum of fluxes and divergence (weymouth2010)
+  };
   // Makes advection sweep in one direction, updates uc [i]
   // uc: volume fraction [s]
   // d: direction
   // ffv: mixture flux [i]
   // fcn,fca: normal and plane constant [s]
   // mfc: face conditions, nullptr to keep boundary fluxes
-  // type: 0: plain,
-  //       1: Euler Explicit,
-  //       2: Lagrange Explicit,
-  //       3: Weymouth 2010
-  // fcfm,fcfp: upwind mixture flux, required if type=2 [s]
+  // fcfm,fcfp: upwind mixture flux, required if type=LE [s]
   // fcuu: volume fraction for Weymouth div term
   // dt: time step
   // clipth: threshold for clipping, values outside [th,1-th] are clipped
   static void Sweep(
       FieldCell<Scal>& uc, size_t d, const FieldFace<Scal>& ffv,
       FieldCell<Scal>& fccl, FieldCell<Scal>& fcim, const FieldCell<Vect>& fcn,
-      const FieldCell<Scal>& fca, const MapCondFace* mfc, int type,
+      const FieldCell<Scal>& fca, const MapCondFace* mfc, SweepType type,
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
-      const FieldCell<Scal>* fcuu, Scal dt, Scal clipth, const M& m) {
+      const FieldCell<Scal>* fcuu, Scal dt, Scal clipth, const M& eb) {
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
-    Dir md(d); // direction as Dir
-    MIdx wd(md); // offset in direction d
-    auto& bc = m.GetIndexCells();
-    auto& bf = m.GetIndexFaces();
-    MIdx gs = m.GetGlobalSize();
-    auto h = m.GetCellSize();
+    const Dir md(d); // direction as Dir
+    const MIdx wd(md); // offset in direction d
+    auto& m = eb;
+    const auto& bc = m.GetIndexCells();
+    const auto& bf = m.GetIndexFaces();
+    const MIdx gs = m.GetGlobalSize();
+    const auto h = m.GetCellSize();
 
-    FieldFace<Scal> ffvu(m); // phase 2 flux
-
-    if (!(type >= 0 && type <= 3)) {
-      throw std::runtime_error(
-          "Sweep(): unknown type '" + std::to_string(type) + "'");
-    }
+    FieldFace<Scal> ffvu(m, 0); // phase 2 flux
 
     // compute fluxes [i] and propagate color to downwind cells
-    for (auto f : m.Faces()) {
-      auto p = bf.GetMIdxDir(f);
-      Dir df = p.second;
+    for (auto f : eb.Faces()) {
+      const auto p = bf.GetMIdxDir(f);
+      const Dir df = p.second;
 
       if (df != md) {
         continue;
       }
 
-      const Scal v = ffv[f]; // mixture flux
-      IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
+      // flux through face
+      const Scal v = ffv[f];
+      const IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
       if (uc[c] > 0 && uc[c] < 1) { // interfacial cell
-        if (type == 0 || type == 1 || type == 3) {
-          ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v, dt, d);
-        } else if (type == 2) { // Lagrange Explicit
-          Scal vu = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
-          ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v, vu, dt, d);
+        switch (type) {
+          case SweepType::plain:
+          case SweepType::EI:
+          case SweepType::weymouth: {
+            ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v, dt, d);
+            break;
+          }
+          case SweepType::LE: {
+            const Scal vc = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
+            ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v, vc, dt, d);
+            break;
+          }
         }
       } else { // pure cell
         ffvu[f] = v * uc[c];
@@ -166,10 +173,10 @@ struct Vof<M_>::Imp {
 
       // propagate color to downwind cell if empty
       if (fccl[c] != kClNone) {
-        IdxCell cd = m.GetCell(f, v > 0. ? 1 : 0); // downwind cell
+        const IdxCell cd = m.GetCell(f, v > 0. ? 1 : 0); // downwind cell
         if (fccl[cd] == kClNone) {
           fccl[cd] = fccl[c];
-          MIdx w = bc.GetMIdx(c);
+          const MIdx w = bc.GetMIdx(c);
           MIdx im = TRM::Unpack(fcim[c]);
           if (w[d] < 0) im[d] += 1;
           if (w[d] >= gs[d]) im[d] -= 1;
@@ -183,8 +190,8 @@ struct Vof<M_>::Imp {
       FieldFace<Scal> ffu(m);
       InterpolateB(uc, *mfc, ffu, m);
       for (const auto& it : *mfc) {
-        IdxFace f = it.first;
-        Scal v = ffv[f];
+        const IdxFace f = it.first;
+        const Scal v = ffv[f];
         if ((it.second->GetNci() == 0) != (v > 0.)) {
           ffvu[f] = v * ffu[f];
         }
@@ -192,24 +199,32 @@ struct Vof<M_>::Imp {
     }
 
     // update volume fraction [i]
-    for (auto c : m.Cells()) {
-      auto w = bc.GetMIdx(c);
-      const Scal lc = m.GetVolume(c);
-      IdxFace fm = bf.GetIdx(w, md);
-      IdxFace fp = bf.GetIdx(w + wd, md);
+    for (auto c : eb.Cells()) {
+      const Scal vol = m.GetVolume(c);
+      const IdxFace fm = m.GetFace(c, d * 2);
+      const IdxFace fp = m.GetFace(c, d * 2 + 1);
       // mixture cfl
-      const Scal ds = (ffv[fp] - ffv[fm]) * dt / lc;
+      const Scal ds = (ffv[fp] - ffv[fm]) * dt / vol;
       // phase 2 cfl
-      const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / lc;
+      const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / vol;
       auto& u = uc[c];
-      if (type == 0) { // plain
-        u += -dl;
-      } else if (type == 1) { // Euler Implicit
-        u = (u - dl) / (1. - ds);
-      } else if (type == 2) { // Lagrange Explicit
-        u += u * ds - dl;
-      } else if (type == 3) { // Weymouth
-        u += (*fcuu)[c] * ds - dl;
+      switch (type) {
+        case SweepType::plain: {
+          u += -dl;
+          break;
+        }
+        case SweepType::EI: {
+          u = (u - dl) / (1. - ds);
+          break;
+        }
+        case SweepType::LE: {
+          u += u * ds - dl;
+          break;
+        }
+        case SweepType::weymouth: {
+          u += (*fcuu)[c] * ds - dl;
+          break;
+        }
       }
       // clip
       if (!(u >= clipth)) {
@@ -238,7 +253,7 @@ struct Vof<M_>::Imp {
       BcApply(fcim, mfc_im_, m);
     }
     if (sem("reconst")) {
-      Rec(uc);
+      ReconstPlanes(uc);
     }
   }
   void AdvAulisa(Sem& sem) {
@@ -269,7 +284,7 @@ struct Vof<M_>::Imp {
           auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
           fcfm_.Reinit(m);
           fcfp_.Reinit(m);
-          for (auto c : m.Cells()) {
+          for (auto c : eb.Cells()) {
             fcfm_[c] = ffv[m.GetFace(c, 2 * d)];
             fcfp_[c] = ffv[m.GetFace(c, 2 * d + 1)];
           }
@@ -281,8 +296,8 @@ struct Vof<M_>::Imp {
       if (sem("sweep")) {
         Sweep(
             uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
-            id % 2 == 0 ? 1 : 2, &fcfm_, &fcfp_, nullptr,
-            owner_->GetTimeStep() * vsc, par.clipth, m);
+            id % 2 == 0 ? SweepType::EI : SweepType::LE, &fcfm_, &fcfp_,
+            nullptr, owner_->GetTimeStep() * vsc, par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -295,7 +310,7 @@ struct Vof<M_>::Imp {
       }
     }
   }
-  void AdvPlain(Sem& sem, int type) {
+  void AdvPlain(Sem& sem, SweepType type) {
     std::vector<size_t> dd; // sweep directions
     if (par.dim == 3) { // 3d
       if (count_ % 3 == 0) {
@@ -317,7 +332,7 @@ struct Vof<M_>::Imp {
       if (sem("sweep")) {
         Sweep(
             uc, dd[id], *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_, type,
-            nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), par.clipth, m);
+            nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -351,8 +366,8 @@ struct Vof<M_>::Imp {
           ffv[it.first] = 0;
         }
         Sweep(
-            uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_vf_, 3, nullptr, nullptr,
-            &fcuu_, 1., par.clipth, m);
+            uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_vf_, SweepType::weymouth,
+            nullptr, nullptr, &fcuu_, 1., par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -377,13 +392,13 @@ struct Vof<M_>::Imp {
     using Scheme = typename Par::Scheme;
     switch (par.scheme) {
       case Scheme::plain:
-        AdvPlain(sem, 0);
+        AdvPlain(sem, SweepType::plain);
         break;
       case Scheme::aulisa:
         AdvAulisa(sem);
         break;
       case Scheme::weymouth:
-        AdvPlain(sem, 3);
+        AdvPlain(sem, SweepType::weymouth);
         break;
     }
 
@@ -396,7 +411,7 @@ struct Vof<M_>::Imp {
     if (sem("resetcolor")) {
       auto& fcu = fcu_.iter_curr;
       fcclm = fccl_;
-      for (auto c : m.AllCells()) {
+      for (auto c : eb.AllCells()) {
         fccl_[c] = (fcu[c] > 0.5 ? 0 : kClNone);
       }
       BcApply(fccl_, mfc_cl_, m);
@@ -410,7 +425,7 @@ struct Vof<M_>::Imp {
     if (sem("propagate")) {
       auto& u = fcu_.iter_curr;
       auto& cl = fccl_;
-      for (auto f : m.Faces()) {
+      for (auto f : eb.Faces()) {
         for (size_t q : {0, 1}) {
           auto c = m.GetCell(f, q);
           auto cn = m.GetCell(f, 1 - q);
@@ -481,6 +496,7 @@ struct Vof<M_>::Imp {
   Owner* owner_;
   Par par;
   M& m;
+  const M& eb;
   GRange<size_t> layers;
 
   StepData<FieldCell<Scal>> fcu_;
