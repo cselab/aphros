@@ -398,7 +398,8 @@ struct Vof<EB_>::Imp {
       fcuu_.Reinit(m);
       for (auto c : eb.Cells()) {
         uc[c] = fcu_.time_prev[c] + dt * fcs[c];
-        const Scal u0 = eb.GetVolumeFraction(c);
+        //const Scal u0 = eb.GetVolumeFraction(c);
+        const Scal u0 = 1.;
         fcuu_[c] = (uc[c] < u0 * 0.5 ? 0 : u0);
       }
     }
