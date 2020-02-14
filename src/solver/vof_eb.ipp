@@ -240,9 +240,9 @@ struct VofEmbed<M_>::Imp {
         }
       }
       // clip
-      if (u < clipth) {
+      if (!(u >= clipth)) {
         u = 0;
-      } else if (u > 1 - clipth) {
+      } else if (!(u <= 1 - clipth)) {
         u = 1;
       }
       // clear color
@@ -251,18 +251,6 @@ struct VofEmbed<M_>::Imp {
         fcim[c] = TRM::Pack(MIdx(0));
       }
     }
-    /*
-    for (auto c : eb.Cells()) {
-      Scal du = std::max(0., uc[c] - eb.GetVolumeFraction(c));
-      for (auto cn : eb.Stencil(c)) {
-        const Scal dun =
-            std::min(du, std::max(0., uc[cn] - eb.GetVolumeFraction(cn)));
-        uc[cn] += dun;
-        uc[c] -= dun;
-        du -= dun;
-      }
-    }
-    */
   }
   void CommRec(
       Sem& sem, FieldCell<Scal>& uc, FieldCell<Scal>& fccl,
