@@ -115,8 +115,8 @@ struct UPrimList {
     const Vect xc(d["cx"], d["cy"], d["cz"]); // center
     const Vect r(d["rx"], d["ry"], d["rz"]); // radius (semi-axes)
     const Scal rotz = d["rotz"]; // rotation angle around z in degrees
-    const Scal rotz_cos = std::cos(M_PI * rotz / 180.);
-    const Scal rotz_sin = std::sin(M_PI * rotz / 180.);
+    const Scal rotz_cos = std::cos(-M_PI * rotz / 180.);
+    const Scal rotz_sin = std::sin(-M_PI * rotz / 180.);
 
     p.ls = [edim, xc, r, rotz_cos, rotz_sin](const Vect& x) -> Scal {
       Vect dx = x - xc;
