@@ -158,6 +158,12 @@ class MeshStructured {
   Scal GetArea(IdxFace f) const {
     return va_[size_t(bfr_.GetDir(f))];
   }
+  Scal GetAreaFraction(IdxFace) const {
+    return 1;
+  }
+  Scal GetVolumeFraction(IdxCell) const {
+    return 1;
+  }
   IdxCell GetCell(IdxCell c, size_t q) const {
     assert(q < kCellNumNeighbourFaces);
     return IdxCell(size_t(c) + cnc_[q]);
@@ -438,6 +444,12 @@ class MeshStructured {
   }
   void SetEdim(size_t edim) {
     edim_ = edim;
+  }
+  MeshStructured& GetMesh() {
+    return *this;
+  }
+  const MeshStructured& GetMesh() const {
+    return *this;
   }
 
   // TODO: move to separate class: Sem, LS, Comm, Reduce, Solve
