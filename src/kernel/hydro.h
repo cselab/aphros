@@ -1396,6 +1396,17 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     FieldCell<Scal>& a = fc_smvf_;
     FieldFace<Scal>& af = ff_smvf_;
     if (eb_) {
+      auto& eb = *eb_;
+      // Compute volume fraction relative to cut cell volume
+      // as needed for density and viscosity.
+      for (auto c : eb.AllCells()) {
+        const Scal ebv = eb.GetVolumeFraction(c);
+        if (ebv != 0) {
+          a[c] = std::min(a[c], ebv) / ebv;
+        } else {
+          a[c] = 0;
+        }
+      }
       af = UEmbed<M>::InterpolateBilinear(a, mf_cond_vfsm_, 1, 0., *eb_)
                .GetFieldFace();
     } else {
@@ -1433,15 +1444,23 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     }
 
     if (eb_) {
+      // Compute gravity as gradient of potential
+      // to ensure exact hydrostatic solution.
       auto& eb = *eb_;
       FieldCell<Scal> fcp(m);
       for (auto c : eb.AllCells()) {
-        const auto x = eb.GetCellCenter(c);
+        const auto x = m.GetCenter(c);
         fcp[c] = grav.dot(x);
       }
+      #if 1
       ffbp_ = UEmbed<M>::GradientBilinear(
-                  fcp, GetCondZeroGrad<Scal>(mf_fluid_), 0, 0., eb)
+                  fcp, GetCondZeroGrad<Scal>(mf_fluid_), 1, 0., eb)
                   .GetFieldFace();
+      #else // XXX exactbalance
+      ffbp_ =
+          UEmbed<M>::Gradient(fcp, GetCondZeroGrad<Scal>(mf_fluid_), 1, 0., eb)
+              .GetFieldFace();
+      #endif
       for (auto f : m.AllFaces()) {
         ffbp_[f] *= ff_rho[f];
       }

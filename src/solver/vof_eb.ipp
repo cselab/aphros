@@ -173,8 +173,9 @@ struct VofEmbed<M_>::Imp {
           }
           case SweepType::LE: {
             const Scal vc = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
+            const Scal vc0 = vc / eb.GetAreaFraction(f);
             const Scal vu0 =
-                R::GetLineFluxStr(fcn[c], fca[c], h, v0, vc, dt, d);
+                R::GetLineFluxStr(fcn[c], fca[c], h, v0, vc0, dt, d);
             ffvu[f] = (v >= 0 ? std::min(vu0, v) : std::max(vu0, v));
             break;
           }
