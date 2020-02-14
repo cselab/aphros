@@ -234,7 +234,7 @@ struct Vof<EB_>::Imp {
         }
       }
       // clip
-      if (!(u >= clipth)) {
+      if (!(u >= clipth)) { // u < clipth or nan
         u = 0;
       } else if (!(u <= 1 - clipth)) {
         u = 1;

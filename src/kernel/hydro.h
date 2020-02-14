@@ -504,8 +504,8 @@ void Hydro<M>::InitAdvection(
   } else if (as == "vofm") {
     auto p = ParsePar<ASVM>()(var);
     auto as = new ASVM(
-        m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_,
-        0., st_.dta, p);
+        m, m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
+        &fc_src2_, 0., st_.dta, p);
     as_.reset(as);
     layers = GRange<size_t>(as->GetNumLayers());
   } else {

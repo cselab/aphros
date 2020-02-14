@@ -9,10 +9,11 @@
 #include "partstrmeshm.h"
 #include "vof.h"
 
-template <class M_>
-class Vofm final : public AdvectionSolver<M_> {
+template <class EB_>
+class Vofm final : public AdvectionSolver<typename EB_::M> {
  public:
-  using M = M_;
+  using EB = EB_;
+  using M = typename EB::M;
   using P = AdvectionSolver<M>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
@@ -30,15 +31,17 @@ class Vofm final : public AdvectionSolver<M_> {
   // t,dt: initial time and timestep
   // par: parameters
   Vofm(
-      M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-      const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
-      const FieldCell<Scal>* fcs, double t, double dt, Par par);
+      M& m, const EB& eb, const FieldCell<Scal>& fcu,
+      const FieldCell<Scal>& fccl, const MapCondFaceAdvection<Scal>& mfc,
+      const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t,
+      double dt, Par par);
   Vofm(
-      M& m, const Multi<const FieldCell<Scal>*>& fcu,
+      M& m, const EB& eb, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Scal>*>& fccl,
       const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
       const FieldCell<Scal>* fcs, double t, double dt, Par par);
   ~Vofm();
+  const EB& GetEmbed() const;
   const Par& GetPar() const;
   void SetPar(Par);
   void StartStep() override;
@@ -69,6 +72,6 @@ class Vofm final : public AdvectionSolver<M_> {
   void DumpInterfaceMarch(std::string filename) const override;
 
  private:
-  struct Imp; // implementation
+  struct Imp;
   std::unique_ptr<Imp> imp;
 };

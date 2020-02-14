@@ -160,7 +160,7 @@ void Advection<M>::Init(Sem& sem) {
       auto p = ParsePar<ASVM>()(var);
       const FieldCell<Scal> fccl(m, 0);
       as_.reset(new ASVM(
-          m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
+          m, m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
     } else {
       throw std::runtime_error("Unknown advection_solver=" + as);
     }
