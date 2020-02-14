@@ -26,5 +26,9 @@ set double sharpen_cfl 0.1
 
 set double tmax 5
 
+set string advection_solver vofm
+
 set vect gravity $sin $cos 0
+
+set int enable_color 1
 " > add.conf
