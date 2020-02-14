@@ -159,7 +159,7 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     return CalcCurvPart(
         layers, as->GetAlpha(), as->GetNormal(), as->GetMask(), as->GetColor(),
         par, fck, m);
-  } else if (auto as = dynamic_cast<const VofEmbed<M>*>(asbase)) {
+  } else if (auto as = dynamic_cast<const Vof<Embed<M>>*>(asbase)) {
     return CalcCurvPart(
         layers, &as->GetAlpha(), &as->GetNormal(), &as->GetMask(), nullptr, par,
         fck, m);

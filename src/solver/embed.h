@@ -158,13 +158,17 @@ class MapEmbed {
 // Embedded boundaries.
 template <class M_>
 class Embed {
+ public:
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using R = Reconst<Scal>;
   static constexpr size_t dim = M::dim;
 
+ private:
+  using R = Reconst<Scal>;
+
  public:
+
   enum class Type { regular, cut, excluded };
   // Constructor
   // fnl: level-set function on nodes, interface at fnl=0

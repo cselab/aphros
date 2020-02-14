@@ -154,7 +154,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using AST = Tvd<M>; // advection TVD
   using ASV = Vof<M>; // advection VOF
   using ASVM = Vofm<M>; // advection VOF
-  using ASVEB = VofEmbed<M>; // advection VOF embed
+  using ASVEB = Vof<Embed<M>>; // advection VOF embed
   static constexpr Scal kClNone = ASVM::kClNone;
 
   void UpdateAdvectionPar() {
@@ -497,7 +497,7 @@ void Hydro<M>::InitAdvection(
     } else {
       auto p = ParsePar<ASV>()(var);
       as_.reset(new ASV(
-          m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
+          m, m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
           &fc_src2_, 0., st_.dta, p));
     }
     layers = GRange<size_t>(1);

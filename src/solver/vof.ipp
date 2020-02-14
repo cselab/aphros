@@ -19,9 +19,9 @@
 
 #include "vof.h"
 
-template <class M_>
-struct Vof<M_>::Imp {
-  using Owner = Vof<M_>;
+template <class EB_>
+struct Vof<EB_>::Imp {
+  using Owner = Vof<EB_>;
   using R = Reconst<Scal>;
   using TRM = Trackerm<M>;
   static constexpr size_t dim = M::dim;
@@ -29,12 +29,13 @@ struct Vof<M_>::Imp {
   using Sem = typename M::Sem;
   using MIdx = typename M::MIdx;
 
-  Imp(Owner* owner, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-      const MapCondFaceAdvection<Scal>& mfc, Par par)
+  Imp(Owner* owner, const EB& eb0, const FieldCell<Scal>& fcu,
+      const FieldCell<Scal>& fccl, const MapCondFaceAdvection<Scal>& mfc,
+      Par par)
       : owner_(owner)
       , par(par)
       , m(owner_->m)
-      , eb(m)
+      , eb(eb0)
       , layers(1)
       , mfc_(mfc)
       , fccl_(fccl)
@@ -128,7 +129,7 @@ struct Vof<M_>::Imp {
       FieldCell<Scal>& fccl, FieldCell<Scal>& fcim, const FieldCell<Vect>& fcn,
       const FieldCell<Scal>& fca, const MapCondFace* mfc, SweepType type,
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
-      const FieldCell<Scal>* fcuu, Scal dt, Scal clipth, const M& eb) {
+      const FieldCell<Scal>* fcuu, Scal dt, Scal clipth, const EB& eb) {
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
     const Dir md(d); // direction as Dir
@@ -509,7 +510,7 @@ struct Vof<M_>::Imp {
   Owner* owner_;
   Par par;
   M& m;
-  const M& eb;
+  const EB& eb;
   GRange<size_t> layers;
 
   StepData<FieldCell<Scal>> fcu_;
@@ -533,83 +534,88 @@ struct Vof<M_>::Imp {
   UVof<M> uvof_;
 };
 
-template <class M_>
-Vof<M_>::Vof(
-    M& m, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
+template <class EB_>
+Vof<EB_>::Vof(
+    M& m, const EB& eb, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
     const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
     const FieldCell<Scal>* fcs, double t, double dt, Par par)
     : AdvectionSolver<M>(t, dt, m, ffv, fcs)
-    , imp(new Imp(this, fcu, fccl, mfc, par)) {}
+    , imp(new Imp(this, eb, fcu, fccl, mfc, par)) {}
 
-template <class M_>
-Vof<M_>::~Vof() = default;
+template <class EB_>
+Vof<EB_>::~Vof() = default;
 
-template <class M_>
-auto Vof<M_>::GetPar() const -> const Par& {
+template <class EB_>
+auto Vof<EB_>::GetEmbed() const -> const EB& {
+  return imp->eb;
+}
+
+template <class EB_>
+auto Vof<EB_>::GetPar() const -> const Par& {
   return imp->par;
 }
 
-template <class M_>
-void Vof<M_>::SetPar(Par par) {
+template <class EB_>
+void Vof<EB_>::SetPar(Par par) {
   imp->par = par;
 }
 
-template <class M_>
-void Vof<M_>::StartStep() {
+template <class EB_>
+void Vof<EB_>::StartStep() {
   imp->StartStep();
 }
 
-template <class M_>
-void Vof<M_>::MakeIteration() {
+template <class EB_>
+void Vof<EB_>::MakeIteration() {
   imp->MakeIteration();
 }
 
-template <class M_>
-void Vof<M_>::FinishStep() {
+template <class EB_>
+void Vof<EB_>::FinishStep() {
   imp->FinishStep();
 }
 
-template <class M_>
-auto Vof<M_>::GetField(Step l) const -> const FieldCell<Scal>& {
+template <class EB_>
+auto Vof<EB_>::GetField(Step l) const -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l);
 }
 
-template <class M_>
-auto Vof<M_>::GetColor() const -> const FieldCell<Scal>& {
+template <class EB_>
+auto Vof<EB_>::GetColor() const -> const FieldCell<Scal>& {
   return imp->fccl_;
 }
 
-template <class M_>
-auto Vof<M_>::GetImage(IdxCell c) const -> MIdx {
+template <class EB_>
+auto Vof<EB_>::GetImage(IdxCell c) const -> MIdx {
   return Trackerm<M>::Unpack(imp->fcim_[c]);
 }
 
-template <class M_>
-auto Vof<M_>::GetMask() const -> const FieldCell<bool>& {
+template <class EB_>
+auto Vof<EB_>::GetMask() const -> const FieldCell<bool>& {
   return imp->fci_;
 }
 
-template <class M_>
-auto Vof<M_>::GetAlpha() const -> const FieldCell<Scal>& {
+template <class EB_>
+auto Vof<EB_>::GetAlpha() const -> const FieldCell<Scal>& {
   return imp->fca_;
 }
 
-template <class M_>
-auto Vof<M_>::GetNormal() const -> const FieldCell<Vect>& {
+template <class EB_>
+auto Vof<EB_>::GetNormal() const -> const FieldCell<Vect>& {
   return imp->fcn_;
 }
 
-template <class M_>
-void Vof<M_>::PostStep() {
+template <class EB_>
+void Vof<EB_>::PostStep() {
   return imp->PostStep();
 }
 
-template <class M_>
-void Vof<M_>::DumpInterface(std::string fn) const {
+template <class EB_>
+void Vof<EB_>::DumpInterface(std::string fn) const {
   return imp->DumpInterface(fn);
 }
 
-template <class M_>
-void Vof<M_>::DumpInterfaceMarch(std::string fn) const {
+template <class EB_>
+void Vof<EB_>::DumpInterfaceMarch(std::string fn) const {
   return imp->DumpInterfaceMarch(fn);
 }
