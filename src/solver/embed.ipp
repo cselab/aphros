@@ -181,8 +181,8 @@ void Embed<M>::InitCells(
   fct.Reinit(m), GetNan<Scal>();
   fcn.Reinit(m), GetNan<Scal>();
   fca.Reinit(m, GetNan<Scal>());
-  fcs.Reinit(m, GetNan<Scal>());
-  fcv.Reinit(m, GetNan<Scal>());
+  fcs.Reinit(m, 0);
+  fcv.Reinit(m, 0);
   for (auto c : m.AllCells()) {
     size_t q = 0; // number of nodes with fnl > 0
     const size_t mi = m.GetNumNodes(c);
