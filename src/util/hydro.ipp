@@ -1536,9 +1536,13 @@ void AppendSurfaceTension(
     const FieldFace<typename M::Scal>& ffsig) {
   const auto& m = eb.GetMesh();
   using Scal = typename M::Scal;
-  const auto fegp = UEmbed<M>::GradientBilinear(fcu, MapCondFace(), 0, 0., eb);
+  #if 1
+  const auto feg = UEmbed<M>::GradientBilinear(fcu, MapCondFace(), 1, 0., eb);
+  #else // XXX exactbalance
+  const auto feg = UEmbed<M>::Gradient(fcu, MapCondFace(), 1, 0., eb);
+  #endif
   for (auto f : eb.Faces()) {
-    const Scal gu = fegp[f];
+    const Scal gu = feg[f];
     if (gu != 0.) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);

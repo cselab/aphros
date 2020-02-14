@@ -416,7 +416,11 @@ struct ProjEmbed<M_>::Imp {
 
       // Acceleration and correction to center velocity
       // XXX adhoc , using mfcd_ but should be zero-derivative
+      #if 1
       const auto fegp = UEB::GradientBilinear(fcp_curr, mfcd_, 1, 0., eb);
+      #else // XXX exactbalance
+      const auto fegp = UEB::Gradient(fcp_curr, mfcd_, 1, 0., eb);
+      #endif
       fcwc_.Reinit(m, Vect(0));
       const auto& ffbp = *owner_->ffbp_;
       for (auto c : eb.Cells()) {
