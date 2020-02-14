@@ -163,7 +163,7 @@ struct UPrimList {
     p.name = "smooth_step";
     return true;
   }
-  static bool ParseCylinder(std::string s, Primitive& p) {
+  static bool ParseCylinder(std::string s, size_t edim, Primitive& p) {
     // c: center
     // t: axis
     // r: radius
@@ -180,8 +180,11 @@ struct UPrimList {
     const Scal t0 = d["t0"];
     const Scal t1 = d["t1"];
 
-    p.ls = [xc, t, r, t0, t1](const Vect& x) -> Scal {
-      const Vect dx = x - xc;
+    p.ls = [xc, t, r, t0, t1, edim](const Vect& x) -> Scal {
+      Vect dx = x - xc;
+      if (edim == 2) {
+        dx[2] = 0;
+      }
       const Scal dt = t.dot(dx);
       const Scal dr = (dx - t * dt).norm();
       Scal q = r - dr;
@@ -240,7 +243,7 @@ struct UPrimList {
       if (!r) r = ParseRing(s, p);
       if (!r) r = ParseBox(s, edim, p);
       if (!r) r = ParseSmoothStep(s, p);
-      if (!r) r = ParseCylinder(s, p);
+      if (!r) r = ParseCylinder(s, edim, p);
 
       if (p.mod_minus) {
         p.inter = [](const Rect<Vect>&) -> bool { return true; };
