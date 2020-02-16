@@ -67,7 +67,7 @@ struct Proj<M_>::Imp {
     typename CD::Par p;
     SetConvDiffPar(p, par);
     cd_ = GetConvDiff<M>()(
-        par.conv, m, fcw, mfcw_, mccw_, owner_->fcr_, &ffd_, &fcfcd_,
+        par.conv, m, fcw, mfcw_, owner_->fcr_, &ffd_, &fcfcd_,
         &ffv_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
 
     fcp_.time_curr.Reinit(m, 0.);
@@ -124,16 +124,12 @@ struct Proj<M_>::Imp {
 
     mccp_.clear();
     mccp_.clear();
-    mccw_.clear();
     for (auto it : mcc_) {
       IdxCell c = it.first;
       CondCellFluid* cb = it.second.get(); // cond base
 
       if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
         mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
-      } else if (auto cd = dynamic_cast<GivenVelocityAndPressure<M>*>(cb)) {
-        mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
-        mccw_[c] = std::make_shared<CondCellValFixed<Vect>>(cd->GetVelocity());
       } else {
         throw std::runtime_error("proj: unknown cell condition");
       }
@@ -481,7 +477,6 @@ struct Proj<M_>::Imp {
   // Cell conditions
   MapCell<std::shared_ptr<CondCellFluid>> mcc_; // fluid cell cond
   MapCell<std::shared_ptr<CondCell>> mccp_; // pressure cell cond
-  MapCell<std::shared_ptr<CondCell>> mccw_; // velocity cell cond
 
   StepData<FieldFace<Scal>> ffv_; // volume flux
   StepData<FieldCell<Scal>> fcp_; // pressure

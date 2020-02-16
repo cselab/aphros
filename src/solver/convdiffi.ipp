@@ -16,13 +16,13 @@ struct ConvDiffScalImp<M_>::Imp {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   using Vect = typename M::Vect;
 
-  Imp(Owner* owner, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
-      const MapCell<std::shared_ptr<CondCell>>& mcc)
+  Imp(Owner* owner, const EB& eb0, const FieldCell<Scal>& fcu,
+      const MapCondFace& mfc)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
+      , eb(eb0)
       , mfc_(mfc)
-      , mcc_(mcc)
       , dtp_(-1.)
       , er_(0) {
     fcu_.time_curr = fcu;
@@ -132,17 +132,6 @@ struct ConvDiffScalImp<M_>::Imp {
 
         // Apply under-relaxation
         e[e.Find(c)].a /= par.relax;
-      }
-
-      // Overwrite with cell conditions
-      for (auto p : mcc_) {
-        const IdxCell c = p.first;
-        CondCell* cb = p.second.get(); // cond base
-        auto& e = fcl[c];
-        if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
-          Scal v = cd->second() - fcu[c];
-          e.SetKnownValueDiag(c, v);
-        }
       }
     }
   }
@@ -262,10 +251,10 @@ struct ConvDiffScalImp<M_>::Imp {
   Owner* owner_;
   Par par;
   M& m; // mesh
+  const EB& eb;
 
   StepData<FieldCell<Scal>> fcu_; // field
   const MapCondFace& mfc_; // face cond
-  MapCell<std::shared_ptr<CondCell>> mcc_; // cell cond
 
   FieldCell<Expr> fcucs_; // linear system for correction
 
@@ -275,12 +264,12 @@ struct ConvDiffScalImp<M_>::Imp {
 
 template <class M_>
 ConvDiffScalImp<M_>::ConvDiffScalImp(
-    M& m, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
-    const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
-    const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
-    const FieldFace<Scal>* ffv, double t, double dt, Par par)
+    M& m, const EB& eb, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
+    const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
+    const FieldCell<Scal>* fcs, const FieldFace<Scal>* ffv, double t, double dt,
+    Par par)
     : ConvDiffScal<M>(t, dt, m, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcu, mfc, mcc)) {}
+    , imp(new Imp(this, eb, fcu, mfc)) {}
 
 template <class M_>
 ConvDiffScalImp<M_>::~ConvDiffScalImp() = default;

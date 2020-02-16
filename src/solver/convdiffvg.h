@@ -23,7 +23,6 @@ class ConvDiffVectGeneric final : public ConvDiffVect<M_> {
   // Constructor.
   // fcvel: initial velocity
   // mfc: face conditions
-  // mcc: cell conditions
   // fcr: density
   // ffd: dynamic viscosiity
   // fcs: source
@@ -33,9 +32,9 @@ class ConvDiffVectGeneric final : public ConvDiffVect<M_> {
   // par: parameters
   ConvDiffVectGeneric(
       M& m, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
-      const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
-      const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
-      const FieldFace<Scal>* ffv, double t, double dt, Par par);
+      const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
+      const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv, double t,
+      double dt, Par par);
   ~ConvDiffVectGeneric();
   // ...
   void Assemble(

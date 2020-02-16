@@ -7,13 +7,28 @@
 
 #include "convdiff.h"
 
-template <class M_>
-class ConvDiffScalExp final : public ConvDiffScal<M_> {
+template <class M>
+struct EmbedTraits {
+  template <class T>
+  using Faceb = FieldFace<T>;
+};
+
+template <class M>
+struct EmbedTraits<Embed<M>> {
+  template <class T>
+  using Faceb = FieldEmbed<T>;
+};
+
+template <class EB_>
+class ConvDiffScalExp final : public ConvDiffScal<typename EB_::M> {
  public:
-  using M = M_;
+  using EB = EB_;
+  using M = typename EB::M;
   using P = ConvDiffScal<M>;
   using Scal = typename M::Scal;
   using Par = typename P::Par;
+  template <class T>
+  using FieldFaceb = typename EmbedTraits<M>::template Faceb<T>;
 
   // Constructor.
   // fcu: initial field
@@ -27,14 +42,14 @@ class ConvDiffScalExp final : public ConvDiffScal<M_> {
   // dt: time step
   // par: parameters
   ConvDiffScalExp(
-      M& m, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
-      const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
-      const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
-      const FieldFace<Scal>* ffv, double t, double dt, Par par);
+      M& m, const EB& eb, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
+      const FieldCell<Scal>* fcr, const FieldFaceb<Scal>* fed,
+      const FieldCell<Scal>* fcs, const FieldFaceb<Scal>* fev, double t,
+      double dt, Par par);
   ~ConvDiffScalExp();
   const FieldCell<Scal>& GetField(Step) const override;
   using P::GetField;
-  void Assemble(const FieldCell<Scal>&, const FieldFace<Scal>&) override;
+  void Assemble(const FieldCell<Scal>&, const FieldFaceb<Scal>&) override;
   void CorrectField(Step l, const FieldCell<Scal>& uc) override;
   FieldCell<Scal> GetDiag() const override;
   FieldCell<Scal> GetConst() const override;
@@ -44,6 +59,6 @@ class ConvDiffScalExp final : public ConvDiffScal<M_> {
   double GetError() const override;
 
  private:
-  struct Imp; // implementation
+  struct Imp;
   std::unique_ptr<Imp> imp;
 };

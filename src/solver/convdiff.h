@@ -4,6 +4,7 @@
 #pragma once
 
 #include "cond.h"
+#include "embed.h"
 #include "geom/mesh.h"
 #include "solver.h"
 
