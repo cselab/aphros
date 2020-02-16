@@ -283,10 +283,6 @@ void Convdiff<M>::TestSolve(
       ff_flux_[idxface] = vel.dot(m.GetSurface(idxface));
     }
 
-    // cell conditions
-    // (empty)
-    MapCell<std::shared_ptr<CondCell>> mc_cond;
-
     // source
     fc_src_.Reinit(m, 0.);
 
@@ -301,7 +297,7 @@ void Convdiff<M>::TestSolve(
     p.second = 0;
 
     as_.reset(new AS(
-        m, fc_u, mf_cond_, mc_cond, &fc_sc_, &ff_d_, &fc_src_, &ff_flux_, 0.,
+        m, m, fc_u, mf_cond_, &fc_sc_, &ff_d_, &fc_src_, &ff_flux_, 0.,
         var.Double["dt"], p));
 
     // exact solution

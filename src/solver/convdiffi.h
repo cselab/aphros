@@ -7,10 +7,11 @@
 
 #include "convdiff.h"
 
-template <class M_>
-class ConvDiffScalImp final : public ConvDiffScal<M_> {
+template <class EB_>
+class ConvDiffScalImp final : public ConvDiffScal<typename EB_::M> {
  public:
-  using M = M_;
+  using EB = EB_;
+  using M = typename EB::M;
   using P = ConvDiffScal<M>;
   using Scal = typename M::Scal;
   using Par = typename P::Par;
@@ -28,10 +29,10 @@ class ConvDiffScalImp final : public ConvDiffScal<M_> {
   // dt: time step
   // par: parameters
   ConvDiffScalImp(
-      M& m, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
-      const MapCell<std::shared_ptr<CondCell>>& mcc, const FieldCell<Scal>* fcr,
-      const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
-      const FieldFace<Scal>* ffv, double t, double dt, Par par);
+      M& m, const EB& eb, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
+      const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
+      const FieldCell<Scal>* fcs, const FieldFace<Scal>* ffv, double t,
+      double dt, Par par);
   ~ConvDiffScalImp();
   const FieldCell<Scal>& GetField(Step) const override;
   using P::GetField;
