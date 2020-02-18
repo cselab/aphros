@@ -5,20 +5,23 @@
 
 #include <memory>
 
-#include "convdiffe_eb.h"
+#include "convdiffe.h"
 #include "convdiffv.h"
 #include "embed.h"
 
-template <class M_>
-class ConvDiffVectEmbed final : public ConvDiffVect<M_> {
+template <class EB_>
+class ConvDiffVectEmbed final : public ConvDiffVect<EB_> {
  public:
-  using M = M_;
-  using P = ConvDiffVect<M>; // parent
+  using EB = EB_;
+  using M = typename EB::M;
+  using Base = ConvDiffVect<EB>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr size_t dim = M::dim;
-  using CD = ConvDiffScalExpEmbed<M_>;
+  using CD = ConvDiffScalExp<Embed<M>>;
   using Par = typename CD::Par;
+  template <class T>
+  using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
 
   // Constructor.
   // fcvel: initial velocity
@@ -32,14 +35,14 @@ class ConvDiffVectEmbed final : public ConvDiffVect<M_> {
   // dt: time step
   // par: parameters
   ConvDiffVectEmbed(
-      M& m, const Embed<M>& eb, const FieldCell<Vect>& fcvel,
-      const MapCondFace& mfc, size_t bc, Vect bcvel, const FieldCell<Scal>* fcr,
-      const FieldEmbed<Scal>* fed, const FieldCell<Vect>* fcs,
-      const FieldFace<Scal>* ffv, double t, double dt, Par par);
+      M& m, const EB& eb, const FieldCell<Vect>& fcvel,
+      const MapCondFace& mfc, const FieldCell<Scal>* fcr,
+      const FieldFaceb<Scal>* fed, const FieldCell<Vect>* fcs,
+      const FieldFaceb<Scal>* ffv, double t, double dt, Par par);
   ~ConvDiffVectEmbed();
   // ...
   void Assemble(
-      const FieldCell<Vect>& fcw, const FieldFace<Scal>& ffv) override;
+      const FieldCell<Vect>& fcw, const FieldFaceb<Scal>& ffv);
   // Corrects field and comm.
   // fc: correction [i]
   // Output:
@@ -61,7 +64,7 @@ class ConvDiffVectEmbed final : public ConvDiffVect<M_> {
   // ...
   const FieldCell<Vect>& GetVelocity(Step l) const override;
   // ...
-  using P::GetVelocity;
+  using Base::GetVelocity;
   // ...
   double GetError() const override;
 

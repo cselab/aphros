@@ -52,7 +52,7 @@ target_link_libraries(${T} solver approx)
 
 set(T "convdiffe_eb")
 add_library(${T} convdiffe_eb.cpp)
-target_link_libraries(${T} solver approx_eb)
+target_link_libraries(${T} solver approx_eb convdiffvg)
 
 set(T "convdiffv_eb")
 add_library(${T} convdiffv_eb.cpp)

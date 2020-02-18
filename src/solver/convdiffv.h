@@ -6,13 +6,16 @@
 #include "convdiff.h"
 #include "solver.h"
 
-template <class M_>
+template <class EB_>
 class ConvDiffVect : public UnsteadyIterativeSolver {
  public:
-  using M = M_;
+  using EB = EB_;
+  using M = typename EB::M;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using Par = typename ConvDiffScal<M>::Par;
+  template <class T>
+  using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
   static constexpr size_t dim = M::dim;
 
   // par: parameters
@@ -21,11 +24,12 @@ class ConvDiffVect : public UnsteadyIterativeSolver {
   // fcs: source
   // ffv: volume flux
   ConvDiffVect(
-      double t, double dt, M& m, Par par, const FieldCell<Scal>* fcr,
-      const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
-      const FieldFace<Scal>* ffv)
+      double t, double dt, M& m, const EB& eb, Par par,
+      const FieldCell<Scal>* fcr, const FieldFaceb<Scal>* ffd,
+      const FieldCell<Vect>* fcs, const FieldFaceb<Scal>* ffv)
       : UnsteadyIterativeSolver(t, dt)
       , m(m)
+      , eb(eb)
       , par(par)
       , fcr_(fcr)
       , ffd_(ffd)
@@ -42,7 +46,7 @@ class ConvDiffVect : public UnsteadyIterativeSolver {
   // Output:
   // linear system returned by GetDiag() and GetConst()
   virtual void Assemble(
-      const FieldCell<Vect>& fcw, const FieldFace<Scal>& ffv) = 0;
+      const FieldCell<Vect>& fcw, const FieldFaceb<Scal>& ffv) = 0;
   // Returns the diagonal coefficient of the equation in direction d
   virtual FieldCell<Scal> GetDiag(size_t d) const = 0;
   // Returns the constant term of the equation in direction d
@@ -56,9 +60,10 @@ class ConvDiffVect : public UnsteadyIterativeSolver {
 
  protected:
   M& m;
+  const EB& eb;
   Par par; // parameters
   const FieldCell<Scal>* fcr_; // density
-  const FieldFace<Scal>* ffd_; // dynamic viscosity
+  const FieldFaceb<Scal>* ffd_; // dynamic viscosity
   const FieldCell<Vect>* fcs_; // force
-  const FieldFace<Scal>* ffv_; // volume flux
+  const FieldFaceb<Scal>* ffv_; // volume flux
 };

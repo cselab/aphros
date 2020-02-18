@@ -19,6 +19,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
+      , eb(owner_->eb)
       , mfc_(mfc)
       , dr_(0, m.GetEdim()) {
     for (auto d : dr_) {
@@ -67,7 +68,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       owner_->ClearIter();
     }
   }
-  void Assemble(const FieldCell<Vect>& fcw, const FieldFace<Scal>& ffv) {
+  void Assemble(const FieldCell<Vect>& fcw, const FieldFaceb<Scal>& ffv) {
     auto sem = m.GetSem("asm");
     if (sem("copy")) {
       for (auto d : dr_) {
@@ -153,6 +154,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   Owner* owner_;
   const Par& par;
   M& m; // mesh
+  const EB& eb;
 
   FieldCell<Vect> fcvel_;
   Step lvel_; // current level loaded in fcvel_
@@ -171,11 +173,11 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
 template <class M_, class CD_>
 ConvDiffVectGeneric<M_, CD_>::ConvDiffVectGeneric(
-    M& m, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
-    const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
-    const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv, double t, double dt,
-    Par par)
-    : ConvDiffVect<M>(t, dt, m, par, fcr, ffd, fcs, ffv)
+    M& m, const EB& eb, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
+    const FieldCell<Scal>* fcr, const FieldFaceb<Scal>* ffd,
+    const FieldCell<Vect>* fcs, const FieldFaceb<Scal>* ffv, double t,
+    double dt, Par par)
+    : Base(t, dt, m, eb, par, fcr, ffd, fcs, ffv)
     , imp(new Imp(this, fcvel, mfc)) {}
 
 template <class M_, class CD_>
@@ -183,7 +185,7 @@ ConvDiffVectGeneric<M_, CD_>::~ConvDiffVectGeneric() = default;
 
 template <class M_, class CD_>
 void ConvDiffVectGeneric<M_, CD_>::Assemble(
-    const FieldCell<Vect>& fcw, const FieldFace<Scal>& ffv) {
+    const FieldCell<Vect>& fcw, const FieldFaceb<Scal>& ffv) {
   imp->Assemble(fcw, ffv);
 }
 
