@@ -11,7 +11,8 @@
 
 #include "distr/distrbasic.h"
 #include "linear/linear.h"
-#include "solver/convdiffv_eb.h"
+#include "solver/convdiffe.h"
+#include "solver/convdiffvg.h"
 #include "solver/embed.h"
 #include "solver/approx_eb.h"
 #include "solver/fluid.h"
@@ -22,7 +23,7 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using EB = Embed<M>;
 using Type = typename EB::Type;
-using CD = ConvDiffVectEmbed<M>;
+using CD = ConvDiffVectGeneric<Embed<M>, ConvDiffScalExp<Embed<M>>>;
 
 template <class M>
 FieldCell<typename M::Scal> GetDivergence(
@@ -41,13 +42,13 @@ FieldCell<typename M::Scal> GetDivergence(
 
 template <class M>
 FieldCell<typename M::Scal> GetDivergence(
-    FieldFace<typename M::Scal>& ffv, const M& m, const Embed<M>& eb) {
+    FieldFace<typename M::Scal>& fev, const M& m, const Embed<M>& eb) {
   using Scal = typename M::Scal;
   FieldCell<Scal> fcdiv(m, 0);
   for (auto c : eb.Cells()) {
     Scal div = 0;
     for (auto q : eb.Nci(c)) {
-      div += ffv[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
+      div += fev[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
     }
     fcdiv[c] = div / eb.GetVolume(c);
   }
@@ -56,7 +57,7 @@ FieldCell<typename M::Scal> GetDivergence(
 
 template <class M>
 FieldCell<typename M::Scal> ProjectVolumeFlux(
-    FieldFace<typename M::Scal>& ffv, const MapCondFaceFluid& mfc, M& m,
+    FieldFace<typename M::Scal>& fev, const MapCondFaceFluid& mfc, M& m,
     const Embed<M>& eb) {
   using Scal = typename M::Scal;
   using ExprFace = generic::Vect<Scal, 3>;
@@ -91,7 +92,7 @@ FieldCell<typename M::Scal> ProjectVolumeFlux(
         e[0] = 0;
         e[1] = 0;
       }
-      e[2] = ffv[f];
+      e[2] = fev[f];
     }
 
     // initialize as diagonal system
@@ -143,7 +144,7 @@ FieldCell<typename M::Scal> ProjectVolumeFlux(
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       const auto& e = ffe[f];
-      ffv[f] = e[0] * fcp[cm] + e[1] * fcp[cp] + e[2];
+      fev[f] = e[0] * fcp[cm] + e[1] * fcp[cp] + e[2];
     }
   }
   return fcp;
@@ -159,13 +160,13 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fcp;
     FieldEmbed<Scal> fed;
     FieldCell<Vect> fcs;
-    FieldFace<Scal> ffv;
+    FieldEmbed<Scal> fev;
     FieldCell<Scal> fcdiv;
     FieldNode<Scal> fnl;
     size_t frame = 0;
   } * ctx(sem);
   auto& cd = ctx->cd;
-  auto& ffv = ctx->ffv;
+  auto& fev = ctx->fev;
   auto& fcdiv = ctx->fcdiv;
   auto& mfc = ctx->mfc;
   auto& frame = ctx->frame;
@@ -188,9 +189,9 @@ void Run(M& m, Vars& var) {
     ctx->fcs.Reinit(m, Vect(0));
     ctx->fcp.Reinit(m, 0);
 
-    ffv.Reinit(m, 0);
+    fev.Reinit(m, 0);
     for (auto f : m.Faces()) {
-      ffv[f] = vel.dot(m.GetSurface(f));
+      fev[f] = vel.dot(m.GetSurface(f));
     }
 
     FieldCell<Vect> fcvel(m, vel);
@@ -205,8 +206,7 @@ void Run(M& m, Vars& var) {
               << std::endl;
     typename CD::Par par;
     cd.reset(new CD(
-        m, eb, fcvel, mfc, bc, bcvel, &ctx->fcr, &ctx->fed, &ctx->fcs, &ffv, 0,
-        dt, par));
+        m, eb, fcvel, mfc, &ctx->fcr, &ctx->fed, &ctx->fcs, &fev, 0, dt, par));
   }
   if (sem.Nested("dumppoly")) {
     ctx->eb->DumpPoly();
@@ -219,15 +219,16 @@ void Run(M& m, Vars& var) {
       auto fevel = UEmbed<M>::Interpolate(
           cd->GetVelocity(), MapCondFace(), bc, bcvel, eb);
       for (auto f : eb.Faces()) {
-        ffv[f] = fevel[f].dot(eb.GetNormal(f) * eb.GetArea(f));
+        fev[f] = fevel[f].dot(eb.GetNormal(f) * eb.GetArea(f));
       }
     }
     if (sem.Nested("flux-proj")) {
-      ctx->fcp = ProjectVolumeFlux(ffv, MapCondFaceFluid(), m, *ctx->eb);
+      ctx->fcp = ProjectVolumeFlux(
+          fev.GetFieldFace(), MapCondFaceFluid(), m, *ctx->eb);
     }
     if (sem("div")) {
       auto& eb = *ctx->eb;
-      fcdiv = GetDivergence(ffv, m, eb);
+      fcdiv = GetDivergence(fev, m, eb);
     }
     if (sem.Nested("convdiff-start")) {
       cd->StartStep();

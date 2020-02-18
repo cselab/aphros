@@ -10,18 +10,17 @@
 #include "debug/isnan.h"
 #include "linear/linear.h"
 
-template <class M_>
-struct ConvDiffScalImp<M_>::Imp {
-  using Owner = ConvDiffScalImp<M_>;
+template <class EB_>
+struct ConvDiffScalImp<EB_>::Imp {
+  using Owner = ConvDiffScalImp<EB_>;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   using Vect = typename M::Vect;
 
-  Imp(Owner* owner, const EB& eb0, const FieldCell<Scal>& fcu,
-      const MapCondFace& mfc)
+  Imp(Owner* owner, const FieldCell<Scal>& fcu, const MapCondFace& mfc)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
-      , eb(eb0)
+      , eb(owner_->eb)
       , mfc_(mfc)
       , dtp_(-1.)
       , er_(0) {
@@ -262,60 +261,60 @@ struct ConvDiffScalImp<M_>::Imp {
   Scal er_; // error
 };
 
-template <class M_>
-ConvDiffScalImp<M_>::ConvDiffScalImp(
+template <class EB_>
+ConvDiffScalImp<EB_>::ConvDiffScalImp(
     M& m, const EB& eb, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
     const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
     const FieldCell<Scal>* fcs, const FieldFace<Scal>* ffv, double t, double dt,
     Par par)
-    : ConvDiffScal<M>(t, dt, m, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, eb, fcu, mfc)) {}
+    : ConvDiffScal<M>(t, dt, m, eb, par, fcr, ffd, fcs, ffv)
+    , imp(new Imp(this, fcu, mfc)) {}
 
-template <class M_>
-ConvDiffScalImp<M_>::~ConvDiffScalImp() = default;
+template <class EB_>
+ConvDiffScalImp<EB_>::~ConvDiffScalImp() = default;
 
-template <class M_>
-void ConvDiffScalImp<M_>::Assemble(
+template <class EB_>
+void ConvDiffScalImp<EB_>::Assemble(
     const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv) {
   imp->Assemble(fcu, ffv);
 }
 
-template <class M_>
-void ConvDiffScalImp<M_>::CorrectField(Step l, const FieldCell<Scal>& uc) {
+template <class EB_>
+void ConvDiffScalImp<EB_>::CorrectField(Step l, const FieldCell<Scal>& uc) {
   imp->CorrectField(l, uc);
 }
 
-template <class M_>
-auto ConvDiffScalImp<M_>::GetDiag() const -> FieldCell<Scal> {
+template <class EB_>
+auto ConvDiffScalImp<EB_>::GetDiag() const -> FieldCell<Scal> {
   return imp->GetDiag();
 }
 
-template <class M_>
-auto ConvDiffScalImp<M_>::GetConst() const -> FieldCell<Scal> {
+template <class EB_>
+auto ConvDiffScalImp<EB_>::GetConst() const -> FieldCell<Scal> {
   return imp->GetConst();
 }
 
-template <class M_>
-void ConvDiffScalImp<M_>::StartStep() {
+template <class EB_>
+void ConvDiffScalImp<EB_>::StartStep() {
   imp->StartStep();
 }
 
-template <class M_>
-void ConvDiffScalImp<M_>::MakeIteration() {
+template <class EB_>
+void ConvDiffScalImp<EB_>::MakeIteration() {
   imp->MakeIteration();
 }
 
-template <class M_>
-void ConvDiffScalImp<M_>::FinishStep() {
+template <class EB_>
+void ConvDiffScalImp<EB_>::FinishStep() {
   imp->FinishStep();
 }
 
-template <class M_>
-double ConvDiffScalImp<M_>::GetError() const {
+template <class EB_>
+double ConvDiffScalImp<EB_>::GetError() const {
   return imp->GetError();
 }
 
-template <class M_>
-auto ConvDiffScalImp<M_>::GetField(Step l) const -> const FieldCell<Scal>& {
+template <class EB_>
+auto ConvDiffScalImp<EB_>::GetField(Step l) const -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l);
 }

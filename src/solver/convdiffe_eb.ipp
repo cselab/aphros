@@ -10,24 +10,18 @@
 #include "convdiffe_eb.h"
 #include "debug/isnan.h"
 
-template <class M_>
-struct ConvDiffScalExpEmbed<M_>::Imp {
-  using Owner = ConvDiffScalExpEmbed<M_>;
+template <class EB_>
+struct ConvDiffScalExpEmbed<EB_>::Imp {
+  using Owner = ConvDiffScalExpEmbed<EB_>;
   using Vect = typename M::Vect;
-  using EB = Embed<M>;
   using UEB = UEmbed<M>;
-  using Type = typename EB::Type;
 
-  Imp(Owner* owner, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
-      const Embed<M>& eb, const FieldEmbed<Scal>* fed, size_t bc, Scal bcu)
+  Imp(Owner* owner, const FieldCell<Scal>& fcu, const MapCondFace& mfc)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
+      , eb(owner_->eb)
       , mfc_(mfc)
-      , eb(eb)
-      , fed_(fed)
-      , bc_(bc)
-      , bcu_(bcu)
       , dtp_(-1.)
       , er_(0) {
     fcu_.time_curr = fcu;
@@ -54,9 +48,10 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
   // diagonal linear system: fcla * (fcup - fcu) + fclb = 0
   // where fcup at new iteration
   void Assemble(
-      const FieldCell<Scal>& fcu, const FieldEmbed<Scal>& fev,
+      const FieldCell<Scal>& fcu, const FieldFaceb<Scal>& fev,
       FieldCell<Scal>& fcla, FieldCell<Scal>& fclb) {
     auto sem = m.GetSem("assemble");
+    /*
 
     if (sem("assemble")) {
       const FieldCell<Vect> fcg = UEB::GradientLinearFit(
@@ -68,7 +63,7 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
 
       // Convective fluxes
       {
-        FieldEmbed<Scal> feq = UEB::InterpolateUpwindBilinear(
+        FieldFaceb<Scal> feq = UEB::InterpolateUpwindBilinear(
             fcu, fcg, mfc_, bc_, bcu_, fev, par.sc, eb);
         for (auto f : eb.Faces()) {
           feq[f] *= fev[f];
@@ -88,13 +83,13 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
       }
 
       // Diffusive fluxes
-      if (fed_) {
-        FieldEmbed<Scal> feq = UEB::GradientBilinear(fcu, mfc_, bc_, bcu_, eb);
+      if (owner_->ffd_) {
+        FieldFaceb<Scal> feq = UEB::GradientBilinear(fcu, mfc_, bc_, bcu_, eb);
         for (auto f : eb.Faces()) {
-          feq[f] *= -(*fed_)[f] * eb.GetArea(f);
+          feq[f] *= -(*owner_->ffd_)[f] * eb.GetArea(f);
         }
         for (auto c : eb.CFaces()) {
-          feq[c] *= -(*fed_)[c] * eb.GetArea(c);
+          feq[c] *= -(*owner_->ffd_)[c] * eb.GetArea(c);
         }
         // Append
         for (auto c : eb.Cells()) {
@@ -130,21 +125,14 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
         fcla[c] /= par.relax;
       }
     }
-  }
-
-  void Assemble(
-      const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv,
-      FieldCell<Scal>& fcla, FieldCell<Scal>& fclb) {
-    const FieldCell<Scal> fcv(m, 0);
-    const FieldEmbed<Scal> fev(fcv, ffv);
-    Assemble(fcu, fev, fcla, fclb);
+  */
   }
   // Assembles linear system
   // fcu: field from previous iteration [a]
   // ffv: volume flux
   // Output:
   // fcl: linear system
-  void Assemble(const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv) {
+  void Assemble(const FieldCell<Scal>& fcu, const FieldFaceb<Scal>& ffv) {
     Assemble(fcu, ffv, fcla_, fclb_);
   }
   // Solves linear system.
@@ -230,12 +218,10 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
   Owner* owner_;
   Par par;
   M& m; // mesh
+  const EB& eb;
 
   StepData<FieldCell<Scal>> fcu_; // field
   const MapCondFace& mfc_; // face cond
-
-  const Embed<M>& eb;
-  const FieldEmbed<Scal>* fed_;
 
   size_t bc_; // boundary conditions, 0: value, 1: gradient
   Scal bcu_; // value or grad.dot.outer_normal
@@ -248,61 +234,61 @@ struct ConvDiffScalExpEmbed<M_>::Imp {
   Scal er_; // error
 };
 
-template <class M_>
-ConvDiffScalExpEmbed<M_>::ConvDiffScalExpEmbed(
-    M& m, const Embed<M>& eb, const FieldCell<Scal>& fcu,
+template <class EB_>
+ConvDiffScalExpEmbed<EB_>::ConvDiffScalExpEmbed(
+    M& m, const EB& eb, const FieldCell<Scal>& fcu,
     const MapCondFace& mfc, size_t bc, Scal bcu, const FieldCell<Scal>* fcr,
-    const FieldEmbed<Scal>* fed, const FieldCell<Scal>* fcs,
-    const FieldFace<Scal>* ffv, double t, double dt, Par par)
-    : ConvDiffScal<M>(t, dt, m, par, fcr, nullptr, fcs, ffv)
-    , imp(new Imp(this, fcu, mfc, eb, fed, bc, bcu)) {}
+    const FieldFaceb<Scal>* ffd, const FieldCell<Scal>* fcs,
+    const FieldFaceb<Scal>* ffv, double t, double dt, Par par)
+    : Base(t, dt, m, eb, par, fcr, ffd, fcs, ffv)
+    , imp(new Imp(this, fcu, mfc)) {}
 
-template <class M_>
-ConvDiffScalExpEmbed<M_>::~ConvDiffScalExpEmbed() = default;
+template <class EB_>
+ConvDiffScalExpEmbed<EB_>::~ConvDiffScalExpEmbed() = default;
 
-template <class M_>
-void ConvDiffScalExpEmbed<M_>::Assemble(
-    const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv) {
+template <class EB_>
+void ConvDiffScalExpEmbed<EB_>::Assemble(
+    const FieldCell<Scal>& fcu, const FieldFaceb<Scal>& ffv) {
   imp->Assemble(fcu, ffv);
 }
 
-template <class M_>
-void ConvDiffScalExpEmbed<M_>::CorrectField(Step l, const FieldCell<Scal>& uc) {
+template <class EB_>
+void ConvDiffScalExpEmbed<EB_>::CorrectField(Step l, const FieldCell<Scal>& uc) {
   imp->CorrectField(l, uc);
 }
 
-template <class M_>
-auto ConvDiffScalExpEmbed<M_>::GetDiag() const -> FieldCell<Scal> {
+template <class EB_>
+auto ConvDiffScalExpEmbed<EB_>::GetDiag() const -> FieldCell<Scal> {
   return imp->GetDiag();
 }
 
-template <class M_>
-auto ConvDiffScalExpEmbed<M_>::GetConst() const -> FieldCell<Scal> {
+template <class EB_>
+auto ConvDiffScalExpEmbed<EB_>::GetConst() const -> FieldCell<Scal> {
   return imp->GetConst();
 }
 
-template <class M_>
-void ConvDiffScalExpEmbed<M_>::StartStep() {
+template <class EB_>
+void ConvDiffScalExpEmbed<EB_>::StartStep() {
   imp->StartStep();
 }
 
-template <class M_>
-void ConvDiffScalExpEmbed<M_>::MakeIteration() {
+template <class EB_>
+void ConvDiffScalExpEmbed<EB_>::MakeIteration() {
   imp->MakeIteration();
 }
 
-template <class M_>
-void ConvDiffScalExpEmbed<M_>::FinishStep() {
+template <class EB_>
+void ConvDiffScalExpEmbed<EB_>::FinishStep() {
   imp->FinishStep();
 }
 
-template <class M_>
-double ConvDiffScalExpEmbed<M_>::GetError() const {
+template <class EB_>
+double ConvDiffScalExpEmbed<EB_>::GetError() const {
   return imp->GetError();
 }
 
-template <class M_>
-auto ConvDiffScalExpEmbed<M_>::GetField(Step l) const
+template <class EB_>
+auto ConvDiffScalExpEmbed<EB_>::GetField(Step l) const
     -> const FieldCell<Scal>& {
   return imp->fcu_.Get(l);
 }

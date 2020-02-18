@@ -514,3 +514,15 @@ class Embed {
   // volume of neighbor cells
   FieldCell<Scal> fcvst3_; // volume of neighbors in stencil 3x3x3
 };
+
+template <class M>
+struct EmbedTraits {
+  template <class T>
+  using FieldFaceb = FieldFace<T>;
+};
+
+template <class M>
+struct EmbedTraits<Embed<M>> {
+  template <class T>
+  using FieldFaceb = FieldEmbed<T>;
+};

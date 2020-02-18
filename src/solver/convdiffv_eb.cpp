@@ -3,4 +3,5 @@
 
 #include "convdiffv_eb.ipp"
 
-template class ConvDiffVectEmbed<MeshStructured<double, 3>>;
+using M = MeshStructured<double, 3>;
+template class ConvDiffVectEmbed<Embed<M>>;

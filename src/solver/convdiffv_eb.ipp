@@ -17,15 +17,13 @@ struct ConvDiffVectEmbed<M_>::Imp {
   using Owner = ConvDiffVectEmbed<M_>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
-      const Embed<M>& eb0, const FieldEmbed<Scal>* fed, size_t bc, Vect bcvel)
+      const FieldFaceb<Scal>* fed)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
+      , eb(owner_->eb)
       , mfc_(mfc)
-      , eb(eb0)
       , fed_(fed)
-      , bc_(bc)
-      , bcvel_(bcvel)
       , dr_(0, m.GetEdim()) {
     for (auto d : dr_) {
       UpdateDerivedCond(d);
@@ -37,7 +35,7 @@ struct ConvDiffVectEmbed<M_>::Imp {
 
       // Initialize solver
       vs_[d] = std::make_shared<CD>(
-          m, eb, GetComponent(fcvel, d), vmfc_[d], bc_, bcvel_[d], owner_->fcr_,
+          m, eb, GetComponent(fcvel, d), vmfc_[d], owner_->fcr_,
           fed_, &(vfcs_[d]), owner_->ffv_, owner_->GetTime(),
           owner_->GetTimeStep(), par);
     }
@@ -72,7 +70,7 @@ struct ConvDiffVectEmbed<M_>::Imp {
       owner_->ClearIter();
     }
   }
-  void Assemble(const FieldCell<Vect>& fcw, const FieldFace<Scal>& ffv) {
+  void Assemble(const FieldCell<Vect>& fcw, const FieldFaceb<Scal>& ffv) {
     auto sem = m.GetSem("asm");
     if (sem("copy")) {
       for (auto d : dr_) {
@@ -158,11 +156,9 @@ struct ConvDiffVectEmbed<M_>::Imp {
   Owner* owner_;
   const Par& par;
   M& m; // mesh
-  const MapCondFace& mfc_; // vect face cond
   const Embed<M>& eb;
-  const FieldEmbed<Scal>* fed_;
-  size_t bc_; // boundary conditions, 0: value, 1: gradient
-  Vect bcvel_; // value or grad.dot.outer_normal
+  const MapCondFace& mfc_; // vect face cond
+  const FieldFaceb<Scal>* fed_;
 
   FieldCell<Vect> fcvel_;
   Step lvel_; // current level loaded in fcvel_
@@ -180,19 +176,19 @@ struct ConvDiffVectEmbed<M_>::Imp {
 
 template <class M_>
 ConvDiffVectEmbed<M_>::ConvDiffVectEmbed(
-    M& m, const Embed<M>& eb, const FieldCell<Vect>& fcvel,
-    const MapCondFace& mfc, size_t bc, Vect bcvel, const FieldCell<Scal>* fcr,
-    const FieldEmbed<Scal>* fed, const FieldCell<Vect>* fcs,
-    const FieldFace<Scal>* ffv, double t, double dt, Par par)
-    : ConvDiffVect<M>(t, dt, m, par, fcr, nullptr, fcs, ffv)
-    , imp(new Imp(this, fcvel, mfc, eb, fed, bc, bcvel)) {}
+    M& m, const EB& eb, const FieldCell<Vect>& fcvel,
+    const MapCondFace& mfc, const FieldCell<Scal>* fcr,
+    const FieldFaceb<Scal>* fed, const FieldCell<Vect>* fcs,
+    const FieldFaceb<Scal>* ffv, double t, double dt, Par par)
+    : Base(t, dt, m, eb, par, fcr, fed, fcs, ffv)
+    , imp(new Imp(this, fcvel, mfc, fed)) {}
 
 template <class M_>
 ConvDiffVectEmbed<M_>::~ConvDiffVectEmbed() = default;
 
 template <class M_>
 void ConvDiffVectEmbed<M_>::Assemble(
-    const FieldCell<Vect>& fcw, const FieldFace<Scal>& ffv) {
+    const FieldCell<Vect>& fcw, const FieldFaceb<Scal>& ffv) {
   imp->Assemble(fcw, ffv);
 }
 

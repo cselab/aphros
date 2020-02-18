@@ -7,28 +7,16 @@
 
 #include "convdiff.h"
 
-template <class M>
-struct EmbedTraits {
-  template <class T>
-  using Faceb = FieldFace<T>;
-};
-
-template <class M>
-struct EmbedTraits<Embed<M>> {
-  template <class T>
-  using Faceb = FieldEmbed<T>;
-};
-
 template <class EB_>
-class ConvDiffScalExp final : public ConvDiffScal<typename EB_::M> {
+class ConvDiffScalExp final : public ConvDiffScal<EB_> {
  public:
   using EB = EB_;
   using M = typename EB::M;
-  using P = ConvDiffScal<M>;
+  using Base = ConvDiffScal<EB>;
   using Scal = typename M::Scal;
-  using Par = typename P::Par;
+  using Par = typename ConvDiffScal<M>::Par;
   template <class T>
-  using FieldFaceb = typename EmbedTraits<M>::template Faceb<T>;
+  using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
 
   // Constructor.
   // fcu: initial field
@@ -48,7 +36,7 @@ class ConvDiffScalExp final : public ConvDiffScal<typename EB_::M> {
       double dt, Par par);
   ~ConvDiffScalExp();
   const FieldCell<Scal>& GetField(Step) const override;
-  using P::GetField;
+  using Base::GetField;
   void Assemble(const FieldCell<Scal>&, const FieldFaceb<Scal>&) override;
   void CorrectField(Step l, const FieldCell<Scal>& uc) override;
   FieldCell<Scal> GetDiag() const override;
