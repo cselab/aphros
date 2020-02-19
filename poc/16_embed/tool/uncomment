@@ -1,0 +1,43 @@
+#!/bin/sh
+
+msg () { echo >&2 "$@" ; }
+err () { msg "$me: $@"; exit 2 ; }
+
+me=tool/uncomment
+
+usg () cat <<!
+$me -o file file
+!
+
+OutputFlag=0
+while test $# -ne 0
+do case "$1" in
+       -o) shift
+           if test $# -eq 0; then err '-o needs an argument'; fi
+           Output=$1; shift
+           OutputFlag=1
+           ;;
+       -h ) usg
+            exit 2
+            ;;
+       -*) err "unknown option '$1'" ;;
+       *) break
+   esac
+done
+
+if test $OutputFlag -eq 0
+then err "option '-o file' is not set"
+fi
+
+if test $# -ne 1
+then err "wrong number of arguments: '$@'"
+fi
+
+if ! test -f "$1"
+then err "not a file '$1'"
+fi
+
+"${GCC=gcc}" -x c -fpreprocessed -dD -E "$1" > "$Output"
+if test $? -ne 0
+then err "${GCC=gcc} failed"
+fi
