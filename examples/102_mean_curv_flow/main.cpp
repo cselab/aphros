@@ -299,7 +299,7 @@ void Run(M& m, Vars& var) {
     const std::string path = "ref/voronoi/points1.dat";
     ReadColorPlain(path, layers, fcu, fccl, m);
 
-    as.reset(new Vofm<M>(m, fcu, fccl, ctx->mf_cond, &ffv, &fcs, 0., dt, p));
+    as.reset(new Vofm<M>(m, m, fcu, fccl, ctx->mf_cond, &ffv, &fcs, 0., dt, p));
     fck.resize(layers);
     fck.InitAll(FieldCell<Scal>(m, 1));
     psm_par.dump_fr = 1;
