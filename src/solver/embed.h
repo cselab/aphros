@@ -173,7 +173,7 @@ class Embed {
   // Constructor
   // fnl: level-set function on nodes, interface at fnl=0
   Embed(M& m, Scal gradlim) : m(m), eb(*this), gradlim_(gradlim) {}
-  Embed(M& m) : Embed(m, 0.5) {}
+  explicit Embed(M& m) : Embed(m, 0.5) {}
   // Initializes embedded boundaries with level-set function fnl.
   // Suspendable, requires communication.
   void Init(const FieldNode<Scal>& fnl);

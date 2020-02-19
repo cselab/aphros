@@ -60,7 +60,7 @@ void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
   struct {
     std::unique_ptr<EB> eb;
-    std::unique_ptr<ProjEmbed<M>> fs;
+    std::unique_ptr<ProjEmbed<EB>> fs;
     MapCondFaceFluid mfc;
     FieldCell<Scal> fcdiv;
     FieldCell<Scal> fcr;
@@ -114,10 +114,9 @@ void Run(M& m, Vars& var) {
               << "dt/dt0=" << dt / dt0 << "dt/dt0a=" << dt / dt0a << " "
               << std::endl;
     typename ProjEmbed<M>::Par par;
-    fs.reset(new ProjEmbed<M>(
-        m, fcvel, mfc, eb, bc, bcvel, MapCell<std::shared_ptr<CondCellFluid>>(),
-        &ctx->fcr, &ctx->fcd, &ctx->fcf, &ctx->ffbp, &ctx->fcsv, &ctx->fcsm, 0,
-        dt, par));
+    fs.reset(new ProjEmbed<EB>(
+        m, eb, fcvel, mfc, MapCell<std::shared_ptr<CondCellFluid>>(), &ctx->fcr,
+        &ctx->fcd, &ctx->fcf, &ctx->ffbp, &ctx->fcsv, &ctx->fcsm, 0, dt, par));
   }
   if (sem.Nested("dumppoly")) {
     ctx->eb->DumpPoly();

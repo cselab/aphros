@@ -9,10 +9,10 @@
 #include "convdiffv.h"
 #include "embed.h"
 
-template <class EB_>
-class ConvDiffVectEmbed final : public ConvDiffVect<EB_> {
+template <class MEB_>
+class ConvDiffVectEmbed final : public ConvDiffVect<MEB_> {
  public:
-  using EB = EB_;
+  using EB = MEB_;
   using M = typename EB::M;
   using Base = ConvDiffVect<EB>;
   using Scal = typename M::Scal;
