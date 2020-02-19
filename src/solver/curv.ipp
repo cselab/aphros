@@ -9,6 +9,7 @@
 
 #include "approx.h"
 #include "debug/isnan.h"
+#include "embed.h"
 #include "geom/block.h"
 #include "normal.h"
 #include "reconst.h"
@@ -16,7 +17,6 @@
 #include "tvd.h"
 #include "util/vof.h"
 #include "vof.h"
-#include "vof_eb.h"
 #include "vofm.h"
 
 #include "curv.h"

@@ -20,10 +20,6 @@ target_link_libraries(${T} solver normal utilvof)
 
 set(T "vof")
 add_library(${T} vof.cpp)
-target_link_libraries(${T} solver normal utilvof)
-
-set(T "vof_eb")
-add_library(${T} vof_eb.cpp)
 target_link_libraries(${T} solver normal utilvof approx_eb)
 
 set(T "tvd")
@@ -36,7 +32,7 @@ target_link_libraries(${T} approx)
 
 set(T "curv")
 add_library(${T} curv.cpp)
-target_link_libraries(${T} partstrmeshm normal vof vofm vof_eb)
+target_link_libraries(${T} partstrmeshm normal vof vofm)
 
 set(T "partstrmeshm")
 add_library(${T} partstrmeshm.cpp)
@@ -44,19 +40,11 @@ target_link_libraries(${T} dumper)
 
 set(T "convdiffi")
 add_library(${T} convdiffi.cpp)
-target_link_libraries(${T} solver approx)
+target_link_libraries(${T} solver approx approx_eb)
 
 set(T "convdiffe")
 add_library(${T} convdiffe.cpp)
-target_link_libraries(${T} solver approx)
-
-set(T "convdiffe_eb")
-add_library(${T} convdiffe_eb.cpp)
-target_link_libraries(${T} solver approx_eb convdiffvg)
-
-set(T "convdiffv_eb")
-add_library(${T} convdiffv_eb.cpp)
-target_link_libraries(${T} convdiffe_eb)
+target_link_libraries(${T} solver approx approx_eb)
 
 set(T "convdiffvg")
 add_library(${T} convdiffvg.cpp)
@@ -72,4 +60,4 @@ target_link_libraries(${T} convdiffvg utilconvdiff)
 
 set(T "proj_eb")
 add_library(${T} proj_eb.cpp)
-target_link_libraries(${T} convdiffv_eb utilconvdiff approx_eb)
+target_link_libraries(${T} utilconvdiff approx_eb)

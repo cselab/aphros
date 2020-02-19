@@ -23,7 +23,7 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using EB = Embed<M>;
 using Type = typename EB::Type;
-using CD = ConvDiffVectGeneric<Embed<M>, ConvDiffScalExp<Embed<M>>>;
+using CD = ConvDiffVectGeneric<EB, ConvDiffScalExp<EB>>;
 
 template <class M>
 FieldCell<typename M::Scal> GetDivergence(
