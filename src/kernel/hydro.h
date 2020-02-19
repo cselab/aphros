@@ -50,7 +50,6 @@
 #include "solver/solver.h"
 #include "solver/tvd.h"
 #include "solver/vof.h"
-#include "solver/vof_eb.h"
 #include "solver/vofm.h"
 #include "util/convdiff.h"
 #include "util/events.h"

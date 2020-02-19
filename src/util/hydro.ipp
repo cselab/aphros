@@ -21,7 +21,6 @@
 #include "solver/pois.h"
 #include "solver/sphavg.h"
 #include "solver/vof.h"
-#include "solver/vof_eb.h"
 #include "solver/vofm.h"
 
 #include "hydro.h"

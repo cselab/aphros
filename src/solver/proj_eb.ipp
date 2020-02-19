@@ -11,7 +11,8 @@
 
 #include "approx.h"
 #include "approx_eb.h"
-#include "convdiffv_eb.h"
+#include "convdiffe.h"
+#include "convdiffvg.h"
 #include "debug/isnan.h"
 #include "fluid.h"
 #include "linear/linear.h"
@@ -43,7 +44,7 @@
 template <class MEB_>
 struct ProjEmbed<MEB_>::Imp {
   using Owner = ProjEmbed<MEB_>;
-  using CD = ConvDiffVectEmbed<EB>; // convdiff solver
+  using CD = ConvDiffVectGeneric<EB, ConvDiffScalExp<EB>>; // convdiff solver
   // Expression on face: v[0] * cm + v[1] * cp + v[2]
   using ExprFace = generic::Vect<Scal, 3>;
   // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
@@ -73,7 +74,7 @@ struct ProjEmbed<MEB_>::Imp {
     fcfcd_.Reinit(m, Vect(0));
     typename CD::Par p;
     SetConvDiffPar(p, par);
-    cd_.reset(new ConvDiffVectEmbed<EB>(
+    cd_.reset(new CD(
         m, eb, fcw, mfcw_, owner_->fcr_, &fed_, &fcfcd_, &ffv_.iter_prev,
         owner_->GetTime(), owner_->GetTimeStep(), p));
 
