@@ -19,10 +19,10 @@ std::unique_ptr<ConvDiffVect<M>> GetConvDiff<M>::operator()(
   switch (conv) {
     case Conv::imp:
       return std::unique_ptr<CDI>(
-          new CDI(m, fcw, mfc, fcr, ffd, fcs, ffv, t, dt, par));
+          new CDI(m, m, fcw, mfc, fcr, ffd, fcs, ffv, t, dt, par));
     case Conv::exp:
       return std::unique_ptr<CDE>(
-          new CDE(m, fcw, mfc, fcr, ffd, fcs, ffv, t, dt, par));
+          new CDE(m, m, fcw, mfc, fcr, ffd, fcs, ffv, t, dt, par));
   }
   return nullptr;
 }

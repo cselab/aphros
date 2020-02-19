@@ -6,21 +6,22 @@
 #include <memory>
 
 #include "fluid.h"
-#include "linear/linear.h"
 #include "solver/proj.h"
 #include "util/convdiff.h"
 
-template <class M_>
-class ProjEmbed final : public FluidSolver<M_> {
+template <class EB_>
+class ProjEmbed final : public FluidSolver<typename EB_::M> {
  public:
-  using M = M_;
+  using EB = EB_;
+  using M = typename EB::M;
   using P = FluidSolver<M>; // parent
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr size_t dim = M::dim;
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
-
   using Par = typename Proj<M>::Par;
+  template <class T>
+  using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
+
   // Constructor.
   // fcw: initial velocity
   // mfc: face conditions
@@ -35,12 +36,12 @@ class ProjEmbed final : public FluidSolver<M_> {
   // dt: time step
   // par: parameters
   ProjEmbed(
-      M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
-      const Embed<M>& eb, size_t bc, Vect bcvel,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
-      FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
-      FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt,
-      Par par);
+      M& m, const Embed<M>& eb, const FieldCell<Vect>& fcw,
+      MapCondFaceFluid& mfc, const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
+      const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
+      const FieldCell<Vect>* fcf, const FieldFace<Scal>* ffbp,
+      const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
+      double dt, Par par);
   ~ProjEmbed();
   const Par& GetPar() const;
   void SetPar(Par);

@@ -12,6 +12,7 @@
 #include "convdiffv.h"
 #include "debug/isnan.h"
 #include "fluid.h"
+#include "linear/linear.h"
 #include "proj.h"
 #include "util/convdiff.h"
 #include "util/fluid.h"

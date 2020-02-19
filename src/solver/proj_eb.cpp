@@ -3,4 +3,6 @@
 
 #include "proj_eb.ipp"
 
-template class ProjEmbed<MeshStructured<double, 3>>;
+using M = MeshStructured<double, 3>;
+using EB = Embed<M>;
+template class ProjEmbed<EB>;

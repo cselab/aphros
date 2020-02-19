@@ -86,7 +86,6 @@ struct ConvDiffScalExp<EB_>::Imp {
     const FieldCell<Vect> fcg = Gradient(Interpolate(fcu, mfc_, m), m);
 
     FieldCell<Scal> fclb(m, 0);
-
     {
       // convective fluxes
       FieldEmbed<Scal> feq = UEB::InterpolateUpwindBilinear(

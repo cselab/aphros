@@ -32,7 +32,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
       // Initialize solver
       vs_[d] = std::make_shared<CD>(
-          m, m, GetComponent(fcvel, d), vmfc_[d], owner_->fcr_,
+          m, eb, GetComponent(fcvel, d), vmfc_[d], owner_->fcr_,
           owner_->ffd_, &(vfcs_[d]), owner_->ffv_, owner_->GetTime(),
           owner_->GetTimeStep(), par);
     }

@@ -23,12 +23,12 @@ class FluidSolver : public UnsteadyIterativeSolver {
 
  protected:
   M& m;
-  FieldCell<Scal>* fcr_; // density
-  FieldCell<Scal>* fcd_; // dynamic viscosity
-  FieldCell<Vect>* fcf_; // force
-  FieldFace<Scal>* ffbp_; //  balanced force projections
-  FieldCell<Scal>* fcsv_; // volume source
-  FieldCell<Scal>* fcsm_; // mass source
+  const FieldCell<Scal>* fcr_; // density
+  const FieldCell<Scal>* fcd_; // dynamic viscosity
+  const FieldCell<Vect>* fcf_; // force
+  const FieldFace<Scal>* ffbp_; //  balanced force projections
+  const FieldCell<Scal>* fcsv_; // volume source
+  const FieldCell<Scal>* fcsm_; // mass source
 
  public:
   // fcr: density
@@ -38,9 +38,10 @@ class FluidSolver : public UnsteadyIterativeSolver {
   // fcsv: volume source
   // fcsm: mass source
   FluidSolver(
-      double t, double dt, M& m, FieldCell<Scal>* fcr, FieldCell<Scal>* fcd,
-      FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp, FieldCell<Scal>* fcsv,
-      FieldCell<Scal>* fcsm)
+      double t, double dt, M& m, const FieldCell<Scal>* fcr,
+      const FieldCell<Scal>* fcd, const FieldCell<Vect>* fcf,
+      const FieldFace<Scal>* ffbp, const FieldCell<Scal>* fcsv,
+      const FieldCell<Scal>* fcsm)
       : UnsteadyIterativeSolver(t, dt)
       , m(m)
       , fcr_(fcr)
