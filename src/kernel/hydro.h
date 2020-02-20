@@ -44,7 +44,6 @@
 #include "solver/multi.h"
 #include "solver/normal.h"
 #include "solver/proj.h"
-#include "solver/proj_eb.h"
 #include "solver/reconst.h"
 #include "solver/simple.h"
 #include "solver/solver.h"
