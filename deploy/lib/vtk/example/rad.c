@@ -23,7 +23,7 @@ static double pi = 3.141592653589793;
 
 #define Vcoef (4.0 / 3.0 * pi)
 
-static void usg() {
+static void usg(void) {
   fprintf(stderr, "%s -k key -f field [csv ..] [vtk ..]\n", me);
   exit(1);
 }
