@@ -25,9 +25,6 @@ template FieldEmbed<TV> UEB::Interpolate(
     const FieldCell<TV>& fcu, const MapCondFace& mfc, size_t bc, TV bcv,
     const EB& eb);
 
-template FieldEmbed<T> UEB::InterpolateIterative(
-    const FieldCell<T>& fcu, const EB& eb);
-
 template FieldEmbed<T> UEB::InterpolateUpwind(
     const FieldCell<T>& fcu, const FieldEmbed<Scal>& fev,
     const MapCondFace& mfc, size_t bc, T bcv, const EB& eb);
@@ -43,9 +40,6 @@ template FieldCell<T> UEB::RedistributeCutCells(
 template FieldEmbed<T> UEB::Gradient(
     const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
     const EB& eb);
-
-template FieldEmbed<T> UEB::GradientIterative(
-    const FieldCell<T>& fcu, const EB& eb);
 
 template FieldFace<T> UEB::InterpolateBilinearFaces(
     const FieldFace<T>& ffu, const EB& eb);

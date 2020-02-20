@@ -202,46 +202,6 @@ auto UEmbed<M>::Interpolate(
 
 template <class M>
 template <class T>
-auto UEmbed<M>::InterpolateIterative(const FieldCell<T>& fcu, const EB& eb)
-    -> FieldEmbed<T> {
-  // interpolate from cells to faces with zero-derivative conditions
-  auto feu = Interpolate(fcu, MapCondFace(), 1, T(0), eb);
-
-  FieldCell<Vect> fcg(eb, Vect(0));
-
-  for (size_t i = 0; i < 20; ++i) {
-    // compute gradient from current interpolant
-    fcg = GradientLinearFit(feu, eb);
-
-    // goal: compute first-order accurate gradient
-    // and using the gradient, do second-order accurate interpolation
-
-    // update feu from fcu and fcg
-    for (auto f : eb.SuFaces()) {
-      const IdxCell cm = eb.GetCell(f, 0);
-      const IdxCell cp = eb.GetCell(f, 1);
-      if (eb.GetType(cm) == Type::regular && eb.GetType(cp) == Type::regular) {
-        feu[f] = (fcu[cm] + fcu[cp]) * 0.5;
-      } else {
-        const Vect xm = eb.GetCellCenter(cm);
-        const Vect xp = eb.GetCellCenter(cp);
-        const Vect xf = eb.GetFaceCenter(f);
-        feu[f] =
-            (fcu[cm] + fcg[cm].dot(xf - xm) + fcu[cp] + fcg[cp].dot(xf - xp)) *
-            0.5;
-      }
-    }
-    for (auto c : eb.SuCFaces()) {
-      const Vect xc = eb.GetCellCenter(c);
-      const Vect xf = eb.GetFaceCenter(c);
-      feu[c] = fcu[c] + fcg[c].dot(xf - xc);
-    }
-  }
-  return feu;
-}
-
-template <class M>
-template <class T>
 auto UEmbed<M>::InterpolateUpwind(
     const FieldCell<T>& fcu, const FieldEmbed<Scal>& fev,
     const MapCondFace& mfc, size_t bc, T bcv, const EB& eb) -> FieldEmbed<T> {
@@ -487,28 +447,6 @@ auto UEmbed<M>::Gradient(
     }
   }
   GradientB(fcu, mfc, eb.GetMesh(), feg.GetFieldFace());
-  return feg;
-}
-
-template <class M>
-template <class T>
-auto UEmbed<M>::GradientIterative(const FieldCell<T>& fcu, const EB& eb)
-    -> FieldEmbed<T> {
-  auto feu = InterpolateIterative(fcu, eb);
-  auto fcg = GradientLinearFit(feu, eb);
-  FieldEmbed<T> feg(eb, T(0));
-  for (auto f : eb.SuFaces()) {
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
-    if (eb.GetType(cm) == Type::regular && eb.GetType(cp) == Type::regular) {
-      feg[f] = (fcu[cp] - fcu[cm]) / eb.GetCellSize()[0];
-    } else {
-      feg[f] = (fcg[cm] + fcg[cp]).dot(eb.GetNormal(f)) * 0.5;
-    }
-  }
-  for (auto c : eb.SuCFaces()) {
-    feg[c] = fcg[c].dot(eb.GetNormal(c));
-  }
   return feg;
 }
 

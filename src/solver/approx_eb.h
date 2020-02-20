@@ -105,6 +105,8 @@ struct ULinear {
   }
 };
 
+using MapEmbedCond = MapEmbed<UniquePtr<CondFace>>;
+
 template <class M_>
 struct UEmbed {
   using M = M_;
@@ -137,18 +139,6 @@ struct UEmbed {
   static FieldEmbed<T> Interpolate(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
       const EB& eb);
-
-  // Interpolation using gradient with iterative correction.
-  // High order gradient-based interpolation with extrapolation
-  // boundary conditions.
-  // fcu: field [a]
-  // bc: boundary conditions type, 0: value, 1: grad
-  // bcv: value or normal gradient (grad dot GetNormal)
-  // Returns:
-  // field on embedded boundaries [s]
-  template <class T>
-  static FieldEmbed<T> InterpolateIterative(
-      const FieldCell<T>& fcu, const EB& eb);
 
   // Upwind interpolation.
   // fcu: field [a]
@@ -236,15 +226,6 @@ struct UEmbed {
   static FieldEmbed<T> Gradient(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
       const EB& eb);
-
-  // Gradient from iterative interpolation.
-  // fcu: field [a]
-  // bc: boundary conditions type, 0: value, 1: grad
-  // bcv: value or normal gradient (grad dot GetNormal)
-  // Returns:
-  // grad dot GetNormal on embedded boundaries [s]
-  template <class T>
-  static FieldEmbed<T> GradientIterative(const FieldCell<T>& fcu, const EB& eb);
 
   // Updates flux in cut faces using bilinear interpolation from regular faces
   // (Schwartz,2006).
