@@ -112,6 +112,7 @@ void Run(M& m, Vars& var) {
               << "dt/dt0=" << dt / dt0 << "dt/dt0a=" << dt / dt0a << " "
               << std::endl;
     typename Proj<EB>::Par par;
+    par.conv = Conv::exp;
     fs.reset(new Proj<EB>(
         m, eb, fcvel, mfc, MapCell<std::shared_ptr<CondCellFluid>>(), &ctx->fcr,
         &ctx->fcd, &ctx->fcf, &ctx->ffbp, &ctx->fcsv, &ctx->fcsm, 0, dt, par));

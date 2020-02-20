@@ -123,12 +123,11 @@ struct Proj<EB_>::Imp {
     }
 
     mccp_.clear();
-    mccp_.clear();
     for (auto& it : mcc_) {
       const IdxCell c = it.first;
-      CondCellFluid* cb = it.second.get(); // cond base
+      const CondCellFluid* cb = it.second.get(); // cond base
 
-      if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
+      if (auto cd = dynamic_cast<const GivenPressure<M>*>(cb)) {
         mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
       } else {
         throw std::runtime_error("proj: unknown cell condition");
