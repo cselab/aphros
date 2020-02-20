@@ -33,12 +33,12 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
   Vofm(
       M& m, const EB& eb, const FieldCell<Scal>& fcu,
       const FieldCell<Scal>& fccl, const MapCondFaceAdvection<Scal>& mfc,
-      const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t,
+      const FieldEmbed<Scal>* fev, const FieldCell<Scal>* fcs, double t,
       double dt, Par par);
   Vofm(
       M& m, const EB& eb, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Scal>*>& fccl,
-      const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
+      const MapCondFaceAdvection<Scal>& mfc, const FieldEmbed<Scal>* fev,
       const FieldCell<Scal>* fcs, double t, double dt, Par par);
   ~Vofm();
   const EB& GetEmbed() const;

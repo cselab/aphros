@@ -288,7 +288,8 @@ struct Vof<EB_>::Imp {
       size_t d = dd[id]; // direction as index
       if (sem("copyface")) {
         if (id % 2 == 1) { // copy fluxes for Lagrange Explicit step
-          auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
+          auto& ffv =
+              owner_->fev_->GetFieldFace(); // [f]ield [f]ace [v]olume flux
           fcfm_.Reinit(m);
           fcfp_.Reinit(m);
           for (auto c : eb.Cells()) {
@@ -302,9 +303,9 @@ struct Vof<EB_>::Imp {
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
         Sweep(
-            uc, d, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_,
-            id % 2 == 0 ? SweepType::EI : SweepType::LE, &fcfm_, &fcfp_,
-            nullptr, owner_->GetTimeStep() * vsc, par.clipth, eb);
+            uc, d, owner_->fev_->GetFieldFace(), fccl_, fcim_, fcn_, fca_,
+            &mfc_vf_, id % 2 == 0 ? SweepType::EI : SweepType::LE, &fcfm_,
+            &fcfp_, nullptr, owner_->GetTimeStep() * vsc, par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -338,8 +339,9 @@ struct Vof<EB_>::Imp {
       auto& uc = fcu_.iter_curr;
       if (sem("sweep")) {
         Sweep(
-            uc, dd[id], *owner_->ffv_, fccl_, fcim_, fcn_, fca_, &mfc_vf_, type,
-            nullptr, nullptr, &fcuu_, owner_->GetTimeStep(), par.clipth, eb);
+            uc, dd[id], owner_->fev_->GetFieldFace(), fccl_, fcim_, fcn_, fca_,
+            &mfc_vf_, type, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(),
+            par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -538,9 +540,9 @@ struct Vof<EB_>::Imp {
 template <class EB_>
 Vof<EB_>::Vof(
     M& m, const EB& eb, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-    const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
+    const MapCondFaceAdvection<Scal>& mfc, const FieldEmbed<Scal>* fev,
     const FieldCell<Scal>* fcs, double t, double dt, Par par)
-    : AdvectionSolver<M>(t, dt, m, ffv, fcs)
+    : AdvectionSolver<M>(t, dt, m, fev, fcs)
     , imp(new Imp(this, eb, fcu, fccl, mfc, par)) {}
 
 template <class EB_>

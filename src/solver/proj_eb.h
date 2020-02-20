@@ -14,7 +14,7 @@ class ProjEmbed final : public FluidSolver<typename EB_::M> {
  public:
   using EB = EB_;
   using M = typename EB::M;
-  using P = FluidSolver<M>; // parent
+  using Base = FluidSolver<M>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr size_t dim = M::dim;
@@ -45,29 +45,17 @@ class ProjEmbed final : public FluidSolver<typename EB_::M> {
   ~ProjEmbed();
   const Par& GetPar() const;
   void SetPar(Par);
-  // ...
   void StartStep() override;
-  // ...
   void MakeIteration() override;
-  // ...
   void FinishStep() override;
-  // ...
   const FieldCell<Vect>& GetVelocity(Step) const override;
-  // ...
-  using P::GetVelocity;
-  // ...
+  using Base::GetVelocity;
   const FieldCell<Scal>& GetPressure(Step) const override;
-  // ...
-  using P::GetPressure;
-  // ...
-  const FieldFace<Scal>& GetVolumeFlux(Step) const override;
-  // ...
-  using P::GetVolumeFlux;
-  // ...
+  using Base::GetPressure;
+  const FieldEmbed<Scal>& GetVolumeFlux(Step) const override;
+  using Base::GetVolumeFlux;
   double GetAutoTimeStep() const override;
-  // ...
   double GetError() const override;
-  // ...
   const MapCondFace& GetVelocityCond() const override;
 
  private:

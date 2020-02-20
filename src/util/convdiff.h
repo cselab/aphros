@@ -52,10 +52,23 @@ struct GetConvDiff {
   using Par = typename ConvDiffScal<M>::Par;
 
   std::unique_ptr<ConvDiffVect<M>> operator()(
-      Conv conv, M& m, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
-      const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
-      const FieldCell<Vect>* fcs, const FieldFace<Scal>* ffv, double t,
-      double dt, Par par);
+      Conv conv, M& m, const M& eb, const FieldCell<Vect>& fcvel,
+      const MapCondFace& mfc, const FieldCell<Scal>* fcr,
+      const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
+      const FieldEmbed<Scal>* fev, double t, double dt, Par par);
+};
+
+template <class M>
+struct GetConvDiff<Embed<M>> {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  using Par = typename ConvDiffScal<M>::Par;
+
+  std::unique_ptr<ConvDiffVect<Embed<M>>> operator()(
+      Conv conv, M& m, const Embed<M>& eb, const FieldCell<Vect>& fcvel,
+      const MapCondFace& mfc, const FieldCell<Scal>* fcr,
+      const FieldEmbed<Scal>* fed, const FieldCell<Vect>* fcs,
+      const FieldEmbed<Scal>* fev, double t, double dt, Par par);
 };
 
 template <class ConvDiffPar, class FluidPar>

@@ -46,7 +46,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   // Constructor
   Vof(M& m, const EB& eb, const FieldCell<Scal>& fcu,
       const FieldCell<Scal>& fccl, const MapCondFaceAdvection<Scal>& mfc,
-      const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t,
+      const FieldEmbed<Scal>* fev, const FieldCell<Scal>* fcs, double t,
       double dt, Par par);
   ~Vof();
   const EB& GetEmbed() const;

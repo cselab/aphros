@@ -252,7 +252,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     }
   }
   FieldCell<Scal> GetDiv() {
-    auto& ffv = fs_->GetVolumeFlux();
+    auto& ffv = fs_->GetVolumeFlux().GetFieldFace();
     if (eb_) {
       return GetDivergence(ffv, m, *eb_);
     }
@@ -472,7 +472,7 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   } else if (fs == "proj") {
     auto p = ParsePar<Proj<M>>()(var);
     fs_.reset(new Proj<M>(
-        m, fc_vel, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
+        m, m, fc_vel, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
         &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else {
     throw std::runtime_error("Unknown fluid_solver=" + fs);
@@ -2052,7 +2052,7 @@ void Hydro<M>::StepAdvection() {
         um = std::min(1., um);
         up = std::min(1., up);
         FieldFace<Scal>& ffv =
-            const_cast<FieldFace<Scal>&>(fs_->GetVolumeFlux());
+            const_cast<FieldFace<Scal>&>(fs_->GetVolumeFlux().GetFieldFace());
         ffv[f] += -(up - um) * (*voidpenal) * m.GetArea(f);
       }
     }

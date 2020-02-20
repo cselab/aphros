@@ -48,10 +48,11 @@ struct Tvd<M_>::Imp {
       if (sem("adv")) {
         ffu_ = Interpolate(curr, mfc_vf_, m);
         fcg_ = Gradient(ffu_, m);
-        ffvu_ = InterpolateSuperbee(curr, fcg_, mfc_vf_, *(owner_->ffv_), m);
+        ffvu_ = InterpolateSuperbee(
+            curr, fcg_, mfc_vf_, owner_->fev_->GetFieldFace(), m);
 
         for (auto f : m.Faces()) {
-          ffvu_[f] *= (*owner_->ffv_)[f];
+          ffvu_[f] *= owner_->fev_->GetFieldFace()[f];
         }
 
         if (par.split) {
@@ -180,9 +181,9 @@ struct Tvd<M_>::Imp {
 template <class M_>
 Tvd<M_>::Tvd(
     M& m, const FieldCell<Scal>& fcu, const MapCondFaceAdvection<Scal>& mfc,
-    const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t, double dt,
+    const FieldEmbed<Scal>* fev, const FieldCell<Scal>* fcs, double t, double dt,
     Par par)
-    : AdvectionSolver<M>(t, dt, m, ffv, fcs)
+    : AdvectionSolver<M>(t, dt, m, fev, fcs)
     , imp(new Imp(this, fcu, mfc, par)) {}
 
 template <class M_>

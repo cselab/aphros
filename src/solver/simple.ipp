@@ -67,7 +67,7 @@ struct Simple<M_>::Imp {
     typename CD::Par p;
     SetConvDiffPar(p, par);
     cd_ = GetConvDiff<M>()(
-        par.conv, m, fcw, mfcw_, owner_->fcr_, &ffd_, &fcfcd_,
+        par.conv, m, m, fcw, mfcw_, owner_->fcr_, &ffd_, &fcfcd_,
         &ffv_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
 
     fcp_.time_curr.Reinit(m, 0.);
@@ -576,8 +576,8 @@ struct Simple<M_>::Imp {
     if (par.simpler) {
       if (sem.Nested("simpler")) {
         CalcPressure(
-            cd_->GetVelocity(Step::iter_curr), ffv_.iter_curr, fcp_curr,
-            fcp_curr);
+            cd_->GetVelocity(Step::iter_curr), ffv_.iter_curr.GetFieldFace(),
+            fcp_curr, fcp_curr);
       }
 
       if (sem("pgrad")) {
@@ -712,7 +712,7 @@ struct Simple<M_>::Imp {
   MapCell<std::shared_ptr<CondCellFluid>> mcc_; // fluid cell cond
   MapCell<std::shared_ptr<CondCell>> mccp_; // pressure cell cond
 
-  StepData<FieldFace<Scal>> ffv_; // volume flux
+  StepData<FieldEmbed<Scal>> ffv_; // volume flux
   StepData<FieldCell<Scal>> fcp_; // pressure
 
   std::unique_ptr<CD> cd_;
@@ -790,7 +790,7 @@ auto Simple<M_>::GetPressure(Step l) const -> const FieldCell<Scal>& {
 }
 
 template <class M_>
-auto Simple<M_>::GetVolumeFlux(Step l) const -> const FieldFace<Scal>& {
+auto Simple<M_>::GetVolumeFlux(Step l) const -> const FieldEmbed<Scal>& {
   return imp->ffv_.Get(l);
 }
 

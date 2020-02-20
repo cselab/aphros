@@ -295,8 +295,7 @@ struct Vofm<EB_>::Imp {
         }
         Sweep(
             mfcu, d, layers, ffv, fccl_, fcim_, fcn_, fca_, mfc_vf_,
-            SweepType::weymouth, nullptr, nullptr, fcuu_, 1., par.clipth,
-            eb);
+            SweepType::weymouth, nullptr, nullptr, fcuu_, 1., par.clipth, eb);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
     }
@@ -330,9 +329,9 @@ struct Vofm<EB_>::Imp {
       size_t d = dd[id]; // direction as index
       if (sem("sweep")) {
         Sweep(
-            mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, mfc_vf_,
-            type, nullptr, nullptr, fcuu_, owner_->GetTimeStep(), par.clipth,
-            eb);
+            mfcu, d, layers, owner_->fev_->GetFieldFace(), fccl_, fcim_, fcn_,
+            fca_, mfc_vf_, type, nullptr, nullptr, fcuu_, owner_->GetTimeStep(),
+            par.clipth, eb);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
     }
@@ -581,7 +580,8 @@ struct Vofm<EB_>::Imp {
       size_t d = dd[id]; // direction as index
       if (sem("copyface")) {
         if (id % 2 == 1) { // copy fluxes for Lagrange Explicit step
-          auto& ffv = *owner_->ffv_; // [f]ield [f]ace [v]olume flux
+          auto& ffv =
+              owner_->fev_->GetFieldFace(); // [f]ield [f]ace [v]olume flux
           fcfm_.Reinit(m);
           fcfp_.Reinit(m);
           for (auto c : eb.Cells()) {
@@ -594,9 +594,9 @@ struct Vofm<EB_>::Imp {
       }
       if (sem("sweep")) {
         Sweep(
-            mfcu, d, layers, *owner_->ffv_, fccl_, fcim_, fcn_, fca_, mfc_vf_,
-            id % 2 == 0 ? SweepType::EI : SweepType::LE, &fcfm_, &fcfp_,
-            nullptr, owner_->GetTimeStep() * vsc, par.clipth, eb);
+            mfcu, d, layers, owner_->fev_->GetFieldFace(), fccl_, fcim_, fcn_,
+            fca_, mfc_vf_, id % 2 == 0 ? SweepType::EI : SweepType::LE, &fcfm_,
+            &fcfp_, nullptr, owner_->GetTimeStep() * vsc, par.clipth, eb);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
     }
@@ -742,9 +742,9 @@ template <class EB_>
 Vofm<EB_>::Vofm(
     M& m, const EB& eb, const FieldCell<Scal>& fcu0,
     const FieldCell<Scal>& fccl0, const MapCondFaceAdvection<Scal>& mfc,
-    const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t, double dt,
-    Par par)
-    : AdvectionSolver<M>(t, dt, m, ffv, fcs) {
+    const FieldEmbed<Scal>* fev, const FieldCell<Scal>* fcs, double t,
+    double dt, Par par)
+    : AdvectionSolver<M>(t, dt, m, fev, fcs) {
   const GRange<size_t> layers(par.layers);
   Multi<FieldCell<Scal>> fcu(layers, m, 0);
   Multi<FieldCell<Scal>> fccl(layers, m, kClNone);
@@ -757,9 +757,9 @@ template <class EB_>
 Vofm<EB_>::Vofm(
     M& m, const EB& eb, const Multi<const FieldCell<Scal>*>& fcu0,
     const Multi<const FieldCell<Scal>*>& fccl0,
-    const MapCondFaceAdvection<Scal>& mfc, const FieldFace<Scal>* ffv,
+    const MapCondFaceAdvection<Scal>& mfc, const FieldEmbed<Scal>* fev,
     const FieldCell<Scal>* fcs, double t, double dt, Par par)
-    : AdvectionSolver<M>(t, dt, m, ffv, fcs) {
+    : AdvectionSolver<M>(t, dt, m, fev, fcs) {
   const GRange<size_t> layers(par.layers);
   imp.reset(new Imp(this, eb, layers, fcu0, fccl0, mfc, par));
 }

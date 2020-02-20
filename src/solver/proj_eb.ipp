@@ -21,19 +21,12 @@
 #include "util/fluid.h"
 #include "util/metrics.h"
 
-// Rules:
-// - Each function assumes that all fields on layers
-//     iter_prev, time_prev, time_curr
-//   and force, source and viscosity
-//   are known and doesn't modify them.
-// - No function except for MakeIteration refers to iter_curr.
-//
-// domain (cells/faces)
+// ranges (cells/faces)
 // [i]: inner
 // [s]: support
 // [a]: all
-//
-// notation:
+
+// fields
 // p: pressure
 // gp: pressure gradient
 // w: velocity
@@ -41,9 +34,9 @@
 // we: predicted velocity (after solving velocity equations)
 // ve: predicted volume flux
 
-template <class MEB_>
-struct ProjEmbed<MEB_>::Imp {
-  using Owner = ProjEmbed<MEB_>;
+template <class EB_>
+struct ProjEmbed<EB_>::Imp {
+  using Owner = ProjEmbed<EB_>;
   using CD = ConvDiffVectGeneric<EB, ConvDiffScalExp<EB>>; // convdiff solver
   // Expression on face: v[0] * cm + v[1] * cp + v[2]
   using ExprFace = generic::Vect<Scal, 3>;
@@ -75,7 +68,7 @@ struct ProjEmbed<MEB_>::Imp {
     typename CD::Par p;
     SetConvDiffPar(p, par);
     cd_.reset(new CD(
-        m, eb, fcw, mfcw_, owner_->fcr_, &fed_, &fcfcd_, &ffv_.iter_prev,
+        m, eb, fcw, mfcw_, owner_->fcr_, &fed_, &fcfcd_, &fev_.iter_prev,
         owner_->GetTime(), owner_->GetTimeStep(), p));
 
     fcp_.time_curr.Reinit(m, 0.);
@@ -84,17 +77,17 @@ struct ProjEmbed<MEB_>::Imp {
     // Calc initial volume fluxes
     auto ffwe =
         UEB::InterpolateBilinear(cd_->GetVelocity(), mfcw_, bc_, bcvel_, eb);
-    ffv_.time_curr.Reinit(m, 0.);
+    fev_.time_curr.Reinit(m, 0.);
     for (auto f : eb.Faces()) {
-      ffv_.time_curr[f] = ffwe[f].dot(eb.GetSurface(f));
+      fev_.time_curr[f] = ffwe[f].dot(eb.GetSurface(f));
     }
     // Apply meshvel
     const Vect& meshvel = par.meshvel;
     for (auto f : eb.Faces()) {
-      ffv_.time_curr[f] -= meshvel.dot(eb.GetSurface(f));
+      fev_.time_curr[f] -= meshvel.dot(eb.GetSurface(f));
     }
 
-    ffv_.time_prev = ffv_.time_curr;
+    fev_.time_prev = fev_.time_curr;
   }
 
   void UpdateDerivedConditions() {
@@ -133,16 +126,12 @@ struct ProjEmbed<MEB_>::Imp {
 
     mccp_.clear();
     mccp_.clear();
-    mccw_.clear();
     for (auto& it : mcc_) {
       const IdxCell c = it.first;
       CondCellFluid* cb = it.second.get(); // cond base
 
       if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
         mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
-      } else if (auto cd = dynamic_cast<GivenVelocityAndPressure<M>*>(cb)) {
-        mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
-        mccw_[c] = std::make_shared<CondCellValFixed<Vect>>(cd->GetVelocity());
       } else {
         throw std::runtime_error("proj: unknown cell condition");
       }
@@ -163,7 +152,7 @@ struct ProjEmbed<MEB_>::Imp {
     if (sem("convdiff-start")) {
       // rotate layers
       fcp_.iter_curr = fcp_.time_curr;
-      ffv_.iter_curr = ffv_.time_curr;
+      fev_.iter_curr = fev_.time_curr;
     }
   }
   // Apply cell conditions for pressure.
@@ -358,7 +347,7 @@ struct ProjEmbed<MEB_>::Imp {
 
       // rotate layers
       fcp_prev = fcp_curr;
-      ffv_.iter_prev = ffv_.iter_curr;
+      fev_.iter_prev = fev_.iter_curr;
     }
 
     UpdateBc(sem);
@@ -390,11 +379,11 @@ struct ProjEmbed<MEB_>::Imp {
         } else { // boundary
           // nop, keep the mean flux
         }
-        ffv_.iter_curr[f] = v;
+        fev_.iter_curr[f] = v;
       }
 
       // Projection
-      ffvc_ = CalcFlux(ffk_, ffv_.iter_curr);
+      ffvc_ = CalcFlux(ffk_, fev_.iter_curr);
       fcpcs_ = CalcFluxSum(ffvc_, *owner_->fcsv_);
       ApplyCellCond(fcp_curr, fcpcs_);
     }
@@ -411,7 +400,7 @@ struct ProjEmbed<MEB_>::Imp {
         IdxCell cm = m.GetCell(f, 0);
         IdxCell cp = m.GetCell(f, 1);
         auto& e = ffvc_[f];
-        ffv_.iter_curr[f] = e[0] * fcpc_[cm] + e[1] * fcpc_[cp] + e[2];
+        fev_.iter_curr[f] = e[0] * fcpc_[cm] + e[1] * fcpc_[cp] + e[2];
       }
 
       // Acceleration and correction to center velocity
@@ -434,7 +423,6 @@ struct ProjEmbed<MEB_>::Imp {
             // nop, no acceleration
           }
         }
-        // s = Vect(0., 0, 0.); // XXX
         fcwc_[c] = s;
       }
     }
@@ -453,9 +441,9 @@ struct ProjEmbed<MEB_>::Imp {
     auto sem = m.GetSem("fluid-finish");
     if (sem("inctime")) {
       fcp_.time_prev = fcp_.time_curr;
-      ffv_.time_prev = ffv_.time_curr;
+      fev_.time_prev = fev_.time_curr;
       fcp_.time_curr = fcp_.iter_curr;
-      ffv_.time_curr = ffv_.iter_curr;
+      fev_.time_curr = fev_.iter_curr;
       CHECKNAN(fcp_.time_curr, m.CN())
       owner_->IncTime();
     }
@@ -466,7 +454,7 @@ struct ProjEmbed<MEB_>::Imp {
   double GetAutoTimeStep() {
     Scal dt = std::numeric_limits<Scal>::max();
     for (auto f : eb.Faces()) {
-      const Scal vel = ffv_.time_curr[f] / m.GetArea(f);
+      const Scal vel = fev_.time_curr[f] / m.GetArea(f);
       if (vel != 0.) {
         dt = std::min<Scal>(dt, std::abs(m.GetCellSize()[0] / vel));
       }
@@ -495,13 +483,12 @@ struct ProjEmbed<MEB_>::Imp {
   // Cell conditions
   MapCell<std::shared_ptr<CondCellFluid>> mcc_; // fluid cell cond
   MapCell<std::shared_ptr<CondCell>> mccp_; // pressure cell cond
-  MapCell<std::shared_ptr<CondCell>> mccw_; // velocity cell cond
 
   size_t bc_ = 0; // boundary conditions, 0: value, 1: gradient
   Vect bcvel_ = Vect(0); // value or grad.dot.outer_normal
   const FieldFace<Scal>* ffbp_;
 
-  StepData<FieldFaceb<Scal>> ffv_; // volume flux
+  StepData<FieldFaceb<Scal>> fev_; // volume flux
   StepData<FieldCell<Scal>> fcp_; // pressure
 
   std::shared_ptr<CD> cd_;
@@ -527,71 +514,71 @@ struct ProjEmbed<MEB_>::Imp {
   FieldFaceb<ExprFace> ffvc_; // expression for corrected volume flux [i]
 };
 
-template <class MEB_>
-ProjEmbed<MEB_>::ProjEmbed(
+template <class EB_>
+ProjEmbed<EB_>::ProjEmbed(
     M& m, const Embed<M>& eb, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
     const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
     const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
     const FieldCell<Vect>* fcf, const FieldFace<Scal>* ffbp,
     const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
     double dt, Par par)
-    : FluidSolver<M>(t, dt, m, fcr, fcd, fcf, nullptr, fcsv, fcsm)
+    : Base(t, dt, m, fcr, fcd, fcf, nullptr, fcsv, fcsm)
     , imp(new Imp(this, eb, fcw, mfc, mcc, par, ffbp)) {}
 
-template <class MEB_>
-ProjEmbed<MEB_>::~ProjEmbed() = default;
+template <class EB_>
+ProjEmbed<EB_>::~ProjEmbed() = default;
 
-template <class MEB_>
-auto ProjEmbed<MEB_>::GetPar() const -> const Par& {
+template <class EB_>
+auto ProjEmbed<EB_>::GetPar() const -> const Par& {
   return imp->par;
 }
 
-template <class MEB_>
-void ProjEmbed<MEB_>::SetPar(Par par) {
+template <class EB_>
+void ProjEmbed<EB_>::SetPar(Par par) {
   imp->par = par;
 }
 
-template <class MEB_>
-void ProjEmbed<MEB_>::StartStep() {
+template <class EB_>
+void ProjEmbed<EB_>::StartStep() {
   return imp->StartStep();
 }
 
-template <class MEB_>
-void ProjEmbed<MEB_>::MakeIteration() {
+template <class EB_>
+void ProjEmbed<EB_>::MakeIteration() {
   return imp->MakeIteration();
 }
 
-template <class MEB_>
-void ProjEmbed<MEB_>::FinishStep() {
+template <class EB_>
+void ProjEmbed<EB_>::FinishStep() {
   return imp->FinishStep();
 }
 
-template <class MEB_>
-auto ProjEmbed<MEB_>::GetVelocity(Step l) const -> const FieldCell<Vect>& {
+template <class EB_>
+auto ProjEmbed<EB_>::GetVelocity(Step l) const -> const FieldCell<Vect>& {
   return imp->GetVelocity(l);
 }
 
-template <class MEB_>
-auto ProjEmbed<MEB_>::GetPressure(Step l) const -> const FieldCell<Scal>& {
+template <class EB_>
+auto ProjEmbed<EB_>::GetPressure(Step l) const -> const FieldCell<Scal>& {
   return imp->fcp_.Get(l);
 }
 
-template <class MEB_>
-auto ProjEmbed<MEB_>::GetVolumeFlux(Step l) const -> const FieldFace<Scal>& {
-  return imp->ffv_.Get(l).GetFieldFace();
+template <class EB_>
+auto ProjEmbed<EB_>::GetVolumeFlux(Step l) const -> const FieldEmbed<Scal>& {
+  return imp->fev_.Get(l);
 }
 
-template <class MEB_>
-double ProjEmbed<MEB_>::GetAutoTimeStep() const {
+template <class EB_>
+double ProjEmbed<EB_>::GetAutoTimeStep() const {
   return imp->GetAutoTimeStep();
 }
 
-template <class MEB_>
-double ProjEmbed<MEB_>::GetError() const {
+template <class EB_>
+double ProjEmbed<EB_>::GetError() const {
   return imp->cd_->GetError();
 }
 
-template <class MEB_>
-auto ProjEmbed<MEB_>::GetVelocityCond() const -> const MapCondFace& {
+template <class EB_>
+auto ProjEmbed<EB_>::GetVelocityCond() const -> const MapCondFace& {
   return imp->mfcw_;
 }
