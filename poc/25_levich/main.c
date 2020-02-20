@@ -8,7 +8,7 @@
 
 const char* me = "adamar";
 
-static void usg() {
+static void usg(void) {
   fprintf(stderr, "%s -m mu1 > vtk\n", me);
   exit(1);
 }
