@@ -54,11 +54,19 @@ void Run(M& m, Vars& var) {
     using namespace fluid_condition;
     auto& eb = *ctx->eb;
     MapEmbed<UniquePtr<CondFaceFluid>> mec;
+    MapEmbed<size_t> megroup;
     const std::string fn = "bc.dat";
-    UInitEmbedBc<M>::Parse(fn, eb, mec);
+    std::vector<std::string> vdesc =
+        UInitEmbedBc<M>::Parse(fn, eb, mec, megroup);
+    {
+      std::ofstream fdesc("bcdesc.dat");
+      for (size_t i = 0; i < vdesc.size(); ++i) {
+        fdesc << i << " " << vdesc[i] << std::endl;
+      }
+    }
     std::ofstream out("bc.csv");
-    out << "x,y,z,bc\n";
-    auto write = [&out](const UniquePtr<CondFaceFluid>& b, Vect x) {
+    out << "x,y,z,bc,group\n";
+    auto write = [&out](const UniquePtr<CondFaceFluid>& b, Vect x, size_t g) {
       Scal cond = -1;
       if (!b.Get()) {
         cond = 0;
@@ -75,16 +83,17 @@ void Run(M& m, Vars& var) {
       } else if (b.Get<Symm<M>>()) {
         cond = 6;
       }
-      out << x[0] << "," << x[1] << "," << x[2] << "," << cond << "\n";
+      out << x[0] << "," << x[1] << "," << x[2];
+      out << "," << cond << "," << g << "\n";
     };
     for (auto& p : mec.GetMapCell()) {
-      write(p.second, eb.GetFaceCenter(p.first));
+      write(p.second, eb.GetFaceCenter(p.first), megroup[p.first]);
     }
     for (auto& p : mec.GetMapFace()) {
-      write(p.second, eb.GetFaceCenter(p.first));
+      write(p.second, eb.GetFaceCenter(p.first), megroup[p.first]);
     }
   }
-  const size_t maxt = 100;
+  const size_t maxt = 10;
   const size_t nfr = 10;
   for (size_t t = 0; t < maxt; ++t) {
     auto& eb = *ctx->eb;
