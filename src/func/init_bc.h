@@ -9,6 +9,7 @@
 #include <limits>
 #include <sstream>
 #include <stdexcept>
+#include <tuple>
 
 #include "debug/isnan.h"
 #include "geom/block.h"
@@ -80,12 +81,15 @@ struct UInitEmbedBc {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  // Parses boundary conditions from file and writes to map.
+  // Parses boundary conditions from file and adds to map.
   // filename: path to file
-  // mec: output map
-  static void Parse(
+  // Output:
+  // mecond: output map
+  // megroup: index of group of primitives
+  // Returns descriptors of boundary conditions for each group.
+  static std::vector<std::string> Parse(
       std::string filename, const EB& eb,
-      MapEmbed<UniquePtr<CondFaceFluid>>& mec) {
+      MapEmbed<UniquePtr<CondFaceFluid>>& mecond, MapEmbed<size_t>& megroup) {
     auto& m = eb.GetMesh();
     using namespace fluid_condition;
     std::ifstream fin(filename);
@@ -95,7 +99,10 @@ struct UInitEmbedBc {
     }
     const std::vector<CodeBlock> bb = ParseCodeBlocks(fin);
     fin.close();
-    for (auto& b : bb) {
+    std::vector<std::string> descs;
+    for (size_t group = 0; group < bb.size(); ++group) {
+      auto& b = bb[group];
+      descs.push_back(b.name);
       // b.name: descriptor of boundary condition
       // b.content: list of primitives
       std::stringstream s(b.content);
@@ -121,7 +128,8 @@ struct UInitEmbedBc {
       for (auto c : eb.SuCFaces()) {
         auto ls = lsmax(eb.GetFaceCenter(c));
         if (ls > 0) {
-          mec[c] = ParseFluidFaceCond<M>(b.name, 0);
+          mecond[c] = ParseFluidFaceCond<M>(b.name, 0);
+          megroup[c] = group;
         }
       }
       auto is_boundary = [&m](IdxFace f, size_t& nci) -> bool {
@@ -142,9 +150,11 @@ struct UInitEmbedBc {
       for (auto f : eb.SuFaces()) {
         size_t nci = 0;
         if (is_boundary(f, nci)) {
-          mec[f] = ParseFluidFaceCond<M>(b.name, nci);
+          mecond[f] = ParseFluidFaceCond<M>(b.name, nci);
+          megroup[f] = group;
         }
       }
     }
+    return descs;
   }
 };
