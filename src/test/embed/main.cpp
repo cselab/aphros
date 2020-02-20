@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "distr/distrbasic.h"
+#include "func/init_bc.h"
 #include "solver/approx_eb.h"
 #include "solver/embed.h"
 #include "solver/reconst.h"
@@ -49,8 +50,38 @@ void Run(M& m, Vars& var) {
     auto& eb = *ctx->eb;
     eb.DumpPoly();
   }
+  if (sem("bc")) {
+    using namespace fluid_condition;
+    auto& eb = *ctx->eb;
+    MapEmbed<UniquePtr<CondFaceFluid>> mec;
+    const std::string fn = "bc.dat";
+    UInitEmbedBc<M>::Parse(fn, eb, mec);
+    std::ofstream out("bc.csv");
+    out << "x,y,z,bc\n";
+    for (auto c : eb.CFaces()) {
+      auto& b = mec[c];
+      Scal condf = -1;
+      if (!b.Get()) {
+        condf = 0;
+      } else if (b.Get<NoSlipWall<M>>()) {
+        condf = 1;
+      } else if (b.Get<SlipWall<M>>()) {
+        condf = 2;
+      } else if (b.Get<Inlet<M>>()) {
+        condf = 3;
+      } else if (b.Get<InletFlux<M>>()) {
+        condf = 4;
+      } else if (b.Get<Outlet<M>>()) {
+        condf = 5;
+      } else if (b.Get<Symm<M>>()) {
+        condf = 6;
+      }
+      auto x = eb.GetCellCenter(c);
+      out << x[0] << "," << x[1] << "," << x[2] << "," << condf << "\n";
+    }
+  }
   const size_t maxt = 100;
-  const size_t nfr = 100;
+  const size_t nfr = 10;
   for (size_t t = 0; t < maxt; ++t) {
     auto& eb = *ctx->eb;
     if (sem("step")) {
