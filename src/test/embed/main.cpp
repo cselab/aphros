@@ -58,26 +58,30 @@ void Run(M& m, Vars& var) {
     UInitEmbedBc<M>::Parse(fn, eb, mec);
     std::ofstream out("bc.csv");
     out << "x,y,z,bc\n";
-    for (auto c : eb.CFaces()) {
-      auto& b = mec[c];
-      Scal condf = -1;
+    auto write = [&out](const UniquePtr<CondFaceFluid>& b, Vect x) {
+      Scal cond = -1;
       if (!b.Get()) {
-        condf = 0;
+        cond = 0;
       } else if (b.Get<NoSlipWall<M>>()) {
-        condf = 1;
+        cond = 1;
       } else if (b.Get<SlipWall<M>>()) {
-        condf = 2;
+        cond = 2;
       } else if (b.Get<Inlet<M>>()) {
-        condf = 3;
+        cond = 3;
       } else if (b.Get<InletFlux<M>>()) {
-        condf = 4;
+        cond = 4;
       } else if (b.Get<Outlet<M>>()) {
-        condf = 5;
+        cond = 5;
       } else if (b.Get<Symm<M>>()) {
-        condf = 6;
+        cond = 6;
       }
-      auto x = eb.GetCellCenter(c);
-      out << x[0] << "," << x[1] << "," << x[2] << "," << condf << "\n";
+      out << x[0] << "," << x[1] << "," << x[2] << "," << cond << "\n";
+    };
+    for (auto& p : mec.GetMapCell()) {
+      write(p.second, eb.GetFaceCenter(p.first));
+    }
+    for (auto& p : mec.GetMapFace()) {
+      write(p.second, eb.GetFaceCenter(p.first));
     }
   }
   const size_t maxt = 100;
@@ -193,10 +197,10 @@ set vect eb_box_c 0.5 0.5 0.5
 set vect eb_box_r 10 0.249 10
 
 set string eb_init sphere
-set vect eb_sphere_c 0.5 0.5 0.5
+set vect eb_sphere_c 0.1 0.5 0.5
 set vect eb_sphere_r 0.249 0.249 0.249
 set double eb_sphere_angle 0
-set int eb_init_inverse 0
+set int eb_init_inverse 1
 )EOF";
   return RunMpiBasic<M>(argc, argv, Run, conf);
 }

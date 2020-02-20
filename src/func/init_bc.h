@@ -124,6 +124,27 @@ struct UInitEmbedBc {
           mec[c] = ParseFluidFaceCond<M>(b.name, 0);
         }
       }
+      auto is_boundary = [&m](IdxFace f, size_t& nci) -> bool {
+        auto p = m.GetIndexFaces().GetMIdxDir(f);
+        const size_t d(p.second);
+        const auto w = p.first;
+        if (d < m.GetEdim()) {
+          if (w[d] == 0) {
+            nci = 1;
+            return true;
+          } else if (w[d] == m.GetGlobalSize()[d]) {
+            nci = 0;
+            return true;
+          }
+        }
+        return false;
+      };
+      for (auto f : eb.SuFaces()) {
+        size_t nci = 0;
+        if (is_boundary(f, nci)) {
+          mec[f] = ParseFluidFaceCond<M>(b.name, nci);
+        }
+      }
     }
   }
 };
