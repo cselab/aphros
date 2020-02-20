@@ -11,6 +11,7 @@ Aphros
    fluid
    embed
    primlist
+   bclist
    output
    lib1/index
    lib3/index
