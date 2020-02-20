@@ -2,15 +2,11 @@ wall 0 0 0 {
   box 0 0 0 10
 }
 wall 1 0 0 {
-  sphere 0.7 0.5 0.5 0.2
+  sphere 0.5 0.5 0.5 0.1 0.1 0.6
 }
-slipwall {
-  sphere 0.3 0.5 0.5 0.2
+wall 2 0 0 {
+  sphere 0.3 0.5 0.5 0.1 0.1 0.6
 }
-inlet 1 0 0 {
-  sphere 0.5 0.7 0.5 0.2
-}
-symm {
-  sphere 0.5 0.5 0.7 0.2
-  sphere 0.5 0.5 0.3 0.2
+wall 3 0 0 {
+  sphere 0.3 0.6 0.5 0.7 0.3 0.1
 }

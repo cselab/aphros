@@ -12,6 +12,7 @@
 #include <tuple>
 
 #include "debug/isnan.h"
+#include "dump/vtk.h"
 #include "geom/block.h"
 #include "geom/field.h"
 #include "geom/unique.h"
@@ -100,13 +101,28 @@ struct UInitEmbedBc {
     const std::vector<CodeBlock> bb = ParseCodeBlocks(fin);
     fin.close();
     std::vector<std::string> descs;
+    auto is_boundary = [&m](IdxFace f, size_t& nci) -> bool {
+      auto p = m.GetIndexFaces().GetMIdxDir(f);
+      const size_t d(p.second);
+      const auto w = p.first;
+      if (d < m.GetEdim()) {
+        if (w[d] == 0) {
+          nci = 1;
+          return true;
+        } else if (w[d] == m.GetGlobalSize()[d]) {
+          nci = 0;
+          return true;
+        }
+      }
+      return false;
+    };
     for (size_t group = 0; group < bb.size(); ++group) {
       auto& b = bb[group];
       descs.push_back(b.name);
       // b.name: descriptor of boundary condition
       // b.content: list of primitives
       std::stringstream s(b.content);
-      auto pp = UPrimList<Scal>::Parse(s, m.IsRoot(), m.GetEdim());
+      auto pp = UPrimList<Scal>::Parse(s, false, m.GetEdim());
       auto lsmax = [&pp](Vect x) {
         Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
         for (size_t i = 0; i < pp.size(); ++i) {
@@ -132,29 +148,50 @@ struct UInitEmbedBc {
           megroup[c] = group;
         }
       }
-      auto is_boundary = [&m](IdxFace f, size_t& nci) -> bool {
-        auto p = m.GetIndexFaces().GetMIdxDir(f);
-        const size_t d(p.second);
-        const auto w = p.first;
-        if (d < m.GetEdim()) {
-          if (w[d] == 0) {
-            nci = 1;
-            return true;
-          } else if (w[d] == m.GetGlobalSize()[d]) {
-            nci = 0;
-            return true;
-          }
-        }
-        return false;
-      };
       for (auto f : eb.SuFaces()) {
         size_t nci = 0;
         if (is_boundary(f, nci)) {
-          mecond[f] = ParseFluidFaceCond<M>(b.name, nci);
-          megroup[f] = group;
+          auto ls = lsmax(eb.GetFaceCenter(f));
+          if (ls > 0) {
+            mecond[f] = ParseFluidFaceCond<M>(b.name, nci);
+            megroup[f] = group;
+          }
         }
       }
     }
     return descs;
+  }
+
+  static void DumpPoly(
+      const std::string filename, const MapEmbed<size_t>& megroup, const EB& eb,
+      M& m) {
+    auto sem = m.GetSem("dumppoly");
+    struct {
+      std::vector<std::vector<Vect>> dpoly;
+      std::vector<Scal> dgroup;
+    } * ctx(sem);
+    auto& dpoly = ctx->dpoly;
+    auto& dgroup = ctx->dgroup;
+    if (sem("local")) {
+      for (auto p : megroup.GetMapCell()) {
+        dpoly.push_back(eb.GetCutPoly(p.first));
+        dgroup.push_back(p.second);
+      }
+      for (auto p : megroup.GetMapFace()) {
+        dpoly.push_back(eb.GetFacePoly(p.first));
+        dgroup.push_back(p.second);
+      }
+      using TV = typename M::template OpCatVT<Vect>;
+      m.Reduce(std::make_shared<TV>(&dpoly));
+      using TS = typename M::template OpCatT<Scal>;
+      m.Reduce(std::make_shared<TS>(&dgroup));
+    }
+    if (sem("write")) {
+      if (m.IsRoot()) {
+        WriteVtkPoly<Vect>(
+            filename, dpoly, nullptr, {&dgroup}, {"group"},
+            "Boundary conditions", true, true, true);
+      }
+    }
   }
 };
