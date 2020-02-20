@@ -32,6 +32,8 @@ void Run(M& m, Vars& var) {
     MapCondFace mfc;
     FieldNode<Scal> fnl;
     size_t frame = 0;
+    MapEmbed<UniquePtr<CondFaceFluid>> mec;
+    MapEmbed<size_t> megroup;
   } * ctx(sem);
   auto& fcu = ctx->fcu;
   auto& feu = ctx->feu;
@@ -53,16 +55,11 @@ void Run(M& m, Vars& var) {
   if (sem("bc")) {
     using namespace fluid_condition;
     auto& eb = *ctx->eb;
-    MapEmbed<UniquePtr<CondFaceFluid>> mec;
-    MapEmbed<size_t> megroup;
-    const std::string fn = "bc.dat";
     std::vector<std::string> vdesc =
-        UInitEmbedBc<M>::Parse(fn, eb, mec, megroup);
-    {
-      std::ofstream fdesc("bcdesc.dat");
-      for (size_t i = 0; i < vdesc.size(); ++i) {
-        fdesc << i << " " << vdesc[i] << std::endl;
-      }
+        UInitEmbedBc<M>::Parse("bc.dat", eb, ctx->mec, ctx->megroup);
+    std::ofstream fdesc("bcdesc.dat");
+    for (size_t i = 0; i < vdesc.size(); ++i) {
+      fdesc << i << " " << vdesc[i] << std::endl;
     }
     std::ofstream out("bc.csv");
     out << "x,y,z,bc,group\n";
@@ -86,12 +83,15 @@ void Run(M& m, Vars& var) {
       out << x[0] << "," << x[1] << "," << x[2];
       out << "," << cond << "," << g << "\n";
     };
-    for (auto& p : mec.GetMapCell()) {
-      write(p.second, eb.GetFaceCenter(p.first), megroup[p.first]);
+    for (auto& p : ctx->mec.GetMapCell()) {
+      write(p.second, eb.GetFaceCenter(p.first), ctx->megroup[p.first]);
     }
-    for (auto& p : mec.GetMapFace()) {
-      write(p.second, eb.GetFaceCenter(p.first), megroup[p.first]);
+    for (auto& p : ctx->mec.GetMapFace()) {
+      write(p.second, eb.GetFaceCenter(p.first), ctx->megroup[p.first]);
     }
+  }
+  if (sem.Nested("bcdump")) {
+    UInitEmbedBc<M>::DumpPoly("bc.vtk", ctx->megroup, *ctx->eb, m);
   }
   const size_t maxt = 10;
   const size_t nfr = 10;
@@ -192,9 +192,9 @@ void Run(M& m, Vars& var) {
 
 int main(int argc, const char** argv) {
   std::string conf = R"EOF(
-set int bx 1
-set int by 1
-set int bz 1
+set int bx 2
+set int by 2
+set int bz 2
 
 set int bsx 16
 set int bsy 16
@@ -206,8 +206,8 @@ set vect eb_box_c 0.5 0.5 0.5
 set vect eb_box_r 10 0.249 10
 
 set string eb_init sphere
-set vect eb_sphere_c 0.1 0.5 0.5
-set vect eb_sphere_r 0.249 0.249 0.249
+set vect eb_sphere_c 0.3 0.5 0.5
+set vect eb_sphere_r 0.5 0.349 0.249
 set double eb_sphere_angle 0
 set int eb_init_inverse 1
 )EOF";
