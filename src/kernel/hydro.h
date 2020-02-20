@@ -461,7 +461,7 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   std::string fs = var.String["fluid_solver"];
   if (eb_) {
     auto p = ParsePar<Proj<M>>()(var);
-    fs_.reset(new ProjEmbed<Embed<M>>(
+    fs_.reset(new Proj<Embed<M>>(
         m, *eb_, fc_vel, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
         &fc_force_, &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else if (fs == "simple") {
