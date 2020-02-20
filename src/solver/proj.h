@@ -8,6 +8,20 @@
 #include "fluid.h"
 #include "util/convdiff.h"
 
+template <class Scal>
+struct ProjPar {
+  using Vect = generic::Vect<Scal, 3>;
+  Scal vrelax = 1; // velocity relaxation factor [0,1]
+  Scal prelax = 1.; // pressure relaxation factor [0,1]
+  bool second = true; // second order in time
+  Vect meshvel = Vect(0); // relative mesh velocity
+  size_t inletflux_numid = 0; // reduction for id from 0 to numid-1
+  ConvSc convsc = ConvSc::quick; // convection scheme
+  Scal convdf = 1.; // deferred correction factor
+  bool linreport = false; // report linear solvers
+  Conv conv = Conv::imp; // convection-diffusion solver
+};
+
 template <class EB_>
 class Proj final : public FluidSolver<typename EB_::M> {
  public:
@@ -19,18 +33,7 @@ class Proj final : public FluidSolver<typename EB_::M> {
   static constexpr size_t dim = M::dim;
   template <class T>
   using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
-
-  struct Par {
-    Scal vrelax = 1; // velocity relaxation factor [0,1]
-    Scal prelax = 1.; // pressure relaxation factor [0,1]
-    bool second = true; // second order in time
-    Vect meshvel = Vect(0); // relative mesh velocity
-    size_t inletflux_numid = 0; // reduction for id from 0 to numid-1
-    ConvSc convsc = ConvSc::quick; // convection scheme
-    Scal convdf = 1.; // deferred correction factor
-    bool linreport = false; // report linear solvers
-    Conv conv = Conv::imp; // convection-diffusion solver
-  };
+  using Par = ProjPar<Scal>;
 
   // Constructor.
   // fcw: initial velocity

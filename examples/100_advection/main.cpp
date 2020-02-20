@@ -20,7 +20,7 @@ void Run(M& m, Vars&) {
   struct {
     std::unique_ptr<Vof<M>> as; // advection solver
     FieldCell<Scal> fc_src; // volume source
-    FieldFace<Scal> ff_flux; // volume flux
+    FieldEmbed<Scal> fe_flux; // volume flux
     MapCondFaceAdvection<Scal> mf_cond; // face conditions
   } * ctx(sem);
 
@@ -31,13 +31,13 @@ void Run(M& m, Vars&) {
 
   if (sem("init")) {
     auto& fc_src = ctx->fc_src;
-    auto& ff_flux = ctx->ff_flux;
+    auto& fe_flux = ctx->fe_flux;
     auto& mf_cond = ctx->mf_cond;
 
     fc_src.Reinit(m, 0);
-    ff_flux.Reinit(m, 0);
+    fe_flux.Reinit(m, 0);
     for (auto f : m.Faces()) {
-      ff_flux[f] = vel.dot(m.GetSurface(f));
+      fe_flux[f] = vel.dot(m.GetSurface(f));
     }
     FieldCell<Scal> fccl(m, 0); // initial color
     FieldCell<Scal> fcu(m, 0); // initial volume fraction
@@ -47,7 +47,7 @@ void Run(M& m, Vars&) {
     const Scal dt = cfl * m.GetCellSize()[0] / vel.norm();
     typename Vof<M>::Par p;
     as.reset(
-        new Vof<M>(m, m, fcu, fccl, mf_cond, &ff_flux, &fc_src, 0., dt, p));
+        new Vof<M>(m, m, fcu, fccl, mf_cond, &fe_flux, &fc_src, 0., dt, p));
   }
   sem.LoopBegin();
   if (sem.Nested("start")) {

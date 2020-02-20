@@ -57,7 +57,3 @@ target_link_libraries(${T} convdiffvg utilconvdiff)
 set(T "proj")
 add_library(${T} proj.cpp)
 target_link_libraries(${T} convdiffvg utilconvdiff)
-
-set(T "proj_eb")
-add_library(${T} proj_eb.cpp)
-target_link_libraries(${T} utilconvdiff approx_eb)

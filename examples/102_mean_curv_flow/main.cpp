@@ -257,7 +257,7 @@ void Run(M& m, Vars& var) {
   struct {
     std::unique_ptr<Vofm<M>> as; // advection solver
     FieldCell<Scal> fcs; // volume source
-    FieldFace<Scal> ffv; // volume flux
+    FieldEmbed<Scal> fev; // volume flux
     Multi<FieldCell<Scal>> fck; // curvature
     MapCondFaceFluid mf_cond_fluid; // face conditions
     MapCondFaceAdvection<Scal> mf_cond; // face conditions
@@ -269,7 +269,7 @@ void Run(M& m, Vars& var) {
     size_t frame = 0;
   } * ctx(sem);
   auto& fcs = ctx->fcs;
-  auto& ffv = ctx->ffv;
+  auto& fev = ctx->fev;
   auto& fck = ctx->fck;
   auto& layers = ctx->layers;
   auto& psm_par = ctx->psm_par;
@@ -285,7 +285,7 @@ void Run(M& m, Vars& var) {
 
   if (sem("init")) {
     fcs.Reinit(m, 0);
-    ffv.Reinit(m, 0);
+    fev.Reinit(m, 0);
 
     GetFluidFaceCond(var, m, ctx->mf_cond_fluid, ctx->mf_cond);
 
@@ -299,7 +299,7 @@ void Run(M& m, Vars& var) {
     const std::string path = "ref/voronoi/points1.dat";
     ReadColorPlain(path, layers, fcu, fccl, m);
 
-    as.reset(new Vofm<M>(m, m, fcu, fccl, ctx->mf_cond, &ffv, &fcs, 0., dt, p));
+    as.reset(new Vofm<M>(m, m, fcu, fccl, ctx->mf_cond, &fev, &fcs, 0., dt, p));
     fck.resize(layers);
     fck.InitAll(FieldCell<Scal>(m, 1));
     psm_par.dump_fr = 1;
@@ -321,13 +321,13 @@ void Run(M& m, Vars& var) {
   }
   if (sem.Nested("flux")) {
     CalcMeanCurvatureFlowFlux(
-        ffv, layers, as->GetFieldM(), as->GetColor(), as->GetNormal(),
-        as->GetAlpha(), fck, ctx->mf_cond_fluid, m);
+        fev.GetFieldFace(), layers, as->GetFieldM(), as->GetColor(),
+        as->GetNormal(), as->GetAlpha(), fck, ctx->mf_cond_fluid, m);
   }
   if (sem("dt")) {
     Scal maxv = 0;
     for (auto f : m.Faces()) {
-      maxv = std::max(maxv, std::abs(ffv[f]));
+      maxv = std::max(maxv, std::abs(fev[f]));
     }
     dt = cfl * m.GetCellSize().prod() / maxv;
     m.Reduce(&dt, "min");

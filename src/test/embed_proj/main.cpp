@@ -12,11 +12,11 @@
 
 #include "distr/distrbasic.h"
 #include "linear/linear.h"
+#include "solver/approx_eb.h"
 #include "solver/convdiffv_eb.h"
 #include "solver/embed.h"
-#include "solver/approx_eb.h"
 #include "solver/fluid.h"
-#include "solver/proj_eb.h"
+#include "solver/proj.h"
 #include "solver/reconst.h"
 
 using M = MeshStructured<double, 3>;
@@ -60,7 +60,7 @@ void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
   struct {
     std::unique_ptr<EB> eb;
-    std::unique_ptr<ProjEmbed<EB>> fs;
+    std::unique_ptr<Proj<EB>> fs;
     MapCondFaceFluid mfc;
     FieldCell<Scal> fcdiv;
     FieldCell<Scal> fcr;
@@ -78,8 +78,6 @@ void Run(M& m, Vars& var) {
   auto& frame = ctx->frame;
 
   const Vect vel(var.Vect["vel"]);
-  const size_t bc = 0;
-  const Vect bcvel(0);
 
   if (sem("ctor")) {
     ctx->eb.reset(new EB(m));
@@ -113,8 +111,8 @@ void Run(M& m, Vars& var) {
               << "dt=" << dt << " "
               << "dt/dt0=" << dt / dt0 << "dt/dt0a=" << dt / dt0a << " "
               << std::endl;
-    typename ProjEmbed<M>::Par par;
-    fs.reset(new ProjEmbed<EB>(
+    typename Proj<EB>::Par par;
+    fs.reset(new Proj<EB>(
         m, eb, fcvel, mfc, MapCell<std::shared_ptr<CondCellFluid>>(), &ctx->fcr,
         &ctx->fcd, &ctx->fcf, &ctx->ffbp, &ctx->fcsv, &ctx->fcsm, 0, dt, par));
   }
