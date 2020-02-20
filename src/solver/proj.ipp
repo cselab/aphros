@@ -364,28 +364,35 @@ struct Proj<EB_>::Imp {
       ffk = InterpolateInner(fck, eb);
     }
   }
-  /*
   // Append explicit part of viscous force.
   // fcw: velocity [a]
   // Output:
   // fcf += viscous term [i]
-  void AppendExplViscous(const FieldCell<Vect>& fcw, FieldCell<Vect>& fcf) {
-    auto wf = Interpolate(fcw, mfcw_, m);
+  void AppendExplViscous(
+      const FieldCell<Vect>& fcw, FieldCell<Vect>& fcf, const M& m) {
+    const auto wf = ::Interpolate(fcw, mfcw_, m);
     for (auto d : dr_) {
-      auto wfo = GetComponent(wf, d);
-      auto gc = Gradient(wfo, m);
-      auto gf = Interpolate(gc, mfcf_, m); // XXX adhoc zero-deriv cond
+      const auto wfo = GetComponent(wf, d);
+      const auto gc = ::Gradient(wfo, m);
+      const auto gf = ::Interpolate(gc, mfcf_, m); // XXX adhoc zero-deriv cond
       for (auto c : eb.Cells()) {
         Vect s(0);
         for (auto q : eb.Nci(c)) {
-          IdxFace f = m.GetFace(c, q);
+          const IdxFace f = m.GetFace(c, q);
           s += gf[f] * (ffd_[f] * m.GetOutwardSurface(c, q)[d]);
         }
         fcf[c] += s / m.GetVolume(c);
       }
     }
   }
-  */
+  void AppendExplViscous(
+      const FieldCell<Vect>& fcw, FieldCell<Vect>& fcf, const Embed<M>& eb) {
+    // FIXME: not implemented
+    (void) fcw;
+    (void) fcf;
+    (void) eb;
+    return;
+  }
   void UpdateBc(typename M::Sem& sem) {
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(
@@ -419,8 +426,7 @@ struct Proj<EB_>::Imp {
 
     if (sem("forceinit")) {
       fcfcd_.Reinit(m, Vect(0));
-      // FIXME: not implemented
-      //AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_);
+      AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_, eb);
     }
 
     if (sem.Nested("convdiff-iter")) {
@@ -435,7 +441,7 @@ struct Proj<EB_>::Imp {
     if (sem("pcorr-assemble")) {
       // Acceleration
       const auto ffvel =
-          Interpolate(cd_->GetVelocity(Step::iter_curr), mfcw_, 0, Vect(0), m);
+          Interpolate(cd_->GetVelocity(Step::iter_curr), mfcw_, 0, Vect(0), eb);
       auto& ffbp = *ffbp_;
       for (auto f : eb.Faces()) {
         Scal v = ffvel[f].dot(eb.GetSurface(f));
@@ -472,7 +478,7 @@ struct Proj<EB_>::Imp {
       // XXX adhoc , using mfcd_ but should be zero-derivative
       const auto ffgp = Gradient(fcp_curr, mfcd_, 1, 0., eb);
       fcwc_.Reinit(m);
-      auto& ffbp = *owner_->ffbp_;
+      auto& ffbp = *ffbp_;
       for (auto c : m.Cells()) {
         Vect s(0);
         for (auto q : eb.Nci(c)) {
