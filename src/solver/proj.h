@@ -8,14 +8,17 @@
 #include "fluid.h"
 #include "util/convdiff.h"
 
-template <class M_>
-class Proj final : public FluidSolver<M_> {
+template <class EB_>
+class Proj final : public FluidSolver<typename EB_::M> {
  public:
-  using M = M_;
-  using P = FluidSolver<M>; // parent
+  using EB = EB_;
+  using M = typename EB::M;
+  using Base = FluidSolver<M>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr size_t dim = M::dim;
+  template <class T>
+  using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
 
   struct Par {
     Scal vrelax = 1; // velocity relaxation factor [0,1]
@@ -28,6 +31,7 @@ class Proj final : public FluidSolver<M_> {
     bool linreport = false; // report linear solvers
     Conv conv = Conv::imp; // convection-diffusion solver
   };
+
   // Constructor.
   // fcw: initial velocity
   // mfc: face conditions
@@ -42,7 +46,7 @@ class Proj final : public FluidSolver<M_> {
   // dt: time step
   // par: parameters
   Proj(
-      M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
+      M& m, const EB& eb, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
       FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
       FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt,
@@ -50,29 +54,17 @@ class Proj final : public FluidSolver<M_> {
   ~Proj();
   const Par& GetPar() const;
   void SetPar(Par);
-  // ...
   void StartStep() override;
-  // ...
   void MakeIteration() override;
-  // ...
   void FinishStep() override;
-  // ...
   const FieldCell<Vect>& GetVelocity(Step) const override;
-  // ...
-  using P::GetVelocity;
-  // ...
+  using Base::GetVelocity;
   const FieldCell<Scal>& GetPressure(Step) const override;
-  // ...
-  using P::GetPressure;
-  // ...
-  const FieldFace<Scal>& GetVolumeFlux(Step) const override;
-  // ...
-  using P::GetVolumeFlux;
-  // ...
+  using Base::GetPressure;
+  const FieldEmbed<Scal>& GetVolumeFlux(Step) const override;
+  using Base::GetVolumeFlux;
   double GetAutoTimeStep() const override;
-  // ...
   double GetError() const override;
-  // ...
   const MapCondFace& GetVelocityCond() const override;
 
  private:

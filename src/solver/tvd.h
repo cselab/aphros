@@ -25,7 +25,7 @@ class Tvd final : public AdvectionSolver<M_> {
   };
   // Constructor
   Tvd(M& m, const FieldCell<Scal>& fcu, const MapCondFaceAdvection<Scal>& mfc,
-      const FieldFace<Scal>* ffv, const FieldCell<Scal>* fcs, double t,
+      const FieldEmbed<Scal>* fev, const FieldCell<Scal>* fcs, double t,
       double dt, Par par);
   ~Tvd();
   const Par& GetPar() const;

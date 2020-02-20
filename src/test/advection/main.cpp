@@ -95,7 +95,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   using P::var;
 
  private:
-  FieldFace<Scal> ff_flux_;
+  FieldEmbed<Scal> ff_flux_;
   FieldCell<Scal> fc_src_;
   FieldCell<Scal> fcu_; // volume fraction (used for initial)
   std::unique_ptr<AdvectionSolver<M>> as_; // advection solver

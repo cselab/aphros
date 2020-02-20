@@ -4,6 +4,7 @@
 #pragma once
 
 #include "geom/mesh.h"
+#include "solver/embed.h"
 #include "solver/solver.h"
 
 template <class Scal>
@@ -35,16 +36,16 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
 
  protected:
   M& m;
-  const FieldFace<Scal>* ffv_; // volume flux [velocity*area]
+  const FieldEmbed<Scal>* fev_; // volume flux [velocity*area]
   const FieldCell<Scal>* fcs_; // source [value/time]
 
  public:
-  // ffv: volume flux
+  // fev: volume flux
   // fcs: source
   AdvectionSolver(
-      double t, double dt, M& m, const FieldFace<Scal>* ffv,
+      double t, double dt, M& m, const FieldEmbed<Scal>* fev,
       const FieldCell<Scal>* fcs)
-      : UnsteadyIterativeSolver(t, dt), m(m), ffv_(ffv), fcs_(fcs) {}
+      : UnsteadyIterativeSolver(t, dt), m(m), fev_(fev), fcs_(fcs) {}
   // Postprocessing after time step (dumps)
   virtual void PostStep() {}
   // Volume fraction

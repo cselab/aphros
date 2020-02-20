@@ -4,11 +4,13 @@
 #pragma once
 
 #include <cmath>
+#include <limits>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 
 #include "approx.h"
+#include "approx_eb.h"
 #include "convdiffv.h"
 #include "debug/isnan.h"
 #include "fluid.h"
@@ -18,19 +20,12 @@
 #include "util/fluid.h"
 #include "util/metrics.h"
 
-// Rules:
-// - Each function assumes that all fields on layers
-//     iter_prev, time_prev, time_curr
-//   and force, source and viscosity
-//   are known and doesn't modify them.
-// - No function except for MakeIteration refers to iter_curr.
-//
-// domain (cells/faces)
+// ranges (cells/faces)
 // [i]: inner
 // [s]: support
 // [a]: all
-//
-// notation:
+
+// fields
 // p: pressure
 // gp: pressure gradient
 // w: velocity
@@ -38,24 +33,28 @@
 // we: predicted velocity (after solving velocity equations)
 // ve: predicted volume flux
 
-template <class M_>
-struct Proj<M_>::Imp {
-  using Owner = Proj<M_>;
-  using CD = ConvDiffVect<M>; // convdiff solver
+template <class EB_>
+struct Proj<EB_>::Imp {
+  using Owner = Proj<EB>;
+  using CD = ConvDiffVect<EB>; // convdiff solver
   // Expression on face: v[0] * cm + v[1] * cp + v[2]
   using ExprFace = generic::Vect<Scal, 3>;
   // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
   using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
+  using UEB = UEmbed<M>;
 
-  Imp(Owner* owner, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par)
+  Imp(Owner* owner, const EB& eb0, const FieldCell<Vect>& fcw,
+      MapCondFaceFluid& mfc, const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
+      Par par, const FieldFace<Scal>* ffbp)
       : owner_(owner)
       , par(par)
       , m(owner_->m)
+      , eb(eb0)
       , dr_(0, m.GetEdim())
       , drr_(m.GetEdim(), dim)
       , mfc_(mfc)
       , mcc_(mcc)
+      , ffbp_(ffbp)
       , fcpcs_(m)
       , ffvc_(m) {
     using namespace fluid_condition;
@@ -67,26 +66,26 @@ struct Proj<M_>::Imp {
     fcfcd_.Reinit(m, Vect(0));
     typename CD::Par p;
     SetConvDiffPar(p, par);
-    cd_ = GetConvDiff<M>()(
-        par.conv, m, fcw, mfcw_, owner_->fcr_, &ffd_, &fcfcd_,
-        &ffv_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
+    cd_ = GetConvDiff<EB>()(
+        par.conv, m, eb, fcw, mfcw_, owner_->fcr_, &ffd_, &fcfcd_,
+        &fev_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
 
     fcp_.time_curr.Reinit(m, 0.);
     fcp_.time_prev = fcp_.time_curr;
 
     // Calc initial volume fluxes
-    auto ffwe = Interpolate(cd_->GetVelocity(), mfcw_, m);
-    ffv_.time_curr.Reinit(m, 0.);
-    for (auto f : m.Faces()) {
-      ffv_.time_curr[f] = ffwe[f].dot(m.GetSurface(f));
+    auto ffwe = Interpolate(cd_->GetVelocity(), mfcw_, 0, Vect(0), eb);
+    fev_.time_curr.Reinit(m, 0.);
+    for (auto f : eb.Faces()) {
+      fev_.time_curr[f] = ffwe[f].dot(eb.GetSurface(f));
     }
     // Apply meshvel
     const Vect& meshvel = par.meshvel;
-    for (auto f : m.Faces()) {
-      ffv_.time_curr[f] -= meshvel.dot(m.GetSurface(f));
+    for (auto f : eb.Faces()) {
+      fev_.time_curr[f] -= meshvel.dot(eb.GetSurface(f));
     }
 
-    ffv_.time_prev = ffv_.time_curr;
+    fev_.time_prev = fev_.time_curr;
   }
 
   void UpdateDerivedConditions() {
@@ -125,8 +124,8 @@ struct Proj<M_>::Imp {
 
     mccp_.clear();
     mccp_.clear();
-    for (auto it : mcc_) {
-      IdxCell c = it.first;
+    for (auto& it : mcc_) {
+      const IdxCell c = it.first;
       CondCellFluid* cb = it.second.get(); // cond base
 
       if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
@@ -151,18 +150,18 @@ struct Proj<M_>::Imp {
     if (sem("convdiff-start")) {
       // rotate layers
       fcp_.iter_curr = fcp_.time_curr;
-      ffv_.iter_curr = ffv_.time_curr;
+      fev_.iter_curr = fev_.time_curr;
     }
   }
   // Apply cell conditions for pressure.
   // fcpb: base pressure [i]
   // fcs: linear system for pressure [i]
-  void ApplyPcCond(const FieldCell<Scal>& fcpb, FieldCell<Expr>& fcs) {
+  void ApplyCellCond(const FieldCell<Scal>& fcpb, FieldCell<Expr>& fcs) {
     (void)fcpb;
     for (auto& it : mccp_) {
-      IdxCell c = it.first; // target cell
-      CondCell* cb = it.second.get(); // cond base
-      if (auto cd = dynamic_cast<CondCellVal<Scal>*>(cb)) {
+      const IdxCell c = it.first; // target cell
+      const CondCell* cb = it.second.get(); // cond base
+      if (auto cd = dynamic_cast<const CondCellVal<Scal>*>(cb)) {
         auto& e = fcs[c];
         Scal pc = cd->second(); // new value for p[c]
         e = Expr(0);
@@ -170,7 +169,7 @@ struct Proj<M_>::Imp {
         e[0] = 1.;
         e[Expr::dim - 1] = pc;
         // override neighbours
-        for (size_t q : m.Nci(c)) {
+        for (size_t q : eb.Nci(c)) {
           IdxCell cn = m.GetCell(c, q);
           auto& en = fcs[cn];
           size_t qn = (q % 2 == 0 ? q + 1 : q - 1); // id of c from cn
@@ -184,19 +183,18 @@ struct Proj<M_>::Imp {
   //   /  grad(pc) * area / k + v, inner
   //   \  a, boundary
   // ffk: diag coeff [i]
-  // ffv: addition to flux [i]
-  // Output:
-  // ffe: result [i], Vect v stores expression: v[0]*cm + v[1]*cp + v[2]
-  void GetFlux(
-      const FieldFace<Scal>& ffk, const FieldFace<Scal>& ffv,
-      FieldFace<ExprFace>& ffe) {
-    ffe.Reinit(m);
-    for (auto f : m.Faces()) {
+  // ffv: constant term [i]
+  // Returns:
+  // ffe [i], v=ffe[c] stores expression: v[0]*cm + v[1]*cp + v[2]
+  template <int dummy>
+  FieldFace<ExprFace> CalcFlux(
+      const FieldFace<Scal>& ffk, const FieldEmbed<Scal>& ffv) {
+    FieldFace<ExprFace> ffe(m, ExprFace(0));
+    for (auto f : eb.Faces()) {
       auto& e = ffe[f];
-      IdxCell cp = m.GetCell(f, 1);
-      Scal hr = m.GetArea(f) / m.GetVolume(cp);
+      const Scal hinv = 1. / m.GetCellSize()[0];
       if (!ffbd_[f]) { // inner
-        Scal a = -m.GetArea(f) * hr / ffk[f];
+        const Scal a = -m.GetArea(f) * hinv / ffk[f];
         e[0] = -a;
         e[1] = a;
       } else { // boundary
@@ -205,6 +203,33 @@ struct Proj<M_>::Imp {
       }
       e[2] = ffv[f];
     }
+    return ffe;
+  }
+  template <int dummy>
+  FieldEmbed<ExprFace> CalcFlux(
+      const FieldEmbed<Scal>& fek, const FieldEmbed<Scal>& fev) {
+    FieldEmbed<ExprFace> ffe(m, ExprFace(0));
+    for (auto f : eb.Faces()) {
+      auto& e = ffe[f];
+      if (!ffbd_[f]) { // inner
+        const IdxCell cm = m.GetCell(f, 0);
+        const IdxCell cp = m.GetCell(f, 1);
+        const Scal dn = eb.ClipGradDenom(
+            eb.GetNormal(f).dot(eb.GetCellCenter(cp) - eb.GetCellCenter(cm)));
+        const Scal a = -eb.GetArea(f) / (fek[f] * dn);
+        e[0] = -a;
+        e[1] = a;
+      } else { // boundary
+        e[0] = 0;
+        e[1] = 0;
+      }
+      e[2] = fev[f];
+    }
+    for (auto c : eb.CFaces()) {
+      auto& e = ffe[c];
+      e[2] = fev[c];
+    }
+    return ffe;
   }
   // Expressions for sum of fluxes and source:
   //   sum(v) - sv * vol
@@ -212,21 +237,23 @@ struct Proj<M_>::Imp {
   // fcsv: volume source [i]
   // Output:
   // fce: result [i]
-  void GetFluxSum(
-      const FieldFace<ExprFace>& ffv, const FieldCell<Scal>& fcsv,
-      FieldCell<Expr>& fce) {
-    fce.Reinit(m, Expr(0));
-    for (auto c : m.Cells()) {
-      auto& e = fce[c];
-      for (auto q : m.Nci(c)) {
-        IdxFace f = m.GetFace(c, q);
-        ExprFace v = ffv[f] * m.GetOutwardFactor(c, q);
+  FieldCell<Expr> CalcFluxSum(
+      const FieldFaceb<ExprFace>& ffv, const FieldCell<Scal>& fcsv) {
+    // initialize as diagonal system
+    FieldCell<Expr> fce(m, Expr::GetUnit(0));
+    for (auto c : eb.Cells()) {
+      Expr e(0);
+      for (auto q : eb.Nci(c)) {
+        const IdxFace f = m.GetFace(c, q);
+        const ExprFace v = ffv[f] * m.GetOutwardFactor(c, q);
         e[0] += v[1 - q % 2];
         e[1 + q] += v[q % 2];
         e[Expr::dim - 1] += v[2];
       }
       e[Expr::dim - 1] -= fcsv[c] * m.GetVolume(c);
+      fce[c] = e;
     }
+    return fce;
   }
   // Solve linear system fce = 0
   // fce: expressions [i]
@@ -273,30 +300,71 @@ struct Proj<M_>::Imp {
       }
     }
   }
+  template <class T>
+  static FieldFace<T> InterpolateInner(const FieldCell<T>& fcu, const M& m) {
+    FieldFace<T> ffu(m);
+    InterpolateI(fcu, ffu, m);
+    return ffu;
+  }
+  template <class T>
+  static FieldEmbed<T> InterpolateInner(
+      const FieldCell<T>& fcu, const Embed<M>& eb) {
+    return UEB::InterpolateBilinear(fcu, MapCondFace(), 1, T(0), eb);
+  }
+  template <class T>
+  static FieldFace<T> Interpolate(
+      const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
+      const M& m) {
+    (void) bc;
+    (void) bcv;
+    return ::Interpolate<T, M>(fcu, mfc, m);
+  }
+  template <class T>
+  FieldEmbed<T> Interpolate(
+      const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
+      const Embed<M>& eb) const {
+    return UEB::InterpolateBilinear(fcu, mfc, bc, bcv, eb);
+  }
+  template <class T>
+  static FieldFace<T> Gradient(
+      const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
+      const M& m) {
+    (void) bc;
+    (void) bcv;
+    FieldFace<T> ffg(m);
+    ::Gradient(fcu, mfc, m, ffg);
+    return ffg;
+  }
+  template <class T>
+  static FieldEmbed<Scal> Gradient(
+      const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
+      const Embed<M>& eb) {
+    return UEB::GradientBilinear(fcu, mfc, bc, bcv, eb);
+  }
   // Get diagcoeff from current convdiff equations
-  void GetDiagCoeff(FieldCell<Scal>& fck, FieldFace<Scal>& ffk) {
+  void GetDiagCoeff(FieldCell<Scal>& fck, FieldFaceb<Scal>& ffk) {
     auto sem = m.GetSem("diag");
     if (sem("local")) {
       fck.Reinit(m, 0);
       for (auto d : dr_) {
         auto fct = cd_->GetDiag(d);
-        for (auto c : m.Cells()) {
+        for (auto c : eb.Cells()) {
           fck[c] += fct[c];
         }
       }
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         fck[c] /= dr_.size();
       }
 
-      CHECKNAN(fck, m.CN())
+      CHECKNAN(fck, m.CN());
 
       m.Comm(&fck);
     }
     if (sem("interp")) {
-      ffk.Reinit(m);
-      InterpolateI(fck, ffk, m);
+      ffk = InterpolateInner(fck, eb);
     }
   }
+  /*
   // Append explicit part of viscous force.
   // fcw: velocity [a]
   // Output:
@@ -307,9 +375,9 @@ struct Proj<M_>::Imp {
       auto wfo = GetComponent(wf, d);
       auto gc = Gradient(wfo, m);
       auto gf = Interpolate(gc, mfcf_, m); // XXX adhoc zero-deriv cond
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         Vect s(0);
-        for (auto q : m.Nci(c)) {
+        for (auto q : eb.Nci(c)) {
           IdxFace f = m.GetFace(c, q);
           s += gf[f] * (ffd_[f] * m.GetOutwardSurface(c, q)[d]);
         }
@@ -317,6 +385,7 @@ struct Proj<M_>::Imp {
       }
     }
   }
+  */
   void UpdateBc(typename M::Sem& sem) {
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(
@@ -339,18 +408,19 @@ struct Proj<M_>::Imp {
       cd_->SetPar(UpdateConvDiffPar(cd_->GetPar(), par));
 
       // interpolate visosity
-      ffd_ = Interpolate(*owner_->fcd_, mfcd_, m);
+      ffd_ = Interpolate(*owner_->fcd_, mfcd_, 1, 0., eb);
 
       // rotate layers
       fcp_prev = fcp_curr;
-      ffv_.iter_prev = ffv_.iter_curr;
+      fev_.iter_prev = fev_.iter_curr;
     }
 
     UpdateBc(sem);
 
     if (sem("forceinit")) {
       fcfcd_.Reinit(m, Vect(0));
-      AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_);
+      // FIXME: not implemented
+      //AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_);
     }
 
     if (sem.Nested("convdiff-iter")) {
@@ -365,22 +435,22 @@ struct Proj<M_>::Imp {
     if (sem("pcorr-assemble")) {
       // Acceleration
       const auto ffvel =
-          Interpolate(cd_->GetVelocity(Step::iter_curr), mfcw_, m);
-      auto& ffbp = *owner_->ffbp_;
-      for (auto f : m.Faces()) {
-        Scal v = ffvel[f].dot(m.GetSurface(f));
+          Interpolate(cd_->GetVelocity(Step::iter_curr), mfcw_, 0, Vect(0), m);
+      auto& ffbp = *ffbp_;
+      for (auto f : eb.Faces()) {
+        Scal v = ffvel[f].dot(eb.GetSurface(f));
         if (!ffbd_[f]) { // inner
-          v += ffbp[f] * m.GetArea(f) / ffk_[f];
+          v += ffbp[f] * eb.GetArea(f) / ffk_[f];
         } else { // boundary
           // nop, keep the mean flux
         }
-        ffv_.iter_curr[f] = v;
+        fev_.iter_curr[f] = v;
       }
 
       // Projection
-      GetFlux(ffk_, ffv_.iter_curr, ffvc_);
-      GetFluxSum(ffvc_, *owner_->fcsv_, fcpcs_);
-      ApplyPcCond(fcp_curr, fcpcs_);
+      ffvc_ = CalcFlux<0>(ffk_, fev_.iter_curr);
+      fcpcs_ = CalcFluxSum(ffvc_, *owner_->fcsv_);
+      ApplyCellCond(fcp_curr, fcpcs_);
     }
 
     if (sem.Nested("pcorr-solve")) {
@@ -391,29 +461,27 @@ struct Proj<M_>::Imp {
       // set pressure
       fcp_curr = fcpc_;
 
-      for (auto f : m.Faces()) {
+      for (auto f : eb.Faces()) {
         IdxCell cm = m.GetCell(f, 0);
         IdxCell cp = m.GetCell(f, 1);
         auto& e = ffvc_[f];
-        ffv_.iter_curr[f] = e[0] * fcpc_[cm] + e[1] * fcpc_[cp] + e[2];
+        fev_.iter_curr[f] = e[0] * fcpc_[cm] + e[1] * fcpc_[cp] + e[2];
       }
 
       // Acceleration and correction to center velocity
+      // XXX adhoc , using mfcd_ but should be zero-derivative
+      const auto ffgp = Gradient(fcp_curr, mfcd_, 1, 0., eb);
       fcwc_.Reinit(m);
       auto& ffbp = *owner_->ffbp_;
       for (auto c : m.Cells()) {
         Vect s(0);
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetFace(c, q);
+        for (auto q : eb.Nci(c)) {
+          const IdxFace f = m.GetFace(c, q);
           if (!ffbd_[f]) { // inner
-            IdxCell cm = m.GetCell(f, 0);
-            IdxCell cp = m.GetCell(f, 1);
-            Scal hr = m.GetArea(f) / m.GetVolume(cp);
-            Scal gp = (fcp_curr[cp] - fcp_curr[cm]) * hr;
-            Scal a = (ffbp[f] - gp) / ffk_[f];
-            s += m.GetNormal(f) * a * 0.5;
+            const Scal a = (ffbp[f] - ffgp[f]) / ffk_[f];
+            s += eb.GetNormal(f) * (a * 0.5);
           } else {
-            // nop, no accelaration
+            // nop, no acceleration
           }
         }
         fcwc_[c] = s;
@@ -434,9 +502,9 @@ struct Proj<M_>::Imp {
     auto sem = m.GetSem("fluid-finish");
     if (sem("inctime")) {
       fcp_.time_prev = fcp_.time_curr;
-      ffv_.time_prev = ffv_.time_curr;
+      fev_.time_prev = fev_.time_curr;
       fcp_.time_curr = fcp_.iter_curr;
-      ffv_.time_curr = ffv_.iter_curr;
+      fev_.time_curr = fev_.iter_curr;
       CHECKNAN(fcp_.time_curr, m.CN())
       owner_->IncTime();
     }
@@ -445,14 +513,11 @@ struct Proj<M_>::Imp {
     }
   }
   double GetAutoTimeStep() {
-    double dt = 1e10;
-    auto& flux = ffv_.time_curr;
-    for (auto c : m.Cells()) {
-      for (size_t i = 0; i < m.GetNumFaces(c); ++i) {
-        IdxFace f = m.GetFace(c, i);
-        if (flux[f] != 0.) {
-          dt = std::min<Scal>(dt, std::abs(m.GetVolume(c) / flux[f]));
-        }
+    Scal dt = std::numeric_limits<Scal>::max();
+    for (auto f : eb.Faces()) {
+      const Scal vel = fev_.time_curr[f] / m.GetArea(f);
+      if (vel != 0.) {
+        dt = std::min<Scal>(dt, std::abs(m.GetCellSize()[0] / vel));
       }
     }
     return dt;
@@ -463,7 +528,8 @@ struct Proj<M_>::Imp {
 
   Owner* owner_;
   Par par;
-  M& m; // mesh
+  M& m;
+  const EB& eb;
   GRange<size_t> dr_; // effective dimension range
   GRange<size_t> drr_; // remaining dimensions
 
@@ -479,7 +545,8 @@ struct Proj<M_>::Imp {
   MapCell<std::shared_ptr<CondCellFluid>> mcc_; // fluid cell cond
   MapCell<std::shared_ptr<CondCell>> mccp_; // pressure cell cond
 
-  StepData<FieldFace<Scal>> ffv_; // volume flux
+  const FieldFace<Scal>* ffbp_;
+  StepData<FieldEmbed<Scal>> fev_; // volume flux
   StepData<FieldCell<Scal>> fcp_; // pressure
 
   std::shared_ptr<CD> cd_;
@@ -500,74 +567,74 @@ struct Proj<M_>::Imp {
   FieldCell<Vect> fctv_;
 
   // Face fields:
-  FieldFace<Scal> ffd_; // dynamic viscosity
-  FieldFace<Scal> ffk_; // diag coeff of velocity equation
-  FieldFace<ExprFace> ffvc_; // expression for corrected volume flux [i]
+  FieldFaceb<Scal> ffd_; // dynamic viscosity
+  FieldFaceb<Scal> ffk_; // diag coeff of velocity equation
+  FieldFaceb<ExprFace> ffvc_; // expression for corrected volume flux [i]
 };
 
-template <class M_>
-Proj<M_>::Proj(
-    M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
+template <class EB_>
+Proj<EB_>::Proj(
+    M& m, const EB& eb, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
     const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
     FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
     FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt, Par par)
-    : FluidSolver<M>(t, dt, m, fcr, fcd, fcf, ffbp, fcsv, fcsm)
-    , imp(new Imp(this, fcw, mfc, mcc, par)) {}
+    : FluidSolver<M>(t, dt, m, fcr, fcd, fcf, nullptr, fcsv, fcsm)
+    , imp(new Imp(this, eb, fcw, mfc, mcc, par, ffbp)) {}
 
-template <class M_>
-Proj<M_>::~Proj() = default;
+template <class EB_>
+Proj<EB_>::~Proj() = default;
 
-template <class M_>
-auto Proj<M_>::GetPar() const -> const Par& {
+template <class EB_>
+auto Proj<EB_>::GetPar() const -> const Par& {
   return imp->par;
 }
 
-template <class M_>
-void Proj<M_>::SetPar(Par par) {
+template <class EB_>
+void Proj<EB_>::SetPar(Par par) {
   imp->par = par;
 }
 
-template <class M_>
-void Proj<M_>::StartStep() {
+template <class EB_>
+void Proj<EB_>::StartStep() {
   return imp->StartStep();
 }
 
-template <class M_>
-void Proj<M_>::MakeIteration() {
+template <class EB_>
+void Proj<EB_>::MakeIteration() {
   return imp->MakeIteration();
 }
 
-template <class M_>
-void Proj<M_>::FinishStep() {
+template <class EB_>
+void Proj<EB_>::FinishStep() {
   return imp->FinishStep();
 }
 
-template <class M_>
-auto Proj<M_>::GetVelocity(Step l) const -> const FieldCell<Vect>& {
+template <class EB_>
+auto Proj<EB_>::GetVelocity(Step l) const -> const FieldCell<Vect>& {
   return imp->GetVelocity(l);
 }
 
-template <class M_>
-auto Proj<M_>::GetPressure(Step l) const -> const FieldCell<Scal>& {
+template <class EB_>
+auto Proj<EB_>::GetPressure(Step l) const -> const FieldCell<Scal>& {
   return imp->fcp_.Get(l);
 }
 
-template <class M_>
-auto Proj<M_>::GetVolumeFlux(Step l) const -> const FieldFace<Scal>& {
-  return imp->ffv_.Get(l);
+template <class EB_>
+auto Proj<EB_>::GetVolumeFlux(Step l) const -> const FieldEmbed<Scal>& {
+  return imp->fev_.Get(l);
 }
 
-template <class M_>
-double Proj<M_>::GetAutoTimeStep() const {
+template <class EB_>
+double Proj<EB_>::GetAutoTimeStep() const {
   return imp->GetAutoTimeStep();
 }
 
-template <class M_>
-double Proj<M_>::GetError() const {
+template <class EB_>
+double Proj<EB_>::GetError() const {
   return imp->cd_->GetError();
 }
 
-template <class M_>
-auto Proj<M_>::GetVelocityCond() const -> const MapCondFace& {
+template <class EB_>
+auto Proj<EB_>::GetVelocityCond() const -> const MapCondFace& {
   return imp->mfcw_;
 }

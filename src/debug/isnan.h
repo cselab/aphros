@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 
+#include "solver/embed.h"
 #include "geom/field.h"
 #include "geom/range.h"
 #include "geom/vect.h"
@@ -83,6 +84,13 @@ bool CheckNan(
     }
   }
   return false;
+}
+
+template <class T, class M>
+bool CheckNan(
+    const FieldEmbed<T>& u, std::string n, const M& m, std::string w = "") {
+  return CheckNan(u.GetFieldCell(), n, m, w) ||
+         CheckNan(u.GetFieldFace(), n, m, w);
 }
 
 // Returns path of file relative to src/

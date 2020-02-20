@@ -10,6 +10,7 @@
 #include <string>
 
 #include "cond.h"
+#include "embed.h"
 #include "geom/mesh.h"
 #include "solver.h"
 
@@ -58,8 +59,8 @@ class FluidSolver : public UnsteadyIterativeSolver {
   virtual const FieldCell<Scal>& GetPressure() const {
     return GetPressure(Step::time_curr);
   }
-  virtual const FieldFace<Scal>& GetVolumeFlux(Step) const = 0;
-  virtual const FieldFace<Scal>& GetVolumeFlux() const {
+  virtual const FieldEmbed<Scal>& GetVolumeFlux(Step) const = 0;
+  virtual const FieldEmbed<Scal>& GetVolumeFlux() const {
     return GetVolumeFlux(Step::time_curr);
   }
   virtual double GetAutoTimeStep() const {
