@@ -291,6 +291,9 @@ class Embed {
   Vect GetOutwardSurface(IdxCell c, size_t q) const {
     return GetSurface(m.GetFace(c, q)) * m.GetOutwardFactor(c, q);
   }
+  Scal GetOutwardFactor(IdxCell c, size_t q) const {
+    return m.GetOutwardFactor(c, q);
+  }
   Scal GetFaceOffset(IdxCell c, size_t nci) const {
     IdxFace f = m.GetFace(c, nci);
     return (GetFaceCenter(f) - GetCellCenter(c)).dot(m.GetNormal(f));

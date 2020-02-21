@@ -116,7 +116,7 @@ void Run(M& m, Vars& var) {
     FieldNode<Scal> fnl;
     FieldCell<Scal> fcu;
     FieldEmbed<Scal> fev;
-    MapEmbed<BCond<Scal>> mebc; // boundary conditions
+    MapEmbed<BCond<Scal>> mebc;
     Scal t = 0;
     Vect vel;
     Scal dt;
