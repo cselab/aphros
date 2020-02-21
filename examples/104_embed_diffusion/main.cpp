@@ -42,6 +42,7 @@ void Diffusion0(
   }
 }
 
+// Diffusion solver with redistribution to neighbor cells.
 void Diffusion1(
     FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, Scal diff, Scal dt,
     const Embed<M>& eb) {
@@ -54,6 +55,34 @@ void Diffusion1(
   for (auto c : eb.CFaces()) {
     fed[c] = feg[c] * diff * eb.GetArea(c);
   }
+  // Compute the change at one time step.
+  FieldCell<Scal> fct(eb, 0);
+  for (auto c : eb.Cells()) {
+    Scal sum = fed[c];
+    for (auto q : eb.Nci(c)) {
+      sum += fed[eb.GetFace(c, q)] * eb.GetOutwardFactor(c, q);
+    }
+    fct[c] = sum * dt;
+  }
+  fct = UEmbed<M>::RedistributeCutCells(fct, eb);
+  // Advance in time.
+  for (auto c : eb.Cells()) {
+    fcu[c] += fct[c] / eb.GetVolume(c);
+  }
+}
+
+// Diffusion solver with redistribution to neighbor cells
+// and ExecFaces() to avoid code duplicatoin.
+void Diffusion2(
+    FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, Scal diff, Scal dt,
+    const Embed<M>& eb) {
+  const auto feg = UEmbed<M>::Gradient(fcu, mebc, eb);
+  // Compute flux.
+  FieldEmbed<Scal> fed(eb, 0);
+  eb.ExecFaces([&](auto cf) { // lambda-function applied to faces and
+                              // embedded faces
+    fed[cf] = feg[cf] * diff * eb.GetArea(cf);
+  });
   // Compute the change at one time step.
   FieldCell<Scal> fct(eb, 0);
   for (auto c : eb.Cells()) {
@@ -132,6 +161,9 @@ void Run(M& m, Vars& var) {
         break;
       case 1:
         Diffusion1(fcu, mebc, diff, dt, *ctx->eb_);
+        break;
+      case 2:
+        Diffusion2(fcu, mebc, diff, dt, *ctx->eb_);
         break;
       default:
         throw std::runtime_error(

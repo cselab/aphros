@@ -2,8 +2,8 @@
 
 set -eu
 
-vcase=(0 1)
-vgradlim=(0 0)
+vcase=(0 1 2)
+vgradlim=(0 0 0)
 
 for i in "${!vcase[@]}" ; do
   case=${vcase[$i]}
