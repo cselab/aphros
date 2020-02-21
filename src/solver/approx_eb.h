@@ -105,21 +105,22 @@ struct ULinear {
   }
 };
 
+enum class BCondType {
+  dirichlet, // u = val
+  neumann, // du/dn = val
+  mixed, // if u is vector,
+         //   u.proj(n) = val.proj(n)
+         //   (du/dn).orth(n) = val.orth(n)
+         // if u is scalar, equivalent to `dirichlet`
+  extrap, // extrapolated from neighbor cells
+};
+
 // Boundary condition on face or embedded boundary.
 template <class T>
 struct BCond {
-  enum class Type {
-    dirichlet, // u = val
-    neumann, // du/dn = val
-    dirichlet_normal, // if u is vector,
-                      //   u.dot(n) = val.dot(n)
-                      //   (du/dn).tangent(n) = val.tangent(n)
-                      // if u is scalar, equivalent to `dirichlet`
-    extrap, // extrapolated from neighbor cells
-  };
-  Type type;
-  T val; // field value (dirichlet) or normal gradient (neumann)
-  size_t nci; // neighbor cell id on faces and 0 on embedded boundaries
+  BCondType type = BCondType::dirichlet;
+  T val = T(0); // field value (dirichlet) or normal gradient (neumann)
+  size_t nci = 0; // neighbor cell id on faces and 0 on embedded boundaries
 };
 
 template <class M_>
@@ -298,6 +299,10 @@ struct UEmbed {
   static FieldEmbed<T> InterpolateBilinear(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
       const EB& eb);
+
+  template <class T>
+  static FieldEmbed<T> Interpolate(
+      const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const EB& eb);
 
   // Gradient with bilinear interpolation in cut faces
   // and linear fit in embed faces.
