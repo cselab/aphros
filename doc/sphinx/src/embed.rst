@@ -158,12 +158,12 @@ The routines described above are sufficient to implement an advection solver.
 .. |ex103_0_1| image:: ../../../examples/103_embed_advection/case0/u_0001.svg
 
 .. table:: Results of advection solver ``Advection0()``: 
-   initial (left) and final (right). Instabilities develop near the boundary.
-   :align: center
+  initial (left) and final (right). Instabilities develop near the boundary.
+  :align: center
 
-   +-------------+-------------+
-   | |ex103_0_0| | |ex103_0_1| |
-   +-------------+-------------+
+  +-------------+-------------+
+  | |ex103_0_0| | |ex103_0_1| |
+  +-------------+-------------+
 
 See full example in :linkpath:`examples/103_embed_advection/main.cpp`.
 
@@ -193,13 +193,13 @@ Using this function in the advection solver results in
 .. |ex103_2_1| image:: ../../../examples/103_embed_advection/case2/u_0001.svg
 
 .. table:: Results of first order upwind scheme ``Advection1()`` (left)
-   and second order upwind scheme ``Advection2()`` (right).
-   Resdistribution from cut cells stabilizes the method in both cases.
-   :align: center
+  and second order upwind scheme ``Advection2()`` (right).
+  Resdistribution from cut cells stabilizes the method in both cases.
+  :align: center
 
-   +-------------+-------------+
-   | |ex103_1_1| | |ex103_2_1| |
-   +-------------+-------------+
+  +-------------+-------------+
+  | |ex103_1_1| | |ex103_2_1| |
+  +-------------+-------------+
 
 The fraction of redistributed quantities ``eb.RedistributeCutCells()`` does not
 depend on the velocity or the time step.  While this makes a stable method,
@@ -237,12 +237,12 @@ The following function implements a diffusion solver using this approximation
 .. |ex104_0_1| image:: ../../../examples/104_embed_diffusion/case0_gradlim0/u_0001.svg
 
 .. table:: Results of diffusion solver ``Diffusion0()``: 
-   initial (left) and final (right). Instabilities develop near the boundary.
-   :align: center
+  initial (left) and final (right). Instabilities develop near the boundary.
+  :align: center
 
-   +-------------+-------------+
-   | |ex104_0_0| | |ex104_0_1| |
-   +-------------+-------------+
+  +-------------+-------------+
+  | |ex104_0_0| | |ex104_0_1| |
+  +-------------+-------------+
 
 See full example in :linkpath:`examples/104_embed_diffusion/main.cpp`.
 
@@ -252,32 +252,25 @@ See full example in :linkpath:`examples/104_embed_diffusion/main.cpp`.
   :comment:
   :impl:
 
-.. |ex104_1_1| image:: ../../../examples/104_embed_diffusion/case1_gradlim0/u_0001.svg
-
-.. table:: Results of diffusion solver ``Diffusion1()``: 
-   initial (left) and final (right). Redistribution from cut cells
-   reduced but not eliminated instabilities.
-   :align: center
-
-   +-------------+
-   | |ex104_1_1| |
-   +-------------+
-
 .. includecode:: examples/104_embed_diffusion/main.cpp
   :func: Diffusion2
   :comment:
   :impl:
 
-.. |ex104_1a_1| image:: ../../../examples/104_embed_diffusion/case1_gradlim0.2/u_0001.svg
+
+.. |ex104_1_1| image:: ../../../examples/104_embed_diffusion/case1_gradlim0/u_0001.svg
 
 .. |ex104_2_1| image:: ../../../examples/104_embed_diffusion/case2_gradlim0/u_0001.svg
 
-.. table:: Results of diffusion solver ``Diffusion1()`` with limited gradient
-   (left) and ``Diffusion2()`` using a linear fit to cell centers (right).
-   Limiting the gradient stabilizes the method but introduces a parameter.
-   Using a linear fit stabilizes the method without additional parameters.
-   :align: center
 
-   +--------------+-------------+
-   | |ex104_1a_1| | |ex104_2_1| |
-   +--------------+-------------+
+.. table:: Results of diffusion solver ``Diffusion1()`` (left)
+  using linear fit to cell centers to compute the gradient
+  which eliminates the instabilities.
+  Solver ``Diffusion2()`` (right) produces the same results
+  and illustrates the usage of ``ExecFaces()``
+  to execute the same lambda-function on indices of two types
+  :align: center
+
+  +--------------+-------------+
+  | |ex104_1_1|  | |ex104_2_1| |
+  +--------------+-------------+
