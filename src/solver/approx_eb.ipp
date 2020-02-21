@@ -534,7 +534,7 @@ auto UEmbed<M>::InterpolateUpwind(
 }
 
 template <class M>
-auto UEmbed<M>::Gradient(const FieldEmbed<Scal>& feu, const EB& eb)
+auto UEmbed<M>::GradientGauss(const FieldEmbed<Scal>& feu, const EB& eb)
     -> FieldCell<Vect> {
   auto& m = eb.GetMesh();
   FieldCell<Vect> fcg(eb, Vect(0));
@@ -563,7 +563,7 @@ auto UEmbed<M>::GradientLinearFit(const FieldEmbed<Scal>& feu, const EB& eb)
     -> FieldCell<Vect> {
   auto& m = eb.GetMesh();
   FieldCell<Vect> fcg(eb, Vect(0));
-  for (auto c : eb.AllCells()) {
+  for (auto c : eb.SuCells()) {
     if (eb.GetType(c) == Type::regular) {
       Vect sum(0);
       for (auto q : m.Nci(c)) {
@@ -637,7 +637,7 @@ auto UEmbed<M>::RedistributeCutCells(const FieldCell<T>& fcu, const EB& eb)
 
 template <class M>
 template <class T>
-auto UEmbed<M>::Gradient(
+auto UEmbed<M>::GradientLimited(
     const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
     const EB& eb) -> FieldEmbed<T> {
   FieldEmbed<T> feg(eb, T(0));

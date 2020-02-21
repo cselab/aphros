@@ -127,7 +127,7 @@ void Run(M& m, Vars& var) {
       feu[c] = func(eb.GetFaceCenter(c));
     }
     feu = Add(feu, GetNoise(eb, 0), eb);
-    fcg = UEB::Gradient(feu, eb);
+    fcg = UEB::GradientGauss(feu, eb);
     std::cout << "1/h=" << 1 / m.GetCellSize()[0] << std::endl;
     PrintStat(GetStat<Vect>(fcg, eb));
     fcg = UEB::AverageCutCells(fcg, eb);

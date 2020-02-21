@@ -216,7 +216,8 @@ struct UEmbed {
   // feu: field on embedded boundaries [a]
   // Returns:
   // gradient on cells [a]
-  static FieldCell<Vect> Gradient(const FieldEmbed<Scal>& feu, const EB& eb);
+  static FieldCell<Vect> GradientGauss(
+      const FieldEmbed<Scal>& feu, const EB& eb);
 
   // Gradient from linear fit to face centers.
   // feu: field on embedded boundaries [a]
@@ -239,7 +240,7 @@ struct UEmbed {
   // Returns:
   // grad dot GetNormal on embedded boundaries [s]
   template <class T>
-  static FieldEmbed<T> Gradient(
+  static FieldEmbed<T> GradientLimited(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
       const EB& eb);
 

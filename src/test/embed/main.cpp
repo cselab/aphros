@@ -108,11 +108,11 @@ void Run(M& m, Vars& var) {
       feu = UEB::Interpolate(fcu, mfc, bc, bcu, eb);
       FieldEmbed<Scal> feun(m);
 
-      const auto feunc = UEB::Gradient(fcu, mfc, bc, bcu, eb);
+      const auto feunc = UEB::GradientBilinear(fcu, mfc, bc, bcu, eb);
       if (compact) {
         feun = feunc;
       } else {
-        const FieldCell<Vect> fcg = UEB::Gradient(feu, eb);
+        const FieldCell<Vect> fcg = UEB::GradientGauss(feu, eb);
         const FieldEmbed<Vect> feg =
             UEB::Interpolate(fcg, MapCondFace(), 1, Vect(0), eb);
         for (auto f : eb.Faces()) {

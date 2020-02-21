@@ -13,9 +13,9 @@
 #include "dump/dump.h"
 #include "geom/mesh.h"
 #include "solver/approx.h"
+#include "solver/approx_eb.h"
 #include "solver/cond.h"
 #include "solver/embed.h"
-#include "solver/approx_eb.h"
 #include "solver/solver.h"
 
 using M = MeshStructured<double, 3>;
@@ -1129,7 +1129,7 @@ void TestEmbed() {
   if (1) {
     auto estimator = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb);
-      return UEB::Gradient(fcu, MapCondFace(), 1, 0., eb);
+      return UEB::GradientLimited(fcu, MapCondFace(), 1, 0., eb);
     };
     auto estimator_bi_bc0 = [](const Func<Scal>& func, const EB& eb) {
       const auto fcu = Eval<FieldCell<Scal>>(func(), eb.GetMesh());
@@ -1161,7 +1161,7 @@ void TestEmbed() {
       return fe;
     };
     std::cout << "\n"
-              << "eb.Gradient() returning FieldEmbed<Scal>" << std::endl;
+              << "eb.GradientLimited() returning FieldEmbed<Scal>" << std::endl;
     VaryFunc<FieldEmbed<Scal>, EB>(estimator, exact);
     std::cout << "\n"
               << "eb.GradientBilinear() bc=0 returning FieldEmbed<Scal>"
@@ -1176,7 +1176,7 @@ void TestEmbed() {
   if (1) {
     auto estimator = [](const Func<Scal>& func, const EB& eb) {
       auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-      return UEB::Gradient(fe, eb);
+      return UEB::GradientGauss(fe, eb);
     };
     auto estimator_lin = [](const Func<Scal>& func, const EB& eb) {
       auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
@@ -1186,7 +1186,7 @@ void TestEmbed() {
       return Eval<FieldCell<Vect>>(Gradient(func), eb);
     };
     std::cout << "\n"
-              << "eb.Gradient() returning FieldCell<Vect>" << std::endl;
+              << "eb.GradientGauss() returning FieldCell<Vect>" << std::endl;
     VaryFunc<FieldCell<Vect>, EB>(estimator, exact);
     std::cout << "\n"
               << "eb.GradientLinearFit() returning FieldCell<Vect>"
@@ -1196,11 +1196,11 @@ void TestEmbed() {
 
   if (1) {
     std::cout << "\n"
-              << "eb.Gradient() returning FieldCell<Vect>" << std::endl;
+              << "eb.GradientGauss() returning FieldCell<Vect>" << std::endl;
     VaryFunc<FieldCell<Vect>, EB>(
         [](const Func<Scal>& func, const EB& eb) {
           auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-          return UEB::Gradient(fe, eb);
+          return UEB::GradientGauss(fe, eb);
         },
         [](const Func<Scal>& func, const EB& eb) {
           return Eval<FieldCell<Vect>>(Gradient(func), eb);
@@ -1212,7 +1212,7 @@ void TestEmbed() {
       GetOrderField<F, FieldCell<Scal>, EB>(
           [](const Func<Scal>& func, const EB& eb) {
             auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-            return GetComponent(UEB::Gradient(fe, eb), 0);
+            return GetComponent(UEB::GradientGauss(fe, eb), 0);
           },
           [](const Func<Scal>& func, const EB& eb) {
             return Eval<FieldCell<Scal>>(func.Dx(0), eb);
@@ -1223,7 +1223,7 @@ void TestEmbed() {
       Eval<F, FieldCell<Scal>, EB>(
           [](const Func<Scal>& func, const EB& eb) {
             auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
-            return GetComponent(UEB::Gradient(fe, eb), 0);
+            return GetComponent(UEB::GradientGauss(fe, eb), 0);
           },
           1e-3),
       "estimator.dat");
@@ -1241,7 +1241,7 @@ void TestEmbed() {
           [](const Func<Scal>& func, const EB& eb) {
             auto fe = Eval<FieldEmbed<Scal>>(func(), eb);
             return Sub(
-                GetComponent(UEB::Gradient(fe, eb), 0),
+                GetComponent(UEB::GradientGauss(fe, eb), 0),
                 Eval<FieldCell<Scal>>(func.Dx(0), eb), eb);
           },
           1e-3),
@@ -1255,7 +1255,7 @@ void TestEmbed() {
       const auto fcu = Eval<FieldCell<Vect>>(func(), eb);
       auto feu = UEB::Interpolate(fcu, MapCondFace(), 1, Vect(0), eb);
       for (auto d : GRange<size_t>(Vect::dim)) {
-        auto fcg = UEB::Gradient(GetComponent(feu, d), eb);
+        auto fcg = UEB::GradientGauss(GetComponent(feu, d), eb);
         auto feg = UEB::Interpolate(fcg, MapCondFace(), 1, Vect(0), eb);
         for (auto c : eb.Cells()) {
           Vect s(0);
