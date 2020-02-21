@@ -304,6 +304,10 @@ struct UEmbed {
   static FieldEmbed<T> Interpolate(
       const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const EB& eb);
 
+  template <class T>
+  static FieldEmbed<T> Gradient(
+      const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const EB& eb);
+
   // Gradient with bilinear interpolation in cut faces
   // and linear fit in embed faces.
   // fcu: field [a]
