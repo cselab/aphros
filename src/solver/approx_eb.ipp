@@ -214,7 +214,7 @@ auto UEmbed<M>::Interpolate(
         return EvalLinearFit(eb.GetFaceCenter(i), c, fcu, eb);
       }
     }
-    return T(0);
+    return GetNan<T>();
   };
   // embedded faces
   for (auto& p : mebc.GetMapCell()) {
@@ -272,7 +272,7 @@ auto UEmbed<M>::Gradient(
         return (u1 - u0) / h;
       }
     }
-    return T(0);
+    return GetNan<T>();
   };
   // embedded faces
   for (auto& p : mebc.GetMapCell()) {
@@ -287,6 +287,72 @@ auto UEmbed<M>::Gradient(
     feg[f] = calc(f, eb.GetCell(f, bc.nci), bc);
   }
   return feg;
+}
+
+template <class M>
+auto UEmbed<M>::InterpolateUpwind(
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
+    const FieldCell<Vect>& fcg, const FieldEmbed<Scal>& fev, const EB& eb)
+    -> FieldEmbed<Scal> {
+  auto& m = eb.GetMesh();
+  FieldEmbed<Scal> feu(eb, 0);
+  // f = fmm*a[0] + fm*a[1] + fp*a[2]
+  const std::array<Scal, 3> a = GetCoeff<Scal>(sc);
+  for (auto f : eb.SuFaces()) {
+    const IdxCell cm = eb.GetCell(f, 0);
+    const IdxCell cp = eb.GetCell(f, 1);
+    if (fev[f] > 0) {
+      feu[f] = 4. * a[0] * fcg[cm].dot(m.GetVectToCell(f, 0)) + a[1] * fcu[cm] +
+               (a[2] + a[0]) * fcu[cp];
+    } else if (fev[f] < 0) {
+      feu[f] = 4. * a[0] * fcg[cp].dot(m.GetVectToCell(f, 1)) + a[1] * fcu[cp] +
+               (a[2] + a[0]) * fcu[cm];
+    } else {
+      feu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+    }
+  }
+  feu.GetFieldFace() = InterpolateBilinearFaces(feu.GetFieldFace(), eb);
+
+  auto calc = [&](auto i, IdxCell c, const BCond<Scal>& bc) {
+    if (fev[i] * (bc.nci - 0.5) < 0) { // boundary is downstream
+      return EvalLinearFit(eb.GetFaceCenter(i), c, fcu, eb);
+    }
+    // TODO reuse code from Interpolate()
+    const Scal h = eb.GetCellSize()[0];
+    const Scal& val = bc.val;
+    switch (bc.type) {
+      case BCondType::dirichlet: {
+        return val;
+      }
+      case BCondType::neumann: {
+        const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
+        const Scal u = EvalLinearFit(x, c, fcu, eb);
+        return u + val * h;
+      }
+      case BCondType::mixed: {
+        const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
+        const Scal u = EvalLinearFit(x, c, fcu, eb);
+        return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(c));
+      }
+      case BCondType::extrap: {
+        return EvalLinearFit(eb.GetFaceCenter(i), c, fcu, eb);
+      }
+    }
+    return GetNan<Scal>();
+  };
+  // embedded faces
+  for (auto& p : mebc.GetMapCell()) {
+    const IdxCell c = p.first;
+    const auto& bc = p.second;
+    feu[c] = calc(c, c, bc);
+  }
+  // faces with boundary conditions
+  for (auto& p : mebc.GetMapFace()) {
+    const IdxFace f = p.first;
+    const auto& bc = p.second;
+    feu[f] = calc(f, eb.GetCell(f, bc.nci), bc);
+  }
+  return feu;
 }
 
 template <class M>
