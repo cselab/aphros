@@ -105,7 +105,22 @@ struct ULinear {
   }
 };
 
-using MapEmbedCond = MapEmbed<UniquePtr<CondFace>>;
+// Boundary condition on face or embedded boundary.
+template <class T>
+struct BCond {
+  enum class Type {
+    dirichlet, // u = val
+    neumann, // du/dn = val
+    dirichlet_normal, // if u is vector,
+                      //   u.dot(n) = val.dot(n)
+                      //   (du/dn).tangent(n) = val.tangent(n)
+                      // if u is scalar, equivalent to `dirichlet`
+    extrap, // extrapolated from neighbor cells
+  };
+  Type type;
+  T val; // field value (dirichlet) or normal gradient (neumann)
+  size_t nci; // neighbor cell id on faces and 0 on embedded boundaries
+};
 
 template <class M_>
 struct UEmbed {
