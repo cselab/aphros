@@ -84,3 +84,6 @@ template FieldEmbed<T> UEB::GradientBilinear(
 template FieldEmbed<TV> UEB::GradientBilinear(
     const FieldCell<TV>& fcu, const MapCondFace& mfc, size_t bc, TV bcv,
     const EB& eb);
+
+template FieldEmbed<T> UEB::Interpolate(
+    const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const EB& eb);
