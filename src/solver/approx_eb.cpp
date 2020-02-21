@@ -37,7 +37,7 @@ template FieldCell<TV> UEB::AverageCutCells(
 template FieldCell<T> UEB::RedistributeCutCells(
     const FieldCell<T>& fcu, const EB& eb);
 
-template FieldEmbed<T> UEB::Gradient(
+template FieldEmbed<T> UEB::GradientLimited(
     const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
     const EB& eb);
 

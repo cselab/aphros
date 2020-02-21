@@ -169,7 +169,7 @@ eb.InterpolateBilinear() bc=1 returning FieldEmbed<Scal>
 >> embed faces:
    order [error]: min= 1.950 [ 1.929e-05]   max= 2.078 [ 3.171e-05]   mean= 2.021 [ 3.166e-05]
 
-eb.Gradient() returning FieldEmbed<Scal>
+eb.GradientLimited() returning FieldEmbed<Scal>
 > func=Linear
 >> regular faces between regular cells:
    order [error]: min=-1.898 [ 2.442e-13]   max=-0.222 [ 3.997e-13]   mean=-1.026 [ 2.850e-13]
@@ -283,7 +283,7 @@ eb.GradientBilinear() bc=1 returning FieldEmbed<Scal>
 >> embed faces:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean= 0.000 [ 0.000e+00]
 
-eb.Gradient() returning FieldCell<Vect>
+eb.GradientGauss() returning FieldCell<Vect>
 > func=Linear
 >> regular cells:
    order [error]: min=-1.731 [ 1.862e-13]   max=-0.242 [ 3.994e-13]   mean=-0.944 [ 3.226e-13]
@@ -327,7 +327,7 @@ eb.GradientLinearFit() returning FieldCell<Vect>
 >> cut cells:
    order [error]: min= 0.822 [ 2.222e-05]   max= 1.268 [ 2.126e-05]   mean= 1.002 [ 3.342e-03]
 
-eb.Gradient() returning FieldCell<Vect>
+eb.GradientGauss() returning FieldCell<Vect>
 > func=Linear
 >> regular cells:
    order [error]: min=-1.731 [ 1.862e-13]   max=-0.242 [ 3.994e-13]   mean=-0.944 [ 3.226e-13]
