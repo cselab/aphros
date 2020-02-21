@@ -199,6 +199,24 @@ class Embed {
     return MakeFilterIterator(
         m.SuCells(), [this](IdxCell c) { return GetType(c) == Type::cut; });
   }
+  template <class F>
+  void ExecFaces(F lambda) const {
+    for (auto c : CFaces()) {
+      lambda(c);
+    }
+    for (auto f : Faces()) {
+      lambda(f);
+    }
+  }
+  template <class F>
+  void ExecSuFaces(F lambda) const {
+    for (auto c : SuCFaces()) {
+      lambda(c);
+    }
+    for (auto f : SuFaces()) {
+      lambda(f);
+    }
+  }
   auto Faces() const {
     return MakeFilterIterator(
         m.Faces(), [this](IdxFace f) { return GetType(f) != Type::excluded; });
