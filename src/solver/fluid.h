@@ -341,31 +341,63 @@ MapCondFaceFluid GetCondFluid(
     const IdxFace f = p.first;
     auto& bc = p.second;
     auto nci = bc.nci;
-
-    auto& cf = mff[f];
-
+    auto& cond = mff[f];
     using namespace fluid_condition;
     switch (bc.type) {
       case BCondFluidType::wall:
-        cf = UniquePtr<NoSlipWallFixed<M>>(bc.velocity, nci);
+        cond.Set<NoSlipWallFixed<M>>(bc.velocity, nci);
         break;
       case BCondFluidType::slipwall:
-        cf = UniquePtr<SlipWall<M>>(nci);
+        cond.Set<SlipWall<M>>(nci);
         break;
       case BCondFluidType::inlet:
-        cf = UniquePtr<InletFixed<M>>(bc.velocity, nci);
+        cond.Set<InletFixed<M>>(bc.velocity, nci);
         break;
       case BCondFluidType::inletflux:
-        cf = UniquePtr<InletFlux<M>>(bc.velocity, 0, nci);
+        cond.Set<InletFlux<M>>(bc.velocity, 0, nci);
         break;
       case BCondFluidType::outlet:
-        cf = UniquePtr<OutletAuto<M>>(nci);
+        cond.Set<OutletAuto<M>>(nci);
         break;
       case BCondFluidType::symm:
-        cf = UniquePtr<Symm<M>>(nci);
+        cond.Set<Symm<M>>(nci);
         break;
     }
   }
   return mff;
+}
+
+template <class M>
+MapCondFace GetVelCond(const MapEmbed<BCondFluid<typename M::Vect>>& mebc) {
+  using Vect = typename M::Vect;
+  MapCondFace mf;
+
+  for (auto& p : mebc.GetMapFace()) {
+    const IdxFace f = p.first;
+    auto& bc = p.second;
+    auto nci = bc.nci;
+    auto& cond = mf[f];
+    switch (bc.type) {
+      case BCondFluidType::wall:
+        cond.Set<CondFaceValFixed<Vect>>(bc.velocity, nci);
+        break;
+      case BCondFluidType::slipwall:
+        cond.Set<CondFaceReflect>(nci);
+        break;
+      case BCondFluidType::inlet:
+        cond.Set<CondFaceValFixed<Vect>>(bc.velocity, nci);
+        break;
+      case BCondFluidType::inletflux:
+        cond.Set<CondFaceValFixed<Vect>>(bc.velocity, nci);
+        break;
+      case BCondFluidType::outlet:
+        cond.Set<CondFaceValFixed<Vect>>(bc.velocity, nci);
+        break;
+      case BCondFluidType::symm:
+        cond.Set<CondFaceReflect>(nci);
+        break;
+    }
+  }
+  return mf;
 }
 
