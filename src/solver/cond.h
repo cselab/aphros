@@ -197,3 +197,21 @@ MapCondFace GetCondZeroGrad(const Map& mf) {
   }
   return r;
 }
+
+enum class BCondType {
+  dirichlet, // u = val
+  neumann, // du/dn = val
+  mixed, // if u is vector,
+         //   u.proj(n) = val.proj(n)
+         //   (du/dn).orth(n) = val.orth(n)
+         // if u is scalar, equivalent to `dirichlet`
+  extrap, // extrapolated from neighbor cells
+};
+
+// Boundary condition on face or embedded boundary.
+template <class T>
+struct BCond {
+  BCondType type = BCondType::dirichlet;
+  T val = T(0); // field value (dirichlet) or normal gradient (neumann)
+  size_t nci = 0; // neighbor cell id on faces and 0 on embedded boundaries
+};

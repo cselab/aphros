@@ -44,14 +44,16 @@ struct Proj<EB_>::Imp {
   using UEB = UEmbed<M>;
 
   Imp(Owner* owner, const EB& eb0, const FieldCell<Vect>& fcw,
-      MapCondFaceFluid& mfc, const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-      Par par, const FieldFace<Scal>* ffbp)
+      const MapEmbed<BCondFluid<Vect>>& mebc, MapCondFaceFluid& mfc,
+      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par,
+      const FieldFace<Scal>* ffbp)
       : owner_(owner)
       , par(par)
       , m(owner_->m)
       , eb(eb0)
       , dr_(0, m.GetEdim())
       , drr_(m.GetEdim(), dim)
+      , mebc_(mebc)
       , mfc_(mfc)
       , mcc_(mcc)
       , ffbp_(ffbp)
@@ -539,6 +541,7 @@ struct Proj<EB_>::Imp {
   GRange<size_t> drr_; // remaining dimensions
 
   // Face conditions
+  const MapEmbed<BCondFluid<Vect>>& mebc_;
   MapCondFaceFluid& mfc_; // fluid cond
   MapCondFace mfcw_; // velocity cond
   MapCondFace mfcp_; // pressure cond
@@ -579,12 +582,13 @@ struct Proj<EB_>::Imp {
 
 template <class EB_>
 Proj<EB_>::Proj(
-    M& m, const EB& eb, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
+    M& m, const EB& eb, const FieldCell<Vect>& fcw,
+    const MapEmbed<BCondFluid<Vect>>& mebc, MapCondFaceFluid& mfc,
     const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
     FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
     FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt, Par par)
     : FluidSolver<M>(t, dt, m, fcr, fcd, fcf, nullptr, fcsv, fcsm)
-    , imp(new Imp(this, eb, fcw, mfc, mcc, par, ffbp)) {}
+    , imp(new Imp(this, eb, fcw, mebc, mfc, mcc, par, ffbp)) {}
 
 template <class EB_>
 Proj<EB_>::~Proj() = default;

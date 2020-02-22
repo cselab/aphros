@@ -294,4 +294,5 @@ template <class Vect>
 struct BCondFluid {
   BCondFluidType type = BCondFluidType::wall;
   Vect velocity = Vect(0);
+  size_t nci = 0; // neighbor cell id on faces and 0 on embedded boundaries
 };
