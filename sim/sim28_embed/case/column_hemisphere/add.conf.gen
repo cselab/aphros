@@ -16,4 +16,7 @@ echo "
 #set int enable_embed 0
 
 set vect gravity $sin $cos 0
+set string advection_solver vofm
+set int enable_color 1
+
 " > add.conf

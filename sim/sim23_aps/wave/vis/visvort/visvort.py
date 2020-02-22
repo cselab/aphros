@@ -266,5 +266,3 @@ for i in list(range(len(ss))):
 
     Log("{:}/{:}: {:}".format(i + 1, len(ss), fn))
     SaveScreenshot(fn, renderView1)
-
-exit(0)
