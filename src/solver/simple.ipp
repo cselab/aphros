@@ -527,6 +527,11 @@ struct Simple<M_>::Imp {
     if (sem("bc-derived")) {
       UpdateDerivedConditions();
     }
+    if (sem.Nested("bc-inletflux")) {
+      UFluid<M>::UpdateInletFlux(
+          m, m, GetVelocity(Step::iter_curr), mebc_, par.inletflux_numid,
+          mfcw_);
+    }
     if (sem.Nested("bc-outlet2")) {
       UFluid<M>::template UpdateOutletVelocity<M>(
           m, m, GetVelocity(Step::iter_curr), mebc_, *owner_->fcsv_, mfcw_);
