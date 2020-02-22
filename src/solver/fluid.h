@@ -296,3 +296,76 @@ struct BCondFluid {
   Vect velocity = Vect(0);
   size_t nci = 0; // neighbor cell id on faces and 0 on embedded boundaries
 };
+
+template <class M>
+MapEmbed<BCondFluid<typename M::Vect>> GetBCondFluid(
+    const MapCondFaceFluid& mff) {
+  using Vect = typename M::Vect;
+  MapEmbed<BCondFluid<Vect>> mebc;
+  for (auto& p : mff) {
+    const IdxFace f = p.first;
+    const auto& cb = p.second;
+
+    auto& bc = mebc[f];
+    bc.nci = cb->GetNci();
+
+    using namespace fluid_condition;
+    if (auto cd = cb.template Get<NoSlipWall<M>>()) {
+      bc.type = BCondFluidType::wall;
+      bc.velocity = cd->GetVelocity();
+    } else if (auto cd = cb.template Get<InletFixed<M>>()) {
+      bc.type = BCondFluidType::inlet;
+      bc.velocity = cd->GetVelocity();
+    } else if (auto cd = cb.template Get<InletFlux<M>>()) {
+      bc.type = BCondFluidType::inletflux;
+      bc.velocity = cd->GetVelocity();
+    } else if (auto cd = cb.template Get<Outlet<M>>()) {
+      bc.type = BCondFluidType::outlet;
+    } else if (auto cd = cb.template Get<SlipWall<M>>()) {
+      bc.type = BCondFluidType::slipwall;
+      bc.velocity = Vect(0);
+    } else if (auto cd = cb.template Get<Symm<M>>()) {
+      bc.type = BCondFluidType::symm;
+    } else {
+      throw std::runtime_error("GetVelCond: unknown condition");
+    }
+  }
+  return mebc;
+}
+
+template <class M>
+MapCondFaceFluid GetCondFluid(
+    const MapEmbed<BCondFluid<typename M::Vect>>& mebc) {
+  MapCondFaceFluid mff;
+  for (auto& p : mebc.GetMapFace()) {
+    const IdxFace f = p.first;
+    auto& bc = p.second;
+    auto nci = bc.nci;
+
+    auto& cf = mff[f];
+
+    using namespace fluid_condition;
+    switch (bc.type) {
+      case BCondFluidType::wall:
+        cf = UniquePtr<NoSlipWallFixed<M>>(bc.velocity, nci);
+        break;
+      case BCondFluidType::slipwall:
+        cf = UniquePtr<SlipWall<M>>(nci);
+        break;
+      case BCondFluidType::inlet:
+        cf = UniquePtr<InletFixed<M>>(bc.velocity, nci);
+        break;
+      case BCondFluidType::inletflux:
+        cf = UniquePtr<InletFlux<M>>(bc.velocity, 0, nci);
+        break;
+      case BCondFluidType::outlet:
+        cf = UniquePtr<OutletAuto<M>>(nci);
+        break;
+      case BCondFluidType::symm:
+        cf = UniquePtr<Symm<M>>(nci);
+        break;
+    }
+  }
+  return mff;
+}
+

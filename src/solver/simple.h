@@ -46,11 +46,11 @@ class Simple final : public FluidSolver<M_> {
   // dt: time step
   // par: parameters
   Simple(
-      M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
-      FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
-      FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt,
-      Par par);
+      M& m, const FieldCell<Vect>& fcw, const MapEmbed<BCondFluid<Vect>>& mebc,
+      MapCondFaceFluid& mfc, const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
+      FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, FieldCell<Vect>* fcf,
+      FieldFace<Scal>* ffbp, FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm,
+      double t, double dt, Par par);
   ~Simple();
   const Par& GetPar() const;
   void SetPar(Par);
