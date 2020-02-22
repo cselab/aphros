@@ -172,7 +172,7 @@ class UFluid {
         if (m.IsInner(c)) {
           if (bc.type == BCondFluidType::outlet) {
             const Scal q = (nci == 0 ? 1. : -1.);
-            const Vect n = m.GetNormal(f);
+            const Vect n = eb.GetNormal(f);
             auto cd = mfvel[f].Get<CondFaceValFixed<Vect>>();
             cd->Set(cd->second() + n * (velcor * q));
           }
@@ -255,6 +255,87 @@ class UFluid {
             Scal q = (nci == 0 ? -1. : 1.);
             Vect n = m.GetNormal(f);
             cd->SetVelocity(cd->GetVelocity() + n * (dv * q));
+          }
+        }
+      }
+    }
+  }
+
+  // fcw: velocity
+  // mfc: fluid face conditions
+  // nid: maximum id of inlet flux for reduction
+  template <class EB>
+  static void UpdateInletFlux(
+      M & m, const EB& eb, const FieldCell<Vect>& fcvel,
+      const MapEmbed<BCondFluid<Vect>>& mebc, size_t max_id,
+      MapCondFace& mfvel) {
+    using namespace fluid_condition;
+    auto sem = m.GetSem("inletflux");
+
+    struct {
+      std::vector<Scal> flux_target;
+      std::vector<Scal> flux_current;
+      std::vector<Scal> area;
+    } * ctx(sem);
+    auto& flux_target = ctx->flux_target;
+    auto& flux_current = ctx->flux_current;
+    auto& area = ctx->area;
+
+    if (sem("local")) {
+      flux_target.resize(max_id);
+      flux_current.resize(max_id);
+      area.resize(max_id);
+
+      for (size_t id = 0; id < max_id; ++id) {
+        flux_target[id] = 0;
+        flux_current[id] = 0;
+        area[id] = 0;
+      }
+
+      // Extrapolate velocity to inlet from neighbor cells
+      // and compute total fluxes
+      for (auto& p : mebc.GetMapFace()) {
+        const IdxFace f = p.first;
+        const auto& bc = p.second;
+        const auto nci = bc.nci;
+        const IdxCell c = eb.GetCell(f, nci);
+        if (m.IsInner(c)) {
+          if (bc.type == BCondFluidType::inletflux) {
+            const size_t id = 0; // TODO: implement other id's
+            const Scal q = (nci == 0 ? -1. : 1.);
+            flux_target[id] += bc.velocity.dot(eb.GetSurface(f)) * q;
+            // extrapolate velocity
+            const Vect vel = fcvel[c];
+            mfvel[f].Set<CondFaceValFixed<Vect>>(vel, nci);
+            flux_current[id] += vel.dot(eb.GetSurface(f)) * q;
+            area[id] += eb.GetArea(f);
+          }
+        }
+      }
+
+      for (size_t id = 0; id < max_id; ++id) {
+        m.Reduce(&flux_target[id], "sum");
+        m.Reduce(&flux_current[id], "sum");
+        m.Reduce(&area[id], "sum");
+      }
+    }
+
+    if (sem("corr")) {
+      for (size_t id = 0; id < max_id; ++id) {
+        // additive correction of velocity
+        const Scal velcor = (flux_target[id] - flux_current[id]) / area[id];
+        for (auto& p : mebc.GetMapFace()) {
+          const IdxFace f = p.first;
+          const auto& bc = p.second;
+          const auto nci = bc.nci;
+          const IdxCell c = eb.GetCell(f, nci);
+          if (m.IsInner(c)) {
+            if (bc.type == BCondFluidType::inletflux) {
+              const Scal q = (nci == 0 ? -1. : 1.);
+              const Vect n = eb.GetNormal(f);
+              auto cd = mfvel[f].Get<CondFaceValFixed<Vect>>();
+              cd->Set(cd->second() + n * (velcor * q));
+            }
           }
         }
       }
