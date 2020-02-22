@@ -200,7 +200,7 @@ class Embed {
         m.SuCells(), [this](IdxCell c) { return GetType(c) == Type::cut; });
   }
   template <class F>
-  void ExecFaces(F lambda) const {
+  void LoopFaces(F lambda) const {
     for (auto c : CFaces()) {
       lambda(c);
     }
@@ -209,7 +209,7 @@ class Embed {
     }
   }
   template <class F>
-  void ExecSuFaces(F lambda) const {
+  void LoopSuFaces(F lambda) const {
     for (auto c : SuCFaces()) {
       lambda(c);
     }

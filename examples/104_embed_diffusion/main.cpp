@@ -72,14 +72,14 @@ void Diffusion1(
 }
 
 // Diffusion solver with redistribution to neighbor cells
-// and ExecFaces() to avoid code duplicatoin.
+// and LoopFaces() to avoid code duplicatoin.
 void Diffusion2(
     FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, Scal diff, Scal dt,
     const Embed<M>& eb) {
   const auto feg = UEmbed<M>::Gradient(fcu, mebc, eb);
   // Compute flux.
   FieldEmbed<Scal> fed(eb, 0);
-  eb.ExecFaces([&](auto cf) { // lambda-function applied to faces and
+  eb.LoopFaces([&](auto cf) { // lambda-function applied to faces and
                               // embedded faces
     fed[cf] = feg[cf] * diff * eb.GetArea(cf);
   });
