@@ -94,6 +94,95 @@ class UFluid {
 
   // fcw: velocity
   // mfc: fluid face conditions
+  // fcsv: volume source
+  template <class EB>
+  static void UpdateOutletVelocity(
+      M& m, const EB& eb, const FieldCell<Vect>& fcvel,
+      const MapEmbed<BCondFluid<Vect>>& mebc, const FieldCell<Scal>& fcsv,
+      MapCondFace& mfvel) {
+    auto sem = m.GetSem("outlet");
+    struct {
+      Scal fluxin; // total inlet volume flux
+      Scal fluxout; // total outlet volume flux
+      Scal areaout; // total outlet area
+    } * ctx(sem);
+    auto& fluxin = ctx->fluxin;
+    auto& fluxout = ctx->fluxout;
+    auto& areaout = ctx->areaout;
+
+    if (sem("local")) {
+      fluxin = 0.;
+      fluxout = 0.;
+      areaout = 0.;
+
+      // Extrapolate velocity to outlet from neighbour cells,
+      // and compute total fluxes
+      for (auto& p : mebc.GetMapFace()) {
+        const IdxFace f = p.first;
+        const auto& bc = p.second;
+        const auto nci = bc.nci;
+        const IdxCell c = eb.GetCell(f, nci);
+        if (m.IsInner(c)) {
+          switch (bc.type) {
+            case BCondFluidType::wall:
+            case BCondFluidType::slipwall:
+            case BCondFluidType::inlet:
+            case BCondFluidType::inletflux:
+            case BCondFluidType::symm: {
+              const Scal q = (nci == 0 ? -1. : 1.);
+              fluxin += bc.velocity.dot(eb.GetSurface(f)) * q;
+              break;
+            }
+            case BCondFluidType::outlet: {
+              const Scal q = (nci == 0 ? 1. : -1.);
+              Vect vel = fcvel[c];
+              // clip normal component, let only positive
+              // (otherwise reversed flow leads to instability)
+              const Vect n = eb.GetNormal(f);
+              vel -= n * (q * std::min(0., vel.dot(n) * q));
+              mfvel[f].Set<CondFaceValFixed<Vect>>(vel, nci);
+              fluxout += vel.dot(eb.GetSurface(f)) * q;
+              areaout += eb.GetArea(f);
+              break;
+            }
+          }
+        }
+      }
+
+      // Append volume source to inlet flux
+      for (auto c : eb.Cells()) {
+        fluxin += fcsv[c] * m.GetVolume(c);
+      }
+
+      m.Reduce(&fluxin, "sum");
+      m.Reduce(&fluxout, "sum");
+      m.Reduce(&areaout, "sum");
+    }
+
+    if (sem("corr")) {
+      // additive correction of velocity
+      const Scal velcor = (fluxin - fluxout) / areaout;
+
+      // Apply correction on outlet faces
+      for (auto& p : mebc.GetMapFace()) {
+        const IdxFace f = p.first;
+        const auto& bc = p.second;
+        const auto nci = bc.nci;
+        const IdxCell c = eb.GetCell(f, nci);
+        if (m.IsInner(c)) {
+          if (bc.type == BCondFluidType::outlet) {
+            const Scal q = (nci == 0 ? 1. : -1.);
+            const Vect n = m.GetNormal(f);
+            auto cd = mfvel[f].Get<CondFaceValFixed<Vect>>();
+            cd->Set(cd->second() + n * (velcor * q));
+          }
+        }
+      }
+    }
+  }
+
+  // fcw: velocity
+  // mfc: fluid face conditions
   // nid: maximum id of inlet flux for reduction
   static void UpdateInletFlux(
       M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc, size_t nid) {

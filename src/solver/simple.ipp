@@ -98,7 +98,7 @@ struct Simple<M_>::Imp {
   void UpdateDerivedConditions() {
     using namespace fluid_condition;
 
-    mfcw_ = GetVelCond(m, mfc_);
+    mfcw_ = GetVelCond<M>(mebc_);
     mfcf_.clear();
     mfcp_.clear();
     mfcpc_.clear();
@@ -526,6 +526,10 @@ struct Simple<M_>::Imp {
     }
     if (sem("bc-derived")) {
       UpdateDerivedConditions();
+    }
+    if (sem.Nested("bc-outlet2")) {
+      UFluid<M>::template UpdateOutletVelocity<M>(
+          m, m, GetVelocity(Step::iter_curr), mebc_, *owner_->fcsv_, mfcw_);
     }
   }
   void CalcForce(typename M::Sem& sem) {
