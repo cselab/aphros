@@ -279,3 +279,19 @@ MapCondFace GetVelCond(const M& m, const MapCondFaceFluid& mff) {
 }
 
 using MapCondFaceFluid = MapCondFaceFluid;
+
+enum class BCondFluidType {
+  wall, // no-slip wall [velocity]
+  slipwall, // slip wall [velocity]
+  inlet, // inlet [velocity]
+  inletflux, // inlet only constraining the total flux [velocity]
+  outlet, // outlet [-]
+  symm, // symmetry [-]
+};
+
+// Boundary condition for fluid on face or embedded boundary.
+template <class Vect>
+struct BCondFluid {
+  BCondFluidType type = BCondFluidType::wall;
+  Vect velocity = Vect(0);
+};
