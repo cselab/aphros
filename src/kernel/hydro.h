@@ -445,39 +445,6 @@ void Hydro<M>::InitEmbed() {
 }
 
 template <class M>
-MapEmbed<BCondFluid<typename M::Vect>> GetBCondFluid(
-    const MapCondFaceFluid& mff) {
-  using Vect = typename M::Vect;
-  MapEmbed<BCondFluid<Vect>> mebc;
-  for (auto& p : mff) {
-    const IdxFace f = p.first;
-    const auto& cb = p.second;
-
-    auto& bc = mebc[f];
-    bc.nci = cb->GetNci();
-
-    using namespace fluid_condition;
-    if (auto cd = cb.template Get<NoSlipWall<M>>()) {
-      bc.type = BCondFluidType::wall;
-      bc.velocity = cd->GetVelocity();
-    } else if (auto cd = cb.template Get<Inlet<M>>()) {
-      bc.type = BCondFluidType::inlet;
-      bc.velocity = cd->GetVelocity();
-    } else if (auto cd = cb.template Get<Outlet<M>>()) {
-      bc.type = BCondFluidType::outlet;
-    } else if (auto cd = cb.template Get<SlipWall<M>>()) {
-      bc.type = BCondFluidType::slipwall;
-      bc.velocity = Vect(0);
-    } else if (auto cd = cb.template Get<Symm<M>>()) {
-      bc.type = BCondFluidType::symm;
-    } else {
-      throw std::runtime_error("GetVelCond: unknown condition");
-    }
-  }
-  return mebc;
-}
-
-template <class M>
 void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   fcvm_ = fc_vel;
 
@@ -493,6 +460,8 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
 
   mebc_fluid_ = GetBCondFluid<M>(mf_fluid_);
 
+  mf_fluid_ = MapCondFaceFluid();
+
   std::string fs = var.String["fluid_solver"];
   if (eb_) {
     auto p = ParsePar<Proj<M>>()(var);
@@ -502,8 +471,8 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   } else if (fs == "simple") {
     auto p = ParsePar<Simple<M>>()(var);
     fs_.reset(new Simple<M>(
-        m, fc_vel, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
-        &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+        m, fc_vel, mebc_fluid_, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
+        &fc_force_, &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else if (fs == "proj") {
     auto p = ParsePar<Proj<M>>()(var);
     fs_.reset(new Proj<M>(

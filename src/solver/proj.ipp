@@ -61,6 +61,8 @@ struct Proj<EB_>::Imp {
       , ffvc_(m) {
     using namespace fluid_condition;
 
+    mfc_ = GetCondFluid<M>(mebc_);
+
     ffbd_.Reinit(m, false);
 
     UpdateDerivedConditions();

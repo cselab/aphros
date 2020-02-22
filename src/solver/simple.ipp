@@ -46,18 +46,22 @@ struct Simple<M_>::Imp {
   // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
   using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
 
-  Imp(Owner* owner, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
+  Imp(Owner* owner, const FieldCell<Vect>& fcw,
+      const MapEmbed<BCondFluid<Vect>>& mebc, MapCondFaceFluid& mfc,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par)
       : owner_(owner)
       , par(par)
       , m(owner_->m)
       , dr_(0, m.GetEdim())
       , drr_(m.GetEdim(), dim)
+      , mebc_(mebc)
       , mfc_(mfc)
       , mcc_(mcc)
       , fcpcs_(m)
       , ffvc_(m) {
     using namespace fluid_condition;
+
+    mfc_ = GetCondFluid<M>(mebc_);
 
     ffbd_.Reinit(m, false);
 
@@ -701,6 +705,7 @@ struct Simple<M_>::Imp {
   GRange<size_t> drr_; // remaining dimensions
 
   // Face conditions
+  const MapEmbed<BCondFluid<Vect>>& mebc_;
   MapCondFaceFluid& mfc_; // fluid cond
   MapCondFace mfcw_; // velocity cond
   MapCondFace mfcp_; // pressure cond
@@ -744,12 +749,13 @@ struct Simple<M_>::Imp {
 
 template <class M_>
 Simple<M_>::Simple(
-    M& m, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
-    const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
-    FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
-    FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt, Par par)
+    M& m, const FieldCell<Vect>& fcw, const MapEmbed<BCondFluid<Vect>>& mebc,
+    MapCondFaceFluid& mfc, const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
+    FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, FieldCell<Vect>* fcf,
+    FieldFace<Scal>* ffbp, FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm,
+    double t, double dt, Par par)
     : FluidSolver<M>(t, dt, m, fcr, fcd, fcf, ffbp, fcsv, fcsm)
-    , imp(new Imp(this, fcw, mfc, mcc, par)) {}
+    , imp(new Imp(this, fcw, mebc, mfc, mcc, par)) {}
 
 template <class M_>
 Simple<M_>::~Simple() = default;
