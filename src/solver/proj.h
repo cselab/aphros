@@ -49,7 +49,8 @@ class Proj final : public FluidSolver<typename EB_::M> {
   // dt: time step
   // par: parameters
   Proj(
-      M& m, const EB& eb, const FieldCell<Vect>& fcw, MapCondFaceFluid& mfc,
+      M& m, const EB& eb, const FieldCell<Vect>& fcw,
+      const MapEmbed<BCondFluid<Vect>>& mebc, MapCondFaceFluid& mfc,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
       FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
       FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt,

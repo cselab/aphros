@@ -62,6 +62,7 @@ void Run(M& m, Vars& var) {
     std::unique_ptr<EB> eb;
     std::unique_ptr<Proj<EB>> fs;
     MapCondFaceFluid mfc;
+    MapEmbed<BCondFluid<Vect>> mebc;
     FieldCell<Scal> fcdiv;
     FieldCell<Scal> fcr;
     FieldCell<Scal> fcd;
@@ -75,6 +76,7 @@ void Run(M& m, Vars& var) {
   auto& fs = ctx->fs;
   auto& fcdiv = ctx->fcdiv;
   auto& mfc = ctx->mfc;
+  auto& mebc = ctx->mebc;
   auto& frame = ctx->frame;
 
   const Vect vel(var.Vect["vel"]);
@@ -114,8 +116,9 @@ void Run(M& m, Vars& var) {
     typename Proj<EB>::Par par;
     par.conv = Conv::exp;
     fs.reset(new Proj<EB>(
-        m, eb, fcvel, mfc, MapCell<std::shared_ptr<CondCellFluid>>(), &ctx->fcr,
-        &ctx->fcd, &ctx->fcf, &ctx->ffbp, &ctx->fcsv, &ctx->fcsm, 0, dt, par));
+        m, eb, fcvel, mebc, mfc, MapCell<std::shared_ptr<CondCellFluid>>(),
+        &ctx->fcr, &ctx->fcd, &ctx->fcf, &ctx->ffbp, &ctx->fcsv, &ctx->fcsm, 0,
+        dt, par));
   }
   if (sem.Nested("dumppoly")) {
     ctx->eb->DumpPoly();
