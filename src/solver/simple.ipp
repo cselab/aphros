@@ -103,29 +103,22 @@ struct Simple<M_>::Imp {
     mfcp_.clear();
     mfcpc_.clear();
     mfcd_.clear();
-    for (auto& it : mfc_) {
-      const IdxFace f = it.first;
+    for (auto& p : mebc_.GetMapFace()) {
+      const IdxFace f = p.first;
+      auto& bc = p.second;
+      const size_t nci = bc.nci;
       ffbd_[f] = true;
-      auto& cb = it.second;
-      size_t nci = cb->GetNci();
 
       mfcf_[f].template Set<CondFaceGradFixed<Vect>>(Vect(0), nci);
       mfcp_[f].template Set<CondFaceExtrap>(nci);
       mfcpc_[f].template Set<CondFaceExtrap>(nci);
       mfcd_[f].template Set<CondFaceGradFixed<Scal>>(0., nci);
 
-      if (cb.template Get<NoSlipWall<M>>()) {
-        // nop
-      } else if (cb.template Get<Inlet<M>>()) {
-        // nop
-      } else if (cb.template Get<Outlet<M>>()) {
-        // nop
-      } else if (cb.template Get<SlipWall<M>>() || cb.template Get<Symm<M>>()) {
+      if (bc.type == BCondFluidType::slipwall ||
+          bc.type == BCondFluidType::symm) {
         mfcf_[f].template Set<CondFaceReflect>(nci);
         mfcp_[f].template Set<CondFaceGradFixed<Scal>>(0., nci);
         mfcpc_[f].template Set<CondFaceGradFixed<Scal>>(0, nci);
-      } else {
-        throw std::runtime_error("proj: unknown condition");
       }
     }
 
