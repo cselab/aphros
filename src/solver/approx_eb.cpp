@@ -89,3 +89,8 @@ template FieldEmbed<T> UEB::Interpolate(
     const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const EB& eb);
 template FieldEmbed<T> UEB::Gradient(
     const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const EB& eb);
+
+template FieldFace<T> UEB::Interpolate(
+    const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const M& m);
+template FieldFace<T> UEB::Gradient(
+    const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const M& m);

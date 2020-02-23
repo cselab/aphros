@@ -208,7 +208,7 @@ auto UEmbed<M>::Interpolate(
       case BCondType::mixed: {
         const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
-        return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(c));
+        return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(i));
       }
       case BCondType::extrap: {
         return EvalLinearFit(eb.GetFaceCenter(i), c, fcu, eb);
@@ -260,7 +260,7 @@ auto UEmbed<M>::Gradient(
       case BCondType::mixed: {
         const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
-        return CombineMixed<Scal>()((val - u) / h, val, eb.GetNormal(c));
+        return CombineMixed<Scal>()((val - u) / h, val, eb.GetNormal(i));
       }
       case BCondType::extrap: {
         // TODO replace with dot-product of gradient and normal
@@ -332,7 +332,7 @@ auto UEmbed<M>::InterpolateUpwind(
       case BCondType::mixed: {
         const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
         const Scal u = EvalLinearFit(x, c, fcu, eb);
-        return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(c));
+        return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(i));
       }
       case BCondType::extrap: {
         return EvalLinearFit(eb.GetFaceCenter(i), c, fcu, eb);
@@ -354,6 +354,79 @@ auto UEmbed<M>::InterpolateUpwind(
   }
   return feu;
 }
+
+template <class M>
+template <class T>
+auto UEmbed<M>::Interpolate(
+    const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const M& m)
+    -> FieldFace<T> {
+  FieldFace<T> ffu(m, T(0));
+
+  for (auto f : m.SuFaces()) {
+    const IdxCell cm = m.GetCell(f, 0);
+    const IdxCell cp = m.GetCell(f, 1);
+    ffu[f] = (fcu[cp] + fcu[cm]) * 0.5;
+  }
+
+  auto calc = [&](IdxFace f, IdxCell c, const BCond<T>& bc) {
+    const Scal h = m.GetCellSize()[0];
+    const T& val = bc.val;
+    const auto nci = bc.nci;
+    switch (bc.type) {
+      case BCondType::dirichlet: {
+        return val;
+      }
+      case BCondType::neumann: {
+        const Scal q = (nci == 0 ? 1. : -1.);
+        const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * q;
+        return fcu[c] + val * a;
+      }
+      case BCondType::mixed: {
+        const Scal q = (nci == 0 ? 1. : -1.);
+        const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * q;
+        return CombineMixed<T>()(val, fcu[c] + val * a, m.GetNormal(f));
+      }
+      case BCondType::extrap: {
+        const IdxCell c = m.GetCell(f, nci);
+        const size_t q = m.GetNci(c, f);
+        const size_t qo = m.GetOpposite(q);
+        const IdxFace fo = m.GetFace(c, qo);
+        const Vect n = m.GetNormal(f);
+        // cell
+        const T& v0 = fcu[c];
+        const Scal x0 = 0.;
+        // opposite face
+        const T& v1 = ffu[fo];
+        const Scal x1 = n.dot(m.GetCenter(fo) - m.GetCenter(c));
+        // target
+        const Scal xt = n.dot(m.GetCenter(f) - m.GetCenter(c));
+        return UExtrap(xt, x0, v0, x1, v1);
+      }
+      default:
+        throw std::runtime_error(std::string() + __func__ + ": unknown");
+    }
+    return GetNan<T>();
+  };
+  // faces with boundary conditions
+  for (auto& p : mebc.GetMapFace()) {
+    const IdxFace f = p.first;
+    const auto& bc = p.second;
+    ffu[f] = calc(f, m.GetCell(f, bc.nci), bc);
+  }
+  return ffu;
+}
+
+template <class M>
+template <class T>
+auto UEmbed<M>::Gradient(
+    const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const M& m)
+    -> FieldFace<T> {}
+
+template <class M>
+auto UEmbed<M>::InterpolateUpwind(
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
+    const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv, const M& m)
+    -> FieldFace<Scal> {}
 
 template <class M>
 template <class T>

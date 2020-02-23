@@ -29,10 +29,10 @@ class ConvDiffScalImp final : public ConvDiffScal<typename EB_::M> {
   // dt: time step
   // par: parameters
   ConvDiffScalImp(
-      M& m, const EB& eb, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
-      const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
-      const FieldCell<Scal>* fcs, const FieldFace<Scal>* ffv, double t,
-      double dt, Par par);
+      M& m, const EB& eb, const FieldCell<Scal>& fcu,
+      const MapEmbed<BCond<Scal>>& mfbc, const FieldCell<Scal>* fcr,
+      const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
+      const FieldFace<Scal>* ffv, double t, double dt, Par par);
   ~ConvDiffScalImp();
   const FieldCell<Scal>& GetField(Step) const override;
   using P::GetField;

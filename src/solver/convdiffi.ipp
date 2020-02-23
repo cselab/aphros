@@ -9,6 +9,7 @@
 #include "convdiffi.h"
 #include "debug/isnan.h"
 #include "linear/linear.h"
+#include "util/convdiff.h"
 
 template <class EB_>
 struct ConvDiffScalImp<EB_>::Imp {
@@ -16,12 +17,13 @@ struct ConvDiffScalImp<EB_>::Imp {
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   using Vect = typename M::Vect;
 
-  Imp(Owner* owner, const FieldCell<Scal>& fcu, const MapCondFace& mfc)
+  Imp(Owner* owner, const FieldCell<Scal>& fcu,
+      const MapEmbed<BCond<Scal>>& mfbc)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
       , eb(owner_->eb)
-      , mfc_(mfc)
+      , mfc_(GetCond<Scal>(mfbc))
       , dtp_(-1.)
       , er_(0) {
     fcu_.time_curr = fcu;
@@ -263,12 +265,12 @@ struct ConvDiffScalImp<EB_>::Imp {
 
 template <class EB_>
 ConvDiffScalImp<EB_>::ConvDiffScalImp(
-    M& m, const EB& eb, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
-    const FieldCell<Scal>* fcr, const FieldFace<Scal>* ffd,
-    const FieldCell<Scal>* fcs, const FieldFace<Scal>* ffv, double t, double dt,
-    Par par)
+    M& m, const EB& eb, const FieldCell<Scal>& fcu,
+    const MapEmbed<BCond<Scal>>& mfbc, const FieldCell<Scal>* fcr,
+    const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
+    const FieldFace<Scal>* ffv, double t, double dt, Par par)
     : ConvDiffScal<M>(t, dt, m, eb, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcu, mfc)) {}
+    , imp(new Imp(this, fcu, mfbc)) {}
 
 template <class EB_>
 ConvDiffScalImp<EB_>::~ConvDiffScalImp() = default;

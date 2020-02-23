@@ -20,7 +20,7 @@ class ConvDiffScalExp final : public ConvDiffScal<EB_> {
 
   // Constructor.
   // fcu: initial field
-  // mfc: face conditions
+  // mebc: face conditions
   // mcc: cell conditions
   // fcr: density
   // ffd: diffusion
@@ -30,10 +30,10 @@ class ConvDiffScalExp final : public ConvDiffScal<EB_> {
   // dt: time step
   // par: parameters
   ConvDiffScalExp(
-      M& m, const EB& eb, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
-      const FieldCell<Scal>* fcr, const FieldFaceb<Scal>* fed,
-      const FieldCell<Scal>* fcs, const FieldFaceb<Scal>* fev, double t,
-      double dt, Par par);
+      M& m, const EB& eb, const FieldCell<Scal>& fcu,
+      const MapEmbed<BCond<Scal>>& mebc, const FieldCell<Scal>* fcr,
+      const FieldFaceb<Scal>* fed, const FieldCell<Scal>* fcs,
+      const FieldFaceb<Scal>* fev, double t, double dt, Par par);
   ~ConvDiffScalExp();
   const FieldCell<Scal>& GetField(Step) const override;
   using Base::GetField;
