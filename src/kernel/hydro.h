@@ -219,9 +219,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void CalcVort() {
     auto& fcv = fs_->GetVelocity();
     if (eb_) {
-      fcom_ = GetVort(fcv, fs_->GetVelocityCond(), *eb_);
+      fcom_ = GetVort(fcv, GetCond<Vect>(fs_->GetVelocityCond()), *eb_);
     } else {
-      fcom_ = GetVort(fcv, fs_->GetVelocityCond(), m);
+      fcom_ = GetVort(fcv, GetCond<Vect>(fs_->GetVelocityCond()), m);
     }
     fcomm_.Reinit(m);
     for (auto c : m.Cells()) {
@@ -232,7 +232,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     auto& fcv = fcvel;
     auto& fcs = fc_strain;
 
-    auto ffv = Interpolate(fcv, fs_->GetVelocityCond(), m);
+    auto ffv = UEmbed<M>::Interpolate(fcv, fs_->GetVelocityCond(), m);
 
     std::array<FieldCell<Vect>, dim> g; // g[i][c][j] is derivative du_i/dx_j
     for (size_t i = 0; i < dim; ++i) {
@@ -471,7 +471,7 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   } else if (fs == "simple") {
     auto p = ParsePar<Simple<M>>()(var);
     fs_.reset(new Simple<M>(
-        m, fc_vel, mebc_fluid_, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
+        m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
         &fc_force_, &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else if (fs == "proj") {
     auto p = ParsePar<Proj<M>>()(var);

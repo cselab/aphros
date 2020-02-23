@@ -106,11 +106,17 @@ class MapEmbed {
   Value& operator[](const IdxCell& c) {
     return dc_[c];
   }
+  Value& at(const IdxCell& c) {
+    return dc_.at(c);
+  }
   const Value& at(const IdxCell& c) const {
     return dc_.at(c);
   }
   Value& operator[](const IdxFace& f) {
     return df_[f];
+  }
+  Value& at(const IdxFace& f) {
+    return df_.at(f);
   }
   const Value& at(const IdxFace& f) const {
     return df_.at(f);

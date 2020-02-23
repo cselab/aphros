@@ -13,23 +13,17 @@
 #include "debug/isnan.h"
 #include "fluid.h"
 #include "simple.h"
+#include "solver/approx_eb.h"
 #include "util/convdiff.h"
 #include "util/fluid.h"
 #include "util/metrics.h"
 
-// Rules:
-// - Each function assumes that all fields on layers
-//     iter_prev, time_prev, time_curr
-//   and force, source and viscosity
-//   are known and doesn't modify them.
-// - No function except for MakeIteration refers to iter_curr.
-//
-// domain (cells/faces)
+// ranges (cells/faces)
 // [i]: inner
 // [s]: support
 // [a]: all
-//
-// notation:
+
+// fields
 // p: pressure
 // gp: pressure gradient
 // w: velocity
@@ -45,9 +39,10 @@ struct Simple<M_>::Imp {
   using ExprFace = generic::Vect<Scal, 3>;
   // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
   using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
+  using UEB = UEmbed<M>;
 
   Imp(Owner* owner, const FieldCell<Vect>& fcw,
-      const MapEmbed<BCondFluid<Vect>>& mebc, MapCondFaceFluid& mfc,
+      const MapEmbed<BCondFluid<Vect>>& mebc,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par)
       : owner_(owner)
       , par(par)
@@ -55,13 +50,10 @@ struct Simple<M_>::Imp {
       , dr_(0, m.GetEdim())
       , drr_(m.GetEdim(), dim)
       , mebc_(mebc)
-      , mfc_(mfc)
       , mcc_(mcc)
       , fcpcs_(m)
       , ffvc_(m) {
     using namespace fluid_condition;
-
-    mfc_ = GetCondFluid<M>(mebc_);
 
     ffbd_.Reinit(m, false);
 
@@ -71,14 +63,14 @@ struct Simple<M_>::Imp {
     typename CD::Par p;
     SetConvDiffPar(p, par);
     cd_ = GetConvDiff<M>()(
-        par.conv, m, m, fcw, mfcw_, owner_->fcr_, &ffd_, &fcfcd_,
+        par.conv, m, m, fcw, mebc_vel_, owner_->fcr_, &ffd_, &fcfcd_,
         &ffv_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
 
     fcp_.time_curr.Reinit(m, 0.);
     fcp_.time_prev = fcp_.time_curr;
 
     // Calc initial volume fluxes
-    auto ffwe = Interpolate(cd_->GetVelocity(), mfcw_, m);
+    auto ffwe = UEB::Interpolate(cd_->GetVelocity(), mebc_vel_, m);
     ffv_.time_curr.Reinit(m, 0.);
     for (auto f : m.Faces()) {
       ffv_.time_curr[f] = ffwe[f].dot(m.GetSurface(f));
@@ -98,7 +90,7 @@ struct Simple<M_>::Imp {
   void UpdateDerivedConditions() {
     using namespace fluid_condition;
 
-    mfcw_ = GetVelCond<M>(mebc_);
+    mebc_vel_ = GetVelCond<M>(mebc_);
     mfcf_.clear();
     mfcp_.clear();
     mfcpc_.clear();
@@ -193,7 +185,7 @@ struct Simple<M_>::Imp {
       const FieldCell<Vect>& fcw, const FieldCell<Scal>& fcp,
       const FieldCell<Vect>& fcgp, const FieldCell<Scal>& fck,
       const FieldFace<Scal>& ffk, FieldFace<Scal>& ffv) {
-    auto fftv = Interpolate(fcw, mfcw_, m);
+    auto fftv = UEB::Interpolate(fcw, mebc_vel_, m);
 
     const Scal rh = par.rhie; // rhie factor
     ffv.Reinit(m);
@@ -421,7 +413,7 @@ struct Simple<M_>::Imp {
   // Output:
   // fcf += viscous term [i]
   void AppendExplViscous(const FieldCell<Vect>& fcw, FieldCell<Vect>& fcf) {
-    auto wf = Interpolate(fcw, mfcw_, m);
+    auto wf = UEB::Interpolate(fcw, mebc_vel_, m);
     for (auto d : dr_) {
       auto wfo = GetComponent(wf, d);
       auto gc = Gradient(wfo, m);
@@ -509,25 +501,17 @@ struct Simple<M_>::Imp {
     }
   }
   void UpdateBc(typename M::Sem& sem) {
-    if (sem.Nested("bc-inletflux")) {
-      UFluid<M>::UpdateInletFlux(
-          m, GetVelocity(Step::iter_curr), mfc_, par.inletflux_numid);
-    }
-    if (sem.Nested("bc-outlet")) {
-      UFluid<M>::UpdateOutletBaseConditions(
-          m, GetVelocity(Step::iter_curr), mfc_, *owner_->fcsv_);
-    }
     if (sem("bc-derived")) {
       UpdateDerivedConditions();
     }
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(
           m, m, GetVelocity(Step::iter_curr), mebc_, par.inletflux_numid,
-          mfcw_);
+          mebc_vel_);
     }
     if (sem.Nested("bc-outlet2")) {
       UFluid<M>::template UpdateOutletVelocity<M>(
-          m, m, GetVelocity(Step::iter_curr), mebc_, *owner_->fcsv_, mfcw_);
+          m, m, GetVelocity(Step::iter_curr), mebc_, *owner_->fcsv_, mebc_vel_);
     }
   }
   void CalcForce(typename M::Sem& sem) {
@@ -708,8 +692,7 @@ struct Simple<M_>::Imp {
 
   // Face conditions
   const MapEmbed<BCondFluid<Vect>>& mebc_;
-  MapCondFaceFluid& mfc_; // fluid cond
-  MapCondFace mfcw_; // velocity cond
+  MapEmbed<BCond<Vect>> mebc_vel_; // velocity cond
   MapCondFace mfcp_; // pressure cond
   MapCondFace mfcf_; // force cond
   MapCondFace mfcpc_; // pressure corr cond
@@ -752,12 +735,11 @@ struct Simple<M_>::Imp {
 template <class M_>
 Simple<M_>::Simple(
     M& m, const FieldCell<Vect>& fcw, const MapEmbed<BCondFluid<Vect>>& mebc,
-    MapCondFaceFluid& mfc, const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-    FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, FieldCell<Vect>* fcf,
-    FieldFace<Scal>* ffbp, FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm,
-    double t, double dt, Par par)
+    const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
+    FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
+    FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt, Par par)
     : FluidSolver<M>(t, dt, m, fcr, fcd, fcf, ffbp, fcsv, fcsm)
-    , imp(new Imp(this, fcw, mebc, mfc, mcc, par)) {}
+    , imp(new Imp(this, fcw, mebc, mcc, par)) {}
 
 template <class M_>
 Simple<M_>::~Simple() = default;
@@ -813,6 +795,6 @@ double Simple<M_>::GetError() const {
 }
 
 template <class M_>
-auto Simple<M_>::GetVelocityCond() const -> const MapCondFace& {
-  return imp->mfcw_;
+auto Simple<M_>::GetVelocityCond() const -> const MapEmbed<BCond<Vect>>& {
+  return imp->mebc_vel_;
 }

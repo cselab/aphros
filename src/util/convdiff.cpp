@@ -11,7 +11,7 @@
 template <class M>
 std::unique_ptr<ConvDiffVect<M>> GetConvDiff<M>::operator()(
     Conv conv, M& m, const M& eb, const FieldCell<Vect>& fcw,
-    const MapCondFace& mfc, const FieldCell<Scal>* fcr,
+    const MapEmbed<BCond<Vect>>& mebc, const FieldCell<Scal>* fcr,
     const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
     const FieldEmbed<Scal>* fev, double t, double dt, Par par) {
   using CDI = ConvDiffVectGeneric<M, ConvDiffScalImp<M>>; // implicit
@@ -20,10 +20,10 @@ std::unique_ptr<ConvDiffVect<M>> GetConvDiff<M>::operator()(
   switch (conv) {
     case Conv::imp:
       return std::unique_ptr<CDI>(new CDI(
-          m, eb, fcw, mfc, fcr, ffd, fcs, &fev->GetFieldFace(), t, dt, par));
+          m, eb, fcw, mebc, fcr, ffd, fcs, &fev->GetFieldFace(), t, dt, par));
     case Conv::exp:
       return std::unique_ptr<CDE>(new CDE(
-          m, eb, fcw, mfc, fcr, ffd, fcs, &fev->GetFieldFace(), t, dt, par));
+          m, eb, fcw, mebc, fcr, ffd, fcs, &fev->GetFieldFace(), t, dt, par));
   }
   return nullptr;
 }
@@ -31,7 +31,7 @@ std::unique_ptr<ConvDiffVect<M>> GetConvDiff<M>::operator()(
 template <class M>
 std::unique_ptr<ConvDiffVect<Embed<M>>> GetConvDiff<Embed<M>>::operator()(
     Conv conv, M& m, const Embed<M>& eb, const FieldCell<Vect>& fcw,
-    const MapCondFace& mfc, const FieldCell<Scal>* fcr,
+    const MapEmbed<BCond<Vect>>& mebc, const FieldCell<Scal>* fcr,
     const FieldEmbed<Scal>* fed, const FieldCell<Vect>* fcs,
     const FieldEmbed<Scal>* fev, double t, double dt, Par par) {
   using EB = Embed<M>;
@@ -40,7 +40,7 @@ std::unique_ptr<ConvDiffVect<Embed<M>>> GetConvDiff<Embed<M>>::operator()(
   switch (conv) {
     case Conv::exp:
       return std::unique_ptr<CDE>(
-          new CDE(m, eb, fcw, mfc, fcr, fed, fcs, fev, t, dt, par));
+          new CDE(m, eb, fcw, mebc, fcr, fed, fcs, fev, t, dt, par));
     default:
       throw std::runtime_error(std::string() + __func__ + "not implemented");
   }

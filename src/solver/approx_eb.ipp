@@ -384,7 +384,7 @@ auto UEmbed<M>::Interpolate(
       case BCondType::mixed: {
         const Scal q = (nci == 0 ? 1. : -1.);
         const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * q;
-        return CombineMixed<T>()(val, fcu[c] + val * a, m.GetNormal(f));
+        return CombineMixed<Scal>()(val, fcu[c] + val * a, m.GetNormal(f));
       }
       case BCondType::extrap: {
         const IdxCell c = m.GetCell(f, nci);

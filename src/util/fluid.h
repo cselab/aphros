@@ -99,7 +99,7 @@ class UFluid {
   static void UpdateOutletVelocity(
       M& m, const EB& eb, const FieldCell<Vect>& fcvel,
       const MapEmbed<BCondFluid<Vect>>& mebc, const FieldCell<Scal>& fcsv,
-      MapCondFace& mfvel) {
+      MapEmbed<BCond<Vect>>& mebc_vel) {
     auto sem = m.GetSem("outlet");
     struct {
       Scal fluxin; // total inlet volume flux
@@ -140,9 +140,9 @@ class UFluid {
               // (otherwise reversed flow leads to instability)
               const Vect n = eb.GetNormal(f);
               vel -= n * (q * std::min(0., vel.dot(n) * q));
-              mfvel[f].Set<CondFaceValFixed<Vect>>(vel, nci);
               fluxout += vel.dot(eb.GetSurface(f)) * q;
               areaout += eb.GetArea(f);
+              mebc_vel.at(f).val = vel;
               break;
             }
           }
@@ -173,8 +173,7 @@ class UFluid {
           if (bc.type == BCondFluidType::outlet) {
             const Scal q = (nci == 0 ? 1. : -1.);
             const Vect n = eb.GetNormal(f);
-            auto cd = mfvel[f].Get<CondFaceValFixed<Vect>>();
-            cd->Set(cd->second() + n * (velcor * q));
+            mebc_vel.at(f).val += n * (velcor * q);
           }
         }
       }
@@ -268,7 +267,7 @@ class UFluid {
   static void UpdateInletFlux(
       M & m, const EB& eb, const FieldCell<Vect>& fcvel,
       const MapEmbed<BCondFluid<Vect>>& mebc, size_t max_id,
-      MapCondFace& mfvel) {
+      MapEmbed<BCond<Vect>>& mebc_vel) {
     using namespace fluid_condition;
     auto sem = m.GetSem("inletflux");
 
@@ -306,9 +305,9 @@ class UFluid {
             flux_target[id] += bc.velocity.dot(eb.GetSurface(f)) * q;
             // extrapolate velocity
             const Vect vel = fcvel[c];
-            mfvel[f].Set<CondFaceValFixed<Vect>>(vel, nci);
             flux_current[id] += vel.dot(eb.GetSurface(f)) * q;
             area[id] += eb.GetArea(f);
+            mebc_vel.at(f).val = vel;
           }
         }
       }
@@ -333,8 +332,7 @@ class UFluid {
             if (bc.type == BCondFluidType::inletflux) {
               const Scal q = (nci == 0 ? -1. : 1.);
               const Vect n = eb.GetNormal(f);
-              auto cd = mfvel[f].Get<CondFaceValFixed<Vect>>();
-              cd->Set(cd->second() + n * (velcor * q));
+              mebc_vel.at(f).val += n * (velcor * q);
             }
           }
         }

@@ -38,6 +38,9 @@ class GMap {
   Value& operator[](Idx i) {
     return d_[i];
   }
+  Value& at(Idx i) {
+    return d_.at(i);
+  }
   const Value& at(Idx i) const {
     return d_.at(i);
   }

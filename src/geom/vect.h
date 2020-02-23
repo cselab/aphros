@@ -231,6 +231,14 @@ class Vect {
     }
     return sum;
   }
+  // Returns projection onto unit vector n.
+  Vect proj(const Vect& n) const {
+    return n * dot(n);
+  }
+  // Returns component orthogonal to unit vector n.
+  Vect orth(const Vect& n) const {
+    return (*this) - proj(n);
+  }
   Scal cross_third(const Vect& other) const {
     return comp_[0] * other.comp_[1] - comp_[1] * other.comp_[0];
   }
