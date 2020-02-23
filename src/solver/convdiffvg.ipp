@@ -32,7 +32,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
       // Initialize solver
       vs_[d] = std::make_shared<CD>(
-          m, eb, GetComponent(fcvel, d), vmfc_[d], owner_->fcr_,
+          m, eb, GetComponent(fcvel, d), vmfbc_[d], owner_->fcr_,
           owner_->ffd_, &(vfcs_[d]), owner_->ffv_, owner_->GetTime(),
           owner_->GetTimeStep(), par);
     }
@@ -42,6 +42,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
   void UpdateDerivedCond(size_t d) {
     // Face conditions for each velocity component
     vmfc_[d] = GetScalarCond(mfc_, d, m);
+    vmfbc_[d] = GetBCond<Scal>(vmfc_[d]);
   }
   // Copy from solvers to vector field.
   // l: layer in component solvers
@@ -166,6 +167,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
   // Scalar components
   Array<MapCondFace> vmfc_; // face cond
+  Array<MapEmbed<BCond<Scal>>> vmfbc_; // boundary conditions
   Array<std::shared_ptr<CD>> vs_; // solver
   Array<FieldCell<Scal>> vfcs_; // force
   Array<FieldCell<Scal>> vfct_; // tmp

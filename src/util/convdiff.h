@@ -10,6 +10,57 @@
 #include "solver/convdiff.h"
 #include "solver/convdiffv.h"
 
+template <class T>
+MapEmbed<BCond<T>> GetBCond(const MapCondFace& mff) {
+  MapEmbed<BCond<T>> mebc;
+  for (auto& p : mff) {
+    const IdxFace f = p.first;
+    const auto& cb = p.second;
+
+    auto& bc = mebc[f];
+    bc.nci = cb->GetNci();
+
+    if (auto cd = cb.template Get<CondFaceValFixed<T>>()) {
+      bc.type = BCondType::dirichlet;
+      bc.val = cd->second();
+    } else if (auto cd = cb.template Get<CondFaceGradFixed<T>>()) {
+      bc.type = BCondType::neumann;
+      bc.val = cd->GetGrad();
+    } else if (auto cd = cb.template Get<CondFaceExtrap>()) {
+      bc.type = BCondType::extrap;
+    } else {
+      throw std::runtime_error("GetBCond: unknown condition");
+    }
+  }
+  return mebc;
+}
+
+template <class T>
+MapCondFace GetCond(const MapEmbed<BCond<T>>& mebc) {
+  MapCondFace mf;
+  for (auto& p : mebc.GetMapFace()) {
+    const IdxFace f = p.first;
+    auto& bc = p.second;
+    auto nci = bc.nci;
+    auto& cond = mf[f];
+    switch (bc.type) {
+      case BCondType::dirichlet:
+        cond.Set<CondFaceValFixed<T>>(bc.val, nci);
+        break;
+      case BCondType::neumann:
+        cond.Set<CondFaceGradFixed<T>>(bc.val, nci);
+        break;
+      case BCondType::extrap:
+        cond.Set<CondFaceExtrap>(nci);
+        break;
+      default:
+        throw std::runtime_error("GetCond: unknown condition");
+    }
+  }
+  return mf;
+}
+
+
 // Converts vector conditions to scalar.
 // mfv: vector velocity conditions
 // d: direction, 0..2

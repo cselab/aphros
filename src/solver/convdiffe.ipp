@@ -16,12 +16,13 @@ struct ConvDiffScalExp<EB_>::Imp {
   using Vect = typename M::Vect;
   using UEB = UEmbed<M>;
 
-  Imp(Owner* owner, const FieldCell<Scal>& fcu, const MapCondFace& mfc)
+  Imp(Owner* owner, const FieldCell<Scal>& fcu,
+      const MapEmbed<BCond<Scal>>& mebc)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
       , eb(owner_->eb)
-      , mfc_(mfc)
+      , mebc_(mebc)
       , dtp_(-1.)
       , er_(0) {
     fcu_.time_curr = fcu;
@@ -48,8 +49,8 @@ struct ConvDiffScalExp<EB_>::Imp {
 
     {
       FieldFace<Scal> ffq; // convective fluxes
-      const FieldCell<Vect> fcg = Gradient(Interpolate(fcu, mfc_, m), m);
-      Interpolate(fcu, fcg, mfc_, ffv, m, par.sc, par.th, ffq);
+      const FieldCell<Vect> fcg = Gradient(UEB::Interpolate(fcu, mebc_, m), m);
+      ffq = UEB::InterpolateUpwind(fcu, mebc_, par.sc, fcg, ffv, m);
       for (auto f : m.Faces()) {
         ffq[f] *= (*owner_->ffv_)[f];
       }
@@ -65,7 +66,7 @@ struct ConvDiffScalExp<EB_>::Imp {
 
     if (owner_->ffd_) {
       FieldFace<Scal> ffq; // diffusive fluxes
-      Gradient(fcu, mfc_, m, ffq);
+      ffq = UEB::Gradient(fcu, mebc_, m);
       for (auto f : m.Faces()) {
         ffq[f] *= (-(*owner_->ffd_)[f]) * m.GetArea(f);
       }
@@ -83,13 +84,13 @@ struct ConvDiffScalExp<EB_>::Imp {
   template <size_t dummy>
   FieldCell<Scal> CalcConvDiff(
       const FieldCell<Scal>& fcu, const FieldEmbed<Scal>& fev) const {
-    const FieldCell<Vect> fcg = Gradient(Interpolate(fcu, mfc_, m), m);
+    const FieldCell<Vect> fcg = Gradient(UEB::Interpolate(fcu, mebc_, m), m);
 
     FieldCell<Scal> fclb(m, 0);
     {
       // convective fluxes
-      FieldEmbed<Scal> feq = UEB::InterpolateUpwindBilinear(
-          fcu, fcg, mfc_, bc_, bcu_, fev, par.sc, eb);
+      FieldEmbed<Scal> feq =
+          UEB::InterpolateUpwind(fcu, mebc_, par.sc, fcg, fev, eb);
       for (auto f : eb.Faces()) {
         feq[f] *= fev[f];
       }
@@ -108,7 +109,7 @@ struct ConvDiffScalExp<EB_>::Imp {
 
     if (owner_->ffd_) {
       // diffusive fluxes
-      FieldEmbed<Scal> feq = UEB::GradientBilinear(fcu, mfc_, bc_, bcu_, eb);
+      FieldEmbed<Scal> feq = UEB::Gradient(fcu, mebc_, eb);
       for (auto f : eb.Faces()) {
         feq[f] *= -(*owner_->ffd_)[f] * eb.GetArea(f);
       }
@@ -143,7 +144,7 @@ struct ConvDiffScalExp<EB_>::Imp {
     auto sem = m.GetSem("assemble");
 
     if (sem("assemble")) {
-      const FieldCell<Vect> fcg = Gradient(Interpolate(fcu, mfc_, m), m);
+      const FieldCell<Vect> fcg = Gradient(UEB::Interpolate(fcu, mebc_, m), m);
 
       fcla.Reinit(m);
       fclb = CalcConvDiff<0>(fcu, ffv);
@@ -261,7 +262,7 @@ struct ConvDiffScalExp<EB_>::Imp {
   const EB& eb; // embed mesh
 
   StepData<FieldCell<Scal>> fcu_; // field
-  const MapCondFace& mfc_; // face cond
+  const MapEmbed<BCond<Scal>>& mebc_; // boundary conditions
 
   size_t bc_ = 0; // boundary conditions, 0: value, 1: gradient
   Scal bcu_ = 0.; // value or grad.dot.outer_normal
@@ -275,12 +276,12 @@ struct ConvDiffScalExp<EB_>::Imp {
 
 template <class EB_>
 ConvDiffScalExp<EB_>::ConvDiffScalExp(
-    M& m, const EB& eb, const FieldCell<Scal>& fcu, const MapCondFace& mfc,
-    const FieldCell<Scal>* fcr, const FieldFaceb<Scal>* ffd,
-    const FieldCell<Scal>* fcs, const FieldFaceb<Scal>* ffv, double t,
-    double dt, Par par)
+    M& m, const EB& eb, const FieldCell<Scal>& fcu,
+    const MapEmbed<BCond<Scal>>& mebc, const FieldCell<Scal>* fcr,
+    const FieldFaceb<Scal>* ffd, const FieldCell<Scal>* fcs,
+    const FieldFaceb<Scal>* ffv, double t, double dt, Par par)
     : Base(t, dt, m, eb, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcu, mfc)) {}
+    , imp(new Imp(this, fcu, mebc)) {}
 
 template <class EB_>
 ConvDiffScalExp<EB_>::~ConvDiffScalExp() = default;
