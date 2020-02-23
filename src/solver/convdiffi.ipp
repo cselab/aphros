@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "approx.h"
+#include "approx_eb.h"
 #include "convdiffi.h"
 #include "debug/isnan.h"
 #include "linear/linear.h"
@@ -16,14 +17,15 @@ struct ConvDiffScalImp<EB_>::Imp {
   using Owner = ConvDiffScalImp<EB_>;
   using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   using Vect = typename M::Vect;
+  using UEB = UEmbed<M>;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu,
-      const MapEmbed<BCond<Scal>>& mfbc)
+      const MapEmbed<BCond<Scal>>& mebc)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
       , eb(owner_->eb)
-      , mfc_(GetCond<Scal>(mfbc))
+      , mebc_(mebc)
       , dtp_(-1.)
       , er_(0) {
     fcu_.time_curr = fcu;
@@ -54,7 +56,7 @@ struct ConvDiffScalImp<EB_>::Imp {
     auto sem = m.GetSem("assemble");
 
     if (sem("assemble")) {
-      FieldCell<Vect> fcg = Gradient(Interpolate(fcu, mfc_, m), m);
+      const FieldCell<Vect> fcg = Gradient(UEB::Interpolate(fcu, mebc_, m), m);
 
       FieldFace<Expr> ffq; // flux tmp
 
@@ -66,10 +68,9 @@ struct ConvDiffScalImp<EB_>::Imp {
       }
 
       // overwrite with bc
-      FaceValB<M, Expr> ub(m, mfc_);
-      for (auto& it : mfc_) {
-        const IdxFace f = it.first;
-        Expr e = ub.GetExpr(f);
+      for (auto& p : mebc_.GetMapFace()) {
+        const IdxFace f = p.first;
+        Expr e = UEB::template GetExprVal<Expr>(f, p.second, m);
         e.SortTerms();
         ffq[f] = e * (*owner_->ffv_)[f];
       }
@@ -104,10 +105,9 @@ struct ConvDiffScalImp<EB_>::Imp {
           ffq[f] *= (-(*owner_->ffd_)[f]) * m.GetArea(f);
         }
         // overwrite with bc
-        FaceGradB<M, Expr> gb(m, mfc_);
-        for (auto& it : mfc_) {
-          const IdxFace f = it.first;
-          Expr e = gb.GetExpr(f);
+        for (auto& p : mebc_.GetMapFace()) {
+          const IdxFace f = p.first;
+          Expr e = UEB::template GetExprGrad<Expr>(f, p.second, m);
           e.SortTerms();
           ffq[f] = e * (-(*owner_->ffd_)[f]) * m.GetArea(f);
         }
@@ -255,7 +255,7 @@ struct ConvDiffScalImp<EB_>::Imp {
   const EB& eb;
 
   StepData<FieldCell<Scal>> fcu_; // field
-  const MapCondFace& mfc_; // face cond
+  const MapEmbed<BCond<Scal>>& mebc_; // boundary conditions
 
   FieldCell<Expr> fcucs_; // linear system for correction
 
@@ -266,11 +266,11 @@ struct ConvDiffScalImp<EB_>::Imp {
 template <class EB_>
 ConvDiffScalImp<EB_>::ConvDiffScalImp(
     M& m, const EB& eb, const FieldCell<Scal>& fcu,
-    const MapEmbed<BCond<Scal>>& mfbc, const FieldCell<Scal>* fcr,
+    const MapEmbed<BCond<Scal>>& mebc, const FieldCell<Scal>* fcr,
     const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
     const FieldFace<Scal>* ffv, double t, double dt, Par par)
     : ConvDiffScal<M>(t, dt, m, eb, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcu, mfbc)) {}
+    , imp(new Imp(this, fcu, mebc)) {}
 
 template <class EB_>
 ConvDiffScalImp<EB_>::~ConvDiffScalImp() = default;
