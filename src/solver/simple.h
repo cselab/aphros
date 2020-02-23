@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "fluid.h"
-#include "linear/linear.h"
 #include "util/convdiff.h"
 
 template <class M_>
@@ -17,7 +16,6 @@ class Simple final : public FluidSolver<M_> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr size_t dim = M::dim;
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
   struct Par {
     Scal vrelax = 0.8; // velocity relaxation factor [0,1]
