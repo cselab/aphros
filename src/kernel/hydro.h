@@ -464,7 +464,7 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   if (eb_) {
     auto p = ParsePar<Proj<M>>()(var);
     fs_.reset(new Proj<Embed<M>>(
-        m, *eb_, fc_vel, mebc_fluid_, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
+        m, *eb_, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
         &fc_force_, &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else if (fs == "simple") {
     auto p = ParsePar<Simple<M>>()(var);
@@ -474,7 +474,7 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   } else if (fs == "proj") {
     auto p = ParsePar<Proj<M>>()(var);
     fs_.reset(new Proj<M>(
-        m, m, fc_vel, mebc_fluid_, mf_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
+        m, m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
         &fc_force_, &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else {
     throw std::runtime_error("Unknown fluid_solver=" + fs);

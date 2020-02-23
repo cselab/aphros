@@ -9,11 +9,12 @@
 #include <stdexcept>
 
 #include "approx.h"
+#include "approx_eb.h"
 #include "convdiffv.h"
 #include "debug/isnan.h"
 #include "fluid.h"
+#include "linear/linear.h"
 #include "simple.h"
-#include "solver/approx_eb.h"
 #include "util/convdiff.h"
 #include "util/fluid.h"
 #include "util/metrics.h"
@@ -115,12 +116,11 @@ struct Simple<M_>::Imp {
     }
 
     mccp_.clear();
-    mccp_.clear();
     for (auto& it : mcc_) {
       const IdxCell c = it.first;
-      CondCellFluid* cb = it.second.get(); // cond base
+      const CondCellFluid* cb = it.second.get(); // cond base
 
-      if (auto cd = dynamic_cast<GivenPressure<M>*>(cb)) {
+      if (auto cd = dynamic_cast<const GivenPressure<M>*>(cb)) {
         mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
       } else {
         throw std::runtime_error("proj: unknown cell condition");
@@ -413,11 +413,11 @@ struct Simple<M_>::Imp {
   // Output:
   // fcf += viscous term [i]
   void AppendExplViscous(const FieldCell<Vect>& fcw, FieldCell<Vect>& fcf) {
-    auto wf = UEB::Interpolate(fcw, mebc_vel_, m);
+    const auto wf = UEB::Interpolate(fcw, mebc_vel_, m);
     for (auto d : dr_) {
-      auto wfo = GetComponent(wf, d);
-      auto gc = Gradient(wfo, m);
-      auto gf = Interpolate(gc, mfcf_, m); // XXX adhoc zero-deriv cond
+      const auto wfo = GetComponent(wf, d);
+      const auto gc = Gradient(wfo, m);
+      const auto gf = Interpolate(gc, mfcf_, m); // XXX adhoc zero-deriv cond
       for (auto c : m.Cells()) {
         Vect s(0);
         for (auto q : m.Nci(c)) {
@@ -509,7 +509,7 @@ struct Simple<M_>::Imp {
           m, m, GetVelocity(Step::iter_curr), mebc_, par.inletflux_numid,
           mebc_vel_);
     }
-    if (sem.Nested("bc-outlet2")) {
+    if (sem.Nested("bc-outlet")) {
       UFluid<M>::template UpdateOutletVelocity<M>(
           m, m, GetVelocity(Step::iter_curr), mebc_, *owner_->fcsv_, mebc_vel_);
     }
@@ -668,7 +668,7 @@ struct Simple<M_>::Imp {
     }
   }
   double GetAutoTimeStep() {
-    double dt = 1e10;
+    Scal dt = std::numeric_limits<Scal>::max();
     auto& flux = ffv_.time_curr;
     for (auto c : m.Cells()) {
       for (size_t i = 0; i < m.GetNumFaces(c); ++i) {
@@ -686,7 +686,7 @@ struct Simple<M_>::Imp {
 
   Owner* owner_;
   Par par;
-  M& m; // mesh
+  M& m;
   GRange<size_t> dr_; // effective dimension range
   GRange<size_t> drr_; // remaining dimensions
 

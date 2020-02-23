@@ -44,7 +44,7 @@ struct Proj<EB_>::Imp {
   using UEB = UEmbed<M>;
 
   Imp(Owner* owner, const EB& eb0, const FieldCell<Vect>& fcw,
-      const MapEmbed<BCondFluid<Vect>>& mebc, MapCondFaceFluid& mfc,
+      const MapEmbed<BCondFluid<Vect>>& mebc,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par,
       const FieldFace<Scal>* ffbp)
       : owner_(owner)
@@ -54,14 +54,11 @@ struct Proj<EB_>::Imp {
       , dr_(0, m.GetEdim())
       , drr_(m.GetEdim(), dim)
       , mebc_(mebc)
-      , mfc_(mfc)
       , mcc_(mcc)
       , ffbp_(ffbp)
       , fcpcs_(m)
       , ffvc_(m) {
     using namespace fluid_condition;
-
-    mfc_ = GetCondFluid<M>(mebc_);
 
     ffbd_.Reinit(m, false);
 
@@ -311,8 +308,8 @@ struct Proj<EB_>::Imp {
   static FieldFace<T> Interpolate(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
       const M& m) {
-    (void) bc;
-    (void) bcv;
+    (void)bc;
+    (void)bcv;
     return ::Interpolate<T, M>(fcu, mfc, m);
   }
   template <class T>
@@ -325,8 +322,8 @@ struct Proj<EB_>::Imp {
   static FieldFace<T> Gradient(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
       const M& m) {
-    (void) bc;
-    (void) bcv;
+    (void)bc;
+    (void)bcv;
     FieldFace<T> ffg(m);
     ::Gradient(fcu, mfc, m, ffg);
     return ffg;
@@ -384,22 +381,23 @@ struct Proj<EB_>::Imp {
   void AppendExplViscous(
       const FieldCell<Vect>& fcw, FieldCell<Vect>& fcf, const Embed<M>& eb) {
     // FIXME: not implemented
-    (void) fcw;
-    (void) fcf;
-    (void) eb;
+    (void)fcw;
+    (void)fcf;
+    (void)eb;
     return;
   }
   void UpdateBc(typename M::Sem& sem) {
-    if (sem.Nested("bc-inletflux")) {
-      UFluid<M>::UpdateInletFlux(
-          m, GetVelocity(Step::iter_curr), mfc_, par.inletflux_numid);
-    }
-    if (sem.Nested("bc-outlet")) {
-      UFluid<M>::UpdateOutletBaseConditions(
-          m, GetVelocity(Step::iter_curr), mfc_, *owner_->fcsv_);
-    }
     if (sem("bc-derived")) {
       UpdateDerivedConditions();
+    }
+    if (sem.Nested("bc-inletflux")) {
+      UFluid<M>::UpdateInletFlux(
+          m, m, GetVelocity(Step::iter_curr), mebc_, par.inletflux_numid,
+          mebc_vel_);
+    }
+    if (sem.Nested("bc-outlet")) {
+      UFluid<M>::template UpdateOutletVelocity<M>(
+          m, m, GetVelocity(Step::iter_curr), mebc_, *owner_->fcsv_, mebc_vel_);
     }
   }
   // TODO: rewrite norm() using dist() where needed
@@ -537,7 +535,6 @@ struct Proj<EB_>::Imp {
 
   // Face conditions
   const MapEmbed<BCondFluid<Vect>>& mebc_;
-  MapCondFaceFluid& mfc_; // fluid cond
   MapEmbed<BCond<Vect>> mebc_vel_; // velocity cond
   MapCondFace mfcp_; // pressure cond
   MapCondFace mfcf_; // force cond
@@ -578,12 +575,12 @@ struct Proj<EB_>::Imp {
 template <class EB_>
 Proj<EB_>::Proj(
     M& m, const EB& eb, const FieldCell<Vect>& fcw,
-    const MapEmbed<BCondFluid<Vect>>& mebc, MapCondFaceFluid& mfc,
+    const MapEmbed<BCondFluid<Vect>>& mebc,
     const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
     FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
     FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt, Par par)
     : FluidSolver<M>(t, dt, m, fcr, fcd, fcf, nullptr, fcsv, fcsm)
-    , imp(new Imp(this, eb, fcw, mebc, mfc, mcc, par, ffbp)) {}
+    , imp(new Imp(this, eb, fcw, mebc, mcc, par, ffbp)) {}
 
 template <class EB_>
 Proj<EB_>::~Proj() = default;

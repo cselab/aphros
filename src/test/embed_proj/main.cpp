@@ -61,7 +61,6 @@ void Run(M& m, Vars& var) {
   struct {
     std::unique_ptr<EB> eb;
     std::unique_ptr<Proj<EB>> fs;
-    MapCondFaceFluid mfc;
     MapEmbed<BCondFluid<Vect>> mebc;
     FieldCell<Scal> fcdiv;
     FieldCell<Scal> fcr;
@@ -75,7 +74,6 @@ void Run(M& m, Vars& var) {
   } * ctx(sem);
   auto& fs = ctx->fs;
   auto& fcdiv = ctx->fcdiv;
-  auto& mfc = ctx->mfc;
   auto& mebc = ctx->mebc;
   auto& frame = ctx->frame;
 
@@ -116,7 +114,7 @@ void Run(M& m, Vars& var) {
     typename Proj<EB>::Par par;
     par.conv = Conv::exp;
     fs.reset(new Proj<EB>(
-        m, eb, fcvel, mebc, mfc, MapCell<std::shared_ptr<CondCellFluid>>(),
+        m, eb, fcvel, mebc, MapCell<std::shared_ptr<CondCellFluid>>(),
         &ctx->fcr, &ctx->fcd, &ctx->fcf, &ctx->ffbp, &ctx->fcsv, &ctx->fcsm, 0,
         dt, par));
   }
