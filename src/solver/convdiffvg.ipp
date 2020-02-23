@@ -15,12 +15,13 @@ template <class M_, class CD_>
 struct ConvDiffVectGeneric<M_, CD_>::Imp {
   using Owner = ConvDiffVectGeneric<M_, CD_>;
 
-  Imp(Owner* owner, const FieldCell<Vect>& fcvel, const MapCondFace& mfc)
+  Imp(Owner* owner, const FieldCell<Vect>& fcvel,
+      const MapEmbed<BCond<Vect>>& mebc)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
       , eb(owner_->eb)
-      , mfc_(mfc)
+      , mebc_(mebc)
       , dr_(0, m.GetEdim()) {
     for (auto d : dr_) {
       UpdateDerivedCond(d);
@@ -32,17 +33,16 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
       // Initialize solver
       vs_[d] = std::make_shared<CD>(
-          m, eb, GetComponent(fcvel, d), vmfbc_[d], owner_->fcr_,
-          owner_->ffd_, &(vfcs_[d]), owner_->ffv_, owner_->GetTime(),
-          owner_->GetTimeStep(), par);
+          m, eb, GetComponent(fcvel, d), vmebc_[d], owner_->fcr_, owner_->ffd_,
+          &(vfcs_[d]), owner_->ffv_, owner_->GetTime(), owner_->GetTimeStep(),
+          par);
     }
     CopyToVect(Step::time_curr, fcvel_);
     lvel_ = Step::time_curr;
   }
   void UpdateDerivedCond(size_t d) {
     // Face conditions for each velocity component
-    vmfc_[d] = GetScalarCond(mfc_, d, m);
-    vmfbc_[d] = GetBCond<Scal>(vmfc_[d]);
+    vmebc_[d] = GetScalarCond(mebc_, d, m);
   }
   // Copy from solvers to vector field.
   // l: layer in component solvers
@@ -159,15 +159,14 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
   FieldCell<Vect> fcvel_;
   Step lvel_; // current level loaded in fcvel_
-  const MapCondFace& mfc_; // vect face cond
+  const MapEmbed<BCond<Vect>>& mebc_; // vect face cond
   GRange<size_t> dr_; // effective dimension range
 
   template <class T>
   using Array = std::array<T, dim>;
 
   // Scalar components
-  Array<MapCondFace> vmfc_; // face cond
-  Array<MapEmbed<BCond<Scal>>> vmfbc_; // boundary conditions
+  Array<MapEmbed<BCond<Scal>>> vmebc_; // boundary conditions
   Array<std::shared_ptr<CD>> vs_; // solver
   Array<FieldCell<Scal>> vfcs_; // force
   Array<FieldCell<Scal>> vfct_; // tmp
@@ -175,12 +174,12 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
 template <class M_, class CD_>
 ConvDiffVectGeneric<M_, CD_>::ConvDiffVectGeneric(
-    M& m, const EB& eb, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
-    const FieldCell<Scal>* fcr, const FieldFaceb<Scal>* ffd,
-    const FieldCell<Vect>* fcs, const FieldFaceb<Scal>* ffv, double t,
-    double dt, Par par)
+    M& m, const EB& eb, const FieldCell<Vect>& fcvel,
+    const MapEmbed<BCond<Vect>>& mebc, const FieldCell<Scal>* fcr,
+    const FieldFaceb<Scal>* ffd, const FieldCell<Vect>* fcs,
+    const FieldFaceb<Scal>* ffv, double t, double dt, Par par)
     : Base(t, dt, m, eb, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcvel, mfc)) {}
+    , imp(new Imp(this, fcvel, mebc)) {}
 
 template <class M_, class CD_>
 ConvDiffVectGeneric<M_, CD_>::~ConvDiffVectGeneric() = default;
@@ -208,8 +207,9 @@ auto ConvDiffVectGeneric<M_, CD_>::GetConst(size_t d) const -> FieldCell<Scal> {
 }
 
 template <class M_, class CD_>
-auto ConvDiffVectGeneric<M_, CD_>::GetVelocityCond(size_t d) -> MapCondFace& {
-  return imp->vmfc_[d];
+auto ConvDiffVectGeneric<M_, CD_>::GetVelocityCond(size_t d)
+    -> MapEmbed<BCond<Scal>>& {
+  return imp->vmebc_[d];
 }
 
 template <class M_, class CD_>

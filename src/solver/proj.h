@@ -69,7 +69,7 @@ class Proj final : public FluidSolver<typename EB_::M> {
   using Base::GetVolumeFlux;
   double GetAutoTimeStep() const override;
   double GetError() const override;
-  const MapCondFace& GetVelocityCond() const override;
+  const MapEmbed<BCond<Vect>>& GetVelocityCond() const override;
 
  private:
   struct Imp;

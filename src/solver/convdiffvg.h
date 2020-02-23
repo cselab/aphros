@@ -25,7 +25,7 @@ class ConvDiffVectGeneric final : public ConvDiffVect<EB_> {
 
   // Constructor.
   // fcvel: initial velocity
-  // mfc: face conditions
+  // mebc: face conditions
   // fcr: density
   // ffd: dynamic viscosiity
   // fcs: source
@@ -34,10 +34,10 @@ class ConvDiffVectGeneric final : public ConvDiffVect<EB_> {
   // dt: time step
   // par: parameters
   ConvDiffVectGeneric(
-      M& m, const EB& eb, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
-      const FieldCell<Scal>* fcr, const FieldFaceb<Scal>* ffd,
-      const FieldCell<Vect>* fcs, const FieldFaceb<Scal>* ffv, double t,
-      double dt, Par par);
+      M& m, const EB& eb, const FieldCell<Vect>& fcvel,
+      const MapEmbed<BCond<Vect>>& mebc, const FieldCell<Scal>* fcr,
+      const FieldFaceb<Scal>* ffd, const FieldCell<Vect>* fcs,
+      const FieldFaceb<Scal>* ffv, double t, double dt, Par par);
   ~ConvDiffVectGeneric();
   // ...
   void Assemble(
@@ -53,7 +53,7 @@ class ConvDiffVectGeneric final : public ConvDiffVect<EB_> {
   FieldCell<Scal> GetConst(size_t d) const override;
   // Velocity conditions.
   // d: component
-  MapCondFace& GetVelocityCond(size_t d);
+  MapEmbed<BCond<Scal>>& GetVelocityCond(size_t d);
   // ...
   void StartStep() override;
   // ...

@@ -47,10 +47,10 @@ class Simple final : public FluidSolver<M_> {
   // par: parameters
   Simple(
       M& m, const FieldCell<Vect>& fcw, const MapEmbed<BCondFluid<Vect>>& mebc,
-      MapCondFaceFluid& mfc, const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-      FieldCell<Scal>* fcr, FieldCell<Scal>* fcd, FieldCell<Vect>* fcf,
-      FieldFace<Scal>* ffbp, FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm,
-      double t, double dt, Par par);
+      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
+      FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
+      FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt,
+      Par par);
   ~Simple();
   const Par& GetPar() const;
   void SetPar(Par);
@@ -66,7 +66,7 @@ class Simple final : public FluidSolver<M_> {
   double GetAutoTimeStep() const override;
   double GetError() const override;
   // Returns velocity boundary conditions
-  const MapCondFace& GetVelocityCond() const override;
+  const MapEmbed<BCond<Vect>>& GetVelocityCond() const override;
 
  private:
   struct Imp;

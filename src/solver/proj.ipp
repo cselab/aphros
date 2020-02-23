@@ -71,14 +71,14 @@ struct Proj<EB_>::Imp {
     typename CD::Par p;
     SetConvDiffPar(p, par);
     cd_ = GetConvDiff<EB>()(
-        par.conv, m, eb, fcw, mfcw_, owner_->fcr_, &ffd_, &fcfcd_,
+        par.conv, m, eb, fcw, mebc_vel_, owner_->fcr_, &ffd_, &fcfcd_,
         &fev_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
 
     fcp_.time_curr.Reinit(m, 0.);
     fcp_.time_prev = fcp_.time_curr;
 
     // Calc initial volume fluxes
-    auto ffwe = Interpolate(cd_->GetVelocity(), mfcw_, 0, Vect(0), eb);
+    auto ffwe = UEB::Interpolate(cd_->GetVelocity(), mebc_vel_, eb);
     fev_.time_curr.Reinit(m, 0.);
     for (auto f : eb.Faces()) {
       fev_.time_curr[f] = ffwe[f].dot(eb.GetSurface(f));
@@ -95,34 +95,27 @@ struct Proj<EB_>::Imp {
   void UpdateDerivedConditions() {
     using namespace fluid_condition;
 
-    mfcw_ = GetVelCond(m, mfc_);
+    mebc_vel_ = GetVelCond<M>(mebc_);
     mfcf_.clear();
     mfcp_.clear();
     mfcpc_.clear();
     mfcd_.clear();
-    for (auto& it : mfc_) {
-      IdxFace f = it.first;
+    for (auto& p : mebc_.GetMapFace()) {
+      const IdxFace f = p.first;
+      auto& bc = p.second;
+      const size_t nci = bc.nci;
       ffbd_[f] = true;
-      auto& cb = it.second;
-      size_t nci = cb->GetNci();
 
       mfcf_[f].template Set<CondFaceGradFixed<Vect>>(Vect(0), nci);
       mfcp_[f].template Set<CondFaceExtrap>(nci);
       mfcpc_[f].template Set<CondFaceExtrap>(nci);
       mfcd_[f].template Set<CondFaceGradFixed<Scal>>(0., nci);
 
-      if (cb.template Get<NoSlipWall<M>>()) {
-        // nop
-      } else if (cb.template Get<Inlet<M>>()) {
-        // nop
-      } else if (cb.template Get<Outlet<M>>()) {
-        // nop
-      } else if (cb.template Get<SlipWall<M>>() || cb.template Get<Symm<M>>()) {
+      if (bc.type == BCondFluidType::slipwall ||
+          bc.type == BCondFluidType::symm) {
         mfcf_[f].template Set<CondFaceReflect>(nci);
         mfcp_[f].template Set<CondFaceGradFixed<Scal>>(0., nci);
         mfcpc_[f].template Set<CondFaceGradFixed<Scal>>(0, nci);
-      } else {
-        throw std::runtime_error("proj: unknown condition");
       }
     }
 
@@ -373,7 +366,7 @@ struct Proj<EB_>::Imp {
   // fcf += viscous term [i]
   void AppendExplViscous(
       const FieldCell<Vect>& fcw, FieldCell<Vect>& fcf, const M& m) {
-    const auto wf = ::Interpolate(fcw, mfcw_, m);
+    const auto wf = UEB::Interpolate(fcw, mebc_vel_, m);
     for (auto d : dr_) {
       const auto wfo = GetComponent(wf, d);
       const auto gc = ::Gradient(wfo, m);
@@ -444,7 +437,7 @@ struct Proj<EB_>::Imp {
     if (sem("pcorr-assemble")) {
       // Acceleration
       const auto ffvel =
-          Interpolate(cd_->GetVelocity(Step::iter_curr), mfcw_, 0, Vect(0), eb);
+          UEB::Interpolate(cd_->GetVelocity(Step::iter_curr), mebc_vel_, eb);
       auto& ffbp = *ffbp_;
       for (auto f : eb.Faces()) {
         Scal v = ffvel[f].dot(eb.GetSurface(f));
@@ -545,7 +538,7 @@ struct Proj<EB_>::Imp {
   // Face conditions
   const MapEmbed<BCondFluid<Vect>>& mebc_;
   MapCondFaceFluid& mfc_; // fluid cond
-  MapCondFace mfcw_; // velocity cond
+  MapEmbed<BCond<Vect>> mebc_vel_; // velocity cond
   MapCondFace mfcp_; // pressure cond
   MapCondFace mfcf_; // force cond
   MapCondFace mfcpc_; // pressure corr cond
@@ -646,6 +639,6 @@ double Proj<EB_>::GetError() const {
 }
 
 template <class EB_>
-auto Proj<EB_>::GetVelocityCond() const -> const MapCondFace& {
-  return imp->mfcw_;
+auto Proj<EB_>::GetVelocityCond() const -> const MapEmbed<BCond<Vect>>& {
+  return imp->mebc_vel_;
 }

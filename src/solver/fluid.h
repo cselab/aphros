@@ -66,7 +66,7 @@ class FluidSolver : public UnsteadyIterativeSolver {
   virtual double GetAutoTimeStep() const {
     return GetTimeStep();
   }
-  virtual const MapCondFace& GetVelocityCond() const = 0;
+  virtual const MapEmbed<BCond<Vect>>& GetVelocityCond() const = 0;
 };
 
 class CondFaceFluid : public CondFace {
@@ -368,7 +368,7 @@ MapCondFaceFluid GetCondFluid(
 }
 
 template <class M>
-MapCondFace GetVelCond(const MapEmbed<BCondFluid<typename M::Vect>>& mebc) {
+MapCondFace GetVelCond2(const MapEmbed<BCondFluid<typename M::Vect>>& mebc) {
   using Vect = typename M::Vect;
   MapCondFace mf;
 
@@ -401,3 +401,31 @@ MapCondFace GetVelCond(const MapEmbed<BCondFluid<typename M::Vect>>& mebc) {
   return mf;
 }
 
+template <class M>
+MapEmbed<BCond<typename M::Vect>> GetVelCond(
+    const MapEmbed<BCondFluid<typename M::Vect>>& mebcf) {
+  using Vect = typename M::Vect;
+  MapEmbed<BCond<Vect>> mebc;
+
+  for (auto& p : mebcf.GetMapFace()) {
+    const IdxFace f = p.first;
+    auto& bcf = p.second;
+    auto& bc = mebc[f];
+    bc.nci = bcf.nci;
+    switch (bcf.type) {
+      case BCondFluidType::wall:
+      case BCondFluidType::inlet:
+      case BCondFluidType::inletflux:
+      case BCondFluidType::outlet:
+        bc.type = BCondType::dirichlet;
+        bc.val = bcf.velocity;
+        break;
+      case BCondFluidType::slipwall:
+      case BCondFluidType::symm:
+        bc.type = BCondType::mixed;
+        bc.val = bcf.velocity;
+        break;
+    }
+  }
+  return mebc;
+}
