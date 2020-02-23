@@ -2,9 +2,14 @@
 
 set -eu
 
-n=${1:-periodic}
+name=${1:-periodic}
+extra=${2:-}
 
-r=ref$n
+r=ref${name}
+
+if [ "$extra" != "" ] ; then
+  r=${r}_${extra}
+fi
 
 mkdir -p $r
 

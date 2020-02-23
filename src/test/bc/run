@@ -8,8 +8,15 @@ t=$1
 c=_${t}.conf
 # reference
 r=ref${t}
+# extra
+extra=${2:-}
 
 cp "$c" add.conf
+
+if [ "$extra" != "" ] ; then
+  echo "include _${extra}.conf" >> add.conf
+  r=${r}_${extra}
+fi
 
 # run 
 make -f sim.makefile cleanrun
