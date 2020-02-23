@@ -420,13 +420,96 @@ template <class M>
 template <class T>
 auto UEmbed<M>::Gradient(
     const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const M& m)
-    -> FieldFace<T> {}
+    -> FieldFace<T> {
+  FieldFace<T> ffu(m, T(0));
+
+  for (auto f : m.SuFaces()) {
+    const IdxCell cm = m.GetCell(f, 0);
+    const IdxCell cp = m.GetCell(f, 1);
+    const Scal a = m.GetArea(f) / m.GetVolume(cp);
+    ffu[f] = (fcu[cp] - fcu[cm]) * a;
+  }
+
+  auto calc = [&](IdxFace f, IdxCell c, const BCond<T>& bc) {
+    const Scal h = m.GetCellSize()[0];
+    const T& val = bc.val;
+    const auto nci = bc.nci;
+    switch (bc.type) {
+      case BCondType::dirichlet: {
+        const Scal q = (nci == 0 ? 1. : -1.);
+        const Scal hr = m.GetArea(f) / m.GetVolume(c);
+        const Scal a = hr * 2 * q;
+        return (val - fcu[c]) * a;
+      }
+      case BCondType::neumann: {
+        return val;
+      }
+      default:
+        throw std::runtime_error(std::string() + __func__ + ": unknown");
+    }
+    return GetNan<T>();
+  };
+  // faces with boundary conditions
+  for (auto& p : mebc.GetMapFace()) {
+    const IdxFace f = p.first;
+    const auto& bc = p.second;
+    ffu[f] = calc(f, m.GetCell(f, bc.nci), bc);
+  }
+  return ffu;
+}
 
 template <class M>
 auto UEmbed<M>::InterpolateUpwind(
     const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
     const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv, const M& m)
-    -> FieldFace<Scal> {}
+    -> FieldFace<Scal> {
+  const Scal th = 1e-10;
+  FieldFace<Scal> ffu(m, 0);
+
+  // f = fmm*a[0] + fm*a[1] + fp*a[2]
+  std::array<Scal, 3> a = GetCoeff<Scal>(sc);
+  ffu.Reinit(m);
+  for (auto f : m.Faces()) {
+    IdxCell cm = m.GetCell(f, 0);
+    IdxCell cp = m.GetCell(f, 1);
+    if (ffv[f] > th) {
+      ffu[f] = 4. * a[0] * fcg[cm].dot(m.GetVectToCell(f, 0)) + a[1] * fcu[cm] +
+               (a[2] + a[0]) * fcu[cp];
+    } else if (ffv[f] < -th) {
+      ffu[f] = 4. * a[0] * fcg[cp].dot(m.GetVectToCell(f, 1)) + a[1] * fcu[cp] +
+               (a[2] + a[0]) * fcu[cm];
+    } else {
+      ffu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+    }
+  }
+
+  auto calc = [&](IdxFace f, IdxCell c, const BCond<Scal>& bc) {
+    const Scal h = m.GetCellSize()[0];
+    const Scal& val = bc.val;
+    const auto nci = bc.nci;
+    switch (bc.type) {
+      case BCondType::dirichlet: {
+        const Scal q = (nci == 0 ? 1. : -1.);
+        const Scal hr = m.GetArea(f) / m.GetVolume(c);
+        const Scal a = hr * 2 * q;
+        return (val - fcu[c]) * a;
+      }
+      case BCondType::neumann: {
+        return val;
+      }
+      default:
+        throw std::runtime_error(std::string() + __func__ + ": unknown");
+    }
+    return GetNan<Scal>();
+  };
+  // faces with boundary conditions
+  for (auto& p : mebc.GetMapFace()) {
+    const IdxFace f = p.first;
+    const auto& bc = p.second;
+    ffu[f] = calc(f, m.GetCell(f, bc.nci), bc);
+  }
+  return ffu;
+}
 
 template <class M>
 template <class T>

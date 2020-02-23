@@ -12,8 +12,8 @@
 #include "cond.h"
 #include "embed.h"
 #include "geom/mesh.h"
-#include "solver.h"
 #include "parse/vars.h"
+#include "solver.h"
 
 template <class Scal_>
 struct ULinear {
@@ -325,4 +325,58 @@ struct UEmbed {
   static FieldEmbed<T> GradientBilinear(
       const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
       const EB& eb);
-  };
+
+  template <class Expr>
+  static Expr GetExprVal(IdxFace f, const BCond<Scal>& bc, const M& m) {
+    Expr e;
+    const auto nci = bc.nci;
+    const IdxCell cm = m.GetCell(f, 0);
+    const IdxCell cp = m.GetCell(f, 1);
+    const IdxCell c = m.GetCell(f, nci);
+    e.InsertTerm(0, cm);
+    e.InsertTerm(0, cp);
+    switch (bc.type) {
+      case BCondType::dirichlet: {
+        e.SetConstant(bc.val);
+        break;
+      }
+      case BCondType::neumann: {
+        const Scal g = (nci == 0 ? 1. : -1.);
+        const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * g;
+        e.SetConstant(a * bc.val);
+        e.InsertTerm(1., c);
+        break;
+      }
+      default:
+        throw std::runtime_error(std::string() + __func__ + ": unknown");
+    }
+    return e;
+  }
+  template <class Expr>
+  static Expr GetExprGrad(IdxFace f, const BCond<Scal>& bc, const M& m) {
+    Expr e;
+    const auto nci = bc.nci;
+    const IdxCell c = m.GetCell(f, nci);
+    const IdxCell cm = m.GetCell(f, 0);
+    const IdxCell cp = m.GetCell(f, 1);
+    e.InsertTerm(0, cm);
+    e.InsertTerm(0, cp);
+    switch (bc.type) {
+      case BCondType::dirichlet: {
+        const Scal g = (nci == 0 ? 1. : -1.);
+        const Scal hr = m.GetArea(f) / m.GetVolume(c);
+        const Scal a = hr * 2 * g;
+        e.SetConstant(a * bc.val);
+        e.InsertTerm(-a, c);
+        break;
+      }
+      case BCondType::neumann: {
+        e.SetConstant(bc.val);
+        break;
+      }
+      default:
+        throw std::runtime_error(std::string() + __func__ + ": unknown");
+    }
+    return e;
+  }
+};
