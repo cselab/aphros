@@ -431,7 +431,6 @@ auto UEmbed<M>::Gradient(
   }
 
   auto calc = [&](IdxFace f, IdxCell c, const BCond<T>& bc) {
-    const Scal h = m.GetCellSize()[0];
     const T& val = bc.val;
     const auto nci = bc.nci;
     switch (bc.type) {
@@ -484,18 +483,16 @@ auto UEmbed<M>::InterpolateUpwind(
   }
 
   auto calc = [&](IdxFace f, IdxCell c, const BCond<Scal>& bc) {
-    const Scal h = m.GetCellSize()[0];
     const Scal& val = bc.val;
     const auto nci = bc.nci;
     switch (bc.type) {
       case BCondType::dirichlet: {
-        const Scal q = (nci == 0 ? 1. : -1.);
-        const Scal hr = m.GetArea(f) / m.GetVolume(c);
-        const Scal a = hr * 2 * q;
-        return (val - fcu[c]) * a;
+        return val;
       }
       case BCondType::neumann: {
-        return val;
+        const Scal q = (nci == 0 ? 1. : -1.);
+        const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * q;
+        return fcu[c] + bc.val * a;
       }
       default:
         throw std::runtime_error(std::string() + __func__ + ": unknown");
