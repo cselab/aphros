@@ -460,8 +460,6 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
 
   mebc_fluid_ = GetBCondFluid<M>(mf_fluid_);
 
-  mf_fluid_ = MapCondFaceFluid();
-
   std::string fs = var.String["fluid_solver"];
   if (eb_) {
     auto p = ParsePar<Proj<M>>()(var);
