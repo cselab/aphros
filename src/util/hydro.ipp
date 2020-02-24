@@ -1052,12 +1052,13 @@ InitBc(const Vars& var, const MEB& eb) {
     return ca;
   };
 
-  auto parse = [&](std::string list, size_t nci) {
+  auto parse = [&](std::string list, size_t nci, Vect face_center,
+                   Vect face_normal) {
     std::vector<std::string> ss_adv; // strings to try as advection conditions
     bool found_fluid = false;
     BCondFluid<Vect> bcf;
     for (auto desc : Split(list, ',')) {
-      auto p = ParseBCondFluid<Vect>(desc, nci);
+      auto p = ParseBCondFluid<Vect>(desc, nci, face_center, face_normal);
       if (p.first) {
         found_fluid = true;
         bcf = p.second;
@@ -1095,14 +1096,9 @@ InitBc(const Vars& var, const MEB& eb) {
   for (size_t group = 0; group < vdesc.size(); ++group) {
     me_group.LoopPairs([&](const auto& p) {
       const auto cf = p.first;
-      std::tie(me_fluid[cf], me_adv[cf]) =
-          parse(vdesc[me_group.at(cf)], me_nci.at(cf));
-      // keep only orthogonal component of velocity on walls
-      auto& bcf = me_fluid[cf];
-      if (bcf.type == BCondFluidType::wall ||
-          bcf.type == BCondFluidType::slipwall) {
-        bcf.velocity = bcf.velocity.orth(eb.GetNormal(cf));
-      }
+      std::tie(me_fluid[cf], me_adv[cf]) = parse(
+          vdesc[me_group.at(cf)], me_nci.at(cf), eb.GetFaceCenter(cf),
+          eb.GetNormal(cf));
     });
   }
   return {me_fluid, me_adv, me_group, vdesc};
