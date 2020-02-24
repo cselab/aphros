@@ -4,6 +4,7 @@
 #include "hydro.ipp"
 
 using M = MeshStructured<double, 3>;
+using EB = Embed<M>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
@@ -22,7 +23,12 @@ template void GetFluidFaceCond(
 template std::tuple<
     MapEmbed<BCondFluid<typename M::Vect>>,
     MapEmbed<CondFaceAdvection<typename M::Scal>>>
-InitBc(const Vars& var, const Embed<M>& eb);
+InitBc(const Vars& var, const M& eb);
+
+template std::tuple<
+    MapEmbed<BCondFluid<typename M::Vect>>,
+    MapEmbed<CondFaceAdvection<typename M::Scal>>>
+InitBc(const Vars& var, const EB& eb);
 
 template void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,

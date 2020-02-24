@@ -292,7 +292,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapCondFaceAdvection<Scal> mf_adv_;
   MapCondFace mf_cond_vfsm_;
   MapEmbed<BCondFluid<Vect>> mebc_fluid_;
-  MapCondFaceFluid mf_fluid_; // fluid cond
+  MapCondFaceFluid mf_fluid_;
   MapCell<std::shared_ptr<CondCell>> mc_cond_;
   MapCell<std::shared_ptr<CondCellFluid>> mc_velcond_;
 
@@ -457,8 +457,6 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
       fcyv_[c] = GetYoungVel(x);
     }
   }
-
-  mebc_fluid_ = GetBCondFluid<M>(mf_fluid_);
 
   std::string fs = var.String["fluid_solver"];
   if (eb_) {
@@ -697,14 +695,28 @@ void Hydro<M>::Init() {
     }
 
     // boundary conditions
-    GetFluidFaceCond(var, m, mf_fluid_, mf_adv_);
+    if (var.Int["enable_bc"]) {
+      if (eb_) {
+        auto p = InitBc(var, *eb_);
+        mebc_fluid_ = std::get<0>(p);
+        mf_adv_ = std::get<1>(p).GetMapFace();
+      } else {
+        auto p = InitBc(var, m);
+        mebc_fluid_ = std::get<0>(p);
+        mf_adv_ = std::get<1>(p).GetMapFace();
+      }
+      mf_fluid_ = GetCondFluid<M>(mebc_fluid_);
+    } else {
+      GetFluidFaceCond(var, m, mf_fluid_, mf_adv_);
+      mebc_fluid_ = GetBCondFluid<M>(mf_fluid_);
+    }
 
     // boundary conditions for smoothing of volume fraction
-    for (auto& it : mf_fluid_) {
-      const IdxFace f = it.first;
-      auto& cb = it.second;
-      size_t nci = cb->GetNci();
-      if (cb.template Get<Symm<M>>()) {
+    for (auto& p : mebc_fluid_.GetMapFace()) {
+      const IdxFace f = p.first;
+      auto& bc = p.second;
+      const auto nci = bc.nci;
+      if (bc.type == BCondFluidType::symm) {
         mf_cond_vfsm_[f].template Set<CondFaceReflect>(nci);
       } else {
         mf_cond_vfsm_[f].template Set<CondFaceGradFixed<Scal>>(Scal(0), nci);
@@ -713,13 +725,13 @@ void Hydro<M>::Init() {
   }
 
   if (var.Int["bc_wall_init_vel"] && sem("bc_wall_init_vel")) {
-    // velocity on walls from neighbour cells
-    for (auto& it : mf_fluid_) {
-      const IdxFace f = it.first;
-      auto& cb = it.second;
-      if (auto cd = cb.template Get<NoSlipWallFixed<M>>()) {
-        IdxCell c = m.GetCell(f, cd->GetNci());
-        cd->SetVelocity(fcvel[c]);
+    // velocity on walls from initial conditions in neighbor cells
+    for (auto& p : mebc_fluid_.GetMapFace()) {
+      const IdxFace f = p.first;
+      auto& bc = p.second;
+      if (bc.type == BCondFluidType::wall) {
+        const IdxCell c = m.GetCell(f, bc.nci);
+        bc.velocity = fcvel[c];
       }
     }
   }
@@ -1233,18 +1245,17 @@ void Hydro<M>::CalcStat() {
       Vect slipvel(var.Vect["slipvel"]);
       // XXX: adhoc, overwrite wall conditions
       auto& fa = as_->GetField();
-      for (auto& it : mf_fluid_) {
-        const IdxFace f = it.first;
-        CondFaceFluid* cb = it.second.Get();
-        if (auto cd = dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(cb)) {
-          size_t nci = cd->GetNci();
-          IdxCell c = m.GetCell(f, nci);
-          cd->SetVelocity(slipvel * kslip * fa[c]);
+      for (auto& p : mebc_fluid_.GetMapFace()) {
+        const IdxFace f = p.first;
+        auto& bc = p.second;
+        if (bc.type == BCondFluidType::wall) {
+          const IdxCell c = m.GetCell(f, bc.nci);
+          bc.velocity = slipvel * kslip * fa[c];
         }
       }
     }
 
-    // XXX: slip velocity penalization
+    // Slip velocity penalization.
     const Scal penalslip = var.Double["penalslip"];
     if (penalslip != 0) {
       Scal dt = fs_->GetTimeStep();
@@ -1252,12 +1263,11 @@ void Hydro<M>::CalcStat() {
       // const auto& fa = as_->GetField();
       const auto& fa = fc_smvf_;
       const auto& fv = fs_->GetVelocity();
-      for (auto& it : mf_fluid_) {
-        const IdxFace f = it.first;
-        CondFaceFluid* cb = it.second.Get();
-        if (auto cd = dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(cb)) {
-          size_t nci = cd->GetNci();
-          IdxCell c = m.GetCell(f, nci);
+      for (auto& p : mebc_fluid_.GetMapFace()) {
+        const IdxFace f = p.first;
+        const auto& bc = p.second;
+        if (bc.type == BCondFluidType::wall) {
+          const IdxCell c = m.GetCell(f, bc.nci);
           Scal sgn = (slipvel - fv[c]).dot(slipvel);
           if (sgn > 0) {
             fc_force_[c] +=
@@ -1266,31 +1276,31 @@ void Hydro<M>::CalcStat() {
         }
       }
     }
+    // Repulsive force from walls.
     const Scal slipnormal = var.Double["slipnormal"];
     if (slipnormal != 0) {
       const auto& fa = fc_smvf_;
-      for (auto& it : mf_fluid_) {
-        const IdxFace f = it.first;
-        CondFaceFluid* cb = it.second.Get();
-        if (auto cd = dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(cb)) {
-          size_t nci = cd->GetNci();
-          IdxCell c = m.GetCell(f, nci);
+      for (auto& p : mebc_fluid_.GetMapFace()) {
+        const IdxFace f = p.first;
+        const auto& bc = p.second;
+        const auto nci = bc.nci;
+        if (bc.type == BCondFluidType::wall) {
+          const IdxCell c = m.GetCell(f, bc.nci);
           fc_force_[c] += m.GetNormal(f) * ((nci == 1 ? 1 : -1) * fc_rho_[c] *
                                             slipnormal * fa[c]);
         }
       }
     }
   }
-
   if (sem("young")) {
     if (var.Int["youngbc"]) {
       InitYoung();
-      for (auto& it : mf_fluid_) {
-        const IdxFace f = it.first;
-        Vect x = m.GetCenter(f);
-        CondFaceFluid* cb = it.second.Get();
-        if (auto cd = dynamic_cast<fluid_condition::NoSlipWallFixed<M>*>(cb)) {
-          cd->SetVelocity(GetYoungVel(x));
+      for (auto& p : mebc_fluid_.GetMapFace()) {
+        const IdxFace f = p.first;
+        auto& bc = p.second;
+        if (bc.type == BCondFluidType::wall) {
+          const Vect x = m.GetCenter(f);
+          bc.velocity = GetYoungVel(x);
         }
       }
     }
@@ -1465,15 +1475,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         const auto x = m.GetCenter(c);
         fcp[c] = grav.dot(x);
       }
-#if 1
       ffbp_ = UEmbed<M>::GradientBilinear(
                   fcp, GetCondZeroGrad<Scal>(mf_fluid_), 1, 0., eb)
                   .GetFieldFace();
-#else // XXX exactbalance
-      ffbp_ =
-          UEmbed<M>::Gradient(fcp, GetCondZeroGrad<Scal>(mf_fluid_), 1, 0., eb)
-              .GetFieldFace();
-#endif
       for (auto f : m.AllFaces()) {
         ffbp_[f] *= ff_rho[f];
       }
