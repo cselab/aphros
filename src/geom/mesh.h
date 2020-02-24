@@ -371,6 +371,9 @@ class MeshStructured {
   auto SuCFaces() const {
     return GRange<IdxCell>();
   }
+  Vect GetNormal(IdxCell) const {
+    return GetNan<Vect>();
+  }
 
   bool IsInside(IdxCell c, Vect vect) const {
     for (auto q : Nci()) {
