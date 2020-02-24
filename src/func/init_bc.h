@@ -15,7 +15,6 @@
 #include "dump/vtk.h"
 #include "geom/block.h"
 #include "geom/field.h"
-#include "geom/unique.h"
 #include "geom/vect.h"
 #include "parse/codeblocks.h"
 #include "parse/vars.h"
@@ -23,55 +22,40 @@
 #include "solver/embed.h"
 #include "solver/fluid.h"
 
-// desc: boundary condition descriptor
-// nci: neighbour cell id, such that GetCell(f, nci) is an internal cell
-template <class M>
-UniquePtr<CondFaceFluid> ParseFluidFaceCond(std::string desc, size_t nci) {
-  using namespace fluid_condition;
-  using Vect = typename M::Vect;
+// desc: discriptor
+// nci: neighbour cell id, such that GetCell(f, nci) is an inner cell
+template <class Vect>
+BCondFluid<Vect> ParseBCondFluid(std::string desc, size_t nci) {
   std::stringstream arg(desc);
 
   std::string name;
   arg >> name;
 
+  BCondFluid<Vect> bc;
+  bc.nci = nci;
+
   if (name == "wall") {
-    // wall <velocity>
-    // No-slip wall.
-    // zero derivative for pressure, fixed for velocity,
-    // fill-conditions for volume fraction.
-    Vect vel;
-    arg >> vel;
-    return UniquePtr<NoSlipWallFixed<M>>(vel, nci);
+    bc.type = BCondFluidType::wall;
+    arg >> bc.velocity;
+  } else if (name == "slipwall") {
+    bc.type = BCondFluidType::slipwall;
+    bc.velocity = Vect(0);
   } else if (name == "inlet") {
-    // inlet <velocity>
-    // Fixed velocity inlet.
-    Vect vel;
-    arg >> vel;
-    return UniquePtr<InletFixed<M>>(vel, nci);
+    bc.type = BCondFluidType::inlet;
+    arg >> bc.velocity;
   } else if (name == "inletflux") {
     // inletflux <velocity> <id>
-    // Fixed flux inlet. Flux defined by given velocity is redistributed
-    // over all faces with same id.
-    Vect vel;
-    int id = 0;
-    arg >> vel >> id;
-    return UniquePtr<InletFlux<M>>(vel, id, nci);
+    bc.type = BCondFluidType::inletflux;
+    arg >> bc.velocity >> bc.inletflux_id;
   } else if (name == "outlet") {
-    // Outlet. Velocity is extrapolated from neighbour cells and corrected
-    // to yield zero total flux over outlet and inlet faces.
-    return UniquePtr<OutletAuto<M>>(nci);
-  } else if (name == "slipwall") {
-    // Free-slip wall:
-    // zero derivative for both pressure, velocity,
-    // fill-conditions for volume fraction.
-    // TODO: revise, should be non-penetration for velocity
-    return UniquePtr<SlipWall<M>>(nci);
+    bc.type = BCondFluidType::outlet;
   } else if (name == "symm") {
-    // Zero derivative for pressure, velocity and volume fraction
-    // TODO: revise, should be non-penetration for velocity
-    return UniquePtr<Symm<M>>(nci);
+    bc.type = BCondFluidType::symm;
+  } else {
+    throw std::runtime_error(
+        std::string() + __func__ + ": unknown name='" + name + "'");
   }
-  return nullptr;
+  return bc;
 }
 
 template <class M_>
@@ -82,25 +66,17 @@ struct UInitEmbedBc {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  // Parses boundary conditions from file and adds to map.
+  // Parses boundary conditions from stream and adds to map.
   // filename: path to file
   // Output:
   // mecond: output map
   // megroup: index of group of primitives
   // Returns descriptors of boundary conditions for each group.
-  static std::vector<std::string> Parse(
-      std::string filename, const EB& eb,
-      MapEmbed<UniquePtr<CondFaceFluid>>& mecond, MapEmbed<size_t>& megroup) {
+  static std::tuple<
+      MapEmbed<BCondFluid<Vect>>, MapEmbed<size_t>, std::vector<std::string>>
+  Parse(std::istream& fin, const EB& eb) {
     auto& m = eb.GetMesh();
-    using namespace fluid_condition;
-    std::ifstream fin(filename);
-    if (!fin.good()) {
-      throw std::runtime_error(
-          "Can't open list of boundary conditions '" + filename + "'");
-    }
     const std::vector<CodeBlock> bb = ParseCodeBlocks(fin);
-    fin.close();
-    std::vector<std::string> descs;
     auto is_boundary = [&m](IdxFace f, size_t& nci) -> bool {
       auto p = m.GetIndexFaces().GetMIdxDir(f);
       const size_t d(p.second);
@@ -116,9 +92,12 @@ struct UInitEmbedBc {
       }
       return false;
     };
+    std::vector<std::string> vdesc;
+    MapEmbed<BCondFluid<Vect>> mebc;
+    MapEmbed<size_t> megroup;
     for (size_t group = 0; group < bb.size(); ++group) {
       auto& b = bb[group];
-      descs.push_back(b.name);
+      vdesc.push_back(b.name);
       // b.name: descriptor of boundary condition
       // b.content: list of primitives
       std::stringstream s(b.content);
@@ -141,25 +120,25 @@ struct UInitEmbedBc {
         }
         return lmax;
       };
-      for (auto c : eb.SuCFaces()) {
-        auto ls = lsmax(eb.GetFaceCenter(c));
-        if (ls > 0) {
-          mecond[c] = ParseFluidFaceCond<M>(b.name, 0);
-          megroup[c] = group;
-        }
-      }
       for (auto f : eb.SuFaces()) {
-        size_t nci = 0;
+        size_t nci;
         if (is_boundary(f, nci)) {
           auto ls = lsmax(eb.GetFaceCenter(f));
           if (ls > 0) {
-            mecond[f] = ParseFluidFaceCond<M>(b.name, nci);
+            mebc[f] = ParseBCondFluid<Vect>(b.name, nci);
             megroup[f] = group;
           }
         }
       }
+      for (auto c : eb.SuCFaces()) {
+        auto ls = lsmax(eb.GetFaceCenter(c));
+        if (ls > 0) {
+          mebc[c] = ParseBCondFluid<Vect>(b.name, 0);
+          megroup[c] = group;
+        }
+      }
     }
-    return descs;
+    return {mebc, megroup, vdesc};
   }
 
   static void DumpPoly(

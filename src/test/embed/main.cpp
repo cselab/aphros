@@ -32,7 +32,7 @@ void Run(M& m, Vars& var) {
     MapCondFace mfc;
     FieldNode<Scal> fnl;
     size_t frame = 0;
-    MapEmbed<UniquePtr<CondFaceFluid>> mec;
+    MapEmbed<BCondFluid<Vect>> mebc;
     MapEmbed<size_t> megroup;
   } * ctx(sem);
   auto& fcu = ctx->fcu;
@@ -55,38 +55,29 @@ void Run(M& m, Vars& var) {
   if (sem("bc")) {
     using namespace fluid_condition;
     auto& eb = *ctx->eb;
-    std::vector<std::string> vdesc =
-        UInitEmbedBc<M>::Parse("bc.dat", eb, ctx->mec, ctx->megroup);
-    std::ofstream fdesc("bcdesc.dat");
+    const std::string filename = "bc.dat";
+    std::ifstream fin(filename);
+    if (!fin.good()) {
+      throw std::runtime_error(
+          "Can't open list of boundary conditions '" + filename + "'");
+    }
+    std::vector<std::string> vdesc;
+    std::tie(ctx->mebc, ctx->megroup, vdesc) = UInitEmbedBc<M>::Parse(fin, eb);
+    fin.close();
+    std::ofstream fdesc("bc_groups.dat");
     for (size_t i = 0; i < vdesc.size(); ++i) {
       fdesc << i << " " << vdesc[i] << std::endl;
     }
     std::ofstream out("bc.csv");
-    out << "x,y,z,bc,group\n";
-    auto write = [&out](const UniquePtr<CondFaceFluid>& b, Vect x, size_t g) {
-      Scal cond = -1;
-      if (!b.Get()) {
-        cond = 0;
-      } else if (b.Get<NoSlipWall<M>>()) {
-        cond = 1;
-      } else if (b.Get<SlipWall<M>>()) {
-        cond = 2;
-      } else if (b.Get<Inlet<M>>()) {
-        cond = 3;
-      } else if (b.Get<InletFlux<M>>()) {
-        cond = 4;
-      } else if (b.Get<Outlet<M>>()) {
-        cond = 5;
-      } else if (b.Get<Symm<M>>()) {
-        cond = 6;
-      }
+    out << "x,y,z,type,group\n";
+    auto write = [&out](const BCondFluid<Vect>& bc, Vect x, size_t g) {
       out << x[0] << "," << x[1] << "," << x[2];
-      out << "," << cond << "," << g << "\n";
+      out << "," << int(bc.type) << "," << g << "\n";
     };
-    for (auto& p : ctx->mec.GetMapCell()) {
+    for (auto& p : ctx->mebc.GetMapCell()) {
       write(p.second, eb.GetFaceCenter(p.first), ctx->megroup[p.first]);
     }
-    for (auto& p : ctx->mec.GetMapFace()) {
+    for (auto& p : ctx->mebc.GetMapFace()) {
       write(p.second, eb.GetFaceCenter(p.first), ctx->megroup[p.first]);
     }
   }
