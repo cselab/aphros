@@ -488,10 +488,10 @@ struct Proj<EB_>::Imp {
 
   // Face conditions
   const MapEmbed<BCondFluid<Vect>>& mebc_;
-  MapEmbed<BCond<Vect>> mebc_vel_; // velocity cond
-  MapEmbed<BCond<Scal>> me_pressure_; // pressure cond
-  MapEmbed<BCond<Vect>> me_force_; // force cond
-  MapEmbed<BCond<Scal>> me_visc_; // dynamic viscosity cond
+  MapEmbed<BCond<Vect>> mebc_vel_;
+  MapEmbed<BCond<Scal>> me_pressure_;
+  MapEmbed<BCond<Vect>> me_force_;
+  MapEmbed<BCond<Scal>> me_visc_;
 
   // Cell conditions
   MapCell<std::shared_ptr<CondCellFluid>> mcc_; // fluid cell cond
