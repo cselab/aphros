@@ -345,7 +345,6 @@ auto UEmbed<M>::Interpolate(
   }
 
   auto calc = [&](IdxFace f, IdxCell c, const BCond<T>& bc) {
-    const Scal h = m.GetCellSize()[0];
     const T& val = bc.val;
     const auto nci = bc.nci;
     switch (bc.type) {

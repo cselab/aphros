@@ -374,6 +374,12 @@ class MeshStructured {
   Vect GetNormal(IdxCell) const {
     return GetNan<Vect>();
   }
+  Vect GetSurface(IdxCell) const {
+    return GetNan<Vect>();
+  }
+  Scal GetArea(IdxCell) const {
+    return GetNan<Scal>();
+  }
 
   bool IsInside(IdxCell c, Vect vect) const {
     for (auto q : Nci()) {
