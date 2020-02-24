@@ -358,6 +358,19 @@ class MeshStructured {
   GRangeIn<IdxNode, dim> AllNodes() const {
     return GetAll<IdxNode>();
   }
+  // Wrappers to satisfy the interface of Embed<M>
+  Vect GetFaceCenter(IdxFace f) const {
+    return GetCenter(f);
+  }
+  Vect GetFaceCenter(IdxCell) const {
+    return GetNan<Vect>();
+  }
+  auto CFaces() const {
+    return GRange<IdxCell>();
+  }
+  auto SuCFaces() const {
+    return GRange<IdxCell>();
+  }
 
   bool IsInside(IdxCell c, Vect vect) const {
     for (auto q : Nci()) {

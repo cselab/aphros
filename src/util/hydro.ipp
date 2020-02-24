@@ -1002,11 +1002,12 @@ void GetFluidFaceCond(
   }
 }
 
-template <class M>
+template <class MEB>
 std::tuple<
-    MapEmbed<BCondFluid<typename M::Vect>>,
-    MapEmbed<CondFaceAdvection<typename M::Scal>>>
-InitBc(const Vars& var, const Embed<M>& eb) {
+    MapEmbed<BCondFluid<typename MEB::Vect>>,
+    MapEmbed<CondFaceAdvection<typename MEB::Scal>>>
+InitBc(const Vars& var, const MEB& eb) {
+  using M = typename MEB::M;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using UI = UInitEmbedBc<M>;

@@ -71,9 +71,10 @@ struct UInitEmbedBc {
   // me_group: index of group of primitives
   // me_nci: neighbor cell id
   // vdesc: descriptors of boundary conditions for each group
+  template <class MEB>
   static std::tuple<
       MapEmbed<size_t>, MapEmbed<size_t>, std::vector<std::string>>
-  ParseGroups(std::istream& fin, const EB& eb) {
+  ParseGroups(std::istream& fin, const MEB& eb) {
     auto& m = eb.GetMesh();
     const std::vector<CodeBlock> bb = ParseCodeBlocks(fin);
     auto is_boundary = [&m](IdxFace f, size_t& nci) -> bool {
