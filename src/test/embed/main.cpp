@@ -68,7 +68,7 @@ void Run(M& m, Vars& var) {
     fin.close();
 
     ctx->mebc =
-        UInitEmbedBc<M>::GetBCondFromGroups(ctx->me_group, me_nci, vdesc);
+        UInitEmbedBc<M>::GetBCondFromGroups(ctx->me_group, me_nci, vdesc, eb);
 
     std::ofstream fdesc("bc_groups.dat");
     for (size_t i = 0; i < vdesc.size(); ++i) {

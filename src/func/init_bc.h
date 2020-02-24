@@ -26,7 +26,8 @@
 // nci: neighbour cell id, such that GetCell(f, nci) is an inner cell
 template <class Vect>
 std::pair<bool, BCondFluid<Vect>> ParseBCondFluid(
-    std::string desc, size_t nci) {
+    std::string desc, size_t nci, Vect face_center, Vect face_normal) {
+  using Scal = typename Vect::value_type;
   std::stringstream arg(desc);
 
   std::string name;
@@ -38,6 +39,26 @@ std::pair<bool, BCondFluid<Vect>> ParseBCondFluid(
   if (name == "wall") {
     bc.type = BCondFluidType::wall;
     arg >> bc.velocity;
+    bc.velocity = bc.velocity.orth(face_normal);
+  } else if (name == "wall_rotation") {
+    // rotation around `center` with angular velocity `omega`
+    bc.type = BCondFluidType::wall;
+    Vect center, omega;
+    arg >> center >> omega;
+    bc.velocity = omega.cross(face_center - center);
+    bc.velocity = bc.velocity.orth(face_normal);
+  } else if (name == "wall_rotation_magn") {
+    // rotation around `center` with angular velocity `omega`
+    // and velocity magnitude normalized to equal the magnitude of `omega`
+    bc.type = BCondFluidType::wall;
+    Vect center, omega;
+    arg >> center >> omega;
+    bc.velocity = omega.cross(face_center - center);
+    bc.velocity = bc.velocity.orth(face_normal);
+    const Scal norm = bc.velocity.norm();
+    if (norm != 0) {
+      bc.velocity *= omega.norm() / norm;
+    }
   } else if (name == "slipwall") {
     bc.type = BCondFluidType::slipwall;
     bc.velocity = Vect(0);
@@ -144,15 +165,18 @@ struct UInitEmbedBc {
   // Returns boundary conditions from descriptors.
   // me_group: index of group of primitives
   // vdesc: descriptors of boundary conditions for each group
+  template <class EB>
   static MapEmbed<BCondFluid<Vect>> GetBCondFromGroups(
       const MapEmbed<size_t>& me_group, const MapEmbed<size_t>& me_nci,
-      const std::vector<std::string> vdesc) {
+      const std::vector<std::string> vdesc, const EB& eb) {
     MapEmbed<BCondFluid<Vect>> mebc;
     for (size_t group = 0; group < vdesc.size(); ++group) {
       me_group.LoopPairs([&](const auto& p) {
         const auto cf = p.first;
-        mebc[cf] =
-            ParseBCondFluid<Vect>(vdesc[me_group.at(cf)], me_nci.at(cf)).second;
+        auto bc = ParseBCondFluid<Vect>(
+            vdesc[me_group.at(cf)], me_nci.at(cf), eb.GetFaceCenter(cf),
+            eb.GetNormal(cf));
+        mebc[cf] = bc.second;
       });
     }
     return mebc;
