@@ -1,4 +1,4 @@
 stat*.dat
 *.pvsm
 add.conf
-bc*.dat
+bc_groups.dat
