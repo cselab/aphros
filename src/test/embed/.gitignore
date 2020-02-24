@@ -11,4 +11,4 @@ job.id*
 out
 arg
 eb.vtk
-bcdesc.dat
+bc_groups.dat
