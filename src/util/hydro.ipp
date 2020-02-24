@@ -1093,16 +1093,17 @@ InitBc(const Vars& var, const MEB& eb) {
   fin.close();
 
   for (size_t group = 0; group < vdesc.size(); ++group) {
-    for (auto p : me_group.GetMapFace()) {
-      const IdxFace f = p.first;
-      std::tie(me_fluid[f], me_adv[f]) =
-          parse(vdesc[me_group.at(f)], me_nci.at(f));
-    }
-    for (auto p : me_group.GetMapCell()) {
-      const IdxCell c = p.first;
-      std::tie(me_fluid[c], me_adv[c]) =
-          parse(vdesc[me_group.at(c)], me_nci.at(c));
-    }
+    me_group.LoopPairs([&](const auto& p) {
+      const auto cf = p.first;
+      std::tie(me_fluid[cf], me_adv[cf]) =
+          parse(vdesc[me_group.at(cf)], me_nci.at(cf));
+      // keep only orthogonal component of velocity on walls
+      auto& bcf = me_fluid[cf];
+      if (bcf.type == BCondFluidType::wall ||
+          bcf.type == BCondFluidType::slipwall) {
+        bcf.velocity = bcf.velocity.orth(eb.GetNormal(cf));
+      }
+    });
   }
   return {me_fluid, me_adv, me_group, vdesc};
 }

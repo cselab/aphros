@@ -149,16 +149,11 @@ struct UInitEmbedBc {
       const std::vector<std::string> vdesc) {
     MapEmbed<BCondFluid<Vect>> mebc;
     for (size_t group = 0; group < vdesc.size(); ++group) {
-      for (auto p : me_group.GetMapFace()) {
-        const IdxFace f = p.first;
-        mebc[f] =
-            ParseBCondFluid<Vect>(vdesc[me_group.at(f)], me_nci.at(f)).second;
-      }
-      for (auto p : me_group.GetMapCell()) {
-        const IdxCell c = p.first;
-        mebc[c] =
-            ParseBCondFluid<Vect>(vdesc[me_group.at(c)], me_nci.at(c)).second;
-      }
+      me_group.LoopPairs([&](const auto& p) {
+        const auto cf = p.first;
+        mebc[cf] =
+            ParseBCondFluid<Vect>(vdesc[me_group.at(cf)], me_nci.at(cf)).second;
+      });
     }
     return mebc;
   }
