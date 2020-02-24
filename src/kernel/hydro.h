@@ -26,6 +26,7 @@
 #include "dump/dumper.h"
 #include "dump/output.h"
 #include "func/init.h"
+#include "func/init_bc.h"
 #include "geom/mesh.h"
 #include "kernelmesh.h"
 #include "parse/curv.h"
@@ -292,6 +293,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapCondFaceAdvection<Scal> mf_adv_;
   MapCondFace mf_cond_vfsm_;
   MapEmbed<BCondFluid<Vect>> mebc_fluid_;
+  MapEmbed<size_t> me_group_;
+  std::vector<std::string> vdesc_;
   MapCondFaceFluid mf_fluid_;
   MapCell<std::shared_ptr<CondCell>> mc_cond_;
   MapCell<std::shared_ptr<CondCellFluid>> mc_velcond_;
@@ -700,10 +703,14 @@ void Hydro<M>::Init() {
         auto p = InitBc(var, *eb_);
         mebc_fluid_ = std::get<0>(p);
         mf_adv_ = std::get<1>(p).GetMapFace();
+        me_group_ = std::get<2>(p);
+        vdesc_ = std::get<3>(p);
       } else {
         auto p = InitBc(var, m);
         mebc_fluid_ = std::get<0>(p);
         mf_adv_ = std::get<1>(p).GetMapFace();
+        me_group_ = std::get<2>(p);
+        vdesc_ = std::get<3>(p);
       }
       mf_fluid_ = GetCondFluid<M>(mebc_fluid_);
     } else {
@@ -886,8 +893,22 @@ void Hydro<M>::Init() {
       events_->Parse();
     }
   }
-  if (var.Int["dumpbc"] && sem.Nested()) {
-    DumpBcFaces(mf_adv_, mf_fluid_, "bc.vtk", m);
+  if (var.Int["dumpbc"]) {
+    if (vdesc_.size()) {
+      if (sem("dump-bcgroups")) {
+        std::ofstream fdesc("bc_groups.dat");
+        for (size_t i = 0; i < vdesc_.size(); ++i) {
+          fdesc << i << " " << vdesc_[i] << std::endl;
+        }
+      }
+      if (eb_ && sem.Nested("bcdump")) {
+        UInitEmbedBc<M>::DumpPoly("bc.vtk", me_group_, *eb_, m);
+      }
+    } else {
+      if (sem.Nested()) {
+        DumpBcFaces(mf_adv_, mf_fluid_, "bc.vtk", m);
+      }
+    }
   }
   if (eb_ && sem.Nested()) {
     eb_->DumpPoly(var.Int["vtkbin"], var.Int["vtkmerge"]);

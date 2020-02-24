@@ -33,4 +33,7 @@ set string advection_solver vofm
 set vect gravity $sin $cos 0
 
 set int enable_color 1
+
+set int enable_bc 1
+set string bc_path bc.dat
 " > add.conf
