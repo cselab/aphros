@@ -22,12 +22,14 @@ template void GetFluidFaceCond(
 
 template std::tuple<
     MapEmbed<BCondFluid<typename M::Vect>>,
-    MapEmbed<CondFaceAdvection<typename M::Scal>>>
+    MapEmbed<CondFaceAdvection<typename M::Scal>>, MapEmbed<size_t>,
+    std::vector<std::string>>
 InitBc(const Vars& var, const M& eb);
 
 template std::tuple<
     MapEmbed<BCondFluid<typename M::Vect>>,
-    MapEmbed<CondFaceAdvection<typename M::Scal>>>
+    MapEmbed<CondFaceAdvection<typename M::Scal>>, MapEmbed<size_t>,
+    std::vector<std::string>>
 InitBc(const Vars& var, const EB& eb);
 
 template void AppendBodyCond(

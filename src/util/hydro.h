@@ -51,7 +51,8 @@ void GetFluidFaceCond(
 template <class MEB>
 std::tuple<
     MapEmbed<BCondFluid<typename MEB::Vect>>,
-    MapEmbed<CondFaceAdvection<typename MEB::Scal>>>
+    MapEmbed<CondFaceAdvection<typename MEB::Scal>>, MapEmbed<size_t>,
+    std::vector<std::string>>
 InitBc(const Vars& var, const MEB& eb);
 
 // Returns fluid cell conditions.

@@ -1005,7 +1005,8 @@ void GetFluidFaceCond(
 template <class MEB>
 std::tuple<
     MapEmbed<BCondFluid<typename MEB::Vect>>,
-    MapEmbed<CondFaceAdvection<typename MEB::Scal>>>
+    MapEmbed<CondFaceAdvection<typename MEB::Scal>>, MapEmbed<size_t>,
+    std::vector<std::string>>
 InitBc(const Vars& var, const MEB& eb) {
   using M = typename MEB::M;
   using Scal = typename M::Scal;
@@ -1103,7 +1104,7 @@ InitBc(const Vars& var, const MEB& eb) {
           parse(vdesc[me_group.at(c)], me_nci.at(c));
     }
   }
-  return {me_fluid, me_adv};
+  return {me_fluid, me_adv, me_group, vdesc};
 }
 
 template <class M>
