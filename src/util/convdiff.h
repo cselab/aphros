@@ -26,6 +26,8 @@ MapEmbed<BCond<T>> GetBCond(const MapCondFace& mff) {
     } else if (auto cd = cb.template Get<CondFaceGradFixed<T>>()) {
       bc.type = BCondType::neumann;
       bc.val = cd->GetGrad();
+    } else if (auto cd = cb.template Get<CondFaceReflect>()) {
+      bc.type = BCondType::reflect;
     } else if (auto cd = cb.template Get<CondFaceExtrap>()) {
       bc.type = BCondType::extrap;
     } else {
@@ -49,6 +51,9 @@ MapCondFace GetCond(const MapEmbed<BCond<T>>& mebc) {
         break;
       case BCondType::neumann:
         cond.Set<CondFaceGradFixed<T>>(bc.val, nci);
+        break;
+      case BCondType::reflect:
+        cond.Set<CondFaceReflect>(nci);
         break;
       case BCondType::extrap:
         cond.Set<CondFaceExtrap>(nci);
@@ -158,6 +163,7 @@ MapEmbed<BCond<typename M::Scal>> GetScalarCond(
         bcs.val = bcv.val[d];
         break;
       case BCondType::mixed:
+      case BCondType::reflect:
         if (size_t(m.GetDir(f)) == d) {
           bcs.type = BCondType::dirichlet;
         } else {
@@ -182,6 +188,7 @@ MapEmbed<BCond<typename M::Scal>> GetScalarCond(
         bcs.val = bcv.val[d];
         break;
       case BCondType::mixed:
+      case BCondType::reflect:
         throw std::runtime_error("GetCond: not implemented");
       case BCondType::extrap:
         // nop

@@ -78,6 +78,11 @@ class UVof {
       MapCondFace& mfc_cl, MapCondFace& mfc_im, MapCondFace& mfc_n,
       MapCondFace& mfc_a);
 
+  static std::tuple<
+      MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>,
+      MapEmbed<BCond<Vect>>, MapEmbed<BCond<Scal>>>
+  GetAdvectionBc(const M& m, const MapCondFaceAdvection<Scal>& mfc);
+
   // set volume fraction to 0 or 1 near wall
   static void BcClear(
       FieldCell<Scal>& uc, const MapCondFaceAdvection<Scal>& mfc, const M& m) {

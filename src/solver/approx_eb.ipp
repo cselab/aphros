@@ -205,7 +205,8 @@ auto UEmbed<M>::Interpolate(
         const T u = EvalLinearFit(x, c, fcu, eb);
         return u + val * h;
       }
-      case BCondType::mixed: {
+      case BCondType::mixed:
+      case BCondType::reflect: {
         const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
         return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(i));
@@ -257,7 +258,8 @@ auto UEmbed<M>::Gradient(
       case BCondType::neumann: {
         return val;
       }
-      case BCondType::mixed: {
+      case BCondType::mixed:
+      case BCondType::reflect: {
         const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
         return CombineMixed<Scal>()((val - u) / h, val, eb.GetNormal(i));
@@ -320,7 +322,8 @@ auto UEmbed<M>::InterpolateUpwind(
         const Scal u = EvalLinearFit(x, c, fcu, eb);
         return u + val * h;
       }
-      case BCondType::mixed: {
+      case BCondType::mixed:
+      case BCondType::reflect: {
         const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
         const Scal u = EvalLinearFit(x, c, fcu, eb);
         return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(i));
@@ -372,7 +375,8 @@ auto UEmbed<M>::Interpolate(
         const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * q;
         return fcu[c] + val * a;
       }
-      case BCondType::mixed: {
+      case BCondType::mixed:
+      case BCondType::reflect: {
         const Scal q = (nci == 0 ? 1. : -1.);
         const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * q;
         return CombineMixed<Scal>()(val, fcu[c] + val * a, m.GetNormal(f));

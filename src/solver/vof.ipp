@@ -10,11 +10,13 @@
 #include <memory>
 
 #include "approx.h"
+#include "approx_eb.h"
 #include "debug/isnan.h"
 #include "geom/block.h"
 #include "normal.h"
 #include "reconst.h"
 #include "trackerm.h"
+#include "util/convdiff.h"
 #include "util/vof.h"
 
 #include "vof.h"
@@ -28,6 +30,7 @@ struct Vof<EB_>::Imp {
   using Vect2 = generic::Vect<Scal, 2>;
   using Sem = typename M::Sem;
   using MIdx = typename M::MIdx;
+  using UEB = UEmbed<M>;
 
   Imp(Owner* owner, const EB& eb0, const FieldCell<Scal>& fcu,
       const FieldCell<Scal>& fccl, const MapCondFaceAdvection<Scal>& mfc,
@@ -53,8 +56,9 @@ struct Vof<EB_>::Imp {
     }
   }
   void UpdateBc(const MapCondFaceAdvection<Scal>& mfc) {
-    UVof<M>::GetAdvectionFaceCond(
-        m, mfc, mfc_vf_, mfc_cl_, mfc_im_, mfc_n_, mfc_a_);
+    std::tie(me_vf_, me_cl_, me_im_, me_n_, me_a_) =
+        UVof<M>::GetAdvectionBc(m, mfc);
+    mfc_cl_ = GetCond<Scal>(me_cl_);
   }
   // reconstruct interface
   // uc: volume fraction [a]
@@ -127,8 +131,8 @@ struct Vof<EB_>::Imp {
   static void Sweep(
       FieldCell<Scal>& uc, size_t d, const FieldFace<Scal>& ffv,
       FieldCell<Scal>& fccl, FieldCell<Scal>& fcim, const FieldCell<Vect>& fcn,
-      const FieldCell<Scal>& fca, const MapCondFace* mfc, SweepType type,
-      const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
+      const FieldCell<Scal>& fca, const MapEmbed<BCond<Scal>>* mebc,
+      SweepType type, const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
       const FieldCell<Scal>* fcuu, Scal dt, Scal clipth, const EB& eb) {
     using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
@@ -192,14 +196,14 @@ struct Vof<EB_>::Imp {
       }
     }
 
-    if (mfc) {
+    if (mebc) {
       // override flux in upwind boundaries
-      FieldFace<Scal> ffu(m);
-      InterpolateB(uc, *mfc, ffu, m);
-      for (const auto& it : *mfc) {
-        const IdxFace f = it.first;
+      const FieldFace<Scal> ffu = UEB::Interpolate(uc, *mebc, m);
+      for (const auto& p : mebc->GetMapFace()) {
+        const IdxFace f = p.first;
+        const auto& bc = p.second;
         const Scal v = ffv[f];
-        if ((it.second->GetNci() == 0) != (v > 0.)) {
+        if ((bc.nci == 0) != (v > 0.)) {
           ffvu[f] = v * ffu[f];
         }
       }
@@ -255,9 +259,9 @@ struct Vof<EB_>::Imp {
       m.Comm(&fcim);
     }
     if (sem("bcreflect")) {
-      BcApply(uc, mfc_vf_, m);
-      BcApply(fccl, mfc_cl_, m);
-      BcApply(fcim, mfc_im_, m);
+      BcApply(uc, me_vf_, m);
+      BcApply(fccl, me_cl_, m);
+      BcApply(fcim, me_im_, m);
     }
     if (sem("reconst")) {
       ReconstPlanes(uc);
@@ -304,7 +308,7 @@ struct Vof<EB_>::Imp {
       if (sem("sweep")) {
         Sweep(
             uc, d, owner_->fev_->GetFieldFace(), fccl_, fcim_, fcn_, fca_,
-            &mfc_vf_, id % 2 == 0 ? SweepType::EI : SweepType::LE, &fcfm_,
+            &me_vf_, id % 2 == 0 ? SweepType::EI : SweepType::LE, &fcfm_,
             &fcfp_, nullptr, owner_->GetTimeStep() * vsc, par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
@@ -340,7 +344,7 @@ struct Vof<EB_>::Imp {
       if (sem("sweep")) {
         Sweep(
             uc, dd[id], owner_->fev_->GetFieldFace(), fccl_, fcim_, fcn_, fca_,
-            &mfc_vf_, type, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(),
+            &me_vf_, type, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(),
             par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
@@ -377,11 +381,11 @@ struct Vof<EB_>::Imp {
                    par.sharpen_cfl;
         }
         // zero flux on boundaries
-        for (const auto& it : mfc_vf_) {
+        for (const auto& it : me_vf_.GetMapFace()) {
           ffv[it.first] = 0;
         }
         Sweep(
-            uc, d, ffv, fccl_, fcim_, fcn_, fca_, &mfc_vf_, SweepType::weymouth,
+            uc, d, ffv, fccl_, fcim_, fcn_, fca_, &me_vf_, SweepType::weymouth,
             nullptr, nullptr, &fcuu_, 1., par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
@@ -431,7 +435,7 @@ struct Vof<EB_>::Imp {
       for (auto c : eb.AllCells()) {
         fccl_[c] = (fcu[c] > 0.5 ? 0 : kClNone);
       }
-      BcApply(fccl_, mfc_cl_, m);
+      BcApply(fccl_, me_cl_, m);
     }
     if (sem.Nested()) {
       uvof_.Recolor(
@@ -473,8 +477,8 @@ struct Vof<EB_>::Imp {
     }
     if (sem("reflect")) {
       // --> fca [a], fcn [a]
-      BcApply(fca_, mfc_a_, m);
-      BcApply(fcn_, mfc_n_, m);
+      BcApply(fca_, me_a_, m);
+      BcApply(fcn_, me_n_, m);
       // --> reflected fca [a], fcn [a]
     }
   }
@@ -495,8 +499,8 @@ struct Vof<EB_>::Imp {
       fcut = fcu_.time_curr;
       fcclt = fccl_;
       if (par.bcc_reflectpoly) {
-        BcReflectAll(fcut, mfc_vf_, m);
-        BcReflectAll(fcclt, mfc_cl_, m);
+        BcReflectAll(fcut, me_vf_, m);
+        BcReflectAll(fcclt, me_cl_, m);
       }
       if (par.dumppolymarch_fill >= 0) {
         BcMarchFill(fcut, par.dumppolymarch_fill, m);
@@ -518,12 +522,15 @@ struct Vof<EB_>::Imp {
 
   StepData<FieldCell<Scal>> fcu_;
   FieldCell<Scal> fcuu_; // volume fraction for Weymouth div term
-  const MapCondFaceAdvection<Scal>& mfc_; // conditions on advection
-  MapCondFace mfc_vf_; // conditions on vf
-  MapCondFace mfc_cl_; // conditions on cl
-  MapCondFace mfc_im_; // conditions on im
-  MapCondFace mfc_n_; // conditions on n
-  MapCondFace mfc_a_; // conditions on a
+
+  // boundary conditions
+  const MapCondFaceAdvection<Scal>& mfc_; // advection
+  MapEmbed<BCond<Scal>> me_vf_; // volume fraction
+  MapEmbed<BCond<Scal>> me_cl_; // color
+  MapEmbed<BCond<Scal>> me_im_; // image
+  MapEmbed<BCond<Vect>> me_n_; // normal
+  MapEmbed<BCond<Scal>> me_a_; // plane constant
+  MapCondFace mfc_cl_; // color
 
   FieldCell<Scal> fccl_; // color
   FieldCell<Scal> fcim_; // image
