@@ -205,6 +205,7 @@ enum class BCondType {
          //   u.proj(n) = val.proj(n)
          //   (du/dn).orth(n) = val.orth(n)
          // if u is scalar, equivalent to `dirichlet`
+  reflect, // equivalent to `mixed` with val=0
   extrap, // extrapolated from neighbor cells
 };
 

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "cond.h"
+#include "embed.h"
 #include "geom/mesh.h"
 #include "solver.h"
 
@@ -227,11 +228,15 @@ std::vector<Scal> GetGradCoeffs(Scal x, const std::vector<Scal>& z, size_t b);
 // Apply boundary conditions to halo cells
 template <class T, class M>
 void BcApply(FieldCell<T>& uc, const MapCondFace& mfc, const M& m);
+template <class T, class M>
+void BcApply(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m);
 
 // Apply reflection on all boundaries
 // fill: value for other types that CondFaceReflect
 template <class T, class M>
 void BcReflectAll(FieldCell<T>& uc, const MapCondFace& mfc, const M& m);
+template <class T, class M>
+void BcReflectAll(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m);
 
 template <class M, class Expr>
 class FaceValB : public Approx<IdxFace, Expr> {

@@ -95,6 +95,12 @@ template std::vector<Scal> GetGradCoeffs(
 
 template void BcApply(FieldCell<T>& uc, const MapCondFace& mfc, const M& m);
 template void BcApply(FieldCell<TV>& uc, const MapCondFace& mfc, const M& m);
+template void BcApply(
+    FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m);
+template void BcApply(
+    FieldCell<TV>& uc, const MapEmbed<BCond<TV>>& me, const M& m);
 
 template void BcReflectAll(
     FieldCell<T>& uc, const MapCondFace& mfc, const M& m);
+template void BcReflectAll(
+    FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m);

@@ -1010,5 +1010,45 @@ void UVof<M_>::GetAdvectionFaceCond(
   }
 }
 
+template <class M_>
+auto UVof<M_>::GetAdvectionBc(const M& m, const MapCondFaceAdvection<Scal>& mfc)
+    -> std::tuple<
+        MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>,
+        MapEmbed<BCond<Vect>>, MapEmbed<BCond<Scal>>> {
+  using MIdx = typename M::MIdx;
+  using TRM = Trackerm<M>;
+
+  MapEmbed<BCond<Scal>> me_vf; // volume fraction
+  MapEmbed<BCond<Scal>> me_cl; // color
+  MapEmbed<BCond<Scal>> me_im; // image
+  MapEmbed<BCond<Vect>> me_n; // normal
+  MapEmbed<BCond<Scal>> me_a; // plane constant
+  using Halo = typename CondFaceAdvection<Scal>::Halo;
+  for (auto& p : mfc) {
+    const IdxFace f = p.first;
+    const auto& bc = p.second;
+    const auto nci = bc.nci;
+    switch (bc.halo) {
+      case Halo::reflect:
+        me_vf[f] = BCond<Scal>(BCondType::reflect, nci);
+        me_cl[f] = BCond<Scal>(BCondType::reflect, nci);
+        me_im[f] = BCond<Scal>(BCondType::reflect, nci);
+        me_n[f] = BCond<Vect>(BCondType::reflect, nci);
+        me_a[f] = BCond<Scal>(BCondType::reflect, nci);
+        break;
+      case Halo::fill:
+        me_vf[f] = BCond<Scal>(BCondType::dirichlet, nci, bc.fill_vf);
+        me_cl[f] = BCond<Scal>(BCondType::dirichlet, nci, bc.fill_cl);
+        MIdx wim(0);
+        wim[size_t(m.GetDir(f))] = (nci == 1 ? -1 : 1);
+        me_im[f] = BCond<Scal>(BCondType::dirichlet, nci, TRM::Pack(wim));
+        me_n[f] = BCond<Vect>(BCondType::dirichlet, nci, GetNan<Vect>());
+        me_a[f] = BCond<Scal>(BCondType::dirichlet, nci, GetNan<Scal>());
+        break;
+    }
+  }
+  return {me_vf, me_cl, me_im, me_n, me_a};
+}
+
 template <class M>
 constexpr typename M::Scal UVof<M>::Imp::kClNone;

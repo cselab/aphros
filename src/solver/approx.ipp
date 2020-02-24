@@ -606,6 +606,27 @@ void BcApply(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
   }
 }
 
+// Apply boudnary conditions to halo cells
+template <class T, class M>
+void BcApply(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  for (const auto& p : me.GetMapFace()) {
+    const IdxFace f = p.first;
+    const auto& bc = p.second;
+    const Vect n = m.GetNormal(f);
+    IdxCell cmm, cm, cp, cpp;
+    GetCellColumn(m, f, bc.nci, cmm, cm, cp, cpp);
+    if (bc.type == BCondType::reflect) {
+      uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
+      uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
+    } else if (bc.type == BCondType::dirichlet) {
+      uc[cm] = bc.val;
+      uc[cmm] = bc.val;
+    }
+  }
+}
+
 // Apply reflection on all boundaries
 // fill: value for other types that CondFaceReflect
 template <class T, class M>
@@ -618,6 +639,25 @@ void BcReflectAll(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
     Vect n = m.GetNormal(f);
     IdxCell cmm, cm, cp, cpp;
     GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);
+    uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
+    uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
+  }
+}
+
+// Apply reflection on all boundaries
+// fill: value for other types that CondFaceReflect
+template <class T, class M>
+void BcReflectAll(
+    FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+
+  for (const auto& p : me.GetMapFace()) {
+    const IdxFace f = p.first;
+    const auto& bc = p.second;
+    const Vect n = m.GetNormal(f);
+    IdxCell cmm, cm, cp, cpp;
+    GetCellColumn(m, f, bc.nci, cmm, cm, cp, cpp);
     uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
     uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
   }
