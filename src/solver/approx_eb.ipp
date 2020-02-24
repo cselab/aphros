@@ -217,18 +217,9 @@ auto UEmbed<M>::Interpolate(
     }
     return GetNan<T>();
   };
-  // embedded faces
-  for (auto& p : mebc.GetMapCell()) {
-    const IdxCell c = p.first;
-    const auto& bc = p.second;
-    feu[c] = calc(c, c, bc);
-  }
-  // faces with boundary conditions
-  for (auto& p : mebc.GetMapFace()) {
-    const IdxFace f = p.first;
-    const auto& bc = p.second;
-    feu[f] = calc(f, eb.GetCell(f, bc.nci), bc);
-  }
+  mebc.LoopBCond(eb, [&](auto cf, IdxCell c, auto bc) {
+    feu[cf] = calc(cf, c, bc);
+  });
   return feu;
 }
 
@@ -334,18 +325,9 @@ auto UEmbed<M>::InterpolateUpwind(
     }
     return GetNan<Scal>();
   };
-  // embedded faces
-  for (auto& p : mebc.GetMapCell()) {
-    const IdxCell c = p.first;
-    const auto& bc = p.second;
-    feu[c] = calc(c, c, bc);
-  }
-  // faces with boundary conditions
-  for (auto& p : mebc.GetMapFace()) {
-    const IdxFace f = p.first;
-    const auto& bc = p.second;
-    feu[f] = calc(f, eb.GetCell(f, bc.nci), bc);
-  }
+  mebc.LoopBCond(eb, [&](auto cf, IdxCell c, auto bc) {
+    feu[cf] = calc(cf, c, bc);
+  });
   return feu;
 }
 
