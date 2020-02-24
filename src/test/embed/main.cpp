@@ -33,7 +33,7 @@ void Run(M& m, Vars& var) {
     FieldNode<Scal> fnl;
     size_t frame = 0;
     MapEmbed<BCondFluid<Vect>> mebc;
-    MapEmbed<size_t> megroup;
+    MapEmbed<size_t> me_group;
   } * ctx(sem);
   auto& fcu = ctx->fcu;
   auto& feu = ctx->feu;
@@ -62,8 +62,14 @@ void Run(M& m, Vars& var) {
           "Can't open list of boundary conditions '" + filename + "'");
     }
     std::vector<std::string> vdesc;
-    std::tie(ctx->mebc, ctx->megroup, vdesc) = UInitEmbedBc<M>::Parse(fin, eb);
+    MapEmbed<size_t> me_nci;
+    std::tie(ctx->me_group, me_nci, vdesc) =
+        UInitEmbedBc<M>::ParseGroups(fin, eb);
     fin.close();
+
+    ctx->mebc =
+        UInitEmbedBc<M>::GetBCondFromGroups(ctx->me_group, me_nci, vdesc);
+
     std::ofstream fdesc("bc_groups.dat");
     for (size_t i = 0; i < vdesc.size(); ++i) {
       fdesc << i << " " << vdesc[i] << std::endl;
@@ -75,14 +81,14 @@ void Run(M& m, Vars& var) {
       out << "," << int(bc.type) << "," << g << "\n";
     };
     for (auto& p : ctx->mebc.GetMapCell()) {
-      write(p.second, eb.GetFaceCenter(p.first), ctx->megroup[p.first]);
+      write(p.second, eb.GetFaceCenter(p.first), ctx->me_group[p.first]);
     }
     for (auto& p : ctx->mebc.GetMapFace()) {
-      write(p.second, eb.GetFaceCenter(p.first), ctx->megroup[p.first]);
+      write(p.second, eb.GetFaceCenter(p.first), ctx->me_group[p.first]);
     }
   }
   if (sem.Nested("bcdump")) {
-    UInitEmbedBc<M>::DumpPoly("bc.vtk", ctx->megroup, *ctx->eb, m);
+    UInitEmbedBc<M>::DumpPoly("bc.vtk", ctx->me_group, *ctx->eb, m);
   }
   const size_t maxt = 10;
   const size_t nfr = 10;
