@@ -211,7 +211,10 @@ enum class BCondType {
 // Boundary condition on face or embedded boundary.
 template <class T>
 struct BCond {
+  BCond() = default;
+  BCond(BCondType type, size_t nci, T val) : type(type), nci(nci), val(val) {}
+  BCond(BCondType type, size_t nci) : type(type), nci(nci) {}
   BCondType type = BCondType::dirichlet;
-  T val = T(0); // field value (dirichlet) or normal gradient (neumann)
   size_t nci = 0; // neighbor cell id on faces and 0 on embedded boundaries
+  T val = T(0); // field value (dirichlet) or normal gradient (neumann)
 };

@@ -60,8 +60,6 @@ struct Proj<EB_>::Imp {
       , ffvc_(m) {
     using namespace fluid_condition;
 
-    ffbd_.Reinit(m, false);
-
     UpdateDerivedConditions();
 
     fcfcd_.Reinit(m, Vect(0));
@@ -93,28 +91,19 @@ struct Proj<EB_>::Imp {
     using namespace fluid_condition;
 
     mebc_vel_ = GetVelCond<M>(mebc_);
-    mfcf_.clear();
-    mfcp_.clear();
-    mfcpc_.clear();
-    mfcd_.clear();
-    for (auto& p : mebc_.GetMapFace()) {
-      const IdxFace f = p.first;
-      auto& bc = p.second;
-      const size_t nci = bc.nci;
-      ffbd_[f] = true;
-
-      mfcf_[f].template Set<CondFaceGradFixed<Vect>>(Vect(0), nci);
-      mfcp_[f].template Set<CondFaceExtrap>(nci);
-      mfcpc_[f].template Set<CondFaceExtrap>(nci);
-      mfcd_[f].template Set<CondFaceGradFixed<Scal>>(0., nci);
-
+    mebc_.LoopPairs([&](auto p) {
+      const auto cf = p.first;
+      const auto& bc = p.second;
+      const auto nci = bc.nci;
+      me_pressure_[cf] = BCond<Scal>(BCondType::neumann, nci);
+      me_visc_[cf] = BCond<Scal>(BCondType::neumann, nci);
       if (bc.type == BCondFluidType::slipwall ||
           bc.type == BCondFluidType::symm) {
-        mfcf_[f].template Set<CondFaceReflect>(nci);
-        mfcp_[f].template Set<CondFaceGradFixed<Scal>>(0., nci);
-        mfcpc_[f].template Set<CondFaceGradFixed<Scal>>(0, nci);
+        me_force_[cf] = BCond<Vect>(BCondType::mixed, nci);
+      } else {
+        me_force_[cf] = BCond<Vect>(BCondType::neumann, nci);
       }
-    }
+    });
 
     mccp_.clear();
     for (auto& it : mcc_) {
@@ -126,6 +115,11 @@ struct Proj<EB_>::Imp {
       } else {
         throw std::runtime_error("proj: unknown cell condition");
       }
+    }
+
+    ffbd_.Reinit(m, false);
+    for (auto p : mebc_.GetMapFace()) {
+      ffbd_[p.first] = true;
     }
   }
   void StartStep() {
@@ -293,47 +287,6 @@ struct Proj<EB_>::Imp {
       }
     }
   }
-  template <class T>
-  static FieldFace<T> InterpolateInner(const FieldCell<T>& fcu, const M& m) {
-    FieldFace<T> ffu(m);
-    InterpolateI(fcu, ffu, m);
-    return ffu;
-  }
-  template <class T>
-  static FieldEmbed<T> InterpolateInner(
-      const FieldCell<T>& fcu, const Embed<M>& eb) {
-    return UEB::InterpolateBilinear(fcu, MapCondFace(), 1, T(0), eb);
-  }
-  template <class T>
-  static FieldFace<T> Interpolate(
-      const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
-      const M& m) {
-    (void)bc;
-    (void)bcv;
-    return ::Interpolate<T, M>(fcu, mfc, m);
-  }
-  template <class T>
-  FieldEmbed<T> Interpolate(
-      const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
-      const Embed<M>& eb) const {
-    return UEB::InterpolateBilinear(fcu, mfc, bc, bcv, eb);
-  }
-  template <class T>
-  static FieldFace<T> Gradient(
-      const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
-      const M& m) {
-    (void)bc;
-    (void)bcv;
-    FieldFace<T> ffg(m);
-    ::Gradient(fcu, mfc, m, ffg);
-    return ffg;
-  }
-  template <class T>
-  static FieldEmbed<Scal> Gradient(
-      const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
-      const Embed<M>& eb) {
-    return UEB::GradientBilinear(fcu, mfc, bc, bcv, eb);
-  }
   // Get diagcoeff from current convdiff equations
   void GetDiagCoeff(FieldCell<Scal>& fck, FieldFaceb<Scal>& ffk) {
     auto sem = m.GetSem("diag");
@@ -354,7 +307,7 @@ struct Proj<EB_>::Imp {
       m.Comm(&fck);
     }
     if (sem("interp")) {
-      ffk = InterpolateInner(fck, eb);
+      ffk = UEB::Interpolate(fck, {}, eb);
     }
   }
   // Append explicit part of viscous force.
@@ -367,7 +320,7 @@ struct Proj<EB_>::Imp {
     for (auto d : dr_) {
       const auto wfo = GetComponent(wf, d);
       const auto gc = ::Gradient(wfo, m);
-      const auto gf = ::Interpolate(gc, mfcf_, m); // XXX adhoc zero-deriv cond
+      const auto gf = UEB::Interpolate(gc, me_force_, m);
       for (auto c : eb.Cells()) {
         Vect s(0);
         for (auto q : eb.Nci(c)) {
@@ -409,7 +362,7 @@ struct Proj<EB_>::Imp {
       cd_->SetPar(UpdateConvDiffPar(cd_->GetPar(), par));
 
       // interpolate visosity
-      ffd_ = Interpolate(*owner_->fcd_, mfcd_, 1, 0., eb);
+      ffd_ = UEB::Interpolate(*owner_->fcd_, me_visc_, eb);
 
       // rotate layers
       fcp_prev = fcp_curr;
@@ -469,8 +422,8 @@ struct Proj<EB_>::Imp {
       }
 
       // Acceleration and correction to center velocity
-      // XXX adhoc , using mfcd_ but should be zero-derivative
-      const auto ffgp = Gradient(fcp_curr, mfcd_, 1, 0., eb);
+      // XXX adhoc , using me_visc_ but should be zero-derivative
+      const auto ffgp = UEB::Gradient(fcp_curr, me_pressure_, eb);
       fcwc_.Reinit(m);
       auto& ffbp = *ffbp_;
       for (auto c : m.Cells()) {
@@ -536,10 +489,9 @@ struct Proj<EB_>::Imp {
   // Face conditions
   const MapEmbed<BCondFluid<Vect>>& mebc_;
   MapEmbed<BCond<Vect>> mebc_vel_; // velocity cond
-  MapCondFace mfcp_; // pressure cond
-  MapCondFace mfcf_; // force cond
-  MapCondFace mfcpc_; // pressure corr cond
-  MapCondFace mfcd_; // dynamic viscosity cond
+  MapEmbed<BCond<Scal>> me_pressure_; // pressure cond
+  MapEmbed<BCond<Vect>> me_force_; // force cond
+  MapEmbed<BCond<Scal>> me_visc_; // dynamic viscosity cond
 
   // Cell conditions
   MapCell<std::shared_ptr<CondCellFluid>> mcc_; // fluid cell cond

@@ -105,6 +105,7 @@ struct ULinear {
   }
 };
 
+
 template <class M_>
 struct UEmbed {
   using M = M_;

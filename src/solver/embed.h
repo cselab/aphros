@@ -157,11 +157,40 @@ class MapEmbed {
   }
   template <class F>
   void LoopPairs(F lambda) const {
-    for (auto p : df_) {
+    for (auto& p : df_) {
       lambda(p);
     }
-    for (auto p : dc_) {
+    for (auto& p : dc_) {
       lambda(p);
+    }
+  }
+  // Iterates over faces and passes the index of neighbor cell.
+  // Value should have member variable `nci`.
+  // F: function void(IdxFace or IdxCell, IdxCell, BC)
+  template <class EB, class F>
+  void LoopBCond(const EB& eb, F lambda) {
+    for (auto& p : df_) {
+      const IdxFace f = p.first;
+      const auto& bc = p.second;
+      lambda(f, eb.GetCell(f, bc.nci), bc);
+    }
+    for (auto& p : dc_) {
+      const IdxCell c = p.first;
+      const auto& bc = p.second;
+      lambda(c, c, bc);
+    }
+  }
+  template <class EB, class F>
+  void LoopBCond(const EB& eb, F lambda) const {
+    for (auto& p : df_) {
+      const IdxFace f = p.first;
+      const auto& bc = p.second;
+      lambda(f, eb.GetCell(f, bc.nci), bc);
+    }
+    for (auto& p : dc_) {
+      const IdxCell c = p.first;
+      const auto& bc = p.second;
+      lambda(c, c, bc);
     }
   }
 

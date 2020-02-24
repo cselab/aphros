@@ -274,18 +274,9 @@ auto UEmbed<M>::Gradient(
     }
     return GetNan<T>();
   };
-  // embedded faces
-  for (auto& p : mebc.GetMapCell()) {
-    const IdxCell c = p.first;
-    const auto& bc = p.second;
-    feg[c] = calc(c, c, bc);
-  }
-  // faces with boundary conditions
-  for (auto& p : mebc.GetMapFace()) {
-    const IdxFace f = p.first;
-    const auto& bc = p.second;
-    feg[f] = calc(f, eb.GetCell(f, bc.nci), bc);
-  }
+  mebc.LoopBCond(eb, [&](auto cf, IdxCell c, auto bc) {
+    feg[cf] = calc(cf, c, bc);
+  });
   return feg;
 }
 
