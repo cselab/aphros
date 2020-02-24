@@ -25,7 +25,8 @@
 // desc: discriptor
 // nci: neighbour cell id, such that GetCell(f, nci) is an inner cell
 template <class Vect>
-BCondFluid<Vect> ParseBCondFluid(std::string desc, size_t nci) {
+std::pair<bool, BCondFluid<Vect>> ParseBCondFluid(
+    std::string desc, size_t nci) {
   std::stringstream arg(desc);
 
   std::string name;
@@ -52,10 +53,9 @@ BCondFluid<Vect> ParseBCondFluid(std::string desc, size_t nci) {
   } else if (name == "symm") {
     bc.type = BCondFluidType::symm;
   } else {
-    throw std::runtime_error(
-        std::string() + __func__ + ": unknown name='" + name + "'");
+    return {false, bc};
   }
-  return bc;
+  return {true, bc};
 }
 
 template <class M_>
@@ -150,11 +150,13 @@ struct UInitEmbedBc {
     for (size_t group = 0; group < vdesc.size(); ++group) {
       for (auto p : me_group.GetMapFace()) {
         const IdxFace f = p.first;
-        mebc[f] = ParseBCondFluid<Vect>(vdesc[me_group.at(f)], me_nci.at(f));
+        mebc[f] =
+            ParseBCondFluid<Vect>(vdesc[me_group.at(f)], me_nci.at(f)).second;
       }
       for (auto p : me_group.GetMapCell()) {
         const IdxCell c = p.first;
-        mebc[c] = ParseBCondFluid<Vect>(vdesc[me_group.at(c)], me_nci.at(c));
+        mebc[c] =
+            ParseBCondFluid<Vect>(vdesc[me_group.at(c)], me_nci.at(c)).second;
       }
     }
     return mebc;

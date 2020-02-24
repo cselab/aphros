@@ -19,6 +19,11 @@ template void GetFluidFaceCond(
     const Vars& var, const M& m, MapCondFaceFluid& mff,
     MapCondFaceAdvection<Scal>& mfa);
 
+template std::tuple<
+    MapEmbed<BCondFluid<typename M::Vect>>,
+    MapEmbed<CondFaceAdvection<typename M::Scal>>>
+InitBc(const Vars& var, const Embed<M>& eb);
+
 template void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,

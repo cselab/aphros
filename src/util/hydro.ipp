@@ -12,6 +12,7 @@
 #include "convdiff.h"
 #include "dump/dumper.h"
 #include "dump/vtk.h"
+#include "func/init_bc.h"
 #include "func/init_u.h"
 #include "func/primlist.h"
 #include "parse/util.h"
@@ -999,6 +1000,109 @@ void GetFluidFaceCond(
       }
     }
   }
+}
+
+template <class M>
+std::tuple<
+    MapEmbed<BCondFluid<typename M::Vect>>,
+    MapEmbed<CondFaceAdvection<typename M::Scal>>>
+InitBc(const Vars& var, const Embed<M>& eb) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  using UI = UInitEmbedBc<M>;
+
+  // default
+  const Scal clear0 = var.Double["bcc_clear0"];
+  const Scal clear1 = var.Double["bcc_clear1"];
+  const Scal inletcl = var.Double["inletcl"];
+  const Scal fill_vf = var.Double["bcc_fill"];
+
+  auto default_adv = [clear0, clear1, inletcl,
+                      fill_vf](const BCondFluid<Vect>& bcf) {
+    using Halo = typename CondFaceAdvection<Scal>::Halo;
+    static constexpr Scal kClNone = -1; // TODO define kClNone once
+    CondFaceAdvection<Scal> ca;
+    ca.nci = bcf.nci;
+    switch (bcf.type) {
+      case BCondFluidType::wall:
+      case BCondFluidType::slipwall:
+        ca.halo = Halo::fill;
+        ca.clear0 = clear0;
+        ca.clear1 = clear1;
+        ca.fill_vf = fill_vf;
+        ca.fill_cl = kClNone;
+        break;
+      case BCondFluidType::inlet:
+      case BCondFluidType::inletflux:
+        ca.halo = Halo::fill;
+        ca.clear0 = 0;
+        ca.clear1 = 1;
+        ca.fill_vf = 0;
+        ca.fill_cl = inletcl;
+        break;
+      case BCondFluidType::outlet:
+        ca.halo = Halo::reflect;
+        break;
+      case BCondFluidType::symm:
+        ca.halo = Halo::reflect;
+        break;
+    }
+    return ca;
+  };
+
+  auto parse = [&](std::string list, size_t nci) {
+    std::vector<std::string> ss_adv; // strings to try as advection conditions
+    bool found_fluid = false;
+    BCondFluid<Vect> bcf;
+    for (auto desc : Split(list, ',')) {
+      auto p = ParseBCondFluid<Vect>(desc, nci);
+      if (p.first) {
+        found_fluid = true;
+        bcf = p.second;
+      } else {
+        ss_adv.push_back(desc);
+      }
+    }
+    if (!found_fluid) {
+      throw std::runtime_error("No fluid condition found in '" + list + "'");
+    }
+    auto bca = default_adv(bcf);
+    for (auto s : ss_adv) {
+      if (!ParseAdvectionFaceCond(s, bca)) {
+        throw std::runtime_error("No advection condition found in '" + s + "'");
+      }
+    }
+    return std::make_tuple(bcf, bca);
+  };
+
+  MapEmbed<BCondFluid<Vect>> me_fluid;
+  MapEmbed<CondFaceAdvection<Scal>> me_adv;
+
+  const std::string filename = var.String["bc_path"];
+  std::ifstream fin(filename);
+  if (!fin.good()) {
+    throw std::runtime_error(
+        "Can't open boundary conditions '" + filename + "'");
+  }
+  std::vector<std::string> vdesc;
+  MapEmbed<size_t> me_group;
+  MapEmbed<size_t> me_nci;
+  std::tie(me_group, me_nci, vdesc) = UI::ParseGroups(fin, eb);
+  fin.close();
+
+  for (size_t group = 0; group < vdesc.size(); ++group) {
+    for (auto p : me_group.GetMapFace()) {
+      const IdxFace f = p.first;
+      std::tie(me_fluid[f], me_adv[f]) =
+          parse(vdesc[me_group.at(f)], me_nci.at(f));
+    }
+    for (auto p : me_group.GetMapCell()) {
+      const IdxCell c = p.first;
+      std::tie(me_fluid[c], me_adv[c]) =
+          parse(vdesc[me_group.at(c)], me_nci.at(c));
+    }
+  }
+  return {me_fluid, me_adv};
 }
 
 template <class M>
