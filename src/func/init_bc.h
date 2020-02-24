@@ -66,15 +66,14 @@ struct UInitEmbedBc {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  // Parses boundary conditions from stream and adds to map.
-  // filename: path to file
-  // Output:
-  // mecond: output map
-  // megroup: index of group of primitives
-  // Returns descriptors of boundary conditions for each group.
+  // Parses boundary conditions set on groups of primitives in stream.
+  // Returns:
+  // me_group: index of group of primitives
+  // me_nci: neighbor cell id
+  // vdesc: descriptors of boundary conditions for each group
   static std::tuple<
-      MapEmbed<BCondFluid<Vect>>, MapEmbed<size_t>, std::vector<std::string>>
-  Parse(std::istream& fin, const EB& eb) {
+      MapEmbed<size_t>, MapEmbed<size_t>, std::vector<std::string>>
+  ParseGroups(std::istream& fin, const EB& eb) {
     auto& m = eb.GetMesh();
     const std::vector<CodeBlock> bb = ParseCodeBlocks(fin);
     auto is_boundary = [&m](IdxFace f, size_t& nci) -> bool {
@@ -93,8 +92,8 @@ struct UInitEmbedBc {
       return false;
     };
     std::vector<std::string> vdesc;
-    MapEmbed<BCondFluid<Vect>> mebc;
-    MapEmbed<size_t> megroup;
+    MapEmbed<size_t> me_group;
+    MapEmbed<size_t> me_nci;
     for (size_t group = 0; group < bb.size(); ++group) {
       auto& b = bb[group];
       vdesc.push_back(b.name);
@@ -125,24 +124,44 @@ struct UInitEmbedBc {
         if (is_boundary(f, nci)) {
           auto ls = lsmax(eb.GetFaceCenter(f));
           if (ls > 0) {
-            mebc[f] = ParseBCondFluid<Vect>(b.name, nci);
-            megroup[f] = group;
+            me_group[f] = group;
+            me_nci[f] = nci;
           }
         }
       }
       for (auto c : eb.SuCFaces()) {
         auto ls = lsmax(eb.GetFaceCenter(c));
         if (ls > 0) {
-          mebc[c] = ParseBCondFluid<Vect>(b.name, 0);
-          megroup[c] = group;
+          me_group[c] = group;
+          me_nci[c] = 0;
         }
       }
     }
-    return {mebc, megroup, vdesc};
+    return {me_group, me_nci, vdesc};
+  }
+
+  // Returns boundary conditions from descriptors.
+  // me_group: index of group of primitives
+  // vdesc: descriptors of boundary conditions for each group
+  static MapEmbed<BCondFluid<Vect>> GetBCondFromGroups(
+      const MapEmbed<size_t>& me_group, const MapEmbed<size_t>& me_nci,
+      const std::vector<std::string> vdesc) {
+    MapEmbed<BCondFluid<Vect>> mebc;
+    for (size_t group = 0; group < vdesc.size(); ++group) {
+      for (auto p : me_group.GetMapFace()) {
+        const IdxFace f = p.first;
+        mebc[f] = ParseBCondFluid<Vect>(vdesc[me_group.at(f)], me_nci.at(f));
+      }
+      for (auto p : me_group.GetMapCell()) {
+        const IdxCell c = p.first;
+        mebc[c] = ParseBCondFluid<Vect>(vdesc[me_group.at(c)], me_nci.at(c));
+      }
+    }
+    return mebc;
   }
 
   static void DumpPoly(
-      const std::string filename, const MapEmbed<size_t>& megroup, const EB& eb,
+      const std::string filename, const MapEmbed<size_t>& me_group, const EB& eb,
       M& m) {
     auto sem = m.GetSem("dumppoly");
     struct {
@@ -152,11 +171,11 @@ struct UInitEmbedBc {
     auto& dpoly = ctx->dpoly;
     auto& dgroup = ctx->dgroup;
     if (sem("local")) {
-      for (auto p : megroup.GetMapCell()) {
+      for (auto p : me_group.GetMapCell()) {
         dpoly.push_back(eb.GetCutPoly(p.first));
         dgroup.push_back(p.second);
       }
-      for (auto p : megroup.GetMapFace()) {
+      for (auto p : me_group.GetMapFace()) {
         dpoly.push_back(eb.GetFacePoly(p.first));
         dgroup.push_back(p.second);
       }
