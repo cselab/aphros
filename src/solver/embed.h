@@ -155,6 +155,15 @@ class MapEmbed {
   const MapFace<Value>& GetMapFace() const {
     return df_;
   }
+  template <class F>
+  void LoopPairs(F lambda) const {
+    for (auto p : df_) {
+      lambda(p);
+    }
+    for (auto p : dc_) {
+      lambda(p);
+    }
+  }
 
  private:
   MapCell<Value> dc_;

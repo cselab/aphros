@@ -404,14 +404,14 @@ MapCondFace GetVelCond2(const MapEmbed<BCondFluid<typename M::Vect>>& mebc) {
 
 template <class M>
 MapEmbed<BCond<typename M::Vect>> GetVelCond(
-    const MapEmbed<BCondFluid<typename M::Vect>>& mebcf) {
+    const MapEmbed<BCondFluid<typename M::Vect>>& me_fluid) {
   using Vect = typename M::Vect;
   MapEmbed<BCond<Vect>> mebc;
 
-  for (auto& p : mebcf.GetMapFace()) {
-    const IdxFace f = p.first;
+  me_fluid.LoopPairs([&](auto p) {
+    const auto cf = p.first;
     auto& bcf = p.second;
-    auto& bc = mebc[f];
+    auto& bc = mebc[cf];
     bc.nci = bcf.nci;
     switch (bcf.type) {
       case BCondFluidType::wall:
@@ -427,6 +427,6 @@ MapEmbed<BCond<typename M::Vect>> GetVelCond(
         bc.val = bcf.velocity;
         break;
     }
-  }
+  });
   return mebc;
 }
