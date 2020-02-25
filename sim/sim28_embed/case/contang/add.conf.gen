@@ -37,5 +37,6 @@ set int enable_color 1
 set int enable_bc 1
 set string bc_path bc.dat
 
-#set string init_vf zero
+set string list_path b2.dat
+set vect gravity 0 0 0
 " > add.conf
