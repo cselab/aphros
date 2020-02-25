@@ -1,2 +1,10 @@
-nx=32
-LD_PRELOAD=libposthook.so make -f sim.makefile m="$nx $nx 1" cleanrun
+r () {
+  nx=$1
+  np=${2:-1}
+  LD_PRELOAD=libposthook.so make -f sim.makefile m="$nx $nx 1" np=$np cleanrun
+  mv -v error error_$nx
+}
+
+r 032
+#r 064 4
+#r 128 8

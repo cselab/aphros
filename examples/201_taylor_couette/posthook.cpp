@@ -1,7 +1,7 @@
 // Created by Petr Karnakov on 25.02.2020
 // Copyright 2020 ETH Zurich
 
-#include <iostream>
+#include <fstream>
 
 #include <util/posthook.h>
 
@@ -16,10 +16,15 @@ void PostHook(
     FieldCell<Scal> fc_theta;
     FieldCell<Scal> fc_theta_exact;
     FieldCell<Scal> fc_theta_error;
+    Scal norm1, norm2, norminf, count;
   } * ctx(sem);
   auto& fc_theta = ctx->fc_theta;
   auto& fc_theta_exact = ctx->fc_theta_exact;
   auto& fc_theta_error = ctx->fc_theta_error;
+  auto& norm1 = ctx->norm1;
+  auto& norm2 = ctx->norm2;
+  auto& norminf = ctx->norminf;
+  auto& count = ctx->count;
   if (sem()) {
     fc_theta.Reinit(eb, 0);
     fc_theta_error.Reinit(eb, 0);
@@ -29,20 +34,37 @@ void PostHook(
     const Scal r1 = 0.4;
 
     for (auto c : eb.Cells()) {
-      const Vect dx = m.GetCenter(c) - xc;
+      Vect dx = m.GetCenter(c) - xc;
+      dx[2] = 0;
       const Vect dxuni = dx / dx.norm();
       fc_theta[c] = dxuni.cross_third(fcvel[c]);
       const Scal r = dx.norm();
       fc_theta_exact[c] = r * (sqr(r1 / r) - 1) / (sqr(r1 / r0) - 1) / r0;
       fc_theta_error[c] = fc_theta[c] - fc_theta_exact[c];
+
+      auto e = std::abs(fc_theta_error[c]);
+      norm1 += e;
+      norm2 += sqr(e);
+      norminf = std::max(norminf, e);
+      count += 1;
     }
     m.Dump(&fc_theta, "theta");
     m.Dump(&fc_theta_exact, "theta_exact");
     m.Dump(&fc_theta_error, "theta_error");
     m.Dump(&fcvel, 0, "vx");
     m.Dump(&fcvel, 1, "vy");
+    m.Reduce(&norm1, "sum");
+    m.Reduce(&norm2, "sum");
+    m.Reduce(&norminf, "max");
+    m.Reduce(&count, "sum");
   }
   if (sem()) {
+    norm1 = norm1 / count;
+    norm2 = std::sqrt(norm2 / count);
+    if (m.IsRoot()) {
+      std::ofstream fout("error");
+      fout << norm1 << " " << norm2 << " " << norminf;
+    }
   }
   (void) var;
 }
