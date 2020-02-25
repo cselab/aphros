@@ -406,24 +406,11 @@ class Embed {
         return std::vector<Vect>();
     }
   }
-  // TODO: cache
   Vect GetFaceCenter(IdxCell c) const {
-    if (fct_[c] == Type::cut) {
-      return GetBaryCenter(
-          R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], m.GetCellSize()));
-    }
-    return GetNan<Vect>();
+    return fc_face_center_[c];
   }
-  // TODO: cache
   Vect GetFaceCenter(IdxFace f) const {
-    switch (fft_[f]) {
-      case Type::regular:
-        return m.GetCenter(f);
-      case Type::cut:
-        return GetBaryCenter(ffpoly_[f]);
-      default:
-        return GetNan<Vect>();
-    }
+    return ff_face_center_[f];
   }
   std::vector<Vect> GetCutPoly(IdxCell c) const {
     return R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], m.GetCellSize());
@@ -431,26 +418,8 @@ class Embed {
   Vect GetNode(IdxNode n) const {
     return m.GetNode(n);
   }
-  // TODO: cache
   Vect GetCellCenter(IdxCell c) const {
-    switch (fct_[c]) {
-      case Type::regular:
-        return m.GetCenter(c);
-      case Type::cut: {
-        const Scal w = GetArea(c);
-        Vect sum = GetFaceCenter(c) * w;
-        Scal sumw = w;
-        for (auto q : this->Nci(c)) {
-          auto f = m.GetFace(c, q);
-          const Scal w = GetArea(f);
-          sum += GetFaceCenter(f) * w;
-          sumw += w;
-        }
-        return sum / sumw;
-      }
-      default:
-        return GetNan<Vect>();
-    }
+    return fc_cell_center_[c];
   }
   Scal GetRedistr(IdxCell c) const {
     return fc_redistr_[c];
@@ -488,6 +457,43 @@ class Embed {
   }
 
  private:
+  Vect GetFaceCenter0(IdxCell c) const {
+    if (fct_[c] == Type::cut) {
+      return GetBaryCenter(
+          R::GetCutPoly(m.GetCenter(c), fcn_[c], fca_[c], m.GetCellSize()));
+    }
+    return GetNan<Vect>();
+  }
+  Vect GetFaceCenter0(IdxFace f) const {
+    switch (fft_[f]) {
+      case Type::regular:
+        return m.GetCenter(f);
+      case Type::cut:
+        return GetBaryCenter(ffpoly_[f]);
+      default:
+        return GetNan<Vect>();
+    }
+  }
+  Vect GetCellCenter0(IdxCell c) const {
+    switch (fct_[c]) {
+      case Type::regular:
+        return m.GetCenter(c);
+      case Type::cut: {
+        const Scal w = GetArea(c);
+        Vect sum = GetFaceCenter0(c) * w;
+        Scal sumw = w;
+        for (auto q : this->Nci(c)) {
+          auto f = m.GetFace(c, q);
+          const Scal w = GetArea(f);
+          sum += GetFaceCenter0(f) * w;
+          sumw += w;
+        }
+        return sum / sumw;
+      }
+      default:
+        return GetNan<Vect>();
+    }
+  }
   static Scal GetTriangleArea(Vect xa, Vect xb, Vect xc) {
     return (xc - xa).cross(xb - xa).norm() * 0.5;
   }
@@ -591,12 +597,15 @@ class Embed {
   FieldFace<Type> fft_; // face type (0: regular, 1: cut, 2: excluded)
   FieldFace<std::vector<Vect>> ffpoly_; // polygon representing f < 0
   FieldFace<Scal> ffs_; // area for which f > 0
+  FieldFace<Vect> ff_face_center_;
   // cells
   FieldCell<Type> fct_; // cell type (0: regular, 1: cut, 2: excluded)
   FieldCell<Vect> fcn_; // unit outer normal (towards excluded domain)
   FieldCell<Scal> fca_; // plane constant
   FieldCell<Scal> fcs_; // area of polygon
   FieldCell<Scal> fcv_; // volume of cut cell
+  FieldCell<Vect> fc_face_center_;
+  FieldCell<Vect> fc_cell_center_;
   // redistribution coefficients
   MapCell<std::vector<std::pair<IdxCell, Scal>>> mc_redistr_;
   FieldCell<Scal> fc_redistr_;
