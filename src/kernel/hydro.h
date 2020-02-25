@@ -1946,7 +1946,11 @@ void Hydro<M>::Run() {
   sem.LoopEnd();
 
   if (sem.Nested("posthook")) {
-    PostHook(m);
+    if (eb_) {
+      PostHook(var, fs_->GetVelocity(), m, *eb_);
+    } else {
+      PostHook(var, fs_->GetVelocity(), m);
+    }
   }
 }
 
