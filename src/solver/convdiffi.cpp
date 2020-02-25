@@ -5,4 +5,4 @@
 
 using M = MeshStructured<double, 3>;
 template class ConvDiffScalImp<M>;
-//template class ConvDiffScalImp<Embed<M>>;
+template class ConvDiffScalImp<Embed<M>>;

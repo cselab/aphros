@@ -418,4 +418,10 @@ struct UEmbed {
   static FieldFace<ExprFace> GradientImplicit(
       const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
       const M& m);
-};
+
+  static FieldCell<Vect> Gradient(const FieldEmbed<Scal>& feu, const EB& eb) {
+    return GradientLinearFit(feu, eb);
+  }
+  static FieldCell<Vect> Gradient(const FieldFace<Scal>& ffu, const M& m);
+}
+;
