@@ -24,6 +24,19 @@ void Embed<M>::Init(const FieldNode<Scal>& fnl) {
       }
     }
     m.Comm(&fcvst3_);
+
+    ff_face_center_.Reinit(m, GetNan<Vect>());
+    for (auto f : eb.SuFaces()) {
+      ff_face_center_[f] = GetFaceCenter0(f);
+    }
+    fc_face_center_.Reinit(m, GetNan<Vect>());
+    for (auto c : eb.SuCFaces()) {
+      fc_face_center_[c] = GetFaceCenter0(c);
+    }
+    fc_cell_center_.Reinit(m, GetNan<Vect>());
+    for (auto c : eb.AllCells()) {
+      fc_cell_center_[c] = GetCellCenter0(c);;
+    }
   }
 }
 
