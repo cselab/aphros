@@ -8,14 +8,16 @@
 #include "convdiff.h"
 
 template <class EB_>
-class ConvDiffScalImp final : public ConvDiffScal<typename EB_::M> {
+class ConvDiffScalImp final : public ConvDiffScal<EB_> {
  public:
   using EB = EB_;
   using M = typename EB::M;
-  using P = ConvDiffScal<M>;
+  using Base = ConvDiffScal<EB>;
   using Scal = typename M::Scal;
-  using Par = typename P::Par;
-  using P::dim;
+  using Par = typename ConvDiffScal<M>::Par;
+  template <class T>
+  using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
+  using Base::dim;
 
   // Constructor.
   // fcu: initial field
@@ -31,12 +33,12 @@ class ConvDiffScalImp final : public ConvDiffScal<typename EB_::M> {
   ConvDiffScalImp(
       M& m, const EB& eb, const FieldCell<Scal>& fcu,
       const MapEmbed<BCond<Scal>>& mfbc, const FieldCell<Scal>* fcr,
-      const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
-      const FieldFace<Scal>* ffv, double t, double dt, Par par);
+      const FieldFaceb<Scal>* ffd, const FieldCell<Scal>* fcs,
+      const FieldFaceb<Scal>* ffv, double t, double dt, Par par);
   ~ConvDiffScalImp();
   const FieldCell<Scal>& GetField(Step) const override;
-  using P::GetField;
-  void Assemble(const FieldCell<Scal>&, const FieldFace<Scal>&) override;
+  using Base::GetField;
+  void Assemble(const FieldCell<Scal>&, const FieldFaceb<Scal>&) override;
   void CorrectField(Step l, const FieldCell<Scal>& uc) override;
   FieldCell<Scal> GetDiag() const override;
   FieldCell<Scal> GetConst() const override;
