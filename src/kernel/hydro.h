@@ -901,8 +901,12 @@ void Hydro<M>::Init() {
           fdesc << i << " " << vdesc_[i] << std::endl;
         }
       }
-      if (eb_ && sem.Nested("bcdump")) {
-        UInitEmbedBc<M>::DumpPoly("bc.vtk", me_group_, *eb_, m);
+      if (sem.Nested("bcdump")) {
+        if (eb_) {
+          UInitEmbedBc<M>::DumpPoly("bc.vtk", me_group_, *eb_, m);
+        } else {
+          UInitEmbedBc<M>::DumpPoly("bc.vtk", me_group_, m);
+        }
       }
     } else {
       if (sem.Nested()) {
