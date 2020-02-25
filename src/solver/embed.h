@@ -269,6 +269,16 @@ class Embed {
     }
     lambda(NciEmbed());
   }
+  template <class F>
+  void LoopNciFaces(IdxCell c, F lambda) const {
+    for (auto q : Nci(c)) {
+      lambda(q);
+    }
+  }
+  template <class F>
+  void LoopNciEmbed(IdxCell, F lambda) const {
+    lambda(NciEmbed());
+  }
   auto Faces() const {
     return MakeFilterIterator(
         m.Faces(), [this](IdxFace f) { return GetType(f) != Type::excluded; });

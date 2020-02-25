@@ -399,6 +399,16 @@ class MeshStructured {
       lambda(q);
     }
   }
+  template <class F>
+  void LoopNciFaces(IdxCell c, F lambda) const {
+    for (auto q : Nci(c)) {
+      lambda(q);
+    }
+  }
+  template <class F>
+  void LoopNciEmbed(IdxCell, F) const {
+    return;
+  }
   bool IsInside(IdxCell c, Vect vect) const {
     for (auto q : Nci()) {
       IdxFace f = GetFace(c, q);
