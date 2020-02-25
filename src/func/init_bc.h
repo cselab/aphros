@@ -214,4 +214,43 @@ struct UInitEmbedBc {
       }
     }
   }
+  // Returns face polygon.
+  // x0,x1: points
+  // f0,f1: values
+  static std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
+    using Vect = typename M::Vect;
+    std::vector<Vect> xx;
+    for (size_t e = 0; e < m.GetNumNodes(f); ++e) {
+      auto n = m.GetNode(f, e);
+      xx.push_back(m.GetNode(n));
+    }
+    return xx;
+  }
+  static void DumpPoly(
+      const std::string filename, const MapEmbed<size_t>& me_group, M& m) {
+    auto sem = m.GetSem("dumppoly");
+    struct {
+      std::vector<std::vector<Vect>> dpoly;
+      std::vector<Scal> dgroup;
+    } * ctx(sem);
+    auto& dpoly = ctx->dpoly;
+    auto& dgroup = ctx->dgroup;
+    if (sem("local")) {
+      for (auto p : me_group.GetMapFace()) {
+        dpoly.push_back(GetPoly(p.first, m));
+        dgroup.push_back(p.second);
+      }
+      using TV = typename M::template OpCatVT<Vect>;
+      m.Reduce(std::make_shared<TV>(&dpoly));
+      using TS = typename M::template OpCatT<Scal>;
+      m.Reduce(std::make_shared<TS>(&dgroup));
+    }
+    if (sem("write")) {
+      if (m.IsRoot()) {
+        WriteVtkPoly<Vect>(
+            filename, dpoly, nullptr, {&dgroup}, {"group"},
+            "Boundary conditions", true, true, true);
+      }
+    }
+  }
 };
