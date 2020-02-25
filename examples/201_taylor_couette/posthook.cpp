@@ -63,7 +63,7 @@ void PostHook(
     norm2 = std::sqrt(norm2 / count);
     if (m.IsRoot()) {
       std::ofstream fout("error");
-      fout << norm1 << " " << norm2 << " " << norminf;
+      fout << norm1 << " " << norm2 << " " << norminf << std::endl;
     }
   }
   (void) var;
