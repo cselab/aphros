@@ -206,6 +206,8 @@ class Embed {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using Expr = typename M::Expr;
+  using ExprFace = typename M::ExprFace;
   static constexpr size_t dim = M::dim;
 
  private:
@@ -278,6 +280,15 @@ class Embed {
   template <class F>
   void LoopNciEmbed(IdxCell, F lambda) const {
     lambda(NciEmbed());
+  }
+  void AppendExpr(Expr& sum, const ExprFace& v, size_t q) const {
+    sum[0] += v[1 - q % 2];
+    sum[1 + q] += v[q % 2];
+    sum[Expr::dim - 1] += v[2];
+  }
+  void AppendExpr(Expr& sum, const ExprFace& v, NciEmbed) const {
+    sum[0] += v[0];
+    sum[Expr::dim - 1] += v[2];
   }
   auto Faces() const {
     return MakeFilterIterator(

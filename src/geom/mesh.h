@@ -359,6 +359,12 @@ class MeshStructured {
   GRangeIn<IdxNode, dim> AllNodes() const {
     return GetAll<IdxNode>();
   }
+
+  // Expression on face: v[0] * cm + v[1] * cp + v[2]
+  using ExprFace = generic::Vect<Scal, 3>;
+  // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
+  using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
+
   // Wrappers to satisfy the interface of Embed<M>
   Vect GetFaceCenter(IdxFace f) const {
     return GetCenter(f);
@@ -409,6 +415,12 @@ class MeshStructured {
   void LoopNciEmbed(IdxCell, F) const {
     return;
   }
+  void AppendExpr(Expr& sum, const ExprFace& v, size_t q) const {
+    sum[0] += v[1 - q % 2];
+    sum[1 + q] += v[q % 2];
+    sum[Expr::dim - 1] += v[2];
+  }
+
   bool IsInside(IdxCell c, Vect vect) const {
     for (auto q : Nci()) {
       IdxFace f = GetFace(c, q);

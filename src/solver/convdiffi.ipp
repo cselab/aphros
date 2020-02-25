@@ -15,11 +15,9 @@
 template <class EB_>
 struct ConvDiffScalImp<EB_>::Imp {
   using Owner = ConvDiffScalImp<EB_>;
-  // Expression on face: v[0] * cm + v[1] * cp + v[2]
-  using ExprFace = generic::Vect<Scal, 3>;
-  // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
-  using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
   using Vect = typename M::Vect;
+  using ExprFace = typename M::ExprFace;
+  using Expr = typename M::Expr;
   using UEB = UEmbed<M>;
 
   Imp(Owner* owner, const FieldCell<Scal>& fcu,
@@ -90,18 +88,10 @@ struct ConvDiffScalImp<EB_>::Imp {
     fcl.Reinit(eb, Expr::GetUnit(0)); // initialize as diagonal system
     for (auto c : eb.Cells()) {
       Expr sum(0);
-      eb.LoopNciFaces(c, [&](auto q) {
+      eb.LoopNci(c, [&](auto q) {
         const auto cf = eb.GetFace(c, q);
         const ExprFace v = ffq[cf] * eb.GetOutwardFactor(c, q);
-        sum[0] += v[1 - q % 2];
-        sum[1 + q] += v[q % 2];
-        sum[Expr::dim - 1] += v[2];
-      });
-      eb.LoopNciEmbed(c, [&](auto q) {
-        const auto cf = eb.GetFace(c, q);
-        const ExprFace v = ffq[cf] * eb.GetOutwardFactor(c, q);
-        sum[0] += v[0];
-        sum[Expr::dim - 1] += v[2];
+        eb.AppendExpr(sum, v, q);
       });
 
       Expr td(0); // time derivative
