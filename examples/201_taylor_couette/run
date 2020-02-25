@@ -1,1 +1,1 @@
-
+LD_PRELOAD=libposthook.so make -f sim.makefile cleanrun

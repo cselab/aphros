@@ -24,3 +24,4 @@ s*.vtk
 a.conf
 add.conf
 tl
+*.so

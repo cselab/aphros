@@ -31,8 +31,8 @@ set(T "git")
 add_library(${T} git.cpp)
 target_link_libraries(${T} gitgen)
 
-set(T "posthook")
-add_library(${T} posthook.cpp)
+set(T "posthook_default")
+add_library(${T} posthook_default.cpp)
 target_link_libraries(${T} suspender vars)
 
 set(T "subcomm")
