@@ -421,15 +421,6 @@ class Embed {
   Vect GetCellCenter(IdxCell c) const {
     return fc_cell_center_[c];
   }
-  Scal GetRedistr(IdxCell c) const {
-    return fc_redistr_[c];
-  }
-  const FieldCell<Scal>& GetRedistr() const {
-    return fc_redistr_;
-  }
-  const std::vector<std::pair<IdxCell, Scal>>& GetRedistrList(IdxCell c) const {
-    return *mc_redistr_.find(c);
-  }
   Scal ClipGradDenom(Scal dn) const {
     return (dn > 0 ? 1 : -1) *
            std::max(std::abs(dn), m.GetCellSize()[0] * gradlim_);
@@ -559,10 +550,6 @@ class Embed {
       const FieldNode<Scal>& fnl, const FieldFace<Scal>& ffs,
       FieldCell<Type>& fct, FieldCell<Vect>& fcn, FieldCell<Scal>& fca,
       FieldCell<Scal>& fcs, FieldCell<Scal>& fcv, const M& m);
-  static void InitRedistr(
-      const FieldCell<Type>& fct, const FieldCell<Scal>& fcv,
-      const FieldCell<Scal>& fcs, FieldCell<Scal>& fc_redistr,
-      MapCell<std::vector<std::pair<IdxCell, Scal>>>& mc_redistr, const M& m);
   // Dump cut polygons
   // ffs: face area for which f > 0
   // fft: type of faces
@@ -606,9 +593,6 @@ class Embed {
   FieldCell<Scal> fcv_; // volume of cut cell
   FieldCell<Vect> fc_face_center_;
   FieldCell<Vect> fc_cell_center_;
-  // redistribution coefficients
-  MapCell<std::vector<std::pair<IdxCell, Scal>>> mc_redistr_;
-  FieldCell<Scal> fc_redistr_;
   // volume of neighbor cells
   FieldCell<Scal> fcvst3_; // volume of neighbors in stencil 3x3x3
 };

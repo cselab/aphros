@@ -13,8 +13,6 @@ void Embed<M>::Init(const FieldNode<Scal>& fnl) {
     fnl_ = fnl;
     InitFaces(fnl_, fft_, ffpoly_, ffs_, m);
     InitCells(fnl_, ffs_, fct_, fcn_, fca_, fcs_, fcv_, m);
-    InitRedistr(fct_, fcv_, fcs_, fc_redistr_, mc_redistr_, m);
-    m.Comm(&fc_redistr_);
 
     // volume of neighbor cells
     fcvst3_.Reinit(m, 0);
@@ -255,35 +253,6 @@ void Embed<M>::InitCells(
       fcv[c] = R::GetLineU(fcn[c], fca[c], h) * m.GetVolume(c);
     } else if (fct[c] == Type::regular) {
       fcv[c] = m.GetVolume(c);
-    }
-  }
-}
-
-template <class M>
-void Embed<M>::InitRedistr(
-    const FieldCell<Type>& fct, const FieldCell<Scal>& fcv,
-    const FieldCell<Scal>& fcs, FieldCell<Scal>& fc_redistr,
-    MapCell<std::vector<std::pair<IdxCell, Scal>>>& mc_redistr, const M& m) {
-  fc_redistr.Reinit(m, 1);
-  const Scal hreg = m.GetCellSize()[0]; // XXX adhoc cubic cells
-  for (auto c : m.Cells()) {
-    if (fct[c] == Type::cut) {
-      const Scal a = std::min(1., fcv[c] / (hreg * fcs[c]));
-      std::vector<std::pair<IdxCell, Scal>> vp;
-      for (auto cn : m.Stencil(c)) {
-        if (fct[cn] != Type::excluded && cn != c) {
-          vp.push_back({cn, 1});
-        }
-      }
-      Scal sum = 0;
-      for (auto& p : vp) {
-        sum += p.second * fcv[p.first];
-      }
-      for (auto& p : vp) {
-        p.second *= fcv[c] * (1 - a) / sum;
-      }
-      fc_redistr[c] = a;
-      mc_redistr[c] = vp;
     }
   }
 }
