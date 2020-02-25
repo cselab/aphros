@@ -21,6 +21,7 @@
 #include "rangein.h"
 #include "transform.h"
 #include "util/histogram.h"
+#include "util/logger.h"
 #include "util/suspender.h"
 #include "vect.h"
 
