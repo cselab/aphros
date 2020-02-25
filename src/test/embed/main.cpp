@@ -117,8 +117,6 @@ void Run(M& m, Vars& var) {
         }
         for (auto c : eb.CFaces()) {
           feun[c] = feg[c].dot(eb.GetNormal(c));
-          const Scal a = eb.GetRedistr(c);
-          feun[c] = feunc[c] * a + feun[c] * (1 - a);
         }
       }
 
@@ -132,14 +130,7 @@ void Run(M& m, Vars& var) {
           s += feun[f] * eb.GetArea(f) * m.GetOutwardFactor(c, q);
         }
         const Scal du = s * dt / eb.GetVolume(c);
-        if (eb.GetType(c) == Type::cut) {
-          fcu[c] += du * eb.GetRedistr(c);
-          for (auto p : eb.GetRedistrList(c)) {
-            fcu[p.first] += du * p.second;
-          }
-        } else {
-          fcu[c] += du;
-        }
+        fcu[c] += du;
       }
 
       m.Comm(&fcu);
