@@ -64,23 +64,23 @@ struct ConvDiffScalImp<EB_>::Imp {
   void Assemble(
       const FieldCell<Scal>& fcu, const FieldFaceb<Scal>& ffv,
       FieldCell<Expr>& fcl) {
-    FieldFace<ExprFace> ffq(eb, ExprFace(0));
+    FieldFaceb<ExprFace> ffq(eb, ExprFace(0));
     // convective fluxes
     {
       const FieldCell<Vect> fcg =
           UEB::Gradient(UEB::Interpolate(fcu, mebc_, eb), eb);
       const FieldFaceb<ExprFace> ffu = UEB::InterpolateUpwindImplicit(
           fcu, mebc_, par.sc, par.df, fcg, ffv, eb);
-      for (auto f : eb.Faces()) {
-        ffq[f] += ffu[f] * ffv[f];
-      }
+      eb.LoopFaces([&](auto cf) { //
+        ffq[cf] += ffu[cf] * ffv[cf];
+      });
     }
     // diffusive fluxes
     if (owner_->ffd_) {
       const FieldFaceb<ExprFace> ffg = UEB::GradientImplicit(fcu, mebc_, eb);
-      for (auto f : eb.Faces()) {
-        ffq[f] -= ffg[f] * (*owner_->ffd_)[f] * eb.GetArea(f);
-      }
+      eb.LoopFaces([&](auto cf) { //
+        ffq[cf] -= ffg[cf] * (*owner_->ffd_)[cf] * eb.GetArea(cf);
+      });
     }
 
     const Scal dt = owner_->GetTimeStep();
@@ -90,13 +90,19 @@ struct ConvDiffScalImp<EB_>::Imp {
     fcl.Reinit(eb, Expr::GetUnit(0)); // initialize as diagonal system
     for (auto c : eb.Cells()) {
       Expr sum(0);
-      for (auto q : eb.Nci(c)) {
-        const IdxFace f = eb.GetFace(c, q);
-        const ExprFace v = ffq[f] * eb.GetOutwardFactor(c, q);
+      eb.LoopNciFaces(c, [&](auto q) {
+        const auto cf = eb.GetFace(c, q);
+        const ExprFace v = ffq[cf] * eb.GetOutwardFactor(c, q);
         sum[0] += v[1 - q % 2];
         sum[1 + q] += v[q % 2];
         sum[Expr::dim - 1] += v[2];
-      }
+      });
+      eb.LoopNciEmbed(c, [&](auto q) {
+        const auto cf = eb.GetFace(c, q);
+        const ExprFace v = ffq[cf] * eb.GetOutwardFactor(c, q);
+        sum[0] += v[0];
+        sum[Expr::dim - 1] += v[2];
+      });
 
       Expr td(0); // time derivative
       td[0] = time_coeff[2];
@@ -176,13 +182,13 @@ struct ConvDiffScalImp<EB_>::Imp {
       CHECKNAN(fcucs_, m.CN())
       // calc error (norm of correction)
       Scal er = 0;
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         er = std::max<Scal>(er, curr[c]);
       }
       er_ = er;
 
       // apply, store result in curr
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         curr[c] += prev[c];
       }
       m.Comm(&curr);
@@ -207,22 +213,22 @@ struct ConvDiffScalImp<EB_>::Imp {
     auto sem = m.GetSem("corr");
     if (sem("apply")) {
       auto& u = fcu_.Get(l);
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         u[c] += uc[c];
       }
       m.Comm(&u);
     }
   }
   FieldCell<Scal> GetDiag() const {
-    FieldCell<Scal> fc(m);
-    for (auto c : m.Cells()) {
+    FieldCell<Scal> fc(eb, 0);
+    for (auto c : eb.Cells()) {
       fc[c] = fcucs_[c][0];
     }
     return fc;
   }
   FieldCell<Scal> GetConst() const {
-    FieldCell<Scal> fc(m);
-    for (auto c : m.Cells()) {
+    FieldCell<Scal> fc(eb, 0);
+    for (auto c : eb.Cells()) {
       fc[c] = fcucs_[c][Expr::dim - 1];
     }
     return fc;
