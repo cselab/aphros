@@ -1,1 +1,2 @@
-LD_PRELOAD=libposthook.so make -f sim.makefile cleanrun
+nx=32
+LD_PRELOAD=libposthook.so make -f sim.makefile m="$nx $nx 1" cleanrun
