@@ -214,6 +214,7 @@ class Embed {
  public:
 
   enum class Type { regular, cut, excluded };
+  class NciEmbed {};
   // Constructor
   // fnl: level-set function on nodes, interface at fnl=0
   Embed(M& m, Scal gradlim) : m(m), eb(*this), gradlim_(gradlim) {}
@@ -261,6 +262,13 @@ class Embed {
       lambda(f);
     }
   }
+  template <class F>
+  void LoopNci(IdxCell c, F lambda) const {
+    for (auto q : Nci(c)) {
+      lambda(q);
+    }
+    lambda(NciEmbed());
+  }
   auto Faces() const {
     return MakeFilterIterator(
         m.Faces(), [this](IdxFace f) { return GetType(f) != Type::excluded; });
@@ -275,6 +283,9 @@ class Embed {
   }
   IdxFace GetFace(IdxCell c, size_t q) const {
     return m.GetFace(c, q);
+  }
+  IdxCell GetFace(IdxCell c, NciEmbed) const {
+    return c;
   }
   IdxCell GetCell(IdxCell c, size_t q) const {
     return m.GetCell(c, q);
@@ -355,6 +366,9 @@ class Embed {
   }
   Scal GetOutwardFactor(IdxCell c, size_t q) const {
     return m.GetOutwardFactor(c, q);
+  }
+  Scal GetOutwardFactor(IdxCell, NciEmbed) const {
+    return 1;
   }
   Scal GetFaceOffset(IdxCell c, size_t nci) const {
     IdxFace f = m.GetFace(c, nci);

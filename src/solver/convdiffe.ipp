@@ -42,96 +42,6 @@ struct ConvDiffScalExp<EB_>::Imp {
 
     er_ = 0.;
   }
-  template <size_t dummy>
-  FieldCell<Scal> CalcConvDiff(
-      const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv) const {
-    FieldCell<Scal> fclb(m, 0);
-
-    {
-      FieldFace<Scal> ffq; // convective fluxes
-      const FieldCell<Vect> fcg = Gradient(UEB::Interpolate(fcu, mebc_, m), m);
-      ffq = UEB::InterpolateUpwind(fcu, mebc_, par.sc, fcg, ffv, m);
-      for (auto f : m.Faces()) {
-        ffq[f] *= (*owner_->ffv_)[f];
-      }
-      for (auto c : m.Cells()) {
-        Scal sum = 0.; // sum
-        for (auto q : m.Nci(c)) {
-          const IdxFace f = m.GetFace(c, q);
-          sum += ffq[f] * m.GetOutwardFactor(c, q);
-        }
-        fclb[c] += sum / m.GetVolume(c) * (*owner_->fcr_)[c];
-      }
-    }
-
-    if (owner_->ffd_) {
-      FieldFace<Scal> ffq; // diffusive fluxes
-      ffq = UEB::Gradient(fcu, mebc_, m);
-      for (auto f : m.Faces()) {
-        ffq[f] *= (-(*owner_->ffd_)[f]) * m.GetArea(f);
-      }
-      for (auto c : m.Cells()) {
-        Scal sum = 0.; // sum
-        for (auto q : m.Nci(c)) {
-          const IdxFace f = m.GetFace(c, q);
-          sum += ffq[f] * m.GetOutwardFactor(c, q);
-        }
-        fclb[c] += sum / m.GetVolume(c);
-      }
-    }
-    return fclb;
-  }
-  template <size_t dummy>
-  FieldCell<Scal> CalcConvDiff(
-      const FieldCell<Scal>& fcu, const FieldEmbed<Scal>& fev) const {
-    const FieldCell<Vect> fcg = Gradient(UEB::Interpolate(fcu, mebc_, m), m);
-
-    FieldCell<Scal> fclb(m, 0);
-    {
-      // convective fluxes
-      FieldEmbed<Scal> feq =
-          UEB::InterpolateUpwind(fcu, mebc_, par.sc, fcg, fev, eb);
-      for (auto f : eb.Faces()) {
-        feq[f] *= fev[f];
-      }
-      for (auto c : eb.CFaces()) {
-        feq[c] *= fev[c];
-      }
-      for (auto c : eb.Cells()) {
-        Scal sum = feq[c];
-        for (auto q : eb.Nci(c)) {
-          const IdxFace f = m.GetFace(c, q);
-          sum += feq[f] * m.GetOutwardFactor(c, q);
-        }
-        fclb[c] += sum * (*owner_->fcr_)[c];
-      }
-    }
-
-    if (owner_->ffd_) {
-      // diffusive fluxes
-      FieldEmbed<Scal> feq = UEB::Gradient(fcu, mebc_, eb);
-      for (auto f : eb.Faces()) {
-        feq[f] *= -(*owner_->ffd_)[f] * eb.GetArea(f);
-      }
-      for (auto c : eb.CFaces()) {
-        feq[c] *= -(*owner_->ffd_)[c] * eb.GetArea(c);
-      }
-      for (auto c : eb.Cells()) {
-        Scal sum = feq[c];
-        for (auto q : eb.Nci(c)) {
-          IdxFace f = m.GetFace(c, q);
-          sum += feq[f] * m.GetOutwardFactor(c, q);
-        }
-        fclb[c] += sum;
-      }
-    }
-
-    fclb = UEB::RedistributeCutCells(fclb, eb);
-    for (IdxCell c : eb.Cells()) {
-      fclb[c] /= eb.GetVolume(c);
-    }
-    return fclb;
-  }
   // Assembles linear system
   // fcu: field from previous iteration [a]
   // ffv: volume flux
@@ -147,7 +57,43 @@ struct ConvDiffScalExp<EB_>::Imp {
       const FieldCell<Vect> fcg = Gradient(UEB::Interpolate(fcu, mebc_, m), m);
 
       fcla.Reinit(m);
-      fclb = CalcConvDiff<0>(fcu, ffv);
+      fclb.Reinit(m, 0);
+      {
+        // convective fluxes
+        FieldFaceb<Scal> ffq =
+            UEB::InterpolateUpwind(fcu, mebc_, par.sc, fcg, ffv, eb);
+        eb.LoopFaces([&](auto cf) { //
+          ffq[cf] *= ffv[cf];
+        });
+        for (auto c : eb.Cells()) {
+          Scal sum = 0;
+          eb.LoopNci(c, [&](auto q) {
+            const auto cf = eb.GetFace(c, q);
+            sum += ffq[cf] * eb.GetOutwardFactor(c, q);
+          });
+          fclb[c] += sum * (*owner_->fcr_)[c];
+        }
+      }
+      if (owner_->ffd_) {
+        // diffusive fluxes
+        FieldFaceb<Scal> ffq = UEB::Gradient(fcu, mebc_, eb);
+        eb.LoopFaces([&](auto cf) { //
+          ffq[cf] *= -(*owner_->ffd_)[cf] * eb.GetArea(cf);
+        });
+        for (auto c : eb.Cells()) {
+          Scal sum = 0;
+          eb.LoopNci(c, [&](auto q) {
+            const auto cf = eb.GetFace(c, q);
+            sum += ffq[cf] * eb.GetOutwardFactor(c, q);
+          });
+          fclb[c] += sum;
+        }
+      }
+
+      fclb = UEB::RedistributeCutCells(fclb, eb);
+      for (auto c : eb.Cells()) {
+        fclb[c] /= eb.GetVolume(c);
+      }
 
       // time derivative coeffs
       const Scal dt = owner_->GetTimeStep();
@@ -264,8 +210,6 @@ struct ConvDiffScalExp<EB_>::Imp {
   StepData<FieldCell<Scal>> fcu_; // field
   const MapEmbed<BCond<Scal>>& mebc_; // boundary conditions
 
-  size_t bc_ = 0; // boundary conditions, 0: value, 1: gradient
-  Scal bcu_ = 0.; // value or grad.dot.outer_normal
   // diagonal linear system: fcla * (fcup - fcu) + fclb = 0
   FieldCell<Scal> fcla_;
   FieldCell<Scal> fclb_;

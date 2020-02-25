@@ -766,6 +766,13 @@ auto UEmbed<M>::RedistributeCutCells(const FieldCell<T>& fcu, const EB& eb)
 
 template <class M>
 template <class T>
+auto UEmbed<M>::RedistributeCutCells(const FieldCell<T>& fcu, const M&)
+    -> FieldCell<T> {
+  return fcu;
+}
+
+template <class M>
+template <class T>
 auto UEmbed<M>::GradientLimited(
     const FieldCell<T>& fcu, const MapCondFace& mfc, size_t bc, T bcv,
     const EB& eb) -> FieldEmbed<T> {

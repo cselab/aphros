@@ -216,6 +216,10 @@ struct UEmbed {
   static FieldCell<T> RedistributeCutCells(
       const FieldCell<T>& fcu, const EB& eb);
 
+  template <class T>
+  static FieldCell<T> RedistributeCutCells(
+      const FieldCell<T>& fcu, const M& m);
+
   // Gradient on faces with limited denominator.
   // fcu: field [a]
   // bc: boundary conditions type, 0: value, 1: grad
