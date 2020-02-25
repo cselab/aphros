@@ -471,7 +471,7 @@ auto UEmbed<M>::InterpolateUpwind(
         return fcu[c] + bc.val * a;
       }
       default:
-        throw std::runtime_error(std::string() + __func__ + ": unknown");
+        throw std::runtime_error(FILELINE + ": unknown");
     }
     return GetNan<Scal>();
   };
@@ -1025,4 +1025,127 @@ auto UEmbed<M>::GradientBilinear(
   auto feg = GradientBilinear(fcu, bc, mcu, eb);
   GradientB(fcu, mfc, eb.GetMesh(), feg.GetFieldFace());
   return feg;
+}
+
+template <class M>
+auto UEmbed<M>::InterpolateUpwindImplicit(
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
+    Scal deferred, const FieldCell<Vect>& fcg, const FieldEmbed<Scal>& fev,
+    const EB& eb) -> FieldEmbed<ExprFace> {
+  // TODO implement
+}
+
+template <class M>
+auto UEmbed<M>::InterpolateUpwindImplicit(
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
+    Scal deferred, const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv,
+    const M& m) -> FieldFace<ExprFace> {
+  const Scal th = 1e-10;
+  FieldFace<ExprFace> ffe(m, ExprFace(0));
+
+  // f = fmm*a[0] + fm*a[1] + fp*a[2]
+  std::array<Scal, 3> a = GetCoeff<Scal>(sc);
+  const Scal df = deferred;
+  const Scal dfm = 1 - df;
+  for (auto f : m.Faces()) {
+    ExprFace e(0);
+    const IdxCell cm = m.GetCell(f, 0);
+    const IdxCell cp = m.GetCell(f, 1);
+    if (ffv[f] > th) {
+      e[0] = a[1] * dfm + df;
+      e[1] = (a[2] + a[0]) * dfm;
+      e[2] = 4. * a[0] * fcg[cm].dot(m.GetVectToCell(f, 0)) +
+             (a[1] - 1) * df * fcu[cm] + (a[2] + a[0]) * df * fcu[cp];
+    } else if (ffv[f] < -th) {
+      e[0] = (a[2] + a[0]) * dfm;
+      e[1] = a[1] * dfm + df;
+      e[2] = 4. * a[0] * fcg[cp].dot(m.GetVectToCell(f, 1)) +
+             (a[1] - 1) * df * fcu[cp] + (a[2] + a[0]) * df * fcu[cm];
+    } else {
+      e[0] = 0.5;
+      e[1] = 0.5;
+    }
+    ffe[f] = e;
+  }
+
+  auto calc = [&](IdxFace f, IdxCell c, const BCond<Scal>& bc) {
+    ExprFace e(0);
+    const Scal& val = bc.val;
+    const auto nci = bc.nci;
+    switch (bc.type) {
+      case BCondType::dirichlet: {
+        e[2] = bc.val;
+        break;
+      }
+      case BCondType::neumann: {
+        const Scal g = (nci == 0 ? 1 : -1);
+        const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * g;
+        e[nci] = 1;
+        e[2] = a * bc.val;
+        break;
+      }
+      default:
+        throw std::runtime_error(FILELINE + ": unknown");
+    }
+    return e;
+  };
+  // faces with boundary conditions
+  for (auto& p : mebc.GetMapFace()) {
+    const IdxFace f = p.first;
+    const auto& bc = p.second;
+    ffe[f] = calc(f, m.GetCell(f, bc.nci), bc);
+  }
+  return ffe;
+}
+
+template <class M>
+auto UEmbed<M>::GradientImplicit(
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, const EB& eb)
+    -> FieldEmbed<ExprFace> {
+  // TODO implement
+}
+
+template <class M>
+auto UEmbed<M>::GradientImplicit(
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, const M& m)
+    -> FieldFace<ExprFace> {
+  FieldFace<ExprFace> ffe(m, ExprFace(0));
+  const Scal h = m.GetCellSize()[0];
+
+  for (auto f : m.Faces()) {
+    ExprFace e(0);
+    const Scal a = 1 / h;
+    e[0] = -a;
+    e[1] = a;
+    ffe[f] = e;
+  }
+
+  auto calc = [&](IdxFace f, IdxCell c, const BCond<Scal>& bc) {
+    ExprFace e(0);
+    const Scal& val = bc.val;
+    const auto nci = bc.nci;
+    switch (bc.type) {
+      case BCondType::dirichlet: {
+        const Scal g = (nci == 0 ? 1 : -1);
+        const Scal a = 2 * g / h;
+        e[nci] = -a;
+        e[2] = a * bc.val;
+        break;
+      }
+      case BCondType::neumann: {
+        e[2] = bc.val;
+        break;
+      }
+      default:
+        throw std::runtime_error(FILELINE + ": unknown");
+    }
+    return e;
+  };
+  // faces with boundary conditions
+  for (auto& p : mebc.GetMapFace()) {
+    const IdxFace f = p.first;
+    const auto& bc = p.second;
+    ffe[f] = calc(f, m.GetCell(f, bc.nci), bc);
+  }
+  return ffe;
 }

@@ -4,4 +4,4 @@
 #include <string>
 
 #define FILELINE \
-  (std::string() + __FILE__ + ":" + std::to_string(__LINE__) + " ")
+  (std::string() + __FILE__ + ":" + std::to_string(__LINE__))

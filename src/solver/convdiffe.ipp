@@ -51,67 +51,63 @@ struct ConvDiffScalExp<EB_>::Imp {
   void Assemble(
       const FieldCell<Scal>& fcu, const FieldFaceb<Scal>& ffv,
       FieldCell<Scal>& fcla, FieldCell<Scal>& fclb) const {
-    auto sem = m.GetSem("assemble");
+    const FieldCell<Vect> fcg = Gradient(UEB::Interpolate(fcu, mebc_, m), m);
 
-    if (sem("assemble")) {
-      const FieldCell<Vect> fcg = Gradient(UEB::Interpolate(fcu, mebc_, m), m);
-
-      fcla.Reinit(m);
-      fclb.Reinit(m, 0);
-      {
-        // convective fluxes
-        FieldFaceb<Scal> ffq =
-            UEB::InterpolateUpwind(fcu, mebc_, par.sc, fcg, ffv, eb);
-        eb.LoopFaces([&](auto cf) { //
-          ffq[cf] *= ffv[cf];
-        });
-        for (auto c : eb.Cells()) {
-          Scal sum = 0;
-          eb.LoopNci(c, [&](auto q) {
-            const auto cf = eb.GetFace(c, q);
-            sum += ffq[cf] * eb.GetOutwardFactor(c, q);
-          });
-          fclb[c] += sum * (*owner_->fcr_)[c];
-        }
-      }
-      if (owner_->ffd_) {
-        // diffusive fluxes
-        FieldFaceb<Scal> ffq = UEB::Gradient(fcu, mebc_, eb);
-        eb.LoopFaces([&](auto cf) { //
-          ffq[cf] *= -(*owner_->ffd_)[cf] * eb.GetArea(cf);
-        });
-        for (auto c : eb.Cells()) {
-          Scal sum = 0;
-          eb.LoopNci(c, [&](auto q) {
-            const auto cf = eb.GetFace(c, q);
-            sum += ffq[cf] * eb.GetOutwardFactor(c, q);
-          });
-          fclb[c] += sum;
-        }
-      }
-
-      fclb = UEB::RedistributeCutCells(fclb, eb);
+    fcla.Reinit(m);
+    fclb.Reinit(m, 0);
+    {
+      // convective fluxes
+      FieldFaceb<Scal> ffq =
+          UEB::InterpolateUpwind(fcu, mebc_, par.sc, fcg, ffv, eb);
+      eb.LoopFaces([&](auto cf) { //
+        ffq[cf] *= ffv[cf];
+      });
       for (auto c : eb.Cells()) {
-        fclb[c] /= eb.GetVolume(c);
+        Scal sum = 0;
+        eb.LoopNci(c, [&](auto q) {
+          const auto cf = eb.GetFace(c, q);
+          sum += ffq[cf] * eb.GetOutwardFactor(c, q);
+        });
+        fclb[c] += sum * (*owner_->fcr_)[c];
       }
-
-      // time derivative coeffs
-      const Scal dt = owner_->GetTimeStep();
-      const std::vector<Scal> ac =
-          GetGradCoeffs(0., {-(dt + dtp_), -dt, 0.}, par.second ? 0 : 1);
-
-      for (IdxCell c : eb.Cells()) {
-        // time derivative
-        Scal r = (*owner_->fcr_)[c];
-        fcla[c] = ac[2] * r;
-        fclb[c] += (ac[0] * fcu_.time_prev[c] + ac[1] * fcu_.time_curr[c]) * r;
-        // source
-        fclb[c] += -(*owner_->fcs_)[c];
-        // delta form
-        fclb[c] += fcla[c] * fcu[c];
-        // under-relaxation
-        fcla[c] /= par.relax;
+    }
+    if (owner_->ffd_) {
+      // diffusive fluxes
+      FieldFaceb<Scal> ffq = UEB::Gradient(fcu, mebc_, eb);
+      eb.LoopFaces([&](auto cf) { //
+        ffq[cf] *= -(*owner_->ffd_)[cf] * eb.GetArea(cf);
+      });
+      for (auto c : eb.Cells()) {
+        Scal sum = 0;
+        eb.LoopNci(c, [&](auto q) {
+          const auto cf = eb.GetFace(c, q);
+          sum += ffq[cf] * eb.GetOutwardFactor(c, q);
+        });
+        fclb[c] += sum;
       }
+    }
+
+    fclb = UEB::RedistributeCutCells(fclb, eb);
+    for (auto c : eb.Cells()) {
+      fclb[c] /= eb.GetVolume(c);
+    }
+
+    // time derivative coeffs
+    const Scal dt = owner_->GetTimeStep();
+    const std::vector<Scal> ac =
+        GetGradCoeffs(0., {-(dt + dtp_), -dt, 0.}, par.second ? 0 : 1);
+
+    for (IdxCell c : eb.Cells()) {
+      // time derivative
+      Scal r = (*owner_->fcr_)[c];
+      fcla[c] = ac[2] * r;
+      fclb[c] += (ac[0] * fcu_.time_prev[c] + ac[1] * fcu_.time_curr[c]) * r;
+      // source
+      fclb[c] += -(*owner_->fcs_)[c];
+      // delta form
+      fclb[c] += fcla[c] * fcu[c];
+      // under-relaxation
+      fcla[c] /= par.relax;
     }
   }
   // Assembles linear system
@@ -143,7 +139,7 @@ struct ConvDiffScalExp<EB_>::Imp {
     if (sem("init")) {
       prev.swap(curr);
     }
-    if (sem.Nested("assemble")) {
+    if (sem("assemble")) {
       Assemble(prev, *owner_->ffv_, fcla_, fclb_);
     }
     if (sem("solve")) {
