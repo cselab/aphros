@@ -384,4 +384,38 @@ struct UEmbed {
     }
     return e;
   }
+
+  // Expression on face: v[0] * cm + v[1] * cp + v[2]
+  using ExprFace = generic::Vect<Scal, 3>;
+
+  // Implicit interpolation with deferred correction.
+  // fcu: field cell from previous iteration [s]
+  // mebc: boundary conditions
+  // sc: interpolation scheme
+  // deferred: deferred correction factor (1: fully deferred)
+  // fcg: gradient [s]
+  // ffv: flow direction [i]
+  // Returns:
+  // ffe: interpolation expressions [i]
+  static FieldEmbed<ExprFace> InterpolateUpwindImplicit(
+      const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
+      Scal deferred, const FieldCell<Vect>& fcg, const FieldEmbed<Scal>& fev,
+      const EB& eb);
+  static FieldFace<ExprFace> InterpolateUpwindImplicit(
+      const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
+      Scal deferred, const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv,
+      const M& m);
+
+  // Implicit gradient with deferred correction.
+  // fcu: field cell from previous iteration [s]
+  // mebc: boundary conditions
+  // deferred: deferred correction factor (1: fully deferred)
+  // Returns:
+  // ffe: interpolation expressions [i]
+  static FieldEmbed<ExprFace> GradientImplicit(
+      const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+      const EB& eb);
+  static FieldFace<ExprFace> GradientImplicit(
+      const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+      const M& m);
 };

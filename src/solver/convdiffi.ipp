@@ -15,7 +15,11 @@
 template <class EB_>
 struct ConvDiffScalImp<EB_>::Imp {
   using Owner = ConvDiffScalImp<EB_>;
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
+  using ExprLegacy = Expression<Scal, IdxCell, 1 + dim * 2>;
+  // Expression on face: v[0] * cm + v[1] * cp + v[2]
+  using ExprFace = generic::Vect<Scal, 3>;
+  // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
+  using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
   using Vect = typename M::Vect;
   using UEB = UEmbed<M>;
 
@@ -45,6 +49,14 @@ struct ConvDiffScalImp<EB_>::Imp {
 
     er_ = 0.;
   }
+  Scal Eval(const Expr& e, IdxCell c, const FieldCell<Scal>& fcu) {
+    Scal r = e[Expr::dim - 1];
+    r += fcu[c] * e[0];
+    for (auto q : m.Nci(c)) {
+      r += fcu[m.GetCell(c, q)] * e[1 + q];
+    }
+    return r;
+  }
   // Assembles linear system
   // fcu: field from previous iteration [a]
   // ffv: volume flux
@@ -53,87 +65,52 @@ struct ConvDiffScalImp<EB_>::Imp {
   void Assemble(
       const FieldCell<Scal>& fcu, const FieldFaceb<Scal>& ffv,
       FieldCell<Expr>& fcl) {
-    auto sem = m.GetSem("assemble");
-
-    if (sem("assemble")) {
+    FieldFace<ExprFace> ffq(m, ExprFace(0));
+    // convective fluxes
+    {
       const FieldCell<Vect> fcg = Gradient(UEB::Interpolate(fcu, mebc_, m), m);
-
-      FieldFace<Expr> ffq; // flux tmp
-
-      // Calc convective fluxes:
-      // all inner
-      InterpolateI(fcu, fcg, ffv, ffq, m, par.sc, par.df, par.th);
+      const FieldFace<ExprFace> ffu = UEB::InterpolateUpwindImplicit(
+          fcu, mebc_, par.sc, par.df, fcg, ffv, m);
+      for (auto f : eb.Faces()) {
+        ffq[f] += ffu[f] * ffv[f];
+      }
+    }
+    // diffusive fluxes
+    if (owner_->ffd_) {
+      const FieldFace<ExprFace> ffg = UEB::GradientImplicit(fcu, mebc_, m);
       for (auto f : m.Faces()) {
-        ffq[f] *= (*owner_->ffv_)[f];
+        ffq[f] -= ffg[f] * (*owner_->ffd_)[f] * m.GetArea(f);
+      }
+    }
+
+    const Scal dt = owner_->GetTimeStep();
+    std::vector<Scal> time_coeff =
+        GetGradCoeffs(0., {-(dt + dtp_), -dt, 0.}, par.second ? 0 : 1);
+
+    fcl.Reinit(m, Expr(0));
+    for (auto c : m.Cells()) {
+      Expr sum(0);
+      for (auto q : m.Nci(c)) {
+        const IdxFace f = m.GetFace(c, q);
+        const ExprFace v = ffq[f] * m.GetOutwardFactor(c, q);
+        sum[0] += v[1 - q % 2];
+        sum[1 + q] += v[q % 2];
+        sum[Expr::dim - 1] += v[2];
       }
 
-      // overwrite with bc
-      for (auto& p : mebc_.GetMapFace()) {
-        const IdxFace f = p.first;
-        Expr e = UEB::template GetExprVal<Expr>(f, p.second, m);
-        e.SortTerms();
-        ffq[f] = e * (*owner_->ffv_)[f];
-      }
+      Expr td(0); // time derivative
+      td[0] = time_coeff[2];
+      td[Expr::dim - 1] =
+          time_coeff[0] * fcu_.time_prev[c] + time_coeff[1] * fcu_.time_curr[c];
 
-      // Init system with convective flux, time derivative, source
-      fcl.Reinit(m);
-      Scal dt = owner_->GetTimeStep();
-      std::vector<Scal> ac =
-          GetGradCoeffs(0., {-(dt + dtp_), -dt, 0.}, par.second ? 0 : 1);
-      for (IdxCell c : m.Cells()) {
-        Expr& e = fcl[c];
+      Expr& e = fcl[c];
+      e = (td + sum / m.GetVolume(c)) * (*owner_->fcr_)[c];
+      e[Expr::dim - 1] -= (*owner_->fcs_)[c];
 
-        Expr sc; // sum convective
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetFace(c, q);
-          sc += ffq[f] * m.GetOutwardFactor(c, q);
-        }
-
-        Expr tt; // time derivative term
-        tt.InsertTerm(ac[2], c);
-        tt.SetConstant(ac[0] * fcu_.time_prev[c] + ac[1] * fcu_.time_curr[c]);
-
-        auto vol = m.GetVolume(c);
-        e = (tt + sc / vol) * (*owner_->fcr_)[c] - Expr((*owner_->fcs_)[c]);
-      }
-
-      if (owner_->ffd_) {
-        // Calc diffusive fluxes
-        // all inner
-        GradientI(ffq, m);
-        for (auto f : m.Faces()) {
-          ffq[f] *= (-(*owner_->ffd_)[f]) * m.GetArea(f);
-        }
-        // overwrite with bc
-        for (auto& p : mebc_.GetMapFace()) {
-          const IdxFace f = p.first;
-          Expr e = UEB::template GetExprGrad<Expr>(f, p.second, m);
-          e.SortTerms();
-          ffq[f] = e * (-(*owner_->ffd_)[f]) * m.GetArea(f);
-        }
-      } else {
-        ffq.Reinit(m);
-      }
-
-      // Append diffusive flux, convert to delta-form, apply underelaxation
-      for (IdxCell c : m.Cells()) {
-        Expr& e = fcl[c];
-
-        Expr sd; // sum diffusive
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetFace(c, q);
-          sd += ffq[f] * m.GetOutwardFactor(c, q);
-        }
-
-        auto vol = m.GetVolume(c);
-        e += sd / vol;
-
-        // Convert to delta-form
-        e.SetConstant(e.Evaluate(fcu));
-
-        // Apply under-relaxation
-        e[e.Find(c)].a /= par.relax;
-      }
+      // Convert to delta-form
+      e[Expr::dim - 1] = Eval(e, c, fcu);
+      // Apply under-relaxation
+      e[0] /= par.relax;
     }
   }
   // Assembles linear system
@@ -149,7 +126,7 @@ struct ConvDiffScalImp<EB_>::Imp {
   // Output:
   // fcu: result
   // m.GetSolveTmp(): modified temporary fields
-  void Solve(const FieldCell<Expr>& fcl, FieldCell<Scal>& fcu) {
+  void Solve(const FieldCell<ExprLegacy>& fcl, FieldCell<Scal>& fcu) {
     auto sem = m.GetSem("solve");
     if (sem("convert")) {
       std::vector<Scal>* lsa;
@@ -157,8 +134,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       std::vector<Scal>* lsx;
       m.GetSolveTmp(lsa, lsb, lsx);
       auto l = ConvertLs(fcl, *lsa, *lsb, *lsx, m);
-      using T = typename M::LS::T;
-      l.t = T::gen;
+      l.t = M::LS::T::gen;
       m.Solve(l);
     }
     if (sem("copy")) {
@@ -175,6 +151,42 @@ struct ConvDiffScalImp<EB_>::Imp {
       assert(i == lsx->size());
     }
   }
+  // Solve linear system fce = 0
+  // fce: expressions [i]
+  // Output:
+  // fc: result [a]
+  // m.GetSolveTmp(): modified temporary fields
+  void Solve(const FieldCell<Expr>& fce, FieldCell<Scal>& fc) {
+    auto sem = m.GetSem("solve");
+    if (sem("solve")) {
+      std::vector<Scal>* lsa;
+      std::vector<Scal>* lsb;
+      std::vector<Scal>* lsx;
+      m.GetSolveTmp(lsa, lsb, lsx);
+      lsx->resize(m.GetInBlockCells().size());
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        (void)c;
+        (*lsx)[i++] = 0;
+      }
+      auto l = ConvertLsCompact(fce, *lsa, *lsb, *lsx, m);
+      l.t = M::LS::T::gen;
+      m.Solve(l);
+    }
+    if (sem("copy")) {
+      std::vector<Scal>* lsa;
+      std::vector<Scal>* lsb;
+      std::vector<Scal>* lsx;
+      m.GetSolveTmp(lsa, lsb, lsx);
+
+      fc.Reinit(m);
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        fc[c] = (*lsx)[i++];
+      }
+      assert(i == lsx->size());
+    }
+  }
   void MakeIteration() {
     auto sem = m.GetSem("convdiff-iter");
 
@@ -184,7 +196,7 @@ struct ConvDiffScalImp<EB_>::Imp {
     if (sem("init")) {
       prev.swap(curr);
     }
-    if (sem.Nested("assemble")) {
+    if (sem("assemble")) {
       Assemble(prev, *owner_->ffv_, fcucs_);
     }
     if (sem.Nested("solve")) {
@@ -231,20 +243,17 @@ struct ConvDiffScalImp<EB_>::Imp {
       m.Comm(&u);
     }
   }
-  const FieldCell<Expr>& GetEquations() const {
-    return fcucs_;
-  }
   FieldCell<Scal> GetDiag() const {
     FieldCell<Scal> fc(m);
     for (auto c : m.Cells()) {
-      fc[c] = fcucs_[c].Coeff(c);
+      fc[c] = fcucs_[c][0];
     }
     return fc;
   }
   FieldCell<Scal> GetConst() const {
     FieldCell<Scal> fc(m);
     for (auto c : m.Cells()) {
-      fc[c] = fcucs_[c].GetConstant();
+      fc[c] = fcucs_[c][Expr::dim - 1];
     }
     return fc;
   }

@@ -312,8 +312,8 @@ struct Simple<M_>::Imp {
     for (auto c : m.Cells()) {
       auto& e = fce[c];
       for (auto q : m.Nci(c)) {
-        IdxFace f = m.GetFace(c, q);
-        ExprFace v = ffv[f] * m.GetOutwardFactor(c, q);
+        const IdxFace f = m.GetFace(c, q);
+        const ExprFace v = ffv[f] * m.GetOutwardFactor(c, q);
         e[0] += v[1 - q % 2];
         e[1 + q] += v[q % 2];
         e[Expr::dim - 1] += v[2];
