@@ -339,49 +339,6 @@ struct Simple<M_>::Imp {
       }
     }
   }
-  // Solve linear system fce = 0
-  // fce: expressions [i]
-  // Output:
-  // fc: result [a]
-  // m.GetSolveTmp(): modified temporary fields
-  void Solve(const FieldCell<Expr>& fce, FieldCell<Scal>& fc) {
-    auto sem = m.GetSem("solve");
-    if (sem("solve")) {
-      std::vector<Scal>* lsa;
-      std::vector<Scal>* lsb;
-      std::vector<Scal>* lsx;
-      m.GetSolveTmp(lsa, lsb, lsx);
-      lsx->resize(m.GetInBlockCells().size());
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        (void)c;
-        (*lsx)[i++] = 0;
-      }
-      auto l = ConvertLsCompact(fce, *lsa, *lsb, *lsx, m);
-      using T = typename M::LS::T;
-      l.t = T::symm; // solver type
-      m.Solve(l);
-    }
-    if (sem("copy")) {
-      std::vector<Scal>* lsa;
-      std::vector<Scal>* lsb;
-      std::vector<Scal>* lsx;
-      m.GetSolveTmp(lsa, lsb, lsx);
-
-      fc.Reinit(m);
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        fc[c] = (*lsx)[i++];
-      }
-      CHECKNAN(fc, m.CN());
-      m.Comm(&fc);
-      if (par.linreport && m.IsRoot()) {
-        std::cout << "pcorr:"
-                  << " res=" << m.GetResidual() << " iter=" << m.GetIter()
-                  << std::endl;
-      }
-    }
-  }
   // Get diagcoeff from current convdiff equations
   void GetDiagCoeff(FieldCell<Scal>& fck, FieldFace<Scal>& ffk) {
     auto sem = m.GetSem("diag");
@@ -484,10 +441,16 @@ struct Simple<M_>::Imp {
     }
 
     if (sem.Nested("pcorr-solve")) {
-      Solve(fcpcs_, fcpc_);
+      Solve(fcpcs_, nullptr, fcpc_, M::LS::T::symm, m);
     }
 
     if (sem("apply")) {
+      if (par.linreport && m.IsRoot()) {
+        std::cout << "pcorr:"
+                  << " res=" << m.GetResidual() << " iter=" << m.GetIter()
+                  << std::endl;
+      }
+
       fcgpc_ = Gradient(UEB::Interpolate(fcpc_, me_pcorr_, m), m);
 
       // Correct pressure
@@ -604,7 +567,7 @@ struct Simple<M_>::Imp {
     }
 
     if (sem.Nested("pcorr-solve")) {
-      Solve(fcpcs_, fcpc_);
+      Solve(fcpcs_, nullptr, fcpc_, M::LS::T::symm, m);
     }
 
     if (sem("pcorr-apply")) {

@@ -117,42 +117,6 @@ struct ConvDiffScalImp<EB_>::Imp {
   void Assemble(const FieldCell<Scal>& fcu, const FieldFaceb<Scal>& ffv) {
     Assemble(fcu, ffv, fcucs_);
   }
-  // Solve linear system fce = 0
-  // fce: expressions [i]
-  // Output:
-  // fc: result [a]
-  // m.GetSolveTmp(): modified temporary fields
-  void Solve(const FieldCell<Expr>& fce, FieldCell<Scal>& fc) {
-    auto sem = m.GetSem("solve");
-    if (sem("solve")) {
-      std::vector<Scal>* lsa;
-      std::vector<Scal>* lsb;
-      std::vector<Scal>* lsx;
-      m.GetSolveTmp(lsa, lsb, lsx);
-      lsx->resize(m.GetInBlockCells().size());
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        (void)c;
-        (*lsx)[i++] = 0;
-      }
-      auto l = ConvertLsCompact(fce, *lsa, *lsb, *lsx, m);
-      l.t = M::LS::T::gen;
-      m.Solve(l);
-    }
-    if (sem("copy")) {
-      std::vector<Scal>* lsa;
-      std::vector<Scal>* lsb;
-      std::vector<Scal>* lsx;
-      m.GetSolveTmp(lsa, lsb, lsx);
-
-      fc.Reinit(m);
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        fc[c] = (*lsx)[i++];
-      }
-      assert(i == lsx->size());
-    }
-  }
   void MakeIteration() {
     auto sem = m.GetSem("convdiff-iter");
 
@@ -166,7 +130,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       Assemble(prev, *owner_->ffv_, fcucs_);
     }
     if (sem.Nested("solve")) {
-      Solve(fcucs_, curr); // solve for correction, store in curr
+      Solve(fcucs_, nullptr, curr, M::LS::T::gen, m);
     }
     if (sem("apply")) {
       // apply, store result in curr

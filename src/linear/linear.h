@@ -390,6 +390,56 @@ typename M::LS ConvertLsCompact(
   return l;
 }
 
+// Solve linear system fc_system = 0
+// fc_system: expressions [i]
+// fc_init: initial guess
+// Output:
+// fc_sol: solution [a]
+// m.GetSolveTmp(): modified temporary fields
+template <class M>
+void Solve(
+    const FieldCell<typename M::Expr>& fc_system,
+    const FieldCell<typename M::Scal>* fc_init,
+    FieldCell<typename M::Scal>& fc_sol, typename M::LS::T type, M& m) {
+  using Scal = typename M::Scal;
+  auto sem = m.GetSem("solve");
+  if (sem("solve")) {
+    std::vector<Scal>* lsa;
+    std::vector<Scal>* lsb;
+    std::vector<Scal>* lsx;
+    m.GetSolveTmp(lsa, lsb, lsx);
+    lsx->resize(m.GetInBlockCells().size());
+    if (fc_init) {
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        (*lsx)[i++] = (*fc_init)[c];
+      }
+    } else {
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        (void) c;
+        (*lsx)[i++] = 0;
+      }
+    }
+    auto l = ConvertLsCompact(fc_system, *lsa, *lsb, *lsx, m);
+    l.t = type;
+    m.Solve(l);
+  }
+  if (sem("copy")) {
+    std::vector<Scal>* lsa;
+    std::vector<Scal>* lsb;
+    std::vector<Scal>* lsx;
+    m.GetSolveTmp(lsa, lsb, lsx);
+
+    fc_sol.Reinit(m);
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      fc_sol[c] = (*lsx)[i++];
+    }
+    m.Comm(&fc_sol);
+  }
+}
+
 template <class Scal, class Idx, size_t Size>
 bool IsNan(const Expression<Scal, Idx, Size>& e) {
   if (IsNan(e.GetConstant())) {
