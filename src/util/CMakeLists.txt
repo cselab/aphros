@@ -31,6 +31,10 @@ set(T "git")
 add_library(${T} git.cpp)
 target_link_libraries(${T} gitgen)
 
+set(T "posthook")
+add_library(${T} posthook.cpp)
+target_link_libraries(${T} suspender vars)
+
 set(T "subcomm")
 add_library(${T} subcomm.cpp)
 target_link_libraries(${T} sysinfo openmp)
