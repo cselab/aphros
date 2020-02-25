@@ -51,7 +51,8 @@ struct ConvDiffScalExp<EB_>::Imp {
   void Assemble(
       const FieldCell<Scal>& fcu, const FieldFaceb<Scal>& ffv,
       FieldCell<Scal>& fcla, FieldCell<Scal>& fclb) const {
-    const FieldCell<Vect> fcg = Gradient(UEB::Interpolate(fcu, mebc_, m), m);
+    const FieldCell<Vect> fcg =
+        UEB::Gradient(UEB::Interpolate(fcu, mebc_, eb), eb);
 
     fcla.Reinit(m);
     fclb.Reinit(m, 0);

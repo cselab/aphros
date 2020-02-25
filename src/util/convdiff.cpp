@@ -42,11 +42,9 @@ std::unique_ptr<ConvDiffVect<Embed<M>>> GetConvDiff<Embed<M>>::operator()(
     case Conv::exp:
       return std::unique_ptr<CDE>(
           new CDE(m, eb, fcw, mebc, fcr, fed, fcs, fev, t, dt, par));
-      /*
     case Conv::imp:
       return std::unique_ptr<CDI>(
           new CDI(m, eb, fcw, mebc, fcr, fed, fcs, fev, t, dt, par));
-          */
     default:
       throw std::runtime_error(FILELINE + "not implemented");
   }

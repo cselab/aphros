@@ -10,5 +10,5 @@ using EB = Embed<M>;
 
 template class ConvDiffVectGeneric<M, ConvDiffScalImp<M>>;
 template class ConvDiffVectGeneric<M, ConvDiffScalExp<M>>;
-//template class ConvDiffVectGeneric<EB, ConvDiffScalImp<EB>>;
+template class ConvDiffVectGeneric<EB, ConvDiffScalImp<EB>>;
 template class ConvDiffVectGeneric<EB, ConvDiffScalExp<EB>>;
