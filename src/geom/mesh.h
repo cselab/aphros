@@ -381,7 +381,24 @@ class MeshStructured {
   Scal GetArea(IdxCell) const {
     return GetNan<Scal>();
   }
-
+  template <class F>
+  void LoopFaces(F lambda) const {
+    for (auto f : Faces()) {
+      lambda(f);
+    }
+  }
+  template <class F>
+  void LoopSuFaces(F lambda) const {
+    for (auto f : SuFaces()) {
+      lambda(f);
+    }
+  }
+  template <class F>
+  void LoopNci(IdxCell c, F lambda) const {
+    for (auto q : Nci(c)) {
+      lambda(q);
+    }
+  }
   bool IsInside(IdxCell c, Vect vect) const {
     for (auto q : Nci()) {
       IdxFace f = GetFace(c, q);
