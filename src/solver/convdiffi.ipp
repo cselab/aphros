@@ -179,18 +179,11 @@ struct ConvDiffScalImp<EB_>::Imp {
       Solve(fcucs_, curr); // solve for correction, store in curr
     }
     if (sem("apply")) {
-      CHECKNAN(fcucs_, m.CN())
-      // calc error (norm of correction)
-      Scal er = 0;
-      for (auto c : eb.Cells()) {
-        er = std::max<Scal>(er, curr[c]);
-      }
-      er_ = er;
-
       // apply, store result in curr
       for (auto c : eb.Cells()) {
         curr[c] += prev[c];
       }
+      CalcError();
       m.Comm(&curr);
       owner_->IncIter();
     }
@@ -201,6 +194,16 @@ struct ConvDiffScalImp<EB_>::Imp {
     CHECKNAN(fcu_.time_curr, m.CN())
     owner_->IncTime();
     dtp_ = owner_->GetTimeStep();
+  }
+  void CalcError() {
+    // max difference between iter_curr and iter_prev
+    auto& prev = fcu_.iter_prev;
+    auto& curr = fcu_.iter_curr;
+    Scal a = 0;
+    for (auto c : eb.Cells()) {
+      a = std::max<Scal>(a, std::abs(curr[c] - prev[c]));
+    }
+    er_ = a;
   }
   double GetError() const {
     return er_;
@@ -216,6 +219,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       for (auto c : eb.Cells()) {
         u[c] += uc[c];
       }
+      CalcError();
       m.Comm(&u);
     }
   }
