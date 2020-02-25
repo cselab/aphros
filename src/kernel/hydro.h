@@ -55,6 +55,7 @@
 #include "util/events.h"
 #include "util/hydro.h"
 #include "util/metrics.h"
+#include "util/posthook.h"
 #include "young/young.h"
 
 class GPar {};
@@ -1943,6 +1944,10 @@ void Hydro<M>::Run() {
   }
 
   sem.LoopEnd();
+
+  if (sem.Nested("posthook")) {
+    PostHook(m);
+  }
 }
 
 template <class M>
