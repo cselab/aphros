@@ -51,7 +51,7 @@ struct ConvDiffScalImp<EB_>::Imp {
   // Output:
   // fcl: linear system
   void Assemble(
-      const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv,
+      const FieldCell<Scal>& fcu, const FieldFaceb<Scal>& ffv,
       FieldCell<Expr>& fcl) {
     auto sem = m.GetSem("assemble");
 
@@ -141,7 +141,7 @@ struct ConvDiffScalImp<EB_>::Imp {
   // ffv: volume flux
   // Output:
   // fcl: linear system
-  void Assemble(const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv) {
+  void Assemble(const FieldCell<Scal>& fcu, const FieldFaceb<Scal>& ffv) {
     Assemble(fcu, ffv, fcucs_);
   }
   // Solves linear system.
@@ -251,7 +251,7 @@ struct ConvDiffScalImp<EB_>::Imp {
 
   Owner* owner_;
   Par par;
-  M& m; // mesh
+  M& m;
   const EB& eb;
 
   StepData<FieldCell<Scal>> fcu_; // field
@@ -267,9 +267,9 @@ template <class EB_>
 ConvDiffScalImp<EB_>::ConvDiffScalImp(
     M& m, const EB& eb, const FieldCell<Scal>& fcu,
     const MapEmbed<BCond<Scal>>& mebc, const FieldCell<Scal>* fcr,
-    const FieldFace<Scal>* ffd, const FieldCell<Scal>* fcs,
-    const FieldFace<Scal>* ffv, double t, double dt, Par par)
-    : ConvDiffScal<M>(t, dt, m, eb, par, fcr, ffd, fcs, ffv)
+    const FieldFaceb<Scal>* ffd, const FieldCell<Scal>* fcs,
+    const FieldFaceb<Scal>* ffv, double t, double dt, Par par)
+    : Base(t, dt, m, eb, par, fcr, ffd, fcs, ffv)
     , imp(new Imp(this, fcu, mebc)) {}
 
 template <class EB_>
@@ -277,7 +277,7 @@ ConvDiffScalImp<EB_>::~ConvDiffScalImp() = default;
 
 template <class EB_>
 void ConvDiffScalImp<EB_>::Assemble(
-    const FieldCell<Scal>& fcu, const FieldFace<Scal>& ffv) {
+    const FieldCell<Scal>& fcu, const FieldFaceb<Scal>& ffv) {
   imp->Assemble(fcu, ffv);
 }
 
