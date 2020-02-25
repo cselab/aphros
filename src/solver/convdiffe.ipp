@@ -147,12 +147,11 @@ struct ConvDiffScalExp<EB_>::Imp {
       Solve(fcla_, fclb_, curr); // solve for correction, store in curr
     }
     if (sem("apply")) {
-      CalcError();
-
       // apply, store result in curr
       for (auto c : eb.Cells()) {
         curr[c] += prev[c];
       }
+      CalcError();
       m.Comm(&curr);
       owner_->IncIter();
     }
