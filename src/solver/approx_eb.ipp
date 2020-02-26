@@ -165,6 +165,79 @@ T EvalLinearFit(
   return ULinear<typename M::Scal>::EvalLinear(p, x);
 }
 
+//                                             //
+//            ---------------------            //
+//            |         |         |            //
+//            |   c0p   |   c1p   |            //
+//            |         |         |            //
+//            |\--------|---------|            //
+//            | \       |         |            //
+//            |  \ c0   |   c1    |            //
+//            |   \     |         |            //
+//            |----\----|---------|            //
+//            |         |         |            //
+//            |   c0m   |   c1m   |            //
+//            |         |         |            //
+//            |\--------|---------|            //
+//                                             //
+template <class M, class T>
+T GradDirichletQuad(
+    typename M::Vect rf, typename M::Scal uf, typename M::Vect nf,
+    IdxCell c, const FieldCell<T>& fcu, const Embed<M>& eb) {
+  using Scal = typename M::Scal;
+  auto quad = [](Scal x, Scal am, Scal a, Scal ap) {
+    return (am * (x - 1) + ap * (x + 1)) * x * 0.5 - a * (x - 1) * (x + 1);
+  };
+
+  auto& m = eb.GetMesh();
+  const auto h = eb.GetCellSize()[0];
+
+  const size_t dx = nf.abs().argmax();
+  const size_t dy = (dx == 0 ? 1 : 0);
+  const size_t sx = (nf[dx] > 0 ? 0 : 1); // step against normal
+  const IdxCell c0 = c;
+  const IdxCell c1 = eb.GetCell(c0, 2 * dx + sx);
+  const IdxCell c1p = eb.GetCell(c1, 2 * dy + 1);
+  const IdxCell c1m = eb.GetCell(c1, 2 * dy);
+  const Scal y1 = m.GetCenter(c1)[dy];
+  const Scal x1 = m.GetCenter(c1)[dx];
+  const Scal xf = rf[dx];
+  const Scal yf = rf[dy];
+  const Scal xf1 = x1;
+  const Scal yf1 = yf + (xf1 - xf) / nf[dx] * nf[dy];
+  const Scal u1 = quad((yf1 - y1) / h, fcu[c1m], fcu[c1], fcu[c1p]);
+  return (uf - u1) / ((xf - x1) / nf[dx]);
+}
+
+template <class M, class T>
+T GradDirichletLinear(
+    typename M::Vect rf, typename M::Scal uf, typename M::Vect nf,
+    IdxCell c, const FieldCell<T>& fcu, const Embed<M>& eb) {
+  using Scal = typename M::Scal;
+  auto linear = [](Scal x, Scal a0, Scal a1) {
+    return x * a1 + (1 - x) * a0;
+  };
+
+  auto& m = eb.GetMesh();
+  const auto h = eb.GetCellSize()[0];
+
+  const size_t dx = nf.abs().argmax();
+  const size_t dy = (dx == 0 ? 1 : 0);
+  const size_t sx = (nf[dx] > 0 ? 0 : 1); // step against normal
+  const size_t sy = (nf[dy] > 0 ? 0 : 1);
+  const IdxCell c0 = c;
+  const IdxCell c1 = eb.GetCell(c0, 2 * dx + sx);
+  const IdxCell c1p = eb.GetCell(c1, 2 * dy + sy);
+  const Scal y1 = m.GetCenter(c1)[dy];
+  const Scal x1 = m.GetCenter(c1)[dx];
+  const Scal xf = rf[dx];
+  const Scal yf = rf[dy];
+  const Scal xf1 = x1;
+  const Scal yf1 = yf + (xf1 - xf) / nf[dx] * abs(nf[dy]);
+  const Scal u1 = linear(-(yf1 - y1) / h, fcu[c1], fcu[c1p]);
+  return (uf - u1) / ((xf - x1) / nf[dx]);
+}
+
 template <class Scal>
 struct CombineMixed {
   using Vect = generic::Vect<Scal, 3>;
@@ -193,7 +266,7 @@ auto UEmbed<M>::Interpolate(
   }
   feu.GetFieldFace() = InterpolateBilinearFaces(feu.GetFieldFace(), eb);
 
-  auto calc = [&](auto i, IdxCell c, const BCond<T>& bc) {
+  auto calc = [&](auto cf, IdxCell c, const BCond<T>& bc) {
     const Scal h = eb.GetCellSize()[0];
     const T& val = bc.val;
     switch (bc.type) {
@@ -201,18 +274,18 @@ auto UEmbed<M>::Interpolate(
         return val;
       }
       case BCondType::neumann: {
-        const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
+        const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
         return u + val * h;
       }
       case BCondType::mixed:
       case BCondType::reflect: {
-        const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
+        const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
-        return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(i));
+        return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(cf));
       }
       case BCondType::extrap: {
-        return EvalLinearFit(eb.GetFaceCenter(i), c, fcu, eb);
+        return EvalLinearFit(eb.GetFaceCenter(cf), c, fcu, eb);
       }
     }
     return GetNan<T>();
@@ -238,28 +311,32 @@ auto UEmbed<M>::Gradient(
   }
   feg.GetFieldFace() = InterpolateBilinearFaces(feg.GetFieldFace(), eb);
 
-  auto calc = [&](auto i, IdxCell c, const BCond<T>& bc) {
+  auto calc = [&](auto cf, IdxCell c, const BCond<T>& bc) {
     const T& val = bc.val;
     switch (bc.type) {
       case BCondType::dirichlet: {
-        const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
+        /*
+        const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
         return (val - u) / h;
+        */
+        return GradDirichletQuad(
+            eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
       }
       case BCondType::neumann: {
         return val;
       }
       case BCondType::mixed:
       case BCondType::reflect: {
-        const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
+        const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
-        return CombineMixed<Scal>()((val - u) / h, val, eb.GetNormal(i));
+        return CombineMixed<Scal>()((val - u) / h, val, eb.GetNormal(cf));
       }
       case BCondType::extrap: {
         // TODO replace with dot-product of gradient and normal
         auto p = FitLinear(c, fcu, eb);
-        const Vect x1 = eb.GetFaceCenter(i);
-        const Vect x0 = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
+        const Vect x1 = eb.GetFaceCenter(cf);
+        const Vect x0 = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const T u1 = ULinear<typename M::Scal>::EvalLinear(p, x1);
         const T u0 = ULinear<typename M::Scal>::EvalLinear(p, x0);
         return (u1 - u0) / h;
