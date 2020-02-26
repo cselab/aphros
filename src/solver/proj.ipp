@@ -356,19 +356,14 @@ struct Proj<EB_>::Imp {
       ctx->fcvel_corr.Reinit(m, Vect(0));
       for (auto c : eb.Cells()) {
         Vect sum(0);
-        Vect sumw(0);
         eb.LoopNci(c, [&](auto q) {
           const auto cf = eb.GetFace(c, q);
           if (!is_boundary_[cf]) {
-            const Vect n = eb.GetNormal(cf);
-            const Scal dn = std::max(1e-5, ctx->fek[cf]);
-            const Scal a = (febp[cf] - ffgp[cf]) / dn;
-            const Vect w = n * eb.GetArea(cf);
-            sum += w * a;
-            sumw += w;
+            const Scal a = (febp[cf] - ffgp[cf]) / ctx->fek[cf];
+            sum += eb.GetNormal(cf) * (a * 0.5);
           }
         });
-        ctx->fcvel_corr[c] = sum / sumw;
+        ctx->fcvel_corr[c] = sum;
       }
     }
 
