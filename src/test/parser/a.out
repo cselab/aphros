@@ -10,13 +10,15 @@ set string c a b   s c
 set string s 
 set string sub [sub]
 set string sub_2 a[sub]b
-set string sub_3 aa[sub]bb
+set string sub_3 aa[sub]b
 set string sub_4 a[sub]_2b
-set string suball [9] [9.1] [1 2 3 ] 
-set string suball2 
+set string suball [9] [9.1] [1 2 3 ] 9
+set string suball2 9
 set int b 123
 set int subint 9
 set double a 2.9
+set double d1 9
+set double d2 9
 set double e 3.1
 set double subdouble 9.1
 set vect f 1 2 34 5 
