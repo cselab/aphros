@@ -315,13 +315,13 @@ auto UEmbed<M>::Gradient(
     const T& val = bc.val;
     switch (bc.type) {
       case BCondType::dirichlet: {
-        /*
         const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
         return (val - u) / h;
-        */
+        /*
         return GradDirichletQuad(
             eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
+            */
       }
       case BCondType::neumann: {
         return val;
