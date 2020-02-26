@@ -1,13 +1,6 @@
-wall_rotation_magn 0.5 0.5 0  0 0 0 {
+wall_rotation 0.5 0.5 0  0 0 0 {
   sphere 0.5 0.5 0 0.5
 }
-wall_rotation_magn 0.5 0.5 0  0 0 1 {
+wall_rotation 0.5 0.5 0  0 0 5 {
   sphere 0.5 0.5 0 0.3
-}
-
-wall 0 0 0 {
-  #box 0 0 0 10
-}
-wall 1 0 0 {
-  #box 0 1 0 10 1e-3
 }

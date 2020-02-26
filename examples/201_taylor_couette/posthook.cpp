@@ -25,13 +25,13 @@ void PostHook(
   auto& norm2 = ctx->norm2;
   auto& norminf = ctx->norminf;
   auto& count = ctx->count;
+  const Vect xc(0.5, 0.5, 0);
+  const Scal r0 = 0.2;
+  const Scal r1 = 0.4;
   if (sem()) {
     fc_theta.Reinit(eb, 0);
     fc_theta_error.Reinit(eb, 0);
     fc_theta_exact.Reinit(eb, 0);
-    const Vect xc(0.5, 0.5, 0);
-    const Scal r0 = 0.2;
-    const Scal r1 = 0.4;
 
     for (auto c : eb.Cells()) {
       Vect dx = m.GetCenter(c) - xc;
@@ -63,6 +63,9 @@ void PostHook(
     norm2 = std::sqrt(norm2 / count);
     if (m.IsRoot()) {
       std::ofstream fout("error");
+      auto nx = m.GetGlobalSize()[0];
+      auto cells_per_diameter = nx * r0 * 2;
+      fout << cells_per_diameter << " ";
       fout << norm1 << " " << norm2 << " " << norminf << std::endl;
     }
   }
