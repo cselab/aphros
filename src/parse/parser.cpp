@@ -30,20 +30,23 @@ struct Parser::Imp {
     throw std::runtime_error(FILELINE + ": undefined variable '" + key + "'");
   }
   std::string ExpandVariables(std::string str) const {
-    enum class S { normal, dollar, varname, expand, varname_braced };
+    enum class S { normal, dollar, varname, expand, varname_braced, stop };
     S s = S::normal; // state
     size_t i = 0;
     std::string res; // result
     std::string varname;
+    const char kEnd = 0;
     try {
-      while (i < str.size()) {
-        char c = str[i];
+      while (s != S::stop) {
+        char c = (i < str.size() ? str[i] : kEnd);
         auto next = [&i]() { ++i; };
         switch (s) {
           case S::normal: {
             if (c == '$') {
               s = S::dollar;
               next();
+            } else if (c == kEnd) {
+              s = S::stop;
             } else {
               res += c;
               next();
@@ -58,12 +61,12 @@ struct Parser::Imp {
               s = S::varname;
             } else {
               throw std::runtime_error(
-                  FILELINE + ": S::dollar: invalid character '" + c + "'");
+                  std::string() + "S::dollar: invalid character '" + c + "'");
             }
             break;
           }
           case S::varname: {
-            if (IsNameChar(c) && c != '_') {
+            if (IsNameChar(c)) {
               varname += c;
               next();
             } else {
@@ -78,9 +81,11 @@ struct Parser::Imp {
             } else if (c == '}') {
               s = S::expand;
               next();
+            } else if (c == kEnd) {
+              throw std::runtime_error(std::string() + "unmatched brace {");
             } else {
               throw std::runtime_error(
-                  FILELINE + ": S::varname_braced: invalid character '" + c +
+                  std::string() + "S::varname_braced: invalid character '" + c +
                   "'");
             }
             break;
@@ -91,12 +96,9 @@ struct Parser::Imp {
             s = S::normal;
             break;
           }
+          case S::stop:
+            break;
         }
-      }
-      if (s == S::varname && varname != "") {
-        res += GetStr(varname);
-      } else if (s == S::varname_braced) {
-        throw std::runtime_error(FILELINE + ": unmatched brace {");
       }
     } catch (const std::runtime_error& e) {
       throw std::runtime_error(

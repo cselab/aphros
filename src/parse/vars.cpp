@@ -99,7 +99,8 @@ void Vars::Map<T>::SetStr(Key k, std::string v) {
 
   if (b.fail()) {
     throw std::runtime_error(
-        FILELINE + ": unable to parse '" + v + "' as '" + GetTypeName() + "'");
+        FILELINE + ": unable to parse '" + v + "' as '" + GetTypeName() +
+        "' for variable named '" + k + "'");
   }
 
   // Check that string contained only one element of type T
@@ -110,7 +111,7 @@ void Vars::Map<T>::SetStr(Key k, std::string v) {
     // If good, the string contained trailing characters
     throw std::runtime_error(
         FILELINE + ": trailing characters '" + v + "' as '" + GetTypeName() +
-        "'");
+        "' for variable named '" + k + "'");
   }
 }
 
@@ -135,7 +136,7 @@ void Vars::Map<std::vector<double>>::SetStr(Key k, std::string s) {
     } else if (!b.eof()) {
       throw std::runtime_error(
           FILELINE + ": unable to parse '" + s + "' as '" + GetTypeName() +
-          "'");
+          "' for variable named '" + k + "'");
     }
   }
   m_[k] = r;
