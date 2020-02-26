@@ -5,6 +5,6 @@ r () {
   mv -v error error_$nx
 }
 
-r 032
-#r 064 4
-#r 128 8
+r 032 1
+r 064 4
+r 128 8
