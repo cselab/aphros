@@ -24,6 +24,10 @@ class FieldEmbed {
       : dc_(fc), df_(ff) {}
   FieldEmbed& operator=(const FieldEmbed& o) = default;
   FieldEmbed& operator=(FieldEmbed&& o) = default;
+  FieldEmbed& operator=(const FieldFace<T>& o) {
+    df_ = o;
+    return *this;
+  }
 
   template <class M>
   explicit FieldEmbed(const M& m) : dc_(m), df_(m) {}
@@ -122,20 +126,16 @@ class MapEmbed {
     return df_.at(f);
   }
   Value* find(IdxCell c) {
-    auto it = dc_.find(c);
-    return it != dc_.end() ? &it->second : nullptr;
+    return dc_.find(c);
   }
   const Value* find(IdxCell c) const {
-    auto it = dc_.find(c);
-    return it != dc_.end() ? &it->second : nullptr;
+    return dc_.find(c);
   }
   Value* find(IdxFace f) {
-    auto it = df_.find(f);
-    return it != df_.end() ? &it->second : nullptr;
+    return df_.find(f);
   }
   const Value* find(IdxFace f) const {
-    auto it = df_.find(f);
-    return it != df_.end() ? &it->second : nullptr;
+    return df_.find(f);
   }
   void erase(const IdxCell& c) {
     dc_.erase(c);

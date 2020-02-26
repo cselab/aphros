@@ -5,6 +5,8 @@
 
 #include <cassert>
 #include <iostream>
+#include <stdexcept>
+#include <util/logger.h>
 #include "HYPRE_struct_ls.h"
 
 #include "hypre.h"
@@ -122,17 +124,13 @@ Hypre::Imp::Imp(MPI_Comm comm, const std::vector<Block>& bb0, MIdx gs, MIdx per)
 }
 
 void Hypre::Imp::SolverSetup(Scal tol, int print, int maxiter) {
-  // PCG solver
-  if (solver_ == "pcg") {
+  if (solver_ == "pcg") { // PCG solver
     HYPRE_StructPCGCreate(hd.comm, &hd.solver);
     HYPRE_StructPCGSetMaxIter(hd.solver, maxiter);
     HYPRE_StructPCGSetTol(hd.solver, tol);
     HYPRE_StructPCGSetPrintLevel(hd.solver, print);
     HYPRE_StructPCGSetup(hd.solver, hd.a, hd.r, hd.x);
-  }
-
-  // PCG solver with SMG precond
-  if (solver_ == "pcg+smg") {
+  } else if (solver_ == "pcg+smg") { // PCG solver with SMG precond
     // solver
     HYPRE_StructPCGCreate(hd.comm, &hd.solver);
     HYPRE_StructPCGSetMaxIter(hd.solver, maxiter);
@@ -152,10 +150,7 @@ void Hypre::Imp::SolverSetup(Scal tol, int print, int maxiter) {
     HYPRE_StructPCGSetPrecond(
         hd.solver, HYPRE_StructSMGSolve, HYPRE_StructSMGSetup, hd.precond);
     HYPRE_StructPCGSetup(hd.solver, hd.a, hd.r, hd.x);
-  }
-
-  // SMG solver
-  if (solver_ == "smg") {
+  } else if (solver_ == "smg") { // SMG solver
     HYPRE_StructSMGCreate(hd.comm, &hd.solver);
     HYPRE_StructSMGSetMemoryUse(hd.solver, 0);
     HYPRE_StructSMGSetMaxIter(hd.solver, maxiter);
@@ -165,19 +160,17 @@ void Hypre::Imp::SolverSetup(Scal tol, int print, int maxiter) {
     HYPRE_StructSMGSetNumPreRelax(hd.solver, 1);
     HYPRE_StructSMGSetNumPostRelax(hd.solver, 1);
     HYPRE_StructSMGSetup(hd.solver, hd.a, hd.r, hd.x);
-  }
-
-  // GMRES solver
-  if (solver_ == "gmres") {
+  } else if (solver_ == "gmres") {
+    // GMRES solver
     HYPRE_StructGMRESCreate(hd.comm, &hd.solver);
     HYPRE_StructGMRESSetTol(hd.solver, tol);
     HYPRE_StructGMRESSetPrintLevel(hd.solver, print);
     HYPRE_StructGMRESSetMaxIter(hd.solver, maxiter);
     HYPRE_StructGMRESSetup(hd.solver, hd.a, hd.r, hd.x);
-  }
-
-  if (solver_ == "zero") {
+  } else if (solver_ == "zero") {
     // nop
+  } else {
+    throw std::runtime_error(FILELINE + ": unknown solver '" + solver_ + "'");
   }
 }
 
