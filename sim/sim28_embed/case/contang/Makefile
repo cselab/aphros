@@ -10,12 +10,15 @@ bs = 32 32 1
 tl = 1440
 
 default:
-	./add.conf.gen
-	killall ap.mfer || true
 	make cleanall
 	make run
 
+add.conf: add.conf.gen
+	./$<
+
 include $(shell ap.makesim)
 
+conf: add.conf
+
 clean::
-	rm -vrf sc
+	rm -vrf sc add.conf
