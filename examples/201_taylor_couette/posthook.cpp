@@ -51,8 +51,6 @@ void PostHook(
     m.Dump(&fc_theta, "theta");
     m.Dump(&fc_theta_exact, "theta_exact");
     m.Dump(&fc_theta_error, "theta_error");
-    m.Dump(&fcvel, 0, "vx");
-    m.Dump(&fcvel, 1, "vy");
     m.Reduce(&norm1, "sum");
     m.Reduce(&norm2, "sum");
     m.Reduce(&norminf, "max");
