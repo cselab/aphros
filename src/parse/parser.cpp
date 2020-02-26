@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 #include "parser.h"
+#include "util/logger.h"
 #include "vars.h"
 
 struct Parser::Imp {
@@ -26,7 +27,7 @@ struct Parser::Imp {
     if (type != "") {
       return v_.GetStr(type, key);
     }
-    throw std::runtime_error("GetStr(): undefined variable '" + key + "'");
+    throw std::runtime_error(FILELINE + ": undefined variable '" + key + "'");
   }
   std::string ExpandVariables(std::string str) const {
     enum class S { normal, dollar, varname, expand, varname_braced };
@@ -57,7 +58,7 @@ struct Parser::Imp {
               s = S::varname;
             } else {
               throw std::runtime_error(
-                  std::string() + "S::dollar: invalid character '" + c + "'");
+                  FILELINE + ": S::dollar: invalid character '" + c + "'");
             }
             break;
           }
@@ -79,7 +80,7 @@ struct Parser::Imp {
               next();
             } else {
               throw std::runtime_error(
-                  std::string() + "S::varname_braced: invalid character '" + c +
+                  FILELINE + ": S::varname_braced: invalid character '" + c +
                   "'");
             }
             break;
@@ -95,11 +96,11 @@ struct Parser::Imp {
       if (s == S::varname && varname != "") {
         res += GetStr(varname);
       } else if (s == S::varname_braced) {
-        throw std::runtime_error("unmatched brace {");
+        throw std::runtime_error(FILELINE + ": unmatched brace {");
       }
     } catch (const std::runtime_error& e) {
       throw std::runtime_error(
-          "ExpandVariables(): error while parsing '" + str + "'\n" + e.what());
+          FILELINE + ": error while parsing '" + str + "'\n" + e.what());
     }
     return res;
   }
@@ -140,7 +141,7 @@ void Parser::Imp::Cmd(std::string s) {
   } else if (cmd == "") {
     // nop
   } else {
-    throw std::runtime_error("Cmd(): unknown command '" + cmd + "'");
+    throw std::runtime_error(FILELINE + ": unknown command '" + cmd + "'");
   }
 }
 
@@ -186,7 +187,8 @@ void Parser::Imp::CmdDel(std::string s) {
   std::stringstream b(s);
   b >> cmd >> key;
   if (!v_.Del(key)) {
-    throw std::runtime_error("CmdDel(): unknown variable '" + key + "'");
+    throw std::runtime_error(
+        FILELINE + ": CmdDel(): unknown variable '" + key + "'");
   }
 }
 
@@ -198,7 +200,8 @@ void Parser::Imp::CmdInclude(std::string s) {
   // Read all content
   std::ifstream f(fn);
   if (!f.good()) {
-    throw std::runtime_error("CmdInclude: Can't open '" + fn + "'");
+    throw std::runtime_error(
+        FILELINE + ": CmdInclude(): Can't open '" + fn + "'");
   }
   std::stringstream r;
   r << f.rdbuf();
