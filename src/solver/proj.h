@@ -19,6 +19,7 @@ struct ProjPar {
   ConvSc convsc = ConvSc::quick; // convection scheme
   Scal convdf = 1.; // deferred correction factor
   bool linreport = false; // report linear solvers
+  bool stokes = false;
   Conv conv = Conv::imp; // convection-diffusion solver
 };
 
