@@ -326,10 +326,16 @@ struct Proj<EB_>::Imp {
       // Acceleration
       const FieldFaceb<Vect> ffvel =
           UEB::Interpolate(cd_->GetVelocity(Step::iter_curr), mebc_vel_, eb);
-      eb.LoopFaces([&](auto cf) {
-        const Scal vstar = ffvel[cf].dot(eb.GetSurface(cf));
-        fev_.iter_curr[cf] = vstar + febp[cf] * eb.GetArea(cf) / ctx->fek[cf];
-      });
+      for (auto f : eb.Faces()) {
+        Scal v = ffvel[f].dot(eb.GetSurface(f));
+        if (!is_boundary_[f]) { // inner
+          v += febp[f] * eb.GetArea(f) / ctx->fek[f];
+        } else { // boundary
+          // nop, keep the mean flux
+        }
+        fev_.iter_curr[f] = v;
+      }
+
 
       // Projection
       ctx->ffvc = GetFlux(fcp_curr, ctx->fek, fev_.iter_curr);
