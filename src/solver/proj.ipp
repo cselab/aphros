@@ -365,7 +365,7 @@ struct Proj<EB_>::Imp {
         eb.LoopNci(c, [&](auto q) {
           const auto cf = eb.GetFace(c, q);
           if (!is_boundary_[cf]) {
-            const Scal a = (febp[cf] - ffgp[cf]) / ctx->fek[cf];
+            const Scal a = (febp[cf] - ffgp[cf]) / std::max(1e-8, ctx->fek[cf]);
             sum += eb.GetNormal(cf) * (a * 0.5);
           }
         });
