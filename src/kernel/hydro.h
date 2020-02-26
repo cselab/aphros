@@ -1872,7 +1872,8 @@ void Hydro<M>::Run() {
   }
   if (sem("loop-check")) {
     if (st_.t + st_.dt * 0.25 > var.Double["tmax"] ||
-        int(st_.step) >= var.Int["max_step"]) {
+        int(st_.step) >= var.Int["max_step"] ||
+        (int(st_.step) > 1 && fs_->GetError() < var.Double("stop_diff", 0))) {
       sem.LoopBreak();
     } else {
       if (m.IsRoot()) {
