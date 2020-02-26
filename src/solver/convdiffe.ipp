@@ -56,7 +56,7 @@ struct ConvDiffScalExp<EB_>::Imp {
 
     fcla.Reinit(m);
     fclb.Reinit(m, 0);
-    {
+    if (!par.stokes) {
       // convective fluxes
       FieldFaceb<Scal> ffq =
           UEB::InterpolateUpwind(fcu, mebc_, par.sc, fcg, ffv, eb);

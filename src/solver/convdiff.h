@@ -16,6 +16,7 @@ struct ConvDiffPar {
   Scal df = 1.; // deferred correction factor
   Scal th = 1e-10; // threshold for flow direction
   bool linreport = false; // report linear solvers
+  bool stokes = false; // Stokes flow, disable convective fluxes and time
 };
 
 

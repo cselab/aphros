@@ -64,7 +64,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       FieldCell<Expr>& fcl) {
     FieldFaceb<ExprFace> ffq(eb, ExprFace(0));
     // convective fluxes
-    {
+    if (!par.stokes) {
       const FieldCell<Vect> fcg =
           UEB::Gradient(UEB::Interpolate(fcu, mebc_, eb), eb);
       const FieldFaceb<ExprFace> ffu = UEB::InterpolateUpwindImplicit(
@@ -95,9 +95,11 @@ struct ConvDiffScalImp<EB_>::Imp {
       });
 
       Expr td(0); // time derivative
-      td[0] = time_coeff[2];
-      td[Expr::dim - 1] =
-          time_coeff[0] * fcu_.time_prev[c] + time_coeff[1] * fcu_.time_curr[c];
+      if (!par.stokes) {
+        td[0] = time_coeff[2];
+        td[Expr::dim - 1] = time_coeff[0] * fcu_.time_prev[c] +
+                            time_coeff[1] * fcu_.time_curr[c];
+      }
 
       Expr& e = fcl[c];
       e = (td + sum / eb.GetVolume(c)) * (*owner_->fcr_)[c];
@@ -130,7 +132,8 @@ struct ConvDiffScalImp<EB_>::Imp {
       Assemble(prev, *owner_->ffv_, fcucs_);
     }
     if (sem.Nested("solve")) {
-      Solve(fcucs_, nullptr, curr, M::LS::T::gen, m);
+      using Type = typename M::LS::T;
+      Solve(fcucs_, nullptr, curr, par.stokes ? Type::symm : Type::gen, m);
     }
     if (sem("apply")) {
       // apply, store result in curr
