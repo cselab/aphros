@@ -39,4 +39,7 @@ set string bc_path bc.dat
 
 set string list_path b2.dat
 set vect gravity 0 0 0
+
+set double slipnormal 1e2
+set double slipnormal_dist 1
 " > add.conf
