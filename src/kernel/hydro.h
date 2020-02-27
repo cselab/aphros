@@ -156,6 +156,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using ASVM = Vofm<M>; // advection multi VOF
   using ASVEB = Vof<Embed<M>>; // advection VOF embed
   using ASVMEB = Vofm<Embed<M>>; // advection multi VOF embed
+  using EB = Embed<M>;
   static constexpr Scal kClNone = ASVM::kClNone;
 
   void UpdateAdvectionPar() {
@@ -1305,15 +1306,52 @@ void Hydro<M>::CalcStat() {
     // Repulsive force from walls.
     const Scal slipnormal = var.Double["slipnormal"];
     if (slipnormal != 0) {
-      const auto& fa = fc_smvf_;
-      for (auto& p : mebc_fluid_.GetMapFace()) {
-        const IdxFace f = p.first;
-        const auto& bc = p.second;
-        const auto nci = bc.nci;
-        if (bc.type == BCondFluidType::wall) {
-          const IdxCell c = m.GetCell(f, bc.nci);
-          fc_force_[c] += m.GetNormal(f) * ((nci == 1 ? 1 : -1) * fc_rho_[c] *
-                                            slipnormal * fa[c]);
+      const Scal slipnormal_dist = var.Double["slipnormal_dist"];
+      const auto& fcvf = fc_smvf_;
+      if (eb_) {
+        auto& eb = *eb_;
+        mebc_fluid_.LoopBCond(eb, [&](auto cf, auto c, const auto& bc) {
+          if (bc.type == BCondFluidType::wall) {
+            const Scal sgn = (bc.nci == 0 ? -1 : 1);
+            const Vect nf = eb.GetNormal(cf);
+            for (auto cn : eb.Stencil(c)) {
+              if (eb.GetType(cn) != EB::Type::excluded) {
+                if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
+                  for (auto l : layers) {
+                    auto& fca = *as->GetAlpha()[l];
+                    auto& fcu = *as->GetFieldM()[l];
+                    auto& fcn = *as->GetNormal()[l];
+                    auto& fci = *as->GetMask()[l];
+                    const Scal u = fcu[cn];
+                    if (fci[cn]) {
+                      using R = Reconst<Scal>;
+                      auto xx = R::GetCutPoly(
+                          m.GetCenter(cn), fcn[cn], fca[cn], eb.GetCellSize());
+                      const Vect xi = R::GetCenter(xx);
+                      const Vect xf = eb.GetFaceCenter(cf);
+                      const Scal dmax = slipnormal_dist;
+                      Scal d = (xf - xi).dot(nf) / eb.GetCellSize()[0];
+                      d = std::max(0., std::min(dmax, d));
+                      const Scal a = sgn * fc_rho_[cn] * slipnormal * u *
+                                     (dmax - d) / dmax;
+                      fc_force_[cn] += nf * a;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        });
+      } else {
+        for (auto& p : mebc_fluid_.GetMapFace()) {
+          const IdxFace f = p.first;
+          const auto& bc = p.second;
+          const auto nci = bc.nci;
+          if (bc.type == BCondFluidType::wall) {
+            const IdxCell c = m.GetCell(f, bc.nci);
+            fc_force_[c] += m.GetNormal(f) * ((nci == 1 ? 1 : -1) * fc_rho_[c] *
+                                              slipnormal * fcvf[c]);
+          }
         }
       }
     }
