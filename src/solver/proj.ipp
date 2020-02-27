@@ -260,12 +260,13 @@ struct Proj<EB_>::Imp {
     }
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(
-          m, m, GetVelocity(Step::iter_curr), mebc_, par.inletflux_numid,
+          m, eb, GetVelocity(Step::iter_curr), mebc_, par.inletflux_numid,
           mebc_vel_);
     }
     if (sem.Nested("bc-outlet")) {
-      UFluid<M>::template UpdateOutletVelocity<M>(
-          m, m, GetVelocity(Step::iter_curr), mebc_, *owner_->fcsv_, mebc_vel_);
+      UFluid<M>::template UpdateOutletVelocity(
+          m, eb, GetVelocity(Step::iter_curr), mebc_, *owner_->fcsv_,
+          mebc_vel_);
     }
   }
   Scal Eval(const Expr& e, IdxCell c, const FieldCell<Scal>& fcu) {
