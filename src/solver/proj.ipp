@@ -309,6 +309,9 @@ struct Proj<EB_>::Imp {
 
     if (sem("forceinit")) {
       fcfcd_.Reinit(m, Vect(0));
+      for (auto c : eb.Cells()) {
+        fcfcd_[c] += (*owner_->fcf_)[c];
+      }
       AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_, eb);
     }
 
