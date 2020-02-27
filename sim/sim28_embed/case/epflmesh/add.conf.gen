@@ -5,9 +5,8 @@ aw () {
 }
 
 angle=0
-#angle=0
 angle=`aw "3.1415926 / 180 * $angle"`
-mag=5
+mag=10
 sin=`aw "-sin($angle)*$mag"`
 cos=`aw "-cos($angle)*$mag"`
 
@@ -15,8 +14,13 @@ echo "
 #set string body_init list
 #set int enable_embed 0
 
-set vect gravity $sin $cos 0
+set vect force $sin $cos 0
 set string advection_solver vofm
 set int enable_color 1
+
+set double slipnormal 1000
+set double slipnormal_dist 1.5
+
+set int hypre_periodic_y 1
 
 " > add.conf
