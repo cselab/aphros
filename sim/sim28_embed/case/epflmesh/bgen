@@ -61,7 +61,7 @@ r = 0.05   # bubble radius
 gap = 0.5
 cyl_x = 0.5
 cyl_z = 0.5
-cyl_r = 0.22
+cyl_r = 0.2
 
 b = GetRandomCluster(
         [cyl_x - cyl_r, cyl_x + cyl_r], 
