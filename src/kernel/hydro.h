@@ -1648,6 +1648,7 @@ void Hydro<M>::DumpFields() {
     FieldCell<Scal> fc_cellcond;
     FieldCell<Scal> fcdiv; // divergence of velocity
     FieldCell<Scal> fcdis; // energy dissipation
+    FieldCell<Scal> fc_ebvf;  // embedded boundaries volume fraction
   } * ctx(sem);
   if (sem("dump")) {
     if (m.IsRoot()) {
@@ -1752,6 +1753,18 @@ void Hydro<M>::DumpFields() {
       }
     }
     // TODO add ASVMEB
+
+    if (eb_) {
+      auto& eb = *eb_;
+      if (dl.count("ebvf")) {
+        auto& fc = ctx->fc_ebvf;
+        fc.Reinit(m, 0);
+        for (auto c : eb.Cells()) {
+          fc[c] = eb.GetVolumeFraction(c);
+        }
+        m.Dump(&fc, "ebvf");
+      }
+    }
   }
   if (sem()) {
   } // XXX: empty stage, otherwise ctx is destroyed before dump
