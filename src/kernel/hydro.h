@@ -1321,13 +1321,13 @@ void Hydro<M>::CalcStat() {
                     auto& fca = *as->GetAlpha()[l];
                     auto& fcu = *as->GetFieldM()[l];
                     auto& fcn = *as->GetNormal()[l];
-                    auto& fci = *as->GetMask()[l];
                     const Scal u = fcu[cn];
-                    if (fci[cn]) {
-                      using R = Reconst<Scal>;
-                      auto xx = R::GetCutPoly(
-                          m.GetCenter(cn), fcn[cn], fca[cn], eb.GetCellSize());
-                      const Vect xi = R::GetCenter(xx);
+                    if (u > 0) {
+                      /*
+                        fc_force_[cn] += eb.GetNormal(cf) *
+                                         (sgn * fc_rho_[cn] * slipnormal * u);
+                                         */
+                      const Vect xi = eb.GetCellCenter(cn);
                       const Vect xf = eb.GetFaceCenter(cf);
                       const Scal dmax = slipnormal_dist;
                       Scal d = (xf - xi).dot(nf) / eb.GetCellSize()[0];
