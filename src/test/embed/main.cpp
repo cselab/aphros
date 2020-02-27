@@ -29,7 +29,6 @@ void Run(M& m, Vars& var) {
     std::unique_ptr<EB> eb;
     FieldCell<Scal> fcu;
     FieldEmbed<Scal> feu;
-    MapCondFace mfc;
     FieldNode<Scal> fnl;
     size_t frame = 0;
     MapEmbed<BCondFluid<Vect>> mebc;
@@ -38,12 +37,12 @@ void Run(M& m, Vars& var) {
   auto& fcu = ctx->fcu;
   auto& feu = ctx->feu;
   auto& frame = ctx->frame;
-  auto& mfc = ctx->mfc;
 
   if (sem("ctor")) {
     ctx->eb.reset(new EB(m));
     ctx->fnl = UEB::InitEmbed(m, var, m.IsRoot());
     fcu.Reinit(m, 0);
+    feu.Reinit(m, 0);
   }
   if (sem.Nested("init")) {
     ctx->eb->Init(ctx->fnl);
@@ -91,53 +90,7 @@ void Run(M& m, Vars& var) {
     UInitEmbedBc<M>::DumpPoly("bc.vtk", ctx->me_group, *ctx->eb, m);
   }
   const size_t maxt = 10;
-  const size_t nfr = 10;
   for (size_t t = 0; t < maxt; ++t) {
-    auto& eb = *ctx->eb;
-    if (sem("step")) {
-      const bool compact = false;
-      // const Scal dt = compact ? 6e-6 : 4e-5;
-      const Scal dt = compact ? 1e-4 : 5e-4; // with redistr
-      // const Scal dt = compact ? 5e-4 : 5e-4; // with redistr, bc=1
-      const size_t bc = 0;
-      const Scal bcu = 1;
-
-      feu = UEB::Interpolate(fcu, mfc, bc, bcu, eb);
-      FieldEmbed<Scal> feun(m);
-
-      const auto feunc = UEB::GradientBilinear(fcu, mfc, bc, bcu, eb);
-      if (compact) {
-        feun = feunc;
-      } else {
-        const FieldCell<Vect> fcg = UEB::GradientGauss(feu, eb);
-        const FieldEmbed<Vect> feg =
-            UEB::Interpolate(fcg, MapCondFace(), 1, Vect(0), eb);
-        for (auto f : eb.Faces()) {
-          feun[f] = feg[f].dot(eb.GetNormal(f));
-        }
-        for (auto c : eb.CFaces()) {
-          feun[c] = feg[c].dot(eb.GetNormal(c));
-        }
-      }
-
-      for (auto c : eb.Cells()) {
-        Scal s = 0;
-        if (eb.GetType(c) == Type::cut) {
-          s += feun[c] * eb.GetArea(c);
-        }
-        for (auto q : eb.Nci(c)) {
-          auto f = m.GetFace(c, q);
-          s += feun[f] * eb.GetArea(f) * m.GetOutwardFactor(c, q);
-        }
-        const Scal du = s * dt / eb.GetVolume(c);
-        fcu[c] += du;
-      }
-
-      m.Comm(&fcu);
-    }
-    if (t % std::max<size_t>(1, maxt / nfr) != 0) {
-      continue;
-    }
     if (sem("dumpcsv")) {
       auto& eb = *ctx->eb;
       std::ofstream out(GetDumpName("eb", ".csv", frame));

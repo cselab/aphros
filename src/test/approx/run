@@ -6,6 +6,6 @@ a=ref
 b=out
 ./t.approx > "$b"
 
-if ! diff -u "$a" "$b" ; then
+if ! ap.diffnum "$a" "$b" ; then
   exit 1
 fi
