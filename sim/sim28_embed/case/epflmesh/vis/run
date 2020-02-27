@@ -1,0 +1,2 @@
+./surf.py ../s_*.vtk || true
+r.pngmp4
