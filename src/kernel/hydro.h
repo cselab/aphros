@@ -81,7 +81,7 @@ FieldCell<typename M::Vect> GetVort(
     Embed<M>& eb) {
   auto& m = eb.GetMesh();
   using Vect = typename M::Vect;
-  auto fev = UEmbed<M>::InterpolateBilinear(fcv, mf, 0, Vect(0), eb);
+  auto fev = UEmbed<M>::Interpolate(fcv, {}, eb);
 
   auto d0 = UEmbed<M>::GradientLinearFit(GetComponent(fev, 0), eb);
   auto d1 = UEmbed<M>::GradientLinearFit(GetComponent(fev, 1), eb);
@@ -472,13 +472,13 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   } else if (fs == "simple") {
     auto p = ParsePar<Simple<M>>()(var);
     fs_.reset(new Simple<M>(
-        m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
-        &fc_force_, &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+        m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
+        &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else if (fs == "proj") {
     auto p = ParsePar<Proj<M>>()(var);
     fs_.reset(new Proj<M>(
-        m, m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
-        &fc_force_, &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+        m, m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
+        &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
   } else {
     throw std::runtime_error("Unknown fluid_solver=" + fs);
   }
@@ -1494,8 +1494,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           a[c] = 0;
         }
       }
-      af = UEmbed<M>::InterpolateBilinear(a, mf_cond_vfsm_, 1, 0., *eb_)
-               .GetFieldFace();
+      af = UEmbed<M>::Interpolate(a, {}, *eb_).GetFieldFace();
     } else {
       af = Interpolate(a, mf_cond_vfsm_, m);
     }
@@ -1539,9 +1538,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         const auto x = m.GetCenter(c);
         fcp[c] = grav.dot(x);
       }
-      ffbp_ = UEmbed<M>::GradientBilinear(
-                  fcp, GetCondZeroGrad<Scal>(mf_fluid_), 1, 0., eb)
-                  .GetFieldFace();
+      ffbp_ = UEmbed<M>::Gradient(fcp, {}, eb).GetFieldFace();
       for (auto f : m.AllFaces()) {
         ffbp_[f] *= ff_rho[f];
       }
@@ -1648,7 +1645,7 @@ void Hydro<M>::DumpFields() {
     FieldCell<Scal> fc_cellcond;
     FieldCell<Scal> fcdiv; // divergence of velocity
     FieldCell<Scal> fcdis; // energy dissipation
-    FieldCell<Scal> fc_ebvf;  // embedded boundaries volume fraction
+    FieldCell<Scal> fc_ebvf; // embedded boundaries volume fraction
   } * ctx(sem);
   if (sem("dump")) {
     if (m.IsRoot()) {
@@ -2024,7 +2021,7 @@ void Hydro<M>::ReportStepAdv() {
 template <class M>
 auto Hydro<M>::CalcPressureDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb)
     -> Vect {
-  auto fep = UEmbed<M>::InterpolateBilinear(fcp, MapCondFace(), 1, 0., eb);
+  auto fep = UEmbed<M>::Interpolate(fcp, {}, eb);
   Vect sum(0);
   for (auto c : eb.CFaces()) {
     sum += eb.GetSurface(c) * fep[c];
@@ -2036,8 +2033,8 @@ template <class M>
 auto Hydro<M>::CalcViscousDrag(
     const FieldCell<Vect>& fcvel, const FieldCell<Scal>& fcmu,
     const Embed<M>& eb) -> Vect {
-  auto feg = UEmbed<M>::GradientBilinear(fcvel, MapCondFace(), 0, Vect(0), eb);
-  auto femu = UEmbed<M>::InterpolateBilinear(fcmu, MapCondFace(), 1, 0., eb);
+  auto feg = UEmbed<M>::Gradient(fcvel, {}, eb);
+  auto femu = UEmbed<M>::Interpolate(fcmu, {}, eb);
   Vect sum(0);
   for (auto c : eb.CFaces()) {
     sum += feg[c] * (-eb.GetArea(c) * femu[c]);

@@ -28,7 +28,7 @@ ua = ' '.join(ua)
 ub = ' '.join(ub)
 
 # words
-pt='[ ,\t]'
+pt='[ ,\t()=]'
 wa = re.split(pt, ua)
 wb = re.split(pt, ub)
 
@@ -38,7 +38,16 @@ if "sort" in v:
 
 def E(a, b, e):
   global eps
+  a = str(a).strip()
+  b = str(b).strip()
   print("error exceeded: {:} > {:}\na='{:}' b='{:}', ".format(e, eps, a, b))
+  exit(1)
+
+def E2(a, b):
+  global eps
+  a = str(a).strip()
+  b = str(b).strip()
+  print("error: a='{:}' b='{:}', ".format(a, b))
   exit(1)
 
 la = len(wa)
@@ -47,8 +56,8 @@ lb = len(wb)
 em = 0 # max diff
 
 for i in range(max(la,lb)):
-  i < la or E('', wb[i])
-  i < lb or E(wa[i], '')
+  i < la or E2('', wb[i])
+  i < lb or E2(wa[i], '')
 
   a = wa[i]
   b = wb[i]
@@ -59,7 +68,7 @@ for i in range(max(la,lb)):
     na = float(a)
     nb = float(b)
   except:
-    E(a, b)
+    E2(a, b)
 
   if "rel" in v:
     e = (abs(na) + abs(nb)) * 0.5

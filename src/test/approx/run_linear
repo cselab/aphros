@@ -6,6 +6,6 @@ a=ref_linear
 b=out_linear
 ./t.approx.linear > "$b"
 
-if ! diff -u "$a" "$b" ; then
+if ! ap.diffnum "$a" "$b" ; then
   exit 1
 fi
