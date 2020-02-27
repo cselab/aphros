@@ -15,7 +15,7 @@ set string advection_solver vofm
 set int enable_color 1
 
 set double slipnormal 1000
-set double slipnormal_dist 2
+set double slipnormal_dist 3
 
 set vect gravity 0 0 0
 
@@ -23,15 +23,20 @@ set double cfl 0.5
 set double cfla 0.5
 set double cflvis 10
 
-#del cfl
-#del cfla
-#del cflvis
-#set double dt0 0.005
+set int hypre_symm_maxiter 300
 
-set double mu1 0.02
-set double mu2 0.0002
-set double rho2 0.01
+del cfl
+del cfla
+del cflvis
+set double dt0 0.002
+
+set double mu1 0.03
+set double mu2 0.003
+set double rho2 0.1
 set double sigma 0.1
+
+set int max_iter 2
+set int min_iter 2
 
 set string list_path brnd.dat
 

@@ -1323,18 +1323,18 @@ void Hydro<M>::CalcStat() {
                     auto& fcn = *as->GetNormal()[l];
                     const Scal u = fcu[cn];
                     if (u > 0) {
+                      fc_force_[cn] += eb.GetNormal(cf) *
+                                       (sgn * fc_rho_[cn] * slipnormal * u);
                       /*
-                        fc_force_[cn] += eb.GetNormal(cf) *
-                                         (sgn * fc_rho_[cn] * slipnormal * u);
-                                         */
-                      const Vect xi = eb.GetCellCenter(cn);
-                      const Vect xf = eb.GetFaceCenter(cf);
-                      const Scal dmax = slipnormal_dist;
-                      Scal d = (xf - xi).dot(nf) / eb.GetCellSize()[0];
-                      d = std::max(0., std::min(dmax, d));
-                      const Scal a = sgn * fc_rho_[cn] * slipnormal * u *
-                                     (dmax - d) / dmax;
-                      fc_force_[cn] += nf * a;
+                        const Vect xi = eb.GetCellCenter(cn);
+                        const Vect xf = eb.GetFaceCenter(cf);
+                        const Scal dmax = slipnormal_dist;
+                        Scal d = (xf - xi).dot(nf) / eb.GetCellSize()[0];
+                        d = std::max(0., std::min(dmax, d));
+                        const Scal a = sgn * fc_rho_[cn] * slipnormal * u *
+                                       (dmax - d) / dmax;
+                        fc_force_[cn] += nf * a;
+                        */
                     }
                   }
                 }
