@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "debug/isnan.h"
+#include "debug/linear.h"
 #include "geom/mesh.h"
 
 template <class Scal, class Idx>
@@ -403,6 +404,11 @@ void Solve(
     FieldCell<typename M::Scal>& fc_sol, typename M::LS::T type, M& m) {
   using Scal = typename M::Scal;
   auto sem = m.GetSem("solve");
+  if (type == M::LS::T::symm && m.flags.check_symmetry) {
+    if (sem.Nested()) {
+      UDebug<M>::CheckSymmetry(fc_system, m);
+    }
+  }
   if (sem("solve")) {
     std::vector<Scal>* lsa;
     std::vector<Scal>* lsb;
@@ -417,7 +423,7 @@ void Solve(
     } else {
       size_t i = 0;
       for (auto c : m.Cells()) {
-        (void) c;
+        (void)c;
         (*lsx)[i++] = 0;
       }
     }
@@ -437,6 +443,13 @@ void Solve(
       fc_sol[c] = (*lsx)[i++];
     }
     m.Comm(&fc_sol);
+
+    if (m.flags.linreport && m.IsRoot()) {
+      std::cout << std::scientific;
+      std::cout << "linear solver '" + fc_system.GetName() + "':"
+                << " res=" << m.GetResidual() << " iter=" << m.GetIter()
+                << std::endl;
+    }
   }
 }
 

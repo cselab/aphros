@@ -133,7 +133,6 @@ void SetConvDiffPar(ConvDiffPar& d, const FluidPar& p) {
   d.second = p.second;
   d.sc = p.convsc;
   d.df = p.convdf;
-  d.linreport = p.linreport;
   d.stokes = p.stokes;
   d.explconv = p.explconv;
   d.symm = p.convsymm;

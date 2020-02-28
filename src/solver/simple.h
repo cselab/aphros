@@ -27,7 +27,6 @@ class Simple final : public FluidSolver<M_> {
     size_t inletflux_numid = 0; // reduction for id from 0 to numid-1
     ConvSc convsc = ConvSc::quick; // convection scheme
     Scal convdf = 1.; // deferred correction factor
-    bool linreport = false; // report linear solvers
     bool stokes = false;
     bool explconv = false; // explicit convection for Conv::imp
     bool convsymm = false; // symmetric solver for linear system in convdiff
