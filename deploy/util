@@ -7,6 +7,7 @@ suff () {
     daint*) echo .daint ;;
     eu-*) echo .euler ;; 
     falcon*) echo .falcon ;; 
+    panda*) echo .falcon ;; 
     *) echo ;;
   esac
 }
