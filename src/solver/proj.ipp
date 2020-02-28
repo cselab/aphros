@@ -13,6 +13,7 @@
 #include "approx_eb.h"
 #include "convdiffv.h"
 #include "debug/isnan.h"
+#include "debug/linear.h"
 #include "fluid.h"
 #include "linear/linear.h"
 #include "proj.h"
@@ -340,14 +341,14 @@ struct Proj<EB_>::Imp {
         fev_.iter_curr[f] = v;
       }
 
-
       // Projection
       ctx->ffvc = GetFlux(fcp_curr, ctx->fek, fev_.iter_curr);
       ctx->fcpcs = GetFluxSum(ctx->ffvc, *owner_->fcsv_);
       ApplyCellCond(fcp_curr, ctx->fcpcs);
+      ctx->fcpcs.SetName("pressure");
     }
     if (sem.Nested()) {
-      UDebug<M>::CheckSymmetry(fcucs_, m);
+      UDebug<M>::CheckSymmetry(ctx->fcpcs, m);
     }
     if (sem.Nested("pcorr-solve")) {
       Solve(ctx->fcpcs, &fcp_curr, fcp_curr, M::LS::T::symm, m);

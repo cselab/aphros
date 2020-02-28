@@ -13,6 +13,7 @@ struct UDebug {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using Expr = typename M::Expr;
 
   static std::vector<generic::Vect<Scal, 3>> GetNorms(
       const std::vector<const FieldCell<Scal>*>& vfc, M& m) {
@@ -63,8 +64,6 @@ struct UDebug {
 
   static FieldCell<typename M::Scal> GetAsymmetryField(
       const FieldCell<typename M::Expr>& fce, M& m) {
-    using Scal = typename M::Scal;
-    using Expr = typename M::Expr;
     constexpr size_t vdim = Expr::dim - 2;
     static_assert(vdim == M::kCellNumNeighbourFaces, "");
     auto sem = m.GetSem(__func__);
@@ -127,11 +126,14 @@ struct UDebug {
           UDebug<M>::GetNorms({&fc_asymm, &fc_diag, &fc_nondiag, &fc_const}, m);
     }
     if (sem("print")) {
-      std::cout << "check_symmetry:" << std::endl;
-      std::cout << "asymm:" << vnorms[0] << std::endl;
-      std::cout << "diag:" << vnorms[1] << std::endl;
-      std::cout << "nondiag:" << vnorms[2] << std::endl;
-      std::cout << "const:" << vnorms[3] << std::endl;
+      if (m.IsRoot()) {
+        std::cout << "CheckSymmetry() of field '" + fce.GetName() + "':"
+                  << std::endl;
+        std::cout << "asymm:" << vnorms[0] << std::endl;
+        std::cout << "diag:" << vnorms[1] << std::endl;
+        std::cout << "nondiag:" << vnorms[2] << std::endl;
+        std::cout << "const:" << vnorms[3] << std::endl;
+      }
     }
   }
 };

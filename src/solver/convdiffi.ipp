@@ -28,8 +28,8 @@ struct ConvDiffScalImp<EB_>::Imp {
       , m(owner_->m)
       , eb(owner_->eb)
       , mebc_(mebc)
-      , dtp_(-1.)
-      , er_(0) {
+      , dtprev_(-1.)
+      , error_(0) {
     fcu_.time_curr = fcu;
     fcu_.time_prev = fcu;
     fcu_.iter_curr = fcu;
@@ -41,11 +41,11 @@ struct ConvDiffScalImp<EB_>::Imp {
 
     fcu_.iter_curr = fcu_.time_curr;
 
-    if (dtp_ == -1.) { // TODO: revise
-      dtp_ = owner_->GetTimeStep();
+    if (dtprev_ == -1.) { // TODO: revise
+      dtprev_ = owner_->GetTimeStep();
     }
 
-    er_ = 0.;
+    error_ = 0.;
   }
   Scal Eval(const Expr& e, IdxCell c, const FieldCell<Scal>& fcu) {
     Scal r = e[Expr::dim - 1];
@@ -123,7 +123,7 @@ struct ConvDiffScalImp<EB_>::Imp {
 
     const Scal dt = owner_->GetTimeStep();
     std::vector<Scal> time_coeff =
-        GetGradCoeffs(0., {-(dt + dtp_), -dt, 0.}, par.second ? 0 : 1);
+        GetGradCoeffs(0., {-(dt + dtprev_), -dt, 0.}, par.second ? 0 : 1);
 
     fcl.Reinit(eb, Expr::GetUnit(0)); // initialize as diagonal system
     for (auto c : eb.Cells()) {
@@ -153,6 +153,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       // Apply under-relaxation
       e[0] /= par.relax;
     }
+    fcl.SetName(fcu.GetName());
   }
   // Assembles linear system
   // fcu: field from previous iteration [a]
@@ -183,6 +184,7 @@ struct ConvDiffScalImp<EB_>::Imp {
     }
     if (sem("apply")) {
       // apply, store result in curr
+      curr.SetName(prev.GetName());
       for (auto c : eb.Cells()) {
         curr[c] += prev[c];
       }
@@ -196,7 +198,7 @@ struct ConvDiffScalImp<EB_>::Imp {
     fcu_.time_curr = fcu_.iter_curr;
     CHECKNAN(fcu_.time_curr, m.CN())
     owner_->IncTime();
-    dtp_ = owner_->GetTimeStep();
+    dtprev_ = owner_->GetTimeStep();
   }
   void CalcError() {
     // max difference between iter_curr and iter_prev
@@ -206,10 +208,10 @@ struct ConvDiffScalImp<EB_>::Imp {
     for (auto c : eb.Cells()) {
       a = std::max<Scal>(a, std::abs(curr[c] - prev[c]));
     }
-    er_ = a;
+    error_ = a;
   }
   double GetError() const {
-    return er_;
+    return error_;
   }
   // Apply correction to field and comm
   // uc: correction [i]
@@ -251,8 +253,8 @@ struct ConvDiffScalImp<EB_>::Imp {
 
   FieldCell<Expr> fcucs_; // linear system for correction
 
-  Scal dtp_; // dt prev
-  Scal er_; // error
+  Scal dtprev_; // dt prev
+  Scal error_; // error
 };
 
 template <class EB_>

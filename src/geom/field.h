@@ -5,6 +5,7 @@
 
 #include <cassert>
 #include <iosfwd>
+#include <string>
 
 #include "idx.h"
 #include "range.h"
@@ -17,23 +18,25 @@ class GField {
   using Range = GRange<Idx>;
 
   // Constructs field for empty range
-  GField() : d_(nullptr) {}
+  GField() : data_(nullptr) {}
   // Constructs field for range r
-  explicit GField(const Range& r) : r_(r), d_(new Value[size()]) {}
+  explicit GField(const Range& r) : range_(r), data_(new Value[size()]) {}
   // Copy constructor
-  GField(const GField& o) : GField(o.r_) {
-    for (auto i : r_) {
+  GField(const GField& o) : GField(o.range_) {
+    for (auto i : range_) {
       (*this)[i] = o[i];
     }
+    name_ = o.name_;
   }
   // Move constructor
-  GField(GField&& o) : r_(o.r_), d_(o.d_) {
-    o.r_.clear();
-    o.d_ = nullptr;
+  GField(GField&& o) : range_(o.range_), data_(o.data_), name_(o.name_) {
+    o.range_.clear();
+    o.data_ = nullptr;
+    o.name_.clear();
   }
   // Constructs field for range r and initializes with v
   GField(const Range& r, const Value& v) : GField(r) {
-    for (auto i : r_) {
+    for (auto i : range_) {
       (*this)[i] = v;
     }
   }
@@ -43,72 +46,84 @@ class GField {
   // Assignment
   GField& operator=(const GField& o) {
     if (this != &o) {
-      Reinit(o.r_);
-      for (auto i : r_) {
+      Reinit(o.range_);
+      for (auto i : range_) {
         (*this)[i] = o[i];
       }
+      name_ = o.name_;
     }
     return *this;
   }
   // Move assignment
   GField& operator=(GField&& o) {
     Free();
-    r_ = o.r_;
-    d_ = o.d_;
-    o.r_.clear();
-    o.d_ = nullptr;
+    range_ = o.range_;
+    data_ = o.data_;
+    name_ = o.name_;
+    o.range_.clear();
+    o.data_ = nullptr;
+    o.name_.clear();
     return *this;
   }
   size_t size() const {
-    return static_cast<size_t>(*r_.end());
+    return static_cast<size_t>(*range_.end());
   }
   bool empty() const {
     return size() == 0;
   }
   // Changes range to r, reallocates memory if size differs
   void Reinit(const Range& r) {
-    if (r != r_) {
+    if (r != range_) {
       GField(r).swap(*this);
     }
   }
   // Changes range to r, reallocates memory if size differs, overwrites with v
   void Reinit(const Range& r, const Value& v) {
     Reinit(r);
-    for (auto i : r_) {
+    for (auto i : range_) {
       (*this)[i] = v;
     }
   }
   // Deallocates memory, resets range to zero size
   void Free() {
-    r_.clear();
-    delete[] d_;
-    d_ = nullptr;
+    range_.clear();
+    delete[] data_;
+    data_ = nullptr;
+    name_.clear();
   }
   Range GetRange() const {
-    return r_;
+    return range_;
   }
   void swap(GField& o) {
-    std::swap(r_, o.r_);
-    std::swap(d_, o.d_);
+    std::swap(range_, o.range_);
+    std::swap(data_, o.data_);
+    std::swap(name_, o.name_);
   }
   Value* data() {
-    return d_;
+    return data_;
   }
   const Value* data() const {
-    return d_;
+    return data_;
   }
   Value& operator[](const Idx& i) {
-    assert(size_t(i) >= 0 && size_t(i) < size_t(*r_.end()));
-    return d_[size_t(i)];
+    assert(size_t(i) >= 0 && size_t(i) < size_t(*range_.end()));
+    return data_[size_t(i)];
   }
   const Value& operator[](const Idx& i) const {
-    assert(size_t(i) >= 0 && size_t(i) < size_t(*r_.end()));
-    return d_[size_t(i)];
+    assert(size_t(i) >= 0 && size_t(i) < size_t(*range_.end()));
+    return data_[size_t(i)];
+  }
+  std::string GetName() const {
+    return name_;
+  }
+  void SetName(const std::string name) {
+    name_ = name;
   }
 
  private:
-  Range r_;
-  Value* d_;
+  Range range_;
+  Value* data_;
+  std::string name_;
 };
 
 template <class T>
