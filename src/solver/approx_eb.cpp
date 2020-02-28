@@ -11,6 +11,7 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using T = Scal;
 using TV = Vect;
+using Expr = typename M::Expr;
 constexpr size_t dim = M::dim;
 
 template struct ULinear<Scal>;
@@ -27,6 +28,10 @@ template FieldCell<T> UEB::RedistributeCutCells(
     const FieldCell<T>& fcu, const EB& eb);
 template FieldCell<T> UEB::RedistributeCutCells(
     const FieldCell<T>& fcu, const M& m);
+template FieldCell<Expr> UEB::RedistributeCutCells(
+    const FieldCell<Expr>& fcu, const EB& eb);
+template FieldCell<Expr> UEB::RedistributeCutCells(
+    const FieldCell<Expr>& fcu, const M& m);
 
 template FieldFace<T> UEB::InterpolateBilinearFaces(
     const FieldFace<T>& ffu, const EB& eb);
