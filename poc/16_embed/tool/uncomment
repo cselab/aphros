@@ -1,15 +1,18 @@
 #!/bin/sh
 
+: ${GCC=gcc}
+
 msg () { echo >&2 "$@" ; }
 err () { msg "$me: $@"; exit 2 ; }
 
 me=tool/uncomment
 
 usg () cat <<!
-$me -o file file
+$me [-p] -o file file
 !
 
 OutputFlag=0
+PFlag=0
 while test $# -ne 0
 do case "$1" in
        -o) shift
@@ -19,6 +22,9 @@ do case "$1" in
            ;;
        -h ) usg
             exit 2
+            ;;
+       -p)  shift
+            PFlag=1
             ;;
        -*) err "unknown option '$1'" ;;
        *) break
@@ -37,7 +43,12 @@ if ! test -f "$1"
 then err "not a file '$1'"
 fi
 
-"${GCC=gcc}" -x c -fpreprocessed -dD -E "$1" > "$Output"
+if test $PFlag -eq 0
+then Arg=
+else Arg=-P
+fi
+
+"$GCC" -x c -fpreprocessed -dD -E $Arg "$1" > "$Output"
 if test $? -ne 0
-then err "${GCC=gcc} failed"
+then err "$GCC failed"
 fi
