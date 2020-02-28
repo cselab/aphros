@@ -77,7 +77,7 @@ FieldCell<typename M::Scal> GetDivergence(
 
 template <class M>
 FieldCell<typename M::Vect> GetVort(
-    const FieldCell<typename M::Vect>& fcv, const MapCondFace& mf,
+    const FieldCell<typename M::Vect>& fcv, const MapCondFace&,
     Embed<M>& eb) {
   auto& m = eb.GetMesh();
   using Vect = typename M::Vect;
@@ -857,14 +857,10 @@ void Hydro<M>::Init() {
         mf_fluid_, mf_adv_);
   }
 
-  if (sem("dt")) {
+  if (sem("calcdt0")) {
     const Scal dt = var.Double["dt0"];
     st_.dt = dt;
     st_.dta = dt;
-    if (m.IsLead()) {
-      this->var_mutable.Double.Set("dt", st_.dt);
-      this->var_mutable.Double.Set("dta", st_.dta);
-    }
   }
   if (sem("solv")) {
     InitFluid(fcvel);
@@ -876,7 +872,6 @@ void Hydro<M>::Init() {
 
     if (m.IsLead()) {
       this->var_mutable.Int.Set("iter", st_.iter);
-      this->var_mutable.Double.Set("t", st_.t);
     }
 
     InitStat();
@@ -1306,21 +1301,21 @@ void Hydro<M>::CalcStat() {
     // Repulsive force from walls.
     const Scal slipnormal = var.Double["slipnormal"];
     if (slipnormal != 0) {
-      const Scal slipnormal_dist = var.Double["slipnormal_dist"];
+      //const Scal slipnormal_dist = var.Double["slipnormal_dist"];
       const auto& fcvf = fc_smvf_;
       if (eb_) {
         auto& eb = *eb_;
         mebc_fluid_.LoopBCond(eb, [&](auto cf, auto c, const auto& bc) {
           if (bc.type == BCondFluidType::wall) {
             const Scal sgn = (bc.nci == 0 ? -1 : 1);
-            const Vect nf = eb.GetNormal(cf);
+            //const Vect nf = eb.GetNormal(cf);
             for (auto cn : eb.Stencil(c)) {
               if (eb.GetType(cn) != EB::Type::excluded) {
                 if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
                   for (auto l : layers) {
-                    auto& fca = *as->GetAlpha()[l];
+                    //auto& fca = *as->GetAlpha()[l];
                     auto& fcu = *as->GetFieldM()[l];
-                    auto& fcn = *as->GetNormal()[l];
+                    //auto& fcn = *as->GetNormal()[l];
                     const Scal u = fcu[cn];
                     if (u > 0) {
                       fc_force_[cn] += eb.GetNormal(cf) *
@@ -1373,14 +1368,10 @@ void Hydro<M>::CalcStat() {
 
 template <class M>
 void Hydro<M>::CalcDt() {
-  auto sem = m.GetSem("dt");
+  auto sem = m.GetSem("calcdt");
 
   if (sem("local")) {
     st_.t = fs_->GetTime();
-    if (m.IsLead()) {
-      this->var_mutable.Double["t"] = st_.t;
-    }
-
     st_.dtt = fs_->GetAutoTimeStep();
     m.Reduce(&st_.dtt, "min");
   }
@@ -1398,9 +1389,6 @@ void Hydro<M>::CalcDt() {
     st_.dt = std::min<Scal>(st_.dt, GetVisDt());
 
     fs_->SetTimeStep(st_.dt);
-    if (m.IsLead()) {
-      this->var_mutable.Double["dt"] = st_.dt;
-    }
 
     // set from cfla if defined
     if (auto* cfla = var.Double.Find("cfla")) {
@@ -1413,9 +1401,6 @@ void Hydro<M>::CalcDt() {
     st_.dta = dt / std::max(1, int(dt / st_.dta + 0.5));
 
     as_->SetTimeStep(st_.dta);
-    if (m.IsLead()) {
-      this->var_mutable.Double["dta"] = st_.dta;
-    }
   }
 }
 
@@ -1979,7 +1964,7 @@ void Hydro<M>::Run() {
     }
   }
 
-  if (sem.Nested("dt")) {
+  if (sem.Nested()) {
     CalcDt(); // must be after CalcStat to keep dt for moving mesh velocity
   }
 
