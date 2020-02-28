@@ -380,8 +380,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
         max = std::max(max, v);
         sum += v * m.GetVolume(c);
       }
-      m.Reduce(&(mst[name + "_mn"] = min), "min");
-      m.Reduce(&(mst[name + "_mx"] = max), "max");
+      m.Reduce(&(mst[name + "_min"] = min), "min");
+      m.Reduce(&(mst[name + "_max"] = max), "max");
       m.Reduce(&(mst[name + "_sum"] = sum), "sum");
     }
     // Add component comp of vector field for stat.
@@ -395,8 +395,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
         max = std::max(max, v);
         sum += v * m.GetVolume(c);
       }
-      m.Reduce(&(mst[name + "_mn"] = min), "min");
-      m.Reduce(&(mst[name + "_mx"] = max), "max");
+      m.Reduce(&(mst[name + "_min"] = min), "min");
+      m.Reduce(&(mst[name + "_max"] = max), "max");
       m.Reduce(&(mst[name + "_sum"] = sum), "sum");
     }
     void Print(std::ostream& out) {

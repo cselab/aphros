@@ -26,16 +26,17 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
     for (auto d : dr_) {
       UpdateDerivedCond(d);
 
-      // Components of source
-      for (auto d : dr_) {
-        vfcs_[d] = GetComponent(*owner_->fcs_, d);
-      }
+      // source term
+      vfcs_[d] = GetComponent(*owner_->fcs_, d);
 
-      // Initialize solver
+      // initial velocity
+      auto fcu = GetComponent(fcvel, d);
+      fcu.SetName(std::string("velocity_") + "xyz"[d]);
+
+      // solver
       vs_[d] = std::make_shared<CD>(
-          m, eb, GetComponent(fcvel, d), vmebc_[d], owner_->fcr_, owner_->ffd_,
-          &(vfcs_[d]), owner_->ffv_, owner_->GetTime(), owner_->GetTimeStep(),
-          par);
+          m, eb, fcu, vmebc_[d], owner_->fcr_, owner_->ffd_, &(vfcs_[d]),
+          owner_->ffv_, owner_->GetTime(), owner_->GetTimeStep(), par);
     }
     CopyToVect(Step::time_curr, fcvel_);
     lvel_ = Step::time_curr;
@@ -75,6 +76,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       for (auto d : dr_) {
         vfcs_[d] = GetComponent(*owner_->fcs_, d);
         vfct_[d] = GetComponent(fcw, d);
+        vfct_[d].SetName(std::string("velocity_") + "xyz"[d]);
       }
     }
     for (auto d : dr_) {
