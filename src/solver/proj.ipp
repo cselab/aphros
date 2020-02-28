@@ -148,19 +148,9 @@ struct Proj<EB_>::Imp {
       const CondCell* cb = it.second.get(); // cond base
       if (auto cd = dynamic_cast<const CondCellVal<Scal>*>(cb)) {
         auto& e = fcs[c];
-        Scal pc = cd->second(); // new value for p[c]
-        e = Expr(0);
-        // override target cell
-        e[0] = 1.;
-        e[Expr::dim - 1] = pc;
-        // override neighbours
-        for (size_t q : eb.Nci(c)) {
-          IdxCell cn = m.GetCell(c, q);
-          auto& en = fcs[cn];
-          size_t qn = (q % 2 == 0 ? q + 1 : q - 1); // id of c from cn
-          en[Expr::dim - 1] += en[1 + qn] * pc;
-          en[1 + qn] = 0;
-        }
+        const Scal pc = cd->second(); // new value for p[c]
+        e[0] += 1;
+        e[Expr::dim - 1] -= pc;
       }
     }
   }
