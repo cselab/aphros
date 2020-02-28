@@ -35,8 +35,6 @@ class DistrSolver {
 
   DistrSolver(MPI_Comm comm, Vars& var0, Par& par)
       : var(var0), var_mutable(var0), kf_(par) {
-    var_mutable.Double.Set("t", 0);
-
     const std::string be = var.String["backend"];
     if (be == "local") {
       d_ = CreateLocal<M>(comm, kf_, var_mutable);
@@ -65,12 +63,6 @@ class DistrSolver {
   }
   FieldCell<Scal> GetField(size_t i) const {
     return d_->GetGlobalField(i);
-  }
-  double GetTime() const {
-    return var.Double["t"];
-  }
-  double GetTimeStep() const {
-    return var.Double["dt"];
   }
 
  private:

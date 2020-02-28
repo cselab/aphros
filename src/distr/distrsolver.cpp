@@ -131,7 +131,7 @@ int RunMpi(
       var.ForEachMap([&var,&ignore](const auto& map) {
         for (auto it = map.cbegin(); it != map.cend(); ++it) {
           const auto key = it->first;
-          if (!ignore.count(key)) {
+          if (map.GetReads(key) == 0 && !ignore.count(key)) {
             std::cout << map.GetTypeName() << " " << key << std::endl;
           }
         }
