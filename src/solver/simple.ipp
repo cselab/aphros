@@ -445,12 +445,6 @@ struct Simple<M_>::Imp {
     }
 
     if (sem("apply")) {
-      if (par.linreport && m.IsRoot()) {
-        std::cout << "pcorr:"
-                  << " res=" << m.GetResidual() << " iter=" << m.GetIter()
-                  << std::endl;
-      }
-
       fcgpc_ = Gradient(UEB::Interpolate(fcpc_, me_pcorr_, m), m);
 
       // Correct pressure

@@ -175,9 +175,6 @@ struct ConvDiffScalImp<EB_>::Imp {
     if (sem("assemble")) {
       Assemble(prev, *owner_->ffv_, fcucs_);
     }
-    if (sem.Nested()) {
-      UDebug<M>::CheckSymmetry(fcucs_, m);
-    }
     if (sem.Nested("solve")) {
       using Type = typename M::LS::T;
       Solve(fcucs_, nullptr, curr, par.symm ? Type::symm : Type::gen, m);

@@ -661,6 +661,12 @@ void Hydro<M>::Init() {
   auto& fcvel = ctx->fcvel;
   auto& fcvf = ctx->fcvf;
   auto& fccl = ctx->fccl;
+  if (sem("flags")) {
+    m.flags.linreport = var.Int["linreport"];
+    m.flags.check_symmetry = var.Int["check_symmetry"];
+    m.flags.check_symmetry_dump_threshold =
+        var.Double["check_symmetry_dump_threshold"];
+  }
   if (sem.Nested("embed")) {
     InitEmbed();
   }
@@ -913,6 +919,11 @@ void Hydro<M>::Init() {
   }
   if (eb_ && sem.Nested()) {
     eb_->DumpPoly(var.Int["vtkbin"], var.Int["vtkmerge"]);
+  }
+  if (var.Int["dumpinit"]) {
+    if (sem.Nested()) {
+      Dump();
+    }
   }
 }
 
@@ -1888,12 +1899,6 @@ void Hydro<M>::Run() {
 
   if (sem.Nested("init")) {
     Init();
-  }
-
-  if (var.Int["dumpinit"]) {
-    if (sem.Nested()) {
-      Dump();
-    }
   }
 
   sem.LoopBegin();

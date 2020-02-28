@@ -337,18 +337,10 @@ struct Proj<EB_>::Imp {
       ApplyCellCond(fcp_curr, ctx->fcpcs);
       ctx->fcpcs.SetName("pressure");
     }
-    if (sem.Nested()) {
-      UDebug<M>::CheckSymmetry(ctx->fcpcs, m);
-    }
     if (sem.Nested("pcorr-solve")) {
       Solve(ctx->fcpcs, &fcp_curr, fcp_curr, M::LS::T::symm, m);
     }
     if (sem("pcorr-apply")) {
-      if (par.linreport && m.IsRoot()) {
-        std::cout << "pcorr:"
-                  << " res=" << m.GetResidual() << " iter=" << m.GetIter() //
-                  << std::endl;
-      }
       eb.LoopFaces([&](auto cf) {
         fev_.iter_curr[cf] = Eval(ctx->ffvc[cf], cf, fcp_curr);
       });

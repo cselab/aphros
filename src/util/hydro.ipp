@@ -1108,8 +1108,6 @@ template <class M>
 void GetFluidCellCond(
     const Vars& var, M& m, MapCell<std::shared_ptr<CondCellFluid>>& mcvel) {
   using Vect = typename M::Vect;
-  using MIdx = typename M::MIdx;
-
   auto sem = m.GetSem(__func__);
 
   struct {

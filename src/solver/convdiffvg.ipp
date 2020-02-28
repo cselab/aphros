@@ -98,13 +98,6 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       if (sem.Nested("scal-iter")) {
         vs_[d]->MakeIteration();
       }
-      if (sem("scal-linreport")) {
-        if (m.IsRoot() && par.linreport) {
-          std::cout << "v" << ("xyz"[d]) << ":"
-                    << " res=" << m.GetResidual() << " iter=" << m.GetIter()
-                    << std::endl;
-        }
-      }
     }
 
     if (sem("tovect")) {

@@ -1,6 +1,8 @@
 // Created by Petr Karnakov on 28.02.2020
 // Copyright 2020 ETH Zurich
 
+#pragma once
+
 #include <array>
 #include <tuple>
 #include <vector>
@@ -127,18 +129,16 @@ struct UDebug {
     }
     if (sem("print")) {
       if (m.IsRoot()) {
-        std::cout << "CheckSymmetry() of field '" + fce.GetName() + "':"
+        std::cout << "CheckSymmetry() of system '" + fce.GetName() + "':"
                   << std::endl;
         std::cout << "asymm:" << vnorms[0] << std::endl;
         std::cout << "diag:" << vnorms[1] << std::endl;
         std::cout << "nondiag:" << vnorms[2] << std::endl;
         std::cout << "const:" << vnorms[3] << std::endl;
       }
-      /*
-      if (vnorms[0][2] > 1e-6) {
+      if (vnorms[0][2] > m.flags.check_symmetry_dump_threshold) {
         m.Dump(&fc_asymm, "asymm_" + fce.GetName());
       }
-      */
     }
     if (sem()) {}
   }

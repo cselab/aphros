@@ -648,6 +648,12 @@ class MeshStructured {
   void ClearDump() {
     vd_.clear();
   }
+  struct Flags {
+    bool linreport = false;
+    bool check_symmetry = false;
+    Scal check_symmetry_dump_threshold = 1e-5;
+  };
+  Flags flags;
 
   using Rd = UReduce<Scal>;
   using Op = typename Rd::Op;

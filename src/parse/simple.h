@@ -23,7 +23,6 @@ struct ParsePar<Simple<M>> {
     p.inletflux_numid = var.Int["inletflux_numid"];
     p.convsc = GetConvSc(var.String["convsc"]);
     p.convdf = var.Double["convdf"];
-    p.linreport = var.Int["linreport"];
     p.stokes = var.Int["stokes"];
     p.convsymm = var.Int["convsymm"];
     p.explconv = var.Int["explconv"];
