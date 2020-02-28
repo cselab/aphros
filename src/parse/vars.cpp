@@ -155,6 +155,7 @@ const T& Vars::Map<T>::operator[](Key k) const {
         FILELINE + ": variable '" + k + "' of type '" + GetTypeName() +
         "' not found");
   }
+  ++reads_[k];
   return it->second;
 }
 
@@ -166,25 +167,47 @@ T& Vars::Map<T>::operator[](Key k) {
         FILELINE + ": variable '" + k + "' of type '" + GetTypeName() +
         "' not found");
   }
+  ++reads_[k];
   return it->second;
 }
 
 template <class T>
 auto Vars::Map<T>::Find(Key k) -> Value* {
   auto it = m_.find(k);
-  return it != m_.end() ? &it->second : nullptr;
+  if (it == m_.end()) {
+    return nullptr;
+  }
+  ++reads_[k];
+  return &it->second;
 }
 
 template <class T>
 auto Vars::Map<T>::Find(Key k) const -> const Value* {
   auto it = m_.find(k);
-  return it != m_.end() ? &it->second : nullptr;
+  if (it == m_.end()) {
+    return nullptr;
+  }
+  ++reads_[k];
+  return &it->second;
 }
 
 template <class T>
-auto Vars::Map<T>::operator()(Key k, Value v) const -> Value {
+auto Vars::Map<T>::operator()(Key k, Value def) const -> Value {
   auto it = m_.find(k);
-  return it != m_.end() ? it->second : v;
+  if (it == m_.end()) {
+    return def;
+  }
+  ++reads_[k];
+  return it->second;
+}
+
+template <class T>
+int Vars::Map<T>::GetReads(Key k) const {
+  auto it = reads_.find(k);
+  if (it == reads_.end()) {
+    return 0;
+  }
+  return it->second;
 }
 
 template <class T>
