@@ -17,6 +17,8 @@ struct ConvDiffPar {
   Scal th = 1e-10; // threshold for flow direction
   bool linreport = false; // report linear solvers
   bool stokes = false; // Stokes flow, disable convective fluxes and time
+  bool symm = false; // use symmetric solver for linear system
+  bool explconv = false; // explicit convective fluxes in case Conv::imp
 };
 
 

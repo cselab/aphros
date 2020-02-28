@@ -23,6 +23,8 @@ struct ParsePar<Proj<M>> {
     p.convdf = var.Double["convdf"];
     p.linreport = var.Int["linreport"];
     p.stokes = var.Int["stokes"];
+    p.convsymm = var.Int["convsymm"];
+    p.explconv = var.Int["explconv"];
     std::string conv = var.String["conv"];
     if (conv == "imp") {
       p.conv = Conv::imp;
