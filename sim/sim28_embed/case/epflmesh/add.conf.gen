@@ -25,21 +25,43 @@ set double cflvis 10
 
 set int hypre_symm_maxiter 300
 
+set string init_vf zero
+
 del cfl
 del cfla
 del cflvis
-set double dt0 0.002
+set double dt0 0.001
 
 set double mu1 0.03
 set double mu2 0.003
 set double rho2 0.1
 set double sigma 0.1
 
-set int max_iter 2
-set int min_iter 2
+set int max_iter 1
+set int min_iter 1
+
+#set double pfixed 0
+#set vect pfixed_x 0.5 1 0.5
+
+set int stokes 0
+set int explconv 1
+set int convsymm 1
+
+
+#set int enable_embed 0
 
 set string list_path brnd.dat
 
 set string dumplist p vx vy vz ebvf
+
+set int verbose_conf_reads 1
+set int verbose_conf_unused 1
+set int check_symmetry 0
+set int linreport 0
+set int report_stat 0
+set int report_step_every 1
+
+set int fill_halo_nan 1
+set int CHECKNAN 1
 
 " > add.conf
