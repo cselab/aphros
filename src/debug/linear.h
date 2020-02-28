@@ -102,12 +102,14 @@ struct UDebug {
       FieldCell<Scal> fc_nondiag;
       FieldCell<Scal> fc_const;
       std::vector<generic::Vect<Scal, 3>> vnorms;
+      Scal sum_const;
     } * ctx(sem);
     auto& fc_asymm = ctx->fc_asymm;
     auto& fc_diag = ctx->fc_diag;
     auto& fc_nondiag = ctx->fc_nondiag;
     auto& fc_const = ctx->fc_const;
     auto& vnorms = ctx->vnorms;
+    auto& sum_const = ctx->sum_const;
     if (sem.Nested()) {
       fc_asymm = UDebug<M>::GetAsymmetryField(fce, m);
     }
@@ -127,14 +129,22 @@ struct UDebug {
       vnorms =
           UDebug<M>::GetNorms({&fc_asymm, &fc_diag, &fc_nondiag, &fc_const}, m);
     }
+    if (sem("sum_const")) {
+      sum_const = 0;
+      for (auto c : m.Cells()) {
+        sum_const += fce[c][Expr::dim - 1];
+      }
+      m.Reduce(&sum_const, "sum");
+    }
     if (sem("print")) {
       if (m.IsRoot()) {
         std::cout << "CheckSymmetry() of system '" + fce.GetName() + "':"
                   << std::endl;
-        std::cout << "asymm:" << vnorms[0] << std::endl;
-        std::cout << "diag:" << vnorms[1] << std::endl;
-        std::cout << "nondiag:" << vnorms[2] << std::endl;
-        std::cout << "const:" << vnorms[3] << std::endl;
+        std::cout << "asymm: " << vnorms[0] << std::endl;
+        std::cout << "diag: " << vnorms[1] << std::endl;
+        std::cout << "nondiag: " << vnorms[2] << std::endl;
+        std::cout << "const: " << vnorms[3] << std::endl;
+        std::cout << "sum_const: " << sum_const << std::endl;
       }
       if (vnorms[0][2] > m.flags.check_symmetry_dump_threshold) {
         m.Dump(&fc_asymm, "asymm_" + fce.GetName());
