@@ -134,6 +134,12 @@ struct UDebug {
         std::cout << "nondiag:" << vnorms[2] << std::endl;
         std::cout << "const:" << vnorms[3] << std::endl;
       }
+      /*
+      if (vnorms[0][2] > 1e-6) {
+        m.Dump(&fc_asymm, "asymm_" + fce.GetName());
+      }
+      */
     }
+    if (sem()) {}
   }
 };

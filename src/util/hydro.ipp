@@ -1139,49 +1139,6 @@ void GetFluidCellCond(
                   << std::endl;
       }
     }
-
-    // exclude cells
-    int n = -1;
-    const int nmax = 100;
-    while (true) {
-      ++n;
-      std::string k = "cellbox" + std::to_string(n);
-      if (auto p = var.String.Find(k)) {
-        // set boundary conditions on faces of box (a,b)
-        // normal to d with outer normal towards (b-a)[d]
-        Vect a(var.Vect[k + "_a"]);
-        Vect b(var.Vect[k + "_b"]);
-        Rect<Vect> r(a, b);
-        Vect h = m.GetCellSize();
-        auto& cb = m.GetAllBlockCells();
-        auto& ci = m.GetIndexCells();
-        // round to faces
-        a = Vect(MIdx((a + h * 0.5) / h)) * h;
-        b = Vect(MIdx((b + h * 0.5) / h)) * h;
-        // indices
-        MIdx wa(a / h);
-        MIdx wb(b / h);
-        // box of valid indices
-        MIdx w0 = cb.GetBegin();
-        MIdx w1 = cb.GetEnd();
-        // clip (a,b) to valid indices
-        wa = wa.clip(w0, w1);
-        wb = wb.clip(w0, w1);
-        // size of local block
-        MIdx ws = wb - wa;
-        if (ws.prod() == 0) {
-          continue;
-        }
-        typename M::BlockCells bb(wa, ws);
-        for (auto w : bb) {
-          IdxCell c = ci.GetIdx(w);
-          mcvel[c] = std::make_shared<
-              fluid_condition::GivenVelocityAndPressureFixed<M>>(Vect(0), 0.);
-        }
-      } else if (n > nmax) {
-        break;
-      }
-    }
   }
 }
 
