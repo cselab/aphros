@@ -135,7 +135,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       });
       fcl[c] = sum;
     }
-    RedistributeConstTerms(fcl, eb);
+    //RedistributeConstTerms(fcl, eb);
     for (auto c : eb.Cells()) {
       Expr td(0); // time derivative
       if (!par.stokes) {
@@ -145,8 +145,9 @@ struct ConvDiffScalImp<EB_>::Imp {
       }
 
       Expr& e = fcl[c]; // contains sum of fluxes
-      e = (td + e / eb.GetVolume(c)) * (*owner_->fcr_)[c];
-      e[Expr::dim - 1] -= (*owner_->fcs_)[c];
+      e += td * eb.GetVolume(c);
+      e[Expr::dim - 1] -=
+          (*owner_->fcs_)[c] * eb.GetVolume(c) / (*owner_->fcr_)[c];
 
       // Convert to delta-form
       e[Expr::dim - 1] = Eval(e, c, fcu);
@@ -225,17 +226,19 @@ struct ConvDiffScalImp<EB_>::Imp {
       m.Comm(&u);
     }
   }
+  // coefficient to get dimension of the source term:
+  //   GetDiag() * GetField() ~ owner_->fcs
   FieldCell<Scal> GetDiag() const {
     FieldCell<Scal> fc(eb, 0);
     for (auto c : eb.Cells()) {
-      fc[c] = fcucs_[c][0];
+      fc[c] = fcucs_[c][0] * (*owner_->fcr_)[c] / eb.GetVolume(c);
     }
     return fc;
   }
   FieldCell<Scal> GetConst() const {
     FieldCell<Scal> fc(eb, 0);
     for (auto c : eb.Cells()) {
-      fc[c] = fcucs_[c][Expr::dim - 1];
+      fc[c] = fcucs_[c][Expr::dim - 1] * (*owner_->fcr_)[c] / eb.GetVolume(c);
     }
     return fc;
   }
