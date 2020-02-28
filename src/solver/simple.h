@@ -29,6 +29,8 @@ class Simple final : public FluidSolver<M_> {
     Scal convdf = 1.; // deferred correction factor
     bool linreport = false; // report linear solvers
     bool stokes = false;
+    bool explconv = false; // explicit convection for Conv::imp
+    bool convsymm = false; // symmetric solver for linear system in convdiff
     Conv conv = Conv::imp; // convection-diffusion solver
   };
   // Constructor.

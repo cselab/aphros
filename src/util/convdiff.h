@@ -135,6 +135,8 @@ void SetConvDiffPar(ConvDiffPar& d, const FluidPar& p) {
   d.df = p.convdf;
   d.linreport = p.linreport;
   d.stokes = p.stokes;
+  d.explconv = p.explconv;
+  d.symm = p.convsymm;
 }
 
 template <class ConvDiffPar, class FluidPar>

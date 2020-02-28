@@ -67,11 +67,19 @@ struct ConvDiffScalImp<EB_>::Imp {
     if (!par.stokes) {
       const FieldCell<Vect> fcg =
           UEB::Gradient(UEB::Interpolate(fcu, mebc_, eb), eb);
-      const FieldFaceb<ExprFace> ffu = UEB::InterpolateUpwindImplicit(
-          fcu, mebc_, par.sc, par.df, fcg, ffv, eb);
-      eb.LoopFaces([&](auto cf) { //
-        ffq[cf] += ffu[cf] * ffv[cf];
-      });
+      if (par.explconv) {
+        const FieldFaceb<Scal> ffu =
+            UEB::InterpolateUpwind(fcu, mebc_, par.sc, fcg, ffv, eb);
+        eb.LoopFaces([&](auto cf) { //
+          ffq[cf][2] = ffu[cf] * ffv[cf];
+        });
+      } else {
+        const FieldFaceb<ExprFace> ffu = UEB::InterpolateUpwindImplicit(
+            fcu, mebc_, par.sc, par.df, fcg, ffv, eb);
+        eb.LoopFaces([&](auto cf) { //
+          ffq[cf] += ffu[cf] * ffv[cf];
+        });
+      }
     }
     // diffusive fluxes
     if (owner_->ffd_) {
@@ -133,7 +141,7 @@ struct ConvDiffScalImp<EB_>::Imp {
     }
     if (sem.Nested("solve")) {
       using Type = typename M::LS::T;
-      Solve(fcucs_, nullptr, curr, par.stokes ? Type::symm : Type::gen, m);
+      Solve(fcucs_, nullptr, curr, par.symm ? Type::symm : Type::gen, m);
     }
     if (sem("apply")) {
       // apply, store result in curr
