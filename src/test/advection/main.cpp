@@ -184,7 +184,7 @@ template <class M>
 void Advection<M>::Dump(Sem& sem) {
   // TODO: Suspender: allow change stages between time steps
   if (sem("dump")) {
-    if (dmf_.Try(var.Double["t"], var.Double["dt"])) {
+    if (dmf_.Try(as_->GetTime(), as_->GetTimeStep())) {
       m.Dump(&as_->GetField(), "u");
       m.Dump(&fck_[0], "k");
       if (auto as = dynamic_cast<Vof<M>*>(as_.get())) {
@@ -277,11 +277,10 @@ void Advection<M>::Run() {
   if (sem("stat")) {
     if (m.IsLead()) {
       ++(this->var_mutable.Int["iter"]);
-      this->var_mutable.Double.Set("t", as_->GetTime());
     }
     if (IsRoot()) {
-      Scal t = var.Double["t"];
-      Scal dt = var.Double["dt"];
+      const Scal t = as_->GetTime();
+      const Scal dt = as_->GetTimeStep();
       if (dms_.Try(t, dt)) {
         std::cout << "t=" << t << " dt=" << dt << std::setprecision(16)
                   << " sumu=" << sumu_ << std::endl;
