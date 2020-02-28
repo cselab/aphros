@@ -5,6 +5,8 @@
 #include <omp.h>
 #endif
 
+#include <set>
+
 #include "distrsolver.h"
 #include "linear/hypresub.h"
 #include "util/git.h"
@@ -96,6 +98,44 @@ int RunMpi(
       MPI_Comm comm_omp;
       MPI_Comm_split(comm, rank, rank, &comm_omp);
       RunKernelOpenMP(comm, comm_omp, comm, kernel, var);
+    }
+  }
+
+  if (isroot) {
+    if (var.Int("verbose_conf_reads", 0)) {
+      auto print_reads = [&var](const auto& map) {
+        for (auto it = map.cbegin(); it != map.cend(); ++it) {
+          const auto key = it->first;
+          std::cout << map.GetReads(key) << " " << map.GetTypeName() << " "
+                    << key << std::endl;
+        }
+      };
+      std::cout << "Number of accesses to configuration variables" << std::endl;
+      var.ForEachMap(print_reads);
+    }
+    if (var.Int("verbose_conf_unused", 0)) {
+      const std::string path = var.String["conf_unused_ignore_path"];
+      std::set<std::string> ignore;
+      if (path != "") {
+        Vars vign;
+        Parser parser(vign);
+        std::ifstream f(path);
+        parser.RunAll(f);
+        vign.ForEachMap([&ignore](const auto& map) {
+          for (auto it = map.cbegin(); it != map.cend(); ++it) {
+            ignore.insert(it->first);
+          }
+        });
+      }
+      std::cout << "Unused configuration variables:" << std::endl;
+      var.ForEachMap([&var,&ignore](const auto& map) {
+        for (auto it = map.cbegin(); it != map.cend(); ++it) {
+          const auto key = it->first;
+          if (!ignore.count(key)) {
+            std::cout << map.GetTypeName() << " " << key << std::endl;
+          }
+        }
+      });
     }
   }
 

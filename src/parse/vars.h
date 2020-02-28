@@ -21,7 +21,7 @@ class Vars {
     std::string GetTypeName() const;
     std::string GetStr(Key) const;
     void SetStr(Key, std::string val);
-    Value operator()(Key, Value) const;
+    Value operator()(Key, Value def) const;
     Value& operator[](Key);
     Value* Find(Key);
     const Value* Find(Key) const;
@@ -30,6 +30,7 @@ class Vars {
     bool Contains(Key) const;
     void Del(Key);
     bool DelIfContains(Key);
+    int GetReads(Key) const;
     Iterator begin() {
       return m_.begin();
     }
@@ -45,6 +46,7 @@ class Vars {
 
    private:
     M m_;
+    mutable std::map<Key, int> reads_;
   };
 
   // Returns map by type
@@ -60,6 +62,13 @@ class Vars {
   std::string GetTypeName(Key) const;
   // Deletes entry by key for all types, returns true if found
   bool Del(Key);
+  template <class F>
+  void ForEachMap(F lambda) const {
+    lambda(String);
+    lambda(Int);
+    lambda(Double);
+    lambda(Vect);
+  }
 
   Map<std::string> String;
   Map<int> Int;
