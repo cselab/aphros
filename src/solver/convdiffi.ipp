@@ -54,6 +54,37 @@ struct ConvDiffScalImp<EB_>::Imp {
     }
     return r;
   }
+  void RedistributeCutCells(FieldCell<Expr>& fce, const Embed<M>& eb) {
+    auto& m = eb.GetMesh();
+    FieldCell<Scal> fcr(eb);
+    auto fcu = [&fce](IdxCell c) -> Scal& { //
+      return fce[c][Expr::dim - 1];
+    };
+    for (auto c : eb.Cells()) {
+      fcr[c] = fce[c][Expr::dim - 1];
+      const Scal v0 = m.GetVolume(c);
+      const Scal v = eb.GetVolume(c);
+      // excess quantity
+      const Scal du = fcu(c) * (1 - v / v0);
+      // subtract from current cell
+      fcr[c] -= du;
+      // add from neighbor cells proportional to their volume
+      for (auto cn : eb.Stencil(c)) {
+        if (c != cn) {
+          const Scal vn = eb.GetVolume(cn);
+          // excess quantity in cell cn
+          const Scal dun = fcu(cn) * (1 - vn / v0);
+          fcr[c] += dun * (v / (eb.GetVolumeStencilSum(cn) - vn));
+        }
+      }
+    }
+    for (auto c : eb.Cells()) {
+      fcu(c) =  fcr[c];
+    }
+  }
+  auto RedistributeCutCells(FieldCell<Expr>&, const M& m) {
+    return;
+  }
   // Assembles linear system
   // fcu: field from previous iteration [a]
   // ffv: volume flux
@@ -101,7 +132,11 @@ struct ConvDiffScalImp<EB_>::Imp {
         const ExprFace v = ffq[cf] * eb.GetOutwardFactor(c, q);
         eb.AppendExpr(sum, v, q);
       });
-
+      fcl[c] = sum;
+    }
+    //RedistributeCutCells(fcl, eb);
+    fcl = UEB::RedistributeCutCells(fcl, eb);
+    for (auto c : eb.Cells()) {
       Expr td(0); // time derivative
       if (!par.stokes) {
         td[0] = time_coeff[2];
@@ -109,8 +144,8 @@ struct ConvDiffScalImp<EB_>::Imp {
                             time_coeff[1] * fcu_.time_curr[c];
       }
 
-      Expr& e = fcl[c];
-      e = (td + sum / eb.GetVolume(c)) * (*owner_->fcr_)[c];
+      Expr& e = fcl[c]; // contains sum of fluxes
+      e = (td + e / eb.GetVolume(c)) * (*owner_->fcr_)[c];
       e[Expr::dim - 1] -= (*owner_->fcs_)[c];
 
       // Convert to delta-form
