@@ -42,4 +42,14 @@ set vect gravity 0 0 0
 
 set double slipnormal 1e2
 set double slipnormal_dist 1
+
+set string init_vf zero
+set double sigma 0
+
+set string conv imp
+set int explconv 1
+set int convsymm 1
+set double vrelax 0.1
+set int linreport 1
+set int check_symmetry 1
 " > add.conf
