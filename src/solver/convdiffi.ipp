@@ -9,6 +9,7 @@
 #include "approx_eb.h"
 #include "convdiffi.h"
 #include "debug/isnan.h"
+#include "debug/linear.h"
 #include "linear/linear.h"
 #include "util/convdiff.h"
 
@@ -54,7 +55,7 @@ struct ConvDiffScalImp<EB_>::Imp {
     }
     return r;
   }
-  void RedistributeCutCells(FieldCell<Expr>& fce, const Embed<M>& eb) {
+  void RedistributeConstTerms(FieldCell<Expr>& fce, const Embed<M>& eb) {
     auto& m = eb.GetMesh();
     FieldCell<Scal> fcr(eb);
     auto fcu = [&fce](IdxCell c) -> Scal& { //
@@ -82,7 +83,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       fcu(c) =  fcr[c];
     }
   }
-  auto RedistributeCutCells(FieldCell<Expr>&, const M& m) {
+  auto RedistributeConstTerms(FieldCell<Expr>&, const M&) {
     return;
   }
   // Assembles linear system
@@ -134,8 +135,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       });
       fcl[c] = sum;
     }
-    //RedistributeCutCells(fcl, eb);
-    fcl = UEB::RedistributeCutCells(fcl, eb);
+    RedistributeConstTerms(fcl, eb);
     for (auto c : eb.Cells()) {
       Expr td(0); // time derivative
       if (!par.stokes) {
@@ -173,6 +173,9 @@ struct ConvDiffScalImp<EB_>::Imp {
     }
     if (sem("assemble")) {
       Assemble(prev, *owner_->ffv_, fcucs_);
+    }
+    if (sem.Nested()) {
+      UDebug<M>::CheckSymmetry(fcucs_, m);
     }
     if (sem.Nested("solve")) {
       using Type = typename M::LS::T;

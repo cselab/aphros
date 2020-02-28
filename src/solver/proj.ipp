@@ -346,6 +346,9 @@ struct Proj<EB_>::Imp {
       ctx->fcpcs = GetFluxSum(ctx->ffvc, *owner_->fcsv_);
       ApplyCellCond(fcp_curr, ctx->fcpcs);
     }
+    if (sem.Nested()) {
+      UDebug<M>::CheckSymmetry(fcucs_, m);
+    }
     if (sem.Nested("pcorr-solve")) {
       Solve(ctx->fcpcs, &fcp_curr, fcp_curr, M::LS::T::symm, m);
     }
