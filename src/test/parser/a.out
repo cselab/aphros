@@ -7,6 +7,7 @@ set vect d 1
 
 TestFile
 set string c a b   s c    
+set string dumplist p vx vy vf
 set string s 
 set string sub [sub]
 set string sub_2 a[sub]b
