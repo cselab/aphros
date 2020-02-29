@@ -187,28 +187,29 @@ struct Simple<EB_>::Imp {
     const Scal rh = par.rhie; // rhie factor
     fev.Reinit(m);
     auto& febp = *owner_->febp_;
+
     eb.LoopFaces([&](auto cf) { //
       // mean flux
       auto& v = fev[cf];
       v = fftv[cf].dot(eb.GetSurface(cf));
-      if (!is_boundary_[cf]) { // if not boundary
+      if (!is_boundary_[cf]) {
         const IdxCell cm = eb.GetCell(cf, 0);
         const IdxCell cp = eb.GetCell(cf, 1);
 
         // compact pressure gradient
-        Scal gp = (fcp[cp] - fcp[cm]) / eb.GetCellSize()[0];
+        const Scal gp = (fcp[cp] - fcp[cm]) / eb.GetCellSize()[0];
 
         // compact
-        Scal o = (febp[cf] - gp) * eb.GetArea(cf) / fek[cf];
+        const Scal o = (febp[cf] - gp) * eb.GetArea(cf) / fek[cf];
 
         // wide
-        Vect wm = (fcb_[cm] - fcgp[cm]) / fck[cm];
-        Vect wp = (fcb_[cp] - fcgp[cp]) / fck[cp];
-        Scal w = (wm + wp).dot(eb.GetSurface(cf)) * 0.5;
+        const Vect wm = (fcb_[cm] - fcgp[cm]) / fck[cm];
+        const Vect wp = (fcb_[cp] - fcgp[cp]) / fck[cp];
+        const Scal w = (wm + wp).dot(eb.GetSurface(cf)) * 0.5;
 
         // apply
         v += rh * (o - w);
-      } else { // if boundary
+      } else { // boundary
         // nop, keep mean flux
       }
     });
@@ -234,60 +235,48 @@ struct Simple<EB_>::Imp {
     }
   }
 
-  // Flux expressions in terms of pressure correction pc:
-  //   /  grad(pb+pc) * area / k + v, inner
-  //   \  a, boundary
+  // Flux expressions in terms of pressure correction pcorr:
+  //   /  grad(p + pcorr) * area / k + v, inner
+  //   \  v, boundary
   // fcpb: base pressure [s]
   // ffk: diag coeff [i]
   // fev: addition to flux [i]
   // Output:
   // ffe: result [i], Vect v stores expression: v[0]*cm + v[1]*cp + v[2]
   FieldFaceb<ExprFace> GetFlux(
-      const FieldCell<Scal>& fcpb, const FieldFaceb<Scal>& ffk,
-      const FieldFaceb<Scal>& fev) {
-    FieldFaceb<ExprFace> ffe(m);
-    for (auto f : m.Faces()) {
-      auto& e = ffe[f];
-      IdxCell cm = m.GetCell(f, 0);
-      IdxCell cp = m.GetCell(f, 1);
-      Scal hr = m.GetArea(f) / m.GetVolume(cp);
-      if (!is_boundary_[f]) { // inner
-        Scal a = -m.GetArea(f) * hr / ffk[f];
-        e[0] = -a;
-        e[1] = a;
-        e[2] = (fcpb[cp] - fcpb[cm]) * a + fev[f];
-      } else { // boundary
-        e[0] = 0;
-        e[1] = 0;
-        e[2] = fev[f];
+      const FieldCell<Scal>& fcp, const FieldFaceb<Scal>& ffk,
+      const FieldFaceb<Scal>& ffv) {
+    const FieldFaceb<Scal> ffg = UEB::Gradient(fcp, {}, eb);
+    FieldFaceb<ExprFace> ffe =
+        UEB::GradientImplicit(FieldCell<Scal>(eb, 0), {}, eb);
+    eb.LoopFaces([&](auto cf) { //
+      if (!is_boundary_[cf]) {
+        ffe[cf][2] += ffg[cf];
+        ffe[cf] *= -eb.GetArea(cf) / ffk[cf];
+      } else {
+        ffe[cf] = ExprFace(0);
       }
-    }
+      ffe[cf][2] += ffv[cf];
+    });
     return ffe;
   }
-  // Flux expressions in terms of pressure correction pc:
-  //   /  grad(pc) * area / k + v, inner
+  // Flux expressions in terms of pressure:
+  //   /  grad(p) * area / k + v, inner
   //   \  a, boundary
   // ffk: diag coeff [i]
   // fev: addition to flux [i]
-  // Output:
-  // ffe: result [i], Vect v stores expression: v[0]*cm + v[1]*cp + v[2]
   FieldFaceb<ExprFace> GetFlux(
-      const FieldFaceb<Scal>& ffk, const FieldFaceb<Scal>& fev) {
-    FieldFaceb<ExprFace> ffe(m);
-    for (auto f : m.Faces()) {
-      auto& e = ffe[f];
-      IdxCell cp = m.GetCell(f, 1);
-      Scal hr = m.GetArea(f) / m.GetVolume(cp);
-      if (!is_boundary_[f]) { // inner
-        Scal a = -m.GetArea(f) * hr / ffk[f];
-        e[0] = -a;
-        e[1] = a;
-      } else { // boundary
-        e[0] = 0;
-        e[1] = 0;
+      const FieldFaceb<Scal>& ffk, const FieldFaceb<Scal>& ffv) {
+    FieldFaceb<ExprFace> ffe =
+        UEB::GradientImplicit(FieldCell<Scal>(eb, 0), {}, eb);
+    eb.LoopFaces([&](auto cf) { //
+      if (!is_boundary_[cf]) {
+        ffe[cf] *= -eb.GetArea(cf) / ffk[cf];
+      } else {
+        ffe[cf] = ExprFace(0);
       }
-      e[2] = fev[f];
-    }
+      ffe[cf][2] += ffv[cf];
+    });
     return ffe;
   }
   // Expressions for sum of fluxes and source:
