@@ -235,31 +235,6 @@ struct Simple<EB_>::Imp {
     }
   }
 
-  // Flux expressions in terms of pressure correction pcorr:
-  //   /  grad(p + pcorr) * area / k + v, inner
-  //   \  v, boundary
-  // fcpb: base pressure [s]
-  // ffk: diag coeff [i]
-  // fev: addition to flux [i]
-  // Output:
-  // ffe: result [i], Vect v stores expression: v[0]*cm + v[1]*cp + v[2]
-  FieldFaceb<ExprFace> GetFlux(
-      const FieldCell<Scal>& fcp, const FieldFaceb<Scal>& ffk,
-      const FieldFaceb<Scal>& ffv) {
-    const FieldFaceb<Scal> ffg = UEB::Gradient(fcp, {}, eb);
-    FieldFaceb<ExprFace> ffe =
-        UEB::GradientImplicit(FieldCell<Scal>(eb, 0), {}, eb);
-    eb.LoopFaces([&](auto cf) { //
-      if (!is_boundary_[cf]) {
-        ffe[cf][2] += ffg[cf];
-        ffe[cf] *= -eb.GetArea(cf) / ffk[cf];
-      } else {
-        ffe[cf] = ExprFace(0);
-      }
-      ffe[cf][2] += ffv[cf];
-    });
-    return ffe;
-  }
   // Flux expressions in terms of pressure:
   //   /  grad(p) * area / k + v, inner
   //   \  a, boundary
@@ -297,25 +272,6 @@ struct Simple<EB_>::Imp {
         eb.AppendExpr(sum, v, q);
       });
       sum[Expr::dim - 1] -= fcsv[c] * eb.GetVolume(c);
-      fce[c] = sum;
-    }
-    return fce;
-  }
-  // Expressions for sum of fluxes.
-  //   sum(v)
-  // fev: fluxes [i]
-  // Output:
-  // fce: result [i]
-  FieldCell<Expr> GetFluxSum(const FieldFaceb<ExprFace>& ffv) {
-    // initialize as diagonal system
-    FieldCell<Expr> fce(m, Expr::GetUnit(0));
-    for (auto c : eb.Cells()) {
-      Expr sum(0);
-      eb.LoopNci(c, [&](auto q) {
-        const auto cf = eb.GetFace(c, q);
-        const ExprFace v = ffv[cf] * eb.GetOutwardFactor(c, q);
-        eb.AppendExpr(sum, v, q);
-      });
       fce[c] = sum;
     }
     return fce;
@@ -361,78 +317,6 @@ struct Simple<EB_>::Imp {
         }
         fcf[c] += s / m.GetVolume(c);
       }
-    }
-  }
-  // Restore pressure given velocity and volume flux
-  // Assume MakeIteration() was called for convdiff solver
-  // fcvel: given velocity
-  // fev: given volume flux
-  // fcpp: previous pressure
-  // Output:
-  // fcp: output pressure (may be aliased with fcpp)
-  // fctv_: modified tmp
-  void CalcPressure(
-      const FieldCell<Vect>& fcvel, const FieldEmbed<Scal>& fev,
-      const FieldCell<Scal>& fcpp, FieldCell<Scal>& fcp) {
-    auto sem = m.GetSem("calcpressure");
-    auto& fcl = fctv_; // evaluation of velocity equations
-    if (sem.Nested("cd-asm")) {
-      cd_->Assemble(fcvel, fev.template Get<FieldFaceb<Scal>>());
-    }
-    if (sem.Nested("diag")) {
-      GetDiagCoeff(fck_, ffk_);
-    }
-    if (sem("eval")) {
-      fcl.Reinit(m);
-      for (auto d : edim_range_) {
-        SetComponent(fcl, d, cd_->GetConst(d));
-      }
-      for (auto d : drr_) {
-        SetComponent(fcl, d, 0);
-      }
-      m.Comm(&fcl);
-    }
-    if (sem("assemble")) {
-      const Scal rh = par.rhie; // rhie factor
-      FieldFaceb<Scal> ffa(m); // addition to flux TODO revise comment
-      auto& febp = *owner_->febp_;
-      for (auto f : m.Faces()) {
-        IdxCell cm = m.GetCell(f, 0);
-        IdxCell cp = m.GetCell(f, 1);
-
-        if (!is_boundary_[f]) { // if not boundary
-          auto s = m.GetSurface(f);
-          auto sa = m.GetArea(f);
-          auto kf = rh * sa / ffk_[f];
-          Vect bm =
-              fcvel[cm] - (fcl[cm] - fcgp_[cm] + fcb_[cm]) / fck_[cm] * rh;
-          Vect bp =
-              fcvel[cp] - (fcl[cp] - fcgp_[cp] + fcb_[cp]) / fck_[cp] * rh;
-          ffa[f] = (bm + bp).dot(s) * 0.5 + febp[f] * kf - fev[f];
-        } else { // if boundary
-          ffa[f] = 0.;
-        }
-      }
-      fcl.Free();
-
-      ffvc_ = GetFlux(fcpp, ffk_, ffa);
-      fcpcs_ = GetFluxSum(ffvc_);
-      ApplyCellCond(fcpp, fcpcs_);
-    }
-
-    if (sem.Nested("pcorr-solve")) {
-      Solve(fcpcs_, nullptr, fcpc_, M::LS::T::symm, m);
-    }
-
-    if (sem("apply")) {
-      fcgpc_ = Gradient(UEB::Interpolate(fcpc_, me_pcorr_, m), m);
-
-      // Correct pressure
-      Scal pr = par.prelax; // pressure relaxation
-      for (auto c : m.Cells()) {
-        fcp[c] = fcpp[c] + fcpc_[c] * pr;
-      }
-      m.Comm(&fcp);
     }
   }
   void UpdateBc(typename M::Sem& sem) {
@@ -499,24 +383,6 @@ struct Simple<EB_>::Imp {
       }
     }
 
-    if (par.simpler) {
-      if (sem.Nested("simpler")) {
-        CalcPressure(
-            cd_->GetVelocity(Step::iter_curr), fev_.iter_curr, fcp_curr,
-            fcp_curr);
-      }
-
-      if (sem("pgrad")) {
-        auto ffp = UEB::Interpolate(fcp_curr, me_pressure_, m);
-        fcgp_ = Gradient(ffp, m);
-
-        // append pressure correction gradient to force
-        for (auto c : m.Cells()) {
-          fcfcd_[c] += fcgpc_[c] * (-1.);
-        }
-      }
-    }
-
     if (sem.Nested("convdiff-iter")) {
       // Solve for predictor velocity
       cd_->MakeIteration();
@@ -548,12 +414,10 @@ struct Simple<EB_>::Imp {
     if (sem("pcorr-apply")) {
       CHECKNAN(fcpc_, m.CN())
 
-      if (!par.simpler) {
-        // Correct pressure
-        Scal pr = par.prelax; // pressure relaxation
-        for (auto c : m.AllCells()) {
-          fcp_curr[c] += pr * fcpc_[c];
-        }
+      // Correct pressure
+      Scal pr = par.prelax; // pressure relaxation
+      for (auto c : m.AllCells()) {
+        fcp_curr[c] += pr * fcpc_[c];
       }
 
       // Calc divergence-free volume fluxes

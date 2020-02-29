@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import glob
 import os
 import re
-import mfer.post as mp
+import stream
 
 # Read uniform grid data
 # p: path
@@ -74,7 +74,7 @@ def PlotGrid(ax, x1, y1):
     ax.grid(True)
 
 def PlotStream(x1, y1, vx, vy, o):
-    psi = mp.stream(vx, vy)
+    psi = stream.stream(vx, vy)
     fig, ax = PlotInit()
     plt.contour(x1, y1, psi, 36, colors='k',
                 linestyles="solid", linewidths=1.)
