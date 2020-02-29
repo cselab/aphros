@@ -290,7 +290,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_src2_; // source of second phase volume
   FieldCell<Scal> fc_srcm_; // mass source
   FieldCell<Vect> fc_force_; // force
-  FieldFace<Scal> ffbp_; // balanced force projections
+  FieldEmbed<Scal> febp_; // balanced force projections
 
   MapCondFaceAdvection<Scal> mf_adv_;
   MapCondFace mf_cond_vfsm_;
@@ -464,21 +464,28 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   }
 
   std::string fs = var.String["fluid_solver"];
-  if (eb_) {
-    auto p = ParsePar<Proj<M>>()(var);
-    fs_.reset(new Proj<Embed<M>>(
-        m, *eb_, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
-        &fc_force_, &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
-  } else if (fs == "simple") {
+  if (fs == "simple") {
     auto p = ParsePar<Simple<M>>()(var);
-    fs_.reset(new Simple<M>(
-        m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
-        &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+    if (eb_) {
+      fs_.reset(new Simple<Embed<M>>(
+          m, *eb_, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
+          &fc_force_, &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+    } else {
+      fs_.reset(new Simple<M>(
+          m, m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
+          &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+    }
   } else if (fs == "proj") {
     auto p = ParsePar<Proj<M>>()(var);
-    fs_.reset(new Proj<M>(
-        m, m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
-        &ffbp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+    if (eb_) {
+      fs_.reset(new Proj<Embed<M>>(
+          m, *eb_, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
+          &fc_force_, &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+    } else {
+      fs_.reset(new Proj<M>(
+          m, m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
+          &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+    }
   } else {
     throw std::runtime_error("Unknown fluid_solver=" + fs);
   }
@@ -1423,7 +1430,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     fc_mu_.Reinit(m);
     fc_rho_.Reinit(m);
     fc_force_.Reinit(m, Vect(0));
-    ffbp_.Reinit(m, 0);
+    febp_.Reinit(m, 0);
     fc_smvf_ = fc_vf0;
 
     // XXX: oscillating source
@@ -1521,8 +1528,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     // Append gravity to force
     for (auto f : m.AllFaces()) {
       const Vect n = m.GetNormal(f);
-      ffbp_[f] += force.dot(n);
-      ffbp_[f] += grav.dot(n) * ff_rho[f];
+      febp_[f] += force.dot(n);
+      febp_[f] += grav.dot(n) * ff_rho[f];
     }
 
     if (eb_) {
@@ -1534,16 +1541,16 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         const auto x = m.GetCenter(c);
         fcp[c] = grav.dot(x);
       }
-      ffbp_ = UEmbed<M>::Gradient(fcp, {}, eb).GetFieldFace();
+      febp_ = UEmbed<M>::Gradient(fcp, {}, eb);
       for (auto f : m.AllFaces()) {
-        ffbp_[f] *= ff_rho[f];
+        febp_[f] *= ff_rho[f];
       }
     }
 
     // Surface tension
     if (var.Int["enable_surftens"] && as_) {
       CalcSurfaceTension(
-          m, layers, var, fc_force_, ffbp_, fc_sig_,
+          m, layers, var, fc_force_, febp_.GetFieldFace(), fc_sig_,
           GetCondZeroGrad<Scal>(mf_fluid_), fck_, fc_vf0, af, as_.get());
     }
 
@@ -1551,7 +1558,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       auto& eb = *eb_;
       for (auto f : m.AllFaces()) {
         if (eb.GetType(f) == Embed<M>::Type::excluded) {
-          ffbp_[f] = 0;
+          febp_[f] = 0;
         }
       }
     }
@@ -1608,7 +1615,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       for (auto f : m.AllFaces()) {
         Vect n = m.GetNormal(f);
         Vect x = m.GetCenter(f);
-        ffbp_[f] += Vect(std::sin(x[1]), 0., 0.).dot(n);
+        febp_[f] += Vect(std::sin(x[1]), 0., 0.).dot(n);
       }
     }
 
@@ -1617,7 +1624,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       for (auto f : m.AllFaces()) {
         Vect n = m.GetNormal(f);
         Vect x = m.GetCenter(f);
-        ffbp_[f] += Vect(std::sin(x[1]), 0., 0.).dot(n) * ff_rho[f];
+        febp_[f] += Vect(std::sin(x[1]), 0., 0.).dot(n) * ff_rho[f];
       }
     }
 
@@ -1626,7 +1633,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       for (auto f : m.Faces()) {
         using Dir = typename M::Dir;
         if (m.GetIndexFaces().GetDir(f) == Dir::k) {
-          ffbp_[f] = 0.; // XXX: zero in z
+          febp_[f] = 0.; // XXX: zero in z
         }
       }
     }

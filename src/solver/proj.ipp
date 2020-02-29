@@ -38,24 +38,20 @@ template <class EB_>
 struct Proj<EB_>::Imp {
   using Owner = Proj<EB>;
   using CD = ConvDiffVect<EB>; // convdiff solver
-  // Expression on face: v[0] * cm + v[1] * cp + v[2]
-  using ExprFace = generic::Vect<Scal, 3>;
-  // Expression on cell: v[0] * c + v[1] * cxm + ... + v[6] * czp + v[7]
-  using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
+  using ExprFace = typename M::ExprFace;
+  using Expr = typename M::Expr;
   using UEB = UEmbed<M>;
 
   Imp(Owner* owner, const EB& eb0, const FieldCell<Vect>& fcvel,
       const MapEmbed<BCondFluid<Vect>>& mebc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par,
-      const FieldFace<Scal>* ffbp)
+      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par)
       : owner_(owner)
       , par(par)
       , m(owner_->m)
       , eb(eb0)
       , edim_range_(m.GetEdim())
       , mebc_(mebc)
-      , mcc_(mcc)
-      , ffbp_(ffbp) {
+      , mcc_(mcc) {
     using namespace fluid_condition;
 
     UpdateDerivedConditions();
@@ -64,14 +60,14 @@ struct Proj<EB_>::Imp {
     typename CD::Par p;
     SetConvDiffPar(p, par);
     cd_ = GetConvDiff<EB>()(
-        par.conv, m, eb, fcvel, mebc_vel_, owner_->fcr_, &ffd_, &fcfcd_,
+        par.conv, m, eb, fcvel, me_vel_, owner_->fcr_, &ffd_, &fcfcd_,
         &fev_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
 
     fcp_.time_curr.Reinit(m, 0.);
     fcp_.time_prev = fcp_.time_curr;
 
     // Calc initial volume fluxes
-    auto ffwe = UEB::Interpolate(cd_->GetVelocity(), mebc_vel_, eb);
+    const auto ffwe = UEB::Interpolate(cd_->GetVelocity(), me_vel_, eb);
     fev_.time_curr.Reinit(m, 0.);
     eb.LoopFaces([&](auto cf) { //
       fev_.time_curr[cf] = ffwe[cf].dot(eb.GetSurface(cf));
@@ -88,7 +84,7 @@ struct Proj<EB_>::Imp {
   void UpdateDerivedConditions() {
     using namespace fluid_condition;
 
-    mebc_vel_ = GetVelCond<M>(mebc_);
+    me_vel_ = GetVelCond<M>(mebc_);
     mebc_.LoopPairs([&](auto p) {
       const auto cf = p.first;
       const auto& bc = p.second;
@@ -106,12 +102,12 @@ struct Proj<EB_>::Imp {
     mccp_.clear();
     for (auto& it : mcc_) {
       const IdxCell c = it.first;
-      const CondCellFluid* cb = it.second.get(); // cond base
+      const CondCellFluid* cb = it.second.get();
 
       if (auto cd = dynamic_cast<const GivenPressure<M>*>(cb)) {
         mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
       } else {
-        throw std::runtime_error("proj: unknown cell condition");
+        throw std::runtime_error(FILELINE + ": unknown cell condition");
       }
     }
 
@@ -221,7 +217,7 @@ struct Proj<EB_>::Imp {
   // fcf += viscous term [i]
   void AppendExplViscous(
       const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const M& m) {
-    const auto wf = UEB::Interpolate(fcvel, mebc_vel_, m);
+    const auto wf = UEB::Interpolate(fcvel, me_vel_, m);
     for (auto d : edim_range_) {
       const auto wfo = GetComponent(wf, d);
       const auto gc = ::Gradient(wfo, m);
@@ -251,12 +247,12 @@ struct Proj<EB_>::Imp {
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(
           m, eb, cd_->GetVelocity(Step::iter_curr), mebc_, par.inletflux_numid,
-          mebc_vel_);
+          me_vel_);
     }
     if (sem.Nested("bc-outlet")) {
       UFluid<M>::template UpdateOutletVelocity(
           m, eb, cd_->GetVelocity(Step::iter_curr), mebc_, *owner_->fcsv_,
-          mebc_vel_);
+          me_vel_);
     }
   }
   Scal Eval(const Expr& e, IdxCell c, const FieldCell<Scal>& fcu) {
@@ -315,11 +311,10 @@ struct Proj<EB_>::Imp {
     }
 
     if (sem("pcorr-assemble")) {
-      FieldFaceb<Scal> febp(eb, 0);
-      febp = *ffbp_;
+      const auto& febp = *owner_->febp_;
       // Acceleration
       const FieldFaceb<Vect> ffvel =
-          UEB::Interpolate(cd_->GetVelocity(Step::iter_curr), mebc_vel_, eb);
+          UEB::Interpolate(cd_->GetVelocity(Step::iter_curr), me_vel_, eb);
       eb.LoopFaces([&](auto cf) { //
         auto& v = fev_.iter_curr[cf];
         v = ffvel[cf].dot(eb.GetSurface(cf));
@@ -345,8 +340,7 @@ struct Proj<EB_>::Imp {
       });
 
       // Acceleration and correction of velocity
-      FieldEmbed<Scal> febp(eb, 0);
-      febp = *ffbp_;
+      const auto& febp = *owner_->febp_;
       auto ffgp = UEB::Gradient(fcp_curr, me_pressure_, eb);
       ctx->fcvel_corr.Reinit(m, Vect(0));
       for (auto c : eb.Cells()) {
@@ -406,7 +400,7 @@ struct Proj<EB_>::Imp {
 
   // Face conditions
   const MapEmbed<BCondFluid<Vect>>& mebc_;
-  MapEmbed<BCond<Vect>> mebc_vel_;
+  MapEmbed<BCond<Vect>> me_vel_;
   MapEmbed<BCond<Scal>> me_pressure_;
   MapEmbed<BCond<Vect>> me_force_;
   MapEmbed<BCond<Scal>> me_visc_;
@@ -415,13 +409,12 @@ struct Proj<EB_>::Imp {
   MapCell<std::shared_ptr<CondCellFluid>> mcc_; // fluid cell cond
   MapCell<std::shared_ptr<CondCell>> mccp_; // pressure cell cond
 
-  const FieldFace<Scal>* ffbp_;
   StepData<FieldEmbed<Scal>> fev_; // volume flux
   StepData<FieldCell<Scal>> fcp_; // pressure
 
   std::shared_ptr<CD> cd_;
 
-  FieldEmbed<bool> is_boundary_; // is boundary
+  FieldEmbed<bool> is_boundary_; // true on faces with boundary conditions
 
   // Cell fields:
   FieldCell<Vect> fcfcd_; // force for convdiff [i]
@@ -434,11 +427,13 @@ template <class EB_>
 Proj<EB_>::Proj(
     M& m, const EB& eb, const FieldCell<Vect>& fcvel,
     const MapEmbed<BCondFluid<Vect>>& mebc,
-    const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
-    FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
-    FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt, Par par)
-    : FluidSolver<M>(t, dt, m, fcr, fcd, fcf, nullptr, fcsv, fcsm)
-    , imp(new Imp(this, eb, fcvel, mebc, mcc, par, ffbp)) {}
+    const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
+    const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
+    const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* febp,
+    const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
+    double dt, Par par)
+    : Base(t, dt, m, fcr, fcd, fcf, febp, fcsv, fcsm)
+    , imp(new Imp(this, eb, fcvel, mebc, mcc, par)) {}
 
 template <class EB_>
 Proj<EB_>::~Proj() = default;
@@ -495,5 +490,5 @@ double Proj<EB_>::GetError() const {
 
 template <class EB_>
 auto Proj<EB_>::GetVelocityCond() const -> const MapEmbed<BCond<Vect>>& {
-  return imp->mebc_vel_;
+  return imp->me_vel_;
 }

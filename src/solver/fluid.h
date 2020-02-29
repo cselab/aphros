@@ -27,7 +27,7 @@ class FluidSolver : public UnsteadyIterativeSolver {
   const FieldCell<Scal>* fcr_; // density
   const FieldCell<Scal>* fcd_; // dynamic viscosity
   const FieldCell<Vect>* fcf_; // force
-  const FieldFace<Scal>* ffbp_; //  balanced force projections
+  const FieldEmbed<Scal>* febp_; //  balanced force projections
   const FieldCell<Scal>* fcsv_; // volume source
   const FieldCell<Scal>* fcsm_; // mass source
 
@@ -35,20 +35,20 @@ class FluidSolver : public UnsteadyIterativeSolver {
   // fcr: density
   // fcd: dynamic viscosity
   // fcf: force
-  // ffbp: projections of balanced force
+  // febp: projections of balanced force
   // fcsv: volume source
   // fcsm: mass source
   FluidSolver(
       double t, double dt, M& m, const FieldCell<Scal>* fcr,
       const FieldCell<Scal>* fcd, const FieldCell<Vect>* fcf,
-      const FieldFace<Scal>* ffbp, const FieldCell<Scal>* fcsv,
+      const FieldEmbed<Scal>* febp, const FieldCell<Scal>* fcsv,
       const FieldCell<Scal>* fcsm)
       : UnsteadyIterativeSolver(t, dt)
       , m(m)
       , fcr_(fcr)
       , fcd_(fcd)
       , fcf_(fcf)
-      , ffbp_(ffbp)
+      , febp_(febp)
       , fcsv_(fcsv)
       , fcsm_(fcsm) {}
   virtual const FieldCell<Vect>& GetVelocity(Step) const = 0;
