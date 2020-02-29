@@ -135,7 +135,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       });
       fcl[c] = sum;
     }
-    //RedistributeConstTerms(fcl, eb);
+    RedistributeConstTerms(fcl, eb);
     for (auto c : eb.Cells()) {
       Expr td(0); // time derivative
       if (!par.stokes) {

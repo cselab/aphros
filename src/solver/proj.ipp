@@ -161,8 +161,7 @@ struct Proj<EB_>::Imp {
   FieldFaceb<ExprFace> GetFlux(
       const FieldCell<Scal>& fcp, const FieldEmbed<Scal>& fek,
       const FieldEmbed<Scal>& ffv) {
-    FieldFaceb<ExprFace> ff_flux =
-        UEB::GradientImplicit(fcp, me_pressure_, eb);
+    FieldFaceb<ExprFace> ff_flux = UEB::GradientImplicit(fcp, me_pressure_, eb);
     eb.LoopFaces([&](auto cf) { //
       ff_flux[cf] *= -eb.GetArea(cf) / fek[cf];
       ff_flux[cf][2] += ffv[cf];
@@ -251,12 +250,12 @@ struct Proj<EB_>::Imp {
     }
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(
-          m, eb, GetVelocity(Step::iter_curr), mebc_, par.inletflux_numid,
+          m, eb, cd_->GetVelocity(Step::iter_curr), mebc_, par.inletflux_numid,
           mebc_vel_);
     }
     if (sem.Nested("bc-outlet")) {
       UFluid<M>::template UpdateOutletVelocity(
-          m, eb, GetVelocity(Step::iter_curr), mebc_, *owner_->fcsv_,
+          m, eb, cd_->GetVelocity(Step::iter_curr), mebc_, *owner_->fcsv_,
           mebc_vel_);
     }
   }
@@ -321,15 +320,15 @@ struct Proj<EB_>::Imp {
       // Acceleration
       const FieldFaceb<Vect> ffvel =
           UEB::Interpolate(cd_->GetVelocity(Step::iter_curr), mebc_vel_, eb);
-      for (auto f : eb.Faces()) {
-        Scal v = ffvel[f].dot(eb.GetSurface(f));
-        if (!is_boundary_[f]) { // inner
-          v += febp[f] * eb.GetArea(f) / ctx->fek[f];
+      eb.LoopFaces([&](auto cf) { //
+        auto& v = fev_.iter_curr[cf];
+        v = ffvel[cf].dot(eb.GetSurface(cf));
+        if (!is_boundary_[cf]) { // inner
+          v += febp[cf] * eb.GetArea(cf) / ctx->fek[cf];
         } else { // boundary
           // nop, keep the mean flux
         }
-        fev_.iter_curr[f] = v;
-      }
+      });
 
       // Projection
       ctx->ffvc = GetFlux(fcp_curr, ctx->fek, fev_.iter_curr);

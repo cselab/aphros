@@ -143,28 +143,6 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
   return fnl;
 }
 
-template <class M, class T>
-auto FitLinear(IdxCell c, const FieldCell<T>& fcu, const Embed<M>& eb) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  auto& m = eb.GetMesh();
-  std::vector<Vect> xx;
-  std::vector<T> uu;
-  for (auto cn : eb.Stencil(c)) {
-    xx.push_back(m.GetCenter(cn));
-    uu.push_back(fcu[cn]);
-  }
-  return ULinear<Scal>::FitLinear(xx, uu);
-}
-
-template <class M, class T>
-T EvalLinearFit(
-    typename M::Vect x, IdxCell c, const FieldCell<T>& fcu,
-    const Embed<M>& eb) {
-  auto p = FitLinear(c, fcu, eb);
-  return ULinear<typename M::Scal>::EvalLinear(p, x);
-}
-
 //                                             //
 //            ---------------------            //
 //            |         |         |            //
