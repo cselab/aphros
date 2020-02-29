@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import glob
 import os
 import re
-import mfer.post as mp
 
 # Read uniform grid data
 # p: path
@@ -82,8 +81,6 @@ for f in ff:
     x1 = (0.5 + np.arange(sx)) * hx
     y1 = (0.5 + np.arange(sy)) * hy
     x, y = np.meshgrid(x1, y1)
-
-    psi = mp.stream(vx, vy)
 
     po = os.path.splitext(f)[0] + ".pdf"
     print(po)
