@@ -3,4 +3,6 @@
 
 #include "simple.ipp"
 
-template class Simple<MeshStructured<double, 3>>;
+using M = MeshStructured<double, 3>;
+template class Simple<M>;
+template class Simple<Embed<M>>;

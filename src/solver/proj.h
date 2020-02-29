@@ -38,7 +38,7 @@ class Proj final : public FluidSolver<typename EB_::M> {
   using Par = ProjPar<Scal>;
 
   // Constructor.
-  // fcw: initial velocity
+  // fcvel: initial velocity
   // mfc: face conditions
   // mcc: cell conditions
   // fcr: density
@@ -51,12 +51,13 @@ class Proj final : public FluidSolver<typename EB_::M> {
   // dt: time step
   // par: parameters
   Proj(
-      M& m, const EB& eb, const FieldCell<Vect>& fcw,
+      M& m, const EB& eb, const FieldCell<Vect>& fcvel,
       const MapEmbed<BCondFluid<Vect>>& mebc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, FieldCell<Scal>* fcr,
-      FieldCell<Scal>* fcd, FieldCell<Vect>* fcf, FieldFace<Scal>* ffbp,
-      FieldCell<Scal>* fcsv, FieldCell<Scal>* fcsm, double t, double dt,
-      Par par);
+      const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
+      const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
+      const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* ffbp,
+      const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
+      double dt, Par par);
   ~Proj();
   const Par& GetPar() const;
   void SetPar(Par);
