@@ -105,6 +105,26 @@ struct ULinear {
   }
 };
 
+template <class EB, class T>
+auto FitLinear(IdxCell c, const FieldCell<T>& fcu, const EB& eb) {
+  using Scal = typename EB::Scal;
+  using Vect = typename EB::Vect;
+  auto& m = eb.GetMesh();
+  std::vector<Vect> xx;
+  std::vector<T> uu;
+  for (auto cn : eb.Stencil(c)) {
+    xx.push_back(m.GetCenter(cn));
+    uu.push_back(fcu[cn]);
+  }
+  return ULinear<Scal>::FitLinear(xx, uu);
+}
+
+template <class EB, class T>
+T EvalLinearFit(
+    typename EB::Vect x, IdxCell c, const FieldCell<T>& fcu, const EB& eb) {
+  auto p = FitLinear(c, fcu, eb);
+  return ULinear<typename EB::Scal>::EvalLinear(p, x);
+}
 
 template <class M_>
 struct UEmbed {

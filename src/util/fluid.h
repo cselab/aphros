@@ -7,6 +7,19 @@
 #include "solver/cond.h"
 #include "solver/fluid.h"
 
+template <class M>
+struct Extrapolate {
+  using Vect = typename M::Vect;
+  template <class T>
+  T operator()(Vect x, IdxCell c, const FieldCell<T>& fcu, const Embed<M>& eb) {
+    return EvalLinearFit(x, c, fcu, eb);
+  }
+  template <class T>
+  T operator()(Vect, IdxCell c, const FieldCell<T>& fcu, const M&) {
+    return fcu[c];
+  }
+};
+
 template <class M_>
 class UFluid {
  public:
@@ -54,7 +67,7 @@ class UFluid {
             }
             case BCondFluidType::outlet: {
               const Scal q = (nci == 0 ? 1. : -1.);
-              Vect vel = fcvel[c];
+              Vect vel = Extrapolate<M>()(eb.GetFaceCenter(cf), c, fcvel, eb);
               const Vect n = eb.GetNormal(cf);
               // clip normal component, let only positive
               // (otherwise reversed flow leads to instability)
