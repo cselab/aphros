@@ -55,9 +55,9 @@ class UFluid {
             case BCondFluidType::outlet: {
               const Scal q = (nci == 0 ? 1. : -1.);
               Vect vel = fcvel[c];
+              const Vect n = eb.GetNormal(cf);
               // clip normal component, let only positive
               // (otherwise reversed flow leads to instability)
-              const Vect n = eb.GetNormal(cf);
               vel -= n * (q * std::min(0., vel.dot(n) * q));
               fluxout += vel.dot(eb.GetSurface(cf)) * q;
               areaout += eb.GetArea(cf);
@@ -70,7 +70,7 @@ class UFluid {
 
       // Append volume source to inlet flux
       for (auto c : eb.Cells()) {
-        fluxin += fcsv[c] * m.GetVolume(c);
+        fluxin += fcsv[c] * eb.GetVolume(c);
       }
 
       m.Reduce(&fluxin, "sum");
