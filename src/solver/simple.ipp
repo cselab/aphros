@@ -286,18 +286,18 @@ struct Simple<EB_>::Imp {
   // Output:
   // fce: result [i]
   FieldCell<Expr> GetFluxSum(
-      const FieldFaceb<ExprFace>& fev, const FieldCell<Scal>& fcsv) {
-    FieldCell<Expr> fce(m, Expr(0));
-    for (auto c : m.Cells()) {
-      auto& e = fce[c];
-      for (auto q : m.Nci(c)) {
-        const IdxFace f = m.GetFace(c, q);
-        const ExprFace v = fev[f] * m.GetOutwardFactor(c, q);
-        e[0] += v[1 - q % 2];
-        e[1 + q] += v[q % 2];
-        e[Expr::dim - 1] += v[2];
-      }
-      e[Expr::dim - 1] -= fcsv[c] * m.GetVolume(c);
+      const FieldFaceb<ExprFace>& ffv, const FieldCell<Scal>& fcsv) {
+    // initialize as diagonal system
+    FieldCell<Expr> fce(m, Expr::GetUnit(0));
+    for (auto c : eb.Cells()) {
+      Expr sum(0);
+      eb.LoopNci(c, [&](auto q) {
+        const auto cf = eb.GetFace(c, q);
+        const ExprFace v = ffv[cf] * eb.GetOutwardFactor(c, q);
+        eb.AppendExpr(sum, v, q);
+      });
+      sum[Expr::dim - 1] -= fcsv[c] * eb.GetVolume(c);
+      fce[c] = sum;
     }
     return fce;
   }
@@ -306,17 +306,17 @@ struct Simple<EB_>::Imp {
   // fev: fluxes [i]
   // Output:
   // fce: result [i]
-  FieldCell<Expr> GetFluxSum(const FieldFaceb<ExprFace>& fev) {
-    FieldCell<Expr> fce(m, Expr(0));
-    for (auto c : m.Cells()) {
-      auto& e = fce[c];
-      for (auto q : m.Nci(c)) {
-        IdxFace f = m.GetFace(c, q);
-        ExprFace v = fev[f] * m.GetOutwardFactor(c, q);
-        e[0] += v[1 - q % 2];
-        e[1 + q] += v[q % 2];
-        e[Expr::dim - 1] += v[2];
-      }
+  FieldCell<Expr> GetFluxSum(const FieldFaceb<ExprFace>& ffv) {
+    // initialize as diagonal system
+    FieldCell<Expr> fce(m, Expr::GetUnit(0));
+    for (auto c : eb.Cells()) {
+      Expr sum(0);
+      eb.LoopNci(c, [&](auto q) {
+        const auto cf = eb.GetFace(c, q);
+        const ExprFace v = ffv[cf] * eb.GetOutwardFactor(c, q);
+        eb.AppendExpr(sum, v, q);
+      });
+      fce[c] = sum;
     }
     return fce;
   }
