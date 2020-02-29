@@ -222,7 +222,6 @@ struct Simple<EB_>::Imp {
   // fcpb: base pressure [i]
   // fcs: linear system in terms of correction of base pressure [i]
   void ApplyCellCond(const FieldCell<Scal>& fcpb, FieldCell<Expr>& fcs) {
-    (void)fcpb;
     for (auto& it : mccp_) {
       const IdxCell c = it.first; // target cell
       const CondCell* cb = it.second.get(); // cond base
@@ -234,6 +233,7 @@ struct Simple<EB_>::Imp {
       }
     }
   }
+
   // Flux expressions in terms of pressure correction pc:
   //   /  grad(pb+pc) * area / k + v, inner
   //   \  a, boundary
