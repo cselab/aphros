@@ -1760,7 +1760,8 @@ void Hydro<M>::DumpFields() {
     }
   }
   if (sem()) {
-  } // XXX: empty stage, otherwise ctx is destroyed before dump
+    // XXX: empty stage, otherwise ctx is destroyed before dump
+  }
   if (var.Int["enable_advection"]) {
     if (var.Int["dumppoly"] && sem.Nested()) {
       as_->DumpInterface(GetDumpName("s", ".vtk", dumper_.GetN()));
@@ -1943,8 +1944,8 @@ void Hydro<M>::Run() {
   if (sem.Nested("fs-start")) {
     fs_->StartStep();
   }
-  if (var.Int["enable_fluid"]) {
-    if (sem.Nested("fs-iters")) {
+  if (sem.Nested("fs-iters")) {
+    if (var.Int["enable_fluid"]) {
       StepFluid();
     }
   }
@@ -1952,20 +1953,9 @@ void Hydro<M>::Run() {
     fs_->FinishStep();
   }
 
-  if (var.Int["enable_advection"]) {
-    if (sem.Nested("as-steps")) {
+  if (sem.Nested("as-steps")) {
+    if (var.Int["enable_advection"]) {
       StepAdvection();
-    }
-    if (sem.Nested("as-post")) {
-      as_->PostStep();
-    }
-    if (sem.Nested("curv")) {
-      psm_ = UCurv<M>::CalcCurvPart(layers, as_.get(), psm_par_, fck_, m);
-    }
-    if (var.Int["enable_bubgen"]) {
-      if (sem.Nested("bubgen")) {
-        StepBubgen();
-      }
     }
   }
 
@@ -2158,6 +2148,17 @@ void Hydro<M>::StepAdvection() {
     }
   }
   sem.LoopEnd();
+  if (sem.Nested("as-post")) {
+    as_->PostStep();
+  }
+  if (sem.Nested("curv")) {
+    psm_ = UCurv<M>::CalcCurvPart(layers, as_.get(), psm_par_, fck_, m);
+  }
+  if (var.Int["enable_bubgen"]) {
+    if (sem.Nested("bubgen")) {
+      StepBubgen();
+    }
+  }
 }
 
 template <class M>
