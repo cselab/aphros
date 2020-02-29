@@ -12,44 +12,8 @@ sin=`aw "-sin($angle)*$mag"`
 cos=`aw "-cos($angle)*$mag"`
 
 echo "
-set string dumplist p vx vy div vf
-
-set double sigma 0.1
-
-#set string body_init list
-#set int enable_embed 0
-
-set double rho2 0.1
-set double dtmax 0.1
-set double mu1 0.001
-set double mu2 0.0001
-
-set double sharpen_cfl 0.1
-
-set double tmax 5
-
-set string advection_solver vofm
-
 set vect gravity $sin $cos 0
-
-set int enable_color 1
-
-set int enable_bc 1
-set string bc_path bc.dat
-
-set string list_path b2.dat
 set vect gravity 0 0 0
 
-set double slipnormal 1e2
-set double slipnormal_dist 1
-
-set string init_vf zero
-set double sigma 0
-
-set string conv imp
-set int explconv 1
-set int convsymm 1
-set double vrelax 0.1
-set int linreport 1
-set int check_symmetry 1
+set string list_path b2.dat
 " > add.conf
