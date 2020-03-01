@@ -255,22 +255,6 @@ struct Proj<EB_>::Imp {
           me_vel_);
     }
   }
-  Scal Eval(const Expr& e, IdxCell c, const FieldCell<Scal>& fcu) {
-    Scal r = e[Expr::dim - 1];
-    r += fcu[c] * e[0];
-    for (auto q : eb.Nci(c)) {
-      r += fcu[eb.GetCell(c, q)] * e[1 + q];
-    }
-    return r;
-  }
-  Scal Eval(const ExprFace& e, IdxFace f, const FieldCell<Scal>& fcu) {
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
-    return fcu[cm] * e[0] + fcu[cp] * e[1] + e[2];
-  }
-  Scal Eval(const ExprFace& e, IdxCell c, const FieldCell<Scal>& fcu) {
-    return fcu[c] * e[0] + e[2];
-  }
   void MakeIteration() {
     auto sem = m.GetSem("fluid-iter");
     struct {
@@ -336,7 +320,7 @@ struct Proj<EB_>::Imp {
     }
     if (sem("pcorr-apply")) {
       eb.LoopFaces([&](auto cf) {
-        fev_.iter_curr[cf] = Eval(ctx->ffvc[cf], cf, fcp_curr);
+        fev_.iter_curr[cf] = UEB::Eval(ctx->ffvc[cf], cf, fcp_curr, eb);
       });
 
       // Acceleration and correction of velocity
