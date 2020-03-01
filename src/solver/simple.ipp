@@ -128,16 +128,13 @@ struct Simple<EB_>::Imp {
   // fcb: restored force
   void CalcExtForce(const FieldEmbed<Scal>& febp, FieldCell<Vect>& fcb) {
     auto sem = m.GetSem("extforce");
-
     if (sem("loc")) {
       fcb.Reinit(m);
       for (auto c : eb.Cells()) {
         Vect sum(0);
         eb.LoopNci(c, [&](auto q) {
           const auto cf = eb.GetFace(c, q);
-          if (!is_boundary_[cf]) {
-            sum += eb.GetNormal(cf) * (febp[cf] * 0.5);
-          }
+          sum += eb.GetNormal(cf) * (febp[cf] * 0.5);
         });
         fcb[c] = sum;
       }
