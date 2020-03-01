@@ -959,3 +959,35 @@ auto UEmbed<M>::Gradient(const FieldFace<Scal>& ffu, const M& m)
   return fcg;
 }
 
+template <class M>
+auto UEmbed<M>::AverageGradient(const FieldEmbed<Scal>& feg, const EB& eb)
+    -> FieldCell<Vect> {
+  FieldCell<Vect> fcg(eb, Vect(0));
+  for (auto c : eb.AllCells()) {
+    Vect sum(0);
+    Scal sumw = 0;
+    eb.LoopNci(c, [&](auto q) {
+      const auto cf = eb.GetFace(c, q);
+      const Scal w = eb.GetArea(cf);
+      sum += eb.GetNormal(cf) * (feg[cf] * w);
+      sumw += w;
+    });
+    fcg[c] = sum / sumw;
+  }
+  return fcg;
+}
+
+template <class M>
+auto UEmbed<M>::AverageGradient(const FieldFace<Scal>& ffg, const M& m)
+    -> FieldCell<Vect> {
+  FieldCell<Vect> fcg(m, Vect(0));
+  for (auto c : m.AllCells()) {
+    Vect sum(0);
+    for (auto q : m.Nci(c)) {
+      const auto f = m.GetFace(c, q);
+      sum += m.GetNormal(f) * (ffg[f] * 0.5);
+    }
+    fcg[c] = sum;
+  }
+  return fcg;
+}

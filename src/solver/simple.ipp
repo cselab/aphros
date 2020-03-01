@@ -59,7 +59,7 @@ struct Simple<EB_>::Imp {
     typename CD::Par p;
     SetConvDiffPar(p, par);
     cd_ = GetConvDiff<EB>()(
-        par.conv, m, eb, fcvel, me_vel_, owner_->fcr_, &ffd_, &fcfcd_,
+        par.conv, m, eb, fcvel, me_vel_, owner_->fcr_, &ffvisc_, &fcfcd_,
         &fev_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
 
     fcp_.time_curr.Reinit(m, 0.);
@@ -121,6 +121,8 @@ struct Simple<EB_>::Imp {
     mebc_.LoopPairs([&](auto p) { //
       is_boundary_[p.first] = true;
     });
+
+    ffvisc_ = UEB::Interpolate(*owner_->fcd_, me_visc_, eb);
   }
   // Restore force from projections.
   // febp: force projections, bp=b.dot(n)
@@ -294,7 +296,8 @@ struct Simple<EB_>::Imp {
   // fcvel: velocity [a]
   // Output:
   // fcf += viscous term [i]
-  void AppendExplViscous(const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf) {
+  void AppendExplViscous(
+      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const M& m) {
     const auto wf = UEB::Interpolate(fcvel, me_vel_, m);
     for (auto d : edim_range_) {
       const auto wfo = GetComponent(wf, d);
@@ -304,11 +307,19 @@ struct Simple<EB_>::Imp {
         Vect s(0);
         for (auto q : m.Nci(c)) {
           IdxFace f = m.GetFace(c, q);
-          s += gf[f] * (ffd_[f] * m.GetOutwardSurface(c, q)[d]);
+          s += gf[f] * (ffvisc_[f] * m.GetOutwardSurface(c, q)[d]);
         }
         fcf[c] += s / m.GetVolume(c);
       }
     }
+  }
+  void AppendExplViscous(
+      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const Embed<M>& eb) {
+    // FIXME: not implemented
+    (void)fcvel;
+    (void)fcf;
+    (void)eb;
+    return;
   }
   void UpdateBc(typename M::Sem& sem) {
     if (sem("bc-derived")) {
@@ -341,7 +352,7 @@ struct Simple<EB_>::Imp {
     }
 
     if (sem("explvisc")) {
-      AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_);
+      AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_, eb);
     }
   }
   // TODO: rewrite norm() using dist() where needed
@@ -368,9 +379,6 @@ struct Simple<EB_>::Imp {
     if (sem("init")) {
       cd_->SetPar(UpdateConvDiffPar(cd_->GetPar(), par));
 
-      // interpolate visosity
-      ffd_ = UEB::Interpolate(*owner_->fcd_, me_visc_, m);
-
       // rotate layers
       fcp_prev = fcp_curr;
       fev_.iter_prev = fev_.iter_curr;
@@ -381,7 +389,8 @@ struct Simple<EB_>::Imp {
     CalcForce(sem);
 
     if (sem("pgrad")) {
-      fcgp = UEB::Gradient(UEB::Interpolate(fcp_curr, me_pressure_, eb), eb);
+      fcgp =
+          UEB::AverageGradient(UEB::Gradient(fcp_curr, me_pressure_, eb), eb);
 
       // append pressure gradient to force
       for (auto c : eb.Cells()) {
@@ -390,7 +399,6 @@ struct Simple<EB_>::Imp {
     }
 
     if (sem.Nested("convdiff-iter")) {
-      // Solve for predictor velocity
       cd_->MakeIteration();
     }
 
@@ -432,7 +440,7 @@ struct Simple<EB_>::Imp {
       CHECKNAN(fev_.iter_curr, m.CN())
 
       const auto fcgpc =
-          UEB::Gradient(UEB::Interpolate(fcpc, me_pcorr_, eb), eb);
+          UEB::AverageGradient(UEB::Gradient(fcpc, me_pcorr_, eb), eb);
 
       // Calc velocity correction
       fcvel_corr.Reinit(m);
@@ -507,7 +515,7 @@ struct Simple<EB_>::Imp {
   FieldCell<Vect> fcfcd_; // force for convdiff [i]
 
   // Face fields:
-  FieldFaceb<Scal> ffd_; // dynamic viscosity
+  FieldFaceb<Scal> ffvisc_; // dynamic viscosity
 };
 
 template <class EB_>
