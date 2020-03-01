@@ -50,9 +50,7 @@ struct Simple<EB_>::Imp {
       , edim_range_(0, m.GetEdim())
       , drr_(m.GetEdim(), dim)
       , mebc_(mebc)
-      , mcc_(mcc)
-      , fcpcs_(m)
-      , ffvc_(m) {
+      , mcc_(mcc) {
     using namespace fluid_condition;
 
     UpdateDerivedConditions();
@@ -82,7 +80,6 @@ struct Simple<EB_>::Imp {
     fev_.time_prev = fev_.time_curr;
 
     const auto ffp = UEB::Interpolate(fcp_.time_curr, me_pressure_, eb);
-    fcgp_ = UEB::Gradient(ffp, eb);
   }
 
   void UpdateDerivedConditions() {
@@ -107,13 +104,14 @@ struct Simple<EB_>::Imp {
       }
     });
 
-    mccp_.clear();
+    mc_pressure_.clear();
     for (auto& it : mcc_) {
       const IdxCell c = it.first;
       const CondCellFluid* cb = it.second.get();
 
       if (auto cd = dynamic_cast<const GivenPressure<M>*>(cb)) {
-        mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
+        mc_pressure_[c] =
+            std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
       } else {
         throw std::runtime_error(FILELINE + ": unknown cell condition");
       }
@@ -178,15 +176,16 @@ struct Simple<EB_>::Imp {
   // fck, ffk: diag coeff [s]
   // Output:
   // fev: result [i]
-  void RhieChow(
+  FieldFaceb<Scal> RhieChow(
       const FieldCell<Vect>& fcvel, const FieldCell<Scal>& fcp,
       const FieldCell<Vect>& fcgp, const FieldCell<Scal>& fck,
-      const FieldFaceb<Scal>& fek, FieldFaceb<Scal>& fev) {
+      const FieldFaceb<Scal>& fek) {
     auto fftv = UEB::Interpolate(fcvel, me_vel_, eb);
+    FieldFaceb<Scal> fev(m);
 
     const Scal rh = par.rhie; // rhie factor
-    fev.Reinit(m);
     auto& febp = *owner_->febp_;
+    auto& fcbp = fcb_;
 
     eb.LoopFaces([&](auto cf) { //
       // mean flux
@@ -203,8 +202,8 @@ struct Simple<EB_>::Imp {
         const Scal o = (febp[cf] - gp) * eb.GetArea(cf) / fek[cf];
 
         // wide
-        const Vect wm = (fcb_[cm] - fcgp[cm]) / fck[cm];
-        const Vect wp = (fcb_[cp] - fcgp[cp]) / fck[cp];
+        const Vect wm = (fcbp[cm] - fcgp[cm]) / fck[cm];
+        const Vect wp = (fcbp[cp] - fcgp[cp]) / fck[cp];
         const Scal w = (wm + wp).dot(eb.GetSurface(cf)) * 0.5;
 
         // apply
@@ -218,12 +217,13 @@ struct Simple<EB_>::Imp {
     eb.LoopFaces([&](auto cf) { //
       fev[cf] -= par.meshvel.dot(eb.GetSurface(cf));
     });
+    return fev;
   }
   // Apply cell conditions for pressure.
   // fcpb: base pressure [i]
   // fcs: linear system in terms of correction of base pressure [i]
   void ApplyCellCond(const FieldCell<Scal>& fcpb, FieldCell<Expr>& fcs) {
-    for (auto& it : mccp_) {
+    for (auto& it : mc_pressure_) {
       const IdxCell c = it.first; // target cell
       const CondCell* cb = it.second.get(); // cond base
       if (auto cd = dynamic_cast<const CondCellVal<Scal>*>(cb)) {
@@ -356,6 +356,22 @@ struct Simple<EB_>::Imp {
   // TODO: rewrite norm() using dist() where needed
   void MakeIteration() {
     auto sem = m.GetSem("fluid-iter");
+    struct {
+      FieldCell<Vect> fcgp; // pressure gradient
+      FieldCell<Expr> fcpcs; // pressure correction linear system
+      FieldFaceb<ExprFace> ffvc; // expression for corrected volume flux [i]
+      FieldCell<Vect> fcvelcorr;
+      FieldCell<Scal> fck; // diag coeff of velocity equation
+      FieldCell<Scal> fcpc; // pressurue correction
+      FieldFaceb<Scal> ffk; // diag coeff of velocity equation
+    } * ctx(sem);
+    auto& fcgp = ctx->fcgp;
+    auto& fcvelcorr = ctx->fcvelcorr;
+    auto& fck = ctx->fck;
+    auto& ffk = ctx->ffk;
+    auto& fcpcs = ctx->fcpcs;
+    auto& ffvc = ctx->ffvc;
+    auto& fcpc = ctx->fcpc;
     auto& fcp_prev = fcp_.iter_prev;
     auto& fcp_curr = fcp_.iter_curr;
     if (sem("init")) {
@@ -374,12 +390,11 @@ struct Simple<EB_>::Imp {
     CalcForce(sem);
 
     if (sem("pgrad")) {
-      auto ffp = UEB::Interpolate(fcp_curr, me_pressure_, m);
-      fcgp_ = Gradient(ffp, m);
+      fcgp = UEB::Gradient(UEB::Interpolate(fcp_curr, me_pressure_, eb), eb);
 
       // append pressure gradient to force
       for (auto c : m.Cells()) {
-        fcfcd_[c] += fcgp_[c] * (-1.);
+        fcfcd_[c] += fcgp[c] * (-1.);
       }
     }
 
@@ -389,68 +404,60 @@ struct Simple<EB_>::Imp {
     }
 
     if (sem.Nested("diag")) {
-      GetDiagCoeff(fck_, ffk_);
+      GetDiagCoeff(fck, ffk);
     }
 
     if (sem("pcorr-assemble")) {
-      RhieChow(
-          cd_->GetVelocity(Step::iter_curr), fcp_curr, fcgp_, fck_, ffk_,
-          ffve_);
-      CHECKNAN(ffve_, m.CN())
+      const auto fev_rhie =
+          RhieChow(cd_->GetVelocity(Step::iter_curr), fcp_curr, fcgp, fck, ffk);
+      CHECKNAN(fev_rhie, m.CN())
 
-      ffvc_ = GetFlux(ffk_, ffve_);
-      CHECKNAN(ffvc_, m.CN())
+      ffvc = GetFlux(ffk, fev_rhie);
+      CHECKNAN(ffvc, m.CN())
 
-      fcpcs_ = GetFluxSum(ffvc_, *owner_->fcsv_);
-      CHECKNAN(fcpcs_, m.CN())
+      fcpcs = GetFluxSum(ffvc, *owner_->fcsv_);
+      CHECKNAN(fcpcs, m.CN())
 
-      ApplyCellCond(fcp_curr, fcpcs_);
+      ApplyCellCond(fcp_curr, fcpcs);
     }
 
     if (sem.Nested("pcorr-solve")) {
-      Solve(fcpcs_, nullptr, fcpc_, M::LS::T::symm, m);
+      Solve(fcpcs, nullptr, fcpc, M::LS::T::symm, m);
     }
 
     if (sem("pcorr-apply")) {
-      CHECKNAN(fcpc_, m.CN())
+      CHECKNAN(fcpc, m.CN())
 
       // Correct pressure
       Scal pr = par.prelax; // pressure relaxation
       for (auto c : m.AllCells()) {
-        fcp_curr[c] += pr * fcpc_[c];
+        fcp_curr[c] += pr * fcpc[c];
       }
 
       // Calc divergence-free volume fluxes
-      for (auto f : m.Faces()) {
-        IdxCell cm = m.GetCell(f, 0);
-        IdxCell cp = m.GetCell(f, 1);
-        auto& e = ffvc_[f];
-        fev_.iter_curr[f] = e[0] * fcpc_[cm] + e[1] * fcpc_[cp] + e[2];
+      for (auto f : eb.Faces()) {
+        fev_.iter_curr[f] = UEB::Eval(ffvc[f], f, fcpc, eb);
       }
       CHECKNAN(fev_.iter_curr, m.CN())
 
-      auto ffpc = UEB::Interpolate(fcpc_, me_pcorr_, m);
-      CHECKNAN(ffpc, m.CN())
-      fcgpc_ = Gradient(ffpc, m);
-      CHECKNAN(fcgpc_, m.CN())
+      const auto fcgpc =
+          UEB::Gradient(UEB::Interpolate(fcpc, me_pcorr_, eb), eb);
 
       // Calc velocity correction
-      fcvelcorr_.Reinit(m);
-      for (auto c : m.Cells()) {
-        fcvelcorr_[c] = fcgpc_[c] / (-fck_[c]);
+      fcvelcorr.Reinit(m);
+      for (auto c : eb.Cells()) {
+        fcvelcorr[c] = -fcgpc[c] / fck[c];
       }
-      CHECKNAN(fcvelcorr_, m.CN())
+      CHECKNAN(fcvelcorr, m.CN())
     }
 
     if (sem.Nested("convdiff-corr")) {
       // Correct velocity and comm
-      cd_->CorrectVelocity(Step::iter_curr, fcvelcorr_);
+      cd_->CorrectVelocity(Step::iter_curr, fcvelcorr);
     }
 
     if (sem("inc-iter")) {
       owner_->IncIter();
-      fcvelcorr_.Free();
-      fck_.Free();
     }
   }
   void FinishStep() {
@@ -501,7 +508,7 @@ struct Simple<EB_>::Imp {
 
   // Cell conditions
   MapCell<std::shared_ptr<CondCellFluid>> mcc_; // fluid cell cond
-  MapCell<std::shared_ptr<CondCell>> mccp_; // pressure cell cond
+  MapCell<std::shared_ptr<CondCell>> mc_pressure_; // pressure cell cond
 
   StepData<FieldEmbed<Scal>> fev_; // volume flux
   StepData<FieldCell<Scal>> fcp_; // pressure
@@ -511,24 +518,11 @@ struct Simple<EB_>::Imp {
   FieldEmbed<bool> is_boundary_; // true on faces with boundary conditions
 
   // Cell fields:
-  FieldCell<Vect> fcgp_; // gradient of pressure
-  FieldCell<Scal> fck_; // diag coeff of velocity equation
-  FieldCell<Expr> fcpcs_; // pressure correction linear system [i]
-  FieldCell<Scal> fcpc_; // pressure correction
-  FieldCell<Vect> fcgpc_; // gradient of pressure correction
-  FieldCell<Vect> fcvelcorr_; // velocity correction
   FieldCell<Vect> fcb_; // restored balanced force [s]
   FieldCell<Vect> fcfcd_; // force for convdiff [i]
 
-  // tmp
-  FieldCell<Scal> fct_;
-  FieldCell<Vect> fctv_;
-
   // Face fields:
   FieldFaceb<Scal> ffd_; // dynamic viscosity
-  FieldFaceb<Scal> ffve_; // predicted volume flux [i]
-  FieldFaceb<Scal> ffk_; // diag coeff of velocity equation
-  FieldFaceb<ExprFace> ffvc_; // expression for corrected volume flux [i]
 };
 
 template <class EB_>

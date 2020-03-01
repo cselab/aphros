@@ -204,6 +204,7 @@ struct UEmbed {
       const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv, const M& m);
 
   using ExprFace = typename M::ExprFace;
+  using Expr = typename M::Expr;
 
   // Implicit interpolation with deferred correction.
   // fcu: field cell from previous iteration [s]
@@ -240,5 +241,28 @@ struct UEmbed {
     return GradientLinearFit(feu, eb);
   }
   static FieldCell<Vect> Gradient(const FieldFace<Scal>& ffu, const M& m);
+
+  template <class MEB>
+  static Scal Eval(
+      const Expr& e, IdxCell c, const FieldCell<Scal>& fcu, const MEB& meb) {
+    Scal r = e[Expr::dim - 1];
+    r += fcu[c] * e[0];
+    for (auto q : meb.Nci(c)) {
+      r += fcu[meb.GetCell(c, q)] * e[1 + q];
+    }
+    return r;
+  }
+  template <class MEB>
+  static Scal Eval(
+      const ExprFace& e, IdxFace f, const FieldCell<Scal>& fcu,
+      const MEB& meb) {
+    const IdxCell cm = meb.GetCell(f, 0);
+    const IdxCell cp = meb.GetCell(f, 1);
+    return fcu[cm] * e[0] + fcu[cp] * e[1] + e[2];
+  }
+  static Scal Eval(
+      const ExprFace& e, IdxCell c, const FieldCell<Scal>& fcu, const EB&) {
+    return fcu[c] * e[0] + e[2];
+  }
 }
 ;
