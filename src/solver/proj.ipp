@@ -60,7 +60,7 @@ struct Proj<EB_>::Imp {
     typename CD::Par p;
     SetConvDiffPar(p, par);
     cd_ = GetConvDiff<EB>()(
-        par.conv, m, eb, fcvel, me_vel_, owner_->fcr_, &ffd_, &fcfcd_,
+        par.conv, m, eb, fcvel, me_vel_, owner_->fcr_, &ffvisc_, &fcfcd_,
         &fev_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
 
     fcp_.time_curr.Reinit(m, 0.);
@@ -115,6 +115,8 @@ struct Proj<EB_>::Imp {
     mebc_.LoopPairs([&](auto p) { //
       is_boundary_[p.first] = true;
     });
+
+    ffvisc_ = UEB::Interpolate(*owner_->fcd_, me_visc_, eb);
   }
   void StartStep() {
     auto sem = m.GetSem("fluid-start");
@@ -226,7 +228,7 @@ struct Proj<EB_>::Imp {
         Vect s(0);
         for (auto q : eb.Nci(c)) {
           const IdxFace f = m.GetFace(c, q);
-          s += gf[f] * (ffd_[f] * m.GetOutwardSurface(c, q)[d]);
+          s += gf[f] * (ffvisc_[f] * m.GetOutwardSurface(c, q)[d]);
         }
         fcf[c] += s / m.GetVolume(c);
       }
@@ -267,9 +269,6 @@ struct Proj<EB_>::Imp {
     auto& fcp_curr = fcp_.iter_curr;
     if (sem("init")) {
       cd_->SetPar(UpdateConvDiffPar(cd_->GetPar(), par));
-
-      // interpolate visosity
-      ffd_ = UEB::Interpolate(*owner_->fcd_, me_visc_, eb);
 
       // rotate layers
       fcp_prev = fcp_curr;
@@ -402,7 +401,7 @@ struct Proj<EB_>::Imp {
   FieldCell<Vect> fcfcd_; // force for convdiff [i]
 
   // Face fields:
-  FieldFaceb<Scal> ffd_; // dynamic viscosity
+  FieldFaceb<Scal> ffvisc_; // dynamic viscosity
 };
 
 template <class EB_>
