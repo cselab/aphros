@@ -242,6 +242,11 @@ struct UEmbed {
   }
   static FieldCell<Vect> Gradient(const FieldFace<Scal>& ffu, const M& m);
 
+  static FieldCell<Vect> AverageGradient(
+      const FieldEmbed<Scal>& ffg, const EB& eb);
+  static FieldCell<Vect> AverageGradient(
+      const FieldFace<Scal>& ffg, const M& m);
+
   template <class MEB>
   static Scal Eval(
       const Expr& e, IdxCell c, const FieldCell<Scal>& fcu, const MEB& meb) {
