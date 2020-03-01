@@ -130,23 +130,17 @@ struct Simple<EB_>::Imp {
     auto sem = m.GetSem("extforce");
 
     if (sem("loc")) {
-      // XXX specific for Cartesian mesh
-      // TODO consider just a weighted average of fn * n
-      //      weight should be proportional to accuracy gradient approx
-      //      which is better if surface area is larger
       fcb.Reinit(m);
-      for (auto c : m.Cells()) {
-        Vect s(0);
-        for (auto q : m.Nci(c)) {
-          // TODO: revise for non-rectangular cell
-          IdxFace f = m.GetFace(c, q);
-          s +=
-              m.GetSurface(f) * (febp[f] * m.GetVolume(c) / m.GetArea(f) * 0.5);
-        }
-        fcb[c] = s / m.GetVolume(c);
+      for (auto c : eb.Cells()) {
+        Vect sum(0);
+        eb.LoopNci(c, [&](auto q) {
+          const auto cf = eb.GetFace(c, q);
+          if (!is_boundary_[cf]) {
+            sum += eb.GetNormal(cf) * (febp[cf] * 0.5);
+          }
+        });
+        fcb[c] = sum;
       }
-
-      // TODO: comm febp_ instead
       m.Comm(&fcb);
     }
   }
@@ -283,11 +277,11 @@ struct Simple<EB_>::Imp {
       fck.Reinit(m, 0);
       for (auto d : edim_range_) {
         auto fct = cd_->GetDiag(d);
-        for (auto c : m.Cells()) {
+        for (auto c : eb.Cells()) {
           fck[c] += fct[c];
         }
       }
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         fck[c] /= edim_range_.size();
       }
 
@@ -344,7 +338,7 @@ struct Simple<EB_>::Imp {
       fcfcd_.Reinit(m, Vect(0));
       // append force and balanced force
       auto& fcf = *owner_->fcf_;
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         fcfcd_[c] += fcf[c] + fcb_[c];
       }
     }
@@ -360,13 +354,13 @@ struct Simple<EB_>::Imp {
       FieldCell<Vect> fcgp; // pressure gradient
       FieldCell<Expr> fcpcs; // pressure correction linear system
       FieldFaceb<ExprFace> ffvc; // expression for corrected volume flux [i]
-      FieldCell<Vect> fcvelcorr;
+      FieldCell<Vect> fcvel_corr;
       FieldCell<Scal> fck; // diag coeff of velocity equation
       FieldCell<Scal> fcpc; // pressurue correction
       FieldFaceb<Scal> ffk; // diag coeff of velocity equation
     } * ctx(sem);
     auto& fcgp = ctx->fcgp;
-    auto& fcvelcorr = ctx->fcvelcorr;
+    auto& fcvel_corr = ctx->fcvel_corr;
     auto& fck = ctx->fck;
     auto& ffk = ctx->ffk;
     auto& fcpcs = ctx->fcpcs;
@@ -393,7 +387,7 @@ struct Simple<EB_>::Imp {
       fcgp = UEB::Gradient(UEB::Interpolate(fcp_curr, me_pressure_, eb), eb);
 
       // append pressure gradient to force
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         fcfcd_[c] += fcgp[c] * (-1.);
       }
     }
@@ -419,43 +413,40 @@ struct Simple<EB_>::Imp {
       CHECKNAN(fcpcs, m.CN())
 
       ApplyCellCond(fcp_curr, fcpcs);
+      fcpcs.SetName("pressure");
     }
 
     if (sem.Nested("pcorr-solve")) {
       Solve(fcpcs, nullptr, fcpc, M::LS::T::symm, m);
     }
-
     if (sem("pcorr-apply")) {
       CHECKNAN(fcpc, m.CN())
 
       // Correct pressure
       Scal pr = par.prelax; // pressure relaxation
-      for (auto c : m.AllCells()) {
+      for (auto c : eb.AllCells()) {
         fcp_curr[c] += pr * fcpc[c];
       }
 
       // Calc divergence-free volume fluxes
-      for (auto f : eb.Faces()) {
-        fev_.iter_curr[f] = UEB::Eval(ffvc[f], f, fcpc, eb);
-      }
+      eb.LoopFaces([&](auto cf) {
+        fev_.iter_curr[cf] = UEB::Eval(ffvc[cf], cf, fcpc, eb);
+      });
       CHECKNAN(fev_.iter_curr, m.CN())
 
       const auto fcgpc =
           UEB::Gradient(UEB::Interpolate(fcpc, me_pcorr_, eb), eb);
 
       // Calc velocity correction
-      fcvelcorr.Reinit(m);
+      fcvel_corr.Reinit(m);
       for (auto c : eb.Cells()) {
-        fcvelcorr[c] = -fcgpc[c] / fck[c];
+        fcvel_corr[c] = -fcgpc[c] / fck[c];
       }
-      CHECKNAN(fcvelcorr, m.CN())
+      CHECKNAN(fcvel_corr, m.CN())
     }
-
     if (sem.Nested("convdiff-corr")) {
-      // Correct velocity and comm
-      cd_->CorrectVelocity(Step::iter_curr, fcvelcorr);
+      cd_->CorrectVelocity(Step::iter_curr, fcvel_corr);
     }
-
     if (sem("inc-iter")) {
       owner_->IncIter();
     }
@@ -474,15 +465,12 @@ struct Simple<EB_>::Imp {
       cd_->FinishStep();
     }
   }
-  double GetAutoTimeStep() {
+  double GetAutoTimeStep() const {
     Scal dt = std::numeric_limits<Scal>::max();
-    auto& flux = fev_.time_curr;
-    for (auto c : m.Cells()) {
-      for (size_t i = 0; i < m.GetNumFaces(c); ++i) {
-        IdxFace f = m.GetFace(c, i);
-        if (flux[f] != 0.) {
-          dt = std::min<Scal>(dt, std::abs(m.GetVolume(c) / flux[f]));
-        }
+    for (auto f : eb.Faces()) {
+      const Scal vel = fev_.time_curr[f] / m.GetArea(f);
+      if (vel != 0.) {
+        dt = std::min<Scal>(dt, std::abs(m.GetCellSize()[0] / vel));
       }
     }
     return dt;
