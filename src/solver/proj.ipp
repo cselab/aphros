@@ -339,11 +339,9 @@ struct Proj<EB_>::Imp {
         ctx->fcvel_corr[c] = sum;
       }
     }
-
     if (sem.Nested("convdiff-corr")) {
       cd_->CorrectVelocity(Step::iter_curr, ctx->fcvel_corr);
     }
-
     if (sem("inc-iter")) {
       owner_->IncIter();
     }
@@ -362,7 +360,7 @@ struct Proj<EB_>::Imp {
       cd_->FinishStep();
     }
   }
-  double GetAutoTimeStep() {
+  double GetAutoTimeStep() const {
     Scal dt = std::numeric_limits<Scal>::max();
     for (auto f : eb.Faces()) {
       const Scal vel = fev_.time_curr[f] / m.GetArea(f);
