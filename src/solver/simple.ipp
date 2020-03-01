@@ -91,16 +91,14 @@ struct Simple<EB_>::Imp {
       const auto& bc = p.second;
       const auto nci = bc.nci;
       me_visc_[cf] = BCond<Scal>(BCondType::neumann, nci);
+      me_pressure_[cf] = BCond<Scal>(BCondType::neumann, nci);
+      me_pcorr_[cf] = BCond<Scal>(BCondType::neumann, nci);
 
       if (bc.type == BCondFluidType::slipwall ||
           bc.type == BCondFluidType::symm) {
         me_force_[cf] = BCond<Vect>(BCondType::mixed, nci);
-        me_pressure_[cf] = BCond<Scal>(BCondType::neumann, nci);
-        me_pcorr_[cf] = BCond<Scal>(BCondType::neumann, nci);
       } else {
         me_force_[cf] = BCond<Vect>(BCondType::neumann, nci);
-        me_pressure_[cf] = BCond<Scal>(BCondType::extrap, nci);
-        me_pcorr_[cf] = BCond<Scal>(BCondType::extrap, nci);
       }
     });
 
@@ -123,25 +121,6 @@ struct Simple<EB_>::Imp {
     });
 
     ffvisc_ = UEB::Interpolate(*owner_->fcd_, me_visc_, eb);
-  }
-  // Restore force from projections.
-  // febp: force projections, bp=b.dot(n)
-  // Output:
-  // fcb: restored force
-  void CalcExtForce(const FieldEmbed<Scal>& febp, FieldCell<Vect>& fcb) {
-    auto sem = m.GetSem("extforce");
-    if (sem("loc")) {
-      fcb.Reinit(m);
-      for (auto c : eb.Cells()) {
-        Vect sum(0);
-        eb.LoopNci(c, [&](auto q) {
-          const auto cf = eb.GetFace(c, q);
-          sum += eb.GetNormal(cf) * (febp[cf] * 0.5);
-        });
-        fcb[c] = sum;
-      }
-      m.Comm(&fcb);
-    }
   }
   void StartStep() {
     auto sem = m.GetSem("fluid-start");
@@ -178,7 +157,7 @@ struct Simple<EB_>::Imp {
 
     const Scal rh = par.rhie; // rhie factor
     auto& febp = *owner_->febp_;
-    auto& fcbp = fcb_;
+    auto& fcbp = fc_bforce_;
 
     eb.LoopFaces([&](auto cf) { //
       // mean flux
@@ -337,8 +316,10 @@ struct Simple<EB_>::Imp {
     }
   }
   void CalcForce(typename M::Sem& sem) {
-    if (sem.Nested("forceinit")) {
-      CalcExtForce(*owner_->febp_, fcb_);
+    if (sem("forceinit")) {
+      fc_bforce_ = UEB::AverageGradient(
+          owner_->febp_->template Get<FieldFaceb<Scal>>(), eb);
+      m.Comm(&fc_bforce_);
     }
 
     if (sem("forceinit")) {
@@ -347,7 +328,7 @@ struct Simple<EB_>::Imp {
       // append force and balanced force
       auto& fcf = *owner_->fcf_;
       for (auto c : eb.Cells()) {
-        fcfcd_[c] += fcf[c] + fcb_[c];
+        fcfcd_[c] += fcf[c] + fc_bforce_[c];
       }
     }
 
@@ -511,7 +492,7 @@ struct Simple<EB_>::Imp {
   FieldEmbed<bool> is_boundary_; // true on faces with boundary conditions
 
   // Cell fields:
-  FieldCell<Vect> fcb_; // restored balanced force [s]
+  FieldCell<Vect> fc_bforce_; // restored balanced force [s]
   FieldCell<Vect> fcfcd_; // force for convdiff [i]
 
   // Face fields:
