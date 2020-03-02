@@ -1,0 +1,11 @@
+r () {
+  ./run $@
+  ./update
+}
+
+r simple imp force
+r simple exp force
+r simple imp gravity
+r simple exp gravity
+r simple imp force univisc
+r simple exp force univisc
