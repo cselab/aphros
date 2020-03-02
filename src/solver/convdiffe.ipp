@@ -51,17 +51,17 @@ struct ConvDiffScalExp<EB_>::Imp {
   void Assemble(
       const FieldCell<Scal>& fcu, const FieldFaceb<Scal>& ffv,
       FieldCell<Scal>& fcla, FieldCell<Scal>& fclb) const {
-    const FieldCell<Vect> fcg =
-        UEB::Gradient(UEB::Interpolate(fcu, mebc_, eb), eb);
-
-    fcla.Reinit(m);
+    fcla.Reinit(m, 0);
     fclb.Reinit(m, 0);
+    // convective fluxes
     if (!par.stokes) {
-      // convective fluxes
-      FieldFaceb<Scal> ffq =
+      FieldFaceb<Scal> ffq(eb, 0);
+      const FieldCell<Vect> fcg =
+          UEB::Gradient(UEB::Interpolate(fcu, mebc_, eb), eb);
+      const FieldFaceb<Scal> ffu =
           UEB::InterpolateUpwind(fcu, mebc_, par.sc, fcg, ffv, eb);
       eb.LoopFaces([&](auto cf) { //
-        ffq[cf] *= ffv[cf];
+        ffq[cf] = ffu[cf] * ffv[cf];
       });
       for (auto c : eb.Cells()) {
         Scal sum = 0;
@@ -72,11 +72,12 @@ struct ConvDiffScalExp<EB_>::Imp {
         fclb[c] += sum * (*owner_->fcr_)[c];
       }
     }
+    // diffusive fluxes
     if (owner_->ffd_) {
-      // diffusive fluxes
-      FieldFaceb<Scal> ffq = UEB::Gradient(fcu, mebc_, eb);
+      FieldFaceb<Scal> ffq(eb, 0);
+      const FieldFaceb<Scal> ffg = UEB::Gradient(fcu, mebc_, eb);
       eb.LoopFaces([&](auto cf) { //
-        ffq[cf] *= -(*owner_->ffd_)[cf] * eb.GetArea(cf);
+        ffq[cf] = -ffg[cf] * (*owner_->ffd_)[cf] * eb.GetArea(cf);
       });
       for (auto c : eb.Cells()) {
         Scal sum = 0;
@@ -87,24 +88,28 @@ struct ConvDiffScalExp<EB_>::Imp {
         fclb[c] += sum;
       }
     }
-
     fclb = UEB::RedistributeCutCells(fclb, eb);
-    for (auto c : eb.Cells()) {
-      fclb[c] /= eb.GetVolume(c);
+
+    // time derivative
+    if (!par.stokes) {
+      const Scal dt = owner_->GetTimeStep();
+      const std::vector<Scal> tt =
+          GetGradCoeffs(0., {-(dt + dtp_), -dt, 0.}, par.second ? 0 : 1);
+      for (auto c : eb.Cells()) {
+        const Scal a = eb.GetVolume(c) * (*owner_->fcr_)[c];
+        fcla[c] += tt[2] * a;
+        fclb[c] += (tt[0] * fcu_.time_prev[c] + tt[1] * fcu_.time_curr[c]) * a;
+      }
+    } else {
+      for (auto c : eb.Cells()) {
+        fcla[c] += eb.GetVolume(c);
+        fclb[c] -= fcu[c] * eb.GetVolume(c);
+      }
     }
 
-    // time derivative coeffs
-    const Scal dt = owner_->GetTimeStep();
-    const std::vector<Scal> ac =
-        GetGradCoeffs(0., {-(dt + dtp_), -dt, 0.}, par.second ? 0 : 1);
-
-    for (IdxCell c : eb.Cells()) {
-      // time derivative
-      Scal r = (*owner_->fcr_)[c];
-      fcla[c] = ac[2] * r;
-      fclb[c] += (ac[0] * fcu_.time_prev[c] + ac[1] * fcu_.time_curr[c]) * r;
+    for (auto c : eb.Cells()) {
       // source
-      fclb[c] += -(*owner_->fcs_)[c];
+      fclb[c] -= (*owner_->fcs_)[c] * eb.GetVolume(c);
       // delta form
       fclb[c] += fcla[c] * fcu[c];
       // under-relaxation
@@ -192,10 +197,18 @@ struct ConvDiffScalExp<EB_>::Imp {
     }
   }
   FieldCell<Scal> GetDiag() const {
-    return fcla_;
+    FieldCell<Scal> fc(eb, 0);
+    for (auto c : eb.Cells()) {
+      fc[c] = fcla_[c] / eb.GetVolume(c);
+    }
+    return fc;
   }
   FieldCell<Scal> GetConst() const {
-    return fclb_;
+    FieldCell<Scal> fc(eb, 0);
+    for (auto c : eb.Cells()) {
+      fc[c] = fclb_[c] / eb.GetVolume(c);
+    }
+    return fc;
   }
 
   Owner* owner_;

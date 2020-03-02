@@ -96,6 +96,10 @@ struct ConvDiffScalImp<EB_>::Imp {
       FieldCell<Expr>& fcl) {
     fcl.Reinit(eb, Expr::GetUnit(0)); // initialize as diagonal system
 
+    for (auto c : eb.Cells()) {
+      fcl[c] = Expr(0);
+    }
+
     // convective fluxes
     if (!par.stokes) {
       FieldFaceb<ExprFace> ffq(eb, ExprFace(0));
@@ -147,14 +151,13 @@ struct ConvDiffScalImp<EB_>::Imp {
     // time derivative
     if (!par.stokes) {
       const Scal dt = owner_->GetTimeStep();
-      const std::vector<Scal> time_coeff =
+      const std::vector<Scal> tt =
           GetGradCoeffs(0., {-(dt + dtprev_), -dt, 0.}, par.second ? 0 : 1);
-
       for (auto c : eb.Cells()) {
         Expr td(0);
-        td[0] = time_coeff[2];
-        td[Expr::dim - 1] = time_coeff[0] * fcu_.time_prev[c] +
-                            time_coeff[1] * fcu_.time_curr[c];
+        td[0] = tt[2];
+        td[Expr::dim - 1] =
+            tt[0] * fcu_.time_prev[c] + tt[1] * fcu_.time_curr[c];
         fcl[c] += td * eb.GetVolume(c) * (*owner_->fcr_)[c];
       }
     }
