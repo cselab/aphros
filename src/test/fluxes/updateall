@@ -3,8 +3,13 @@ r () {
   ./update
 }
 
-r simple imp force
-r simple exp force
+rm -rf ref_{simple,proj}_*
+f=force
+r proj imp $f
+r proj exp $f
+r simple imp $f
+r simple exp $f
+exit
 r simple imp gravity
 r simple exp gravity
 r simple imp force univisc
