@@ -206,6 +206,10 @@ struct Proj<EB_>::Imp {
       for (auto c : eb.Cells()) {
         fck[c] /= edim_range_.size();
       }
+      const auto dt = owner_->GetTimeStep();
+      for (auto c : eb.Cells()) {
+        fck[c] = (*owner_->fcr_)[c] / dt;
+      }
       CHECKNAN(fck, m.CN());
       m.Comm(&fck);
     }
@@ -283,29 +287,32 @@ struct Proj<EB_>::Imp {
         fcfcd_[c] += (*owner_->fcf_)[c];
       }
       AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_, eb);
-    }
 
+      const auto ffgp = UEB::Gradient(fcp_curr, me_pressure_, eb);
+      FieldFaceb<Scal> ffbgp(eb, 0);
+      eb.LoopFaces([&](auto cf) {
+          ffbgp[cf] = (*owner_->febp_)[cf] - ffgp[cf];
+      });
+      const FieldCell<Vect> fcbgp = UEB::AverageGradient(ffbgp, eb);
+      for (auto c : eb.Cells()) {
+        fcfcd_[c] += fcbgp[c];
+      }
+    }
     if (sem.Nested("convdiff-iter")) {
       cd_->MakeIteration();
     }
-
     if (sem.Nested("diag")) {
       GetDiagCoeff(ctx->fek);
     }
-
     if (sem("pcorr-assemble")) {
       const auto& febp = *owner_->febp_;
-      // Acceleration
+      // acceleration of face field
       const FieldFaceb<Vect> ffvel =
           UEB::Interpolate(cd_->GetVelocity(Step::iter_curr), me_vel_, eb);
       eb.LoopFaces([&](auto cf) { //
         auto& v = fev_.iter_curr[cf];
-        v = ffvel[cf].dot(eb.GetSurface(cf));
-        if (!is_boundary_[cf]) { // inner
-          v += febp[cf] * eb.GetArea(cf) / ctx->fek[cf];
-        } else { // boundary
-          // nop, keep the mean flux
-        }
+        v = ffvel[cf].dot(eb.GetSurface(cf)) +
+            febp[cf] * eb.GetArea(cf) / ctx->fek[cf];
       });
 
       // Projection
@@ -322,21 +329,14 @@ struct Proj<EB_>::Imp {
         fev_.iter_curr[cf] = UEB::Eval(ctx->ffvc[cf], cf, fcp_curr, eb);
       });
 
-      // Acceleration and correction of velocity
-      const auto& febp = *owner_->febp_;
+      // correction of cell velocity
       auto ffgp = UEB::Gradient(fcp_curr, me_pressure_, eb);
-      ctx->fcvel_corr.Reinit(m, Vect(0));
-      for (auto c : eb.Cells()) {
-        Vect sum(0);
-        eb.LoopNci(c, [&](auto q) {
-          const auto cf = eb.GetFace(c, q);
-          if (!is_boundary_[cf]) {
-            const Scal a = (febp[cf] - ffgp[cf]) / std::max(1e-8, ctx->fek[cf]);
-            sum += eb.GetNormal(cf) * (a * 0.5);
-          }
-        });
-        ctx->fcvel_corr[c] = sum;
-      }
+      auto ffgpm = UEB::Gradient(fcp_prev, me_pressure_, eb);
+      FieldFaceb<Scal> ffvel_corr(eb, 0);
+      eb.LoopFaces([&](auto cf) {
+          ffvel_corr[cf] = -(ffgp[cf] - ffgpm[cf]) / ctx->fek[cf];
+      });
+      ctx->fcvel_corr = UEB::AverageGradient(ffvel_corr, eb);
     }
     if (sem.Nested("convdiff-corr")) {
       cd_->CorrectVelocity(Step::iter_curr, ctx->fcvel_corr);
