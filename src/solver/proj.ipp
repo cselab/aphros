@@ -111,11 +111,6 @@ struct Proj<EB_>::Imp {
       }
     }
 
-    is_boundary_.Reinit(m, false);
-    mebc_.LoopPairs([&](auto p) { //
-      is_boundary_[p.first] = true;
-    });
-
     ffvisc_ = UEB::Interpolate(*owner_->fcd_, me_visc_, eb);
   }
   void StartStep() {
@@ -197,15 +192,6 @@ struct Proj<EB_>::Imp {
     auto& fck = ctx->fck;
     if (sem("local")) {
       fck.Reinit(m, 0);
-      for (auto d : edim_range_) {
-        const auto& fct = cd_->GetDiag(d);
-        for (auto c : eb.Cells()) {
-          fck[c] += fct[c];
-        }
-      }
-      for (auto c : eb.Cells()) {
-        fck[c] /= edim_range_.size();
-      }
       const auto dt = owner_->GetTimeStep();
       for (auto c : eb.Cells()) {
         fck[c] = (*owner_->fcr_)[c] / dt;
@@ -394,8 +380,6 @@ struct Proj<EB_>::Imp {
   StepData<FieldCell<Scal>> fcp_; // pressure
 
   std::shared_ptr<CD> cd_;
-
-  FieldEmbed<bool> is_boundary_; // true on faces with boundary conditions
 
   // Cell fields:
   FieldCell<Vect> fcfcd_; // force for convdiff [i]

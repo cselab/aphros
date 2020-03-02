@@ -30,10 +30,7 @@ def Slice(fin, fout):
   x = np.linspace(hy * 0.5, ly - hy * 0.5, ny)
   np.savetxt(fout, np.transpose((x, u)))
 Slice('vx_0000.dat', 'vx')
-Slice('p_0000.dat', 'p')
 "
-exit
-
 a=0
 for fref in $ref/* ; do
   fout=${fref#$ref/}
