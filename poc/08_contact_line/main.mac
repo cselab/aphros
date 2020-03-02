@@ -6,29 +6,28 @@ pr: diff(p, r);
 pt: diff(p, t);
 ptt: diff(p, t, 2);
 
-a(e):=subst([a =  aA, b = bA, c = cA, d = dA], e);
-b(e):=subst([a =  aB, b = bB, c = cB, d = dB], e);
+a(e):=subst([a =  aA, b = bA, c = cA, d = dA, m = mA], e);
+b(e):=subst([a =  aB, b = bB, c = cB, d = dB, m = mB], e);
 
 %b1: b(pr), t = 0;
 %b2: b(pr), t = h;
 %b3: a(pr), t = h;
 %b4: a(pr), t = %pi;
 %b5: a(pt) - b(pt), t = h;
-%b6: ma*a(ptt) - mb*b(ptt), t = h;
-%b7:  U + 1/r*b(pt), t = 0;
-%b8: -U + 1/r*a(pt), t = %pi;
+%b6: a(m*ptt) - b(m*ptt), t = h;
+%b7:   U + 1/r*b(pt), t = 0;
+%b8:  -U + 1/r*a(pt), t = %pi;
 
 %q: [%b1, %b2, %b3, %b4, %b5, %b6, %b7, %b8];
 %v: append(a([a, b, c, d]), b([a, b, c, d]));
 
-%q: %q, sin(h) = S, cos(h) = C, ma = R * mb;
+%q: %q, mA = R * mB;
 %M: coefmatrix(%q, %v);
-
 %s: linsolve(%q, %v) $
 
-D: (S*C - h)*(de^2 - S^2) + R*(de - S*C)*(h^2 - S^2), de = h - %pi;
-expand(D), h = 0, R = 0;
-expand(determinant(%M)), h = 0, R = 0, factor;
+determinant(%M), R = 0, factor, factor, factor;
 
 dB + aB, %s, factor, trigreduce ;
+bB, %s, factor, trigreduce;
+
 vr: 1/r*b(pt), %s, t = h, factor, trigsimp;
