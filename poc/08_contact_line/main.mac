@@ -1,0 +1,5 @@
+psi: r*(a*sin(t) + b*cos(t) + c*t*sin(t) + d*t*cos(t));
+
+lpl(e):=diff(e, r, 2) + 1/r*diff(e, r) + 1/r^2*diff(e, t);
+
+bi(e):=lpl(lpl(e));
