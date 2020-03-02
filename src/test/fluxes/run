@@ -1,0 +1,43 @@
+#!/bin/bash
+
+set -eu
+
+make -f sim.makefile cleanall
+
+suff=""
+add="add.conf"
+> $add
+
+for conf in $@ ; do
+  suff=${suff}_${conf}
+  echo "include ${conf}.conf" >> $add
+done
+
+ref=ref${suff}
+echo $ref > refpath
+
+make -f sim.makefile run
+
+python -c "
+import aphros.io
+import numpy as np
+path='vx_0000.dat'
+u = aphros.io.ReadPlain(path)
+ly = 1.
+ny = u.shape[1]
+hy = ly / ny
+u = u[0, :, -1]
+x = np.linspace(hy * 0.5, ly - hy * 0.5, ny)
+np.savetxt('vx', np.transpose((x, u)))
+"
+exit
+
+a=0
+for fref in $ref/* ; do
+  fout=${fref#$ref/}
+  echo $fout
+  eps=2e-12
+  if ! ap.diffnum "$fout" "$fref" $eps; then a=1; fi
+done
+
+exit $a
