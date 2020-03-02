@@ -19,16 +19,18 @@ echo $ref > refpath
 make -f sim.makefile run
 
 python -c "
-import aphros.io
+from aphros.io import ReadPlain
 import numpy as np
-path='vx_0000.dat'
-u = aphros.io.ReadPlain(path)
-ly = 1.
-ny = u.shape[1]
-hy = ly / ny
-u = u[0, :, -1]
-x = np.linspace(hy * 0.5, ly - hy * 0.5, ny)
-np.savetxt('vx', np.transpose((x, u)))
+def Slice(fin, fout):
+  u = ReadPlain(fin)
+  ly = 1.
+  ny = u.shape[1]
+  hy = ly / ny
+  u = u[0, :, -1]
+  x = np.linspace(hy * 0.5, ly - hy * 0.5, ny)
+  np.savetxt(fout, np.transpose((x, u)))
+Slice('vx_0000.dat', 'vx')
+Slice('p_0000.dat', 'p')
 "
 exit
 

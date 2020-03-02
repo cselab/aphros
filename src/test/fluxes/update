@@ -6,4 +6,4 @@ ref=$(cat refpath)
 
 mkdir -p "$ref"
 
-cp -v vx $ref/
+mv -v vx p $ref/
