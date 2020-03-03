@@ -102,6 +102,11 @@ struct Proj<EB_>::Imp {
       }
     }
 
+    is_boundary_.Reinit(m, false);
+    mebc_.LoopPairs([&](auto p) { //
+      is_boundary_[p.first] = true;
+    });
+
     ffvisc_ = UEB::Interpolate(*owner_->fcd_, me_visc_, eb);
     ffdens_ = UEB::Interpolate(*owner_->fcr_, me_visc_, eb);
   }
@@ -133,14 +138,14 @@ struct Proj<EB_>::Imp {
           fcvel[c][d] =
               fcvel_time_prev[c][d] + fc_sum[c] * dt / eb.GetVolume(c);
         }
-        if (fc_accel) {
-          for (auto c : eb.Cells()) {
-            fcvel[c] += (*fc_accel)[c] * dt;
-          }
-        }
       }
     }
     if (sem("comm")) {
+      if (fc_accel) {
+        for (auto c : eb.Cells()) {
+          fcvel[c] += (*fc_accel)[c] * dt;
+        }
+      }
       m.Comm(&fcvel);
     }
   }
@@ -279,10 +284,28 @@ struct Proj<EB_>::Imp {
       Solve(ctx->fcpcs, &fcp, fcp, M::LS::T::symm, m);
     }
     if (sem("fluxes")) {
-      eb.LoopFaces([&](auto cf) {
+      eb.LoopFaces([&](auto cf) { //
         ffv[cf] = UEB::Eval(ctx->ffvc[cf], cf, fcp, eb);
       });
     }
+  }
+  FieldCell<Vect> GetAcceleration(const FieldCell<Scal>& fcp) {
+    const auto ffgp = UEB::Gradient(fcp, me_pressure_, eb);
+    FieldFaceb<Scal> ff_forcep(eb, 0);
+    eb.LoopFaces([&](auto cf) { //
+      ff_forcep[cf] = (*owner_->febp_)[cf] - ffgp[cf];
+    });
+    auto fca = UEB::AverageGradient(ff_forcep, eb);
+    // cell force
+    for (auto c : eb.Cells()) {
+      fca[c] += (*owner_->fcf_)[c];
+    }
+    // AppendExplViscous(fcvel_.iter_curr, fc_accel_, eb); XXX
+    // divide by density
+    for (auto c : eb.Cells()) {
+      fca[c] /= (*owner_->fcr_)[c];
+    }
+    return fca;
   }
   void AppendExplViscous(
       const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const Embed<M>& eb) {
@@ -310,6 +333,9 @@ struct Proj<EB_>::Imp {
     auto& fcp_prev = fcp_.iter_prev;
     auto& fcp_curr = fcp_.iter_curr;
     const Scal dt = owner_->GetTimeStep();
+    auto& ffv = fev_.iter_curr.template Get<FieldFaceb<Scal>>();
+    auto& ffvt = fev_.time_curr.template Get<FieldFaceb<Scal>>();
+    auto& fcvel = fcvel_.iter_curr;
     if (sem("init")) {
       // rotate layers
       fcp_prev = fcp_curr;
@@ -320,43 +346,19 @@ struct Proj<EB_>::Imp {
     UpdateBc(sem);
 
     if (sem("forceinit")) {
-      fc_accel_.Reinit(m, Vect(0));
-      for (auto c : eb.Cells()) {
-        fc_accel_[c] += (*owner_->fcf_)[c];
-      }
-      AppendExplViscous(fcvel_.iter_curr, fc_accel_, eb);
-
-      const auto ffgp = UEB::Gradient(fcp_curr, me_pressure_, eb);
-      FieldFaceb<Scal> ffbgp(eb, 0);
-      eb.LoopFaces([&](auto cf) {
-          ffbgp[cf] = (*owner_->febp_)[cf] - ffgp[cf];
-      });
-      const FieldCell<Vect> fcbgp = UEB::AverageGradient(ffbgp, eb);
-      for (auto c : eb.Cells()) {
-        fc_accel_[c] += fcbgp[c];
-      }
-      for (auto c : eb.Cells()) {
-        fc_accel_[c] /= (*owner_->fcr_)[c];
-      }
-      fcvelmid_.Reinit(eb, Vect(0));
-      for (auto c : eb.Cells()) {
-        fcvelmid_[c] = (fcvel_.time_curr[c] + fcvel_.iter_prev[c]) * 0.5;
-      }
+      fc_accel_ = GetAcceleration(fcp_curr);
     }
-    FieldFaceb<Scal>& ffv = fev_.iter_curr.template Get<FieldFaceb<Scal>>();
-    FieldCell<Vect>& fcvel = fcvel_.iter_curr;
     if (sem.Nested("proj")) {
       // ff_accel_: acceleration from force terms and pressure gradient
       // fcvelmid_: initial guess for velocity at t+dt/2 to estimate fluxes
       // ffv: divergence-free volume flux at t+dt/2 from previous iteration
-      Advection(fcvelmid_, fcvel_.time_curr, ffv, &fc_accel_, dt * 0.5);
+      Advection(fcvel, fcvel_.time_curr, ffvt, &fc_accel_, dt * 0.5);
       // fcvelmid_: predicted velocity at t+dt/2
     }
     if (sem()) {
-      const FieldFaceb<Vect> ffvelmid =
-          UEB::Interpolate(fcvelmid_, me_vel_, eb);
+      const FieldFaceb<Vect> ffvel = UEB::Interpolate(fcvel, me_vel_, eb);
       eb.LoopFaces([&](auto cf) { //
-        ffv[cf] = ffvelmid[cf].dot(eb.GetSurface(cf));
+        ffv[cf] = ffvel[cf].dot(eb.GetSurface(cf));
       });
       // ffv: predicted volume flux at t+dt/2
     }
@@ -364,10 +366,8 @@ struct Proj<EB_>::Imp {
       Project(fcp_curr, ffv, dt * 0.5);
       // ffv: divergence-free predicted volume flux at t+dt/2
     }
-    if (sem("velmid")) {
-      for (auto c : eb.Cells()) {
-        fcvel[c] = (fcvel_.time_curr[c] + fcvel_.iter_prev[c]) * 0.5;
-      }
+    if (sem()) {
+      fcvel = fcvel_.time_curr;
     }
     if (sem.Nested("proj")) {
       // ff_accel_: acceleration from force terms and pressure gradient
@@ -376,45 +376,39 @@ struct Proj<EB_>::Imp {
       // fcvel: velocity at t+dt
     }
     if (sem.Nested("diffusion")) {
-      Diffusion(fcvel, fcvel_.time_curr, *owner_->fcr_, dt);
+      Diffusion(fcvel, fcvel, *owner_->fcr_, dt);
     }
-    if (sem("pcorr-assemble")) {
-      // acceleration of face velocity
+    if (sem("subtract")) {
+      // subtract old acceleration from cell velocity
+      for (auto c : eb.Cells()) {
+        fcvel[c] -= fc_accel_[c] * dt;
+      }
+      m.Comm(&fcvel);
+    }
+    if (sem("face-acceleration")) {
+      // compute volume flux from center velocity
+      // and add acceleration from body force
       const FieldFaceb<Vect> ffvel = UEB::Interpolate(fcvel, me_vel_, eb);
       eb.LoopFaces([&](auto cf) { //
         auto& v = ffv[cf];
         v = ffvel[cf].dot(eb.GetSurface(cf));
-        v += (*owner_->febp_)[cf] / ffdens_[cf] * dt * eb.GetArea(cf);
+        if (!is_boundary_[cf]) {
+          v += (*owner_->febp_)[cf] / ffdens_[cf] * dt * eb.GetArea(cf);
+        }
       });
     }
     if (sem.Nested("project")) {
-      Project(fcp_curr, ffv, dt * 0.5);
+      Project(fcp_curr, ffv, dt);
       // ffv: divergence-free volume flux at t+dt
       // fcp_curr: final pressure
     }
     if (sem("pcorr-apply")) {
-      fc_accel_.Reinit(m, Vect(0));
-      for (auto c : eb.Cells()) {
-        fc_accel_[c] += (*owner_->fcf_)[c];
-      }
-      AppendExplViscous(fcvel_.iter_curr, fc_accel_, eb);
-      const auto ffgp = UEB::Gradient(fcp_curr, me_pressure_, eb);
-      FieldFaceb<Scal> ffbgp(eb, 0);
-      eb.LoopFaces([&](auto cf) {
-          ffbgp[cf] = (*owner_->febp_)[cf] - ffgp[cf];
-      });
-      const FieldCell<Vect> fcbgp = UEB::AverageGradient(ffbgp, eb);
-      for (auto c : eb.Cells()) {
-        fc_accel_[c] += fcbgp[c];
-      }
-      for (auto c : eb.Cells()) {
-        fc_accel_[c] /= (*owner_->fcr_)[c];
-      }
-
-      // correct cell velocity
+      fc_accel_ = GetAcceleration(fcp_curr);
+      // Add new acceleration to cell velocity
       for (auto c : eb.Cells()) {
         fcvel[c] += fc_accel_[c] * dt;
       }
+      m.Comm(&fcvel);
     }
     if (sem("iter_diff")) {
       iter_diff_ = 0;
@@ -471,7 +465,8 @@ struct Proj<EB_>::Imp {
   StepData<FieldEmbed<Scal>> fev_; // volume flux
   StepData<FieldCell<Scal>> fcp_; // pressure
   StepData<FieldCell<Vect>> fcvel_; // velocity
-  FieldCell<Vect> fcvelmid_; // velocity at time t+dt/2
+
+  FieldEmbed<bool> is_boundary_; // true on faces with boundary conditions
 
   // Cell fields:
   FieldCell<Vect> fc_accel_; // acceleration
