@@ -10,7 +10,7 @@ const char* me = "main";
   }
 
 static void usg(void) {
-  fprintf(stderr, "%s -r ratio -p degree -x float -y float> vtk\n", me);
+  fprintf(stderr, "echo x y | %s -r ratio -p degree\n", me);
   exit(2);
 }
 
@@ -33,10 +33,8 @@ int main(int argc, char** argv) {
   double vy;
   int Rflag;
   int Pflag;
-  int Xflag;
-  int Yflag;
 
-  Rflag = Pflag = Xflag = Yflag = 0;
+  Rflag = Pflag = 0;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
       case 'h':
@@ -51,24 +49,6 @@ int main(int argc, char** argv) {
         h = atof(*argv);
         Pflag = 1;
         break;
-      case 'x':
-        argv++;
-        if (*argv == NULL) {
-          fprintf(stderr, "%s: -x needs an argument\n", me);
-          exit(1);
-        }
-        x = atof(*argv);
-        Xflag = 1;
-        break;
-      case 'y':
-        argv++;
-        if (*argv == NULL) {
-          fprintf(stderr, "%s: -y needs an argument\n", me);
-          exit(1);
-        }
-        y = atof(*argv);
-        Yflag = 1;
-        break;	
       case 'r':
         argv++;
         if (*argv == NULL) {
@@ -90,15 +70,6 @@ int main(int argc, char** argv) {
     fprintf(stderr, "%s: -p is not set\n", me);
     exit(2);
   }
-  if (!Xflag) {
-    fprintf(stderr, "%s: -x is not set\n", me);
-    exit(2);
-  }
-  if (!Yflag) {
-    fprintf(stderr, "%s: -y is not set\n", me);
-    exit(2);
-  }  
-  
   if (!(0 <= h && h <= 90)) {
     fprintf(stderr, "%s: h = %g is not in [0, 90]\n", me, h);
     exit(2);
@@ -108,7 +79,6 @@ int main(int argc, char** argv) {
   pi = 3.141592653589793;
   S = sin(h);
   C = cos(h);
-
   dA = -(S * ((-C * h * pi) + S * pi - C * R * sq(h) + C * sq(h) +
               C * R * sq(S) - C * sq(S))) /
        ((-h * sq(pi)) + C * S * sq(pi) - R * sq(h) * pi + 2 * sq(h) * pi -
@@ -124,30 +94,27 @@ int main(int argc, char** argv) {
        ((sq(h) + sq(C) - 1) * (h - pi));
   aB = (-dB) - 1;
   cB = ((-C * dB * h) + S * dB + S) / (S * h);
-
-  t = atan2(y, x);
-  S = sin(t);
-  C = cos(t);
-  if (t > h) {
-      vt = (cA*t+aA)*S+(dA*t+bA)*C;      
-      vr = (dA*t-cA+bA)*S-(cA*t+dA+aA)*C;
-  } else {
-      vt = (cB*t+aB)*S+(dB*t+bB)*C;
-      vr = (dB*t-cB+bB)*S-(cB*t+dB+aB)*C;
+  while (scanf("%lf %lf", &x, &y) == 2) {
+    t = atan2(y, x);
+    S = sin(t);
+    C = cos(t);
+    if (t > h) {
+      vt = (cA * t + aA) * S + (dA * t + bA) * C;
+      vr = (dA * t - cA + bA) * S - (cA * t + dA + aA) * C;
+    } else {
+      vt = (cB * t + aB) * S + (dB * t + bB) * C;
+      vr = (dB * t - cB + bB) * S - (cB * t + dB + aB) * C;
+    }
+    vx = vr * C - vt * S;
+    vy = vr * S + vt * C;
+    printf("%g %g\n", vx, vy);
   }
-  vx = vr * C - vt * S;
-  vy = vr * S + vt * C;
-  printf("%g %g %g %g\n", x, y, vr, vt);
 }
 
-static double
-sq(double x)
-{
-    return x * x;
+static double sq(double x) {
+  return x * x;
 }
 
-static double
-cube(double x)
-{
-    return x * x * x;
+static double cube(double x) {
+  return x * x * x;
 }
