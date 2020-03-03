@@ -5,4 +5,4 @@
 #include "embed.h"
 
 using M = MeshStructured<double, 3>;
-template class Proj<M>;
+template class Proj<Embed<M>>;
