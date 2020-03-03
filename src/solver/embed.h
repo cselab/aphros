@@ -76,11 +76,11 @@ class FieldEmbed {
     return df_;
   }
   template <class Field>
-  Field Get() {
+  Field& Get() {
     return Get((Field*)(nullptr));
   }
   template <class Field>
-  Field Get() const {
+  const Field& Get() const {
     return Get((Field*)(nullptr));
   }
   FieldEmbed<Value>& Get(FieldEmbed<Value>*) {
