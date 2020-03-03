@@ -29,11 +29,40 @@ aA + U + %pi * cA + dA, %s, infeval;
 aB + dB + U, %s, infeval;
 bB, %s;
 
-vr: -b(pt)/r;
+vrb: -b(pt)/r;
+vra: -a(pt)/r;
 
-[cA, cB, dA, dB, vr], infeval, t = h, h = 30/180*%pi, R = 100, numer, %s;
-[cA, cB, dA, dB, vr], infeval, t = h, h = 30/180*%pi, R = 4.5989, numer, %s;
-[cA, cB, dA, dB, vr], infeval, t = h, h = 30/180*%pi, R = 1, numer, %s;
-[cA, cB, dA, dB, vt], infeval, t = h, h = 30/180*%pi, R = 0.01, numer, %s;
-[cA, cB, dA, dB, vt], infeval, t = h, h = 5/180*%pi, R = 1000, numer, %s;
-[cA, cB, dA, dB, vt], infeval, t = h, h = 5/180*%pi, R = 34.136, numer, %s;
+vta: a(pr);
+vtb: b(pr);
+
+[aA, bA, cA, dA], infeval, t = h, h = 30/180*%pi, R = 100, numer, %s;
+[aB, bB, cB, dB], infeval, t = h, h = 30/180*%pi, R = 100, numer, %s;
+
+[cA, cB, dA, dB, vra], infeval, t = h, h = 30/180*%pi, R = 100, numer, %s;
+[cA, cB, dA, dB, vra], infeval, t = h, h = 30/180*%pi, R = 4.5989, numer, %s;
+[cA, cB, dA, dB, vra], infeval, t = h, h = 30/180*%pi, R = 1, numer, %s;
+[cA, cB, dA, dB, vta], infeval, t = h, h = 30/180*%pi, R = 0.01, numer, %s;
+[cA, cB, dA, dB, vta], infeval, t = h, h = 5/180*%pi, R = 1000, numer, %s;
+[cA, cB, dA, dB, vta], infeval, t = h, h = 5/180*%pi, R = 34.136, numer, %s;
+
+''(buildq([n:  gensym(), x: gensym()],
+powp(x, n, e):=block([inflag: true],
+  if not atom(e) and op(e) = "^" and second(e) # -1
+  then (x :: first(e), n :: second(e), true))));
+''(buildq([n:  gensym(), x: gensym()],
+(matchdeclare(pp, powp('x, 'n)),
+defrule(r_pow, pp,
+  if is(n = 2) then sq(x)
+  else if is(n = 3) then cube(x)
+  else if is(n = -2) then 1/sq(x)
+  else if is(n < 0) then 1/pow(x, -n)
+  else pow(x, n)),
+defrule(r_pi, %pi, pi),
+defrule(r_cos, cos(h), C),
+defrule(r_sin, sin(h), S))));
+
+%s: factor(trigsimp(%s));
+for e in %s do printf(true, "~a;~%", apply2(e, r_pow, r_pi, r_cos, r_sin, r_pow));
+
+printf(true, "~a;~%", 'vr = apply2(vra, r_pow, r_pi, r_cos, r_sin, r_pow));
+printf(true, "~a;~%", 'vt = apply2(vta, r_pow, r_pi, r_cos, r_sin, r_pow));
