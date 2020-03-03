@@ -9,25 +9,31 @@ ptt: diff(p, t, 2);
 a(e):=subst([a =  aA, b = bA, c = cA, d = dA, m = mA], e);
 b(e):=subst([a =  aB, b = bB, c = cB, d = dB, m = mB], e);
 
+mA: R;
+mB: 1;
+U: 1;
 %b1: b(pr), t = 0;
 %b2: b(pr), t = h;
 %b3: a(pr), t = h;
 %b4: a(pr), t = %pi;
-%b5: a(pt) - b(pt), t = h;
-%b6: a(m*ptt) - b(m*ptt), t = h;
-%b7:   U + 1/r*b(pt), t = 0;
-%b8:  -U + 1/r*a(pt), t = %pi;
+%b5: a(pt)/r - b(pt)/r, t = h;
+%b6: a(m*ptt)/r - b(m*ptt)/r, t = h;
+%b7: U + 1/r*b(pt), t = 0;
+%b8: -U + 1/r*a(pt), t = %pi;
 
 %q: [%b1, %b2, %b3, %b4, %b5, %b6, %b7, %b8];
-%v: append(a([a, b, c, d]), b([a, b, c, d]));
+%v: flatten([a([a, b, c, d]), b([a, b, c, d])]);
+%s: linsolve(%q, %v), backsubst = false;
 
-%q: %q, mA = R * mB;
-%M: coefmatrix(%q, %v);
-%s: linsolve(%q, %v) $
+aA + U + %pi * cA + dA, %s, infeval;
+aB + dB + U, %s, infeval;
+bB, %s;
 
-determinant(%M), R = 0, factor, factor, factor;
+vr: -b(pt)/r;
 
-dB + aB, %s, factor, trigreduce ;
-bB, %s, factor, trigreduce;
-
-vr: 1/r*b(pt), %s, t = h, factor, trigsimp;
+[cA, cB, dA, dB, vr], infeval, t = h, h = 30/180*%pi, R = 100, numer, %s;
+[cA, cB, dA, dB, vr], infeval, t = h, h = 30/180*%pi, R = 4.5989, numer, %s;
+[cA, cB, dA, dB, vr], infeval, t = h, h = 30/180*%pi, R = 1, numer, %s;
+[cA, cB, dA, dB, vt], infeval, t = h, h = 30/180*%pi, R = 0.01, numer, %s;
+[cA, cB, dA, dB, vt], infeval, t = h, h = 5/180*%pi, R = 1000, numer, %s;
+[cA, cB, dA, dB, vt], infeval, t = h, h = 5/180*%pi, R = 34.136, numer, %s;
