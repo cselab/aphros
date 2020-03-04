@@ -453,12 +453,12 @@ auto UEmbed<M>::Gradient(
     const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const M& m)
     -> FieldFace<T> {
   FieldFace<T> ffu(m, T(0));
+  const Scal h = m.GetCellSize()[0];
 
   for (auto f : m.SuFaces()) {
     const IdxCell cm = m.GetCell(f, 0);
     const IdxCell cp = m.GetCell(f, 1);
-    const Scal a = m.GetArea(f) / m.GetVolume(cp);
-    ffu[f] = (fcu[cp] - fcu[cm]) * a;
+    ffu[f] = (fcu[cp] - fcu[cm]) / h;
   }
 
   auto calc = [&](IdxFace f, IdxCell c, const BCond<T>& bc) {
@@ -466,10 +466,13 @@ auto UEmbed<M>::Gradient(
     const auto nci = bc.nci;
     switch (bc.type) {
       case BCondType::dirichlet: {
-        const Scal q = (nci == 0 ? 1. : -1.);
-        const Scal hr = m.GetArea(f) / m.GetVolume(c);
-        const Scal a = hr * 2 * q;
-        return (val - fcu[c]) * a;
+        const Scal sgn = (nci == 0 ? 1 : -1);
+        const T uf = val;
+        const T u1 = fcu[c];
+        const size_t cnci = m.GetNci(c, f); // f=m.GetFace(c, cnci)
+        const T u2 = fcu[m.GetCell(c, m.GetOpposite(cnci))];
+        return (uf * 8 - u1 * 9 + u2) / (3 * h) * sgn;
+        //return (uf - u1) / h * sgn;
       }
       case BCondType::neumann: {
         return val;
@@ -916,14 +919,24 @@ auto UEmbed<M>::GradientImplicit(
     ffe[f] = e;
   }
 
-  auto calc = [&](IdxFace, IdxCell, const BCond<Scal>& bc) {
+  auto calc = [&](IdxFace f, IdxCell c, const BCond<Scal>& bc) {
     ExprFace e(0);
     const auto nci = bc.nci;
     switch (bc.type) {
       case BCondType::dirichlet: {
-        const Scal a = 2 * (nci == 0 ? 1 : -1) / h;
+        const Scal sgn = (nci == 0 ? 1 : -1);
+        const Scal a = 2 * sgn / h;
         e[nci] = -a;
         e[2] = bc.val * a;
+
+        const Scal uf = bc.val;
+        const size_t cnci = m.GetNci(c, f); // f=m.GetFace(c1, c1nci)
+        const IdxCell c2 = m.GetCell(c, m.GetOpposite(cnci));
+        const Scal u1 = fcu[c];
+        const Scal u2 = fcu[c2];
+        const Scal high = (uf * 8 - u1 * 9 + u2) / (3 * h) * sgn;
+        const Scal low = (uf - u1) * a;
+        e[2] += high - low;
         break;
       }
       case BCondType::neumann: {
