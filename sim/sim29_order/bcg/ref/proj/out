@@ -1,0 +1,395 @@
+hydro 7571eac-dirty
+msg: sim29/bcg: no output make conf
+diff: sim/sim29_order/bcg/.gitignore sim/sim29_order/bcg/Makefile sim/sim29_order/bcg/hook.cpp sim/sim29_order/bcg/run0 sim/sim29_order/bcg/std.conf src/solver/approx_eb.ipp 
+Loading config from 'a.conf'
+
+=== config begin ===
+set string advection_solver vof
+set string backend cubismnc
+set string bc_path bc.dat
+set string bc_xm wall 0 0 0
+set string bc_xp wall 0 0 0
+set string bc_ym wall 0 0 0
+set string bc_yp wall 0 0 0 
+set string body_bc wall 0 0 0
+set string body_init zero
+set string body_list_path body.dat
+set string bubgen_path bg.dat
+set string conf_unused_ignore_path base.conf
+set string conv imp
+set string convsc quick
+set string dumpformat plain
+set string dumplist vx vy omz
+set string eb_init list
+set string eb_list_path body.dat
+set string fluid_solver proj
+set string hypre_gen_solver gmres
+set string hypre_symm_solver pcg
+set string hypre_vort_solver smg
+set string init_sig uniform
+set string init_vf zero
+set string list_path b.dat
+set string surftens kn
+set string vel_init zero
+set string vellist_path vel.dat
+set string vof_scheme weymouth
+set int CHECKNAN 0
+set int bc_wall_init_vel 0
+set int bcc_reflectpoly 1
+set int body_init_inverse 0
+set int bsx 16
+set int bsy 16
+set int bsz 1
+set int bx 1
+set int by 1
+set int bz 1
+set int check_symmetry 0
+set int cloverride 0
+set int convsymm 0
+set int dim 2
+set int dump_field_max 10000
+set int dump_part_max 10000
+set int dump_stat_max 1000000
+set int dump_traj_max 10000
+set int dump_trep_max 10000
+set int dumpbc 0
+set int dumpinit 0
+set int dumplast 0
+set int dumppart 0
+set int dumppartinter 0
+set int dumppoly 1
+set int dumppolymarch 1
+set int eb_init_inverse 1
+set int enable_advection 0
+set int enable_bc 0
+set int enable_bubgen 0
+set int enable_color 0
+set int enable_embed 0
+set int enable_fluid 1
+set int enable_shell 0
+set int enable_surftens 0
+set int enstrophy 0
+set int explconv 0
+set int fill_halo_nan 0
+set int force_kolm 0
+set int force_kolm_accel 0
+set int histogram 0
+set int hl 2
+set int hypre_gen_maxiter 30
+set int hypre_periodic_x 0
+set int hypre_periodic_y 0
+set int hypre_periodic_z 1
+set int hypre_print 0
+set int hypre_symm_maxiter 1000
+set int hypre_vort_maxiter 1000
+set int initvort 0
+set int inletflux_numid 1
+set int linreport 0
+set int list_ls 1
+set int loc_maxcomm 16
+set int loc_periodic_x 1
+set int loc_periodic_y 1
+set int loc_periodic_z 1
+set int marangoni 0
+set int max_iter 1
+set int max_step 1000000
+set int min_iter 1
+set int mpi_compress_msg 0
+set int openmp 0
+set int output 1
+set int part 1
+set int part_bendmean 1
+set int part_dn 0
+set int part_dump_fr 1
+set int part_itermax 20
+set int part_k 1
+set int part_np 7
+set int part_ns 3
+set int part_report_fr 1
+set int part_verb 0
+set int poiswym 1
+set int poiswyp 1
+set int poiswzm 1
+set int poiswzp 1
+set int px 4
+set int py 4
+set int pz 1
+set int report_knan 0
+set int report_stat 0
+set int report_step_every 1
+set int second_order 1
+set int sharpen 0
+set int split 0
+set int stat_area 0
+set int stat_dissip 0
+set int stat_step_every 1
+set int stat_vofm 0
+set int statbox 0
+set int statvel 0
+set int stokes 0
+set int vel_init_noise 0
+set int vel_init_random 0
+set int verbose 0
+set int verbose_conf_reads 0
+set int verbose_conf_unused 1
+set int verbose_openmp 0
+set int verbose_stages 1
+set int verbose_time 1
+set int vf_init_sm 0
+set int vfsmooth 0
+set int vfsmoothnode 0
+set int vof_recolor_grid 1
+set int vof_recolor_reduce 1
+set int vof_recolor_unionfind 1
+set int vof_verb 0
+set int vofm_layers 4
+set int vort_report 1
+set int vtkbin 1
+set int vtkmerge 1
+set int wavelamb_vort 0
+set int youngbc 0
+set double abortvel 1e+10
+set double avgnorm0 1
+set double avgnorm1 1
+set double bcc_clear0 0
+set double bcc_clear1 1
+set double bcc_fill 0
+set double bubgen_per 1
+set double bubgen_t0 0
+set double cfla 0.5
+set double cflst 2
+set double check_symmetry_dump_threshold 1e+10
+set double clfixed -1
+set double clipth 1e-10
+set double color_maxr 1e+10
+set double color_th 0.5
+set double convdf 1
+set double dt0 0.0078125
+set double dtmax 1e+10
+set double dump_field_dt 1
+set double dump_field_t0 0.5
+set double dump_part_dt 1
+set double dump_part_t0 0
+set double dump_stat_dt 0
+set double dump_traj_dt 1
+set double dump_traj_t0 0
+set double dump_trep_dt 1
+set double dump_trep_t0 0
+set double dumppolymarch_fill -1
+set double embed_gradlim 0.5
+set double extent 1
+set double force_mag 0
+set double force_vort_g 0
+set double force_vort_r 0
+set double hypre_gen_tol 0.001
+set double hypre_symm_tol 1e-05
+set double hypre_vort_tol 1e-06
+set double inletcl 1
+set double kslip 0
+set double mu1 0.01
+set double mu2 0.01
+set double part_dtmax 10
+set double part_h 4
+set double part_relax 0.5
+set double part_segcirc 0
+set double part_tmax 180
+set double part_tol 1e-05
+set double penalslip 0
+set double prelax 1
+set double random_amp 1
+set double rhie 1
+set double rho1 1
+set double rho2 1
+set double ring_om 0.01
+set double ring_r0 0.2
+set double ring_r1 0.4
+set double sharp 0
+set double sharpen_cfl 0.5
+set double sharpo 0
+set double shell_h 3
+set double shell_r 0
+set double shell_rr 2
+set double sig_k 1.25
+set double sigma 0
+set double slipnormal 0
+set double slipnormal_dist 1
+set double source_mag 0
+set double source_mag0 0
+set double source_mexp 0
+set double source_mexp0 0
+set double stdiag 1
+set double stop_diff 0
+set double tmax 0.5
+set double tol 1e-05
+set double vofm_coalth 1e+10
+set double vrelax 1
+set double vtkiso 0.5
+set double zerostx0 1e+10
+set double zerostx1 1e+10
+set vect clfixed_x 1e+10 1e+10 1e+10 
+set vect force 0 0 0 
+set vect force_mov 0 0 0 
+set vect force_mov2 0 0 0 
+set vect force_vort_c 0 
+set vect gravity 0 0 0 
+set vect noise_per0 0 0 1 
+set vect noise_per1 0 0 1 
+set vect noise_per2 0 0 1 
+set vect noise_vel0 1 0 0 
+set vect noise_vel1 1 0 0 
+set vect noise_vel2 1 0 0 
+set vect random_vel 1 0 0 
+set vect ring_c 0.5 0.5 0.5 
+set vect ring_n 1 0 0 
+set vect slipvel 1 0 0 
+set vect statbox2a 0 0 0.5 
+set vect statbox2b 1 1 0.5 
+set vect statboxa 0 0 0.5 
+set vect statboxb 1 1 0.5 
+=== config end ===
+
+initial velocity: Bell,Colella,Glaz 1989
+global mesh=(64,64,1)
+surface tension dt=1.79769e+308
+viscosity dt=1.79769e+308
+Found events: 
+=====
+=====
+STEP=0 t=0.00000000 dt=0.00781250 ta=0.00000000 dta=0.00781250 wt=0.00998782
+.....iter=1, diff=5.5422069410165919e-03
+timer report t=0.00781250 to trep_0000.log
+STEP=1 t=0.00781250 dt=0.00781250 ta=0.00000000 dta=0.00781250 wt=0.03282498
+.....iter=1, diff=5.4200703913913628e-03
+STEP=2 t=0.01562500 dt=0.00781250 ta=0.00000000 dta=0.00781250 wt=0.04987224
+.....iter=1, diff=5.3965290297464108e-03
+STEP=3 t=0.02343750 dt=0.00781250 ta=0.00000000 dta=0.00781250 wt=0.06689189
+.....iter=1, diff=5.3742330967602170e-03
+STEP=4 t=0.03125000 dt=0.00781250 ta=0.00000000 dta=0.00781250 wt=0.08313520
+.....iter=1, diff=5.3461790053390690e-03
+STEP=5 t=0.03906250 dt=0.00781250 ta=0.00000000 dta=0.00781250 wt=0.09966878
+.....iter=1, diff=5.3170666362898356e-03
+STEP=6 t=0.04687500 dt=0.00781250 ta=0.00000000 dta=0.00781250 wt=0.11638630
+.....iter=1, diff=5.2903950866864946e-03
+STEP=7 t=0.05468750 dt=0.00781250 ta=0.00000000 dta=0.00781250 wt=0.13289715
+.....iter=1, diff=5.2596552104673400e-03
+STEP=8 t=0.06250000 dt=0.00781250 ta=0.00000000 dta=0.00781250 wt=0.14894687
+.....iter=1, diff=5.2331068449581464e-03
+STEP=9 t=0.07031250 dt=0.00781250 ta=0.00000000 dta=0.00781250 wt=0.16547450
+.....iter=1, diff=5.2010648664125858e-03
+STEP=10 t=0.07812500 dt=0.00781250 ta=0.00000000 dta=0.00859375 wt=0.18187298
+.....iter=1, diff=5.1743200505387499e-03
+STEP=11 t=0.08593750 dt=0.00781250 ta=0.00000000 dta=0.00852273 wt=0.19878612
+.....iter=1, diff=5.1444301993704977e-03
+STEP=12 t=0.09375000 dt=0.00781250 ta=0.00000000 dta=0.00846354 wt=0.21512229
+.....iter=1, diff=5.1112708209256619e-03
+STEP=13 t=0.10156250 dt=0.00781250 ta=0.00000000 dta=0.00841346 wt=0.23217097
+.....iter=1, diff=5.0752839963306151e-03
+STEP=14 t=0.10937500 dt=0.00781250 ta=0.00000000 dta=0.00837054 wt=0.24881081
+.....iter=1, diff=5.0435976699436669e-03
+STEP=15 t=0.11718750 dt=0.00781250 ta=0.00000000 dta=0.00833333 wt=0.26577495
+.....iter=1, diff=5.0082043451314950e-03
+STEP=16 t=0.12500000 dt=0.00781250 ta=0.00000000 dta=0.00830078 wt=0.28306794
+.....iter=1, diff=4.9701754958986211e-03
+STEP=17 t=0.13281250 dt=0.00781250 ta=0.00000000 dta=0.00827206 wt=0.30053283
+.....iter=1, diff=4.9317772689451145e-03
+STEP=18 t=0.14062500 dt=0.00781250 ta=0.00000000 dta=0.00873162 wt=0.31798682
+.....iter=1, diff=4.8958460220551725e-03
+STEP=19 t=0.14843750 dt=0.00781250 ta=0.00000000 dta=0.00868056 wt=0.33569367
+.....iter=1, diff=4.8577544792758331e-03
+STEP=20 t=0.15625000 dt=0.00781250 ta=0.00000000 dta=0.00863487 wt=0.35423971
+.....iter=1, diff=4.8150781250576591e-03
+STEP=21 t=0.16406250 dt=0.00781250 ta=0.00000000 dta=0.00859375 wt=0.37136485
+.....iter=1, diff=4.7746484117123789e-03
+STEP=22 t=0.17187500 dt=0.00781250 ta=0.00000000 dta=0.00855655 wt=0.38787025
+.....iter=1, diff=4.7372814821979858e-03
+STEP=23 t=0.17968750 dt=0.00781250 ta=0.00000000 dta=0.00892857 wt=0.40431302
+.....iter=1, diff=4.6956832205569121e-03
+STEP=24 t=0.18750000 dt=0.00781250 ta=0.00000000 dta=0.00887784 wt=0.42071474
+.....iter=1, diff=4.6535292987660570e-03
+STEP=25 t=0.19531250 dt=0.00781250 ta=0.00000000 dta=0.00883152 wt=0.43739694
+.....iter=1, diff=4.6085047397700363e-03
+STEP=26 t=0.20312500 dt=0.00781250 ta=0.00000000 dta=0.00878906 wt=0.45385206
+.....iter=1, diff=4.5703100791051332e-03
+STEP=27 t=0.21093750 dt=0.00781250 ta=0.00000000 dta=0.00911458 wt=0.47034578
+.....iter=1, diff=4.5282652059059902e-03
+STEP=28 t=0.21875000 dt=0.00781250 ta=0.00000000 dta=0.00906250 wt=0.48693729
+.....iter=1, diff=4.4863410045612451e-03
+STEP=29 t=0.22656250 dt=0.00781250 ta=0.00000000 dta=0.00901442 wt=0.50339024
+.....iter=1, diff=4.4409609744151535e-03
+STEP=30 t=0.23437500 dt=0.00781250 ta=0.00000000 dta=0.00896991 wt=0.52016624
+.....iter=1, diff=4.3982750790457770e-03
+STEP=31 t=0.24218750 dt=0.00781250 ta=0.00000000 dta=0.00925926 wt=0.53698819
+.....iter=1, diff=4.3570604460556606e-03
+STEP=32 t=0.25000000 dt=0.00781250 ta=0.00000000 dta=0.00920759 wt=0.55403232
+.....iter=1, diff=4.3164600307952217e-03
+STEP=33 t=0.25781250 dt=0.00781250 ta=0.00000000 dta=0.00915948 wt=0.57139530
+.....iter=1, diff=4.2727957840619224e-03
+STEP=34 t=0.26562500 dt=0.00781250 ta=0.00000000 dta=0.00911458 wt=0.58836643
+.....iter=1, diff=4.2301200575937115e-03
+STEP=35 t=0.27343750 dt=0.00781250 ta=0.00000000 dta=0.00937500 wt=0.60502889
+.....iter=1, diff=4.1848491782601194e-03
+STEP=36 t=0.28125000 dt=0.00781250 ta=0.00000000 dta=0.00932460 wt=0.62169910
+.....iter=1, diff=4.1446903460279350e-03
+STEP=37 t=0.28906250 dt=0.00781250 ta=0.00000000 dta=0.00927734 wt=0.63821669
+.....iter=1, diff=4.1033660236348135e-03
+STEP=38 t=0.29687500 dt=0.00781250 ta=0.00000000 dta=0.00952148 wt=0.65421366
+.....iter=1, diff=4.0633651274170068e-03
+STEP=39 t=0.30468750 dt=0.00781250 ta=0.00000000 dta=0.00946970 wt=0.67072006
+.....iter=1, diff=4.0208519008516630e-03
+STEP=40 t=0.31250000 dt=0.00781250 ta=0.00000000 dta=0.00942096 wt=0.68735631
+.....iter=1, diff=3.9799606604645765e-03
+STEP=41 t=0.32031250 dt=0.00781250 ta=0.00000000 dta=0.00965074 wt=0.70379143
+.....iter=1, diff=3.9387335497065301e-03
+STEP=42 t=0.32812500 dt=0.00781250 ta=0.00000000 dta=0.00959821 wt=0.71997290
+.....iter=1, diff=3.8999431285782205e-03
+STEP=43 t=0.33593750 dt=0.00781250 ta=0.00000000 dta=0.00954861 wt=0.73655567
+.....iter=1, diff=3.8588432978533538e-03
+STEP=44 t=0.34375000 dt=0.00781250 ta=0.00000000 dta=0.00976562 wt=0.75312572
+.....iter=1, diff=3.8197262212743555e-03
+STEP=45 t=0.35156250 dt=0.00781250 ta=0.00000000 dta=0.00971284 wt=0.76973695
+.....iter=1, diff=3.7789532385905655e-03
+STEP=46 t=0.35937500 dt=0.00781250 ta=0.00000000 dta=0.00992399 wt=0.78590452
+.....iter=1, diff=3.7413345673081855e-03
+STEP=47 t=0.36718750 dt=0.00781250 ta=0.00000000 dta=0.00986842 wt=0.80255514
+.....iter=1, diff=3.7018390665666256e-03
+STEP=48 t=0.37500000 dt=0.00781250 ta=0.00000000 dta=0.00981571 wt=0.81921960
+.....iter=1, diff=3.6659989510589019e-03
+STEP=49 t=0.38281250 dt=0.00781250 ta=0.00000000 dta=0.01001603 wt=0.83575905
+.....iter=1, diff=3.6284267382078461e-03
+STEP=50 t=0.39062500 dt=0.00781250 ta=0.00000000 dta=0.00996094 wt=0.85468120
+.....iter=1, diff=3.5930684884938335e-03
+STEP=51 t=0.39843750 dt=0.00781250 ta=0.00000000 dta=0.01015625 wt=0.87176070
+.....iter=1, diff=3.5559315237302380e-03
+STEP=52 t=0.40625000 dt=0.00781250 ta=0.00000000 dta=0.01009909 wt=0.88817994
+.....iter=1, diff=3.5211581793296309e-03
+STEP=53 t=0.41406250 dt=0.00781250 ta=0.00000000 dta=0.01004464 wt=0.90496388
+.....iter=1, diff=3.4847697275341982e-03
+STEP=54 t=0.42187500 dt=0.00781250 ta=0.00000000 dta=0.01023065 wt=0.92550777
+.....iter=1, diff=3.4508542576731083e-03
+STEP=55 t=0.42968750 dt=0.00781250 ta=0.00000000 dta=0.01017442 wt=0.94393286
+.....iter=1, diff=3.4154025470336524e-03
+STEP=56 t=0.43750000 dt=0.00781250 ta=0.00000000 dta=0.01035610 wt=0.96033356
+.....iter=1, diff=3.3825209237959841e-03
+STEP=57 t=0.44531250 dt=0.00781250 ta=0.00000000 dta=0.01029830 wt=0.97544471
+.....iter=1, diff=3.3482349894157215e-03
+STEP=58 t=0.45312500 dt=0.00781250 ta=0.00000000 dta=0.01024306 wt=0.98962082
+.....iter=1, diff=3.3165780738666495e-03
+STEP=59 t=0.46093750 dt=0.00781250 ta=0.00000000 dta=0.01041667 wt=1.00277113
+.....iter=1, diff=3.2845720874200568e-03
+STEP=60 t=0.46875000 dt=0.00781250 ta=0.00000000 dta=0.01036005 wt=1.01525450
+.....iter=1, diff=3.2551144322786607e-03
+STEP=61 t=0.47656250 dt=0.00781250 ta=0.00000000 dta=0.01052989 wt=1.02727384
+.....iter=1, diff=3.2243099883583204e-03
+STEP=62 t=0.48437500 dt=0.00781250 ta=0.00000000 dta=0.01047207 wt=1.03878532
+.....iter=1, diff=3.1959696287315875e-03
+STEP=63 t=0.49218750 dt=0.00781250 ta=0.00000000 dta=0.01063830 wt=1.04989746
+Dump n=0 t=0.5 target=0
+.....iter=1, diff=3.1663129246524147e-03
+Dump 0: format=plain
+End of simulation, t > tmax=5.0000000000000000e-01
+cells = 4096
+steps = 1000000
+iters = 64
+total = 1 s = 00:00:01.070
+time/cell/iter = 4.08231e-06 s
+Unused configuration variables:

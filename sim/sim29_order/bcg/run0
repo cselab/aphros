@@ -12,7 +12,7 @@ log=log
 make cleanall &>>$log
 make conf &>>$log
 
-dt=$(bc -l <<< "0.25 / $nx")
+dt=$(bc -l <<< "0.5 / $nx")
 echo set double dt0 $dt > par.conf
 
 LD_PRELOAD=build/libhook.so nice make run m="$nx $nx 1" np=$np &>>$log
