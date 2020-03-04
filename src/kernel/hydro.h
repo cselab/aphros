@@ -307,7 +307,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
   FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_
-  Scal diff_; // convergence indicator
 
   FieldCell<Scal> fc_sig_; // surface tension sigma
 
@@ -566,7 +565,8 @@ void Hydro<M>::InitStat() {
             "iter", [this]() { return st_.iter; }),
         op("dt", &s.dt),
         op("dta", &s.dta),
-        op("diff", &diff_),
+        std::make_shared<output::OutScalFunc<int>>(
+            "diff", [this]() { return fs_->GetError(); }),
         op("m1", &s.m1),
         op("m2", &s.m2),
         op("m20", &s.m20),
@@ -2052,7 +2052,7 @@ auto Hydro<M>::CalcViscousDrag(
 template <class M>
 void Hydro<M>::ReportIter() {
   std::cout << std::scientific << std::setprecision(16)
-            << ".....iter=" << fs_->GetIter() << ", diff=" << diff_
+            << ".....iter=" << fs_->GetIter() << ", diff=" << fs_->GetError()
             << std::endl;
 }
 
@@ -2096,10 +2096,6 @@ void Hydro<M>::StepFluid() {
   if (sem.Nested("iter")) {
     fs_->MakeIteration();
   }
-  if (sem("reduce")) {
-    diff_ = fs_->GetError();
-    m.Reduce(&diff_, "max");
-  }
   if (sem("report")) {
     ++st_.iter;
     if (m.IsLead()) {
@@ -2112,9 +2108,9 @@ void Hydro<M>::StepFluid() {
     }
   }
   if (sem("convcheck")) {
-    assert(fs_->GetError() <= diff_);
     auto it = fs_->GetIter();
-    if ((diff_ < var.Double["tol"] && (int)it >= var.Int["min_iter"]) ||
+    if ((fs_->GetError() < var.Double["tol"] &&
+         (int)it >= var.Int["min_iter"]) ||
         (int)it >= var.Int["max_iter"]) {
       sem.LoopBreak();
     }
