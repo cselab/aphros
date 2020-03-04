@@ -80,13 +80,14 @@ struct Proj<EB_>::Imp {
       const auto cf = p.first;
       const auto& bc = p.second;
       const auto nci = bc.nci;
-      me_pressure_[cf] = BCond<Scal>(BCondType::neumann, nci);
       me_visc_[cf] = BCond<Scal>(BCondType::neumann, nci);
       if (bc.type == BCondFluidType::slipwall ||
           bc.type == BCondFluidType::symm) {
         me_force_[cf] = BCond<Vect>(BCondType::mixed, nci);
+        me_pressure_[cf] = BCond<Scal>(BCondType::neumann, nci);
       } else {
         me_force_[cf] = BCond<Vect>(BCondType::neumann, nci);
+        me_pressure_[cf] = BCond<Scal>(BCondType::extrap, nci);
       }
     });
 
@@ -258,9 +259,13 @@ struct Proj<EB_>::Imp {
   // ffv: flux
   FieldFaceb<ExprFace> GetFlux(
       const FieldCell<Scal>& fcp, const FieldFaceb<Scal>& ffv, Scal dt) {
-    FieldFaceb<ExprFace> ff_flux = UEB::GradientImplicit(fcp, me_pressure_, eb);
+    FieldFaceb<ExprFace> ff_flux = UEB::GradientImplicit(fcp, {}, eb);
     eb.LoopFaces([&](auto cf) { //
-      ff_flux[cf] *= -eb.GetArea(cf) / ffdens_[cf] * dt;
+      if (!is_boundary_[cf]) {
+        ff_flux[cf] *= -eb.GetArea(cf) / ffdens_[cf] * dt;
+      } else {
+        ff_flux[cf] = ExprFace(0);
+      }
       ff_flux[cf][2] += ffv[cf];
     });
     return ff_flux;

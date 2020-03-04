@@ -78,8 +78,6 @@ struct Simple<EB_>::Imp {
     });
 
     fev_.time_prev = fev_.time_curr;
-
-    const auto ffp = UEB::Interpolate(fcp_.time_curr, me_pressure_, eb);
   }
 
   void UpdateDerivedConditions() {
@@ -91,14 +89,16 @@ struct Simple<EB_>::Imp {
       const auto& bc = p.second;
       const auto nci = bc.nci;
       me_visc_[cf] = BCond<Scal>(BCondType::neumann, nci);
-      me_pressure_[cf] = BCond<Scal>(BCondType::neumann, nci);
-      me_pcorr_[cf] = BCond<Scal>(BCondType::neumann, nci);
 
       if (bc.type == BCondFluidType::slipwall ||
           bc.type == BCondFluidType::symm) {
         me_force_[cf] = BCond<Vect>(BCondType::mixed, nci);
+        me_pressure_[cf] = BCond<Scal>(BCondType::neumann, nci);
+        me_pcorr_[cf] = BCond<Scal>(BCondType::neumann, nci);
       } else {
         me_force_[cf] = BCond<Vect>(BCondType::neumann, nci);
+        me_pressure_[cf] = BCond<Scal>(BCondType::extrap, nci);
+        me_pcorr_[cf] = BCond<Scal>(BCondType::extrap, nci);
       }
     });
 
