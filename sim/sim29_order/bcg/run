@@ -1,0 +1,9 @@
+#!/bin/bash
+
+./run0 016 1
+./run0 032 4
+./run0 064 16
+./run0 128 64
+./run0 256 128
+
+./run_diff > order
