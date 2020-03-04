@@ -33,6 +33,53 @@ def Log(s, noeol=False):
     sys.stdout.write(s)
     sys.stdout.flush()
 
+def HideAxis(ax):
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    plt.setp(ax.get_xticklabels(), visible=False)
+    plt.setp(ax.get_yticklabels(), visible=False)
+    ax.tick_params(axis='both', which='both', length=0)
+
+def PlotGrid(ax, x1node, y1node):
+    ax.set_xticks(x1)
+    ax.set_yticks(y1)
+    ax.grid(True, lw=0.5, c='0.', alpha=0.2)
+
+def InitBasicFigure(field):
+    figsize = 3.2
+    resx = 640
+    dpi = resx / figsize
+    fig = plt.figure(figsize=(resx/dpi,resx/dpi), dpi=dpi)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    fig.add_axes(ax)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    lx, ly = 1.,1.
+    ny, nx = field.shape
+    hx, hy = lx / nx, ly / ny
+    x1 = (0.5 + np.arange(nx)) * hx
+    y1 = (0.5 + np.arange(ny)) * hy
+    x1node = np.arange(nx + 1) * hx
+    y1node = np.arange(ny + 1) * hy
+    HideAxis(ax)
+    PlotGrid(ax, x1node, y1node)
+    meta = dict()
+    meta['x1'] = x1
+    meta['y1'] = y1
+    meta['fig'] = fig
+    return fig, ax, meta
+
+
+def PlotFieldCoolwarm(ax, u, vmin=None, vmax=None):
+    ax.imshow(np.flipud(u), vmin=vmin, vmax=vmax, extent=(0, 1, 0, 1),
+            interpolation='nearest', cmap=plt.get_cmap("coolwarm"))
+
+def SaveBasicFigure(fig, filename):
+    matplotlib.rcParams['svg.hashsalt'] = 123 # for reproducible svg
+    fig.savefig(filename)
+
 
 # Read uniform grid data
 # p: path

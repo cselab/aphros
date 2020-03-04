@@ -4,29 +4,29 @@ import numpy as np
 import glob
 import os
 import re
-import aphros.io
-import aphros.stream
-import aphros.plot
+import aphros
 
-def PlotStream(ax, vx, vy):
-    psi = stream(vx, vy)
-    fig, ax = PlotInit()
-    plt.contour(x1, y1, psi, 36, colors='k',
+def PlotStream(ax, meta, vx, vy):
+    psi = aphros.stream(vx, vy)
+    ax.contour(meta['x1'], meta['y1'], psi, 36, colors='k',
                 linestyles="solid", linewidths=1.)
 
 pre = 'p'
 ff = sorted(glob.glob(pre + "*.dat"))[0:]
 for f in ff:
     suf = re.findall(pre + "(.*)", f)[0]
-    vx = aphros.io.ReadPlain('vx' + suf)[0,:,:]
-    vy = aphros.io.ReadPlain('vy' + suf)[0,:,:]
-    p = aphros.io.ReadPlain('p' + suf)[0,:,:]
+    vx = aphros.ReadPlain('vx' + suf)[0,:,:]
+    vy = aphros.ReadPlain('vy' + suf)[0,:,:]
+    p = aphros.ReadPlain('p' + suf)[0,:,:]
+    omz = aphros.ReadPlain('omz' + suf)[0,:,:]
     [sx, sy] = vx.shape
     hx = 1. / sx
     hy = 1. / sy
 
     po = os.path.splitext(f)[0] + ".pdf"
     print(po)
-    fig, ax = InitBasicFigure()
-    PlotStream(x1, y1, vx, vy, po)
-    SaveBasicFigure(fig)
+    fig, ax, meta = aphros.InitBasicFigure(p)
+    PlotStream(ax, meta, vx, vy)
+    vmax = np.std(omz)
+    aphros.PlotFieldCoolwarm(ax, omz, -vmax, vmax)
+    aphros.SaveBasicFigure(fig, po)
