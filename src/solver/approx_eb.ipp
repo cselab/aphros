@@ -106,7 +106,7 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
                 << std::endl;
     }
     if (!fin.good()) {
-      throw std::runtime_error("Can't open list of primitives");
+      throw std::runtime_error(FILELINE + ": Can't open list of primitives");
     }
     auto pp = UPrimList<Scal>::Parse(fin, verb, edim);
 
@@ -132,7 +132,7 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
       fnl[n] = lsmax(m.GetNode(n));
     }
   } else {
-    throw std::runtime_error("Unknown eb_init=" + name);
+    throw std::runtime_error(FILELINE + ": Unknown eb_init=" + name);
   }
 
   if (var.Int["eb_init_inverse"]) {
@@ -434,7 +434,7 @@ auto UEmbed<M>::Interpolate(
         return UExtrap(xt, x0, v0, x1, v1);
       }
       default:
-        throw std::runtime_error(std::string() + __func__ + ": unknown");
+        throw std::runtime_error(FILELINE + ": unknown");
     }
     return GetNan<T>();
   };
@@ -471,14 +471,23 @@ auto UEmbed<M>::Gradient(
         const T u1 = fcu[c];
         const size_t cnci = m.GetNci(c, f); // f=m.GetFace(c, cnci)
         const T u2 = fcu[m.GetCell(c, m.GetOpposite(cnci))];
+        //    |      |      |
+        //  uf|  u1  |  u2  |
+        //    |      |      |
         return (uf * 8 - u1 * 9 + u2) / (3 * h) * sgn;
-        //return (uf - u1) / h * sgn;
       }
       case BCondType::neumann: {
         return val;
       }
+      case BCondType::extrap: {
+        const Scal sgn = (nci == 0 ? 1 : -1);
+        const T u1 = fcu[c];
+        const size_t cnci = m.GetNci(c, f); // f=m.GetFace(c, cnci)
+        const T u2 = fcu[m.GetCell(c, m.GetOpposite(cnci))];
+        return (u1 - u2) / h * sgn;
+      }
       default:
-        throw std::runtime_error(std::string() + __func__ + ": unknown");
+        throw std::runtime_error(FILELINE + ": unknown");
     }
     return GetNan<T>();
   };
