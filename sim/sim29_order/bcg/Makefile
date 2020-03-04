@@ -20,4 +20,4 @@ conf: $B/libhook.so
 include $(shell ap.makesim)
 
 clean::
-	rm -f omz_*.dat
+	rm -f omz_*.dat par.conf

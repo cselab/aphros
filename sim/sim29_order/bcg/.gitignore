@@ -4,3 +4,4 @@ build
 order
 nx*
 p_*.dat
+par.conf

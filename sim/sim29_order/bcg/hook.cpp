@@ -7,11 +7,13 @@
 
 template <class M>
 void InitVelHook(
-    FieldCell<typename M::Vect>& fcvel, const Vars& var, const M& m) {
+    FieldCell<typename M::Vect>& fcvel, const Vars&, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  if (m.IsRoot()) {
+    std::cout << "initial velocity: Bell,Colella,Glaz 1989" << std::endl;
+  }
   for (auto c : m.AllCells()) {
-    // Bell,Colella,Glaz 1989
     // psi = 1/pi * sin**2(pi*x) * sin**2(pi*y)
     const Vect xx = m.GetCenter(c);
     const Scal x = xx[0];
