@@ -1,37 +1,10 @@
 #!/bin/bash
 
-set -eu
 
-e () {
-  echo "$@"
-  eval "$@"
-}
-
-run0 () {
-  nx=$1
-  np=$2
-
-  make cleanall &> /dev/null
-  nice make run m="$nx $nx 1" np=$np &> /dev/null
-}
-
-vnx=(016 032 064 128 256)
-vnp=(1   4   8   8   8)
-for i in "${!vnx[@]}" ; do
-  nx=${vnx[$i]}
-  np=${vnp[$i]}
-  e "run0 $nx $np"
-  t=$(grep -i "total = " out | sed -En 's/[^=]*=[^=]*=\s*(.*?)/\1/p')
-  echo "time $t"
-  { 
-    ./plot omz_0000.dat
-    ap.plain2vtk omz_0000.dat
-    ap.plain2vtk vx_0000.dat
-    ap.plain2vtk vy_0000.dat
-  } &> /dev/null
-  d=nx$nx
-  mkdir -p $d
-  mv {vx,vy,omz}_0000.* out $d
-done
+./run0 016 1
+./run0 032 1
+./run0 064 1
+./run0 128 1
+./run0 256 1
 
 ./run_diff > order
