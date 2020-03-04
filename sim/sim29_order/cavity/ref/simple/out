@@ -1,0 +1,517 @@
+hydro ae8742e-dirty
+msg: sim29/cavity: split run0
+diff: deploy/setenv/setenv2.euler 
+Loading config from 'a.conf'
+
+=== config begin ===
+set string advection_solver vof
+set string backend cubismnc
+set string bc_path bc.dat
+set string bc_xm wall 0 0 0
+set string bc_xp wall 0 0 0
+set string bc_ym wall 0 0 0
+set string bc_yp wall 1 0 0
+set string body_bc wall 0 0 0
+set string body_init zero
+set string body_list_path body.dat
+set string bubgen_path bg.dat
+set string conf_unused_ignore_path base.conf
+set string conv imp
+set string convsc quick
+set string dumpformat plain
+set string dumplist vx vy omz p
+set string eb_init list
+set string eb_list_path body.dat
+set string fluid_solver simple
+set string hypre_gen_solver gmres
+set string hypre_symm_solver pcg
+set string hypre_vort_solver smg
+set string init_sig uniform
+set string init_vf zero
+set string list_path b.dat
+set string surftens kn
+set string vel_init zero
+set string vellist_path vel.dat
+set string vof_scheme weymouth
+set int CHECKNAN 0
+set int bc_wall_init_vel 0
+set int bcc_reflectpoly 1
+set int body_init_inverse 0
+set int bsx 16
+set int bsy 16
+set int bsz 1
+set int bx 1
+set int by 1
+set int bz 1
+set int check_symmetry 0
+set int cloverride 0
+set int convsymm 0
+set int dim 2
+set int dump_field_max 10000
+set int dump_part_max 10000
+set int dump_stat_max 1000000
+set int dump_traj_max 10000
+set int dump_trep_max 10000
+set int dumpbc 0
+set int dumpinit 0
+set int dumplast 1
+set int dumppart 0
+set int dumppartinter 0
+set int dumppoly 1
+set int dumppolymarch 1
+set int eb_init_inverse 1
+set int enable_advection 0
+set int enable_bc 0
+set int enable_bubgen 0
+set int enable_color 0
+set int enable_embed 0
+set int enable_fluid 1
+set int enable_shell 0
+set int enable_surftens 0
+set int enstrophy 0
+set int explconv 0
+set int fill_halo_nan 0
+set int force_kolm 0
+set int force_kolm_accel 0
+set int histogram 0
+set int hl 2
+set int hypre_gen_maxiter 30
+set int hypre_periodic_x 0
+set int hypre_periodic_y 0
+set int hypre_periodic_z 1
+set int hypre_print 0
+set int hypre_symm_maxiter 100
+set int hypre_vort_maxiter 1000
+set int initvort 0
+set int inletflux_numid 1
+set int linreport 0
+set int list_ls 1
+set int loc_maxcomm 16
+set int loc_periodic_x 1
+set int loc_periodic_y 1
+set int loc_periodic_z 1
+set int marangoni 0
+set int max_iter 1
+set int max_step 1000000
+set int min_iter 1
+set int mpi_compress_msg 0
+set int openmp 0
+set int output 1
+set int part 1
+set int part_bendmean 1
+set int part_dn 0
+set int part_dump_fr 1
+set int part_itermax 20
+set int part_k 1
+set int part_np 7
+set int part_ns 3
+set int part_report_fr 1
+set int part_verb 0
+set int poiswym 1
+set int poiswyp 1
+set int poiswzm 1
+set int poiswzp 1
+set int px 4
+set int py 4
+set int pz 1
+set int report_knan 0
+set int report_stat 0
+set int report_step_every 1
+set int second_order 1
+set int sharpen 0
+set int split 0
+set int stat_area 0
+set int stat_dissip 0
+set int stat_step_every 1
+set int stat_vofm 0
+set int statbox 0
+set int statvel 0
+set int stokes 0
+set int vel_init_noise 0
+set int vel_init_random 0
+set int verbose 0
+set int verbose_conf_reads 0
+set int verbose_conf_unused 1
+set int verbose_openmp 0
+set int verbose_stages 1
+set int verbose_time 1
+set int vf_init_sm 0
+set int vfsmooth 0
+set int vfsmoothnode 0
+set int vof_recolor_grid 1
+set int vof_recolor_reduce 1
+set int vof_recolor_unionfind 1
+set int vof_verb 0
+set int vofm_layers 4
+set int vort_report 1
+set int vtkbin 1
+set int vtkmerge 1
+set int wavelamb_vort 0
+set int youngbc 0
+set double abortvel 1e+10
+set double avgnorm0 1
+set double avgnorm1 1
+set double bcc_clear0 0
+set double bcc_clear1 1
+set double bcc_fill 0
+set double bubgen_per 1
+set double bubgen_t0 0
+set double cfl 1
+set double cfla 0.5
+set double cflst 2
+set double check_symmetry_dump_threshold 1e+10
+set double clfixed -1
+set double clipth 1e-10
+set double color_maxr 1e+10
+set double color_th 0.5
+set double convdf 1
+set double dt0 1e-06
+set double dtmax 1
+set double dump_field_dt 1
+set double dump_field_t0 1e+10
+set double dump_part_dt 1
+set double dump_part_t0 0
+set double dump_stat_dt 0
+set double dump_traj_dt 1
+set double dump_traj_t0 0
+set double dump_trep_dt 1
+set double dump_trep_t0 1e+10
+set double dumppolymarch_fill -1
+set double embed_gradlim 0.5
+set double extent 1
+set double force_mag 0
+set double force_vort_g 0
+set double force_vort_r 0
+set double hypre_gen_tol 0.001
+set double hypre_symm_tol 0.001
+set double hypre_vort_tol 1e-06
+set double inletcl 1
+set double kslip 0
+set double mu1 0.001
+set double mu2 0.01
+set double part_dtmax 10
+set double part_h 4
+set double part_relax 0.5
+set double part_segcirc 0
+set double part_tmax 180
+set double part_tol 1e-05
+set double penalslip 0
+set double prelax 1
+set double random_amp 1
+set double rhie 1
+set double rho1 1
+set double rho2 1
+set double ring_om 0.01
+set double ring_r0 0.2
+set double ring_r1 0.4
+set double sharp 0
+set double sharpen_cfl 0.5
+set double sharpo 0
+set double shell_h 3
+set double shell_r 0
+set double shell_rr 2
+set double sig_k 1.25
+set double sigma 0
+set double slipnormal 0
+set double slipnormal_dist 1
+set double source_mag 0
+set double source_mag0 0
+set double source_mexp 0
+set double source_mexp0 0
+set double stdiag 1
+set double stop_diff 1e-06
+set double tmax 1e+10
+set double tol 0
+set double vofm_coalth 1e+10
+set double vrelax 0.8
+set double vtkiso 0.5
+set double zerostx0 1e+10
+set double zerostx1 1e+10
+set vect clfixed_x 1e+10 1e+10 1e+10 
+set vect force 0 0 0 
+set vect force_mov 0 0 0 
+set vect force_mov2 0 0 0 
+set vect force_vort_c 0 
+set vect gravity 0 0 0 
+set vect noise_per0 0 0 1 
+set vect noise_per1 0 0 1 
+set vect noise_per2 0 0 1 
+set vect noise_vel0 1 0 0 
+set vect noise_vel1 1 0 0 
+set vect noise_vel2 1 0 0 
+set vect random_vel 1 0 0 
+set vect ring_c 0.5 0.5 0.5 
+set vect ring_n 1 0 0 
+set vect slipvel 1 0 0 
+set vect statbox2a 0 0 0.5 
+set vect statbox2b 1 1 0.5 
+set vect statboxa 0 0 0.5 
+set vect statboxb 1 1 0.5 
+=== config end ===
+
+global mesh=(64,64,1)
+surface tension dt=1.79769e+308
+viscosity dt=1.79769e+308
+Found events: 
+=====
+=====
+STEP=0 t=0.00000000 dt=0.00000100 ta=0.00000000 dta=0.00000100 wt=0.04706106
+.....iter=1, diff=5.8253608803633777e-06
+STEP=1 t=0.00000100 dt=1.00000000 ta=0.00000000 dta=1.00000100 wt=0.06623115
+.....iter=1, diff=7.6818482772721608e-01
+STEP=2 t=1.00000100 dt=0.01979158 ta=0.00000000 dta=0.00990090 wt=0.08009143
+.....iter=1, diff=1.0338193552472036e-01
+STEP=3 t=1.01979258 dt=0.02000983 ta=0.00000000 dta=0.00999810 wt=0.09320589
+.....iter=1, diff=6.5830399065382017e-02
+STEP=4 t=1.03980241 dt=0.02022153 ta=0.00000000 dta=0.01009547 wt=0.10633537
+.....iter=1, diff=3.9479301564156771e-02
+STEP=5 t=1.06002393 dt=0.02037270 ta=0.00000000 dta=0.01019242 wt=0.11954400
+.....iter=1, diff=3.1357567579699097e-02
+STEP=6 t=1.08039663 dt=0.02047428 ta=0.00000000 dta=0.01019325 wt=0.13203471
+.....iter=1, diff=2.8392874036810914e-02
+STEP=7 t=1.10087091 dt=0.02053672 ta=0.00000000 dta=0.01028814 wt=0.14380328
+.....iter=1, diff=2.5706773457538690e-02
+STEP=8 t=1.12140762 dt=0.02056696 ta=0.00000000 dta=0.01028806 wt=0.15610366
+.....iter=1, diff=2.3775923581876218e-02
+STEP=9 t=1.14197458 dt=0.02057198 ta=0.00000000 dta=0.01028802 wt=0.16859088
+.....iter=1, diff=2.1634826701636495e-02
+STEP=10 t=1.16254657 dt=0.02055721 ta=0.00000000 dta=0.01028786 wt=0.18003717
+.....iter=1, diff=1.9599196920015771e-02
+STEP=11 t=1.18310378 dt=0.02052793 ta=0.00000000 dta=0.01028745 wt=0.19071169
+.....iter=1, diff=1.7599688142618503e-02
+STEP=12 t=1.20363171 dt=0.02048743 ta=0.00000000 dta=0.01028672 wt=0.20087646
+.....iter=1, diff=1.6529037039208161e-02
+STEP=13 t=1.22411914 dt=0.02043912 ta=0.00000000 dta=0.01020130 wt=0.21050306
+.....iter=1, diff=1.6073149112908320e-02
+STEP=14 t=1.24455826 dt=0.02038508 ta=0.00000000 dta=0.01020116 wt=0.21968070
+.....iter=1, diff=1.5974039260133410e-02
+STEP=15 t=1.26494334 dt=0.02032749 ta=0.00000000 dta=0.01020056 wt=0.22861337
+.....iter=1, diff=1.5627438110284952e-02
+STEP=16 t=1.28527083 dt=0.02026739 ta=0.00000000 dta=0.01012045 wt=0.23727837
+.....iter=1, diff=1.5080904083741711e-02
+STEP=17 t=1.30553823 dt=0.02020626 ta=0.00000000 dta=0.01012019 wt=0.24575774
+.....iter=1, diff=1.4743555854482004e-02
+STEP=18 t=1.32574449 dt=0.02014457 ta=0.00000000 dta=0.01004395 wt=0.25433023
+.....iter=1, diff=1.4480842992469267e-02
+STEP=19 t=1.34588906 dt=0.02007135 ta=0.00000000 dta=0.01004383 wt=0.26260426
+.....iter=1, diff=1.4112833652483225e-02
+STEP=20 t=1.36596041 dt=0.01999614 ta=0.00000000 dta=0.00997091 wt=0.27076398
+.....iter=1, diff=1.3652193954021064e-02
+STEP=21 t=1.38595654 dt=0.01992269 ta=0.00000000 dta=0.00997077 wt=0.27884410
+.....iter=1, diff=1.3117333055347180e-02
+STEP=22 t=1.40587924 dt=0.01985123 ta=0.00000000 dta=0.00990091 wt=0.28694383
+.....iter=1, diff=1.2534788024271160e-02
+STEP=23 t=1.42573047 dt=0.01978189 ta=0.00000000 dta=0.00990077 wt=0.29511754
+.....iter=1, diff=1.2396760165155729e-02
+STEP=24 t=1.44551236 dt=0.01971475 ta=0.00000000 dta=0.00983374 wt=0.30321470
+.....iter=1, diff=1.2262919806316441e-02
+STEP=25 t=1.46522711 dt=0.01964985 ta=0.00000000 dta=0.00983362 wt=0.31130592
+.....iter=1, diff=1.2076582614487463e-02
+STEP=26 t=1.48487696 dt=0.01958719 ta=0.00000000 dta=0.00976925 wt=0.31939692
+.....iter=1, diff=1.1844188770638753e-02
+STEP=27 t=1.50446416 dt=0.01952674 ta=0.00000000 dta=0.00976917 wt=0.32751025
+.....iter=1, diff=1.1572436694292143e-02
+STEP=28 t=1.52399090 dt=0.01946848 ta=0.00000000 dta=0.00970729 wt=0.33561659
+.....iter=1, diff=1.1268348854694465e-02
+STEP=29 t=1.54345938 dt=0.01941237 ta=0.00000000 dta=0.00970728 wt=0.34371526
+.....iter=1, diff=1.0938528351820520e-02
+STEP=30 t=1.56287175 dt=0.01935838 ta=0.00000000 dta=0.00970693 wt=0.35182277
+.....iter=1, diff=1.0588741471099283e-02
+STEP=31 t=1.58223013 dt=0.01930646 ta=0.00000000 dta=0.00964781 wt=0.35991647
+.....iter=1, diff=1.0488988882175809e-02
+STEP=32 t=1.60153659 dt=0.01925656 ta=0.00000000 dta=0.00964758 wt=0.36799619
+.....iter=1, diff=1.0426140437050646e-02
+STEP=33 t=1.62079315 dt=0.01920816 ta=0.00000000 dta=0.00959065 wt=0.37641369
+.....iter=1, diff=1.0306693367384157e-02
+STEP=34 t=1.64000131 dt=0.01915974 ta=0.00000000 dta=0.00959053 wt=0.38632688
+.....iter=1, diff=1.0145753331883500e-02
+STEP=35 t=1.65916105 dt=0.01911299 ta=0.00000000 dta=0.00953565 wt=0.39571547
+.....iter=1, diff=9.9479843164724802e-03
+STEP=36 t=1.67827404 dt=0.01906785 ta=0.00000000 dta=0.00953563 wt=0.40373966
+.....iter=1, diff=9.7171695165315097e-03
+STEP=37 t=1.69734188 dt=0.01902427 ta=0.00000000 dta=0.00953537 wt=0.41179117
+.....iter=1, diff=9.6766198824358440e-03
+STEP=38 t=1.71636615 dt=0.01898221 ta=0.00000000 dta=0.00948278 wt=0.41978831
+.....iter=1, diff=9.6605788861484077e-03
+STEP=39 t=1.73534837 dt=0.01894163 ta=0.00000000 dta=0.00948265 wt=0.42770985
+.....iter=1, diff=9.6137209220119035e-03
+STEP=40 t=1.75429000 dt=0.01890247 ta=0.00000000 dta=0.00943187 wt=0.43562998
+.....iter=1, diff=9.5378641816545873e-03
+STEP=41 t=1.77319246 dt=0.01886469 ta=0.00000000 dta=0.00943188 wt=0.44359345
+.....iter=1, diff=9.4350222618444501e-03
+STEP=42 t=1.79205715 dt=0.01882824 ta=0.00000000 dta=0.00943169 wt=0.45153164
+.....iter=1, diff=9.3071853754856937e-03
+STEP=43 t=1.81088539 dt=0.01879310 ta=0.00000000 dta=0.00938297 wt=0.45945648
+.....iter=1, diff=9.1568428336982755e-03
+STEP=44 t=1.82967849 dt=0.01875920 ta=0.00000000 dta=0.00938293 wt=0.46738037
+.....iter=1, diff=8.9865569085563757e-03
+STEP=45 t=1.84843769 dt=0.01872652 ta=0.00000000 dta=0.00938273 wt=0.47530634
+.....iter=1, diff=8.7985986385125670e-03
+STEP=46 t=1.86716421 dt=0.01869502 ta=0.00000000 dta=0.00933594 wt=0.48322187
+.....iter=1, diff=8.6028525797716138e-03
+STEP=47 t=1.88585922 dt=0.01866466 ta=0.00000000 dta=0.00933590 wt=0.49118605
+.....iter=1, diff=8.5768349016001055e-03
+STEP=48 t=1.90452388 dt=0.01863542 ta=0.00000000 dta=0.00933572 wt=0.49942732
+.....iter=1, diff=8.5336980625166925e-03
+STEP=49 t=1.92315930 dt=0.01860725 ta=0.00000000 dta=0.00929075 wt=0.50737484
+.....iter=1, diff=8.4744123515819725e-03
+STEP=50 t=1.94176655 dt=0.01858013 ta=0.00000000 dta=0.00929074 wt=0.51807115
+.....iter=1, diff=8.4000037005336758e-03
+STEP=51 t=1.96034668 dt=0.01855396 ta=0.00000000 dta=0.00929061 wt=0.52874419
+.....iter=1, diff=8.3113999786534887e-03
+STEP=52 t=1.97890064 dt=0.01852631 ta=0.00000000 dta=0.00924735 wt=0.53791909
+.....iter=1, diff=8.2086882589739729e-03
+STEP=53 t=1.99742695 dt=0.01849953 ta=0.00000000 dta=0.00924737 wt=0.54604118
+.....iter=1, diff=8.0935096267957252e-03
+STEP=54 t=2.01592648 dt=0.01847361 ta=0.00000000 dta=0.00924727 wt=0.55390867
+.....iter=1, diff=7.9667581722586145e-03
+STEP=55 t=2.03440008 dt=0.01844852 ta=0.00000000 dta=0.00920560 wt=0.56177618
+.....iter=1, diff=7.8291337440056230e-03
+STEP=56 t=2.05284860 dt=0.01842423 ta=0.00000000 dta=0.00920566 wt=0.56968111
+.....iter=1, diff=7.6813677150810444e-03
+STEP=57 t=2.07127283 dt=0.01840074 ta=0.00000000 dta=0.00920561 wt=0.57756323
+.....iter=1, diff=7.5241248295655483e-03
+STEP=58 t=2.08967358 dt=0.01837802 ta=0.00000000 dta=0.00920547 wt=0.58547823
+.....iter=1, diff=7.4867689856363828e-03
+STEP=59 t=2.10805159 dt=0.01835604 ta=0.00000000 dta=0.00916555 wt=0.59335778
+.....iter=1, diff=7.4522860279815917e-03
+STEP=60 t=2.12640763 dt=0.01833478 ta=0.00000000 dta=0.00916557 wt=0.60127331
+.....iter=1, diff=7.4078910387759822e-03
+STEP=61 t=2.14474241 dt=0.01831424 ta=0.00000000 dta=0.00916549 wt=0.60913214
+.....iter=1, diff=7.3538109141872421e-03
+STEP=62 t=2.16305665 dt=0.01829438 ta=0.00000000 dta=0.00916534 wt=0.61696907
+.....iter=1, diff=7.2903797091545264e-03
+STEP=63 t=2.18135103 dt=0.01827520 ta=0.00000000 dta=0.00912708 wt=0.62770575
+.....iter=1, diff=7.2178180077638321e-03
+STEP=64 t=2.19962623 dt=0.01825667 ta=0.00000000 dta=0.00912709 wt=0.63825985
+.....iter=1, diff=7.1364213729284698e-03
+STEP=65 t=2.21788289 dt=0.01823877 ta=0.00000000 dta=0.00912703 wt=0.64877590
+.....iter=1, diff=7.0464996343804764e-03
+STEP=66 t=2.23612167 dt=0.01822150 ta=0.00000000 dta=0.00912690 wt=0.65927301
+.....iter=1, diff=6.9484218336242076e-03
+STEP=67 t=2.25434317 dt=0.01820484 ta=0.00000000 dta=0.00909019 wt=0.66984640
+.....iter=1, diff=6.8943416781633293e-03
+STEP=68 t=2.27254801 dt=0.01818876 ta=0.00000000 dta=0.00909023 wt=0.68037313
+.....iter=1, diff=6.8338745899209075e-03
+STEP=69 t=2.29073677 dt=0.01817326 ta=0.00000000 dta=0.00909020 wt=0.69089595
+.....iter=1, diff=6.7634744479964093e-03
+STEP=70 t=2.30891002 dt=0.01815675 ta=0.00000000 dta=0.00909010 wt=0.70141279
+.....iter=1, diff=6.6831009393165663e-03
+STEP=71 t=2.32706677 dt=0.01814023 ta=0.00000000 dta=0.00905485 wt=0.71411355
+.....iter=1, diff=6.5933610033300782e-03
+STEP=72 t=2.34520700 dt=0.01812422 ta=0.00000000 dta=0.00905491 wt=0.72585765
+.....iter=1, diff=6.5114298509793556e-03
+STEP=73 t=2.36333122 dt=0.01810870 ta=0.00000000 dta=0.00905490 wt=0.73681092
+.....iter=1, diff=6.4737720666609988e-03
+STEP=74 t=2.38143991 dt=0.01809366 ta=0.00000000 dta=0.00905484 wt=0.74710248
+.....iter=1, diff=6.4287950494469337e-03
+STEP=75 t=2.39953357 dt=0.01807909 ta=0.00000000 dta=0.00905473 wt=0.75492836
+.....iter=1, diff=6.3766338232414399e-03
+STEP=76 t=2.41761266 dt=0.01806497 ta=0.00000000 dta=0.00902103 wt=0.76267801
+.....iter=1, diff=6.3357551188593098e-03
+STEP=77 t=2.43567763 dt=0.01805131 ta=0.00000000 dta=0.00902106 wt=0.77052179
+.....iter=1, diff=6.3026093578019138e-03
+STEP=78 t=2.45372895 dt=0.01803809 ta=0.00000000 dta=0.00902105 wt=0.77836117
+.....iter=1, diff=6.2619044155431958e-03
+STEP=79 t=2.47176703 dt=0.01802529 ta=0.00000000 dta=0.00902099 wt=0.78622789
+.....iter=1, diff=6.2137703629530638e-03
+STEP=80 t=2.48979232 dt=0.01801291 ta=0.00000000 dta=0.00902088 wt=0.79407963
+.....iter=1, diff=6.1583667527609354e-03
+STEP=81 t=2.50780523 dt=0.01800094 ta=0.00000000 dta=0.00898863 wt=0.80193850
+.....iter=1, diff=6.0958523291636535e-03
+STEP=82 t=2.52580618 dt=0.01798937 ta=0.00000000 dta=0.00898868 wt=0.80990324
+.....iter=1, diff=6.0264476927235355e-03
+STEP=83 t=2.54379555 dt=0.01797819 ta=0.00000000 dta=0.00898868 wt=0.81773677
+.....iter=1, diff=5.9504033287988145e-03
+STEP=84 t=2.56177374 dt=0.01796740 ta=0.00000000 dta=0.00898865 wt=0.82624195
+.....iter=1, diff=5.8679861165604752e-03
+STEP=85 t=2.57974114 dt=0.01795697 ta=0.00000000 dta=0.00898857 wt=0.83595302
+.....iter=1, diff=5.7795104574977496e-03
+STEP=86 t=2.59769811 dt=0.01794691 ta=0.00000000 dta=0.00898847 wt=0.84580236
+.....iter=1, diff=5.7663958667357740e-03
+STEP=87 t=2.61564502 dt=0.01793720 ta=0.00000000 dta=0.00895776 wt=0.85499509
+.....iter=1, diff=5.7532032381079068e-03
+STEP=88 t=2.63358223 dt=0.01792784 ta=0.00000000 dta=0.00895780 wt=0.86342077
+.....iter=1, diff=5.7339205114417813e-03
+STEP=89 t=2.65151007 dt=0.01791882 ta=0.00000000 dta=0.00895782 wt=0.87153642
+.....iter=1, diff=5.7085929743401209e-03
+STEP=90 t=2.66942889 dt=0.01790946 ta=0.00000000 dta=0.00895779 wt=0.87939406
+.....iter=1, diff=5.6770827640015287e-03
+STEP=91 t=2.68733835 dt=0.01789953 ta=0.00000000 dta=0.00895774 wt=0.88720716
+.....iter=1, diff=5.6394064220305906e-03
+STEP=92 t=2.70523788 dt=0.01788991 ta=0.00000000 dta=0.00895766 wt=0.89500199
+.....iter=1, diff=5.5959209148825906e-03
+STEP=93 t=2.72312779 dt=0.01788060 ta=0.00000000 dta=0.00892837 wt=0.90289217
+.....iter=1, diff=5.5467598811879126e-03
+STEP=94 t=2.74100839 dt=0.01787159 ta=0.00000000 dta=0.00892841 wt=0.91069026
+.....iter=1, diff=5.4920718351631481e-03
+STEP=95 t=2.75887998 dt=0.01786287 ta=0.00000000 dta=0.00892843 wt=0.91841475
+.....iter=1, diff=5.4320766213630800e-03
+STEP=96 t=2.77674284 dt=0.01785443 ta=0.00000000 dta=0.00892843 wt=0.92619652
+.....iter=1, diff=5.3670014838424485e-03
+STEP=97 t=2.79459728 dt=0.01784628 ta=0.00000000 dta=0.00892839 wt=0.93403729
+.....iter=1, diff=5.2970868028566209e-03
+STEP=98 t=2.81244356 dt=0.01783841 ta=0.00000000 dta=0.00892833 wt=0.94181229
+.....iter=1, diff=5.2256869912462034e-03
+STEP=99 t=2.83028197 dt=0.01783080 ta=0.00000000 dta=0.00892825 wt=0.94960309
+.....iter=1, diff=5.2190548362858746e-03
+STEP=100 t=2.84811277 dt=0.01782346 ta=0.00000000 dta=0.00890042 wt=0.95732681
+.....iter=1, diff=5.2074111865281769e-03
+STEP=101 t=2.86593623 dt=0.01781638 ta=0.00000000 dta=0.00890047 wt=0.96518614
+.....iter=1, diff=5.1907532182932647e-03
+STEP=102 t=2.88375261 dt=0.01780955 ta=0.00000000 dta=0.00890050 wt=0.97312972
+.....iter=1, diff=5.1691733363914416e-03
+STEP=103 t=2.90156215 dt=0.01780297 ta=0.00000000 dta=0.00890050 wt=0.98087611
+.....iter=1, diff=5.1427054923896542e-03
+STEP=104 t=2.91936512 dt=0.01779663 ta=0.00000000 dta=0.00890049 wt=0.98859642
+.....iter=1, diff=5.1114915105045511e-03
+STEP=105 t=2.93716174 dt=0.01779052 ta=0.00000000 dta=0.00890046 wt=0.99660796
+.....iter=1, diff=5.0756530032016745e-03
+STEP=106 t=2.95495227 dt=0.01778466 ta=0.00000000 dta=0.00890041 wt=1.00439569
+.....iter=1, diff=5.0353193594132040e-03
+STEP=107 t=2.97273692 dt=0.01777901 ta=0.00000000 dta=0.00890035 wt=1.01219739
+.....iter=1, diff=4.9906653857284544e-03
+STEP=108 t=2.99051594 dt=0.01777360 ta=0.00000000 dta=0.00887401 wt=1.01999085
+.....iter=1, diff=4.9418676047808252e-03
+STEP=109 t=3.00828953 dt=0.01776840 ta=0.00000000 dta=0.00887407 wt=1.02784009
+.....iter=1, diff=4.8875127639591565e-03
+STEP=110 t=3.02605794 dt=0.01776343 ta=0.00000000 dta=0.00887411 wt=1.03557937
+.....iter=1, diff=4.8305521689576136e-03
+STEP=111 t=3.04382136 dt=0.01775865 ta=0.00000000 dta=0.00887414 wt=1.04328506
+.....iter=1, diff=4.7966133668901345e-03
+STEP=112 t=3.06158002 dt=0.01775408 ta=0.00000000 dta=0.00887416 wt=1.05089609
+.....iter=1, diff=4.7906760827219619e-03
+STEP=113 t=3.07933410 dt=0.01774971 ta=0.00000000 dta=0.00887417 wt=1.05838975
+.....iter=1, diff=4.7736860056191155e-03
+STEP=114 t=3.09708381 dt=0.01774554 ta=0.00000000 dta=0.00887416 wt=1.06577225
+.....iter=1, diff=4.7464080468314351e-03
+STEP=115 t=3.11482935 dt=0.01774099 ta=0.00000000 dta=0.00887414 wt=1.07304526
+.....iter=1, diff=1.0093128170463039e-06
+
+
+
+
+
+STEP=4239 t=75.71026593 dt=0.01750597 ta=0.00000000 dta=0.00875263 wt=30.88150868
+.....iter=1, diff=1.0079286070774351e-06
+STEP=4240 t=75.72777190 dt=0.01750597 ta=0.00000000 dta=0.00875263 wt=30.88869038
+.....iter=1, diff=1.0065914352042071e-06
+STEP=4241 t=75.74527787 dt=0.01750596 ta=0.00000000 dta=0.00875263 wt=30.89587497
+.....iter=1, diff=1.0052150280492889e-06
+STEP=4242 t=75.76278383 dt=0.01750596 ta=0.00000000 dta=0.00875263 wt=30.90311088
+.....iter=1, diff=1.0035998884716513e-06
+STEP=4243 t=75.78028979 dt=0.01750596 ta=0.00000000 dta=0.00875263 wt=30.91033342
+.....iter=1, diff=1.0024627221105753e-06
+STEP=4244 t=75.79779575 dt=0.01750596 ta=0.00000000 dta=0.00875263 wt=30.91751456
+.....iter=1, diff=1.0011156653666475e-06
+STEP=4245 t=75.81530170 dt=0.01750595 ta=0.00000000 dta=0.00875263 wt=30.92464072
+Dump n=-1 t=-1.79769e+308 target=0
+.....iter=1, diff=9.9974656397883166e-07
+End of simulation, diff < stop_diff=9.9999999999999995e-07
+Dump 0: format=plain
+cells = 4096
+steps = 1000000
+iters = 4246
+total = 30 s = 00:00:30.807
+time/cell/iter = 1.77140e-06 s
+Unused configuration variables:
