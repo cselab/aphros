@@ -8,7 +8,7 @@ np=$2
 echo "nx=$nx np=$np"
 
 make cleanall &> /dev/null
-make conf
+make conf &> /dev/null
 LD_PRELOAD=build/libhook.so nice make run m="$nx $nx 1" np=$np &> /dev/null
 t=$(grep -i "total = " out | sed -En 's/[^=]*=[^=]*=\s*(.*?)/\1/p')
 echo "time $t"
