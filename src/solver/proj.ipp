@@ -149,7 +149,7 @@ struct Proj<EB_>::Imp {
       m.Comm(&fcvel);
     }
   }
-  void Diffusion(
+  void DiffusionExplicit(
       FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvel_time_prev,
       const FieldCell<Scal>& fc_dens, const Scal dt) {
     auto sem = m.GetSem("diffusion");
@@ -157,8 +157,6 @@ struct Proj<EB_>::Imp {
       if (sem("local" + std::to_string(d))) {
         const auto mebc = GetScalarCond(me_vel_, d, m);
         const auto fcu = GetComponent(fcvel, d);
-        const FieldCell<Vect> fcg =
-            UEB::Gradient(UEB::Interpolate(fcu, mebc, eb), eb);
         const FieldFaceb<Scal> ffg = UEB::Gradient(fcu, mebc, eb);
         FieldCell<Scal> fc_sum(eb, 0);
         for (auto c : eb.Cells()) {
@@ -175,6 +173,48 @@ struct Proj<EB_>::Imp {
           fcvel[c][d] = fcvel_time_prev[c][d] +
                         fc_sum[c] * dt / (fc_dens[c] * eb.GetVolume(c));
         }
+      }
+    }
+    if (sem("comm")) {
+      m.Comm(&fcvel);
+    }
+  }
+  void DiffusionImplicit(
+      FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvel_time_prev,
+      const FieldCell<Scal>& fc_dens, const Scal dt) {
+    auto sem = m.GetSem("diffusion");
+    struct {
+      FieldCell<Scal> fcu;
+      FieldCell<Expr> fcl;
+    } * ctx(sem);
+    auto& fcu = ctx->fcu;
+    auto& fcl = ctx->fcl;
+    for (size_t d = 0; d < dim; ++d) {
+      if (sem("local" + std::to_string(d))) {
+        const auto mebc = GetScalarCond(me_vel_, d, m);
+        fcu = GetComponent(fcvel, d);
+        const FieldFaceb<ExprFace> ffg = UEB::GradientImplicit(fcu, mebc, eb);
+        fcl.Reinit(eb, Expr::GetUnit(0));
+        for (auto c : eb.Cells()) {
+          Expr sum(0);
+          eb.LoopNci(c, [&](auto q) {
+            const auto cf = eb.GetFace(c, q);
+            const ExprFace flux = ffg[cf] * ffvisc_[cf] * eb.GetArea(cf) *
+                                  eb.GetOutwardFactor(c, q);
+            eb.AppendExpr(sum, flux, q);
+          });
+          Expr td(0); // time derivative
+          td[0] = 1 / dt;
+          td[Expr::dim - 1] = -fcvel_time_prev[c][d] / dt;
+          fcl[c] = td * eb.GetVolume(c) * fc_dens[c] - sum;
+        }
+        fcl.SetName("velocity" + std::to_string(d));
+      }
+      if (sem.Nested("solve" + std::to_string(d))) {
+        Solve(fcl, &fcu, fcu, M::LS::T::symm, m);
+      }
+      if (sem("copy")) {
+        SetComponent(fcvel, d, fcu);
       }
     }
     if (sem("comm")) {
@@ -376,7 +416,14 @@ struct Proj<EB_>::Imp {
       // fcvel: velocity at t+dt
     }
     if (sem.Nested("diffusion")) {
-      Diffusion(fcvel, fcvel, *owner_->fcr_, dt);
+      switch (par.conv) {
+        case Conv::exp:
+          DiffusionExplicit(fcvel, fcvel, *owner_->fcr_, dt);
+          break;
+        case Conv::imp:
+          DiffusionImplicit(fcvel, fcvel, *owner_->fcr_, dt);
+          break;
+      }
     }
     if (sem("subtract")) {
       // subtract old acceleration from cell velocity
