@@ -11,11 +11,11 @@ void PostHook(
     const Vars&, const FieldCell<typename M::Vect>&, M&, const Embed<M>&) {}
 
 template <class M>
-void InitVelHook(FieldCell<typename M::Vect>&, const Vars&, M&) {}
+void InitVelHook(FieldCell<typename M::Vect>&, const Vars&, const M&) {}
 
 template <class M>
 void InitVelHook(
-    FieldCell<typename M::Vect>&, const Vars&, M&, const Embed<M>&) {}
+    FieldCell<typename M::Vect>&, const Vars&, const M&, const Embed<M>&) {}
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -24,5 +24,5 @@ using EB = Embed<M>;
 
 template void PostHook(const Vars&, const FieldCell<Vect>&, M&);
 template void PostHook(const Vars&, const FieldCell<Vect>&, M&, const EB&);
-template void InitVelHook(FieldCell<Vect>&, const Vars&, M&);
-template void InitVelHook(FieldCell<Vect>&, const Vars&, M&, const EB&);
+template void InitVelHook(FieldCell<Vect>&, const Vars&, const M&);
+template void InitVelHook(FieldCell<Vect>&, const Vars&, const M&, const EB&);

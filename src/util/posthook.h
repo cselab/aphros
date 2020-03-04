@@ -16,9 +16,10 @@ void PostHook(
     const Embed<M>& eb);
 
 template <class M>
-void InitVelHook(FieldCell<typename M::Vect>& fcvel, const Vars& var, M& m);
+void InitVelHook(
+    FieldCell<typename M::Vect>& fcvel, const Vars& var, const M& m);
 
 template <class M>
 void InitVelHook(
-    FieldCell<typename M::Vect>& fcvel, const Vars& var, M& m,
+    FieldCell<typename M::Vect>& fcvel, const Vars& var, const M& m,
     const Embed<M>& eb);
