@@ -5,28 +5,25 @@ import glob
 import os
 import re
 import aphros
+import sys
 
 def PlotStream(ax, meta, vx, vy):
     psi = aphros.stream(vx, vy)
     ax.contour(meta['x1'], meta['y1'], psi, 36, colors='k',
-                linestyles="solid", linewidths=1.)
+                linestyles="solid", linewidths=0.5)
 
-pre = 'p'
-ff = sorted(glob.glob(pre + "*.dat"))[0:]
-for f in ff:
-    suf = re.findall(pre + "(.*)", f)[0]
-    vx = aphros.ReadPlain('vx' + suf)[0,:,:]
-    vy = aphros.ReadPlain('vy' + suf)[0,:,:]
-    p = aphros.ReadPlain('p' + suf)[0,:,:]
-    omz = aphros.ReadPlain('omz' + suf)[0,:,:]
-    [sx, sy] = vx.shape
-    hx = 1. / sx
-    hy = 1. / sy
 
-    po = os.path.splitext(f)[0] + ".pdf"
-    print(po)
-    fig, ax, meta = aphros.InitBasicFigure(p)
-    PlotStream(ax, meta, vx, vy)
-    vmax = np.std(omz)
-    aphros.PlotFieldCoolwarm(ax, omz, -vmax, vmax)
-    aphros.SaveBasicFigure(fig, po)
+av = sys.argv
+filename = av[1] if len(av) > 1 else sorted(glob.glob("omz_*.dat"))[0]
+suff = re.findall("[^_]*(.*)", filename)[0]
+vx = aphros.ReadPlain('vx' + suff)[0,:,:]
+vy = aphros.ReadPlain('vy' + suff)[0,:,:]
+omz = aphros.ReadPlain('omz' + suff)[0,:,:]
+
+po = os.path.splitext(filename)[0] + ".pdf"
+print(po)
+fig, ax, meta = aphros.InitBasicFigure(omz, grid=False)
+PlotStream(ax, meta, vx, vy)
+vmax = np.std(omz)
+aphros.PlotFieldCoolwarm(ax, omz, -vmax, vmax)
+aphros.SaveBasicFigure(fig, po)

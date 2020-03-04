@@ -47,7 +47,7 @@ def PlotGrid(ax, x1node, y1node):
     ax.set_yticks(y1)
     ax.grid(True, lw=0.5, c='0.', alpha=0.2)
 
-def InitBasicFigure(field):
+def InitBasicFigure(field, grid=False):
     figsize = 3.2
     resx = 640
     dpi = resx / figsize
@@ -64,7 +64,8 @@ def InitBasicFigure(field):
     x1node = np.arange(nx + 1) * hx
     y1node = np.arange(ny + 1) * hy
     HideAxis(ax)
-    PlotGrid(ax, x1node, y1node)
+    if grid:
+        PlotGrid(ax, x1node, y1node)
     meta = dict()
     meta['x1'] = x1
     meta['y1'] = y1

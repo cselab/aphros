@@ -12,24 +12,26 @@ run0 () {
   np=$2
 
   make cleanall &> /dev/null
-
-  cat > par.conf << EOF
-#
-EOF
-
-  make run m="$nx $nx 1" np=$np &> /dev/null
+  nice make run m="$nx $nx 1" np=$np &> /dev/null
 }
 
-vnx=(16 32 64 128 256)
-vnp=(1  2  2  2   2)
-
+vnx=(016 032 064 128)
+vnp=(1  4  8  8)
 for i in "${!vnx[@]}" ; do
   nx=${vnx[$i]}
   np=${vnp[$i]}
-  time e "run0 $nx $np"
-  dat=omz_${i}.dat
-  mv omz_0000.dat $dat
-  ./plot $dat
+  e "run0 $nx $np"
+  t=$(grep -i "total = " out | sed -En 's/[^=]*=[^=]*=\s*(.*?)/\1/p')
+  echo "time $t"
+  { 
+    ./plot omz_0000.dat
+    ap.plain2vtk omz_0000.dat
+    ap.plain2vtk vx_0000.dat
+    ap.plain2vtk vy_0000.dat
+  } &> /dev/null
+  d=nx$nx
+  mkdir -p $d
+  mv {vx,vy,omz}_0000.* out $d
 done
 
 ./run_diff > order

@@ -9,4 +9,4 @@ default:
 include $(shell ap.makesim)
 
 clean::
-	rm -vrf ch omz_????.vtk omz_????.dat par.conf
+	rm -f stat.conf
