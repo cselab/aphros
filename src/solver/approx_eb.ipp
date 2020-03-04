@@ -496,7 +496,6 @@ auto UEmbed<M>::InterpolateUpwind(
     const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
     const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv, const M& m)
     -> FieldFace<Scal> {
-  const Scal th = 1e-10;
   FieldFace<Scal> ffu(m, 0);
 
   // f = fmm*a[0] + fm*a[1] + fp*a[2]
@@ -505,10 +504,10 @@ auto UEmbed<M>::InterpolateUpwind(
   for (auto f : m.Faces()) {
     IdxCell cm = m.GetCell(f, 0);
     IdxCell cp = m.GetCell(f, 1);
-    if (ffv[f] > th) {
+    if (ffv[f] > 0) {
       ffu[f] = 4. * a[0] * fcg[cm].dot(m.GetVectToCell(f, 0)) + a[1] * fcu[cm] +
                (a[2] + a[0]) * fcu[cp];
-    } else if (ffv[f] < -th) {
+    } else if (ffv[f] < 0) {
       ffu[f] = 4. * a[0] * fcg[cp].dot(m.GetVectToCell(f, 1)) + a[1] * fcu[cp] +
                (a[2] + a[0]) * fcu[cm];
     } else {
@@ -797,7 +796,6 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
     const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
     Scal deferred, const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv,
     const M& m) -> FieldFace<ExprFace> {
-  const Scal th = 1e-10;
   FieldFace<ExprFace> ffe(m, ExprFace(0));
 
   // f = fmm*a[0] + fm*a[1] + fp*a[2]
@@ -808,12 +806,12 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
     ExprFace e(0);
     const IdxCell cm = m.GetCell(f, 0);
     const IdxCell cp = m.GetCell(f, 1);
-    if (ffv[f] > th) {
+    if (ffv[f] > 0) {
       e[0] = a[1] * dfm + df;
       e[1] = (a[2] + a[0]) * dfm;
       e[2] = 4. * a[0] * fcg[cm].dot(m.GetVectToCell(f, 0)) +
              (a[1] - 1) * df * fcu[cm] + (a[2] + a[0]) * df * fcu[cp];
-    } else if (ffv[f] < -th) {
+    } else if (ffv[f] < 0) {
       e[0] = (a[2] + a[0]) * dfm;
       e[1] = a[1] * dfm + df;
       e[2] = 4. * a[0] * fcg[cp].dot(m.GetVectToCell(f, 1)) +
