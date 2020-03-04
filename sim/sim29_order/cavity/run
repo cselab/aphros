@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -eu
+
+e () {
+  echo "$@"
+  eval "$@"
+}
+
+run0 () {
+  nx=$1
+  np=$2
+
+  make cleanall &> /dev/null
+
+  cat > par.conf << EOF
+#
+EOF
+
+  make run m="$nx $nx 1" np=$np &> /dev/null
+}
+
+vnx=(16 32 64 128 256)
+vnp=(1  2  2  2   2)
+
+for i in "${!vnx[@]}" ; do
+  nx=${vnx[$i]}
+  np=${vnp[$i]}
+  time e "run0 $nx $np"
+  dat=omz_${i}.dat
+  mv omz_0000.dat $dat
+  ./plot $dat
+done
+
+./run_diff > order
