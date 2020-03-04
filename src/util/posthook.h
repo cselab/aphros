@@ -14,3 +14,11 @@ template <class M>
 void PostHook(
     const Vars& var, const FieldCell<typename M::Vect>& fcvel, M& m,
     const Embed<M>& eb);
+
+template <class M>
+void InitVelHook(FieldCell<typename M::Vect>& fcvel, const Vars& var, M& m);
+
+template <class M>
+void InitVelHook(
+    FieldCell<typename M::Vect>& fcvel, const Vars& var, M& m,
+    const Embed<M>& eb);
