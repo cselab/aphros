@@ -1917,9 +1917,23 @@ void Hydro<M>::Run() {
     }
   }
   if (sem("loop-check")) {
-    if (st_.t + st_.dt * 0.25 > var.Double["tmax"] ||
-        int(st_.step) >= var.Int["max_step"] ||
-        (int(st_.step) > 1 && fs_->GetError() < var.Double("stop_diff", 0))) {
+    if (st_.t + st_.dt * 0.25 > var.Double["tmax"]) {
+      if (m.IsRoot()) {
+        std::cout << "End of simulation, t > tmax=" << var.Double["tmax"]
+                  << std::endl;
+      }
+      sem.LoopBreak();
+    } else if (int(st_.step + 0.5) >= var.Int["max_step"]) {
+      if (m.IsRoot()) {
+        std::cout << "End of simulation, step > max_step="
+                  << var.Int["max_step"] << std::endl;
+      }
+      sem.LoopBreak();
+    } else if (st_.step > 1 && fs_->GetError() < var.Double("stop_diff", 0)) {
+      if (m.IsRoot()) {
+        std::cout << "End of simulation, diff < stop_diff="
+                  << var.Double["stop_diff"] << std::endl;
+      }
       sem.LoopBreak();
     } else {
       if (m.IsRoot()) {
