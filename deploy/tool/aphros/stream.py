@@ -4,11 +4,17 @@ import scipy.interpolate
 import scipy.sparse as sp
 import scipy.sparse.linalg
 
+verbose = False
+
+def Log(msg):
+    if verbose:
+        print(str(msg))
+
 def report(re, n="residual"):
     re = re.flatten()
     nr = np.linalg.norm
     l = len(re)
-    print("{:}: L1: {:}, L2: {:}, Linf: {:}".format(
+    Log("{:}: L1: {:}, L2: {:}, Linf: {:}".format(
         n, nr(re, ord=1) / l, nr(re, ord=2) / (l**0.5), nr(re, ord=np.inf)))
 
 
@@ -28,7 +34,7 @@ def vort(u, v):
 # laplace p = -vort(u,v)
 # stream function p (psi) defined via u = dp/dy, v = -dp/dx
 def stream_jacobi(u, v, itmax=50000, tol=1e-8):
-    print("stream_jacobi")
+    Log("stream_jacobi")
     # indexing: u[y,x]
     f = -vort(u,v)
     s = np.zeros_like(f)
@@ -52,7 +58,7 @@ def stream_jacobi(u, v, itmax=50000, tol=1e-8):
         r = (resid[1:-1,1:-1] ** 2).mean() ** 0.5
         # report
         if it >= lastit + itmax // 10:
-            print("i={:06d}, r={:.5e}".format(it, r))
+            Log("i={:06d}, r={:.5e}".format(it, r))
             lastit = it
         it += 1
     return s
@@ -62,7 +68,7 @@ def stream_jacobi(u, v, itmax=50000, tol=1e-8):
 # stream function p (psi) defined via u = dp/dy, v = -dp/dx
 # ADHOC: periodic in x
 def stream_direct(u, v):
-    print("stream_direct")
+    Log("stream_direct")
     f = -vort(u,v)
 
     i = np.arange(len(f.flatten())).reshape(f.shape)

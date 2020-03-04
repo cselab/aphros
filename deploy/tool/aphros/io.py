@@ -10,8 +10,7 @@ import os
 # array of shape (nx, ny, nz)
 # None if file not found
 def ReadPlain(fn):
-  if not os.path.isfile(fn):
-    return None
+  assert os.path.isfile(fn), "No such file: '{:}'".format(fn)
   with open(fn) as f:
     ll = f.readlines()
     # shape x,y,z
