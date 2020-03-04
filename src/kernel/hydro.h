@@ -135,7 +135,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       const FieldCell<Vect>& fcvel, const FieldCell<Scal>& fcmu,
       const Embed<M>& eb);
   void DumpFields();
-  void Dump();
+  void Dump(bool force);
   // Calc rho, mu and force based on volume fraction
   void CalcMixture(const FieldCell<Scal>& vf);
   // Clips v to given range, uses const_cast
@@ -929,7 +929,7 @@ void Hydro<M>::Init() {
   }
   if (var.Int["dumpinit"]) {
     if (sem.Nested()) {
-      Dump();
+      Dump(true);
     }
   }
 }
@@ -1780,17 +1780,17 @@ void Hydro<M>::DumpFields() {
 }
 
 template <class M>
-void Hydro<M>::Dump() {
+void Hydro<M>::Dump(bool force) {
   auto sem = m.GetSem("dump");
   struct {
     Multi<FieldCell<MIdx>> fcim;
   } * ctx(sem);
   if (sem.Nested("fields")) {
-    if (dumper_.Try(st_.t, st_.dt)) {
+    if (dumper_.Try(st_.t, st_.dt) || force) {
       DumpFields();
     }
   }
-  if (dmptraj_.Try(st_.t, st_.dt)) {
+  if (dmptraj_.Try(st_.t, st_.dt) || force) {
     if (sem("copyimage")) {
       ctx->fcim.resize(layers);
       ctx->fcim.InitAll(FieldCell<MIdx>(m));
@@ -1841,7 +1841,7 @@ void Hydro<M>::Dump() {
   }
   if (sem("dumpstat")) {
     if (m.IsRoot()) {
-      if (st_.step % var.Int("stat_step_every", 1) == 0) {
+      if (st_.step % var.Int("stat_step_every", 1) == 0 || force) {
         ost_->Write(0., "");
       }
     }
@@ -1971,7 +1971,7 @@ void Hydro<M>::Run() {
   }
 
   if (sem.Nested()) {
-    Dump();
+    Dump(false);
   }
 
   if (sem("inc")) {
@@ -1980,6 +1980,12 @@ void Hydro<M>::Run() {
   }
 
   sem.LoopEnd();
+
+  if (sem.Nested("dumplast")) {
+    if (var.Int["dumplast"]) {
+      Dump(true);
+    }
+  }
 
   if (sem.Nested("posthook")) {
     if (eb_) {
