@@ -15,8 +15,8 @@ run0 () {
   nice make run m="$nx $nx 1" np=$np &> /dev/null
 }
 
-vnx=(016 032 064 128)
-vnp=(1  4  8  8)
+vnx=(016 032 064 128 256)
+vnp=(1   4   8   8   8)
 for i in "${!vnx[@]}" ; do
   nx=${vnx[$i]}
   np=${vnp[$i]}

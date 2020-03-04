@@ -14,11 +14,15 @@ def PlotStream(ax, meta, vx, vy):
 
 
 av = sys.argv
-filename = av[1] if len(av) > 1 else sorted(glob.glob("omz_*.dat"))[0]
+path = av[1] if len(av) > 1 else "omz_0000.dat"
+dirname = os.path.dirname(path)
+filename = os.path.basename(path)
 suff = re.findall("[^_]*(.*)", filename)[0]
-vx = aphros.ReadPlain('vx' + suff)[0,:,:]
-vy = aphros.ReadPlain('vy' + suff)[0,:,:]
-omz = aphros.ReadPlain('omz' + suff)[0,:,:]
+def GetFieldPath(field):
+    return os.path.join(dirname, field + suff)
+vx = aphros.ReadPlain(GetFieldPath('vx'))[0,:,:]
+vy = aphros.ReadPlain(GetFieldPath('vy'))[0,:,:]
+omz = aphros.ReadPlain(GetFieldPath('omz'))[0,:,:]
 
 po = os.path.splitext(filename)[0] + ".pdf"
 print(po)
