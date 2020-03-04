@@ -9,4 +9,4 @@ default:
 include $(shell ap.makesim)
 
 clean::
-	rm -f stat.conf
+	rm -f par.conf
