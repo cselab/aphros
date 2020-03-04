@@ -701,6 +701,11 @@ void Hydro<M>::Init() {
     // initial velocity
     fcvel.Reinit(m, Vect(0));
     InitVel(fcvel, var, m);
+    if (eb_) {
+      InitVelHook(fcvel, var, m, *eb_);
+    } else {
+      InitVelHook(fcvel, var, m);
+    }
     m.Comm(&fcvel);
 
     // global mesh size
