@@ -5,6 +5,8 @@ set -eu
 nx=$1
 np=$2
 
+echo "nx=$nx np=$np"
+
 make cleanall &> /dev/null
 nice make run m="$nx $nx 1" np=$np &> /dev/null
 t=$(grep -i "total = " out | sed -En 's/[^=]*=[^=]*=\s*(.*?)/\1/p')
