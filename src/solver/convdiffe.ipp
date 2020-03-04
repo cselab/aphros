@@ -24,7 +24,7 @@ struct ConvDiffScalExp<EB_>::Imp {
       , eb(owner_->eb)
       , mebc_(mebc)
       , dtp_(-1.)
-      , er_(0) {
+      , error_(0) {
     fcu_.time_curr = fcu;
     fcu_.time_prev = fcu;
     fcu_.iter_curr = fcu;
@@ -40,7 +40,7 @@ struct ConvDiffScalExp<EB_>::Imp {
       dtp_ = owner_->GetTimeStep();
     }
 
-    er_ = 0.;
+    error_ = 0.;
   }
   // Assembles linear system
   // fcu: field from previous iteration [a]
@@ -156,7 +156,8 @@ struct ConvDiffScalExp<EB_>::Imp {
       for (auto c : eb.Cells()) {
         curr[c] += prev[c];
       }
-      CalcError();
+      error_ = CalcError();
+      m.Reduce(&error_, "max");
       m.Comm(&curr);
       owner_->IncIter();
     }
@@ -168,7 +169,7 @@ struct ConvDiffScalExp<EB_>::Imp {
     owner_->IncTime();
     dtp_ = owner_->GetTimeStep();
   }
-  void CalcError() {
+  Scal CalcError() {
     // max difference between iter_curr and iter_prev
     auto& prev = fcu_.iter_prev;
     auto& curr = fcu_.iter_curr;
@@ -176,10 +177,10 @@ struct ConvDiffScalExp<EB_>::Imp {
     for (auto c : eb.Cells()) {
       a = std::max<Scal>(a, std::abs(curr[c] - prev[c]));
     }
-    er_ = a;
+    return a;
   }
   double GetError() const {
-    return er_;
+    return error_;
   }
   // Apply correction to field and comm
   // uc: correction [i]
@@ -224,7 +225,7 @@ struct ConvDiffScalExp<EB_>::Imp {
   FieldCell<Scal> fclb_;
 
   Scal dtp_; // dt prev
-  Scal er_; // error
+  Scal error_; // error
 };
 
 template <class EB_>

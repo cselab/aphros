@@ -203,7 +203,8 @@ struct ConvDiffScalImp<EB_>::Imp {
       for (auto c : eb.Cells()) {
         curr[c] += prev[c];
       }
-      CalcError();
+      error_ = CalcError();
+      m.Reduce(&error_, "max");
       m.Comm(&curr);
       owner_->IncIter();
     }
@@ -215,7 +216,7 @@ struct ConvDiffScalImp<EB_>::Imp {
     owner_->IncTime();
     dtprev_ = owner_->GetTimeStep();
   }
-  void CalcError() {
+  Scal CalcError() {
     // max difference between iter_curr and iter_prev
     auto& prev = fcu_.iter_prev;
     auto& curr = fcu_.iter_curr;
@@ -223,7 +224,7 @@ struct ConvDiffScalImp<EB_>::Imp {
     for (auto c : eb.Cells()) {
       a = std::max<Scal>(a, std::abs(curr[c] - prev[c]));
     }
-    error_ = a;
+    return a;
   }
   double GetError() const {
     return error_;
