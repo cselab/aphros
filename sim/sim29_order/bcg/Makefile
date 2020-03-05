@@ -15,7 +15,16 @@ $B/Makefile: CMakeLists.txt
 $B/libhook.so: $B/Makefile hook.cpp
 	make -C $B
 
-conf: $B/libhook.so
+par.conf:
+	nx=`cut -d' ' -f1 <<< "$m"` ; \
+	dt=`bc -l <<< "0.5 / $$nx"` ; \
+	echo set double dt0 $$dt > par.conf
+.PHONY: par.conf
+
+runhook: conf
+	LD_PRELOAD=build/libhook.so ap.run ap.mfer
+
+conf: $B/libhook.so par.conf
 
 include $(shell ap.makesim)
 
