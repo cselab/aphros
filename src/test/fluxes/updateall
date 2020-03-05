@@ -5,9 +5,5 @@ r () {
 
 r simple imp gravity
 r simple exp gravity
-r simple imp force univisc
-r simple exp force univisc
 r proj imp gravity
 r proj exp gravity
-r proj imp force univisc
-r proj exp force univisc
