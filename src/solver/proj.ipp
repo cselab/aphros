@@ -113,17 +113,22 @@ struct Proj<EB_>::Imp {
   }
   void Advection(
       FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvel_time_prev,
-      const FieldFaceb<Scal>& ffv, const FieldCell<Vect>* fc_accel,
+      const FieldFaceb<Scal>& ffv, const FieldCell<Vect>& fc_accel,
       const Scal dt) {
     auto sem = m.GetSem("advection");
     for (size_t d = 0; d < dim; ++d) {
       if (sem("local" + std::to_string(d))) {
         const auto mebc = GetScalarCond(me_vel_, d, m);
         const auto fcu = GetComponent(fcvel, d);
-        const FieldCell<Vect> fcg =
-            UEB::AverageGradient(UEB::Gradient(fcu, mebc, eb), eb);
-        const FieldFaceb<Scal> ffu =
-            UEB::InterpolateUpwind(fcu, mebc, par.convsc, fcg, ffv, eb);
+        FieldFaceb<Scal> ffu;
+        if (par.bcg) {
+          const auto fc_src = GetComponent(fc_accel, d);
+          ffu = UEB::InterpolateBcg(fcu, mebc, ffv, fc_src, dt, eb);
+        } else {
+          const FieldCell<Vect> fcg =
+              UEB::AverageGradient(UEB::Gradient(fcu, mebc, eb), eb);
+          ffu = UEB::InterpolateUpwind(fcu, mebc, par.convsc, fcg, ffv, eb);
+        }
         FieldCell<Scal> fc_sum(eb, 0);
         for (auto c : eb.Cells()) {
           Scal sum = 0;
@@ -142,10 +147,8 @@ struct Proj<EB_>::Imp {
       }
     }
     if (sem("comm")) {
-      if (fc_accel) {
-        for (auto c : eb.Cells()) {
-          fcvel[c] += (*fc_accel)[c] * dt;
-        }
+      for (auto c : eb.Cells()) {
+        fcvel[c] += fc_accel[c] * dt;
       }
       m.Comm(&fcvel);
     }
@@ -373,6 +376,42 @@ struct Proj<EB_>::Imp {
           m, eb, fcvel_.iter_curr, mebc_, *owner_->fcsv_, me_vel_);
     }
   }
+  static void Comm(FieldFace<Scal>& ff, M& m) {
+    auto sem = m.GetSem("commface");
+    struct {
+      std::array<FieldCell<Scal>, 6> vfc;
+    } * ctx(sem);
+    auto& vfc = ctx->vfc;
+    if (sem("comm")) {
+      for (size_t q = 0; q < 6; ++q) {
+        vfc[q].Reinit(m);
+      }
+      for (auto c : m.Cells()) {
+        for (auto q : m.Nci(c)) {
+          vfc[q][c] = ff[m.GetFace(c, q)];
+        }
+      }
+      for (size_t q = 0; q < 6; ++q) {
+        m.Comm(&vfc[q]);
+      }
+    }
+    if (sem("copy")) {
+      for (auto c : m.AllCells()) {
+        for (auto q : m.Nci(c)) {
+          ff[m.GetFace(c, q)] = vfc[q][c];
+        }
+      }
+    }
+  }
+  static void Comm(FieldEmbed<Scal>& fe, M& m) {
+    auto sem = m.GetSem("commembed");
+    if (sem.Nested()) {
+      Comm(fe.GetFieldFace(), m);
+    }
+    if (sem()) {
+      m.Comm(&fe.GetFieldCell());
+    }
+  }
   void MakeIteration() {
     auto sem = m.GetSem("fluid-iter");
     auto& fcp_prev = fcp_.iter_prev;
@@ -392,19 +431,31 @@ struct Proj<EB_>::Imp {
 
     if (sem("forceinit")) {
       fc_accel_ = GetAcceleration(fcp_curr);
+      m.Comm(&fc_accel_);
     }
-    if (sem.Nested("proj")) {
-      // ff_accel_: acceleration from force terms and pressure gradient
-      // fcvelmid_: initial guess for velocity at t+dt/2 to estimate fluxes
-      // ffv: divergence-free volume flux at t+dt/2 from previous iteration
-      Advection(fcvel, fcvel_.time_curr, ffvt, &fc_accel_, dt * 0.5);
-      // fcvelmid_: predicted velocity at t+dt/2
+    if (sem.Nested()) {
+      Comm(ffvt, m);
     }
-    if (sem()) {
-      const FieldFaceb<Vect> ffvel = UEB::Interpolate(fcvel, me_vel_, eb);
+    if (sem("predicted-flux")) {
+      FieldFaceb<Vect> ffvel(eb, Vect(0));
+      for (size_t d = 0; d < dim; ++d) {
+        const auto mebc = GetScalarCond(me_vel_, d, m);
+        const auto fcu = GetComponent(fcvel_.time_curr, d);
+        const auto fc_src = GetComponent(fc_accel_, d);
+        const auto ffu = UEB::InterpolateBcg(fcu, mebc, ffvt, fc_src, dt, eb);
+        //const auto ffu = UEB::Interpolate(fcu, mebc, eb);
+        for (auto f : eb.Faces()) {
+          ffvel[f][d] = ffu[f];
+        }
+      }
       eb.LoopFaces([&](auto cf) { //
         ffv[cf] = ffvel[cf].dot(eb.GetSurface(cf));
       });
+      // ff_accel_: acceleration from force terms and pressure gradient
+      // fcvelmid_: initial guess for velocity at t+dt/2 to estimate fluxes
+      // ffv: divergence-free volume flux at t+dt/2 from previous iteration
+      //Advection(fcvel, fcvel_.time_curr, ffvt, fc_accel_, dt * 0.5);
+      // fcvelmid_: predicted velocity at t+dt/2
       // ffv: predicted volume flux at t+dt/2
     }
     if (sem.Nested("project")) {
@@ -414,10 +465,13 @@ struct Proj<EB_>::Imp {
     if (sem()) {
       fcvel = fcvel_.time_curr;
     }
+    if (sem.Nested()) {
+      Comm(ffv, m);
+    }
     if (sem.Nested("proj")) {
       // ff_accel_: acceleration from force terms and pressure gradient
       // ffv: divergence-free volume flux at t+dt/2 from previous iteration
-      Advection(fcvel, fcvel_.time_curr, ffv, &fc_accel_, dt);
+      Advection(fcvel, fcvel_.time_curr, ffv, fc_accel_, dt);
       // fcvel: velocity at t+dt
     }
     if (sem.Nested("diffusion")) {

@@ -24,6 +24,7 @@ struct ParsePar<Proj<M>> {
     p.stokes = var.Int["stokes"];
     p.convsymm = var.Int["convsymm"];
     p.explconv = var.Int["explconv"];
+    p.bcg = var.Int["proj_bcg"];
     std::string conv = var.String["conv"];
     if (conv == "imp") {
       p.conv = Conv::imp;
