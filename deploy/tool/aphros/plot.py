@@ -1,14 +1,21 @@
 #!/usr/bin/env python
 
 import numpy as np
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+import imp
+
+try:
+    imp.find_module('matplotlib')
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import LinearSegmentedColormap
+except ImportError:
+    pass
+
 import glob
 import os
 import re
 import sys
-from matplotlib.colors import LinearSegmentedColormap
 import scipy
 import scipy.interpolate
 
@@ -136,8 +143,6 @@ def PlotSave(fig, ax, po):
     fig.tight_layout()
     fig.savefig(po, dpi=300)
     plt.close()
-
-from matplotlib.colors import LinearSegmentedColormap
 
 # u: 2d numpy array
 # po: output path
