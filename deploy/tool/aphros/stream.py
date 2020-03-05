@@ -1,8 +1,15 @@
+import imp
+
 import numpy as np
-import scipy
-import scipy.interpolate
-import scipy.sparse as sp
-import scipy.sparse.linalg
+
+try:
+    imp.find_module('scipy')
+    import scipy
+    import scipy.interpolate
+    import scipy.sparse as sp
+    import scipy.sparse.linalg
+except ImportError:
+    pass
 
 verbose = False
 
