@@ -36,7 +36,7 @@ then err "option '-o file' is not set"
 fi
 
 if test $# -ne 1
-then err "wrong number of arguments: '$@'"
+then err 'expecting a file'
 fi
 
 if ! test -f "$1"

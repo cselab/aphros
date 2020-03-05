@@ -1,14 +1,17 @@
-# the default CFLAGS are set in $(BASILISK)/config
-CFLAGS += -O2 -fopenmp
+.SUFFIXES: .o .c
+.PHONY: clean all
+MDFLAGS = -fpic
 
-all: check
+include $(BASILISK)/config
+QCC = $(BASILISK)/qcc
 
-madsen-sv.c: madsen.c
-	ln -s madsen.c madsen-sv.c 
-madsen-sv.tst: madsen.s
-madsen-sv.tst: CFLAGS = -O2 -DSAINT_VENANT=1
+M = \
+geometry.o\
 
-madsen.tst: madsen-sv.tst
-madsen.tst: CFLAGS = -O2
+all: $M
+show:; echo $(CFLAGS)
 
-include $(BASILISK)/Makefile.defs
+.c.o:
+	$(QCC) $(CFLAGS) -python -c $(MDFLAGS) -I$(PYTHONINCLUDE) $<
+
+clean:; rm -f $M
