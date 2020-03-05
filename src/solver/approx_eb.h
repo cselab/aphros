@@ -192,6 +192,11 @@ struct UEmbed {
   static FieldEmbed<Scal> InterpolateUpwind(
       const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
       const FieldCell<Vect>& fcg, const FieldEmbed<Scal>& fev, const EB& eb);
+  // Bell-Colella-Glaz advection scheme (1989) without limiters
+  static FieldEmbed<Scal> InterpolateBcg(
+      const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+      const FieldEmbed<Scal>& fev, const FieldCell<Scal>& fc_src, const Scal dt,
+      const EB& eb);
 
   template <class T>
   static FieldFace<T> Interpolate(
@@ -202,6 +207,10 @@ struct UEmbed {
   static FieldFace<Scal> InterpolateUpwind(
       const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
       const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv, const M& m);
+  static FieldFace<Scal> InterpolateBcg(
+      const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+      const FieldFace<Scal>& ffv, const FieldCell<Scal>& fc_src, const Scal dt,
+      const M& m);
 
   using ExprFace = typename M::ExprFace;
   using Expr = typename M::Expr;

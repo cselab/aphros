@@ -22,6 +22,7 @@ struct ProjPar {
   bool explconv = false; // explicit convectio for Conv::imp
   bool convsymm = false; // symmetric solver for linear system in convdiff
   Conv conv = Conv::imp; // convection-diffusion solver
+  bool bcg = false; // Bell-Colella-Glaz scheme
 };
 
 template <class EB_>

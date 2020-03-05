@@ -102,7 +102,7 @@ void cell() {
   // temporal derivative, source
   double ut = (src[] + src[-1]) / 2;
 
-  // approximation of convective terms in
+  // convective terms
   double un = uf.x[] / fm.x[];
   double gx = g.x[i];
   ut -= un * gx;
