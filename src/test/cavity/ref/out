@@ -1,6 +1,6 @@
-hydro 3fa8130-dirty
-msg: simple: neumann conditions for pressure
-diff: sim/sim28_embed/case/contang/add.conf.gen sim/sim28_embed/case/contang/bc.dat sim/sim28_embed/case/contang/body.dat 
+hydro bc67fa2-dirty
+msg: approx_eb: add InterpolateBcg, proj: add bcg
+diff: sim/base.conf sim/sim29_order/bcg/Makefile sim/sim29_order/bcg/run0 sim/sim29_order/bcg/std.conf src/solver/proj.ipp src/test/fluxes/b.dat src/test/fluxes/ref_proj_exp_force_univisc/vx src/test/fluxes/ref_proj_exp_gravity/vx src/test/fluxes/ref_proj_imp_force_univisc/vx src/test/fluxes/ref_proj_imp_gravity/vx src/test/fluxes/ref_simple_exp_force_univisc/vx src/test/fluxes/ref_simple_exp_gravity/vx src/test/fluxes/ref_simple_imp_force_univisc/vx src/test/fluxes/ref_simple_imp_gravity/vx src/test/fluxes/run src/test/fluxes/sim.makefile src/test/fluxes/simple.conf src/test/fluxes/std.conf src/test/fluxes/update 
 Loading config from 'aloc.conf'
 
 === config begin ===
@@ -55,6 +55,7 @@ set int dump_traj_max 10000
 set int dump_trep_max 10000
 set int dumpbc 0
 set int dumpinit 0
+set int dumplast 0
 set int dumppart 0
 set int dumppartinter 0
 set int dumppoly 1
@@ -112,6 +113,7 @@ set int poiswym 1
 set int poiswyp 1
 set int poiswzm 1
 set int poiswzp 1
+set int proj_bcg 1
 set int px 1
 set int py 1
 set int pz 1
@@ -120,7 +122,6 @@ set int report_stat 0
 set int report_step_every 1
 set int second_order 0
 set int sharpen 0
-set int simpler 0
 set int split 0
 set int stat_area 0
 set int stat_dissip 0
@@ -176,7 +177,7 @@ set double dump_stat_dt 0
 set double dump_traj_dt 1
 set double dump_traj_t0 0
 set double dump_trep_dt 1
-set double dump_trep_t0 0
+set double dump_trep_t0 1e+10
 set double dumppolymarch_fill -1
 set double embed_gradlim 0.5
 set double extent 1
@@ -259,56 +260,57 @@ Found events:
 =====
 ev0 1 set double tol 1e-5
 =====
-STEP=0 t=0.00000000 dt=10000000000.00000000 ta=0.00000000 dta=10000000000.00000000 wt=0.02577562
-.....iter=1, diff=2.8363439440169852e-01
-.....iter=2, diff=1.2675647462469464e-01
-.....iter=3, diff=6.8174001009057794e-02
-.....iter=4, diff=6.1223173317885099e-02
-.....iter=5, diff=5.7845819663843501e-02
-.....iter=6, diff=5.1101437372168157e-02
-.....iter=7, diff=4.9457100334669768e-02
-.....iter=8, diff=4.5537956534141055e-02
-.....iter=9, diff=4.3448753239204163e-02
-.....iter=10, diff=4.0420734185288056e-02
-.....iter=11, diff=3.7946522944114380e-02
-.....iter=12, diff=4.0878746788083405e-02
-.....iter=13, diff=3.5646729544046032e-02
-.....iter=14, diff=4.0343303665581094e-02
-.....iter=15, diff=3.6891500717325207e-02
-.....iter=16, diff=3.9692462196971298e-02
-.....iter=17, diff=3.6968399784367792e-02
-.....iter=18, diff=3.8636170918168913e-02
-.....iter=19, diff=3.6172154483305616e-02
-.....iter=20, diff=3.7151814374476490e-02
+STEP=0 t=0.00000000 dt=10000000000.00000000 ta=0.00000000 dta=10000000000.00000000 wt=0.01920916
+.....iter=1, diff=4.0585418364113351e-01
+.....iter=2, diff=2.4562295481514781e-01
+.....iter=3, diff=1.2611025616190938e-01
+.....iter=4, diff=8.8860178203968854e-02
+.....iter=5, diff=6.2316300528278301e-02
+.....iter=6, diff=7.0513030936588894e-02
+.....iter=7, diff=5.2074828832512632e-02
+.....iter=8, diff=6.3736205136750101e-02
+.....iter=9, diff=5.1505900607448460e-02
+.....iter=10, diff=5.6568548890457981e-02
+.....iter=11, diff=5.2195982398914736e-02
+.....iter=12, diff=6.0106667362042988e-02
+.....iter=13, diff=5.6280983869792071e-02
+.....iter=14, diff=6.9223152825157661e-02
+.....iter=15, diff=5.5929031530897497e-02
+.....iter=16, diff=5.9882807321177144e-02
+.....iter=17, diff=5.2895470273224145e-02
+.....iter=18, diff=5.4380719982321815e-02
+.....iter=19, diff=6.5444111488459272e-02
+.....iter=20, diff=5.0927287181884440e-02
 timer report t=10000000000.00000000 to trep_0000.log
 Event at t=1.00000000: set double tol 1e-5
-STEP=1 t=10000000000.00000000 dt=10000000000.00000000 ta=0.00000000 dta=20000000000.00000000 wt=0.84481656
-.....iter=1, diff=3.4798782016899454e-02
-.....iter=2, diff=3.5024208281421124e-02
-.....iter=3, diff=3.3430092553142152e-02
-.....iter=4, diff=3.2102817049969701e-02
-.....iter=5, diff=3.1651004248564110e-02
-.....iter=6, diff=2.9303424362182806e-02
-.....iter=7, diff=2.8836492132543259e-02
-.....iter=8, diff=2.6310787754849893e-02
-.....iter=9, diff=2.6233012997499916e-02
-.....iter=10, diff=2.3030108452988043e-02
-.....iter=11, diff=2.3497691957929112e-02
-.....iter=12, diff=2.1285452383273701e-02
-.....iter=13, diff=2.1134136736051440e-02
-.....iter=14, diff=1.9734861302380224e-02
-.....iter=15, diff=1.8272257446271312e-02
-.....iter=16, diff=1.8166680078277181e-02
-.....iter=17, diff=1.7452031822485031e-02
-.....iter=18, diff=1.6141843571371800e-02
-.....iter=19, diff=1.6290242405518962e-02
-.....iter=20, diff=1.5425028238836375e-02
+STEP=1 t=10000000000.00000000 dt=10000000000.00000000 ta=0.00000000 dta=20000000000.00000000 wt=0.80711156
+.....iter=1, diff=4.8701247337581598e-02
+.....iter=2, diff=6.0984607977645378e-02
+.....iter=3, diff=4.4682899928802207e-02
+.....iter=4, diff=4.7443275316233297e-02
+.....iter=5, diff=3.9079172275970950e-02
+.....iter=6, diff=5.1084551675689795e-02
+.....iter=7, diff=3.6692033123158607e-02
+.....iter=8, diff=3.6001641800532364e-02
+.....iter=9, diff=3.2028657419960804e-02
+.....iter=10, diff=5.0390152377009431e-02
+.....iter=11, diff=2.6455837296841034e-02
+.....iter=12, diff=2.6701095604129456e-02
+.....iter=13, diff=2.4322572888856087e-02
+.....iter=14, diff=2.7315064973426905e-02
+.....iter=15, diff=2.3008417936259712e-02
+.....iter=16, diff=2.1971412362740771e-02
+.....iter=17, diff=2.0937861143682790e-02
+.....iter=18, diff=2.1346968160558467e-02
+.....iter=19, diff=1.9432373058315799e-02
+.....iter=20, diff=1.6483224505284593e-02
 Dump n=0 t=2e+10 target=0
 Dump 0: format=plain
 timer report t=20000000000.00000000 to trep_0001.log
+End of simulation, t > tmax=20000000000.00000000
 cells = 1024
 steps = 1000000
 iters = 40
-total = 1 s = 00:00:01.701
-time/cell/iter = 4.15526e-05 s
+total = 1 s = 00:00:01.653
+time/cell/iter = 4.03801e-05 s
 Unused configuration variables:
