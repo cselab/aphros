@@ -14,6 +14,6 @@ all: $L
 lib2.a: $2; ar r $@ $2 && ranlib $@
 lib3.a: $3; ar r $@ $3 && ranlib $@
 .c.o:
-	CC99=$(CC) $(QCC) $(CFLAGS) -python -c $(M_CFLAGS) $<
+	CC99=$(CC) $(QCC) $(QCCFLAGS) -python -c $(M_CFLAGS) $<
 clean:
 	rm -f $L $2 $3 $(2:.o=.i) $(3:.o=.i)
