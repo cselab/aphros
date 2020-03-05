@@ -39,7 +39,7 @@ a=0
 for fref in $ref/* ; do
   fout=${fref#$ref/}
   echo $fout
-  eps=2e-12
+  eps=1e-9
   if ! ap.diffnum "$fout" "$fref" $eps; then a=1; fi
 done
 
