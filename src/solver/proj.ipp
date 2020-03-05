@@ -376,14 +376,14 @@ struct Proj<EB_>::Imp {
           m, eb, fcvel_.iter_curr, mebc_, *owner_->fcsv_, me_vel_);
     }
   }
-  static void Comm(FieldFace<Scal>& ff, M& m) {
+  static void CommFaces(FieldFace<Scal>& ff, M& m) {
     auto sem = m.GetSem("commface");
     struct {
-      std::array<FieldCell<Scal>, 6> vfc;
+      std::array<FieldCell<Scal>, M::kCellNumNeighbourFaces> vfc;
     } * ctx(sem);
     auto& vfc = ctx->vfc;
     if (sem("comm")) {
-      for (size_t q = 0; q < 6; ++q) {
+      for (size_t q = 0; q < M::kCellNumNeighbourFaces; ++q) {
         vfc[q].Reinit(m);
       }
       for (auto c : m.Cells()) {
@@ -391,7 +391,7 @@ struct Proj<EB_>::Imp {
           vfc[q][c] = ff[m.GetFace(c, q)];
         }
       }
-      for (size_t q = 0; q < 6; ++q) {
+      for (size_t q = 0; q < M::kCellNumNeighbourFaces; ++q) {
         m.Comm(&vfc[q]);
       }
     }
@@ -402,11 +402,16 @@ struct Proj<EB_>::Imp {
         }
       }
     }
+    if (sem()) {
+      // FIXME: empty stage required to prevent destruction of ctx
+      // until communication is finished in outer blocks
+    }
   }
-  static void Comm(FieldEmbed<Scal>& fe, M& m) {
+  static void CommFaces(FieldEmbed<Scal>& fe, M& m) {
+    CommFaces(fe.GetFieldFace(), m);
     auto sem = m.GetSem("commembed");
     if (sem.Nested()) {
-      Comm(fe.GetFieldFace(), m);
+      CommFaces(fe.GetFieldFace(), m);
     }
     if (sem()) {
       m.Comm(&fe.GetFieldCell());
@@ -434,7 +439,7 @@ struct Proj<EB_>::Imp {
       m.Comm(&fc_accel_);
     }
     if (sem.Nested()) {
-      Comm(ffvt, m);
+      CommFaces(ffvt, m);
     }
     if (sem("predicted-flux")) {
       FieldFaceb<Vect> ffvel(eb, Vect(0));
@@ -443,7 +448,7 @@ struct Proj<EB_>::Imp {
         const auto fcu = GetComponent(fcvel_.time_curr, d);
         const auto fc_src = GetComponent(fc_accel_, d);
         const auto ffu = UEB::InterpolateBcg(fcu, mebc, ffvt, fc_src, dt, eb);
-        //const auto ffu = UEB::Interpolate(fcu, mebc, eb);
+        // ffu: velocity advected by dt/2
         for (auto f : eb.Faces()) {
           ffvel[f][d] = ffu[f];
         }
@@ -451,28 +456,18 @@ struct Proj<EB_>::Imp {
       eb.LoopFaces([&](auto cf) { //
         ffv[cf] = ffvel[cf].dot(eb.GetSurface(cf));
       });
-      // ff_accel_: acceleration from force terms and pressure gradient
-      // fcvelmid_: initial guess for velocity at t+dt/2 to estimate fluxes
-      // ffv: divergence-free volume flux at t+dt/2 from previous iteration
-      //Advection(fcvel, fcvel_.time_curr, ffvt, fc_accel_, dt * 0.5);
-      // fcvelmid_: predicted velocity at t+dt/2
-      // ffv: predicted volume flux at t+dt/2
     }
     if (sem.Nested("project")) {
       Project(fcp_curr, ffv, dt * 0.5);
-      // ffv: divergence-free predicted volume flux at t+dt/2
     }
     if (sem()) {
       fcvel = fcvel_.time_curr;
     }
     if (sem.Nested()) {
-      Comm(ffv, m);
+      CommFaces(ffv, m);
     }
     if (sem.Nested("proj")) {
-      // ff_accel_: acceleration from force terms and pressure gradient
-      // ffv: divergence-free volume flux at t+dt/2 from previous iteration
       Advection(fcvel, fcvel_.time_curr, ffv, fc_accel_, dt);
-      // fcvel: velocity at t+dt
     }
     if (sem.Nested("diffusion")) {
       switch (par.conv) {
@@ -484,16 +479,14 @@ struct Proj<EB_>::Imp {
           break;
       }
     }
-    if (sem("subtract")) {
+    if (sem("face-acceleration")) {
       // subtract old acceleration from cell velocity
-      for (auto c : eb.Cells()) {
+      for (auto c : eb.SuCells()) {
         fcvel[c] -= fc_accel_[c] * dt;
       }
-      m.Comm(&fcvel);
-    }
-    if (sem("face-acceleration")) {
-      // compute volume flux from center velocity
+      // compute volume flux from cell velocity
       // and add acceleration from body force
+      // TODO: include cell body force
       const FieldFaceb<Vect> ffvel = UEB::Interpolate(fcvel, me_vel_, eb);
       eb.LoopFaces([&](auto cf) { //
         auto& v = ffv[cf];
@@ -505,12 +498,10 @@ struct Proj<EB_>::Imp {
     }
     if (sem.Nested("project")) {
       Project(fcp_curr, ffv, dt);
-      // ffv: divergence-free volume flux at t+dt
-      // fcp_curr: final pressure
     }
-    if (sem("pcorr-apply")) {
+    if (sem("cell-acceleration")) {
+      // add new acceleration to cell velocity
       fc_accel_ = GetAcceleration(fcp_curr);
-      // Add new acceleration to cell velocity
       for (auto c : eb.Cells()) {
         fcvel[c] += fc_accel_[c] * dt;
       }
