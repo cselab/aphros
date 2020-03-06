@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
+import glob
+import os
+import re
+import sys
 import numpy as np
-import imp
 
 try:
-    imp.find_module('matplotlib')
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -12,12 +14,11 @@ try:
 except ImportError:
     pass
 
-import glob
-import os
-import re
-import sys
-import scipy
-import scipy.interpolate
+try:
+    import scipy
+    import scipy.interpolate
+except ImportError:
+    pass
 
 kThin = False
 
