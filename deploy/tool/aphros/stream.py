@@ -1,9 +1,6 @@
-import imp
-
 import numpy as np
 
 try:
-    imp.find_module('scipy')
     import scipy
     import scipy.interpolate
     import scipy.sparse as sp
