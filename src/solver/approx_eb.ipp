@@ -430,8 +430,7 @@ auto UEmbed<M>::InterpolateBcg(
         continue;
       }
       const Scal w = (ffv[fm] + ffv[fp]) / (m.GetArea(fm) + m.GetArea(fp));
-      const IdxFace f = (w > 0 ? fm : fp);
-      ut -= ffg[f] * w;
+      ut -= ffg[w > 0 ? fm : fp] * w;
     }
 
     ffu[f] = fcu[c] + ux * (sgn * 0.5 * h) + ut * (0.5 * dt);
