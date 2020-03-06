@@ -182,6 +182,9 @@ struct Proj<EB_>::Imp {
     if (sem("comm")) {
       m.Comm(&fcvel);
     }
+    if (sem()) {
+      // FIXME: empty stage to finish communication in halo cells
+    }
   }
   void DiffusionImplicit(
       FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvel_time_prev,
@@ -223,6 +226,9 @@ struct Proj<EB_>::Imp {
     }
     if (sem("comm")) {
       m.Comm(&fcvel);
+    }
+    if (sem()) {
+      // FIXME: empty stage to finish communication in halo cells
     }
   }
 
@@ -320,7 +326,7 @@ struct Proj<EB_>::Imp {
     auto sem = m.GetSem("project");
     struct {
       FieldFaceb<ExprFace> ffvc; // expression for corrected volume flux [i]
-      FieldCell<Expr> fcpcs; // pressure correction linear system [i]
+      FieldCell<Expr> fcpcs; // linear system for pressure [i]
     } * ctx(sem);
     if (sem("local")) {
       ctx->ffvc = GetFlux(fcp, ffv, dt);
@@ -335,6 +341,9 @@ struct Proj<EB_>::Imp {
       eb.LoopFaces([&](auto cf) { //
         ffv[cf] = UEB::Eval(ctx->ffvc[cf], cf, fcp, eb);
       });
+    }
+    if (sem()) {
+      // FIXME: empty stage to finish communication in halo cells
     }
   }
   FieldCell<Vect> GetAcceleration(const FieldCell<Scal>& fcp) {
@@ -423,6 +432,9 @@ struct Proj<EB_>::Imp {
   }
   void MakeIteration() {
     auto sem = m.GetSem("fluid-iter");
+    struct {
+      FieldCell<Scal> fcp_discard;
+    } * ctx(sem);
     auto& fcp_prev = fcp_.iter_prev;
     auto& fcp_curr = fcp_.iter_curr;
     const Scal dt = owner_->GetTimeStep();
@@ -460,9 +472,10 @@ struct Proj<EB_>::Imp {
       eb.LoopFaces([&](auto cf) { //
         ffv[cf] = ffvel[cf].dot(eb.GetSurface(cf));
       });
+      ctx->fcp_discard = fcp_curr;
     }
     if (sem.Nested("project")) {
-      Project(fcp_curr, ffv, dt * 0.5);
+      Project(ctx->fcp_discard, ffv, dt * 0.5);
     }
     if (sem()) {
       fcvel = fcvel_.time_curr;

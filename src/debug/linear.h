@@ -79,6 +79,9 @@ struct UDebug {
         m.Comm(&vfck[i]);
       }
     }
+    if (sem()) {
+      // FIXME: empty stage to finish communication in inner blocks
+    }
     if (sem("local")) {
       FieldCell<Scal> fcr(m, 0);
       for (auto c : m.Cells()) {
