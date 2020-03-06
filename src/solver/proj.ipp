@@ -396,10 +396,14 @@ struct Proj<EB_>::Imp {
       }
     }
     if (sem("copy")) {
+      auto fft = ff;
       for (auto c : m.AllCells()) {
         for (auto q : m.Nci(c)) {
           ff[m.GetFace(c, q)] = vfc[q][c];
         }
+      }
+      for (auto f : m.Faces()) {
+        ff[f] = fft[f];
       }
     }
     if (sem()) {

@@ -396,6 +396,12 @@ auto UEmbed<M>::InterpolateBcg(
     const FieldFace<Scal>& ffv, const FieldCell<Scal>& fc_src, const Scal dt,
     const M& m) -> FieldFace<Scal> {
   const Scal h = m.GetCellSize()[0];
+
+  FieldEmbed<bool> is_boundary(m, false);
+  mebc.LoopPairs([&](auto p) { //
+    is_boundary[p.first] = true;
+  });
+
   const FieldFace<Scal> ffg = Gradient(fcu, mebc, m);
   FieldFace<Scal> ffu(m, 0);
   for (auto f : m.Faces()) {
@@ -418,8 +424,14 @@ auto UEmbed<M>::InterpolateBcg(
     for (auto q : {1, 2}) {
       const IdxFace fm = m.GetFace(c, ((nci / 2 + q) % 3) * 2);
       const IdxFace fp = m.GetFace(c, ((nci / 2 + q) % 3) * 2 + 1);
+      if (is_boundary[fm] || is_boundary[fp]) {
+        // exclude faces that depend on boundary conditions
+        // as they cause instability in case of non-zero Dirichle conditions
+        continue;
+      }
       const Scal w = (ffv[fm] + ffv[fp]) / (m.GetArea(fm) + m.GetArea(fp));
-      ut -= ffg[w > 0 ? fm : fp] * w;
+      const IdxFace f = (w > 0 ? fm : fp);
+      ut -= ffg[f] * w;
     }
 
     ffu[f] = fcu[c] + ux * (sgn * 0.5 * h) + ut * (0.5 * dt);
