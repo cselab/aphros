@@ -2,21 +2,13 @@
 
 set -eu
 
-name=${1:-periodic}
-extra=${2:-}
+ref=$(cat refpath)
+mkdir -p "$ref"
 
-r=ref${name}
-
-if [ "$extra" != "" ] ; then
-  r=${r}_${extra}
-fi
-
-mkdir -p $r
-
-ff=`ls $r`
+ff=`ls $ref`
 
 for f in $ff ; do
   echo $f
-  cp -v $f $r/$f
+  cp -v $f $ref/$f
 done
 
