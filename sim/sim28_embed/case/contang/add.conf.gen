@@ -11,9 +11,25 @@ mag=5
 sin=`aw "-sin($angle)*$mag"`
 cos=`aw "-cos($angle)*$mag"`
 
-echo "
+cat > add.conf << EOF
 set vect gravity $sin $cos 0
 set vect gravity 0 0 0
 
 set string list_path b2.dat
-" > add.conf
+
+set string bc_path inline "
+wall 0 0 0 {
+  box 0 0 0 10
+}
+inlet 0.1 0 0 {
+  sphere 0.1 0.5 0   0.1
+}
+wall_rotation_magn 0.5 0.5 0  0 0 1 {
+  sphere 0.5 0.5 0 0.3
+}
+outlet {
+  sphere 0.95 0.95 0   0.05
+  sphere 0.95 0.05 0   0.05
+}
+"
+EOF
