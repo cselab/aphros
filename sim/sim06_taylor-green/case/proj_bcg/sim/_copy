@@ -2,7 +2,7 @@
 
 set -eu
 
-: ${b="daint:s/scratch/proj_bcg/tg/./nx{128,256,512bs32}/{sc/{t,dk},{add,std}.conf,Makefile}"}
+: ${b="daint:s/scratch/proj_bcg/tg/./nx{128,256,512bs32}/{sc/{t,dk},{add,std}.conf,Makefile,out}"}
 
 src=src
 mkdir -p "$src"

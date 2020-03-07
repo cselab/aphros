@@ -13,5 +13,15 @@ filt () {
   done
 }
 
+out () {
+  for f in $@ ; do
+    echo $f
+    cat "$src/$f" | head -n 300 > $dat/$f
+    echo -e "\n\n\n" >> $dat/$f
+    cat "$src/$f" | tail -n 200 >> $dat/$f
+  done
+}
+
 filt nx{128,256,512bs32}/sc/{t,dk}
 rsync -vR $src/./nx*/{add.conf,std.conf,Makefile} $dat/
+out nx{128,256,512bs32}/out
