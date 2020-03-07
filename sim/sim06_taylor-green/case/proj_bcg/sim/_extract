@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -eu
+
+src=src
+dat=.
+
+filt () {
+  for f in $@ ; do
+    echo $f
+    mkdir -p "$(dirname $dat/$f)"
+    cat "$src/$f" | awk 'NR % 10 == 0' > $dat/$f
+  done
+}
+
+filt nx{128,256,512bs32}/sc/{t,dk}
+rsync -vR $src/./nx*/{add.conf,std.conf,Makefile} $dat/

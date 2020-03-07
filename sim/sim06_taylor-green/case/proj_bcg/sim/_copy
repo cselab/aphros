@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -eu
+
+: ${b="daint:s/scratch/proj_bcg/tg/./nx{128,256,512bs32}/{sc/{t,dk},{add,std}.conf,Makefile}"}
+
+src=src
+mkdir -p "$src"
+rsync -RavzL $b $src/
