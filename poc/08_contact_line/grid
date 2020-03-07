@@ -52,7 +52,8 @@ BEGIN {
     while ((getline < tmp) == 1) {
         vx[i] = $1
         vy[i] = $2
-        psi[i] = $3
+        pressure[i] = $3
+        psi[i] = $4
         i++
     }
     print "# vtk DataFile Version 2.0"
@@ -70,6 +71,10 @@ BEGIN {
     print "LOOKUP_TABLE default"
     for (i = 0; i < nx * ny; i++)
         print psi[i]
+    print "SCALARS pressure double"
+    print "LOOKUP_TABLE default"
+    for (i = 0; i < nx * ny; i++)
+        print pressure[i]
 }
 '
 

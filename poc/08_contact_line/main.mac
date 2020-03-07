@@ -1,6 +1,11 @@
 lpl(e):=1/r*diff(r*diff(e, r), r) + 1/r^2*diff(e, t, 2);
 bi(e):=lpl(lpl(e));
 grad(e):=[diff(e, r), diff(e, t)/r];
+div(vr, vt):=1/r*diff(r*vr, r) + 1/r*diff(vt, t);
+curl(e):=[1/r*diff(e, t), -diff(e, r)];
+vlpl(vr, vt):= [
+  lpl(vr) - vr/r^2 - 2/r^2*diff(vt, t),
+  lpl(vt) - vt/r^2 + 2/r^2*diff(vr, t)];
 
 p: r*(a*sin(t) + b*cos(t) + c*t*sin(t) + d*t*cos(t));
 pr: diff(p, r);
@@ -67,16 +72,9 @@ for e in %s do printf(true, "~a;~%", apply2(e, r_pow, r_pi, r_cos, r_sin, r_pow)
 
 printf(true, "~a;~%", 'vr = apply2(vra, r_pow, r_pi, r_cos, r_sin, r_pow));
 printf(true, "~a;~%", 'vt = apply2(vta, r_pow, r_pi, r_cos, r_sin, r_pow));
-
-
 printf(true, "~a;~%", 'psi = apply2(b(p), r_pow, r_pi, r_cos, r_sin, r_pow));
 
-pre: -2*m/r*(C*sin(t) + D*cos(t));
-vr: -pt/r;
-vt: pr;
-
-m*lpl(vr) - grad(pre)[1], expand, m = 1;
-
-lpl(vt), radcan;
-grad(pre)[2], radacn;
+[vr, vt]: -curl(p), trigsimp;
+gpre: m*vlpl(vr, vt), trigsimp, factor;
+pre: -2*m/r*(c*sin(t) + d*cos(t)) $
 
