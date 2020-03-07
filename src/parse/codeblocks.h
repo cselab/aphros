@@ -39,10 +39,9 @@ std::pair<bool, CodeBlock> ParseCodeBlock(std::istream& fin) {
   enum class S { begin, name, content, exit };
   S s = S::begin; // state
   char c = ' ';
-  bool found = false;
   int braces = 0;
   try {
-    while (fin && !found) {
+    while (fin && s != S::exit) {
       auto next = [&fin, &c]() { fin >> c; };
       switch (s) {
         case S::begin: {
@@ -82,12 +81,11 @@ std::pair<bool, CodeBlock> ParseCodeBlock(std::istream& fin) {
           break;
         }
         case S::exit: {
-          found = true;
           break;
         }
       }
     }
-    if (!found && (block.name.size() || block.content.size())) {
+    if (s != S::exit && (block.name.size() || block.content.size())) {
       throw std::runtime_error("unexpected end of stream");
     }
   } catch (const std::runtime_error& e) {
@@ -99,7 +97,7 @@ std::pair<bool, CodeBlock> ParseCodeBlock(std::istream& fin) {
   fin.flags(flags);
   block.name = Strip(block.name);
   block.content = Strip(block.content);
-  return {found, block};
+  return {s == S::exit, block};
 }
 
 // Parses a stream and returns a list of code blocks.

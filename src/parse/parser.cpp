@@ -294,8 +294,14 @@ void Parser::RunAll(std::istream& in) {
 template <class T>
 void Parser::Print(const Vars::Map<T>& m, std::ostream& out) {
   for (auto it = m.cbegin(); it != m.cend(); ++it) {
-    out << "set " << m.GetTypeName() << " " << it->first << " "
-        << m.GetStr(it->first) << std::endl;
+    const std::string val = m.GetStr(it->first);
+    out << "set " << m.GetTypeName() << " " << it->first << " ";
+    if (val.find("\n") != std::string::npos) {
+      out << "\"" << val << "\n\"";
+    } else {
+      out << val;
+    }
+    out << std::endl;
   }
 }
 

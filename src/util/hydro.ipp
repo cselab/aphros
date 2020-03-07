@@ -1081,17 +1081,27 @@ InitBc(const Vars& var, const MEB& eb) {
   MapEmbed<BCondFluid<Vect>> me_fluid;
   MapEmbed<CondFaceAdvection<Scal>> me_adv;
 
-  const std::string filename = var.String["bc_path"];
-  std::ifstream fin(filename);
-  if (!fin.good()) {
-    throw std::runtime_error(
-        "Can't open boundary conditions '" + filename + "'");
+  std::stringstream in;
+  {
+    std::stringstream path(var.String["bc_path"]);
+    std::string filename;
+    path >> filename;
+    if (filename == "inline") {
+      in << path.rdbuf();
+    } else {
+      filename = path.str();
+      std::ifstream fin(filename);
+      if (!fin.good()) {
+        throw std::runtime_error(
+            "Can't open boundary conditions '" + filename + "'");
+      }
+      in << fin.rdbuf();
+    }
   }
   std::vector<std::string> vdesc;
   MapEmbed<size_t> me_group;
   MapEmbed<size_t> me_nci;
-  std::tie(me_group, me_nci, vdesc) = UI::ParseGroups(fin, eb);
-  fin.close();
+  std::tie(me_group, me_nci, vdesc) = UI::ParseGroups(in, eb);
 
   for (size_t group = 0; group < vdesc.size(); ++group) {
     me_group.LoopPairs([&](const auto& p) {
