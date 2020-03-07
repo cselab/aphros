@@ -8,6 +8,15 @@ set vect d 1
 TestFile
 set string c a b   s c
 set string dumplist p vx vy vf
+set string multi inline 
+
+line1
+line2
+line3
+set string multi2 line 1 line2 
+line3
+
+line4
 set string s 
 set string sub [sub]
 set string sub_2 a[sub]b
