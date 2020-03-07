@@ -10,6 +10,18 @@
 #include "util/logger.h"
 #include "vars.h"
 
+std::string Strip(std::string s) {
+  size_t b = 0;
+  size_t e = s.size();
+  while (b < e && std::isspace(s[b])) {
+    ++b;
+  }
+  while (b < e && std::isspace(s[e - 1])) {
+    --e;
+  }
+  return s.substr(b, e - b);
+}
+
 struct Parser::Imp {
   using Owner = Parser;
 
@@ -152,15 +164,16 @@ void Parser::Imp::CmdSet(std::string s) {
   std::stringstream b(s);
   b >> std::skipws;
   b >> cmd >> type >> key;
-  char c;
-  // Read first non-ws character
-  b >> c;
-  if (b.good()) {
-    // Read remaining line
-    std::getline(b, val);
-    val = c + val;
+  b >> std::noskipws;
+  char c = ' ';
+  while (b && std::isspace(c)) {
+    b >> c;
   }
-
+  while (b) {
+    val += c;
+    b >> c;
+  }
+  val = Strip(val);
   v_.SetStr(type, key, val);
 }
 
@@ -216,10 +229,60 @@ void Parser::Run(std::string s) {
   imp->Cmd(s);
 }
 
+// Reads multiline string from stream.
+// String is read until EOL or while inside quotation marks "".
+// Removes quotation marks and strips whitespaces.
+std::string ReadMultiline(std::istream& in) {
+  const auto flags = in.flags();
+  in >> std::noskipws;
+  std::string res;
+  enum class S { normal, quote, exit };
+  S s = S::normal; // state
+  char c = ' ';
+  try {
+    while (in && s != S::exit) {
+      auto next = [&in, &c]() { in >> c; };
+      switch (s) {
+        case S::normal: {
+          if (c == '"') {
+            s = S::quote;
+            next();
+          } else if (c == '\n') {
+            s = S::exit;
+          } else {
+            res += c;
+            next();
+          }
+          break;
+        }
+        case S::quote: {
+          if (c == '"') {
+            s = S::normal;
+          } else {
+            res += c;
+          }
+          next();
+          break;
+        }
+        case S::exit: {
+          break;
+        }
+      }
+    }
+    if (s == S::quote) {
+      throw std::runtime_error("no matching '\"'");
+    }
+  } catch (const std::runtime_error& e) {
+    throw std::runtime_error(
+        std::string(__func__) + ": " + e.what() + "\nstopping at string: '" +
+        Strip(res) + "'");
+  }
+  in.flags(flags);
+  return Strip(res);
+}
+
 void Parser::RunNext(std::istream& in) {
-  std::string s;
-  std::getline(in, s);
-  imp->Cmd(s);
+  imp->Cmd(ReadMultiline(in));
 }
 
 void Parser::RunAll(std::istream& in) {
