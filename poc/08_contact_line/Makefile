@@ -4,6 +4,7 @@
 
 M_LDFLAGS = -lm
 LINK = $(CC)
+CFLAGS = -Og -g
 M = \
 main\
 
