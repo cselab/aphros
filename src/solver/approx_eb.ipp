@@ -348,9 +348,9 @@ auto UEmbed<M>::InterpolateUpwind(
   }
   feu.GetFieldFace() = InterpolateBilinearFaces(feu.GetFieldFace(), eb);
 
-  auto calc = [&](auto i, IdxCell c, const BCond<Scal>& bc) {
-    if (fev[i] * (bc.nci - 0.5) < 0) { // boundary is downstream
-      return EvalLinearFit(eb.GetFaceCenter(i), c, fcu, eb);
+  auto calc = [&](auto cf, IdxCell c, const BCond<Scal>& bc) {
+    if (fev[cf] * (bc.nci - 0.5) < 0) { // boundary is downstream
+      return EvalLinearFit(eb.GetFaceCenter(cf), c, fcu, eb);
     }
     // TODO reuse code from Interpolate()
     const Scal h = eb.GetCellSize()[0];
@@ -360,18 +360,18 @@ auto UEmbed<M>::InterpolateUpwind(
         return val;
       }
       case BCondType::neumann: {
-        const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
+        const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const Scal u = EvalLinearFit(x, c, fcu, eb);
         return u + val * h;
       }
       case BCondType::mixed:
       case BCondType::reflect: {
-        const Vect x = eb.GetFaceCenter(i) - eb.GetNormal(i) * h;
+        const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const Scal u = EvalLinearFit(x, c, fcu, eb);
-        return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(i));
+        return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(cf));
       }
       case BCondType::extrap: {
-        return EvalLinearFit(eb.GetFaceCenter(i), c, fcu, eb);
+        return EvalLinearFit(eb.GetFaceCenter(cf), c, fcu, eb);
       }
     }
     return GetNan<Scal>();
@@ -387,7 +387,82 @@ auto UEmbed<M>::InterpolateBcg(
     const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
     const FieldEmbed<Scal>& fev, const FieldCell<Scal>& fc_src, const Scal dt,
     const EB& eb) -> FieldEmbed<Scal> {
-  throw std::runtime_error(FILELINE + ": not implemented");
+  const Scal h = eb.GetCellSize()[0];
+
+  FieldEmbed<bool> is_boundary(eb, false);
+  mebc.LoopPairs([&](auto p) { //
+    is_boundary[p.first] = true;
+  });
+  for (auto f : eb.SuFaces()) {
+    if (eb.GetType(f) != EB::Type::regular) {
+      is_boundary[f] = true;
+    }
+  }
+
+  const FieldEmbed<Scal> feg = Gradient(fcu, mebc, eb);
+  FieldEmbed<Scal> feu(eb, 0);
+  for (auto f : eb.Faces()) {
+    const Scal sgn = (fev[f] > 0 ? 1 : -1);
+    const IdxCell cm = eb.GetCell(f, 0);
+    const IdxCell cp = eb.GetCell(f, 1);
+    const IdxCell c = (sgn > 0 ? cm : cp); // upwind cell
+    const size_t nci = eb.GetNci(c, f);
+    auto Fm = [&](size_t d) { //
+      return eb.GetFace(c, ((nci / 2 + d) % 3) * 2);
+    };
+    auto Fp = [&](size_t d) { //
+      return eb.GetFace(c, ((nci / 2 + d) % 3) * 2 + 1);
+    };
+
+    // temporal derivative, initial from acceleration
+    Scal ut = (fc_src[cm] + fc_src[cp]) * 0.5;
+    // convective terms
+    // normal direction
+    const IdxFace fm = Fm(0);
+    const IdxFace fp = Fp(0);
+    const Scal ux = (is_boundary[fm] || is_boundary[fp])
+                        ? feg[f]
+                        : (feg[fm] + feg[fp]) * 0.5; // normal derivative
+    const Scal w = fev[f] / eb.GetArea(f); // velocity
+    ut -= ux * w;
+    // tangential directions
+    for (auto d : {1, 2}) {
+      const IdxFace fm = Fm(d);
+      const IdxFace fp = Fp(d);
+      if (is_boundary[fm] || is_boundary[fp]) {
+        // exclude faces that depend on boundary conditions
+        // as they cause instability in case of non-zero Dirichlet conditions
+        continue;
+      }
+      const Scal w = (fev[fm] + fev[fp]) / (eb.GetArea(fm) + eb.GetArea(fp));
+      ut -= feg[w > 0 ? fm : fp] * w;
+    }
+
+    feu[f] = fcu[c] + ux * (sgn * 0.5 * h) + ut * (0.5 * dt);
+  }
+  auto calc = [&](auto cf, IdxCell c, const BCond<Scal>& bc) {
+    if (fev[cf] * (bc.nci - 0.5) < 0) { // boundary is downstream
+      return EvalLinearFit(eb.GetFaceCenter(cf), c, fcu, eb);
+    }
+    const Scal& val = bc.val;
+    switch (bc.type) {
+      case BCondType::dirichlet: {
+        return val;
+      }
+      case BCondType::neumann: {
+        const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
+        const Scal u = EvalLinearFit(x, c, fcu, eb);
+        return u + val * h;
+      }
+      default:
+        throw std::runtime_error(FILELINE + ": unknown");
+    }
+    return GetNan<Scal>();
+  };
+  mebc.LoopBCond(eb, [&](auto cf, IdxCell c, const auto& bc) {
+    feu[cf] = calc(cf, c, bc);
+  });
+  return feu;
 }
 
 template <class M>
@@ -410,23 +485,29 @@ auto UEmbed<M>::InterpolateBcg(
     const IdxCell cp = m.GetCell(f, 1);
     const IdxCell c = (sgn > 0 ? cm : cp); // upwind cell
     const size_t nci = m.GetNci(c, f);
+    auto Fm = [&](size_t d) { //
+      return m.GetFace(c, ((nci / 2 + d) % 3) * 2);
+    };
+    auto Fp = [&](size_t d) { //
+      return m.GetFace(c, ((nci / 2 + d) % 3) * 2 + 1);
+    };
 
     // temporal derivative, initial from acceleration
     Scal ut = (fc_src[cm] + fc_src[cp]) * 0.5;
     // convective terms
     // normal direction
-    const IdxFace fm = m.GetFace(c, (nci / 2) * 2);
-    const IdxFace fp = m.GetFace(c, (nci / 2) * 2 + 1);
+    const IdxFace fm = Fm(0);
+    const IdxFace fp = Fp(0);
     const Scal ux = (ffg[fm] + ffg[fp]) * 0.5; // normal derivative
     const Scal w = ffv[f] / m.GetArea(f); // velocity
     ut -= ux * w;
     // tangential directions
-    for (auto q : {1, 2}) {
-      const IdxFace fm = m.GetFace(c, ((nci / 2 + q) % 3) * 2);
-      const IdxFace fp = m.GetFace(c, ((nci / 2 + q) % 3) * 2 + 1);
+    for (auto d : {1, 2}) {
+      const IdxFace fm = Fm(d);
+      const IdxFace fp = Fp(d);
       if (is_boundary[fm] || is_boundary[fp]) {
         // exclude faces that depend on boundary conditions
-        // as they cause instability in case of non-zero Dirichle conditions
+        // as they cause instability in case of non-zero Dirichlet conditions
         continue;
       }
       const Scal w = (ffv[fm] + ffv[fp]) / (m.GetArea(fm) + m.GetArea(fp));
