@@ -421,7 +421,6 @@ struct Proj<EB_>::Imp {
     }
   }
   static void CommFaces(FieldEmbed<Scal>& fe, M& m) {
-    CommFaces(fe.GetFieldFace(), m);
     auto sem = m.GetSem("commembed");
     if (sem.Nested()) {
       CommFaces(fe.GetFieldFace(), m);
