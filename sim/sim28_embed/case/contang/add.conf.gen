@@ -15,9 +15,14 @@ cat > add.conf << EOF
 set vect gravity $sin $cos 0
 set vect gravity 0 0 0
 
-set string list_path b2.dat
+set string list_path "inline
+0.2 0.5 0 0.05
+0.8 0.5 0 0.05
+0.5 0.2 0 0.05
+0.5 0.8 0 0.05
+"
 
-set string bc_path inline "
+set string bc_path "inline
 wall 0 0 0 {
   box 0 0 0 10
 }
