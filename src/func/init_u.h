@@ -542,15 +542,28 @@ void InitVf(FieldCell<typename M::Scal>& fcu, const Vars& var, M& m) {
   if (v == "list") {
     if (sem("list-bcast")) {
       if (m.IsRoot()) {
-        auto fn = var.String["list_path"];
-        std::ifstream fin(fn);
-        std::cout << "Open list of primitives '" << fn << "'" << std::endl;
-        if (!fin.good()) {
-          throw std::runtime_error("Can't open list of primitives");
+        std::stringstream path(var.String["list_path"]);
+        std::string filename;
+        path >> filename;
+        if (filename == "inline") {
+          std::cout
+              << "InitVf: Reading inline list of primitives from list_path"
+              << std::endl;
+          ctx->buf = std::vector<char>(
+              std::istreambuf_iterator<char>(path),
+              std::istreambuf_iterator<char>());
+        } else {
+          std::ifstream fin(filename);
+          std::cout << "InitVf: Open list of primitives '" << filename << "'"
+                    << std::endl;
+          if (!fin.good()) {
+            throw std::runtime_error(
+                FILELINE + ": Can't open list of primitives");
+          }
+          ctx->buf = std::vector<char>(
+              std::istreambuf_iterator<char>(fin),
+              std::istreambuf_iterator<char>());
         }
-        ctx->buf = std::vector<char>(
-            std::istreambuf_iterator<char>(fin),
-            std::istreambuf_iterator<char>());
       }
       using T = typename M::template OpCatT<char>;
       m.Bcast(std::make_shared<T>(&ctx->buf));

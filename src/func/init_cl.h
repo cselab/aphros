@@ -30,7 +30,7 @@ void ReadPlain(std::istream& dat, FieldCell<Scal>& u, GMIdx<3>& size) {
 }
 
 // Init of color function.
-// par: parameters
+// var: parameters
 // M: mesh
 // Returns:
 // std::function<void(GField<Cell>& fc,const M& m)>
@@ -39,27 +39,44 @@ void ReadPlain(std::istream& dat, FieldCell<Scal>& u, GMIdx<3>& size) {
 template <class M>
 std::function<void(
     FieldCell<typename M::Scal>&, const FieldCell<typename M::Scal>&, const M&)>
-CreateInitCl(const Vars& par, bool verb) {
+CreateInitCl(const Vars& var, bool verb) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr Scal kClNone = -1.; // no color
 
-  std::string v = par.String["init_vf"];
+  std::string v = var.String["init_vf"];
   if (v == "list") {
-    const std::string fn = par.String["list_path"];
-    const size_t edim = par.Int["dim"];
+    const size_t edim = var.Int["dim"];
+    std::stringstream in;
+    {
+      std::stringstream path(var.String["list_path"]);
+      std::string filename;
+      path >> filename;
+      if (filename == "inline") {
+        if (verb) {
+          std::cout
+              << "InitCl: Reading inline list of primitives from list_path"
+              << std::endl;
+        }
+        in << path.rdbuf();
+      } else {
+        filename = path.str();
+        std::ifstream fin(filename);
+        if (verb) {
+          std::cout << "InitCl: Open list of primitives '" << filename
+                    << std::endl;
+        }
+        if (!fin.good()) {
+          throw std::runtime_error(
+              FILELINE + ": Can't open list of primitives");
+        }
+        in << fin.rdbuf();
+      }
+    }
 
     // TODO revise with bcast and filter by bounding box,
     // but keep original index for color
-    std::ifstream fin(fn);
-    if (verb) {
-      std::cout << "Open list of primitives '" << fn << "' for colors"
-                << std::endl;
-    }
-    if (!fin.good()) {
-      throw std::runtime_error("Can't open list of primitives");
-    }
-    auto pp = UPrimList<Scal>::Parse(fin, verb, edim);
+    auto pp = UPrimList<Scal>::Parse(in, verb, edim);
 
     return [pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf, const M& m) {
       cl.Reinit(m, kClNone);
@@ -93,8 +110,8 @@ CreateInitCl(const Vars& par, bool verb) {
       }
     };
   } else if (v == "box") {
-    Vect xc(par.Vect["box_c"]);
-    Scal s = par.Double["box_s"];
+    Vect xc(var.Vect["box_c"]);
+    Scal s = var.Double["box_s"];
     return [xc, s](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {
       fc.Reinit(m, kClNone);
       for (auto c : m.Cells()) {
@@ -105,9 +122,9 @@ CreateInitCl(const Vars& par, bool verb) {
     };
   } else if (v == "grid") {
     using MIdx = typename M::MIdx;
-    const int dx = par.Int["initvf_grid_dx"];
-    const int dy = par.Int["initvf_grid_dy"];
-    const int dz = par.Int["initvf_grid_dz"];
+    const int dx = var.Int["initvf_grid_dx"];
+    const int dy = var.Int["initvf_grid_dy"];
+    const int dz = var.Int["initvf_grid_dz"];
     const MIdx dw(dx, dy, dz);
     return [dw](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {
       fc.Reinit(m, kClNone);
@@ -121,7 +138,7 @@ CreateInitCl(const Vars& par, bool verb) {
       }
     };
   } else if (v == "readplain") {
-    const std::string fn = par.String["readplain_path"];
+    const std::string fn = var.String["readplain_path"];
     std::ifstream qdat(fn);
     if (!qdat.good()) {
       throw std::runtime_error("readplain: can't open '" + fn + "'");

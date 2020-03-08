@@ -1093,7 +1093,7 @@ InitBc(const Vars& var, const MEB& eb) {
       std::ifstream fin(filename);
       if (!fin.good()) {
         throw std::runtime_error(
-            "Can't open boundary conditions '" + filename + "'");
+            FILELINE + ": Can't open boundary conditions '" + filename + "'");
       }
       in << fin.rdbuf();
     }
