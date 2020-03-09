@@ -108,8 +108,19 @@ struct Proj<EB_>::Imp {
       is_boundary_[p.first] = true;
     });
 
-    ffvisc_ = UEB::Interpolate(*owner_->fcd_, me_visc_, eb);
-    ffdens_ = UEB::Interpolate(*owner_->fcr_, me_visc_, eb);
+    auto interpolate_harmonic = [&](const FieldCell<Scal>& fc) { //
+      auto inv = fc;
+      for (auto c : eb.AllCells()) {
+        inv[c] = 1 / inv[c];
+      }
+      auto ff = UEB::Interpolate(inv, me_visc_, eb);
+      for (auto f : eb.SuFaces()) {
+        ff[f] = 1 / ff[f];
+      }
+      return ff;
+    };
+    ffvisc_ = interpolate_harmonic(*owner_->fcd_);
+    ffdens_ = interpolate_harmonic(*owner_->fcr_);
   }
   void Advection(
       FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvel_time_prev,
