@@ -32,3 +32,4 @@ jobs:
             EOS
       - store_artifacts:
           path: /root/project/src/build/Testing/Temporary/LastTest.log
+          destination: LastTest.log

@@ -32,7 +32,7 @@ ap.run ap.mfer "$c"
 a=0
 for f in ref/vf*.dat ; do
   echo $f
-  if ! ap.diffnum "${f#ref/}" "$f" "1e-2"; then
+  if ! ap.diffnum "${f#ref/}" "$f" "1e-8"; then
     a=1
   fi
 done
