@@ -71,6 +71,7 @@ cleandat::
 	rm -vf slurm*.out
 	rm -vf {vx,vy,vz,p,vf,cl,cls,div,omm}_*.dat
 	rm -vf core.*
+	rm -vf bc.vtk bc_groups.dat eb.vtk
 
 cleanall: clean cleandat
 
