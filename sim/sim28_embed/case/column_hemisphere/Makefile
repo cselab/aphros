@@ -1,13 +1,14 @@
-m = 64 128 64
+m = 32 64 32
+np = 8
+#m = 64 128 64
 #m = 128 256 128
-np = 128
-bs = 16 16 16
+#bs = 32 32 32
 tl = 600
 
 default:
 	killall ap.mfer || true
 	make cleanall
-	make run
+	nice make run
 
 add.conf: add.conf.gen
 	./add.conf.gen

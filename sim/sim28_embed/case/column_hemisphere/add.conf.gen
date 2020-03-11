@@ -12,7 +12,7 @@ sin=`aw "-sin($angle)*$mag"`
 cos=`aw "-cos($angle)*$mag"`
 
 echo "
-set vect gravity $sin $cos 0
+#set vect gravity $sin $cos 0
 set string advection_solver vofm
 set int enable_color 1
 
