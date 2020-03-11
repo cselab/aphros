@@ -1141,14 +1141,11 @@ auto UEmbed<M>::AverageGradient(const FieldEmbed<Scal>& feg, const EB& eb)
   FieldCell<Vect> fcg(eb, Vect(0));
   for (auto c : eb.AllCells()) {
     Vect sum(0);
-    Scal sumw = 0;
     eb.LoopNci(c, [&](auto q) {
       const auto cf = eb.GetFace(c, q);
-      const Scal w = eb.GetArea(cf);
-      sum += eb.GetNormal(cf) * (feg[cf] * w);
-      sumw += w;
+      sum += eb.GetNormal(cf) * (feg[cf] * 0.5);
     });
-    fcg[c] = sum / sumw;
+    fcg[c] = sum;
   }
   return fcg;
 }

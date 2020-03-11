@@ -109,6 +109,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using Par = GPar;
   template <class T>
   using Multi = Multi<T>;
+  using UEB = UEmbed<M>;
   static constexpr size_t dim = M::dim;
 
   // TODO: issue warning if variable in Vars was not used
@@ -1538,18 +1539,32 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     }
 
     if (eb_) {
+      auto& eb = *eb_;
       // Compute gravity as gradient of potential
       // to ensure exact hydrostatic solution.
-      auto& eb = *eb_;
-      FieldCell<Scal> fcp(m);
+      MapEmbed<BCond<Scal>> me_pressure;
+      MapEmbed<BCond<Scal>> me_dens;
+      mebc_fluid_.LoopBCond(eb, [&](auto cf, IdxCell, auto bc) { //
+        const auto nci = bc.nci;
+        me_dens[cf] = BCond<Scal>(BCondType::neumann, nci);
+        if (bc.type == BCondFluidType::slipwall ||
+            bc.type == BCondFluidType::symm) {
+          me_pressure[cf] = BCond<Scal>(BCondType::neumann, nci);
+        } else {
+          me_pressure[cf] = BCond<Scal>(BCondType::extrap, nci);
+        }
+      });
+
+      auto fe_dens = UEB::Interpolate(fc_rho_, me_dens, eb);
+      FieldCell<Scal> fcp(eb);
       for (auto c : eb.AllCells()) {
         const auto x = m.GetCenter(c);
         fcp[c] = grav.dot(x);
       }
-      febp_ = UEmbed<M>::Gradient(fcp, {}, eb);
-      for (auto f : m.AllFaces()) {
-        febp_[f] *= ff_rho[f];
-      }
+      febp_ = UEB::Gradient(fcp, me_pressure, eb);
+      eb.LoopFaces([&](auto cf) { //
+        febp_[cf] *= fe_dens[cf];
+      });
     }
 
     // Surface tension
