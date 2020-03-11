@@ -278,5 +278,19 @@ struct UEmbed {
       const ExprFace& e, IdxCell c, const FieldCell<Scal>& fcu, const EB&) {
     return fcu[c] * e[0] + e[2];
   }
-}
-;
+
+  template <class MEB>
+  static auto InterpolateHarmonic(
+      const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+      const MEB& eb) {
+    auto inv = fcu;
+    for (auto c : eb.AllCells()) {
+      inv[c] = 1 / inv[c];
+    }
+    auto ff = Interpolate(inv, mebc, eb);
+    eb.LoopSuFaces([&](auto cf) { //
+      ff[cf] = 1 / ff[cf];
+    });
+    return ff;
+  }
+};

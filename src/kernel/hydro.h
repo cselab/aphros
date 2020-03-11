@@ -1555,7 +1555,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       });
 
-      auto fe_dens = UEB::Interpolate(fc_rho_, me_dens, eb);
+      auto fe_dens = UEB::InterpolateHarmonic(fc_rho_, me_dens, eb);
       FieldCell<Scal> fcp(eb);
       for (auto c : eb.AllCells()) {
         const auto x = m.GetCenter(c);
