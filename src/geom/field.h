@@ -125,7 +125,7 @@ class GField {
   void SetName(const std::string name) {
     name_ = name;
   }
-  void CheckHalo(size_t halo) const {
+  void CheckHalo(int halo) const {
     if (halo_ < halo) {
       throw std::runtime_error(
           FILELINE + ": required " + std::to_string(halo) +
@@ -133,10 +133,15 @@ class GField {
           std::to_string(halo_) + " are valid");
     }
   }
-  void SetHalo(size_t halo) {
+  void SetHalo(int halo) {
     halo_ = halo;
   }
-  size_t GetHalo() const {
+  void LimitHalo(int halo) {
+    if (halo < halo_) {
+      halo_ = halo;
+    }
+  }
+  int GetHalo() const {
     return halo_;
   }
 
@@ -144,7 +149,7 @@ class GField {
   Range range_;
   Value* data_;
   std::string name_;
-  size_t halo_ = 100; // default to max
+  int halo_ = 100; // default to max
 };
 
 template <class T>
@@ -167,6 +172,7 @@ void GetComponent(
   for (auto i : fv.GetRange()) {
     fs[i] = fv[i][n];
   }
+  fs.SetHalo(fv.GetHalo());
 }
 
 // Return component of vector field.
@@ -189,6 +195,7 @@ void SetComponent(
   for (auto i : fv.GetRange()) {
     fv[i][n] = fs[i];
   }
+  fv.SetHalo(std::min(fv.GetHalo(), fs.GetHalo()));
 }
 
 // Set component of vector field.

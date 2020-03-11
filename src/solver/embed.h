@@ -95,6 +95,28 @@ class FieldEmbed {
   const FieldFace<Value>& Get(const FieldFace<Value>*) const {
     return GetFieldFace();
   }
+  std::string GetName() const {
+    return df_.GetName();
+  }
+  void SetName(const std::string name) {
+    df_.SetName(name);
+    dc_.SetName(name);
+  }
+  void CheckHalo(int halo) const {
+    df_.CheckHalo(halo);
+    dc_.CheckHalo(halo);
+  }
+  void SetHalo(int halo) {
+    df_.SetHalo(halo);
+    dc_.SetHalo(halo);
+  }
+  void LimitHalo(int halo) {
+    df_.LimitHalo(halo);
+    dc_.LimitHalo(halo);
+  }
+  int GetHalo() const {
+    return std::min(df_.GetHalo(), dc_.GetHalo());
+  }
 
  private:
   FieldCell<Value> dc_;

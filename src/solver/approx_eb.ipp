@@ -321,6 +321,8 @@ auto UEmbed<M>::Gradient(
   };
   mebc.LoopBCond(
       eb, [&](auto cf, IdxCell c, auto bc) { feg[cf] = calc(cf, c, bc); });
+  feg.LimitHalo(1);
+  feg.LimitHalo(fcu.GetHalo() - 1);
   return feg;
 }
 
@@ -462,6 +464,10 @@ auto UEmbed<M>::InterpolateBcg(
   mebc.LoopBCond(eb, [&](auto cf, IdxCell c, const auto& bc) {
     feu[cf] = calc(cf, c, bc);
   });
+  feu.LimitHalo(0);
+  feu.LimitHalo(fcu.GetHalo() - 1);
+  feu.LimitHalo(fc_src.GetHalo() - 1);
+  feu.LimitHalo(fev.GetHalo() - 1);
   return feu;
 }
 
@@ -539,6 +545,10 @@ auto UEmbed<M>::InterpolateBcg(
     const auto& bc = p.second;
     ffu[f] = calc(f, m.GetCell(f, bc.nci), bc);
   }
+  ffu.LimitHalo(0);
+  ffu.LimitHalo(fcu.GetHalo() - 1);
+  ffu.LimitHalo(fc_src.GetHalo() - 1);
+  ffu.LimitHalo(ffv.GetHalo() - 1);
   return ffu;
 }
 
@@ -653,6 +663,8 @@ auto UEmbed<M>::Gradient(
     const auto& bc = p.second;
     ffu[f] = calc(f, m.GetCell(f, bc.nci), bc);
   }
+  ffu.LimitHalo(1);
+  ffu.LimitHalo(fcu.GetHalo() - 1);
   return ffu;
 }
 
