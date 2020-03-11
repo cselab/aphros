@@ -25,27 +25,14 @@ set double cflvis 5
 
 #set string init_vf zero
 
+set int linreport 1
+
 set double mu1 0.01
-set double mu2 0.001
-set double rho2 0.1
+set double rho2 0.01
+set double mu2 0.0001
 set double sigma 0.05
 
-set int max_iter 2
-set int min_iter 2
-
-#set double pfixed 0
-#set vect pfixed_x 0.5 1 0.5
-
-set int stokes 1
-set int explconv 1
-set int convsymm 1
-
-#set string fluid_solver simple
-#set double prelax 0.8
-#set double vrelax 0.8
-#set int vfsmooth 2
-#set int max_iter 20
-#set int min_iter 1
+set int max_iter 1
 
 set string list_path brnd.dat
 
@@ -53,6 +40,43 @@ set string dumplist p vx vy vz ebvf
 
 set int verbose_conf_reads 1
 set int verbose_conf_unused 1
-set int report_step_every 10
+set int report_step_every 1
+
+set int check_symmetry 1
+set string conv exp
 
 " > add.conf
+
+
+th=0.03
+
+echo "
+wall 0 0 0 {
+  box 0 1 0 10 1.1 10
+}
+outlet {
+  cylinder 0.5 2. 0.5   0 1 0   1   -1e-3 1e-3
+}
+wall 0 0 0 {
+  cylinder 0.5 2. 0.5   0 1 0   0.22   -1e-3 1e-3
+}
+wall 0 0 0 {
+  cylinder 0.5 0. 0.5   0 1 0   1   -1e-3 1e-3
+}
+inlet 0 1 0 {
+  cylinder 0.5 0. 0.5   0 1 0   0.22   -1e-3 1e-3
+}
+
+outlet {
+  cylinder 0.5 1.95 0.5   0 1 0   1   -$th $th
+}
+wall 0 0 0 {
+  cylinder 0.5 1.95 0.5   0 1 0   0.22   -$th $th
+}
+wall 0 0 0 {
+  cylinder 0.5 0.05 0.5   0 1 0   1   -$th $th
+}
+inlet 0 1 0 {
+  cylinder 0.5 0.05 0.5   0 1 0   0.22   -$th $th
+}
+" > bc.dat
