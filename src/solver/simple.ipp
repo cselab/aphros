@@ -268,7 +268,7 @@ struct Simple<EB_>::Imp {
       m.Comm(&fck);
     }
     if (sem("interp")) {
-      ffk = UEB::Interpolate(fck, me_visc_, eb);
+      ffk = UEB::InterpolateHarmonic(fck, me_visc_, eb);
     }
   }
   // Append explicit part of viscous force.
