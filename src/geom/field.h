@@ -5,10 +5,12 @@
 
 #include <cassert>
 #include <iosfwd>
+#include <stdexcept>
 #include <string>
 
 #include "idx.h"
 #include "range.h"
+#include "util/logger.h"
 
 template <class Value_, class Idx_>
 class GField {
@@ -27,9 +29,11 @@ class GField {
       (*this)[i] = o[i];
     }
     name_ = o.name_;
+    halo_ = o.halo_;
   }
   // Move constructor
-  GField(GField&& o) : range_(o.range_), data_(o.data_), name_(o.name_) {
+  GField(GField&& o)
+      : range_(o.range_), data_(o.data_), name_(o.name_), halo_(o.halo_) {
     o.range_.clear();
     o.data_ = nullptr;
     o.name_.clear();
@@ -51,6 +55,7 @@ class GField {
         (*this)[i] = o[i];
       }
       name_ = o.name_;
+      halo_ = o.halo_;
     }
     return *this;
   }
@@ -60,6 +65,7 @@ class GField {
     range_ = o.range_;
     data_ = o.data_;
     name_ = o.name_;
+    halo_ = o.halo_;
     o.range_.clear();
     o.data_ = nullptr;
     o.name_.clear();
@@ -89,7 +95,6 @@ class GField {
     range_.clear();
     delete[] data_;
     data_ = nullptr;
-    name_.clear();
   }
   Range GetRange() const {
     return range_;
@@ -98,6 +103,7 @@ class GField {
     std::swap(range_, o.range_);
     std::swap(data_, o.data_);
     std::swap(name_, o.name_);
+    std::swap(halo_, o.halo_);
   }
   Value* data() {
     return data_;
@@ -119,11 +125,26 @@ class GField {
   void SetName(const std::string name) {
     name_ = name;
   }
+  void CheckHalo(size_t halo) const {
+    if (halo_ < halo) {
+      throw std::runtime_error(
+          FILELINE + ": required " + std::to_string(halo) +
+          " halos for field '" + GetName() + "' but only " +
+          std::to_string(halo_) + " are valid");
+    }
+  }
+  void SetHalo(size_t halo) {
+    halo_ = halo;
+  }
+  size_t GetHalo() const {
+    return halo_;
+  }
 
  private:
   Range range_;
   Value* data_;
   std::string name_;
+  size_t halo_ = 100; // default to max
 };
 
 template <class T>
