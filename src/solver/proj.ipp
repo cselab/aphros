@@ -119,6 +119,7 @@ struct Proj<EB_>::Imp {
     for (size_t d = 0; d < dim; ++d) {
       if (sem("local" + std::to_string(d))) {
         const auto mebc = GetScalarCond(me_vel_, d, m);
+        fcvel.CheckHalo(1);
         const auto fcu = GetComponent(fcvel, d);
         FieldFaceb<Scal> ffu;
         if (par.bcg) {
@@ -129,7 +130,9 @@ struct Proj<EB_>::Imp {
               UEB::AverageGradient(UEB::Gradient(fcu, mebc, eb), eb);
           ffu = UEB::InterpolateUpwind(fcu, mebc, par.convsc, fcg, ffv, eb);
         }
+        ffu.SetName(FILELINE + ": fcu");
         FieldCell<Scal> fc_sum(eb, 0);
+        ffu.CheckHalo(0);
         for (auto c : eb.Cells()) {
           Scal sum = 0;
           eb.LoopNci(c, [&](auto q) {
@@ -151,6 +154,7 @@ struct Proj<EB_>::Imp {
         fcvel[c] += fc_accel[c] * dt;
       }
       m.Comm(&fcvel);
+      fcvel.SetHalo(2);
     }
   }
   void DiffusionExplicit(
@@ -163,6 +167,7 @@ struct Proj<EB_>::Imp {
         const auto fcu = GetComponent(fcvel, d);
         const FieldFaceb<Scal> ffg = UEB::Gradient(fcu, mebc, eb);
         FieldCell<Scal> fc_sum(eb, 0);
+        ffg.CheckHalo(0);
         for (auto c : eb.Cells()) {
           Scal sum = 0;
           eb.LoopNci(c, [&](auto q) {
@@ -181,6 +186,7 @@ struct Proj<EB_>::Imp {
     }
     if (sem("comm")) {
       m.Comm(&fcvel);
+      fcvel.SetHalo(2);
     }
     if (sem()) {
       // FIXME: empty stage to finish communication in halo cells
@@ -202,6 +208,7 @@ struct Proj<EB_>::Imp {
         fcu = GetComponent(fcvel, d);
         const FieldFaceb<ExprFace> ffg = UEB::GradientImplicit(fcu, mebc, eb);
         fcl.Reinit(eb, Expr::GetUnit(0));
+        ffg.CheckHalo(0);
         for (auto c : eb.Cells()) {
           Expr sum(0);
           eb.LoopNci(c, [&](auto q) {
@@ -226,6 +233,7 @@ struct Proj<EB_>::Imp {
     }
     if (sem("comm")) {
       m.Comm(&fcvel);
+      fcvel.SetHalo(2);
     }
     if (sem()) {
       // FIXME: empty stage to finish communication in halo cells

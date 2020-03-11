@@ -708,6 +708,8 @@ void Hydro<M>::Init() {
       InitVelHook(fcvel, var, m);
     }
     m.Comm(&fcvel);
+    fcvel.SetHalo(2);
+    fcvel.SetName("fcvel");
 
     // global mesh size
     MIdx gs = m.GetGlobalSize();
