@@ -1,16 +1,30 @@
-hydro bc67fa2-dirty
-msg: approx_eb: add InterpolateBcg, proj: add bcg
-diff: sim/base.conf sim/sim29_order/bcg/Makefile sim/sim29_order/bcg/run0 sim/sim29_order/bcg/std.conf src/solver/proj.ipp src/test/fluxes/b.dat src/test/fluxes/ref_proj_exp_force_univisc/vx src/test/fluxes/ref_proj_exp_gravity/vx src/test/fluxes/ref_proj_imp_force_univisc/vx src/test/fluxes/ref_proj_imp_gravity/vx src/test/fluxes/ref_simple_exp_force_univisc/vx src/test/fluxes/ref_simple_exp_gravity/vx src/test/fluxes/ref_simple_imp_force_univisc/vx src/test/fluxes/ref_simple_imp_gravity/vx src/test/fluxes/run src/test/fluxes/sim.makefile src/test/fluxes/simple.conf src/test/fluxes/std.conf src/test/fluxes/update 
+hydro ad19621-dirty
+msg: approx_eb: add InterpolateHarmonic, hydro: use harmonic in febp_ init
+diff: sim/sim28_embed/case/column_hemisphere/Makefile sim/sim28_embed/case/column_hemisphere/add.conf.gen sim/sim28_embed/case/column_hemisphere/std.conf src/solver/simple.ipp 
 Loading config from 'aloc.conf'
 
 === config begin ===
+set string BOX_ALL box 0 0 0  10 10 10
+set string BOX_X0 box 0 0 0  1e-10 10 10
+set string BOX_X1 box 1 0 0  1e-10 10 10
+set string BOX_Y0 box 0 0 0  10 1e-10 10
+set string BOX_Y1 box 0 1 0  10 1e-10 10
+set string BOX_Z0 box 0 0 0  10 10 1e-10
+set string BOX_Z1 box 0 0 1  10 10 1e-10
 set string advection_solver vof
 set string backend cubismnc
-set string bc_path bc.dat
+set string bc_path "inline 
+wall 0 0 0 {
+  box 0 0 0 10
+}
+wall 1 0 0 {
+  box 0 1 0  10 1e-10 10
+}
+"
 set string bc_xm wall 0 0 0
 set string bc_xp wall 0 0 0
 set string bc_ym wall 0 0 0
-set string bc_yp wall 1 0 0 
+set string bc_yp wall 0 0 0
 set string body_bc wall 0 0 0
 set string body_init zero
 set string body_list_path body.dat
@@ -62,7 +76,7 @@ set int dumppoly 1
 set int dumppolymarch 1
 set int eb_init_inverse 1
 set int enable_advection 0
-set int enable_bc 0
+set int enable_bc 1
 set int enable_bubgen 0
 set int enable_color 0
 set int enable_embed 0
@@ -260,50 +274,50 @@ Found events:
 =====
 ev0 1 set double tol 1e-5
 =====
-STEP=0 t=0.00000000 dt=10000000000.00000000 ta=0.00000000 dta=10000000000.00000000 wt=0.01920916
+STEP=0 t=0.00000000 dt=10000000000.00000000 ta=0.00000000 dta=10000000000.00000000 wt=0.03225458
 .....iter=1, diff=4.0585418364113351e-01
-.....iter=2, diff=2.4562295481514781e-01
-.....iter=3, diff=1.2611025616190938e-01
-.....iter=4, diff=8.8860178203968854e-02
-.....iter=5, diff=6.2316300528278301e-02
-.....iter=6, diff=7.0513030936588894e-02
-.....iter=7, diff=5.2074828832512632e-02
-.....iter=8, diff=6.3736205136750101e-02
-.....iter=9, diff=5.1505900607448460e-02
-.....iter=10, diff=5.6568548890457981e-02
-.....iter=11, diff=5.2195982398914736e-02
-.....iter=12, diff=6.0106667362042988e-02
-.....iter=13, diff=5.6280983869792071e-02
-.....iter=14, diff=6.9223152825157661e-02
-.....iter=15, diff=5.5929031530897497e-02
-.....iter=16, diff=5.9882807321177144e-02
-.....iter=17, diff=5.2895470273224145e-02
-.....iter=18, diff=5.4380719982321815e-02
-.....iter=19, diff=6.5444111488459272e-02
-.....iter=20, diff=5.0927287181884440e-02
+.....iter=2, diff=2.4548003909073160e-01
+.....iter=3, diff=1.2672574429273517e-01
+.....iter=4, diff=8.6422499335653880e-02
+.....iter=5, diff=6.5486070549225284e-02
+.....iter=6, diff=6.6341862341319502e-02
+.....iter=7, diff=5.5639197291132425e-02
+.....iter=8, diff=5.8923755298492864e-02
+.....iter=9, diff=5.0039381265197080e-02
+.....iter=10, diff=5.4817565070348954e-02
+.....iter=11, diff=4.7278520305978379e-02
+.....iter=12, diff=6.1462190250546410e-02
+.....iter=13, diff=5.1672899942131034e-02
+.....iter=14, diff=6.8372512864569190e-02
+.....iter=15, diff=5.1829583197281898e-02
+.....iter=16, diff=5.9655013709553464e-02
+.....iter=17, diff=5.1046787133708062e-02
+.....iter=18, diff=5.3400895276394349e-02
+.....iter=19, diff=6.4899224542533510e-02
+.....iter=20, diff=5.0299310810430105e-02
 timer report t=10000000000.00000000 to trep_0000.log
 Event at t=1.00000000: set double tol 1e-5
-STEP=1 t=10000000000.00000000 dt=10000000000.00000000 ta=0.00000000 dta=20000000000.00000000 wt=0.80711156
-.....iter=1, diff=4.8701247337581598e-02
-.....iter=2, diff=6.0984607977645378e-02
-.....iter=3, diff=4.4682899928802207e-02
-.....iter=4, diff=4.7443275316233297e-02
-.....iter=5, diff=3.9079172275970950e-02
-.....iter=6, diff=5.1084551675689795e-02
-.....iter=7, diff=3.6692033123158607e-02
-.....iter=8, diff=3.6001641800532364e-02
-.....iter=9, diff=3.2028657419960804e-02
-.....iter=10, diff=5.0390152377009431e-02
-.....iter=11, diff=2.6455837296841034e-02
-.....iter=12, diff=2.6701095604129456e-02
-.....iter=13, diff=2.4322572888856087e-02
-.....iter=14, diff=2.7315064973426905e-02
-.....iter=15, diff=2.3008417936259712e-02
-.....iter=16, diff=2.1971412362740771e-02
-.....iter=17, diff=2.0937861143682790e-02
-.....iter=18, diff=2.1346968160558467e-02
-.....iter=19, diff=1.9432373058315799e-02
-.....iter=20, diff=1.6483224505284593e-02
+STEP=1 t=10000000000.00000000 dt=10000000000.00000000 ta=0.00000000 dta=20000000000.00000000 wt=1.04133731
+.....iter=1, diff=4.8861341901359316e-02
+.....iter=2, diff=5.8189110148515889e-02
+.....iter=3, diff=4.6291961568993741e-02
+.....iter=4, diff=4.4418750765788030e-02
+.....iter=5, diff=4.1322719541454694e-02
+.....iter=6, diff=4.6147721115158788e-02
+.....iter=7, diff=3.8832215539218562e-02
+.....iter=8, diff=3.3870380420371743e-02
+.....iter=9, diff=3.5882316424592380e-02
+.....iter=10, diff=4.3513123432193782e-02
+.....iter=11, diff=2.7486420560328184e-02
+.....iter=12, diff=2.4237059961967594e-02
+.....iter=13, diff=2.5197519642247947e-02
+.....iter=14, diff=2.3511022455548439e-02
+.....iter=15, diff=2.1810130137684902e-02
+.....iter=16, diff=1.8865231934890953e-02
+.....iter=17, diff=1.9764987485250296e-02
+.....iter=18, diff=1.8510657167794597e-02
+.....iter=19, diff=1.7845412273644168e-02
+.....iter=20, diff=1.7089265088398226e-02
 Dump n=0 t=2e+10 target=0
 Dump 0: format=plain
 timer report t=20000000000.00000000 to trep_0001.log
@@ -311,6 +325,6 @@ End of simulation, t > tmax=20000000000.00000000
 cells = 1024
 steps = 1000000
 iters = 40
-total = 1 s = 00:00:01.653
-time/cell/iter = 4.03801e-05 s
+total = 2 s = 00:00:02.114
+time/cell/iter = 5.16266e-05 s
 Unused configuration variables:
