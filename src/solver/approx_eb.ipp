@@ -859,6 +859,63 @@ auto UEmbed<M>::RedistributeCutCells(const FieldCell<T>& fcu, const M&)
   return fcu;
 }
 
+// fcs: sum of fluxes
+template <class M>
+auto UEmbed<M>::RedistributeCutCellsAdvection(
+    const FieldCell<Scal>& fcs, const FieldFace<Scal>&, Scal, Scal, const M&)
+    -> FieldCell<Scal> {
+  return fcs;
+}
+
+// fcs: sum of fluxes
+template <class M>
+auto UEmbed<M>::RedistributeCutCellsAdvection(
+    const FieldCell<Scal>& fcs, const FieldEmbed<Scal>& ffv, Scal cfl, Scal dt,
+    const Embed<M>& eb) -> FieldCell<Scal> {
+  // stability criterion:
+  // dt < cfl * h / velocity
+  // dt < cfl * V / volumeflux
+  // dt * volumeflux < cfl * V
+  // dtmax = cfl * V / volumeflux
+  auto excess = [&](IdxCell c) {
+    Scal dtmax = std::numeric_limits<Scal>::max();
+    eb.LoopNci(c, [&](auto q) {
+      const auto cf = eb.GetFace(c, q);
+      const Scal flux = std::abs(ffv[cf]);
+      if (flux != 0) {
+        dtmax = std::min(dtmax, cfl * eb.GetVolume(c) / flux);
+      }
+    });
+    return fcs[c] * std::max(0., (dt - dtmax) / dt);
+  };
+  auto fcr = fcs;
+  for (auto c : eb.Cells()) {
+    // full step:
+    //   s * dt
+    // allowed step:
+    //   s * dtmax
+    // excess step:
+    //   s * (dt - dtmax)
+    // excess sum of fluxes to be advected with dt:
+    //   s * (dt - dtmax) / dt
+    // excess sum of fluxes
+    const Scal ds = excess(c);
+    // subtract from current cell
+    fcr[c] -= ds;
+    // add from neighbor cells proportional to their volume
+    for (auto cn : eb.Stencil(c)) {
+      if (c != cn) {
+        const Scal v = eb.GetVolume(c);
+        const Scal vn = eb.GetVolume(cn);
+        // excess quantity in cell cn
+        const Scal dsn = excess(cn);
+        fcr[c] += dsn * (v / (eb.GetVolumeStencilSum(cn) - vn));
+      }
+    }
+  }
+  return fcr;
+}
+
 template <class M>
 template <class T>
 auto UEmbed<M>::InterpolateBilinearFaces(const FieldFace<T>& ffu, const EB& eb)
@@ -1153,11 +1210,13 @@ auto UEmbed<M>::AverageGradient(const FieldEmbed<Scal>& feg, const EB& eb)
   FieldCell<Vect> fcg(eb, Vect(0));
   for (auto c : eb.AllCells()) {
     Vect sum(0);
+    Scal sumw(0);
     eb.LoopNci(c, [&](auto q) {
       const auto cf = eb.GetFace(c, q);
-      sum += eb.GetNormal(cf) * (feg[cf] * 0.5);
+      sum += eb.GetSurface(cf) * feg[cf];
+      sumw += eb.GetArea(cf);
     });
-    fcg[c] = sum;
+    fcg[c] = sum / sumw;
   }
   return fcg;
 }

@@ -111,61 +111,6 @@ struct Proj<EB_>::Imp {
     ffvisc_ = UEB::Interpolate(*owner_->fcd_, me_visc_, eb);
     ffdens_ = UEB::InterpolateHarmonic(*owner_->fcr_, me_visc_, eb);
   }
-  // fcs: sum of fluxes
-  template <class T>
-  FieldCell<T> RedistributeCutCellsAdvection(
-      const FieldCell<T>& fcs, const FieldFaceb<Scal>& ffv, Scal cfl, Scal dt,
-      const M& eb) {
-    return fcs;
-  }
-  // fcs: sum of fluxes
-  template <class T>
-  FieldCell<T> RedistributeCutCellsAdvection(
-      const FieldCell<T>& fcs, const FieldFaceb<Scal>& ffv, Scal cfl, Scal dt,
-      const Embed<M>& eb) {
-    // stability criterion:
-    // dt < cfl * h / velocity
-    // dt < cfl * V / volumeflux
-    // dt * volumeflux < cfl * V
-    // dtmax = cfl * V / volumeflux
-    auto excess = [&](IdxCell c) {
-      Scal dtmax = std::numeric_limits<Scal>::max();
-      eb.LoopNci(c, [&](auto q) {
-        const auto cf = eb.GetFace(c, q);
-        const Scal flux = std::abs(ffv[cf]);
-        if (flux != 0) {
-          dtmax = std::min(dtmax, cfl * eb.GetVolume(c) / flux);
-        }
-      });
-      return fcs[c] * std::max(0., (dt - dtmax) / dt);
-    };
-    auto fcr = fcs;
-    for (auto c : eb.Cells()) {
-      // advection with full step
-      //   s * dt
-      // allowed advection:
-      //   s * dtmax
-      // excess advection:
-      //   s * (dt - dtmax)
-      // excess sum of fluxes to be advected with dt:
-      //   s * (dt - dtmax) / dt
-      // excess sum of fluxes
-      const T ds = excess(c);
-      // subtract from current cell
-      fcr[c] -= ds;
-      // add from neighbor cells proportional to their volume
-      for (auto cn : eb.Stencil(c)) {
-        if (c != cn) {
-          const Scal v = eb.GetVolume(c);
-          const Scal vn = eb.GetVolume(cn);
-          // excess quantity in cell cn
-          const T dsn = excess(cn);
-          fcr[c] += dsn * (v / (eb.GetVolumeStencilSum(cn) - vn));
-        }
-      }
-    }
-    return fcr;
-  }
   void Advection(
       FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvel_time_prev,
       const FieldFaceb<Scal>& ffv, const FieldCell<Vect>& fc_accel,
@@ -197,8 +142,7 @@ struct Proj<EB_>::Imp {
           });
           fc_sum[c] = sum;
         }
-        //fc_sum = UEB::RedistributeCutCells(fc_sum, eb);
-        fc_sum = RedistributeCutCellsAdvection(fc_sum, ffv, 1, dt, eb);
+        fc_sum = UEB::RedistributeCutCellsAdvection(fc_sum, ffv, 1, dt, eb);
         for (auto c : eb.Cells()) {
           fcvel[c][d] =
               fcvel_time_prev[c][d] + fc_sum[c] * dt / eb.GetVolume(c);
