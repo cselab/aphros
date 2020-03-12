@@ -98,17 +98,35 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
     }
   } else if (name == "list") {
     // TODO revise with bcast
-    const std::string fn = var.String["eb_list_path"];
+    std::stringstream in;
+    {
+      std::stringstream path(var.String["eb_list_path"]);
+      std::string filename;
+      path >> filename;
+      if (filename == "inline") {
+        if (verb) {
+          std::cout
+              << "InitEmbed: Reading inline list of primitives from list_path"
+              << std::endl;
+        }
+        in << path.rdbuf();
+      } else {
+        filename = path.str();
+        std::ifstream fin(filename);
+        if (verb) {
+          std::cout << "InitEmbed: Open list of primitives '" << filename
+                    << std::endl;
+        }
+        if (!fin.good()) {
+          throw std::runtime_error(
+              FILELINE + ": Can't open list of primitives");
+        }
+        in << fin.rdbuf();
+      }
+    }
+
     const size_t edim = var.Int["dim"];
-    std::ifstream fin(fn);
-    if (verb) {
-      std::cout << "Open list of primitives '" << fn << "' for embed"
-                << std::endl;
-    }
-    if (!fin.good()) {
-      throw std::runtime_error(FILELINE + ": Can't open list of primitives");
-    }
-    auto pp = UPrimList<Scal>::Parse(fin, verb, edim);
+    auto pp = UPrimList<Scal>::Parse(in, verb, edim);
 
     auto lsmax = [&pp](Vect x) {
       Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
