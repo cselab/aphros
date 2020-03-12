@@ -172,6 +172,14 @@ struct UEmbed {
   static FieldCell<T> RedistributeCutCells(
       const FieldCell<T>& fcu, const M& m);
 
+  static FieldCell<Scal> RedistributeCutCellsAdvection(
+      const FieldCell<Scal>& fcs, const FieldFace<Scal>& ffv, Scal cfl, Scal dt,
+      const M& m);
+
+  static FieldCell<Scal> RedistributeCutCellsAdvection(
+      const FieldCell<Scal>& fcs, const FieldEmbed<Scal>& ffv, Scal cfl,
+      Scal dt, const EB& eb);
+
   // Updates flux in cut faces using bilinear interpolation from regular faces
   // (Schwartz,2006).
   // feu: field [a]
