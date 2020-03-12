@@ -3,25 +3,16 @@
 set -eu
 
 ord () {
-  echo grids $1 $2 $3
+  echo grids $1 $2
   field="vx_0000.dat"
-  ea=$(./diff nx{$1,$2}/$field)
-  eb=$(./diff nx{$2,$3}/$field)
-
-  echo error $ea
-  echo error $eb
-
-  echo -e "$ea\n$eb" | python -c "
-import sys
-import numpy as np
-fin = sys.stdin
-va = np.array(fin.readline().split()).astype(float)
-vb = np.array(fin.readline().split()).astype(float)
-print('order {:}'.format(np.log2(va / vb)))
-  "
-  echo
+  if e=$(./diff nx{$1,$2}/$field) ; then
+    echo $1 $e > error_$1
+  fi
 }
 
-ord 016 032 064
-ord 032 064 128
-ord 064 128 256
+ord 016 032
+ord 032 064
+ord 064 128
+ord 128 256
+
+cat error_* | ap.order > order
