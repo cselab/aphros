@@ -23,6 +23,7 @@ error:
 cleanrun: cleanall run
 
 run: conf
+	ap.sysinfo >> out
 	ap.run ap.mfer
 
 submit: conf
