@@ -77,21 +77,27 @@ FieldCell<typename M::Scal> GetDivergence(
 
 template <class M>
 FieldCell<typename M::Vect> GetVort(
-    const FieldCell<typename M::Vect>& fcv, const MapCondFace&,
-    Embed<M>& eb) {
+    const FieldCell<typename M::Vect>& fcvel,
+    const MapEmbed<BCond<typename M::Vect>>& me_vel, Embed<M>& eb) {
   auto& m = eb.GetMesh();
+  using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  auto fev = UEmbed<M>::Interpolate(fcv, {}, eb);
+  using UEB = UEmbed<M>;
 
-  auto d0 = UEmbed<M>::GradientLinearFit(GetComponent(fev, 0), eb);
-  auto d1 = UEmbed<M>::GradientLinearFit(GetComponent(fev, 1), eb);
-  auto d2 = UEmbed<M>::GradientLinearFit(GetComponent(fev, 2), eb);
+  std::array<FieldCell<Vect>, 3> grad;
+  for (size_t d = 0; d < 3; ++d) {
+    grad[d].Reinit(eb, Vect(0));
+    const auto mebc = GetScalarCond(me_vel, d, m);
+    const FieldCell<Scal> fcu = GetComponent(fcvel, d);
+    const FieldEmbed<Scal> ffg = UEB::Gradient(fcu, mebc, eb);
+    grad[d] = UEB::AverageGradient(ffg, eb);
+  }
 
   FieldCell<Vect> r(m, Vect(0));
   for (auto c : eb.Cells()) {
-    r[c][0] = d2[c][1] - d1[c][2];
-    r[c][1] = d0[c][2] - d2[c][0];
-    r[c][2] = d1[c][0] - d0[c][1];
+    r[c][0] = grad[2][c][1] - grad[1][c][2];
+    r[c][1] = grad[0][c][2] - grad[2][c][0];
+    r[c][2] = grad[1][c][0] - grad[0][c][1];
   }
 
   return r;
@@ -223,7 +229,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void CalcVort() {
     auto& fcv = fs_->GetVelocity();
     if (eb_) {
-      fcom_ = GetVort(fcv, GetCond<Vect>(fs_->GetVelocityCond()), *eb_);
+      fcom_ = GetVort(fcv, fs_->GetVelocityCond(), *eb_);
     } else {
       fcom_ = GetVort(fcv, GetCond<Vect>(fs_->GetVelocityCond()), m);
     }
