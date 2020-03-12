@@ -1,3 +1,37 @@
+Compute nodes:
+eu-c7-042-02
+eu-c7-042-07
+eu-c7-042-09
+eu-c7-042-10
+eu-c7-042-11
+eu-c7-042-13
+eu-c7-042-16
+eu-c7-047-14
+eu-c7-048-12
+
+CPU models:
+model name	: Intel(R) Xeon(R) CPU E5-2680 v3 @ 2.50GHz
+
+Compiler version:
+g++ (GCC) 6.3.0
+
+MPI version:
+mpirun (Open MPI) 3.0.0
+
+Modules:
+Currently Loaded Modulefiles:
+modules
+new
+cmake/3.9.2
+gcc/6.3.0
+open_mpi/3.0.0
+szip/2.1(default)
+hdf5/1.8.12(default)
+gsl/1.16(default:1)
+openblas/0.2.13_seq(default:seq)
+sqlite/3.15.0
+python/3.6.0
+
 hydro b853720
 msg: sim29: add cavity_eb
 diff: 
