@@ -29,6 +29,9 @@ print(po)
 fig, ax, meta = aphros.InitBasicFigure(omz, grid=False)
 PlotStream(ax, meta, vx, vy)
 vmax = np.std(omz)
-vmax = 3
+
+vel = 1.1785113019775793
+dom = 0.6
+vmax = 3 * vel / dom
 aphros.PlotFieldCoolwarm(ax, omz, -vmax, vmax)
 aphros.SaveBasicFigure(fig, po)

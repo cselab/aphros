@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -eu
+
+ord () {
+  echo grids $1 $2
+  field="vx_0000.dat"
+  if e=$(./diff nx{$1,$2}/$field) ; then
+    echo $1 $e > error_$1
+  fi
+}
+
+ord 016 032
+ord 032 064
+ord 064 128
+ord 128 256
+
+cat error_* | ap.order > order

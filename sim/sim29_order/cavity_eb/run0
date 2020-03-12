@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -eu
+
+nx=$1
+np=$2
+
+echo "nx=$nx np=$np"
+
+make cleanall &> /dev/null
+
+dt=$(bc -l <<< "0.5 / $nx")
+echo set double dt0 $dt > par.conf
+
+nice make run m="$nx $nx 1" np=$np &> /dev/null
+t=$(grep -i "total = " out | sed -En 's/[^=]*=[^=]*=\s*(.*?)/\1/p')
+echo "time $t"
+{ 
+  ./plot omz_0000.dat
+  ap.plain2vtk omz_0000.dat
+  ap.plain2vtk vx_0000.dat
+  ap.plain2vtk vy_0000.dat
+} &> /dev/null
+d=nx$nx
+mkdir -p $d
+mv {vx,vy,omz}_0000.* out bc.vtk $d
