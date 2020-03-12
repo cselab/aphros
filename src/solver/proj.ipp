@@ -58,6 +58,7 @@ struct Proj<EB_>::Imp {
     fcvel_.time_curr = fcvel;
 
     fcp_.time_curr.Reinit(m, 0.);
+    fcp_predict_ = fcp_.time_curr;
 
     // Calc initial volume fluxes
     const auto ffwe = UEB::Interpolate(fcvel_.time_curr, me_vel_, eb);
@@ -439,9 +440,6 @@ struct Proj<EB_>::Imp {
   }
   void MakeIteration() {
     auto sem = m.GetSem("fluid-iter");
-    struct {
-      FieldCell<Scal> fcp_discard;
-    } * ctx(sem);
     auto& fcp_prev = fcp_.iter_prev;
     auto& fcp_curr = fcp_.iter_curr;
     const Scal dt = owner_->GetTimeStep();
@@ -479,10 +477,9 @@ struct Proj<EB_>::Imp {
       eb.LoopFaces([&](auto cf) { //
         ffv[cf] = ffvel[cf].dot(eb.GetSurface(cf));
       });
-      ctx->fcp_discard = fcp_curr;
     }
     if (sem.Nested("project")) {
-      Project(ctx->fcp_discard, ffv, dt * 0.5);
+      Project(fcp_predict_, ffv, dt * 0.5);
     }
     if (sem()) {
       fcvel = fcvel_.time_curr;
@@ -585,6 +582,8 @@ struct Proj<EB_>::Imp {
 
   StepData<FieldEmbed<Scal>> fev_; // volume flux
   StepData<FieldCell<Scal>> fcp_; // pressure
+  FieldCell<Scal> fcp_predict_; // pressure at prediction step,
+                                // used as initial guess
   StepData<FieldCell<Vect>> fcvel_; // velocity
 
   FieldEmbed<bool> is_boundary_; // true on faces with boundary conditions
