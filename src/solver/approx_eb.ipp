@@ -1210,14 +1210,17 @@ auto UEmbed<M>::AverageGradient(const FieldEmbed<Scal>& feg, const EB& eb)
   FieldCell<Vect> fcg(eb, Vect(0));
   for (auto c : eb.AllCells()) {
     Vect sum(0);
-    Scal sumw(0);
-    eb.LoopNci(c, [&](auto q) {
-      const auto cf = eb.GetFace(c, q);
-      sum += eb.GetSurface(cf) * feg[cf];
-      sumw += eb.GetArea(cf);
-    });
+    Vect sumw(0);
+    for (auto q : eb.Nci(c)) {
+      const auto f = eb.GetFace(c, q);
+      const Vect w = eb.GetSurface(f);
+      sum += w * feg[f];
+      sumw += w;
+    }
     fcg[c] = sum / sumw;
   }
+  fcg.LimitHalo(2);
+  fcg.LimitHalo(feg.GetHalo() - 1);
   return fcg;
 }
 
@@ -1233,5 +1236,7 @@ auto UEmbed<M>::AverageGradient(const FieldFace<Scal>& ffg, const M& m)
     }
     fcg[c] = sum;
   }
+  fcg.LimitHalo(2);
+  fcg.LimitHalo(ffg.GetHalo() - 1);
   return fcg;
 }
