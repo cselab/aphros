@@ -459,36 +459,46 @@ struct Proj<EB_>::Imp {
       fc_accel_ = GetAcceleration(fcp_curr);
       m.Comm(&fc_accel_);
     }
-    if (sem.Nested()) {
-      CommFaces(ffvt, m);
-    }
-    if (sem("predicted-flux")) {
-      FieldFaceb<Vect> ffvel(eb, Vect(0));
-      for (size_t d = 0; d < dim; ++d) {
-        const auto mebc = GetScalarCond(me_vel_, d, m);
-        const auto fcu = GetComponent(fcvel_.time_curr, d);
-        const auto fc_src = GetComponent(fc_accel_, d);
-        const auto ffu = UEB::InterpolateBcg(fcu, mebc, ffvt, fc_src, dt, eb);
-        // ffu: velocity advected by dt/2
-        for (auto f : eb.Faces()) {
-          ffvel[f][d] = ffu[f];
-        }
+    if (!par.stokes) {
+      if (sem.Nested()) {
+        CommFaces(ffvt, m);
       }
-      eb.LoopFaces([&](auto cf) { //
-        ffv[cf] = ffvel[cf].dot(eb.GetSurface(cf));
-      });
-    }
-    if (sem.Nested("project")) {
-      Project(fcp_predict_, ffv, dt * 0.5);
-    }
-    if (sem()) {
-      fcvel = fcvel_.time_curr;
-    }
-    if (sem.Nested()) {
-      CommFaces(ffv, m);
-    }
-    if (sem.Nested("proj")) {
-      Advection(fcvel, fcvel_.time_curr, ffv, fc_accel_, dt);
+      if (sem("predicted-flux")) {
+        FieldFaceb<Vect> ffvel(eb, Vect(0));
+        for (size_t d = 0; d < dim; ++d) {
+          const auto mebc = GetScalarCond(me_vel_, d, m);
+          const auto fcu = GetComponent(fcvel_.time_curr, d);
+          const auto fc_src = GetComponent(fc_accel_, d);
+          const auto ffu = UEB::InterpolateBcg(fcu, mebc, ffvt, fc_src, dt, eb);
+          // ffu: velocity advected by dt/2
+          for (auto f : eb.Faces()) {
+            ffvel[f][d] = ffu[f];
+          }
+        }
+        eb.LoopFaces([&](auto cf) { //
+          ffv[cf] = ffvel[cf].dot(eb.GetSurface(cf));
+        });
+      }
+      if (sem.Nested("project")) {
+        Project(fcp_predict_, ffv, dt * 0.5);
+      }
+      if (sem()) {
+        fcvel = fcvel_.time_curr;
+      }
+      if (sem.Nested()) {
+        CommFaces(ffv, m);
+      }
+      if (sem.Nested("proj")) {
+        Advection(fcvel, fcvel_.time_curr, ffv, fc_accel_, dt);
+      }
+    } else {
+      if (sem("acceleration")) {
+        for (auto c : eb.SuCells()) {
+          fcvel[c] += fc_accel_[c] * dt;
+        }
+        m.Comm(&fcvel);
+        fcvel.SetHalo(2);
+      }
     }
     if (sem.Nested("diffusion")) {
       switch (par.conv) {
