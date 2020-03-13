@@ -62,8 +62,17 @@ class Geometry:
         return s
     def Box(self, center, halfsize, rotation_z=0, **kwargs):
         s = self.__Prefix(kwargs)
-        s += "box {:} {:} {:}".format(
+        s += "box {:}   {:}   {:}".format(
                 VectToStr(center), VectToStr(halfsize), rotation_z)
+        self.__Append(s)
+    def Sphere(self, center, radii, **kwargs):
+        s = self.__Prefix(kwargs)
+        s += "sphere {:}   {:}".format(VectToStr(center), VectToStr(radii))
+        self.__Append(s)
+    def Cylinder(self, center, axis, radius, axisrange, **kwargs):
+        s = self.__Prefix(kwargs)
+        s += "cylinder {:}   {:}   {:}   {:}".format(
+                VectToStr(center), VectToStr(axis), radius, VectToStr(axisrange))
         self.__Append(s)
     def Generate(self):
         return '\n'.join(self.lines)
@@ -83,6 +92,18 @@ class Bc:
     def SlipWall(self, geom):
         s = "slipwall"
         self.__Append(s, geom)
+    def Inlet(self, geom, velocity):
+        s = "inlet {:}".format(VectToStr(velocity))
+        self.__Append(s, geom)
+    def InletFlux(self, geom, velocity, index):
+        s = "inletflux {:} {:}".format(VectToStr(velocity), index)
+        self.__Append(s, geom)
+    def Outlet(self, geom):
+        s = "outlet"
+        self.__Append(s, geom)
+    def Symm(self, geom):
+        s = "symm"
+        self.__Append(s, geom)
     def Generate(self):
         return '\n'.join(self.lines)
 
@@ -101,9 +122,22 @@ if __name__ == "__main__":
     geom = Geometry()
     geom.Box(center=[0,0,0], halfsize=[1,1,1], rotation_z=5)
     geom.Box(center=[0,2,2], halfsize=[1,1,1], rotation_z=5)
+    geom.Box([0,3,0], [4,1,1], intersect=1, invert=0)
+    geom.Box([0,3,0], [4,1,1], intersect=0, invert=1)
+    geom.Box([0,3,0], [4,1,1], intersect=1, invert=1)
+    geom.Sphere([0,3,0], [4,1,1], intersect=1, invert=1)
+    geom.Cylinder(center=[0,3,0], axis=[4,1,1], radius=4, axisrange=[-1,1])
     print(geom.Generate())
+    print()
 
+    geom = Geometry()
+    geom.Box([0,0,0], [1,1,1])
+    geom.Sphere([0,0,0], [1,1,1])
     bc = Bc()
     bc.Wall(geom, velocity=[1,0,0])
     bc.SlipWall(geom)
+    bc.Inlet(geom, velocity=[1,0,0])
+    bc.InletFlux(geom, velocity=[1,0,0], index=0)
+    bc.Outlet(geom)
+    bc.Symm(geom)
     print(bc.Generate())
