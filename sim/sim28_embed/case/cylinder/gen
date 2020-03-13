@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import aphros
+import par
 
-extent = 20
-Re = 40
+extent = par.extent
+Re = par.Re
 
 inf = extent * 10
 eps = 1e-3
@@ -50,7 +51,7 @@ with open("bc.dat", 'w') as f:
 
 # configuration
 var = aphros.Var()
-var['extent'] = extent
+var['extent'] = float(extent)
 var['mu1'] = 1. / Re
 
 with open("par.conf", 'w') as f:
