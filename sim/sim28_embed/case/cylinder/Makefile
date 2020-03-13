@@ -5,5 +5,10 @@ tl = 1440
 
 include $(shell ap.makesim)
 
+par.conf: par.py gen
+	./gen
+
+conf: par.conf
+
 cleandat::
 	rm -vrf sep_????

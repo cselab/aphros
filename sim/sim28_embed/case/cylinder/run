@@ -1,0 +1,8 @@
+#!/bin/bash
+
+cat > par.py << EOF
+Re = 40
+extent = 40
+EOF
+
+make np=128 m="512 256 1" cleanrun

@@ -36,7 +36,7 @@ hx = extent / max(u.shape)
 icx = int(cx / hx + 0.5)
 icy = int(cy / hx + 0.5)
 
-ucy = u[icy,:]
+ucy = u[icy,:int(u.shape[1] * 0.9)]
 
 wh = np.where((ucy < 0))[0]
 if len(wh):
