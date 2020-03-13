@@ -137,8 +137,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void InitFluid(const FieldCell<Vect>& fc_vel);
   void InitAdvection(const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl);
   void InitStat();
-  static Vect CalcPressureDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb);
-  static Vect CalcViscousDrag(
+  Vect CalcPressureDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb);
+  Vect CalcViscousDrag(
       const FieldCell<Vect>& fcvel, const FieldCell<Scal>& fcmu,
       const Embed<M>& eb);
   void DumpFields();
@@ -1550,29 +1550,23 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       auto& eb = *eb_;
       // Compute gravity as gradient of potential
       // to ensure exact hydrostatic solution.
-      MapEmbed<BCond<Scal>> me_pressure;
-      MapEmbed<BCond<Scal>> me_dens;
+      MapEmbed<BCond<Scal>> me_neumann;
       mebc_fluid_.LoopBCond(eb, [&](auto cf, IdxCell, auto bc) { //
-        const auto nci = bc.nci;
-        me_dens[cf] = BCond<Scal>(BCondType::neumann, nci);
-        if (bc.type == BCondFluidType::slipwall ||
-            bc.type == BCondFluidType::symm) {
-          me_pressure[cf] = BCond<Scal>(BCondType::neumann, nci);
-        } else {
-          me_pressure[cf] = BCond<Scal>(BCondType::extrap, nci);
-        }
+        me_neumann[cf] = BCond<Scal>(BCondType::neumann, bc.nci);
       });
 
-      auto fe_dens = UEB::InterpolateHarmonic(fc_rho_, me_dens, eb);
+      auto fe_dens = UEB::InterpolateHarmonic(fc_rho_, me_neumann, eb);
       FieldCell<Scal> fcp(eb);
       for (auto c : eb.AllCells()) {
         const auto x = m.GetCenter(c);
         fcp[c] = grav.dot(x);
       }
-      febp_ = UEB::Gradient(fcp, me_pressure, eb);
+      febp_ = UEB::Gradient(fcp, me_neumann, eb);
       eb.LoopFaces([&](auto cf) { //
         febp_[cf] *= fe_dens[cf];
       });
+      febp_.SetName(FILELINE + "febp");
+      febp_.SetHalo(0);
     }
 
     // Surface tension
@@ -2056,11 +2050,26 @@ void Hydro<M>::ReportStepAdv() {
 template <class M>
 auto Hydro<M>::CalcPressureDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb)
     -> Vect {
-  auto fep = UEmbed<M>::Interpolate(fcp, {}, eb);
+  MapEmbed<BCond<Scal>> me_pressure;
+  auto& m = eb.GetMesh();
+  mebc_fluid_.LoopBCond(eb, [&](auto cf, IdxCell, auto bc) { //
+    const auto nci = bc.nci;
+    if (bc.type == BCondFluidType::slipwall ||
+        bc.type == BCondFluidType::symm) {
+      me_pressure[cf] = BCond<Scal>(BCondType::neumann, nci);
+    } else {
+      me_pressure[cf] = BCond<Scal>(BCondType::extrap, nci);
+    }
+  });
+  auto fep = UEmbed<M>::Interpolate(fcp, me_pressure, eb);
   Vect sum(0);
-  for (auto c : eb.CFaces()) {
-    sum += eb.GetSurface(c) * fep[c];
-  }
+  mebc_fluid_.LoopBCond(eb, [&](auto cf, IdxCell c, auto bc) { //
+    if (m.IsInner(c)) {
+      if (bc.type == BCondFluidType::wall) {
+        sum += eb.GetSurface(cf) * fep[cf];
+      }
+    }
+  });
   return sum;
 }
 
@@ -2068,12 +2077,21 @@ template <class M>
 auto Hydro<M>::CalcViscousDrag(
     const FieldCell<Vect>& fcvel, const FieldCell<Scal>& fcmu,
     const Embed<M>& eb) -> Vect {
-  auto feg = UEmbed<M>::Gradient(fcvel, {}, eb);
-  auto femu = UEmbed<M>::Interpolate(fcmu, {}, eb);
+  auto& m = eb.GetMesh();
+  MapEmbed<BCond<Scal>> me_neumann;
+  mebc_fluid_.LoopBCond(eb, [&](auto cf, IdxCell, auto bc) { //
+    me_neumann[cf] = BCond<Scal>(BCondType::neumann, bc.nci);
+  });
+  auto feg = UEmbed<M>::Gradient(fcvel, fs_->GetVelocityCond(), eb);
+  auto femu = UEmbed<M>::Interpolate(fcmu, me_neumann, eb);
   Vect sum(0);
-  for (auto c : eb.CFaces()) {
-    sum += feg[c] * (-eb.GetArea(c) * femu[c]);
-  }
+  mebc_fluid_.LoopBCond(eb, [&](auto cf, IdxCell c, auto bc) { //
+    if (m.IsInner(c)) {
+      if (bc.type == BCondFluidType::wall) {
+        sum += feg[cf] * (-eb.GetArea(cf) * femu[cf]);
+      }
+    }
+  });
   return sum;
 }
 

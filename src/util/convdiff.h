@@ -191,7 +191,7 @@ MapEmbed<BCond<typename M::Scal>> GetScalarCond(
         break;
       case BCondType::mixed:
       case BCondType::reflect:
-        throw std::runtime_error("GetCond: not implemented");
+        throw std::runtime_error(FILELINE + ": not implemented");
       case BCondType::extrap:
         // nop
         break;

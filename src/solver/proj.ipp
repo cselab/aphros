@@ -82,6 +82,7 @@ struct Proj<EB_>::Imp {
       const auto& bc = p.second;
       const auto nci = bc.nci;
       me_visc_[cf] = BCond<Scal>(BCondType::neumann, nci);
+      me_pressure_flux_[cf] = BCond<Scal>(BCondType::neumann, nci);
       if (bc.type == BCondFluidType::slipwall ||
           bc.type == BCondFluidType::symm) {
         me_force_[cf] = BCond<Vect>(BCondType::mixed, nci);
@@ -103,11 +104,6 @@ struct Proj<EB_>::Imp {
         throw std::runtime_error(FILELINE + ": unknown cell condition");
       }
     }
-
-    is_boundary_.Reinit(m, false);
-    mebc_.LoopPairs([&](auto p) { //
-      is_boundary_[p.first] = true;
-    });
 
     ffvisc_ = UEB::Interpolate(*owner_->fcd_, me_visc_, eb);
     ffdens_ = UEB::InterpolateHarmonic(*owner_->fcr_, me_visc_, eb);
@@ -131,7 +127,7 @@ struct Proj<EB_>::Imp {
               UEB::AverageGradient(UEB::Gradient(fcu, mebc, eb), eb);
           ffu = UEB::InterpolateUpwind(fcu, mebc, par.convsc, fcg, ffv, eb);
         }
-        ffu.SetName(FILELINE + ": fcu");
+        ffu.SetName(FILELINE + ":ffu");
         FieldCell<Scal> fc_sum(eb, 0);
         ffu.CheckHalo(0);
         for (auto c : eb.Cells()) {
@@ -277,13 +273,10 @@ struct Proj<EB_>::Imp {
   // ffv: flux
   FieldFaceb<ExprFace> GetFlux(
       const FieldCell<Scal>& fcp, const FieldFaceb<Scal>& ffv, Scal dt) {
-    FieldFaceb<ExprFace> ff_flux = UEB::GradientImplicit(fcp, {}, eb);
+    FieldFaceb<ExprFace> ff_flux =
+        UEB::GradientImplicit(fcp, me_pressure_flux_, eb);
     eb.LoopFaces([&](auto cf) { //
-      if (!is_boundary_[cf]) {
-        ff_flux[cf] *= -eb.GetArea(cf) / ffdens_[cf] * dt;
-      } else {
-        ff_flux[cf] = ExprFace(0);
-      }
+      ff_flux[cf] *= -eb.GetArea(cf) / ffdens_[cf] * dt;
       ff_flux[cf][2] += ffv[cf];
     });
     return ff_flux;
@@ -357,20 +350,19 @@ struct Proj<EB_>::Imp {
   }
   FieldCell<Vect> GetAcceleration(const FieldCell<Scal>& fcp) {
     const auto ffgp = UEB::Gradient(fcp, me_pressure_, eb);
-    FieldFaceb<Scal> ff_forcep(eb, 0);
+    FieldFaceb<Scal> ffa(eb, 0);
     eb.LoopFaces([&](auto cf) { //
-      ff_forcep[cf] = (*owner_->febp_)[cf] - ffgp[cf];
+      ffa[cf] = ((*owner_->febp_)[cf] - ffgp[cf]) / ffdens_[cf];
     });
-    auto fca = UEB::AverageGradient(ff_forcep, eb);
+    ffa.SetHalo(0);
+    auto fca = UEB::AverageGradient(ffa, eb);
+    fca.SetName(FILELINE + ":fca");
     // cell force
     for (auto c : eb.Cells()) {
-      fca[c] += (*owner_->fcf_)[c];
+      fca[c] += (*owner_->fcf_)[c] / (*owner_->fcr_)[c];
     }
-    // AppendExplViscous(fcvel_.iter_curr, fc_accel_, eb); XXX
-    // divide by density
-    for (auto c : eb.Cells()) {
-      fca[c] /= (*owner_->fcr_)[c];
-    }
+    fca.SetHalo(0);
+    // AppendExplViscous(fcvel_.iter_curr, fc_accel_ / fcr, eb); XXX
     return fca;
   }
   void AppendExplViscous(
@@ -458,6 +450,7 @@ struct Proj<EB_>::Imp {
     if (sem("forceinit")) {
       fc_accel_ = GetAcceleration(fcp_curr);
       m.Comm(&fc_accel_);
+      fc_accel_.SetHalo(2);
     }
     if (!par.stokes) {
       if (sem.Nested()) {
@@ -471,9 +464,9 @@ struct Proj<EB_>::Imp {
           const auto fc_src = GetComponent(fc_accel_, d);
           const auto ffu = UEB::InterpolateBcg(fcu, mebc, ffvt, fc_src, dt, eb);
           // ffu: velocity advected by dt/2
-          for (auto f : eb.Faces()) {
-            ffvel[f][d] = ffu[f];
-          }
+          eb.LoopFaces([&](auto cf) { //
+            ffvel[cf][d] = ffu[cf];
+          });
         }
         eb.LoopFaces([&](auto cf) { //
           ffv[cf] = ffvel[cf].dot(eb.GetSurface(cf));
@@ -522,9 +515,7 @@ struct Proj<EB_>::Imp {
       eb.LoopFaces([&](auto cf) { //
         auto& v = ffv[cf];
         v = ffvel[cf].dot(eb.GetSurface(cf));
-        if (!is_boundary_[cf]) {
-          v += (*owner_->febp_)[cf] / ffdens_[cf] * dt * eb.GetArea(cf);
-        }
+        v += (*owner_->febp_)[cf] / ffdens_[cf] * dt * eb.GetArea(cf);
       });
     }
     if (sem.Nested("project")) {
@@ -583,6 +574,7 @@ struct Proj<EB_>::Imp {
   const MapEmbed<BCondFluid<Vect>>& mebc_;
   MapEmbed<BCond<Vect>> me_vel_;
   MapEmbed<BCond<Scal>> me_pressure_;
+  MapEmbed<BCond<Scal>> me_pressure_flux_; // conditions pressure in GetFlux
   MapEmbed<BCond<Vect>> me_force_;
   MapEmbed<BCond<Scal>> me_visc_;
 
@@ -595,8 +587,6 @@ struct Proj<EB_>::Imp {
   FieldCell<Scal> fcp_predict_; // pressure at prediction step,
                                 // used as initial guess
   StepData<FieldCell<Vect>> fcvel_; // velocity
-
-  FieldEmbed<bool> is_boundary_; // true on faces with boundary conditions
 
   // Cell fields:
   FieldCell<Vect> fc_accel_; // acceleration
