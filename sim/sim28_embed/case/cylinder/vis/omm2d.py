@@ -159,7 +159,7 @@ vft = [omm]
 # END READERS
 # ----------------------------------------------------------------
 
-k = 1
+k = 0.5
 ommDisplay = Show(omm, renderView1)
 
 ommLUT = GetColorTransferFunction(ommname)

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -eu
+
+killall ap.mfer || true
+
+cat > par.py << EOF
+Re = 9500
+extent = 15
+EOF
+
+make np=256 m="4096 2048 1" submit

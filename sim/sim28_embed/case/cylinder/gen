@@ -16,13 +16,17 @@ ly = extent * 0.5
 
 center = [lx * 0.3, ly * 0.5, 0]
 radii = [0.5, 0.5, 0.5]
-gap = 0.1
+gap = 0
+gap2 = 0.05
+gapy = 0
 
 # geometry
 geom = aphros.Geometry()
 geom.Sphere(center, radii)
 geom.Box([0, 0, 0], [gap, inf, inf])
-geom.Box([lx, 0, 0], [gap, inf, inf])
+geom.Box([lx, 0, 0], [gap2, inf, inf])
+geom.Box([0, 0, 0], [inf, gapy, inf])
+geom.Box([0, ly, 0], [inf, gapy, inf])
 
 with open("body.dat", 'w') as f:
     f.write(geom.Generate())
@@ -40,7 +44,7 @@ g.Box([gap, 0, 0], [eps, inf, inf])
 bc.Inlet(g, velocity = [1, 0, 0])
 
 g = aphros.Geometry()
-g.Box([lx - gap, 0, 0], [eps, inf, inf])
+g.Box([lx - gap2, 0, 0], [eps, inf, inf])
 bc.Outlet(g)
 
 g = aphros.Geometry()
