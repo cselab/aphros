@@ -369,9 +369,6 @@ auto UEmbed<M>::InterpolateUpwind(
   feu.GetFieldFace() = InterpolateBilinearFaces(feu.GetFieldFace(), eb);
 
   auto calc = [&](auto cf, IdxCell c, const BCond<Scal>& bc) {
-    if (fev[cf] * (bc.nci - 0.5) < 0) { // boundary is downstream
-      return EvalLinearFit(eb.GetFaceCenter(cf), c, fcu, eb);
-    }
     // TODO reuse code from Interpolate()
     const Scal h = eb.GetCellSize()[0];
     const Scal& val = bc.val;
@@ -461,9 +458,6 @@ auto UEmbed<M>::InterpolateBcg(
     feu[f] = fcu[c] + ux * (sgn * 0.5 * h) + ut * (0.5 * dt);
   }
   auto calc = [&](auto cf, IdxCell c, const BCond<Scal>& bc) {
-    if (fev[cf] * (bc.nci - 0.5) < 0) { // boundary is downstream
-      return EvalLinearFit(eb.GetFaceCenter(cf), c, fcu, eb);
-    }
     const Scal& val = bc.val;
     switch (bc.type) {
       case BCondType::dirichlet: {
