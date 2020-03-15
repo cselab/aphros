@@ -30,11 +30,12 @@ class UFluid {
   // fcw: velocity
   // mfc: fluid face conditions
   // fcsv: volume source
+  // relax: relaxation factor, 1: full extrapolation
   template <class EB>
   static void UpdateOutletVelocity(
       M& m, const EB& eb, const FieldCell<Vect>& fcvel,
       const MapEmbed<BCondFluid<Vect>>& mebc, const FieldCell<Scal>& fcsv,
-      MapEmbed<BCond<Vect>>& mebc_vel) {
+      Scal relax, MapEmbed<BCond<Vect>>& mebc_vel) {
     auto sem = m.GetSem("outlet");
     struct {
       Scal fluxin; // total inlet volume flux
@@ -66,8 +67,9 @@ class UFluid {
               break;
             }
             case BCondFluidType::outlet: {
-              const Scal q = (nci == 0 ? 1. : -1.);
+              const Scal q = (nci == 0 ? 1 : -1);
               Vect vel = Extrapolate<M>()(eb.GetFaceCenter(cf), c, fcvel, eb);
+              vel = vel * relax + mebc_vel.at(cf).val * (1 - relax);
               const Vect n = eb.GetNormal(cf);
               // clip normal component, let only positive
               // (otherwise reversed flow leads to instability)

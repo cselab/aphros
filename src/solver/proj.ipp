@@ -174,7 +174,7 @@ struct Proj<EB_>::Imp {
           });
           fc_sum[c] = sum;
         }
-        //fc_sum = UEB::RedistributeCutCells(fc_sum, eb);
+        fc_sum = UEB::RedistributeCutCells(fc_sum, eb);
         for (auto c : eb.Cells()) {
           fcvel[c][d] = fcvel_time_prev[c][d] +
                         fc_sum[c] * dt / (fc_dens[c] * eb.GetVolume(c));
@@ -383,7 +383,8 @@ struct Proj<EB_>::Imp {
     }
     if (sem.Nested("bc-outlet")) {
       UFluid<M>::template UpdateOutletVelocity(
-          m, eb, fcvel_.iter_curr, mebc_, *owner_->fcsv_, me_vel_);
+          m, eb, fcvel_.iter_curr, mebc_, *owner_->fcsv_, par.outlet_relax,
+          me_vel_);
     }
   }
   static void CommFaces(FieldFace<Scal>& ff, M& m) {
