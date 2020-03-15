@@ -312,7 +312,7 @@ struct Simple<EB_>::Imp {
     if (sem.Nested("bc-outlet")) {
       UFluid<M>::UpdateOutletVelocity(
           m, eb, cd_->GetVelocity(Step::iter_curr), mebc_, *owner_->fcsv_,
-          me_vel_);
+          par.outlet_relax, me_vel_);
     }
   }
   void CalcForce(typename M::Sem& sem) {

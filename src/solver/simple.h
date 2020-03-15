@@ -23,6 +23,7 @@ struct SimplePar {
   bool explconv = false; // explicit convection for Conv::imp
   bool convsymm = false; // symmetric solver for linear system in convdiff
   Conv conv = Conv::imp; // convection-diffusion solver
+  Scal outlet_relax = 1;
 };
 
 template <class EB_>
