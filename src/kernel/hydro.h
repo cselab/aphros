@@ -572,7 +572,7 @@ void Hydro<M>::InitStat() {
             "iter", [this]() { return st_.iter; }),
         op("dt", &s.dt),
         op("dta", &s.dta),
-        std::make_shared<output::OutScalFunc<int>>(
+        std::make_shared<output::OutScalFunc<Scal>>(
             "diff", [this]() { return fs_->GetError(); }),
         op("m1", &s.m1),
         op("m2", &s.m2),

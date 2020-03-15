@@ -191,7 +191,8 @@ MapEmbed<BCond<typename M::Scal>> GetScalarCond(
         break;
       case BCondType::mixed:
       case BCondType::reflect:
-        throw std::runtime_error(FILELINE + ": not implemented");
+        bcs.type = BCondType::neumann;
+        // TODO revise to have zero normal component
       case BCondType::extrap:
         // nop
         break;
