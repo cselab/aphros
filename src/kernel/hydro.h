@@ -920,9 +920,11 @@ void Hydro<M>::Init() {
   if (var.Int["dumpbc"]) {
     if (vdesc_.size()) {
       if (sem("dump-bcgroups")) {
-        std::ofstream fdesc("bc_groups.dat");
-        for (size_t i = 0; i < vdesc_.size(); ++i) {
-          fdesc << i << " " << vdesc_[i] << std::endl;
+        if (m.IsRoot()) {
+          std::ofstream fdesc("bc_groups.dat");
+          for (size_t i = 0; i < vdesc_.size(); ++i) {
+            fdesc << i << " " << vdesc_[i] << std::endl;
+          }
         }
       }
       if (sem.Nested("bcdump")) {
