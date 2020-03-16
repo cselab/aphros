@@ -11,8 +11,10 @@ template <class M>
 struct Extrapolate {
   using Vect = typename M::Vect;
   template <class T>
-  T operator()(Vect x, IdxCell c, const FieldCell<T>& fcu, const Embed<M>& eb) {
-    return EvalLinearFit(x, c, fcu, eb);
+  T operator()(Vect, IdxCell c, const FieldCell<T>& fcu, const Embed<M>&) {
+    // extrapolation from cell center
+    // (using EvalLinearFit here results in slower convergence for steady flow)
+    return fcu[c];
   }
   template <class T>
   T operator()(Vect, IdxCell c, const FieldCell<T>& fcu, const M&) {
@@ -71,9 +73,11 @@ class UFluid {
               Vect vel = Extrapolate<M>()(eb.GetFaceCenter(cf), c, fcvel, eb);
               vel = vel * relax + mebc_vel.at(cf).val * (1 - relax);
               const Vect n = eb.GetNormal(cf);
+              Scal vn = vel.dot(n);
               // clip normal component, let only positive
               // (otherwise reversed flow leads to instability)
-              vel -= n * (q * std::min(0., vel.dot(n) * q));
+              vn = (q > 0 ? std::max(0., vn) : std::min(0., vn));
+              vel = n * vn;
               fluxout += vel.dot(eb.GetSurface(cf)) * q;
               areaout += eb.GetArea(cf);
               mebc_vel.at(cf).val = vel;
@@ -152,7 +156,7 @@ class UFluid {
             const Scal q = (nci == 0 ? -1. : 1.);
             flux_target[id] += bc.velocity.dot(eb.GetSurface(cf)) * q;
             // extrapolate velocity
-            const Vect vel = fcvel[c];
+            const Vect vel = fcvel[c].proj(eb.GetNormal(cf));
             flux_current[id] += vel.dot(eb.GetSurface(cf)) * q;
             area[id] += eb.GetArea(cf);
             mebc_vel.at(cf).val = vel;
