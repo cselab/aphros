@@ -139,7 +139,8 @@ struct Proj<EB_>::Imp {
           });
           fc_sum[c] = sum;
         }
-        fc_sum = UEB::RedistributeCutCellsAdvection(fc_sum, ffv, 1, dt, eb);
+        //fc_sum = UEB::RedistributeCutCellsAdvection(fc_sum, ffv, 1, dt, eb);
+        fc_sum = UEB::RedistributeCutCells(fc_sum, eb);
         for (auto c : eb.Cells()) {
           fcvel[c][d] =
               fcvel_time_prev[c][d] + fc_sum[c] * dt / eb.GetVolume(c);
