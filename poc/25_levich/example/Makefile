@@ -6,11 +6,11 @@ LINK = $(CC)
 M_CFLAGS = -I../lib
 M_LDFLAGS = -L../lib -ladamar -lm
 
-M = main
+M = adamar
 
 all: $M
 .c.o:; $(CC) -c $(CFLAGS) $(M_CFLAGS) $<
-.o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS)
+.o:; $(LINK) $< $(LDFLAGS) $(M_LDFLAGS) -o $@
 .c:
 %: %.c
 

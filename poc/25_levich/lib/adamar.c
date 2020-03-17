@@ -31,7 +31,6 @@ static void f(
     struct Adamar* q, double r, double t, double* u, double* v, double* p) {
   DEC;
   DEF;
-  q->U = U;
   *u = ((b2 * sq(r) + b3 * cube(r) + b1) * cos(t)) / (r * sq(r));
   *v = -((b2 * sq(r) + 2 * b3 * cube(r) - b1) * sin(t)) / (2 * r * sq(r));
   *p = (b2 * mu0 * cos(t) + pi * sq(r)) / sq(r);
@@ -41,7 +40,6 @@ static void g(
     struct Adamar* q, double r, double t, double* u, double* v, double* p) {
   DEC;
   DEF;
-  q->U = U;
   *u = (a1 * sq(r) + a2) * cos(t);
   *v = -(2 * a1 * sq(r) + a2) * sin(t);
   *p = 10 * a1 * mu1 * r * cos(t);
