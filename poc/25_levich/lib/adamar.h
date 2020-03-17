@@ -7,6 +7,7 @@ struct Adamar {
   double a;
   double pi;
 
+  double U;
   double distance;
 };
 
