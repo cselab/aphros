@@ -31,7 +31,7 @@ MapEmbed<BCond<T>> GetBCond(const MapCondFace& mff) {
     } else if (auto cd = cb.template Get<CondFaceExtrap>()) {
       bc.type = BCondType::extrap;
     } else {
-      throw std::runtime_error("GetBCond: unknown condition");
+      throw std::runtime_error(FILELINE + ": GetBCond: unknown condition");
     }
   }
   return mebc;
@@ -52,6 +52,7 @@ MapCondFace GetCond(const MapEmbed<BCond<T>>& mebc) {
       case BCondType::neumann:
         cond.Set<CondFaceGradFixed<T>>(bc.val, nci);
         break;
+      case BCondType::mixed:
       case BCondType::reflect:
         cond.Set<CondFaceReflect>(nci);
         break;
@@ -59,7 +60,7 @@ MapCondFace GetCond(const MapEmbed<BCond<T>>& mebc) {
         cond.Set<CondFaceExtrap>(nci);
         break;
       default:
-        throw std::runtime_error("GetCond: unknown condition");
+        throw std::runtime_error(FILELINE + ": GetCond: unknown condition");
     }
   }
   return mf;
