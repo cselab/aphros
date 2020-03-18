@@ -170,13 +170,20 @@ void Embed<M>::InitFaces(
     fft[f] =
         (cut ? Type::cut : xx.size() <= 2 ? Type::excluded : Type::regular);
     switch (fft[f]) {
-      case Type::regular:
+      case Type::regular: {
         ffs[f] = m.GetArea(f);
         break;
-      case Type::cut:
-        ffs[f] = std::abs(R::GetArea(xx, m.GetNormal(f)));
+      }
+      case Type::cut: {
+        const Scal eps = 1e-3;
+        const Scal area0 = m.GetArea(f);
+        Scal area = std::abs(R::GetArea(xx, m.GetNormal(f)));
+        area = std::max(area, area0 * eps);
+        area = std::min(area, area0 * (1 - eps));
+        ffs[f] = area;
         ffpoly[f] = xx;
         break;
+      }
       case Type::excluded:
         ffs[f] = 0;
         break;
