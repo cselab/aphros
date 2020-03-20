@@ -14,13 +14,13 @@ nx=$(getval 'global mesh=')
 nx=${nx#*(}
 nx=${nx%%,*}
 extent=$(getval 'set double extent')
-r=$(awk 'NR==1{print $4}' < body.dat)
+r=$(awk 'NR==1{print $5}' < body.dat)
 nd=$(python -c "print('{:03d}'.format(int(2 * $r * $nx /  $extent + 0.5)))")
 
 mu=$(getval 'set double mu1')
 re=$(python -c "print('{:.0f}'.format(2 * $r / $mu))")
 
-out=sep_re${re}_nd${nd}
+out=sep_re${re}_nd${nd}_ext${extent}
 dumpdt=$(getval 'set double dump_field_dt')
 cat sep_???? | awk -v dumpdt=$dumpdt 'BEGIN{t=0};{print t,$1;t+=dumpdt}' > $out
 
@@ -29,7 +29,7 @@ selcmd=$(for name in $sel ; do printf "<(ap.getcol $name) " ; done)
 cmd="paste -d' ' $selcmd"
 nl=$(ap.getcol t | wc -l)
 every=$(python -c "print(max(1, $nl // 100))")
-out=stat_re${re}_nd${nd}
+out=stat_re${re}_nd${nd}_ext${extent}
 echo "writing every '$every' record to '$out'"
 echo "$cmd"
 echo "$sel" > $out
