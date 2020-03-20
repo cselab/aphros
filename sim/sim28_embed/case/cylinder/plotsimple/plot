@@ -1,0 +1,19 @@
+#!/usr/bin/env gnuplot
+
+set terminal pdf noenhanced
+set output "steady.pdf"
+
+load "style.gp"
+
+dsep = system("echo sep_*")
+dstat = system("echo stat_*")
+
+set y2tics
+p [1:] \
+  for [i=1:words(dsep)] word(dsep,i) \
+      w l ls i t word(dsep,i) ,\
+  2.25 ls 9 ,\
+  for [i=1:words(dstat)] word(dstat,i) u "t":(column("dragx")*2) \
+      w l axes x1y2 ls i t '' ,\
+  1.52 ls 9 axes x1y2 ,\
+  0/0 t''
