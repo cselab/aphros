@@ -1,0 +1,10 @@
+#!/bin/bash
+
+cat > par.py << EOF
+Re = 40.
+extent = 40.
+dim = 3
+np = 256
+EOF
+
+make run

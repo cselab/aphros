@@ -1,0 +1,95 @@
+#!/usr/bin/env python
+
+import aphros
+import os
+
+# default
+par = {
+  "dim": 2,
+  "nx": 512,
+  "extent": 20.,
+  "Re": 40,
+  "np": 128,
+  "tl": 1440,
+  "bs": 32,
+        }
+
+exec(open("par.py").read(), None, par)
+
+extent = par["extent"]
+Re = par["Re"]
+
+inf = extent * 10
+eps = 1e-2
+
+lx = extent
+ly = extent * 0.5
+
+center = [lx * 0.3, ly * 0.5, 0]
+radius = 0.5
+gapout = 0.05
+
+# geometry
+geom = aphros.Geometry()
+geom.Cylinder(center, [0, 0, 1], radius, [-inf, inf])
+geom.Box([lx, 0, 0], [gapout, inf, inf])
+
+with open("body.dat", 'w') as f:
+    f.write(geom.Generate())
+
+# boundary conditions
+bc = aphros.Bc()
+
+g = aphros.Geometry()
+g.Box([0, 0, 0], [inf, inf, inf])
+bc.SlipWall(g)
+
+g = aphros.Geometry()
+g.Box([0, 0, 0], [eps, inf, inf])
+bc.Inlet(g, velocity = [1, 0, 0])
+
+g = aphros.Geometry()
+g.Box([lx - gapout, 0, 0], [eps, inf, inf])
+bc.Outlet(g)
+
+g = aphros.Geometry()
+g.Box(center, [radius + eps, radius + eps, inf])
+bc.Wall(g, velocity = [0, 0, 0])
+
+with open("bc.dat", 'w') as f:
+    f.write(bc.Generate())
+
+# configuration
+var = aphros.Var()
+var['extent'] = float(extent)
+var['mu1'] = 1. / Re
+
+
+for k in par:
+    var[k] = par[k]
+
+nx = par['nx']
+ny = int(nx * ly / lx + 0.5)
+nz = int(nx * ly / lx + 0.5)
+bsx = par['bs']
+bsy = bsx
+bsz = bsx
+np = par['np']
+tl = par['tl']
+
+if par['dim'] == 2:
+    var['hypre_periodic_z'] = 1
+    var['dumplist'] = "vx vy omz p"
+    nz = 1
+    bsz = 1
+
+with open("par.make", 'w') as f:
+        f.write(
+'''m = {nx} {ny} {nz}
+bs = {bsx} {bsy} {bsz}
+np = {np}
+tl = {tl}
+'''.format(**locals()))
+
+with open("par.conf", 'w') as f:
+    f.write(var.Generate())
