@@ -676,7 +676,7 @@ auto UEmbed<M>::Gradient(
     ffu[f] = calc(f, m.GetCell(f, bc.nci), bc);
   }
   ffu.LimitHalo(1);
-  ffu.LimitHalo(fcu.GetHalo() - 1);
+  ffu.LimitHalo(fcu.GetHalo() - 2);
   return ffu;
 }
 

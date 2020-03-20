@@ -105,6 +105,11 @@ struct Proj<EB_>::Imp {
       }
     }
 
+    is_boundary_.Reinit(m, false);
+    mebc_.LoopPairs([&](auto p) { //
+      is_boundary_[p.first] = true;
+    });
+
     ffvisc_ = UEB::Interpolate(*owner_->fcd_, me_visc_, eb);
     ffdens_ = UEB::InterpolateHarmonic(*owner_->fcr_, me_visc_, eb);
   }
@@ -274,13 +279,17 @@ struct Proj<EB_>::Imp {
   // ffv: flux
   FieldFaceb<ExprFace> GetFlux(
       const FieldCell<Scal>& fcp, const FieldFaceb<Scal>& ffv, Scal dt) {
-    FieldFaceb<ExprFace> ff_flux =
-        UEB::GradientImplicit(fcp, me_pressure_flux_, eb);
+    FieldFaceb<ExprFace> ffe =
+        UEB::GradientImplicit(FieldCell<Scal>(eb, 0), {}, eb);
     eb.LoopFaces([&](auto cf) { //
-      ff_flux[cf] *= -eb.GetArea(cf) / ffdens_[cf] * dt;
-      ff_flux[cf][2] += ffv[cf];
+      if (!is_boundary_[cf]) {
+        ffe[cf] *= -eb.GetArea(cf) / ffdens_[cf] * dt;
+      } else {
+        ffe[cf] = ExprFace(0);
+      }
+      ffe[cf][2] += ffv[cf];
     });
-    return ff_flux;
+    return ffe;
   }
   // Expressions for sum of fluxes and source:
   //   sum(v) - source * volume
@@ -507,7 +516,7 @@ struct Proj<EB_>::Imp {
     }
     if (sem("face-acceleration")) {
       // subtract old acceleration from cell velocity
-      for (auto c : eb.SuCells()) {
+      for (auto c : eb.AllCells()) {
         fcvel[c] -= fc_accel_[c] * dt;
       }
       // compute volume flux from cell velocity
@@ -517,7 +526,9 @@ struct Proj<EB_>::Imp {
       eb.LoopFaces([&](auto cf) { //
         auto& v = ffv[cf];
         v = ffvel[cf].dot(eb.GetSurface(cf));
-        v += (*owner_->febp_)[cf] / ffdens_[cf] * dt * eb.GetArea(cf);
+        if (!is_boundary_[cf]) {
+          v += (*owner_->febp_)[cf] / ffdens_[cf] * dt * eb.GetArea(cf);
+        }
       });
     }
     if (sem.Nested("project")) {
@@ -589,6 +600,8 @@ struct Proj<EB_>::Imp {
   FieldCell<Scal> fcp_predict_; // pressure at prediction step,
                                 // used as initial guess
   StepData<FieldCell<Vect>> fcvel_; // velocity
+
+  FieldEmbed<bool> is_boundary_; // true on faces with boundary conditions
 
   // Cell fields:
   FieldCell<Vect> fc_accel_; // acceleration
