@@ -4,7 +4,12 @@ CC = cc
 CFLAGS = -g -Og
 PREFIX = $(CHPREFIX)
 
-O = main.o err.o memory.o
+O = \
+main.o\
+err.o\
+memory.o\
+predicate.o\
+
 L = libtable.a
 H = inside.h
 
