@@ -4,9 +4,9 @@ libibverbs: Warning: couldn't open config directory '/etc/libibverbs.d'.
 libibverbs: Warning: no userspace device-specific driver found for /sys/class/infiniband_verbs/uverbs0
 libibverbs: Warning: couldn't open config directory '/etc/libibverbs.d'.
 libibverbs: Warning: no userspace device-specific driver found for /sys/class/infiniband_verbs/uverbs0
-hydro 0dd08be
-msg: util/fluid: remove tangential velocity in outlet
-diff: 
+hydro b85ff50-dirty
+msg: test/approx: update ref
+diff: sim/sim28_embed/case/epflmesh/Makefile src/test/multivof/ref/out src/test/multivof/ref/p_0000.dat src/test/multivof/ref/vf_0000.dat src/test/multivof/ref/vx_0000.dat src/test/multivof/ref/vy_0000.dat 
 Loading config from 'a.conf'
 
 === config begin ===
@@ -284,266 +284,293 @@ pfixed id=0 dist=0.020492
 Found events: 
 =====
 =====
-STEP=0 t=0.00000000 dt=0.10000000 ta=0.00000000 dta=0.10000000 wt=0.01684888
-.....iter=1, diff=6.3396752492892935e-02
+STEP=0 t=0.00000000 dt=0.10000000 ta=0.00000000 dta=0.10000000 wt=0.01514917
+.....iter=1, diff=1.6352873247016847e-01
 recolor: max tries: 536
 recolor: max tries: 249
 recolor: max tries: 23
 recolor: max tries: 0
 .....adv: t=0.10000000 dt=0.10000000
-STEP=1 t=0.10000000 dt=0.04622867 ta=0.10000000 dta=0.04622867 wt=0.08615953
-.....iter=1, diff=1.9314433838518341e-01
+STEP=1 t=0.10000000 dt=0.04622867 ta=0.10000000 dta=0.04622867 wt=0.08300919
+.....iter=1, diff=1.3179084006964437e-01
 recolor: max tries: 536
 recolor: max tries: 249
 recolor: max tries: 23
 recolor: max tries: 0
 .....adv: t=0.14622867 dt=0.04622867
-STEP=2 t=0.14622867 dt=0.04622867 ta=0.14622867 dta=0.04622867 wt=0.14971460
-.....iter=1, diff=6.6708615723414411e-02
+STEP=2 t=0.14622867 dt=0.04622867 ta=0.14622867 dta=0.04622867 wt=0.14439036
+.....iter=1, diff=6.5235561717984974e-02
 recolor: max tries: 536
 recolor: max tries: 249
 recolor: max tries: 23
 recolor: max tries: 0
 .....adv: t=0.19245735 dt=0.04622867
-STEP=3 t=0.19245735 dt=0.04622867 ta=0.19245735 dta=0.04622867 wt=0.20989428
-.....iter=1, diff=6.8431402143298736e-02
+STEP=3 t=0.19245735 dt=0.04622867 ta=0.19245735 dta=0.04622867 wt=0.20464841
+.....iter=1, diff=7.0322884985052389e-02
+recolor: max tries: 542
+recolor: max tries: 252
+recolor: max tries: 26
+recolor: max tries: 0
+.....adv: t=0.23868602 dt=0.04622867
+STEP=4 t=0.23868602 dt=0.04622867 ta=0.23868602 dta=0.04622867 wt=0.26597149
+.....iter=1, diff=6.5125809750605335e-02
+recolor: max tries: 536
+recolor: max tries: 249
+recolor: max tries: 23
+recolor: max tries: 0
+.....adv: t=0.28491470 dt=0.04622867
+STEP=5 t=0.28491470 dt=0.04622867 ta=0.28491470 dta=0.04622867 wt=0.32919908
+.....iter=1, diff=7.0144178453012879e-02
 recolor: max tries: 542
 recolor: max tries: 172
 recolor: max tries: 6
 recolor: max tries: 0
-.....adv: t=0.23868602 dt=0.04622867
-STEP=4 t=0.23868602 dt=0.04622867 ta=0.23868602 dta=0.04622867 wt=0.27018371
-.....iter=1, diff=6.6052146806877210e-02
-recolor: max tries: 532
-recolor: max tries: 172
-recolor: max tries: 6
-recolor: max tries: 0
-.....adv: t=0.28491470 dt=0.04622867
-STEP=5 t=0.28491470 dt=0.04622867 ta=0.28491470 dta=0.04622867 wt=0.33085121
-.....iter=1, diff=6.5478549241516887e-02
-recolor: max tries: 530
-recolor: max tries: 257
-recolor: max tries: 13
-recolor: max tries: 0
 .....adv: t=0.33114337 dt=0.04622867
-STEP=6 t=0.33114337 dt=0.04622867 ta=0.33114337 dta=0.04622867 wt=0.39317966
-.....iter=1, diff=7.8438039229966505e-02
+STEP=6 t=0.33114337 dt=0.04622867 ta=0.33114337 dta=0.04622867 wt=0.39141789
+.....iter=1, diff=7.7002478622795190e-02
 recolor: max tries: 530
 recolor: max tries: 257
 recolor: max tries: 13
 recolor: max tries: 0
 .....adv: t=0.37737204 dt=0.04622867
-STEP=7 t=0.37737204 dt=0.04622867 ta=0.37737204 dta=0.04622867 wt=0.45421933
-.....iter=1, diff=6.7026262848017770e-02
-recolor: max tries: 540
-recolor: max tries: 252
-recolor: max tries: 13
-recolor: max tries: 0
-.....adv: t=0.42360072 dt=0.04622867
-STEP=8 t=0.42360072 dt=0.04622867 ta=0.42360072 dta=0.02311434 wt=0.51661526
-.....iter=1, diff=7.1730361451876001e-02
+STEP=7 t=0.37737204 dt=0.04622867 ta=0.37737204 dta=0.02311434 wt=0.45510874
+.....iter=1, diff=7.2454701703020929e-02
 recolor: max tries: 530
 recolor: max tries: 257
 recolor: max tries: 13
 recolor: max tries: 0
+.....adv: t=0.40048638 dt=0.02311434
+recolor: max tries: 530
+recolor: max tries: 260
+recolor: max tries: 13
+recolor: max tries: 0
+.....adv: t=0.42360072 dt=0.02311434
+STEP=8 t=0.42360072 dt=0.04622867 ta=0.42360072 dta=0.02311434 wt=0.53933882
+.....iter=1, diff=7.4363298084039298e-02
+recolor: max tries: 530
+recolor: max tries: 260
+recolor: max tries: 13
+recolor: max tries: 0
 .....adv: t=0.44671506 dt=0.02311434
-recolor: max tries: 534
-recolor: max tries: 249
-recolor: max tries: 11
+recolor: max tries: 538
+recolor: max tries: 265
+recolor: max tries: 13
 recolor: max tries: 0
 .....adv: t=0.46982939 dt=0.02311434
-STEP=9 t=0.46982939 dt=0.04622867 ta=0.46982939 dta=0.02311434 wt=0.59714933
-.....iter=1, diff=7.1388664075898778e-02
-recolor: max tries: 534
-recolor: max tries: 163
-recolor: max tries: 4
+STEP=9 t=0.46982939 dt=0.04622867 ta=0.46982939 dta=0.02311434 wt=0.62190399
+.....iter=1, diff=9.2222851659446270e-02
+recolor: max tries: 538
+recolor: max tries: 265
+recolor: max tries: 13
 recolor: max tries: 0
 .....adv: t=0.49294373 dt=0.02311434
-recolor: max tries: 534
-recolor: max tries: 160
-recolor: max tries: 3
+recolor: max tries: 532
+recolor: max tries: 166
+recolor: max tries: 4
 recolor: max tries: 0
 .....adv: t=0.51605807 dt=0.02311434
-STEP=10 t=0.51605807 dt=0.04622867 ta=0.51605807 dta=0.02311434 wt=0.67754127
-.....iter=1, diff=7.0119699945132341e-02
-recolor: max tries: 530
-recolor: max tries: 246
+STEP=10 t=0.51605807 dt=0.04550499 ta=0.51605807 dta=0.02275250 wt=0.70362172
+.....iter=1, diff=7.5008604556085379e-02
+recolor: max tries: 546
+recolor: max tries: 166
+recolor: max tries: 3
+recolor: max tries: 0
+.....adv: t=0.53881056 dt=0.02275250
+recolor: max tries: 546
+recolor: max tries: 166
+recolor: max tries: 3
+recolor: max tries: 0
+.....adv: t=0.56156306 dt=0.02275250
+STEP=11 t=0.56156306 dt=0.04151404 ta=0.56156306 dta=0.02075702 wt=0.79032657
+.....iter=1, diff=8.6555311338849028e-02
+recolor: max tries: 546
+recolor: max tries: 251
 recolor: max tries: 9
 recolor: max tries: 0
-.....adv: t=0.53917240 dt=0.02311434
-recolor: max tries: 530
-recolor: max tries: 243
-recolor: max tries: 9
+.....adv: t=0.58232008 dt=0.02075702
+recolor: max tries: 534
+recolor: max tries: 245
+recolor: max tries: 4
 recolor: max tries: 0
-.....adv: t=0.56228674 dt=0.02311434
-STEP=11 t=0.56228674 dt=0.04622867 ta=0.56228674 dta=0.02311434 wt=0.75739675
-.....iter=1, diff=8.6430216998182541e-02
-recolor: max tries: 530
-recolor: max tries: 231
-recolor: max tries: 0
-.....adv: t=0.58540108 dt=0.02311434
-recolor: max tries: 530
-recolor: max tries: 234
-recolor: max tries: 0
-.....adv: t=0.60851541 dt=0.02311434
-STEP=12 t=0.60851541 dt=0.04267253 ta=0.60851541 dta=0.02133626 wt=0.83333652
-.....iter=1, diff=9.9621847609681957e-02
+.....adv: t=0.60307709 dt=0.02075702
+STEP=12 t=0.60307709 dt=0.03828328 ta=0.60307709 dta=0.01914164 wt=0.87362817
+.....iter=1, diff=8.9239506841201188e-02
 recolor: max tries: 530
 recolor: max tries: 236
 recolor: max tries: 0
-.....adv: t=0.62985168 dt=0.02133626
+.....adv: t=0.62221873 dt=0.01914164
+recolor: max tries: 530
+recolor: max tries: 236
+recolor: max tries: 0
+.....adv: t=0.64136037 dt=0.01914164
+STEP=13 t=0.64136037 dt=0.03533611 ta=0.64136037 dta=0.01766805 wt=0.95437351
+.....iter=1, diff=9.0931977871775538e-02
+recolor: max tries: 530
+recolor: max tries: 236
+recolor: max tries: 0
+.....adv: t=0.65902842 dt=0.01766805
+recolor: max tries: 530
+recolor: max tries: 236
+recolor: max tries: 0
+.....adv: t=0.67669648 dt=0.01766805
+STEP=14 t=0.67669648 dt=0.03277676 ta=0.67669648 dta=0.01638838 wt=1.03858031
+.....iter=1, diff=1.1751930242859121e-01
+recolor: max tries: 530
+recolor: max tries: 154
+recolor: max tries: 0
+.....adv: t=0.69308486 dt=0.01638838
 recolor: max tries: 530
 recolor: max tries: 151
 recolor: max tries: 0
-.....adv: t=0.65118794 dt=0.02133626
-STEP=13 t=0.65118794 dt=0.03870072 ta=0.65118794 dta=0.01935036 wt=0.91332723
-.....iter=1, diff=1.0345460495534342e-01
-recolor: max tries: 530
-recolor: max tries: 151
-recolor: max tries: 0
-.....adv: t=0.67053830 dt=0.01935036
+.....adv: t=0.70947324 dt=0.01638838
+STEP=15 t=0.70947324 dt=0.03052486 ta=0.70947324 dta=0.01526243 wt=1.11952826
+.....iter=1, diff=1.6048843269695534e-01
 recolor: max tries: 530
 recolor: max tries: 148
 recolor: max tries: 0
-.....adv: t=0.68988866 dt=0.01935036
-STEP=14 t=0.68988866 dt=0.03532185 ta=0.68988866 dta=0.01766092 wt=0.99204747
-.....iter=1, diff=1.1431427097074554e-01
+.....adv: t=0.72473567 dt=0.01526243
 recolor: max tries: 530
-recolor: max tries: 219
+recolor: max tries: 224
 recolor: max tries: 0
-.....adv: t=0.70754959 dt=0.01766092
-recolor: max tries: 532
+.....adv: t=0.73999810 dt=0.01526243
+STEP=16 t=0.73999810 dt=0.02795435 ta=0.73999810 dta=0.01397718 wt=1.19937455
+.....iter=1, diff=1.7145865300401830e-01
+recolor: max tries: 530
+recolor: max tries: 218
+recolor: max tries: 0
+.....adv: t=0.75397527 dt=0.01397718
+recolor: max tries: 530
+recolor: max tries: 218
+recolor: max tries: 0
+.....adv: t=0.76795245 dt=0.01397718
+STEP=17 t=0.76795245 dt=0.02437010 ta=0.76795245 dta=0.01218505 wt=1.27890394
+.....iter=1, diff=1.7062528798591514e-01
+recolor: max tries: 530
 recolor: max tries: 213
 recolor: max tries: 0
-.....adv: t=0.72521051 dt=0.01766092
-STEP=15 t=0.72521051 dt=0.03234565 ta=0.72521051 dta=0.01617283 wt=1.07073989
-.....iter=1, diff=1.6493110228189956e-01
+.....adv: t=0.78013750 dt=0.01218505
+recolor: max tries: 530
+recolor: max tries: 218
+recolor: max tries: 0
+.....adv: t=0.79232255 dt=0.01218505
+STEP=18 t=0.79232255 dt=0.02195226 ta=0.79232255 dta=0.01097613 wt=1.36049939
+.....iter=1, diff=1.4169457765913629e-01
 recolor: max tries: 530
 recolor: max tries: 213
 recolor: max tries: 0
-.....adv: t=0.74138334 dt=0.01617283
-recolor: max tries: 538
-recolor: max tries: 210
+.....adv: t=0.80329868 dt=0.01097613
+recolor: max tries: 530
+recolor: max tries: 140
 recolor: max tries: 0
-.....adv: t=0.75755616 dt=0.01617283
-STEP=16 t=0.75755616 dt=0.02984273 ta=0.75755616 dta=0.01492136 wt=1.14958248
-.....iter=1, diff=1.9649307530785176e-01
-recolor: max tries: 538
-recolor: max tries: 210
+.....adv: t=0.81427482 dt=0.01097613
+STEP=19 t=0.81427482 dt=0.02088832 ta=0.81427482 dta=0.01044416 wt=1.44224965
+.....iter=1, diff=1.1680123291706890e-01
+recolor: max tries: 535
+recolor: max tries: 140
 recolor: max tries: 0
-.....adv: t=0.77247753 dt=0.01492136
-recolor: max tries: 538
-recolor: max tries: 137
-recolor: max tries: 0
-.....adv: t=0.78739889 dt=0.01492136
-STEP=17 t=0.78739889 dt=0.02567273 ta=0.78739889 dta=0.01283637 wt=1.22855170
-.....iter=1, diff=1.8122199918945237e-01
-recolor: max tries: 538
+.....adv: t=0.82471898 dt=0.01044416
+recolor: max tries: 530
 recolor: max tries: 134
 recolor: max tries: 0
-.....adv: t=0.80023526 dt=0.01283637
-recolor: max tries: 544
+.....adv: t=0.83516314 dt=0.01044416
+STEP=20 t=0.83516314 dt=0.02068476 ta=0.83516314 dta=0.01034238 wt=1.52421052
+.....iter=1, diff=1.5291560819861760e-01
+recolor: max tries: 535
+recolor: max tries: 134
+recolor: max tries: 0
+.....adv: t=0.84550552 dt=0.01034238
+recolor: max tries: 535
 recolor: max tries: 131
 recolor: max tries: 0
-.....adv: t=0.81307162 dt=0.01283637
-STEP=18 t=0.81307162 dt=0.02295529 ta=0.81307162 dta=0.01147765 wt=1.30719814
-.....iter=1, diff=1.3601461991644048e-01
-recolor: max tries: 544
-recolor: max tries: 128
+.....adv: t=0.85584790 dt=0.01034238
+STEP=21 t=0.85584790 dt=0.02135564 ta=0.85584790 dta=0.01067782 wt=1.60633899
+.....iter=1, diff=1.7933035680654863e-01
+recolor: max tries: 535
+recolor: max tries: 192
 recolor: max tries: 0
-.....adv: t=0.82454927 dt=0.01147765
-recolor: max tries: 544
+.....adv: t=0.86652572 dt=0.01067782
+recolor: max tries: 535
+recolor: max tries: 192
+recolor: max tries: 0
+.....adv: t=0.87720354 dt=0.01067782
+STEP=22 t=0.87720354 dt=0.02143867 ta=0.87720354 dta=0.01071934 wt=1.68751268
+.....iter=1, diff=1.7360824801582098e-01
+recolor: max tries: 535
 recolor: max tries: 189
 recolor: max tries: 0
-.....adv: t=0.83602692 dt=0.01147765
-STEP=19 t=0.83602692 dt=0.02197868 ta=0.83602692 dta=0.01098934 wt=1.38494955
-.....iter=1, diff=1.4314997117974460e-01
-recolor: max tries: 544
+.....adv: t=0.88792287 dt=0.01071934
+recolor: max tries: 535
+recolor: max tries: 192
+recolor: max tries: 0
+.....adv: t=0.89864221 dt=0.01071934
+STEP=23 t=0.89864221 dt=0.02067131 ta=0.89864221 dta=0.01033566 wt=1.76789638
+.....iter=1, diff=1.5808717494078584e-01
+recolor: max tries: 540
 recolor: max tries: 189
 recolor: max tries: 0
-.....adv: t=0.84701626 dt=0.01098934
-recolor: max tries: 550
+.....adv: t=0.90897787 dt=0.01033566
+recolor: max tries: 535
 recolor: max tries: 189
 recolor: max tries: 0
-.....adv: t=0.85800560 dt=0.01098934
-STEP=20 t=0.85800560 dt=0.02220588 ta=0.85800560 dta=0.01110294 wt=1.46287623
-.....iter=1, diff=1.6921140942284230e-01
-recolor: max tries: 544
+.....adv: t=0.91931353 dt=0.01033566
+STEP=24 t=0.91931353 dt=0.01991874 ta=0.91931353 dta=0.00995937 wt=1.84883502
+.....iter=1, diff=1.4049765062502828e-01
+recolor: max tries: 540
 recolor: max tries: 189
 recolor: max tries: 0
-.....adv: t=0.86910854 dt=0.01110294
-recolor: max tries: 550
+.....adv: t=0.92927289 dt=0.00995937
+recolor: max tries: 540
 recolor: max tries: 189
 recolor: max tries: 0
-.....adv: t=0.88021148 dt=0.01110294
-STEP=21 t=0.88021148 dt=0.02236441 ta=0.88021148 dta=0.01118220 wt=1.54068153
-.....iter=1, diff=1.7364152712309122e-01
-recolor: max tries: 550
-recolor: max tries: 189
+.....adv: t=0.93923226 dt=0.00995937
+STEP=25 t=0.93923226 dt=0.01924193 ta=0.93923226 dta=0.00962096 wt=1.92939388
+.....iter=1, diff=1.0700932245392991e-01
+recolor: max tries: 552
+recolor: max tries: 135
 recolor: max tries: 0
-.....adv: t=0.89139368 dt=0.01118220
-recolor: max tries: 550
-recolor: max tries: 129
-recolor: max tries: 0
-.....adv: t=0.90257588 dt=0.01118220
-STEP=22 t=0.90257588 dt=0.02144952 ta=0.90257588 dta=0.01072476 wt=1.61944220
-.....iter=1, diff=1.7669444083413333e-01
-recolor: max tries: 550
-recolor: max tries: 129
-recolor: max tries: 0
-.....adv: t=0.91330065 dt=0.01072476
-recolor: max tries: 556
-recolor: max tries: 129
-recolor: max tries: 0
-.....adv: t=0.92402541 dt=0.01072476
-STEP=23 t=0.92402541 dt=0.02065472 ta=0.92402541 dta=0.01032736 wt=1.69741549
-.....iter=1, diff=1.3572012159073887e-01
-recolor: max tries: 550
-recolor: max tries: 129
-recolor: max tries: 0
-.....adv: t=0.93435277 dt=0.01032736
-recolor: max tries: 556
-recolor: max tries: 129
-recolor: max tries: 0
-.....adv: t=0.94468013 dt=0.01032736
-STEP=24 t=0.94468013 dt=0.01983382 ta=0.94468013 dta=0.00991691 wt=1.77602197
-.....iter=1, diff=1.1832367075374650e-01
-recolor: max tries: 550
+.....adv: t=0.94885322 dt=0.00962096
+recolor: max tries: 552
 recolor: max tries: 132
 recolor: max tries: 0
-.....adv: t=0.95459703 dt=0.00991691
-recolor: max tries: 556
-recolor: max tries: 82
+.....adv: t=0.95847419 dt=0.00962096
+STEP=26 t=0.95847419 dt=0.01864715 ta=0.95847419 dta=0.00932358 wt=2.01018658
+.....iter=1, diff=1.0001103662195487e-01
+recolor: max tries: 552
+recolor: max tries: 130
 recolor: max tries: 0
-.....adv: t=0.96451394 dt=0.00991691
-STEP=25 t=0.96451394 dt=0.01917784 ta=0.96451394 dta=0.00958892 wt=1.85453981
-.....iter=1, diff=1.1599875335742049e-01
-recolor: max tries: 556
-recolor: max tries: 79
+.....adv: t=0.96779776 dt=0.00932358
+recolor: max tries: 552
+recolor: max tries: 130
 recolor: max tries: 0
-.....adv: t=0.97410286 dt=0.00958892
-recolor: max tries: 556
-recolor: max tries: 82
+.....adv: t=0.97712134 dt=0.00932358
+STEP=27 t=0.97712134 dt=0.01816523 ta=0.97712134 dta=0.00908262 wt=2.09087435
+.....iter=1, diff=1.1132190894425409e-01
+recolor: max tries: 552
+recolor: max tries: 135
 recolor: max tries: 0
-.....adv: t=0.98369178 dt=0.00958892
-STEP=26 t=0.98369178 dt=0.01862936 ta=0.98369178 dta=0.00931468 wt=1.93370311
-.....iter=1, diff=9.4874132548455004e-02
-recolor: max tries: 556
-recolor: max tries: 82
+.....adv: t=0.98620396 dt=0.00908262
+recolor: max tries: 558
+recolor: max tries: 135
 recolor: max tries: 0
-.....adv: t=0.99300646 dt=0.00931468
-recolor: max tries: 556
-recolor: max tries: 67
-recolor: max tries: 0
-.....adv: t=1.00232113 dt=0.00931468
-Dump n=0 t=1.00232 target=0
+.....adv: t=0.99528657 dt=0.00908262
+Dump n=0 t=0.995287 target=0
 Dump 0: format=plain
-dump t=1.00232113 to s_0000.vtk
-dump t=1.00232113 to sm_0000.vtk
+dump t=0.99528657 to s_0000.vtk
+dump t=0.99528657 to sm_0000.vtk
+STEP=28 t=0.99528657 dt=0.01779128 ta=0.99528657 dta=0.00889564 wt=2.18405486
+.....iter=1, diff=9.5787738492692731e-02
+recolor: max tries: 558
+recolor: max tries: 138
+recolor: max tries: 0
+.....adv: t=1.00418221 dt=0.00889564
+recolor: max tries: 564
+recolor: max tries: 62
+recolor: max tries: 0
+.....adv: t=1.01307785 dt=0.00889564
 End of simulation, t > tmax=1.00000000
 cells = 1024
 steps = 1000000
-iters = 27
-total = 2 s = 00:00:02.037
-time/cell/iter = 7.37052e-05 s
+iters = 29
+total = 2 s = 00:00:02.264
+time/cell/iter = 7.62403e-05 s
 Unused configuration variables:
