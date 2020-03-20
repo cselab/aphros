@@ -40,7 +40,6 @@ predicate_orient2d(const double a[2], const double b[2], const double c[2])
     return orient2d(A, B, C);
 }
 
-
 double
 predicate_orient3d(const double a[3], const double b[3], const double c[3],
                    const double d[3])
@@ -52,19 +51,6 @@ predicate_orient3d(const double a[3], const double b[3], const double c[3],
     C3(c, C);
     C3(d, D);
     return orient3d(A, B, C, D);
-}
-
-
-static int
-predicate_orient2d_sas(const double a[2], const double b[2], const double c[2])
-{
-    double o;
-
-    o = predicate_orient2d(a, b, c);
-    if (o != 0)
-        return SIGN(o);
-    else
-        return 1;
 }
 
 int
