@@ -1,0 +1,10 @@
+struct Bbox;
+int bbox_ini(struct Bbox**);
+int bbox_fin(struct Bbox*);
+int bbox_update(struct Bbox*, int, const double *, const double *, const double *);
+int bbox_lo(struct Bbox*, double **);
+int bbox_hi(struct Bbox*, double **);
+int bbox_center(struct Bbox*, double[3]);
+int bbox_inside(struct Bbox*, double, double, double);
+double bbox_xhi(struct Bbox*);
+double bbox_zhi(struct Bbox*);

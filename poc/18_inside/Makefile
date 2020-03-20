@@ -5,6 +5,7 @@ CFLAGS = -g -Og
 PREFIX = $(CHPREFIX)
 
 O = \
+bbox.o\
 main.o\
 err.o\
 memory.o\
