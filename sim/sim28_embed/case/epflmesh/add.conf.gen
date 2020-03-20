@@ -19,36 +19,43 @@ set double slipnormal_dist 2
 
 set vect gravity 0 0 0
 
-set double cfl 0.5
-set double cfla 0.5
-set double cflvis 5
-
 #set string init_vf zero
 
-set int linreport 1
-
 set double mu1 0.01
+
 set double rho2 0.01
 set double mu2 0.0001
-set double sigma 0.05
+set double rho2 1
+set double mu2 0.01
 
-set int max_iter 1
+set double sigma 0.1
 
+set int max_iter 20
+setnext string ev 0.01 set int max_iter 1
+set double tol 1e-2
+set int report_stat 0
 set string list_path brnd.dat
-
 set string dumplist p vx vy vz ebvf
+set string conv imp
+set double outlet_relax 0
 
-set int verbose_conf_reads 1
-set int verbose_conf_unused 1
-set int report_step_every 1
+set double dump_field_dt 0.1
+#set int linreport 1
 
-set int check_symmetry 1
-set string conv exp
+set double hypre_symm_tol 1e-3
+set int hypre_symm_maxiter 1000
 
+set double cfl 0.5
+set double cfla 0.5
+
+set int verbose_stages 0
+
+set double slipnormal 0
+set double slipnormal_dist 2
 " > add.conf
 
 
-th=0.03
+th=0.05
 
 echo "
 wall 0 0 0 {
@@ -78,5 +85,9 @@ wall 0 0 0 {
 }
 inlet 0 1 0 {
   cylinder 0.5 0.05 0.5   0 1 0   0.22   -$th $th
+}
+
+wall 0 0 0 {
+  #box 0 0 0 10
 }
 " > bc.dat
