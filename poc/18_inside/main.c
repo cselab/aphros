@@ -26,7 +26,7 @@ struct Inside {
 };
 
 int
-inside_ini(double lo[2], double hi[2], double size, struct Inside ** pq)
+inside_ini(struct Inside ** pq)
 {
   struct Inside *q;
 
