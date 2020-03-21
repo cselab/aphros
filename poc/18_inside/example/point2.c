@@ -17,6 +17,7 @@ main(int argc, const char** argv) {
   int *tri;
   double *ver;
   int status;
+  int data;
   double p[3];
   FILE *file;
   struct Inside *inside;
@@ -47,8 +48,10 @@ main(int argc, const char** argv) {
     exit(2);
   }
   inside_ini(nt, tri, ver, &inside);
-  while (scanf("%lf %lf %lf", &p[X], &p[Y], &p[Z]) == 3)
-    printf("%d\n", inside_inside(inside, p));
+  while (scanf("%lf %lf %lf", &p[X], &p[Y], &p[Z]) == 3) {
+    data = inside_inside(inside, p);
+    printf("%d\n", data);
+  }
   inside_fin(inside);
   off_fin(tri, ver);
 }
