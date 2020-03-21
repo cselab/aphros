@@ -285,8 +285,9 @@ auto UEmbed<M>::Interpolate(
     }
     return GetNan<T>();
   };
-  mebc.LoopBCond(
-      eb, [&](auto cf, IdxCell c, auto bc) { feu[cf] = calc(cf, c, bc); });
+  mebc.LoopBCond(eb, [&](auto cf, IdxCell c, auto bc) { //
+    feu[cf] = calc(cf, c, bc);
+  });
   return feu;
 }
 
