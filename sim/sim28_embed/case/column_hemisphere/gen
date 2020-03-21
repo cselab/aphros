@@ -1,0 +1,77 @@
+#!/usr/bin/env python
+
+import aphros
+import os
+import numpy as np
+
+# default
+par = {
+  "nx": 64,
+  "np": 512,
+  "tl": 1440,
+  "bs": 8,
+        }
+
+exec(open("par.py").read(), None, par)
+
+nx = par['nx']
+
+radius = 0.5
+cylheight = 2
+gap = 0.1
+extent = cylheight + radius + 2 * gap
+inf = extent * 10
+
+ly = extent
+lx = extent * 0.5
+lz = extent * 0.5
+hx = lx / nx
+
+# geometry
+geom = aphros.Geometry()
+geom.Cylinder([lx*0.5,gap,lz*0.5], [0, 1, 0], radius, [0, cylheight])
+geom.Sphere([lx*0.5,gap+cylheight,lz*0.5], [radius]*3)
+with open("body.dat", 'w') as f:
+    f.write(geom.Generate())
+
+# boundary conditions
+bc = aphros.Bc()
+g = aphros.Geometry()
+g.Box([0, 0, 0], [inf, inf, inf])
+bc.Wall(g, velocity = [0, 0, 0])
+with open("bc.dat", 'w') as f:
+    f.write(bc.Generate())
+
+# volume fraction
+vf = aphros.Geometry()
+vf.Sphere([lx*0.5,gap+cylheight,lz*0.5], [0.2]*3)
+with open("b.dat", 'w') as f:
+    f.write(vf.Generate())
+
+# configuration
+var = aphros.Var()
+var['extent'] = float(extent)
+
+for k in par:
+    var[k] = par[k]
+
+nx = int(lx / hx + 0.5)
+ny = int(ly / hx + 0.5)
+nz = int(lz / hx + 0.5)
+bsx = par['bs']
+bsy = bsx
+bsz = bsx
+np = par['np']
+tl = par['tl']
+
+with open("par.make", 'w') as f:
+        f.write(
+'''m = {nx} {ny} {nz}
+bs = {bsx} {bsy} {bsz}
+np = {np}
+tl = {tl}
+'''.format(**locals()))
+
+with open("par.conf", 'w') as f:
+    f.write(var.Generate())
+

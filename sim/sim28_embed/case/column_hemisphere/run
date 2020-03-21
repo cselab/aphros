@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -eu
+
+cat > par.py << EOF
+
+EOF
+
+
+make cleanrun
+
