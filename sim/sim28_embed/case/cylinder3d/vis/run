@@ -1,2 +1,2 @@
-./vort.py ../omm_*.xmf || true
+./vort.py -vortk 1 ../omm_*.xmf || true
 r=30 r.pngmp4

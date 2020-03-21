@@ -57,14 +57,24 @@ def CheckFlag(name):
         return True
     return False
 
+def CheckVar(name):
+    if name in av:
+        i = av.index(name)
+        r = av[i + 1]
+        del av[i]
+        del av[i]
+        return r
+    return None
+
 
 cam = 1  # view from side perspective
 if CheckFlag('-C1'):
     cam = 1
 if CheckFlag('-C2'):
     cam = 2
-
 draft = CheckFlag('-draft')
+vortk = CheckVar('-vortk')
+
 
 # sm input
 ff = natsorted(av[1:])
@@ -173,6 +183,15 @@ ommebLUT.ScalarRangeInitialized = 1.0
 ommebPWF = GetOpacityTransferFunction('ommeb')
 ommebPWF.Points = [4.0, 0.0, 0.5, 0.0, 20.0, 1.0, 0.5, 0.0]
 ommebPWF.ScalarRangeInitialized = 1
+
+def Mul(v, k):
+    for i in range(0, len(v), 4):
+        v[i] *= k
+if vortk is not None:
+    vortk = float(vortk)
+    print("using vortk={:}".format(vortk))
+    Mul(ommebLUT.RGBPoints, vortk)
+    Mul(ommebPWF.Points, vortk)
 
 ommebDisplay.Representation = 'Volume'
 ommebDisplay.AmbientColor = [0.0, 0.0, 0.0]
