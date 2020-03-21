@@ -262,12 +262,27 @@ class MeshStructured {
   size_t GetNumNodes(IdxFace) const {
     return kFaceNumNeighbourNodes;
   }
-  // inner means not halo
+  // Returns true if cell is not a halo cell.
   bool IsInner(IdxCell c) const {
     MIdx w = bcr_.GetMIdx(c);
     return bci_.GetBegin() <= w && w < bci_.GetEnd();
   }
-
+  bool IsBoundary(IdxFace f, size_t& nci) const {
+    auto p = GetIndexFaces().GetMIdxDir(f);
+    const size_t d(p.second);
+    if (flags.is_periodic[d] || d > GetEdim()) {
+      return false;
+    }
+    const auto w = p.first;
+    if (w[d] == 0) {
+      nci = 1;
+      return true;
+    } else if (w[d] == GetGlobalSize()[d]) {
+      nci = 0;
+      return true;
+    }
+    return false;
+  }
   GIndex<IdxCell, dim> GetIndexer(IdxCell*) const {
     return bcr_;
   }
@@ -496,8 +511,8 @@ class MeshStructured {
       size_t nci = p.second;
       IdxCell cmm, cm, cp, cpp;
       GetCellColumn(*this, f, nci, cmm, cm, cp, cpp);
-      fc[cm] = T(1e10);
-      fc[cmm] = T(1e10);
+      fc[cm] = T(flags.nan_faces_value);
+      fc[cmm] = T(flags.nan_faces_value);
     }
   }
 
@@ -652,6 +667,8 @@ class MeshStructured {
     bool linreport = false;
     bool check_symmetry = false;
     Scal check_symmetry_dump_threshold = 1e-5;
+    Scal nan_faces_value = 1e100;
+    std::array<bool, dim> is_periodic = {false, false, false};
   };
   Flags flags;
 

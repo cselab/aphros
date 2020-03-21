@@ -98,21 +98,6 @@ struct UInitEmbedBc {
   ParseGroups(std::istream& fin, const MEB& eb) {
     auto& m = eb.GetMesh();
     const std::vector<CodeBlock> bb = ParseCodeBlocks(fin);
-    auto is_boundary = [&m](IdxFace f, size_t& nci) -> bool {
-      auto p = m.GetIndexFaces().GetMIdxDir(f);
-      const size_t d(p.second);
-      const auto w = p.first;
-      if (d < m.GetEdim()) {
-        if (w[d] == 0) {
-          nci = 1;
-          return true;
-        } else if (w[d] == m.GetGlobalSize()[d]) {
-          nci = 0;
-          return true;
-        }
-      }
-      return false;
-    };
     std::vector<std::string> vdesc;
     MapEmbed<size_t> me_group;
     MapEmbed<size_t> me_nci;
@@ -143,7 +128,7 @@ struct UInitEmbedBc {
       };
       for (auto f : eb.SuFaces()) {
         size_t nci;
-        if (is_boundary(f, nci)) {
+        if (m.IsBoundary(f, nci)) {
           auto ls = lsmax(eb.GetFaceCenter(f));
           if (ls > 0) {
             me_group[f] = group;

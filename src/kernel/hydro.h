@@ -680,6 +680,9 @@ void Hydro<M>::Init() {
     m.flags.check_symmetry = var.Int["check_symmetry"];
     m.flags.check_symmetry_dump_threshold =
         var.Double["check_symmetry_dump_threshold"];
+    m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
+    m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
+    m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
   }
   if (sem.Nested("embed")) {
     InitEmbed();
@@ -909,6 +912,7 @@ void Hydro<M>::Init() {
         vf.emplace_back(p.first, p.second.GetNci());
       }
       m.SetNanFaces(vf);
+      m.flags.nan_faces_value = var.Double["fill_halo_nan_value"];
     }
 
     if (m.IsLead()) {
