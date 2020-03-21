@@ -16,9 +16,7 @@ main(int argc, const char** argv) {
   int nt;
   int nv;
   int *tri;
-  double *x;
-  double *y;
-  double *z;
+  double *ver;
   int status;
 
   while (*++argv != NULL && argv[0][0] == '-')
@@ -30,34 +28,35 @@ main(int argc, const char** argv) {
       fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
       exit(2);
     }
-  off_read(stdin, &status, &nt, &tri, &nv, &x, &y, &z);
-  off_write(nt, tri, nv, x, y, z, stdout);
-  off_fin(tri, x, y, z);
+  off_read(stdin, &status, &nt, &tri, &nv, &ver);
+  off_write(nt, tri, nv, ver, stdout);
+  off_fin(tri, ver);
 }
 
 enum {SIZE = 999};
 int
-off_read(FILE * f, int *status, int * pnt, int ** ptri, int * pnv, double ** px, double ** py, double ** pz)
+off_read(FILE * f, int *status, int * pnt, int ** ptri, int * pnv, double ** pver)
 {
   enum {Off, Numbers, Ver, Tri, End};
-  int state;
   char line[SIZE];
   char *s;
+  double *ver;
+  double x;
+  double y;
+  double z;
+  int cnt;
   int i;
   int j;
-  int v;
-  int t;
-  int nv;
-  int nt;
-  int *tri;
   int npt;
+  int nt;
+  int nv;
+  int state;
+  int t;
   int t0;
   int t1;
   int t2;
-  int cnt;
-  double *x;
-  double *y;
-  double *z;
+  int *tri;
+  int v;
 
   state = Off;
   v = t = 0;
@@ -87,9 +86,7 @@ off_read(FILE * f, int *status, int * pnt, int ** ptri, int * pnv, double ** px,
 	fprintf(stderr, "%s:%d: expecting numbers, got '%s'\n", s, __FILE__, __LINE__);
 	goto err;
       }
-      x = malloc(nv*sizeof(*x));
-      y = malloc(nv*sizeof(*y));
-      z = malloc(nv*sizeof(*z));
+      ver = malloc(3*nv*sizeof(*ver));
       tri = malloc(3*nt*sizeof(*tri));
       if (tri == NULL) {
 	fprintf(stderr, "%s:%d: malloc failed\n", __FILE__, __LINE__);
@@ -98,14 +95,14 @@ off_read(FILE * f, int *status, int * pnt, int ** ptri, int * pnv, double ** px,
       state = Ver;
       break;
     case Ver:
-      if (sscanf(s, "%f %f %f", &x[v], &y[v], &z[v]) != 3) {
+      if (sscanf(s, "%lf %lf %lf", &x, &y, &z) != 3) {
 	fprintf(stderr, "%s:%d: expcting vertices got '%s'\n", __FILE__, __LINE__, s);
 	goto err;
       }
-        fprintf(stderr, "%g %g %g\n", x[v], y[v], z[v]);
-      exit(2);
-      v++;
-      if (v == nv)
+      ver[v++] = x;
+      ver[v++] = y;
+      ver[v++] = z;
+      if (v == 3*nv)
 	state = Tri;
       break;
     case Tri:
@@ -133,9 +130,7 @@ off_read(FILE * f, int *status, int * pnt, int ** ptri, int * pnv, double ** px,
   *pnv = nv;
   *pnt = nt;
   *ptri = tri;
-  *px = x;
-  *py = y;
-  *pz = z;
+  *pver = ver;
   *status = 0;
   return 0;
  err:
@@ -146,16 +141,14 @@ off_read(FILE * f, int *status, int * pnt, int ** ptri, int * pnv, double ** px,
 }
 
 int
-off_fin(int *tri, double *x, double *y, double *z)
+off_fin(int *tri, double *ver)
 {
   free(tri);
-  free(x);
-  free(y);
-  free(z);
+  free(ver);
 }
 
 int
-off_write(int nt, int * tri, int nv, double * x, double * y, double * z, FILE *f)
+off_write(int nt, int * tri, int nv, double * ver, FILE *f)
 {
   int i;
   if (fprintf(f, "OFF\n") < 0) {
@@ -164,7 +157,7 @@ off_write(int nt, int * tri, int nv, double * x, double * y, double * z, FILE *f
   }
   fprintf(f, "%d %d 0\n", nv, nt);
   for (i = 0; i < nv; i++)
-    fprintf(f, "%.16g %.16g %.16g\n", x[i], y[i], z[i]);
+    fprintf(f, "%.16g %.16g %.16g\n", ver[3*i], ver[3*i+1], ver[3*i+2]);
   for (i = 0; i < nt; i++)
     fprintf(f, "3 %d %d %d\n", tri[3*i], tri[3*i+1], tri[3*i+2]);
  err:
