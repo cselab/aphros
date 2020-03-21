@@ -263,8 +263,9 @@ class Embed {
   // fnl: level-set function on nodes, interface at fnl=0
   Embed(M& m, Scal gradlim) : m(m), eb(*this), gradlim_(gradlim) {}
   explicit Embed(M& m) : Embed(m, 0.5) {}
-  // Initializes embedded boundaries with level-set function fnl.
+  // Initializes embedded boundaries with level-set function.
   // Suspendable, requires communication.
+  // fnl: level-set function [a]
   void Init(const FieldNode<Scal>& fnl);
   template <class Idx>
   operator GRange<Idx>() const {

@@ -12,6 +12,7 @@
 #include "geom/field.h"
 #include "geom/range.h"
 #include "geom/vect.h"
+#include "util/logger.h"
 
 template <class T, class Idx>
 bool IsFinite(const GField<T, Idx>& u) {
@@ -114,4 +115,17 @@ inline std::string SrcPath(const std::string& s) {
         F, #F, m,                                                     \
         SrcPath(__FILE__) + ":" + std::to_string(__LINE__) + " in " + \
             std::string(__func__));                                   \
+  }
+
+// CheckNan for field if condition evaluates to true.
+// F: instance of GField
+// C: condition
+// Requires in scope:
+// m: mesh or GRange
+#define CHECKHALO(field, halo)                                        \
+  if (field.GetHalo() < halo) {                                       \
+    throw std::runtime_error(                                         \
+        FILELINE + ": required " + std::to_string(halo) +             \
+        " halos for field '" + field.GetName() + "' but only " +      \
+        std::to_string(field.GetHalo()) + " are valid");              \
   }
