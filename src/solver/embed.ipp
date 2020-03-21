@@ -13,7 +13,12 @@ void Embed<M>::Init(const FieldNode<Scal>& fnl) {
     fnl_ = fnl;
     InitFaces(fnl_, fft_, ffpoly_, ffs_, m);
     InitCells(fnl_, ffs_, fct_, fcn_, fca_, fcs_, fcv_, m);
-
+    m.Comm(&fcv_);
+    m.Comm(&fcs_);
+    m.Comm(&fca_);
+    m.Comm(&fcn_);
+  }
+  if (sem()) {
     // volume of neighbor cells
     fcvst3_.Reinit(m, 0);
     for (auto c : eb.Cells()) {
@@ -36,6 +41,7 @@ void Embed<M>::Init(const FieldNode<Scal>& fnl) {
       fc_cell_center_[c] = GetCellCenter0(c);;
     }
   }
+  if (sem()) {}
 }
 
 template <class M>

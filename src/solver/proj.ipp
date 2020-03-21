@@ -118,6 +118,10 @@ struct Proj<EB_>::Imp {
       const FieldFaceb<Scal>& ffv, const FieldCell<Vect>& fc_accel,
       const Scal dt) {
     auto sem = m.GetSem("advection");
+    struct {
+      FieldCell<Scal> fc_sum;
+    } * ctx(sem);
+    auto& fc_sum = ctx->fc_sum;
     for (size_t d = 0; d < dim; ++d) {
       if (sem("local" + std::to_string(d))) {
         const auto mebc = GetScalarCond(me_vel_, d, m);
@@ -133,8 +137,8 @@ struct Proj<EB_>::Imp {
           ffu = UEB::InterpolateUpwind(fcu, mebc, par.convsc, fcg, ffv, eb);
         }
         ffu.SetName(FILELINE + ":ffu");
-        FieldCell<Scal> fc_sum(eb, 0);
         ffu.CheckHalo(0);
+        fc_sum.Reinit(eb, 0);
         for (auto c : eb.Cells()) {
           Scal sum = 0;
           eb.LoopNci(c, [&](auto q) {
@@ -144,6 +148,9 @@ struct Proj<EB_>::Imp {
           });
           fc_sum[c] = sum;
         }
+        m.Comm(&fc_sum);
+      }
+      if (sem("redist" + std::to_string(d))) {
         //fc_sum = UEB::RedistributeCutCellsAdvection(fc_sum, ffv, 1, dt, eb);
         fc_sum = UEB::RedistributeCutCells(fc_sum, eb);
         for (auto c : eb.Cells()) {
@@ -159,18 +166,25 @@ struct Proj<EB_>::Imp {
       m.Comm(&fcvel);
       fcvel.SetHalo(2);
     }
+    if (sem()) {
+      // FIXME: empty stage to finish communication in halo cells
+    }
   }
   void DiffusionExplicit(
       FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvel_time_prev,
       const FieldCell<Scal>& fc_dens, const Scal dt) {
     auto sem = m.GetSem("diffusion");
+    struct {
+      FieldCell<Scal> fc_sum;
+    } * ctx(sem);
+    auto& fc_sum = ctx->fc_sum;
     for (size_t d = 0; d < dim; ++d) {
       if (sem("local" + std::to_string(d))) {
         const auto mebc = GetScalarCond(me_vel_, d, m);
         const auto fcu = GetComponent(fcvel, d);
         const FieldFaceb<Scal> ffg = UEB::Gradient(fcu, mebc, eb);
-        FieldCell<Scal> fc_sum(eb, 0);
         ffg.CheckHalo(0);
+        fc_sum.Reinit(eb, 0);
         for (auto c : eb.Cells()) {
           Scal sum = 0;
           eb.LoopNci(c, [&](auto q) {
@@ -180,6 +194,9 @@ struct Proj<EB_>::Imp {
           });
           fc_sum[c] = sum;
         }
+        m.Comm(&fc_sum);
+      }
+      if (sem("redist" + std::to_string(d))) {
         fc_sum = UEB::RedistributeCutCells(fc_sum, eb);
         for (auto c : eb.Cells()) {
           fcvel[c][d] = fcvel_time_prev[c][d] +
@@ -278,7 +295,7 @@ struct Proj<EB_>::Imp {
   // fck: diagonal coefficient
   // ffv: flux
   FieldFaceb<ExprFace> GetFlux(
-      const FieldCell<Scal>& fcp, const FieldFaceb<Scal>& ffv, Scal dt) {
+      const FieldCell<Scal>&, const FieldFaceb<Scal>& ffv, Scal dt) {
     FieldFaceb<ExprFace> ffe =
         UEB::GradientImplicit(FieldCell<Scal>(eb, 0), {}, eb);
     eb.LoopFaces([&](auto cf) { //

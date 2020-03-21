@@ -57,32 +57,34 @@ class UFluid {
       // and compute total fluxes
       mebc.LoopBCond(eb, [&](auto cf, IdxCell c, auto& bc) {
         const auto nci = bc.nci;
-        if (m.IsInner(c)) {
-          switch (bc.type) {
-            case BCondFluidType::wall:
-            case BCondFluidType::slipwall:
-            case BCondFluidType::inlet:
-            case BCondFluidType::inletflux:
-            case BCondFluidType::symm: {
-              const Scal q = (nci == 0 ? -1. : 1.);
+        switch (bc.type) {
+          case BCondFluidType::wall:
+          case BCondFluidType::slipwall:
+          case BCondFluidType::inlet:
+          case BCondFluidType::inletflux:
+          case BCondFluidType::symm: {
+            const Scal q = (nci == 0 ? -1 : 1);
+            if (m.IsInner(c)) {
               fluxin += bc.velocity.dot(eb.GetSurface(cf)) * q;
-              break;
             }
-            case BCondFluidType::outlet: {
-              const Scal q = (nci == 0 ? 1 : -1);
-              Vect vel = Extrapolate<M>()(eb.GetFaceCenter(cf), c, fcvel, eb);
-              vel = vel * relax + mebc_vel.at(cf).val * (1 - relax);
-              const Vect n = eb.GetNormal(cf);
-              Scal vn = vel.dot(n);
-              // clip normal component, let only positive
-              // (otherwise reversed flow leads to instability)
-              vn = (q > 0 ? std::max(0., vn) : std::min(0., vn));
-              vel = n * vn;
+            break;
+          }
+          case BCondFluidType::outlet: {
+            const Scal q = (nci == 0 ? 1 : -1);
+            Vect vel = Extrapolate<M>()(eb.GetFaceCenter(cf), c, fcvel, eb);
+            vel = vel * relax + mebc_vel.at(cf).val * (1 - relax);
+            const Vect n = eb.GetNormal(cf);
+            Scal vn = vel.dot(n);
+            // clip normal component, let only positive
+            // (otherwise reversed flow leads to instability)
+            vn = (q > 0 ? std::max(0., vn) : std::min(0., vn));
+            vel = n * vn;
+            if (m.IsInner(c)) {
               fluxout += vel.dot(eb.GetSurface(cf)) * q;
               areaout += eb.GetArea(cf);
-              mebc_vel.at(cf).val = vel;
-              break;
             }
+            mebc_vel.at(cf).val = vel;
+            break;
           }
         }
       });
@@ -102,14 +104,12 @@ class UFluid {
       const Scal velcor = (fluxin - fluxout) / areaout;
 
       // Apply correction on outlet faces
-      mebc.LoopBCond(eb, [&](auto cf, IdxCell c, auto& bc) {
+      mebc.LoopBCond(eb, [&](auto cf, IdxCell, auto& bc) {
         const auto nci = bc.nci;
-        if (m.IsInner(c)) {
-          if (bc.type == BCondFluidType::outlet) {
-            const Scal q = (nci == 0 ? 1. : -1.);
-            const Vect n = eb.GetNormal(cf);
-            mebc_vel.at(cf).val += n * (velcor * q);
-          }
+        if (bc.type == BCondFluidType::outlet) {
+          const Scal q = (nci == 0 ? 1. : -1.);
+          const Vect n = eb.GetNormal(cf);
+          mebc_vel.at(cf).val += n * (velcor * q);
         }
       });
     }
@@ -136,31 +136,25 @@ class UFluid {
     auto& area = ctx->area;
 
     if (sem("local")) {
-      flux_target.resize(max_id);
-      flux_current.resize(max_id);
-      area.resize(max_id);
-
-      for (size_t id = 0; id < max_id; ++id) {
-        flux_target[id] = 0;
-        flux_current[id] = 0;
-        area[id] = 0;
-      }
+      flux_target.resize(max_id, 0);
+      flux_current.resize(max_id, 0);
+      area.resize(max_id, 0);
 
       // Extrapolate velocity to inlet from neighbor cells
       // and compute total fluxes
       mebc.LoopBCond(eb, [&](auto cf, IdxCell c, auto& bc) {
         const auto nci = bc.nci;
-        if (m.IsInner(c)) {
-          if (bc.type == BCondFluidType::inletflux) {
-            const size_t id = 0; // TODO: implement other id's
-            const Scal q = (nci == 0 ? -1. : 1.);
+        if (bc.type == BCondFluidType::inletflux) {
+          const size_t id = 0; // TODO: implement other id's
+          const Scal q = (nci == 0 ? -1. : 1.);
+          // extrapolate velocity
+          const Vect vel = fcvel[c].proj(eb.GetNormal(cf));
+          if (m.IsInner(c)) {
             flux_target[id] += bc.velocity.dot(eb.GetSurface(cf)) * q;
-            // extrapolate velocity
-            const Vect vel = fcvel[c].proj(eb.GetNormal(cf));
             flux_current[id] += vel.dot(eb.GetSurface(cf)) * q;
             area[id] += eb.GetArea(cf);
-            mebc_vel.at(cf).val = vel;
           }
+          mebc_vel.at(cf).val = vel;
         }
       });
 
@@ -175,14 +169,12 @@ class UFluid {
       for (size_t id = 0; id < max_id; ++id) {
         // additive correction of velocity
         const Scal velcor = (flux_target[id] - flux_current[id]) / area[id];
-        mebc.LoopBCond(eb, [&](auto cf, IdxCell c, auto& bc) {
+        mebc.LoopBCond(eb, [&](auto cf, IdxCell, auto& bc) {
           const auto nci = bc.nci;
-          if (m.IsInner(c)) {
-            if (bc.type == BCondFluidType::inletflux) {
-              const Scal q = (nci == 0 ? -1. : 1.);
-              const Vect n = eb.GetNormal(cf);
-              mebc_vel.at(cf).val += n * (velcor * q);
-            }
+          if (bc.type == BCondFluidType::inletflux) {
+            const Scal q = (nci == 0 ? -1. : 1.);
+            const Vect n = eb.GetNormal(cf);
+            mebc_vel.at(cf).val += n * (velcor * q);
           }
         });
       }
