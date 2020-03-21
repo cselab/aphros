@@ -113,13 +113,6 @@ inside_inside(struct Inside * q, double u, double v, double w)
   return m % 2;
 }
 
-int
-off_read(FILE * f, int * n, int ** tri)
-{
-  fscanf(
-  return 0;
-}
-
 static int
 get(int i, const double x[], const double y[], const double z[], /**/ double a[3])
 {

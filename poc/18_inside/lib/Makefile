@@ -6,21 +6,19 @@ PREFIX = $(CHPREFIX)
 
 O = \
 bbox.o\
-main.o\
 err.o\
+main.o\
 memory.o\
+off.o\
 predicate.o\
 
-L = libtable.a
+L = libinside.a
 H = inside.h
 
-libtable.a: $O; ar rv $@ $O && ranlib $@
+$L: $O; ar rv $@ $O && ranlib $@
 
 .c.o:; $(CC) -c $(CFLAGS) $<
-
-main.o: err.h memory.h
-err.o: err.h
-memory.o: memory.h
+include dep.mk
 
 .c:
 %: %.c
