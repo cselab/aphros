@@ -2,12 +2,15 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "bbox.h"
 #include "err.h"
 #include "memory.h"
 #include "predicate.h"
 #include "inside.h"
+
+#define SIZE (9999)
 
 static char me[] = "inside";
 static int get(int, const double[], const double[], const double[], /**/ double a[3]);
@@ -108,6 +111,13 @@ inside_inside(struct Inside * q, double u, double v, double w)
     m += predicate_ray(d, e, a, b, c);
   }
   return m % 2;
+}
+
+int
+off_read(FILE * f, int * n, int ** tri)
+{
+  fscanf(
+  return 0;
 }
 
 static int
