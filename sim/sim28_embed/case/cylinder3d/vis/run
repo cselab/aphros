@@ -1,0 +1,2 @@
+./vort.py ../omm_*.xmf || true
+r=30 r.pngmp4
