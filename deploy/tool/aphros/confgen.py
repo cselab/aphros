@@ -89,6 +89,13 @@ class Bc:
     def Wall(self, geom, velocity):
         s = "wall {:}".format(VectToStr(velocity))
         self.__Append(s, geom)
+    def WallRotation(self, geom, center, omega):
+        s = "wall_rotation {:} {:}".format(VectToStr(center), VectToStr(omega))
+        self.__Append(s, geom)
+    def WallRotationMagn(self, geom, center, omega):
+        s = "wall_rotation_magn {:} {:}".format(
+                VectToStr(center), VectToStr(omega))
+        self.__Append(s, geom)
     def SlipWall(self, geom):
         s = "slipwall"
         self.__Append(s, geom)

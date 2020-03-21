@@ -844,6 +844,7 @@ auto UEmbed<M>::RedistributeCutCells(const FieldCell<T>& fcu, const EB& eb)
     -> FieldCell<T> {
   auto& m = eb.GetMesh();
   FieldCell<T> fcr = fcu;
+  fcu.CheckHalo(1);
   for (auto c : eb.Cells()) {
     const Scal v0 = m.GetVolume(c);
     const Scal v = eb.GetVolume(c);
@@ -884,6 +885,7 @@ template <class M>
 auto UEmbed<M>::RedistributeCutCellsAdvection(
     const FieldCell<Scal>& fcs, const FieldEmbed<Scal>& ffv, Scal cfl, Scal dt,
     const Embed<M>& eb) -> FieldCell<Scal> {
+  fcs.CheckHalo(1);
   // stability criterion:
   // dt < cfl * h / velocity
   // dt < cfl * V / volumeflux
