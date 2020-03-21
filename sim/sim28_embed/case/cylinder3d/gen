@@ -42,12 +42,15 @@ geom.Box([lx, 0, 0], [gapout, inf, inf])
 
 shape = par["shape"]
 if shape == "humanoid_ellip":
-    geom.Sphere(center, [0.5,0.5,2])
-    geom.Sphere(center + [0,0,1], [0.8,0.8,0.8])
-    geom.Sphere(center + [0,0,0.4], [0.4,1.5,0.4])
-    geom.Sphere(center + [0.8,-1.2,0.4], [1,0.3,0.3])
-    geom.Sphere(center + [0.8,+1.2,0.4], [1,0.3,0.3])
-    geom.Box(center + [0,0,2], [inf,inf,0.3], invert=1, intersect=1)
+    for c in [center + [-1,0,0], center + [2,0,0]]:
+        geom.Sphere(c, [0.5,0.5,2])
+        geom.Sphere(c + [0,0,1], [0.8,0.8,0.8])
+        geom.Sphere(c + [0.64,0.35,1], [0.15]*3)
+        geom.Sphere(c + [0.64,-0.35,1], [0.15]*3)
+        geom.Sphere(c + [0,0,0.4], [0.4,1.5,0.4])
+        geom.Sphere(c + [0.8,-1.2,0.4], [1,0.3,0.3])
+        geom.Sphere(c + [0.8,+1.2,0.4], [1,0.3,0.3])
+        geom.Box(c + [0,0,2], [inf,inf,0.4], invert=1, intersect=1)
 else:
     geom.Cylinder(center, [0, 0, 1], radius, [-inf, inf])
 
