@@ -11,23 +11,27 @@ $me -r ratio -p degree > vtk
 exit 2
 }
 
-Iflag=0
+Rflag=0 Pflag=0
 while test $# -ne 0
 do case "$1" in
        -h) usg ;;
-       -i) shift
-           if test $# -eq 0; then err '-i needs an argument'; fi
-           i=$1; shift; Iflag=1 ;;
+       -r) shift
+           if test $# -eq 0; then err '-r needs an argument'; fi
+           r=$1; shift; Rflag=1 ;;
+       -p) shift
+           if test $# -eq 0; then err '-p needs an argument'; fi
+           p=$1; shift; Pflag=1 ;;
        *) err "unknown argument '$1'" ;;
    esac
 done
 
-if test $Iflag -eq 0; then err '-i is not set'; fi
+if test $Rflag -eq 0; then err '-r is not set'; fi
+if test $Pflag -eq 0; then err '-p is not set'; fi
 
 tmp=/tmp/grid.$$
 trap 'rm -f $tmp; exit 2' 1 2 3 14 15
 
-awk -v i="$i" -v tmp=$tmp '
+awk -v r="$r" -v p="$p" -v tmp=$tmp '
 BEGIN {
     ox = -0.5
     oy = 0
