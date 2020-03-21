@@ -2,6 +2,7 @@
 
 import aphros
 import os
+import numpy as np
 
 # default
 par = {
@@ -12,6 +13,7 @@ par = {
   "np": 128,
   "tl": 1440,
   "bs": 32,
+  "shape": "cylinder"
         }
 
 exec(open("par.py").read(), None, par)
@@ -28,16 +30,26 @@ ly = extent * 0.5
 lz = extent * 0.5
 hx = lx / nx
 
-center = [lx * 0.3, ly * 0.5, 0]
+center = np.array([lx * 0.3, ly * 0.5, lz * 0.5])
 radius = 0.5
 gapin = 0.
 gapout = 0
 
 # geometry
 geom = aphros.Geometry()
-geom.Cylinder(center, [0, 0, 1], radius, [-inf, inf])
 geom.Box([0, 0, 0], [gapin, inf, inf])
 geom.Box([lx, 0, 0], [gapout, inf, inf])
+
+shape = par["shape"]
+if shape == "humanoid_ellip":
+    geom.Sphere(center, [0.5,0.5,2])
+    geom.Sphere(center + [0,0,1], [0.8,0.8,0.8])
+    geom.Sphere(center + [0,0,0.4], [0.4,1.5,0.4])
+    geom.Sphere(center + [0.8,-1.2,0.4], [1,0.3,0.3])
+    geom.Sphere(center + [0.8,+1.2,0.4], [1,0.3,0.3])
+    geom.Box(center + [0,0,2], [inf,inf,0.3], invert=1, intersect=1)
+else:
+    geom.Cylinder(center, [0, 0, 1], radius, [-inf, inf])
 
 with open("body.dat", 'w') as f:
     f.write(geom.Generate())
@@ -45,18 +57,17 @@ with open("body.dat", 'w') as f:
 # boundary conditions
 bc = aphros.Bc()
 
+g = aphros.Geometry()
+g.Box([0, 0, 0], [inf, inf, inf])
+bc.Wall(g, velocity = [0, 0, 0])
 
 g = aphros.Geometry()
-g.Box([gapin, 0, 0], [eps, inf, inf])
+g.Box([gapin, 0, 0], [hx, inf, inf])
 bc.Inlet(g, velocity = [1, 0, 0])
 
 g = aphros.Geometry()
-g.Box([lx - gapout, 0, 0], [eps, inf, inf])
+g.Box([lx - gapout, 0, 0], [hx, inf, inf])
 bc.Outlet(g)
-
-g = aphros.Geometry()
-g.Cylinder(center, [0, 0, 1], radius + hx * 0.01, [-inf, inf])
-bc.Wall(g, velocity = [0, 0, 0])
 
 with open("bc.dat", 'w') as f:
     f.write(bc.Generate())
