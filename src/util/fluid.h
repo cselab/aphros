@@ -13,9 +13,11 @@ struct Extrapolate {
   template <class T>
   T operator()(Vect x, IdxCell c, const FieldCell<T>& fcu, const Embed<M>& eb) {
     // extrapolation from cell center
+    return fcu[c];
     // (using EvalLinearFit here results in slower convergence for steady flow)
-    //return fcu[c];
-    return EvalLinearFit(x, c, fcu, eb);
+    (void) x;
+    (void) eb;
+    //return EvalLinearFit(x, c, fcu, eb);
   }
   template <class T>
   T operator()(Vect, IdxCell c, const FieldCell<T>& fcu, const M&) {
@@ -79,7 +81,7 @@ class UFluid {
             // clip normal component, let only positive
             // (otherwise reversed flow leads to instability)
             vn = (q > 0 ? std::max(0., vn) : std::min(0., vn));
-            vel = n * vn;
+            vel = n * vn + vel.orth(n);
             if (m.IsInner(c)) {
               fluxout += vel.dot(eb.GetSurface(cf)) * q;
               areaout += eb.GetArea(cf);
