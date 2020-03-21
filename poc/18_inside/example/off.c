@@ -98,10 +98,12 @@ off_read(FILE * f, int *status, int * pnt, int ** ptri, int * pnv, double ** px,
       state = Ver;
       break;
     case Ver:
-      if (sscanf(s, "%e %e %e", &x[v], &y[v], &z[v]) != 3) {
+      if (sscanf(s, "%f %f %f", &x[v], &y[v], &z[v]) != 3) {
 	fprintf(stderr, "%s:%d: expcting vertices got '%s'\n", __FILE__, __LINE__, s);
 	goto err;
       }
+        fprintf(stderr, "%g %g %g\n", x[v], y[v], z[v]);
+      exit(2);
       v++;
       if (v == nv)
 	state = Tri;
