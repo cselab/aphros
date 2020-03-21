@@ -14,9 +14,13 @@ Solver for incompressible multiphase flows with surface tension.
 
 ## Documentation
 
-<https://cselab.github.io/hydro/doc/>
+<https://cselab.github.io/hydro/doc>
 
 generated from `<ROOT>/doc/sphinx`
+
+## Requirements
+
+C++11, cmake, MPI library, hdf5 library with MPI.
 
 ## Build and install
 
