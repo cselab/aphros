@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eu
+
 cat > par.py << EOF
 Re = 40.
 extent = 40.
