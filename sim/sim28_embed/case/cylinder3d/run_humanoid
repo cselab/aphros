@@ -1,15 +1,13 @@
 #!/bin/bash
 
-set -eu
-
 cat > par.py << EOF
 Re = 1000.
 extent = 10.
 dim = 3
 #np = 128
 #nx = 128
-np = 216
-nx = 192
+np = 256
+nx = 256
 
 shape = "humanoid_ellip"
 
