@@ -170,6 +170,29 @@ void Embed<M>::InitFaces(
     }
     fft[f] =
         (cut ? Type::cut : xx.size() <= 2 ? Type::excluded : Type::regular);
+
+    const auto gs = m.GetGlobalSize();
+    auto exclude = [&](IdxFace f) -> bool {
+      auto p = m.GetIndexFaces().GetMIdxDir(f);
+      const auto w = p.first;
+      const size_t df(p.second);
+      for (size_t d = 0; d < dim; ++d) {
+        if (d == df) {
+          if (!m.flags.is_periodic[d] && (w[d] < 0 || w[d] > gs[d])) {
+            return true;
+          }
+        } else { // d != df
+          if (!m.flags.is_periodic[d] && (w[d] < 0 || w[d] >= gs[d])) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    if (exclude(f)) {
+      fft[f] = Type::excluded;
+    }
+
     switch (fft[f]) {
       case Type::regular: {
         ffs[f] = m.GetArea(f);

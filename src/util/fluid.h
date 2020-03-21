@@ -11,10 +11,11 @@ template <class M>
 struct Extrapolate {
   using Vect = typename M::Vect;
   template <class T>
-  T operator()(Vect, IdxCell c, const FieldCell<T>& fcu, const Embed<M>&) {
+  T operator()(Vect x, IdxCell c, const FieldCell<T>& fcu, const Embed<M>& eb) {
     // extrapolation from cell center
     // (using EvalLinearFit here results in slower convergence for steady flow)
-    return fcu[c];
+    //return fcu[c];
+    return EvalLinearFit(x, c, fcu, eb);
   }
   template <class T>
   T operator()(Vect, IdxCell c, const FieldCell<T>& fcu, const M&) {
