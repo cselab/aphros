@@ -14,36 +14,6 @@ struct Bbox {
     double hi[3];
 };
 
-static double
-array_min(int n, const double a[])
-{
-    int i;
-    double x;
-
-    for (i = 0, x = a[0]; i < n; i++)
-        if (a[i] < x)
-            x = a[i];
-    return x;
-}
-
-static double
-array_max(int n, const double a[])
-{
-    int i;
-    double x;
-
-    for (i = 0, x = a[0]; i < n; i++)
-        if (a[i] > x)
-            x = a[i];
-    return x;
-}
-
-#define DI(D, d) \
-	do { \
-		q->lo[D] = array_min(n, d); \
-		q->hi[D] = array_max(n, d); \
-	} while (0)
-
 int
 bbox_ini(struct Bbox** pq)
 {
@@ -62,56 +32,46 @@ bbox_fin(struct Bbox* q)
 }
 
 int
-bbox_update(struct Bbox* q, int n, const double * x, const double * y, const double * z)
+bbox_update(struct Bbox* q, int n, const double * ver)
 {
-    DI(X, x);
-    DI(Y, y);
-    DI(Z, z);
-    return 0;
+  int i;
+  int j;
+  double x;
+  double y;
+  double z;
+  for (j = i = 0; i < n; i++) {
+    x = ver[j++];
+    y = ver[j++];
+    z = ver[j++];
+    if (i == 0) {
+      q->lo[X] = q->hi[X] = x;
+      q->lo[Y] = q->hi[Y] = y;
+      q->lo[Z] = q->hi[Z] = z;
+    } else {
+      if (x > q->lo[X]) q->lo[X] = x;
+      if (y > q->lo[Y]) q->lo[Y] = y;
+      if (z > q->lo[Z]) q->lo[Z] = z;
+      if (x < q->hi[X]) q->hi[X] = x;
+      if (y > q->hi[Y]) q->hi[Y] = y;
+      if (z > q->hi[Z]) q->hi[Z] = z;
+    }
+  }
+  return 0;
 }
 
 int
-bbox_inside(struct Bbox* q, double x, double y, double z)
+bbox_inside(struct Bbox* q, const double r[3])
 {
-#define CM(d, D) (lo[D] < d && d < hi[D])
+#define CM(D) (lo[D] < r[D] && r[D] < hi[D])
     double *lo, *hi;
 
     lo = q->lo;
     hi = q->hi;
-    return CM(x, X) && CM(y, Y) && CM(z, Z);
-}
-
-int
-bbox_lo(struct Bbox* q, double ** p)
-{
-    *p = q->lo;
-    return 0;
-}
-
-int
-bbox_hi(struct Bbox* q, double ** p)
-{
-    *p = q->hi;
-    return 0;
-}
-
-double
-bbox_xhi(struct Bbox* q)
-{
-    return q->hi[X];
+    return CM(X) && CM(Y) && CM(Z);
 }
 
 double
 bbox_zhi(struct Bbox* q)
 {
     return q->hi[Z];
-}
-
-int
-bbox_center(struct Bbox* q, double c[3])
-{
-    c[X] = (q->lo[X] + q->hi[X]) / 2;
-    c[Y] = (q->lo[Y] + q->hi[Y]) / 2;
-    c[Z] = (q->lo[Z] + q->hi[Z]) / 2;
-    return 0;
 }

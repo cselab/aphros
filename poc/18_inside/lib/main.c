@@ -13,7 +13,6 @@
 #define SIZE (9999)
 
 static char me[] = "inside";
-static int get(int, const double[], const double[], const double[], /**/ double a[3]);
 enum {
       X, Y, Z
 };
@@ -22,24 +21,8 @@ struct Inside {
   int n;
   struct Bbox *bbox;
   const int *tri;
-  const double *x;
-  const double *y;
-  const double *z;
-  int Update;
+  const double *ver;
 };
-
-int
-inside_ini(struct Inside ** pq)
-{
-  struct Inside *q;
-
-  MALLOC(1, &q);
-  bbox_ini(&q->bbox);
-  predicate_ini();
-  q->Update = 0;
-  *pq = q;
-  return 0;
-}
 
 int
 inside_fin(struct Inside * q)
@@ -50,22 +33,30 @@ inside_fin(struct Inside * q)
 }
 
 int
-inside_update(struct Inside * q, int n, const int * tri, const double * x, const double * y,
-	      const double * z)
+inside_ini(int n, const int * tri, const double * ver, struct Inside ** pq)
 {
+  int i;
+  int m;
+  struct Inside *q;
+  
+  MALLOC(1, &q);
+  bbox_ini(&q->bbox);
+  predicate_ini();
   q->n = n;
   q->tri = tri;
-  q->x = x;
-  q->y = y;
-  q->z = z;
-  bbox_update(q->bbox, n, x, y, z);  
-  q->Update = 1;
+  q->ver = ver;
+  m = 0;
+  for (i = 0; i < 3*n; i++)
+    if (tri[i] > m)
+      m = tri[i];
+  bbox_update(q->bbox, m, ver);
+  *pq = q;
   return 0;
 }
 
 #define max(a, b) ( (a) > (b) ? (a) : (b) )
 int
-inside_inside(struct Inside * q, double u, double v, double w)
+inside_inside(struct Inside * q, const double r[3])
 {
   int n;
   int t;
@@ -74,50 +65,36 @@ inside_inside(struct Inside * q, double u, double v, double w)
   int k;
   int m;
   const int *tri;
-  const double *x;
-  const double *y;
-  const double *z;
-  double a[3];
-  double b[3];
-  double c[3];
+  const double *ver;
+  const double *a;
+  const double *b;
+  const double *c;  
   double d[3];
   double e[3];
   double zm;
   double eps;
   struct Bbox * bbox;
 
-  if (q->Update == 0)
-    ERR(("inside_update was not called"));
   eps = 1e-10;
-  x = q->x;
-  y = q->y;
-  z = q->z;
+  ver = q->ver;
   n = q->n;
   tri = q->tri;
   bbox = q->bbox;
-  if (!bbox_inside(bbox, u, v, w))
+  if (!bbox_inside(bbox, r))
     return 1;
   zm = bbox_zhi(bbox);
-  e[X] = u;
-  e[Y] = v;
-  e[Z] = max(zm, w) + eps;
+  e[X] = r[X];
+  e[Y] = r[Y];
+  e[Z] = max(zm, r[Z]) + eps;
   for (t = m = 0; t < n; t++) {
     i = *tri++;
     j = *tri++;
     k = *tri++;
-    get(i, x, y, z, a);
-    get(j, x, y, z, b);
-    get(k, x, y, z, c);
+    a = &ver[3*i];
+    b = &ver[3*j];
+    c = &ver[3*k];
     m += predicate_ray(d, e, a, b, c);
   }
   return m % 2;
 }
 
-static int
-get(int i, const double x[], const double y[], const double z[], /**/ double a[3])
-{
-  a[X] = x[i];
-  a[Y] = y[i];
-  a[Z] = z[i];
-  return 0;
-}

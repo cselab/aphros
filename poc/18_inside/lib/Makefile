@@ -11,13 +11,14 @@ main.o\
 memory.o\
 off.o\
 predicate.o\
+predicate/main.o\
 
 L = libinside.a
 H = inside.h
 
 $L: $O; ar rv $@ $O && ranlib $@
 
-.c.o:; $(CC) -c $(CFLAGS) $<
+.c.o:; $(CC) -c $(CFLAGS) $< -o $@
 include dep.mk
 
 .c:

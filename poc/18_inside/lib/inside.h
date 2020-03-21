@@ -1,11 +1,9 @@
 struct Inside;
 
-int inside_ini(struct Inside **);
+int inside_ini(int, const int * tri, const double * ver, struct Inside **);
 int inside_fin(struct Inside *);
-int inside_update(struct Inside *, int, const int * tri, const double * x, const double * y, const double * z);
-int inside_inside(struct Inside *, double, double, double);
+int inside_inside(struct Inside *, const double r[3]);
 
 int off_read(FILE *, int * status, int * nt, int ** tri, int * nv, double ** ver);
 int off_fin(int *tri, double *ver);
-int off_write(int nt, int *, int nv, double *, FILE *);
-
+int off_write(int nt, const int *, int nv, const double *, FILE *);

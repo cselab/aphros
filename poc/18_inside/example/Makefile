@@ -8,6 +8,7 @@ M_LDFLAGS = -L../lib -linside
 
 M = \
 off\
+point\
 
 all: $M
 .c.o:; $(CC) -c $(CFLAGS) $(M_CFLAGS) $<
