@@ -5,9 +5,12 @@ include $(shell ap.makesim)
 par.conf par.make: gen par.py
 	./gen
 
-conf: par.conf
+conf: par.conf add.conf
 
-claen::
+add.conf:
+	touch $@
+
+clean::
 	rm -f par.make
 
 cleandat::

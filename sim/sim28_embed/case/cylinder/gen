@@ -60,5 +60,8 @@ var = aphros.Var()
 var['extent'] = float(extent)
 var['mu1'] = 1. / Re
 
+for k in par:
+    var[k] = par[k]
+
 with open("par.conf", 'w') as f:
     f.write(var.Generate())

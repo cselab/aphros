@@ -4,7 +4,7 @@ set -eu
 
 getval () {
   prefix=$1
-  r=$(grep "$prefix" out)
+  r=$(grep "$prefix" out | tail -n 1)
   echo ${r#$prefix}
 }
 
