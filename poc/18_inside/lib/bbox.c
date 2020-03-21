@@ -48,10 +48,10 @@ bbox_update(struct Bbox* q, int n, const double * ver)
       q->lo[Y] = q->hi[Y] = y;
       q->lo[Z] = q->hi[Z] = z;
     } else {
-      if (x > q->lo[X]) q->lo[X] = x;
-      if (y > q->lo[Y]) q->lo[Y] = y;
-      if (z > q->lo[Z]) q->lo[Z] = z;
-      if (x < q->hi[X]) q->hi[X] = x;
+      if (x < q->lo[X]) q->lo[X] = x;
+      if (y < q->lo[Y]) q->lo[Y] = y;
+      if (z < q->lo[Z]) q->lo[Z] = z;
+      if (x > q->hi[X]) q->hi[X] = x;
       if (y > q->hi[Y]) q->hi[Y] = y;
       if (z > q->hi[Z]) q->hi[Z] = z;
     }

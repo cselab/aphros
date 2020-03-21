@@ -27,7 +27,7 @@ struct Inside {
 int
 inside_fin(struct Inside * q)
 {
-  bbox_fin(q->bbox);  
+  bbox_fin(q->bbox);
   FREE(q);
   return 0;
 }
@@ -38,7 +38,7 @@ inside_ini(int n, const int * tri, const double * ver, struct Inside ** pq)
   int i;
   int m;
   struct Inside *q;
-  
+
   MALLOC(1, &q);
   bbox_ini(&q->bbox);
   predicate_ini();
@@ -68,8 +68,7 @@ inside_inside(struct Inside * q, const double r[3])
   const double *ver;
   const double *a;
   const double *b;
-  const double *c;  
-  double d[3];
+  const double *c;
   double e[3];
   double zm;
   double eps;
@@ -80,8 +79,9 @@ inside_inside(struct Inside * q, const double r[3])
   n = q->n;
   tri = q->tri;
   bbox = q->bbox;
-  if (!bbox_inside(bbox, r))
-    return 1;
+  if (!bbox_inside(bbox, r)) {
+    return 0;
+  }
   zm = bbox_zhi(bbox);
   e[X] = r[X];
   e[Y] = r[Y];
@@ -93,8 +93,7 @@ inside_inside(struct Inside * q, const double r[3])
     a = &ver[3*i];
     b = &ver[3*j];
     c = &ver[3*k];
-    m += predicate_ray(d, e, a, b, c);
+    m += predicate_ray(r, e, a, b, c);
   }
   return m % 2;
 }
-
