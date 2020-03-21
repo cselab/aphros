@@ -10,15 +10,10 @@ template <class M>
 void Embed<M>::Init(const FieldNode<Scal>& fnl) {
   auto sem = m.GetSem("init");
   if (sem()) {
+    CHECKHALO(fnl, 2);
     fnl_ = fnl;
     InitFaces(fnl_, fft_, ffpoly_, ffs_, m);
     InitCells(fnl_, ffs_, fct_, fcn_, fca_, fcs_, fcv_, m);
-    m.Comm(&fcv_);
-    m.Comm(&fcs_);
-    m.Comm(&fca_);
-    m.Comm(&fcn_);
-  }
-  if (sem()) {
     // volume of neighbor cells
     fcvst3_.Reinit(m, 0);
     for (auto c : eb.Cells()) {
@@ -207,6 +202,7 @@ void Embed<M>::InitCells(
   fca.Reinit(m, GetNan<Scal>());
   fcs.Reinit(m, 0);
   fcv.Reinit(m, 0);
+  // cell types
   for (auto c : m.AllCells()) {
     size_t q = 0; // number of nodes with fnl > 0
     const size_t mi = m.GetNumNodes(c);
@@ -217,7 +213,26 @@ void Embed<M>::InitCells(
       }
     }
     fct[c] = (q == mi ? Type::regular : q > 0 ? Type::cut : Type::excluded);
+  }
 
+  // exclude cells outside domain
+  for (auto c : m.AllCells()) {
+    const auto gs = m.GetGlobalSize();
+    auto exclude = [&](IdxCell c) -> bool {
+      const auto w = m.GetIndexCells().GetMIdx(c);
+      for (size_t d = 0; d < dim; ++d) {
+        if (!m.flags.is_periodic[d] && (w[d] < 0 || w[d] >= gs[d])) {
+          return true;
+        }
+      }
+      return false;
+    };
+    if (exclude(c)) {
+      fct[c] = Type::excluded;
+    }
+  }
+
+  for (auto c : m.AllCells()) {
     if (fct[c] == Type::cut) {
       // calc normal
       {

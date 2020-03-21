@@ -158,6 +158,7 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
       fnl[n] = -fnl[n];
     }
   }
+  fnl.SetHalo(2);
   return fnl;
 }
 
