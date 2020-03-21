@@ -1,4 +1,4 @@
-S = ../../..
+S = ../../../tool/
 PREFIX = ..
 include $S/make/html.mk
 include $S/make/js.mk
