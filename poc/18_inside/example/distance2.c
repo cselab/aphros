@@ -50,8 +50,8 @@ main(int argc, const char** argv) {
     printf("%.16g\n", data);
   }
   if (getenv("LOG") != NULL) {
-    fprintf(stderr, "in:  %8.d\n", in);
-    fprintf(stderr, "out: %8.d\n", out);
+    fprintf(stderr, "in:  %07d\n", in);
+    fprintf(stderr, "out: %07d\n", out);
   }
   inside_fin(inside);
   inside_mesh_fin(tri, ver);

@@ -13,3 +13,15 @@ target_link_libraries(${T} inside)
 set(T point2)
 add_executable(${T} ${T}.c)
 target_link_libraries(${T} inside)
+
+set(T distance)
+add_executable(${T} ${T}.c)
+target_link_libraries(${T} inside)
+
+set(T distance2)
+add_executable(${T} ${T}.c)
+target_link_libraries(${T} inside)
+
+set(T circumradius)
+add_executable(${T} ${T}.c)
+target_link_libraries(${T} inside)

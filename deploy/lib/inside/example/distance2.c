@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <inside.h>
 
-const char* me = "point2";
+const char* me = "distance2";
 
 static void usg(void) {
   fprintf(stderr, "%s -p float float float < off\n", me);
@@ -16,7 +16,7 @@ main(int argc, const char** argv) {
   int nv;
   int *tri;
   double *ver;
-  int data;
+  double data;
   int in;
   int out;
   double p[3];
@@ -42,16 +42,16 @@ main(int argc, const char** argv) {
 
   in = out = 0;
   while (scanf("%lf %lf %lf", &p[X], &p[Y], &p[Z]) == 3) {
-    data = inside_inside(inside, p);
-    if (data == 0)
+    data = inside_distance(inside, p);
+    if (data > 0)
       out++;
     else
       in++;
-    printf("%d\n", data);
+    printf("%.16g\n", data);
   }
   if (getenv("LOG") != NULL) {
-    fprintf(stderr, "in:  %07d\n", in);
-    fprintf(stderr, "out: %07d\n", out);
+    fprintf(stderr, "in:  %8.d\n", in);
+    fprintf(stderr, "out: %8.d\n", out);
   }
   inside_fin(inside);
   inside_mesh_fin(tri, ver);

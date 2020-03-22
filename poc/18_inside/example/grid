@@ -40,9 +40,9 @@ BEGIN {
     ox = -lx/2
     oy = -ly/2
     oz = -lz/2
-    nx = 50
-    ny = 50
-    nz = 50
+    nx = 30
+    ny = 30
+    nz = 30
     sx = lx/nx
     sy = ly/ny
     sz = lz/nz
