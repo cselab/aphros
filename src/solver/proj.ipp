@@ -150,6 +150,10 @@ struct Proj<EB_>::Imp {
         }
         m.Comm(&fc_sum);
       }
+      if (sem()) {
+        // FIXME: empty stage to finish communication in halo cells
+        // fc_sum gets different buffer in next assignment
+      }
       if (sem("redist" + std::to_string(d))) {
         //fc_sum = UEB::RedistributeCutCellsAdvection(fc_sum, ffv, 1, dt, eb);
         fc_sum = UEB::RedistributeCutCells(fc_sum, eb);
@@ -195,6 +199,10 @@ struct Proj<EB_>::Imp {
           fc_sum[c] = sum;
         }
         m.Comm(&fc_sum);
+      }
+      if (sem()) {
+        // FIXME: empty stage to finish communication in halo cells
+        // fc_sum gets different buffer in next assignment
       }
       if (sem("redist" + std::to_string(d))) {
         fc_sum = UEB::RedistributeCutCells(fc_sum, eb);
