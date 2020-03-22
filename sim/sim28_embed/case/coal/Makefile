@@ -5,5 +5,10 @@ tl = 600
 
 include $(shell ap.makesim)
 
+add.conf:
+	touch $@
+
+conf: add.conf
+
 clean::
 	rm -vrf sc
