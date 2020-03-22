@@ -25,50 +25,76 @@ enum {
 };
 
 struct Inside {
-  int n;
+  int nt;
   struct Bbox *bbox;
   const int *tri;
   const double *ver;
+
+  struct {
+    double lo[2];
+    double size;
+    int *cap;
+    int *n;
+    int **data;
+    int nx;
+    int ny;
+  } list;
 };
 
 int
 inside_fin(struct Inside * q)
 {
+  int i;
   bbox_fin(q->bbox);
+  for (i = 0; i < q->list.nx*q->list.ny; i++)
+    FREE(q->list.data[i]);
+  FREE(q->list.cap);
+  FREE(q->list.data);
+  FREE(q->list.n);
   FREE(q);
   return 0;
 }
 
 int
-inside_ini(int n, const int * tri, const double * ver, struct Inside ** pq)
+inside_ini(int nt, const int * tri, const double * ver, struct Inside ** pq)
 {
-  int t;
-  int i;
-  int j;
-  int k;
-  int m;
   const double *a;
   const double *b;
   const double *c;
-  struct Inside *q;
-  double radii;
+  const double *hi;
+  const double *lo;
   double diameter;
-  double max_diameter;
+  double radii;
+  double size;
+  double x;
+  double y;
+  int *cap;
+  int **cell;
+  int *cnt;
+  int *n;
+  int **data;
+  int i;
+  int ix;
+  int iy;
+  int j;
+  int k;
+  int m;
+  int nx;
+  int ny;
+  int t;
+  struct Bbox *bbox;
+  struct Inside *q;
 
   MALLOC(1, &q);
-  bbox_ini(&q->bbox);
+  bbox_ini(&bbox);
   predicate_ini();
-  q->n = n;
-  q->tri = tri;
-  q->ver = ver;
   m = 0;
-  for (i = 0; i < 3*n; i++)
+  for (i = 0; i < 3*nt; i++)
     if (tri[i] > m)
       m = tri[i];
-  bbox_update(q->bbox, m, ver);
-
-  max_diameter = 0;
-  for (t = 0; t < n; t++) {
+  bbox_update(bbox, m, ver);
+  size = 0;
+  for (t = 0; t < nt; t++) {
     i = tri[3*t];
     j = tri[3*t+1];
     k = tri[3*t+2];
@@ -78,9 +104,50 @@ inside_ini(int n, const int * tri, const double * ver, struct Inside ** pq)
     if (circumradius(a, b, c, &radii) != 0)
       return 1;
     diameter = 2 * radii;
-    if (diameter > max_diameter)
-      max_diameter = diameter;
+    if (diameter > size)
+      size = diameter;
   }
+  bbox_lo(bbox, &lo);
+  bbox_hi(bbox, &hi);
+  nx = (hi[X] - lo[X] + size)/size;
+  ny = (hi[Y] - lo[Y] + size)/size;
+  MALLOC(nx*ny, &cap);
+  MALLOC(nx*ny, &n);
+  MALLOC(nx*ny, &data);
+  for (i = 0; i < nx*ny; i++) {
+    cap[i] = 1;
+    n[i] = 0;
+    MALLOC(1, &data[i]);
+  }
+
+  for (t = 0; t < nt; t++) {
+    i = tri[3*t];
+    a = &ver[3*i];
+    x = a[X] - lo[X];
+    y = a[Y] - lo[Y];
+    ix = x/size;
+    iy = y/size;
+    j = ix + iy * nx;
+    if (j < 0) j = 0;
+    if (j >= nx*ny) j = nx*ny - 1;
+    if (n[j] >= cap[j]) {
+      cap[j] *= 2;
+      REALLOC(cap[j], &data[j]);
+    }
+    data[j][n[j]++] = t;
+  }
+  q->nt = nt;
+  q->tri = tri;
+  q->ver = ver;
+  q->bbox = bbox;
+  q->list.lo[X] = lo[X];
+  q->list.lo[Y] = lo[Y];
+  q->list.size = size;
+  q->list.n = n;
+  q->list.cap = cap;
+  q->list.data = data;
+  q->list.nx = nx;
+  q->list.ny = ny;
   *pq = q;
   return 0;
 }
@@ -89,7 +156,7 @@ inside_ini(int n, const int * tri, const double * ver, struct Inside ** pq)
 int
 inside_inside(struct Inside * q, const double r[3])
 {
-  int n;
+  int nt;
   int t;
   int i;
   int j;
@@ -107,7 +174,7 @@ inside_inside(struct Inside * q, const double r[3])
 
   eps = 1e-10;
   ver = q->ver;
-  n = q->n;
+  nt = q->nt;
   tri = q->tri;
   bbox = q->bbox;
   if (!bbox_inside(bbox, r)) {
@@ -117,7 +184,7 @@ inside_inside(struct Inside * q, const double r[3])
   e[X] = r[X];
   e[Y] = r[Y];
   e[Z] = max(zm, r[Z]) + eps;
-  for (t = m = 0; t < n; t++) {
+  for (t = m = 0; t < nt; t++) {
     i = *tri++;
     j = *tri++;
     k = *tri++;
