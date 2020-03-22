@@ -1,7 +1,6 @@
 .POSIX:
 .SUFFIXES: .o .c
-CC = cc
-CFLAGS = -g -Og
+include ../conf.mk
 PREFIX = $(CHPREFIX)
 
 O = \

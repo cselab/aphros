@@ -1,8 +1,7 @@
 .POSIX:
 .SUFFIXES: .o .c
-CFLAGS = -g -Og
+include ../conf.mk
 PREFIX = $(CHPREFIX)
-LINK = $(CC)
 M_CFLAGS = -I../lib
 M_LDFLAGS = -L../lib -linside
 

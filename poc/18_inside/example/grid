@@ -6,7 +6,7 @@ err () { msg "$me: $@"; exit 2 ; }
 
 usg () {
     cat <<!
-$me -r ratio -p degree > vtk
+$me -i off > vtk
 !
 exit 2
 }
@@ -23,6 +23,9 @@ do case "$1" in
 done
 
 if test $Iflag -eq 0; then err '-i is not set'; fi
+if ! test -f "$i"
+then err "not a file '$i'"
+fi
 
 tmp=/tmp/grid.$$
 trap 'rm -f $tmp; exit 2' 1 2 3 14 15
@@ -33,9 +36,9 @@ BEGIN {
     ox = -lx/2
     oy = -ly/2
     oz = -lz/2
-    nx = 100
-    ny = 100
-    nz = 100
+    nx = 50
+    ny = 50
+    nz = 50
     sx = lx/nx
     sy = ly/ny
     sz = lz/nz

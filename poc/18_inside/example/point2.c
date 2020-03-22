@@ -18,6 +18,8 @@ main(int argc, const char** argv) {
   double *ver;
   int status;
   int data;
+  int in;
+  int out;
   double p[3];
   FILE *file;
   struct Inside *inside;
@@ -48,9 +50,19 @@ main(int argc, const char** argv) {
     exit(2);
   }
   inside_ini(nt, tri, ver, &inside);
+
+  in = out = 0;
   while (scanf("%lf %lf %lf", &p[X], &p[Y], &p[Z]) == 3) {
     data = inside_inside(inside, p);
+    if (data == 0)
+      out++;
+    else
+      in++;
     printf("%d\n", data);
+  }
+  if (getenv("LOG") != NULL) {
+    fprintf(stderr, "in:  %8.d\n", in);
+    fprintf(stderr, "out: %8.d\n", out);
   }
   inside_fin(inside);
   off_fin(tri, ver);
