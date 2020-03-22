@@ -7,3 +7,11 @@ base.conf
 mesh.conf
 np
 tl
+add.conf
+arg
+bc_groups.dat
+job.id.last
+job.status
+out
+stat.dat
+!Makefile
