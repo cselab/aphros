@@ -71,14 +71,18 @@ inside_ini(int nt, const int * tri, const double * ver, struct Inside ** pq)
   double x;
   double y;
   int *cap;
-  int *n;
   int **data;
+  int dx;
+  int dy;
   int i;
   int ix;
   int iy;
   int j;
+  int jx;
+  int jy;
   int k;
   int m;
+  int *n;
   int nx;
   int ny;
   int t;
@@ -127,14 +131,20 @@ inside_ini(int nt, const int * tri, const double * ver, struct Inside ** pq)
     y = a[Y] - lo[Y];
     ix = x/size;
     iy = y/size;
-    j = ix + iy * nx;
-    if (j < 0) j = 0;
-    if (j >= nx*ny) j = nx*ny - 1;
-    if (n[j] >= cap[j]) {
-      cap[j] *= 2;
-      REALLOC(cap[j], &data[j]);
-    }
-    data[j][n[j]++] = t;
+
+    for (dx = -1; dx < 2; dx++)
+      for (dy = -1; dy < 2; dy++) {
+	jx = ix + dx;
+	jy = iy + dy;
+	if (jx < 0 || jy < 0) continue;
+	if (jx >= nx || jy >= ny) continue;
+	j = jx + jy * nx;
+	if (n[j] >= cap[j]) {
+	  cap[j] *= 2;
+	  REALLOC(cap[j], &data[j]);
+	}
+	data[j][n[j]++] = t;
+      }
   }
   q->nt = nt;
   q->tri = tri;
@@ -154,7 +164,7 @@ inside_ini(int nt, const int * tri, const double * ver, struct Inside ** pq)
 
 #define max(a, b) ( (a) > (b) ? (a) : (b) )
 int
-inside_inside(struct Inside * q, const double r[3])
+inside_inside_naive(struct Inside * q, const double r[3])
 {
   int nt;
   int t;
@@ -194,6 +204,70 @@ inside_inside(struct Inside * q, const double r[3])
     m += predicate_ray(r, e, a, b, c);
   }
   return m % 2;
+}
+
+int
+inside_inside(struct Inside * q, const double r[3])
+{
+  const double *a;
+  const double *b;
+  const double *c;
+  const double *lo;
+  const double *ver;
+  const int *tri;
+  double e[3];
+  double eps;
+  double size;
+  double zm;
+  int **data;
+  int i;
+  int idx;
+  int intersect;
+  int item;
+  int ix;
+  int iy;
+  int j;
+  int k;
+  int *n;
+  int nx;
+  int ny;
+  int t;
+  struct Bbox * bbox;
+
+  eps = 1e-10;
+  ver = q->ver;
+  tri = q->tri;
+  bbox = q->bbox;
+  nx = q->list.nx;
+  ny = q->list.ny;
+  data = q->list.data;
+  size = q->list.size;
+  n = q->list.n;
+  lo = q->list.lo;
+  if (!bbox_inside(bbox, r)) {
+    return 0;
+  }
+  zm = bbox_zhi(bbox);
+  e[X] = r[X];
+  e[Y] = r[Y];
+  e[Z] = max(zm, r[Z]) + eps;
+  ix = (r[X] - lo[X])/size;
+  iy = (r[Y] - lo[Y])/size;
+  idx = ix + iy * nx;
+  if (idx < 0) idx = 0;
+  if (idx >= nx*ny) idx = nx*ny - 1;
+  intersect = 0;
+  for (item = 0; item < n[idx]; item++) {
+    t = data[idx][item];
+    i = tri[3*t];
+    j = tri[3*t+1];
+    k = tri[3*t+2];
+    a = &ver[3*i];
+    b = &ver[3*j];
+    c = &ver[3*k];
+    intersect += predicate_ray(r, e, a, b, c);
+  }
+  return intersect % 2;
 }
 
 double
