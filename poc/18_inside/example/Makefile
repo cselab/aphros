@@ -10,6 +10,8 @@ circumradius\
 read\
 point\
 point2\
+distance\
+distance2\
 
 all: $M
 .c.o:; $(CC) -c $(CFLAGS) $(M_CFLAGS) $<

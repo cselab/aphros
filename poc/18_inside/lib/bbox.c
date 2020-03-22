@@ -77,14 +77,14 @@ bbox_zhi(struct Bbox* q)
 }
 
 int
-bbox_lo(struct Bbox* q, const double const **x)
+bbox_lo(struct Bbox* q, const double **x)
 {
   *x = q->lo;
   return 0;
 }
 
 int
-bbox_hi(struct Bbox* q, const double const **x)
+bbox_hi(struct Bbox* q, const double **x)
 {
   *x = q->hi;
   return 0;
