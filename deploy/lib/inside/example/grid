@@ -12,12 +12,16 @@ exit 2
 }
 
 Iflag=0
+Command=./point2
 while test $# -ne 0
 do case "$1" in
        -h) usg ;;
        -i) shift
            if test $# -eq 0; then err '-i needs an argument'; fi
            i=$1; shift; Iflag=1 ;;
+       -d) shift
+	   Command=./distance2
+	   ;;
        *) err "unknown argument '$1'" ;;
    esac
 done
@@ -30,20 +34,20 @@ fi
 tmp=/tmp/grid.$$
 trap 'rm -f $tmp; exit 2' 1 2 3 14 15
 
-awk -v Input="$i" -v tmp=$tmp '
+awk -v Command="$Command" -v Input="$i" -v tmp=$tmp '
 BEGIN {
-    lx = ly = lz = 4
+    lx = ly = lz = 2
     ox = -lx/2
     oy = -ly/2
     oz = -lz/2
-    nx = 50
-    ny = 50
-    nz = 50
+    nx = 30
+    ny = 30
+    nz = 30
     sx = lx/nx
     sy = ly/ny
     sz = lz/nz
-    cmd = "./point2 %s > " tmp
-    cmd = sprintf(cmd, Input)
+    cmd = "%s %s > " tmp
+    cmd = sprintf(cmd, Command, Input)
     for (k = 0; k < nz; k++)
         for (j = 0; j < ny; j++)
     	    for (i = 0; i < nx; i++) {
@@ -69,7 +73,7 @@ BEGIN {
     printf "ORIGIN %.16g %.16g %.16g\n", ox, oy, oz
     printf "SPACING %.16g %.16g %.16g\n", sx, sy, sz
     printf "POINT_DATA %d\n", nx * ny * nz
-    print "SCALARS data int"
+    print "SCALARS data double"
     print "LOOKUP_TABLE default"
     for (i = 0; i < nx * ny * nz; i++)
         print data[i]
