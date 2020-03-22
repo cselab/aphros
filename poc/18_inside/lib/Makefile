@@ -9,8 +9,9 @@ err.o\
 main.o\
 memory.o\
 off.o\
-predicate.o\
+ply.o\
 predicate/main.o\
+predicate.o\
 
 L = libinside.a
 H = inside.h

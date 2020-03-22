@@ -4,12 +4,12 @@
 #include <stdlib.h>
 #include "err.h"
 #include "memory.h"
-#include "off.h"
+#include "ply.h"
 #include "inside.h"
 
 enum {SIZE = 999};
 int
-off_read(FILE * f, int *status, int * pnt, int ** ptri, int * pnv, double ** pver)
+ply_read(FILE * f, int *status, int * pnt, int ** ptri, int * pnv, double ** pver)
 {
   enum {Off, Numbers, Ver, Tri, End};
   char line[SIZE];
