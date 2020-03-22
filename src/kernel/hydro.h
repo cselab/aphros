@@ -776,10 +776,8 @@ void Hydro<M>::Init() {
     }
   }
 
-  if (sem.Nested("initvort")) {
-    if (var.Int["initvort"]) {
-      InitVort(fcvel, fcvel, mf_fluid_, var.Int["vort_report"], m);
-    }
+  if (var.Int["initvort"] && sem.Nested("initvort")) {
+    InitVort(fcvel, fcvel, mf_fluid_, var.Int["vort_report"], m);
   }
 
   if (var.Int["wavelamb_vort"] && sem("wavelamb")) {
