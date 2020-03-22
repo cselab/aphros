@@ -3,9 +3,20 @@ project(main C)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(T inside)
 add_library(${T} SHARED
-  main.c
-  march.h
-  )
+bbox.c
+bbox.h
+err.c
+err.h
+inside.h
+main.c
+memory.c
+memory.h
+off.c
+ply.c
+predicate.c
+predicate.h
+predicate/main.c
+)
 
 set(CHPREFIX $ENV{CHPREFIX})
 set(CMAKEPREFIX ${CHPREFIX}/cmake/aphros)
