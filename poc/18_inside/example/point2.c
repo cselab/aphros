@@ -16,7 +16,6 @@ main(int argc, const char** argv) {
   int nv;
   int *tri;
   double *ver;
-  int status;
   int data;
   int in;
   int out;
@@ -40,15 +39,11 @@ main(int argc, const char** argv) {
     fprintf(stderr, "%s: failed to open '%s'\n", me, argv[0]);
     exit(2);    
   }
-  if (off_read(file, &status, &nt, &tri, &nv, &ver) != 0) {
-    fprintf(stderr, "%s: off_read failed\n", me);
+  if (inside_mesh_read(file, &nt, &tri, &nv, &ver) != 0) {
+    fprintf(stderr, "%s: fail to read mesh: '%s'\n", me, argv[0]);
     exit(2);
   }
   fclose(file);
-  if (status != 0) {
-    fprintf(stderr, "%s: not an off file\n", me);
-    exit(2);
-  }
   inside_ini(nt, tri, ver, &inside);
 
   in = out = 0;
@@ -65,5 +60,5 @@ main(int argc, const char** argv) {
     fprintf(stderr, "out: %8.d\n", out);
   }
   inside_fin(inside);
-  off_fin(tri, ver);
+  inside_mesh_fin(tri, ver);
 }

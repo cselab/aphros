@@ -138,4 +138,3 @@ off_write(int nt, const int * tri, int nv, const double * ver, FILE *f)
  err:
   return 1;
 }
-

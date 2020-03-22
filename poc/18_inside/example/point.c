@@ -16,9 +16,9 @@ main(int argc, const char** argv) {
   int nv;
   int *tri;
   double *ver;
-  int status;
   double p[3];
   int Pflag;
+  struct Inside *inside;
 
   Pflag = 0;
   while (*++argv != NULL && argv[0][0] == '-')
@@ -29,7 +29,7 @@ main(int argc, const char** argv) {
     case 'p':
       argv++;
       if (argv[0] == NULL || argv[1] == NULL || argv[2] == NULL) {
-	fprintf(stderr, "%s: -p needs three numbers\n", me, argv[0]);
+	fprintf(stderr, "%s: -p needs three numbers\n", me);
 	exit(2);
       }
       p[X] = atof(*argv++);
@@ -46,17 +46,12 @@ main(int argc, const char** argv) {
     exit(2);
   }
 
-  if (off_read(stdin, &status, &nt, &tri, &nv, &ver) != 0) {
+  if (inside_mesh_read(stdin, &nt, &tri, &nv, &ver) != 0) {
     fprintf(stderr, "%s: off_read failed\n", me);
     exit(2);
   }
-  if (status != 0) {
-    fprintf(stderr, "%s: not an off file\n", me);
-    exit(2);
-  }
-  struct Inside *inside;
   inside_ini(nt, tri, ver, &inside);
   printf("%d\n", inside_inside(inside, p));
   inside_fin(inside);
-  off_fin(tri, ver);
+  inside_mesh_fin(tri, ver);
 }

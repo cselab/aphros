@@ -8,6 +8,7 @@
 #include "err.h"
 #include "memory.h"
 #include "predicate.h"
+#include "off.h"
 #include "inside.h"
 
 #define SIZE (9999)
@@ -96,4 +97,24 @@ inside_inside(struct Inside * q, const double r[3])
     m += predicate_ray(r, e, a, b, c);
   }
   return m % 2;
+}
+
+int
+inside_mesh_read(FILE * f, int * nt, int ** tri, int * nv, double ** ver)
+{
+  int status;
+  int err;
+
+  err = off_read(f, &status, nt, tri, nv, ver);
+  if (err != 0 || status != 0)
+    return 2;
+  return 0;
+}
+
+int
+inside_mesh_fin(int * tri, double * ver)
+{
+  free(tri);
+  free(ver);
+  return 0;
 }

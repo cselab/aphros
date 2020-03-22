@@ -17,7 +17,6 @@ main(int argc, const char** argv) {
   int nv;
   int *tri;
   double *ver;
-  int status;
 
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
@@ -28,7 +27,10 @@ main(int argc, const char** argv) {
       fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
       exit(2);
     }
-  off_read(stdin, &status, &nt, &tri, &nv, &ver);
+  if (inside_mesh_read(stdin, &nt, &tri, &nv, &ver) != 0) {
+    fprintf(stderr, "%s: fail to read mesh\n", me);
+    exit(2);
+  }
   off_write(nt, tri, nv, ver, stdout);
-  off_fin(tri, ver);
+  inside_mesh_fin(tri, ver);
 }

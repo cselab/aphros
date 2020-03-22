@@ -29,5 +29,7 @@ install: $L $H
 	cp -- $L "$(PREFIX)/lib"
 	cp -- $H "$(PREFIX)/include"
 
-.PHONY: clean lint install
+dep:; for i in *.c; do $(CPP) -MM $$i; done > dep.mk
+
+.PHONY: clean lint install dep
 clean:; rm -f -- $O $L
