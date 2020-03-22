@@ -34,7 +34,7 @@ main(int argc, const char** argv) {
       }
       p[X] = atof(*argv++);
       p[Y] = atof(*argv++);
-      p[Z] = atof(*argv++);
+      p[Z] = atof(*argv);
       Pflag = 1;
       break;
     default:
@@ -45,9 +45,12 @@ main(int argc, const char** argv) {
     fprintf(stderr, "%s: needs -p option\n", me);
     exit(2);
   }
-
-  if (inside_mesh_read(stdin, &nt, &tri, &nv, &ver) != 0) {
-    fprintf(stderr, "%s: off_read failed\n", me);
+  if (argv[0] == NULL) {
+    fprintf(stderr, "%s: mesh file is missing\n", me);
+    exit(2);
+  }
+  if (inside_mesh_read(argv[0], &nt, &tri, &nv, &ver) != 0) {
+    fprintf(stderr, "%s: fail to read mesh '%s'\n", me, argv[0]);
     exit(2);
   }
   inside_ini(nt, tri, ver, &inside);

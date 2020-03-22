@@ -6,7 +6,7 @@ M_CFLAGS = -I../lib
 M_LDFLAGS = -L../lib -linside
 
 M = \
-off\
+read\
 point\
 point2\
 

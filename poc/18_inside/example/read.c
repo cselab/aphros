@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <inside.h>
 
-const char* me = "off";
+const char* me = "read";
 
 static void usg(void) {
   fprintf(stderr, "%s < off > off\n", me);
@@ -27,8 +27,12 @@ main(int argc, const char** argv) {
       fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
       exit(2);
     }
-  if (inside_mesh_read(stdin, &nt, &tri, &nv, &ver) != 0) {
-    fprintf(stderr, "%s: fail to read mesh\n", me);
+  if (argv[0] == NULL) {
+    fprintf(stderr, "%s: mesh file is missing\n", me);
+    exit(2);
+  }
+  if (inside_mesh_read(argv[0], &nt, &tri, &nv, &ver) != 0) {
+    fprintf(stderr, "%s: fail to read mesh '%s'\n", me, argv[0]);
     exit(2);
   }
   off_write(nt, tri, nv, ver, stdout);

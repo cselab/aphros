@@ -8,10 +8,12 @@
 #include "err.h"
 #include "memory.h"
 #include "predicate.h"
-#include "off.h"
 #include "inside.h"
 
 #define SIZE (9999)
+
+int off_read(FILE *, int * status, int *, int **, int *, double **);
+int ply_read(FILE *, int * status, int *, int **, int *, double **);
 
 static char me[] = "inside";
 enum {
@@ -99,15 +101,31 @@ inside_inside(struct Inside * q, const double r[3])
   return m % 2;
 }
 
-int
-inside_mesh_read(FILE * f, int * nt, int ** tri, int * nv, double ** ver)
+typedef int (*const ReadType)(FILE *, int * status, int * nt, int ** tri, int * nv, double ** ver);
+static const ReadType Read[] = {off_read, ply_read};
+ int
+inside_mesh_read(const char *path, int * nt, int ** tri, int * nv, double ** ver)
 {
   int status;
   int err;
+  int state;
+  ReadType read;
+  FILE *file;
+  int i;
 
-  err = off_read(f, &status, nt, tri, nv, ver);
-  if (err != 0 || status != 0)
-    return 2;
+  for (i = 0; i < sizeof(Read)/sizeof(Read[0]); i++) {
+    if ((file = fopen(path, "r")) == NULL)
+      goto err;
+    err = Read[i](file, &status, nt, tri, nv, ver);
+    if (err != 0)
+      goto err;
+    fclose(file);
+    if (status == 0)
+      goto ok;
+  }
+ err:
+  return 1;
+ ok:
   return 0;
 }
 

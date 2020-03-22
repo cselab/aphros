@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include "err.h"
 #include "memory.h"
-#include "off.h"
 #include "inside.h"
 
 enum {SIZE = 999};
@@ -110,7 +109,7 @@ off_read(FILE * f, int *status, int * pnt, int ** ptri, int * pnv, double ** pve
  err:
   return 1;
  not_off:
-  *status = 0;
+  *status = 1;
   return 0;
 }
 

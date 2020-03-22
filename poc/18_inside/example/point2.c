@@ -20,7 +20,6 @@ main(int argc, const char** argv) {
   int in;
   int out;
   double p[3];
-  FILE *file;
   struct Inside *inside;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
@@ -32,18 +31,13 @@ main(int argc, const char** argv) {
       exit(2);
     }
   if (argv[0] == NULL) {
-    fprintf(stderr, "%s: off file is missing\n", me);
+    fprintf(stderr, "%s: mesh file is missing\n", me);
     exit(2);
   }
-  if ((file = fopen(argv[0], "r")) == NULL) {
-    fprintf(stderr, "%s: failed to open '%s'\n", me, argv[0]);
-    exit(2);    
-  }
-  if (inside_mesh_read(file, &nt, &tri, &nv, &ver) != 0) {
+  if (inside_mesh_read(argv[0], &nt, &tri, &nv, &ver) != 0) {
     fprintf(stderr, "%s: fail to read mesh: '%s'\n", me, argv[0]);
     exit(2);
   }
-  fclose(file);
   inside_ini(nt, tri, ver, &inside);
 
   in = out = 0;
