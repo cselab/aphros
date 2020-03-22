@@ -230,12 +230,16 @@ threshold1Display = Show(threshold1, renderView1)
 threshold1Display.Representation = 'Surface'
 threshold1Display.ColorArrayName = ['POINTS', '']
 
+def rgb(r, g, b):
+    m = 255.
+    return [r/m, g/m, b/m]
+
 if surf:
     bubblesDisplay = Show(ssurf, renderView1)
     bubblesDisplay.Representation = 'Surface'
     bubblesDisplay.ColorArrayName = ['POINTS', '']
-    bubblesDisplay.AmbientColor = [1.0, 0.7686274509803922, 0.4235294117647059]
-    bubblesDisplay.DiffuseColor = [1.0, 0.7686274509803922, 0.4235294117647059]
+    bubblesDisplay.DiffuseColor = rgb(255, 127, 14)
+    bubblesDisplay.Ambient = 0.2
 
 #####################################################
 ### END OF STATE FILE
