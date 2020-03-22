@@ -23,3 +23,7 @@ template <class M>
 void InitVelHook(
     FieldCell<typename M::Vect>& fcvel, const Vars& var, const M& m,
     const Embed<M>& eb);
+
+template <class M>
+void InitEmbedHook(
+    FieldNode<typename M::Scal>& fn_levelset, const Vars& var, const M& m);
