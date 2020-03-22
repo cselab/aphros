@@ -11,7 +11,7 @@
 
 template <class M>
 void InitEmbedHook(
-    FieldNode<typename M::Scal>& fn_levelset, const Vars& var, const M& m) {
+    FieldNode<typename M::Scal>& fnl, const Vars& var, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   if (m.IsRoot()) {
@@ -58,29 +58,47 @@ void InitEmbedHook(
     double p[3] = {x[0], x[1], x[2]};
     return inside_distance(inside_state, p);
   };
-  auto block_distance = [&]() -> Scal {
-    using MIdx = typename M::MIdx;
-    const auto& ind = m.GetIndexNodes();
-    const Vect x0 = m.GetNode(ind.GetIdx(m.GetAllBlockNodes().GetBegin()));
-    const Vect x1 =
-        m.GetNode(ind.GetIdx(m.GetAllBlockNodes().GetEnd() - MIdx(1)));
-    const Vect h = m.GetCellSize();
-    const Scal dist = distance((x0 + x1) * 0.5);
-    if (std::abs(dist) > (x1 - x0 + h * 4).norm() * 0.5) {
-      // block does not cross the surface
-      return dist;
-    }
-    return 0;
+  auto inside = [&](Vect x) -> bool {
+    double p[3] = {x[0], x[1], x[2]};
+    return inside_inside(inside_state, p);
   };
 
-  const auto bdist = block_distance();
-  if (bdist != 0) {
-    for (auto n : m.AllNodes()) {
-      fn_levelset[n] = -bdist;
+  fnl.Reinit(m, GetNan<Scal>());
+  for (auto c : m.AllCells()) {
+    const size_t num_nodes = m.GetNumNodes(c);
+    size_t num_inside = 0;
+    for (size_t i = 0; i < num_nodes; ++i) {
+      const IdxNode n = m.GetNode(c, i);
+      if (inside(m.GetNode(n))) {
+        ++num_inside;
+      }
     }
-  } else {
+    // levelset > 0 inside body
+    const Scal inf = m.GetCellSize()[0] * 10; // large value
+    if (num_inside == 0) { // whole cell outside
+      for (size_t i = 0; i < num_nodes; ++i) {
+        const IdxNode n = m.GetNode(c, i);
+        if (IsNan(fnl[n])) {
+          fnl[n] = -inf;
+        }
+      }
+    } else if (num_inside == num_nodes) { // whole cell inside
+      for (size_t i = 0; i < num_nodes; ++i) {
+        const IdxNode n = m.GetNode(c, i);
+        if (IsNan(fnl[n])) {
+          fnl[n] = inf;
+        }
+      }
+    } else { // cell crosses surface
+      for (size_t i = 0; i < num_nodes; ++i) {
+        const IdxNode n = m.GetNode(c, i);
+        fnl[n] = -distance(m.GetNode(n));
+      }
+    }
+  }
+  if (var.Int["eb_init_inverse"]) {
     for (auto n : m.AllNodes()) {
-      fn_levelset[n] = -distance(m.GetNode(n));
+      fnl[n] = -fnl[n];
     }
   }
 
