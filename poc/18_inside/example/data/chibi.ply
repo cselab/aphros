@@ -1,5 +1,5 @@
   ply
-format ascii 1.0
+format ascii  1.0
 comment Created by Blender 2.82 (sub 7) - www.blender.org, source file: 'chibi base body.blend'
 element vertex 2968
 property float x

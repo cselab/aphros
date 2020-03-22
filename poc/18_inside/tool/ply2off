@@ -1,0 +1,102 @@
+#!/bin/sh
+
+
+: ${AWK=awk}
+
+"$AWK" -v me=ply2off '
+BEGIN {
+    nxt()
+    if (!pat("ply"))
+	err("not a ply file")
+    nxt()
+    if (!pat("format[\t ]+ascii[\t ]+1.0"))
+	err("wrong format: '\'%s\''", $0)
+    nxt()
+    nxt()
+    if (!pat("element[\t ]+vertex[\t ]+[1-9][0-9]*"))
+	err("expect element vertex, got '\'%s\''", $0)
+    nv = $3
+    for (;;) {
+	nxt()
+	if (!pat("property[\t ]+.*"))
+	    break
+    }
+    if (!pat("element[\t ]+face[\t ]+[1-9][0-9]*"))
+	err("expect element face, got '\'%s\''", $0)
+    nq = $3
+    nxt()
+    if (!pat("property list[\t ]+.*"))
+	err("expect property list, got '\'%s\''", $0)
+    nxt()
+    if (!pat("end_header"))
+	err("expect end_header, got '\'%s\''", $0)
+    for (i = 0; i < nv; i++) {
+	nxt()
+	x[i] = $1
+	y[i] = $2
+	z[i] = $3
+    }
+    for (i = 0; i < nq; i++) {
+	nxt()
+	j = 0
+	np = $++j
+	q0[i] = $++j
+	q1[i] = $++j
+	q2[i] = $++j
+	q3[i] = $++j
+	if (np != 4)
+	    err("wrong mesh line: '\'%s\''", $0)
+    }
+
+    for (i = j = 0; i < nq; i++) {
+	t0[j] = q0[i]
+	t1[j] = q1[i]
+	t2[j] = q2[i]
+	j++
+
+	t0[j] = q2[i]
+	t1[j] = q3[i]
+	t2[j] = q0[i]
+	j++
+    }
+    nt = j
+
+    print "OFF"
+    print nv, nt, 0
+    for (i = 0; i < nv; i++)
+	print x[i], y[i], z[i]
+    for (i = 0; i < nt; i++)
+	print 3, t0[i], t1[i], t2[i]
+    status = "end"
+}
+
+END {
+    if (!eq(status, "end"))
+	err("unexpected end of file")
+}
+
+function nxt() {
+    if (getline != 1)
+	exit
+    sub(/^[ \t]*/, "")
+    sub(/[ \t]*$/, "")
+}
+
+
+function eq(a, b)
+{
+    return "" a == "" b
+}
+
+function pat(a)
+{
+    return $0 ~ "^" a "$"
+}
+
+function err(a, b, c, d) {
+    printf me ": " a "\n", b, c, d | "cat >&2"
+    exit 2
+}
+
+
+' "$@"
