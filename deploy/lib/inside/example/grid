@@ -32,7 +32,7 @@ trap 'rm -f $tmp; exit 2' 1 2 3 14 15
 
 awk -v Input="$i" -v tmp=$tmp '
 BEGIN {
-    lx = ly = lz = 2
+    lx = ly = lz = 4
     ox = -lx/2
     oy = -ly/2
     oz = -lz/2
