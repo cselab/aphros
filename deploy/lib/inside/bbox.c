@@ -75,3 +75,17 @@ bbox_zhi(struct Bbox* q)
 {
     return q->hi[Z];
 }
+
+int
+bbox_lo(struct Bbox* q, const double **x)
+{
+  *x = q->lo;
+  return 0;
+}
+
+int
+bbox_hi(struct Bbox* q, const double **x)
+{
+  *x = q->hi;
+  return 0;
+}
