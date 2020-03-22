@@ -3,9 +3,10 @@
 include ../conf.mk
 PREFIX = $(CHPREFIX)
 M_CFLAGS = -I../lib
-M_LDFLAGS = -L../lib -linside
+M_LDFLAGS = -L../lib -linside -lm
 
 M = \
+circumradius\
 read\
 point\
 point2\
