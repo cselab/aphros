@@ -54,13 +54,34 @@ void InitEmbedHook(
   }
 
   inside_ini(nt, tri, ver, &inside_state);
-  auto inside = [&](Vect x) {
+  auto distance = [&](Vect x) -> Scal {
     double p[3] = {x[0], x[1], x[2]};
-    return inside_inside(inside_state, p);
+    return inside_distance(inside_state, p);
+  };
+  auto block_distance = [&]() -> Scal {
+    using MIdx = typename M::MIdx;
+    const auto& ind = m.GetIndexNodes();
+    const Vect x0 = m.GetNode(ind.GetIdx(m.GetAllBlockNodes().GetBegin()));
+    const Vect x1 =
+        m.GetNode(ind.GetIdx(m.GetAllBlockNodes().GetEnd() - MIdx(1)));
+    const Vect h = m.GetCellSize();
+    const Scal dist = distance((x0 + x1) * 0.5);
+    if (std::abs(dist) > (x1 - x0 + h * 4).norm() * 0.5) {
+      // block does not cross the surface
+      return dist;
+    }
+    return 0;
   };
 
-  for (auto n : m.AllNodes()) {
-    fn_levelset[n] = (inside(m.GetNode(n)) ? -1 : 1);
+  const auto bdist = block_distance();
+  if (bdist != 0) {
+    for (auto n : m.AllNodes()) {
+      fn_levelset[n] = -bdist;
+    }
+  } else {
+    for (auto n : m.AllNodes()) {
+      fn_levelset[n] = -distance(m.GetNode(n));
+    }
   }
 
   inside_fin(inside_state);
