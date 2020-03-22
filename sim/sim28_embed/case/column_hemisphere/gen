@@ -3,6 +3,7 @@
 import aphros
 import os
 import numpy as np
+import itertools
 
 # default
 par = {
@@ -44,7 +45,14 @@ with open("bc.dat", 'w') as f:
 
 # volume fraction
 vf = aphros.Geometry()
-vf.Sphere([lx*0.5,gap+cylheight,lz*0.5], [0.2]*3)
+R = 0.1
+dy = R*2.5
+
+for i,j,k in itertools.product([-1,0,1], [-1,0,1], [-1,0,1]):
+#for i,j,k in itertools.product([0], [1], [0]):
+    c = np.array([lx * 0.5, gap + cylheight - dy, lz * 0.5])
+    d = np.array([i, j, k])
+    vf.Sphere(c + d * dy, [R]*3)
 with open("b.dat", 'w') as f:
     f.write(vf.Generate())
 

@@ -3,9 +3,10 @@
 set -eu
 
 cat > par.py << EOF
-
+nx = 128
+bs = 16
+sigma = 0.25
 EOF
-
 
 make cleanrun
 

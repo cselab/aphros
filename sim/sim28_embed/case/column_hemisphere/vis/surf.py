@@ -90,10 +90,11 @@ paraview.simple._DisableFirstRenderCameraReset()
 # get the material library
 materialLibrary1 = GetMaterialLibrary()
 
+ext = 1.35
 # view
 C1 = [
-[0.5000021234154701, 1, 4.26489794514011],
-[0.5000021234154701, 1, -4.6437767967976145],
+[0.5000021234154701*ext, 1*ext, 4.26489794514011*ext],
+[0.5000021234154701*ext, 1*ext, -4.6437767967976145*ext],
 [0, 1, 0],
 1,
     ]
