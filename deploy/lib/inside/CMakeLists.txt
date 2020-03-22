@@ -28,4 +28,4 @@ install(TARGETS ${T}
     PUBLIC_HEADER DESTINATION ${CHPREFIX}/include)
 target_include_directories(${T} PUBLIC "${CHPREFIX}/include")
 target_link_libraries(${T} PUBLIC m)
-install(EXPORT export FILE marchConfig.cmake DESTINATION ${CMAKEPREFIX})
+install(EXPORT export FILE insideConfig.cmake DESTINATION ${CMAKEPREFIX})
