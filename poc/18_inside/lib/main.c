@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <math.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +14,10 @@
 
 int off_read(FILE *, int * status, int *, int **, int *, double **);
 int ply_read(FILE *, int * status, int *, int **, int *, double **);
+
+static int circumradius(const double * u, const double * v, const double * w, double *r);
+static double sq(double);
+static double edg(const double *, const double *);
 
 static char me[] = "inside";
 enum {
@@ -38,9 +42,18 @@ inside_fin(struct Inside * q)
 int
 inside_ini(int n, const int * tri, const double * ver, struct Inside ** pq)
 {
+  int t;
   int i;
+  int j;
+  int k;
   int m;
+  const double *a;
+  const double *b;
+  const double *c;
   struct Inside *q;
+  double radii;
+  double diameter;
+  double max_diameter;
 
   MALLOC(1, &q);
   bbox_ini(&q->bbox);
@@ -53,6 +66,21 @@ inside_ini(int n, const int * tri, const double * ver, struct Inside ** pq)
     if (tri[i] > m)
       m = tri[i];
   bbox_update(q->bbox, m, ver);
+
+  max_diameter = 0;
+  for (t = 0; t < n; t++) {
+    i = tri[3*t];
+    j = tri[3*t+1];
+    k = tri[3*t+2];
+    a = &ver[3*i];
+    b = &ver[3*j];
+    c = &ver[3*k];
+    if (circumradius(a, b, c, &radii) != 0)
+      return 1;
+    diameter = 2 * radii;
+    if (diameter > max_diameter)
+      max_diameter = diameter;
+  }
   *pq = q;
   return 0;
 }
@@ -134,5 +162,37 @@ inside_mesh_fin(int * tri, double * ver)
 {
   free(tri);
   free(ver);
+  return 0;
+}
+
+static double
+sq(double x)
+{
+  return x*x;
+}
+static double
+edg(const double *a, const double *b)
+{
+  enum {X, Y, Z};
+  return sqrt(sq(a[X] - b[X]) + sq(a[Y] - b[Y]) + sq(a[Z] - b[Z]));
+}
+static int
+circumradius(const double * u, const double * v, const double * w, double *r)
+{
+  double a;
+  double b;
+  double c;
+  double s;
+  double num;
+  double den;
+  a = edg(v, u);
+  b = edg(w, u);
+  c = edg(v, w);
+  s = (a + b + c)/2;
+  num = a*b*c;
+  den = s*(s - a)*(s - b)*(s - c);
+  if (den <= 0)
+    return 1;
+  *r = num/(4*sqrt(den));
   return 0;
 }

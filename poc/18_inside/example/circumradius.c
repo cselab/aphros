@@ -7,7 +7,7 @@ const char* me = "circumradius";
 
 static void
 usg(void) {
-  fprintf(stderr, "%s -i float float float float float float\n", me);
+  fprintf(stderr, "%s -i float float float float float float float float float\n", me);
   exit(1);
 }
 
@@ -16,15 +16,13 @@ sq(double x)
 {
   return x*x;
 }
-
 static double
 edg(const double *a, const double *b)
 {
-  enum {X, Y};
-  return sqrt(sq(a[X] - b[X]) + sq(a[Y] - b[Y]));
+  enum {X, Y, Z};
+  return sqrt(sq(a[X] - b[X]) + sq(a[Y] - b[Y]) + sq(a[Y] - b[Y]));
 }
-
-int
+static int
 circumradius(const double * u, const double * v, const double * w, double *r)
 {
   double a;
@@ -47,10 +45,10 @@ circumradius(const double * u, const double * v, const double * w, double *r)
 
 int
 main(int argc, const char** argv) {
-  enum {X, Y};
-  double a[2];
-  double b[2];
-  double c[2];
+  enum {X, Y, Z};
+  double a[3];
+  double b[3];
+  double c[3];
   double r;
 
   argv++; argc--;
@@ -61,16 +59,19 @@ main(int argc, const char** argv) {
       break;
     case 'i':
       argv++; argc--;
-      if (argc < 6) {
-	fprintf(stderr, "%s: needs six arguments given '%d'\n", me, argc);
+      if (argc < 9) {
+	fprintf(stderr, "%s: needs nine arguments given '%d'\n", me, argc);
 	exit(2);
       }
       a[X] = atof(*argv++); argc--;
       a[Y] = atof(*argv++); argc--;
+      a[Z] = atof(*argv++); argc--;
       b[X] = atof(*argv++); argc--;
       b[Y] = atof(*argv++); argc--;
+      b[Z] = atof(*argv++); argc--;      
       c[X] = atof(*argv++); argc--;
       c[Y] = atof(*argv++); argc--;
+      c[Z] = atof(*argv++); argc--;      
       break;
     default:
       fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
@@ -80,7 +81,6 @@ main(int argc, const char** argv) {
       fprintf(stderr, "%s: unknown argument '%s'\n", me, argv[0]);
       exit(2);    
   }
-  
   if (circumradius(a, b, c, &r) != 0) {
     fprintf(stderr, "%s: circumradius failed\n", me);
     exit(2);
