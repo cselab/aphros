@@ -448,6 +448,7 @@ void Hydro<M>::InitEmbed() {
     if (sem("ctor")) {
       eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
       ctx->fnl = UEmbed<M>::InitEmbed(m, var, m.IsRoot());
+      InitEmbedHook(ctx->fnl, var, m);
     }
     if (sem.Nested("init")) {
       eb_->Init(ctx->fnl);
