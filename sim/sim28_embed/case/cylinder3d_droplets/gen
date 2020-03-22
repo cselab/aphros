@@ -1,0 +1,129 @@
+#!/usr/bin/env python
+
+import aphros
+import os
+import numpy as np
+import itertools
+
+# default
+par = {
+  "dim": 2,
+  "nx": 512,
+  "extent": 20.,
+  "Re": 40,
+  "np": 128,
+  "tl": 1440,
+  "bs": 32,
+  "shape": "cylinder"
+        }
+
+exec(open("par.py").read(), None, par)
+
+extent = par["extent"]
+Re = par["Re"]
+nx = par['nx']
+
+inf = extent * 10
+eps = 1e-2
+
+lx = extent
+ly = extent * 0.5
+lz = extent * 0.5
+hx = lx / nx
+
+center = np.array([lx * 0.3, ly * 0.5, lz * 0.5])
+radius = 0.5
+gapin = 0.
+gapout = 0
+
+# geometry
+geom = aphros.Geometry()
+geom.Box([0, 0, 0], [gapin, inf, inf])
+geom.Box([lx, 0, 0], [gapout, inf, inf])
+
+shape = par["shape"]
+if shape == "humanoid_ellip":
+    for c in [center + [-1,0,0], center + [2,0,0]]:
+        geom.Sphere(c, [0.5,0.5,2])
+        geom.Sphere(c + [0,0,1], [0.8,0.8,0.8])
+        geom.Sphere(c + [0.64,0.35,1], [0.15]*3)
+        geom.Sphere(c + [0.64,-0.35,1], [0.15]*3)
+        geom.Sphere(c + [0,0,0.4], [0.4,1.5,0.4])
+        geom.Sphere(c + [0.8,-1.2,0.4], [1,0.3,0.3])
+        geom.Sphere(c + [0.8,+1.2,0.4], [1,0.3,0.3])
+        geom.Box(c + [0,0,2], [inf,inf,0.4], invert=1, intersect=1)
+else:
+    geom.Cylinder(center, [0, 0, 1], radius, [-inf, inf])
+
+with open("body.dat", 'w') as f:
+    f.write(geom.Generate())
+
+# boundary conditions
+bc = aphros.Bc()
+
+g = aphros.Geometry()
+g.Box([0, 0, 0], [inf, inf, inf])
+bc.Wall(g, velocity = [0, 0, 0])
+
+g = aphros.Geometry()
+g.Box([gapin, 0, 0], [hx, inf, inf])
+bc.Inlet(g, velocity = [1, 0, 0])
+
+g = aphros.Geometry()
+g.Box([lx - gapout, 0, 0], [hx, inf, inf])
+bc.Outlet(g)
+
+with open("bc.dat", 'w') as f:
+    f.write(bc.Generate())
+
+
+# volume fraction
+vf = aphros.Geometry()
+R = 0.15
+dy = R*2.8
+for i,j,k in itertools.product(range(-4,7), range(-4,7), range(-4,7)):
+    c = center + [-2, 0, 0]
+    d = np.array([i, j, k])
+    vf.Sphere(c + d * dy, [R]*3)
+
+with open("b.dat", 'w') as f:
+    f.write(vf.Generate())
+
+# configuration
+var = aphros.Var()
+var['extent'] = float(extent)
+rho = 1.
+var['mu1'] = 1. / Re
+var['mu2'] = var['mu1'] * rho
+var['rho1'] = 1.
+var['rho2'] = rho
+var['sigma'] = 0.5
+
+for k in par:
+    var[k] = par[k]
+
+print("resolution R/h={:}".format(radius / hx))
+
+ny = int(nx * ly / lx + 0.5)
+nz = int(nx * ly / lx + 0.5)
+bsx = par['bs']
+bsy = bsx
+bsz = bsx
+np = par['np']
+tl = par['tl']
+
+if par['dim'] == 2:
+    var['dumplist'] = "vx vy omz p"
+    nz = 1
+    bsz = 1
+
+with open("par.make", 'w') as f:
+        f.write(
+'''m = {nx} {ny} {nz}
+bs = {bsx} {bsy} {bsz}
+np = {np}
+tl = {tl}
+'''.format(**locals()))
+
+with open("par.conf", 'w') as f:
+    f.write(var.Generate())

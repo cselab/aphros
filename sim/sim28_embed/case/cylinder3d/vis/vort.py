@@ -74,9 +74,9 @@ if CheckFlag('-C2'):
     cam = 2
 draft = CheckFlag('-draft')
 vortk = CheckVar('-vortk')
+surf = CheckFlag('-surf')
 
-
-# sm input
+# omm input
 ff = natsorted(av[1:])
 # sm basename
 ffb = list(map(os.path.basename, ff))
@@ -88,6 +88,8 @@ ss = [int(re.findall("_([0-9]*)", fb)[0]) for fb in ffb]
 ffvf = [os.path.join(d, "ebvf_{:04d}.xmf".format(s)) for d,s in zip(ffd,ss)]
 # omm input
 ffomm = [os.path.join(d, "omm_{:04d}.xmf".format(s)) for d,s in zip(ffd,ss)]
+# s input
+ffs = [os.path.join(d, "s_{:04d}.vtk".format(s)) for d,s in zip(ffd,ss)]
 
 
 # output pattern (:0 substituted by frame number)
@@ -157,8 +159,13 @@ omm.GridStatus = ['Grid_1']
 
 bcvtk = LegacyVTKReader(FileNames=['../bc.vtk'])
 
+if surf:
+    ssurf = LegacyVTKReader(FileNames=ffs)
+
 # list of all sources
 vs = [vf, omm]
+if surf:
+    vs.append(ssurf)
 
 # time steps
 vt = [np.array(s.TimestepValues) for s in vs]
@@ -169,6 +176,11 @@ omm = ForceTime(omm)
 
 # all ForceTime
 vft = [vf, omm]
+
+if surf:
+    ssurf = ForceTime(ssurf)
+    vft.append(ssurf)
+
 
 # ----------------------------------------------------------------
 # END READERS
@@ -217,6 +229,13 @@ threshold1.Scalars = ['CELLS', 'group']
 threshold1Display = Show(threshold1, renderView1)
 threshold1Display.Representation = 'Surface'
 threshold1Display.ColorArrayName = ['POINTS', '']
+
+if surf:
+    bubblesDisplay = Show(ssurf, renderView1)
+    bubblesDisplay.Representation = 'Surface'
+    bubblesDisplay.ColorArrayName = ['POINTS', '']
+    bubblesDisplay.AmbientColor = [1.0, 0.7686274509803922, 0.4235294117647059]
+    bubblesDisplay.DiffuseColor = [1.0, 0.7686274509803922, 0.4235294117647059]
 
 #####################################################
 ### END OF STATE FILE
