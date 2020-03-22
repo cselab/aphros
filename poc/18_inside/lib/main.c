@@ -111,7 +111,7 @@ inside_mesh_read(const char *path, int * nt, int ** tri, int * nv, double ** ver
   int state;
   ReadType read;
   FILE *file;
-  int i;
+  long unsigned int i;
 
   for (i = 0; i < sizeof(Read)/sizeof(Read[0]); i++) {
     if ((file = fopen(path, "r")) == NULL)
