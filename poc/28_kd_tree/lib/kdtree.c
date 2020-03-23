@@ -24,7 +24,6 @@ struct res_node {
 struct kdtree {
 	struct kdnode *root;
 	struct kdhyperrect *rect;
-	void (*destr)(void*);
 };
 
 struct kdres {
@@ -34,7 +33,7 @@ struct kdres {
 };
 
 static double sq(double);
-static void clear_rec(struct kdnode *node, void (*destr)(void*));
+static void clear_rec(struct kdnode *node);
 static int insert_rec(struct kdnode **node, const double *pos, void *data, int dir);
 static int rlist_insert(struct res_node *list, struct kdnode *item, double dist_sq);
 static void clear_results(struct kdres *set);
@@ -55,7 +54,6 @@ struct kdtree *kd_create(void)
 		return 0;
 	}
 	tree->root = 0;
-	tree->destr = 0;
 	tree->rect = 0;
 	return tree;
 }
@@ -68,23 +66,18 @@ void kd_free(struct kdtree *tree)
 	}
 }
 
-static void clear_rec(struct kdnode *node, void (*destr)(void*))
+static void clear_rec(struct kdnode *node)
 {
 	if(!node) return;
-
-	clear_rec(node->left, destr);
-	clear_rec(node->right, destr);
-
-	if(destr) {
-		destr(node->data);
-	}
+	clear_rec(node->left);
+	clear_rec(node->right);
 	free(node->pos);
 	free(node);
 }
 
 void kd_clear(struct kdtree *tree)
 {
-	clear_rec(tree->root, tree->destr);
+	clear_rec(tree->root);
 	tree->root = 0;
 
 	if (tree->rect) {
@@ -92,12 +85,6 @@ void kd_clear(struct kdtree *tree)
 		tree->rect = 0;
 	}
 }
-
-void kd_data_destructor(struct kdtree *tree, void (*destr)(void*))
-{
-	tree->destr = destr;
-}
-
 
 static int insert_rec(struct kdnode **nptr, const double *pos, void *data, int dir)
 {
