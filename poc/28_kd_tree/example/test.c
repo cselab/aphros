@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 	printf("inserting %d random vectors... ", vcount);
 	fflush(stdout);
 
-	kd = kd_create(3);
+	kd = kd_create();
 
 	start = get_msec();
 	for(i=0; i<vcount; i++) {

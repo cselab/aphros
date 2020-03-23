@@ -35,9 +35,7 @@ int main(int argc, char **argv) {
   }
 
   srand( time(0) );
-
-  /* create a k-d tree for 3-dimensional points */
-  ptree = kd_create( 3 );
+  ptree = kd_create();
 
   /* add some random nodes to the tree (assert nodes are successfully inserted) */
   double r[3];

@@ -7,7 +7,7 @@ struct kdres;
 
 
 /* create a kd-tree for "k"-dimensional data */
-struct kdtree *kd_create(int k);
+struct kdtree *kd_create(void);
 
 /* free the struct kdtree */
 void kd_free(struct kdtree *tree);
