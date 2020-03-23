@@ -23,18 +23,12 @@ void kd_data_destructor(struct kdtree *tree, void (*destr)(void*));
 
 /* insert a node, specifying its position, and optional data */
 int kd_insert(struct kdtree *tree, const double *pos, void *data);
-int kd_insertf(struct kdtree *tree, const float *pos, void *data);
-int kd_insert3(struct kdtree *tree, double x, double y, double z, void *data);
-int kd_insert3f(struct kdtree *tree, float x, float y, float z, void *data);
 
 /* Find the nearest node from a given point.
  *
  * This function returns a pointer to a result set with at most one element.
  */
 struct kdres *kd_nearest(struct kdtree *tree, const double *pos);
-struct kdres *kd_nearestf(struct kdtree *tree, const float *pos);
-struct kdres *kd_nearest3(struct kdtree *tree, double x, double y, double z);
-struct kdres *kd_nearest3f(struct kdtree *tree, float x, float y, float z);
 
 /* Find the N nearest nodes from a given point.
  *

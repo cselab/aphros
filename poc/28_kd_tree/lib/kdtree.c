@@ -149,48 +149,6 @@ int kd_insert(struct kdtree *tree, const double *pos, void *data)
 	return 0;
 }
 
-int kd_insertf(struct kdtree *tree, const float *pos, void *data)
-{
-	static double sbuf[16];
-	double *bptr, *buf = 0;
-	int res, dim = tree->dim;
-
-	if(dim > 16) {
-			if(!(bptr = buf = malloc(dim * sizeof *bptr))) {
-				return -1;
-			}
-	} else {
-		bptr = buf = sbuf;
-	}
-
-	while(dim-- > 0) {
-		*bptr++ = *pos++;
-	}
-
-	res = kd_insert(tree, buf, data);
-	if(tree->dim > 16)
-		free(buf);
-	return res;
-}
-
-int kd_insert3(struct kdtree *tree, double x, double y, double z, void *data)
-{
-	double buf[3];
-	buf[0] = x;
-	buf[1] = y;
-	buf[2] = z;
-	return kd_insert(tree, buf, data);
-}
-
-int kd_insert3f(struct kdtree *tree, float x, float y, float z, void *data)
-{
-	double buf[3];
-	buf[0] = x;
-	buf[1] = y;
-	buf[2] = z;
-	return kd_insert(tree, buf, data);
-}
-
 static int find_nearest(struct kdnode *node, const double *pos, double range, struct res_node *list, int ordered, int dim)
 {
 	double dist_sq, dx;
@@ -338,49 +296,6 @@ struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
 	}
 }
 
-struct kdres *kd_nearestf(struct kdtree *tree, const float *pos)
-{
-	static double sbuf[16];
-	double *bptr, *buf = 0;
-	int dim = tree->dim;
-	struct kdres *res;
-
-	if(dim > 16) {
-			if(!(bptr = buf = malloc(dim * sizeof *bptr))) {
-				return 0;
-			}
-	} else {
-		bptr = buf = sbuf;
-	}
-
-	while(dim-- > 0) {
-		*bptr++ = *pos++;
-	}
-
-	res = kd_nearest(tree, buf);
-	if(tree->dim > 16)
-		free(buf);
-	return res;
-}
-
-struct kdres *kd_nearest3(struct kdtree *tree, double x, double y, double z)
-{
-	double pos[3];
-	pos[0] = x;
-	pos[1] = y;
-	pos[2] = z;
-	return kd_nearest(tree, pos);
-}
-
-struct kdres *kd_nearest3f(struct kdtree *tree, float x, float y, float z)
-{
-	double pos[3];
-	pos[0] = x;
-	pos[1] = y;
-	pos[2] = z;
-	return kd_nearest(tree, pos);
-}
-
 struct kdres *kd_nearest_range(struct kdtree *kd, const double *pos, double range)
 {
 	int ret;
@@ -403,49 +318,6 @@ struct kdres *kd_nearest_range(struct kdtree *kd, const double *pos, double rang
 	rset->size = ret;
 	kd_res_rewind(rset);
 	return rset;
-}
-
-struct kdres *kd_nearest_rangef(struct kdtree *kd, const float *pos, float range)
-{
-	static double sbuf[16];
-	double *bptr, *buf = 0;
-	int dim = kd->dim;
-	struct kdres *res;
-
-	if(dim > 16) {
-			if(!(bptr = buf = malloc(dim * sizeof *bptr))) {
-				return 0;
-			}
-	} else {
-		bptr = buf = sbuf;
-	}
-
-	while(dim-- > 0) {
-		*bptr++ = *pos++;
-	}
-
-	res = kd_nearest_range(kd, buf, range);
-	if(kd->dim > 16)
-		free(buf);
-	return res;
-}
-
-struct kdres *kd_nearest_range3(struct kdtree *tree, double x, double y, double z, double range)
-{
-	double buf[3];
-	buf[0] = x;
-	buf[1] = y;
-	buf[2] = z;
-	return kd_nearest_range(tree, buf, range);
-}
-
-struct kdres *kd_nearest_range3f(struct kdtree *tree, float x, float y, float z, float range)
-{
-	double buf[3];
-	buf[0] = x;
-	buf[1] = y;
-	buf[2] = z;
-	return kd_nearest_range(tree, buf, range);
 }
 
 void kd_res_free(struct kdres *rset)

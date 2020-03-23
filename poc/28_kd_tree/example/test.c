@@ -37,18 +37,19 @@ int main(int argc, char **argv)
 
 	start = get_msec();
 	for(i=0; i<vcount; i++) {
-		float x, y, z;
-		x = ((float)rand() / RAND_MAX) * 200.0 - 100.0;
-		y = ((float)rand() / RAND_MAX) * 200.0 - 100.0;
-		z = ((float)rand() / RAND_MAX) * 200.0 - 100.0;
-
-		assert(kd_insert3(kd, x, y, z, 0) == 0);
+		double r[3];
+		r[0] = ((float)rand() / RAND_MAX) * 200.0 - 100.0;
+		r[1] = ((float)rand() / RAND_MAX) * 200.0 - 100.0;
+		r[2] = ((float)rand() / RAND_MAX) * 200.0 - 100.0;
+		assert(kd_insert(kd, r, 0) == 0);
 	}
 	msec = get_msec() - start;
 	printf("%.3f sec\n", (float)msec / 1000.0);
 
 	start = get_msec();
-	set = kd_nearest_range3(kd, 0, 0, 0, 40);
+	double r[3];
+	r[0] = r[1] = r[2] = 0;
+	set = kd_nearest_range(kd, r, 40);
 	msec = get_msec() - start;
 	printf("range query returned %d items in %.5f sec\n", kd_res_size(set), (float)msec / 1000.0);
 	kd_res_free(set);
