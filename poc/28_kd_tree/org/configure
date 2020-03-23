@@ -1,0 +1,84 @@
+#!/bin/sh
+
+echo 'configuring kdtree ...'
+
+PREFIX=/usr/local
+OPT=yes
+DBG=yes
+FALLOC=yes
+PTHREAD=yes
+
+for arg; do
+	case "$arg" in
+	--prefix=*)
+		value=`echo $arg | sed 's/--prefix=//'`
+		PREFIX=${value:-$prefix}
+		;;
+
+	--enable-opt)
+		OPT=yes;;
+	--disable-opt)
+		OPT=no;;
+
+	--enable-debug)
+		DBG=yes;;
+	--disable-debug)
+		DBG=no;;
+
+	--enable-pthread)
+		PTHREAD=yes;;
+	--disable-pthread)
+		PTHREAD=no;;
+
+	--enable-fastalloc)
+		FALLOC=yes;;
+	--disable-fastalloc)
+		FALLOC=no;;
+
+	--help)
+		echo 'usage: ./configure [options]'
+		echo 'options:'
+		echo '  --prefix=<path>: installation path (default: /usr/local)'
+		echo '  --enable-fastalloc: enable fast result node allocator (default)'
+		echo '  --disable-fastalloc: disable fast result node allocator'
+		echo '  --enable-pthread: enable pthread support (default if fastalloc is enabled)'
+		echo "  --disable-pthread: disable pthread support (don't)"
+		echo '  --enable-opt: enable speed optimizations (default)'
+		echo '  --disable-opt: disable speed optimizations'
+		echo '  --enable-debug: include debugging symbols (default)'
+		echo '  --disable-debug: do not include debugging symbols'
+		echo 'all invalid options are silently ignored'
+		exit 0
+		;;
+	esac
+done
+
+echo "prefix: $PREFIX"
+echo "optimize for speed: $OPT"
+echo "include debugging symbols: $DBG"
+echo "fast node allocator: $FALLOC"
+if [ "$FALLOC" = "yes" ]; then
+	echo "pthread support: $PTHREAD"
+fi
+
+# create makefile
+echo 'creating makefile ...'
+echo "PREFIX = $PREFIX" >Makefile
+if [ "$DBG" = 'yes' ]; then
+	echo 'dbg = -g' >>Makefile
+fi
+if [ "$OPT" = 'yes' ]; then
+	echo 'opt = -O3' >>Makefile
+fi
+if [ "$FALLOC" = 'yes' ]; then
+	echo 'falloc = -DUSE_LIST_NODE_ALLOCATOR' >>Makefile
+fi
+if [ "$PTHREAD" = 'no' ]; then
+	echo 'pthreads = -DNO_PTHREADS' >>Makefile
+else
+	echo 'ldpthread = -lpthread' >>Makefile
+fi
+
+cat Makefile.in >>Makefile
+
+echo 'configuration completed, type make (or gmake) to build.'
