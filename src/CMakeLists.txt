@@ -8,6 +8,7 @@ set(CHPREFIX $ENV{CHPREFIX})
 
 include(client.cmake)
 find_package(aphros/march)
+find_package(aphros/inside)
 
 # git revision
 set(P "${PROJECT_SOURCE_DIR}/..")
