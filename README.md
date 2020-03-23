@@ -31,7 +31,7 @@ Configure, build and install
 
      cd <ROOT>/src
      make -j4
-     # make target=mfer    # to only build ch.mfer
+     # make target=mfer    # to only build ap.mfer
 
 Run tests
 
@@ -55,10 +55,10 @@ directory (if `copyright` is not found in first 10 lines of the file)
 
     echo NP > np
     echo TL > tl
-    ch.submit ARGS  # submit job with NP tasks and time limit TL minutes
-    OMP_NUM_THREADS=N ch.submit ARGS  # submit job with NP tasks total and N tasks per node
+    ap.submit ARGS  # submit job with NP tasks and time limit TL minutes
+    OMP_NUM_THREADS=N ap.submit ARGS  # submit job with NP tasks total and N tasks per node
 
-Simulation setups in `sim` provide a makefile to submit jobs that run `ch.mfer`
+Simulation setups in `sim` provide a makefile to submit jobs that run `ap.mfer`
 
     echo NP > np
     echo TL > tl
