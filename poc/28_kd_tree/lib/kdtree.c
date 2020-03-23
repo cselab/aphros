@@ -36,9 +36,7 @@ struct kdres {
 	int size;
 };
 
-#define SQ(x)			((x) * (x))
-
-
+static double sq(double);
 static void clear_rec(struct kdnode *node, void (*destr)(void*));
 static int insert_rec(struct kdnode **node, const double *pos, void *data, int dir, int dim);
 static int rlist_insert(struct res_node *list, struct kdnode *item, double dist_sq);
@@ -82,7 +80,7 @@ static void clear_rec(struct kdnode *node, void (*destr)(void*))
 
 	clear_rec(node->left, destr);
 	clear_rec(node->right, destr);
-	
+
 	if(destr) {
 		destr(node->data);
 	}
@@ -202,9 +200,9 @@ static int find_nearest(struct kdnode *node, const double *pos, double range, st
 
 	dist_sq = 0;
 	for(i=0; i<dim; i++) {
-		dist_sq += SQ(node->pos[i] - pos[i]);
+		dist_sq += sq(node->pos[i] - pos[i]);
 	}
-	if(dist_sq <= SQ(range)) {
+	if(dist_sq <= sq(range)) {
 		if(rlist_insert(list, node, ordered ? dist_sq : -1.0) == -1) {
 			return -1;
 		}
@@ -262,7 +260,7 @@ static void kd_nearest_i(struct kdnode *node, const double *pos, struct kdnode *
 	 * with our best so far */
 	dist_sq = 0;
 	for(i=0; i < rect->dim; i++) {
-		dist_sq += SQ(node->pos[i] - pos[i]);
+		dist_sq += sq(node->pos[i] - pos[i]);
 	}
 	if (dist_sq < *result_dist_sq) {
 		*result = node;
@@ -317,7 +315,7 @@ struct kdres *kd_nearest(struct kdtree *kd, const double *pos)
 	result = kd->root;
 	dist_sq = 0;
 	for (i = 0; i < kd->dim; i++)
-		dist_sq += SQ(result->pos[i] - pos[i]);
+		dist_sq += sq(result->pos[i] - pos[i]);
 
 	/* Search for the nearest neighbour recursively */
 	kd_nearest_i(kd->root, pos, &result, &dist_sq, rect);
@@ -589,9 +587,9 @@ static double hyperrect_dist_sq(struct kdhyperrect *rect, const double *pos)
 
 	for (i=0; i < rect->dim; i++) {
 		if (pos[i] < rect->min[i]) {
-			result += SQ(rect->min[i] - pos[i]);
+			result += sq(rect->min[i] - pos[i]);
 		} else if (pos[i] > rect->max[i]) {
-			result += SQ(rect->max[i] - pos[i]);
+			result += sq(rect->max[i] - pos[i]);
 		}
 	}
 
@@ -629,4 +627,9 @@ static void clear_results(struct kdres *rset)
 	}
 
 	rset->rlist->next = 0;
+}
+
+static double sq(double x)
+{
+  return x * x;
 }
