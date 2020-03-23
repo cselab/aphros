@@ -15,6 +15,7 @@ par = {
   "bs": 32,
   "shape": "cylinder",
   "shape_extent": 1.,
+  "shape_rotation": [0, 0, 0],
         }
 
 exec(open("par.py").read(), None, par)
@@ -44,6 +45,7 @@ if os.path.isfile(shape):
     var["eb_model_path"] = shape
     var["eb_model_center"] = list(center)
     var["eb_model_extent"] = par["shape_extent"]
+    var["eb_model_rotation"] = par["shape_rotation"]
 else:
     # geometry
     geom = aphros.Geometry()

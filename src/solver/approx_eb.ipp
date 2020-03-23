@@ -61,11 +61,12 @@ auto ULinear<Scal>::FitLinear(
 // Returns level-set positive inside the body normalized to a new bounding box.
 // center: center of the new bounding box
 // extent: extent of the new bounding box
+// rotation: rotation vector
 // path: path to model
 template <class M>
 FieldNode<typename M::Scal> GetModelLevelSet(
-    typename M::Vect center, typename M::Scal extent, std::string path,
-    const M& m) {
+    typename M::Vect center, typename M::Scal extent, typename M::Vect rotation,
+    std::string path, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   int nt;
@@ -78,8 +79,24 @@ FieldNode<typename M::Scal> GetModelLevelSet(
     throw std::runtime_error(FILELINE + ": fail to read mesh '" + path + "'");
   }
 
-  // normalize ver to [0,1]
+  // normalize ver to [0,1] and rotate
   {
+    // rotates x around omega by angle |omega| degrees with origin at 0
+    auto rotate = [](Vect x, Vect omega) {
+      const Scal magn = omega.norm();
+      if (magn == 0) {
+        return x;
+      }
+      const Vect n = omega / magn;
+      const Vect tu = Vect::GetUnit(omega.abs().argmin()).cross(n);
+      const Vect tv = n.cross(tu);
+      const Scal xu = x.dot(tu);
+      const Scal xv = x.dot(tv);
+      const Scal a = magn / 180 * M_PI;
+      const Scal ru = xu * std::cos(a) - xv * std::sin(a);
+      const Scal rv = xu * std::sin(a) + xv * std::cos(a);
+      return tu * ru + tv * rv + n * x.dot(n);
+    };
     // bounding box
     Vect box0(std::numeric_limits<Scal>::max());
     Vect box1(-std::numeric_limits<Scal>::max());
@@ -90,10 +107,12 @@ FieldNode<typename M::Scal> GetModelLevelSet(
     }
     const Scal box_extent = (box1 - box0).abs().max();
     const Vect box_center = (box0 + box1) * 0.5;
-    for (int i = 0; i < nv * 3; ++i) {
-      const int d = i % 3;
-      auto& x = ver[i];
-      x = center[d] + (x - box_center[d]) / box_extent * extent;
+    for (int i = 0; i < nv * 3; i += 3) {
+      Vect x(ver[i], ver[i + 1], ver[i + 2]);
+      x = center + rotate(x - box_center, rotation) / box_extent * extent;
+      ver[i] = x[0];
+      ver[i + 1] = x[1];
+      ver[i + 2] = x[2];
     }
   }
 
@@ -188,7 +207,8 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
     const std::string path = var.String["eb_model_path"];
     const Vect center(var.Vect["eb_model_center"]);
     const Scal extent  = var.Double["eb_model_extent"];
-    fnl = GetModelLevelSet(center, extent, path, m);
+    const Vect rotation(var.Vect["eb_model_rotation"]);
+    fnl = GetModelLevelSet(center, extent, rotation, path, m);
   } else if (name == "list") {
     // TODO revise with bcast
     std::stringstream in;
