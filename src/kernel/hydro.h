@@ -297,6 +297,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_src2_; // source of second phase volume
   FieldCell<Scal> fc_srcm_; // mass source
   FieldCell<Vect> fc_force_; // force
+  FieldCell<Scal> fc_dist_; // distance from eb
+  FieldCell<Scal> fc_phi_; // distance from eb
   FieldEmbed<Scal> febp_; // balanced force projections
 
   MapCondFaceAdvection<Scal> mf_adv_;
@@ -1317,8 +1319,8 @@ void Hydro<M>::CalcStat() {
     // Slip velocity penalization.
     const Scal penalslip = var.Double["penalslip"];
     if (penalslip != 0) {
-      Scal dt = fs_->GetTimeStep();
-      Vect slipvel(var.Vect["slipvel"]);
+      const Scal dt = fs_->GetTimeStep();
+      const Vect slipvel(var.Vect["slipvel"]);
       // const auto& fa = as_->GetField();
       const auto& fa = fc_smvf_;
       const auto& fv = fs_->GetVelocity();
@@ -1338,42 +1340,58 @@ void Hydro<M>::CalcStat() {
     // Repulsive force from walls.
     const Scal slipnormal = var.Double["slipnormal"];
     if (slipnormal != 0) {
-      //const Scal slipnormal_dist = var.Double["slipnormal_dist"];
+      const Scal slipnormal_dist = var.Double["slipnormal_dist"];
+      const Scal dt = fs_->GetTimeStep();
+      const Scal h = m.GetCellSize()[0];
       const auto& fcvf = fc_smvf_;
       if (eb_) {
         auto& eb = *eb_;
-        mebc_fluid_.LoopBCond(eb, [&](auto cf, auto c, const auto& bc) {
-          if (bc.type == BCondFluidType::wall) {
-            const Scal sgn = (bc.nci == 0 ? -1 : 1);
-            //const Vect nf = eb.GetNormal(cf);
-            for (auto cn : eb.Stencil(c)) {
-              if (eb.GetType(cn) != EB::Type::excluded) {
-                if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
-                  for (auto l : layers) {
-                    //auto& fca = *as->GetAlpha()[l];
-                    auto& fcu = *as->GetFieldM()[l];
-                    //auto& fcn = *as->GetNormal()[l];
-                    const Scal u = fcu[cn];
-                    if (u > 0) {
-                      fc_force_[cn] += eb.GetNormal(cf) *
-                                       (sgn * fc_rho_[cn] * slipnormal * u);
-                      /*
-                        const Vect xi = eb.GetCellCenter(cn);
-                        const Vect xf = eb.GetFaceCenter(cf);
-                        const Scal dmax = slipnormal_dist;
-                        Scal d = (xf - xi).dot(nf) / eb.GetCellSize()[0];
-                        d = std::max(0., std::min(dmax, d));
-                        const Scal a = sgn * fc_rho_[cn] * slipnormal * u *
-                                       (dmax - d) / dmax;
-                        fc_force_[cn] += nf * a;
-                        */
-                    }
-                  }
-                }
+        fc_dist_.Reinit(eb, 0);
+        for (auto c : eb.SuCells()) {
+          const auto x = m.GetCenter(c);
+          auto dx = x - Vect(0.5);
+          dx[2] = 0;
+          fc_dist_[c] = 0.5 - dx.norm();
+        }
+        fc_phi_.Reinit(eb, 0); // potential [length]
+        for (auto c : eb.SuCells()) {
+          const Scal d0 = slipnormal_dist * h;
+          const Scal d = std::max(0., d0 - fc_dist_[c]);
+          fc_phi_[c] += slipnormal * d;
+        }
+        const auto ffg = UEB::Gradient(fc_phi_, {}, eb); // potential grad [-]
+        const auto ff_rho = UEB::InterpolateHarmonic(fc_rho_, {}, eb);
+        if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
+          for (auto f : eb.Faces()) {
+            const IdxCell cm = m.GetCell(f, 0);
+            const IdxCell cp = m.GetCell(f, 1);
+            if (eb.GetType(cm) == EB::Type::excluded ||
+                eb.GetType(cp) == EB::Type::excluded) {
+              continue;
+            }
+            const auto& fccl = as->GetColor();
+            const auto& fcu = as->GetFieldM();
+            std::set<Scal> colors;
+            for (auto l : layers) {
+              const Scal clm = (*fccl[l])[cm];
+              const Scal clp = (*fccl[l])[cp];
+              if (clm != kClNone) colors.insert(clm);
+              if (clp != kClNone) colors.insert(clp);
+            }
+            for (auto cl : colors) {
+              Scal um = 0;
+              Scal up = 0;
+              for (auto l : layers) {
+                if ((*fccl[l])[cm] == cl) um = (*fcu[l])[cm];
+                if ((*fccl[l])[cp] == cl) up = (*fcu[l])[cp];
+              }
+              const Scal uf = (um + up) * 0.5;
+              if (uf != 0) {
+                febp_[f] -= ff_rho[f] * ffg[f] * uf * h / sqr(dt);
               }
             }
           }
-        });
+        }
       } else {
         for (auto& p : mebc_fluid_.GetMapFace()) {
           const IdxFace f = p.first;
@@ -1790,6 +1808,12 @@ void Hydro<M>::DumpFields() {
           fc[c] = eb.GetVolumeFraction(c);
         }
         m.Dump(&fc, "ebvf");
+      }
+      if (dl.count("ebdist")) {
+        m.Dump(&fc_dist_, "ebdist");
+      }
+      if (dl.count("ebphi")) {
+        m.Dump(&fc_phi_, "ebphi");
       }
     }
   }
