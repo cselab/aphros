@@ -58,7 +58,10 @@ auto ULinear<Scal>::FitLinear(
   return p;
 }
 
-// returns level-set positive outide body
+// Returns level-set positive inside the body normalized to a new bounding box.
+// center: center of the new bounding box
+// extent: extent of the new bounding box
+// path: path to model
 template <class M>
 FieldNode<typename M::Scal> GetModelLevelSet(
     typename M::Vect center, typename M::Scal extent, std::string path,
@@ -120,20 +123,20 @@ FieldNode<typename M::Scal> GetModelLevelSet(
       for (size_t i = 0; i < num_nodes; ++i) {
         const IdxNode n = m.GetNode(c, i);
         if (IsNan(fnl[n])) {
-          fnl[n] = inf;
+          fnl[n] = -inf;
         }
       }
     } else if (num_inside == num_nodes) { // whole cell inside
       for (size_t i = 0; i < num_nodes; ++i) {
         const IdxNode n = m.GetNode(c, i);
         if (IsNan(fnl[n])) {
-          fnl[n] = -inf;
+          fnl[n] = inf;
         }
       }
     } else { // cell crosses surface
       for (size_t i = 0; i < num_nodes; ++i) {
         const IdxNode n = m.GetNode(c, i);
-        fnl[n] = distance(m.GetNode(n));
+        fnl[n] = -distance(m.GetNode(n));
       }
     }
   }
