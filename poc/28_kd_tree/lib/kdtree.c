@@ -10,7 +10,7 @@ struct kdhyperrect {
 struct kdnode {
 	double *pos;
 	int dir;
-	void *data;
+	int data;
 
 	struct kdnode *left, *right;	/* negative/positive side */
 };
@@ -34,7 +34,7 @@ struct kdres {
 
 static double sq(double);
 static void clear_rec(struct kdnode *node);
-static int insert_rec(struct kdnode **node, const double *pos, void *data, int dir);
+static int insert_rec(struct kdnode **node, const double *pos, int data, int dir);
 static int rlist_insert(struct res_node *list, struct kdnode *item, double dist_sq);
 static void clear_results(struct kdres *set);
 
@@ -86,7 +86,7 @@ void kd_clear(struct kdtree *tree)
 	}
 }
 
-static int insert_rec(struct kdnode **nptr, const double *pos, void *data, int dir)
+static int insert_rec(struct kdnode **nptr, const double *pos, int data, int dir)
 {
 	int new_dir;
 	struct kdnode *node;
@@ -115,7 +115,7 @@ static int insert_rec(struct kdnode **nptr, const double *pos, void *data, int d
 	return insert_rec(&(*nptr)->right, pos, data, new_dir);
 }
 
-int kd_insert(struct kdtree *tree, const double *pos, void *data)
+int kd_insert(struct kdtree *tree, const double *pos, int data)
 {
 	if (insert_rec(&tree->root, pos, data, 0)) {
 		return -1;
@@ -329,7 +329,7 @@ int kd_res_next(struct kdres *rset)
 	return rset->riter != 0;
 }
 
-void *kd_res_item(struct kdres *rset, double *pos)
+int kd_res_item(struct kdres *rset, double *pos)
 {
 	if(rset->riter) {
 		if(pos) {
@@ -337,46 +337,10 @@ void *kd_res_item(struct kdres *rset, double *pos)
 		}
 		return rset->riter->item->data;
 	}
-	return 0;
+	return -1;
 }
 
-void *kd_res_itemf(struct kdres *rset, float *pos)
-{
-	if(rset->riter) {
-		if(pos) {
-			int i;
-			for(i = 0; i < 3; i++) {
-				pos[i] = rset->riter->item->pos[i];
-			}
-		}
-		return rset->riter->item->data;
-	}
-	return 0;
-}
-
-void *kd_res_item3(struct kdres *rset, double *x, double *y, double *z)
-{
-	if(rset->riter) {
-		if(x) *x = rset->riter->item->pos[0];
-		if(y) *y = rset->riter->item->pos[1];
-		if(z) *z = rset->riter->item->pos[2];
-		return rset->riter->item->data;
-	}
-	return 0;
-}
-
-void *kd_res_item3f(struct kdres *rset, float *x, float *y, float *z)
-{
-	if(rset->riter) {
-		if(x) *x = rset->riter->item->pos[0];
-		if(y) *y = rset->riter->item->pos[1];
-		if(z) *z = rset->riter->item->pos[2];
-		return rset->riter->item->data;
-	}
-	return 0;
-}
-
-void *kd_res_item_data(struct kdres *set)
+int kd_res_item_data(struct kdres *set)
 {
 	return kd_res_item(set, 0);
 }

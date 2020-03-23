@@ -19,7 +19,7 @@ static double rd( void );
 int main(int argc, char **argv) {
   int i, num_pts = DEF_NUM_PTS;
   void *ptree;
-  char *data, *pch;
+  int *data, pch;
   struct kdres *presults;
   double pos[3], dist;
   double pt[3] = { 0, 0, 1 };
@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     num_pts = atoi(argv[1]);
   }
 
-  if(!(data = malloc(num_pts))) {
+  if(!(data = malloc(num_pts*sizeof(*data)))) {
     perror("malloc failed");
     return 1;
   }
@@ -40,11 +40,11 @@ int main(int argc, char **argv) {
   /* add some random nodes to the tree (assert nodes are successfully inserted) */
   double r[3];
   for( i=0; i<num_pts; i++ ) {
-    data[i] = 'a' + i;
+    data[i] = i;
     r[0] = rd();
     r[1] = rd();
     r[2] = rd();
-    assert( 0 == kd_insert( ptree, r, &data[i] ) );
+    assert( 0 == kd_insert( ptree, r, data[i] ) );
   }
 
   /* find points closest to the origin and within distance radius */
@@ -55,14 +55,14 @@ int main(int argc, char **argv) {
 
   while( !kd_res_end( presults ) ) {
     /* get the data and position of the current result item */
-    pch = (char*)kd_res_item( presults, pos );
+    pch = kd_res_item( presults, pos );
 
     /* compute the distance of the current result from the pt */
     dist = sqrt( dist_sq( pt, pos, 3 ) );
 
     /* print out the retrieved data */
-    printf( "node at (%.3f, %.3f, %.3f) is %.3f away and has data=%c\n", 
-	    pos[0], pos[1], pos[2], dist, *pch );
+    printf( "node at (%.3f, %.3f, %.3f) is %.3f away and has data=%d\n",
+	    pos[0], pos[1], pos[2], dist, pch );
 
     /* go to the next entry */
     kd_res_next( presults );
