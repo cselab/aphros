@@ -4,7 +4,7 @@ aw () {
   awk "END{print $@}" < /dev/null
 }
 
-angle=30
+angle=0
 #angle=0
 angle=`aw "3.1415926 / 180 * $angle"`
 mag=5
@@ -27,7 +27,7 @@ sphere 0.7 0.3 0 0.08
 "
 
 set string list_path "inline
-sphere 0.5 0.5 0 0.3
+sphere 0.5 0.35 0 0.2
 "
 
 set string bc_path "inline
@@ -55,6 +55,7 @@ wall 0 0 0 {
 set string eb_list_path "inline
 &-box 0.5 0.5 0.5  1
 sphere 0.5 0.5 0 0.5
+-&sphere 0.5 0.8 0 0.15
 #-&sphere 0.5 0.5 0 0.2
 "
 

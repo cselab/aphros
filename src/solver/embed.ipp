@@ -35,6 +35,23 @@ void Embed<M>::Init(const FieldNode<Scal>& fnl) {
     for (auto c : eb.AllCells()) {
       fc_cell_center_[c] = GetCellCenter0(c);;
     }
+
+    fc_sdf_.Reinit(eb, GetNan<Scal>());
+    for (auto c : eb.Cells()) {
+      const Vect x = m.GetCenter(c);
+      auto& sdf = fc_sdf_[c];
+      for (auto cn : eb.Stencil5(c)) {
+        if (GetType(cn) == Type::cut) {
+          const Vect dx = eb.GetFaceCenter(cn) - x;
+          const Scal sgn = (eb.GetNormal(cn).dot(dx) > 0 ? 1 : -1);
+          const Scal dist = dx.norm();
+          if (IsNan(sdf) || std::abs(sdf) > dist) {
+            sdf = dist * sgn;
+          }
+        }
+      }
+    }
+    m.Comm(&fc_sdf_);
   }
   if (sem()) {}
 }

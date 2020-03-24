@@ -1348,16 +1348,15 @@ void Hydro<M>::CalcStat() {
         auto& eb = *eb_;
         fc_dist_.Reinit(eb, 0);
         for (auto c : eb.SuCells()) {
-          const auto x = m.GetCenter(c);
-          auto dx = x - Vect(0.5);
-          dx[2] = 0;
-          fc_dist_[c] = 0.5 - dx.norm();
+          fc_dist_[c] = eb.GetSignedDistance(c);
         }
         fc_phi_.Reinit(eb, 0); // potential [length]
         for (auto c : eb.SuCells()) {
-          const Scal d0 = slipnormal_dist * h;
-          const Scal d = std::max(0., d0 - fc_dist_[c]);
-          fc_phi_[c] += slipnormal * d;
+          if (!IsNan(fc_dist_[c])) {
+            const Scal d0 = slipnormal_dist * h;
+            const Scal d = std::max(0., d0 - fc_dist_[c]);
+            fc_phi_[c] += slipnormal * d;
+          }
         }
         const auto ffg = UEB::Gradient(fc_phi_, {}, eb); // potential grad [-]
         const auto ff_rho = UEB::InterpolateHarmonic(fc_rho_, {}, eb);
@@ -1809,10 +1808,10 @@ void Hydro<M>::DumpFields() {
         }
         m.Dump(&fc, "ebvf");
       }
-      if (dl.count("ebdist")) {
+      if (fc_dist_.size() && dl.count("ebdist")) {
         m.Dump(&fc_dist_, "ebdist");
       }
-      if (dl.count("ebphi")) {
+      if (fc_phi_.size() && dl.count("ebphi")) {
         m.Dump(&fc_phi_, "ebphi");
       }
     }

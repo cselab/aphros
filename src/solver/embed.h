@@ -475,6 +475,12 @@ class Embed {
   Vect GetCellCenter(IdxCell c) const {
     return fc_cell_center_[c];
   }
+  // Signed distance from m.GetCenter(c) to the nearest cut cell.
+  // Positive inside the domain.
+  // Defined in cells reachable by Stencil5() from cut cells.
+  Scal GetSignedDistance(IdxCell c) const {
+    return fc_sdf_[c];
+  }
   Scal ClipGradDenom(Scal dn) const {
     return (dn > 0 ? 1 : -1) *
            std::max(std::abs(dn), m.GetCellSize()[0] * gradlim_);
@@ -647,8 +653,8 @@ class Embed {
   FieldCell<Scal> fcv_; // volume of cut cell
   FieldCell<Vect> fc_face_center_;
   FieldCell<Vect> fc_cell_center_;
-  // volume of neighbor cells
-  FieldCell<Scal> fcvst3_; // volume of neighbors in stencil 3x3x3
+  FieldCell<Scal> fc_sdf_; // signed distance to cut cell
+  FieldCell<Scal> fcvst3_; // sum of volume of neighbors in stencil 3x3x3
 };
 
 template <class M>
