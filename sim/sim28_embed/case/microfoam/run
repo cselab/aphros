@@ -1,0 +1,24 @@
+#!/bin/bash
+
+cat > par.py << EOF
+Re = 1000.
+extent = 10.
+dim = 3
+#np = 128
+#nx = 128
+
+np = 256
+nx = 256
+
+dump_field_dt = 0.1
+tmax = 100.
+
+shape = "humanoid_ellip"
+
+bs = 16
+
+EOF
+
+killall ap.mfer &> /dev/null || true
+
+make cleanrun
