@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import aphros
 import os
@@ -13,6 +13,7 @@ par = {
   "Lnarrow": 0.35,
   "Hwide": 1,
   "Hnarrow": 75 / 1600.,
+  "thickness": 60. / 1600.,
   "Re": 1000,
   "Ca": 0.07,
   "np": 4,
@@ -26,6 +27,7 @@ Lwide = float(par["Lwide"])
 Lnarrow = float(par["Lnarrow"])
 H = float(par['Hwide'])
 Hnarrow = float(par['Hnarrow'])
+thickness = float(par['thickness'])
 Re = par["Re"]
 Ca = par["Ca"]
 nx = par['nx']
@@ -36,14 +38,25 @@ lx = extent
 hx = lx / nx
 eps = hx * 0.01
 
+bsx = par['bs']
+bsy = bsx
+bsz = bsx
+
+if par['dim'] == 2:
+    bsz = 1
+
 ly = H + hx * 4
-ly = max(ly, lx / np.floor(lx / ly))
-lz = 0
+lz = thickness + hx * 4
+assert ly <= extent
+assert lz <= extent
 
-assert extent >= H
-assert np.isclose(lx / ly, np.round(lx / ly))
+def Up(n, b):
+    return (n + b - 1) / b * b
 
-radius = 0.5
+ny = Up(int(nx * ly / lx + 0.5), bsy)
+nz = Up(int(nx * lz / lx + 0.5), bsz)
+ly = ny * hx
+lz = nz * hx
 
 # geometry
 geom = aphros.Geometry()
@@ -52,6 +65,8 @@ diag = (extent - Lwide) / (2. ** 0.5)
 geom.Box([0, ly/2 - H/2, 0], [inf, diag, inf], -45)
 geom.Box([0, ly/2 + H/2, 0], [inf, diag, inf], 45)
 geom.Box([lx/2, ly/2, 0], [inf, Hnarrow/2, inf], invert=1, intersect=1)
+geom.Box([0,0,lz/2], [inf, inf, thickness/2], invert=1)
+
 
 with open("body.dat", 'w') as f:
     f.write(geom.Generate())
@@ -76,6 +91,9 @@ with open("bc.dat", 'w') as f:
 
 # volume fraction
 vf = aphros.Geometry()
+R = Hnarrow
+for i in range(5):
+    vf.Box([R * (i * 2.5 + 1), ly/2, lz/2], [R, ly/2, lz/2])
 with open("b.dat", 'w') as f:
     f.write(vf.Generate())
 
@@ -90,20 +108,23 @@ var['mu1'] = 1. / Re
 var['mu2'] = var['mu1'] * rho
 var['rho1'] = 1.
 var['rho2'] = rho
-var['sigma'] = 1. / Ca
-
-ny = int(nx * ly / lx + 0.5)
-nz = max(1, int(nx * lz / lx + 0.5))
-bsx = par['bs']
-bsy = bsx
-bsz = bsx
-np = par['np']
-tl = par['tl']
+var['sigma'] = var['mu1'] / Ca
 
 if par['dim'] == 2:
     var['dumplist'] = "vx vy omz p"
-    nz = 1
-    bsz = 1
+    var['hypre_periodic_z'] = 1
+
+np = par['np']
+nb = (nx / bsx) * (ny / bsy) * (nz / bsz)
+if nb % np != 0:
+    np0 = np
+    for np in reversed(range(1, np + 1)):
+        if nb % np == 0:
+            break;
+    print("Warning: number of blocks nb={:} not divisible by np={:}. \
+Setting np={:}.".format(nb, np0, np))
+
+tl = par['tl']
 
 with open("par.make", 'w') as f:
         f.write(

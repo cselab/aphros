@@ -1,12 +1,17 @@
 #!/bin/bash
 
 cat > par.py << EOF
-np = 8
-nx = 128
+Lnarrow = 1.5
+Lwide = 1.
+np = 256
+nx = 512
+bs = 16
 
-dump_field_dt = 0.1
+dim = 3
+dump_field_dt = 0.05
 tmax = 10.
 Hnarrow = 0.1
+thickness = 0.05
 
 EOF
 
