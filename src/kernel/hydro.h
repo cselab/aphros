@@ -577,6 +577,8 @@ void Hydro<M>::InitStat() {
         op("dta", &s.dta),
         std::make_shared<output::OutScalFunc<Scal>>(
             "diff", [this]() { return fs_->GetError(); }),
+        std::make_shared<output::OutScalFunc<Scal>>(
+            "wt", [this]() { return timer_.GetSeconds(); }),
         op("m1", &s.m1),
         op("m2", &s.m2),
         op("m20", &s.m20),
