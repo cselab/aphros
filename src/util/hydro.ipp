@@ -1603,21 +1603,19 @@ void AppendSurfaceTension(
     const FieldFace<typename M::Scal>& ffsig) {
   const auto& m = eb.GetMesh();
   using Scal = typename M::Scal;
-  #if 1
-  const auto feg = UEmbed<M>::Gradient(fcu, {}, eb);
-  #else // XXX exactbalance
-  const auto feg = UEmbed<M>::Gradient(fcu, MapCondFace(), 1, 0., eb);
-  #endif
+  const Scal h = eb.GetCellSize()[0];
   for (auto f : eb.Faces()) {
-    const Scal gu = feg[f];
-    if (gu != 0.) {
-      const IdxCell cm = m.GetCell(f, 0);
-      const IdxCell cp = m.GetCell(f, 1);
-      const Scal um = fcu[cm];
-      const Scal up = fcu[cp];
-      const Scal k =
-          (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
-      ffst[f] += gu * (IsNan(k) ? 0 : k) * ffsig[f];
+    const IdxCell cm = m.GetCell(f, 0);
+    const IdxCell cp = m.GetCell(f, 1);
+    const Scal um =
+        std::max(0., std::min(1., fcu[cm] / eb.GetVolumeFraction(cm)));
+    const Scal up =
+        std::max(0., std::min(1., fcu[cp] / eb.GetVolumeFraction(cp)));
+    const Scal ga = (up - um) / h;
+    if (ga != 0.) {
+      Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? fck[cm] : fck[cp]);
+      k = (IsNan(k) ? 0 : k);
+      ffst[f] += ga * k * ffsig[f];
     }
   }
 }
@@ -1678,6 +1676,7 @@ void AppendSurfaceTension(
     const FieldFace<typename M::Scal>& ffsig) {
   using Scal = typename M::Scal;
   constexpr Scal kClNone = -1;
+  const Scal h = eb.GetCellSize()[0];
   for (auto f : eb.Faces()) {
     const IdxCell cm = eb.GetCell(f, 0);
     const IdxCell cp = eb.GetCell(f, 1);
@@ -1703,11 +1702,11 @@ void AppendSurfaceTension(
           kp = (*fck[i])[cp];
         }
       }
-      Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
-      const Scal dn = eb.ClipGradDenom(
-          eb.GetNormal(f).dot(eb.GetCellCenter(cp) - eb.GetCellCenter(cm)));
-      const Scal ga = (up - um) / dn;
+      um = std::max(0., std::min(1., um / eb.GetVolumeFraction(cm)));
+      up = std::max(0., std::min(1., up / eb.GetVolumeFraction(cp)));
+      const Scal ga = (up - um) / h;
       if (ga != 0.) {
+        Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
         k = (IsNan(k) ? 0 : k);
         ffst[f] += ga * k * ffsig[f];
       }
