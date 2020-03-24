@@ -14,6 +14,13 @@ cos=`aw "-cos($angle)*$mag"`
 cat > add.conf << EOF
 set vect gravity $sin $cos 0
 
+set double rho1 1
+set double mu1 0.001
+
+set double rho2 10
+set double mu2 0.01
+set double sigma 0.5
+
 set string list_path "inline
 sphere 0.5 0.7 0 0.08
 sphere 0.5 0.5 0 0.08
@@ -27,23 +34,7 @@ sphere 0.7 0.3 0 0.08
 "
 
 set string list_path "inline
-sphere 0.5 0.35 0 0.2
-"
-
-set string bc_path "inline
-wall 0 0 0 {
-  box 0 0 0 10
-}
-inlet 0.1 0 0 {
-  sphere 0.1 0.5 0   0.1
-}
-wall_rotation_magn 0.5 0.5 0  0 0 1 {
-  sphere 0.5 0.5 0 0.3
-}
-outlet {
-  sphere 0.95 0.95 0   0.05
-  sphere 0.95 0.05 0   0.05
-}
+sphere 0.5 0.75 0 0.25 0.15
 "
 
 set string bc_path "inline
@@ -54,8 +45,11 @@ wall 0 0 0 {
 
 set string eb_list_path "inline
 &-box 0.5 0.5 0.5  1
-sphere 0.5 0.5 0 0.5
--&sphere 0.5 0.8 0 0.15
+sphere 0.5 0.5 0 0.45
+-&sphere 0.5 0.5 0 0.1
+-&sphere 0.2 0.5 0 0.1
+-&sphere 0.8 0.5 0 0.1
+#-&sphere 0.5 0.8 0 0.15
 #-&sphere 0.5 0.5 0 0.2
 "
 
