@@ -174,27 +174,32 @@ struct UInitEmbedBc {
     struct {
       std::vector<std::vector<Vect>> dpoly;
       std::vector<Scal> dgroup;
+      std::vector<Scal> dface;
     } * ctx(sem);
     auto& dpoly = ctx->dpoly;
     auto& dgroup = ctx->dgroup;
+    auto& dface = ctx->dface;
     if (sem("local")) {
       for (auto p : me_group.GetMapCell()) {
         dpoly.push_back(eb.GetCutPoly(p.first));
         dgroup.push_back(p.second);
+        dface.push_back(0);
       }
       for (auto p : me_group.GetMapFace()) {
         dpoly.push_back(eb.GetFacePoly(p.first));
         dgroup.push_back(p.second);
+        dface.push_back(1);
       }
       using TV = typename M::template OpCatVT<Vect>;
       m.Reduce(std::make_shared<TV>(&dpoly));
       using TS = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<TS>(&dgroup));
+      m.Reduce(std::make_shared<TS>(&dface));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
         WriteVtkPoly<Vect>(
-            filename, dpoly, nullptr, {&dgroup}, {"group"},
+            filename, dpoly, nullptr, {&dgroup, &dface}, {"group", "face"},
             "Boundary conditions", true, true, true);
       }
     }

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+cat > par.py << EOF
+Lnarrow = 0.6
+Lwide = 1
+np = 8
+nx = 64
+bs = 16
+Ca = 0.01
+rho = 1
+Re = 100.
+
+dt0 = 0.01
+dim = 2
+dump_field_dt = 0.1
+tmax = 20.
+dumppart = 1
+bubgen_per = 0.5
+bublength = 1
+Hnarrow = 0.2
+thickness = 0.1
+
+EOF
+
+nice make cleanrun

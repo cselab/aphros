@@ -1043,7 +1043,11 @@ InitBc(const Vars& var, const MEB& eb) {
         ca.fill_cl = inletcl;
         break;
       case BCondFluidType::outlet:
-        ca.halo = Halo::reflect;
+        ca.halo = Halo::fill;
+        ca.clear0 = 1;
+        ca.clear1 = 1;
+        ca.fill_vf = 0;
+        ca.fill_cl = kClNone;
         break;
       case BCondFluidType::symm:
         ca.halo = Halo::reflect;

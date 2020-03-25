@@ -44,16 +44,17 @@ bsx = par['bs']
 bsy = bsx
 bsz = bsx
 
-if par['dim'] == 2:
-    bsz = 1
-
 ly = H + hx * 4
 lz = thickness + hx * 4
 assert ly <= extent
 assert lz <= extent
 
+if par['dim'] == 2:
+    bsz = 1
+    lz = 0
+
 def Up(n, b):
-    return (n + b - 1) / b * b
+    return max(1, n + b - 1) / b * b
 
 ny = Up(int(nx * ly / lx + 0.5), bsy)
 nz = Up(int(nx * lz / lx + 0.5), bsz)
@@ -86,8 +87,7 @@ bc.Inlet(g, velocity = [1, 0, 0])
 
 g = aphros.Geometry()
 g.Box([lx, 0, 0], [eps, inf, inf])
-#bc.Outlet(g)
-bc.Custom(g, "outlet , fill_vf 0, clear1 0 ")
+bc.Outlet(g)
 
 with open("bc.dat", 'w') as f:
     f.write(bc.Generate())
@@ -105,7 +105,7 @@ for k in par:
     var[k] = par[k]
 
 var['extent'] = float(extent)
-rho = var['rho']
+rho = float(var['rho'])
 var['mu1'] = 1. / Re
 var['mu2'] = var['mu1'] * rho
 var['rho1'] = 1.
