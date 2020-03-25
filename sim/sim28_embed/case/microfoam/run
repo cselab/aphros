@@ -1,20 +1,19 @@
 #!/bin/bash
 
 cat > par.py << EOF
-Lnarrow = 1.5
-Lwide = 1.
-np = 256
-nx = 512
+Lnarrow = 0.6
+Lwide = 1
+np = 128
+nx = 256
 bs = 16
 
 dim = 3
 dump_field_dt = 0.05
-tmax = 10.
+tmax = 100.
 Hnarrow = 0.1
 thickness = 0.05
 
 EOF
 
-./gen
 #killall ap.mfer &> /dev/null || true
 nice make cleanrun

@@ -14,8 +14,8 @@ par = {
   "Hwide": 1,
   "Hnarrow": 75 / 1600.,
   "thickness": 60. / 1600.,
-  "Re": 1000,
-  "Ca": 0.07,
+  "Re": 100.,
+  "Ca": 0.1,
   "np": 4,
   "tl": 1440,
   "bs": 32,
@@ -89,12 +89,11 @@ bc.Outlet(g)
 with open("bc.dat", 'w') as f:
     f.write(bc.Generate())
 
-# volume fraction
+# volume fraction bubgen
 vf = aphros.Geometry()
 R = Hnarrow
-for i in range(5):
-    vf.Box([R * (i * 2.5 + 1), ly/2, lz/2], [R, ly/2, lz/2])
-with open("b.dat", 'w') as f:
+vf.Box([R * 3, ly/2, lz/2], [R, Hnarrow/2, thickness/2])
+with open("bg.dat", 'w') as f:
     f.write(vf.Generate())
 
 # configuration
@@ -103,7 +102,7 @@ for k in par:
     var[k] = par[k]
 
 var['extent'] = float(extent)
-rho = 1.
+rho = 0.1
 var['mu1'] = 1. / Re
 var['mu2'] = var['mu1'] * rho
 var['rho1'] = 1.
