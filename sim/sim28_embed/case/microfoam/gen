@@ -16,9 +16,11 @@ par = {
   "thickness": 60. / 1600.,
   "Re": 100.,
   "Ca": 0.1,
+  "rho": 0.1,
   "np": 4,
   "tl": 1440,
   "bs": 32,
+  "bublength": 2,
         }
 
 exec(open("par.py").read(), None, par)
@@ -84,15 +86,16 @@ bc.Inlet(g, velocity = [1, 0, 0])
 
 g = aphros.Geometry()
 g.Box([lx, 0, 0], [eps, inf, inf])
-bc.Outlet(g)
+#bc.Outlet(g)
+bc.Custom(g, "outlet , fill_vf 0, clear1 0 ")
 
 with open("bc.dat", 'w') as f:
     f.write(bc.Generate())
 
 # volume fraction bubgen
 vf = aphros.Geometry()
-R = Hnarrow
-vf.Box([R * 3, ly/2, lz/2], [R, Hnarrow/2, thickness/2])
+R = Hnarrow * par["bublength"]
+vf.Box([R * 2, ly/2, lz/2], [R, Hnarrow/2, thickness/2])
 with open("bg.dat", 'w') as f:
     f.write(vf.Generate())
 
@@ -102,7 +105,7 @@ for k in par:
     var[k] = par[k]
 
 var['extent'] = float(extent)
-rho = 0.1
+rho = var['rho']
 var['mu1'] = 1. / Re
 var['mu2'] = var['mu1'] * rho
 var['rho1'] = 1.

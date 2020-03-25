@@ -14,7 +14,11 @@ par = {
   "np": 128,
   "tl": 1440,
   "bs": 32,
-  "shape": "cylinder"
+  "shape": "cylinder",
+  "rho": 1,
+  "sigma": 0.5,
+  "Rbub": 0.15,
+  "Nbubfactor": 1
         }
 
 exec(open("par.py").read(), None, par)
@@ -79,9 +83,11 @@ with open("bc.dat", 'w') as f:
 
 # volume fraction
 vf = aphros.Geometry()
-R = 0.15
+R = par['Rbub']
 dy = R*2.8
-for i,j,k in itertools.product(range(-4,7), range(-4,7), range(-4,7)):
+Nbubfactor = par['Nbubfactor']
+rng = range(-4*Nbubfactor, 7*Nbubfactor)
+for i,j,k in itertools.product(rng, rng, rng):
     c = center + [-2, 0, 0]
     d = np.array([i, j, k])
     vf.Sphere(c + d * dy, [R]*3)
@@ -92,12 +98,12 @@ with open("b.dat", 'w') as f:
 # configuration
 var = aphros.Var()
 var['extent'] = float(extent)
-rho = 1.
+rho = float(par['rho'])
 var['mu1'] = 1. / Re
 var['mu2'] = var['mu1'] * rho
 var['rho1'] = 1.
 var['rho2'] = rho
-var['sigma'] = 0.5
+var['sigma'] = par['sigma']
 
 for k in par:
     var[k] = par[k]

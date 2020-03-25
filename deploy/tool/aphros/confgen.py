@@ -111,6 +111,8 @@ class Bc:
     def Symm(self, geom):
         s = "symm"
         self.__Append(s, geom)
+    def Custom(self, geom, desc):
+        self.__Append(desc, geom)
     def Generate(self):
         return '\n'.join(self.lines)
 

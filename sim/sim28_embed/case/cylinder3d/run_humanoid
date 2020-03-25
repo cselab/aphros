@@ -4,17 +4,23 @@ cat > par.py << EOF
 Re = 1000.
 extent = 10.
 dim = 3
-#np = 128
-#nx = 128
-np = 256
-nx = 256
+
+np = 4096 * 2
+nx = 512
+bs = 16
+
+sigma = 0.1
+
+Rbub = 0.05
+Nbubfactor = 3
+
+dump_field_dt = 0.1
+tmax = 100.
 
 shape = "humanoid_ellip"
 
-bs = 16
+rho = 0.1
 
 EOF
-
-killall ap.mfer &> /dev/null || true
 
 make cleanrun
