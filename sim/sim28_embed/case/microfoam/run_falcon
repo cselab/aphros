@@ -6,9 +6,9 @@ Lwide = 1
 np = 8
 nx = 64
 bs = 16
-Ca = 0.01
-rho = 1
-Re = 100.
+Ca = 0.05
+rho = 0.01
+Re = 1.
 
 dt0 = 0.01
 dim = 2
