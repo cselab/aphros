@@ -5,18 +5,36 @@ import os
 import numpy as np
 import itertools
 
+def ExpPar():
+    # SI units
+    # Vecchiolla2018, Figure 2
+    mu = 1.25e-3
+    sigma = 35.2e-3
+    volrate_lh = 12e-3 # litre/hour
+    volrate = volrate_lh / 3600. / 1e3
+    thickness = 60e-6
+    height_narrow = 75e-6
+    inlet_area = height_narrow * thickness
+    inlet_vel = volrate / inlet_area
+    Ca = mu * inlet_vel / sigma
+    rho = 1260
+    Re = height_narrow * inlet_vel * rho / mu
+    print("Ca={:.5g}, Re={:.5g}, inlet_vel={:.5g}".format(Ca, Re, inlet_vel))
+    # Ca=0.026305, Re=56, inlet_vel=0.74074
+
+
 # default
 par = {
   "dim": 2,
   "nx": 512,
-  "Lwide": 2,
+  "Lwide": 2.,
   "Lnarrow": 0.35,
-  "Hwide": 1,
-  "Hnarrow": 75 / 1600.,
+  "Hwide": 1.,
+  "Hnarrow": 75. / 1600.,
   "thickness": 60. / 1600.,
-  "Re": 100.,
-  "Ca": 0.1,
-  "rho": 0.1,
+  "Re": 50.,
+  "Ca": 0.05,
+  "rho": 0.01,
   "np": 4,
   "tl": 1440,
   "bs": 32,
@@ -106,7 +124,7 @@ for k in par:
 
 var['extent'] = float(extent)
 rho = float(var['rho'])
-var['mu1'] = 1. / Re
+var['mu1'] = Hnarrow / Re
 var['mu2'] = var['mu1'] * rho
 var['rho1'] = 1.
 var['rho2'] = rho
