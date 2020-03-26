@@ -1599,15 +1599,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           GetCondZeroGrad<Scal>(mf_fluid_), fck_, fc_vf0, af, as_.get());
     }
 
-    if (0 && eb_) {
-      auto& eb = *eb_;
-      for (auto f : m.AllFaces()) {
-        if (eb.GetType(f) == Embed<M>::Type::excluded) {
-          febp_[f] = 0;
-        }
-      }
-    }
-
     // vortex force
     Scal force_vort = var.Double["force_vort_g"];
     if (force_vort != 0) {
