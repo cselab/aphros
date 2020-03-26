@@ -115,8 +115,17 @@ nz = int(nx * ly / lx + 0.5)
 bsx = par['bs']
 bsy = bsx
 bsz = bsx
-np = par['np']
 tl = par['tl']
+
+np = par['np']
+nb = (nx / bsx) * (ny / bsy) * (nz / bsz)
+if nb % np != 0:
+    np0 = np
+    for np in reversed(range(1, np + 1)):
+        if nb % np == 0:
+            break;
+    print("Warning: number of blocks nb={:} not divisible by np={:}. \
+Setting np={:}.".format(nb, np0, np))
 
 if par['dim'] == 2:
     var['dumplist'] = "vx vy omz p"
