@@ -28,9 +28,9 @@ def ExpPar():
     # Ca=0.026305, Re=56, inlet_vel=0.74074
 
 
-def GetRandomCluster(xlim, ylim, zlim, r, gap__r=2., num_tries=1000):
+def GetRandomCluster(xlim, ylim, zlim, r, gap__r=2., num_tries=10000):
     '''
-    Generates cloud of spheres.
+    Generates random cloud of spheres.
     xlim,ylim,zlim: array, (3)
         Bounding box, limits in each direction.
     r: float
@@ -64,6 +64,32 @@ def GetRandomCluster(xlim, ylim, zlim, r, gap__r=2., num_tries=1000):
                 break
     return np.array((xx, yy, zz, rr))
 
+def GetRegularCluster(xlim, ylim, zlim, r, gap__r=2.):
+    '''
+    Generates regular lattice of spheres.
+    xlim,ylim,zlim: array, (3)
+        Bounding box, limits in each direction.
+    r: float
+        Radius of spheres.
+    gap__r: float
+        Minimal distance between surfaces of speres relative to `r`.
+    '''
+    shift = 2 * r + gap__r * r
+    nx = max(1, np.ceil((xlim[1] - xlim[0]) / shift))
+    ny = max(1, np.ceil((ylim[1] - ylim[0]) / shift))
+    nz = max(1, np.ceil((zlim[1] - zlim[0]) / shift))
+    m = np.mgrid[:nx,:ny,:nz]
+    xx = m[0] * shift
+    yy = m[1] * shift
+    zz = m[2] * shift
+    xx = xx.flatten()
+    yy = yy.flatten()
+    zz = zz.flatten()
+    xx += np.mean(xlim) - np.mean(xx)
+    yy += np.mean(ylim) - np.mean(yy)
+    zz += np.mean(zlim) - np.mean(zz)
+    return np.array((xx, yy, zz, [r] * xx.size))
+
 # default
 par = {
   "dim": 2,
@@ -83,6 +109,7 @@ par = {
   "gapy": 0.,
   "fillbub": False,
   "fillbub_R": 0.05,
+  "fillbub_regular": False,
         }
 
 exec(open("par.py").read(), None, par)
@@ -96,6 +123,7 @@ Re = par["Re"]
 Ca = par["Ca"]
 nx = par['nx']
 fillbub = par['fillbub']
+fillbub_regular = par['fillbub_regular']
 fillbub_R = par['fillbub_R']
 fillbub_gap = par['fillbub_gap']
 
@@ -166,11 +194,19 @@ with open("bg.dat", 'w') as f:
 
 # volume fraction
 vf = aphros.Geometry()
-bb = GetRandomCluster(
-        [Lnarrow + H/2, Lnarrow + H/2 + Lwide], [ly/2 - H/2, ly/2 + H/2],
-        [lz/2, lz/2], fillbub_R, fillbub_gap / fillbub_R)
+
+xlim = [Lnarrow, Lnarrow + H/2 + Lwide]
+ylim = [ly/2 - H/2, ly/2 + H/2]
+zlim = [lz/2, lz/2]
+if fillbub_regular:
+    bb = GetRegularCluster(
+            xlim, ylim, zlim, fillbub_R, fillbub_gap / fillbub_R)
+else:
+    bb = GetRandomCluster(
+            xlim, ylim, zlim, fillbub_R, fillbub_gap / fillbub_R)
+
 for i in range(len(bb[0])):
-    vf.Sphere([bb[0][i],bb[1][i],bb[2][i]], [bb[3][0], bb[3][1], thickness*0.4])
+    vf.Sphere([bb[0][i],bb[1][i],bb[2][i]], [bb[3][0], bb[3][1], thickness*0.5])
 with open("b.dat", 'w') as f:
     f.write(vf.Generate())
 
