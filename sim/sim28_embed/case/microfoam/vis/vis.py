@@ -32,21 +32,14 @@ materialLibrary1 = GetMaterialLibrary()
 # Create a new 'Render View'
 renderView1 = CreateView('RenderView')
 renderView1.ViewSize = [2000, 700]
-renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
-renderView1.CenterOfRotation = [1.8562249839305878, 0.5329485405236483, 0.048663998022675514]
 renderView1.UseLight = 0
-renderView1.StereoType = 'Crystal Eyes'
 renderView1.CameraPosition = [1.5524737638061836, 0.5325429962736342, 5.206477122922456]
 renderView1.CameraFocalPoint = [1.5524737638061836, 0.5325429962736342, 0.048663998022675514]
-renderView1.CameraFocalDisk = 1.0
 renderView1.CameraParallelScale = 0.5509096758631732
 renderView1.CameraParallelProjection = 1
 renderView1.Background = [0.7725490196078432, 0.7686274509803922, 0.7725490196078432]
-renderView1.BackEnd = 'OSPRay raycaster'
-renderView1.SamplesPerPixel = 10
 renderView1.AdditionalLights = light1
-renderView1.OSPRayMaterialLibrary = materialLibrary1
 
 SetActiveView(None)
 
@@ -72,6 +65,13 @@ bcvtk = LegacyVTKReader(FileNames=paratools.FindFiles('bc.vtk'))
 sm_0 = LegacyVTKReader(FileNames=paratools.FindFiles())
 sources_ft, timearrays = paratools.ApplyForceTime([sm_0])
 sm_0, = sources_ft
+
+box = paratools.GetBox(bcvtk)
+boxc = [(box[0][i] + box[1][i]) * 0.5 for i in range(3)]
+renderView1.CameraPosition[0] = boxc[0]
+renderView1.CameraPosition[1] = boxc[1]
+renderView1.CameraFocalPoint[0] = boxc[0]
+renderView1.CameraFocalPoint[1] = boxc[1]
 
 # create a new 'Plane'
 plane1 = Plane()

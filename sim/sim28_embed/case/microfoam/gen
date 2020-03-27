@@ -44,6 +44,7 @@ par = {
   "tl": 1440,
   "bs": 32,
   "bublength": 2,
+  "gapy": 0.,
         }
 
 exec(open("par.py").read(), None, par)
@@ -67,7 +68,7 @@ bsx = par['bs']
 bsy = bsx
 bsz = bsx
 
-ly = H + hx * 4
+ly = H + hx * 4 + par['gapy']
 lz = thickness + hx * 4
 assert ly <= extent
 assert lz <= extent
