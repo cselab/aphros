@@ -84,7 +84,7 @@ def SaveAnimation(renderView, sources_ft, timearrays, pattern="a_{:}.png"):
     for index,step in enumerate(steps):
         fout = pattern.format(step)
         if os.path.isfile(fout):
-            paratools.Log("skip existing {:}".format(fout))
+            Log("skip existing {:}".format(fout))
             continue
         SetTimeStep(index, sources_ft, timearrays)
         Log("{:}/{:}: {:}".format(index + 1, len(steps), fout))
