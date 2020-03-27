@@ -2,25 +2,23 @@
 
 cat > par.py << EOF
 Lnarrow = 0.6
-Lwide = 3
-np = 8192
-nx = 1024
+Lwide = 2
+np = 512
+nx = 512
 bs = 16
-Ca = 0.5
-rho = 0.1
-Re = 100.
 
-dt0 = 0.0001
+rho = 0.1
 dim = 3
-dump_field_dt = 0.02
+dump_field_dt = 0.05
 tmax = 100.
-bublength = 4.
-#Hnarrow = 0.1
-#thickness = 0.05
+Hnarrow = 0.1
+thickness = 0.05
+bubgen_per = 0.4
+
+Ca = 0.1
+Re = 10.
 
 EOF
 
 #killall ap.mfer &> /dev/null || true
-#make cleanall
-#make conf
-make cleanrun
+nice make cleanrun

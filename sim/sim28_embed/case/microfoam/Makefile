@@ -3,7 +3,7 @@ include par.make
 include $(shell ap.makesim)
 
 par.conf par.make: gen par.py
-	./gen | tee -a out
+	./gen
 
 conf: par.conf add.conf
 

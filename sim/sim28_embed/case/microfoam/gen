@@ -4,6 +4,11 @@ import aphros
 import os
 import numpy as np
 import itertools
+import sys
+
+def Abort(msg):
+    sys.stderr.write(str(msg) + '\n')
+    exit(1)
 
 def ExpPar():
     # SI units
@@ -134,6 +139,9 @@ if par['dim'] == 2:
     var['dumplist'] = "vx vy omz p"
     var['hypre_periodic_z'] = 1
 
+with open("par.conf", 'w') as f:
+    f.write(var.Generate())
+
 np = par['np']
 nb = (nx / bsx) * (ny / bsy) * (nz / bsz)
 if nb % np != 0:
@@ -143,6 +151,8 @@ if nb % np != 0:
             break;
     print("Warning: number of blocks nb={:} not divisible by np={:}. \
 Setting np={:}.".format(nb, np0, np))
+    if np <= np0 * 0.75:
+        Abort("Error: np reduced by more than 25%.")
 
 tl = par['tl']
 
@@ -153,6 +163,3 @@ bs = {bsx} {bsy} {bsz}
 np = {np}
 tl = {tl}
 '''.format(**locals()))
-
-with open("par.conf", 'w') as f:
-    f.write(var.Generate())
