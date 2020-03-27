@@ -14,7 +14,7 @@
 
 #### import the simple module from the paraview
 from paraview.simple import *
-from aphros import paratools
+import paratools
 
 #### disable automatic camera reset on 'Show'
 paraview.simple._DisableFirstRenderCameraReset()
