@@ -43,4 +43,5 @@ instfnd trajaxes
 instfnd vtkcolorall
 
 cp -rvf aphros "$BB/" || true
+cp -vf paratools.py "$BB/" || true
 
