@@ -28,6 +28,42 @@ def ExpPar():
     # Ca=0.026305, Re=56, inlet_vel=0.74074
 
 
+def GetRandomCluster(xlim, ylim, zlim, r, gap__r=2., num_tries=1000):
+    '''
+    Generates cloud of spheres.
+    xlim,ylim,zlim: array, (3)
+        Bounding box, limits in each direction.
+    r: float
+        Radius of spheres.
+    gap__r: float
+        Minimal distance between surfaces of spheres relative to `r`.
+    '''
+    np.random.seed(0)
+    gap = r * gap__r
+    xx = np.array([])
+    yy = np.array([])
+    zz = np.array([])
+    rr = np.array([])
+    c = 0
+    while True:
+        x = np.clip(np.random.uniform(xlim[0] + r, xlim[1] - r), *xlim)
+        y = np.clip(np.random.uniform(ylim[0] + r, ylim[1] - r), *ylim)
+        z = np.clip(np.random.uniform(zlim[0] + r, zlim[1] - r), *zlim)
+        dm = None  # minimal distance to other bubbles
+        if len(xx) == 0 or \
+                ((xx - x) ** 2 + (yy - y) ** 2 + (zz - z) ** 2).min() >= \
+                (2 * r + gap) ** 2:
+            xx = np.append(xx, x)
+            yy = np.append(yy, y)
+            zz = np.append(zz, z)
+            rr = np.append(rr, r)
+            c = 0
+        else:
+            c += 1
+            if c > num_tries:
+                break
+    return np.array((xx, yy, zz, rr))
+
 # default
 par = {
   "dim": 2,
@@ -45,6 +81,8 @@ par = {
   "bs": 32,
   "bublength": 2,
   "gapy": 0.,
+  "fillbub": False,
+  "fillbub_R": 0.05,
         }
 
 exec(open("par.py").read(), None, par)
@@ -57,6 +95,9 @@ thickness = float(par['thickness'])
 Re = par["Re"]
 Ca = par["Ca"]
 nx = par['nx']
+fillbub = par['fillbub']
+fillbub_R = par['fillbub_R']
+fillbub_gap = par['fillbub_gap']
 
 extent = Lwide + Lnarrow + H * 0.5
 inf = extent * 10.
@@ -121,6 +162,16 @@ vf = aphros.Geometry()
 R = Hnarrow * par["bublength"]
 vf.Box([R * 2, ly/2, lz/2], [R, Hnarrow/2, thickness/2])
 with open("bg.dat", 'w') as f:
+    f.write(vf.Generate())
+
+# volume fraction
+vf = aphros.Geometry()
+bb = GetRandomCluster(
+        [Lnarrow + H/2, Lnarrow + H/2 + Lwide], [ly/2 - H/2, ly/2 + H/2],
+        [lz/2, lz/2], fillbub_R, fillbub_gap / fillbub_R)
+for i in range(len(bb[0])):
+    vf.Sphere([bb[0][i],bb[1][i],bb[2][i]], [bb[3][0], bb[3][1], thickness*0.4])
+with open("b.dat", 'w') as f:
     f.write(vf.Generate())
 
 # configuration
