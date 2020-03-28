@@ -33,7 +33,7 @@ res = 1024
 pixel = 1. / res
 div = 16
 boxsize = box[1] - box[0] + pixel * div
-viewsize = [int(div * a * res + div - 1) // div for a in boxsize[:2]]
+viewsize = [int(a * res + div - 1) // div * div for a in boxsize[:2]]
 
 light1 = CreateLight()
 light1.Position = [1.8562249839305878, 0.5329485405236483, 5.206477122922456]
