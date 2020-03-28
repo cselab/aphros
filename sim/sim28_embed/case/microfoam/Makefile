@@ -10,6 +10,9 @@ conf: par.conf add.conf
 add.conf:
 	touch $@
 
+par.py:
+	touch $@
+
 clean::
 	rm -f par.make
 

@@ -231,9 +231,6 @@ if par['dim'] == 2:
     var['dumplist'] = "vx vy omz p"
     var['hypre_periodic_z'] = 1
 
-with open("par.conf", 'w') as f:
-    f.write(var.Generate())
-
 np = par['np']
 nb = (nx / bsx) * (ny / bsy) * (nz / bsz)
 if nb % np != 0:
@@ -248,6 +245,10 @@ Setting np={:}.".format(nb, np0, np))
 
 tl = par['tl']
 var['np'] = np
+
+with open("par.conf", 'w') as f:
+    f.write(var.Generate())
+
 
 with open("par.make", 'w') as f:
         f.write(
