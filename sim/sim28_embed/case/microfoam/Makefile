@@ -14,4 +14,4 @@ par.py:
 	touch $@
 
 clean::
-	rm -f par.make par.conf
+	rm -f par.make par.conf b.dat bc.dat bg.dat body.dat

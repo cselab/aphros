@@ -94,7 +94,7 @@ def GetRegularCluster(xlim, ylim, zlim, r, gap__r=2.):
 par = {
   "dim": 3,
   "nx": 16*12*6,
-  "Lwide": 3.11,
+  "Lwide": 3.1,
   "Lnarrow": 0.71,
   "Hwide": 1.,
   "Hnarrow": 75. / 1600.,
