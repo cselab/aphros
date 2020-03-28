@@ -14,7 +14,4 @@ par.py:
 	touch $@
 
 clean::
-	rm -f par.make
-
-cleandat::
-	rm -vrf sep_????
+	rm -f par.make par.conf
