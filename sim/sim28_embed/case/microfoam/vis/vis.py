@@ -86,7 +86,7 @@ slice1.HyperTreeGridSlicer = 'Plane'
 slice1.SliceOffsetValues = [0.0]
 
 # init the 'Plane' selected for 'SliceType'
-slice1.SliceType.Origin = [1.5499999523162842, 0.532812487334013, 0.04843749850988388]
+slice1.SliceType.Origin = boxc
 slice1.SliceType.Normal = [0.0, 0.0, 1.0]
 
 # init the 'Plane' selected for 'HyperTreeGridSlicer'

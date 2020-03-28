@@ -12,21 +12,21 @@ def Abort(msg):
 
 def ExpPar():
     # SI units
-    # Vecchiolla2018, Figure 2
+    # Vecchiolla2018, Figure 1
     mu = 1.25e-3
     sigma = 35.2e-3
     volrate_lh = 12e-3 # litre/hour
     volrate = volrate_lh / 3600. / 1e3
     thickness = 60e-6
     height_narrow = 75e-6
+    gasfraction = 0.645  # adjusted to match inlet_vel=2.08
     inlet_area = height_narrow * thickness
-    inlet_vel = volrate / inlet_area
+    inlet_vel = volrate / inlet_area / (1 - gasfraction)
     Ca = mu * inlet_vel / sigma
     rho = 1260
     Re = height_narrow * inlet_vel * rho / mu
     print("Ca={:.5g}, Re={:.5g}, inlet_vel={:.5g}".format(Ca, Re, inlet_vel))
-    # Ca=0.026305, Re=56, inlet_vel=0.74074
-
+    # Ca=0.074098, Re=157.75, inlet_vel=2.086
 
 def GetRandomCluster(xlim, ylim, zlim, r, gap__r=2., num_tries=10000):
     '''
@@ -92,24 +92,26 @@ def GetRegularCluster(xlim, ylim, zlim, r, gap__r=2.):
 
 # default
 par = {
-  "dim": 2,
-  "nx": 512,
-  "Lwide": 2.,
-  "Lnarrow": 0.35,
+  "dim": 3,
+  "nx": 16*40,
+  "Lwide": 1.1,
+  "Lnarrow": 0.51,
   "Hwide": 1.,
   "Hnarrow": 75. / 1600.,
   "thickness": 60. / 1600.,
-  "Re": 50.,
-  "Ca": 0.05,
-  "rho": 0.01,
+  "Re": 158.,
+  "Ca": 0.074,
+  "rho": 0.1,
+  "bubgen_per": 0.16,
   "np": 4,
   "tl": 1440,
   "bs": 32,
-  "bublength": 2,
+  "bublength": 5,
   "gapy": 0.,
   "fillbub": False,
   "fillbub_R": 0.05,
-  "fillbub_regular": False,
+  "fillbub_gap": 0.,
+  "fillbub_regular": True,
         }
 
 exec(open("par.py").read(), None, par)
@@ -187,8 +189,8 @@ with open("bc.dat", 'w') as f:
 
 # volume fraction bubgen
 vf = aphros.Geometry()
-R = Hnarrow * par["bublength"]
-vf.Box([R * 2, ly/2, lz/2], [R, Hnarrow/2, thickness/2])
+R = Hnarrow * par["bublength"] * 0.5
+vf.Sphere([R+thickness, ly/2, lz/2], [R, Hnarrow/2, thickness/2])
 with open("bg.dat", 'w') as f:
     f.write(vf.Generate())
 
@@ -198,15 +200,17 @@ vf = aphros.Geometry()
 xlim = [Lnarrow, Lnarrow + H/2 + Lwide]
 ylim = [ly/2 - H/2, ly/2 + H/2]
 zlim = [lz/2, lz/2]
-if fillbub_regular:
-    bb = GetRegularCluster(
-            xlim, ylim, zlim, fillbub_R, fillbub_gap / fillbub_R)
-else:
-    bb = GetRandomCluster(
-            xlim, ylim, zlim, fillbub_R, fillbub_gap / fillbub_R)
+if fillbub:
+    if fillbub_regular:
+        bb = GetRegularCluster(
+                xlim, ylim, zlim, fillbub_R, fillbub_gap / fillbub_R)
+    else:
+        bb = GetRandomCluster(
+                xlim, ylim, zlim, fillbub_R, fillbub_gap / fillbub_R)
 
-for i in range(len(bb[0])):
-    vf.Sphere([bb[0][i],bb[1][i],bb[2][i]], [bb[3][0], bb[3][1], thickness*0.5])
+    for i in range(len(bb[0])):
+        vf.Sphere(
+                [bb[0][i],bb[1][i],bb[2][i]], [bb[3][0], bb[3][1], bb[3][2]])
 with open("b.dat", 'w') as f:
     f.write(vf.Generate())
 
@@ -243,6 +247,7 @@ Setting np={:}.".format(nb, np0, np))
         Abort("Error: np reduced by more than 25%.")
 
 tl = par['tl']
+var['np'] = np
 
 with open("par.make", 'w') as f:
         f.write(
