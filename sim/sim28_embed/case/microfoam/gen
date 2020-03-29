@@ -94,8 +94,8 @@ def GetRegularCluster(xlim, ylim, zlim, r, gap__r=2.):
 par = {
   "dim": 3,
   "nx": 16*12*6,
-  "Lwide": 3.1,
-  "Lnarrow": 0.71,
+  "Lwide": 2.1,
+  "Lnarrow": 0.7,
   "Hwide": 1.,
   "Hnarrow": 75. / 1600.,
   "thickness": 60. / 1600.,
@@ -103,7 +103,7 @@ par = {
   "Ca": 0.074,
   "rho": 0.1,
   "bubgen_per": 0.16,
-  "np": 612,
+  "np": 828,
   "tl": 1440,
   "bs": 16,
   "bublength": 5,
@@ -226,6 +226,8 @@ var['mu2'] = var['mu1'] * rho
 var['rho1'] = 1.
 var['rho2'] = rho
 var['sigma'] = var['mu1'] / Ca
+var['zerostx0'] = lx - Hnarrow * 2
+var['zerostx1'] = lx
 
 if par['dim'] == 2:
     var['dumplist'] = "vx vy omz p"
