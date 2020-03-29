@@ -93,20 +93,20 @@ def GetRegularCluster(xlim, ylim, zlim, r, gap__r=2.):
 # default
 par = {
   "dim": 3,
-  "nx": 16*12*6,
-  "Lwide": 2.1,
-  "Lnarrow": 0.7,
+  "nx": 16*40,
+  "Lnarrow": 0.51,
+  "Lwide": 1.1,
   "Hwide": 1.,
   "Hnarrow": 75. / 1600.,
   "thickness": 60. / 1600.,
   "Re": 158.,
   "Ca": 0.074,
   "rho": 0.1,
-  "bubgen_per": 0.16,
-  "np": 828,
+  "gasfrac": 0.75,
+  "np": 400,
   "tl": 1440,
   "bs": 16,
-  "bublength": 5,
+  "bublength": 3,
   "gapy": 0.,
   "fillbub": False,
   "fillbub_R": 0.05,
@@ -190,7 +190,8 @@ with open("bc.dat", 'w') as f:
 # volume fraction bubgen
 vf = aphros.Geometry()
 R = Hnarrow * par["bublength"] * 0.5
-vf.Sphere([R+thickness, ly/2, lz/2], [R, Hnarrow/2, thickness/2])
+#vf.Sphere([R+thickness, ly/2, lz/2], [R, Hnarrow/2, thickness/2])
+vf.Box([R+thickness, ly/2, lz/2], [R, Hnarrow/2, thickness/2])
 with open("bg.dat", 'w') as f:
     f.write(vf.Generate())
 
@@ -228,6 +229,7 @@ var['rho2'] = rho
 var['sigma'] = var['mu1'] / Ca
 var['zerostx0'] = lx - Hnarrow * 2
 var['zerostx1'] = lx
+var['bubgen_per'] = Hnarrow * par['bublength'] / par['gasfrac']
 
 if par['dim'] == 2:
     var['dumplist'] = "vx vy omz p"
