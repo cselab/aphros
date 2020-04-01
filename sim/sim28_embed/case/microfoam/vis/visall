@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -eu
+
+for d in microfoam_exp* ; do
+  fu="$d/sm_0000.vtk"
+  if [ ! -f "$fu" ] ; then
+    echo "skip non existing $fu"
+    continue
+  fi
+  nsm=$(ls $d/sm_*.vtk | wc -l)
+  nvis=$(ls $d/vis/a_*.png | wc -l)
+  if [ "$nsm" == "$nvis"  ] ; then
+    echo "skip '$nsm' == '$nvis' done"
+    continue
+  fi
+  c="(cd $d/vis && ./run || true)"
+  echo "$c"
+  eval "$c"
+done
+
