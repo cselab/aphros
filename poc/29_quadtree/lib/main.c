@@ -1,13 +1,7 @@
+#include <stdlib.h>
 #include "quadtree.h"
 
 enum {NE, NW, SW, SE};
-struct Node {
-  double x;
-  double y;
-  int data;
-  struct Node *elm[4];
-};
-
 struct Region {
   double L;
   double R;
@@ -60,6 +54,19 @@ regionsearch(struct Node *P, double L, double R, double B, double T, void found(
     (XC, R, B, YC, &region)))
     regionsearch(P->elm[SE], XC, R, B, YC, found);
   return 0;
+}
+
+struct Node *
+node_ini(double x, double y, int data)
+{
+  struct Node *node;
+  if ((node = malloc(sizeof(*node))) == NULL)
+    return NULL;
+  node->x = x;
+  node->y = y;
+  node->data = data;
+  node->elm[NE] = node->elm[NW] = node->elm[SW] = node->elm[SE] = NULL;
+  return node;
 }
 
 static int

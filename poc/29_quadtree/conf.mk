@@ -1,4 +1,4 @@
 CC = c99
-CFLAGS = -g -Og
+CFLAGS = -g -O0
 LINK = $(CC)
 
