@@ -1,0 +1,199 @@
+diff --git a/sim/sim28_embed/case/contangvary/Makefile b/sim/sim28_embed/case/contangvary/Makefile
+index c98c6e6..9918105 100644
+--- a/sim/sim28_embed/case/contangvary/Makefile
++++ b/sim/sim28_embed/case/contangvary/Makefile
+@@ -1,15 +1,12 @@
+-m = 64 64 1
+-np = 4
+-bs = 32 32 1
++m = 32 64 1
++np = 8
++bs = 16 16 1
+ tl = 1440
+ 
+ default:
+ 	make cleanall
+-	make run
++	nice make run
+ 
+ include $(shell ap.makesim)
+ 
+ conf: add.conf
+-
+-clean::
+-	rm -vrf sc add.conf
+diff --git a/sim/sim28_embed/case/contangvary/add.conf b/sim/sim28_embed/case/contangvary/add.conf
+index 33159ac..100f99c 100644
+--- a/sim/sim28_embed/case/contangvary/add.conf
++++ b/sim/sim28_embed/case/contangvary/add.conf
+@@ -1,17 +1,21 @@
+-set vect gravity 0 -1 0
++#set vect gravity 10 0 0
++set vect gravity 0 0 0
+ 
+ set double rho1 1
+ set double mu1 0.01
+ 
+ set double rho2 0.05
+-set double mu2 0.1
++set double mu2 0.0005
+ set double sigma 0.5
+ set int sharpen 0
+ 
+ set string list_path "inline
+-sphere 0.5 0.75 0 0.25 0.15
++sphere 0.1 0.25 0 0.15
++#box 0 1 0 10 0.51
+ "
+ 
++#wall 0 0 0 , fill_vf 0 , halo fill , fill_cl 0 {
++
+ set string bc_path "inline
+ wall 0 0 0 {
+   box 0 0 0 10
+diff --git a/sim/sim28_embed/case/contangvary/std.conf b/sim/sim28_embed/case/contangvary/std.conf
+index 0c14f83..eb9f288 100644
+--- a/sim/sim28_embed/case/contangvary/std.conf
++++ b/sim/sim28_embed/case/contangvary/std.conf
+@@ -1,5 +1,5 @@
+ # domain
+-set double extent 1
++set double extent 2
+ 
+ # time
+ set double tmax 10
+@@ -33,15 +33,17 @@ set int sharpen 1
+ set double sharpen_cfl 0.1
+ set double dt0 1e-4
+ set int enable_advection 1
+-set string advection_solver vofm
++set string advection_solver vof
+ set int enable_color 1
++set int dumppart 1
++set int dumppartinter 1
+ 
+ # interaction with walls
+ set double dtmax 0.01
+ set double hypre_symm_tol 1e-6
+ 
+ set double dump_field_dt 0.05
+-set double tmax 2
++set double tmax 5
+ 
+ # projection
+ set string fluid_solver proj
+diff --git a/src/solver/partstrmeshm.ipp b/src/solver/partstrmeshm.ipp
+index dfd7927..9e3af88 100644
+--- a/src/solver/partstrmeshm.ipp
++++ b/src/solver/partstrmeshm.ipp
+@@ -242,9 +242,6 @@ struct PartStrMeshM<M_>::Imp {
+       const Multi<const FieldCell<Vect>*>& vfcn,
+       const Multi<const FieldCell<bool>*>& vfci,
+       const Multi<const FieldCell<Scal>*>& vfccl) {
+-    using MIdx = typename M::MIdx;
+-    auto& bc = m.GetIndexCells();
+-
+     // clear string list
+     partstr_->Clear();
+     vsc_.clear();
+@@ -265,22 +262,13 @@ struct PartStrMeshM<M_>::Imp {
+           size_t ns = (par.dim == 2 ? 1 : par.ns);
+           for (size_t s = 0; s < ns; ++s) {
+             Scal an = s * M_PI / ns; // angle
+-            auto v = GetPlaneBasis(xc, fcn[c], fca[c], an);
+-
+-            // block of offsets to neighbours in stencil [-sw,sw]
+-            const int sw = 2; // stencil halfwidth
+-            const int sn = sw * 2 + 1; // stencil size
+-            GBlock<IdxCell, dim> bo(
+-                MIdx(-sw, -sw, par.dim == 2 ? 0 : -sw),
+-                MIdx(sn, sn, par.dim == 2 ? 1 : sn));
++            const auto v = GetPlaneBasis(xc, fcn[c], fca[c], an);
+ 
+-            auto w = bc.GetMIdx(c);
+             // buffer for interface lines
+             std::vector<Vect2> lx; // nodes
+             std::vector<size_t> ls; // sizes
+             // Extract interface from neighbour cells.
+-            for (auto wo : bo) {
+-              IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
++            for (auto cc : m.Stencil5(c)) {
+               for (auto j : layers) {
+                 auto& fca2 = *vfca[j];
+                 auto& fcn2 = *vfcn[j];
+@@ -293,6 +281,31 @@ struct PartStrMeshM<M_>::Imp {
+               }
+             }
+ 
++            {
++              const Scal h = m.GetCellSize()[0];
++              const auto x0 = m.GetCenter(c)[0];
++              const auto x1 = m.GetCenter(c)[1];
++              const Scal q = -1. + x1 * 1;
++              if (x0 > 1. - h) {
++                const Vect dir(1., q * (fcn[c][1] > 0 ? -1 : 1), 0.);
++                auto pe0 = GetPlaneCoords(
++                    v[0] + Vect(0.5 * h, 0., 0.) + dir * (0.0 * h), v);
++                auto pe1 = GetPlaneCoords(
++                    v[0] + Vect(0.5 * h, 0., 0.) + dir * (2.5 * h), v);
++                lx.push_back(pe0);
++                lx.push_back(pe1);
++                ls.push_back(2);
++              }
++              if (x0 < h) {
++                const Vect dir(1., q * (fcn[c][1] > 0 ? -1 : 1), 0.);
++                auto pe0 = GetPlaneCoords(v[0] - dir * (0 * h), v);
++                auto pe1 = GetPlaneCoords(v[0] - dir * (2.5 * h), v);
++                lx.push_back(pe0);
++                lx.push_back(pe1);
++                ls.push_back(2);
++              }
++            }
++
+             // add string
+             partstr_->Add(Vect2(0.), Vect2(1., 0.), lx, ls);
+             vsc_.push_back(c);
+diff --git a/src/solver/vof.ipp b/src/solver/vof.ipp
+index c48e099..da36242 100644
+--- a/src/solver/vof.ipp
++++ b/src/solver/vof.ipp
+@@ -65,7 +65,20 @@ struct Vof<EB_>::Imp {
+   void ReconstPlanes(const FieldCell<Scal>& uc) {
+     DetectInterface(uc);
+     // Compute fcn_ [s]
+-    UNormal<M>::CalcNormal(m, uc, fci_, par.dim, fcn_);
++    auto uc0 = uc;
++    for (auto c : m.SuCells()) {
++      if (m.GetCenter(c)[0] > 1) {
++        auto cm = m.GetCell(c, 0);
++        auto cmm = m.GetCell(cm, 0);
++        uc0[c] = 2 * uc[cm] - uc[cmm];
++      }
++      if (m.GetCenter(c)[0] < 0) {
++        auto cp = m.GetCell(c, 1);
++        auto cpp = m.GetCell(cp, 1);
++        uc0[c] = 2 * uc[cp] - uc[cpp];
++      }
++    }
++    UNormal<M>::CalcNormal(m, uc0, fci_, par.dim, fcn_);
+     auto h = m.GetCellSize();
+     // Compute fca_ [s]
+     for (auto c : eb.SuCells()) {
+@@ -85,17 +98,6 @@ struct Vof<EB_>::Imp {
+         fci_[c] = true;
+       }
+     }
+-    // cell is u=1 and neighbour is u=0
+-    for (auto c : eb.SuCells()) {
+-      if (uc[c] == 1) {
+-        for (auto q : eb.Nci(c)) {
+-          IdxCell cn = m.GetCell(c, q);
+-          if (uc[cn] == 0) {
+-            fci_[c] = true;
+-          }
+-        }
+-      }
+-    }
+   }
+   void StartStep() {
+     auto sem = m.GetSem("start");
