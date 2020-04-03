@@ -3,7 +3,7 @@
 #include <quadtree.h>
 
 static const char *me = "fig";
-enum {SIZE = 999, MAX_NODE = 999};
+enum {SIZE = 999};
 
 static void
 usg(void)
@@ -20,7 +20,8 @@ main(int argc, char **argv)
   FILE *f;
   int i;
   int n;
-  struct Node *node[MAX_NODE];
+  int cap;
+  struct Node **node;
   double x;
   double y;
   double L;
@@ -47,11 +48,21 @@ main(int argc, char **argv)
     fprintf(stderr, "%s: fail to open '%s'\n", me, argv[0]);
     exit(1);
   }
+
+  cap = 1;
+  node = malloc(cap * sizeof(*node));
   i = 0;
   while (fgets(line, SIZE, f) != NULL) {
     if (sscanf(line, "%lf %lf\n", &x, &y) != 2) {
       fprintf(stderr, "%s: fail to parse '%s'\n", me, line);
       exit(1);
+    }
+    if (i >= cap) {
+      cap *= 2;
+      if ((node = realloc(node, cap * sizeof(*node))) == NULL) {
+	fprintf(stderr, "%s: realloc failed\n", me);
+	exit(1);
+      }
     }
     node[i] = node_ini(x, y, i);
     if (i > 0)
@@ -76,6 +87,7 @@ main(int argc, char **argv)
 
   for (i = 0; i < n; i++)
     free(node[i]);
+  free(node);
 }
 
 static void
