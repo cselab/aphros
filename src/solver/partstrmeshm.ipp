@@ -242,9 +242,6 @@ struct PartStrMeshM<M_>::Imp {
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
       const Multi<const FieldCell<Scal>*>& vfccl) {
-    using MIdx = typename M::MIdx;
-    auto& bc = m.GetIndexCells();
-
     // clear string list
     partstr_->Clear();
     vsc_.clear();
@@ -265,22 +262,13 @@ struct PartStrMeshM<M_>::Imp {
           size_t ns = (par.dim == 2 ? 1 : par.ns);
           for (size_t s = 0; s < ns; ++s) {
             Scal an = s * M_PI / ns; // angle
-            auto v = GetPlaneBasis(xc, fcn[c], fca[c], an);
+            const auto v = GetPlaneBasis(xc, fcn[c], fca[c], an);
 
-            // block of offsets to neighbours in stencil [-sw,sw]
-            const int sw = 2; // stencil halfwidth
-            const int sn = sw * 2 + 1; // stencil size
-            GBlock<IdxCell, dim> bo(
-                MIdx(-sw, -sw, par.dim == 2 ? 0 : -sw),
-                MIdx(sn, sn, par.dim == 2 ? 1 : sn));
-
-            auto w = bc.GetMIdx(c);
             // buffer for interface lines
             std::vector<Vect2> lx; // nodes
             std::vector<size_t> ls; // sizes
             // Extract interface from neighbour cells.
-            for (auto wo : bo) {
-              IdxCell cc = bc.GetIdx(w + wo); // neighbour cell
+            for (auto cc : m.Stencil5(c)) {
               for (auto j : layers) {
                 auto& fca2 = *vfca[j];
                 auto& fcn2 = *vfcn[j];
@@ -290,6 +278,29 @@ struct PartStrMeshM<M_>::Imp {
                   AppendInterface(
                       v, m.GetCenter(cc), fca2[cc], fcn2[cc], lx, ls);
                 }
+              }
+            }
+
+            {
+              const Scal h = m.GetCellSize()[0];
+              const auto x0 = m.GetCenter(c)[0];
+              const auto x1 = m.GetCenter(c)[1];
+              //const Scal angledeg = 45. + std::abs(x1 - 1) * 90.;
+              const Scal angledeg = 90;
+              const Scal angle = angledeg * M_PI / 180.;
+              const Scal q = -1.;
+              if (x0 < h) {
+                auto unit = [](const Vect& t) { return t / t.norm(); };
+                const Vect ni = unit(fcn[c]);
+                const Vect nf = Vect(1., 0., 0.);
+                const Vect tf = unit(ni.orth(nf));
+                const Vect dir =
+                    unit(tf * std::cos(angle) - nf * std::sin(angle));
+                auto pe0 = GetPlaneCoords(v[0], v);
+                auto pe1 = GetPlaneCoords(v[0] + dir * (2.5 * h), v);
+                lx.push_back(pe0);
+                lx.push_back(pe1);
+                ls.push_back(2);
               }
             }
 
@@ -306,11 +317,12 @@ struct PartStrMeshM<M_>::Imp {
       }
     }
   }
+  template <class EB>
   void Part(
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
-      const Multi<const FieldCell<Scal>*>& vfccl) {
+      const Multi<const FieldCell<Scal>*>& vfccl, const EB& eb) {
     auto sem = m.GetSem("part");
 
     if (sem("part-run")) {
@@ -511,12 +523,13 @@ template <class M_>
 PartStrMeshM<M_>::~PartStrMeshM() = default;
 
 template <class M_>
+template <class EB>
 void PartStrMeshM<M_>::Part(
     const Multi<const FieldCell<Scal>*>& vfca,
     const Multi<const FieldCell<Vect>*>& vfcn,
     const Multi<const FieldCell<bool>*>& vfci,
-    const Multi<const FieldCell<Scal>*>& vfccl) {
-  imp->Part(vfca, vfcn, vfci, vfccl);
+    const Multi<const FieldCell<Scal>*>& vfccl, const EB& eb) {
+  imp->Part(vfca, vfcn, vfci, vfccl, eb);
 }
 
 template <class M_>

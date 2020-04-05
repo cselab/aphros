@@ -40,11 +40,12 @@ class PartStrMeshM {
   // vfcn: normal
   // vfci: interface mask (1: contains interface)
   // vfccl: color
+  template <class EB>
   void Part(
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
-      const Multi<const FieldCell<Scal>*>& vfccl);
+      const Multi<const FieldCell<Scal>*>& vfccl, const EB& eb);
   // Dump particles to csv.
   // vfca: plane constant
   // vfcn: normal
