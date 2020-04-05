@@ -65,7 +65,44 @@ struct Vof<EB_>::Imp {
   void ReconstPlanes(const FieldCell<Scal>& uc) {
     DetectInterface(uc);
     // Compute fcn_ [s]
-    UNormal<M>::CalcNormal(m, uc, fci_, par.dim, fcn_);
+    auto uc0 = uc;
+    /*
+    for (auto c : m.SuCells()) {
+      if (m.GetCenter(c)[0] > 1) {
+        auto cm = m.GetCell(c, 0);
+        auto cmm = m.GetCell(cm, 0);
+        uc0[c] = 2 * uc[cm] - uc[cmm];
+      }
+      if (m.GetCenter(c)[0] < 0) {
+        auto cp = m.GetCell(c, 1);
+        auto cpp = m.GetCell(cp, 1);
+        uc0[c] = 2 * uc[cp] - uc[cpp];
+      }
+    }
+    */
+    FieldCell<bool> inner(m, true);
+    for (const auto& it : me_vf_.GetMapFace()) {
+      const auto f = it.first;
+      const auto& bc = it.second;
+      const auto cm = m.GetCell(f, 1 - bc.nci);
+      inner[cm] = false;
+    }
+    for (auto c : m.SuCells()) {
+      if (!inner[c]) {
+        std::vector<Vect> xx;
+        std::vector<Scal> uu;
+        const auto cp = m.GetCell(c, 1);
+        for (auto cn : eb.Stencil(cp)) {
+          if (inner[cn]) {
+            xx.push_back(m.GetCenter(cn));
+            uu.push_back(uc[cn]);
+          }
+        }
+        const auto p = ULinear<Scal>::FitLinear(xx, uu);
+        uc0[c] = ULinear<typename EB::Scal>::EvalLinear(p, m.GetCenter(c));
+      }
+    }
+    UNormal<M>::CalcNormal(m, uc0, fci_, par.dim, fcn_);
     auto h = m.GetCellSize();
     // Compute fca_ [s]
     for (auto c : eb.SuCells()) {
@@ -83,17 +120,6 @@ struct Vof<EB_>::Imp {
       Scal u = uc[c];
       if (u > 0. && u < 1.) {
         fci_[c] = true;
-      }
-    }
-    // cell is u=1 and neighbour is u=0
-    for (auto c : eb.SuCells()) {
-      if (uc[c] == 1) {
-        for (auto q : eb.Nci(c)) {
-          IdxCell cn = m.GetCell(c, q);
-          if (uc[cn] == 0) {
-            fci_[c] = true;
-          }
-        }
       }
     }
   }
