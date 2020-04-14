@@ -12,7 +12,7 @@ static int io_write_double(int n, const double *a, FILE *f) {
     for (i = 0; i < n; i++) {
         if (i > 0)
             fputs(" ", f);
-        fprintf(f, "%.16e", a[i++]);
+        fprintf(f, "%.16e", a[i]);
     }
     fputs("\n", f);
     return 0;
