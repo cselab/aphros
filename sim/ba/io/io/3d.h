@@ -1,14 +1,15 @@
-static int vtk_ver(FILE *f) {
+static int io_ver(FILE *f) {
     double a[3], *p;
     foreach_vertex() {
         p = a;
         *p++ = x; *p++ = y; *p++ = z;
-        write_double(3, a, f);
+        io_write_double(3, a, f);
     }
     return 0;
 }
 
-static int vtk_cell(int nc, scalar m, FILE *f) {
+static int io_cell(int nc, scalar m, FILE *f) {
+    enum { VOXEL = 8 };
     const int npc = 8;
     const int cell_type = VOXEL;
     int a[npc + 1], *p;
@@ -18,12 +19,12 @@ static int vtk_cell(int nc, scalar m, FILE *f) {
         *p++ = npc;
         *p++ = m[0,0,0]; *p++ = m[1,0,0]; *p++ = m[0,1,0]; *p++ = m[1,1,0];
         *p++ = m[0,0,1]; *p++ = m[1,0,1]; *p++ = m[0,1,1]; *p++ = m[1,1,1];
-        write_int(SIZE(a), a, f);
+        io_write_int(sizeof a/sizeof *a, a, f);
     }
-    write_newline(f);
+    io_write_newline(f);
     fprintf(f, "CELL_TYPES %d\n", nc);
     foreach()
-        write_int(1, &cell_type, f);
+        io_write_int(1, &cell_type, f);
     return 0;
 }
 

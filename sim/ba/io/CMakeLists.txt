@@ -9,7 +9,6 @@ set(H
   io/3d.h
   io/io.h
   io/iompi.h
-  io/util.h
   io/write.h
 )
 

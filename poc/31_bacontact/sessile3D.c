@@ -1,13 +1,13 @@
 #include <mpi.h>
-#include <h5.h>
 #include <tgmath.h>
 
 #include "grid/octree.h"
 #include "navier-stokes/centered.h"
 #include "contact.h"
 #include "vof.h"
-#include ".u/bah5.h"
+#include ".u/io/io.h"
 
+static char *me = "sessile3D";
 scalar f[], * interfaces = {f};
 
 #include "tension.h"
@@ -34,8 +34,15 @@ int main()
 
 event init (t = 0)
 {
+  FILE *file;
+  char *path = "q.vtk";
   fraction(f, - (sq(x) + sq(y) + sq(z) - sq(0.5)));
-  bah5_list({f}, "%s_000");
+  if ((file = fopen("q.vtk", "w")) == NULL) {
+      fprintf(stderr, "%s: fail to open '%s'\n", path);
+      exit(2);
+  }
+  io_write({f}, file);
+  fclose(file);
 }
 
 event logfile (i += 10; t <= 10)

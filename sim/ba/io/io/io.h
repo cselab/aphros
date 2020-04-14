@@ -1,37 +1,39 @@
-#include "util.h"
+#include <stdio.h>
 #include "write.h"
-#include <mpi.h>
 #if dimension == 3
 #    include "3d.h"
 #else
 #    include "2d.h"
 #endif
 
-static int io(scalar *list, FILE *f) {
-#   define p(s) fputs(s "\n", f);
+static int io_write(scalar *list, FILE *f) {
     int nv, nc;
     vertex scalar m[];
     nv = nc = 0;
-    foreach_vertex() m[] = nv++;
-    foreach() nc++;
-    p("# vtk DataFile Version 2.0");
-    p("MFER-basilisk");
-    write_type(f);
-    p("DATASET UNSTRUCTURED_GRID");
+    foreach_vertex()
+        m[] = nv++;
+    foreach()
+        nc++;
+    if (fputs("# vtk DataFile Version 2.0\n", f) == EOF) {
+        fprintf(stderr, "io: fputs failed\n");
+        return 1;
+    }
+    fputs("aphros-basilisk\n", f);
+    io_write_type(f);
+    fputs("DATASET UNSTRUCTURED_GRID\n", f);
     fprintf(f, "POINTS %d float\n", nv);
-    vtk_ver(f);
-    write_newline(f);
-    vtk_cell(nc, m, f);
-    write_newline(f);
+    io_ver(f);
+    io_write_newline(f);
+    io_cell(nc, m, f);
+    io_write_newline(f);
     fprintf(f, "CELL_DATA %d\n", nc);
     for (scalar s in list) {
         fprintf(f, "SCALARS %s float\n", s.name);
-        p("LOOKUP_TABLE default");
+        fputs("LOOKUP_TABLE default\n", f);
         foreach()
-            write_double(1, &s[], f);
-        write_newline(f);
+            io_write_double(1, &s[], f);
+        io_write_newline(f);
     }
     return 0;
-#   undef p
 }
 
