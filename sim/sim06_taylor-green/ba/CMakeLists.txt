@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.3.0)
 set(CHPREFIX $ENV{CHPREFIX})
 project(main C)
-include("$ENV{CHPREFIX}/include/vof.cmake")
-include("$ENV{CHPREFIX}/include/vofi.cmake")
-include("$ENV{CHPREFIX}/include/h5.cmake")
+find_package(aphros/vof)
+find_package(aphros/vofi)
+find_package(aphros/h5)
 
 find_package(MPI REQUIRED)
 set(CMAKE_C_COMPILER ${MPI_C_COMPILER})
