@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <stdio.h>
 
 #include <csv.h>
 #include <float.h>
