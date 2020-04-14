@@ -1,7 +1,12 @@
+#include <mpi.h>
+#include <h5.h>
+#include <tgmath.h>
+
 #include "grid/octree.h"
 #include "navier-stokes/centered.h"
 #include "contact.h"
 #include "vof.h"
+#include ".u/bah5.h"
 
 scalar f[], * interfaces = {f};
 
@@ -29,7 +34,8 @@ int main()
 
 event init (t = 0)
 {
-  fraction (f, - (sq(x) + sq(y) + sq(z) - sq(0.5)));
+  fraction(f, - (sq(x) + sq(y) + sq(z) - sq(0.5)));
+  bah5_list({f}, "%s_000");
 }
 
 event logfile (i += 10; t <= 10)

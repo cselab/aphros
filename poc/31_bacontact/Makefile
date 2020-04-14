@@ -2,7 +2,8 @@
 .PHONY: clean run all
 
 CC99 = mpicc
-Q_FLAGS = -lm
+CFLAGS = -O3 -g
+Q_FLAGS = `pkg-config --cflags hdf5` -I$(CHPREFIX)/include -lm
 
 M = \
 sessile3D\
@@ -12,6 +13,11 @@ all: $M
 	. ba.setenv && \
 	CC99=$(CC99) qcc $< $(CFLAGS) $(LDFLAGS) $(Q_FLAGS) -o $@
 
+$M:  .u/bah5.h
+.u/bah5.h:
+	mkdir -p .u && \
+	cp $(CHPREFIX)/include/bah5.h .u/bah5.h
+
 run: all
 	./sessile3D
-clean:; rm -f $M
+clean:; rm -rf $M .u
