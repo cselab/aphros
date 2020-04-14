@@ -2,7 +2,7 @@
 LINK = $(CC)
 CFLAGS = -g -Og
 GSL_LDFLAGS = `gsl-config --libs`
-M_LDFLAGS = -L$(CHPREFIX)/lib -lcsv -ltable -lmath  -lm
+M_LDFLAGS = -L$(CHPREFIX)/lib -lcsv -ltable -lchmath  -lm
 M_CFLAGS = -I$(CHPREFIX)/include
 
 M = \

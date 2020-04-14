@@ -6,7 +6,7 @@
 #include <string.h>
 
 #include <csv.h>
-#include <poc/math.h>
+#include <chmath.h>
 #include <table.h>
 
 enum { N = 999 };
@@ -205,11 +205,11 @@ int transform_ini(
   i[ZZ] = zz - z * z;
   rg = i[XX] + i[YY] + i[ZZ];
   rg = sqrt(5 * rg / 3);
-  if (math_eig_vectors(i, t->a, t->b, t->c) != 0) {
+  if (chmath_eig_vectors(i, t->a, t->b, t->c) != 0) {
     fprintf(stderr, "%s: math_eig_vectors failed\n", me);
     exit(2);
   }
-  if (math_eig_values(i, t->scale) != 0) {
+  if (chmath_eig_values(i, t->scale) != 0) {
     fprintf(stderr, "%s: math_eig_values failed\n", me);
     exit(2);
   }
