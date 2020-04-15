@@ -364,21 +364,49 @@ struct Vof<EB_>::Imp {
             uc, dd[id], owner_->fev_->GetFieldFace(), fccl_, fcim_, fcn_, fca_,
             &me_vf_, type, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(),
             par.clipth, eb);
-        m.Comm(&uc);
       }
+      CommRec(sem, uc, fccl_, fcim_);
       if (sem("sweep")) {
         for (auto c : eb.Cells()) {
           if (eb.GetVolumeFraction(c) < 1) {
-            for (auto cn : eb.Stencil(c)) {
-              if (eb.GetVolumeFraction(cn) == 1) {
-                uc[c] = (uc[cn] > 0.5 ? 1 : 0);
+            Scal sum_a = 0;
+            Vect sum_n(0);
+            Scal cnt = 0;
+            for (auto cc : eb.Stencil(c)) {
+              if (eb.GetVolumeFraction(cc) == 1 && fci_[cc]) {
+                sum_a +=
+                    fca_[cc] - (m.GetCenter(c) - m.GetCenter(cc)).dot(fcn_[cc]);
+                sum_n += fcn_[cc];
+                cnt += 1;
                 break;
               }
             }
+            // preferred neighbor
+            const size_t dir = eb.GetNormal(c).abs().argmax();
+            const size_t sgn = (eb.GetNormal(c)[dir] > 0 ? 0 : 1);
+            const IdxCell cc = eb.GetCell(c, 2 * dir + sgn);
+            /*
+            if (cnt) {
+              fcn_[c] = sum_n / cnt;
+              fca_[c] = sum_a / cnt;
+              fci_[c] = true;
+              uc[c] = R::GetLineU(fcn_[c], fca_[c], m.GetCellSize());
+            }
+            */
+            if (fci_[cc]) {
+              fcn_[c] = fcn_[cc];
+              fca_[c] =
+                  fca_[cc] - (m.GetCenter(c) - m.GetCenter(cc)).dot(fcn_[cc]);
+              fci_[c] = fci_[cc];
+              uc[c] = R::GetLineU(fcn_[c], fca_[c], m.GetCellSize());
+            } else {
+              fci_[c] = false;
+              uc[c] = uc[cc];
+            }
           }
         }
+        m.Comm(&uc);
       }
-      CommRec(sem, uc, fccl_, fcim_);
     }
   }
   void Sharpen() {
