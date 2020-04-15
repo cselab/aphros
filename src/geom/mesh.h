@@ -59,6 +59,7 @@ class MeshStructured {
   static constexpr size_t kCellNumNeighbourNodes = 8;
   static constexpr size_t kFaceNumNeighbourNodes = 4;
   static constexpr size_t kFaceNumNeighbourCells = 2;
+  enum class Type { regular, cut, excluded };
 
   // b: begin, lower corner cell index
   // cs: inner cells size
@@ -412,6 +413,24 @@ class MeshStructured {
   }
   Vect GetNormal(IdxCell) const {
     return GetNan<Vect>();
+  }
+  Type GetType(IdxCell) const {
+    return Type::regular;
+  }
+  Type GetType(IdxFace) const {
+    return Type::regular;
+  }
+  bool IsRegular(IdxCell) const {
+    return true;
+  }
+  bool IsCut(IdxCell) const {
+    return false;
+  }
+  bool IsExcluded(IdxCell) const {
+    return false;
+  }
+  IdxCell GetRegularNeighbor(IdxCell c) const {
+    return c;
   }
   Vect GetSurface(IdxCell) const {
     return GetNan<Vect>();

@@ -257,10 +257,10 @@ struct PartStrMeshM<M_>::Imp {
       auto& fci = *vfci[l];
       auto& fccl = *vfccl[l];
       for (auto c : eb.Cells()) {
-        if (eb.GetVolumeFraction(c) < 1) {
+        if (!eb.IsRegular(c)) {
           continue;
         }
-        Vect xc = m.GetCenter(c);
+        const Vect xc = m.GetCenter(c);
         if (fci[c] && (nocl || fccl[c] != kClNone)) {
           // number of strings
           size_t ns = (par.dim == 2 ? 1 : par.ns);
@@ -312,7 +312,7 @@ struct PartStrMeshM<M_>::Imp {
                     Vect nf;
                     if (c == cc) {
                       for (auto cn : eb.Stencil(cc)) {
-                        if (eb.GetVolumeFraction(cn) < 1) {
+                        if (eb.IsCut(cn)) {
                           nearcut = true;
                           nf = eb.GetNormal(cn);
                           break;
@@ -321,7 +321,7 @@ struct PartStrMeshM<M_>::Imp {
                     }
                     if (nearcut && c == cc) {
                       append_contang(cc, (llx[0] + llx[1]) * 0.5, nf);
-                    } else if (eb.GetVolumeFraction(cc) < 1) {
+                    } else if (!eb.IsRegular(cc)) {
                       // nop
                     } else {
                       lx.push_back(llx[0]);
@@ -402,7 +402,7 @@ struct PartStrMeshM<M_>::Imp {
         return GetNan<Scal>();
       };
       for (auto c : eb.Cells()) {
-        if (eb.GetVolumeFraction(c) < 1) {
+        if (eb.IsCut(c)) {
           for (auto l : layers) {
             vfckp_[l][c] = findcurv(c, l);
           }

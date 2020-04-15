@@ -93,11 +93,11 @@ struct Vof<EB_>::Imp {
     auto& fcu0 = fcu0_;
     fcu0 = fcu;
     for (auto c : m.Cells()) {
-      if (eb.GetVolumeFraction(c) == 0) {
+      if (eb.IsExcluded(c)) {
         std::vector<Vect> xx;
         std::vector<Scal> uu;
         for (auto cn : m.Stencil5(c)) {
-          if (eb.GetVolumeFraction(cn) > 0) {
+          if (!eb.IsExcluded(c)) {
             xx.push_back(m.GetCenter(cn));
             uu.push_back(fcu[cn]);
           }
@@ -366,33 +366,10 @@ struct Vof<EB_>::Imp {
             par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
-      if (sem("sweep")) {
+      if (sem("extrap")) {
         for (auto c : eb.Cells()) {
-          if (eb.GetVolumeFraction(c) < 1) {
-            Scal sum_a = 0;
-            Vect sum_n(0);
-            Scal cnt = 0;
-            for (auto cc : eb.Stencil(c)) {
-              if (eb.GetVolumeFraction(cc) == 1 && fci_[cc]) {
-                sum_a +=
-                    fca_[cc] - (m.GetCenter(c) - m.GetCenter(cc)).dot(fcn_[cc]);
-                sum_n += fcn_[cc];
-                cnt += 1;
-                break;
-              }
-            }
-            // preferred neighbor
-            const size_t dir = eb.GetNormal(c).abs().argmax();
-            const size_t sgn = (eb.GetNormal(c)[dir] > 0 ? 0 : 1);
-            const IdxCell cc = eb.GetCell(c, 2 * dir + sgn);
-            /*
-            if (cnt) {
-              fcn_[c] = sum_n / cnt;
-              fca_[c] = sum_a / cnt;
-              fci_[c] = true;
-              uc[c] = R::GetLineU(fcn_[c], fca_[c], m.GetCellSize());
-            }
-            */
+          if (eb.IsCut(c)) {
+            const IdxCell cc = eb.GetRegularNeighbor(c);
             if (fci_[cc]) {
               fcn_[c] = fcn_[cc];
               fca_[c] =
@@ -463,9 +440,7 @@ struct Vof<EB_>::Imp {
       fcuu_.Reinit(m);
       for (auto c : eb.Cells()) {
         uc[c] = fcu_.time_prev[c] + dt * fcs[c];
-        //const Scal u0 = eb.GetVolumeFraction(c);
-        const Scal u0 = 1.;
-        fcuu_[c] = (uc[c] < u0 * 0.5 ? 0 : u0);
+        fcuu_[c] = (uc[c] < 0.5 ? 0 : 1);
       }
     }
 
