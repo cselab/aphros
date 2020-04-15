@@ -104,17 +104,14 @@ static int GetNcInter(scalar vf) {
 }
 
 // Writes legacy vtk polydata
-// fn: path
-// xx: points
 // nx: size of xx
 // pp: polygons as lists of indices
 // np: number of polygons
 // ss[i] is size of polygon pp[i]
 // cm: comment
 // poly: true: polygons, false: lines
-void WriteVtkPoly(const char* fn, coord* xx, int nx,
+void WriteVtkPoly(FILE *o, coord* xx, int nx,
                   int* pp, int np, int* ss, const char* cm, bool poly) {
-  FILE* o = fopen(fn, "w");
   fprintf(o, "# vtk DataFile Version 2.0\n");
   fprintf(o, "%s\n", cm);
 
@@ -140,13 +137,11 @@ void WriteVtkPoly(const char* fn, coord* xx, int nx,
     }
     fprintf(o, "\n");
   }
-
-  fclose(o);
 }
 
 // Dumps interface fragments to vtk.
 // vf: volume fraction
-void DumpFacets(scalar vf, const char* filename) {
+void DumpFacets(scalar vf, FILE *f) {
   const int nc = GetNcInter(vf); // number of interfacial cells
   const int mm = nc * kMaxFacet;
 
@@ -174,7 +169,7 @@ void DumpFacets(scalar vf, const char* filename) {
       ++np;
     }
   }
-  WriteVtkPoly(filename, xx, nx, pp, np, ss, "comment", true);
+  WriteVtkPoly(f, xx, nx, pp, np, ss, "comment", true);
 
   free(ss);
   free(pp);
