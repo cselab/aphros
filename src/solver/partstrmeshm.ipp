@@ -310,11 +310,13 @@ struct PartStrMeshM<M_>::Imp {
                         v, m.GetCenter(cc), fca2[cc], fcn2[cc], llx, lls)) {
                     bool nearcut = false;
                     Vect nf;
-                    for (auto cn : eb.Stencil(cc)) {
-                      if (eb.GetVolumeFraction(cn) < 1) {
-                        nearcut = true;
-                        nf = eb.GetNormal(cn);
-                        break;
+                    if (c == cc) {
+                      for (auto cn : eb.Stencil(cc)) {
+                        if (eb.GetVolumeFraction(cn) < 1) {
+                          nearcut = true;
+                          nf = eb.GetNormal(cn);
+                          break;
+                        }
                       }
                     }
                     if (nearcut && c == cc) {
