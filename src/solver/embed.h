@@ -256,8 +256,7 @@ class Embed {
   using R = Reconst<Scal>;
 
  public:
-
-  enum class Type { regular, cut, excluded };
+  using Type = typename M::Type;
   class NciEmbed {};
   // Constructor
   // fnl: level-set function on nodes, interface at fnl=0
@@ -279,6 +278,15 @@ class Embed {
   }
   Type GetType(IdxFace f) const {
     return fft_[f];
+  }
+  bool IsRegular(IdxCell c) const {
+    return GetType(c) == Type::regular;
+  }
+  bool IsCut(IdxCell c) const {
+    return GetType(c) == Type::cut;
+  }
+  bool IsExcluded(IdxCell c) const {
+    return GetType(c) == Type::excluded;
   }
   // Cell indices of cells with embedded boundaries.
   auto CFaces() const {
@@ -400,12 +408,20 @@ class Embed {
   Vect GetCellSize() const {
     return m.GetCellSize();
   }
-  // Returns outer normal (towards excluded domain) in cut cells.
+  // Returns outer normal (towards excluded domain) in cut cells
+  // and NaN in other cells
   Vect GetNormal(IdxCell c) const {
     return fcn_[c];
   }
   Vect GetNormal(IdxFace f) const {
     return m.GetNormal(f);
+  }
+  IdxCell GetRegularNeighbor(IdxCell c) const {
+    // FIXME: may not return a regular cell for non-convex shapes
+    const auto n = GetNormal(c);
+    const size_t d = n.abs().argmax();
+    const size_t s = (n[d] > 0 ? 0 : 1);
+    return GetCell(c, 2 * d + s);
   }
   Scal GetAlpha(IdxCell c) const {
     return fca_[c];
