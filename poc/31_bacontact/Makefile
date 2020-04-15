@@ -14,7 +14,7 @@ all: $M
 	CC99=$(CC99) qcc $< $(CFLAGS) $(LDFLAGS) $(Q_FLAGS) -o $@
 
 $M:  u
-u:; mkdir -p .u && cp -r $(CHPREFIX)/include/io .u/io
+u:; ba.env ba.u $(CHPREFIX)/cmake/aphros/io.conf
 run: all
 	./sessile3D
 clean:; rm -rf $M .u
