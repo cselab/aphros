@@ -190,6 +190,9 @@ struct UEmbed {
   template <class T>
   static FieldFace<T> InterpolateBilinearFaces(
       const FieldFace<T>& ffu, const EB& eb);
+  template <class T>
+  static FieldFace<T> InterpolateBilinearFaces(
+      const FieldFace<T>& ffu, const M& m);
 
   template <class T>
   static FieldEmbed<T> Interpolate(

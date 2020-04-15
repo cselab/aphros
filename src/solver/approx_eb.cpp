@@ -35,6 +35,8 @@ template FieldCell<Expr> UEB::RedistributeCutCells(
 
 template FieldFace<T> UEB::InterpolateBilinearFaces(
     const FieldFace<T>& ffu, const EB& eb);
+template FieldFace<T> UEB::InterpolateBilinearFaces(
+    const FieldFace<T>& ffu, const M& m);
 
 template FieldEmbed<T> UEB::Interpolate(
     const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const EB& eb);

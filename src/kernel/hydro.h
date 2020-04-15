@@ -701,7 +701,7 @@ void Hydro<M>::Init() {
     if (eb_) {
       auto& eb = *eb_;
       for (auto c : m.AllCells()) {
-        fcvf[c] = std::min(fcvf[c], eb.GetVolumeFraction(c));
+        //fcvf[c] = std::min(fcvf[c], eb.GetVolumeFraction(c));
       }
     }
 

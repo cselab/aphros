@@ -237,17 +237,18 @@ struct PartStrMeshM<M_>::Imp {
     return false;
   }
 
+  template <class EB>
   void Seed(
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
-      const Multi<const FieldCell<Scal>*>& vfccl) {
+      const Multi<const FieldCell<Scal>*>& vfccl, const EB& eb) {
     // clear string list
     partstr_->Clear();
     vsc_.clear();
     vsl_.clear();
     vsan_.clear();
-    bool nocl = (layers.size() == 1 && !vfccl[0]); // no color provided
+    const bool nocl = (layers.size() == 1 && !vfccl[0]); // no color provided
 
     // Seed strings in cells with interface.
     for (auto l : layers) {
@@ -255,7 +256,10 @@ struct PartStrMeshM<M_>::Imp {
       auto& fcn = *vfcn[l];
       auto& fci = *vfci[l];
       auto& fccl = *vfccl[l];
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
+        if (eb.GetVolumeFraction(c) < 1) {
+          continue;
+        }
         Vect xc = m.GetCenter(c);
         if (fci[c] && (nocl || fccl[c] != kClNone)) {
           // number of strings
@@ -267,6 +271,31 @@ struct PartStrMeshM<M_>::Imp {
             // buffer for interface lines
             std::vector<Vect2> lx; // nodes
             std::vector<size_t> ls; // sizes
+
+            auto append_contang = [&lx, &ls, &v, &fcn, &eb, this](
+                                      IdxCell c, Vect2 xl, Vect nf) {
+              const Scal h = m.GetCellSize()[0];
+              const auto x1 = m.GetCenter(c)[1];
+              //const Scal angledeg = 45. + std::abs(x1 - 1) * 90.;
+              //const Scal angledeg = 45. + std::abs(x1 - 2) * 45.;
+              const Scal angledeg = 90. - (x1 - 1) * 45.;
+              //const Scal angledeg = 90;
+              const Scal angle = angledeg * M_PI / 180.;
+              auto unit = [](const Vect& t) { return t / t.norm(); };
+              const Vect tf = unit(unit(fcn[c]).orth(nf));
+              const Vect ni = tf * std::sin(angle) - nf * std::cos(angle);
+              Vect dir = ni.cross(v[1].cross(v[2]));
+              if (dir.dot(nf) < 0) {
+                dir *= -1;
+              }
+              const Vect xc = GetSpaceCoords(xl, v);
+              auto pe0 = GetPlaneCoords(xc, v);
+              auto pe1 = GetPlaneCoords(xc + dir * (10 * h), v);
+              lx.push_back(pe0);
+              lx.push_back(pe1);
+              ls.push_back(2);
+            };
+
             // Extract interface from neighbour cells.
             for (auto cc : m.Stencil5(c)) {
               for (auto j : layers) {
@@ -275,32 +304,30 @@ struct PartStrMeshM<M_>::Imp {
                 auto& fci2 = *vfci[j];
                 auto& fccl2 = *vfccl[j];
                 if (fci2[cc] && (nocl || fccl2[cc] == fccl[c])) {
-                  AppendInterface(
-                      v, m.GetCenter(cc), fca2[cc], fcn2[cc], lx, ls);
+                  std::vector<Vect2> llx; // nodes
+                  std::vector<size_t> lls; // sizes
+                  if (AppendInterface(
+                        v, m.GetCenter(cc), fca2[cc], fcn2[cc], llx, lls)) {
+                    bool nearcut = false;
+                    Vect nf;
+                    for (auto cn : eb.Stencil(cc)) {
+                      if (eb.GetVolumeFraction(cn) < 1) {
+                        nearcut = true;
+                        nf = eb.GetNormal(cn);
+                        break;
+                      }
+                    }
+                    if (nearcut && c == cc) {
+                      append_contang(cc, (llx[0] + llx[1]) * 0.5, nf);
+                    } else if (eb.GetVolumeFraction(cc) < 1) {
+                      // nop
+                    } else {
+                      lx.push_back(llx[0]);
+                      lx.push_back(llx[1]);
+                      ls.push_back(lls[0]);
+                    }
+                  }
                 }
-              }
-            }
-
-            {
-              const Scal h = m.GetCellSize()[0];
-              const auto x0 = m.GetCenter(c)[0];
-              const auto x1 = m.GetCenter(c)[1];
-              //const Scal angledeg = 45. + std::abs(x1 - 1) * 90.;
-              const Scal angledeg = 90;
-              const Scal angle = angledeg * M_PI / 180.;
-              const Scal q = -1.;
-              if (x0 < h) {
-                auto unit = [](const Vect& t) { return t / t.norm(); };
-                const Vect ni = unit(fcn[c]);
-                const Vect nf = Vect(1., 0., 0.);
-                const Vect tf = unit(ni.orth(nf));
-                const Vect dir =
-                    unit(tf * std::cos(angle) - nf * std::sin(angle));
-                auto pe0 = GetPlaneCoords(v[0], v);
-                auto pe1 = GetPlaneCoords(v[0] + dir * (2.5 * h), v);
-                lx.push_back(pe0);
-                lx.push_back(pe1);
-                ls.push_back(2);
               }
             }
 
@@ -326,7 +353,7 @@ struct PartStrMeshM<M_>::Imp {
     auto sem = m.GetSem("part");
 
     if (sem("part-run")) {
-      Seed(vfca, vfcn, vfci, vfccl);
+      Seed(vfca, vfcn, vfci, vfccl, eb);
       partstr_->Run(par.tol, par.itermax, m.IsRoot() ? par.verb : 0);
       // compute curvature
       vfckp_.resize(layers);
@@ -351,6 +378,32 @@ struct PartStrMeshM<M_>::Imp {
         k /= nsc;
         if (par.dim == 3) {
           k *= 2.;
+        }
+      }
+      for (auto& fckp : vfckp_.data()) {
+        m.Comm(&fckp);
+      }
+    }
+    const bool nocl = (layers.size() == 1 && !vfccl[0]); // no color provided
+    if (sem("part")) {
+      // finds a valid curvature value in stencil around `c`
+      // selecting cells with color `cl`
+      auto findcurv = [&](IdxCell c, size_t l) {
+        for (auto cn : eb.Stencil(c)) {
+          for (auto ln : layers) {
+            if (!IsNan(vfckp_[ln][cn]) &&
+                (nocl || (*vfccl[ln])[cn] == (*vfccl[l])[c])) {
+              return vfckp_[ln][cn];
+            }
+          }
+        }
+        return GetNan<Scal>();
+      };
+      for (auto c : eb.Cells()) {
+        if (eb.GetVolumeFraction(c) < 1) {
+          for (auto l : layers) {
+            vfckp_[l][c] = findcurv(c, l);
+          }
         }
       }
       for (auto& fckp : vfckp_.data()) {
