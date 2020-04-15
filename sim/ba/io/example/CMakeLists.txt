@@ -1,17 +1,16 @@
 cmake_minimum_required(VERSION 3.3.0)
 set(CHPREFIX $ENV{CHPREFIX})
+set(CMAKEPREFIX ${CHPREFIX}/cmake/aphros)
 project(main C)
-find_package(aphros/h5)
-
 find_package(MPI REQUIRED)
 set(CMAKE_C_COMPILER ${MPI_C_COMPILER})
 
 set(C main.c)
 add_custom_target(qcc COMMAND ba.env qcc -source ${C} BYPRODUCTS _${C})
-add_custom_target(u COMMAND ba.env ba.u "${CHPREFIX}/cmake/aphros/io.conf")
+add_custom_target(u COMMAND ba.env ba.u "${CMAKEPREFIX}/io.conf")
 
 set(T main.s)
 add_executable(${T} "_${C}")
 add_dependencies(qcc u)
 add_dependencies(${T} qcc)
-target_link_libraries(${T} h5)
+target_link_libraries(${T} m)
