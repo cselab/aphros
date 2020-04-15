@@ -1047,6 +1047,13 @@ auto UEmbed<M>::RedistributeCutCellsAdvection(
 
 template <class M>
 template <class T>
+auto UEmbed<M>::InterpolateBilinearFaces(const FieldFace<T>& ffu, const M&)
+    -> FieldFace<T> {
+  return ffu;
+}
+
+template <class M>
+template <class T>
 auto UEmbed<M>::InterpolateBilinearFaces(const FieldFace<T>& ffu, const EB& eb)
     -> FieldFace<T> {
   auto& m = eb.GetMesh();

@@ -21,6 +21,8 @@
 
 #include "vof.h"
 
+#define AREAFRACTION(x) (eb.GetAreaFraction(x) + 1e-10)
+
 template <class EB_>
 struct Vof<EB_>::Imp {
   using Owner = Vof<EB_>;
@@ -62,47 +64,11 @@ struct Vof<EB_>::Imp {
   }
   // reconstruct interface
   // uc: volume fraction [a]
-  void ReconstPlanes(const FieldCell<Scal>& uc) {
+  void ReconstPlanes(const FieldCell<Scal>& uc, const FieldCell<Scal>& uc0) {
     DetectInterface(uc);
     // Compute fcn_ [s]
-    auto uc0 = uc;
-    /*
-    for (auto c : m.SuCells()) {
-      if (m.GetCenter(c)[0] > 1) {
-        auto cm = m.GetCell(c, 0);
-        auto cmm = m.GetCell(cm, 0);
-        uc0[c] = 2 * uc[cm] - uc[cmm];
-      }
-      if (m.GetCenter(c)[0] < 0) {
-        auto cp = m.GetCell(c, 1);
-        auto cpp = m.GetCell(cp, 1);
-        uc0[c] = 2 * uc[cp] - uc[cpp];
-      }
-    }
-    */
-    FieldCell<bool> inner(m, true);
-    for (const auto& it : me_vf_.GetMapFace()) {
-      const auto f = it.first;
-      const auto& bc = it.second;
-      const auto cm = m.GetCell(f, 1 - bc.nci);
-      inner[cm] = false;
-    }
-    for (auto c : m.SuCells()) {
-      if (!inner[c]) {
-        std::vector<Vect> xx;
-        std::vector<Scal> uu;
-        const auto cp = m.GetCell(c, 1);
-        for (auto cn : eb.Stencil(cp)) {
-          if (inner[cn]) {
-            xx.push_back(m.GetCenter(cn));
-            uu.push_back(uc[cn]);
-          }
-        }
-        const auto p = ULinear<Scal>::FitLinear(xx, uu);
-        uc0[c] = ULinear<typename EB::Scal>::EvalLinear(p, m.GetCenter(c));
-      }
-    }
     UNormal<M>::CalcNormal(m, uc0, fci_, par.dim, fcn_);
+
     auto h = m.GetCellSize();
     // Compute fca_ [s]
     for (auto c : eb.SuCells()) {
@@ -117,11 +83,32 @@ struct Vof<EB_>::Imp {
     fci_.Reinit(m, false);
     // cell is 0<u<1
     for (auto c : eb.AllCells()) {
-      Scal u = uc[c];
-      if (u > 0. && u < 1.) {
+      const Scal u = uc[c];
+      if (u > 0 && u < 1) {
         fci_[c] = true;
       }
     }
+  }
+  void ReconstNormalExtrap(const FieldCell<Scal>& fcu) {
+    auto& fcu0 = fcu0_;
+    fcu0 = fcu;
+    for (auto c : m.Cells()) {
+      if (eb.GetVolumeFraction(c) == 0) {
+        std::vector<Vect> xx;
+        std::vector<Scal> uu;
+        for (auto cn : m.Stencil5(c)) {
+          if (eb.GetVolumeFraction(cn) > 0) {
+            xx.push_back(m.GetCenter(cn));
+            uu.push_back(fcu[cn]);
+          }
+        }
+        if (xx.size()) {
+          const auto p = ULinear<Scal>::FitLinear(xx, uu);
+          fcu0[c] = ULinear<typename EB::Scal>::EvalLinear(p, m.GetCenter(c));
+        }
+      }
+    }
+    m.Comm(&fcu0);
   }
   void StartStep() {
     auto sem = m.GetSem("start");
@@ -133,8 +120,12 @@ struct Vof<EB_>::Imp {
     }
 
     if (owner_->GetTime() == 0.) {
+      auto& fcu = fcu_.time_curr;
+      if (sem("reconst-extrap")) {
+        ReconstNormalExtrap(fcu);
+      }
       if (sem("reconst")) {
-        ReconstPlanes(fcu_.time_curr);
+        ReconstPlanes(fcu, fcu0_);
       }
     }
   }
@@ -184,28 +175,25 @@ struct Vof<EB_>::Imp {
       // flux through face (maybe cut)
       const Scal v = ffv[f];
       // flux through full face that would give the same velocity
-      const Scal v0 = v / eb.GetAreaFraction(f);
+      const Scal v0 = v / AREAFRACTION(f);
       const IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
       if (uc[c] > 0 && uc[c] < 1) { // interfacial cell
         switch (type) {
           case SweepType::plain:
           case SweepType::EI:
           case SweepType::weymouth: {
-            const Scal vu0 = R::GetLineFlux(fcn[c], fca[c], h, v0, dt, d);
-            ffvu[f] = (v >= 0 ? std::min(vu0, v) : std::max(vu0, v));
+            ffvu[f] = R::GetLineFlux(fcn[c], fca[c], h, v0, dt, d);
             break;
           }
           case SweepType::LE: {
             const Scal vc = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
             const Scal vc0 = vc / eb.GetAreaFraction(f);
-            const Scal vu0 =
-                R::GetLineFluxStr(fcn[c], fca[c], h, v0, vc0, dt, d);
-            ffvu[f] = (v >= 0 ? std::min(vu0, v) : std::max(vu0, v));
+            ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v0, vc0, dt, d);
             break;
           }
         }
       } else { // pure cell
-        ffvu[f] = v * uc[c];
+        ffvu[f] = v0 * uc[c];
       }
 
       // propagate color to downwind cell if empty
@@ -241,7 +229,8 @@ struct Vof<EB_>::Imp {
       const IdxFace fm = m.GetFace(c, d * 2);
       const IdxFace fp = m.GetFace(c, d * 2 + 1);
       // mixture cfl
-      const Scal ds = (ffv[fp] - ffv[fm]) * dt / vol;
+      const Scal ds = (ffv[fp] / AREAFRACTION(fp) -
+                       ffv[fm] / AREAFRACTION(fm)) * dt / vol;
       // phase 2 cfl
       const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / vol;
       auto& u = uc[c];
@@ -289,8 +278,11 @@ struct Vof<EB_>::Imp {
       BcApply(fccl, me_cl_, m);
       BcApply(fcim, me_im_, m);
     }
+    if (sem("reconst-extrap")) {
+      ReconstNormalExtrap(uc);
+    }
     if (sem("reconst")) {
-      ReconstPlanes(uc);
+      ReconstPlanes(uc, fcu0_);
     }
   }
   void AdvAulisa(Sem& sem) {
@@ -372,6 +364,19 @@ struct Vof<EB_>::Imp {
             uc, dd[id], owner_->fev_->GetFieldFace(), fccl_, fcim_, fcn_, fca_,
             &me_vf_, type, nullptr, nullptr, &fcuu_, owner_->GetTimeStep(),
             par.clipth, eb);
+        m.Comm(&uc);
+      }
+      if (sem("sweep")) {
+        for (auto c : eb.Cells()) {
+          if (eb.GetVolumeFraction(c) < 1) {
+            for (auto cn : eb.Stencil(c)) {
+              if (eb.GetVolumeFraction(cn) == 1) {
+                uc[c] = (uc[cn] > 0.5 ? 1 : 0);
+                break;
+              }
+            }
+          }
+        }
       }
       CommRec(sem, uc, fccl_, fcim_);
     }
@@ -564,6 +569,7 @@ struct Vof<EB_>::Imp {
   FieldCell<Vect> fcn_; // n (normal to plane)
   FieldCell<bool> fci_; // interface mask (1: contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
+  FieldCell<Scal> fcu0_; // color
 
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
