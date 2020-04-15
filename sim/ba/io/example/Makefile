@@ -1,0 +1,21 @@
+.POSIX:
+.PHONY: clean run all u
+
+CC99 = mpicc
+CFLAGS = -O3 -g
+Q_FLAGS = -I$(CHPREFIX)/include -lm
+
+M = \
+write\
+facets\
+
+all: $M
+.c:
+	. ba.setenv && \
+	CC99=$(CC99) qcc $< $(CFLAGS) $(LDFLAGS) $(Q_FLAGS) -o $@
+
+$M:  u
+u:; ba.env ba.u $(CHPREFIX)/cmake/aphros/io.conf
+run: all
+	./sessile3D
+clean:; rm -rf $M .u
