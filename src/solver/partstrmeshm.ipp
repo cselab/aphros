@@ -278,7 +278,8 @@ struct PartStrMeshM<M_>::Imp {
               const auto x1 = m.GetCenter(c)[1];
               //const Scal angledeg = 45. + std::abs(x1 - 1) * 90.;
               //const Scal angledeg = 45. + std::abs(x1 - 2) * 45.;
-              const Scal angledeg = 90. - (x1 - 1) * 45.;
+              //const Scal angledeg = 90. - (x1 - 1) * 45.;
+              const Scal angledeg = 90. - (x1 - 1) * 90.;
               //const Scal angledeg = 90;
               const Scal angle = angledeg * M_PI / 180.;
               auto unit = [](const Vect& t) { return t / t.norm(); };
