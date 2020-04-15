@@ -28,21 +28,12 @@ int main()
   f.height = h;
   f.sigma = 1.;
   N = 1 << MAXLEVEL;
-  for (theta0 = 30; theta0 <= 150; theta0 += 30)
-    run();
+  run();
 }
 
 event init (t = 0)
 {
-  FILE *file;
-  char *path = "q.vtk";
   fraction(f, - (sq(x) + sq(y) + sq(z) - sq(0.5)));
-  if ((file = fopen("q.vtk", "w")) == NULL) {
-      fprintf(stderr, "%s: fail to open '%s'\n", path);
-      exit(2);
-  }
-  io_write({f}, file);
-  fclose(file);
 }
 
 event logfile (i += 10; t <= 10)
@@ -56,9 +47,23 @@ event logfile (i += 10; t <= 10)
   fprintf (fout, "%g %g %g %g %g %g %g %d %d %d %d\n", t, normf(u.x).max,
 	   s.min, s.sum/s.volume, s.max, s.stddev, statsf(f).sum,
 	   cs.h, cs.f, cs.a, cs.c);
-  fflush (fout);
+  fflush(fout);
   if (s.stddev < 1e-2)
     return 1;
+}
+
+event output (i += 5; t <= 3)
+{
+    enum {SIZE = 999};
+    FILE *file;
+    char path[SIZE];
+    snprintf(path, SIZE, "a.%05ld.vtk", i);
+    if ((file = fopen(path, "w")) == NULL) {
+        fprintf(stderr, "%s: fail to open '%s'\n", path);
+        exit(2);
+    }
+    io_write({f}, file);
+    fclose(file);
 }
 
 event end (t = end)
