@@ -3,24 +3,57 @@
 #include "distance.h"
 #include "fractions.h"
 #include "view.h"
+#include <inside.h>
 
 static const char *me = "distance";
+static void
+usg(void) {
+  fprintf(stderr, "%s [off|ply] < off\n", me);
+  exit(1);
+}
 
-int main()
+int main(int argc, char **argv)
 {
+  coord max;
+  coord min;
   coord * p;
-  coord min, max;
   double maxl;
-  const char *cmd = "test -f distance.stl || "
-      "(wget http://www.ai.sri.com/~reddy/book/models/horse.zip && "
-      "unzip -o horse.zip && "
-      "meshlabserver -i horse.ply -o distance.stl)";
-  maxl = -HUGE;
-  if (system (cmd) != 0) {
-      fprintf(stderr, "%s: '%s' failed\n", me, cmd);
+  double *ver;
+  int i;
+  int nt;
+  int nv;
+  int *tri;
+
+  while (*++argv != NULL && argv[0][0] == '-')
+    switch (argv[0][1]) {
+    case 'h':
+        usg();
+        break;
+    default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(2);
+    }
+  if (argv[0] == NULL) {
+      fprintf(stderr, "%s: needs a mesh file\n", me);
       exit(2);
   }
-  p = input_stl (fopen ("distance.stl", "r"));
+  if (inside_mesh_read(argv[0], &nt, &tri, &nv, &ver) != 0) {
+      fprintf(stderr, "%s: fail to read '%s'\n", me, argv[0]);
+      exit(2);
+  }
+  if ((p = malloc( (3 * nt + 1) * sizeof *p)) == NULL) {
+      fprintf(stderr, "%s: malloc failed\n", me);
+      exit(2);
+  }
+  for (i = 0; i < 3 * nt; i++) {
+      p[i].x = ver[3 * tri[i]];
+      p[i].y = ver[3 * tri[i] + 1];
+      p[i].z = ver[3 * tri[i] + 2];
+  }
+  p[3 * nt].x = nodata;
+  free(tri);
+  free(ver);
+  maxl = -HUGE;
   bounding_box (p, &min, &max);
   foreach_dimension()
     if (max.x - min.x > maxl)
@@ -52,4 +85,6 @@ int main()
   clear();
   draw_vof ("f", "s", edges = true, lw = 0.5);
   save ("vof.png");
+
+  free(p);
 }
