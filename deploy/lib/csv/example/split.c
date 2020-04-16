@@ -1,12 +1,12 @@
 #include <ctype.h>
 #include <stdio.h>
 
-#include <csv.h>
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <csv.h>
 #include <table.h>
 
 enum { N = 999 };

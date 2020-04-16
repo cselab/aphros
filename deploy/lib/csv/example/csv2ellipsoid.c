@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <csv.h>
 #include <chmath.h>
+#include <csv.h>
 #include <table.h>
 
 enum { N = 999 };
