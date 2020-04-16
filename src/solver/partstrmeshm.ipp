@@ -275,11 +275,17 @@ struct PartStrMeshM<M_>::Imp {
             auto append_contang = [&lx, &ls, &v, &fcn, &eb, this](
                                       IdxCell c, Vect2 xl, Vect nf) {
               const Scal h = m.GetCellSize()[0];
-              const auto x1 = m.GetCenter(c)[1];
+              const auto y = m.GetCenter(c)[1];
               //const Scal angledeg = 45. + std::abs(x1 - 1) * 90.;
               //const Scal angledeg = 45. + std::abs(x1 - 2) * 45.;
               //const Scal angledeg = 90. - (x1 - 1) * 45.;
-              const Scal angledeg = 90. - (x1 - 1) * 90.;
+              //const Scal angledeg = 90. - (x1 - 0.5) * 90;
+              //const Scal angledeg = 90. - (x1 - 0.5) * 45; // A
+              const Scal y0 = 0.65;
+              const Scal y1 = 0.85;
+              const Scal ang0 = 110;
+              const Scal ang1 = 24;
+              const Scal angledeg = ang0 + (ang1 - ang0) * (y - y0) / (y1 - y0);
               //const Scal angledeg = 90;
               const Scal angle = angledeg * M_PI / 180.;
               auto unit = [](const Vect& t) { return t / t.norm(); };
