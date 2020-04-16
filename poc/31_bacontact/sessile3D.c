@@ -62,7 +62,8 @@ event output (i += 5; t <= 3)
         fprintf(stderr, "%s: fail to open '%s'\n", path);
         exit(2);
     }
-    io_write({f}, file);
+    //io_write({f}, file);
+    DumpFacets(f, file);
     fclose(file);
 }
 
