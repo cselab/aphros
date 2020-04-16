@@ -5,48 +5,64 @@ import numpy
 
 # default
 par = {
-  "nx": 64,
+  "nx": 192,
+  "lx": 1.5,
   "ly": 1.5,
-  "np": 48,
+  "lz": 1.5,
+  "np": 288,
   "bs" : 16,
   "tl": 1440,
+  "bubble_radius": 0.35,
         }
 exec(open("par.py").read(), None, par)
 
 
+inf = 100
+eps = 0.01
+
 # geometry
 geom = aphros.Geometry()
-lx = 1.
+geom.Box([0,0,0], [inf]*3)
+lx = float(par['lx'])
 ly = float(par['ly'])
-lz = 1.
+lz = float(par['lz'])
+cx = lx * 0.5
+cy = ly * 0.5
+cz = lz * 0.5
+
+# mesh
 mx = 5
 mz = 5
-hole_radius = 0.4 / mx
-thickness = 0.1
-inf = 100
+hole_radius = 0.08
+hole_shift = 0.25
+mlx = (mx - 1) * hole_shift
+mlz = (mz - 1) * hole_shift
 
-geom.Box([0,0,0], [inf]*3)
-geom.Box([0,ly*0.5,0], [inf,thickness,inf], invert=1, intersect=1)
+halfthickness = 0.1
 
-x1 = numpy.linspace(0, lx, mx)
-z1 = numpy.linspace(0, lz, mz)
+geom.Box([cx, cy, cz],
+         [mlx*0.5+hole_shift*0.5+eps, halfthickness, mlz*0.5+hole_shift*0.5+eps],
+         invert=1, intersect=1)
+
+x1 = numpy.linspace(cx-mlx*0.5, cx+mlx*0.5, mx)
+z1 = numpy.linspace(cz-mlz*0.5, cz+mlz*0.5, mz)
 xx,zz = numpy.meshgrid(x1, z1)
 xx = xx.flatten()
 zz = zz.flatten()
 for x,z in zip(xx,zz):
-    y = ly * 0.5
+    y = cy
     geom.Cylinder([x,y,z], [0,1,0], hole_radius, [-inf,inf])
+    geom.Sphere([x,y+halfthickness+hole_radius,z], [hole_radius * 1.75]*3)
+    geom.Sphere([x,y-halfthickness-hole_radius,z], [hole_radius * 1.75]*3)
 
 with open("body.dat", 'w') as f:
     f.write(geom.Generate())
 
-
-bubble_radius = 0.3
+bubble_radius = par["bubble_radius"]
 vf = aphros.Geometry()
-vf.Sphere([0.5, ly*0.5 - bubble_radius, 0.5], [bubble_radius]*3)
+vf.Sphere([cx, cy - bubble_radius, cz], [bubble_radius]*3)
 with open("b.dat", 'w') as f:
     f.write(vf.Generate())
-
 
 nx = int(par["nx"])
 ny = int(nx * ly / lx + 0.5)
@@ -66,8 +82,7 @@ tl = {tl}
 '''.format(**locals()))
 
 var =aphros.Var()
-assert ly >= 1
-var['extent'] = float(ly)
+var['extent'] = max(lx, ly, lz)
 
 with open("par.conf", 'w') as f:
     f.write(var.Generate())
