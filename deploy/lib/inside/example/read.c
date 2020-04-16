@@ -1,7 +1,7 @@
-#include <stdio.h>
 #include <ctype.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <inside.h>
 
 const char* me = "read";
@@ -11,21 +11,20 @@ static void usg(void) {
   exit(1);
 }
 
-int
-main(int argc, const char** argv) {
+int main(int argc, const char** argv) {
   int nt;
   int nv;
-  int *tri;
-  double *ver;
+  int* tri;
+  double* ver;
 
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
-    case 'h':
-      usg();
-      break;
-    default:
-      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-      exit(2);
+      case 'h':
+        usg();
+        break;
+      default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(2);
     }
   if (argv[0] == NULL) {
     fprintf(stderr, "%s: mesh file is missing\n", me);
