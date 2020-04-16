@@ -9,26 +9,25 @@ static void usg(void) {
   exit(1);
 }
 
-int
-main(int argc, const char** argv) {
-  enum {X, Y, Z};
+int main(int argc, const char** argv) {
+  enum { X, Y, Z };
   int nt;
   int nv;
-  int *tri;
-  double *ver;
+  int* tri;
+  double* ver;
   double data;
   int in;
   int out;
   double p[3];
-  struct Inside *inside;
+  struct Inside* inside;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
-    case 'h':
-      usg();
-      break;
-    default:
-      fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-      exit(2);
+      case 'h':
+        usg();
+        break;
+      default:
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        exit(2);
     }
   if (argv[0] == NULL) {
     fprintf(stderr, "%s: mesh file is missing\n", me);
