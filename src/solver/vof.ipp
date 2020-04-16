@@ -370,7 +370,10 @@ struct Vof<EB_>::Imp {
         for (auto c : eb.Cells()) {
           if (eb.IsCut(c)) {
             const IdxCell cc = eb.GetRegularNeighbor(c);
-            if (fci_[cc]) {
+            if (!eb.IsRegular(cc)) {
+              fci_[c] = false;
+              uc[c] = 0;
+            } else if (fci_[cc]) {
               fcn_[c] = fcn_[cc];
               fca_[c] =
                   fca_[cc] - (m.GetCenter(c) - m.GetCenter(cc)).dot(fcn_[cc]);

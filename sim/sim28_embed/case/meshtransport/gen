@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+
+import aphros
+import numpy
+
+# default
+par = {
+  "nx": 64,
+  "ly": 1.5,
+  "np": 48,
+  "bs" : 16,
+  "tl": 1440,
+        }
+exec(open("par.py").read(), None, par)
+
+
+# geometry
+geom = aphros.Geometry()
+lx = 1.
+ly = float(par['ly'])
+lz = 1.
+mx = 5
+mz = 5
+hole_radius = 0.4 / mx
+thickness = 0.1
+inf = 100
+
+geom.Box([0,0,0], [inf]*3)
+geom.Box([0,ly*0.5,0], [inf,thickness,inf], invert=1, intersect=1)
+
+x1 = numpy.linspace(0, lx, mx)
+z1 = numpy.linspace(0, lz, mz)
+xx,zz = numpy.meshgrid(x1, z1)
+xx = xx.flatten()
+zz = zz.flatten()
+for x,z in zip(xx,zz):
+    y = ly * 0.5
+    geom.Cylinder([x,y,z], [0,1,0], hole_radius, [-inf,inf])
+
+with open("body.dat", 'w') as f:
+    f.write(geom.Generate())
+
+
+bubble_radius = 0.3
+vf = aphros.Geometry()
+vf.Sphere([0.5, ly*0.5 - bubble_radius, 0.5], [bubble_radius]*3)
+with open("b.dat", 'w') as f:
+    f.write(vf.Generate())
+
+
+nx = int(par["nx"])
+ny = int(nx * ly / lx + 0.5)
+nz = int(nx * lz / lx + 0.5)
+bsx = par['bs']
+bsy = bsx
+bsz = bsx
+tl = par['tl']
+np = par['np']
+
+with open("par.make", 'w') as f:
+        f.write(
+'''m = {nx} {ny} {nz}
+bs = {bsx} {bsy} {bsz}
+np = {np}
+tl = {tl}
+'''.format(**locals()))
+
+var =aphros.Var()
+assert ly >= 1
+var['extent'] = float(ly)
+
+with open("par.conf", 'w') as f:
+    f.write(var.Generate())
+
