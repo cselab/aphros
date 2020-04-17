@@ -15,6 +15,7 @@
 
 int off_read(FILE*, int* status, int*, int**, int*, double**);
 int ply_read(FILE*, int* status, int*, int**, int*, double**);
+int stl_read(FILE*, int* status, int*, int**, int*, double**);
 
 static int circumradius(
     const double* u, const double* v, const double* w, double* r);
@@ -296,7 +297,7 @@ double inside_distance(struct Inside* q, const double r[3]) {
 
 typedef int (*const ReadType)(
     FILE*, int* status, int* nt, int** tri, int* nv, double** ver);
-static const ReadType Read[] = {off_read, ply_read};
+static const ReadType Read[] = {off_read, ply_read, stl_read};
 int inside_mesh_read(
     const char* path, int* nt, int** tri, int* nv, double** ver) {
   int status;
@@ -307,9 +308,11 @@ int inside_mesh_read(
   for (i = 0; i < sizeof(Read) / sizeof(Read[0]); i++) {
     if ((file = fopen(path, "r")) == NULL) goto err;
     err = Read[i](file, &status, nt, tri, nv, ver);
-    if (err != 0) goto err;
+    if (err != 0)
+        goto err;
     fclose(file);
-    if (status == 0) goto ok;
+    if (status == 0)
+        goto ok;
   }
 err:
   return 1;

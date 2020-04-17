@@ -7,9 +7,9 @@
 #include "memory.h"
 
 enum { SIZE = 999 };
-int ply_read(
+int stl_read(
     FILE* f, int* status, int* pnt, int** ptri, int* pnv, double** pver) {
-  enum { Ply, Header, Ver, Tri, End };
+  enum { Stl, Numbers, Ver, Tri, End };
   char line[SIZE];
   char* s;
   double* ver;
@@ -22,18 +22,16 @@ int ply_read(
   int npt;
   int nt;
   int nv;
-  int nq;
   int state;
   int t;
-  int q0;
-  int q1;
-  int q2;
-  int q3;
+  int t0;
+  int t1;
+  int t2;
   int* tri;
   int v;
 
-  state = Ply;
-  nv = nt = v = t = 0;
+  state = Stl;
+  v = t = 0;
   for (;;) {
     if ((s = fgets(line, SIZE, f)) == NULL) break;
     while (isspace(*s))
@@ -49,31 +47,24 @@ int ply_read(
     if (s[0] == '\0') /* empty line */
       continue;
     switch (state) {
-      case Ply:
-        if (strncmp(s, "ply", SIZE)) goto not_ply;
-        state = Header;
+      case Stl:
+        if (strncmp(s, "solid", SIZE)) goto not_off;
+        state = Numbers;
         break;
-      case Header:
-        sscanf(s, "element vertex %d", &nv);
-        sscanf(s, "element face %d", &nq);
-        if (strncmp(s, "end_header", SIZE) == 0) {
-          if (nv == 0) {
-            fprintf(
-                stderr, "%s:%d: did not find 'element vertex'\n", __FILE__,
-                __LINE__);
-            goto err;
-          }
-          if (nq == 0) {
-            fprintf(
-                stderr, "%s:%d: did not find 'element face'\n", __FILE__,
-                __LINE__);
-            goto err;
-          }
-          nt = 2 * nq;
-          ver = malloc(3 * nv * sizeof(*ver));
-          tri = malloc(3 * nt * sizeof(*tri));
-          state = Ver;
+      case Numbers:
+        if (sscanf(s, "%d %d %*d", &nv, &nt) != 2) {
+          fprintf(
+              stderr, "%s:%d: expecting numbers, got '%s'\n", __FILE__,
+              __LINE__, s);
+          goto err;
         }
+        ver = malloc(3 * nv * sizeof(*ver));
+        tri = malloc(3 * nt * sizeof(*tri));
+        if (tri == NULL) {
+          fprintf(stderr, "%s:%d: malloc failed\n", __FILE__, __LINE__);
+          goto err;
+        }
+        state = Ver;
         break;
       case Ver:
         if (sscanf(s, "%lf %lf %lf", &x, &y, &z) != 3) {
@@ -88,21 +79,16 @@ int ply_read(
         if (v == 3 * nv) state = Tri;
         break;
       case Tri:
-        cnt = sscanf(s, "%d %d %d %d %d", &npt, &q0, &q1, &q2, &q3);
-        if (cnt != 5 || npt != 4) {
+        cnt = sscanf(s, "%d %d %d %d", &npt, &t0, &t1, &t2);
+        if (cnt != 4 || npt != 3) {
           fprintf(
               stderr, "%s:%d: expcting triangle got '%s'\n", __FILE__, __LINE__,
               s);
           goto err;
         }
-        tri[t++] = q0;
-        tri[t++] = q1;
-        tri[t++] = q2;
-
-        tri[t++] = q2;
-        tri[t++] = q3;
-        tri[t++] = q0;
-
+        tri[t++] = t0;
+        tri[t++] = t1;
+        tri[t++] = t2;
         if (t == 3 * nt) state = End;
         break;
       case End:
@@ -123,12 +109,12 @@ int ply_read(
   return 0;
 err:
   return 1;
-not_ply:
+not_off:
   *status = 1;
   return 0;
 }
 
-int ply_write(int nt, const int* tri, int nv, const double* ver, FILE* f) {
+int stl_write(int nt, const int* tri, int nv, const double* ver, FILE* f) {
   int i;
   if (fprintf(f, "OFF\n") < 0) {
     fprintf(stderr, "%s:%d: fail to write\n", __FILE__, __LINE__);

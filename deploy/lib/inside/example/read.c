@@ -7,7 +7,7 @@
 const char* me = "read";
 
 static void usg(void) {
-  fprintf(stderr, "%s < off > off\n", me);
+  fprintf(stderr, "%s mesh > off\n", me);
   exit(1);
 }
 

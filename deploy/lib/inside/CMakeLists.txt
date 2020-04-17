@@ -16,6 +16,7 @@ ply.c
 predicate.c
 predicate.h
 predicate/main.c
+stl.c
 )
 
 set(CHPREFIX $ENV{CHPREFIX})
