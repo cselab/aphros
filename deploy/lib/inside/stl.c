@@ -8,8 +8,8 @@
 
 enum { SIZE = 999 };
 int stl_read(
-    FILE* f, int* status, int* pnt, int** ptri, int* pnv, double** pver) {
-  enum { Stl, Numbers, Ver, Tri, End };
+  FILE* f, int* status, int* pnt, int** ptri, int* pnv, double** pver) {
+  enum { Stl, FacetStart, OuterStart, FacetEnd, OuterEnd, Vertex, End};
   char line[SIZE];
   char* s;
   double* ver;
@@ -23,15 +23,21 @@ int stl_read(
   int nt;
   int nv;
   int state;
-  int t;
   int t0;
   int t1;
   int t2;
   int* tri;
   int v;
+  int cap;
+  int iver;
 
   state = Stl;
-  v = t = 0;
+  v = 0;
+  cap = 10;
+  if ((ver = malloc(cap * sizeof *ver)) == NULL) {
+      fprintf(stderr, "%s:%d: malloc failed\n", __FILE__, __LINE__);
+      goto err;
+  }
   for (;;) {
     if ((s = fgets(line, SIZE, f)) == NULL) break;
     while (isspace(*s))
@@ -48,59 +54,85 @@ int stl_read(
       continue;
     switch (state) {
       case Stl:
-        if (strncmp(s, "solid", SIZE)) goto not_off;
-        state = Numbers;
+        if (strncmp(s, "solid", 5)) goto not_stl;
+        state = FacetStart;
         break;
-      case Numbers:
-        if (sscanf(s, "%d %d %*d", &nv, &nt) != 2) {
-          fprintf(
-              stderr, "%s:%d: expecting numbers, got '%s'\n", __FILE__,
-              __LINE__, s);
-          goto err;
-        }
-        ver = malloc(3 * nv * sizeof(*ver));
-        tri = malloc(3 * nt * sizeof(*tri));
-        if (tri == NULL) {
-          fprintf(stderr, "%s:%d: malloc failed\n", __FILE__, __LINE__);
-          goto err;
-        }
-        state = Ver;
-        break;
-      case Ver:
-        if (sscanf(s, "%lf %lf %lf", &x, &y, &z) != 3) {
+      case FacetStart:
+          if (!strncmp(s, "endsolid", 8))
+              state = End;
+          else if (!strncmp(s, "facet normal", 12))
+              state = OuterStart;
+          else {
+              fprintf(stderr, "%s:%d: expecting 'facet normal' or 'endsolid', got '%s'\n", __FILE__, __LINE__);
+              goto err;
+          }
+          break;
+      case OuterStart:
+          if (strncmp(s, "outer loop", SIZE)) {
+              fprintf(stderr, "%s:%d: expecting 'outer loop', got '%s'\n", __FILE__, __LINE__);
+              goto err;
+          }
+          iver = 0;
+          state = Vertex;
+          break;
+      case Vertex:
+          if (strncmp(s, "vertex", 6)) {
+              fprintf(stderr, "%s:%d: expecting 'vertex', got '%s'\n", __FILE__, __LINE__);
+              goto err;
+          }
+        if (sscanf(s, "vertex %lf %lf %lf", &x, &y, &z) != 3) {
           fprintf(
               stderr, "%s:%d: expcting vertices got '%s'\n", __FILE__, __LINE__,
               s);
           goto err;
         }
+        if (v + 2 >= cap) {
+            cap *= 2;
+            if ((ver = realloc(ver, cap * sizeof *ver)) == NULL) {
+                fprintf(stderr, "%s:%d: realloc failed\n", __FILE__, __LINE__);
+                goto err;
+            }
+        }
         ver[v++] = x;
         ver[v++] = y;
         ver[v++] = z;
-        if (v == 3 * nv) state = Tri;
+        iver ++;
+        if (iver == 3)
+            state = OuterEnd;
         break;
-      case Tri:
-        cnt = sscanf(s, "%d %d %d %d", &npt, &t0, &t1, &t2);
-        if (cnt != 4 || npt != 3) {
-          fprintf(
-              stderr, "%s:%d: expcting triangle got '%s'\n", __FILE__, __LINE__,
-              s);
-          goto err;
-        }
-        tri[t++] = t0;
-        tri[t++] = t1;
-        tri[t++] = t2;
-        if (t == 3 * nt) state = End;
-        break;
+      case OuterEnd:
+          if (strncmp(s, "endloop", SIZE)) {
+              fprintf(stderr, "%s:%d: expecting 'endloop', got '%s'\n", __FILE__, __LINE__);
+              goto err;
+          }
+          state = FacetEnd;
+          break;
+      case FacetEnd:
+          if (strncmp(s, "endfacet", SIZE)) {
+              fprintf(stderr, "%s:%d: expecting 'endfacet', got '%s'\n", __FILE__, __LINE__);
+              goto err;
+          }
+          state = FacetStart;
+          break;
       case End:
         fprintf(stderr, "%s:%d: extra line '%s'\n", __FILE__, __LINE__, s);
         goto err;
-        break;
+        break;          
     }
   }
   if (state != End) {
-    fprintf(stderr, "%s:%d: off file is not complite\n", __FILE__, __LINE__);
+    fprintf(stderr, "%s:%d: stl file is not complite\n", __FILE__, __LINE__);
     goto err;
   }
+
+  nv = v / 3;
+  nt = nv / 3;
+  if ((tri = malloc(3 * nt * sizeof *tri)) == NULL) {
+      fprintf(stderr, "%s:%d: malloc failed\n", __FILE__, __LINE__);
+      goto err;
+  }
+  for (i = 0; i < nv; i++)
+      tri[i] = i;
   *pnv = nv;
   *pnt = nt;
   *ptri = tri;
@@ -109,7 +141,7 @@ int stl_read(
   return 0;
 err:
   return 1;
-not_off:
+not_stl:
   *status = 1;
   return 0;
 }
