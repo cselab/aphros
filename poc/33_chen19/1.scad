@@ -1,13 +1,16 @@
-n = 5;
-d = 300;
+n = 2;
+s = 200; // spacing
 h = 210;
+d1 = 51.3;
+d2 = 129.0;
 
-r1 = 51.3;
-r2 = 129.0;
-
+$fn = 10;
+minkowski() {
 difference() {
-             scale([d * n, d * n, h]) cube(1);
+	     scale([s * n, s * n, h]) cube(1);
 	     for (i=[0 : n - 1])
-	      	 for (j=[0 : n - 1])
-	     	     translate([d * (i + 0.5), d * (j + 0.5), 0]) cylinder(r1 = r1, r2 = r2, h = h);
+		 for (j=[0 : n - 1])
+		     translate([s * (i + 0.5), s * (j + 0.5)]) cylinder(r1 = d1/2, r2 = d2/2, h = h);
 	}
+sphere(5);
+}
