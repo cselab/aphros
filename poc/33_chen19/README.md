@@ -18,7 +18,9 @@ d2 = 25.2/51.3/85.1/108.3/129.6
 membrane width = 210 mu m
 spacing: 200 mu m
 
+surface tension: 7.2e-2
+
 sample-2:
-110 +/- 5 (SPS) and 24 +/- 3 (LPS)
 Angles: 110 +/- 5, 24 +/- 3
 bubble volume: 40 mu L
+bubble rad.: 2121.57 mu m

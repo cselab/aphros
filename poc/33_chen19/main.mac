@@ -1,0 +1,9 @@
+define(gr('V), rhs(solve(4/3 * %pi * 'r^3 = 'V, 'r)[3]));
+rad(x):= x/180 * %pi
+
+mu: 1/10^6;
+L: 1/10^3;
+V: 40 * mu * L;
+r: gr(V) / mu;
+
+r, numer;
