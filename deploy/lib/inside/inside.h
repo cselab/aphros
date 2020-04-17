@@ -12,6 +12,7 @@ int inside_mesh_fin(int* tri, double* ver);
 
 int off_write(int nt, const int*, int nv, const double*, FILE*);
 int ply_write(int nt, const int*, int nv, const double*, FILE*);
+int stl_write(int nt, const int*, int nv, const double*, FILE*);
 #ifdef __cplusplus
 }
 #endif
