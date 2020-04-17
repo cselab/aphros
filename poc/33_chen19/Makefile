@@ -1,19 +1,16 @@
 .POSIX:
 .PHONY: clean all
-.SUFFIXES: .off .scad
+.SUFFIXES: .stl .scad
 
 OPENSCAD = openscad
 
 M = \
-1.off\
-2.off\
-3.off\
+1.stl\
+2.stl\
+3.stl\
 
 all: $M
-.scad.off:
-	trap 'rm -f /tmp/t.$$$$.off; exit 2' 1 2 3 4 15 && \
-	$(OPENSCAD) $< -o /tmp/t.$$$$.off && \
-	sed 's,^OFF ,OFF\n,g' /tmp/t.$$$$.off > $@ && \
-	rm -f /tmp/t.$$$$.off
+.scad.stl:
+	$(OPENSCAD) $< -o $@
 
 clean:; rm -f $M
