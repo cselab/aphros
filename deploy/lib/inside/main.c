@@ -308,11 +308,9 @@ int inside_mesh_read(
   for (i = 0; i < sizeof(Read) / sizeof(Read[0]); i++) {
     if ((file = fopen(path, "r")) == NULL) goto err;
     err = Read[i](file, &status, nt, tri, nv, ver);
-    if (err != 0)
-        goto err;
+    if (err != 0) goto err;
     fclose(file);
-    if (status == 0)
-        goto ok;
+    if (status == 0) goto ok;
   }
 err:
   return 1;
@@ -323,6 +321,20 @@ ok:
 int inside_mesh_fin(int* tri, double* ver) {
   free(tri);
   free(ver);
+  return 0;
+}
+
+int inside_box(struct Inside* q, double lo[3], double hi[3]) {
+  const double* d;
+  bbox_lo(q->bbox, &d);
+  lo[X] = d[X];
+  lo[Y] = d[Y];
+  lo[Z] = d[Z];
+
+  bbox_hi(q->bbox, &d);
+  hi[X] = d[X];
+  hi[Y] = d[Y];
+  hi[Z] = d[Z];
   return 0;
 }
 
