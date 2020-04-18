@@ -1,0 +1,36 @@
+load("to_poly_solve")$
+assume(r > 0, c1 > 0)$
+depends(r, z)$
+x: r * cos(p)$
+y: r * sin(p)$
+
+R: [x, y, z]$
+
+ep: diff(R, p)$
+ez: diff(R, z)$
+
+G: matrix([ep . ep, ep . ez], [ep . ez, ez . ez]) $
+G: trigsimp(G)$
+g: determinant(G)$
+g: trigsimp(g)$
+
+dA: sqrt(g)$
+ev(dA, diff)$
+
+dAz: integrate(dA, p, 0, 2*%pi), factor $
+
+L : dAz$
+dL : diff(L, diff(r, z))$
+
+%q: (L - diff(r, z) * dL) - 2 * %pi * c1, factor;
+%d: solve(%q, r)[1];
+%d: subst("-", "=", %d);
+
+i: r =  (c1 * cosh('z/c1));
+i0: i, r = 1, z = 1.2/2, numer;
+
+/* draw2d(explicit(i0, c1, 0.1, 2)); */
+c10: find_root(i0, c1, 0.4, 1.0);
+draw2d(yrange = [-1, 1], explicit(subst("-", "=", i0), c1, 0.2, 1));
+
+draw2d(xrange = [0, 0.5], yrange = [0, 1], explicit(rhs(i), z, 0, 1/2)), c1 = c10;
