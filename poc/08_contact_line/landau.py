@@ -6,16 +6,26 @@ import sys
 
 me = "lambda.py"
 
+def usg():
+    sys.stderr.write("%s -d distance -r radious [-n points]\n" % me)
+    sys.exit(2)
+
 def f(r, z, c):
     return c * math.cosh(z/c)
 
+def df(r, z, c):
+    r = z / c
+    return math.cosh(r) - r * math.sinh(r)
+
 n = 20
-d = 0.5
-r = 1.0
+d = None
+r = None
 while True:
     sys.argv.pop(0)
     if len(sys.argv) and len(sys.argv[0]) > 1 and sys.argv[0][0] == '-':
-        if sys.argv[0][1] == 'n':
+        if sys.argv[0][1] == 'h':
+            usg()
+        elif sys.argv[0][1] == 'n':
             sys.argv.pop(0)
             n = int(sys.argv[0])
         elif sys.argv[0][1] == 'd':
@@ -30,12 +40,25 @@ while True:
     else:
         break
 
+if d == None:
+    sys.stderr.write("%s: -d is not set\n" % me)
+    sys.exit(2)
+
+if r == None:
+    sys.stderr.write("%s: -r is not set\n" % me)
+    sys.exit(2)
+
+r0 = r
+r /= r0
+d /= r0
+
 eps = 1e-2
-c0 = eps
-g = lambda c : f(r, d, c) - r
-res = scipy.optimize.minimize(g, c0, bounds = ((eps, None),))
+c0 = 2 * eps
+g = lambda c : f(r, d / 2, c) - r
+dg = lambda c : df(r, d / 2, c)
+res = scipy.optimize.minimize(g, c0, jac = dg, bounds = ((eps, None),), method = 'L-BFGS-B')
 if not res.success:
-    sys.stderr.write("%s: minimize failed\n" % me)
+    sys.stderr.write("%s: minimize failed (%s)\n" % (me, res.status))
     sys.exit(2)
 cmin = res.x
 if res.fun > 0:
@@ -48,12 +71,12 @@ if not res.converged:
     sys.exit(2)
 c0 = res.root
 g = lambda z : f(r, z, c0)
-dz = d / (n - 1)
+dz = d / 2 / (n - 1)
 pos = [ ]
 neg = [ ]
 for i in range(n):
-    z = dz * i
-    r = g(z)
+    z = r0 * dz * i
+    r = r0 * g(z)
     pos.append((z, r))
     pos.append((-z, r))
     neg.append((z, -r))
@@ -65,3 +88,10 @@ for z, r in pos:
 print()
 for z, r in neg:
     print("%.16e %.16e" % (r, z))
+
+# L.D. Landau & E.M. Lifshitz Fluid Mechanics ( Volume 6 of A Course
+# of Theoretical Physics ) Pergamon Press 1959
+# p. 234
+# Problem 1. Determine the shape of a film of liquid supported on two circular frames
+# with their centres on a line perpendicular to their planes, which are parallel; Fig. 31 shows a
+# cross-section of the film.
