@@ -1,0 +1,15 @@
+dV: 2 * %pi * r;
+
+h: R * cos(a);
+V: integrate(integrate(dV, r, 0, sqrt(R^2 - z^2)), z, h, R);
+V: factor(V);
+
+rel: trigsimp(factor(%pi*R^3/(3*V)));
+gol: (1 + cos(a))^2 / (sin(a) * (2 + cos(a)));
+
+trigexpand(rel/gol);
+
+gol/rel, a = %pi/4;
+float(%);
+
+draw2d(explicit(rel, a, %pi/6, %pi/2), 'color = red, explicit(gol, a, %pi/6, %pi/2));
