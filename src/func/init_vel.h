@@ -7,7 +7,9 @@
 #include <functional>
 #include <stdexcept>
 
+#include "geom/field.h"
 #include "parse/vars.h"
+#include "util/module.h"
 
 // Velocity field.
 // par: parameters
@@ -48,3 +50,12 @@ std::function<Vect(Vect, Scal)> CreateInitVel(const Vars& par) {
 
   return f;
 }
+
+template <class M>
+class ModuleInitVelocity : public Module<ModuleInitVelocity<M>> {
+ public:
+  using Vect = typename M::Vect;
+  using Module<ModuleInitVelocity>::Module;
+  virtual void operator()(
+      FieldCell<Vect>& fcv, const Vars& var, const M& m) = 0;
+};
