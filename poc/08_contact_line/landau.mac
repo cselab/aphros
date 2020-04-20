@@ -1,4 +1,3 @@
-load("to_poly_solve")$
 assume(r > 0, c1 > 0)$
 depends(r, z)$
 x: r * cos(p)$
@@ -29,7 +28,6 @@ dL : diff(L, diff(r, z))$
 i: r =  (c1 * cosh('z/c1));
 i0: i, r = 1, z = 1.2/2, numer;
 
-/* draw2d(explicit(i0, c1, 0.1, 2)); */
 c10: find_root(i0, c1, 0.4, 1.0);
 draw2d(yrange = [-1, 1], explicit(subst("-", "=", i0), c1, 0.2, 1));
 
