@@ -15,6 +15,7 @@
 #include "func/init_bc.h"
 #include "func/init_u.h"
 #include "func/primlist.h"
+#include "module.h"
 #include "parse/util.h"
 #include "solver/approx.h"
 #include "solver/approx_eb.h"
@@ -71,11 +72,22 @@ FieldCell<typename M::Vect> GetVort(
 }
 
 template <class M>
-void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
-  using Scal = typename M::Scal;
+class ModuleInitVelocity : public Module<ModuleInitVelocity<M>> {
+ public:
   using Vect = typename M::Vect;
-  const std::string vi = var.String["vel_init"];
-  if (vi == "taylor-green") {
+  using Module<ModuleInitVelocity>::Module;
+  virtual void operator()(
+      FieldCell<Vect>& fcv, const Vars& var, const M& m) = 0;
+};
+
+namespace init_velocity {
+
+template <class M>
+class TaylorGreen : public ModuleInitVelocity<M> {
+ public:
+  using Vect = typename M::Vect;
+  TaylorGreen() : ModuleInitVelocity<M>("taylor-green") {}
+  void operator()(FieldCell<Vect>& fcv, const Vars& var, const M& m) override {
     for (auto i : m.AllCells()) {
       auto& v = fcv[i];
       auto x = m.GetCenter(i);
@@ -86,6 +98,32 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       v[1] = -std::cos(x[0]) * std::sin(x[1]) * std::cos(x[2]);
       v[2] = 0.;
     }
+  }
+};
+
+template <class M>
+class Uniform : public ModuleInitVelocity<M> {
+ public:
+  using Vect = typename M::Vect;
+  Uniform() : ModuleInitVelocity<M>("uniform") {}
+  void operator()(FieldCell<Vect>& fcv, const Vars& var, const M& m) override {
+    Vect v(var.Vect["vel"]);
+    for (auto c : m.AllCells()) {
+      fcv[c] = v;
+    }
+  }
+};
+
+} // namespace init_velocity
+
+template <class M>
+void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  const std::string vi = var.String["vel_init"];
+  fcv.Reinit(m);
+  if (auto ptr = ModuleInitVelocity<M>::GetInstance(vi)) {
+    (*ptr)(fcv, var, m);
   } else if (vi == "grid_sin") {
     auto dx = var.Double["initvel_grid_sin_wavelength"];
     const Vect h = m.GetCellSize();
@@ -343,11 +381,6 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
         }
       }
       fcv[i][0] = p * s * k;
-    }
-  } else if (vi == "uniform") {
-    Vect v(var.Vect["vel"]);
-    for (auto i : m.AllCells()) {
-      fcv[i] = v;
     }
   } else if (vi == "box") {
     Vect v(var.Vect["vel"]);

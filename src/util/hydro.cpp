@@ -81,3 +81,12 @@ template std::map<Scal, Scal> CalcVolume(
     const GRange<size_t>& layers,
     const Multi<const FieldCell<typename M::Scal>*> fcu,
     const Multi<const FieldCell<typename M::Scal>*> fccl, M& m);
+
+namespace init_velocity {
+
+bool reg[] = {
+    RegisterModule<TaylorGreen<M>>(),
+    RegisterModule<Uniform<M>>(),
+};
+
+} // namespace init_velocity
