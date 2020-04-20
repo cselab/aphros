@@ -4,7 +4,7 @@ import math
 import scipy.optimize
 import sys
 
-me = "lambda.py"
+me = "circular.py"
 
 def usg():
     sys.stderr.write("%s -d distance -r radious [-n points]\n" % me)
