@@ -10,7 +10,7 @@ def f(r, z, c):
     return c * math.cosh(z/c)
 
 n = 20
-d = 0.6
+d = 0.5
 r = 1.0
 while True:
     sys.argv.pop(0)
@@ -23,28 +23,32 @@ while True:
             d = float(sys.argv[0])
         elif sys.argv[0][1] == 'r':
             sys.argv.pop(0)
-            r = float(sys.argv[0])            
+            r = float(sys.argv[0])
         else:
             sys.stderr.write("%s: unknown option '%s'\n" % (me, sys.argv[0]))
             sys.exit(2)
     else:
         break
 
-c0 = 1.0
+eps = 1e-2
+c0 = eps
 g = lambda c : f(r, d, c) - r
-res = scipy.optimize.minimize(g, c0)
+res = scipy.optimize.minimize(g, c0, bounds = ((eps, None),))
 if not res.success:
-    sys.stderr.write("%s: fail to minimize failed\n")
+    sys.stderr.write("%s: minimize failed\n" % me)
     sys.exit(2)
 cmin = res.x
-res = scipy.optimize.root_scalar(g, bracket = [cmin / 1000, cmin])
+if res.fun > 0:
+    sys.stderr.write("%s: there is no root (cmin = %g, res.fun = %g)\n" % (me, cmin, res.fun))
+    sys.exit(2)
+
+res = scipy.optimize.root_scalar(g, method = "bisect", bracket = [eps, cmin])
 if not res.converged:
     sys.stderr.write("%s: root_scalar failed\n")
     sys.exit(2)
 c0 = res.root
 g = lambda z : f(r, z, c0)
 dz = d / (n - 1)
-
 pos = [ ]
 neg = [ ]
 for i in range(n):
