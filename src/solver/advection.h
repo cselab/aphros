@@ -21,9 +21,9 @@ struct CondFaceAdvection {
   Scal clear0 = 0; // snap to 0 if vf<clear0
   Scal clear1 = 1; // snap to 1 if vf>clear1
   Halo halo = Halo::reflect;
-  // values for halo cells if halo=fill:
-  Scal fill_vf; // volume fraction
-  Scal fill_cl; // color
+  Scal fill_vf; // volume fraction in halo cells if halo=fill
+  Scal fill_cl; // color in halo cells if halo=fill
+  Scal contang = -1; // contact angle [0..pi], negative to disable
 };
 
 template <class Scal>
