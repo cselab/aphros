@@ -1,0 +1,1 @@
+x: -a/sqrt(2) * acosh(sqrt(2 * a)/z) + a * sqrt(2 - z^2/a^2) + x0;
