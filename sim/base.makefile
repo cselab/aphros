@@ -34,9 +34,16 @@ submit2: conf
 kill:
 	ap.kill
 
-conf: mesh.conf tl
+add.conf:
+	touch $@
+
+base.conf:
 	ap.base
+
+a.conf:
 	ap.aconf
+
+conf: a.conf base.conf mesh.conf add.conf std.conf tl
 
 np:
 	echo $(np) > np
