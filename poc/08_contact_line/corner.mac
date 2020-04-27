@@ -30,6 +30,3 @@ vt, t = a;
 ptt: -p  + 2 * mu * (1/r * diff(vt, t)  + vr/r);
 ptt: trigsimp(factor(ptt));
 ptt0: trigsimp(ptt), t = a, r = h/sin(a);
-
-/* I: integrate(trigrat(b/sin(b) - cos(b)), b, b0, b);
-rectform(I), b = 0.4, b0 = 0.2; */
