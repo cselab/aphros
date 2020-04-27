@@ -7,6 +7,7 @@ LINK = $(CC)
 CFLAGS = -Og -g
 M = \
 main\
+corner\
 
 all: $M
 .o:; $(LINK) $< $(M_LDFLAGS) $(LDFLAGS) -o $@
