@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-const char* me = "main";
+const char* me = "corner";
 
 #define USED(x) \
   if (x)        \

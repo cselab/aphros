@@ -6,15 +6,13 @@ vlpl(v):= block(local(v),
   [lpl(v[1]) - v[1]/'r^2 - 2/'r^2*diff(v[2], 't),
   lpl(v[2]) - v[2]/'r^2 + 2/'r^2*diff(v[1], 't)]);
 
-psi: v * (a - sin(a) * cos(a))^(-1) * (a * sin(t) - t * cos(a - t) * sin(a)) * r;
+C: -sin(a)^2;
+D: -cos(a)*sin(a);
+E: a;
+X: a - cos(a)*sin(a);
+psi: r*v* (t*sin(t)*C + t*cos(t)*D + sin(t)*E)/X;
+p: -2 * mu * v / r * (sin(t)*C + D*cos(t))/X;
 expand(bi(psi));
-
-block([C, D], local(co),
-co(c):=ratcoef(expand(trigexpand(psi)), c),
-C: co(r * t * sin(t)),
-D: co(r * t * cos(t)),
-p: - 2 * mu / r * (C * sin(t) + D * cos(t)),
-p: factor(trigexpand(p)));
 
 vr: r^(-1)*diff(psi, t);
 vt: -diff(psi, r);
@@ -30,3 +28,6 @@ vt, t = a;
 ptt: -p  + 2 * mu * (1/r * diff(vt, t)  + vr/r);
 ptt: trigsimp(factor(ptt));
 ptt0: trigsimp(ptt), t = a, r = h/sin(a);
+
+factor(vt);
+factor(vr);
