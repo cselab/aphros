@@ -20,7 +20,7 @@ vr: r^(-1)*diff(psi, t);
 vt: -diff(psi, r);
 
 /* Stokes equation */
-factor(trigexpand(mu * vlpl([vr, vt]) + grad(p)))
+factor(trigexpand(mu * vlpl([vr, vt]) + grad(p)));
 
 /* Boundary conditions */
 vr, t = 0;

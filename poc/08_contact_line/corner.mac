@@ -1,15 +1,12 @@
-grad(p):=[diff(p, 'r), diff(p, 't)/'r];
-div(v):=block(local(v), 1/r * diff('r * v[1], 'r) + 1/'r*diff(v[2], 't));
-lpl(p):=div(grad(p));
-bi(p):=lpl(lpl(p));
+grad(p):=[diff(p, 'r), diff(p, 't)/'r]$
+div(v):=block(local(v), 1/r * diff('r * v[1], 'r) + 1/'r*diff(v[2], 't))$
+lpl(p):=div(grad(p))$
+bi(p):=lpl(lpl(p))$
 vlpl(v):= block(local(v),
   [lpl(v[1]) - v[1]/'r^2 - 2/'r^2*diff(v[2], 't),
-  lpl(v[2]) - v[2]/'r^2 + 2/'r^2*diff(v[1], 't)]);
+  lpl(v[2]) - v[2]/'r^2 + 2/'r^2*diff(v[1], 't)])$
 
-C: -sin(a)^2;
-D: -cos(a)*sin(a);
-E: a;
-X: a - cos(a)*sin(a);
+%n: [C = -sin(a)^2, D = -cos(a)*sin(a), E = a, X = E + D];
 psi: r*v* (t*sin(t)*C + t*cos(t)*D + sin(t)*E)/X;
 p: -2 * mu * v / r * (sin(t)*C + D*cos(t))/X;
 expand(bi(psi));
@@ -31,3 +28,4 @@ ptt0: trigsimp(ptt), t = a, r = h/sin(a);
 
 factor(vt);
 factor(vr);
+
