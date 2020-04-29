@@ -19,22 +19,24 @@ static double sq(double);
 
 int main(int argc, char** argv) {
   USED(argc);
-  double psi;
-  double x;
-  double y;
-  double vx;
-  double vy;
-  double vt;
-  double vr;
+  double a;
+  double c;
+  double C;
   double D;
   double E;
-  double S;
-  double C;
-  double a;
-  double t;
-  double r;
-  double X;
   double pressure;
+  double psi;
+  double r;
+  double s;
+  double S;
+  double t;
+  double vr;
+  double vt;
+  double vx;
+  double vy;
+  double x;
+  double X;
+  double y;
   int Aflag;
   int mask;
 
@@ -71,19 +73,22 @@ int main(int argc, char** argv) {
   D = -cos(a) * sin(a);
   E = a;
   X = E + D;
+  C /= X;
+  D /= X;
+  E /= X;
   while (scanf("%lf %lf", &x, &y) == 2) {
     t = atan2(y, x);
     mask = t < a;
     if (mask) {
       r = sqrt(sq(x) + sq(y));
-      S = sin(t);
-      C = cos(t);
-      vr = ((-D * S * t) + C * C * t + C * S + C * E + C * D) / X;
-      vt = -(C * S * t + C * D * t + E * S) / X;
-      psi = (r * (C * S * t + C * D * t + E * S)) / X;
-      pressure = r > 0 ? -(2 * (C * sin(t) + D * cos(t))) / (X * r) : 0;
-      vx = vr * C - vt * S;
-      vy = vr * S + vt * C;
+      s = sin(t);
+      c = cos(t);
+      vr = (-D*s*t)+C*c*t+C*s+E*c+D*c;
+      vt = (-C*s*t)-D*c*t-E*s;
+      psi = r*(C*s*t+D*c*t+E*s);
+      pressure = r > 0 ? -2*(C*s+D*c)/r : 0;
+      vx = vr * c - vt * s;
+      vy = vr * s + vt * c;
       printf("%.16e %.16e %.16e %.16e %d\n", vx, vy, pressure, psi, mask);
     } else
       printf("%.16e %.16e %.16e %.16e %d\n", 0.0, 0.0, 0.0, 0.0, mask);
