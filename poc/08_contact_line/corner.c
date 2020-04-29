@@ -67,28 +67,26 @@ int main(int argc, char** argv) {
   }
 
   a *= 0.0174532925199433; /* to radian */
-  C = -sin(a)*sin(a);
-  D = -cos(a)*sin(a);
+  C = -sin(a) * sin(a);
+  D = -cos(a) * sin(a);
   E = a;
   X = E + D;
   while (scanf("%lf %lf", &x, &y) == 2) {
     t = atan2(y, x);
     mask = t < a;
     if (mask) {
-        r = sqrt(sq(x) + sq(y));
-        S = sin(t);
-        C = cos(t);
-        vr = ((-D*S*t)+C*C*t+C*S+C*E+C*D)/X;
-        vt = -(C*S*t+C*D*t+E*S)/X;
-        psi = (r*(C*S*t+C*D*t+E*S))/X;
-        pressure = r > 0 ? -(2*(C*sin(t)+D*cos(t)))/(X*r) : 0;
-        vx = vr * C - vt * S;
-        vy = vr * S + vt * C;
-        printf("%.16g %.16g %.16g %.16g %d\n", vx, vy, pressure, psi, mask);
-    } else {
-        printf("%.16g %.16g %.16g %.16g %d\n", 0, 0, 0, 0, mask);        
-    }
-        
+      r = sqrt(sq(x) + sq(y));
+      S = sin(t);
+      C = cos(t);
+      vr = ((-D * S * t) + C * C * t + C * S + C * E + C * D) / X;
+      vt = -(C * S * t + C * D * t + E * S) / X;
+      psi = (r * (C * S * t + C * D * t + E * S)) / X;
+      pressure = r > 0 ? -(2 * (C * sin(t) + D * cos(t))) / (X * r) : 0;
+      vx = vr * C - vt * S;
+      vy = vr * S + vt * C;
+      printf("%.16e %.16e %.16e %.16e %d\n", vx, vy, pressure, psi, mask);
+    } else
+      printf("%.16e %.16e %.16e %.16e %d\n", 0.0, 0.0, 0.0, 0.0, mask);
   }
 }
 
