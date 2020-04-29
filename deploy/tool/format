@@ -8,7 +8,7 @@ e () {
 }
 
 if [ "${1:-x}" = "-h" ] || [ "${1:-x}" = "--help" ] ; then
-  echo "usage: $0 [--help] [-y] [FILE=\`ap.findsource\`] ...
+  echo >&2 "usage: $0 [--help] [-y] [FILE=\`ap.findsource\`] ...
 Run clang-format for C/C++ files found recursively from current directory or specified in arguments.
 Options:
   -y
@@ -52,7 +52,7 @@ echo "Remaining files:"
 cat $list
 
 cmd="clang-format -i"
-echo "Running '$cmd' for these files."
+echo >&2 "Running '$cmd' for these files."
 
 re=
 if [ "$force" == "1" ] ; then
@@ -64,11 +64,11 @@ fi
 if [ "$re" = "y" ] ; then
     cat "$list" | xargs $cmd
     rm -v "$list"
-    echo Done
+    echo >&2 Done
     exit 0
 else
     rm -v "$list"
-    echo Abort
+    echo >&2 Abort
     exit -1
 fi
 
