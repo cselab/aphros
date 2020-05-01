@@ -9,6 +9,7 @@
 
 #include "parse/parser.h"
 #include "parse/vars.h"
+#include "parse/config.h"
 
 namespace simple {
 
@@ -49,8 +50,50 @@ void TestFile() {
   ip.PrintAll(std::cout);
 }
 
+struct Config : public ConfigBase {
+  VAR_DOUBLE(height);
+  VAR_INT(size);
+  VAR_VECT(elems);
+  VAR_VECT3(gravity);
+  VAR_STRING(name);
+  VAR_BOOL(enable_fluid);
+};
+
+
+void TestConfig() {
+  std::cout << "\n" << __func__ << std::endl;
+  Vars var;
+  Parser parser(var);
+
+  std::stringstream s;
+  s << R"EOF(
+
+set double height 1.2
+set int size 3
+set vect elems 1 2 3
+set vect gravity 4 5 6
+set string name name
+set int enable_fluid 3
+
+)EOF" << std::endl;
+
+  parser.RunAll(s);
+
+  using Vect = generic::Vect<double, 3>;
+
+  Config config;
+  config.Read(var);
+  std::cout << config.height << std::endl;
+  std::cout << config.size << std::endl;
+  std::cout << Vect(config.elems) << std::endl;
+  std::cout << config.gravity << std::endl;
+  std::cout << config.name << std::endl;
+  std::cout << config.enable_fluid << std::endl;
+}
+
 int main() {
   simple::Simple();
 
   TestFile();
+  TestConfig();
 }
