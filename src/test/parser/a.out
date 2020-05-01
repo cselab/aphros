@@ -35,3 +35,11 @@ set double e 3.1
 set double subdouble 9.1
 set vect f 1 2 34 5 
 set vect subvect 1 2 3 
+
+TestConfig
+1.2
+3
+(1,2,3)
+(4,5,6)
+name
+1
