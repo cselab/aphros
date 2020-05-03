@@ -9,6 +9,9 @@ tl ?= 60
 # number of threads for openmp
 OMP_NUM_THREADS ?= 1
 
+hook ?=
+LD_PRELOAD += $(hook)
+
 error:
 	@echo Error: no target specified. Available targets:
 	@echo - cleanrun: cleanall, run
@@ -23,13 +26,10 @@ error:
 cleanrun: cleanall run
 
 run: conf
-	ap.run ap.mfer
+	LD_PRELOAD="$(LD_PRELOAD)" ap.run ap.mfer
 
 submit: conf
-	ap.submit ap.mfer
-
-submit2: conf
-	ap.submit2 ap.mfer
+	LD_PRELOAD="$(LD_PRELOAD)" ap.submit ap.mfer
 
 kill:
 	ap.kill
