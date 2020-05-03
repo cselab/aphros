@@ -16,6 +16,11 @@
 
 class ConfigBase {
  public:
+  ConfigBase() = default;
+  ConfigBase(const ConfigBase&) = delete;
+  ConfigBase(ConfigBase&&) = delete;
+  ConfigBase& operator=(const ConfigBase&) = delete;
+  ConfigBase& operator=(ConfigBase&&) = delete;
   void Read(const Vars& var) {
     for (auto p : ptrs_double_) {
       *p.second = var.Double[p.first];
