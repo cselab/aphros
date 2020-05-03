@@ -62,24 +62,23 @@ struct Config : public ConfigBase {
 
 void TestConfig() {
   std::cout << "\n" << __func__ << std::endl;
-  Vars var;
-  Parser parser(var);
-
-  std::stringstream s;
-  s << R"EOF(
-
-set double height 1.2
-set int size 3
-set vect elems 1 2 3
-set vect gravity 4 5 6
-set string name name
-set int enable_fluid 3
-
-)EOF" << std::endl;
-
-  parser.RunAll(s);
 
   using Vect = generic::Vect<double, 3>;
+
+  Vars var;
+
+  {
+    Parser parser(var);
+    std::stringstream s(R"EOF(
+  set double height 1.2
+  set int size 3
+  set vect elems 1 2 3
+  set vect gravity 4 5 6
+  set string name name
+  set int enable_fluid 3
+  )EOF");
+    parser.RunAll(s);
+  }
 
   Config config;
   config.Read(var);
