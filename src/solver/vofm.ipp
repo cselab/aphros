@@ -294,7 +294,7 @@ struct Vofm<EB_>::Imp {
                    par.sharpen_cfl;
         }
         // zero flux on boundaries
-        for (const auto& it : mfc_) {
+        for (const auto& it : mfc_.GetMapFace()) {
           ffv[it.first] = 0;
         }
         Sweep(

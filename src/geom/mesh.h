@@ -381,6 +381,23 @@ class MeshStructured {
   using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
 
   // Wrappers to satisfy the interface of Embed<M>
+  bool IsCell(IdxCell) const {
+    return true;
+  }
+  bool IsCell(IdxFace) const {
+    return false;
+  }
+  std::vector<Vect> GetFacePoly(IdxFace f) const {
+    std::vector<Vect> xx;
+    for (size_t e = 0; e < GetNumNodes(f); ++e) {
+      auto n = GetNode(f, e);
+      xx.push_back(GetNode(n));
+    }
+    return xx;
+  }
+  std::vector<Vect> GetFacePoly(IdxCell) const {
+    return {};
+  }
   Vect GetFaceCenter(IdxFace f) const {
     return GetCenter(f);
   }

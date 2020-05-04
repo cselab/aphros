@@ -27,7 +27,7 @@ struct CondFaceAdvection {
 };
 
 template <class Scal>
-using MapCondFaceAdvection = MapFace<CondFaceAdvection<Scal>>;
+using MapCondFaceAdvection = MapEmbed<CondFaceAdvection<Scal>>;
 
 template <class M_>
 class AdvectionSolver : public UnsteadyIterativeSolver {

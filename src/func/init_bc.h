@@ -167,79 +167,42 @@ struct UInitEmbedBc {
     return mebc;
   }
 
+  template <class MEB>
   static void DumpPoly(
-      const std::string filename, const MapEmbed<size_t>& me_group, const EB& eb,
-      M& m) {
+      const std::string filename, const MapEmbed<size_t>& me_group,
+      const MapEmbed<Scal>& me_contang, const MEB& meb, M& m) {
     auto sem = m.GetSem("dumppoly");
     struct {
       std::vector<std::vector<Vect>> dpoly;
       std::vector<Scal> dgroup;
+      std::vector<Scal> dcontang;
       std::vector<Scal> dface;
     } * ctx(sem);
     auto& dpoly = ctx->dpoly;
     auto& dgroup = ctx->dgroup;
+    auto& dcontang = ctx->dcontang;
     auto& dface = ctx->dface;
     if (sem("local")) {
-      for (auto p : me_group.GetMapCell()) {
-        dpoly.push_back(eb.GetCutPoly(p.first));
+      me_group.LoopPairs([&](auto p) {
+        const auto cf = p.first;
+        dpoly.push_back(meb.GetFacePoly(cf));
         dgroup.push_back(p.second);
-        dface.push_back(0);
-      }
-      for (auto p : me_group.GetMapFace()) {
-        dpoly.push_back(eb.GetFacePoly(p.first));
-        dgroup.push_back(p.second);
-        dface.push_back(1);
-      }
+        dcontang.push_back(me_contang.at(cf));
+        dface.push_back(meb.IsCell(cf) ? 0 : 1);
+      });
       using TV = typename M::template OpCatVT<Vect>;
       m.Reduce(std::make_shared<TV>(&dpoly));
       using TS = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<TS>(&dgroup));
+      m.Reduce(std::make_shared<TS>(&dcontang));
       m.Reduce(std::make_shared<TS>(&dface));
     }
     if (sem("write")) {
       if (m.IsRoot()) {
         WriteVtkPoly<Vect>(
-            filename, dpoly, nullptr, {&dgroup, &dface}, {"group", "face"},
-            "Boundary conditions", true, true, true);
-      }
-    }
-  }
-  // Returns face polygon.
-  // x0,x1: points
-  // f0,f1: values
-  static std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
-    using Vect = typename M::Vect;
-    std::vector<Vect> xx;
-    for (size_t e = 0; e < m.GetNumNodes(f); ++e) {
-      auto n = m.GetNode(f, e);
-      xx.push_back(m.GetNode(n));
-    }
-    return xx;
-  }
-  static void DumpPoly(
-      const std::string filename, const MapEmbed<size_t>& me_group, M& m) {
-    auto sem = m.GetSem("dumppoly");
-    struct {
-      std::vector<std::vector<Vect>> dpoly;
-      std::vector<Scal> dgroup;
-    } * ctx(sem);
-    auto& dpoly = ctx->dpoly;
-    auto& dgroup = ctx->dgroup;
-    if (sem("local")) {
-      for (auto p : me_group.GetMapFace()) {
-        dpoly.push_back(GetPoly(p.first, m));
-        dgroup.push_back(p.second);
-      }
-      using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dpoly));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dgroup));
-    }
-    if (sem("write")) {
-      if (m.IsRoot()) {
-        WriteVtkPoly<Vect>(
-            filename, dpoly, nullptr, {&dgroup}, {"group"},
-            "Boundary conditions", true, true, true);
+            filename, dpoly, nullptr, {&dgroup, &dcontang, &dface},
+            {"group", "contang", "face"}, "Boundary conditions", true, true,
+            true);
       }
     }
   }

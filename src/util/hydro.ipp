@@ -1174,7 +1174,7 @@ void DumpBcFaces(
   auto& vcondf = ctx->vcondf;
   auto& vblock = ctx->vblock;
   if (sem("local")) {
-    for (auto& it : mfa) {
+    for (auto& it : mfa.GetMapFace()) {
       IdxFace f = it.first;
       const CondFaceAdvection<Scal>& b = it.second;
       if (!m.IsInner(m.GetCell(f, b.GetNci()))) {
