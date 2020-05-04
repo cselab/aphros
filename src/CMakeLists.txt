@@ -59,7 +59,8 @@ set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
     "${CHPREFIX}/include/hydro")
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES
     distrsolver solver vof vofm normal tvd convdiffvg simple proj proj_eb
-    init init_vel young utilhydro events curv approx posthook_default)
+    init init_vel init_contang
+    young utilhydro events curv approx posthook_default)
 
 # binary
 add_executable(${EXE} main.cpp)

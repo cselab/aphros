@@ -6,6 +6,7 @@
 #include "init_vel.h"
 #include "geom/mesh.h"
 
+// See note about namespaces in module.h
 namespace init_velocity {
 
 template <class M>
@@ -42,10 +43,9 @@ class Uniform : public ModuleInitVelocity<M> {
 
 using M = MeshStructured<double, 3>;
 
-bool reg[] = {
+bool kReg[] = {
     RegisterModule<TaylorGreen<M>>(),
     RegisterModule<Uniform<M>>(),
 };
 
 } // namespace init_velocity
-
