@@ -1,6 +1,8 @@
 // Created by Petr Karnakov on 20.04.2020
 // Copyright 2020 ETH Zurich
 
+#pragma once
+
 #include <map>
 #include <memory>
 #include <stdexcept>
