@@ -27,6 +27,7 @@
 #include "dump/output.h"
 #include "func/init.h"
 #include "func/init_bc.h"
+#include "func/init_contang.h"
 #include "geom/mesh.h"
 #include "kernelmesh.h"
 #include "parse/curv.h"
@@ -318,6 +319,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_
 
   FieldCell<Scal> fc_sig_; // surface tension sigma
+  FieldCell<Scal> fc_contang_; // contact angle
 
   FieldCell<Vect> fcvm_; // velocity field time_prev // TODO: revise
 
@@ -711,6 +713,18 @@ void Hydro<M>::Init() {
     auto isig = CreateInitSig<M>(var);
     isig(fc_sig_, m);
     m.Comm(&fc_sig_);
+
+    // initial contact angle
+    {
+      fc_contang_.Reinit(m, -1);
+      const std::string name = var.String["init_contang"];
+      if (auto ptr = ModuleInitContang<M>::GetInstance(name)) {
+        (*ptr)(fc_contang_, var, m);
+      } else {
+        throw std::runtime_error(FILELINE + ": Unknown init_contang=" + name);
+      }
+      m.Comm(&fc_contang_);
+    }
 
     // initial velocity
     fcvel.Reinit(m, Vect(0));
@@ -1701,6 +1715,7 @@ void Hydro<M>::DumpFields() {
     if (dl.count("rho")) m.Dump(&fc_rho_, "rho");
     if (dl.count("mu")) m.Dump(&fc_mu_, "mu");
     if (dl.count("sig")) m.Dump(&fc_sig_, "sig");
+    if (dl.count("contang")) m.Dump(&fc_contang_, "contang");
     if (dl.count("bc")) m.Dump(&fcbc_, "bc");
     if (dl.count("cellcond")) {
       auto& fc = ctx->fc_cellcond;
