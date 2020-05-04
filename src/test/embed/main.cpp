@@ -33,6 +33,7 @@ void Run(M& m, Vars& var) {
     size_t frame = 0;
     MapEmbed<BCondFluid<Vect>> mebc;
     MapEmbed<size_t> me_group;
+    MapEmbed<Scal> me_contang;
   } * ctx(sem);
   auto& fcu = ctx->fcu;
   auto& feu = ctx->feu;
@@ -66,6 +67,11 @@ void Run(M& m, Vars& var) {
         UInitEmbedBc<M>::ParseGroups(fin, eb);
     fin.close();
 
+    ctx->me_group.LoopPairs([&](auto p) {
+      const auto cf = p.first;
+      ctx->me_contang[cf] = 0;
+    });
+
     ctx->mebc =
         UInitEmbedBc<M>::GetBCondFromGroups(ctx->me_group, me_nci, vdesc, eb);
 
@@ -87,7 +93,8 @@ void Run(M& m, Vars& var) {
     }
   }
   if (sem.Nested("bcdump")) {
-    UInitEmbedBc<M>::DumpPoly("bc.vtk", ctx->me_group, *ctx->eb, m);
+    UInitEmbedBc<M>::DumpPoly(
+        "bc.vtk", ctx->me_group, ctx->me_contang, *ctx->eb, m);
   }
   const size_t maxt = 10;
   for (size_t t = 0; t < maxt; ++t) {

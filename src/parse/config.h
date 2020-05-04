@@ -21,24 +21,24 @@ class ConfigBase {
   ConfigBase(ConfigBase&&) = delete;
   ConfigBase& operator=(const ConfigBase&) = delete;
   ConfigBase& operator=(ConfigBase&&) = delete;
-  void Read(const Vars& var) {
+  void Read(const Vars& var, const std::string prefix="") {
     for (auto p : ptrs_double_) {
-      *p.second = var.Double[p.first];
+      *p.second = var.Double[prefix + p.first];
     }
     for (auto p : ptrs_int_) {
-      *p.second = var.Int[p.first];
+      *p.second = var.Int[prefix + p.first];
     }
     for (auto p : ptrs_string_) {
-      *p.second = var.String[p.first];
+      *p.second = var.String[prefix + p.first];
     }
     for (auto p : ptrs_vect_) {
-      *p.second = var.Vect[p.first];
+      *p.second = var.Vect[prefix + p.first];
     }
     for (auto p : ptrs_bool_) {
-      *p.second = var.Int[p.first];
+      *p.second = var.Int[prefix + p.first];
     }
     for (auto p : ptrs_vect3_) {
-      *p.second = Vect3(var.Vect[p.first]);
+      *p.second = Vect3(var.Vect[prefix + p.first]);
     }
   }
 

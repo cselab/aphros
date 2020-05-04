@@ -985,7 +985,7 @@ void UVof<M_>::GetAdvectionFaceCond(
   mfc_n.clear();
   mfc_a.clear();
   using Halo = typename CondFaceAdvection<Scal>::Halo;
-  for (auto& it : mfc) {
+  for (auto& it : mfc.GetMapFace()) {
     IdxFace f = it.first;
     const auto& cb = it.second;
     size_t nci = cb.GetNci();
@@ -1024,7 +1024,7 @@ auto UVof<M_>::GetAdvectionBc(const M& m, const MapCondFaceAdvection<Scal>& mfc)
   MapEmbed<BCond<Vect>> me_n; // normal
   MapEmbed<BCond<Scal>> me_a; // plane constant
   using Halo = typename CondFaceAdvection<Scal>::Halo;
-  for (auto& p : mfc) {
+  for (auto& p : mfc.GetMapFace()) {
     const IdxFace f = p.first;
     const auto& bc = p.second;
     const auto nci = bc.nci;

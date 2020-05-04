@@ -460,6 +460,9 @@ class Embed {
         return std::vector<Vect>();
     }
   }
+  std::vector<Vect> GetFacePoly(IdxCell c) const {
+    return GetCutPoly(c);
+  }
   Vect GetFaceCenter(IdxCell c) const {
     return fc_face_center_[c];
   }
@@ -489,6 +492,12 @@ class Embed {
     DumpPoly(
         filename, ffs_, fft_, fcs_, fct_, fcn_, fca_, ffpoly_, vtkbin, vtkmerge,
         m);
+  }
+  bool IsCell(IdxCell) const {
+    return true;
+  }
+  bool IsCell(IdxFace) const {
+    return false;
   }
   void DumpPoly() const {
     DumpPoly("eb.vtk", true, true);

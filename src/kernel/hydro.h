@@ -306,6 +306,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapCondFace mf_cond_vfsm_;
   MapEmbed<BCondFluid<Vect>> mebc_fluid_;
   MapEmbed<size_t> me_group_;
+  MapEmbed<Scal> me_contang_;
   std::vector<std::string> vdesc_;
   MapCondFaceFluid mf_fluid_;
   MapCell<std::shared_ptr<CondCell>> mc_cond_;
@@ -752,15 +753,24 @@ void Hydro<M>::Init() {
       if (eb_) {
         auto p = InitBc(var, *eb_);
         mebc_fluid_ = std::get<0>(p);
-        mf_adv_ = std::get<1>(p).GetMapFace();
+        mf_adv_ = std::get<1>(p);
         me_group_ = std::get<2>(p);
         vdesc_ = std::get<3>(p);
+        mf_adv_.LoopBCond(*eb_, [&](auto cf, auto c, auto bc) { //
+          me_contang_[cf] = fc_contang_[c];
+        });
       } else {
         auto p = InitBc(var, m);
         mebc_fluid_ = std::get<0>(p);
-        mf_adv_ = std::get<1>(p).GetMapFace();
+        mf_adv_ = std::get<1>(p);
         me_group_ = std::get<2>(p);
         vdesc_ = std::get<3>(p);
+        for (auto& p : mf_adv_.GetMapFace()) {
+          const auto& f = p.first;
+          const auto& bc = p.second;
+          const auto c = m.GetCell(f, bc.nci);
+          me_contang_[f] = fc_contang_[c];
+        }
       }
       mf_fluid_ = GetCondFluid<M>(mebc_fluid_);
     } else {
@@ -924,7 +934,7 @@ void Hydro<M>::Init() {
 
     if (var.Int["fill_halo_nan"]) {
       std::vector<std::pair<IdxFace, size_t>> vf;
-      for (auto& p : mf_adv_) {
+      for (auto& p : mf_adv_.GetMapFace()) {
         vf.emplace_back(p.first, p.second.GetNci());
       }
       m.SetNanFaces(vf);
@@ -949,9 +959,9 @@ void Hydro<M>::Init() {
       }
       if (sem.Nested("bcdump")) {
         if (eb_) {
-          UInitEmbedBc<M>::DumpPoly("bc.vtk", me_group_, *eb_, m);
+          UInitEmbedBc<M>::DumpPoly("bc.vtk", me_group_, me_contang_, *eb_, m);
         } else {
-          UInitEmbedBc<M>::DumpPoly("bc.vtk", me_group_, m);
+          UInitEmbedBc<M>::DumpPoly("bc.vtk", me_group_, me_contang_, m, m);
         }
       }
     } else {
