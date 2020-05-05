@@ -242,7 +242,8 @@ struct PartStrMeshM<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
-      const Multi<const FieldCell<Scal>*>& vfccl, const EB& eb) {
+      const Multi<const FieldCell<Scal>*>& vfccl,
+      const FieldCell<Scal>* fc_contang, const EB& eb) {
     // clear string list
     partstr_->Clear();
     vsc_.clear();
@@ -272,22 +273,10 @@ struct PartStrMeshM<M_>::Imp {
             std::vector<Vect2> lx; // nodes
             std::vector<size_t> ls; // sizes
 
-            auto append_contang = [&lx, &ls, &v, &fcn, &eb, this](
+            auto append_contang = [&lx, &ls, &v, &fcn, &eb, fc_contang, this](
                                       IdxCell c, Vect2 xl, Vect nf) {
               const Scal h = m.GetCellSize()[0];
-              const auto y = m.GetCenter(c)[1];
-              //const Scal angledeg = 45. + std::abs(x1 - 1) * 90.;
-              //const Scal angledeg = 45. + std::abs(x1 - 2) * 45.;
-              //const Scal angledeg = 90. - (x1 - 1) * 45.;
-              //const Scal angledeg = 90. - (x1 - 0.5) * 90;
-              //const Scal angledeg = 90. - (x1 - 0.5) * 45; // A
-              const Scal y0 = 0.65;
-              const Scal y1 = 0.85;
-              const Scal ang0 = 110;
-              const Scal ang1 = 24;
-              const Scal angledeg = ang0 + (ang1 - ang0) * (y - y0) / (y1 - y0);
-              //const Scal angledeg = 90;
-              const Scal angle = angledeg * M_PI / 180.;
+              const Scal angle = (*fc_contang)[c];
               auto unit = [](const Vect& t) { return t / t.norm(); };
               const Vect tf = unit(unit(fcn[c]).orth(nf));
               const Vect ni = tf * std::sin(angle) - nf * std::cos(angle);
@@ -297,7 +286,7 @@ struct PartStrMeshM<M_>::Imp {
               }
               const Vect xc = GetSpaceCoords(xl, v);
               auto pe0 = GetPlaneCoords(xc, v);
-              auto pe1 = GetPlaneCoords(xc + dir * (10 * h), v);
+              auto pe1 = GetPlaneCoords(xc + dir * (5 * h), v);
               lx.push_back(pe0);
               lx.push_back(pe1);
               ls.push_back(2);
@@ -314,7 +303,7 @@ struct PartStrMeshM<M_>::Imp {
                   std::vector<Vect2> llx; // nodes
                   std::vector<size_t> lls; // sizes
                   if (AppendInterface(
-                        v, m.GetCenter(cc), fca2[cc], fcn2[cc], llx, lls)) {
+                          v, m.GetCenter(cc), fca2[cc], fcn2[cc], llx, lls)) {
                     bool nearcut = false;
                     Vect nf;
                     if (c == cc) {
@@ -326,7 +315,7 @@ struct PartStrMeshM<M_>::Imp {
                         }
                       }
                     }
-                    if (nearcut && c == cc) {
+                    if (nearcut && c == cc && fc_contang) {
                       append_contang(cc, (llx[0] + llx[1]) * 0.5, nf);
                     } else if (!eb.IsRegular(cc)) {
                       // nop
@@ -358,11 +347,12 @@ struct PartStrMeshM<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& vfca,
       const Multi<const FieldCell<Vect>*>& vfcn,
       const Multi<const FieldCell<bool>*>& vfci,
-      const Multi<const FieldCell<Scal>*>& vfccl, const EB& eb) {
+      const Multi<const FieldCell<Scal>*>& vfccl,
+      const FieldCell<Scal>* fc_contang, const EB& eb) {
     auto sem = m.GetSem("part");
 
     if (sem("part-run")) {
-      Seed(vfca, vfcn, vfci, vfccl, eb);
+      Seed(vfca, vfcn, vfci, vfccl, fc_contang, eb);
       partstr_->Run(par.tol, par.itermax, m.IsRoot() ? par.verb : 0);
       // compute curvature
       vfckp_.resize(layers);
@@ -590,8 +580,9 @@ void PartStrMeshM<M_>::Part(
     const Multi<const FieldCell<Scal>*>& vfca,
     const Multi<const FieldCell<Vect>*>& vfcn,
     const Multi<const FieldCell<bool>*>& vfci,
-    const Multi<const FieldCell<Scal>*>& vfccl, const EB& eb) {
-  imp->Part(vfca, vfcn, vfci, vfccl, eb);
+    const Multi<const FieldCell<Scal>*>& vfccl,
+    const FieldCell<Scal>* fc_contang, const EB& eb) {
+  imp->Part(vfca, vfcn, vfci, vfccl, fc_contang, eb);
 }
 
 template <class M_>

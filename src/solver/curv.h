@@ -32,12 +32,14 @@ struct UCurv {
       const Multi<const FieldCell<bool>*>& fci,
       const Multi<const FieldCell<Scal>*>& fccl,
       const typename PartStrMeshM<M>::Par& par,
-      const Multi<FieldCell<Scal>*>& fck, M& m, const EB& eb);
+      const FieldCell<Scal>* fc_contang, const Multi<FieldCell<Scal>*>& fck,
+      M& m, const EB& eb);
 
   static std::unique_ptr<PartStrMeshM<M>> CalcCurvPart(
       const GRange<size_t>& layers, const AdvectionSolver<M>* asbase,
       const typename PartStrMeshM<M>::Par& par,
-      const Multi<FieldCell<Scal>*>& fck, M& m);
+      const FieldCell<Scal>* fc_contang, const Multi<FieldCell<Scal>*>& fck,
+      M& m);
 
  private:
   struct Imp;

@@ -11,10 +11,12 @@ template void PartStrMeshM<M>::Part(
     const Multi<const FieldCell<Scal>*>& vfca,
     const Multi<const FieldCell<Vect>*>& vfcn,
     const Multi<const FieldCell<bool>*>& vfci,
-    const Multi<const FieldCell<Scal>*>& vfccl, const Embed<M>& eb);
+    const Multi<const FieldCell<Scal>*>& vfccl,
+    const FieldCell<Scal>* fc_contang, const Embed<M>& eb);
 
 template void PartStrMeshM<M>::Part(
     const Multi<const FieldCell<Scal>*>& vfca,
     const Multi<const FieldCell<Vect>*>& vfcn,
     const Multi<const FieldCell<bool>*>& vfci,
-    const Multi<const FieldCell<Scal>*>& vfccl, const M& eb);
+    const Multi<const FieldCell<Scal>*>& vfccl,
+    const FieldCell<Scal>* fc_contang, const M& eb);
