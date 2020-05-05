@@ -41,6 +41,11 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
     Scal vtkiso = 0.5;
     enum class Scheme { plain, aulisa, weymouth };
     Scheme scheme = Scheme::weymouth;
+    // Extrapolate volume fraction to excluded cells before computing normals
+    bool extrapolate_to_excluded = true;
+    // Extrapolate volume fraction, plane constant and normals to cut cells.
+    // Supports only periodic boundaries.
+    bool extrapolate_to_cut = true;
   };
 
   // Constructor

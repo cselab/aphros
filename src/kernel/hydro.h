@@ -701,7 +701,9 @@ void Hydro<M>::Init() {
     if (eb_) {
       auto& eb = *eb_;
       for (auto c : m.AllCells()) {
-        //fcvf[c] = std::min(fcvf[c], eb.GetVolumeFraction(c));
+        if (eb.GetType(c) == M::Type::excluded) {
+          fcvf[c] = 0;
+        }
       }
     }
 
@@ -756,7 +758,7 @@ void Hydro<M>::Init() {
         mf_adv_ = std::get<1>(p);
         me_group_ = std::get<2>(p);
         vdesc_ = std::get<3>(p);
-        mf_adv_.LoopBCond(*eb_, [&](auto cf, auto c, auto bc) { //
+        mf_adv_.LoopBCond(*eb_, [&](auto cf, auto c, auto) { //
           me_contang_[cf] = fc_contang_[c];
         });
       } else {
@@ -2266,7 +2268,8 @@ void Hydro<M>::StepAdvection() {
     as_->PostStep();
   }
   if (sem.Nested("curv")) {
-    psm_ = UCurv<M>::CalcCurvPart(layers, as_.get(), psm_par_, fck_, m);
+    psm_ = UCurv<M>::CalcCurvPart(
+        layers, as_.get(), psm_par_, &fc_contang_, fck_, m);
   }
   if (var.Int["enable_bubgen"]) {
     if (sem.Nested("bubgen")) {

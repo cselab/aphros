@@ -62,15 +62,18 @@ struct Vof<EB_>::Imp {
         UVof<M>::GetAdvectionBc(m, mfc);
     mfc_cl_ = GetCond<Scal>(me_cl_);
   }
-  // reconstruct interface
-  // uc: volume fraction [a]
-  void ReconstPlanes(const FieldCell<Scal>& uc, const FieldCell<Scal>& uc0) {
+  // Computes normal and plane constant in interfacial cells.
+  // uc: volume fraction to compute plane constant [a]
+  // ucn: volume fraction to compute normals [a]
+  // Output:
+  // fci_: interface mask
+  // fca_: plane constant [s]
+  // fcn_: normal [s]
+  void ReconstPlanes(const FieldCell<Scal>& uc, const FieldCell<Scal>& ucn) {
     DetectInterface(uc);
-    // Compute fcn_ [s]
-    UNormal<M>::CalcNormal(m, uc0, fci_, par.dim, fcn_);
+    UNormal<M>::CalcNormal(m, ucn, fci_, par.dim, fcn_);
 
     auto h = m.GetCellSize();
-    // Compute fca_ [s]
     for (auto c : eb.SuCells()) {
       if (fci_[c]) {
         fca_[c] = R::GetLineA(fcn_[c], uc[c], h);
@@ -89,26 +92,59 @@ struct Vof<EB_>::Imp {
       }
     }
   }
-  void ReconstNormalExtrap(const FieldCell<Scal>& fcu) {
-    auto& fcu0 = fcu0_;
-    fcu0 = fcu;
-    for (auto c : m.Cells()) {
-      if (eb.IsExcluded(c)) {
-        std::vector<Vect> xx;
-        std::vector<Scal> uu;
-        for (auto cn : m.Stencil5(c)) {
-          if (!eb.IsExcluded(c)) {
-            xx.push_back(m.GetCenter(cn));
-            uu.push_back(fcu[cn]);
+  // Extrapolates volume fraction to excluded cells
+  // with a linear least-squares fit.
+  // Output:
+  // fcun_: extrapolated field
+  void ExtrapolateLinear(Sem& sem, const FieldCell<Scal>& fcu) {
+    if (sem("extrap-linear")) {
+      auto& fcun = fcun_;
+      fcun = fcu;
+      for (auto c : m.Cells()) {
+        if (eb.IsExcluded(c)) {
+          std::vector<Vect> xx;
+          std::vector<Scal> uu;
+          for (auto cn : m.Stencil5(c)) {
+            if (!eb.IsExcluded(c)) {
+              xx.push_back(m.GetCenter(cn));
+              uu.push_back(fcu[cn]);
+            }
+          }
+          if (xx.size()) {
+            const auto p = ULinear<Scal>::FitLinear(xx, uu);
+            fcun[c] = ULinear<typename EB::Scal>::EvalLinear(p, m.GetCenter(c));
           }
         }
-        if (xx.size()) {
-          const auto p = ULinear<Scal>::FitLinear(xx, uu);
-          fcu0[c] = ULinear<typename EB::Scal>::EvalLinear(p, m.GetCenter(c));
+      }
+      m.Comm(&fcun);
+    }
+  }
+  // Extrapolates volume fraction, normal, and plane constant
+  // to excluded cells by PLIC plane from the nearest regular cell.
+  void ExtrapolatePlic(Sem& sem, FieldCell<Scal>& uc) {
+    if (sem("extrap-plic")) {
+      for (auto c : eb.Cells()) {
+        if (eb.IsCut(c)) {
+          const IdxCell cc = eb.GetRegularNeighbor(c);
+          if (!eb.IsRegular(cc)) {
+            fci_[c] = false;
+            uc[c] = 0;
+          } else if (fci_[cc]) {
+            fcn_[c] = fcn_[cc];
+            fca_[c] =
+                fca_[cc] - (m.GetCenter(c) - m.GetCenter(cc)).dot(fcn_[cc]);
+            fci_[c] = fci_[cc];
+            uc[c] = R::GetLineU(fcn_[c], fca_[c], m.GetCellSize());
+          } else {
+            fci_[c] = false;
+            uc[c] = uc[cc];
+          }
         }
       }
+      m.Comm(&uc);
+      m.Comm(&fca_);
+      m.Comm(&fcn_);
     }
-    m.Comm(&fcu0);
   }
   void StartStep() {
     auto sem = m.GetSem("start");
@@ -121,11 +157,11 @@ struct Vof<EB_>::Imp {
 
     if (owner_->GetTime() == 0.) {
       auto& fcu = fcu_.time_curr;
-      if (sem("reconst-extrap")) {
-        ReconstNormalExtrap(fcu);
+      if (par.extrapolate_to_excluded) {
+        ExtrapolateLinear(sem, fcu);
       }
       if (sem("reconst")) {
-        ReconstPlanes(fcu, fcu0_);
+        ReconstPlanes(fcu, fcun_);
       }
     }
   }
@@ -229,8 +265,8 @@ struct Vof<EB_>::Imp {
       const IdxFace fm = m.GetFace(c, d * 2);
       const IdxFace fp = m.GetFace(c, d * 2 + 1);
       // mixture cfl
-      const Scal ds = (ffv[fp] / AREAFRACTION(fp) -
-                       ffv[fm] / AREAFRACTION(fm)) * dt / vol;
+      const Scal ds =
+          (ffv[fp] / AREAFRACTION(fp) - ffv[fm] / AREAFRACTION(fm)) * dt / vol;
       // phase 2 cfl
       const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / vol;
       auto& u = uc[c];
@@ -278,11 +314,11 @@ struct Vof<EB_>::Imp {
       BcApply(fccl, me_cl_, m);
       BcApply(fcim, me_im_, m);
     }
-    if (sem("reconst-extrap")) {
-      ReconstNormalExtrap(uc);
+    if (par.extrapolate_to_excluded) {
+      ExtrapolateLinear(sem, uc);
     }
     if (sem("reconst")) {
-      ReconstPlanes(uc, fcu0_);
+      ReconstPlanes(uc, fcun_);
     }
   }
   void AdvAulisa(Sem& sem) {
@@ -366,26 +402,8 @@ struct Vof<EB_>::Imp {
             par.clipth, eb);
       }
       CommRec(sem, uc, fccl_, fcim_);
-      if (sem("extrap")) {
-        for (auto c : eb.Cells()) {
-          if (eb.IsCut(c)) {
-            const IdxCell cc = eb.GetRegularNeighbor(c);
-            if (!eb.IsRegular(cc)) {
-              fci_[c] = false;
-              uc[c] = 0;
-            } else if (fci_[cc]) {
-              fcn_[c] = fcn_[cc];
-              fca_[c] =
-                  fca_[cc] - (m.GetCenter(c) - m.GetCenter(cc)).dot(fcn_[cc]);
-              fci_[c] = fci_[cc];
-              uc[c] = R::GetLineU(fcn_[c], fca_[c], m.GetCellSize());
-            } else {
-              fci_[c] = false;
-              uc[c] = uc[cc];
-            }
-          }
-        }
-        m.Comm(&uc);
+      if (par.extrapolate_to_cut) {
+        ExtrapolatePlic(sem, uc);
       }
     }
   }
@@ -575,7 +593,7 @@ struct Vof<EB_>::Imp {
   FieldCell<Vect> fcn_; // n (normal to plane)
   FieldCell<bool> fci_; // interface mask (1: contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
-  FieldCell<Scal> fcu0_; // color
+  FieldCell<Scal> fcun_; // volume fraction for computing normals
 
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;

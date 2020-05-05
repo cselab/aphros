@@ -121,7 +121,7 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     const Multi<const FieldCell<Vect>*>& fcn,
     const Multi<const FieldCell<bool>*>& fci,
     const Multi<const FieldCell<Scal>*>& fccl,
-    const typename PartStrMeshM<M>::Par& par,
+    const typename PartStrMeshM<M>::Par& par, const FieldCell<Scal>* fc_contang,
     const Multi<FieldCell<Scal>*>& fck, M& m, const EB& eb) {
   using PSM = PartStrMeshM<M>;
 
@@ -135,7 +135,7 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     psm.reset(new PSM(m, par, layers));
   }
   if (sem.Nested("part")) {
-    psm->Part(fca, fcn, fci, fccl, eb);
+    psm->Part(fca, fcn, fci, fccl, fc_contang, eb);
   }
   if (sem("copy")) {
     fck.assert_size(layers);
@@ -150,24 +150,24 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
 template <class M>
 std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     const GRange<size_t>& layers, const AdvectionSolver<M>* asbase,
-    const typename PartStrMeshM<M>::Par& par,
+    const typename PartStrMeshM<M>::Par& par, const FieldCell<Scal>* fc_contang,
     const Multi<FieldCell<Scal>*>& fck, M& m) {
   if (auto as = dynamic_cast<const Vof<M>*>(asbase)) {
     return CalcCurvPart(
         layers, &as->GetAlpha(), &as->GetNormal(), &as->GetMask(), nullptr, par,
-        fck, m, m);
+        fc_contang, fck, m, m);
   } else if (auto as = dynamic_cast<const Vofm<M>*>(asbase)) {
     return CalcCurvPart(
         layers, as->GetAlpha(), as->GetNormal(), as->GetMask(), as->GetColor(),
-        par, fck, m, m);
+        par, fc_contang, fck, m, m);
   } else if (auto as = dynamic_cast<const Vof<Embed<M>>*>(asbase)) {
     return CalcCurvPart(
         layers, &as->GetAlpha(), &as->GetNormal(), &as->GetMask(), nullptr, par,
-        fck, m, as->GetEmbed());
+        fc_contang, fck, m, as->GetEmbed());
   } else if (auto as = dynamic_cast<const Vofm<Embed<M>>*>(asbase)) {
     return CalcCurvPart(
         layers, as->GetAlpha(), as->GetNormal(), as->GetMask(), as->GetColor(),
-        par, fck, m, as->GetEmbed());
+        par, fc_contang, fck, m, as->GetEmbed());
   }
   throw std::runtime_error("CalcCurvPart: unknown advection solver");
 }
