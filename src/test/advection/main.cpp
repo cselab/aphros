@@ -264,7 +264,7 @@ void Advection<M>::Run() {
     as_->PostStep();
   }
   if (sem.Nested("curv")) {
-    psm_ = UCurv<M>::CalcCurvPart(as_.get(), psm_par_, nullptr, fck_, m);
+    psm_ = UCurv<M>::CalcCurvPart(as_.get(), psm_par_, fck_, m);
   }
   if (sem("stat-loc")) {
     sumu_ = 0.;

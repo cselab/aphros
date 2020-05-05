@@ -29,14 +29,12 @@ struct UCurv {
   template <class EB>
   static std::unique_ptr<PartStrMeshM<M>> CalcCurvPart(
       const Plic& plic, const typename PartStrMeshM<M>::Par& par,
-      const FieldCell<Scal>* fc_contang, const Multi<FieldCell<Scal>*>& fck,
-      M& m, const EB& eb);
+      const Multi<FieldCell<Scal>*>& fck, M& m, const EB& eb);
 
   static std::unique_ptr<PartStrMeshM<M>> CalcCurvPart(
       const AdvectionSolver<M>* asbase,
       const typename PartStrMeshM<M>::Par& par,
-      const FieldCell<Scal>* fc_contang, const Multi<FieldCell<Scal>*>& fck,
-      M& m);
+      const Multi<FieldCell<Scal>*>& fck, M& m);
 
  private:
   struct Imp;

@@ -118,8 +118,7 @@ template <class M>
 template <class EB>
 std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     const Plic& plic, const typename PartStrMeshM<M>::Par& par,
-    const FieldCell<Scal>* fc_contang, const Multi<FieldCell<Scal>*>& fck, M& m,
-    const EB& eb) {
+    const Multi<FieldCell<Scal>*>& fck, M& m, const EB& eb) {
   using PSM = PartStrMeshM<M>;
   auto& layers = plic.layers;
 
@@ -133,7 +132,7 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     psm.reset(new PSM(m, par, layers));
   }
   if (sem.Nested("part")) {
-    psm->Part(plic, fc_contang, eb);
+    psm->Part(plic, eb);
   }
   if (sem("copy")) {
     fck.assert_size(layers);
@@ -148,16 +147,15 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
 template <class M>
 std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     const AdvectionSolver<M>* asbase, const typename PartStrMeshM<M>::Par& par,
-    const FieldCell<Scal>* fc_contang, const Multi<FieldCell<Scal>*>& fck,
-    M& m) {
+    const Multi<FieldCell<Scal>*>& fck, M& m) {
   if (auto as = dynamic_cast<const Vof<M>*>(asbase)) {
-    return CalcCurvPart(as->GetPlic(), par, fc_contang, fck, m, m);
+    return CalcCurvPart(as->GetPlic(), par, fck, m, m);
   } else if (auto as = dynamic_cast<const Vofm<M>*>(asbase)) {
-    return CalcCurvPart(as->GetPlic(), par, fc_contang, fck, m, m);
+    return CalcCurvPart(as->GetPlic(), par, fck, m, m);
   } else if (auto as = dynamic_cast<const Vof<Embed<M>>*>(asbase)) {
-    return CalcCurvPart(as->GetPlic(), par, fc_contang, fck, m, as->GetEmbed());
+    return CalcCurvPart(as->GetPlic(), par, fck, m, as->GetEmbed());
   } else if (auto as = dynamic_cast<const Vofm<Embed<M>>*>(asbase)) {
-    return CalcCurvPart(as->GetPlic(), par, fc_contang, fck, m, as->GetEmbed());
+    return CalcCurvPart(as->GetPlic(), par, fck, m, as->GetEmbed());
   }
   throw std::runtime_error("CalcCurvPart: unknown advection solver");
 }
