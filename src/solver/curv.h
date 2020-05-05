@@ -14,6 +14,7 @@ struct UCurv {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using Plic = generic::Plic<Scal>;
 
   // Computes curvature with height functions.
   // fcu: volume fraction [a]
@@ -27,16 +28,12 @@ struct UCurv {
 
   template <class EB>
   static std::unique_ptr<PartStrMeshM<M>> CalcCurvPart(
-      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fca,
-      const Multi<const FieldCell<Vect>*>& fcn,
-      const Multi<const FieldCell<bool>*>& fci,
-      const Multi<const FieldCell<Scal>*>& fccl,
-      const typename PartStrMeshM<M>::Par& par,
+      const Plic& plic, const typename PartStrMeshM<M>::Par& par,
       const FieldCell<Scal>* fc_contang, const Multi<FieldCell<Scal>*>& fck,
       M& m, const EB& eb);
 
   static std::unique_ptr<PartStrMeshM<M>> CalcCurvPart(
-      const GRange<size_t>& layers, const AdvectionSolver<M>* asbase,
+      const AdvectionSolver<M>* asbase,
       const typename PartStrMeshM<M>::Par& par,
       const FieldCell<Scal>* fc_contang, const Multi<FieldCell<Scal>*>& fck,
       M& m);

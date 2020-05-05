@@ -11,6 +11,7 @@
 #include "geom/range.h"
 #include "multi.h"
 #include "partstr.h"
+#include "vof.h"
 
 template <class M_>
 class PartStrMeshM {
@@ -19,6 +20,7 @@ class PartStrMeshM {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using PS = PartStr<Scal>;
+  using Plic = generic::Plic<Scal>;
 
   struct Par {
     typename PartStr<Scal>::Par ps;
@@ -41,12 +43,7 @@ class PartStrMeshM {
   // vfci: interface mask (1: contains interface)
   // vfccl: color
   template <class EB>
-  void Part(
-      const Multi<const FieldCell<Scal>*>& vfca,
-      const Multi<const FieldCell<Vect>*>& vfcn,
-      const Multi<const FieldCell<bool>*>& vfci,
-      const Multi<const FieldCell<Scal>*>& vfccl,
-      const FieldCell<Scal>* fc_contang, const EB& eb);
+  void Part(const Plic& plic, const FieldCell<Scal>* fc_contang, const EB& eb);
   // Dump particles to csv.
   // vfca: plane constant
   // vfcn: normal

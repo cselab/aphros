@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "advection.h"
-#include "partstrmeshm.h"
 #include "vof.h"
 
 template <class EB_>
@@ -19,6 +18,7 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
   using Par = typename Vof<M>::Par;
+  using Plic = generic::Plic<Scal>;
 
   static constexpr Scal kClNone = -1.; // no color
 
@@ -66,6 +66,8 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
   Multi<const FieldCell<Scal>*> GetColor() const;
   // Colors combined
   const FieldCell<Scal>& GetColorSum() const;
+  // Volume fraction, plane constant, normal, color.
+  Plic GetPlic() const;
   // Image vector, number of passes through periodic boundaries
   MIdx GetImage(size_t l, IdxCell c) const;
   void DumpInterface(std::string filename) const override;
