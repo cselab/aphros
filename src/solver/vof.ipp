@@ -652,6 +652,12 @@ auto Vof<EB_>::GetColor() const -> const FieldCell<Scal>& {
 }
 
 template <class EB_>
+auto Vof<EB_>::GetPlic() const -> Plic {
+  return {imp->layers,  &GetField(), &GetAlpha(),
+          &GetNormal(), &GetMask(),  nullptr};
+}
+
+template <class EB_>
 auto Vof<EB_>::GetImage(IdxCell c) const -> MIdx {
   return Trackerm<M>::Unpack(imp->fcim_[c]);
 }

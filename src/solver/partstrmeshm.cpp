@@ -8,15 +8,7 @@ using M = MeshStructured<double, 3>;
 template class PartStrMeshM<M>;
 
 template void PartStrMeshM<M>::Part(
-    const Multi<const FieldCell<Scal>*>& vfca,
-    const Multi<const FieldCell<Vect>*>& vfcn,
-    const Multi<const FieldCell<bool>*>& vfci,
-    const Multi<const FieldCell<Scal>*>& vfccl,
-    const FieldCell<Scal>* fc_contang, const Embed<M>& eb);
+    const Plic& plic, const FieldCell<Scal>* fc_contang, const Embed<M>& eb);
 
 template void PartStrMeshM<M>::Part(
-    const Multi<const FieldCell<Scal>*>& vfca,
-    const Multi<const FieldCell<Vect>*>& vfcn,
-    const Multi<const FieldCell<bool>*>& vfci,
-    const Multi<const FieldCell<Scal>*>& vfccl,
-    const FieldCell<Scal>* fc_contang, const M& eb);
+    const Plic& plic, const FieldCell<Scal>* fc_contang, const M& eb);

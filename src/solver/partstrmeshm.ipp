@@ -12,6 +12,7 @@
 #include "geom/mesh.h"
 #include "reconst.h"
 #include "solver.h"
+#include "vof.h"
 
 #include "partstrmeshm.h"
 
@@ -238,25 +239,21 @@ struct PartStrMeshM<M_>::Imp {
   }
 
   template <class EB>
-  void Seed(
-      const Multi<const FieldCell<Scal>*>& vfca,
-      const Multi<const FieldCell<Vect>*>& vfcn,
-      const Multi<const FieldCell<bool>*>& vfci,
-      const Multi<const FieldCell<Scal>*>& vfccl,
-      const FieldCell<Scal>* fc_contang, const EB& eb) {
+  void Seed(const Plic& plic, const FieldCell<Scal>* fc_contang, const EB& eb) {
     // clear string list
     partstr_->Clear();
     vsc_.clear();
     vsl_.clear();
     vsan_.clear();
-    const bool nocl = (layers.size() == 1 && !vfccl[0]); // no color provided
+    // true if no color provided
+    const bool nocl = (layers.size() == 1 && !plic.vfccl[0]);
 
     // Seed strings in cells with interface.
     for (auto l : layers) {
-      auto& fca = *vfca[l];
-      auto& fcn = *vfcn[l];
-      auto& fci = *vfci[l];
-      auto& fccl = *vfccl[l];
+      auto& fca = *plic.vfca[l];
+      auto& fcn = *plic.vfcn[l];
+      auto& fci = *plic.vfci[l];
+      auto& fccl = *plic.vfccl[l];
       for (auto c : eb.Cells()) {
         if (!eb.IsRegular(c)) {
           continue;
@@ -295,10 +292,10 @@ struct PartStrMeshM<M_>::Imp {
             // Extract interface from neighbour cells.
             for (auto cc : m.Stencil5(c)) {
               for (auto j : layers) {
-                auto& fca2 = *vfca[j];
-                auto& fcn2 = *vfcn[j];
-                auto& fci2 = *vfci[j];
-                auto& fccl2 = *vfccl[j];
+                auto& fca2 = *plic.vfca[j];
+                auto& fcn2 = *plic.vfcn[j];
+                auto& fci2 = *plic.vfci[j];
+                auto& fccl2 = *plic.vfccl[j];
                 if (fci2[cc] && (nocl || fccl2[cc] == fccl[c])) {
                   std::vector<Vect2> llx; // nodes
                   std::vector<size_t> lls; // sizes
@@ -343,16 +340,11 @@ struct PartStrMeshM<M_>::Imp {
     }
   }
   template <class EB>
-  void Part(
-      const Multi<const FieldCell<Scal>*>& vfca,
-      const Multi<const FieldCell<Vect>*>& vfcn,
-      const Multi<const FieldCell<bool>*>& vfci,
-      const Multi<const FieldCell<Scal>*>& vfccl,
-      const FieldCell<Scal>* fc_contang, const EB& eb) {
+  void Part(const Plic& plic, const FieldCell<Scal>* fc_contang, const EB& eb) {
     auto sem = m.GetSem("part");
 
     if (sem("part-run")) {
-      Seed(vfca, vfcn, vfci, vfccl, fc_contang, eb);
+      Seed(plic, fc_contang, eb);
       partstr_->Run(par.tol, par.itermax, m.IsRoot() ? par.verb : 0);
       // compute curvature
       vfckp_.resize(layers);
@@ -383,7 +375,8 @@ struct PartStrMeshM<M_>::Imp {
         m.Comm(&fckp);
       }
     }
-    const bool nocl = (layers.size() == 1 && !vfccl[0]); // no color provided
+    // true if no color provided
+    const bool nocl = (layers.size() == 1 && !plic.vfccl[0]);
     if (sem("part")) {
       // finds a valid curvature value in stencil around `c`
       // selecting cells with color `cl`
@@ -391,7 +384,7 @@ struct PartStrMeshM<M_>::Imp {
         for (auto cn : eb.Stencil(c)) {
           for (auto ln : layers) {
             if (!IsNan(vfckp_[ln][cn]) &&
-                (nocl || (*vfccl[ln])[cn] == (*vfccl[l])[c])) {
+                (nocl || (*plic.vfccl[ln])[cn] == (*plic.vfccl[l])[c])) {
               return vfckp_[ln][cn];
             }
           }
@@ -577,12 +570,8 @@ PartStrMeshM<M_>::~PartStrMeshM() = default;
 template <class M_>
 template <class EB>
 void PartStrMeshM<M_>::Part(
-    const Multi<const FieldCell<Scal>*>& vfca,
-    const Multi<const FieldCell<Vect>*>& vfcn,
-    const Multi<const FieldCell<bool>*>& vfci,
-    const Multi<const FieldCell<Scal>*>& vfccl,
-    const FieldCell<Scal>* fc_contang, const EB& eb) {
-  imp->Part(vfca, vfcn, vfci, vfccl, fc_contang, eb);
+    const Plic& plic, const FieldCell<Scal>* fc_contang, const EB& eb) {
+  imp->Part(plic, fc_contang, eb);
 }
 
 template <class M_>

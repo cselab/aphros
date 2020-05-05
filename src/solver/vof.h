@@ -6,7 +6,24 @@
 #include <memory>
 
 #include "advection.h"
-#include "partstrmeshm.h"
+#include "multi.h"
+
+namespace generic {
+
+// Piecewise Linear Interface Characterization.
+// Describes the multilayer interface.
+template <class Scal>
+struct Plic {
+  using Vect = generic::Vect<Scal, 3>;
+  GRange<size_t> layers;
+  Multi<const FieldCell<Scal>*> vfcu; // volume fraction
+  Multi<const FieldCell<Scal>*> vfca; // plane constant
+  Multi<const FieldCell<Vect>*> vfcn; // normal
+  Multi<const FieldCell<bool>*> vfci; // interface mask
+  Multi<const FieldCell<Scal>*> vfccl; // color
+};
+
+} // namespace generic
 
 template <class EB_>
 class Vof final : public AdvectionSolver<typename EB_::M> {
@@ -17,6 +34,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
+  using Plic = generic::Plic<Scal>;
 
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
@@ -72,6 +90,8 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   const FieldCell<Vect>& GetNormal() const;
   // Color
   const FieldCell<Scal>& GetColor() const;
+  // Volume fraction, plane constant, normal, color.
+  Plic GetPlic() const;
   static constexpr Scal kClNone = -1; // no color
   // Image vector, number of passes through periodic boundaries
   MIdx GetImage(IdxCell c) const;
