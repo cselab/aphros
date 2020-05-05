@@ -7,8 +7,6 @@
 using M = MeshStructured<double, 3>;
 template class PartStrMeshM<M>;
 
-template void PartStrMeshM<M>::Part(
-    const Plic& plic, const FieldCell<Scal>* fc_contang, const Embed<M>& eb);
+template void PartStrMeshM<M>::Part(const Plic& plic, const Embed<M>& eb);
 
-template void PartStrMeshM<M>::Part(
-    const Plic& plic, const FieldCell<Scal>* fc_contang, const M& eb);
+template void PartStrMeshM<M>::Part(const Plic& plic, const M& eb);

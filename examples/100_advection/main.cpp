@@ -21,7 +21,7 @@ void Run(M& m, Vars&) {
     std::unique_ptr<Vof<M>> as; // advection solver
     FieldCell<Scal> fc_src; // volume source
     FieldEmbed<Scal> fe_flux; // volume flux
-    MapCondFaceAdvection<Scal> mf_cond; // face conditions
+    MapEmbed<BCondAdvection<Scal>> mf_cond; // face conditions
   } * ctx(sem);
 
   auto& as = ctx->as;

@@ -239,7 +239,7 @@ struct PartStrMeshM<M_>::Imp {
   }
 
   template <class EB>
-  void Seed(const Plic& plic, const FieldCell<Scal>* fc_contang, const EB& eb) {
+  void Seed(const Plic& plic, const EB& eb) {
     // clear string list
     partstr_->Clear();
     vsc_.clear();
@@ -270,10 +270,11 @@ struct PartStrMeshM<M_>::Imp {
             std::vector<Vect2> lx; // nodes
             std::vector<size_t> ls; // sizes
 
-            auto append_contang = [&lx, &ls, &v, &fcn, &eb, fc_contang, this](
+            auto append_contang = [&lx, &ls, &v, &fcn, &eb, this](
                                       IdxCell c, Vect2 xl, Vect nf) {
               const Scal h = m.GetCellSize()[0];
-              const Scal angle = (*fc_contang)[c];
+              //const Scal angle = (*plic.fc_contang)[c]; // XXX
+              const Scal angle = 0;
               auto unit = [](const Vect& t) { return t / t.norm(); };
               const Vect tf = unit(unit(fcn[c]).orth(nf));
               const Vect ni = tf * std::sin(angle) - nf * std::cos(angle);
@@ -312,7 +313,7 @@ struct PartStrMeshM<M_>::Imp {
                         }
                       }
                     }
-                    if (nearcut && c == cc && fc_contang) {
+                    if (nearcut && c == cc) {
                       append_contang(cc, (llx[0] + llx[1]) * 0.5, nf);
                     } else if (!eb.IsRegular(cc)) {
                       // nop
@@ -340,11 +341,11 @@ struct PartStrMeshM<M_>::Imp {
     }
   }
   template <class EB>
-  void Part(const Plic& plic, const FieldCell<Scal>* fc_contang, const EB& eb) {
+  void Part(const Plic& plic, const EB& eb) {
     auto sem = m.GetSem("part");
 
     if (sem("part-run")) {
-      Seed(plic, fc_contang, eb);
+      Seed(plic, eb);
       partstr_->Run(par.tol, par.itermax, m.IsRoot() ? par.verb : 0);
       // compute curvature
       vfckp_.resize(layers);
@@ -569,9 +570,8 @@ PartStrMeshM<M_>::~PartStrMeshM() = default;
 
 template <class M_>
 template <class EB>
-void PartStrMeshM<M_>::Part(
-    const Plic& plic, const FieldCell<Scal>* fc_contang, const EB& eb) {
-  imp->Part(plic, fc_contang, eb);
+void PartStrMeshM<M_>::Part(const Plic& plic, const EB& eb) {
+  imp->Part(plic, eb);
 }
 
 template <class M_>

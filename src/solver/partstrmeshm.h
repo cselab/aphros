@@ -43,7 +43,7 @@ class PartStrMeshM {
   // vfci: interface mask (1: contains interface)
   // vfccl: color
   template <class EB>
-  void Part(const Plic& plic, const FieldCell<Scal>* fc_contang, const EB& eb);
+  void Part(const Plic& plic, const EB& eb);
   // Dump particles to csv.
   // vfca: plane constant
   // vfcn: normal

@@ -260,7 +260,7 @@ void Run(M& m, Vars& var) {
     FieldEmbed<Scal> fev; // volume flux
     Multi<FieldCell<Scal>> fck; // curvature
     MapCondFaceFluid mf_cond_fluid; // face conditions
-    MapCondFaceAdvection<Scal> mf_cond; // face conditions
+    MapEmbed<BCondAdvection<Scal>> mf_cond; // face conditions
     GRange<size_t> layers;
     typename PartStrMeshM<M>::Par psm_par;
     std::unique_ptr<PartStrMeshM<M>> psm;
@@ -315,9 +315,7 @@ void Run(M& m, Vars& var) {
     as->FinishStep();
   }
   if (sem.Nested()) {
-    psm = UCurv<M>::CalcCurvPart(
-        layers, as->GetAlpha(), as->GetNormal(), as->GetMask(), as->GetColor(),
-        psm_par, fck, m);
+    psm = UCurv<M>::CalcCurvPart(as->GetPlic(), psm_par, fck, m, m);
   }
   if (sem.Nested("flux")) {
     CalcMeanCurvatureFlowFlux(

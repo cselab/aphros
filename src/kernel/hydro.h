@@ -2268,7 +2268,7 @@ void Hydro<M>::StepAdvection() {
     as_->PostStep();
   }
   if (sem.Nested("curv")) {
-    psm_ = UCurv<M>::CalcCurvPart(as_.get(), psm_par_, &fc_contang_, fck_, m);
+    psm_ = UCurv<M>::CalcCurvPart(as_.get(), psm_par_, fck_, m);
   }
   if (var.Int["enable_bubgen"]) {
     if (sem.Nested("bubgen")) {
