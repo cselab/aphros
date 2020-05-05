@@ -73,7 +73,7 @@ struct UVof<M_>::Imp {
     if (sem("local")) {
       auto h = m.GetCellSize();
       for (auto i : layers) {
-        for (auto c : m.AllCells()) {
+        for (auto c : m.Cells()) {
           Scal u = (*fcu[i])[c];
           if (IsNan(u) || IsNan((*fcn[i])[c]) || IsNan((*fca[i])[c])) {
             continue;

@@ -248,6 +248,13 @@ struct PartStrMeshM<M_>::Imp {
     // true if no color provided
     const bool nocl = (layers.size() == 1 && !plic.vfccl[0]);
 
+    MapCell<IdxFace> boundary;
+    for (auto p : plic.me_adv.GetMapFace()) {
+      const auto f = p.first;
+      const auto& bc = p.second;
+      boundary[m.GetCell(f, bc.nci)] = f;
+    }
+
     // Seed strings in cells with interface.
     for (auto l : layers) {
       auto& fca = *plic.vfca[l];
@@ -288,36 +295,27 @@ struct PartStrMeshM<M_>::Imp {
             std::vector<Vect2> lx; // nodes
             std::vector<size_t> ls; // sizes
 
-            // Extract interface from neighbour cells.
-            for (auto cc : m.Stencil5(c)) {
+            // Append interface segments from neighbor cells.
+            for (auto cn : m.Stencil5(c)) {
               for (auto j : layers) {
                 auto& fca2 = *plic.vfca[j];
                 auto& fcn2 = *plic.vfcn[j];
                 auto& fci2 = *plic.vfci[j];
                 auto& fccl2 = *plic.vfccl[j];
-                if (fci2[cc] && (nocl || fccl2[cc] == fccl[c])) {
+                if (fci2[cn] && (nocl || fccl2[cn] == fccl[c])) {
                   if (AppendInterface(
-                          v, m.GetCenter(cc), fca2[cc], fcn2[cc], lx, ls)) {
-                    bool nearcut = false;
-                    Vect nf;
-                    if (c == cc) {
-                      for (auto cn : eb.Stencil(cc)) {
-                        if (eb.IsCut(cn)) {
-                          nearcut = true;
-                          nf = eb.GetNormal(cn);
-                          break;
-                        }
-                      }
-                    }
-                    const auto f = m.GetFace(cc, 2);
-                    nearcut = (plic.me_adv.find(f));
-                    nf = Vect(0.,-1.,0.);
-                    if (nearcut) {
+                          v, m.GetCenter(cn), fca2[cn], fcn2[cn], lx, ls)) {
+                    if (IdxFace* pf = boundary.find(cn)) {
+                      // Replace last segment with line from contact angle.
+                      const IdxFace f = *pf;
+                      // outward normal
+                      const Vect nf = m.GetNormal(f) *
+                                      (plic.me_adv.at(f).nci == 0 ? 1 : -1);
                       const auto lx0 = lx.back();
                       lx.pop_back();
                       const auto lx1 = lx.back();
                       lx.pop_back();
-                      auto xx = contang_segment(cc, f, (lx0 + lx1) * 0.5, nf);
+                      auto xx = contang_segment(cn, f, (lx0 + lx1) * 0.5, nf);
                       lx.push_back(xx[0]);
                       lx.push_back(xx[1]);
                     }
