@@ -112,7 +112,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   Dumper dms_; // statistics
 
   // boundary conditions for advection (empty)
-  MapCondFaceAdvection<Scal> bc_;
+  MapEmbed<BCondAdvection<Scal>> bc_;
 };
 
 template <class M>

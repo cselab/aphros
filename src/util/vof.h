@@ -74,18 +74,18 @@ class UVof {
       bool reduce, bool grid, M& m);
 
   static void GetAdvectionFaceCond(
-      const M& m, const MapCondFaceAdvection<Scal>& mfc, MapCondFace& mfc_vf,
+      const M& m, const MapEmbed<BCondAdvection<Scal>>& mfc, MapCondFace& mfc_vf,
       MapCondFace& mfc_cl, MapCondFace& mfc_im, MapCondFace& mfc_n,
       MapCondFace& mfc_a);
 
   static std::tuple<
       MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>,
       MapEmbed<BCond<Vect>>, MapEmbed<BCond<Scal>>>
-  GetAdvectionBc(const M& m, const MapCondFaceAdvection<Scal>& mfc);
+  GetAdvectionBc(const M& m, const MapEmbed<BCondAdvection<Scal>>& mfc);
 
   // set volume fraction to 0 or 1 near wall
   static void BcClear(
-      FieldCell<Scal>& uc, const MapCondFaceAdvection<Scal>& mfc, const M& m) {
+      FieldCell<Scal>& uc, const MapEmbed<BCondAdvection<Scal>>& mfc, const M& m) {
     for (const auto& it : mfc.GetMapFace()) {
       auto& cfa = it.second;
       const IdxCell c = m.GetCell(it.first, cfa.GetNci());
@@ -101,7 +101,7 @@ class UVof {
   // set volume fraction to 0 or 1 near wall
   static void BcClearOverrideColor(
       FieldCell<Scal>& uc, FieldCell<Scal>& clc, Scal cl0,
-      const MapCondFaceAdvection<Scal>& mfc, const M& m) {
+      const MapEmbed<BCondAdvection<Scal>>& mfc, const M& m) {
     static constexpr Scal kClNone = -1;
     for (const auto& it : mfc.GetMapFace()) {
       auto& cfa = it.second;

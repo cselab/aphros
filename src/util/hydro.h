@@ -46,12 +46,12 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m);
 template <class M>
 void GetFluidFaceCond(
     const Vars& var, const M& m, MapCondFaceFluid& mff,
-    MapCondFaceAdvection<typename M::Scal>& mfa);
+    MapEmbed<BCondAdvection<typename M::Scal>>& mfa);
 
 template <class MEB>
 std::tuple<
     MapEmbed<BCondFluid<typename MEB::Vect>>,
-    MapEmbed<CondFaceAdvection<typename MEB::Scal>>, MapEmbed<size_t>,
+    MapEmbed<BCondAdvection<typename MEB::Scal>>, MapEmbed<size_t>,
     std::vector<std::string>>
 InitBc(const Vars& var, const MEB& eb);
 
@@ -80,14 +80,14 @@ void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,
     MapCell<std::shared_ptr<CondCellFluid>>* mcf, MapCondFaceFluid& mff,
-    MapCondFaceAdvection<Scal>& mfa);
+    MapEmbed<BCondAdvection<Scal>>& mfa);
 
 // Dumps faces with boundary conditions.
 // mfc: boundary conditions
 // fn: filename
 template <class M>
 void DumpBcFaces(
-    const MapCondFaceAdvection<typename M::Scal>& mfa,
+    const MapEmbed<BCondAdvection<typename M::Scal>>& mfa,
     const MapCondFaceFluid& mff, std::string fn, M& m);
 
 // Computes velocity fcvel from vorticity fcvort

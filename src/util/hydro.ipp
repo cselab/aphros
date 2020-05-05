@@ -688,8 +688,8 @@ UniquePtr<CondFaceFluid> ParseFluidFaceCond(
 
 template <class Scal>
 std::ostream& operator<<(
-    std::ostream& out, const CondFaceAdvection<Scal>& fca) {
-  using Halo = typename CondFaceAdvection<Scal>::Halo;
+    std::ostream& out, const BCondAdvection<Scal>& fca) {
+  using Halo = typename BCondAdvection<Scal>::Halo;
   out << "nci=" << fca.nci << " clear0=" << fca.clear0
       << " clear1=" << fca.clear1
       << " halo=" << (fca.halo == Halo::fill ? "fill" : "reflect")
@@ -701,8 +701,8 @@ std::ostream& operator<<(
 // Returns true if condition name is recognized.
 // str: argument string
 template <class Scal>
-bool ParseAdvectionFaceCond(std::string str, CondFaceAdvection<Scal>& cfa) {
-  using Halo = typename CondFaceAdvection<Scal>::Halo;
+bool ParseAdvectionFaceCond(std::string str, BCondAdvection<Scal>& cfa) {
+  using Halo = typename BCondAdvection<Scal>::Halo;
   std::stringstream arg(str);
   std::string name;
   arg >> name;
@@ -741,9 +741,9 @@ bool ParseAdvectionFaceCond(std::string str, CondFaceAdvection<Scal>& cfa) {
 // with default values given a fluid condition.
 template <class M, class Scal = typename M::Scal>
 void SetDefaultAdvectionFaceCond(
-    CondFaceAdvection<Scal>& ca, const UniquePtr<CondFaceFluid>& cf,
+    BCondAdvection<Scal>& ca, const UniquePtr<CondFaceFluid>& cf,
     Scal clear0, Scal clear1, Scal inletcl, Scal fill_vf) {
-  using Halo = typename CondFaceAdvection<Scal>::Halo;
+  using Halo = typename BCondAdvection<Scal>::Halo;
   static constexpr Scal kClNone = -1; // TODO define kClNone once
   ca.nci = cf->GetNci();
   if (cf.Get<Symm<M>>()) {
@@ -771,7 +771,7 @@ template <class M, class Scal = typename M::Scal>
 void ParseFaceCond(
     IdxFace f, size_t nci, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf, UniquePtr<CondFaceFluid>& cf,
-    CondFaceAdvection<typename M::Scal>& ca) {
+    BCondAdvection<typename M::Scal>& ca) {
   std::vector<std::string> ss; // strings not recognized as fluid cond
   for (auto s : Split(str, ',')) {
     auto cft = ParseFluidFaceCond(s, f, nci, m); // try to parse as fluid
@@ -795,12 +795,12 @@ void ParseFaceCond(
 template <class M>
 void GetFluidFaceCond(
     const Vars& var, const M& m, MapCondFaceFluid& mff,
-    MapCondFaceAdvection<typename M::Scal>& mfa) {
+    MapEmbed<BCondAdvection<typename M::Scal>>& mfa) {
   using Dir = typename M::Dir;
   using MIdx = typename M::MIdx;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using Halo = typename CondFaceAdvection<Scal>::Halo;
+  using Halo = typename BCondAdvection<Scal>::Halo;
   size_t edim = var.Int["dim"];
   auto& fi = m.GetIndexFaces();
   MIdx gs = m.GetGlobalSize();
@@ -993,7 +993,7 @@ void GetFluidFaceCond(
 template <class MEB>
 std::tuple<
     MapEmbed<BCondFluid<typename MEB::Vect>>,
-    MapEmbed<CondFaceAdvection<typename MEB::Scal>>, MapEmbed<size_t>,
+    MapEmbed<BCondAdvection<typename MEB::Scal>>, MapEmbed<size_t>,
     std::vector<std::string>>
 InitBc(const Vars& var, const MEB& eb) {
   using M = typename MEB::M;
@@ -1009,9 +1009,9 @@ InitBc(const Vars& var, const MEB& eb) {
 
   auto default_adv = [clear0, clear1, inletcl,
                       fill_vf](const BCondFluid<Vect>& bcf) {
-    using Halo = typename CondFaceAdvection<Scal>::Halo;
+    using Halo = typename BCondAdvection<Scal>::Halo;
     static constexpr Scal kClNone = -1; // TODO define kClNone once
-    CondFaceAdvection<Scal> ca;
+    BCondAdvection<Scal> ca;
     ca.nci = bcf.nci;
     switch (bcf.type) {
       case BCondFluidType::wall:
@@ -1071,7 +1071,7 @@ InitBc(const Vars& var, const MEB& eb) {
   };
 
   MapEmbed<BCondFluid<Vect>> me_fluid;
-  MapEmbed<CondFaceAdvection<Scal>> me_adv;
+  MapEmbed<BCondAdvection<Scal>> me_adv;
 
   std::stringstream in;
   {
@@ -1158,7 +1158,7 @@ std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
 
 template <class M>
 void DumpBcFaces(
-    const MapCondFaceAdvection<typename M::Scal>& mfa,
+    const MapEmbed<BCondAdvection<typename M::Scal>>& mfa,
     const MapCondFaceFluid& mff, std::string fn, M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
@@ -1176,14 +1176,14 @@ void DumpBcFaces(
   if (sem("local")) {
     for (auto& it : mfa.GetMapFace()) {
       IdxFace f = it.first;
-      const CondFaceAdvection<Scal>& b = it.second;
+      const BCondAdvection<Scal>& b = it.second;
       if (!m.IsInner(m.GetCell(f, b.GetNci()))) {
         continue;
       }
       vxx.push_back(GetPoly(f, m));
       int cond = 0;
       int h = 0;
-      using Halo = typename CondFaceAdvection<Scal>::Halo;
+      using Halo = typename BCondAdvection<Scal>::Halo;
       switch (b.halo) {
         case Halo::reflect:
           h = 1;
@@ -1249,7 +1249,7 @@ void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,
     MapCell<std::shared_ptr<CondCellFluid>>* mcf, MapCondFaceFluid& mff,
-    MapCondFaceAdvection<Scal>& mfa) {
+    MapEmbed<BCondAdvection<Scal>>& mfa) {
   using Vect = typename M::Vect;
   for (auto f : m.SuFaces()) {
     const IdxCell cm = m.GetCell(f, 0);
