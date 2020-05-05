@@ -8,11 +8,11 @@
 #include "solver/solver.h"
 
 template <class Scal>
-struct CondFaceAdvection {
+struct BCondAdvection {
   enum class Halo { fill, reflect };
 
-  CondFaceAdvection() = default;
-  CondFaceAdvection(size_t nci) : nci(nci) {}
+  BCondAdvection() = default;
+  BCondAdvection(size_t nci) : nci(nci) {}
   size_t GetNci() const {
     return nci;
   }
@@ -25,9 +25,6 @@ struct CondFaceAdvection {
   Scal fill_cl; // color in halo cells if halo=fill
   Scal contang = -1; // contact angle [0..pi], negative to disable
 };
-
-template <class Scal>
-using MapCondFaceAdvection = MapEmbed<CondFaceAdvection<Scal>>;
 
 template <class M_>
 class AdvectionSolver : public UnsteadyIterativeSolver {

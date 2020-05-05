@@ -166,7 +166,7 @@ void Test() {
 
 void TestParse() {
   std::cout << "\nTest Parse" << std::endl;
-  CondFaceAdvection<Scal> cfa;
+  BCondAdvection<Scal> cfa;
   cfa.nci = 1;
   ParseAdvectionFaceCond("clear0 1", cfa);
   ParseAdvectionFaceCond("clear1 2", cfa);

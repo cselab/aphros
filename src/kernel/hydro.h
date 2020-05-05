@@ -302,7 +302,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_phi_; // distance from eb
   FieldEmbed<Scal> febp_; // balanced force projections
 
-  MapCondFaceAdvection<Scal> mf_adv_;
+  MapEmbed<BCondAdvection<Scal>> mf_adv_;
   MapCondFace mf_cond_vfsm_;
   MapEmbed<BCondFluid<Vect>> mebc_fluid_;
   MapEmbed<size_t> me_group_;

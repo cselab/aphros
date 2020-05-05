@@ -21,6 +21,7 @@ struct Plic {
   Multi<const FieldCell<Vect>*> vfcn; // normal
   Multi<const FieldCell<bool>*> vfci; // interface mask
   Multi<const FieldCell<Scal>*> vfccl; // color
+  const MapEmbed<BCondAdvection<Scal>>& me_adv; // boundary conditions
 };
 
 } // namespace generic
@@ -68,7 +69,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
 
   // Constructor
   Vof(M& m, const EB& eb, const FieldCell<Scal>& fcu,
-      const FieldCell<Scal>& fccl, const MapCondFaceAdvection<Scal>& mfc,
+      const FieldCell<Scal>& fccl, const MapEmbed<BCondAdvection<Scal>>& mfc,
       const FieldEmbed<Scal>* fev, const FieldCell<Scal>* fcs, double t,
       double dt, Par par);
   ~Vof();

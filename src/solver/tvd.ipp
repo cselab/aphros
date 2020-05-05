@@ -18,7 +18,7 @@ struct Tvd<M_>::Imp {
   static constexpr size_t dim = M::dim;
 
   Imp(Tvd* owner, const FieldCell<Scal>& fcu,
-      const MapCondFaceAdvection<Scal>& mfc, Par par)
+      const MapEmbed<BCondAdvection<Scal>>& mfc, Par par)
       : owner_(owner), par(par), m(owner_->m), mfc_(mfc), fck_(m, 0) {
     fcu_.time_curr = fcu;
     for (auto& it : mfc_.GetMapFace()) {
@@ -160,7 +160,7 @@ struct Tvd<M_>::Imp {
 
   // TODO: revise tmp fields
   StepData<FieldCell<Scal>> fcu_;
-  const MapCondFaceAdvection<Scal>& mfc_;
+  const MapEmbed<BCondAdvection<Scal>>& mfc_;
   MapCondFace mfvz_; // zero-derivative bc for Vect
   MapCondFace mfc_vf_; // conditions on vf
   MapCondFace mfc_cl_; // conditions on cl
@@ -180,7 +180,7 @@ struct Tvd<M_>::Imp {
 
 template <class M_>
 Tvd<M_>::Tvd(
-    M& m, const FieldCell<Scal>& fcu, const MapCondFaceAdvection<Scal>& mfc,
+    M& m, const FieldCell<Scal>& fcu, const MapEmbed<BCondAdvection<Scal>>& mfc,
     const FieldEmbed<Scal>* fev, const FieldCell<Scal>* fcs, double t, double dt,
     Par par)
     : AdvectionSolver<M>(t, dt, m, fev, fcs)

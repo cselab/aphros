@@ -35,7 +35,7 @@ struct Vof<EB_>::Imp {
   using UEB = UEmbed<M>;
 
   Imp(Owner* owner, const EB& eb0, const FieldCell<Scal>& fcu,
-      const FieldCell<Scal>& fccl, const MapCondFaceAdvection<Scal>& mfc,
+      const FieldCell<Scal>& fccl, const MapEmbed<BCondAdvection<Scal>>& mfc,
       Par par)
       : owner_(owner)
       , par(par)
@@ -57,7 +57,7 @@ struct Vof<EB_>::Imp {
       }
     }
   }
-  void UpdateBc(const MapCondFaceAdvection<Scal>& mfc) {
+  void UpdateBc(const MapEmbed<BCondAdvection<Scal>>& mfc) {
     std::tie(me_vf_, me_cl_, me_im_, me_n_, me_a_) =
         UVof<M>::GetAdvectionBc(m, mfc);
     mfc_cl_ = GetCond<Scal>(me_cl_);
@@ -579,7 +579,7 @@ struct Vof<EB_>::Imp {
   FieldCell<Scal> fcuu_; // volume fraction for Weymouth div term
 
   // boundary conditions
-  const MapCondFaceAdvection<Scal>& mfc_; // advection
+  const MapEmbed<BCondAdvection<Scal>>& mfc_; // advection
   MapEmbed<BCond<Scal>> me_vf_; // volume fraction
   MapEmbed<BCond<Scal>> me_cl_; // color
   MapEmbed<BCond<Scal>> me_im_; // image
@@ -603,7 +603,7 @@ struct Vof<EB_>::Imp {
 template <class EB_>
 Vof<EB_>::Vof(
     M& m, const EB& eb, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-    const MapCondFaceAdvection<Scal>& mfc, const FieldEmbed<Scal>* fev,
+    const MapEmbed<BCondAdvection<Scal>>& mfc, const FieldEmbed<Scal>* fev,
     const FieldCell<Scal>* fcs, double t, double dt, Par par)
     : AdvectionSolver<M>(t, dt, m, fev, fcs)
     , imp(new Imp(this, eb, fcu, fccl, mfc, par)) {}
@@ -654,7 +654,7 @@ auto Vof<EB_>::GetColor() const -> const FieldCell<Scal>& {
 template <class EB_>
 auto Vof<EB_>::GetPlic() const -> Plic {
   return {imp->layers,  &GetField(), &GetAlpha(),
-          &GetNormal(), &GetMask(),  nullptr};
+          &GetNormal(), &GetMask(),  nullptr, imp->mfc_};
 }
 
 template <class EB_>

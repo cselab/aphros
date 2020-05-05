@@ -18,17 +18,17 @@ template void InitVel(FieldCell<Vect>& fcv, const Vars& var, const M& m);
 
 template void GetFluidFaceCond(
     const Vars& var, const M& m, MapCondFaceFluid& mff,
-    MapCondFaceAdvection<Scal>& mfa);
+    MapEmbed<BCondAdvection<Scal>>& mfa);
 
 template std::tuple<
     MapEmbed<BCondFluid<typename M::Vect>>,
-    MapEmbed<CondFaceAdvection<typename M::Scal>>, MapEmbed<size_t>,
+    MapEmbed<BCondAdvection<typename M::Scal>>, MapEmbed<size_t>,
     std::vector<std::string>>
 InitBc(const Vars& var, const M& eb);
 
 template std::tuple<
     MapEmbed<BCondFluid<typename M::Vect>>,
-    MapEmbed<CondFaceAdvection<typename M::Scal>>, MapEmbed<size_t>,
+    MapEmbed<BCondAdvection<typename M::Scal>>, MapEmbed<size_t>,
     std::vector<std::string>>
 InitBc(const Vars& var, const EB& eb);
 
@@ -36,13 +36,13 @@ template void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,
     MapCell<std::shared_ptr<CondCellFluid>>* mcf, MapCondFaceFluid& mff,
-    MapCondFaceAdvection<Scal>& mfa);
+    MapEmbed<BCondAdvection<Scal>>& mfa);
 
 template void GetFluidCellCond(
     const Vars& var, M& m, MapCell<std::shared_ptr<CondCellFluid>>& mcvel);
 
 template void DumpBcFaces(
-    const MapCondFaceAdvection<Scal>& mfa, const MapCondFaceFluid& mff,
+    const MapEmbed<BCondAdvection<Scal>>& mfa, const MapCondFaceFluid& mff,
     std::string fn, M& m);
 
 template void InitVort(

@@ -974,7 +974,7 @@ void UVof<M_>::Recolor(
 
 template <class M_>
 void UVof<M_>::GetAdvectionFaceCond(
-    const M& m, const MapCondFaceAdvection<Scal>& mfc, MapCondFace& mfc_vf,
+    const M& m, const MapEmbed<BCondAdvection<Scal>>& mfc, MapCondFace& mfc_vf,
     MapCondFace& mfc_cl, MapCondFace& mfc_im, MapCondFace& mfc_n,
     MapCondFace& mfc_a) {
   using MIdx = typename M::MIdx;
@@ -984,7 +984,7 @@ void UVof<M_>::GetAdvectionFaceCond(
   mfc_im.clear();
   mfc_n.clear();
   mfc_a.clear();
-  using Halo = typename CondFaceAdvection<Scal>::Halo;
+  using Halo = typename BCondAdvection<Scal>::Halo;
   for (auto& it : mfc.GetMapFace()) {
     IdxFace f = it.first;
     const auto& cb = it.second;
@@ -1011,7 +1011,7 @@ void UVof<M_>::GetAdvectionFaceCond(
 }
 
 template <class M_>
-auto UVof<M_>::GetAdvectionBc(const M& m, const MapCondFaceAdvection<Scal>& mfc)
+auto UVof<M_>::GetAdvectionBc(const M& m, const MapEmbed<BCondAdvection<Scal>>& mfc)
     -> std::tuple<
         MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>,
         MapEmbed<BCond<Vect>>, MapEmbed<BCond<Scal>>> {
@@ -1023,7 +1023,7 @@ auto UVof<M_>::GetAdvectionBc(const M& m, const MapCondFaceAdvection<Scal>& mfc)
   MapEmbed<BCond<Scal>> me_im; // image
   MapEmbed<BCond<Vect>> me_n; // normal
   MapEmbed<BCond<Scal>> me_a; // plane constant
-  using Halo = typename CondFaceAdvection<Scal>::Halo;
+  using Halo = typename BCondAdvection<Scal>::Halo;
   for (auto& p : mfc.GetMapFace()) {
     const IdxFace f = p.first;
     const auto& bc = p.second;

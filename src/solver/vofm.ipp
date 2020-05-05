@@ -35,7 +35,7 @@ struct Vofm<EB_>::Imp {
   Imp(Owner* owner, const EB& eb0, const GRange<size_t> layers0,
       const Multi<const FieldCell<Scal>*>& fcu0,
       const Multi<const FieldCell<Scal>*>& fccl0,
-      const MapCondFaceAdvection<Scal>& mfc, Par par)
+      const MapEmbed<BCondAdvection<Scal>>& mfc, Par par)
       : owner_(owner)
       , par(par)
       , m(owner_->m)
@@ -88,7 +88,7 @@ struct Vofm<EB_>::Imp {
       }
     }
   }
-  void UpdateBc(const MapCondFaceAdvection<Scal>& mfc) {
+  void UpdateBc(const MapEmbed<BCondAdvection<Scal>>& mfc) {
     std::tie(me_vf_, me_cl_, me_im_, me_n_, me_a_) =
         UVof<M>::GetAdvectionBc(m, mfc);
     mfc_cl_ = GetCond<Scal>(me_cl_);
@@ -729,7 +729,7 @@ struct Vofm<EB_>::Imp {
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
   // boundary conditions
-  const MapCondFaceAdvection<Scal>& mfc_; // conditions on advection
+  const MapEmbed<BCondAdvection<Scal>>& mfc_; // conditions on advection
   MapEmbed<BCond<Scal>> me_vf_; // volume fraction
   MapEmbed<BCond<Scal>> me_cl_; // color
   MapEmbed<BCond<Scal>> me_im_; // image
@@ -748,7 +748,7 @@ constexpr typename EB_::M::Scal Vofm<EB_>::kClNone;
 template <class EB_>
 Vofm<EB_>::Vofm(
     M& m, const EB& eb, const FieldCell<Scal>& fcu0,
-    const FieldCell<Scal>& fccl0, const MapCondFaceAdvection<Scal>& mfc,
+    const FieldCell<Scal>& fccl0, const MapEmbed<BCondAdvection<Scal>>& mfc,
     const FieldEmbed<Scal>* fev, const FieldCell<Scal>* fcs, double t,
     double dt, Par par)
     : AdvectionSolver<M>(t, dt, m, fev, fcs) {
@@ -764,7 +764,7 @@ template <class EB_>
 Vofm<EB_>::Vofm(
     M& m, const EB& eb, const Multi<const FieldCell<Scal>*>& fcu0,
     const Multi<const FieldCell<Scal>*>& fccl0,
-    const MapCondFaceAdvection<Scal>& mfc, const FieldEmbed<Scal>* fev,
+    const MapEmbed<BCondAdvection<Scal>>& mfc, const FieldEmbed<Scal>* fev,
     const FieldCell<Scal>* fcs, double t, double dt, Par par)
     : AdvectionSolver<M>(t, dt, m, fev, fcs) {
   const GRange<size_t> layers(par.layers);
@@ -847,7 +847,7 @@ auto Vofm<EB_>::GetColorSum() const -> const FieldCell<Scal>& {
 template <class EB_>
 auto Vofm<EB_>::GetPlic() const -> Plic {
   return {imp->layers,  GetFieldM(), GetAlpha(),
-          GetNormal(), GetMask(),  GetColor()};
+          GetNormal(), GetMask(),  GetColor(), imp->mfc_};
 }
 
 template <class EB_>
