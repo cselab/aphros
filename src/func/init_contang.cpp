@@ -40,9 +40,35 @@ class Linear : public ModuleInitContang<M> {
     conf.contang1 *= M_PI / 180.;
     using Scal = typename M::Scal;
     for (auto c : m.AllCells()) {
-      const Scal a = (conf.x1 - m.GetCenter(c)).dot(conf.x1 - conf.x0) /
+      Scal a = (m.GetCenter(c) - conf.x0).dot(conf.x1 - conf.x0) /
                      (conf.x1 - conf.x0).sqrnorm();
-      fc_contang[c] = conf.contang0 * a + conf.contang1 * (1 - a);
+      a = std::max(0., std::min(1., a));
+      fc_contang[c] = conf.contang0 * (1 - a) + conf.contang1 * a;
+    }
+  }
+};
+
+template <class M>
+class Radial : public ModuleInitContang<M> {
+ public:
+  using Scal = typename M::Scal;
+  Radial() : ModuleInitContang<M>("radial") {}
+  void operator()(
+      FieldCell<Scal>& fc_contang, const Vars& var, const M& m) override {
+    struct : ConfigBase {
+      VAR_VECT3(x0);
+      VAR_DOUBLE(r);
+      VAR_DOUBLE(contang0);
+      VAR_DOUBLE(contang1);
+    } conf;
+    conf.Read(var, "contang_");
+    conf.contang0 *= M_PI / 180.;
+    conf.contang1 *= M_PI / 180.;
+    using Scal = typename M::Scal;
+    for (auto c : m.AllCells()) {
+      Scal a = m.GetCenter(c).dist(conf.x0) / conf.r;
+      a = std::min(1., a);
+      fc_contang[c] = conf.contang0 * (1 - a) + conf.contang1 * a;
     }
   }
 };
@@ -52,6 +78,7 @@ using M = MeshStructured<double, 3>;
 bool kReg[] = {
     RegisterModule<Uniform<M>>(),
     RegisterModule<Linear<M>>(),
+    RegisterModule<Radial<M>>(),
 };
 
 } // namespace init_contang
