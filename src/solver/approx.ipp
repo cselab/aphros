@@ -623,6 +623,7 @@ void BcApply(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
     } else if (bc.type == BCondType::dirichlet) {
       uc[cm] = bc.val;
       uc[cmm] = bc.val;
+    } else if (bc.type == BCondType::extrap) {
     }
   }
 }

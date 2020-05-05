@@ -263,7 +263,17 @@ class MeshStructured {
   size_t GetNumNodes(IdxFace) const {
     return kFaceNumNeighbourNodes;
   }
-  // Returns true if cell is not a halo cell.
+  // Returns column of cells cmm,cm,cp,cpp.
+  // nci: 0 or 1 such that m.GetCell(f, nci) == cp
+  std::array<IdxCell, 4> GetCellColumn(IdxFace f, size_t nci) const {
+    const size_t d{GetIndexFaces().GetDir(f)};
+    const IdxCell cm = GetCell(f, 1 - nci);
+    const IdxCell cp = GetCell(f, nci);
+    const IdxCell cmm = GetCell(cm, d * 2 + 1 - nci);
+    const IdxCell cpp = GetCell(cp, d * 2 + nci);
+    return {cmm, cm, cp, cpp};
+  }
+    // Returns true if cell is not a halo cell.
   bool IsInner(IdxCell c) const {
     MIdx w = bcr_.GetMIdx(c);
     return bci_.GetBegin() <= w && w < bci_.GetEnd();
@@ -545,10 +555,9 @@ class MeshStructured {
     for (auto p : vfnan_) {
       IdxFace f = p.first;
       size_t nci = p.second;
-      IdxCell cmm, cm, cp, cpp;
-      GetCellColumn(*this, f, nci, cmm, cm, cp, cpp);
-      fc[cm] = T(flags.nan_faces_value);
-      fc[cmm] = T(flags.nan_faces_value);
+      auto cc = GetCellColumn(f, nci);
+      fc[cc[0]] = T(flags.nan_faces_value);
+      fc[cc[1]] = T(flags.nan_faces_value);
     }
   }
 

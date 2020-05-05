@@ -760,6 +760,7 @@ void Hydro<M>::Init() {
         vdesc_ = std::get<3>(p);
         mf_adv_.LoopBCond(*eb_, [&](auto cf, auto c, auto) { //
           me_contang_[cf] = fc_contang_[c];
+          mf_adv_[cf].contang = fc_contang_[c];
         });
       } else {
         auto p = InitBc(var, m);
@@ -769,9 +770,10 @@ void Hydro<M>::Init() {
         vdesc_ = std::get<3>(p);
         for (auto& p : mf_adv_.GetMapFace()) {
           const auto& f = p.first;
-          const auto& bc = p.second;
+          auto& bc = p.second;
           const auto c = m.GetCell(f, bc.nci);
           me_contang_[f] = fc_contang_[c];
+          bc.contang = fc_contang_[c];
         }
       }
       mf_fluid_ = GetCondFluid<M>(mebc_fluid_);

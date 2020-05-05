@@ -84,7 +84,6 @@ struct Vof<EB_>::Imp {
   }
   void DetectInterface(const FieldCell<Scal>& uc) {
     fci_.Reinit(m, false);
-    // cell is 0<u<1
     for (auto c : eb.AllCells()) {
       const Scal u = uc[c];
       if (u > 0 && u < 1) {
@@ -98,6 +97,19 @@ struct Vof<EB_>::Imp {
   // fcun_: extrapolated field
   void ExtrapolateLinear(Sem& sem, const FieldCell<Scal>& fcu) {
     if (sem("extrap-linear")) {
+      auto& fcun = fcun_;
+      fcun = fcu;
+      // Fill volume fraction in halo cells from quadratic extrapolation
+      for (auto p : mfc_.GetMapFace()) {
+        const IdxFace f = p.first;
+        auto& bc = mfc_.at(f);
+        auto cc = m.GetCellColumn(f, bc.nci);
+        const IdxCell cm = cc[1];
+        const IdxCell cp = cc[2];
+        const IdxCell cpp = cc[3];
+        fcun[cm] = 2 * fcu[cp] - fcu[cpp];
+      }
+      /*
       auto& fcun = fcun_;
       fcun = fcu;
       for (auto c : m.Cells()) {
@@ -117,12 +129,33 @@ struct Vof<EB_>::Imp {
         }
       }
       m.Comm(&fcun);
+      */
     }
   }
   // Extrapolates volume fraction, normal, and plane constant
   // to excluded cells by PLIC plane from the nearest regular cell.
   void ExtrapolatePlic(Sem& sem, FieldCell<Scal>& uc) {
     if (sem("extrap-plic")) {
+      // Fill halo cells from PLIC extrapolation.
+      for (auto p : mfc_.GetMapFace()) {
+        const IdxFace f = p.first;
+        auto& bc = mfc_.at(f);
+        auto cc = m.GetCellColumn(f, bc.nci);
+        const IdxCell cm = cc[1];
+        const IdxCell cp = cc[2];
+        if (fci_[cp]) {
+          fcn_[cm] = fcn_[cp];
+          fca_[cm] =
+              fca_[cp] - (m.GetCenter(cm) - m.GetCenter(cp)).dot(fcn_[cp]);
+          uc[cm] = R::GetLineU(fcn_[cp], fca_[cp], m.GetCellSize());
+          fccl_[cm] = fccl_[cp];
+          fci_[cm] = (uc[cm] > 0 && uc[cm] < 1);
+        } else {
+          uc[cm] = uc[cp];
+          fci_[cm] = false;
+        }
+      }
+      /*
       for (auto c : eb.Cells()) {
         if (eb.IsCut(c)) {
           const IdxCell cc = eb.GetRegularNeighbor(c);
@@ -144,6 +177,7 @@ struct Vof<EB_>::Imp {
       m.Comm(&uc);
       m.Comm(&fca_);
       m.Comm(&fcn_);
+      */
     }
   }
   void StartStep() {
@@ -477,7 +511,6 @@ struct Vof<EB_>::Imp {
         AdvPlain(sem, SweepType::weymouth);
         break;
     }
-
     if (par.sharpen && sem.Nested("sharpen")) {
       Sharpen();
     }

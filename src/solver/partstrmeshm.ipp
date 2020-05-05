@@ -263,32 +263,30 @@ struct PartStrMeshM<M_>::Imp {
           // number of strings
           size_t ns = (par.dim == 2 ? 1 : par.ns);
           for (size_t s = 0; s < ns; ++s) {
-            Scal an = s * M_PI / ns; // angle
-            const auto v = GetPlaneBasis(xc, fcn[c], fca[c], an);
+            const Scal angle = s * M_PI / ns; // angle
+            const auto v = GetPlaneBasis(xc, fcn[c], fca[c], angle);
 
-            // buffer for interface lines
-            std::vector<Vect2> lx; // nodes
-            std::vector<size_t> ls; // sizes
-
-            auto append_contang = [&lx, &ls, &v, &fcn, &eb, this](
-                                      IdxCell c, Vect2 xl, Vect nf) {
+            auto contang_segment = [&v, &fcn, this, &plic](
+                                       IdxCell c, IdxFace f, Vect2 xl,
+                                       Vect nf) -> std::array<Vect2, 2> {
               const Scal h = m.GetCellSize()[0];
-              //const Scal angle = (*plic.fc_contang)[c]; // XXX
-              const Scal angle = 0;
+              const Scal contang = plic.me_adv.at(f).contang;
               auto unit = [](const Vect& t) { return t / t.norm(); };
               const Vect tf = unit(unit(fcn[c]).orth(nf));
-              const Vect ni = tf * std::sin(angle) - nf * std::cos(angle);
+              const Vect ni = tf * std::sin(contang) - nf * std::cos(contang);
               Vect dir = ni.cross(v[1].cross(v[2]));
               if (dir.dot(nf) < 0) {
                 dir *= -1;
               }
               const Vect xc = GetSpaceCoords(xl, v);
-              auto pe0 = GetPlaneCoords(xc, v);
-              auto pe1 = GetPlaneCoords(xc + dir * (5 * h), v);
-              lx.push_back(pe0);
-              lx.push_back(pe1);
-              ls.push_back(2);
+              const Vect2 pe0 = GetPlaneCoords(xc, v);
+              const Vect2 pe1 = GetPlaneCoords(xc + dir * (3 * h), v);
+              return {pe0, pe1};
             };
+
+            // buffer for interface lines
+            std::vector<Vect2> lx; // nodes
+            std::vector<size_t> ls; // sizes
 
             // Extract interface from neighbour cells.
             for (auto cc : m.Stencil5(c)) {
@@ -298,10 +296,8 @@ struct PartStrMeshM<M_>::Imp {
                 auto& fci2 = *plic.vfci[j];
                 auto& fccl2 = *plic.vfccl[j];
                 if (fci2[cc] && (nocl || fccl2[cc] == fccl[c])) {
-                  std::vector<Vect2> llx; // nodes
-                  std::vector<size_t> lls; // sizes
                   if (AppendInterface(
-                          v, m.GetCenter(cc), fca2[cc], fcn2[cc], llx, lls)) {
+                          v, m.GetCenter(cc), fca2[cc], fcn2[cc], lx, ls)) {
                     bool nearcut = false;
                     Vect nf;
                     if (c == cc) {
@@ -313,14 +309,17 @@ struct PartStrMeshM<M_>::Imp {
                         }
                       }
                     }
-                    if (nearcut && c == cc) {
-                      append_contang(cc, (llx[0] + llx[1]) * 0.5, nf);
-                    } else if (!eb.IsRegular(cc)) {
-                      // nop
-                    } else {
-                      lx.push_back(llx[0]);
-                      lx.push_back(llx[1]);
-                      ls.push_back(lls[0]);
+                    const auto f = m.GetFace(cc, 2);
+                    nearcut = (plic.me_adv.find(f));
+                    nf = Vect(0.,-1.,0.);
+                    if (nearcut) {
+                      const auto lx0 = lx.back();
+                      lx.pop_back();
+                      const auto lx1 = lx.back();
+                      lx.pop_back();
+                      auto xx = contang_segment(cc, f, (lx0 + lx1) * 0.5, nf);
+                      lx.push_back(xx[0]);
+                      lx.push_back(xx[1]);
                     }
                   }
                 }
@@ -331,10 +330,7 @@ struct PartStrMeshM<M_>::Imp {
             partstr_->Add(Vect2(0.), Vect2(1., 0.), lx, ls);
             vsc_.push_back(c);
             vsl_.push_back(l);
-            vsan_.push_back(an);
-            assert(vsc_.size() == partstr_->GetNumStr());
-            assert(vsl_.size() == partstr_->GetNumStr());
-            assert(vsan_.size() == partstr_->GetNumStr());
+            vsan_.push_back(angle);
           }
         }
       }
