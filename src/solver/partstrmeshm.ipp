@@ -229,7 +229,6 @@ struct PartStrMeshM<M_>::Imp {
       if (pn.cross_third(pe1 - pe0) < 0.) {
         std::swap(pe0, pe1);
       }
-      // polygon of fluid volume
       lx.push_back(pe0);
       lx.push_back(pe1);
       ls.push_back(2);
@@ -237,7 +236,6 @@ struct PartStrMeshM<M_>::Imp {
     }
     return false;
   }
-
   template <class EB>
   void Seed(const Plic& plic, const EB& eb) {
     // clear string list
@@ -248,11 +246,29 @@ struct PartStrMeshM<M_>::Imp {
     // true if no color provided
     const bool nocl = (layers.size() == 1 && !plic.vfccl[0]);
 
-    MapCell<IdxFace> boundary;
+    MapCell<std::pair<Vect, Scal>> boundary; // outer normal and contact angle
+    // Add inner cells adjacent to boundary faces with specified contact angle.
     for (auto p : plic.me_adv.GetMapFace()) {
-      const auto f = p.first;
+      const IdxFace f = p.first;
       const auto& bc = p.second;
-      boundary[m.GetCell(f, bc.nci)] = f;
+      const IdxCell c = m.GetCell(f, bc.nci);
+      const Vect n = m.GetNormal(f) * (bc.nci == 0 ? 1 : -1);
+      if (bc.contang >= 0) {
+        boundary[c] = {n, bc.contang};
+      }
+    }
+    // Add cells close to a cut cell with specified contact angle.
+    for (auto c : eb.SuCells()) {
+      for (auto cn : eb.Stencil(c)) {
+        if (eb.IsCut(cn)) {
+          if (auto bc = plic.me_adv.find(cn)) {
+            if (bc->contang >= 0) {
+              boundary[c] = {eb.GetNormal(cn), bc->contang};
+              break;
+            }
+          }
+        }
+      }
     }
 
     // Seed strings in cells with interface.
@@ -274,10 +290,9 @@ struct PartStrMeshM<M_>::Imp {
             const auto v = GetPlaneBasis(xc, fcn[c], fca[c], angle);
 
             auto contang_segment = [&v, &fcn, this, &plic](
-                                       IdxCell c, IdxFace f, Vect2 xl,
+                                       IdxCell c, Scal contang, Vect2 xl,
                                        Vect nf) -> std::array<Vect2, 2> {
               const Scal h = m.GetCellSize()[0];
-              const Scal contang = plic.me_adv.at(f).contang;
               auto unit = [](const Vect& t) { return t / t.norm(); };
               const Vect tf = unit(unit(fcn[c]).orth(nf));
               const Vect ni = tf * std::sin(contang) - nf * std::cos(contang);
@@ -305,19 +320,26 @@ struct PartStrMeshM<M_>::Imp {
                 if (fci2[cn] && (nocl || fccl2[cn] == fccl[c])) {
                   if (AppendInterface(
                           v, m.GetCenter(cn), fca2[cn], fcn2[cn], lx, ls)) {
-                    if (IdxFace* pf = boundary.find(cn)) {
-                      // Replace last segment with line from contact angle.
-                      const IdxFace f = *pf;
-                      // outward normal
-                      const Vect nf = m.GetNormal(f) *
-                                      (plic.me_adv.at(f).nci == 0 ? 1 : -1);
-                      const auto lx0 = lx.back();
-                      lx.pop_back();
-                      const auto lx1 = lx.back();
-                      lx.pop_back();
-                      auto xx = contang_segment(cn, f, (lx0 + lx1) * 0.5, nf);
-                      lx.push_back(xx[0]);
-                      lx.push_back(xx[1]);
+                    if (auto* p = boundary.find(cn)) {
+                      // Contact angle is specified in cell cn.
+                      if (c == cn || eb.IsCut(cn)) {
+                        // Remove the last appended segment.
+                        const auto lx0 = lx.back();
+                        lx.pop_back();
+                        const auto lx1 = lx.back();
+                        lx.pop_back();
+                        ls.pop_back();
+                        if (eb.IsRegular(cn)) {
+                          // Append the segment from contact angle.
+                          const auto n = p->first;
+                          const auto contang = p->second;
+                          auto xx =
+                              contang_segment(cn, contang, (lx0 + lx1) * 0.5, n);
+                          lx.push_back(xx[0]);
+                          lx.push_back(xx[1]);
+                          ls.push_back(2);
+                        }
+                      }
                     }
                   }
                 }
