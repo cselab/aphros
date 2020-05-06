@@ -1,0 +1,9 @@
+#!/bin/bash
+
+refpath=`cat refpath`
+ff="c2x"
+
+for f in $ff ; do
+  echo $f
+  cp -v $f $refpath/$f
+done
