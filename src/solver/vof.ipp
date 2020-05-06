@@ -21,8 +21,6 @@
 
 #include "vof.h"
 
-#define AREAFRACTION(x) (eb.GetAreaFraction(x) + 1e-16)
-
 template <class EB_>
 struct Vof<EB_>::Imp {
   using Owner = Vof<EB_>;
@@ -241,7 +239,7 @@ struct Vof<EB_>::Imp {
       // flux through face (maybe cut)
       const Scal v = ffv[f];
       // flux through full face that would give the same velocity
-      const Scal v0 = v / AREAFRACTION(f);
+      const Scal v0 = v / eb.GetAreaFraction(f);
       const IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
       if (uc[c] > 0 && uc[c] < 1) { // interfacial cell
         switch (type) {
@@ -295,8 +293,10 @@ struct Vof<EB_>::Imp {
       const IdxFace fm = m.GetFace(c, d * 2);
       const IdxFace fp = m.GetFace(c, d * 2 + 1);
       // mixture cfl
-      const Scal ds =
-          (ffv[fp] / AREAFRACTION(fp) - ffv[fm] / AREAFRACTION(fm)) * dt / vol;
+      // add 1e-16 to avoid zero denominator for excluded faces
+      const Scal ds = (ffv[fp] / (eb.GetAreaFraction(fp) + 1e-16) -
+                       ffv[fm] / (eb.GetAreaFraction(fm) + 1e-16)) *
+                      dt / vol;
       // phase 2 cfl
       const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / vol;
       auto& u = uc[c];
