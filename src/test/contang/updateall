@@ -1,0 +1,9 @@
+r () {
+  ./run $@
+  ./update $@
+}
+
+r 2d
+r 3d
+r embed_2d
+r embed_3d
