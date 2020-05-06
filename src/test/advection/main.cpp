@@ -159,6 +159,7 @@ void Advection<M>::Init(Sem& sem) {
     } else if (as == "vofm") {
       auto p = ParsePar<ASVM>()(var);
       const FieldCell<Scal> fccl(m, 0);
+      layers = GRange<size_t>(p.layers);
       as_.reset(new ASVM(
           m, m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
     } else {

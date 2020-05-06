@@ -21,7 +21,7 @@
 
 #include "vof.h"
 
-#define AREAFRACTION(x) (eb.GetAreaFraction(x) + 1e-10)
+#define AREAFRACTION(x) (eb.GetAreaFraction(x) + 1e-16)
 
 template <class EB_>
 struct Vof<EB_>::Imp {
