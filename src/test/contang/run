@@ -15,7 +15,7 @@ mkdir -p "$refpath"
 a=0
 for f in $refpath/c2x ; do
   echo $f
-  if ! ap.diffnum "${f##*/}" "$f" "5e-3"; then
+  if ! ap.diffnum "${f##*/}" "$f" "1e-2"; then
     a=1
   fi
 done
