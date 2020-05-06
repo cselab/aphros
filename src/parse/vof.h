@@ -35,6 +35,7 @@ struct ParsePar<Vof<M>> {
     p.cloverride = var.Int["cloverride"];
     p.layers = var.Int["vofm_layers"];
     p.coalth = var.Double["vofm_coalth"];
+    p.extrapolate_boundaries = var.Int["vof_extrapolate_boundaries"];
 
     using Scheme = typename Par::Scheme;
     std::string s = var.String["vof_scheme"];
