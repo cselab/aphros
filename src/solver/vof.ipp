@@ -109,27 +109,28 @@ struct Vof<EB_>::Imp {
         const IdxCell cpp = cc[3];
         fcun[cm] = 2 * fcu[cp] - fcu[cpp];
       }
-      /*
-      auto& fcun = fcun_;
-      fcun = fcu;
-      for (auto c : m.Cells()) {
-        if (eb.IsExcluded(c)) {
-          std::vector<Vect> xx;
-          std::vector<Scal> uu;
-          for (auto cn : m.Stencil5(c)) {
-            if (!eb.IsExcluded(c)) {
-              xx.push_back(m.GetCenter(cn));
-              uu.push_back(fcu[cn]);
+      if (eb.kIsEmbed) {
+        auto& fcun = fcun_;
+        fcun = fcu;
+        for (auto c : m.Cells()) {
+          if (eb.IsExcluded(c)) {
+            std::vector<Vect> xx;
+            std::vector<Scal> uu;
+            for (auto cn : m.Stencil5(c)) {
+              if (!eb.IsExcluded(c)) {
+                xx.push_back(m.GetCenter(cn));
+                uu.push_back(fcu[cn]);
+              }
+            }
+            if (xx.size()) {
+              const auto p = ULinear<Scal>::FitLinear(xx, uu);
+              fcun[c] =
+                  ULinear<typename EB::Scal>::EvalLinear(p, m.GetCenter(c));
             }
           }
-          if (xx.size()) {
-            const auto p = ULinear<Scal>::FitLinear(xx, uu);
-            fcun[c] = ULinear<typename EB::Scal>::EvalLinear(p, m.GetCenter(c));
-          }
         }
+        m.Comm(&fcun);
       }
-      m.Comm(&fcun);
-      */
     }
   }
   // Extrapolates volume fraction, normal, and plane constant
@@ -155,29 +156,29 @@ struct Vof<EB_>::Imp {
           fci_[cm] = false;
         }
       }
-      /*
-      for (auto c : eb.Cells()) {
-        if (eb.IsCut(c)) {
-          const IdxCell cc = eb.GetRegularNeighbor(c);
-          if (!eb.IsRegular(cc)) {
-            fci_[c] = false;
-            uc[c] = 0;
-          } else if (fci_[cc]) {
-            fcn_[c] = fcn_[cc];
-            fca_[c] =
-                fca_[cc] - (m.GetCenter(c) - m.GetCenter(cc)).dot(fcn_[cc]);
-            fci_[c] = fci_[cc];
-            uc[c] = R::GetLineU(fcn_[c], fca_[c], m.GetCellSize());
-          } else {
-            fci_[c] = false;
-            uc[c] = uc[cc];
+      if (eb.kIsEmbed) {
+        for (auto c : eb.Cells()) {
+          if (eb.IsCut(c)) {
+            const IdxCell cn = eb.GetRegularNeighbor(c);
+            if (!eb.IsRegular(cn)) {
+              fci_[c] = false;
+              uc[c] = 0;
+            } else if (fci_[cn]) {
+              fcn_[c] = fcn_[cn];
+              fca_[c] =
+                  fca_[cn] - (m.GetCenter(c) - m.GetCenter(cn)).dot(fcn_[cn]);
+              fci_[c] = fci_[cn];
+              uc[c] = R::GetLineU(fcn_[c], fca_[c], m.GetCellSize());
+            } else {
+              fci_[c] = false;
+              uc[c] = uc[cn];
+            }
           }
         }
+        m.Comm(&uc);
+        m.Comm(&fca_);
+        m.Comm(&fcn_);
       }
-      m.Comm(&uc);
-      m.Comm(&fca_);
-      m.Comm(&fcn_);
-      */
     }
   }
   void StartStep() {
@@ -686,8 +687,8 @@ auto Vof<EB_>::GetColor() const -> const FieldCell<Scal>& {
 
 template <class EB_>
 auto Vof<EB_>::GetPlic() const -> Plic {
-  return {imp->layers,  &GetField(), &GetAlpha(),
-          &GetNormal(), &GetMask(),  nullptr, imp->mfc_};
+  return {imp->layers, &GetField(), &GetAlpha(), &GetNormal(),
+          &GetMask(),  nullptr,     imp->mfc_};
 }
 
 template <class EB_>

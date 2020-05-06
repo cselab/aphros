@@ -251,6 +251,7 @@ class Embed {
   using Expr = typename M::Expr;
   using ExprFace = typename M::ExprFace;
   static constexpr size_t dim = M::dim;
+  static constexpr bool kIsEmbed = true;
 
  private:
   using R = Reconst<Scal>;

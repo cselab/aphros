@@ -59,6 +59,7 @@ class MeshStructured {
   static constexpr size_t kCellNumNeighbourNodes = 8;
   static constexpr size_t kFaceNumNeighbourNodes = 4;
   static constexpr size_t kFaceNumNeighbourCells = 2;
+  static constexpr bool kIsEmbed = false;
   enum class Type { regular, cut, excluded };
 
   // b: begin, lower corner cell index
