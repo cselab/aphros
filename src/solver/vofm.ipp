@@ -94,7 +94,7 @@ struct Vofm<EB_>::Imp {
     mfc_cl_ = GetCond<Scal>(me_cl_);
   }
   // reconstruct interface
-  void Rec(const Multi<FieldCell<Scal>*>& uc) {
+  void ReconstPlanes(const Multi<FieldCell<Scal>*>& uc) {
     auto sem = m.GetSem("rec");
     if (sem("detect")) {
       DetectInterface(uc);
@@ -206,11 +206,75 @@ struct Vofm<EB_>::Imp {
       }
     }
   }
+  // Extrapolates volume fraction to halo and excluded cells
+  // with a linear least-squares fit.
+  // Output:
+  // fcu: updated halo ad excluded cells.
+  void ExtrapolateLinear(
+      Sem& sem, const Multi<FieldCell<Scal>*>& fcu,
+      const Multi<FieldCell<Scal>*>& fccl) {
+    if (sem("extrap-linear")) {
+      // Fill volume fraction in halo cells from quadratic extrapolation
+      for (auto p : mfc_.GetMapFace()) {
+        const IdxFace f = p.first;
+        auto& bc = mfc_.at(f);
+        auto cc = m.GetCellColumn(f, bc.nci);
+        const IdxCell cm = cc[1];
+        const IdxCell cp = cc[2];
+        const IdxCell cpp = cc[3];
+        for (auto lp : layers) {
+          const Scal clp = (*fccl[lp])[cp];
+          Scal upp = 0;
+          for (auto lpp : layers) {
+            if ((*fccl[lpp])[cpp] == clp) {
+              upp = (*fcu[lpp])[cpp];
+            }
+          }
+          (*fcu[lp])[cm] = 2 * (*fcu[lp])[cp] - upp;
+          (*fccl[lp])[cm] = (*fccl[lp])[cp];
+        }
+      }
+    }
+  }
+  // Extrapolates volume fraction, normal, and plane constant
+  // to excluded cells by PLIC plane from the nearest regular cell.
+  void ExtrapolatePlic(
+      Sem& sem, const Multi<FieldCell<Scal>*>& fcu,
+      const Multi<FieldCell<Scal>*>& fccl) {
+    if (sem("extrap-plic")) {
+      // Fill halo cells from PLIC extrapolation.
+      for (auto p : mfc_.GetMapFace()) {
+        const IdxFace f = p.first;
+        auto& bc = mfc_.at(f);
+        auto cc = m.GetCellColumn(f, bc.nci);
+        const IdxCell cm = cc[1];
+        const IdxCell cp = cc[2];
+        for (auto lp : layers) {
+          if (fci_[lp][cp]) {
+            fcn_[lp][cm] = fcn_[lp][cp];
+            fca_[lp][cm] =
+                fca_[lp][cp] -
+                (m.GetCenter(cm) - m.GetCenter(cp)).dot(fcn_[lp][cp]);
+            (*fcu[lp])[cm] =
+                R::GetLineU(fcn_[lp][cp], fca_[lp][cp], m.GetCellSize());
+            (*fccl[lp])[cm] = (*fccl[lp])[cp];
+            fci_[lp][cm] = ((*fcu[lp])[cp] > 0 && (*fcu[lp])[cm] < 1);
+          } else {
+            (*fcu[lp])[cm] = (*fcu[lp])[cp];
+            fci_[lp][cm] = false;
+          }
+        }
+      }
+    }
+  }
   void StartStep() {
     auto sem = m.GetSem("start");
     if (owner_->GetTime() == 0.) {
+      if (par.extrapolate_boundaries) {
+        ExtrapolateLinear(sem, fcu_.time_curr, fccl_);
+      }
       if (sem.Nested("reconst")) {
-        Rec(fcu_.time_curr);
+        ReconstPlanes(fcu_.time_curr);
       }
     }
     if (sem("rotate")) {
@@ -302,6 +366,9 @@ struct Vofm<EB_>::Imp {
             SweepType::weymouth, nullptr, nullptr, fcuu_, 1., par.clipth, eb);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
+      if (par.extrapolate_boundaries) {
+        ExtrapolatePlic(sem, mfcu, fccl_);
+      }
     }
   }
   static void BcMarchFill(FieldCell<Scal>& fcu, Scal fill, const M& m) {
@@ -556,8 +623,11 @@ struct Vofm<EB_>::Imp {
         BcApply(*mfcim[i], me_im_, m);
       }
     }
+    if (par.extrapolate_boundaries) {
+      ExtrapolateLinear(sem, mfcu, mfccl);
+    }
     if (sem.Nested("reconst")) {
-      Rec(mfcu);
+      ReconstPlanes(mfcu);
     }
   }
   void AdvAulisa(Sem& sem, const Multi<FieldCell<Scal>*>& mfcu) {
