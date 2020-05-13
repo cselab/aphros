@@ -1,0 +1,14 @@
+set -eu
+make
+./clean
+
+#echo 1 > np
+#echo "" > add.conf
+
+echo 4 > np
+echo "
+set int px 2
+set int py 2
+" > add.conf
+
+ap.run ./main triple.conf
