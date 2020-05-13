@@ -37,6 +37,9 @@ constexpr Scal kClNone = -1;
 template <class Scal>
 void ReadPlain(std::string path, FieldCell<Scal>& u, GMIdx<3>& size) {
   std::ifstream dat(path);
+  if (!dat.good()) {
+    throw std::runtime_error("ReadPlain: Can't open data file '" + path + "'");
+  }
   dat >> size[0] >> size[1] >> size[2];
   GIndex<IdxCell, 3> bc(size);
   u.Reinit(bc, 0);
@@ -53,7 +56,7 @@ void CalcMeanCurvatureFlowFlux(
     const Multi<const FieldCell<Vect>*> fcn,
     const Multi<const FieldCell<Scal>*> fca,
     const Multi<const FieldCell<Scal>*> fck, const MapCondFaceFluid& mff,
-    M& m) {
+    bool divfree, Scal* voidpenal, M& m) {
   (void)fcn;
   (void)fca;
   auto sem = m.GetSem();
@@ -93,8 +96,27 @@ void CalcMeanCurvatureFlowFlux(
       }
     }
   }
-  if (sem.Nested("proj")) {
+  if (divfree && sem.Nested("proj")) {
     ProjectVolumeFlux(ffv, mff, m);
+  }
+  if (voidpenal && sem("void-penal")) {
+    for (auto f : m.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      Scal um = 0;
+      Scal up = 0;
+      for (auto l : layers) {
+        if ((*fccl[l])[cm] != kClNone) {
+          um += (*fcu[l])[cm];
+        }
+        if ((*fccl[l])[cp] != kClNone) {
+          up += (*fcu[l])[cp];
+        }
+      }
+      um = std::min(1., um);
+      up = std::min(1., up);
+      ffv[f] += -(up - um) * (*voidpenal) * m.GetArea(f);
+    }
   }
 }
 
@@ -251,6 +273,51 @@ void ReadColorPlain(
   }
 }
 
+template <class M>
+void InitColorJunctionT(
+    Vect center, const GRange<size_t>& layers, Multi<FieldCell<Scal>>& fcu,
+    Multi<FieldCell<Scal>>& fccl, const M& m) {
+  fcu.resize(layers);
+  fccl.resize(layers);
+  fcu.InitAll(FieldCell<Scal>(m, 0));
+  fccl.InitAll(FieldCell<Scal>(m, kClNone));
+
+  FieldNode<Scal> fncl(m, kClNone);
+  for (auto n : m.Nodes()) {
+    const Vect x = m.GetNode(n);
+    const Vect dx = x - center;
+    fncl[n] = (dx[1] < 0 ? 0 : dx[0] < 0 ? 1 : 2);
+  }
+
+  for (auto c : m.Cells()) {
+    std::set<Scal> set;
+    // gather colors from adjacent nodes
+    for (size_t e = 0; e < m.GetNumNodes(c); ++e) {
+      const IdxNode n = m.GetNode(c, e);
+      const Scal cl = fncl[n];
+      if (cl != kClNone) {
+        set.insert(cl);
+      }
+    }
+    // compute volume fraction for every color
+    size_t l = 0;
+    for (auto cl : set) {
+      const Vect nr = GetNormal(fncl, cl, c, m);
+      const Scal a = GetAlpha(fncl, cl, c, nr, m);
+      if (set.size() == 1) {
+        fcu[l][c] = 1;
+      } else {
+        fcu[l][c] = R::GetLineU(nr, a, m.GetCellSize());
+      }
+      fccl[l][c] = cl;
+      ++l;
+      if (l >= layers.size()) {
+        break;
+      }
+    }
+  }
+}
+
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
 
@@ -259,8 +326,8 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fcs; // volume source
     FieldEmbed<Scal> fev; // volume flux
     Multi<FieldCell<Scal>> fck; // curvature
-    MapCondFaceFluid mf_cond_fluid; // face conditions
-    MapEmbed<BCondAdvection<Scal>> mf_cond; // face conditions
+    MapCondFaceFluid mebc_fluid; // face conditions
+    MapEmbed<BCondAdvection<Scal>> mebc_adv; // face conditions
     GRange<size_t> layers;
     typename PartStrMeshM<M>::Par psm_par;
     std::unique_ptr<PartStrMeshM<M>> psm;
@@ -287,19 +354,27 @@ void Run(M& m, Vars& var) {
     fcs.Reinit(m, 0);
     fev.Reinit(m, 0);
 
-    GetFluidFaceCond(var, m, ctx->mf_cond_fluid, ctx->mf_cond);
+    GetFluidFaceCond(var, m, ctx->mebc_fluid, ctx->mebc_adv);
 
     typename Vofm<M>::Par p;
     p.sharpen = true;
     p.sharpen_cfl = 0.1;
+    p.extrapolate_boundaries = var.Int["extrapolate_boundaries"];
     layers = GRange<size_t>(p.layers);
 
     Multi<FieldCell<Scal>> fccl; // initial color
     Multi<FieldCell<Scal>> fcu; // initial volume fraction
-    const std::string path = "ref/voronoi/points1.dat";
-    ReadColorPlain(path, layers, fcu, fccl, m);
 
-    as.reset(new Vofm<M>(m, m, fcu, fccl, ctx->mf_cond, &fev, &fcs, 0., dt, p));
+    const std::string init_color = var.String["init_color"];
+    if (init_color == "triple") {
+      const Vect center(var.Vect["triple_center"]);
+      InitColorJunctionT(center, layers, fcu, fccl, m);
+    } else {
+      ReadColorPlain(init_color, layers, fcu, fccl, m);
+    }
+
+    as.reset(
+        new Vofm<M>(m, m, fcu, fccl, ctx->mebc_adv, &fev, &fcs, 0., dt, p));
     fck.resize(layers);
     fck.InitAll(FieldCell<Scal>(m, 1));
     psm_par.dump_fr = 1;
@@ -320,7 +395,8 @@ void Run(M& m, Vars& var) {
   if (sem.Nested("flux")) {
     CalcMeanCurvatureFlowFlux(
         fev.GetFieldFace(), layers, as->GetFieldM(), as->GetColor(),
-        as->GetNormal(), as->GetAlpha(), fck, ctx->mf_cond_fluid, m);
+        as->GetNormal(), as->GetAlpha(), fck, ctx->mebc_fluid,
+        var.Int["divfree"], var.Double.Find("voidpenal"), m);
   }
   if (sem("dt")) {
     Scal maxv = 0;
@@ -362,56 +438,22 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-  const int bsx = 32;
-  int nx = 64; // mesh size
-  if (argc > 1) {
-    nx = atoi(argv[1]);
-  }
-  int px = 1; // number of ranks in x (assuming py=px)
-  if (argc > 2) {
-    px = atoi(argv[2]);
-  }
-  assert(nx % (bsx * px) == 0);
-  const int bx = nx / (bsx * px);
-  std::string conf = R"EOF(
-set int dim 2
-set int bz 1
-set int bsz 1
-set int pz 1
-
-set double bcc_clear0 0
-set double bcc_clear1 1
-set double inletcl 0
-set double bcc_fill -1
-set string bc_xm symm
-set string bc_xp symm
-set string bc_ym symm
-set string bc_yp symm
-
-set double hypre_symm_tol 1e-10
-set int hypre_symm_maxiter 1000
-set int hypre_periodic_x 0
-set int hypre_periodic_y 0
-
-set double tmax 10
-set int dumpskip 100
-)EOF";
-
-  conf += "set int bsx " + std::to_string(bsx) + "\n";
-  conf += "set int bsy " + std::to_string(bsx) + "\n";
-  conf += "set int bx " + std::to_string(bx) + "\n";
-  conf += "set int by " + std::to_string(bx) + "\n";
-  conf += "set int px " + std::to_string(px) + "\n";
-  conf += "set int py " + std::to_string(px) + "\n";
-
-  if (argc > 3) {
-    const double tmax = atof(argv[3]);
-    conf += "set double tmax " + std::to_string(tmax) + "\n";
-  }
-  if (argc > 3) {
-    const int dumpskip = atoi(argv[4]);
-    conf += "set int dumpskip " + std::to_string(dumpskip) + "\n";
+  std::string path;
+  if (argc == 2) {
+    path = argv[1];
+  } else {
+    std::cerr << "usage: " << argv[0] << " [a.conf]" << std::endl;
+    return 1;
   }
 
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+  std::ifstream fconf(path);
+
+  if (!fconf.good()) {
+    throw std::runtime_error("Can't open config '" + path + "'");
+  }
+
+  std::stringstream conf;
+  conf << fconf.rdbuf();
+
+  return RunMpiBasic<M>(argc, argv, Run, conf.str());
 }
