@@ -255,7 +255,6 @@ void InitColorFromNodes(
   }
 }
 
-
 template <class M>
 void ReadColorPlain(
     const std::string path, const GRange<size_t>& layers,
@@ -299,8 +298,8 @@ void InitColorJunctionT(
 
 template <class M>
 void InitColorJunctionTSymm(
-    Vect center, const GRange<size_t>& layers,
-    Multi<FieldCell<Scal>>& fcu, Multi<FieldCell<Scal>>& fccl, const M& m) {
+    Vect center, const GRange<size_t>& layers, Multi<FieldCell<Scal>>& fcu,
+    Multi<FieldCell<Scal>>& fccl, const M& m) {
   FieldNode<Scal> fncl(m, kClNone);
   for (auto n : m.Nodes()) {
     const Vect x = m.GetNode(n);
@@ -311,6 +310,22 @@ void InitColorJunctionTSymm(
 
   InitColorFromNodes(fncl, layers, fcu, fccl, m);
 }
+
+
+template <class M>
+void SetZeroBoundaryFlux(FieldFace<Scal>& fcu, const M& m) {
+  for (auto fb : m.Faces()) {
+    size_t nci;
+    if (m.IsBoundary(fb, nci)) {
+      const IdxCell c = m.GetCell(fb, nci);
+      for (auto q : m.Nci(c)) {
+        const IdxFace f = m.GetFace(c, q);
+        fcu[f] = 0;
+      }
+    }
+  }
+}
+
 
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
@@ -347,6 +362,10 @@ void Run(M& m, Vars& var) {
   if (sem("init")) {
     fcs.Reinit(m, 0);
     fev.Reinit(m, 0);
+
+    m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
+    m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
+    m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
 
     GetFluidFaceCond(var, m, ctx->mebc_fluid, ctx->mebc_adv);
 
@@ -398,6 +417,9 @@ void Run(M& m, Vars& var) {
         var.Int["divfree"], var.Double.Find("voidpenal"), m);
   }
   if (sem("dt")) {
+    if (var.Int["zero_boundary_flux"]) {
+      SetZeroBoundaryFlux(fev.GetFieldFace(), m);
+    }
     Scal maxv = 0;
     for (auto f : m.Faces()) {
       maxv = std::max(maxv, std::abs(fev[f]));
