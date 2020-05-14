@@ -25,6 +25,7 @@ instfnd gettrajcol
 instfnd gettrajm
 instfnd gettrajsh
 instfnd getval
+instfnd hausdorff
 instfnd hist
 instfnd histbin
 instfnd intcol

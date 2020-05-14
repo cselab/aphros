@@ -2,6 +2,7 @@ from aphros.par import *
 import aphros.plot
 import aphros.io
 import aphros.stream
+from aphros.vtk import ReadVtkPoly
 
 ReadPlain = aphros.io.ReadPlain
 InitBasicFigure = aphros.plot.InitBasicFigure
