@@ -13,6 +13,7 @@
 #include <debug/isnan.h>
 #include <distr/distrbasic.h>
 #include <dump/vtk.h>
+#include <dump/dumper.h>
 #include <func/init.h>
 #include <solver/curv.h>
 #include <solver/reconst.h>
@@ -343,6 +344,7 @@ void Run(M& m, Vars& var) {
     Scal dt = 0.01;
     size_t step = 0;
     size_t frame = 0;
+    std::unique_ptr<Dumper> dumper;
   } * ctx(sem);
   auto& fcs = ctx->fcs;
   auto& fev = ctx->fev;
@@ -353,6 +355,7 @@ void Run(M& m, Vars& var) {
   auto& dt = ctx->dt;
   auto& step = ctx->step;
   auto& frame = ctx->frame;
+  auto& dumper = ctx->dumper;
 
   auto& as = ctx->as;
   const Scal tmax = var.Double["tmax"];
@@ -360,6 +363,7 @@ void Run(M& m, Vars& var) {
   const Scal cfl = var.Double["cfl"];
 
   if (sem("init")) {
+    dumper = std::make_unique<Dumper>(var, "dump_");
     fcs.Reinit(m, 0);
     fev.Reinit(m, 0);
 
@@ -434,8 +438,7 @@ void Run(M& m, Vars& var) {
       std::cout << "t=" << as->GetTime() << " dt=" << dt << std::endl;
     }
   }
-  const size_t dumpskip = var.Int["dumpskip"];
-  const bool dump = (step % dumpskip == 0);
+  const bool dump = dumper->Try(as->GetTime(), as->GetTimeStep());
   if (sem.Nested()) {
     if (dump) {
       as->DumpInterface(GetDumpName("s", ".vtk", frame));
