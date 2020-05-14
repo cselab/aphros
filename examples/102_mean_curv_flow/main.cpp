@@ -220,28 +220,11 @@ void DumpFaces(
 }
 
 template <class M>
-void ReadColorPlain(
-    const std::string path, const GRange<size_t>& layers,
+void InitColorFromNodes(
+    const FieldNode<Scal>& fncl, const GRange<size_t>& layers,
     Multi<FieldCell<Scal>>& fcu, Multi<FieldCell<Scal>>& fccl, const M& m) {
-  fcu.resize(layers);
-  fccl.resize(layers);
-  fcu.InitAll(FieldCell<Scal>(m, 0));
-  fccl.InitAll(FieldCell<Scal>(m, kClNone));
-
-  FieldNode<Scal> fncl(m, kClNone);
-  FieldCell<Scal> qfccl;
-  MIdx qsize;
-  ReadPlain(path, qfccl, qsize);
-  GIndex<IdxCell, M::dim> qbc(qsize);
-  std::cout << "qsize=" << qbc.GetSize() << std::endl;
-  auto& bn = m.GetIndexNodes();
-  const MIdx size = m.GetGlobalSize() + MIdx(1);
-  for (auto n : m.Nodes()) {
-    const MIdx w = bn.GetMIdx(n);
-    const MIdx qw = w * qsize / size;
-    const IdxCell qc = qbc.GetIdx(qw);
-    fncl[n] = qfccl[qc];
-  }
+  fcu.Reinit(layers, m, 0);
+  fccl.Reinit(layers, m, kClNone);
 
   for (auto c : m.Cells()) {
     std::set<Scal> set;
@@ -272,15 +255,38 @@ void ReadColorPlain(
   }
 }
 
+
 template <class M>
-void InitColorJunctionT(
-    Vect center, const GRange<size_t>& layers, Multi<FieldCell<Scal>>& fcu,
-    Multi<FieldCell<Scal>>& fccl, const M& m) {
+void ReadColorPlain(
+    const std::string path, const GRange<size_t>& layers,
+    Multi<FieldCell<Scal>>& fcu, Multi<FieldCell<Scal>>& fccl, const M& m) {
   fcu.resize(layers);
   fccl.resize(layers);
   fcu.InitAll(FieldCell<Scal>(m, 0));
   fccl.InitAll(FieldCell<Scal>(m, kClNone));
 
+  FieldNode<Scal> fncl(m, kClNone);
+  FieldCell<Scal> qfccl;
+  MIdx qsize;
+  ReadPlain(path, qfccl, qsize);
+  GIndex<IdxCell, M::dim> qbc(qsize);
+  std::cout << "qsize=" << qbc.GetSize() << std::endl;
+  auto& bn = m.GetIndexNodes();
+  const MIdx size = m.GetGlobalSize() + MIdx(1);
+  for (auto n : m.Nodes()) {
+    const MIdx w = bn.GetMIdx(n);
+    const MIdx qw = w * qsize / size;
+    const IdxCell qc = qbc.GetIdx(qw);
+    fncl[n] = qfccl[qc];
+  }
+
+  InitColorFromNodes(fncl, layers, fcu, fccl, m);
+}
+
+template <class M>
+void InitColorJunctionT(
+    Vect center, const GRange<size_t>& layers, Multi<FieldCell<Scal>>& fcu,
+    Multi<FieldCell<Scal>>& fccl, const M& m) {
   FieldNode<Scal> fncl(m, kClNone);
   for (auto n : m.Nodes()) {
     const Vect x = m.GetNode(n);
@@ -288,33 +294,22 @@ void InitColorJunctionT(
     fncl[n] = (dx[1] < 0 ? 0 : dx[0] < 0 ? 1 : 2);
   }
 
-  for (auto c : m.Cells()) {
-    std::set<Scal> set;
-    // gather colors from adjacent nodes
-    for (size_t e = 0; e < m.GetNumNodes(c); ++e) {
-      const IdxNode n = m.GetNode(c, e);
-      const Scal cl = fncl[n];
-      if (cl != kClNone) {
-        set.insert(cl);
-      }
-    }
-    // compute volume fraction for every color
-    size_t l = 0;
-    for (auto cl : set) {
-      const Vect nr = GetNormal(fncl, cl, c, m);
-      const Scal a = GetAlpha(fncl, cl, c, nr, m);
-      if (set.size() == 1) {
-        fcu[l][c] = 1;
-      } else {
-        fcu[l][c] = R::GetLineU(nr, a, m.GetCellSize());
-      }
-      fccl[l][c] = cl;
-      ++l;
-      if (l >= layers.size()) {
-        break;
-      }
-    }
+  InitColorFromNodes(fncl, layers, fcu, fccl, m);
+}
+
+template <class M>
+void InitColorJunctionTSymm(
+    Vect center, const GRange<size_t>& layers,
+    Multi<FieldCell<Scal>>& fcu, Multi<FieldCell<Scal>>& fccl, const M& m) {
+  FieldNode<Scal> fncl(m, kClNone);
+  for (auto n : m.Nodes()) {
+    const Vect x = m.GetNode(n);
+    const Vect dx = x - center;
+    const Scal q = x[1] - (1 - center[1]);
+    fncl[n] = (dx[1] < 0 ? 0 : q > 0 ? 3 : dx[0] < 0 ? 1 : 2);
   }
+
+  InitColorFromNodes(fncl, layers, fcu, fccl, m);
 }
 
 void Run(M& m, Vars& var) {
@@ -370,6 +365,9 @@ void Run(M& m, Vars& var) {
     if (init_color == "triple") {
       const Vect center(var.Vect["triple_center"]);
       InitColorJunctionT(center, layers, fcu, fccl, m);
+    } else if (init_color == "triple_symm") {
+      const Vect center(var.Vect["triple_center"]);
+      InitColorJunctionTSymm(center, layers, fcu, fccl, m);
     } else {
       ReadColorPlain(init_color, layers, fcu, fccl, m);
     }
