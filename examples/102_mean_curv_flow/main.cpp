@@ -88,10 +88,9 @@ void CalcMeanCurvatureFlowFlux(
             kp = (*fck[i])[cp];
           }
         }
-        const Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
-        const Scal v = (up - um) * k * m.GetArea(f);
-        if (!IsNan(v)) {
-          ffv[f] += v;
+        if (!IsNan(km) || !IsNan(kp)) {
+          const Scal k = (IsNan(km) ? kp : IsNan(kp) ? km : (km + kp) * 0.5);
+          ffv[f] += (up - um) * k * m.GetArea(f);
         }
       }
     }
@@ -347,8 +346,8 @@ void Run(M& m, Vars& var) {
 
   auto& as = ctx->as;
   const Scal tmax = var.Double["tmax"];
-  const Scal dtmax = 0.1;
-  const Scal cfl = 0.5;
+  const Scal dtmax = var.Double["dtmax"];
+  const Scal cfl = var.Double["cfl"];
 
   if (sem("init")) {
     fcs.Reinit(m, 0);
@@ -357,8 +356,10 @@ void Run(M& m, Vars& var) {
     GetFluidFaceCond(var, m, ctx->mebc_fluid, ctx->mebc_adv);
 
     typename Vofm<M>::Par p;
-    p.sharpen = true;
-    p.sharpen_cfl = 0.1;
+    p.sharpen = var.Int["sharpen"];
+    p.sharpen_cfl = var.Double["sharpen_cfl"];
+    p.avgnorm0 = var.Double["avgnorm0"];
+    p.avgnorm1 = var.Double["avgnorm1"];
     p.extrapolate_boundaries = var.Int["extrapolate_boundaries"];
     layers = GRange<size_t>(p.layers);
 
