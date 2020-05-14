@@ -10,16 +10,20 @@ except ImportError:
 
 verbose = False
 
+
 def Log(msg):
     if verbose:
         print(str(msg))
+
 
 def report(re, n="residual"):
     re = re.flatten()
     nr = np.linalg.norm
     l = len(re)
-    Log("{:}: L1: {:}, L2: {:}, Linf: {:}".format(
-        n, nr(re, ord=1) / l, nr(re, ord=2) / (l**0.5), nr(re, ord=np.inf)))
+    Log("{:}: L1: {:}, L2: {:}, Linf: {:}".format(n,
+                                                  nr(re, ord=1) / l,
+                                                  nr(re, ord=2) / (l**0.5),
+                                                  nr(re, ord=np.inf)))
 
 
 # vorticity: dv/dx - du/dy
@@ -30,9 +34,10 @@ def vort(u, v):
     om = vx - uy
     #om[:,0] = 0.
     #om[:,-1] = 0.
-    om[0,:] = 0.
-    om[-1,:] = 0.
+    om[0, :] = 0.
+    om[-1, :] = 0.
     return om
+
 
 # solve Posson equation for
 # laplace p = -vort(u,v)
@@ -40,7 +45,7 @@ def vort(u, v):
 def stream_jacobi(u, v, itmax=50000, tol=1e-8):
     Log("stream_jacobi")
     # indexing: u[y,x]
-    f = -vort(u,v)
+    f = -vort(u, v)
     s = np.zeros_like(f)
     it = 0
     r = tol + 1.
@@ -48,18 +53,17 @@ def stream_jacobi(u, v, itmax=50000, tol=1e-8):
     while r > tol and it < itmax:
         pold = s
         sor = 1.0
-        resid = (np.roll(s, -1, axis=0) + np.roll(s, 1, axis=0) +
-                np.roll(s, -1, axis=1) + np.roll(s, 1, axis=1)
-                - 4. * s - f) / 4.
+        resid = (np.roll(s, -1, axis=0) + np.roll(s, 1, axis=0) + np.roll(
+            s, -1, axis=1) + np.roll(s, 1, axis=1) - 4. * s - f) / 4.
         s = pold + sor * resid
         # boundary conditions: derivatives
-        s[:,0] = s[:,1] + (v[:,0] + v[:,1]) * 0.5
-        s[:,-1] = s[:,-2] - (v[:,-1] + v[:,-2]) * 0.5
-        s[0,:] = s[1,:] - (u[0,:] + u[1,:]) * 0.5
-        s[-1,:] = s[-2,:] + (u[-1,:] + u[-2,:]) * 0.5
+        s[:, 0] = s[:, 1] + (v[:, 0] + v[:, 1]) * 0.5
+        s[:, -1] = s[:, -2] - (v[:, -1] + v[:, -2]) * 0.5
+        s[0, :] = s[1, :] - (u[0, :] + u[1, :]) * 0.5
+        s[-1, :] = s[-2, :] + (u[-1, :] + u[-2, :]) * 0.5
         # center at zero
         s -= s.mean()
-        r = (resid[1:-1,1:-1] ** 2).mean() ** 0.5
+        r = (resid[1:-1, 1:-1]**2).mean()**0.5
         # report
         if it >= lastit + itmax // 10:
             Log("i={:06d}, r={:.5e}".format(it, r))
@@ -67,13 +71,14 @@ def stream_jacobi(u, v, itmax=50000, tol=1e-8):
         it += 1
     return s
 
+
 # solve Posson equation for
 # laplace p = -vort(u,v)
 # stream function p (psi) defined via u = dp/dy, v = -dp/dx
 # ADHOC: periodic in x
 def stream_direct(u, v):
     Log("stream_direct")
-    f = -vort(u,v)
+    f = -vort(u, v)
 
     i = np.arange(len(f.flatten())).reshape(f.shape)
     ones = np.ones_like(i).astype(float)
@@ -96,14 +101,16 @@ def stream_direct(u, v):
     # subtract gradients at the sides
     #dxp[:,-1] -= 1. ; dc[:,-1] += 1.
     #dxm[:, 0] -= 1. ; dc[:, 0] += 1.
-    dyp[-1,:] -= 1. ; dc[-1,:] += 1.
-    dym[ 0,:] -= 1. ; dc[ 0,:] += 1.
+    dyp[-1, :] -= 1.
+    dc[-1, :] += 1.
+    dym[0, :] -= 1.
+    dc[0, :] += 1.
 
     # add given values
     #f[:,-1] += (v[:,-1] + v[:,-2]) * 0.5
     #f[:, 0] -= (v[:, 0] + v[:, 1]) * 0.5
-    f[-1,:] += -(u[-1,:] + u[-2,:]) * 0.5
-    f[ 0,:] -= -(u[ 0,:] + u[ 1,:]) * 0.5
+    f[-1, :] += -(u[-1, :] + u[-2, :]) * 0.5
+    f[0, :] -= -(u[0, :] + u[1, :]) * 0.5
 
     # combine
     ld = (dc, dxp, dxm, dyp, dym)
@@ -131,12 +138,13 @@ def stream_direct(u, v):
     # compute u,v
     su = 0.5 * (np.roll(s, -1, axis=0) - np.roll(s, 1, axis=0))
     sv = -0.5 * (np.roll(s, -1, axis=1) - np.roll(s, 1, axis=1))
-    su[0,:] = (s[1,:] - s[0,:])
-    su[-1,:] = (s[-1,:] - s[-2,:])
+    su[0, :] = (s[1, :] - s[0, :])
+    su[-1, :] = (s[-1, :] - s[-2, :])
     report((su - u) / (abs(u)).mean(), "|u-su|/mean(|u|)")
     report((sv - v) / (abs(v)).mean(), "|v-sv|/mean(|v|)")
 
     return s
+
 
 stream = stream_direct
 #stream = stream_jacobi
@@ -144,11 +152,11 @@ stream = stream_direct
 
 def interp_to_uniform(xp, yp, fields=[], n=None):
     if n is None:
-        n = int(len(xp) ** 0.5 + 0.5)
+        n = int(len(xp)**0.5 + 0.5)
 
     x1 = np.linspace(xp.min(), xp.max(), n)
     y1 = np.linspace(yp.min(), yp.max() - 1e-6 * yp.ptp(), n)
-        # ADHOC: avoid fill_value in interpolate
+    # ADHOC: avoid fill_value in interpolate
 
     x, y = np.meshgrid(x1, y1)
     pts = np.vstack((xp, yp)).T
@@ -160,4 +168,3 @@ def interp_to_uniform(xp, yp, fields=[], n=None):
         r.append(f)
 
     return x1, y1, r
-
