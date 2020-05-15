@@ -50,6 +50,10 @@ class Var:
                 assert False, "unknown type of value '{:}'".format(str(v))
         return '\n'.join(t)
 
+    def GenerateFile(self, path):
+        with open(path, 'w') as f:
+            f.write(self.Generate())
+
 
 def VectToStr(v):
     return ' '.join(map(str, v))
@@ -90,6 +94,10 @@ class Geometry:
 
     def Generate(self):
         return '\n'.join(self.lines)
+
+    def GenerateFile(self, path):
+        with open(path, 'w') as f:
+            f.write(self.Generate())
 
 
 class Bc:
@@ -142,3 +150,7 @@ class Bc:
 
     def Generate(self):
         return '\n'.join(self.lines)
+
+    def GenerateFile(self, path):
+        with open(path, 'w') as f:
+            f.write(self.Generate())
