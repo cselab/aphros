@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import numpy as np
 import re
@@ -10,8 +10,19 @@ import os
 def printerr(m):
     sys.stderr.write(str(m) + "\n")
 
-
-def ReadVtkPoly(fn, verb=False):
+def ReadVtkPoly(path, verbose=False):
+    """
+    Reads vtk points, polygons and fields from legacy VTK file.
+    path: `str`
+        Path to legacy VTK file.
+    Returns:
+    points: `numpy.ndarray`, (num_points, 3)
+        Points (vertices).
+    poly: `list` [`list` [ `int` ]], (num_cells, ...)
+        Polygons as lists of indices in `points`.
+    cell_fields: `dict` [`str`, `numpy.ndarray`] , (num_cells,)
+        Cell felds indexed by name. Each field has shape (num_cells,).
+    """
     def Assert(cond, msg=""):
         if not cond:
             caller = inspect.getframeinfo(inspect.stack()[1][0])
@@ -26,7 +37,9 @@ def ReadVtkPoly(fn, verb=False):
             printerr("Next line would be:\n{:}".format(f.readline().strip()))
             exit(1)
 
-    s = 0  # initial state
+    class S:
+        header, comment, binary, dataset, points, \
+        polygons, cell_data, cell_scalars, cell_field, *_rest = range(100)
 
     points = None
     poly = None
@@ -35,57 +48,95 @@ def ReadVtkPoly(fn, verb=False):
     num_poly = None
     cell_fields = dict()
     cell_field_name = None
-    with open(fn) as f:
+    binary = False
+
+    s = S.header
+    with open(path, 'rb') as f:
         for lnum, l in enumerate(f):
+            l = str(l)
             if not l.strip():
                 continue
-            if s == 0:  # check header
+            if s == S.header:  # check header
                 Assert("# vtk" in l)
-                s += 1
-            elif s == 1:  # skip comment
-                s += 1
-            elif s == 2:
-                Assert("ASCII" in l)
-                s += 1
-            elif s == 3:
+                s = S.comment
+            elif s == S.comment:  # skip comment
+                s = S.binary
+            elif s == S.binary:
+                Assert("ASCII" in l or "BINARY" in l)
+                binary = "BINARY" in l
+                s = S.dataset
+            elif s == S.dataset:
                 Assert("DATASET POLYDATA" in l)
-                s += 1
-            elif s == 4:
+                s = S.points
+            elif s == S.points:
                 Assert("POINTS" in l)
+                dtype = np.float64 if "double" in l else np.float32
                 num_points = int(re.findall("\D*(\d*)\D*", l)[0])
                 points = np.empty((num_points, dim))
-                points = np.loadtxt(f, max_rows=num_points)
+                if binary:
+                    points = np.fromfile(f, dtype='>f4', count=num_points * 3)
+                    points = points.astype(np.float)
+                    f.readline()
+                else:
+                    points = np.fromfile(f,
+                                         dtype=np.float,
+                                         count=num_points * 3,
+                                         sep=' ')
+                points = points.reshape((num_points, 3))
                 Assert(points.shape[0] == num_points)
                 Assert(points.shape[1] == 3)
-                if verb: printerr("Read {:} points".format(points.shape[0]))
-                s += 1
-            elif s == 5:
+                if verbose: printerr("Read {:} points".format(points.shape[0]))
+                s = S.polygons
+            elif s == S.polygons:
                 Assert("POLYGONS" in l)
                 m = re.findall("\D*(\d*)\s*(\d*)", l)[0]
                 num_poly = int(m[0])
-                poly = np.loadtxt(f, max_rows=num_poly)
-                Assert(poly.shape[0] == num_poly)
-                if verb: printerr("Read {:} polygons".format(poly.shape[0]))
-                s += 1
-            elif s == 6:
+                num_ints = int(m[1])
+                if binary:
+                    ints = np.fromfile(f, dtype='>i', count=num_ints)
+                    ints = ints.astype(np.int)
+                    f.readline()
+                else:
+                    ints = np.fromfile(f,
+                                       dtype=np.int,
+                                       count=num_ints,
+                                       sep=' ')
+                i = 0
+                poly = []
+                for ip in range(num_poly):
+                    n = ints[i]
+                    i += 1
+                    poly.append(ints[i:i + n])
+                    i += n
+                Assert(i == num_ints)
+                Assert(len(poly) == num_poly)
+                if verbose: printerr("Read {:} polygons".format(len(poly)))
+                s = S.cell_data
+            elif s == S.cell_data:
                 if "CELL_DATA" in l:
                     n = int(re.findall("\D*(\d*)", l)[0])
                     Assert(n == num_poly)
-                    s = 20
+                    s = S.cell_scalars
                 elif "POINT_DATA" in l:
                     pass
-            elif s == 20:  # read cell field
+            elif s == S.cell_scalars:  # read cell field
                 if "SCALARS" in l:
                     cell_field_name = re.findall("SCALARS\s*(\S+)", l)[0]
-                    s += 1
+                    s = S.cell_field
                 else:
-                    s = 6
-            elif s == 21:
+                    s = S.cell_data
+            elif s == S.cell_field:
                 Assert("LOOKUP_TABLE" in l)
-                u = np.loadtxt(f, max_rows=num_poly)
+                if binary:
+                    u = np.fromfile(f, dtype='>f4', count=num_poly)
+                    u = u.astype(np.float)
+                    f.readline()
+                else:
+                    u = np.fromfile(f, dtype=np.float, count=num_poly, sep=' ')
+
                 Assert(u.shape[0] == num_poly, ["u.shape=", u.shape])
-                if verb:
+                if verbose:
                     printerr("Read cell field '{:}'".format(cell_field_name))
                 cell_fields[cell_field_name] = u
-                s = 20
+                s = S.cell_scalars
     return points, poly, cell_fields
