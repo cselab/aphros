@@ -3,20 +3,15 @@
 import aphros
 import numpy
 
-R = 0.05
-H = 0.5
+R = 0.15
+H = 0.6
 inf = 10
-gap = 0
 
 vf = aphros.Geometry()
 vf.Box([0, 1, 0], [inf, 1 - H, inf])
 
 Rm = R * 0.5
-vf.Sphere([0.5, H - gap - R, 0], [R, R, inf])
-#vf.Sphere([0.5 - R * 2, H - gap - R, 0], [R, R, inf])
-#vf.Sphere([0.5 + R * 2, H - gap - R, 0], [R, R, inf])
-#vf.Sphere([0.5, H - gap - R * 2 - Rm, 0], [Rm, Rm, inf])
-#vf.Sphere([0.5 - R, H - gap - R, 0], [R, R, inf])
-#vf.Sphere([0.5 + R, H - gap - R, 0], [R, R, inf])
+vf.Sphere([0.5, H - R, 0], [R] * 3)
+vf.Sphere([0.5, H - R * 2 - Rm, 0], [Rm] * 3)
 
 vf.GenerateFile("b.dat")
