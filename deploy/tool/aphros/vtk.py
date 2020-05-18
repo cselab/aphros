@@ -39,7 +39,7 @@ def ReadVtkPoly(path, verbose=False):
 
     class S:
         header, comment, binary, dataset, points, \
-        polygons, cell_data, cell_scalars, cell_field, *_rest = range(100)
+        polygons, cell_data, cell_scalars, cell_field = range(4)
 
     points = None
     poly = None
