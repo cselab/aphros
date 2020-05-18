@@ -42,7 +42,7 @@ nx128 = LegacyVTKReader(FileNames=sorted(glob("nx128/sm_*.vtk")))
 nx256 = LegacyVTKReader(FileNames=sorted(glob("nx256/sm_*.vtk")))
 
 
-lw = 5.
+lw = 8
 
 nx064Display = Show(nx064, renderView1, 'GeometryRepresentation')
 nx064Display.Representation = 'Wireframe'
