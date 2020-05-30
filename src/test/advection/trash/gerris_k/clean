@@ -1,4 +1,0 @@
-set -eu
-
-rm -vf *.dat *.vtk *.pdf
-

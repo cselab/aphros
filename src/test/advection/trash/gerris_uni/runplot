@@ -1,8 +1,0 @@
-#!/bin/bash
-
-set -eu
-
-./clean
-time ./run
-./convert
-../plot.py
