@@ -20,6 +20,11 @@ void InitVelHook(
 template <class M>
 void InitEmbedHook(FieldNode<typename M::Scal>&, const Vars&, const M&) {}
 
+template <class M>
+void FluidDummyHook(
+    FieldCell<typename M::Vect>&, FieldFace<typename M::Scal>&,
+    typename M::Scal, typename M::Scal, const Vars&, const M&) {}
+
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
@@ -30,3 +35,5 @@ template void PostHook(const Vars&, const FieldCell<Vect>&, M&, const EB&);
 template void InitVelHook(FieldCell<Vect>&, const Vars&, const M&);
 template void InitVelHook(FieldCell<Vect>&, const Vars&, const M&, const EB&);
 template void InitEmbedHook(FieldNode<Scal>&, const Vars&, const M&);
+template void FluidDummyHook(
+    FieldCell<Vect>&, FieldFace<Scal>&, Scal t, Scal dt, const Vars&, const M&);

@@ -46,6 +46,7 @@
 #include "solver/multi.h"
 #include "solver/normal.h"
 #include "solver/proj.h"
+#include "solver/fluid_dummy.h"
 #include "solver/reconst.h"
 #include "solver/simple.h"
 #include "solver/solver.h"
@@ -496,6 +497,16 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
       fs_.reset(new Proj<M>(
           m, m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
           &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+    }
+  } else if (fs == "dummy") {
+    if (eb_) {
+      fs_.reset(new FluidDummy<Embed<M>>(
+          m, *eb_, fc_vel, &fc_rho_, &fc_mu_, &fc_force_, &febp_, &fc_src_,
+          &fc_srcm_, 0., st_.dt, var));
+    } else {
+      fs_.reset(new FluidDummy<M>(
+          m, m, fc_vel, &fc_rho_, &fc_mu_, &fc_force_, &febp_, &fc_src_,
+          &fc_srcm_, 0., st_.dt, var));
     }
   } else {
     throw std::runtime_error("Unknown fluid_solver=" + fs);

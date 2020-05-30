@@ -61,3 +61,7 @@ target_link_libraries(${T} utilconvdiff)
 set(T "proj_eb")
 add_library(${T} proj_eb.cpp)
 target_link_libraries(${T} utilconvdiff)
+
+set(T "fluid_dummy")
+add_library(${T} fluid_dummy.cpp)
+target_link_libraries(${T} vars)

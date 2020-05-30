@@ -27,3 +27,8 @@ void InitVelHook(
 template <class M>
 void InitEmbedHook(
     FieldNode<typename M::Scal>& fn_levelset, const Vars& var, const M& m);
+
+template <class M>
+void FluidDummyHook(
+    FieldCell<typename M::Vect>& fcvel, FieldFace<typename M::Scal>& ffv,
+    typename M::Scal t, typename M::Scal dt, const Vars& var, const M& m);
