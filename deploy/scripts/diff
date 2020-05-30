@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import sys
+import os
+
+# Read uniform grid data
+# p: path
+# Format:
+# <Nx> <Ny> <Nz>
+# <u[0,0,0]> <u[0,0,1]> ...
+# Return:
+# array of shape (Nz, Ny, Nx)
+# None if file not found
+def Read(p):
+    if not os.path.isfile(p):
+        return None
+    with open(p) as f:
+        ll = f.readlines()
+        # shape x,y,z
+        s = np.array(ll[0].split(), dtype=int)
+        # shape z,y,x
+        ss = tuple(reversed(s))
+        # data flat
+        u = np.array(ll[1].split(), dtype=float)
+        # data z,y,x
+        u = u.reshape(ss)
+        return u
+
+v = sys.argv
+
+if len(v) < 3:
+  sys.stderr.write(
+"""usage: {:} a.dat b.dat [eps=1e-8]
+Compares fields in plain format. Returns 1 if max difference > eps.
+STDOUT:
+  max-norm of difference
+""".format(sys.argv[0]))
+  exit(1)
+
+a = v[1]
+b = v[2]
+e = float(v[3]) if len(v) > 3 else 1e-8
+
+ua = Read(a)
+ub = Read(b)
+
+d = np.nanmax(np.abs(ua - ub))
+
+print(d)
+
+exit(0 if d < e else 1)

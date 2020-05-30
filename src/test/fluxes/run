@@ -1,0 +1,46 @@
+#!/bin/bash
+
+set -eu
+
+make -f sim.makefile cleanall
+
+suff=""
+add="add.conf"
+> $add
+
+for conf in $@ ; do
+  suff=${suff}_${conf}
+  echo "include ${conf}.conf" >> $add
+done
+
+ref=ref${suff}
+echo $ref > refpath
+
+make -f sim.makefile run
+
+python3 -c "
+from aphros.io import ReadPlain
+import numpy as np
+def Slice(fin, fout, midy=False):
+  u = ReadPlain(fin)
+  ly = 1.
+  ny = u.shape[1]
+  hy = ly / ny
+  if midy:
+    u = u[0, ny // 2, :]
+  else:
+    u = u[0, :, -1]
+  x = np.linspace(hy * 0.5, ly - hy * 0.5, ny)
+  np.savetxt(fout, np.transpose((x, u)))
+Slice('vx_0000.dat', 'vx', False)
+Slice('p_0000.dat', 'p', True)
+"
+a=0
+for fref in $ref/* ; do
+  fout=${fref#$ref/}
+  echo $fout
+  eps=1e-9
+  if ! ap.diffnum "$fout" "$fref" $eps; then a=1; fi
+done
+
+exit $a

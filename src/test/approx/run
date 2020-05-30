@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -eu
+
+a=ref
+b=out
+./t.approx > "$b"
+
+if ! ap.diffnum "$a" "$b" ; then
+  exit 1
+fi

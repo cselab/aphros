@@ -1,0 +1,64 @@
+./t.primlist.parse '# comment'
+pp.size()=0
+
+./t.primlist.parse '# comment
+sphere 0.3 0.3 0.7   0.25 0.2 0.15'
+name='sphere' mod=''
+
+./t.primlist.parse '0.3 0.3 0.7   0.25'
+name='sphere' mod=''
+
+./t.primlist.parse 'sphere 0.3 0.3 0.7   0.25'
+name='sphere' mod=''
+
+./t.primlist.parse 'sphere 0.3 0.3 0.7'
+PrimList: missing field 'rx' in 'sphere 0.3 0.3 0.7' while parsing keys 'cx cy cz rx ry rz'
+
+./t.primlist.parse 'sphere 0.3 0.3 0.7   0.25'
+name='sphere' mod=''
+
+./t.primlist.parse '+sphere 0.3 0.3 0.7   0.25'
+PrimList: primitive not recognized in '+sphere 0.3 0.3 0.7   0.25'
+
+./t.primlist.parse '+ sphere 0.3 0.3 0.7   0.25'
+PrimList: primitive not recognized in '+ sphere 0.3 0.3 0.7   0.25'
+
+./t.primlist.parse '-sphere 0.3 0.3 0.7   0.25'
+name='sphere' mod='-'
+
+./t.primlist.parse '- sphere 0.3 0.3 0.7   0.25'
+name='sphere' mod='-'
+
+./t.primlist.parse '&sphere 0.3 0.3 0.7   0.25'
+name='sphere' mod='&'
+
+./t.primlist.parse '&    sphere 0.3 0.3 0.7   0.25'
+name='sphere' mod='&'
+
+./t.primlist.parse '&&    sphere 0.3 0.3 0.7   0.25'
+name='sphere' mod='&'
+
+./t.primlist.parse '& &    sphere 0.3 0.3 0.7   0.25'
+name='sphere' mod='&'
+
+./t.primlist.parse 'box    0.7 0.3 0.4   0.25 0.2 0.15'
+name='box' mod=''
+
+./t.primlist.parse '+box    0.7 0.3 0.4   0.25 0.2 0.15'
+PrimList: primitive not recognized in '+box    0.7 0.3 0.4   0.25 0.2 0.15'
+
+./t.primlist.parse '-&-&box    0.7 0.3 0.4   0.25 0.2 0.15'
+name='box' mod='-&'
+
+./t.primlist.parse '&box    0.7 0.3 0.4   0.25 0.2 0.15'
+name='box' mod='&'
+
+./t.primlist.parse 'ring   0.3 0.7 0.5   0 1 0.5   0.15  0.05'
+name='ring' mod=''
+
+./t.primlist.parse 'smooth_step 0.5 0.5 0.1   0 0 1   0 1 0   0.05   0.1'
+name='smooth_step' mod=''
+
+./t.primlist.parse 'cylinder   0.75 0.7 0.3   -2 1 0.5   0.1   -0.2 0.2'
+name='cylinder' mod=''
+

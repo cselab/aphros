@@ -1,0 +1,4 @@
+#!/bin/bash
+
+make -f `ap.makesim` cleanall
+rm -vf *_*.dat

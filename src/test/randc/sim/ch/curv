@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+
+# Prints curvature sorted by cell index.
+
+import numpy as np
+import sys
+
+dim = int(open("dim", 'r').read())
+kc = 0.5 if dim == 3 else 1.
+
+ukk = np.loadtxt("k_0000.dat", skiprows=1).flatten()
+ukk = [k * kc for k in ukk if np.isfinite(k)]
+
+stdout = sys.stdout
+if hasattr(stdout, 'buffer'):
+    stdout = stdout.buffer
+
+np.savetxt(stdout, ukk)

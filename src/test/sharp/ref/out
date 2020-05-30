@@ -1,0 +1,312 @@
+libibverbs: Warning: couldn't open config directory '/etc/libibverbs.d'.
+libibverbs: Warning: no userspace device-specific driver found for /sys/class/infiniband_verbs/uverbs0
+libibverbs: Warning: couldn't open config directory '/etc/libibverbs.d'.
+libibverbs: Warning: couldn't open config directory '/etc/libibverbs.d'.
+libibverbs: Warning: no userspace device-specific driver found for /sys/class/infiniband_verbs/uverbs0
+libibverbs: Warning: no userspace device-specific driver found for /sys/class/infiniband_verbs/uverbs0
+hydro 6552abb-dirty
+msg: embed: excludes faces outside domain
+diff: sim/sim28_embed/case/cylinder/gen sim/sim28_embed/case/cylinder/post sim/sim28_embed/case/cylinder3d/Makefile sim/sim28_embed/case/cylinder3d/gen sim/sim28_embed/case/cylinder3d/std.conf sim/sim28_embed/case/epflmesh/Makefile src/util/fluid.h 
+Loading config from 'acub.conf'
+
+=== config begin ===
+set string BOX_ALL box 0 0 0  10 10 10
+set string BOX_X0 box 0 0 0  1e-10 10 10
+set string BOX_X1 box 1 0 0  1e-10 10 10
+set string BOX_Y0 box 0 0 0  10 1e-10 10
+set string BOX_Y1 box 0 1 0  10 1e-10 10
+set string BOX_Z0 box 0 0 0  10 10 1e-10
+set string BOX_Z1 box 0 0 1  10 10 1e-10
+set string advection_solver vof
+set string backend cubismnc
+set string bc_path "inline
+  wall 0 0 0 {
+    box 0 0 0  10 10 10
+  }
+"
+set string bc_xm wall 0 0 0
+set string bc_xp wall 0 0 0
+set string bc_ym wall 0 0 0
+set string bc_yp wall 0 0 0
+set string bc_zm wall 0 0 0
+set string bc_zp wall 0 0 0
+set string body_bc wall 0 0 0
+set string body_init zero
+set string body_list_path body.dat
+set string bubgen_path bg.dat
+set string conf_unused_ignore_path base.conf
+set string conv imp
+set string convsc quick
+set string dumpformat plain
+set string dumplist vf
+set string eb_init list
+set string eb_list_path body.dat
+set string fluid_solver simple
+set string hypre_gen_solver gmres
+set string hypre_symm_solver pcg
+set string hypre_vort_solver smg
+set string init_sig uniform
+set string init_vf list
+set string list_path b.dat
+set string surftens kn
+set string vel_init zero
+set string vellist_path vel.dat
+set string vof_scheme weymouth
+set int CHECKNAN 0
+set int bc_wall_init_vel 0
+set int bcc_reflectpoly 1
+set int body_init_inverse 0
+set int bsx 8
+set int bsy 8
+set int bsz 1
+set int bx 4
+set int by 2
+set int bz 1
+set int check_symmetry 0
+set int cloverride 0
+set int convsymm 0
+set int dim 2
+set int dump_field_max 10000
+set int dump_part_max 10000
+set int dump_stat_max 1000000
+set int dump_traj_max 10000
+set int dump_trep_max 10000
+set int dumpbc 1
+set int dumpinit 0
+set int dumplast 0
+set int dumppart 0
+set int dumppartinter 0
+set int dumppoly 1
+set int dumppolymarch 1
+set int eb_init_inverse 1
+set int enable_advection 1
+set int enable_bc 1
+set int enable_bubgen 0
+set int enable_color 1
+set int enable_embed 0
+set int enable_fluid 0
+set int enable_shell 0
+set int enable_surftens 1
+set int enstrophy 0
+set int explconv 0
+set int fill_halo_nan 1
+set int force_kolm 0
+set int force_kolm_accel 0
+set int histogram 0
+set int hl 2
+set int hypre_gen_maxiter 30
+set int hypre_periodic_x 0
+set int hypre_periodic_y 0
+set int hypre_periodic_z 1
+set int hypre_print 0
+set int hypre_symm_maxiter 100
+set int hypre_vort_maxiter 1000
+set int initvort 0
+set int inletflux_numid 1
+set int linreport 0
+set int list_ls 1
+set int loc_maxcomm 16
+set int loc_periodic_x 1
+set int loc_periodic_y 1
+set int loc_periodic_z 1
+set int marangoni 0
+set int max_iter 2
+set int max_step 1000000
+set int min_iter 1
+set int mpi_compress_msg 0
+set int openmp 0
+set int output 1
+set int part 1
+set int part_bendmean 1
+set int part_dn 0
+set int part_dump_fr 1
+set int part_itermax 20
+set int part_k 1
+set int part_np 7
+set int part_ns 3
+set int part_report_fr 1
+set int part_verb 0
+set int poiswym 1
+set int poiswyp 1
+set int poiswzm 1
+set int poiswzp 1
+set int proj_bcg 1
+set int px 1
+set int py 2
+set int pz 1
+set int report_knan 0
+set int report_stat 0
+set int report_step_every 1
+set int second_order 1
+set int sharpen 1
+set int split 0
+set int stat_area 0
+set int stat_dissip 0
+set int stat_step_every 1
+set int stat_vofm 0
+set int statbox 0
+set int statvel 0
+set int stokes 0
+set int vel_init_noise 0
+set int vel_init_random 0
+set int verbose 0
+set int verbose_conf_reads 0
+set int verbose_conf_unused 1
+set int verbose_openmp 0
+set int verbose_stages 0
+set int verbose_time 1
+set int vf_init_sm 10
+set int vfsmooth 0
+set int vfsmoothnode 0
+set int vof_recolor_grid 1
+set int vof_recolor_reduce 1
+set int vof_recolor_unionfind 1
+set int vof_verb 0
+set int vofm_layers 4
+set int vort_report 1
+set int vtkbin 1
+set int vtkmerge 1
+set int wavelamb_vort 0
+set int youngbc 0
+set double abortvel 1e+10
+set double avgnorm0 1
+set double avgnorm1 1
+set double bcc_clear0 0
+set double bcc_clear1 1
+set double bcc_fill 0
+set double bubgen_per 1
+set double bubgen_t0 0
+set double cflst 2
+set double check_symmetry_dump_threshold 1e+10
+set double clfixed -1
+set double clipth 1e-10
+set double color_maxr 1e+10
+set double color_th 0.5
+set double convdf 1
+set double dt0 0.1
+set double dtmax 0.1
+set double dump_field_dt 1
+set double dump_field_t0 1
+set double dump_part_dt 1
+set double dump_part_t0 1e+10
+set double dump_stat_dt 0
+set double dump_traj_dt 1
+set double dump_traj_t0 1e+10
+set double dump_trep_dt 1
+set double dump_trep_t0 1e+10
+set double dumppolymarch_fill -1
+set double embed_gradlim 0.5
+set double extent 1
+set double fill_halo_nan_value 1e+100
+set double force_mag 0
+set double force_vort_g 0
+set double force_vort_r 0
+set double hypre_gen_tol 0.001
+set double hypre_symm_tol 0.001
+set double hypre_vort_tol 1e-06
+set double inletcl 1
+set double kslip 0
+set double mu1 0.01
+set double mu2 0.01
+set double outlet_relax 1
+set double part_dtmax 10
+set double part_h 4
+set double part_relax 0.5
+set double part_segcirc 0
+set double part_tmax 180
+set double part_tol 1e-05
+set double penalslip 0
+set double prelax 0.9
+set double random_amp 1
+set double rhie 1
+set double rho1 1
+set double rho2 1
+set double ring_om 0.01
+set double ring_r0 0.2
+set double ring_r1 0.4
+set double sharp 0
+set double sharpen_cfl 0.1
+set double sharpo 0
+set double shell_h 3
+set double shell_r 0
+set double shell_rr 2
+set double sig_k 1.25
+set double sigma 0
+set double slipnormal 0
+set double slipnormal_dist 1
+set double source_mag 0
+set double source_mag0 0
+set double source_mexp 0
+set double source_mexp0 0
+set double stdiag 1
+set double stop_diff 0
+set double tmax 1
+set double tol 0.001
+set double vofm_coalth 1e+10
+set double vrelax 0.8
+set double vtkiso 0.5
+set double zerostx0 1e+10
+set double zerostx1 1e+10
+set vect clfixed_x 1e+10 1e+10 1e+10 
+set vect force 0 0 0 
+set vect force_mov 0 0 0 
+set vect force_mov2 0 0 0 
+set vect force_vort_c 0 
+set vect gravity 0 0 0 
+set vect noise_per0 0 0 1 
+set vect noise_per1 0 0 1 
+set vect noise_per2 0 0 1 
+set vect noise_vel0 1 0 0 
+set vect noise_vel1 1 0 0 
+set vect noise_vel2 1 0 0 
+set vect random_vel 1 0 0 
+set vect ring_c 0.5 0.5 0.5 
+set vect ring_n 1 0 0 
+set vect slipvel 1 0 0 
+set vect statbox2a 0 0 0.5 
+set vect statbox2b 1 1 0.5 
+set vect statboxa 0 0 0.5 
+set vect statboxb 1 1 0.5 
+=== config end ===
+
+InitVf: Open list of primitives 'b.dat'
+Read 1 primitives.
+global mesh=(32,32,1)
+surface tension dt=1.79769e+308
+viscosity dt=1.79769e+308
+InitCl: Open list of primitives 'b.dat
+Read 1 primitives.
+Found events: 
+=====
+=====
+STEP=0 t=0.00000000 dt=0.10000000 ta=0.00000000 dta=0.10000000 wt=0.01948800
+.....adv: t=0.10000000 dt=0.10000000
+STEP=1 t=0.10000000 dt=0.10000000 ta=0.10000000 dta=0.10000000 wt=0.04098724
+.....adv: t=0.20000000 dt=0.10000000
+STEP=2 t=0.20000000 dt=0.10000000 ta=0.20000000 dta=0.10000000 wt=0.05809471
+.....adv: t=0.30000000 dt=0.10000000
+STEP=3 t=0.30000000 dt=0.10000000 ta=0.30000000 dta=0.10000000 wt=0.07213345
+.....adv: t=0.40000000 dt=0.10000000
+STEP=4 t=0.40000000 dt=0.10000000 ta=0.40000000 dta=0.10000000 wt=0.08433280
+.....adv: t=0.50000000 dt=0.10000000
+STEP=5 t=0.50000000 dt=0.10000000 ta=0.50000000 dta=0.10000000 wt=0.09540442
+.....adv: t=0.60000000 dt=0.10000000
+STEP=6 t=0.60000000 dt=0.10000000 ta=0.60000000 dta=0.10000000 wt=0.10565296
+.....adv: t=0.70000000 dt=0.10000000
+STEP=7 t=0.70000000 dt=0.10000000 ta=0.70000000 dta=0.10000000 wt=0.11541622
+.....adv: t=0.80000000 dt=0.10000000
+STEP=8 t=0.80000000 dt=0.10000000 ta=0.80000000 dta=0.10000000 wt=0.12577430
+.....adv: t=0.90000000 dt=0.10000000
+STEP=9 t=0.90000000 dt=0.10000000 ta=0.90000000 dta=0.10000000 wt=0.13534209
+Dump n=0 t=1 target=0
+.....adv: t=1.00000000 dt=0.10000000
+Dump 0: format=plain
+dump t=1.00000000 to s_0000.vtk
+dump t=1.00000000 to sm_0000.vtk
+End of simulation, t > tmax=1.00000000
+cells = 1024
+steps = 1000000
+iters = 0
+total = 0 s = 00:00:00.149
+time/cell/iter = inf s
+Unused configuration variables:

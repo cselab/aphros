@@ -1,0 +1,6 @@
+wall_rotation 0.5 0.5 0  0 0 0 {
+  sphere 0.5 0.5 0 0.5
+}
+wall_rotation 0.5 0.5 0  0 0 5 {
+  sphere 0.5 0.5 0 0.3
+}

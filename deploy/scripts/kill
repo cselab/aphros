@@ -1,0 +1,15 @@
+#!/bin/bash -l
+
+# Kill process by pid from pid
+
+set -eu
+
+echo stopping > job.status
+
+pid=`cat pid`
+# kill all child processes 
+c="pkill -9 -P $pid"
+echo "$c"
+eval "$c"
+
+echo stopped > job.status

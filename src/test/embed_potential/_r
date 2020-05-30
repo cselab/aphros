@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -eu
+
+e () {
+  echo "$@"
+  eval "$@"
+}
+
+make > /dev/null
+make -C ../../ install > /dev/null
+
+for nx in 128 256 512 ; do
+  e "ap.run ./t.embed_potential $nx"
+  mv p_0000.dat p_$nx.dat
+  ap.plain2vtk p_$nx.dat
+done

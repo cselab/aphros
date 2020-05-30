@@ -1,0 +1,10 @@
+#!/bin/sh
+
+set -eu
+
+b="$(dirname "$0")/../scripts/sim_a.conf"
+
+echo "cat > a.conf << 'EOF'
+`cat $b`
+EOF
+"

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -eu
+
+make
+mpirun -n 2 ./t.commhalo

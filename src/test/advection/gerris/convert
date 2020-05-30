@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+
+import vtk
+import numpy as np
+import glob 
+import os
+
+
+# Write uniform grid data
+# u -- 2d or 3d array
+# p -- path
+# Format:
+# <Nx> <Ny> <Nz>
+# <u[0,0,0]> <u[1,0,0]> ...
+def Write(u, p):
+    s = u.shape
+    assert len(s) in [2, 3]
+    # reshape 2d to 3d
+    if (len(s) == 2):
+        u = u.reshape((s[0], s[1], 1))
+
+    with open(p, 'w') as f:
+        f.write("{:} {:} {:}\n".format(*u.shape))
+        u = u.flatten()
+        np.savetxt(f, u, newline='', fmt='%.16g ')
+
+
+pp = sorted(glob.glob("*.vtk"))
+print(pp)
+for p in pp:
+    po = os.path.splitext(p)[0] + ".dat"
+    d = vtk.read_vtk(p)
+    x,y,[u] = vtk.interp_to_uniform(d['x'], d['y'], [d['T']])
+    print(po)
+    Write(u, po)

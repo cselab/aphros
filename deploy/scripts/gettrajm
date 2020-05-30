@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import sys
+import glob
+import os
+import re
+
+
+gl = "traj_*.csv"  # glob pattern
+v = sys.argv
+
+# assume columns:
+# cl [...]
+
+if len(v) != 2:
+  print("usage: {:} index".format(os.path.basename(v[0])))
+  print("extract trajectory of single color from '{:}'".format(gl))
+  exit(1)
+
+idx = int(float(v[1]) + 0.5)
+
+pp = sorted(glob.glob(gl))
+
+if not len(pp):
+  exit(0)
+
+def R(p):
+  return np.genfromtxt(p, names=True, delimiter=',')
+
+d = R(pp[0])
+
+if idx >= len(d):
+  exit(0)
+
+x0 = d['x'][idx]
+y0 = d['y'][idx]
+z0 = d['z'][idx]
+
+dom = 1.
+
+print("n x y z r")
+
+print("0 {:} {:} {:} {:}".format(x0, y0, z0, d['r'][idx]))
+
+for i,p in enumerate(pp):
+  if i == 0:
+    continue
+  n = re.findall("traj_(\d*).csv", p)[0]
+  n = int(n)
+  d = R(p)
+
+  def U(x, x0):
+    y = x
+    if abs(y + dom - x0) < abs(y - x0): y += dom
+    if abs(y - dom - x0) < abs(y - x0): y -= dom
+    return y
+
+  xx = d['x']
+  yy = d['y']
+  zz = d['z']
+
+  for k in range(len(xx)):
+    xx[k] = U(xx[k], x0)
+
+  dx = xx - x0
+  dy = yy - y0
+  dz = zz - z0
+
+  j = np.argmin(dx**2 + dy**2 + dz**2)
+
+  x0 = xx[j]
+  y0 = yy[j]
+  z0 = zz[j]
+
+  print("{:} {:} {:} {:} {:}".format(n, x0, y0, z0, d['r'][j]))
+
+sys.stdout.flush()

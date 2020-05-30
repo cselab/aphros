@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+
+# Vary bubble position and radius.
+# $1: solver name (ch, ba)
+import numpy as np
+import os
+import sys
+import argparse
+from getr import *
+
+def parse():
+    p = argparse.ArgumentParser()
+
+    p.add_argument('--dim', type=int, default=2, 
+            help='dimension (2, 3)')
+    p.add_argument('--bi', type=int, default=-1, 
+            help='index of position')
+    p.add_argument('--ri', type=int, default=-1, 
+            help='index of radius')
+    p.add_argument('--nbi', type=int, default=10, 
+            help='choices of position')
+    p.add_argument('--nri', type=str, default='10', 
+            help='choices of radius: int, (begin,end,skip)')
+    p.add_argument('--overlap', type=int, default=0, 
+            help='exact volume fraction with overlap (0, 1)')
+    p.add_argument('--solver', type=str, default='all', 
+            help='solver (ch, ba, ge)')
+    p.add_argument('--plot', action='store_true', 
+            help='plot with bubble RI BI, requires DIM=2')
+    p.add_argument('--force', action='store_true', 
+            help='force overwrite')
+
+    return p.parse_known_args()
+
+
+def sh(s, fatal=True, silent=True):
+    if not silent:
+        print(s)
+    r = os.system(s)
+    assert not fatal or r == 0
+
+# ri: index if radius
+# bi: index of bubble center
+# s: solver prefix (ch, ba)
+# force: overwrite existing
+def Run(ri, bi, s, force=False):
+    global bb
+    global dim
+    log = "log"
+    r, nxexp, cpr = GetR(ri)
+    nx = 2 ** nxexp
+    hx = 1. / nx
+    bc = bb[bi] # uniform [0,1]
+    bc = 0.5 + bc * hx * 0.5 # cell octant, [0.5, 0.5 + hx*0.5]
+    ok = "{:}/kr{:03d}b{:03d}.dat".format(s, ri, bi)
+    ovf = "{:}/vfr{:03d}b{:03d}.dat".format(s, ri, bi)
+    if os.path.isfile(ok) and os.path.isfile(ovf) and not force:
+        print("Skip existing {:}".format(ok))
+        return
+    if dim == 2:
+        bc[2] = hx * 0.5
+    with open("{:}/b.dat".format(s), 'w') as f:
+        rx = r
+        ry = r
+        rz = r
+        f.write("{:} {:} {:} {:} {:} {:}"
+                .format(bc[0], bc[1], bc[2], rx, ry, rz))
+    with open("{:}/dim".format(s), 'w') as f :
+        f.write("{:}".format(dim))
+    with open("{:}/nxexp".format(s), 'w') as f :
+        f.write("{:}".format(nxexp))
+    print("ri={:}, bi={:}, cpr={:.4g}, nx={:}, s={:}".format(ri, bi, cpr, nx, s))
+    sh("(cd {s} && ./run)" .format(**locals()), silent=False)
+    sh("mv {s}/ok {ok} && mv {s}/ovf {ovf}".format(**locals()), silent=False)
+
+
+def Vary(ss, nri):
+    global bb
+    global dim
+    print("solvers: {:}".format(ss))
+
+    rr = None
+    try:
+        rr = range(int(nri))
+    except:
+        try:
+            rr = eval("range{:}".format(nri))
+        except:
+            rr = eval(nri)
+
+    print("Vary {:} positions and nri={:}".format(len(bb), nri))
+
+    for ri in rr:
+        for bi in range(len(bb)):
+            for s in ss:
+                Run(ri, bi, s)
+
+def Plot(args):
+    s = 'ch'
+    dim = args.dim
+    ri = args.ri
+    bi = args.bi
+    assert ri != -1
+    assert bi != -1
+    o = "{:}/pltr{:03d}b{:03d}.pdf".format(s, ri, bi)
+    if os.path.isfile(o) and not args.force:
+        print("Skip existing {:}".format(o))
+        return
+    Run(ri, bi, s, True)
+    sh("(cd {s} ; ./plot > /dev/null ) && mv {s}/vf_0000.pdf {o}"
+            .format(**locals()))
+
+# arguments
+args, unk = parse()
+
+# choices for position
+nbi = args.nbi
+
+bb = np.loadtxt('bb')[:nbi]
+
+dim = args.dim
+assert dim in [2, 3]
+
+overlap = args.overlap
+with open("ch/overlap.conf", 'w') as f:
+    if overlap:
+        f.write("set int list_ls 2")
+    else:
+        f.write("")
+
+if args.plot:
+    Plot(args)
+    exit(0)
+
+s = args.solver
+
+ssa = ['ch', 'ba', 'bap', 'bal', 'bacm', 'ge']
+
+#assert s in ssa + ['all']
+
+ss = ssa if s == 'all' else s.split()
+
+if args.ri != -1 and args.bi != -1:
+    assert s in ssa
+    Run(args.ri, args.bi, s, args.force)
+else:
+    Vary(ss, args.nri)
+

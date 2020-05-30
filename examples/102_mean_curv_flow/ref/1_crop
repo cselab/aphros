@@ -1,0 +1,4 @@
+w=398
+convert F6.large.jpg -crop ${w}x${w}+4+4 +repage a0.png
+convert F6.large.jpg -crop ${w}x${w}+440+4 +repage a1.png
+convert F6.large.jpg -crop ${w}x${w}+878+4 +repage a2.png

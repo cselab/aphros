@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -eu
+
+make > /dev/null
+make -C ../../ install > /dev/null
+ap.run ./t.embed_convdiff

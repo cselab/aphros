@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -eu
+
+# reference
+r=ref
+
+# run 
+make -f sim.makefile cleanrun
+
+a=0
+
+if ! diff {,ref/}vf_0000.xmf ; then a=1; fi
+if ! h5diff {,ref/}vf_0000.h5 ; then a=1; fi
+
+exit $a

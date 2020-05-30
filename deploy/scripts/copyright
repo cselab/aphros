@@ -1,0 +1,34 @@
+#!/bin/sh
+
+set -eu
+
+me=$(basename "$0")
+
+if [ "$#" -lt "1" ] || [ "$1" = "-h" ] ; then
+  cat << EOF
+usage: $me [-h] FILE
+Prints copyright notice for FILE. fetching author and date from git index.
+If not found in git index, uses author from 'git config user.name' and date
+from file change time.
+EOF
+  exit 1
+fi
+
+file=$1
+
+list=$(git ls-files -- "$file" )
+if [ -z "$list" ] ; then
+  author=$(git config user.name)
+  date=$(stat -c%Z "$file")
+  date=$(date -d "@$date" +%d.%m.%Y)
+else
+  git=$(git log --date=format:'%d.%m.%Y' --reverse -- "$file" | head -n3)
+  author=$(echo "$git" | sed -En 's/.*Author: (.*?) <.*/\1/p')
+  date=$(echo "$git" | sed -En 's/.*Date:   (.*?)/\1/p')
+fi
+year=$(echo "$date" | sed -En 's/[0-9]*\.[0-9]*\.([0-9]*)/\1/p')
+
+cat << EOF
+// Created by $author on $date
+// Copyright $year ETH Zurich
+EOF

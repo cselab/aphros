@@ -1,0 +1,9 @@
+set -eu
+
+for e in 0 1 2 ; do
+  ./main $e
+  d="case$e"
+  mkdir -p $d
+  [ "$e" = "0" ] && ./plot u_0000.dat && mv u_0000.svg $d
+  ./plot u_0001.dat && mv u_0001.svg $d
+done

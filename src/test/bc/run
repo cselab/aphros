@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -eu
+
+# test name
+t=$1
+# config file
+c=_${t}.conf
+# reference
+ref=ref_${t}
+# extra
+extra=${2:-}
+
+cp "$c" add.conf
+
+if [ "$extra" != "" ] ; then
+  echo "include _${extra}.conf" >> add.conf
+  ref=${ref}_${extra}
+fi
+
+echo $ref > refpath
+
+# run 
+make -f sim.makefile cleanrun
+
+a=0
+for f in $ref/* ; do
+  echo $ref
+  eps=2e-12
+  if [ "${f##*.}" = "vts" ] ; then eps=2e-5; fi
+  if ! ap.diffnum "${f#$ref/}" "$f" $eps; then a=1; fi
+done
+
+exit $a

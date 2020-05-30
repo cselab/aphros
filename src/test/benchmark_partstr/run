@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -eu
+
+./clean
+echo 1 > np
+echo > mesh.conf
+ap.base
+ap.aconf
+ap.run ../advection/t.advection

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -eu
+
+in="codeblocks_in"
+out="codeblocks_out"
+ref="codeblocks_ref"
+
+./t.parser.codeblocks < $in > $out
+
+if ! diff -q $out $ref ; then
+  exit 1
+fi

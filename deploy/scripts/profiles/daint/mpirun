@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -eu
+
+if [ "$#" -lt "1" ] || [ "$1" == "-h" ] ; then
+    cat << EOF
+usage: `basename $0` [-h] ARGS
+Reads the number of cores NP from file 'np' and executes 
+srun -n NP ARGS
+If file 'np' does not exist, executes
+srun ARGS
+EOF
+    exit 1
+fi
+
+if [ -f 'np' ] ; then
+  srun -n "$(cat np)" "$@"
+else
+  srun "$@"
+fi

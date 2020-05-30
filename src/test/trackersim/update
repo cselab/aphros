@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -eu
+
+n=${1:-gravity}
+
+r=ref$n
+
+ff=`ls $r`
+
+mkdir -p $r
+
+for f in $ff ; do
+  echo $f
+  cp -v $f $r/$f
+done
+

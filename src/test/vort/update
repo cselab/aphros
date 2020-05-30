@@ -1,0 +1,11 @@
+#!/bin/bash
+
+r=ref
+ff="omm_0001.dat
+vf_0001.dat
+"
+
+for f in $ff ; do
+  echo $f
+  cp -v $f $r/$f
+done

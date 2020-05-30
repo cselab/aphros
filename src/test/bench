@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -eu
+
+r=`git rev-parse HEAD`
+r=${r:0:8}
+o="b-${r}"
+
+(cd benchmark ; ./t.benchmark ) > $o
+(cd surftens  ; ./test_cmp > /dev/null ; cat trep_0000.log) >> $o

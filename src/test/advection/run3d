@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -eu
+
+# config file
+c=${1:-tloc3d}
+bs=${2:-8}
+# block size
+bs="$bs $bs $bs"
+: ${m="24 24 16"}
+: ${r=ref3d}
+# number of processors
+: ${np=6}
+
+./clean
+
+echo $np > np
+
+ap.base
+ap.part $m $bs $np > mesh.conf
+
+ap.run ./t.advection "$c"
+
+./convert_vtk
+
+a=0
+for f in $r/*.dat ; do
+  echo $f
+  if ! ap.diffnum "${f#$r/}" "$f" 1e-11; then
+    a=1
+  fi
+done
+
+exit $a

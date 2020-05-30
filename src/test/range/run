@@ -1,0 +1,11 @@
+#!/bin/bash
+
+o=out
+
+> $o
+
+./t.range | tee $o
+
+if ! diff -q $o ref ; then
+  exit 1
+fi

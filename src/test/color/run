@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -eu
+
+./sph | ./t.color > aa.out
+
+if ! diff -q a.out aa.out ; then
+  exit 1
+fi
+
+rm aa.out

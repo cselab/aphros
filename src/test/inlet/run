@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -eu
+
+# test name
+t=${1:-inlet}
+# config file
+c=_${t}.conf
+# reference
+r=ref${t}
+
+cp "$c" add.conf
+
+# run 
+make -f sim.makefile cleanrun
+
+a=0
+for f in $r/* ; do
+  echo $f
+  eps=1e-8
+  if ! ap.diffnum "${f#$r/}" "$f" $eps; then a=1; fi
+done
+
+exit $a

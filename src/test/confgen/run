@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -eu
+
+out="out"
+ref="ref"
+
+./gen > $out
+
+if ! diff -q $out $ref ; then
+  exit 1
+fi

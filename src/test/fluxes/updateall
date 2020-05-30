@@ -1,0 +1,9 @@
+r () {
+  ./run $@
+  ./update
+}
+
+r simple imp gravity
+r simple exp gravity
+r proj imp gravity
+r proj exp gravity

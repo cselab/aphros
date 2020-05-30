@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -eu
+
+name=${1:-2d}
+
+make -f sim.makefile "$name"
+
+refpath=ref/$name
+
+echo "$refpath" > refpath
+
+mkdir -p "$refpath"
+
+a=0
+for f in $refpath/c2x ; do
+  echo $f
+  if ! ap.diffnum "${f##*/}" "$f" "1e-2"; then
+    a=1
+  fi
+done
+
+exit $a

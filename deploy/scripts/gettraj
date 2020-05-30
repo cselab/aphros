@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+
+import sys
+import glob
+import os
+import re
+
+
+gl = "traj_*.csv"  # glob pattern
+v = sys.argv
+
+# assume columns:
+# cl [...]
+
+if len(v) != 2:
+  print("usage: {:} color".format(os.path.basename(v[0])))
+  print("extract trajectory of single color from '{:}'".format(gl))
+  exit(1)
+
+cl0 = float(v[1])
+
+pp = sorted(glob.glob(gl))
+
+for i,p in enumerate(pp):
+  n = re.findall("traj_(\d*).csv", p)[0]
+  n = int(n)
+  with open(p) as f:
+    l = f.readline()  # read header
+    if i == 0: # append header if first
+      l = l.replace(',', ' ')
+      sys.stdout.write("n " + l)
+    for l in f: # read lines, append line with cl=cl0
+      cl = float(l.split(',')[0])
+      if abs(cl - cl0) < 1e-10:
+        l = l.replace(',', ' ')
+        sys.stdout.write("{:} {:}".format(n, l))
+        break
+
+sys.stdout.flush()
