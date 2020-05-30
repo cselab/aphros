@@ -4,7 +4,7 @@ tl = 600
 
 MAKE=make
 
-default: nx32
+default:
 
 include $(shell ap.makesim)
 
@@ -14,4 +14,4 @@ nx32:
 	$(MAKE) cleanrun m='32 32 32' np=1
 
 nx128:
-	$(MAKE) cleanrun m='128 128 128' np=128
+	$(MAKE) cleanrun m='128 128 128' np=64
