@@ -1,11 +1,9 @@
 CMakeCache.txt
 CMakeFiles/
-Makefile
+*/Makefile
 cmake_install.cmake
 install_manifest.txt
 main
 *.vtk
 *.h5
-*.xmf
-*.obj
 *.csv
