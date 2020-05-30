@@ -22,4 +22,4 @@ a.conf
 add.conf
 tl
 dim*_overlap*
-!ref*/*
+!ref*/**/*

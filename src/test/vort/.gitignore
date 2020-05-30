@@ -22,3 +22,4 @@ s*.vtk
 a.conf
 tl
 !ref*/*
+!b.dat
