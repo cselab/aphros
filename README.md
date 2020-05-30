@@ -4,8 +4,8 @@ Solver for incompressible multiphase flows with surface tension.
 
 ## Clone
 
-    git clone git@github.com:cselab/aphros.git
-    cd aphros
+    git clone git@github.com:cselab/aphros-dev.git
+    cd aphros-dev
     git config pull.rebase merges
 
 ## Migrate to github aphros-dev
