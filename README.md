@@ -8,9 +8,9 @@ Solver for incompressible multiphase flows with surface tension.
     cd aphros
     git config pull.rebase merges
 
-## Migrate to github
+## Migrate to github aphros-dev
 
-    git remote set-url origin git@github.com:cselab/aphros.git
+    git remote set-url origin git@github.com:cselab/aphros-dev.git
 
 ## Documentation
 
