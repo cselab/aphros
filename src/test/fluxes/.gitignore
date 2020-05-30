@@ -28,3 +28,4 @@ tl
 p_*.dat
 vx_*.dat
 *.vtk
+!ref*/*

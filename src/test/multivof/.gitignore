@@ -20,3 +20,4 @@ np
 *.csv
 s*.vtk
 a.conf
+!ref*/*

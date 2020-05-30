@@ -21,3 +21,4 @@ s*.vtk
 a.conf
 add.conf
 tl
+!ref*/*

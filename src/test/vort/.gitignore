@@ -21,3 +21,4 @@ np
 s*.vtk
 a.conf
 tl
+!ref*/*

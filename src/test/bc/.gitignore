@@ -22,3 +22,4 @@ a.conf
 add.conf
 tl
 refpath
+!ref*/*
