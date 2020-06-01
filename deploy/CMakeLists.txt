@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.3.0)
 project("aphros")
 
+set(NAMEPREFIX ap.)
+
 IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   SET(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/prefix" CACHE PATH "Install path prefix. Defaults to 'prefix' in build directory." FORCE)
 ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -57,6 +59,8 @@ set(ScriptsList
   hist
   histbin
   intcol
+  job
+  job0
   kedr
   kill
   line
@@ -78,17 +82,24 @@ set(ScriptsList
   vtkcolorall
   writearg
 )
+
 foreach(name ${ScriptsList})
   if (EXISTS "${ScriptsProfileDir}/${name}")
-    install(
-      PROGRAMS "${ScriptsProfileDir}/${name}"
-      DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+    set(path "${ScriptsProfileDir}/${name}")
   else()
-    install(
-      PROGRAMS "${ScriptsDir}/${name}"
-      DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+    set(path "${ScriptsDir}/${name}")
   endif()
+  install(
+    PROGRAMS "${path}"
+    RENAME ${NAMEPREFIX}${name}
+    DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 endforeach()
+
+install(
+  DIRECTORY "${ScriptsDir}/aphros" "${ScriptsDir}/paratools"
+  DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+  USE_SOURCE_PERMISSIONS
+  PATTERN __pycache__ EXCLUDE)
 
 # Generated scripts
 set(GenProfileDir "${GenDir}/profiles/${Profile}")
@@ -104,12 +115,8 @@ set(GenList
   base
   submit
 )
-set(GenOutputList "${GenList}")
-list(TRANSFORM GenOutputList PREPEND "${GenOutputDir}/")
-message("${GenOutputList}")
-
 file(MAKE_DIRECTORY "${GenOutputDir}")
-
+set(GenOutputList)
 foreach(name ${GenList})
   if (EXISTS "${GenWorkDir}/${name}")
     set(gen "${GenWorkDir}/${name}")
@@ -124,12 +131,16 @@ foreach(name ${GenList})
     set(inc)
   endif()
   set(deps "${gen}" "${inc}")
-  add_custom_command(OUTPUT "${GenOutputDir}/${name}"
-      COMMAND "${gen}" > "${GenOutputDir}/${name}"
+  set(output "${GenOutputDir}/${name}")
+  list(APPEND GenOutputList "${output}")
+  add_custom_command(OUTPUT "${output}"
+      COMMAND "${gen}" > "${output}"
       DEPENDS ${deps}
       WORKING_DIRECTORY "${GenWorkDir}"
       COMMENT "Generating script '${name}'")
+  install(
+    PROGRAMS "${output}"
+    RENAME "${NAMEPREFIX}${name}"
+    DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 endforeach()
-
 add_custom_target(scripts_gen ALL DEPENDS "${GenOutputList}")
-install(PROGRAMS ${GenOutputList} DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")

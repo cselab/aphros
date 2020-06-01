@@ -8,7 +8,3 @@ set -eu
 mp="$BB/ap.base.makefile"
 cp -vf ../../sim/base.makefile "$mp"
 echo "echo '$mp'" | instin ${PRE}makesim
-
-src gen.base | instin ${PRE}base
-
-src gen.aconf | instin ${PRE}aconf

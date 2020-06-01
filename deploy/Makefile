@@ -1,8 +1,8 @@
-DIRS = setenv wrap tool eigen sim lib
+DIRS = setenv wrap eigen sim lib cmake
 
 all: $(DIRS)
 
 $(DIRS):
 	+make -C "$@"
 
-.PHONY: $(DIRS)
+.PHONY: $(DIRS) build
