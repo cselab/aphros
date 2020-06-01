@@ -269,21 +269,17 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     }
   } else if (vi == "pois" || vi == "poisy") {
     // Poiseuille with walls in y
-    auto gs = m.GetGlobalSize(); // global mesh size
-    Scal ext = var.Double["extent"]; // TODO: revise
-    Vect gh = Vect(gs) * ext / gs.max(); // global domain length
-    Scal pv = var.Double["poisvel"]; // centerline velocity
+    const Vect domain = m.GetGlobalLength();
+    const Scal pv = var.Double["poisvel"]; // centerline velocity
 
     for (auto i : m.AllCells()) {
-      Scal y = m.GetCenter(i)[1] / gh[1];
+      const Scal y = m.GetCenter(i)[1] / domain[1];
       fcv[i][0] = y * (1. - y) * 4. * pv;
     }
   } else if (vi == "poisyz") {
     // Poiseuille with walls in y and z
     // Spiga 1994: Symmetric solution for velocity in rectangular ducts
-    auto gs = m.GetGlobalSize(); // global mesh size
-    Scal ext = var.Double["extent"]; // TODO: revise
-    Vect gh = Vect(gs) * ext / gs.max(); // global domain length
+    const Vect domain = m.GetGlobalLength();
     Scal mu = var.Double["poismu"]; // viscosity
     Scal pg = var.Double["poisgrad"]; // pressure gradient
     int im = var.Int["poisiter"]; // depth to evaluate series
@@ -293,8 +289,8 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     bool wzp = var.Int["poiswzp"]; // wallzp
     Scal pi = M_PI;
 
-    Scal ly = gh[1];
-    Scal lz = gh[2];
+    Scal ly = domain[1];
+    Scal lz = domain[2];
 
     if ((!wym && !wyp) || (!wzm && !wzp)) {
       throw std::runtime_error("poisyz: can't remove both walls");
@@ -322,7 +318,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal b = lz / ly;
     Scal k = 16. * sqr(b) / std::pow(pi, 4);
 
-    // TODO: tests for gh[1] != gh[2]
+    // TODO: tests for domain[1] != domain[2]
     for (auto i : m.AllCells()) {
       Scal y = m.GetCenter(i)[1] / ly;
       y = y + oy;
