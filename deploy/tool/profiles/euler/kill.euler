@@ -1,6 +1,3 @@
-#!/bin/bash
-
-cat << 'EOF'
 qdel `cat job.id`
+
 echo stopped > job.status
-EOF

@@ -1,8 +1,5 @@
 #!/bin/bash
 
-cat << 'GENEOF'
-#!/bin/bash
-
 set -eu
 
 if [ "$#" -lt "1" ] || [ "$1" == "-h" ] ; then
@@ -17,8 +14,7 @@ EOF
 fi
 
 if [ -f 'np' ] ; then
-  mpirun --bind-to core:overload-allowed --oversubscribe -n "$(cat np)" "$@"
+  mpirun --oversubscribe -n "$(cat np)" "$@"
 else
   mpirun "$@"
 fi
-GENEOF

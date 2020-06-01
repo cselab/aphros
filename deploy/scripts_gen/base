@@ -1,6 +1,6 @@
 #!/bin/bash
 
-b="../../sim/base.conf"
+b="$(dirname "$0")/../../sim/base.conf"
 
 echo "cat > base.conf << 'EOF'
 `cat $b`

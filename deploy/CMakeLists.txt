@@ -16,13 +16,27 @@ if (NOT CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_INSTALL_LIBDIR}")
 endif ()
 
-# Scripts
+# Select profile
+# FIXME: combine scripts/profiles and scripts_gen/profiles
+#        now only looking in "scripts_gen/profiles"
+set(GenDir "${CMAKE_CURRENT_SOURCE_DIR}/scripts_gen")
+set(ProfilesDir "${GenDir}/profiles")
+set(ProfileDefault "default")
+file(GLOB ProfileValues RELATIVE "${ProfilesDir}" "${ProfilesDir}/*")
+list(PREPEND ProfileValues "${ProfileDefault}")
+set(Profile "${ProfileDefault}" CACHE STRING "Profile for tools and wrappers, options are: ${ProfileValues}")
+set_property(CACHE Profile PROPERTY STRINGS ${ProfileValues})
 
-set(SCRIPTS
+# Scripts
+set(ScriptsDir "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
+set(ScriptsProfileDir "${ScriptsDir}/profiles/${Profile}")
+set(ScriptsList
   applycopyright
   argmax
   argmaxall
   cawk
+  conf
+  confdeb
   copyright
   deriv
   diff
@@ -44,37 +58,43 @@ set(SCRIPTS
   histbin
   intcol
   kedr
+  kill
   line
   makearg
+  mpirun
   order
   part
   part0
   plain2vtk
+  run
+  run0
   scale
   spawn
   statcopy
+  submit0
+  sysinfo
   task
   trajaxes
   vtkcolorall
+  writearg
 )
-list(TRANSFORM SCRIPTS PREPEND scripts/)
-install(PROGRAMS ${SCRIPTS} DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-
-
-# Select profile
-set(GenPath "${CMAKE_CURRENT_SOURCE_DIR}/scripts_gen")
-set(ProfilesDir "${GenPath}/profiles")
-set(ProfileDefault "default")
-file(GLOB ProfileValues RELATIVE "${ProfilesDir}" "${ProfilesDir}/*")
-list(PREPEND ProfileValues "${ProfileDefault}")
-set(Profile "${ProfileDefault}" CACHE STRING "Profile for tools and wrappers, options are: ${ProfileValues}")
-set_property(CACHE Profile PROPERTY STRINGS ${ProfileValues})
+foreach(name ${ScriptsList})
+  if (EXISTS "${ScriptsProfileDir}/${name}")
+    install(
+      PROGRAMS "${ScriptsProfileDir}/${name}"
+      DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+  else()
+    install(
+      PROGRAMS "${ScriptsDir}/${name}"
+      DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+  endif()
+endforeach()
 
 # Generated scripts
+set(GenProfileDir "${GenDir}/profiles/${Profile}")
 set(GenOutputDir "${CMAKE_CURRENT_BINARY_DIR}/gen")
-
 if ("${Profile}" STREQUAL "${ProfileDefault}")
-  set(GenWorkDir "${GenPath}")
+  set(GenWorkDir "${GenDir}")
 else()
   set(GenWorkDir "${ProfilesDir}/${Profile}")
 endif()
@@ -82,10 +102,6 @@ endif()
 set(GenList
   aconf
   base
-  conf
-  confdeb
-  kill
-  mpirun
   submit
 )
 set(GenOutputList "${GenList}")
@@ -98,12 +114,12 @@ foreach(name ${GenList})
   if (EXISTS "${GenWorkDir}/${name}")
     set(gen "${GenWorkDir}/${name}")
   else()
-    set(gen "${GenPath}/${name}")
+    set(gen "${GenDir}/${name}")
   endif()
   if (EXISTS "${GenWorkDir}/${name}_inc")
     set(inc "${GenWorkDir}/${name}_inc")
-  elseif(EXISTS "${GenPath}/${name}_inc")
-    set(inc "${GenPath}/${name}_inc")
+  elseif(EXISTS "${GenDir}/${name}_inc")
+    set(inc "${GenDir}/${name}_inc")
   else()
     set(inc)
   endif()

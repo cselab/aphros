@@ -1,8 +1,5 @@
 #!/bin/bash
 
-cat << 'GENEOF'
-#!/bin/bash
-
 set -eu
 
 if [ "$#" -lt "1" ] || [ "$1" == "-h" ] ; then
@@ -21,4 +18,3 @@ if [ -f 'np' ] ; then
 else
   srun "$@"
 fi
-GENEOF

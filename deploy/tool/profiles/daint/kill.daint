@@ -1,6 +1,3 @@
-#!/bin/bash
-
-cat << 'EOF'
 scancel `cat job.id` -v
+
 echo stopped > job.status
-EOF
