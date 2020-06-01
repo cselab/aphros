@@ -4,14 +4,14 @@ CMAKE = ap.conf
 
 all: $(MAKEFILE)
 	+make -C $(BUILD) $(target)
-	+make -C $(BUILD) install 
+	+make -C $(BUILD) install
 
 $(MAKEFILE):
 	mkdir -p "$(BUILD)"
 	(cd "$(BUILD)" && $(CMAKE) ..)
 
 install: $(MAKEFILE)
-	+make -C $(BUILD) install 
+	+make -C $(BUILD) install
 
 test:
 	(cd $(BUILD) && ctest -j`nproc --all`)
@@ -19,4 +19,4 @@ test:
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all install test
+.PHONY: all clean install test
