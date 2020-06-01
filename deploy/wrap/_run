@@ -5,6 +5,8 @@ set -eu
 . ap.setenv
 . ../util
 
+mkdir -p "$BB"
+
 mp="$BB/ap.base.makefile"
 cp -vf ../../sim/base.makefile "$mp"
 echo "echo '$mp'" | instin ${PRE}makesim
