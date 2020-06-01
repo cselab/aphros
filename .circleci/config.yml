@@ -26,7 +26,7 @@ jobs:
             make
             (cd hypre ; make)
             cd ../src
-            make -j1
+            make -j2
             make test
             cd ../examples
             make build VERBOSE=1
