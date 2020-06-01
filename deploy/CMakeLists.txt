@@ -80,6 +80,8 @@ else()
 endif()
 
 set(GenList
+  aconf
+  base
   conf
   confdeb
   kill
