@@ -16,7 +16,7 @@ if (NOT CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_INSTALL_LIBDIR}")
 endif ()
 
-# Install scripts
+# Scripts
 
 set(SCRIPTS
   applycopyright
@@ -58,20 +58,57 @@ set(SCRIPTS
   vtkcolorall
 )
 list(TRANSFORM SCRIPTS PREPEND scripts/)
-
 install(PROGRAMS ${SCRIPTS} DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
-# Install generated scripts
-set(override "${CMAKE_CURRENT_SOURCE_DIR}/scripts_gen/override")
-file(GLOB ProfileValues RELATIVE "${override}" "${override}/*")
+
+# Select profile
+set(GenPath "${CMAKE_CURRENT_SOURCE_DIR}/scripts_gen")
+set(OverridePath "${GenPath}/override")
 set(ProfileDefault "default")
+file(GLOB ProfileValues RELATIVE "${OverridePath}" "${OverridePath}/*")
 list(PREPEND ProfileValues "${ProfileDefault}")
 set(Profile "${ProfileDefault}" CACHE STRING "Profile for tools and wrappers, options are: ${ProfileValues}")
 set_property(CACHE Profile PROPERTY STRINGS ${ProfileValues})
 
-set(SCRIPTS_GEN
-  sysinfo
-)
-list(TRANSFORM SCRIPTS_GEN PREPEND scripts_gen/)
+# Generated scripts
+set(GenOutputDir "${CMAKE_CURRENT_BINARY_DIR}/gen")
 
-install(PROGRAMS ${SCRIPTS_GEN} DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+if ("${Profile}" STREQUAL "${ProfileDefault}")
+  set(GenWorkDir "${GenPath}")
+else()
+  set(GenWorkDir "${OverridePath}/${Profile}")
+endif()
+
+set(GenList
+  submit
+  kill
+)
+set(GenOutputList "${GenList}")
+list(TRANSFORM GenOutputList PREPEND "${GenOutputDir}/")
+message("${GenOutputList}")
+
+file(MAKE_DIRECTORY "${GenOutputDir}")
+
+foreach(name ${GenList})
+  if (EXISTS "${GenWorkDir}/${name}_gen")
+    set(gen "${GenWorkDir}/${name}_gen")
+  else()
+    set(gen "${GenPath}/${name}_gen")
+  endif()
+  if (EXISTS "${GenWorkDir}/${name}_inc")
+    set(inc "${GenWorkDir}/${name}_inc")
+  elseif(EXISTS "${GenPath}/${name}_inc")
+    set(inc "${GenWorkDir}/${name}_inc")
+  else()
+    set(inc)
+  endif()
+  set(deps "${gen}" "${inc}")
+  add_custom_command(OUTPUT "${GenOutputDir}/${name}"
+      COMMAND "${GenPath}/${name}_gen" > "${GenOutputDir}/${name}"
+      DEPENDS ${deps}
+      WORKING_DIRECTORY "${GenWorkDir}"
+      COMMENT "Generating script '${name}'")
+endforeach()
+
+add_custom_target(scripts_gen ALL DEPENDS "${GenOutputList}")
+install(PROGRAMS ${GenOutputList} DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
