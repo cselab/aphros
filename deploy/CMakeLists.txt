@@ -25,7 +25,7 @@ set(GenDir "${CMAKE_CURRENT_SOURCE_DIR}/scripts_gen")
 set(ProfilesDir "${GenDir}/profiles")
 set(ProfileDefault "default")
 file(GLOB ProfileValues RELATIVE "${ProfilesDir}" "${ProfilesDir}/*")
-list(PREPEND ProfileValues "${ProfileDefault}")
+list(APPEND ProfileValues "${ProfileDefault}")
 set(Profile "${ProfileDefault}" CACHE STRING "Profile for tools and wrappers, options are: ${ProfileValues}")
 set_property(CACHE Profile PROPERTY STRINGS ${ProfileValues})
 
@@ -103,7 +103,7 @@ install(
 
 # Generated scripts
 set(GenProfileDir "${GenDir}/profiles/${Profile}")
-set(GenOutputDir "${CMAKE_CURRENT_BINARY_DIR}/gen")
+set(GenOutputDir "${CMAKE_CURRENT_BINARY_DIR}/scripts_gen")
 if ("${Profile}" STREQUAL "${ProfileDefault}")
   set(GenWorkDir "${GenDir}")
 else()
