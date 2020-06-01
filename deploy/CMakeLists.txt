@@ -85,12 +85,12 @@ set(ScriptsList
     trajaxes
     vtkcolorall
     writearg
-)
+  )
 set(ScriptsListNoExec
     job
     job0
     sim_base.makefile
-)
+  )
 
 foreach(name ${ScriptsList})
   if (EXISTS "${ScriptsProfileDir}/${name}")
@@ -137,10 +137,14 @@ else()
 endif()
 
 set(GenList
-    submit
     create_a_conf
     create_base_conf
-)
+    setenv
+    submit
+  )
+set(GenListNoExec
+    setenv
+  )
 file(MAKE_DIRECTORY "${GenOutputDir}")
 set(GenOutputList)
 foreach(name ${GenList})
@@ -161,14 +165,21 @@ foreach(name ${GenList})
   list(APPEND GenOutputList "${output}")
   add_custom_command(
       OUTPUT "${output}"
-      COMMAND "${gen}" > "${output}"
+      COMMAND ${CMAKE_COMMAND} -E env PREFIX=${CMAKE_INSTALL_PREFIX} "${gen}" > "${output}"
       DEPENDS ${deps}
       WORKING_DIRECTORY "${GenWorkDir}"
       COMMENT "Generating script '${name}'")
-  install(
-      PROGRAMS "${output}"
-      RENAME "${NAMEPREFIX}${name}"
-      DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+  if ("${name}" IN_LIST GenListNoExec)
+    install(
+        FILES "${output}"
+        RENAME "${NAMEPREFIX}${name}"
+        DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+  else()
+    install(
+        PROGRAMS "${output}"
+        RENAME "${NAMEPREFIX}${name}"
+        DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+  endif()
 endforeach()
 
 add_custom_target(scripts_gen ALL DEPENDS "${GenOutputList}")

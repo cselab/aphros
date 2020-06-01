@@ -2,7 +2,7 @@
 
 set -eu
 
-. ap.setenv
+P=$APHROS_PREFIX
 . ../util
 
 e () {

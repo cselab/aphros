@@ -1,4 +1,4 @@
-DIRS = setenv cmake eigen lib
+DIRS = eigen lib
 
 all: $(DIRS)
 

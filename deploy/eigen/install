@@ -1,5 +1,6 @@
 set -eu
 
+P=$APHROS_PREFIX
 rm -rf "$P/include/Eigen"
 
 mkdir -p "$P/include"
