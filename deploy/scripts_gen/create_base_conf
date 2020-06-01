@@ -1,6 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 
-b="$(dirname "$0")/../../sim/base.conf"
+set -eu
+
+b="$(dirname "$0")/../scripts/sim_base.conf"
 
 echo "cat > base.conf << 'EOF'
 `cat $b`

@@ -6,7 +6,7 @@ eval $@
 
 : ${dim=2}
 : ${overlap=1}
-: ${d=$CHPREFIX/sim/partstr/randc}
+: ${d=sim}
 : ${r=9}
 
 o=dim${dim}_overlap${overlap}

@@ -89,7 +89,7 @@ set(ScriptsList
 set(ScriptsListNoExec
     job
     job0
-    base.makefile
+    sim_base.makefile
 )
 
 foreach(name ${ScriptsList})

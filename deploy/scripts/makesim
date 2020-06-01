@@ -1,1 +1,1 @@
-echo "$(dirname "$0")/ap.base.makefile"
+echo "$(dirname "$0")/ap.sim_base.makefile"
