@@ -80,8 +80,11 @@ else()
 endif()
 
 set(GenList
-  submit
+  conf
+  confdeb
   kill
+  mpirun
+  submit
 )
 set(GenOutputList "${GenList}")
 list(TRANSFORM GenOutputList PREPEND "${GenOutputDir}/")
@@ -98,13 +101,13 @@ foreach(name ${GenList})
   if (EXISTS "${GenWorkDir}/${name}_inc")
     set(inc "${GenWorkDir}/${name}_inc")
   elseif(EXISTS "${GenPath}/${name}_inc")
-    set(inc "${GenWorkDir}/${name}_inc")
+    set(inc "${GenPath}/${name}_inc")
   else()
     set(inc)
   endif()
   set(deps "${gen}" "${inc}")
   add_custom_command(OUTPUT "${GenOutputDir}/${name}"
-      COMMAND "${GenPath}/${name}_gen" > "${GenOutputDir}/${name}"
+      COMMAND "${gen}" > "${GenOutputDir}/${name}"
       DEPENDS ${deps}
       WORKING_DIRECTORY "${GenWorkDir}"
       COMMENT "Generating script '${name}'")

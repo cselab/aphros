@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cat << 'EOF'
+cmake "$@" -DMPI_C_COMPILER=cc -DMPI_CXX_COMPILER=CC -DCMAKE_BUILD_TYPE=debug
+EOF

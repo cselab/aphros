@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cat << 'EOF'
+cmake "$@" -DCMAKE_BUILD_TYPE=relwithdebinfo
+EOF

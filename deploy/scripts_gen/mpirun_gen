@@ -1,0 +1,24 @@
+#!/bin/bash
+
+cat << 'GENEOF'
+#!/bin/bash
+
+set -eu
+
+if [ "$#" -lt "1" ] || [ "$1" == "-h" ] ; then
+    cat << EOF
+usage: `basename $0` [-h] ARGS
+Reads the number of cores NP from file 'np' and executes
+mpirun -n NP ARGS
+If file 'np' does not exist, executes
+mpirun ARGS
+EOF
+    exit 1
+fi
+
+if [ -f 'np' ] ; then
+  mpirun --bind-to core:overload-allowed --oversubscribe -n "$(cat np)" "$@"
+else
+  mpirun "$@"
+fi
+GENEOF
