@@ -1,8 +1,0 @@
-#!/bin/bash
-
-b="../../sim/base.conf"
-
-echo "cat > base.conf << EOF
-`cat $b`
-EOF
-"
