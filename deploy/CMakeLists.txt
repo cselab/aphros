@@ -4,7 +4,8 @@ project("aphros")
 set(NAMEPREFIX ap.)
 
 IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  SET(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/prefix" CACHE PATH "Install path prefix. Defaults to 'prefix' in build directory." FORCE)
+  SET(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/prefix"
+      CACHE PATH "Install path prefix. Defaults to 'prefix' in build directory." FORCE)
 ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 include(GNUInstallDirs)
@@ -26,61 +27,69 @@ set(ProfilesDir "${GenDir}/profiles")
 set(ProfileDefault "default")
 file(GLOB ProfileValues RELATIVE "${ProfilesDir}" "${ProfilesDir}/*")
 list(APPEND ProfileValues "${ProfileDefault}")
-set(Profile "${ProfileDefault}" CACHE STRING "Profile for tools and wrappers, options are: ${ProfileValues}")
+set(
+    Profile "${ProfileDefault}"
+    CACHE STRING "Profile for tools and wrappers, options are: ${ProfileValues}")
 set_property(CACHE Profile PROPERTY STRINGS ${ProfileValues})
 
 # Scripts
 set(ScriptsDir "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
 set(ScriptsProfileDir "${ScriptsDir}/profiles/${Profile}")
 set(ScriptsList
-  applycopyright
-  argmax
-  argmaxall
-  cawk
-  conf
-  confdeb
-  copyright
-  deriv
-  diff
-  diffnum
-  downsample
-  downsampleall
-  findsource
-  format
-  genxmf
-  genxmfall
-  getcol
-  gettraj
-  gettrajcol
-  gettrajm
-  gettrajsh
-  getval
-  hausdorff
-  hist
-  histbin
-  intcol
-  job
-  job0
-  kedr
-  kill
-  line
-  makearg
-  mpirun
-  order
-  part
-  part0
-  plain2vtk
-  run
-  run0
-  scale
-  spawn
-  statcopy
-  submit0
-  sysinfo
-  task
-  trajaxes
-  vtkcolorall
-  writearg
+    aconf
+    applycopyright
+    argmax
+    argmaxall
+    base
+    cawk
+    conf
+    confdeb
+    copyright
+    deriv
+    diff
+    diffnum
+    downsample
+    downsampleall
+    findsource
+    format
+    genxmf
+    genxmfall
+    getcol
+    gettraj
+    gettrajcol
+    gettrajm
+    gettrajsh
+    getval
+    hausdorff
+    hist
+    histbin
+    intcol
+    kedr
+    kill
+    line
+    makearg
+    makesim
+    mpirun
+    order
+    part
+    part0
+    plain2vtk
+    run
+    run0
+    scale
+    spawn
+    statcopy
+    submit0
+    sysinfo
+    task
+    trajaxes
+    vtkcolorall
+    writearg
+)
+set(ScriptsListNoExec
+    job
+    job0
+    base.makefile
 )
 
 foreach(name ${ScriptsList})
@@ -89,17 +98,34 @@ foreach(name ${ScriptsList})
   else()
     set(path "${ScriptsDir}/${name}")
   endif()
+
   install(
     PROGRAMS "${path}"
     RENAME ${NAMEPREFIX}${name}
     DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 endforeach()
 
+foreach(name ${ScriptsListNoExec})
+  if (EXISTS "${ScriptsProfileDir}/${name}")
+    set(path "${ScriptsProfileDir}/${name}")
+  else()
+    set(path "${ScriptsDir}/${name}")
+  endif()
+
+  install(
+      FILES "${path}"
+      RENAME ${NAMEPREFIX}${name}
+      DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+endforeach()
+
+
 install(
-  DIRECTORY "${ScriptsDir}/aphros" "${ScriptsDir}/paratools"
-  DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
-  USE_SOURCE_PERMISSIONS
-  PATTERN __pycache__ EXCLUDE)
+    DIRECTORY
+      "${ScriptsDir}/aphros"
+      "${ScriptsDir}/paratools"
+    DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+    USE_SOURCE_PERMISSIONS
+    PATTERN __pycache__ EXCLUDE)
 
 # Generated scripts
 set(GenProfileDir "${GenDir}/profiles/${Profile}")
@@ -111,9 +137,9 @@ else()
 endif()
 
 set(GenList
-  aconf
-  base
-  submit
+    submit
+    create_a_conf
+    create_base_conf
 )
 file(MAKE_DIRECTORY "${GenOutputDir}")
 set(GenOutputList)
@@ -133,14 +159,16 @@ foreach(name ${GenList})
   set(deps "${gen}" "${inc}")
   set(output "${GenOutputDir}/${name}")
   list(APPEND GenOutputList "${output}")
-  add_custom_command(OUTPUT "${output}"
+  add_custom_command(
+      OUTPUT "${output}"
       COMMAND "${gen}" > "${output}"
       DEPENDS ${deps}
       WORKING_DIRECTORY "${GenWorkDir}"
       COMMENT "Generating script '${name}'")
   install(
-    PROGRAMS "${output}"
-    RENAME "${NAMEPREFIX}${name}"
-    DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+      PROGRAMS "${output}"
+      RENAME "${NAMEPREFIX}${name}"
+      DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 endforeach()
+
 add_custom_target(scripts_gen ALL DEPENDS "${GenOutputList}")
