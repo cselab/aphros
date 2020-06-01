@@ -16,6 +16,8 @@ if (NOT CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_INSTALL_LIBDIR}")
 endif ()
 
+# Install scripts
+
 set(SCRIPTS
   applycopyright
   argmax
@@ -57,10 +59,19 @@ set(SCRIPTS
 )
 list(TRANSFORM SCRIPTS PREPEND scripts/)
 
+install(PROGRAMS ${SCRIPTS} DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+
+# Install generated scripts
+set(override "${CMAKE_CURRENT_SOURCE_DIR}/scripts_gen/override")
+file(GLOB ProfileValues RELATIVE "${override}" "${override}/*")
+set(ProfileDefault "default")
+list(PREPEND ProfileValues "${ProfileDefault}")
+set(Profile "${ProfileDefault}" CACHE STRING "Profile for tools and wrappers, options are: ${ProfileValues}")
+set_property(CACHE Profile PROPERTY STRINGS ${ProfileValues})
+
 set(SCRIPTS_GEN
   sysinfo
 )
 list(TRANSFORM SCRIPTS_GEN PREPEND scripts_gen/)
 
-install(PROGRAMS ${SCRIPTS} DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 install(PROGRAMS ${SCRIPTS_GEN} DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
