@@ -1,4 +1,4 @@
-DIRS = setenv wrap eigen sim lib cmake
+DIRS = setenv cmake wrap eigen sim lib
 
 all: $(DIRS)
 
