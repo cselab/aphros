@@ -3,10 +3,13 @@ project("aphros")
 
 set(NAMEPREFIX ap.)
 
-IF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  SET(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/prefix"
+if (DEFINED ENV{APHROS_PREFIX})
+  set(CMAKE_INSTALL_PREFIX $ENV{APHROS_PREFIX}
+      CACHE PATH "Install path prefix. Set from APHROS_PREFIX" FORCE)
+elseif (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/prefix"
       CACHE PATH "Install path prefix. Defaults to 'prefix' in build directory." FORCE)
-ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+endif ()
 
 include(GNUInstallDirs)
 if (NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
@@ -181,5 +184,18 @@ foreach(name ${GenList})
         DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
   endif()
 endforeach()
-
 add_custom_target(scripts_gen ALL DEPENDS "${GenOutputList}")
+
+include(ExternalProject)
+
+# Hypre
+set(hypre_tar "${CMAKE_CURRENT_SOURCE_DIR}/hypre/hypre.tar.gz")
+ExternalProject_Add(hypre
+    URL ${hypre_tar}
+    CMAKE_ARGS
+      -DHYPRE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+      -DHYPRE_SHARED=ON
+    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/hypre
+    INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
+    SOURCE_SUBDIR src
+  )

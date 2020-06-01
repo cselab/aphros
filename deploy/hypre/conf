@@ -1,4 +1,0 @@
-cd "$src"
-
-./configure --enable-shared --prefix="$P"
-
