@@ -7,8 +7,10 @@ import subprocess
 import shutil
 from glob import glob
 
+
 def printerr(msg):
     sys.stderr.write("{:}\n".format(msg))
+
 
 gen_dir = os.path.abspath("scripts_gen")
 profiles_dir = os.path.join(gen_dir, "profiles")
@@ -17,25 +19,22 @@ profile_default = "default"
 profiles = [profile_default] + profiles
 
 parser = argparse.ArgumentParser(
-        description="Installs file 'ap.setenv' which appends paths \
+    description="Installs file 'ap.setenv' which appends paths \
 and loads modules depending on the selected configuration profile. \
 After sourcing the file in a shell, proceed with CMake.")
+parser.add_argument('prefix', help="installation prefix for Aphros")
 parser.add_argument(
-        'prefix',
-        help="installation prefix for Aphros")
-parser.add_argument(
-        '--profile',
-        default=profile_default,
-        choices=profiles,
-        help="configuration profile, defined in 'scripts_gen/profiles'")
-parser.add_argument(
-        '--no-bin-symlink',
-        action='store_true',
-        help="do not create symlink '~/bin/ap.setenv'")
-parser.add_argument(
-        '--force', '-f',
-        action='store_true',
-        help="overwrite existing files and symlinks")
+    '--profile',
+    default=profile_default,
+    choices=profiles,
+    help="configuration profile, defined in 'scripts_gen/profiles'")
+parser.add_argument('--no-bin-symlink',
+                    action='store_true',
+                    help="do not create symlink '~/bin/ap.setenv'")
+parser.add_argument('--force',
+                    '-f',
+                    action='store_true',
+                    help="overwrite existing files and symlinks")
 args = parser.parse_args()
 
 prefix = os.path.abspath(args.prefix)
@@ -65,22 +64,24 @@ else:
     exe_path = os.path.join(gen_dir, name)
 
 with open(fpath, "wb") as f:
-    subprocess.call(
-            [exe_path],
-            cwd=profile_dir,
-            env={"PREFIX": prefix, "PROFILE": profile},
-            stdout=f)
+    subprocess.call([exe_path],
+                    cwd=profile_dir,
+                    env={
+                        "PREFIX": prefix,
+                        "PROFILE": profile
+                    },
+                    stdout=f)
 
 home_bin = os.path.expanduser("~/bin")
 lpath = os.path.join(home_bin, fname)
 if symlink:
-    if os.path.islink(lpath):
+    if os.path.islink(lpath) or os.path.isfile(lpath):
         if not args.force:
-            raise RuntimeError(f"Symlink '{lpath}' exists, pass -f to overwrite.")
-        os.unlink(lpath)
+            raise RuntimeError(
+                f"Symlink or file '{lpath}' exists, pass -f to overwrite.")
+        os.remove(lpath)
     os.symlink(fpath, lpath)
     print(f"Added symlink to '{home_bin}'.")
-
 
 print("Command to source the file:")
 if symlink:
