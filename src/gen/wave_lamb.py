@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Capillary effects on wave breaking
 # Luc Deike, Stephane Popinet and W. Kendall Melville

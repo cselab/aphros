@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Generates xmf for dataset 'data' in hdf.
 # $1: name of base.h5 file

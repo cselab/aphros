@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Vary bubble position and radius.
 # $1: solver name (ch, ba)
