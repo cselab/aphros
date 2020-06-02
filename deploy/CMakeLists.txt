@@ -236,3 +236,5 @@ ExternalProject_Add(fpzip
   )
 install(FILES ${fpzip_build}/lib/libfpzip.a DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(FILES ${fpzip_build}/inc/fpzip.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
+add_subdirectory(lib)
