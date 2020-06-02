@@ -66,7 +66,7 @@ int stl_read(
           fprintf(
               stderr,
               "%s:%d: expecting 'facet normal' or 'endsolid', got '%s'\n",
-              __FILE__, __LINE__);
+              __FILE__, __LINE__, s);
           goto err;
         }
         break;
@@ -74,7 +74,7 @@ int stl_read(
         if (strncmp(s, "outer loop", SIZE)) {
           fprintf(
               stderr, "%s:%d: expecting 'outer loop', got '%s'\n", __FILE__,
-              __LINE__);
+              __LINE__, s);
           goto err;
         }
         iver = 0;
@@ -84,7 +84,7 @@ int stl_read(
         if (strncmp(s, "vertex", 6)) {
           fprintf(
               stderr, "%s:%d: expecting 'vertex', got '%s'\n", __FILE__,
-              __LINE__);
+              __LINE__, s);
           goto err;
         }
         if (sscanf(s, "vertex %lf %lf %lf", &x, &y, &z) != 3) {
@@ -110,7 +110,7 @@ int stl_read(
         if (strncmp(s, "endloop", SIZE)) {
           fprintf(
               stderr, "%s:%d: expecting 'endloop', got '%s'\n", __FILE__,
-              __LINE__);
+              __LINE__, s);
           goto err;
         }
         state = FacetEnd;
@@ -119,7 +119,7 @@ int stl_read(
         if (strncmp(s, "endfacet", SIZE)) {
           fprintf(
               stderr, "%s:%d: expecting 'endfacet', got '%s'\n", __FILE__,
-              __LINE__);
+              __LINE__, s);
           goto err;
         }
         state = FacetStart;
