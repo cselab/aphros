@@ -8,7 +8,6 @@ jobs:
       - checkout
       - run:
           command: |
-            update-alternatives --install /usr/bin/gfortran gfortran /usr/local/bin/gfortran 999
             apt update
             apt install -y --no-install-recommends apt-utils
             apt install -y make cmake libhdf5-openmpi-dev hdf5-tools python-numpy sudo rsync libgsl-dev
