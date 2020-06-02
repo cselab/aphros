@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 2.8)
-project(vofi C)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(T vofi)
 add_library(${T} SHARED
                  checkconsistency.c
@@ -16,15 +13,11 @@ add_library(${T} SHARED
                  vofi_GL.h
                  vofi.h
                  vofi_stddecl.h)
-
-set(CHPREFIX $ENV{CHPREFIX})
-set(CMAKEPREFIX ${CHPREFIX}/cmake/aphros)
-
+set_property(TARGET ${T} PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_target_properties(${T} PROPERTIES PUBLIC_HEADER "vofi.h")
-
-install(TARGETS ${T} 
-    EXPORT export DESTINATION ${CHPREFIX}/lib
-    PUBLIC_HEADER DESTINATION ${CHPREFIX}/include)
-target_include_directories(${T} PUBLIC "${CHPREFIX}/include")
+install(TARGETS ${T}
+    EXPORT export DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+target_include_directories(${T} PUBLIC "${CMAKE_INSTALL_PREFIX}/include")
 target_link_libraries(${T} PUBLIC m)
 install(EXPORT export FILE vofiConfig.cmake DESTINATION ${CMAKEPREFIX})

@@ -17,6 +17,8 @@ elseif (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
       CACHE PATH "Install path prefix. Defaults to 'prefix' in build directory." FORCE)
 endif ()
 
+set(CMAKEPREFIX ${CMAKE_INSTALL_PREFIX}/cmake/aphros)
+
 include(GNUInstallDirs)
 if (NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_INSTALL_BINDIR}")
