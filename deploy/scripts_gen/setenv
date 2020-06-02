@@ -3,9 +3,11 @@
 import os
 
 PREFIX = os.environ["PREFIX"]
+PROFILE = os.environ["PROFILE"]
 EXTRA = ""
 FLAGVAR = "APHROS_SETENV"
 PREFIXVAR = "APHROS_PREFIX"
+PROFILEVAR = "APHROS_PROFILE"
 
 inc = "setenv_inc"
 if os.path.isfile(inc):
@@ -23,6 +25,7 @@ if [ "${[[FLAGVAR]]:-x}" != "1" ] ; then
   : ${CMAKE_PREFIX_PATH=}
 
   export [[PREFIXVAR]]="[[PREFIX]]"
+  export [[PROFILEVAR]]="[[PROFILE]]"
   export CHPREFIX="${[[PREFIXVAR]]}"
   export PATH="${[[PREFIXVAR]]}/bin:$PATH"
   export LD_LIBRARY_PATH="${[[PREFIXVAR]]}/lib:${LD_LIBRARY_PATH}"
@@ -42,8 +45,10 @@ fi
 for name in [
         "PREFIX",
         "EXTRA",
+        "PROFILE",
         "FLAGVAR",
         "PREFIXVAR",
+        "PROFILEVAR",
 ]:
     o = o.replace('[[' + name + ']]', locals()[name])
 

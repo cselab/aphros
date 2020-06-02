@@ -40,7 +40,7 @@ args = parser.parse_args()
 
 prefix = os.path.abspath(args.prefix)
 prefix_bin = os.path.join(prefix, "bin")
-
+profile = args.profile
 symlink = not args.no_bin_symlink
 
 if not os.path.isdir(prefix_bin):
@@ -51,12 +51,12 @@ fpath = os.path.join(prefix_bin, fname)
 if os.path.isfile(fpath):
     if not args.force:
         raise RuntimeError(f"File '{fpath}' exists, pass -f to overwrite.")
-print(f"Created '{fpath}' from profile '{args.profile}'.")
+print(f"Created '{fpath}' from profile '{profile}'.")
 
-if args.profile == profile_default:
+if profile == profile_default:
     profile_dir = gen_dir
 else:
-    profile_dir = os.path.join(profiles_dir, args.profile)
+    profile_dir = os.path.join(profiles_dir, profile)
 
 name = "setenv"
 if os.path.isfile(os.path.join(profile_dir, name)):
@@ -68,7 +68,7 @@ with open(fpath, "wb") as f:
     subprocess.call(
             [exe_path],
             cwd=profile_dir,
-            env={"PREFIX": prefix},
+            env={"PREFIX": prefix, "PROFILE": profile},
             stdout=f)
 
 home_bin = os.path.expanduser("~/bin")

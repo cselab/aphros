@@ -11,11 +11,18 @@ endif ()
 
 if (DEFINED ENV{APHROS_PREFIX})
   set(CMAKE_INSTALL_PREFIX $ENV{APHROS_PREFIX}
-      CACHE PATH "Install path prefix. Set from APHROS_PREFIX" FORCE)
+      CACHE PATH "Install path prefix. Detected from environment APHROS_PREFIX" FORCE)
 elseif (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/prefix"
       CACHE PATH "Install path prefix. Defaults to 'prefix' in build directory." FORCE)
 endif ()
+
+set(BuildTypeValues None Debug Release RelWithDebInfo MinSizeRel)
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
+      "Choose the type of build, options are: ${BuildTypeValues}." FORCE)
+endif ()
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${BuildTypeValues})
 
 set(CMAKEPREFIX ${CMAKE_INSTALL_PREFIX}/cmake/aphros)
 
@@ -38,9 +45,15 @@ set(ProfilesDir "${GenDir}/profiles")
 set(ProfileDefault "default")
 file(GLOB ProfileValues RELATIVE "${ProfilesDir}" "${ProfilesDir}/*")
 list(APPEND ProfileValues "${ProfileDefault}")
-set(
-    Profile "${ProfileDefault}"
-    CACHE STRING "Profile for tools and wrappers, options are: ${ProfileValues}")
+
+if (DEFINED ENV{APHROS_PROFILE})
+  set(Profile $ENV{APHROS_PROFILE}
+      CACHE STRING "Profile for tools and wrappers, options are: ${ProfileValues}")
+else()
+  set(Profile "${ProfileDefault}"
+      CACHE STRING "Profile for tools and wrappers, options are: ${ProfileValues}")
+endif ()
+
 set_property(CACHE Profile PROPERTY STRINGS ${ProfileValues})
 
 # Scripts
@@ -176,7 +189,11 @@ foreach(name ${GenList})
   list(APPEND GenOutputList "${output}")
   add_custom_command(
       OUTPUT "${output}"
-      COMMAND ${CMAKE_COMMAND} -E env PREFIX=${CMAKE_INSTALL_PREFIX} "${gen}" > "${output}"
+      COMMAND ${CMAKE_COMMAND}
+        -E env
+        PREFIX=${CMAKE_INSTALL_PREFIX}
+        PROFILE=${Profile}
+        "${gen}" > "${output}"
       DEPENDS ${deps}
       WORKING_DIRECTORY "${GenWorkDir}"
       COMMENT "Generating script '${name}'")
