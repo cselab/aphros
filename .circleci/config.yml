@@ -21,9 +21,8 @@ jobs:
             export PATH=\$HOME/bin:\$PATH
             cd /root/project
             cd deploy
-            (mkdir -p build && cd build && cmake .. && make VERBOSE=1 && make install)
+            (mkdir -p build && cd build && cmake .. && make -j2 VERBOSE=1 && make install)
             . build/prefix/bin/ap.setenv
-            make
             cd ../src
             make -j2
             make test
