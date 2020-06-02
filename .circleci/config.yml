@@ -24,7 +24,6 @@ jobs:
             (mkdir -p build && cd build && cmake .. && make && make install)
             . build/prefix/bin/ap.setenv
             make
-            (cd hypre ; make)
             cd ../src
             make -j2
             make test

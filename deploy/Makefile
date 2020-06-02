@@ -1,4 +1,4 @@
-DIRS = eigen lib
+DIRS = lib
 
 all: $(DIRS)
 
