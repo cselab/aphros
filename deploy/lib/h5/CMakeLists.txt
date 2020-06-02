@@ -7,7 +7,7 @@ set_target_properties(${T} PROPERTIES PUBLIC_HEADER "${H}")
 target_link_libraries(${T} PUBLIC hdf)
 target_include_directories(${T} PUBLIC "${CMAKE_INSTALL_PREFIX}/include")
 install(TARGETS ${T}
-    EXPORT export DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    EXPORT export_${T} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
-install(EXPORT export FILE h5.lib.cmake DESTINATION ${CMAKEPREFIX})
+install(EXPORT export_${T} FILE h5.lib.cmake DESTINATION ${CMAKEPREFIX})
 install(FILES h5.dep.cmake h5Config.cmake DESTINATION ${CMAKEPREFIX})

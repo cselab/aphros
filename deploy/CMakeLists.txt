@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.3.0)
-project("aphros")
+project("aphros-deploy")
 
 set(NAMEPREFIX ap.)
 

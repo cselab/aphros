@@ -8,10 +8,10 @@ add_library(${T} SHARED
 set_property(TARGET ${T} PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_target_properties(${T} PROPERTIES PUBLIC_HEADER "${T}.h")
 install(TARGETS ${T} 
-    EXPORT export DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    EXPORT export_${T} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 target_include_directories(${T} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:include>)
 target_link_libraries(${T} PUBLIC m)
-install(EXPORT export FILE ${T}Config.cmake DESTINATION ${CMAKEPREFIX})
+install(EXPORT export_${T} FILE ${T}Config.cmake DESTINATION ${CMAKEPREFIX})
