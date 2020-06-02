@@ -230,7 +230,7 @@ set(eigen_tar "${CMAKE_CURRENT_SOURCE_DIR}/extern/eigen.tar.bz2")
 set(eigen_url "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.bz2")
 ExternalProject_Add(eigen
     URL ${eigen_tar}
-    CMAKE_CACHE_ARGS
+    CMAKE_ARGS
       -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
       -DINCLUDE_INSTALL_DIR:STRING=include
       -DCMAKEPACKAGE_INSTALL_DIR:STRING=cmake
