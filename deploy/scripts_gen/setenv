@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import textwrap
 
 PREFIX = os.environ["PREFIX"]
 EXTRA = ""
@@ -11,7 +10,7 @@ PREFIXVAR = "APHROS_PREFIX"
 inc = "setenv_inc"
 if os.path.isfile(inc):
     with open(inc) as f:
-        EXTRA = textwrap.indent(f.read(), '  ')
+        EXTRA = "  ".join(f.readlines())
 
 
 o = """#!/bin/sh
@@ -33,7 +32,8 @@ if [ "${[[FLAGVAR]]:-x}" != "1" ] ; then
   export MANPATH="$(MANPATH= manpath -g):${[[PREFIXVAR]]}/man"
 
   export OMP_NUM_THREADS=1
-[[EXTRA]]
+
+  [[EXTRA]]
   export [[FLAGVAR]]=1
   echo "[[FLAGVAR]]=1" 1>&2
 fi
