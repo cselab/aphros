@@ -3,6 +3,12 @@ project("aphros")
 
 set(NAMEPREFIX ap.)
 
+# Disallow in-source build
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
+  message(FATAL_ERROR
+    "Aphros requires an out-of-source build. Run CMake from a separate build directory.")
+endif ()
+
 if (DEFINED ENV{APHROS_PREFIX})
   set(CMAKE_INSTALL_PREFIX $ENV{APHROS_PREFIX}
       CACHE PATH "Install path prefix. Set from APHROS_PREFIX" FORCE)
@@ -190,12 +196,27 @@ include(ExternalProject)
 
 # Hypre
 set(hypre_tar "${CMAKE_CURRENT_SOURCE_DIR}/hypre/hypre.tar.gz")
+set(hypre_url "https://computation.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods/download/hypre-2.11.2.tar.gz")
 ExternalProject_Add(hypre
     URL ${hypre_tar}
     CMAKE_ARGS
       -DHYPRE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
       -DHYPRE_SHARED=ON
-    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/hypre
     INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
     SOURCE_SUBDIR src
+  )
+
+# Eigen
+set(eigen_tar "${CMAKE_CURRENT_SOURCE_DIR}/eigen/eigen.tar.bz2")
+set(eigen_url "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.bz2")
+ExternalProject_Add(eigen
+    URL ${eigen_tar}
+    CMAKE_CACHE_ARGS
+      -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
+      -DINCLUDE_INSTALL_DIR:STRING=include
+      -DCMAKEPACKAGE_INSTALL_DIR:STRING=cmake
+    CMAKE_ARGS
+      -DBUILD_TESTING=OFF
+      -DEIGEN_BUILD_PKGCONFIG=OFF
+    INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
   )
