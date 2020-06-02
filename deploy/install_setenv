@@ -17,29 +17,31 @@ profile_default = "default"
 profiles = [profile_default] + profiles
 
 parser = argparse.ArgumentParser(
-        description="Installs file `ap.setenv` which appends paths \
+        description="Installs file 'ap.setenv' which appends paths \
 and loads modules depending on the selected configuration profile. \
 After sourcing the file in a shell, proceed with CMake.")
 parser.add_argument(
         'prefix',
-        help='installation prefix for Aphros')
+        help="installation prefix for Aphros")
 parser.add_argument(
         '--profile',
         default=profile_default,
         choices=profiles,
-        help='configuration profile, defined in `scripts_gen/profiles`')
+        help="configuration profile, defined in 'scripts_gen/profiles'")
 parser.add_argument(
-        '--symlink', '-s',
+        '--no-bin-symlink',
         action='store_true',
-        help='create symlink `~/bin/ap.setenv`')
+        help="do not create symlink '~/bin/ap.setenv'")
 parser.add_argument(
         '--force', '-f',
         action='store_true',
-        help='overwrite existing files and symlinks')
+        help="overwrite existing files and symlinks")
 args = parser.parse_args()
 
 prefix = os.path.abspath(args.prefix)
 prefix_bin = os.path.join(prefix, "bin")
+
+symlink = not args.no_bin_symlink
 
 if not os.path.isdir(prefix_bin):
     os.makedirs(prefix_bin, exist_ok=True)
@@ -49,7 +51,7 @@ fpath = os.path.join(prefix_bin, fname)
 if os.path.isfile(fpath):
     if not args.force:
         raise RuntimeError(f"File '{fpath}' exists, pass -f to overwrite.")
-print(f"Created '{fname}' from profile '{args.profile}'.")
+print(f"Created '{fpath}' from profile '{args.profile}'.")
 
 if args.profile == profile_default:
     profile_dir = gen_dir
@@ -71,19 +73,19 @@ with open(fpath, "wb") as f:
 
 home_bin = os.path.expanduser("~/bin")
 lpath = os.path.join(home_bin, fname)
-if args.symlink:
+if symlink:
     if os.path.islink(lpath):
         if not args.force:
             raise RuntimeError(f"Symlink '{lpath}' exists, pass -f to overwrite.")
         os.unlink(lpath)
     os.symlink(fpath, lpath)
-print(f"Added symlink to '{home_bin}'.")
+    print(f"Added symlink to '{home_bin}'.")
 
 
 print("Command to source the file:")
-if args.symlink:
+if symlink:
     print(f"  . {fname}")
     if home_bin not in os.environ["PATH"].split(os.pathsep):
-        print("Warning: this requires adding `~/bin` to PATH.")
+        print("Warning: this requires adding '~/bin' to PATH.")
 else:
     print(f"  . {fpath}")
