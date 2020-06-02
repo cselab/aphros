@@ -197,7 +197,7 @@ add_custom_target(scripts_gen ALL DEPENDS "${GenOutputList}")
 include(ExternalProject)
 
 # Hypre
-set(hypre_tar "${CMAKE_CURRENT_SOURCE_DIR}/hypre/hypre.tar.gz")
+set(hypre_tar "${CMAKE_CURRENT_SOURCE_DIR}/extern/hypre.tar.gz")
 set(hypre_url "https://computation.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods/download/hypre-2.11.2.tar.gz")
 ExternalProject_Add(hypre
     URL ${hypre_tar}
@@ -209,7 +209,7 @@ ExternalProject_Add(hypre
   )
 
 # Eigen
-set(eigen_tar "${CMAKE_CURRENT_SOURCE_DIR}/eigen/eigen.tar.bz2")
+set(eigen_tar "${CMAKE_CURRENT_SOURCE_DIR}/extern/eigen.tar.bz2")
 set(eigen_url "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.bz2")
 ExternalProject_Add(eigen
     URL ${eigen_tar}
@@ -224,7 +224,7 @@ ExternalProject_Add(eigen
   )
 
 # fpzip
-set(fpzip_tar "${CMAKE_CURRENT_SOURCE_DIR}/fpzip/fpzip.tar.gz")
+set(fpzip_tar "${CMAKE_CURRENT_SOURCE_DIR}/extern/fpzip.tar.gz")
 set(fpzip_url "https://computing.llnl.gov/projects/floating-point-compression/download/fpzip-1.2.0.tar.gz")
 set(fpzip_build "${CMAKE_CURRENT_BINARY_DIR}/fpzip-prefix/src/fpzip")
 ExternalProject_Add(fpzip
