@@ -20,7 +20,7 @@ install(TARGETS ${T}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 target_include_directories(${T} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:include/${T}>)
+    $<INSTALL_INTERFACE:include>)
 include_directories(.)
 target_link_libraries(${T} PUBLIC m)
 install(EXPORT export FILE vofiConfig.cmake DESTINATION ${CMAKEPREFIX})

@@ -1,6 +1,7 @@
 find_package(MPI REQUIRED)
 
 set(HDF5_PREFER_PARALLEL on)
+cmake_policy(SET CMP0074 NEW)
 find_package(HDF5 REQUIRED COMPONENTS C HL)
 set(CMAKE_C_COMPILER ${MPI_C_COMPILER})
 
