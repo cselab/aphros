@@ -226,16 +226,15 @@ ExternalProject_Add(eigen
 # fpzip
 set(fpzip_tar "${CMAKE_CURRENT_SOURCE_DIR}/extern/fpzip.tar.gz")
 set(fpzip_url "https://computing.llnl.gov/projects/floating-point-compression/download/fpzip-1.2.0.tar.gz")
-set(fpzip_build "${CMAKE_CURRENT_BINARY_DIR}/fpzip-prefix/src/fpzip")
 ExternalProject_Add(fpzip
     URL ${fpzip_tar}
     CONFIGURE_COMMAND ""
     BUILD_IN_SOURCE ON
-    BUILD_COMMAND make CXXFLAGS=-O3\ -fPIC
+    BUILD_COMMAND make -C src CXXFLAGS=-O3\ -fPIC
     INSTALL_COMMAND ""
     INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
-    SOURCE_SUBDIR src
   )
+set(fpzip_build "${CMAKE_CURRENT_BINARY_DIR}/fpzip-prefix/src/fpzip")
 install(FILES ${fpzip_build}/lib/libfpzip.a DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(FILES ${fpzip_build}/inc/fpzip.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
