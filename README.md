@@ -51,6 +51,18 @@ APS Gallery of Fluid Motion 2019 award winner: Breaking waves: to foam or not to
 
 [<img src="/doc/images/breaking_waves.jpg" width=832 height=468>](https://www.youtube.com/watch?v=iGdphpztCJQ)
 
+# Developers
+
+Aphros is developed and maintained by
+
+* [Petr Karnakov](https://www.cse-lab.ethz.ch/member/petr-karnakov/)
+* [Dr. Sergey Litvinov](https://www.cse-lab.ethz.ch/member/sergey-litvinov/)
+* [Fabian Wermelinger](https://www.cse-lab.ethz.ch/member/fabian-wermelinger/)
+
+under the supervision of
+
+* [Prof. Petros Koumoutsakos](https://www.cse-lab.ethz.ch/member/petros-koumoutsakos/)
+
 # Publications
 
 1. S. M. H. Hashemi, P. Karnakov, P. Hadikhani, E. Chinello, S.
