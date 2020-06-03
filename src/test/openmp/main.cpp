@@ -13,6 +13,7 @@ using Scal = typename M::Scal;
 using MIdx = typename M::MIdx;
 
 void Run(M& m, Vars&) {
+#ifdef _OPENMP
   const static double wtime0 = omp_get_wtime();
   auto sem = m.GetSem();
   auto blockid = [&m]() -> MIdx {
@@ -29,7 +30,6 @@ void Run(M& m, Vars&) {
     for (size_t i = 0; i < (1 << 28); ++i) {
       a = std::sqrt(a);
     }
-#ifdef _OPENMP
 #pragma omp critical
     {
       std::cerr << "block=" << std::setw(3) << blockid();
@@ -40,8 +40,8 @@ void Run(M& m, Vars&) {
                 << omp_get_wtime() - wtime0;
       std::cerr << std::endl;
     }
-#endif
   }
+#endif
 }
 
 int main(int argc, const char** argv) {
