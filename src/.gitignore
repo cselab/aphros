@@ -8,7 +8,7 @@
 lsf.*
 
 # CMake
-build
+build*
 
 # CTest
 CTestTestfile.cmake
