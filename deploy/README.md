@@ -23,6 +23,3 @@
      ```
 
      Alternatively, use `ccmake ..` to configure with a dialog.
-
-*   (optional) Install basilisk from `mfer:/ba/deploy`
-*   (optional) Install basilisk libraries from `sim/ba` with `cmake . && make install`
