@@ -1,4 +1,4 @@
-# Aphrós <img src="https://circleci.com/gh/cselab/aphros.svg?style=svg">
+# Aphrós [<img src="https://circleci.com/gh/cselab/aphros.svg?style=svg">](https://github.com/cselab/aphros/commits/master)
 
 Finite volume solver for incompressible multiphase flows with surface tension.
 Key features:
