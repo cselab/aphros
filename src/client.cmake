@@ -34,11 +34,12 @@ set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES -L${HYPRE_DIR}
 
 # OpenMP
 set(T "openmp")
-find_package(OpenMP REQUIRED)
-find_package(Threads REQUIRED)
 add_library(${T} INTERFACE IMPORTED)
-set_property(TARGET ${T} PROPERTY 
-    INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
-set_property(TARGET ${T} PROPERTY 
-    INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
-
+if (USE_OPENMP)
+  find_package(OpenMP REQUIRED)
+  find_package(Threads REQUIRED)
+  set_property(TARGET ${T} PROPERTY 
+      INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
+  set_property(TARGET ${T} PROPERTY 
+      INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
+endif()

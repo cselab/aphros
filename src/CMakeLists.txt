@@ -6,6 +6,8 @@ set(EXE "mfer")
 
 set(CHPREFIX $ENV{CHPREFIX})
 
+option(USE_OPENMP "Build with OpenMP support." ON)
+
 include(client.cmake)
 find_package(aphros/march)
 find_package(aphros/inside)
