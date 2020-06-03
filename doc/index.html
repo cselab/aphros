@@ -1063,7 +1063,7 @@ x,y
 </div>
 <div class="section" id="source">
 <h4><span class="section-number">9.1.4. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
-<span class="problematic">/home/petr/work/ethz/proj/electrochem/ch/deploy/tool/cawk</span></div>
+<span class="problematic"></span></div>
 </div>
 <span id="document-lib1/ap-format"></span><div class="section" id="format">
 <h3><span class="section-number">9.2. </span>Format<a class="headerlink" href="#format" title="Permalink to this headline">¶</a></h3>
@@ -1084,7 +1084,7 @@ x,y
 </div>
 <div class="section" id="source">
 <h4><span class="section-number">9.2.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
-<p><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/deploy/tool/format">/home/petr/work/ethz/proj/electrochem/ch/deploy/tool/format</a></p>
+<p><a class="reference external" href="#"></a></p>
 </div>
 </div>
 <span id="document-lib1/ap-hist"></span><div class="section" id="histogram">
@@ -1103,7 +1103,7 @@ x,y
 </div>
 <div class="section" id="source">
 <h4><span class="section-number">9.3.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
-<p><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/deploy/tool/hist">/home/petr/work/ethz/proj/electrochem/ch/deploy/tool/hist</a></p>
+<p><a class="reference external" href="#"></a></p>
 </div>
 </div>
 </div>
@@ -1615,10 +1615,18 @@ leads to the wrong order of coefficients.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">min</span></code>: minimal simulation setup</p></li>
 </ul>
 </div>
+<div class="section" id="registered-modules-in-ubuntu">
+<h3><span class="section-number">11.10. </span>Registered modules in Ubuntu<a class="headerlink" href="#registered-modules-in-ubuntu" title="Permalink to this headline">¶</a></h3>
+<p>2020-06-03 11:34:54</p>
+<p>Ubuntu has <code class="docutils literal notranslate"><span class="pre">--as-needed</span></code> by default (seen from <code class="docutils literal notranslate"><span class="pre">gcc</span> <span class="pre">-dumpspecs</span></code>)
+which makes the linker ignore unused libraries
+and, in particular, the implementations of modules (e.g. <code class="docutils literal notranslate"><span class="pre">init_contang.so</span></code>).</p>
+</div>
 </div>
 </div>
 <span id="document-styleguide"></span><div class="section" id="style-guide">
 <h2><span class="section-number">12. </span>Style guide<a class="headerlink" href="#style-guide" title="Permalink to this headline">¶</a></h2>
+<p>Use <a href="#id1"><span class="problematic" id="id2">`Google C++ Style Guide&lt;https://google.github.io/styleguide/cppguide.html&gt;`_</span></a>.</p>
 <div class="section" id="naming-conventions">
 <h3><span class="section-number">12.1. </span>Naming conventions<a class="headerlink" href="#naming-conventions" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
@@ -1663,15 +1671,8 @@ MIdx <code class="docutils literal notranslate"><span class="pre">d</span></code
 <li><p>use Vect(0) and MIdx(0) instead of Vect::kZero</p></li>
 </ul>
 </div>
-<div class="section" id="formatting">
-<h3><span class="section-number">12.3. </span>Formatting<a class="headerlink" href="#formatting" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li><p>initialization list: 4 spaces indent <code class="docutils literal notranslate"><span class="pre">:</span></code> and <code class="docutils literal notranslate"><span class="pre">,</span></code> starting each
-line.</p></li>
-</ul>
-</div>
 <div class="section" id="toolbox-classes">
-<h3><span class="section-number">12.4. </span>Toolbox classes<a class="headerlink" href="#toolbox-classes" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">12.3. </span>Toolbox classes<a class="headerlink" href="#toolbox-classes" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>combines multiple templated functions to avoid repeating template
 parameters</p></li>
@@ -1679,17 +1680,8 @@ parameters</p></li>
 <li><p>contains only static functions</p></li>
 </ul>
 </div>
-<div class="section" id="dereference-pointers-to-references-or-values-if-possible">
-<h3><span class="section-number">12.5. </span>Dereference pointers to references or values if possible<a class="headerlink" href="#dereference-pointers-to-references-or-values-if-possible" title="Permalink to this headline">¶</a></h3>
-<p>But: use pointer arguments to prevent passing an rvalue</p>
-</div>
-<div class="section" id="lower-bound-for-template-argument">
-<h3><span class="section-number">12.6. </span>Lower bound for template argument:<a class="headerlink" href="#lower-bound-for-template-argument" title="Permalink to this headline">¶</a></h3>
-<p>template &lt;class B /<em>: A</em>/&gt; means that argument B needs to be a subtype
-of A</p>
-</div>
 <div class="section" id="comments">
-<h3><span class="section-number">12.7. </span>Comments<a class="headerlink" href="#comments" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">12.4. </span>Comments<a class="headerlink" href="#comments" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>capitalized descriptive for a class or function (e.g. Creates
 instance)</p></li>
@@ -1698,11 +1690,8 @@ instance)</p></li>
 <li><p>non-capitalized for declarations (e.g. buffer index)</p></li>
 </ul>
 </div>
-<div class="section" id="data-from-kernel-returned-by-reference-if-possible">
-<h3><span class="section-number">12.8. </span>Data from Kernel returned by reference if possible<a class="headerlink" href="#data-from-kernel-returned-by-reference-if-possible" title="Permalink to this headline">¶</a></h3>
-</div>
 <div class="section" id="units">
-<h3><span class="section-number">12.9. </span>Units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">12.5. </span>Units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h3>
 <p>Example: <code class="docutils literal notranslate"><span class="pre">Scal</span> <span class="pre">s;</span> <span class="pre">//</span> <span class="pre">source</span> <span class="pre">[density/time]</span></code></p>
 <ul class="simple">
 <li><p>length</p></li>
@@ -1714,70 +1703,14 @@ instance)</p></li>
 <li><p>density (mass/volume)</p></li>
 <li><p>value (user defined, e.g. 1 for concentration)</p></li>
 </ul>
-</div>
-<div class="section" id="member-classes">
-<h3><span class="section-number">12.10. </span>Member classes<a class="headerlink" href="#member-classes" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li><p>A class taking mesh as template argument should call it <code class="docutils literal notranslate"><span class="pre">M_</span></code> and
-define member class <code class="docutils literal notranslate"><span class="pre">M</span></code>.</p></li>
-<li><p>A class taking kernel as template argument should call it <code class="docutils literal notranslate"><span class="pre">K_</span></code> and
-define member class <code class="docutils literal notranslate"><span class="pre">K</span></code>.</p></li>
-<li><p>A derived class can optionally define member class <code class="docutils literal notranslate"><span class="pre">P</span></code> for parent.</p></li>
-<li><p>A mesh class should define member classes <code class="docutils literal notranslate"><span class="pre">Scal</span></code> and <code class="docutils literal notranslate"><span class="pre">Vect</span></code> and
-member variable <code class="docutils literal notranslate"><span class="pre">dim</span></code>.</p></li>
-</ul>
 <div class="section" id="ordering">
-<h4><span class="section-number">12.10.1. </span>Ordering<a class="headerlink" href="#ordering" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.5.1. </span>Ordering<a class="headerlink" href="#ordering" title="Permalink to this headline">¶</a></h4>
 <ul class="simple">
 <li><p>parent <code class="docutils literal notranslate"><span class="pre">P</span></code></p></li>
 <li><p>kernel <code class="docutils literal notranslate"><span class="pre">K</span></code></p></li>
 <li><p>mesh <code class="docutils literal notranslate"><span class="pre">M</span></code></p></li>
 <li><p>constructor parameters <code class="docutils literal notranslate"><span class="pre">Par</span></code></p></li>
 <li><p>dimension <code class="docutils literal notranslate"><span class="pre">dim</span></code></p></li>
-</ul>
-</div>
-<div class="section" id="dependencies-and-interfaces">
-<h4><span class="section-number">12.10.2. </span>Dependencies and interfaces<a class="headerlink" href="#dependencies-and-interfaces" title="Permalink to this headline">¶</a></h4>
-<p>Instances: Mesh=MeshStructured, Kernel=Hydro, Distr=Cubism</p>
-<p>Interfaces:</p>
-<ul class="simple">
-<li><p>Mesh: cell connectivity, geometry. Must be a template argument for
-performance. Aware of: FieldCell, IdxCell</p></li>
-<li><p>Kernel: Run(), Comm(), Reduce(), ReadBuffer(), WriteBuffer(), GetComm() Aware
-of: Mesh (template), FieldCell, IdxCell, BlockInfo</p></li>
-<li><p>KernelFactory: Creates Kernel Aware of: Kernel, Mesh (template)</p></li>
-<li><p>Distr: Takes KernelFactory, instantiates Kernel for every block, reads
-GetComm(), implements communication</p></li>
-</ul>
-<p>Requirements:</p>
-<ul class="simple">
-<li><p>Cubism should not depend on Hydro (only on Kernel and KernelFactory)</p></li>
-<li><p>Hydro should not depend on Cubism (only on Distr)</p></li>
-<li><p>Hydro is Kernel, HydroFactory is KernelFactory</p></li>
-<li><p>Ideally, Hydro doesn’t depend on implementation of Mesh</p></li>
-<li><p>Cubism is Distr</p></li>
-<li><p>HydroFactory creates Hydro for a block described in Cubism-independent way</p></li>
-<li><p>Hydro accepts Mesh initalized by HydroFactory and is not aware of Distr, but
-it (as well as other mesh-related functions like Gradient()) aware of Mesh
-which has some distributed computing primitives like Comm() and Reduce()
-(also Solve() to solve linear systems but that should be avoided)</p></li>
-<li><p>Distributed primivites in Mesh are not dependent on Cubism or even Distr.
-Typically, it is just a list of fields for communication.</p></li>
-<li><p>Why doesn’t Mesh depend on Distr? This way Mesh is simpler and has less
-dependencies. Possible drawbacks: information from MPI is not available.  All
-routines (e.g. solve linear system) rely on rigid interface and need to be
-performed from the outside (though this is necessary for any blocking setup).</p></li>
-<li><p>Interface of Hydro: vector&lt;FieldCell*&gt; GetComm() M&amp; GetMesh()</p></li>
-<li><p>Interface of Cubism: void Step() Cubism (and any Distr) acts like a
-framework. But every Distr has a way to access and communicate data in blocks
-(in Cubism, it is BlockLab, Block_t and BlockInfo)</p></li>
-<li><p>The question is how to organize interaction between Distr and Kernel (in
-particular, Cubism and Hydro). Options: 1) sufficient interface of Kernel
-How: same WriteBuffer() and ReadBuffer() but with some generic block buffer.
-Cons: too rigid and may require data copying 2) some entity aware of both
-Hydro (implementation of Kernel) and Cubsm (implementation of Distr),
-different for every pair. How: visitor? 3) make Cubism aware of Hydro or at
-least Kernel</p></li>
 </ul>
 </div>
 </div>
@@ -1804,7 +1737,7 @@ least Kernel</p></li>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020 ETH Zurich.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.0.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.0.4.
     </div>
   </body>
 </html>
