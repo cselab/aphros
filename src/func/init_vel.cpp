@@ -6,6 +6,8 @@
 #include "init_vel.h"
 #include "geom/mesh.h"
 
+DECLARE_FORCE_LINK_TARGET(init_vel);
+
 // See note about namespaces in module.h
 namespace init_velocity {
 

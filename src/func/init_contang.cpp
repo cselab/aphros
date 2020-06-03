@@ -7,6 +7,8 @@
 #include "init_contang.h"
 #include "parse/config.h"
 
+DECLARE_FORCE_LINK_TARGET(init_contang);
+
 // See note about namespaces in module.h
 
 namespace init_contang {

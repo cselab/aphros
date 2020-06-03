@@ -293,6 +293,8 @@ void Advection<M>::Run() {
 }
 
 void Main(MPI_Comm comm, Vars& var) {
+  FORCE_LINK(init_vel);
+
   using M = MeshStructured<double, 3>;
   using Vect = typename M::Vect;
 

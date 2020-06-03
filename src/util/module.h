@@ -9,6 +9,9 @@
 #include <string>
 #include <typeinfo>
 
+#define DECLARE_FORCE_LINK_TARGET(x) int kForceLink_##x = 0
+#define FORCE_LINK(x) do { extern int kForceLink_##x; kForceLink_##x = 1; } while(0)
+
 template <class Mod>
 bool RegisterModule() {
   Mod* ptr = new Mod();
