@@ -18,13 +18,13 @@ set(C "${P}/src/util/gitgen.cpp")
 # create on configure
 if (NOT EXISTS ${C})
   execute_process(
-    COMMAND "${P}/gitrev" "${C}"
+    COMMAND "${P}/src/gitrev" "${C}"
     WORKING_DIRECTORY "${P}"
   )
 endif()
 # create on build
-add_custom_target(gitgen
-  COMMAND "${P}/gitrev" "${C}"
+add_custom_target(gitrev
+  COMMAND "${P}/src/gitrev" "${C}"
   WORKING_DIRECTORY "${P}"
 )
 
