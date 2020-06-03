@@ -187,3 +187,13 @@ leads to the wrong order of coefficients.
 -  ``r``: tool to apply patch and rebuild
 -  ``simple_{bad,good}.ipp``: two versions of ``simple.ipp``
 -  ``min``: minimal simulation setup
+
+Registered modules in Ubuntu
+----------------------------
+
+2020-06-03 11:34:54
+
+Ubuntu has ``--as-needed`` by default (seen from ``gcc -dumpspecs``)
+which makes the linker ignore unused libraries
+and, in particular, the implementations of modules (e.g. ``init_contang.so``).
+
