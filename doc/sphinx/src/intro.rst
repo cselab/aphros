@@ -4,7 +4,7 @@ Introduction
 **Aphrós** is a finite volume solver for incompressible multiphase flows with
 surface tension. Key features:
 
-- implementation in C++11
+- implementation in C++14
 - abstractions for mesh elements (cells, faces and nodes),
   range-based loops over them
   and the corresponding data fields (cell-, face- and node-based fields)
