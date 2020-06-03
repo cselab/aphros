@@ -9,7 +9,7 @@ Key features:
 - coroutines to enable encapsulation in the block-wise processing framework
 - fluid solver based on SIMPLE or Bell-Colella-Glaz methods
 - conservative split PLIC advection solver
-- novel particle method for curvature more accurate at lower resolutions
+- novel particle method for curvature estimation improving the accuracy low resolutions
 
 ## Clone
 
@@ -43,7 +43,7 @@ Configure, build, install and run tests:
 Coalescence of bubbles | Taylor-Green vortex with bubbles
 [<img src="/doc/images/coalescence.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/coalescence.mp4) | [<img src="/doc/images/taylor_green.jpg" width=250 height=250>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/taylor_green.mp4)
 Plunging jet | Bubble trapped by vortex ring 
-[<img src="/doc/images/plunging_jet.jpg" width=250 height=500>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/plunging_jet.mp4) | [<img src="/doc/images/vortex_bubble.jpg" width=250 height=500>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/vortex_bubble.mp4) 
+[<img src="/doc/images/plunging_jet.jpg" width=200 height=400>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/plunging_jet.mp4) | [<img src="/doc/images/vortex_bubble.jpg" width=200 height=400>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/vortex_bubble.mp4) 
 Electrochemical reactor | Bubbles through mesh
 [<img src="/doc/images/reactor.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/reactor.mp4) | [<img src="/doc/images/mesh_bubbles.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/mesh_bubbles.mp4)
 
