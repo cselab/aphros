@@ -735,6 +735,13 @@ void Hydro<M>::Init() {
       if (auto ptr = ModuleInitContang<M>::GetInstance(name)) {
         (*ptr)(fc_contang_, var, m);
       } else {
+        if (m.IsRoot()) {
+          std::cerr << "Known values of 'init_contang': ";
+          for (auto& p : ModuleInitContang<M>::GetInstances()) {
+            std::cerr << p.first << " ";
+          }
+          std::cerr << std::endl;
+        }
         throw std::runtime_error(FILELINE + ": Unknown init_contang=" + name);
       }
       m.Comm(&fc_contang_);
