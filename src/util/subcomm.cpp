@@ -166,6 +166,7 @@ void SubComm(MPI_Comm& comm_world, MPI_Comm& comm_omp, MPI_Comm& comm_master) {
   */
   thread_affinity = mpi_affinity;
 
+#ifdef _OPENMP
   if (omp_size < omp_get_max_threads()) {
     std::stringstream s;
     s << __FILE__ << ":" << __LINE__ << " " << __func__;
@@ -173,11 +174,13 @@ void SubComm(MPI_Comm& comm_world, MPI_Comm& comm_omp, MPI_Comm& comm_master) {
     s << " but " << EV(omp_get_max_threads());
     throw std::runtime_error(s.str());
   }
+#endif
 
   // 2.
   int omp_rank;
   MPI_Comm_rank(comm_omp, &omp_rank);
 
+#ifdef _OPENMP
   if (omp_rank == 0) {
 #pragma omp parallel
     {
@@ -187,6 +190,7 @@ void SubComm(MPI_Comm& comm_world, MPI_Comm& comm_omp, MPI_Comm& comm_master) {
   } else {
     SetAffinity(thread_affinity[omp_rank]);
   }
+#endif
 
   // create comm_master
   if (0 != omp_rank) {
