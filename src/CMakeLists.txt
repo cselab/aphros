@@ -23,7 +23,7 @@ if (NOT EXISTS ${C})
   )
 endif()
 # create on build
-add_custom_target(gitrev
+add_custom_target(gitgen
   COMMAND "${P}/gitrev" "${C}"
   WORKING_DIRECTORY "${P}"
 )
