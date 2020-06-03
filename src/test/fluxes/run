@@ -18,7 +18,7 @@ echo $ref > refpath
 
 make -f sim.makefile run
 
-python -c "
+python3 -c "
 from aphros.io import ReadPlain
 import numpy as np
 def Slice(fin, fout, midy=False):
