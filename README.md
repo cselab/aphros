@@ -36,7 +36,7 @@ Configure, build, install and run tests:
     make -j4
     make test
 
-## Simulations
+## Videos
 
 |    |    |
 :---:|:---:

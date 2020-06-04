@@ -1,7 +1,7 @@
 Style guide
 ===========
 
-Use `Google C++ Style Guide<https://google.github.io/styleguide/cppguide.html>`_.
+Use `Google C++ Style Guide <https://google.github.io/styleguide/cppguide.html>`_.
 
 Naming conventions
 ------------------
