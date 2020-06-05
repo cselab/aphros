@@ -38,7 +38,9 @@ if [ "${[[FLAGVAR]]:-x}" != "1" ] ; then
 
   [[EXTRA]]
   export [[FLAGVAR]]=1
-  echo "[[FLAGVAR]]=1" 1>&2
+  echo "[[FLAGVAR]]=$[[FLAGVAR]]" 1>&2
+  echo "[[PREFIXVAR]]=$[[PREFIXVAR]]" 1>&2
+  echo "[[PROFILEVAR]]=$[[PROFILEVAR]]" 1>&2
 fi
 """
 
