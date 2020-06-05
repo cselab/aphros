@@ -58,8 +58,8 @@ fname = "ap.setenv"
 fpath = os.path.join(prefix_bin, fname)
 if os.path.isfile(fpath):
     if not args.force:
-        raise RuntimeError(f"File '{fpath}' exists, pass -f to overwrite.")
-printerr(f"Created '{fpath}' from profile '{profile}'.")
+        raise RuntimeError("File '{:}' exists, pass -f to overwrite.".format(fpath))
+printerr("Created '%s' from profile '%s'.".format(fpath, profile))
 
 if profile == profile_default:
     profile_dir = gen_dir
@@ -89,15 +89,15 @@ if symlink:
     if os.path.islink(lpath) or os.path.isfile(lpath):
         if not args.force:
             raise RuntimeError(
-                f"Symlink or file '{lpath}' exists, pass -f to overwrite.")
+                "Symlink or file '{:}' exists, pass -f to overwrite.".format(lpath))
         os.remove(lpath)
     os.symlink(fpath, lpath)
-    printerr(f"Added symlink to '{home_bin}'.")
+    printerr("Added symlink to '%s'.".format(home_bin))
 
 printerr("Command to source the file:")
 if symlink:
-    printerr(f"  . {fname}")
+    printerr("  . {:}".format(fname))
     if home_bin not in os.environ["PATH"].split(os.pathsep):
         printerr("Warning: this requires adding '~/.local/bin' to PATH.")
 else:
-    printerr(f"  . {fpath}")
+    printerr("  . {:}".format(fpath))
