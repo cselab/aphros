@@ -59,7 +59,7 @@ fpath = os.path.join(prefix_bin, fname)
 if os.path.isfile(fpath):
     if not args.force:
         raise RuntimeError("File '{:}' exists, pass -f to overwrite.".format(fpath))
-printerr("Created '%s' from profile '%s'.".format(fpath, profile))
+printerr("Created '{:}' from profile '{:}'.".format(fpath, profile))
 
 if profile == profile_default:
     profile_dir = gen_dir
@@ -92,7 +92,7 @@ if symlink:
                 "Symlink or file '{:}' exists, pass -f to overwrite.".format(lpath))
         os.remove(lpath)
     os.symlink(fpath, lpath)
-    printerr("Added symlink to '%s'.".format(home_bin))
+    printerr("Added symlink to '{:}'.".format(home_bin))
 
 printerr("Command to source the file:")
 if symlink:
