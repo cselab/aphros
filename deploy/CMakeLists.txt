@@ -214,7 +214,7 @@ add_custom_target(scripts_gen ALL DEPENDS "${GenOutputList}")
 include(ExternalProject)
 
 # Hypre
-set(hypre_tar "${CMAKE_CURRENT_SOURCE_DIR}/extern/hypre.tar.gz")
+set(hypre_tar "${CMAKE_CURRENT_SOURCE_DIR}/extern/hypre-2.19.0.tar.gz")
 set(hypre_url "https://computation.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods/download/hypre-2.11.2.tar.gz")
 ExternalProject_Add(hypre
     URL ${hypre_tar}
