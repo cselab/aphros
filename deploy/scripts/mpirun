@@ -14,7 +14,7 @@ EOF
 fi
 
 if [ -f 'np' ] ; then
-  mpirun --bind-to core:overload-allowed --oversubscribe -n "$(cat np)" "$@"
+  mpirun -n "$(cat np)" "$@"
 else
   mpirun "$@"
 fi
