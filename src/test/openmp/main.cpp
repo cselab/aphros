@@ -2,7 +2,11 @@
 // Copyright 2019 ETH Zurich
 
 #undef NDEBUG
+
+#ifdef _OPENMP
 #include <omp.h>
+#endif
+
 #include <sched.h>
 #include <iostream>
 

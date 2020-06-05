@@ -4,7 +4,7 @@ target_link_libraries(${T} timer)
 
 set(T "approx")
 add_library(${T} approx.cpp)
-target_link_libraries(${T} solver)
+target_link_libraries(${T} solver suspender)
 
 set(T "embed")
 add_library(${T} embed.cpp)
@@ -16,7 +16,7 @@ target_link_libraries(${T} approx embed vars inside)
 
 set(T "vofm")
 add_library(${T} vofm.cpp)
-target_link_libraries(${T} solver normal utilvof)
+target_link_libraries(${T} solver normal utilvof approx_eb)
 
 set(T "vof")
 add_library(${T} vof.cpp)
@@ -24,7 +24,7 @@ target_link_libraries(${T} solver normal utilvof approx_eb)
 
 set(T "tvd")
 add_library(${T} tvd.cpp)
-target_link_libraries(${T} solver)
+target_link_libraries(${T} solver approx utilvof)
 
 set(T "normal")
 add_library(${T} normal.cpp)
@@ -36,7 +36,7 @@ target_link_libraries(${T} partstrmeshm normal vof vofm)
 
 set(T "partstrmeshm")
 add_library(${T} partstrmeshm.cpp)
-target_link_libraries(${T} dumper)
+target_link_libraries(${T} dumper suspender)
 
 set(T "convdiffi")
 add_library(${T} convdiffi.cpp)
@@ -64,4 +64,4 @@ target_link_libraries(${T} utilconvdiff)
 
 set(T "fluid_dummy")
 add_library(${T} fluid_dummy.cpp)
-target_link_libraries(${T} vars)
+target_link_libraries(${T} vars suspender posthook_default approx_eb)

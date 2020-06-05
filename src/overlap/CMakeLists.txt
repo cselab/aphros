@@ -1,4 +1,4 @@
-set(TARG "overlap")
+set(T "overlap")
 
 if (NOT DEFINED OVERLAP)
   set(OVERLAP 1)
@@ -13,4 +13,4 @@ else()
   set(S "overlap0.cpp")
 endif()
 
-add_library(${TARG} ${S})
+add_library(${T} ${S})

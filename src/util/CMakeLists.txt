@@ -3,7 +3,7 @@ add_library(sysinfo sysinfo.cpp)
 
 set(T "utilhydro")
 add_library(${T} hydro.cpp)
-target_link_libraries(${T} vars)
+target_link_libraries(${T} vars dumper approx vof vofm)
 
 set(T "utilfluid")
 add_library(${T} fluid.cpp)
@@ -36,7 +36,11 @@ add_library(${T} posthook_default.cpp)
 target_link_libraries(${T} suspender vars)
 
 set(T "subcomm")
-add_library(${T} subcomm.cpp)
+if (USE_OPENMP)
+  add_library(${T} subcomm.cpp)
+else()
+  add_library(${T} subcomm_dummy.cpp)
+endif()
 target_link_libraries(${T} sysinfo openmp)
 
 set(T "histogram")
