@@ -103,5 +103,7 @@ under the supervision of
   "V0018: Breaking waves: to foam or not to foam?"
   _Gallery of Fluid Motion Award_
   [10.1103/APS.DFD.2019.GFM.V0018](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)
+1. Annual report 2019 of the Swiss National Supercomputing Centre (cover page)
+  [[link]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019)
 
 
