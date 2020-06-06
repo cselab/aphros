@@ -26,6 +26,9 @@ copyright = '2020 ETH Zurich'
 #author = 'ETH Zurich'
 author = ''
 
+linkpath_github_root = "https://github.com/cselab/aphros/blob/master/"
+linkpath_link_github = True
+
 # short X.Y version
 #version = "0.1"
 # full version

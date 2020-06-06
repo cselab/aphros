@@ -22,4 +22,4 @@ The configuration is based on Google code style with modifications.
 Source
 ------
 
-:linkpath:`tool/format`
+:linkpath:`scripts/format`

@@ -22,4 +22,4 @@ Examples
 Source
 ------
 
-:linkpath:`tool/hist`
+:linkpath:`scripts/hist`

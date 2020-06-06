@@ -74,6 +74,6 @@ The following function parses parses a file
 and returns a ``MapEmbed`` object containing face and cut-cell conditions.
 
 .. includecode:: src/func/init_bc.h
-  :func: Parse
+  :func: ParseGroups
   :dedent: 2
   :comment:
