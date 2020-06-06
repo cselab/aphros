@@ -228,6 +228,18 @@ viscosity <code class="docutils literal notranslate"><span class="pre">fcd</span
 force <code class="docutils literal notranslate"><span class="pre">fcs</span></code>,
 and volume flux <code class="docutils literal notranslate"><span class="pre">ffv</span></code>.
 Parameters of the solver are provided by</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="n">ConvDiffPar</span> <span class="p">{</span>
+  <span class="n">Scal</span> <span class="n">relax</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// relaxation factor [0,1] (1 -- no relaxation)</span>
+  <span class="kt">bool</span> <span class="n">second</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// second order in time</span>
+  <span class="n">ConvSc</span> <span class="n">sc</span> <span class="o">=</span> <span class="n">ConvSc</span><span class="o">::</span><span class="n">quick</span><span class="p">;</span> <span class="c1">// scheme for convective flux (see convdiffi.h)</span>
+  <span class="n">Scal</span> <span class="n">df</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// deferred correction factor</span>
+  <span class="n">Scal</span> <span class="n">th</span> <span class="o">=</span> <span class="mf">1e-10</span><span class="p">;</span> <span class="c1">// threshold for flow direction</span>
+  <span class="kt">bool</span> <span class="n">stokes</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// Stokes flow, disable convective fluxes and time</span>
+  <span class="kt">bool</span> <span class="n">symm</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// use symmetric solver for linear system</span>
+  <span class="kt">bool</span> <span class="n">explconv</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// explicit convective fluxes in case Conv::imp</span>
+<span class="p">};</span>
+</pre></div>
+</div>
 <p>where <code class="docutils literal notranslate"><span class="pre">sc</span></code> defines the interpolation scheme</p>
 <table class="docutils align-default" id="id1">
 <caption><span class="caption-number">Table 3.1 </span><span class="caption-text">Interpolation schemes.</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
@@ -346,6 +358,24 @@ force <code class="docutils literal notranslate"><span class="pre">fcf</span></c
 projections of well-balanced force <code class="docutils literal notranslate"><span class="pre">fcbp</span></code>,
 volume source <code class="docutils literal notranslate"><span class="pre">fcsv</span></code> and mass source <code class="docutils literal notranslate"><span class="pre">fcsm</span></code>.
 Parameters of the solver are provided by</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="n">SimplePar</span> <span class="p">{</span>
+  <span class="k">using</span> <span class="n">Vect</span> <span class="o">=</span> <span class="n">generic</span><span class="o">::</span><span class="n">Vect</span><span class="o">&lt;</span><span class="n">Scal</span><span class="p">,</span> <span class="mi">3</span><span class="o">&gt;</span><span class="p">;</span>
+  <span class="n">Scal</span> <span class="n">vrelax</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">;</span> <span class="c1">// velocity relaxation factor [0,1]</span>
+  <span class="n">Scal</span> <span class="n">prelax</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// pressure relaxation factor [0,1]</span>
+  <span class="n">Scal</span> <span class="n">rhie</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// Rhie-Chow factor [0,1] (0 disable, 1 full)</span>
+  <span class="kt">bool</span> <span class="n">second</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// second order in time</span>
+  <span class="n">Vect</span> <span class="n">meshvel</span> <span class="o">=</span> <span class="n">Vect</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span> <span class="c1">// relative mesh velocity</span>
+  <span class="kt">size_t</span> <span class="n">inletflux_numid</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// reduction for id from 0 to numid-1</span>
+  <span class="n">ConvSc</span> <span class="n">convsc</span> <span class="o">=</span> <span class="n">ConvSc</span><span class="o">::</span><span class="n">quick</span><span class="p">;</span> <span class="c1">// convection scheme</span>
+  <span class="n">Scal</span> <span class="n">convdf</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// deferred correction factor</span>
+  <span class="kt">bool</span> <span class="n">stokes</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+  <span class="kt">bool</span> <span class="n">explconv</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// explicit convection for Conv::imp</span>
+  <span class="kt">bool</span> <span class="n">convsymm</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// symmetric solver for linear system in convdiff</span>
+  <span class="n">Conv</span> <span class="n">conv</span> <span class="o">=</span> <span class="n">Conv</span><span class="o">::</span><span class="n">imp</span><span class="p">;</span> <span class="c1">// convection-diffusion solver</span>
+  <span class="n">Scal</span> <span class="n">outlet_relax</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="projection">
 <h3><span class="section-number">4.2. </span>Projection<a class="headerlink" href="#projection" title="Permalink to this headline">¶</a></h3>
@@ -373,6 +403,24 @@ force <code class="docutils literal notranslate"><span class="pre">fcf</span></c
 projections of well-balanced force <code class="docutils literal notranslate"><span class="pre">fcbp</span></code>,
 volume source <code class="docutils literal notranslate"><span class="pre">fcsv</span></code> and mass source <code class="docutils literal notranslate"><span class="pre">fcsm</span></code>.
 Parameters of the solver are provided by</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="n">ProjPar</span> <span class="p">{</span>
+  <span class="k">using</span> <span class="n">Vect</span> <span class="o">=</span> <span class="n">generic</span><span class="o">::</span><span class="n">Vect</span><span class="o">&lt;</span><span class="n">Scal</span><span class="p">,</span> <span class="mi">3</span><span class="o">&gt;</span><span class="p">;</span>
+  <span class="n">Scal</span> <span class="n">vrelax</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">// velocity relaxation factor [0,1]</span>
+  <span class="n">Scal</span> <span class="n">prelax</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// pressure relaxation factor [0,1]</span>
+  <span class="kt">bool</span> <span class="n">second</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// second order in time</span>
+  <span class="n">Vect</span> <span class="n">meshvel</span> <span class="o">=</span> <span class="n">Vect</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span> <span class="c1">// relative mesh velocity</span>
+  <span class="kt">size_t</span> <span class="n">inletflux_numid</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// reduction for id from 0 to numid-1</span>
+  <span class="n">ConvSc</span> <span class="n">convsc</span> <span class="o">=</span> <span class="n">ConvSc</span><span class="o">::</span><span class="n">quick</span><span class="p">;</span> <span class="c1">// convection scheme</span>
+  <span class="n">Scal</span> <span class="n">convdf</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// deferred correction factor</span>
+  <span class="kt">bool</span> <span class="n">stokes</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// Stokes flow</span>
+  <span class="kt">bool</span> <span class="n">explconv</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// explicit convectio for Conv::imp</span>
+  <span class="kt">bool</span> <span class="n">convsymm</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// symmetric solver for linear system in convdiff</span>
+  <span class="n">Conv</span> <span class="n">conv</span> <span class="o">=</span> <span class="n">Conv</span><span class="o">::</span><span class="n">imp</span><span class="p">;</span> <span class="c1">// convection-diffusion solver</span>
+  <span class="kt">bool</span> <span class="n">bcg</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// Bell-Colella-Glaz scheme</span>
+  <span class="n">Scal</span> <span class="n">outlet_relax</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="boundary-conditions">
 <h3><span class="section-number">4.3. </span>Boundary conditions<a class="headerlink" href="#boundary-conditions" title="Permalink to this headline">¶</a></h3>
@@ -597,7 +645,7 @@ initial (left) and final (right). Instabilities develop near the boundary.</span
 </tr>
 </tbody>
 </table>
-<p>See full example in <a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/examples/103_embed_advection/main.cpp">/home/petr/work/ethz/proj/electrochem/ch/examples/103_embed_advection/main.cpp</a>.</p>
+<p>See full example in <a class="reference external" href="https://github.com/cselab/aphros/blob/master/examples/103_embed_advection/main.cpp">examples/103_embed_advection/main.cpp</a>.</p>
 <p>The previous implementation suffers from the problem of small cells.
 Stability requires that the change of the conserved quantity at one time
 step does not exceed the cell volume.
@@ -749,7 +797,7 @@ initial (left) and final (right). Instabilities develop near the boundary.</span
 </tr>
 </tbody>
 </table>
-<p>See full example in <a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/examples/104_embed_diffusion/main.cpp">/home/petr/work/ethz/proj/electrochem/ch/examples/104_embed_diffusion/main.cpp</a>.</p>
+<p>See full example in <a class="reference external" href="https://github.com/cselab/aphros/blob/master/examples/104_embed_diffusion/main.cpp">examples/104_embed_diffusion/main.cpp</a>.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Diffusion solver with redistribution to neighbor cells.</span>
 <span class="kt">void</span> <span class="nf">Diffusion1</span><span class="p">(</span>
     <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;&amp;</span> <span class="n">fcu</span><span class="p">,</span> <span class="k">const</span> <span class="n">MapEmbed</span><span class="o">&lt;</span><span class="n">BCond</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;&gt;&amp;</span> <span class="n">mebc</span><span class="p">,</span> <span class="n">Scal</span> <span class="n">diff</span><span class="p">,</span> <span class="n">Scal</span> <span class="n">dt</span><span class="p">,</span>
@@ -915,7 +963,7 @@ cylinder 0.75 0.7 0.3   -2 1 0.5   0.1   -0.2 0.2
 &amp;-cylinder 0.1 0.8 0.8   -2 1 0.5   0.1   -0.2 0.2
 </pre></div>
 </div>
-<p>(see setup in <a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/examples/200_primlist">/home/petr/work/ethz/proj/electrochem/ch/examples/200_primlist</a>)</p>
+<p>(see setup in <a class="reference external" href="https://github.com/cselab/aphros/blob/master/examples/200_primlist">examples/200_primlist</a>)</p>
 <a class="reference internal image-reference" href="_images/a.jpg"><img alt="_images/a.jpg" class="align-center" src="_images/a.jpg" style="width: 400px;" /></a>
 <p>Parameter <code class="docutils literal notranslate"><span class="pre">list_ls</span></code> in the configuration defines the
 method of computing the volume fraction field from the level-set functions</p>
@@ -1004,7 +1052,8 @@ symm {
 </div>
 <p>The following function parses parses a file
 and returns a <code class="docutils literal notranslate"><span class="pre">MapEmbed</span></code> object containing face and cut-cell conditions.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>    <span class="c1">// Error: function &#39;Parse&#39; not found in &#39;/home/petr/work/ethz/proj/electrochem/ch/src/func/init_bc.h&#39;</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>    <span class="n">MapEmbed</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">MapEmbed</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;&gt;</span>
+<span class="n">ParseGroups</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">istream</span><span class="o">&amp;</span> <span class="n">fin</span><span class="p">,</span> <span class="k">const</span> <span class="n">MEB</span><span class="o">&amp;</span> <span class="n">eb</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1063,7 +1112,7 @@ x,y
 </div>
 <div class="section" id="source">
 <h4><span class="section-number">9.1.4. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
-<span class="problematic"></span></div>
+<span class="problematic">deploy/scripts/cawk</span></div>
 </div>
 <span id="document-lib1/ap-format"></span><div class="section" id="format">
 <h3><span class="section-number">9.2. </span>Format<a class="headerlink" href="#format" title="Permalink to this headline">¶</a></h3>
@@ -1080,11 +1129,11 @@ x,y
 <div class="section" id="configuration">
 <h4><span class="section-number">9.2.2. </span>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h4>
 <p>The configuration is based on Google code style with modifications.</p>
-<p><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/.clang-format">/home/petr/work/ethz/proj/electrochem/ch/.clang-format</a></p>
+<p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/.clang-format">.clang-format</a></p>
 </div>
 <div class="section" id="source">
 <h4><span class="section-number">9.2.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
-<p><a class="reference external" href="#"></a></p>
+<p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/deploy/scripts/format">deploy/scripts/format</a></p>
 </div>
 </div>
 <span id="document-lib1/ap-hist"></span><div class="section" id="histogram">
@@ -1103,7 +1152,7 @@ x,y
 </div>
 <div class="section" id="source">
 <h4><span class="section-number">9.3.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
-<p><a class="reference external" href="#"></a></p>
+<p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/deploy/scripts/hist">deploy/scripts/hist</a></p>
 </div>
 </div>
 </div>
@@ -1143,7 +1192,7 @@ x,y
 </div>
 <div class="section" id="source">
 <h4><span class="section-number">10.1.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
-<span class="problematic">/home/petr/work/ethz/proj/electrochem/ch/deploy/lib/csv</span></div>
+<span class="problematic">deploy/lib/csv</span></div>
 <div class="section" id="examples">
 <h4><span class="section-number">10.1.4. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
 </div>
@@ -1211,17 +1260,17 @@ contains information.</p>
 </div>
 <div class="section" id="source">
 <h4><span class="section-number">10.2.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
-<p><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/deploy/lib/h5">/home/petr/work/ethz/proj/electrochem/ch/deploy/lib/h5</a></p>
+<p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/deploy/lib/h5">deploy/lib/h5</a></p>
 </div>
 <div class="section" id="examples">
 <h4><span class="section-number">10.2.4. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
 <p>Write a field in serial:</p>
 <div class="line-block">
-<div class="line"><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/examples/003_h5_serial_write/main.c">/home/petr/work/ethz/proj/electrochem/ch/examples/003_h5_serial_write/main.c</a></div>
+<div class="line"><a class="reference external" href="https://github.com/cselab/aphros/blob/master/examples/003_h5_serial_write/main.c">examples/003_h5_serial_write/main.c</a></div>
 </div>
 <p>Write a field using mpi:</p>
 <div class="line-block">
-<div class="line"><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/examples/004_h5_mpi_write/main.c">/home/petr/work/ethz/proj/electrochem/ch/examples/004_h5_mpi_write/main.c</a></div>
+<div class="line"><a class="reference external" href="https://github.com/cselab/aphros/blob/master/examples/004_h5_mpi_write/main.c">examples/004_h5_mpi_write/main.c</a></div>
 </div>
 </div>
 </div>
@@ -1288,17 +1337,17 @@ relative distance from the node first[i].</p>
 </div>
 <div class="section" id="source">
 <h4><span class="section-number">10.3.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
-<p><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/deploy/lib/march">/home/petr/work/ethz/proj/electrochem/ch/deploy/lib/march</a></p>
+<p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/deploy/lib/march">deploy/lib/march</a></p>
 </div>
 <div class="section" id="examples">
 <h4><span class="section-number">10.3.4. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
 <p>Generate triangles for cube configurations given as arguments:</p>
 <div class="line-block">
-<div class="line"><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/examples/001_march_cell/main.c">/home/petr/work/ethz/proj/electrochem/ch/examples/001_march_cell/main.c</a></div>
+<div class="line"><a class="reference external" href="https://github.com/cselab/aphros/blob/master/examples/001_march_cell/main.c">examples/001_march_cell/main.c</a></div>
 </div>
 <p>Generate a triangulated sphere:</p>
 <div class="line-block">
-<div class="line"><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/examples/002_march_sphere/main.c">/home/petr/work/ethz/proj/electrochem/ch/examples/002_march_sphere/main.c</a></div>
+<div class="line"><a class="reference external" href="https://github.com/cselab/aphros/blob/master/examples/002_march_sphere/main.c">examples/002_march_sphere/main.c</a></div>
 </div>
 </div>
 </div>
@@ -1347,14 +1396,14 @@ relative distance from the node first[i].</p>
 <div class="section" id="source">
 <h4><span class="section-number">10.4.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
 <div class="line-block">
-<div class="line"><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/src/solver/vof.h">/home/petr/work/ethz/proj/electrochem/ch/src/solver/vof.h</a></div>
-<div class="line"><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/src/solver/vof.cpp">/home/petr/work/ethz/proj/electrochem/ch/src/solver/vof.cpp</a></div>
-<div class="line"><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/src/solver/vof.ipp">/home/petr/work/ethz/proj/electrochem/ch/src/solver/vof.ipp</a></div>
+<div class="line"><a class="reference external" href="https://github.com/cselab/aphros/blob/master/src/solver/vof.h">src/solver/vof.h</a></div>
+<div class="line"><a class="reference external" href="https://github.com/cselab/aphros/blob/master/src/solver/vof.cpp">src/solver/vof.cpp</a></div>
+<div class="line"><a class="reference external" href="https://github.com/cselab/aphros/blob/master/src/solver/vof.ipp">src/solver/vof.ipp</a></div>
 </div>
 </div>
 <div class="section" id="example">
 <h4><span class="section-number">10.4.4. </span>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
-<p><a class="reference external" href="/home/petr/work/ethz/proj/electrochem/ch/examples/100_advection/main.cpp">/home/petr/work/ethz/proj/electrochem/ch/examples/100_advection/main.cpp</a></p>
+<p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/examples/100_advection/main.cpp">examples/100_advection/main.cpp</a></p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Created by Petr Karnakov on 24.12.2019</span>
 <span class="c1">// Copyright 2019 ETH Zurich</span>
 
