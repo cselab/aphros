@@ -1,4 +1,8 @@
+#!/usr/bin/env python3
 
+import re
+
+text = '''
 # Aphrós [<img src="https://circleci.com/gh/cselab/aphros.svg?style=svg">](https://github.com/cselab/aphros/commits/master)
 
 Finite volume solver for incompressible multiphase flows with surface tension.
@@ -12,7 +16,7 @@ Key features:
 - conservative split PLIC advection solver
 - novel particle method for curvature estimation improving the accuracy low resolutions
 [[demo]](https://cselab.github.io/aphros/curv.html)
-[[4]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209)
+[[ref:partstr]]
 
 ### Clone
 
@@ -52,18 +56,18 @@ container
 |    |    |
 :---:|:---:
 [<img src="/doc/images/coalescence.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/coalescence.mp4) | [<img src="/doc/images/taylor_green.jpg" width=250 height=250>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/taylor_green.mp4)
-Coalescence of bubbles [[4]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209) | Taylor-Green vortex with bubbles [[2]](https://doi.org/10.1145/3324989.3325727)
+Coalescence of bubbles [[ref:partstr]] | Taylor-Green vortex with bubbles [[ref:pasc19]]
 [<img src="/doc/images/vortex_bubble.jpg" width=200 height=400>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/vortex_bubble.mp4) | [<img src="/doc/images/plunging_jet.jpg" width=200 height=400>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/plunging_jet.mp4)
-Bubble trapped by vortex ring [[5]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103286) | Plunging jet [[2]](https://doi.org/10.1145/3324989.3325727)
+Bubble trapped by vortex ring [[ref:datadriven]] | Plunging jet [[ref:pasc19]]
 [<img src="/doc/images/reactor.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/reactor.mp4) | [<img src="/doc/images/mesh_bubbles.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/mesh_bubbles.mp4)
-Electrochemical reactor [[1]](https://doi.org/10.1039/C9EE00219G) | Bubbles through mesh
+Electrochemical reactor [[ref:ees]] | Bubbles through mesh
 [<img src="/doc/images/rising_bubbles.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/rising_bubbles.mp4) | [<img src="/doc/images/foaming_waterfall.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/foaming_waterfall.mp4)
- Rising bubbles clustering on the surface [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) [[7]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019) | Foaming waterfall
+ Rising bubbles clustering on the surface [[ref:aps]] [[ref:cscs]] | Foaming waterfall
 
 |     |
 |:---:|
 |[<img src="/doc/images/breaking_waves.jpg" width=795 height=447>](https://www.youtube.com/watch?v=iGdphpztCJQ)|
-|APS Gallery of Fluid Motion 2019 award winner: Breaking waves: to foam or not to foam? [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)|
+|APS Gallery of Fluid Motion 2019 award winner: Breaking waves: to foam or not to foam? [[ref:aps]]|
 
 ## Developers
 
@@ -79,30 +83,47 @@ under the supervision of
 
 ## Publications
 
-1. S. M. H. Hashemi, P. Karnakov, P. Hadikhani, E. Chinello, S.
+[[item:ees]] S. M. H. Hashemi, P. Karnakov, P. Hadikhani, E. Chinello, S.
   Litvinov, C.  Moser, P. Koumoutsakos, and D. Psaltis, "A versatile and
   membrane-less electrochemical reactor for the electrolysis of water and
   brine", _Energy & environmental science_, 2019
   [10.1039/C9EE00219G](https://doi.org/10.1039/C9EE00219G)
-2. P. Karnakov, F. Wermelinger, M. Chatzimanolakis, S. Litvinov,
+[[item:pasc19]] P. Karnakov, F. Wermelinger, M. Chatzimanolakis, S. Litvinov,
   and P.  Koumoutsakos, "A high performance computing framework for multiphase,
   turbulent flows on structured grids" in _Proceedings of the platform for
   advanced scientific computing conference on – PASC ’19_, 2019
   [10.1145/3324989.3325727](https://doi.org/10.1145/3324989.3325727)
-3. P. Karnakov, S. Litvinov, P. Koumoutsakos
+[[item:icmf]] P. Karnakov, S. Litvinov, P. Koumoutsakos
   "Coalescence and transport of bubbles and drops"
   _10th International Conference on Multiphase Flow (ICMF)_, 2019
-4. P. Karnakov, S. Litvinov, and P. Koumoutsakos, "A hybrid
+[[item:partstr]] P. Karnakov, S. Litvinov, and P. Koumoutsakos, "A hybrid
   particle volume-of-fluid method for curvature estimation in multiphase
   flows”, _International journal of multiphase flow_, 2020
   [10.1016/j.ijmultiphaseflow.2020.103209](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209)
-5. Z. Wan, P. Karnakov, P. Koumoutsakos, T. Sapsis, "Bubbles in
+[[item:datadriven]] Z. Wan, P. Karnakov, P. Koumoutsakos, T. Sapsis, "Bubbles in
   Turbulent Flows: Data-driven, kinematic models with history terms”,
   _International journal of multiphase flow_, 2020
   [10.1016/j.ijmultiphaseflow.2020.103286](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103286)
-6. P. Karnakov, S. Litvinov, J. M. Favre, P. Koumoutsakos
+[[item:aps]] P. Karnakov, S. Litvinov, J. M. Favre, P. Koumoutsakos
   "V0018: Breaking waves: to foam or not to foam?"
   _Gallery of Fluid Motion Award_
   [10.1103/APS.DFD.2019.GFM.V0018](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)
-7. Annual report 2019 of the Swiss National Supercomputing Centre (cover page)
+[[item:cscs]] Annual report 2019 of the Swiss National Supercomputing Centre (cover page)
   [[webpage]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019)
+'''
+
+
+m_refs = re.finditer("\[\[ref:[^]]*\]\]", text)
+m_items = re.finditer("\[\[item:[^]]*\]\]", text)
+
+gen = text
+for i, m_item in enumerate(m_items):
+    item = m_item.group(0)
+    name = re.match("\[\[item:([^]]*)\]\]", item).group(1)
+    ref = "[[ref:{}]]".format(name)
+    url = re.search("\((http[^)]*)\)", text[m_item.start(0):]).group(1)
+    gen = gen.replace(item, "{:}.".format(i + 1))
+    gen = gen.replace(ref, "[[{:}]]({})".format(i + 1, url))
+
+with open("README.md", 'w') as f:
+    f.write(gen)
