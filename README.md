@@ -10,6 +10,8 @@ Key features:
 - fluid solver based on SIMPLE or Bell-Colella-Glaz methods
 - conservative split PLIC advection solver
 - novel particle method for curvature estimation improving the accuracy low resolutions
+[[demo]](https://cselab.github.io/aphros/curv.html)
+[[ref]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209)
 
 ### Clone
 
@@ -48,16 +50,19 @@ container
 
 |    |    |
 :---:|:---:
-Coalescence of bubbles | Taylor-Green vortex with bubbles
 [<img src="/doc/images/coalescence.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/coalescence.mp4) | [<img src="/doc/images/taylor_green.jpg" width=250 height=250>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/taylor_green.mp4)
-Plunging jet | Bubble trapped by vortex ring 
-[<img src="/doc/images/plunging_jet.jpg" width=200 height=400>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/plunging_jet.mp4) | [<img src="/doc/images/vortex_bubble.jpg" width=200 height=400>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/vortex_bubble.mp4) 
-Electrochemical reactor | Bubbles through mesh
+Coalescence of bubbles [[ref]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209) | Taylor-Green vortex with bubbles [[ref]](https://doi.org/10.1145/3324989.3325727)
+[<img src="/doc/images/vortex_bubble.jpg" width=200 height=400>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/vortex_bubble.mp4) | [<img src="/doc/images/plunging_jet.jpg" width=200 height=400>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/plunging_jet.mp4) 
+Bubble trapped by vortex ring [[ref]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103286) | Plunging jet [[ref]](https://doi.org/10.1145/3324989.3325727)
 [<img src="/doc/images/reactor.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/reactor.mp4) | [<img src="/doc/images/mesh_bubbles.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/mesh_bubbles.mp4)
+Electrochemical reactor [[ref]](https://doi.org/10.1039/C9EE00219G) | Bubbles through mesh
+[<img src="/doc/images/rising_bubbles.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/rising_bubbles.mp4) | [<img src="/doc/images/foaming_waterfall.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/foaming_waterfall.mp4)
+ Rising bubbles clustering on the surface [[ref]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) | Foaming waterfall
 
-APS Gallery of Fluid Motion 2019 award winner: Breaking waves: to foam or not to foam?
-
-[<img src="/doc/images/breaking_waves.jpg" width=832 height=468>](https://www.youtube.com/watch?v=iGdphpztCJQ)
+|     |
+|:---:|
+|[<img src="/doc/images/breaking_waves.jpg" width=768 height=432>](https://www.youtube.com/watch?v=iGdphpztCJQ)|
+|APS Gallery of Fluid Motion 2019 award winner: Breaking waves: to foam or not to foam? [[ref]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)|
 
 ## Developers
 
