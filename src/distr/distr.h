@@ -4,8 +4,6 @@
 #pragma once
 
 #include <mpi.h>
-#include <omp.h>
-#include <sched.h>
 #include <array>
 #include <iomanip>
 #include <map>

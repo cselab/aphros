@@ -1,3 +1,4 @@
-set(TARG "dumper")
+set(T "dumper")
 
-add_library(${TARG} dumper.cpp)
+add_library(${T} dumper.cpp)
+target_link_libraries(${T} vars)

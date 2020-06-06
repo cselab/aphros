@@ -3,7 +3,9 @@
 
 #include <errno.h>
 #include <mpi.h>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #include <sched.h>
 #include <unistd.h>
 #include <algorithm>

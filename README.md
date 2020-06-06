@@ -36,6 +36,14 @@ Configure, build, install and run tests:
     make -j4
     make test
 
+### Docker
+
+Instead of building the code in your system, you can build and run a Docker
+container
+
+    docker build github.com/cselab/aphros --tag aprhos
+    docker run -i aphros
+
 ## Videos
 
 |    |    |
