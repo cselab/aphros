@@ -61,7 +61,7 @@ Electrochemical reactor [[ref]](https://doi.org/10.1039/C9EE00219G) | Bubbles th
 
 |     |
 |:---:|
-|[<img src="/doc/images/breaking_waves.jpg" width=768 height=432>](https://www.youtube.com/watch?v=iGdphpztCJQ)|
+|[<img src="/doc/images/breaking_waves.jpg" width=795 height=447>](https://www.youtube.com/watch?v=iGdphpztCJQ)|
 |APS Gallery of Fluid Motion 2019 award winner: Breaking waves: to foam or not to foam? [[ref]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)|
 
 ## Developers
