@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.3.0)
 project("aphros-deploy")
 
+option(USE_FPZIP "Build with FPZIP support." OFF)
+
 set(NAMEPREFIX ap.)
 
 # Disallow in-source build
@@ -239,18 +241,19 @@ ExternalProject_Add(eigen
   )
 
 # fpzip
-set(fpzip_tar "${CMAKE_CURRENT_SOURCE_DIR}/extern/fpzip.tar.gz")
-set(fpzip_url "https://computing.llnl.gov/projects/floating-point-compression/download/fpzip-1.2.0.tar.gz")
-ExternalProject_Add(fpzip
-    URL ${fpzip_tar}
-    CONFIGURE_COMMAND ""
-    BUILD_IN_SOURCE ON
-    BUILD_COMMAND make -C src CXXFLAGS=-O3\ -fPIC
-    INSTALL_COMMAND ""
-    INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
-  )
-set(fpzip_build "${CMAKE_CURRENT_BINARY_DIR}/fpzip-prefix/src/fpzip")
-install(FILES ${fpzip_build}/lib/libfpzip.a DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-install(FILES ${fpzip_build}/inc/fpzip.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+if (USE_FPZIP)
+    set(fpzip_url "https://github.com/LLNL/fpzip/releases/download/1.3.0/fpzip-1.3.0.tar.gz")
+    ExternalProject_Add(fpzip
+        URL ${fpzip_url}
+        CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
+        -DCMAKE_INSTALL_CMAKEDIR:STRING=cmake/fpzip
+        -DBUILD_SHARED_LIBS=ON
+        -DBUILD_TESTING=OFF
+        -DBUILD_UTILITIES=OFF
+        -DFPZIP_ENABLE_PIC=ON
+        INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
+        )
+endif ()
 
 add_subdirectory(lib)
