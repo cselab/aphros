@@ -80,8 +80,8 @@ volume source ``fcsv`` and mass source ``fcsm``.
 Parameters of the solver are provided by
 
 .. includecode:: src/solver/simple.h
-  :struct: Par
-  :dedent: 2
+  :struct: SimplePar
+  :dedent: 0
 
 Projection
 ----------
@@ -107,8 +107,8 @@ volume source ``fcsv`` and mass source ``fcsm``.
 Parameters of the solver are provided by
 
 .. includecode:: src/solver/proj.h
-  :struct: Par
-  :dedent: 2
+  :struct: ProjPar
+  :dedent: 0
 
 Boundary conditions
 -------------------

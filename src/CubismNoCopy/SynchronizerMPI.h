@@ -24,7 +24,11 @@
 
 using namespace std;
 
+#ifdef _USE_FPZIP_
 using Compressor = compression::FPZIP<Real>;
+#else
+using Compressor = compression::PassThrough<Real>;
+#endif /* _USE_FPZIP_ */
 using Envelope = compression::Envelope;
 
 template <typename TView>

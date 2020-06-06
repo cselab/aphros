@@ -119,8 +119,8 @@ and volume flux ``ffv``.
 Parameters of the solver are provided by
 
 .. includecode:: src/solver/convdiff.h
-  :struct: Par
-  :dedent: 2
+  :struct: ConvDiffPar
+  :dedent: 0
 
 where ``sc`` defines the interpolation scheme
 

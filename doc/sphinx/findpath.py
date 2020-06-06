@@ -10,6 +10,14 @@ def Assert(flag, msg, location=None):
         Error(msg, location=location)
 
 def FindPath(relpath, location):
+    """
+    relpath: path to file relative to repository root
+             or relative to predefined locations, see Try(...)
+    location: caller location (docname, lineno)
+    Returns:
+    abspath: absolute path to file
+    relpath: update path relative to repository root
+    """
     def Try(abspath, *path):
         s = os.path.abspath(os.path.join(*path))
         if os.path.exists(s):
@@ -25,7 +33,9 @@ def FindPath(relpath, location):
     a = Try(a, repo, r)
     a = Try(a, repo, "deploy", r)
     a = Try(a, repo, "deploy/lib", r)
-    a = Try(a, repo, "deploy/tool", r)
-    a = Try(a, repo, "deploy/wrap", r)
+    a = Try(a, repo, "deploy/scripts", r)
+    a = Try(a, repo, "deploy/scripts_gen", r)
     a = Try(a, repo, "src", r)
-    return a
+    if not a:
+        return a, a
+    return a, os.path.relpath(a, repo)

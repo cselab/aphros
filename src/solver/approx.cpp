@@ -70,6 +70,7 @@ template FieldFace<typename M::Scal> InterpolateSuperbee(
     const FieldFace<typename M::Scal>& ffw, const M& m, typename M::Scal th);
 
 template FieldCell<T> Average(const FieldFace<T>& ff, const M& m);
+template FieldCell<TV> Average(const FieldFace<TV>& ff, const M& m);
 
 template void Smoothen(
     FieldCell<T>& fc, const MapCondFace& mfc, M& m, size_t rep);

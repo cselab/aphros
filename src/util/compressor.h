@@ -6,7 +6,9 @@
 #include <limits.h>
 #include <cassert>
 
+#ifdef _USE_FPZIP_
 #include "fpzip.h"
+#endif /* _USE_FPZIP_ */
 
 namespace compression {
 // Envelope with compression meta data
@@ -36,6 +38,34 @@ class FPCompressor {
   bool compress_;
 };
 
+template <typename Scal>
+class PassThrough : public FPCompressor {
+ public:
+  PassThrough(Scal* data, const size_t N, const bool = false, const size_t = 0)
+      : FPCompressor(false) {
+    const size_t dbytes = N * sizeof(Scal); // data bytes
+    env_.buf = static_cast<void*>(data);
+    env_.cbytes = dbytes;
+    env_.ubytes = dbytes;
+  }
+
+  Envelope GetEnvelope() const override {
+    return env_;
+  }
+
+  Envelope Compress() override {
+    return env_;
+  }
+
+  size_t Decompress() override {
+      return 0;
+  }
+
+ private:
+  Envelope env_; // compression meta data
+};
+
+#ifdef _USE_FPZIP_
 // Floating point compressor based on the FPZIP library
 template <typename Scal>
 class FPZIP : public FPCompressor {
@@ -110,4 +140,5 @@ class FPZIP : public FPCompressor {
   int type_, prec_;
   FPZ* fpz_; // meta data for compression stream
 };
+#endif /* _USE_FPZIP_ */
 } // namespace compression

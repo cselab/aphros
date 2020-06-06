@@ -43,3 +43,6 @@ if (USE_OPENMP)
   set_property(TARGET ${T} PROPERTY 
       INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
 endif()
+
+# Optional packages
+find_package(FPZIP QUIET) # floating point compressor
