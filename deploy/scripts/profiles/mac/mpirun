@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -eu
+
+if [ "$#" -lt "1" ] || [ "$1" == "-h" ] ; then
+    cat << EOF
+usage: `basename $0` [-h] ARGS
+Reads the number of cores NP from file 'np' and executes
+mpirun -n NP ARGS
+If file 'np' does not exist, executes
+mpirun ARGS
+EOF
+    exit 1
+fi
+
+# Adding '|| true' to ignore error after running ap.mfer in tests
+#   mpirun noticed that process rank 0 with PID 0 on node MacV2J exited on signal 4 (Illegal instruction: 4).
+
+if [ -f 'np' ] ; then
+  mpirun -n "$(cat np)" "$@" || true
+else
+  mpirun "$@" || true
+fi

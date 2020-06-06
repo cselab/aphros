@@ -8,6 +8,9 @@ set(CHPREFIX $ENV{CHPREFIX})
 
 option(USE_OPENMP "Build with OpenMP support." ON)
 
+set(CMAKE_MACOSX_RPATH OFF)
+set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+
 include(client.cmake)
 find_package(aphros/march)
 find_package(aphros/inside)
