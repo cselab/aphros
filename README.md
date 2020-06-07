@@ -8,8 +8,9 @@ Key features:
 <img src="/doc/images/foam.png" width=300 height=180 align="right">
 
 - implementation in C++14
-- scalability to thousands of compute nodes
-  with the Cubism library for distributed computing on structured grids
+- scalability to thousands of compute nodes with the
+  [Cubism](https://gitlab.ethz.ch/mavt-cse/Cubism)
+  library for distributed computing on structured grids
 - coroutines to enable encapsulation in the block-wise processing framework
 - fluid solver based on SIMPLE or Bell-Colella-Glaz methods
 - conservative split PLIC advection solver
