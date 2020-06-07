@@ -27,7 +27,7 @@ a=0
 for f in $ref/* ; do
   echo $ref
   eps=2e-12
-  if [ "${f##*.}" = "vts" ] ; then eps=2e-5; fi
+  if [ "${f##*.}" = "vts" ] ; then eps=1e-3; fi
   if ! ap.diffnum "${f#$ref/}" "$f" $eps; then a=1; fi
 done
 
