@@ -61,6 +61,10 @@ container
 
 ## Videos
 
+Examples of simulations visualized using
+[ParaView](https://www.paraview.org/) and [OSPRay](https://www.ospray.org/)
+in collaboration with Jean M. Favre at [CSCS](https://www.cscs.ch).
+
 |    |    |
 :---:|:---:
 [<img src="doc/images/coalescence.jpg" width=384>](https://cselab.github.io/aphros/videos/coalescence.mp4) | [<img src="doc/images/taylor_green.jpg" width=250>](https://cselab.github.io/aphros/videos/taylor_green.mp4)
