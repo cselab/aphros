@@ -10,7 +10,6 @@ tl ?= 60
 OMP_NUM_THREADS ?= 1
 
 hook ?=
-LD_PRELOAD += $(hook)
 
 error:
 	@echo Error: no target specified. Available targets:
@@ -26,10 +25,10 @@ error:
 cleanrun: cleanall run
 
 run: conf
-	LD_PRELOAD="$(LD_PRELOAD)" ap.run ap.mfer
+	LD_PRELOAD="$(hook):$${LD_PRELOAD}" ap.run ap.mfer
 
 submit: conf
-	LD_PRELOAD="$(LD_PRELOAD)" ap.submit ap.mfer
+	LD_PRELOAD="$(hook):$${LD_PRELOAD}" ap.submit ap.mfer
 
 kill:
 	ap.kill
