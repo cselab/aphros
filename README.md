@@ -4,6 +4,8 @@
 Finite volume solver for incompressible multiphase flows with surface tension.
 Key features:
 
+<img src="/doc/images/foam.png" width=300 height=180 align="right">
+
 - implementation in C++14
 - scalability to thousands of compute nodes
   with the Cubism library for distributed computing on structured grids
