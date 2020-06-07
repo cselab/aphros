@@ -23,6 +23,12 @@
         padding: 0;
         vertical-align: top;
       }
+      #linksTag {
+        position: absolute;
+        width: 100%;
+        top: 3%;
+        text-align: center;
+      }
       #buttons {
         text-align:center;
         line-height: 50%;
@@ -34,33 +40,36 @@
       <button onclick="SetSize(5,5);" style="font-size: 60%">
         &#9632;&#9632;<br />
         &#9632;&#9632;<br />
-      </button><!--
------><button onclick="SetSize(7,7);" style="font-size: 40%">
+      </button><!---
+   --><button onclick="SetSize(7,7);" style="font-size: 40%">
         &#9632;&#9632;&#9632;<br />
         &#9632;&#9632;&#9632;<br />
         &#9632;&#9632;&#9632;<br />
       </button><!--
------><button onclick="SetSize(9,9);" style="font-size: 30%">
+   --><button onclick="SetSize(9,9);" style="font-size: 30%">
         &#9632;&#9632;&#9632;&#9632;<br />
         &#9632;&#9632;&#9632;&#9632;<br />
         &#9632;&#9632;&#9632;&#9632;<br />
         &#9632;&#9632;&#9632;&#9632;<br />
       </button><!--
------><button onclick="StartSelectShape(1);" style="font-size: 50%">
+   --><button onclick="StartSelectShape(1);" style="font-size: 50%">
         &#9899
       </button><!--
------><button onclick="StartSelectShape(1.5);" style="font-size: 75%">
+   --><button onclick="StartSelectShape(1.5);" style="font-size: 75%">
         &#9899
       </button><!--
------><button onclick="StartSelectShape(2);" style="font-size: 100%">
+   --><button onclick="StartSelectShape(2);" style="font-size: 100%">
         &#9899
       </button><!--
------><button onclick="StartSelect();" style="font-size: 60%;" id="selectcell">
+   --><button onclick="StartSelect();" style="font-size: 60%;" id="selectcell">
        &#9632
       </button>
     </div>
-    <div id="paint" style="text-align:center">
+    <div id="paint" style="text-align:center;position:relative">
       <canvas id="myCanvas"></canvas>
+      <div id="linksTag">
+        Source code and applications: <a href="https://github.com/cselab/aphros">Aphros</a>
+      </div>
     </div>
     <div style="text-align:center">
       <textarea id="myTextarea" rows="5"></textarea>
@@ -1343,6 +1352,8 @@ function UpdateViewport() {
     textarea.style.fontSize = (hf_ * wx) + "px"
     ctx.lineWidth = (wl_ * wx)
 
+    linksTag.style.fontSize = (hf_ * wx) + "px"
+
     mouse.x = base.x
     mouse.y = base.y
     start.x = base.x
@@ -1359,13 +1370,15 @@ function addListenerMulti(element, eventNames, listener) {
 
 function SetEvents() {
     addListenerMulti(canvas, 'mousemove mousedown', function(e) {
-        mouse.x = e.pageX - this.offsetLeft;
-        mouse.y = e.pageY - this.offsetTop;
+        let rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
     });
 
     addListenerMulti(canvas, 'touchmove touchstart', function(e) {
-        mouse.x = e.touches[0].pageX - this.offsetLeft;
-        mouse.y = e.touches[0].pageY - this.offsetTop;
+        let rect = canvas.getBoundingClientRect();
+        mouse.x = e.touches[0].clientX - rect.left;
+        mouse.y = e.touches[0].clientY - rect.top;
     });
 
     addListenerMulti(canvas, 'mousedown touchstart', function(e) {
@@ -1413,6 +1426,7 @@ function SetEvents() {
 
 var canvas = document.getElementById('myCanvas');
 var textarea = document.getElementById("myTextarea");
+var linksTag = document.getElementById("linksTag");
 var mouse = {x: 0, y: 0}
 var start = {x: 0, y: 0}
 var mousepressed = false
