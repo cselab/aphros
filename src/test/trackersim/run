@@ -23,7 +23,11 @@ cutpsh() {
   cut -d',' -f 22 --complement
 }
 
-eps=1e-6
+if [ "$t" = "gravity" ] ; then
+  eps=0.0005
+else
+  eps=1e-6
+fi
 
 a=0
 for f in $r/traj_* ; do
