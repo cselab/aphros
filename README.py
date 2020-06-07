@@ -19,7 +19,7 @@ Key features:
 - coroutines to enable encapsulation in the block-wise processing framework
 - fluid solver based on SIMPLE or Bell-Colella-Glaz methods
 - conservative split PLIC advection solver
-- novel particle method for curvature estimation improving the accuracy low resolutions
+- novel particle method for curvature estimation improving the accuracy at low resolutions
 [[demo]](https://cselab.github.io/aphros/curv.html)
 [[ref:partstr]]
 
