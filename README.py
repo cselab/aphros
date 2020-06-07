@@ -67,13 +67,13 @@ container
 
 |    |    |
 :---:|:---:
-[<img src="/doc/images/coalescence.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/coalescence.mp4) | [<img src="/doc/images/taylor_green.jpg" width=250 height=250>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/taylor_green.mp4)
+[<img src="/doc/images/coalescence.jpg" width=384 height=216>]([[VIDEOS]]/coalescence.mp4) | [<img src="/doc/images/taylor_green.jpg" width=250 height=250>]([[VIDEOS]]/taylor_green.mp4)
 Coalescence of bubbles [[ref:partstr]] | Taylor-Green vortex with bubbles [[ref:pasc19]]
-[<img src="/doc/images/vortex_bubble.jpg" width=200 height=400>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/vortex_bubble.mp4) | [<img src="/doc/images/plunging_jet.jpg" width=200 height=400>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/plunging_jet.mp4)
+[<img src="/doc/images/vortex_bubble.jpg" width=200 height=400>]([[VIDEOS]]/vortex_bubble.mp4) | [<img src="/doc/images/plunging_jet.jpg" width=200 height=400>]([[VIDEOS]]/plunging_jet.mp4)
 Bubble trapped by vortex ring [[ref:datadriven]] | Plunging jet [[ref:pasc19]]
-[<img src="/doc/images/reactor.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/reactor.mp4) | [<img src="/doc/images/mesh_bubbles.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/mesh_bubbles.mp4)
+[<img src="/doc/images/reactor.jpg" width=384 height=216>]([[VIDEOS]]/reactor.mp4) | [<img src="/doc/images/mesh_bubbles.jpg" width=384 height=216>]([[VIDEOS]]/mesh_bubbles.mp4)
 Electrochemical reactor [[ref:ees]] | Bubbles through mesh
-[<img src="/doc/images/rising_bubbles.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/rising_bubbles.mp4) | [<img src="/doc/images/foaming_waterfall.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/foaming_waterfall.mp4)
+[<img src="/doc/images/rising_bubbles.jpg" width=384 height=216>]([[VIDEOS]]/rising_bubbles.mp4) | [<img src="/doc/images/foaming_waterfall.jpg" width=384 height=216>]([[VIDEOS]]/foaming_waterfall.mp4)
  Rising bubbles clustering on the surface [[ref:aps]] [[ref:cscs]] | Foaming waterfall
 
 |     |
@@ -130,6 +130,7 @@ refs = [m_ref.group(0) for m_ref in m_refs]
 
 gen = text
 gen = gen.replace('[[GEN]]', os.path.basename(__file__))
+gen = gen.replace('[[VIDEOS]]', "https://cselab.github.io/aphros/videos")
 for i, m_item in enumerate(m_items):
     item = m_item.group(0)
     name = re.match("\[\[item:([^]]*)\]\]", item).group(1)

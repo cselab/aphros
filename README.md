@@ -62,13 +62,13 @@ container
 
 |    |    |
 :---:|:---:
-[<img src="/doc/images/coalescence.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/coalescence.mp4) | [<img src="/doc/images/taylor_green.jpg" width=250 height=250>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/taylor_green.mp4)
+[<img src="/doc/images/coalescence.jpg" width=384 height=216>](https://cselab.github.io/aphros/videos/coalescence.mp4) | [<img src="/doc/images/taylor_green.jpg" width=250 height=250>](https://cselab.github.io/aphros/videos/taylor_green.mp4)
 Coalescence of bubbles [[4]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209) | Taylor-Green vortex with bubbles [[2]](https://doi.org/10.1145/3324989.3325727)
-[<img src="/doc/images/vortex_bubble.jpg" width=200 height=400>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/vortex_bubble.mp4) | [<img src="/doc/images/plunging_jet.jpg" width=200 height=400>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/plunging_jet.mp4)
+[<img src="/doc/images/vortex_bubble.jpg" width=200 height=400>](https://cselab.github.io/aphros/videos/vortex_bubble.mp4) | [<img src="/doc/images/plunging_jet.jpg" width=200 height=400>](https://cselab.github.io/aphros/videos/plunging_jet.mp4)
 Bubble trapped by vortex ring [[5]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103286) | Plunging jet [[2]](https://doi.org/10.1145/3324989.3325727)
-[<img src="/doc/images/reactor.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/reactor.mp4) | [<img src="/doc/images/mesh_bubbles.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/mesh_bubbles.mp4)
+[<img src="/doc/images/reactor.jpg" width=384 height=216>](https://cselab.github.io/aphros/videos/reactor.mp4) | [<img src="/doc/images/mesh_bubbles.jpg" width=384 height=216>](https://cselab.github.io/aphros/videos/mesh_bubbles.mp4)
 Electrochemical reactor [[1]](https://doi.org/10.1039/C9EE00219G) | Bubbles through mesh
-[<img src="/doc/images/rising_bubbles.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/rising_bubbles.mp4) | [<img src="/doc/images/foaming_waterfall.jpg" width=384 height=216>](https://www.cse-lab.ethz.ch/wp-content/uploads/2020/06/foaming_waterfall.mp4)
+[<img src="/doc/images/rising_bubbles.jpg" width=384 height=216>](https://cselab.github.io/aphros/videos/rising_bubbles.mp4) | [<img src="/doc/images/foaming_waterfall.jpg" width=384 height=216>](https://cselab.github.io/aphros/videos/foaming_waterfall.mp4)
  Rising bubbles clustering on the surface [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) [[7]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019) | Foaming waterfall
 
 |     |
