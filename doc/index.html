@@ -475,8 +475,128 @@ Value of <code class="docutils literal notranslate"><span class="pre">id</span><
 </table>
 </div>
 </div>
+<span id="document-vofm"></span><div class="section" id="multilayer-vof">
+<span id="s-vofm"></span><h2><span class="section-number">5. </span>Multilayer VOF<a class="headerlink" href="#multilayer-vof" title="Permalink to this headline">¶</a></h2>
+<p>Multilayer VOF is a method for solving the advection equation
+that can represent multiple interfaces in the same cell.
+This enables simulations of foams, suspensions,
+and other multiphase systems where bubbles and drops that do not coalesce.</p>
+<p>The split conservative advection scheme <a class="reference internal" href="index.html#weymouth2010" id="id1"><span>[weymouth2010]</span></a> operates on a volume
+fraction field and uses the PLIC reconstruction to compute the fluxes.
+In three dimensions, one advection step is split into three sub-steps, or
+sweeps. To ensure conservation, a divergence term is added explicitly.
+The normals are estimated using the mixed Youngs-centered scheme.</p>
+<p>The multilayer VOF implements the same advection scheme
+but operates on <em>multilayer fields</em>.
+A multilayer field <em>(u,q)</em> stores mappings between <em>colors</em> <em>q</em> and <em>values</em> <em>u</em>.
+The colors are real numbers, and <em>none=-1</em> denotes an empty color.
+Assuming that each cell can contain at most <em>L=4</em> values,
+the mappings are represented as <em>L</em>-tuples up to reordering.
+For example, the following tuples encode a field <em>(u,q)</em>
+with three values in cell <em>c1</em> and two values in cell <em>c2</em></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">u</span><span class="p">[</span><span class="n">c1</span><span class="p">]:</span> <span class="p">{</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span>  <span class="mf">0.1</span><span class="p">,</span>    <span class="mi">0</span><span class="p">}</span>
+<span class="n">q</span><span class="p">[</span><span class="n">c1</span><span class="p">]:</span> <span class="p">{</span>  <span class="mi">0</span><span class="p">,</span>   <span class="mi">1</span><span class="p">,</span>    <span class="mi">2</span><span class="p">,</span> <span class="n">none</span><span class="p">}</span>
+<span class="n">u</span><span class="p">[</span><span class="n">c2</span><span class="p">]:</span> <span class="p">{</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">,</span>    <span class="mi">0</span><span class="p">,</span>    <span class="mi">0</span><span class="p">}</span>
+<span class="n">q</span><span class="p">[</span><span class="n">c2</span><span class="p">]:</span> <span class="p">{</span>  <span class="mi">1</span><span class="p">,</span>   <span class="mi">2</span><span class="p">,</span> <span class="n">none</span><span class="p">,</span> <span class="n">none</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>The ordering of tuples is insignificant, so simultaneous permutation
+of values and colors gives equivalent representations</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">u</span><span class="p">[</span><span class="n">c1</span><span class="p">]:</span> <span class="p">{</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span>    <span class="mi">0</span><span class="p">}</span>
+<span class="n">q</span><span class="p">[</span><span class="n">c1</span><span class="p">]:</span> <span class="p">{</span>  <span class="mi">1</span><span class="p">,</span>   <span class="mi">2</span><span class="p">,</span>   <span class="mi">0</span><span class="p">,</span> <span class="n">none</span><span class="p">}</span>
+<span class="n">u</span><span class="p">[</span><span class="n">c2</span><span class="p">]:</span> <span class="p">{</span><span class="mf">0.7</span><span class="p">,</span>    <span class="mi">0</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span>    <span class="mi">0</span><span class="p">}</span>
+<span class="n">q</span><span class="p">[</span><span class="n">c2</span><span class="p">]:</span> <span class="p">{</span>  <span class="mi">2</span><span class="p">,</span> <span class="n">none</span><span class="p">,</span>   <span class="mi">1</span><span class="p">,</span> <span class="n">none</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>A conventional field can be constructed from a multilayer field
+by selecting values with a given color.
+For example, selecting the values with color <em>qs=2</em> gives a conventional field
+<em>us</em></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">us</span><span class="p">[</span><span class="n">c1</span><span class="p">]:</span> <span class="mi">0</span>
+<span class="n">us</span><span class="p">[</span><span class="n">c2</span><span class="p">]:</span> <span class="mf">0.7</span>
+</pre></div>
+</div>
+<p>The following pseudocode implements the multilayer VOF method.
+One advection step is split in the spatial directions
+and in three dimensions consists of three substeps, or sweeps.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="nf">Step</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(</span><span class="nl">d</span> <span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">})</span> <span class="p">{</span>
+    <span class="p">{</span><span class="n">u</span><span class="p">,</span> <span class="n">q</span><span class="p">}</span> <span class="o">=</span> <span class="n">Sweep</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">a</span><span class="p">);</span>
+    <span class="p">{</span><span class="n">n</span><span class="p">,</span> <span class="n">a</span><span class="p">}</span> <span class="o">=</span> <span class="n">Plic</span><span class="p">(</span><span class="n">u</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="n">q</span> <span class="o">=</span> <span class="n">Recolor</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">q</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Given the PLIC reconstruction of the interface,
+one sweep computes fluxes, updates the volume fractions
+and propagates the colors to downwind cells</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span> <span class="nf">Sweep</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(</span><span class="nl">f</span> <span class="p">:</span> <span class="n">faces</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="nl">l</span> <span class="p">:</span> <span class="n">layers</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">c</span> <span class="o">=</span> <span class="n">AdjacentCell</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="mi">0</span> <span class="o">:</span> <span class="mi">1</span><span class="p">);</span> <span class="c1">// upwind cell</span>
+      <span class="n">vu</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="n">PlicFlux</span><span class="p">(</span><span class="n">n</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">),</span> <span class="n">a</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">),</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">d</span><span class="p">);</span>
+
+      <span class="n">cd</span> <span class="o">=</span> <span class="n">AdjacentCell</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="mi">1</span> <span class="o">:</span> <span class="mi">0</span><span class="p">);</span> <span class="c1">// downwind cell</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">FindLayer</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">cd</span><span class="p">,</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">))</span> <span class="o">==</span> <span class="n">kLayerNone</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">ld</span> <span class="o">=</span> <span class="n">FindLayer</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">cd</span><span class="p">,</span> <span class="n">kClNone</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">ld</span> <span class="o">!=</span> <span class="n">kLayerNone</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">q</span><span class="p">(</span><span class="n">cd</span><span class="p">,</span> <span class="n">ld</span><span class="p">)</span> <span class="o">=</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">for</span> <span class="p">(</span><span class="nl">c</span> <span class="p">:</span> <span class="n">cells</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="nl">l</span> <span class="p">:</span> <span class="n">layers</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">fm</span> <span class="o">=</span> <span class="n">AdjacentCell</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+      <span class="n">fp</span> <span class="o">=</span> <span class="n">AdjacentCell</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">fp</span><span class="p">]</span> <span class="o">-</span> <span class="n">v</span><span class="p">[</span><span class="n">fm</span><span class="p">])</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">/</span> <span class="n">volume</span><span class="p">;</span>
+      <span class="n">vm</span> <span class="o">=</span> <span class="n">v</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">FindLayer</span><span class="p">(</span><span class="n">qf</span><span class="p">,</span> <span class="n">fm</span><span class="p">,</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)));</span>
+      <span class="n">vp</span> <span class="o">=</span> <span class="n">v</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">FindLayer</span><span class="p">(</span><span class="n">qf</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)));</span>
+      <span class="n">dl</span> <span class="o">=</span> <span class="p">(</span><span class="n">vp</span> <span class="o">-</span> <span class="n">vm</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">/</span> <span class="n">vol</span><span class="p">;</span>
+      <span class="n">u</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">+=</span> <span class="n">ud</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">*</span> <span class="n">ds</span> <span class="o">-</span> <span class="n">dl</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">u</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="n">kClNone</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="p">{</span><span class="n">u</span><span class="p">,</span> <span class="n">q</span><span class="p">};</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Function <code class="docutils literal notranslate"><span class="pre">Plic()</span></code> builds the PLIC reconstruction in interfacial cells
+and returns normals <em>n</em> and plane constants <em>a</em>:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span> <span class="nf">Plic</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(</span><span class="nl">c</span> <span class="p">:</span> <span class="n">cells</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="nl">l</span> <span class="p">:</span> <span class="n">layers</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">uu</span> <span class="o">=</span> <span class="n">Stencil3</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">));</span>
+      <span class="n">n</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="n">Normal</span><span class="p">(</span><span class="n">uu</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">auto</span> <span class="n">navg</span> <span class="o">=</span> <span class="n">Avg</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">c</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="nl">l</span> <span class="p">:</span> <span class="n">layers</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">n</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span><span class="p">.</span><span class="n">dot</span><span class="p">(</span><span class="n">navg</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="o">-</span><span class="nl">navg</span> <span class="p">:</span> <span class="n">navg</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">a</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="n">PlaneConstant</span><span class="p">(</span><span class="n">u</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">),</span> <span class="n">n</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">),</span> <span class="n">h</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="p">{</span><span class="n">n</span><span class="p">,</span> <span class="n">a</span><span class="p">};</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Normals <em>n</em> are estimated using the standard Youngs-centered scheme <code class="docutils literal notranslate"><span class="pre">Normal()</span></code>
+applied to stencil values assembled by <code class="docutils literal notranslate"><span class="pre">Stencil3()</span></code>,
+which selects values with given color (or zero if the requested color is not
+found) on the <em>3x3x3</em> stencil.
+After all advection sweeps,
+<code class="docutils literal notranslate"><span class="pre">Recolor()</span></code> detects new connected components
+and recomputes the colors as described in <a class="reference internal" href="#s-vofm-recolor"><span class="std std-ref">Connected-component labeling</span></a>.</p>
+<p>The complete implementation of the multilayer VOF
+is given in <a class="reference external" href="https://github.com/cselab/aphros/blob/master/src/solver/vofm.ipp">src/solver/vofm.ipp</a>.</p>
+<div class="section" id="connected-component-labeling">
+<span id="s-vofm-recolor"></span><h3><span class="section-number">5.1. </span>Connected-component labeling<a class="headerlink" href="#connected-component-labeling" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
 <span id="document-embed"></span><div class="section" id="embedded-boundaries">
-<span id="s-embed"></span><h2><span class="section-number">5. </span>Embedded boundaries<a class="headerlink" href="#embedded-boundaries" title="Permalink to this headline">¶</a></h2>
+<span id="s-embed"></span><h2><span class="section-number">6. </span>Embedded boundaries<a class="headerlink" href="#embedded-boundaries" title="Permalink to this headline">¶</a></h2>
 <p>The method of embedded boundaries allows
 one to solve equations in complex geometries on a Cartesian mesh.
 The surface of a solid body is represented by <em>cut cells</em>.
@@ -599,7 +719,7 @@ and computation of gradients. Some of them require boundary conditions.</p>
 </pre></div>
 </div>
 <div class="section" id="advection-solver">
-<span id="s-embed-advection"></span><h3><span class="section-number">5.1. </span>Advection solver<a class="headerlink" href="#advection-solver" title="Permalink to this headline">¶</a></h3>
+<span id="s-embed-advection"></span><h3><span class="section-number">6.1. </span>Advection solver<a class="headerlink" href="#advection-solver" title="Permalink to this headline">¶</a></h3>
 <p>The routines described above are sufficient to implement an advection solver.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Advection solver.</span>
 <span class="c1">// fcu: quantity to advect</span>
@@ -633,7 +753,7 @@ and computation of gradients. Some of them require boundary conditions.</p>
 </pre></div>
 </div>
 <table class="docutils align-center" id="id1">
-<caption><span class="caption-number">Table 5.1 </span><span class="caption-text">Results of advection solver <code class="docutils literal notranslate"><span class="pre">Advection0()</span></code>:
+<caption><span class="caption-number">Table 6.1 </span><span class="caption-text">Results of advection solver <code class="docutils literal notranslate"><span class="pre">Advection0()</span></code>:
 initial (left) and final (right). Instabilities develop near the boundary.</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 50%" />
@@ -724,7 +844,7 @@ Using this function in the advection solver results in</p>
 </pre></div>
 </div>
 <table class="docutils align-center" id="id2">
-<caption><span class="caption-number">Table 5.2 </span><span class="caption-text">Results of first order upwind scheme <code class="docutils literal notranslate"><span class="pre">Advection1()</span></code> (left)
+<caption><span class="caption-number">Table 6.2 </span><span class="caption-text">Results of first order upwind scheme <code class="docutils literal notranslate"><span class="pre">Advection1()</span></code> (left)
 and second order upwind scheme <code class="docutils literal notranslate"><span class="pre">Advection2()</span></code> (right).
 Resdistribution from cut cells stabilizes the method in both cases.</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
 <colgroup>
@@ -746,7 +866,7 @@ depending on the velocity</p>
 <p><img src="_images/math/be7431c6d27b409ca9ab002347e99b86e9148410.svg" alt="\frac{v_f \Delta t}{S_f |\mathbf{x}_c - \mathbf{x}_f|} &lt; \texttt{CFL}_0"/></p>
 </div></div>
 <div class="section" id="diffusion-solver">
-<h3><span class="section-number">5.2. </span>Diffusion solver<a class="headerlink" href="#diffusion-solver" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">6.2. </span>Diffusion solver<a class="headerlink" href="#diffusion-solver" title="Permalink to this headline">¶</a></h3>
 <p>The diffusion equation illustrates another problem of small cells which arises
 in computation of gradients.
 The diffusive fluxes are proportional to the normal gradient of the quantity.
@@ -785,7 +905,7 @@ between the face and cell centroids in the denominator.</p>
 </pre></div>
 </div>
 <table class="docutils align-center" id="id3">
-<caption><span class="caption-number">Table 5.3 </span><span class="caption-text">Results of diffusion solver <code class="docutils literal notranslate"><span class="pre">Diffusion0()</span></code>:
+<caption><span class="caption-number">Table 6.3 </span><span class="caption-text">Results of diffusion solver <code class="docutils literal notranslate"><span class="pre">Diffusion0()</span></code>:
 initial (left) and final (right). Instabilities develop near the boundary.</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 50%" />
@@ -858,7 +978,7 @@ initial (left) and final (right). Instabilities develop near the boundary.</span
 </pre></div>
 </div>
 <table class="docutils align-center" id="id4">
-<caption><span class="caption-number">Table 5.4 </span><span class="caption-text">Results of diffusion solver <code class="docutils literal notranslate"><span class="pre">Diffusion1()</span></code> (left)
+<caption><span class="caption-number">Table 6.4 </span><span class="caption-text">Results of diffusion solver <code class="docutils literal notranslate"><span class="pre">Diffusion1()</span></code> (left)
 using linear fit to cell centers to compute the gradient
 which eliminates the instabilities.
 Solver <code class="docutils literal notranslate"><span class="pre">Diffusion2()</span></code> (right) produces the same results
@@ -877,7 +997,7 @@ to execute the same lambda-function on indices of two types</span><a class="head
 </div>
 </div>
 <span id="document-primlist"></span><div class="section" id="geometric-primitives">
-<span id="s-primlist"></span><h2><span class="section-number">6. </span>Geometric primitives<a class="headerlink" href="#geometric-primitives" title="Permalink to this headline">¶</a></h2>
+<span id="s-primlist"></span><h2><span class="section-number">7. </span>Geometric primitives<a class="headerlink" href="#geometric-primitives" title="Permalink to this headline">¶</a></h2>
 <p>Header <code class="docutils literal notranslate"><span class="pre">func/primlist.h</span></code> provides routines to define level-set functions
 for a list of geometric primitives such as spheres and boxes.
 A primitive is described by</p>
@@ -983,12 +1103,12 @@ computed from the level-set on mesh nodes, supports modifiers.</p>
 </dl>
 </div>
 <span id="document-bclist"></span><div class="section" id="boundary-conditions">
-<span id="s-bclist"></span><h2><span class="section-number">7. </span>Boundary conditions<a class="headerlink" href="#boundary-conditions" title="Permalink to this headline">¶</a></h2>
+<span id="s-bclist"></span><h2><span class="section-number">8. </span>Boundary conditions<a class="headerlink" href="#boundary-conditions" title="Permalink to this headline">¶</a></h2>
 <p>Header <code class="docutils literal notranslate"><span class="pre">func/init_u.h</span></code> provides routines to describe boundary
 conditions based on primitives.
 The list of boundary conditions is a list of code blocks with primitives.</p>
 <div class="section" id="code-blocks">
-<h3><span class="section-number">7.1. </span>Code blocks<a class="headerlink" href="#code-blocks" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">8.1. </span>Code blocks<a class="headerlink" href="#code-blocks" title="Permalink to this headline">¶</a></h3>
 <p>A code block is described by</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="n">CodeBlock</span> <span class="p">{</span>
   <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
@@ -1025,7 +1145,7 @@ name with spaces {
 <p>Leading and trailing whitespaces are stripped.</p>
 </div>
 <div class="section" id="groups-of-primitives">
-<h3><span class="section-number">7.2. </span>Groups of primitives<a class="headerlink" href="#groups-of-primitives" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">8.2. </span>Groups of primitives<a class="headerlink" href="#groups-of-primitives" title="Permalink to this headline">¶</a></h3>
 <p>Boundary conditions are selected inside groups of primitives
 organized as code blocks.
 The name of the block is the boundary condition to set
@@ -1059,7 +1179,7 @@ and returns a <code class="docutils literal notranslate"><span class="pre">MapEm
 </div>
 </div>
 <span id="document-output"></span><div class="section" id="output">
-<span id="s-output"></span><h2><span class="section-number">8. </span>Output<a class="headerlink" href="#output" title="Permalink to this headline">¶</a></h2>
+<span id="s-output"></span><h2><span class="section-number">9. </span>Output<a class="headerlink" href="#output" title="Permalink to this headline">¶</a></h2>
 <p>Simulations produce output of various types:</p>
 <ul class="simple">
 <li><p>statistics (stdout)</p></li>
@@ -1079,20 +1199,30 @@ and <code class="docutils literal notranslate"><span class="pre">condfluid</span
 </pre></div>
 </div>
 </div>
+<span id="document-references"></span><div class="section" id="references">
+<h2><span class="section-number">10. </span>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
+<dl class="citation">
+<dt class="label" id="weymouth2010"><span class="brackets">weymouth2010</span></dt>
+<dd><p>Weymouth, G.D. and Yue, D.K.P., 2010.
+Conservative volume-of-fluid method for free-surface simulations on cartesian-grids.
+<em>Journal of Computational Physics</em>, 229(8), pp.2853-2865.</p>
+</dd>
+</dl>
+</div>
 <span id="document-lib1/index"></span><div class="section" id="tools">
-<h2><span class="section-number">9. </span>Tools<a class="headerlink" href="#tools" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">11. </span>Tools<a class="headerlink" href="#tools" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <span id="document-lib1/ap-cawk"></span><div class="section" id="awk-for-csv-files">
-<h3><span class="section-number">9.1. </span>AWK for CSV files<a class="headerlink" href="#awk-for-csv-files" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">11.1. </span>AWK for CSV files<a class="headerlink" href="#awk-for-csv-files" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="synopsis">
-<h4><span class="section-number">9.1.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">11.1.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
 <p>ap.cawk [-v var=value] [‘prog’] [CSV ..]</p>
 </div>
 <div class="section" id="description">
-<h4><span class="section-number">9.1.2. </span>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">11.1.2. </span>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h4>
 </div>
 <div class="section" id="examples">
-<h4><span class="section-number">9.1.3. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">11.1.3. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat example.csv
 x,y
 1,10
@@ -1111,13 +1241,13 @@ x,y
 </div>
 </div>
 <div class="section" id="source">
-<h4><span class="section-number">9.1.4. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">11.1.4. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
 <span class="problematic">deploy/scripts/cawk</span></div>
 </div>
 <span id="document-lib1/ap-format"></span><div class="section" id="format">
-<h3><span class="section-number">9.2. </span>Format<a class="headerlink" href="#format" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">11.2. </span>Format<a class="headerlink" href="#format" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="synopsis">
-<h4><span class="section-number">9.2.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">11.2.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
 <p>ap.format [-y]</p>
 <p>runs clang-format for all C/C++ files found recursively from current directory.</p>
 <dl class="option-list">
@@ -1127,43 +1257,43 @@ x,y
 </dl>
 </div>
 <div class="section" id="configuration">
-<h4><span class="section-number">9.2.2. </span>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">11.2.2. </span>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h4>
 <p>The configuration is based on Google code style with modifications.</p>
 <p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/.clang-format">.clang-format</a></p>
 </div>
 <div class="section" id="source">
-<h4><span class="section-number">9.2.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">11.2.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
 <p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/deploy/scripts/format">deploy/scripts/format</a></p>
 </div>
 </div>
 <span id="document-lib1/ap-hist"></span><div class="section" id="histogram">
-<h3><span class="section-number">9.3. </span>Histogram<a class="headerlink" href="#histogram" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">11.3. </span>Histogram<a class="headerlink" href="#histogram" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="synopsis">
-<h4><span class="section-number">9.3.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">11.3.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
 <p>ap.hist [–density|–cumulative] [–bins BINS] [–range L R]</p>
 <p>print histogram of STDIN as columns [center,density,left,right]</p>
 </div>
 <div class="section" id="examples">
-<h4><span class="section-number">9.3.2. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">11.3.2. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">seq</span> <span class="mi">10</span> <span class="o">|</span> <span class="n">ap</span><span class="o">.</span><span class="n">hist</span> <span class="o">--</span><span class="n">density</span>
 <span class="n">seq</span> <span class="mi">10</span> <span class="o">|</span> <span class="n">ap</span><span class="o">.</span><span class="n">hist</span> <span class="o">--</span><span class="n">cumulative</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="source">
-<h4><span class="section-number">9.3.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">11.3.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
 <p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/deploy/scripts/hist">deploy/scripts/hist</a></p>
 </div>
 </div>
 </div>
 </div>
 <span id="document-lib3/index"></span><div class="section" id="library">
-<h2><span class="section-number">10. </span>Library<a class="headerlink" href="#library" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">12. </span>Library<a class="headerlink" href="#library" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <span id="document-lib3/csv"></span><div class="section" id="csv-io">
-<h3><span class="section-number">10.1. </span>CSV IO<a class="headerlink" href="#csv-io" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">12.1. </span>CSV IO<a class="headerlink" href="#csv-io" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="synopsis">
-<h4><span class="section-number">10.1.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.1.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
 <p>A library to read/write floating point data from CSV file</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &lt;csv.h&gt;</span>
 </pre></div>
@@ -1188,19 +1318,19 @@ x,y
 </div>
 </div>
 <div class="section" id="description">
-<h4><span class="section-number">10.1.2. </span>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.1.2. </span>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h4>
 </div>
 <div class="section" id="source">
-<h4><span class="section-number">10.1.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.1.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
 <span class="problematic">deploy/lib/csv</span></div>
 <div class="section" id="examples">
-<h4><span class="section-number">10.1.4. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.1.4. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
 </div>
 </div>
 <span id="document-lib3/h5"></span><div class="section" id="hdf5-io-wrapper">
-<h3><span class="section-number">10.2. </span>HDF5 IO wrapper<a class="headerlink" href="#hdf5-io-wrapper" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">12.2. </span>HDF5 IO wrapper<a class="headerlink" href="#hdf5-io-wrapper" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="synopsis">
-<h4><span class="section-number">10.2.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.2.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
 <p>A library to read/write scalar field on uniform grid.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &lt;h5.h&gt;</span>
 </pre></div>
@@ -1226,7 +1356,7 @@ x,y
 </div>
 </div>
 <div class="section" id="description">
-<h4><span class="section-number">10.2.2. </span>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.2.2. </span>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h4>
 <p>A field is stored as two files: hdf5 file contains data and xmf file
 contains information.</p>
 <p>h5_serial_hdf write scalar field of dimension size[3] to file path.h5.</p>
@@ -1259,11 +1389,11 @@ contains information.</p>
 </div>
 </div>
 <div class="section" id="source">
-<h4><span class="section-number">10.2.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.2.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
 <p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/deploy/lib/h5">deploy/lib/h5</a></p>
 </div>
 <div class="section" id="examples">
-<h4><span class="section-number">10.2.4. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.2.4. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
 <p>Write a field in serial:</p>
 <div class="line-block">
 <div class="line"><a class="reference external" href="https://github.com/cselab/aphros/blob/master/examples/003_h5_serial_write/main.c">examples/003_h5_serial_write/main.c</a></div>
@@ -1275,9 +1405,9 @@ contains information.</p>
 </div>
 </div>
 <span id="document-lib3/march"></span><div class="section" id="marching-cubes">
-<h3><span class="section-number">10.3. </span>Marching cubes<a class="headerlink" href="#marching-cubes" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">12.3. </span>Marching cubes<a class="headerlink" href="#marching-cubes" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="synopsis">
-<h4><span class="section-number">10.3.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.3.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
 <p>Marching cubes.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &lt;march.h&gt;</span>
 
@@ -1292,7 +1422,7 @@ contains information.</p>
 </div>
 </div>
 <div class="section" id="description">
-<h4><span class="section-number">10.3.2. </span>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.3.2. </span>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h4>
 <p>Generates triangles of the isosurface for three-dimensional discrete
 field.</p>
 <p>march_cube generates triangles for one cell, u[8] are values of the
@@ -1336,11 +1466,11 @@ relative distance from the node first[i].</p>
 </div>
 </div>
 <div class="section" id="source">
-<h4><span class="section-number">10.3.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.3.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
 <p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/deploy/lib/march">deploy/lib/march</a></p>
 </div>
 <div class="section" id="examples">
-<h4><span class="section-number">10.3.4. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.3.4. </span>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
 <p>Generate triangles for cube configurations given as arguments:</p>
 <div class="line-block">
 <div class="line"><a class="reference external" href="https://github.com/cselab/aphros/blob/master/examples/001_march_cell/main.c">examples/001_march_cell/main.c</a></div>
@@ -1352,13 +1482,13 @@ relative distance from the node first[i].</p>
 </div>
 </div>
 <span id="document-lib3/vof"></span><div class="section" id="vof-advection">
-<h3><span class="section-number">10.4. </span>VOF advection<a class="headerlink" href="#vof-advection" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">12.4. </span>VOF advection<a class="headerlink" href="#vof-advection" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="synopsis">
-<h4><span class="section-number">10.4.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.4.1. </span>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h4>
 <p>Volume-of-fluid advection solver with PLIC reconstruction.</p>
 </div>
 <div class="section" id="parameters">
-<h4><span class="section-number">10.4.2. </span>Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.4.2. </span>Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="n">Par</span> <span class="p">{</span>
   <span class="kt">size_t</span> <span class="n">dim</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span> <span class="c1">// dimension (dim=2 assumes zero velocity in z)</span>
   <span class="n">Scal</span> <span class="n">clipth</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">;</span> <span class="c1">// vf clipping threshold</span>
@@ -1394,7 +1524,7 @@ relative distance from the node first[i].</p>
 </div>
 </div>
 <div class="section" id="source">
-<h4><span class="section-number">10.4.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.4.3. </span>Source<a class="headerlink" href="#source" title="Permalink to this headline">¶</a></h4>
 <div class="line-block">
 <div class="line"><a class="reference external" href="https://github.com/cselab/aphros/blob/master/src/solver/vof.h">src/solver/vof.h</a></div>
 <div class="line"><a class="reference external" href="https://github.com/cselab/aphros/blob/master/src/solver/vof.cpp">src/solver/vof.cpp</a></div>
@@ -1402,7 +1532,7 @@ relative distance from the node first[i].</p>
 </div>
 </div>
 <div class="section" id="example">
-<h4><span class="section-number">10.4.4. </span>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">12.4.4. </span>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
 <p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/examples/100_advection/main.cpp">examples/100_advection/main.cpp</a></p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Created by Petr Karnakov on 24.12.2019</span>
 <span class="c1">// Copyright 2019 ETH Zurich</span>
@@ -1502,10 +1632,10 @@ relative distance from the node first[i].</p>
 </div>
 </div>
 <span id="document-log/index"></span><div class="section" id="log">
-<h2><span class="section-number">11. </span>Log<a class="headerlink" href="#log" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">13. </span>Log<a class="headerlink" href="#log" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <span id="document-log/log"></span><div class="section" id="surface-tension-as-gradient">
-<h3><span class="section-number">11.1. </span>Surface tension as gradient<a class="headerlink" href="#surface-tension-as-gradient" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">13.1. </span>Surface tension as gradient<a class="headerlink" href="#surface-tension-as-gradient" title="Permalink to this headline">¶</a></h3>
 <p>2018-08-30 22:08:47</p>
 <p><strong>Goal</strong>: zero integral of force</p>
 <p><strong>What</strong>: surface tension as <img class="math" src="_images/math/b0b3a9ce06f121dd73cc41968b3854443510f587.svg" alt="\nabla (\kappa \alpha)" style="vertical-align: -5px"/> on faces,
@@ -1522,7 +1652,7 @@ curvature on face if both cells contain interface</p></li>
 </ul>
 </div>
 <div class="section" id="particle-normal-displacement">
-<h3><span class="section-number">11.2. </span>Particle normal displacement<a class="headerlink" href="#particle-normal-displacement" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">13.2. </span>Particle normal displacement<a class="headerlink" href="#particle-normal-displacement" title="Permalink to this headline">¶</a></h3>
 <p>2018-09-02 09:41:49</p>
 <p><strong>Goal</strong>: reduce spurious flow and deformation for single drop
 equilibrium</p>
@@ -1537,7 +1667,7 @@ to stronger coupling or penalization of deformed interfaces</p>
 </ul>
 </div>
 <div class="section" id="march-native">
-<h3><span class="section-number">11.3. </span><code class="docutils literal notranslate"><span class="pre">march=native</span></code><a class="headerlink" href="#march-native" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">13.3. </span><code class="docutils literal notranslate"><span class="pre">march=native</span></code><a class="headerlink" href="#march-native" title="Permalink to this headline">¶</a></h3>
 <p>2018-09-09 11:59:47</p>
 <p><strong>Goal</strong>: use automatic vectorization and specific optimizations</p>
 <p><strong>What</strong>: add <code class="docutils literal notranslate"><span class="pre">-march=native</span></code> to <code class="docutils literal notranslate"><span class="pre">CMAKE_C_FLAGS</span></code> and
@@ -1551,7 +1681,7 @@ to stronger coupling or penalization of deformed interfaces</p>
 </ul>
 </div>
 <div class="section" id="max-iter">
-<h3><span class="section-number">11.4. </span><code class="docutils literal notranslate"><span class="pre">max_iter</span></code><a class="headerlink" href="#max-iter" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">13.4. </span><code class="docutils literal notranslate"><span class="pre">max_iter</span></code><a class="headerlink" href="#max-iter" title="Permalink to this headline">¶</a></h3>
 <p>2018-09-12 14:03:27</p>
 <p><strong>Goal</strong>: choose optimal number of iterations <code class="docutils literal notranslate"><span class="pre">max_iter</span></code></p>
 <p><strong>What</strong>: Taylor-Green with bubbles (<code class="docutils literal notranslate"><span class="pre">sim06</span></code>) with
@@ -1570,7 +1700,7 @@ to stronger coupling or penalization of deformed interfaces</p>
 </ul>
 </div>
 <div class="section" id="number-of-particles-and-strings">
-<h3><span class="section-number">11.5. </span>Number of particles and strings<a class="headerlink" href="#number-of-particles-and-strings" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">13.5. </span>Number of particles and strings<a class="headerlink" href="#number-of-particles-and-strings" title="Permalink to this headline">¶</a></h3>
 <p><strong>Goal</strong>: check the influence of the <code class="docutils literal notranslate"><span class="pre">part_np</span></code> and <code class="docutils literal notranslate"><span class="pre">part_ns</span></code> in
 curvature estimator</p>
 <p><strong>What</strong>: Free-field coalescence of bubbles based on <code class="docutils literal notranslate"><span class="pre">sim04_univel</span></code></p>
@@ -1586,7 +1716,7 @@ curvature estimator</p>
 </ul>
 </div>
 <div class="section" id="number-of-iterations-for-coalescence">
-<h3><span class="section-number">11.6. </span>Number of iterations for coalescence<a class="headerlink" href="#number-of-iterations-for-coalescence" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">13.6. </span>Number of iterations for coalescence<a class="headerlink" href="#number-of-iterations-for-coalescence" title="Permalink to this headline">¶</a></h3>
 <p><strong>Goal</strong>: check the influence of the <code class="docutils literal notranslate"><span class="pre">min_iter</span></code> and <code class="docutils literal notranslate"><span class="pre">tol</span></code> on bubble
 coalescence</p>
 <p><strong>What</strong>: Free-field coalescence of bubbles based on
@@ -1603,7 +1733,7 @@ coalescence</p>
 </ul>
 </div>
 <div class="section" id="relaxation-parameters">
-<h3><span class="section-number">11.7. </span>Relaxation parameters<a class="headerlink" href="#relaxation-parameters" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">13.7. </span>Relaxation parameters<a class="headerlink" href="#relaxation-parameters" title="Permalink to this headline">¶</a></h3>
 <p>2019-03-21 22:48:56</p>
 <p><strong>Goal</strong>: check the influence of <code class="docutils literal notranslate"><span class="pre">vrelax</span></code> and <code class="docutils literal notranslate"><span class="pre">prelax</span></code> on bubble
 coalescence</p>
@@ -1626,7 +1756,7 @@ detachment</p></li>
 </ul>
 </div>
 <div class="section" id="reduced-usage-of-getcenter">
-<h3><span class="section-number">11.8. </span>Reduced usage of <code class="docutils literal notranslate"><span class="pre">GetCenter</span></code><a class="headerlink" href="#reduced-usage-of-getcenter" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">13.8. </span>Reduced usage of <code class="docutils literal notranslate"><span class="pre">GetCenter</span></code><a class="headerlink" href="#reduced-usage-of-getcenter" title="Permalink to this headline">¶</a></h3>
 <p>2019-04-27 01:19:03</p>
 <p><strong>Goal</strong>: Performance improvement.</p>
 <p><strong>What</strong>: Reduced usage of <code class="docutils literal notranslate"><span class="pre">GetCenter</span></code> and <code class="docutils literal notranslate"><span class="pre">GetVectToCell</span></code>. Test of
@@ -1640,7 +1770,7 @@ the Taylor-Green vortex with bubbles.</p>
 </ul>
 </div>
 <div class="section" id="debug-linear-solver-with-convertlscompact">
-<h3><span class="section-number">11.9. </span>Debug linear solver with <code class="docutils literal notranslate"><span class="pre">ConvertLsCompact</span></code><a class="headerlink" href="#debug-linear-solver-with-convertlscompact" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">13.9. </span>Debug linear solver with <code class="docutils literal notranslate"><span class="pre">ConvertLsCompact</span></code><a class="headerlink" href="#debug-linear-solver-with-convertlscompact" title="Permalink to this headline">¶</a></h3>
 <p>2019-08-15 10:04:39</p>
 <p><strong>Goal</strong>: Fix <code class="docutils literal notranslate"><span class="pre">sim12_ringgauss</span></code> after reimplementing <code class="docutils literal notranslate"><span class="pre">simple.ipp</span></code>
 with <code class="docutils literal notranslate"><span class="pre">ConvertLsCompact</span></code> in <code class="docutils literal notranslate"><span class="pre">48fa3cf0</span></code>. Iterations for pressure
@@ -1665,7 +1795,7 @@ leads to the wrong order of coefficients.</p>
 </ul>
 </div>
 <div class="section" id="registered-modules-in-ubuntu">
-<h3><span class="section-number">11.10. </span>Registered modules in Ubuntu<a class="headerlink" href="#registered-modules-in-ubuntu" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">13.10. </span>Registered modules in Ubuntu<a class="headerlink" href="#registered-modules-in-ubuntu" title="Permalink to this headline">¶</a></h3>
 <p>2020-06-03 11:34:54</p>
 <p>Ubuntu has <code class="docutils literal notranslate"><span class="pre">--as-needed</span></code> by default (seen from <code class="docutils literal notranslate"><span class="pre">gcc</span> <span class="pre">-dumpspecs</span></code>)
 which makes the linker ignore unused libraries
@@ -1674,10 +1804,10 @@ and, in particular, the implementations of modules (e.g. <code class="docutils l
 </div>
 </div>
 <span id="document-styleguide"></span><div class="section" id="style-guide">
-<h2><span class="section-number">12. </span>Style guide<a class="headerlink" href="#style-guide" title="Permalink to this headline">¶</a></h2>
+<h2><span class="section-number">14. </span>Style guide<a class="headerlink" href="#style-guide" title="Permalink to this headline">¶</a></h2>
 <p>Use <a class="reference external" href="https://google.github.io/styleguide/cppguide.html">Google C++ Style Guide</a>.</p>
 <div class="section" id="naming-conventions">
-<h3><span class="section-number">12.1. </span>Naming conventions<a class="headerlink" href="#naming-conventions" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">14.1. </span>Naming conventions<a class="headerlink" href="#naming-conventions" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>Variable:</p>
 <ul>
@@ -1715,13 +1845,13 @@ MIdx <code class="docutils literal notranslate"><span class="pre">d</span></code
 </ul>
 </div>
 <div class="section" id="other">
-<h3><span class="section-number">12.2. </span>Other<a class="headerlink" href="#other" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">14.2. </span>Other<a class="headerlink" href="#other" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>use Vect(0) and MIdx(0) instead of Vect::kZero</p></li>
 </ul>
 </div>
 <div class="section" id="toolbox-classes">
-<h3><span class="section-number">12.3. </span>Toolbox classes<a class="headerlink" href="#toolbox-classes" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">14.3. </span>Toolbox classes<a class="headerlink" href="#toolbox-classes" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>combines multiple templated functions to avoid repeating template
 parameters</p></li>
@@ -1730,7 +1860,7 @@ parameters</p></li>
 </ul>
 </div>
 <div class="section" id="comments">
-<h3><span class="section-number">12.4. </span>Comments<a class="headerlink" href="#comments" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">14.4. </span>Comments<a class="headerlink" href="#comments" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>capitalized descriptive for a class or function (e.g. Creates
 instance)</p></li>
@@ -1740,7 +1870,7 @@ instance)</p></li>
 </ul>
 </div>
 <div class="section" id="units">
-<h3><span class="section-number">12.5. </span>Units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">14.5. </span>Units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h3>
 <p>Example: <code class="docutils literal notranslate"><span class="pre">Scal</span> <span class="pre">s;</span> <span class="pre">//</span> <span class="pre">source</span> <span class="pre">[density/time]</span></code></p>
 <ul class="simple">
 <li><p>length</p></li>
@@ -1753,7 +1883,7 @@ instance)</p></li>
 <li><p>value (user defined, e.g. 1 for concentration)</p></li>
 </ul>
 <div class="section" id="ordering">
-<h4><span class="section-number">12.5.1. </span>Ordering<a class="headerlink" href="#ordering" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">14.5.1. </span>Ordering<a class="headerlink" href="#ordering" title="Permalink to this headline">¶</a></h4>
 <ul class="simple">
 <li><p>parent <code class="docutils literal notranslate"><span class="pre">P</span></code></p></li>
 <li><p>kernel <code class="docutils literal notranslate"><span class="pre">K</span></code></p></li>
@@ -1765,7 +1895,7 @@ instance)</p></li>
 </div>
 </div>
 <span id="document-todo"></span><div class="section" id="todo">
-<span id="s-todo"></span><h2><span class="section-number">13. </span>TODO<a class="headerlink" href="#todo" title="Permalink to this headline">¶</a></h2>
+<span id="s-todo"></span><h2><span class="section-number">15. </span>TODO<a class="headerlink" href="#todo" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>library of examples with runtime below 1 min</p></li>
 </ul>
