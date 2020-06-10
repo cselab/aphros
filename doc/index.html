@@ -532,10 +532,14 @@ and in three dimensions consists of three substeps, or sweeps.</p>
 one sweep computes fluxes, updates the volume fractions
 and propagates the colors to downwind cells</p>
 <div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span> <span class="nf">Sweep</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// v: mixture flux</span>
+  <span class="c1">// w: phase flux</span>
+  <span class="c1">// qf: phase color from upwind cell</span>
   <span class="k">for</span> <span class="p">(</span><span class="nl">f</span> <span class="p">:</span> <span class="n">faces</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">for</span> <span class="p">(</span><span class="nl">l</span> <span class="p">:</span> <span class="n">layers</span><span class="p">)</span> <span class="p">{</span>
       <span class="n">c</span> <span class="o">=</span> <span class="n">AdjacentCell</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="mi">0</span> <span class="o">:</span> <span class="mi">1</span><span class="p">);</span> <span class="c1">// upwind cell</span>
-      <span class="n">vu</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="n">PlicFlux</span><span class="p">(</span><span class="n">n</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">),</span> <span class="n">a</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">),</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">d</span><span class="p">);</span>
+      <span class="n">w</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="n">PlicFlux</span><span class="p">(</span><span class="n">n</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">),</span> <span class="n">a</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">),</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">d</span><span class="p">);</span>
+      <span class="n">qf</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">);</span>
 
       <span class="n">cd</span> <span class="o">=</span> <span class="n">AdjacentCell</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="mi">1</span> <span class="o">:</span> <span class="mi">0</span><span class="p">);</span> <span class="c1">// downwind cell</span>
       <span class="k">if</span> <span class="p">(</span><span class="n">FindLayer</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">cd</span><span class="p">,</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">))</span> <span class="o">==</span> <span class="n">kLayerNone</span><span class="p">)</span> <span class="p">{</span>
@@ -551,10 +555,10 @@ and propagates the colors to downwind cells</p>
       <span class="n">fm</span> <span class="o">=</span> <span class="n">AdjacentCell</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
       <span class="n">fp</span> <span class="o">=</span> <span class="n">AdjacentCell</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
       <span class="n">ds</span> <span class="o">=</span> <span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">fp</span><span class="p">]</span> <span class="o">-</span> <span class="n">v</span><span class="p">[</span><span class="n">fm</span><span class="p">])</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">/</span> <span class="n">volume</span><span class="p">;</span>
-      <span class="n">vm</span> <span class="o">=</span> <span class="n">v</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">FindLayer</span><span class="p">(</span><span class="n">qf</span><span class="p">,</span> <span class="n">fm</span><span class="p">,</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)));</span>
-      <span class="n">vp</span> <span class="o">=</span> <span class="n">v</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">FindLayer</span><span class="p">(</span><span class="n">qf</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)));</span>
-      <span class="n">dl</span> <span class="o">=</span> <span class="p">(</span><span class="n">vp</span> <span class="o">-</span> <span class="n">vm</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">/</span> <span class="n">vol</span><span class="p">;</span>
-      <span class="n">u</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">+=</span> <span class="n">ud</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">*</span> <span class="n">ds</span> <span class="o">-</span> <span class="n">dl</span><span class="p">;</span>
+      <span class="n">wm</span> <span class="o">=</span> <span class="n">w</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">FindLayer</span><span class="p">(</span><span class="n">qf</span><span class="p">,</span> <span class="n">fm</span><span class="p">,</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)));</span>
+      <span class="n">wp</span> <span class="o">=</span> <span class="n">w</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">FindLayer</span><span class="p">(</span><span class="n">qf</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)));</span>
+      <span class="n">dl</span> <span class="o">=</span> <span class="p">(</span><span class="n">wp</span> <span class="o">-</span> <span class="n">wm</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">/</span> <span class="n">vol</span><span class="p">;</span>
+      <span class="n">u</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">+=</span> <span class="n">udiv</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">*</span> <span class="n">ds</span> <span class="o">-</span> <span class="n">dl</span><span class="p">;</span>
       <span class="k">if</span> <span class="p">(</span><span class="n">u</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
         <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="n">kClNone</span><span class="p">;</span>
       <span class="p">}</span>
@@ -593,6 +597,75 @@ and recomputes the colors as described in <a class="reference internal" href="#s
 is given in <a class="reference external" href="https://github.com/cselab/aphros/blob/master/src/solver/vofm.ipp">src/solver/vofm.ipp</a>.</p>
 <div class="section" id="connected-component-labeling">
 <span id="s-vofm-recolor"></span><h3><span class="section-number">5.1. </span>Connected-component labeling<a class="headerlink" href="#connected-component-labeling" title="Permalink to this headline">¶</a></h3>
+<p>After each advection step, the colors need to be updated to detect new
+connected components.  The following function initializes the color field with
+unique values, then iteratively joins the colors from adjacent cells by taking
+the minimal color until equilibration.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span> <span class="nf">Recolor</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">q_new</span> <span class="o">=</span> <span class="n">InitUnique</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">q</span><span class="p">);</span>
+
+  <span class="n">changed</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+  <span class="k">while</span> <span class="p">(</span><span class="n">changed</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">changed</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="n">q_new</span> <span class="o">=</span> <span class="n">RecolorCorners</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">q_new</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="nl">c</span> <span class="p">:</span> <span class="n">cells</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="nl">l</span> <span class="p">:</span> <span class="n">layers</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span> <span class="p">(</span><span class="nl">cn</span> <span class="p">:</span> <span class="n">stencil3</span><span class="p">(</span><span class="n">c</span><span class="p">))</span> <span class="p">{</span>
+          <span class="n">ln</span> <span class="o">=</span> <span class="n">FindLayer</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">cn</span><span class="p">,</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">));</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">ln</span> <span class="o">!=</span> <span class="n">kLayerNone</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">q_new</span><span class="p">(</span><span class="n">cn</span><span class="p">,</span> <span class="n">ln</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">q_new</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">))</span> <span class="p">{</span>
+              <span class="n">changed</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+              <span class="n">q_new</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="n">q_new</span><span class="p">(</span><span class="n">cn</span><span class="p">,</span> <span class="n">ln</span><span class="p">);</span>
+            <span class="p">}</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">q_new</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>To reduce the number of iterations, function <code class="docutils literal notranslate"><span class="pre">RecolorCorners()</span></code>
+runs the same algorithm for corners from cubic subdomains.
+The colors propagate through the domain faster.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span> <span class="nf">RecolorCorners</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">q_new</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// map: mapping from old color to new color</span>
+  <span class="k">for</span> <span class="p">(</span><span class="nl">c</span> <span class="p">:</span> <span class="n">corners</span> <span class="n">of</span> <span class="n">subdomains</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="nl">l</span> <span class="p">:</span> <span class="n">layers</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="nl">d</span> <span class="p">:</span> <span class="p">{</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">})</span> <span class="p">{</span>
+        <span class="n">cn</span> <span class="o">=</span> <span class="n">AdjacentCell</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">);</span>
+        <span class="n">ln</span> <span class="o">=</span> <span class="n">FindLayer</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">cm</span><span class="p">,</span> <span class="n">q</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">));</span>
+        <span class="n">q1</span> <span class="o">=</span> <span class="n">q_new</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">);</span>
+        <span class="n">q2</span> <span class="o">=</span> <span class="n">q_new</span><span class="p">(</span><span class="n">cn</span><span class="p">,</span> <span class="n">ln</span><span class="p">);</span>
+        <span class="n">map</span><span class="p">[</span><span class="n">max</span><span class="p">(</span><span class="n">q1</span><span class="p">,</span> <span class="n">q2</span><span class="p">)]</span> <span class="o">=</span> <span class="n">min</span><span class="p">(</span><span class="n">q1</span><span class="p">,</span> <span class="n">q2</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="n">changed</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+  <span class="k">while</span> <span class="p">(</span><span class="n">changed</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">changed</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">q1</span> <span class="n">in</span> <span class="n">map</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">map</span><span class="p">[</span><span class="n">q1</span><span class="p">]</span> <span class="n">in</span> <span class="n">map</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">map</span><span class="p">[</span><span class="n">q1</span><span class="p">]</span> <span class="o">=</span> <span class="n">map</span><span class="p">[</span><span class="n">map</span><span class="p">[</span><span class="n">q1</span><span class="p">]];</span>
+        <span class="n">changed</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="nl">f</span> <span class="p">:</span> <span class="n">faces</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">cm</span> <span class="o">=</span> <span class="n">AdjacentCell</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+    <span class="n">cp</span> <span class="o">=</span> <span class="n">AdjacentCell</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="nl">l</span> <span class="p">:</span> <span class="n">layers</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">q_new</span><span class="p">(</span><span class="n">cm</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="n">map</span><span class="p">[</span><span class="n">q</span><span class="p">(</span><span class="n">cm</span><span class="p">,</span> <span class="n">l</span><span class="p">)];</span>
+      <span class="n">q_new</span><span class="p">(</span><span class="n">cp</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="n">map</span><span class="p">[</span><span class="n">q</span><span class="p">(</span><span class="n">cp</span><span class="p">,</span> <span class="n">l</span><span class="p">)];</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="n">q_new</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </div>
 </div>
 <span id="document-embed"></span><div class="section" id="embedded-boundaries">
