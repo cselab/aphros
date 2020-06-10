@@ -71,10 +71,14 @@ and propagates the colors to downwind cells
 .. code-block:: c++
 
     auto Sweep(d, u, v, q, n, a) {
+      // v: mixture flux
+      // w: phase flux
+      // qf: phase color from upwind cell
       for (f : faces) {
         for (l : layers) {
           c = AdjacentCell(f, v[f] > 0 ? 0 : 1); // upwind cell
-          vu(f, l) = PlicFlux(n(c, l), a(c, l), h, v, dt, d);
+          w(f, l) = PlicFlux(n(c, l), a(c, l), h, v, dt, d);
+          qf(f, l) = q(c, l);
 
           cd = AdjacentCell(f, v > 0 ? 1 : 0); // downwind cell
           if (FindLayer(q, cd, q(c, l)) == kLayerNone) {
@@ -90,10 +94,10 @@ and propagates the colors to downwind cells
           fm = AdjacentCell(c, 0);
           fp = AdjacentCell(c, 1);
           ds = (v[fp] - v[fm]) * dt / volume;
-          vm = v(c, FindLayer(qf, fm, q(c, l)));
-          vp = v(c, FindLayer(qf, fp, q(c, l)));
-          dl = (vp - vm) * dt / vol;
-          u(c, l) += ud[c] * ds - dl;
+          wm = w(c, FindLayer(qf, fm, q(c, l)));
+          wp = w(c, FindLayer(qf, fp, q(c, l)));
+          dl = (wp - wm) * dt / vol;
+          u(c, l) += udiv(c, l) * ds - dl;
           if (u(c, l) == 0) {
             q(c, l) = kClNone;
           }
@@ -138,3 +142,76 @@ is given in :linkpath:`solver/vofm.ipp`.
 Connected-component labeling
 ----------------------------
 
+After each advection step, the colors need to be updated to detect new
+connected components.  The following function initializes the color field with
+unique values, then iteratively joins the colors from adjacent cells by taking
+the minimal color until equilibration.
+
+.. code-block:: c++
+
+  auto Recolor(u, q) {
+    q_new = InitUnique(u, q);
+
+    changed = true;
+    while (changed) {
+      changed = false;
+      q_new = RecolorCorners(u, q, q_new);
+      for (c : cells) {
+        for (l : layers) {
+          for (cn : stencil3(c)) {
+            ln = FindLayer(q, cn, q(c, l));
+            if (ln != kLayerNone) {
+              if (q_new(cn, ln) < q_new(c, l)) {
+                changed = true;
+                q_new(c, l) = q_new(cn, ln);
+              }
+            }
+          }
+        }
+      }
+    }
+    return q_new;
+  }
+
+To reduce the number of iterations, function ``RecolorCorners()``
+runs the same algorithm for corners from cubic subdomains.
+The colors propagate through the domain faster.
+
+
+.. code-block:: c++
+
+  auto RecolorCorners(u, q, q_new) {
+    // map: mapping from old color to new color
+    for (c : corners of subdomains) {
+      for (l : layers) {
+        for (size_t d : {0, 1, 2}) {
+          cn = AdjacentCell(c, d);
+          ln = FindLayer(q, cm, q(c, l));
+          q1 = q_new(c, l);
+          q2 = q_new(cn, ln);
+          map[max(q1, q2)] = min(q1, q2);
+        }
+      }
+    }
+
+    changed = true;
+    while (changed) {
+      changed = false;
+      for (q1 in map) {
+        if (map[q1] in map) {
+          map[q1] = map[map[q1]];
+          changed = true;
+        }
+      }
+    }
+
+    for (f : faces) {
+      cm = AdjacentCell(f, 0);
+      cp = AdjacentCell(f, 1);
+      for (l : layers) {
+        q_new(cm, l) = map[q(cm, l)];
+        q_new(cp, l) = map[q(cp, l)];
+      }
+    }
+    return q_new;
+  }
