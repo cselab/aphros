@@ -167,11 +167,11 @@ struct UVof<M_>::Imp {
     }
   }
   // Interpolates from cells to nodes.
-  // stencil half-width
-  template <int sw, int sn = sw * 2 + 1, int snn = sw * 2>
-  std::array<Scal, snn * snn * snn> ToNodes(
-      const std::array<Scal, sn * sn * sn>& uu) {
-    std::array<Scal, snn * snn * snn> uun;
+  // sw: stencil half-width
+  template <int sw, class T, int sn = sw * 2 + 1, int snn = sw * 2>
+  std::array<T, snn * snn * snn> InterpolateToNodes(
+      const std::array<T, sn * sn * sn>& uu) {
+    std::array<T, snn * snn * snn> uun;
     size_t i = 0;
     for (int z = 0; z < snn; ++z) {
       for (int y = 0; y < snn; ++y) {
@@ -187,8 +187,30 @@ struct UVof<M_>::Imp {
     }
     return uun;
   }
-  // Interpolates from cells to nodes.
-  // stencil half-width
+  // Computes sum of cell values adjacent to each node, skips nan values.
+  // sw: stencil half-width
+  template <int sw, class T, int sn = sw * 2 + 1, int snn = sw * 2>
+  std::array<T, snn * snn * snn> SumToNodesNan(
+      const std::array<T, sn * sn * sn>& uu) {
+    std::array<T, snn * snn * snn> uun;
+    size_t i = 0;
+    for (int z = 0; z < snn; ++z) {
+      for (int y = 0; y < snn; ++y) {
+        for (int x = 0; x < snn; ++x) {
+          auto u = [&uu, x, y, z](int dx, int dy, int dz) {
+            auto q = uu[(z + dz) * sn * sn + (y + dy) * sn + (x + dx)];
+            return IsNan(q) ? T(0) : q;
+          };
+          uun[i++] = u(0, 0, 0) + u(1, 0, 0) + u(0, 1, 0) + u(1, 1, 0) +
+                     u(0, 0, 1) + u(1, 0, 1) + u(0, 1, 1) + u(1, 1, 1);
+        }
+      }
+    }
+    return uun;
+  }
+  // Computes gradients in nodes.
+  // sw: stencil half-width
+  // uu: volume fractions in cells on stencil [-sw,sw]
   template <int sw, int sn = sw * 2 + 1, int snn = sw * 2>
   std::array<Vect, snn * snn * snn> GradientNodes(
       const std::array<Scal, sn * sn * sn>& uu) {
@@ -245,7 +267,6 @@ struct UVof<M_>::Imp {
       const Multi<const FieldCell<Scal>*>& fca,
       const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t,
       bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m) {
-    (void)fcn;
     (void)fca;
     (void)fci;
     auto sem = m.GetSem("dumppolymarch");
@@ -296,14 +317,16 @@ struct UVof<M_>::Imp {
                   continue;
                 }
                 done.insert(e);
-                auto uu = GetStencil<M, 1>{}(layers, fcu, fccl, cn, cl, m);
-                auto uun = ToNodes<1>(uu);
-                auto nn = GradientNodes<1>(uu);
-                for (auto& n : nn) {
-                  n = -n;
-                }
+                // volume fraction in cells on 3x3x3 stencil
+                const auto uu =
+                    GetStencil<M, 1, Scal>{}(layers, fcu, fccl, cn, cl, m);
+                // volume fraction in nodes on 2x2x2 stencil
+                const auto uun = InterpolateToNodes<1>(uu);
+                auto nnc =
+                    GetStencil<M, 1, Vect>{}(layers, fcn, fccl, cn, cl, m);
+                auto nnn = SumToNodesNan<1>(nnc);
                 std::vector<std::vector<Vect>> vv, vvn;
-                GetMarchTriangles(uun, nn, m.GetCenter(cn), h, iso, vv, vvn);
+                GetMarchTriangles(uun, nnn, m.GetCenter(cn), h, iso, vv, vvn);
                 for (size_t j = 0; j < vv.size(); ++j) {
                   dl.push_back(vv[j]);
                   dln.push_back(vvn[j]);
@@ -324,7 +347,7 @@ struct UVof<M_>::Imp {
           MIdx w = bc.GetMIdx(c);
           if (!(MIdx(1) <= w && w < m.GetGlobalSize() - MIdx(1))) {
             auto uu = GetStencilPure<1>{}(*fcus, c, m);
-            auto uun = ToNodes<1>(uu);
+            auto uun = InterpolateToNodes<1>(uu);
             auto nn = GradientNodes<1>(uu);
             for (auto& n : nn) {
               n = -n;
@@ -1011,7 +1034,8 @@ void UVof<M_>::GetAdvectionFaceCond(
 }
 
 template <class M_>
-auto UVof<M_>::GetAdvectionBc(const M& m, const MapEmbed<BCondAdvection<Scal>>& mfc)
+auto UVof<M_>::GetAdvectionBc(
+    const M& m, const MapEmbed<BCondAdvection<Scal>>& mfc)
     -> std::tuple<
         MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>,
         MapEmbed<BCond<Vect>>, MapEmbed<BCond<Scal>>> {

@@ -111,7 +111,7 @@ struct Vofm<EB_>::Imp {
         GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
         for (auto c : eb.SuCells()) {
           if (fci[c]) {
-            auto uu = GetStencil<M, 1>{}(layers, uc, fccl_, c, fccl[c], m);
+            auto uu = GetStencil<M, 1, Scal>{}(layers, uc, fccl_, c, fccl[c], m);
             fcn[c] = UNormal<M>::GetNormalYoungs(uu);
             UNormal<M>::GetNormalHeight(uu, fcn[c]);
           } else {
