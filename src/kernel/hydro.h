@@ -2353,5 +2353,8 @@ void Hydro<M>::StepBubgen() {
         apply_vof(dynamic_cast<ASVEB*>(as_.get()), *eb_);
       }
     }
+    if (sem()) {
+      // FIXME: empty stage to finish communication to keep ctx
+    }
   }
 }
