@@ -203,25 +203,29 @@ void RemoveDuplicatesUnordered(std::vector<V>& pp) {
 
 // Converts to index representation merging closely located points.
 // vv: polygons as lists of points
+// tol: positive tolerance for matching coordinates of points
 // Returns:
 // xx: points
 // pp: polygons as lists of indices
-template <class Vect>
+template <class Scal, class Vect = generic::Vect<Scal, 3>>
 void ConvertMerge(
     const std::vector<std::vector<Vect>>& vv,
-    const std::vector<std::vector<Vect>>* vvn, std::vector<Vect>& xx,
-    std::vector<Vect>& nn, std::vector<std::vector<size_t>>& pp) {
-  struct HashPoint {
-    size_t operator()(const Vect& x) const noexcept {
-      const int m = 1000000;
-      size_t h0 = std::hash<int>{}(int(x[0] * m));
-      size_t h1 = std::hash<int>{}(int(x[1] * m));
-      size_t h2 = std::hash<int>{}(int(x[2] * m));
-      return h0 ^ (h1 << 1) ^ (h2 << 2);
-    }
+    const std::vector<std::vector<Vect>>* vvn, Scal tol,
+    std::vector<Vect>& xx, std::vector<Vect>& nn,
+    std::vector<std::vector<size_t>>& pp) {
+  auto hash = [tol](const Vect& x) {
+    size_t h0 = std::hash<int>{}(int(x[0] / tol));
+    size_t h1 = std::hash<int>{}(int(x[1] / tol));
+    size_t h2 = std::hash<int>{}(int(x[2] / tol));
+    return h0 ^ (h1 << 1) ^ (h2 << 2);
+  };
+  auto equal = [tol](const Vect& xa, const Vect& xb) {
+    return (xa - xb).norminf() <= tol;
   };
 
-  std::unordered_map<Vect, size_t, HashPoint> s;
+  std::unordered_map<Vect, size_t, decltype(hash), decltype(equal)> index(
+      0, hash, equal);
+
   xx.resize(0);
   nn.resize(0);
   pp.resize(0);
@@ -230,14 +234,14 @@ void ConvertMerge(
     pp.emplace_back();
     for (size_t j = 0; j < v.size(); ++j) {
       auto& x = v[j];
-      if (!s.count(x)) {
-        s[x] = xx.size();
+      if (!index.count(x)) {
+        index[x] = xx.size();
         xx.push_back(x);
         if (vvn) {
           nn.push_back((*vvn)[i][j]);
         }
       }
-      pp.back().push_back(s[x]);
+      pp.back().push_back(index[x]);
     }
   }
 }
@@ -263,7 +267,8 @@ void WriteVtkPoly(
   std::vector<Vect> nn;
   std::vector<std::vector<size_t>> pp;
   if (merge) {
-    ConvertMerge(vv, vvn, xx, nn, pp);
+    const Scal tol = 1e-6;
+    ConvertMerge(vv, vvn, tol, xx, nn, pp);
   } else {
     Convert(vv, vvn, xx, nn, pp);
   }
