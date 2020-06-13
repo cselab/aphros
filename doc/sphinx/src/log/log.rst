@@ -197,8 +197,8 @@ Ubuntu has ``--as-needed`` by default (seen from ``gcc -dumpspecs``)
 which makes the linker ignore unused libraries
 and, in particular, the implementations of modules (e.g. ``init_contang.so``).
 
-VTK merge, comparison of floats up to tolerance
------------------------------------------------
+VTK merge, comparison of floats with tolerance
+----------------------------------------------
 
 2020-06-13 21:56:35
 
@@ -215,3 +215,10 @@ of neighboring points (from vertices of a cube)
 when looking for an existing hash.
 
 Minimal example that gave vertices of rank 1: `log10_vtkmerge <log10_vtk_merge>`__.
+
+The opposite problem: hash collisions of distant points.
+Example is in ``log10_vtkmerge/hash_collision``.
+To fix, changed the map from ``hash->index`` to ``Vect->index``
+(ensures exact comparison of points)
+and introduced ``canonical(x)`` to get a single point from the cell of
+size ``tol``.
