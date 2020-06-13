@@ -197,3 +197,21 @@ Ubuntu has ``--as-needed`` by default (seen from ``gcc -dumpspecs``)
 which makes the linker ignore unused libraries
 and, in particular, the implementations of modules (e.g. ``init_contang.so``).
 
+VTK merge, comparison of floats up to tolerance
+-----------------------------------------------
+
+2020-06-13 21:56:35
+
+``ConvertMerge`` in ``dump/vtk.h`` mapped each ``Vect`` to a hash
+and used the hash to merge closely located points together
+(up to tolerance ``tol``).
+This effectively split the space of ``Vect`` to partitions.
+However, if two points are located close to the boundary between
+two partitions, they can be arbitrarily close but have
+different hash values.
+
+The solution was to check compare against the hash
+of neighboring points (from vertices of a cube)
+when looking for an existing hash.
+
+Minimal example that gave vertices of rank 1: `log10_vtkmerge <log10_vtk_merge>`__.
