@@ -1714,13 +1714,13 @@ relative distance from the node first[i].</p>
 <p><strong>What</strong>: surface tension as <img class="math" src="_images/math/b0b3a9ce06f121dd73cc41968b3854443510f587.svg" alt="\nabla (\kappa \alpha)" style="vertical-align: -5px"/> on faces,
 curvature in cells copied from neighbour faces if nan.</p>
 <p><strong>Result</strong>: instability for test of single drop equilibrium,</p>
-<p><strong>Data</strong>: <a class="reference external" href="log01_grad_ka">log01_grad_ka</a></p>
+<p><strong>Data</strong>: <a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log01_grad_ka">doc/sphinx/src/log/log01_grad_ka</a></p>
 <ul class="simple">
-<li><p><a class="reference external" href="log01_grad_ka/grad_ka.mp4">grad_ka.mp4</a>: surface tension as
+<li><p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log01_grad_ka/grad_ka.mp4">doc/sphinx/src/log/log01_grad_ka/grad_ka.mp4</a>: surface tension as
 <img class="math" src="_images/math/597b1cd61a59dbdee4a587864615e81b05cee82f.svg" alt="\nabla (\kappa * \alpha)" style="vertical-align: -5px"/></p></li>
-<li><p><a class="reference external" href="log01_grad_ka/k_grad_a.mp4">k_grad_a.mp4</a>: surface tension as
+<li><p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log01_grad_ka/k_grad_a.mp4">doc/sphinx/src/log/log01_grad_ka/k_grad_a.mp4</a>: surface tension as
 <img class="math" src="_images/math/afcd172b559e52beaecb8144e7cd95fe7cf80183.svg" alt="\kappa \nabla \alpha" style="vertical-align: 0px"/></p></li>
-<li><p><a class="reference external" href="log01_grad_ka/k_grad_a_kmean.mp4">k_grad_a_kmean.mp4</a>: mean
+<li><p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log01_grad_ka/k_grad_a_kmean.mp4">doc/sphinx/src/log/log01_grad_ka/k_grad_a_kmean.mp4</a>: mean
 curvature on face if both cells contain interface</p></li>
 </ul>
 </div>
@@ -1733,10 +1733,10 @@ equilibrium</p>
 central particle fixed at the interface line center</p>
 <p><strong>Result</strong>: deformation of the interface greatly reduced, probably due
 to stronger coupling or penalization of deformed interfaces</p>
-<p><strong>Data</strong>: <a class="reference external" href="log02_dn">log02_dn</a></p>
+<p><strong>Data</strong>: <a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log02_dn">doc/sphinx/src/log/log02_dn</a></p>
 <ul class="simple">
-<li><p><a class="reference external" href="log02_dn/dn0.mp4">dn0.mp4</a>: without normal displacement</p></li>
-<li><p><a class="reference external" href="log02_dn/dn1.mp4">dn1.mp4</a>: with normal displacement</p></li>
+<li><p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log02_dn/dn0.mp4">doc/sphinx/src/log/log02_dn/dn0.mp4</a>: without normal displacement</p></li>
+<li><p><a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log02_dn/dn1.mp4">doc/sphinx/src/log/log02_dn/dn1.mp4</a>: with normal displacement</p></li>
 </ul>
 </div>
 <div class="section" id="march-native">
@@ -1747,7 +1747,7 @@ to stronger coupling or penalization of deformed interfaces</p>
 <code class="docutils literal notranslate"><span class="pre">CMAKE_CXX_FLAGS</span></code></p>
 <p><strong>Result</strong>: slight improvement of performance (3.60 vs 3.76 s for
 <code class="docutils literal notranslate"><span class="pre">confdiff:01:assemble</span></code>) with 64 cores on Euler</p>
-<p><strong>Data</strong>: <a class="reference external" href="log03_native">log03_native</a>:</p>
+<p><strong>Data</strong>: <a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log03_native">doc/sphinx/src/log/log03_native</a>:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">out_std</span></code>: standard flags</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">out_native</span></code>: <code class="docutils literal notranslate"><span class="pre">-march=native</span></code></p></li>
@@ -1766,7 +1766,7 @@ to stronger coupling or penalization of deformed interfaces</p>
 <li><p>no major difference between <code class="docutils literal notranslate"><span class="pre">cd</span></code> and <code class="docutils literal notranslate"><span class="pre">quick</span></code>,</p></li>
 <li><p>no difference between <code class="docutils literal notranslate"><span class="pre">simpler</span></code>=0 and 1</p></li>
 </ul>
-<p><strong>Data</strong>: <a class="reference external" href="log04_maxit">log04_maxit</a></p>
+<p><strong>Data</strong>: <a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log04_maxit">doc/sphinx/src/log/log04_maxit</a></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">kedr.pdf</span></code>: kinetic energy dissipation rate</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">traj.pdf</span></code>: x-component of trajectory of bubble 2</p></li>
@@ -1781,7 +1781,7 @@ curvature estimator</p>
 <ul class="simple">
 <li><p>slight differences in shapes comparing <code class="docutils literal notranslate"><span class="pre">np=5,0</span></code> and <code class="docutils literal notranslate"><span class="pre">ns=2,3</span></code></p></li>
 </ul>
-<p><strong>Data</strong>: <a class="reference external" href="log05_coalnp">log05_coalnp</a></p>
+<p><strong>Data</strong>: <a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log05_coalnp">doc/sphinx/src/log/log05_coalnp</a></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">gen1_ns3_np5</span></code>: configuration</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">nx064_ns?_np?.png</span></code>: shapes at <code class="docutils literal notranslate"><span class="pre">t=0.466</span></code> with <code class="docutils literal notranslate"><span class="pre">nx=64</span></code></p></li>
@@ -1799,7 +1799,7 @@ coalescence</p>
 <li><p>negligible difference in trajectories between default and
 <code class="docutils literal notranslate"><span class="pre">min_iter=10</span></code></p></li>
 </ul>
-<p><strong>Data</strong>: <a class="reference external" href="log06_coaliter">log06_coaliter</a></p>
+<p><strong>Data</strong>: <a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log06_coaliter">doc/sphinx/src/log/log06_coaliter</a></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">nx*iter*</span></code>: configuration, data, movie</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">a.gnu</span></code>: gnuplot script</p></li>
@@ -1821,7 +1821,7 @@ detachment</p></li>
 <li><p>changed default parameters for <code class="docutils literal notranslate"><span class="pre">sim04</span></code> to <code class="docutils literal notranslate"><span class="pre">prelax=0.8</span></code>,
 <code class="docutils literal notranslate"><span class="pre">vrelax=0.8</span></code> and <code class="docutils literal notranslate"><span class="pre">min_iter=4</span></code></p></li>
 </ul>
-<p><strong>Data</strong>: <a class="reference external" href="log07_vrelax">log07_vrelax</a></p>
+<p><strong>Data</strong>: <a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log07_vrelax">doc/sphinx/src/log/log07_vrelax</a></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">gen1</span></code>: generator of parameters for <code class="docutils literal notranslate"><span class="pre">sim04/gen</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wforce</span></code>: force acting on <code class="docutils literal notranslate"><span class="pre">z=0</span></code> and <code class="docutils literal notranslate"><span class="pre">z=1</span></code></p></li>
@@ -1835,7 +1835,7 @@ detachment</p></li>
 <p><strong>What</strong>: Reduced usage of <code class="docutils literal notranslate"><span class="pre">GetCenter</span></code> and <code class="docutils literal notranslate"><span class="pre">GetVectToCell</span></code>. Test of
 the Taylor-Green vortex with bubbles.</p>
 <p><strong>Result</strong>: Speedup of 15%.</p>
-<p><strong>Data</strong> <a class="reference external" href="log08_getcenter">log08_getcenter</a></p>
+<p><strong>Data</strong> <a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log08_getcenter">doc/sphinx/src/log/log08_getcenter</a></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">tg</span></code>: setup</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">tg0_*</span></code>: timings before</p></li>
@@ -1859,7 +1859,7 @@ the symmetric linear solver is called twice: for initialization of
 vorticity and for pressure correction. Then Hypre is apparently
 initialized only once and that instance is used for both cases which
 leads to the wrong order of coefficients.</p>
-<p><strong>Data</strong>: <a class="reference external" href="log09_debug_linear">log09_debug_linear</a></p>
+<p><strong>Data</strong>: <a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log09_debug_linear">doc/sphinx/src/log/log09_debug_linear</a></p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">patch</span></code>: fix for <code class="docutils literal notranslate"><span class="pre">InitVort()</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">r</span></code>: tool to apply patch and rebuild</p></li>
@@ -1874,6 +1874,27 @@ leads to the wrong order of coefficients.</p>
 which makes the linker ignore unused libraries
 and, in particular, the implementations of modules (e.g. <code class="docutils literal notranslate"><span class="pre">init_contang.so</span></code>).</p>
 </div>
+<div class="section" id="vtk-merge-comparison-of-floats-with-tolerance">
+<h3><span class="section-number">13.11. </span>VTK merge, comparison of floats with tolerance<a class="headerlink" href="#vtk-merge-comparison-of-floats-with-tolerance" title="Permalink to this headline">¶</a></h3>
+<p>2020-06-13 21:56:35</p>
+<p><code class="docutils literal notranslate"><span class="pre">ConvertMerge</span></code> in <code class="docutils literal notranslate"><span class="pre">dump/vtk.h</span></code> mapped each <code class="docutils literal notranslate"><span class="pre">Vect</span></code> to a hash
+and used the hash to merge closely located points together
+(up to tolerance <code class="docutils literal notranslate"><span class="pre">tol</span></code>).
+This effectively split the space of <code class="docutils literal notranslate"><span class="pre">Vect</span></code> to partitions.
+However, if two points are located close to the boundary between
+two partitions, they can be arbitrarily close but have
+different hash values.</p>
+<p>The solution was to check compare against the hash
+of neighboring points (from vertices of a cube)
+when looking for an existing hash.</p>
+<p>Minimal example that gave vertices of rank 1: <a class="reference external" href="https://github.com/cselab/aphros/blob/master/doc/sphinx/src/log/log10_vtkmerge">doc/sphinx/src/log/log10_vtkmerge</a>.</p>
+<p>The opposite problem: hash collisions of distant points.
+Example is in <code class="docutils literal notranslate"><span class="pre">log10_vtkmerge/hash_collision</span></code>.
+To fix, changed the map from <code class="docutils literal notranslate"><span class="pre">hash-&gt;index</span></code> to <code class="docutils literal notranslate"><span class="pre">Vect-&gt;index</span></code>
+(ensures exact comparison of points)
+and introduced <code class="docutils literal notranslate"><span class="pre">canonical(x)</span></code> to get a single point from the cell of
+size <code class="docutils literal notranslate"><span class="pre">tol</span></code>.</p>
+<img alt="_images/vtkmerge.svg" class="align-center" src="_images/vtkmerge.svg" /></div>
 </div>
 </div>
 <span id="document-styleguide"></span><div class="section" id="style-guide">
