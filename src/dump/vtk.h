@@ -213,22 +213,32 @@ void ConvertMerge(
     const std::vector<std::vector<Vect>>* vvn, Scal tol,
     std::vector<Vect>& xx, std::vector<Vect>& nn,
     std::vector<std::vector<size_t>>& pp) {
-  auto hash = [tol](const Vect& x) {
-    const size_t h0 = std::hash<int>{}(int(x[0] / tol));
-    const size_t h1 = std::hash<int>{}(int(x[1] / tol));
-    const size_t h2 = std::hash<int>{}(int(x[2] / tol));
-    return h0 ^ (h1 << 1) ^ (h2 << 2);
+  struct Hash {
+    size_t operator()(const Vect& x) const noexcept {
+      const size_t h0 = std::hash<Scal>{}(x[0]);
+      const size_t h1 = std::hash<Scal>{}(x[1]);
+      const size_t h2 = std::hash<Scal>{}(x[2]);
+      return h0 ^ (h1 << 1) ^ (h2 << 2);
+    }
   };
 
-  std::unordered_map<size_t, size_t> index; // hash to point index in `xx`
+  std::unordered_map<Vect, size_t, Hash> index; // point to index in `xx`
+
+  // Returns a canonical representative of one cell of size `tol`.
+  auto canonical = [tol](const Vect& x) -> Vect {
+    return Vect(
+        std::floor(x[0] / tol) * tol, //
+        std::floor(x[1] / tol) * tol, //
+        std::floor(x[2] / tol) * tol);
+  };
 
   // Returns pointer to element found by point up to tolerance `tol`.
-  auto findtol = [&hash, tol, &index](const Vect& x) -> size_t* {
+  auto findtol = [&canonical, tol, &index](const Vect& x) -> size_t* {
     for (Scal d0 : {-1, 1}) {
       for (Scal d1 : {-1, 1}) {
         for (Scal d2 : {-1, 1}) {
           const Vect d(d0, d1, d2);
-          auto it = index.find(hash(x + d * (tol * 0.5)));
+          auto it = index.find(canonical(x + d * (tol * 0.25)));
           if (it != index.end()) {
             return &it->second;
           }
@@ -251,7 +261,7 @@ void ConvertMerge(
         pp.back().push_back(*p);
       } else {
         const auto nextindex = xx.size();
-        index[hash(x)] = nextindex;
+        index[canonical(x)] = nextindex;
         pp.back().push_back(nextindex);
         xx.push_back(x);
         if (vvn) {
