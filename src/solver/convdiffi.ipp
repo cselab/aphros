@@ -95,6 +95,9 @@ struct ConvDiffScalImp<EB_>::Imp {
         get(c) = fcr[c];
       }
     }
+    if (sem()) {
+      // FIXME: empty stage to finish communication and keep ctx
+    }
   }
   auto RedistributeConstTerms(FieldCell<Expr>&, const M&) {
     return;

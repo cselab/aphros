@@ -294,8 +294,8 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
 
   std::string v = par.String["init_vf"];
   if (v == "circle") {
-    Vect xc = Vect(par.Vect["circle_c"]);
-    Scal r = par.Double["circle_r"];
+    const Vect xc(par.Vect["circle_c"]);
+    const Scal r = par.Double["circle_r"];
     size_t dim = par.Int["dim"];
     return [xc, r, dim](FieldCell<Scal>& fc, const M& m) {
       for (auto c : m.Cells()) {
@@ -306,10 +306,25 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
         fc[c] = dx.sqrnorm() < sqr(r) ? 1. : 0.;
       }
     };
+  } else if (v == "radial_trapezoid") {
+    const Vect xc(par.Vect[v + "_c"]);
+    const Scal rmin = par.Double[v + "_rmin"];
+    const Scal rmax = par.Double[v + "_rmax"];
+    const size_t dim = par.Int["dim"];
+    return [xc, rmin, rmax, dim](FieldCell<Scal>& fc, const M& m) {
+      for (auto c : m.Cells()) {
+        auto dx = m.GetCenter(c) - xc;
+        if (dim == 2) {
+          dx[2] = 0.;
+        }
+        const Scal r = dx.norm();
+        fc[c] = std::max(0., std::min(1., (rmax - r) / (rmax - rmin)));
+      }
+    };
   } else if (v == "circlels") {
-    Vect xc = Vect(par.Vect["circle_c"]);
-    Scal r = par.Double["circle_r"];
-    size_t dim = par.Int["dim"];
+    const Vect xc(par.Vect["circle_c"]);
+    const Scal r = par.Double["circle_r"];
+    const size_t dim = par.Int["dim"];
     return [xc, r, dim](FieldCell<Scal>& fc, const M& m) {
       // level-set for particle of radius 1 centered at zero,
       // positive inside,
@@ -328,11 +343,11 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
       }
     };
   } else if (v == "gear") {
-    Vect xc = Vect(par.Vect["gear_c"]);
-    Scal r = par.Double["gear_r"];
-    Scal a = par.Double["gear_amp"]; // amplitude relative to r
-    Scal n = par.Double["gear_n"]; // number of peaks
-    size_t dim = par.Int["dim"];
+    const Vect xc(par.Vect["gear_c"]);
+    const Scal r = par.Double["gear_r"];
+    const Scal a = par.Double["gear_amp"]; // amplitude relative to r
+    const Scal n = par.Double["gear_n"]; // number of peaks
+    const size_t dim = par.Int["dim"];
     return [xc, r, dim, a, n](FieldCell<Scal>& fc, const M& m) {
       // level-set for particle of radius 1 centered at zero,
       // modulated by sine-wave of amplitude a and number of periods n
@@ -353,9 +368,9 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
       }
     };
   } else if (v == "soliton") {
-    Scal xc(par.Double["soliton_xc"]);
-    Scal yc(par.Double["soliton_yc"]);
-    Scal yh(par.Double["soliton_yh"]);
+    const Scal xc(par.Double["soliton_xc"]);
+    const Scal yc(par.Double["soliton_yc"]);
+    const Scal yh(par.Double["soliton_yh"]);
     return [xc, yc, yh](FieldCell<Scal>& fc, const M& m) {
       auto f = [xc, yh, yc](const Vect& xx) -> Scal {
         Scal D = yc;

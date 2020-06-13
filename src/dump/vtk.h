@@ -203,25 +203,51 @@ void RemoveDuplicatesUnordered(std::vector<V>& pp) {
 
 // Converts to index representation merging closely located points.
 // vv: polygons as lists of points
+// tol: positive tolerance for matching coordinates of points
 // Returns:
 // xx: points
 // pp: polygons as lists of indices
-template <class Vect>
+template <class Scal, class Vect = generic::Vect<Scal, 3>>
 void ConvertMerge(
     const std::vector<std::vector<Vect>>& vv,
-    const std::vector<std::vector<Vect>>* vvn, std::vector<Vect>& xx,
-    std::vector<Vect>& nn, std::vector<std::vector<size_t>>& pp) {
-  struct HashPoint {
+    const std::vector<std::vector<Vect>>* vvn, Scal tol,
+    std::vector<Vect>& xx, std::vector<Vect>& nn,
+    std::vector<std::vector<size_t>>& pp) {
+  struct Hash {
     size_t operator()(const Vect& x) const noexcept {
-      const int m = 1000000;
-      size_t h0 = std::hash<int>{}(int(x[0] * m));
-      size_t h1 = std::hash<int>{}(int(x[1] * m));
-      size_t h2 = std::hash<int>{}(int(x[2] * m));
+      const size_t h0 = std::hash<Scal>{}(x[0]);
+      const size_t h1 = std::hash<Scal>{}(x[1]);
+      const size_t h2 = std::hash<Scal>{}(x[2]);
       return h0 ^ (h1 << 1) ^ (h2 << 2);
     }
   };
 
-  std::unordered_map<Vect, size_t, HashPoint> s;
+  std::unordered_map<Vect, size_t, Hash> index; // point to index in `xx`
+
+  // Returns a canonical representative of one cell of size `tol`.
+  auto canonical = [tol](const Vect& x) -> Vect {
+    return Vect(
+        std::floor(x[0] / tol) * tol, //
+        std::floor(x[1] / tol) * tol, //
+        std::floor(x[2] / tol) * tol);
+  };
+
+  // Returns pointer to element found by point up to tolerance `tol`.
+  auto findtol = [&canonical, tol, &index](const Vect& x) -> size_t* {
+    for (Scal d0 : {-1, 1}) {
+      for (Scal d1 : {-1, 1}) {
+        for (Scal d2 : {-1, 1}) {
+          const Vect d(d0, d1, d2);
+          auto it = index.find(canonical(x + d * (tol * 0.25)));
+          if (it != index.end()) {
+            return &it->second;
+          }
+        }
+      }
+    }
+    return nullptr;
+  };
+
   xx.resize(0);
   nn.resize(0);
   pp.resize(0);
@@ -230,14 +256,18 @@ void ConvertMerge(
     pp.emplace_back();
     for (size_t j = 0; j < v.size(); ++j) {
       auto& x = v[j];
-      if (!s.count(x)) {
-        s[x] = xx.size();
+      const auto* p = findtol(x);
+      if (p) {
+        pp.back().push_back(*p);
+      } else {
+        const auto nextindex = xx.size();
+        index[canonical(x)] = nextindex;
+        pp.back().push_back(nextindex);
         xx.push_back(x);
         if (vvn) {
           nn.push_back((*vvn)[i][j]);
         }
       }
-      pp.back().push_back(s[x]);
     }
   }
 }
@@ -263,7 +293,8 @@ void WriteVtkPoly(
   std::vector<Vect> nn;
   std::vector<std::vector<size_t>> pp;
   if (merge) {
-    ConvertMerge(vv, vvn, xx, nn, pp);
+    const Scal tol = 1e-8;
+    ConvertMerge(vv, vvn, tol, xx, nn, pp);
   } else {
     Convert(vv, vvn, xx, nn, pp);
   }
