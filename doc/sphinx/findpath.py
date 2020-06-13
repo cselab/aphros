@@ -32,6 +32,7 @@ def FindPath(relpath, location):
     a = "" # absolute path
     a = Try(a, repo, r)
     a = Try(a, repo, "deploy", r)
+    a = Try(a, repo, "doc/sphinx/src/log", r)
     a = Try(a, repo, "deploy/lib", r)
     a = Try(a, repo, "deploy/scripts", r)
     a = Try(a, repo, "deploy/scripts_gen", r)

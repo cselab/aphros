@@ -10,13 +10,13 @@ curvature in cells copied from neighbour faces if nan.
 
 **Result**: instability for test of single drop equilibrium,
 
-**Data**: `log01_grad_ka <log01_grad_ka>`__
+**Data**: :linkpath:`log01_grad_ka`
 
--  `grad_ka.mp4 <log01_grad_ka/grad_ka.mp4>`__: surface tension as
+-  :linkpath:`log01_grad_ka/grad_ka.mp4`: surface tension as
    :math:`\nabla (\kappa * \alpha)`
--  `k_grad_a.mp4 <log01_grad_ka/k_grad_a.mp4>`__: surface tension as
+-  :linkpath:`log01_grad_ka/k_grad_a.mp4`: surface tension as
    :math:`\kappa \nabla \alpha`
--  `k_grad_a_kmean.mp4 <log01_grad_ka/k_grad_a_kmean.mp4>`__: mean
+-  :linkpath:`log01_grad_ka/k_grad_a_kmean.mp4`: mean
    curvature on face if both cells contain interface
 
 Particle normal displacement
@@ -33,10 +33,10 @@ central particle fixed at the interface line center
 **Result**: deformation of the interface greatly reduced, probably due
 to stronger coupling or penalization of deformed interfaces
 
-**Data**: `log02_dn <log02_dn>`__
+**Data**: :linkpath:`log02_dn`
 
--  `dn0.mp4 <log02_dn/dn0.mp4>`__: without normal displacement
--  `dn1.mp4 <log02_dn/dn1.mp4>`__: with normal displacement
+-  :linkpath:`log02_dn/dn0.mp4`: without normal displacement
+-  :linkpath:`log02_dn/dn1.mp4`: with normal displacement
 
 ``march=native``
 ----------------
@@ -51,7 +51,7 @@ to stronger coupling or penalization of deformed interfaces
 **Result**: slight improvement of performance (3.60 vs 3.76 s for
 ``confdiff:01:assemble``) with 64 cores on Euler
 
-**Data**: `log03_native <log03_native>`__:
+**Data**: :linkpath:`log03_native`:
 
 -  ``out_std``: standard flags
 -  ``out_native``: ``-march=native``
@@ -73,7 +73,7 @@ to stronger coupling or penalization of deformed interfaces
 -  no major difference between ``cd`` and ``quick``,
 -  no difference between ``simpler``\ =0 and 1
 
-**Data**: `log04_maxit <log04_maxit>`__
+**Data**: :linkpath:`log04_maxit`
 
 -  ``kedr.pdf``: kinetic energy dissipation rate
 -  ``traj.pdf``: x-component of trajectory of bubble 2
@@ -90,7 +90,7 @@ curvature estimator
 
 -  slight differences in shapes comparing ``np=5,0`` and ``ns=2,3``
 
-**Data**: `log05_coalnp <log05_coalnp>`__
+**Data**: :linkpath:`log05_coalnp`
 
 -  ``gen1_ns3_np5``: configuration
 -  ``nx064_ns?_np?.png``: shapes at ``t=0.466`` with ``nx=64``
@@ -110,7 +110,7 @@ coalescence
 -  negligible difference in trajectories between default and
    ``min_iter=10``
 
-**Data**: `log06_coaliter <log06_coaliter>`__
+**Data**: :linkpath:`log06_coaliter`
 
 -  ``nx*iter*``: configuration, data, movie
 -  ``a.gnu``: gnuplot script
@@ -135,7 +135,7 @@ coalescence
 -  changed default parameters for ``sim04`` to ``prelax=0.8``,
    ``vrelax=0.8`` and ``min_iter=4``
 
-**Data**: `log07_vrelax <log07_vrelax>`__
+**Data**: :linkpath:`log07_vrelax`
 
 -  ``gen1``: generator of parameters for ``sim04/gen``
 -  ``wforce``: force acting on ``z=0`` and ``z=1``
@@ -153,7 +153,7 @@ the Taylor-Green vortex with bubbles.
 
 **Result**: Speedup of 15%.
 
-**Data** `log08_getcenter <log08_getcenter>`__
+**Data** :linkpath:`log08_getcenter`
 
 -  ``tg``: setup
 -  ``tg0_*``: timings before
@@ -181,7 +181,7 @@ vorticity and for pressure correction. Then Hypre is apparently
 initialized only once and that instance is used for both cases which
 leads to the wrong order of coefficients.
 
-**Data**: `log09_debug_linear <log09_debug_linear>`__
+**Data**: :linkpath:`log09_debug_linear`
 
 -  ``patch``: fix for ``InitVort()``
 -  ``r``: tool to apply patch and rebuild
@@ -214,7 +214,7 @@ The solution was to check compare against the hash
 of neighboring points (from vertices of a cube)
 when looking for an existing hash.
 
-Minimal example that gave vertices of rank 1: `log10_vtkmerge <log10_vtk_merge>`__.
+Minimal example that gave vertices of rank 1: :linkpath:`log10_vtkmerge`.
 
 The opposite problem: hash collisions of distant points.
 Example is in ``log10_vtkmerge/hash_collision``.
