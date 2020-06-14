@@ -96,16 +96,15 @@ void InitVort(
     const FieldCell<Vect>& fcvort, FieldCell<Vect>& fcvel,
     const MapCondFaceFluid& mf_fluid, bool verb, M& m);
 
-template <class M>
+template <
+    class EB, class Scal = typename EB::Scal, class Vect = typename EB::Vect>
 void DumpTraj(
-    M& m, bool dm, const Vars& var, size_t frame, typename M::Scal t,
-    const GRange<size_t>& layers,
-    const Multi<const FieldCell<typename M::Scal>*>& fcvf,
-    const Multi<const FieldCell<typename M::Scal>*>& fccl,
-    const Multi<const FieldCell<typename M::MIdx>*>& fcim,
-    const FieldCell<typename M::Scal>& fcp,
-    const FieldCell<typename M::Vect>& fcvel,
-    const FieldCell<typename M::Vect>& fcvelm, typename M::Scal dt);
+    EB& m, bool dm, const Vars& var, size_t frame, Scal t,
+    const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcvf,
+    const Multi<const FieldCell<Scal>*>& fccl,
+    const Multi<const FieldCell<typename EB::MIdx>*>& fcim,
+    const FieldCell<Scal>& fcp, const FieldCell<Vect>& fcvel,
+    const FieldCell<Vect>& fcvelm, Scal dt);
 
 // fc_force: force field to append
 // ff_force: face force field to append

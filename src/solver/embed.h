@@ -248,6 +248,7 @@ class Embed {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
   using Expr = typename M::Expr;
   using ExprFace = typename M::ExprFace;
   static constexpr size_t dim = M::dim;

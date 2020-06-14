@@ -1889,7 +1889,17 @@ void Hydro<M>::Dump(bool force) {
             ctx->fcim[l][c] = as->GetImage(l, c);
           }
         }
+      } else if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
+        for (auto c : m.AllCells()) {
+          for (auto l : layers) {
+            ctx->fcim[l][c] = as->GetImage(l, c);
+          }
+        }
       } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
+        for (auto c : m.AllCells()) {
+          ctx->fcim[0][c] = as->GetImage(c);
+        }
+      } else if (auto as = dynamic_cast<ASVEB*>(as_.get())) {
         for (auto c : m.AllCells()) {
           ctx->fcim[0][c] = as->GetImage(c);
         }
@@ -1914,9 +1924,15 @@ void Hydro<M>::Dump(bool force) {
           fcu[0] = &as->GetField();
           fccl[0] = &as->GetColor();
         }
-        DumpTraj<M>(
-            m, true, var, dmptraj_.GetN(), st_.t, layers, fcu, fccl, ctx->fcim,
-            fs_->GetPressure(), fs_->GetVelocity(), fcvm_, st_.dt);
+        if (eb_) {
+          DumpTraj<EB>(
+              *eb_, true, var, dmptraj_.GetN(), st_.t, layers, fcu, fccl,
+              ctx->fcim, fs_->GetPressure(), fs_->GetVelocity(), fcvm_, st_.dt);
+        } else {
+          DumpTraj<M>(
+              m, true, var, dmptraj_.GetN(), st_.t, layers, fcu, fccl,
+              ctx->fcim, fs_->GetPressure(), fs_->GetVelocity(), fcvm_, st_.dt);
+        }
       }
     }
   }

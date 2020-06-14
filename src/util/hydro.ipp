@@ -1311,20 +1311,19 @@ void InitVort(
   }
 }
 
-template <class M>
+template <
+    class EB, class Scal = typename EB::Scal, class Vect = typename EB::Vect>
 void DumpTraj(
-    M& m, bool dm, const Vars& var, size_t frame, typename M::Scal t,
-    const GRange<size_t>& layers,
-    const Multi<const FieldCell<typename M::Scal>*>& fcvf,
-    const Multi<const FieldCell<typename M::Scal>*>& fccl,
-    const Multi<const FieldCell<typename M::MIdx>*>& fcim,
-    const FieldCell<typename M::Scal>& fcp,
-    const FieldCell<typename M::Vect>& fcvel,
-    const FieldCell<typename M::Vect>& fcvelm, typename M::Scal dt) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
+    EB& eb, bool dm, const Vars& var, size_t frame, Scal t,
+    const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcvf,
+    const Multi<const FieldCell<Scal>*>& fccl,
+    const Multi<const FieldCell<typename EB::MIdx>*>& fcim,
+    const FieldCell<Scal>& fcp, const FieldCell<Vect>& fcvel,
+    const FieldCell<Vect>& fcvelm, Scal dt) {
+  using M = typename EB::M;
   using SA = Sphavg<M>; // spherical averages
   constexpr Scal kClNone = -1;
+  auto& m = eb.GetMesh();
 
   auto sem = m.GetSem("dumptraj");
   struct {
@@ -1369,14 +1368,14 @@ void DumpTraj(
     nma("zz");
 
     // traverse cells, append to mp
-    for (auto c : m.Cells()) {
+    for (auto c : eb.Cells()) {
       for (auto l : layers) {
         auto cl = (*fccl[l])[c];
         if (cl != kClNone) {
           auto& v = mp[cl]; // vector for data
           auto x = m.GetCenter(c); // cell center
           x += Vect((*fcim[l])[c]) * gh; // translation by image vector
-          auto w = (*fcvf[l])[c] * m.GetVolume(c); // volume
+          const auto w = (*fcvf[l])[c] * m.GetVolume(c); // volume
 
           size_t i = 0;
           // append scalar value

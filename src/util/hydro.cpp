@@ -58,6 +58,16 @@ template void DumpTraj(
     const FieldCell<typename M::Scal>& fcp,
     const FieldCell<typename M::Vect>& fcvel,
     const FieldCell<typename M::Vect>& fcvelm, typename M::Scal dt);
+template void DumpTraj(
+    EB& m, bool dm, const Vars& var, size_t frame, typename M::Scal t,
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename M::Scal>*>& fcvf,
+    const Multi<const FieldCell<typename M::Scal>*>& fccl,
+    const Multi<const FieldCell<typename M::MIdx>*>& fcim,
+    const FieldCell<typename M::Scal>& fcp,
+    const FieldCell<typename M::Vect>& fcvel,
+    const FieldCell<typename M::Vect>& fcvelm, typename M::Scal dt);
+
 
 template void CalcSurfaceTension(
     const M& m, const GRange<size_t>& layers, const Vars& var,
