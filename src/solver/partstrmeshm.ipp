@@ -278,9 +278,6 @@ struct PartStrMeshM<M_>::Imp {
       auto& fci = *plic.vfci[l];
       auto& fccl = *plic.vfccl[l];
       for (auto c : eb.Cells()) {
-        if (!eb.IsRegular(c)) {
-          continue;
-        }
         const Vect xc = m.GetCenter(c);
         if (fci[c] && (nocl || fccl[c] != kClNone)) {
           // number of strings
@@ -400,7 +397,7 @@ struct PartStrMeshM<M_>::Imp {
       auto findcurv = [&](IdxCell c, size_t l) {
         for (auto cn : eb.Stencil(c)) {
           for (auto ln : layers) {
-            if (!IsNan(vfckp_[ln][cn]) &&
+            if (!IsNan(vfckp_[ln][cn]) && eb.IsRegular(cn) &&
                 (nocl || (*plic.vfccl[ln])[cn] == (*plic.vfccl[l])[c])) {
               return vfckp_[ln][cn];
             }
@@ -409,7 +406,8 @@ struct PartStrMeshM<M_>::Imp {
         return GetNan<Scal>();
       };
       for (auto c : eb.Cells()) {
-        if (eb.IsCut(c)) {
+        if (eb.IsCut(c) && plic.me_adv.find(c) &&
+            plic.me_adv.at(c).contang >= 0) {
           for (auto l : layers) {
             vfckp_[l][c] = findcurv(c, l);
           }
