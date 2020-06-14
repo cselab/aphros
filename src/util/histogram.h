@@ -6,6 +6,7 @@
 #include <mpi.h>
 #include <map>
 #include <stack>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
