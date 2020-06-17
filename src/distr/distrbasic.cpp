@@ -91,8 +91,15 @@ set int hypre_gen_maxiter 30
 int RunMpi0(
     int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> kernel,
     std::istream& conf) {
+  char string[MPI_MAX_ERROR_STRING];
+  int errorcode;
   int prov;
-  MPI_Init_thread(&argc, (char***)&argv, MPI_THREAD_MULTIPLE, &prov);
+  int resultlen;
+  if ((errorcode = MPI_Init_thread(&argc, (char***)&argv, MPI_THREAD_MULTIPLE, &prov)) != MPI_SUCCESS) {
+    MPI_Error_string(errorcode, string, &resultlen);
+    throw std::runtime_error(FILELINE + ": mpi failed: " + string);
+  }
+
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
