@@ -43,10 +43,10 @@
 #include "solver/approx_eb.h"
 #include "solver/curv.h"
 #include "solver/embed.h"
+#include "solver/fluid_dummy.h"
 #include "solver/multi.h"
 #include "solver/normal.h"
 #include "solver/proj.h"
-#include "solver/fluid_dummy.h"
 #include "solver/reconst.h"
 #include "solver/simple.h"
 #include "solver/solver.h"
@@ -2094,6 +2094,10 @@ void Hydro<M>::Run() {
     Dump(false);
   }
 
+  if (sem.Nested("stephook")) {
+    StepHook(this);
+  }
+
   if (sem("inc")) {
     ++st_.step;
     m.CollectSample("Hydro::Step");
@@ -2311,9 +2315,6 @@ void Hydro<M>::StepAdvection() {
     if (sem.Nested("bubgen")) {
       StepBubgen();
     }
-  }
-  if (sem.Nested("stephook")) {
-    StepHook(this);
   }
 }
 
