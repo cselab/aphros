@@ -32,3 +32,9 @@ template <class M>
 void FluidDummyHook(
     FieldCell<typename M::Vect>& fcvel, FieldFace<typename M::Scal>& ffv,
     typename M::Scal t, typename M::Scal dt, const Vars& var, const M& m);
+
+template <class M>
+class Hydro;
+
+template <class M>
+void StepHook(Hydro<M>*);

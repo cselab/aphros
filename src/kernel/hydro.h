@@ -2311,6 +2311,9 @@ void Hydro<M>::StepAdvection() {
       StepBubgen();
     }
   }
+  if (sem.Nested("stephook")) {
+    StepHook(this);
+  }
 }
 
 template <class M>
