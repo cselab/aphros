@@ -29,7 +29,7 @@
 #include "func/init_bc.h"
 #include "func/init_contang.h"
 #include "geom/mesh.h"
-#include "kernelmesh.h"
+#include "kernelmeshpar.h"
 #include "parse/curv.h"
 #include "parse/parser.h"
 #include "parse/proj.h"
@@ -119,6 +119,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using Multi = Multi<T>;
   using UEB = UEmbed<M>;
   static constexpr size_t dim = M::dim;
+  friend void StepHook<>(Hydro*);
 
   // TODO: issue warning if variable in Vars was not used
   // but differs from default (like in CMake)
