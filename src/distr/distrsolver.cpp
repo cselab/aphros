@@ -28,7 +28,7 @@ static void RunKernelOpenMP(
   }
 }
 
-int RunMpi(
+int RunMpi0(
     int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> kernel) {
 #ifdef _OPENMP
   omp_set_dynamic(0);
@@ -37,7 +37,8 @@ int RunMpi(
   int errorcode;
   int prov;
   int resultlen;
-  if ((errorcode = MPI_Init_thread(&argc, (char***)&argv, MPI_THREAD_MULTIPLE, &prov)) != MPI_SUCCESS) {
+  if ((errorcode = MPI_Init_thread(
+           &argc, (char***)&argv, MPI_THREAD_MULTIPLE, &prov)) != MPI_SUCCESS) {
     MPI_Error_string(errorcode, string, &resultlen);
     throw std::runtime_error(FILELINE + ": mpi failed: " + string);
   }
@@ -70,8 +71,6 @@ int RunMpi(
   {
     // Read file and run all commands
     std::ifstream f(fn);
-    if (f.fail())
-      throw std::runtime_error(FILELINE + ": can't open file '" + fn + "'");
     ip.RunAll(f);
   }
 
@@ -136,7 +135,7 @@ int RunMpi(
         });
       }
       std::cout << "Unused configuration variables:" << std::endl;
-      var.ForEachMap([&var,&ignore](const auto& map) {
+      var.ForEachMap([&var, &ignore](const auto& map) {
         for (auto it = map.cbegin(); it != map.cend(); ++it) {
           const auto key = it->first;
           if (map.GetReads(key) == 0 && !ignore.count(key)) {
@@ -149,4 +148,16 @@ int RunMpi(
 
   MPI_Finalize();
   return 0;
+}
+
+int RunMpi(
+    int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> kernel) {
+  try {
+    return RunMpi0(argc, argv, kernel);
+  } catch (const std::runtime_error& e) {
+    std::cerr << //
+        "terminate called after throwing an instance of 'std::runtime_error'\n"
+              << e.what() << std::endl;
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
 }

@@ -19,5 +19,5 @@ void Main(MPI_Comm comm, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-  return RunMpi(argc, argv, Main);
+    return RunMpi(argc, argv, Main);
 }
