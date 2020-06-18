@@ -1,7 +1,6 @@
-set(CSD "${CMAKE_CURRENT_SOURCE_DIR}")
-get_filename_component(p ${CSD} NAME)
+get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 
-set(EXE t.${p})
+set(EXE t.${name})
 
 include_directories(${S})
 

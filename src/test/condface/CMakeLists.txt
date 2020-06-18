@@ -1,9 +1,5 @@
-set(CSD "${CMAKE_CURRENT_SOURCE_DIR}")
-get_filename_component(p ${CSD} NAME)
-
-set(EXE t.${p})
-
+get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+set(EXE t.${name})
 add_executable(${EXE} main.cpp)
-
-add_test(NAME ${p} COMMAND ./run)
+add_test_current(COMMAND ./run)
 

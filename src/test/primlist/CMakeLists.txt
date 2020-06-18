@@ -1,14 +1,11 @@
-set(CSD "${CMAKE_CURRENT_SOURCE_DIR}")
-get_filename_component(p ${CSD} NAME)
+get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 
-set(EXE0 t.${p}.getmap)
-set(EXE1 t.${p}.parse)
+set(EXE t.${name}.getmap)
+add_executable(${EXE} getmap.cpp)
+target_link_libraries(${EXE} vars parser)
+add_test_current(NAME getmap COMMAND ./run_getmap)
 
-add_executable(${EXE0} getmap.cpp)
-add_executable(${EXE1} parse.cpp)
-
-target_link_libraries(${EXE0} vars parser)
-target_link_libraries(${EXE1} vars parser)
-
-add_test(NAME ${p}_getmap COMMAND ./run_getmap)
-add_test(NAME ${p}_parse COMMAND ./run_parse)
+set(EXE t.${name}.parse)
+add_executable(${EXE} parse.cpp)
+target_link_libraries(${EXE} vars parser)
+add_test_current(NAME parse COMMAND ./run_parse)

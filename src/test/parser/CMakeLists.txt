@@ -1,10 +1,10 @@
-get_filename_component(p ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 
-set(T t.${p})
+set(T t.${name})
 add_executable(${T} main.cpp)
 target_link_libraries(${T} vars parser)
-add_test(NAME ${p}.main COMMAND ./test main)
+add_test_current(NAME main COMMAND ./test main)
 
-set(T t.${p}.codeblocks)
+set(T t.${name}.codeblocks)
 add_executable(${T} codeblocks.cpp)
-add_test(NAME ${p}.codeblocks COMMAND ./test codeblocks)
+add_test_current(NAME codeblocks COMMAND ./test codeblocks)

@@ -1,7 +1,6 @@
 function(add a0)
-  set(name bc-${a0}${ARGN})
-  add_test(NAME ${name} COMMAND run ${a0} ${ARGN})
-  set_tests_properties(${name} PROPERTIES RESOURCE_LOCK bc)
+  set(name ${a0}${ARGN})
+  add_test_current(NAME ${name} COMMAND run ${a0} ${ARGN})
 endfunction()
 
 add(periodic)
