@@ -48,6 +48,7 @@ class TestBase:
                 " '--run CASE --check'")
         else:
             self.cases = None
+            self.case = None
             parser.add_argument('--run',
                                 action='store_true',
                                 help="Run test to generate output files.")
@@ -101,9 +102,11 @@ class TestBase:
             shutil.copy(out, ref)
             self.printlog("copied '{}' to '{}'".format(out, ref))
 
-    def plot(self, output_files):
+    def plot(self, datadir, output_files):
         """
         Plots output files.
+        datadir: `str`
+            Directory with data files (output or reference).
         """
         self.printlog("plot: not implemented")
         pass
@@ -134,7 +137,7 @@ class TestBase:
         case: `str`
             Case name.
         base: `str`
-            Base directory (e.g "out" or "ref").
+            Base directory (e.g "output" or "ref").
         """
         if case:
             return os.path.join(base, case)
@@ -144,7 +147,7 @@ class TestBase:
         """
         Moves output files to output directory.
         base: `str`
-            Base directory (e.g "out" or "ref").
+            Base directory (e.g "output" or "ref").
         """
         os.makedirs(outdir, exist_ok=True)
         for f in output_files:
@@ -190,7 +193,7 @@ class TestBase:
             else:
                 self.case = None
                 self.output_files = self.run()
-            self.outdir = self._get_casedir(self.case, "out")
+            self.outdir = self._get_casedir(self.case, "output")
             self.refdir = self._get_casedir(self.case, "ref")
             self._move_to_outdir(self.outdir, self.output_files)
             with open(casefile, 'w') as f:
@@ -209,26 +212,34 @@ class TestBase:
                 self.outdir = lines[1]
                 self.refdir = lines[2]
                 self.output_files = lines[3:]
-                if args.case is not None and args.case != self.case:
+                if getattr(args, "case", None) is not None \
+                        and args.case != self.case:
                     self.parser.error(
                         "Case '{}' differs from previously stored '{}'."
                         " Provide option --run to run the new case.".format(
                             args.case, self.case))
 
         if args.update:
+            self.printlog("updating reference data in '{}'".format(self.refdir))
             self.update(self.outdir, self.refdir, self.output_files)
 
         if args.clean:
             self.clean(self.output_files)
 
         if args.plot:
+            self.printlog("plotting output data in '{}'".format(self.outdir))
             self.plot(self.outdir, self.output_files)
 
         if args.plotref:
+            self.printlog("plotting reference data in '{}'".format(self.refdir))
             self.plot(self.refdir, self.output_files)
 
         if args.check:
-            if not self.check(self.outdir, self.refdir, self.output_files):
+            if self.check(self.outdir, self.refdir, self.output_files):
+                self.printlog("check with '{}' passed".format(self.refdir))
+            else:
+                self.printlog("check with '{}' failed".format(self.refdir))
                 status = 1
 
         exit(status)
+
