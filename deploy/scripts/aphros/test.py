@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import shutil
 import subprocess
 
 
@@ -23,9 +24,15 @@ class TestBase:
             self.cases = cases
             parser.add_argument(
                 '--run',
-                choices=cases,
+                action='store_true',
                 help="Run selected test to generate output files."
                 " Other commands will use the test selected here.")
+            parser.add_argument(
+                'case',
+                nargs='?',
+                choices=cases,
+                help="If not other options provided, equivalent to"
+                " '--run CASE --check'")
         else:
             self.cases = None
             parser.add_argument('--run',
@@ -38,6 +45,9 @@ class TestBase:
         parser.add_argument('--plot',
                             action='store_true',
                             help="Plot output files")
+        parser.add_argument('--clean',
+                            action='store_true',
+                            help="Remove output files")
         parser.add_argument('--update',
                             action='store_true',
                             help="Update reference data from output files.")
@@ -50,24 +60,45 @@ class TestBase:
         """
         return []
 
-    def check(self, refdir):
+    def check(self, refdir, output_files):
         """
         Checks output files against reference data.
         Returns False if failed.
         """
-        return True
+        r = True
+        for out in output_files:
+            ref = os.path.join(refdir, out)
+            if not filecmp.cmp(out, ref):
+                print("Files '{}' and '{}' differ".format(out, ref))
+                r = False
+        return r
 
-    def plot(self):
-        """
-        Plots output files.
-        """
-        pass
-
-    def update(self):
+    def update(self, refdir, output_files):
         """
         Updates reference data from output files.
         """
+        os.makedirs(refdir, exist_ok=True)
+        for out in output_files:
+            ref = os.path.join(refdir, out)
+            shutil.copy(out, ref)
+            print("'{}' -> '{}'".format(out, ref))
+
+    def plot(self, output_files):
+        """
+        Plots output files.
+        """
+        print("plot: not implemented")
         pass
+
+    def clean(self, output_files):
+        """
+        Removes output files.
+        """
+        ff = output_files + ["testcase"]
+        for out in ff:
+            if os.path.isfile(out):
+                os.remove(out)
+                print("removed '{}'".format(out))
 
     def runcmd(self, cmd, echo=True):
         """
@@ -106,21 +137,30 @@ class TestBase:
         self.args = self.parser.parse_args()
         args = self.args
         status = 0
-        if not any([args.run, args.check, args.plot, args.update]):
+        if not any([args.run, args.check, args.plot, args.update, args.clean]):
+            if self.cases and args.case is None:
+                self.parser.error(
+                    "Running without options is equivalent to '--run --check',"
+                    " but requres CASE as the only argument."
+                    " Options are: {{{}}}".format(','.join(self.cases)))
             args.run = True
             args.check = True
 
         casefile = "testcase"
         if args.run:
-            if len(self.cases):
-                self.case = args.run
+            if self.cases:
+                self.case = args.case
                 self.output_files = self.run(self.case)
+                if self.case is None:
+                    self.parser.error(
+                        "Missing case to run. Options are {{{}}}".format(
+                            ','.join(self.cases)))
             else:
                 self.case = None
                 self.output_files = self.run()
             self.refdir = self._get_refdir()
             with open(casefile, 'w') as f:
-                f.write(self.case + '\n')
+                f.write(str(self.case) + '\n')
                 f.write(self.refdir + '\n')
                 for line in self.output_files:
                     f.write(line + '\n')
@@ -133,15 +173,23 @@ class TestBase:
                 self.case = lines[0]
                 self.refdir = lines[1]
                 self.output_files = lines[2:]
-
-        if args.check:
-            if not self.check(self.refdir):
-                status = 1
+                if args.case is not None and args.case != self.case:
+                    self.parser.error(
+                        "Case '{}' differs from previously stored '{}'."
+                        " Provide option --run to run the new case.".format(
+                            args.case, self.case))
 
         if args.update:
-            self.update()
+            self.update(self.refdir, self.output_files)
+
+        if args.clean:
+            self.clean(self.output_files)
 
         if args.plot:
-            self.plot()
+            self.plot(self.output_files)
+
+        if args.check:
+            if not self.check(self.refdir, self.output_files):
+                status = 1
 
         exit(status)
