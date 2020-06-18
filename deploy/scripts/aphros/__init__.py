@@ -14,3 +14,5 @@ import aphros.confgen
 Geometry = aphros.confgen.Geometry
 Bc = aphros.confgen.Bc
 Var = aphros.confgen.Var
+
+from aphros.test import TestBase
