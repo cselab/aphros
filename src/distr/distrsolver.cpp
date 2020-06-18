@@ -70,6 +70,8 @@ int RunMpi(
   {
     // Read file and run all commands
     std::ifstream f(fn);
+    if (f.fail())
+      throw std::runtime_error(FILELINE + ": can't open file '" + fn + "'");
     ip.RunAll(f);
   }
 
