@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+import os
+import filecmp
+
+import aphros
+
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__(cases=["main", "codeblocks"])
+
+    def run(self, case):
+        if case == "main":
+            self.runcmd("./t.parser > out")
+        elif case == "codeblocks":
+            self.runcmd("./t.parser.codeblocks < codeblocks_in > out")
+        else:
+            raise NotImplementedError()
+        return ["out"]
+
+
+Test().main()

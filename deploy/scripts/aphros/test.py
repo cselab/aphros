@@ -22,12 +22,15 @@ class TestBase:
 
         self.verbose = verbose
         if self.verbose:
+
             def printlog(msg, end='\n'):
                 sys.stderr.write(str(msg) + end)
                 sys.stderr.flush()
         else:
+
             def printlog(msg, end='\n'):
                 pass
+
         self.printlog = printlog
 
         description = " ".join(
@@ -220,7 +223,8 @@ class TestBase:
                             args.case, self.case))
 
         if args.update:
-            self.printlog("updating reference data in '{}'".format(self.refdir))
+            self.printlog("updating reference data in '{}'".format(
+                self.refdir))
             self.update(self.outdir, self.refdir, self.output_files)
 
         if args.clean:
@@ -231,7 +235,8 @@ class TestBase:
             self.plot(self.outdir, self.output_files)
 
         if args.plotref:
-            self.printlog("plotting reference data in '{}'".format(self.refdir))
+            self.printlog("plotting reference data in '{}'".format(
+                self.refdir))
             self.plot(self.refdir, self.output_files)
 
         if args.check:
@@ -242,4 +247,3 @@ class TestBase:
                 status = 1
 
         exit(status)
-
