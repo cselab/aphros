@@ -68,11 +68,7 @@ int RunMpi0(
   Vars var; // parameter storage
   Parser ip(var); // parser
 
-  {
-    // Read file and run all commands
-    std::ifstream f(fn);
-    ip.RunAll(f);
-  }
+  ip.RunAll(fn);
 
   // Print vars on root
   if (isroot) {
@@ -155,9 +151,11 @@ int RunMpi(
   try {
     return RunMpi0(argc, argv, kernel);
   } catch (const std::runtime_error& e) {
+    const int status = 1;
     std::cerr << //
         "terminate called after throwing an instance of 'std::runtime_error'\n"
               << e.what() << std::endl;
-    MPI_Abort(MPI_COMM_WORLD, 1);
+    MPI_Abort(MPI_COMM_WORLD, status);
+    return status;
   }
 }

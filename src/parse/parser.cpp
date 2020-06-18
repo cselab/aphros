@@ -1,6 +1,8 @@
 // Created by Petr Karnakov on 07.08.2018
 // Copyright 2018 ETH Zurich
 
+#include <limits.h>
+#include <stdlib.h>
 #include <cassert>
 #include <fstream>
 #include <sstream>
@@ -9,6 +11,12 @@
 #include "parser.h"
 #include "util/logger.h"
 #include "vars.h"
+
+std::string GetRealpath(std::string path) {
+  char buf[PATH_MAX + 1];
+  char* ptr = realpath(path.c_str(), buf);
+  return std::string(ptr);
+}
 
 std::string Strip(std::string s) {
   size_t b = 0;
@@ -119,7 +127,9 @@ struct Parser::Imp {
     return res;
   }
   // Executes single command
-  void Cmd(std::string);
+  // In cases of error, if `filename != ""` and `line >= 0`
+  // appends the error message with filename and line.
+  void Cmd(std::string, std::string filename, int line);
   // set <type> <key> <value>
   void CmdSet(std::string);
   // setnext <type> <key> <value>
@@ -138,24 +148,33 @@ Parser::Parser(Vars& v) : imp(new Imp(this, v)) {}
 
 Parser::~Parser() = default;
 
-void Parser::Imp::Cmd(std::string s) {
-  s = RemoveComment(s);
-  s = ExpandVariables(s);
-  std::stringstream b(s);
-  std::string cmd;
-  b >> cmd;
-  if (cmd == "set") {
-    CmdSet(s);
-  } else if (cmd == "setnext") {
-    CmdSetNext(s);
-  } else if (cmd == "del") {
-    CmdDel(s);
-  } else if (cmd == "include") {
-    CmdInclude(s);
-  } else if (cmd == "") {
-    // nop
-  } else {
-    throw std::runtime_error(FILELINE + ": unknown command '" + cmd + "'");
+void Parser::Imp::Cmd(std::string s, std::string filename, int line) {
+  try {
+    s = RemoveComment(s);
+    s = ExpandVariables(s);
+    std::stringstream b(s);
+    std::string cmd;
+    b >> cmd;
+    if (cmd == "set") {
+      CmdSet(s);
+    } else if (cmd == "setnext") {
+      CmdSetNext(s);
+    } else if (cmd == "del") {
+      CmdDel(s);
+    } else if (cmd == "include") {
+      CmdInclude(s);
+    } else if (cmd == "") {
+      // nop
+    } else {
+      throw std::runtime_error("unknown command '" + cmd + "'");
+    }
+  } catch (const std::runtime_error& e) {
+    std::string msg = e.what();
+    if (filename != "" && line >= 0) {
+      const auto loc = GetRealpath(filename) + ':' + std::to_string(line);
+      msg = loc + ": required from here\n" + msg;
+    }
+    throw std::runtime_error(msg);
   }
 }
 
@@ -208,31 +227,25 @@ void Parser::Imp::CmdDel(std::string s) {
 }
 
 void Parser::Imp::CmdInclude(std::string s) {
-  std::string cmd, fn;
+  std::string cmd;
+  std::string filename;
   std::stringstream b(s);
-  b >> cmd >> fn;
-
-  // Read all content
-  std::ifstream f(fn);
-  if (!f.good()) {
-    throw std::runtime_error(
-        FILELINE + ": CmdInclude(): Can't open '" + fn + "'");
-  }
-  std::stringstream r;
-  r << f.rdbuf();
-  f.close();
-
-  owner_->RunAll(r);
+  b >> cmd >> filename;
+  owner_->RunAll(filename);
 }
 
 void Parser::Run(std::string s) {
-  imp->Cmd(s);
+  imp->Cmd(s, "", -1);
 }
 
 // Reads multiline string from stream.
 // String is read until EOL or while inside quotation marks "".
 // Removes quotation marks and strips whitespaces.
-std::string ReadMultiline(std::istream& in) {
+// Returns:
+//   string read,
+//   number of lines read from stream.
+std::pair<std::string, int> ReadMultiline(std::istream& in) {
+  int lines = 0;
   const auto flags = in.flags();
   in >> std::noskipws;
   std::string res;
@@ -241,7 +254,12 @@ std::string ReadMultiline(std::istream& in) {
   char c = ' ';
   try {
     while (in && s != S::exit) {
-      auto next = [&in, &c]() { in >> c; };
+      auto next = [&in, &c, &lines]() {
+        in >> c;
+        if (c == '\n') {
+          ++lines;
+        }
+      };
       switch (s) {
         case S::normal: {
           if (c == '"') {
@@ -278,16 +296,30 @@ std::string ReadMultiline(std::istream& in) {
         Strip(res) + "'");
   }
   in.flags(flags);
-  return Strip(res);
+  return std::make_pair(Strip(res), lines);
 }
 
 void Parser::RunNext(std::istream& in) {
-  imp->Cmd(ReadMultiline(in));
+  const std::pair<std::string, int> p = ReadMultiline(in);
+  imp->Cmd(p.first, "", p.second);
 }
 
 void Parser::RunAll(std::istream& in) {
   while (in) {
     RunNext(in);
+  }
+}
+
+void Parser::RunAll(std::string path) {
+  int line = 0;
+  std::ifstream f(path);
+  if (!f.good()) {
+    throw std::runtime_error("RunAll(): Can't open '" + path + "'");
+  }
+  while (f) {
+    const std::pair<std::string, int> p = ReadMultiline(f);
+    line += p.second;
+    imp->Cmd(p.first, path, line);
   }
 }
 

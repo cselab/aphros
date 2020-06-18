@@ -23,6 +23,9 @@ class Parser {
   void RunNext(std::istream&);
   // Executes all lines from stream
   void RunAll(std::istream&);
+  // Executes all lines from file.
+  // Includes line number to error messages.
+  void RunAll(std::string path);
   // Prints content of Map
   template <class T>
   static void Print(const Vars::Map<T>& m, std::ostream& out);
