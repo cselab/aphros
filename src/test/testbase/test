@@ -18,14 +18,5 @@ class Test(aphros.TestBase):
             f.write(case + '_1')
         return ff
 
-    def check(self, refdir, output_files):
-        r = True
-        for fpath in output_files:
-            refpath = os.path.join(refdir, fpath)
-            if not filecmp.cmp(fpath, refpath):
-                print("files '{}' and '{}' differ".format(fpath, refpath))
-                r = False
-        return r
-
 
 Test().main()
