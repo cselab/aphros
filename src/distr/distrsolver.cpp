@@ -57,7 +57,7 @@ int RunMpi0(
   auto exit_usage = [&argv, isroot](int status) {
     if (isroot) {
       std::cerr << "usage: " << argv[0]
-                << " [--version] [-v|--verbose] [a.conf]\n";
+                << " [-h|--help] [--version] [-v|--verbose] [a.conf]\n";
     }
     return status;
   };
@@ -78,13 +78,10 @@ int RunMpi0(
     return exit_usage(1);
   }
 
-  auto check_known_args = [&oargs, isroot]() {
-    const std::set<std::string> known = {
-        "-v", "--verbose", "-h", "--help", "--version",
-    };
+  auto check_known_args = [&oargs, isroot, known_args]() {
     bool pass = true;
     for (auto p : oargs) {
-      if (!known.count(p.first)) {
+      if (!known_args.count(p.first)) {
         pass = false;
         if (isroot) {
           std::cerr << "unrecognized option: " << p.first << '\n';
