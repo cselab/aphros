@@ -25,10 +25,10 @@ error:
 cleanrun: cleanall run
 
 run: conf
-	LD_PRELOAD="$(hook):$${LD_PRELOAD}" ap.run ap.mfer
+	LD_PRELOAD="$(hook):$${LD_PRELOAD}" ap.run ap.mfer --version --verbose
 
 submit: conf
-	LD_PRELOAD="$(hook):$${LD_PRELOAD}" ap.submit ap.mfer
+	LD_PRELOAD="$(hook):$${LD_PRELOAD}" ap.submit ap.mfer --version --verbose
 
 kill:
 	ap.kill

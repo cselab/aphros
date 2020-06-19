@@ -106,7 +106,7 @@ int RunMpi0(
   Vars var; // parameter storage
   Parser ip(var); // parser
 
-  ip.RunAll(conf);
+  ip.ParseStream(conf);
 
   std::string be = var.String["backend"];
 

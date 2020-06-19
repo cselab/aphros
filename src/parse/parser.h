@@ -4,8 +4,11 @@
 #pragma once
 
 #include <iostream>
+#include <map>
 #include <memory>
+#include <set>
 #include <string>
+#include <vector>
 
 #include "vars.h"
 
@@ -22,10 +25,10 @@ class Parser {
   // Executes single line from stream
   void RunNext(std::istream&);
   // Executes all lines from stream
-  void RunAll(std::istream&);
+  void ParseStream(std::istream&);
   // Executes all lines from file.
   // Includes line number to error messages.
-  void RunAll(std::string path);
+  void ParseFile(std::string path);
   // Prints content of Map
   template <class T>
   static void Print(const Vars::Map<T>& m, std::ostream& out);
@@ -38,3 +41,22 @@ class Parser {
   struct Imp;
   std::unique_ptr<Imp> imp;
 };
+
+// Parses arguments.
+//   argc, argv: arguments
+//   novalue: names of arguments without value (which is set to "")
+// Returns:
+//   - map `key:value` for arguments starting from '--' or '-'
+//   - list of positional arguments
+// Example:
+// ./main --a 0 -b -c 2 a b c
+// {
+//   {
+//     {"--a", "0"},
+//     {"-b", ""},
+//     {"-c", "2"},
+//   },
+//   {"a", "b", "c"},
+// }
+std::pair<std::map<std::string, std::string>, std::vector<std::string>>
+ParseArgs(int argc, const char** argv, const std::set<std::string>& novalue);

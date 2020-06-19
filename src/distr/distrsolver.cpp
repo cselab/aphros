@@ -46,35 +46,76 @@ int RunMpi0(
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   bool isroot = (!rank);
 
-  std::string fn = "a.conf";
-  if (argc == 1) {
-    // nop
-  } else if (argc == 2) {
-    fn = argv[1];
-  } else {
+  const std::set<std::string> novalue_args = {
+      "-v", "--verbose", "-h", "--help", "--version",
+  };
+  const auto known_args = novalue_args;
+  const auto args = ParseArgs(argc, argv, novalue_args);
+  const std::map<std::string, std::string> oargs = args.first; // optional
+  const std::vector<std::string> pargs = args.second; // positional
+
+  auto exit_usage = [&argv, isroot](int status) {
     if (isroot) {
-      std::cerr << "usage: " << argv[0] << " [a.conf]" << std::endl;
+      std::cerr << "usage: " << argv[0]
+                << " [--version] [-v|--verbose] [a.conf]\n";
     }
-    return 1;
+    return status;
+  };
+
+  if (oargs.count("-h") || oargs.count("--help")) {
+    return exit_usage(0);
   }
 
-  if (isroot) {
-    std::cerr << "hydro " << GetGitRev() << std::endl;
-    std::cerr << "msg: " << GetGitMsg() << std::endl;
-    std::cerr << "diff: " << GetGitDiff() << std::endl;
-    std::cerr << "Loading config from '" << fn << "'" << std::endl;
+  const bool verbose = oargs.count("-v") || oargs.count("--verbose");
+
+  std::string filename = "a.conf";
+  if (pargs.size() == 0) {
+    // nop
+  } else if (pargs.size() == 1) {
+    filename = pargs[0];
+  } else {
+    std::cerr << "too many positional arguments\n";
+    return exit_usage(1);
+  }
+
+  auto check_known_args = [&oargs, isroot]() {
+    const std::set<std::string> known = {
+        "-v", "--verbose", "-h", "--help", "--version",
+    };
+    bool pass = true;
+    for (auto p : oargs) {
+      if (!known.count(p.first)) {
+        pass = false;
+        if (isroot) {
+          std::cerr << "unrecognized option: " << p.first << '\n';
+        }
+      }
+    }
+    return pass;
+  };
+  if (!check_known_args()) {
+    return exit_usage(1);
+  }
+
+  if (oargs.count("--version") && isroot) {
+    std::cerr << "aphros " << GetGitRev() << "\nmsg: " << GetGitMsg()
+              << "\ndiff: " << GetGitDiff() << '\n';
+  }
+
+  if (verbose && isroot) {
+    std::cerr << "Loading config from '" << filename << "'" << std::endl;
   }
 
   Vars var; // parameter storage
   Parser ip(var); // parser
 
-  ip.RunAll(fn);
+  ip.ParseFile(filename);
 
   // Print vars on root
-  if (isroot) {
-    std::cerr << "\n=== config begin ===" << std::endl;
+  if (verbose && isroot) {
+    std::cerr << "\n=== config begin ===\n";
     ip.PrintAll(std::cerr);
-    std::cerr << "=== config end ===\n" << std::endl;
+    std::cerr << "=== config end ===\n\n";
   }
 
   std::string be = var.String["backend"];
@@ -109,11 +150,11 @@ int RunMpi0(
       auto print_reads = [&var](const auto& map) {
         for (auto it = map.cbegin(); it != map.cend(); ++it) {
           const auto key = it->first;
-          std::cout << map.GetReads(key) << " " << map.GetTypeName() << " "
-                    << key << std::endl;
+          std::cout << map.GetReads(key) << ' ' << map.GetTypeName() << ' '
+                    << key << '\n';
         }
       };
-      std::cout << "Number of accesses to configuration variables" << std::endl;
+      std::cout << "Number of accesses to configuration variables\n";
       var.ForEachMap(print_reads);
     }
     if (var.Int("verbose_conf_unused", 0)) {
@@ -123,19 +164,19 @@ int RunMpi0(
         Vars vign;
         Parser parser(vign);
         std::ifstream f(path);
-        parser.RunAll(f);
+        parser.ParseStream(f);
         vign.ForEachMap([&ignore](const auto& map) {
           for (auto it = map.cbegin(); it != map.cend(); ++it) {
             ignore.insert(it->first);
           }
         });
       }
-      std::cout << "Unused configuration variables:" << std::endl;
+      std::cout << "Unused configuration variables:\n";
       var.ForEachMap([&var, &ignore](const auto& map) {
         for (auto it = map.cbegin(); it != map.cend(); ++it) {
           const auto key = it->first;
           if (map.GetReads(key) == 0 && !ignore.count(key)) {
-            std::cout << map.GetTypeName() << " " << key << std::endl;
+            std::cout << map.GetTypeName() << ' ' << key << '\n';
           }
         }
       });
@@ -153,7 +194,8 @@ int RunMpi(
   } catch (const std::runtime_error& e) {
     const int status = 1;
     std::cerr << //
-        "terminate called after throwing an instance of 'std::runtime_error'\n"
+        "\nterminate called after throwing an instance of "
+        "'std::runtime_error'\n"
               << e.what() << std::endl;
     MPI_Abort(MPI_COMM_WORLD, status);
     return status;

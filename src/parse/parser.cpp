@@ -231,7 +231,7 @@ void Parser::Imp::CmdInclude(std::string s) {
   std::string filename;
   std::stringstream b(s);
   b >> cmd >> filename;
-  owner_->RunAll(filename);
+  owner_->ParseFile(filename);
 }
 
 void Parser::Run(std::string s) {
@@ -304,17 +304,17 @@ void Parser::RunNext(std::istream& in) {
   imp->Cmd(p.first, "", p.second);
 }
 
-void Parser::RunAll(std::istream& in) {
+void Parser::ParseStream(std::istream& in) {
   while (in) {
     RunNext(in);
   }
 }
 
-void Parser::RunAll(std::string path) {
+void Parser::ParseFile(std::string path) {
   int line = 0;
   std::ifstream f(path);
   if (!f.good()) {
-    throw std::runtime_error("RunAll(): Can't open '" + path + "'");
+    throw std::runtime_error("ParseFile(): Can't open '" + path + "'");
   }
   while (f) {
     const std::pair<std::string, int> p = ReadMultiline(f);
@@ -346,4 +346,31 @@ void Parser::PrintAll(std::ostream& out) const {
 
 void Parser::PrintAll() const {
   PrintAll(std::cout);
+}
+
+std::pair<std::map<std::string, std::string>, std::vector<std::string>>
+ParseArgs(int argc, const char** argv, const std::set<std::string>& novalue) {
+  int i = 1;
+  std::map<std::string, std::string> named;
+  while (i < argc) {
+    const std::string key(argv[i]);
+    if (key.length() && key[0] == '-') {
+      named[key] = "";
+      if (!novalue.count(key) && i + 1 < argc) {
+        const std::string val(argv[i + 1]);
+        if (!val.length() || val[0] != '-') {
+          named[key] = val;
+          ++i;
+        }
+      }
+      ++i;
+    } else {
+      break;
+    }
+  }
+  std::vector<std::string> pos;
+  while (i < argc) {
+    pos.push_back(argv[i++]);
+  }
+  return {named, pos};
 }

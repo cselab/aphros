@@ -16,7 +16,7 @@ namespace simple {
 void Simple() {
   std::cout << "\n" << __func__ << std::endl;
   Vars par;
-  Parser ip(par);
+  Parser parser(par);
 
   std::stringstream s;
   s << "set string a 1" << std::endl;
@@ -24,8 +24,8 @@ void Simple() {
   s << "set double c 1" << std::endl;
   s << "set vect d 1" << std::endl;
 
-  ip.RunAll(s);
-  ip.PrintAll(std::cout);
+  parser.ParseStream(s);
+  parser.PrintAll(std::cout);
 
   assert(par.String["a"] == "1");
   assert(par.Int["b"] == 1);
@@ -43,11 +43,11 @@ void TestFile() {
 
   // run all commands
   Vars par;
-  Parser ip(par);
-  ip.RunAll(fi);
+  Parser parser(par);
+  parser.ParseStream(fi);
 
   // print variables to cout
-  ip.PrintAll(std::cout);
+  parser.PrintAll(std::cout);
 }
 
 struct Config : public ConfigBase {
@@ -77,7 +77,7 @@ void TestConfig() {
   set string name name
   set int enable_fluid 3
   )EOF");
-    parser.RunAll(s);
+    parser.ParseStream(s);
   }
 
   Config config;
