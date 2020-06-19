@@ -60,17 +60,12 @@ class Test(aphros.TestBase):
         return r
 
     def plot(self, datadir, output_files):
-        """
-        Plots output files.
-        datadir: `str`
-            Directory with data files (output or reference).
-        """
         gnu = "a.gnu"
         assert os.path.isfile(gnu), "{} not found".format(gnu)
         gnurel = os.path.relpath(gnu, datadir)
         refrel = os.path.relpath(self.refdir, datadir)
-        self.runcmd("cd '{}' && gnuplot -c '{}' '{}'".format(datadir, gnurel, refrel))
-        pass
+        self.runcmd("cd '{}' && gnuplot -c '{}' '{}'".format(
+            datadir, gnurel, refrel))
 
 
 Test().main()

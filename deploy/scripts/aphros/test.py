@@ -42,13 +42,13 @@ class TestBase:
                 '--run',
                 action='store_true',
                 help="Run selected test to generate output files."
-                " Other commands will use the test selected here.")
+                " Other options will use the test selected here.")
             parser.add_argument(
                 'case',
                 nargs='?',
                 choices=cases,
-                help="If not other options provided, equivalent to"
-                " '--run CASE --check'")
+                help="Command without any options provided implies"
+                " '--run --check'")
         else:
             self.cases = None
             self.case = None
@@ -61,13 +61,13 @@ class TestBase:
                             " Exit with status 1 if failed.")
         parser.add_argument('--plot',
                             action='store_true',
-                            help="Plot output data")
+                            help="Plot output data.")
         parser.add_argument('--plotref',
                             action='store_true',
-                            help="Plot reference data")
+                            help="Plot reference data.")
         parser.add_argument('--clean',
                             action='store_true',
-                            help="Remove output files")
+                            help="Remove output files.")
         parser.add_argument('--update',
                             action='store_true',
                             help="Update reference data from output files.")
@@ -269,4 +269,3 @@ class TestBase:
                 status = 1
 
         exit(status)
-
