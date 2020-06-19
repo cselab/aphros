@@ -71,6 +71,12 @@ class TestBase:
         parser.add_argument('--update',
                             action='store_true',
                             help="Update reference data from output files.")
+        parser.add_argument('--cases',
+                            action='store_true',
+                            help="Print names of all cases and exit.")
+        parser.add_argument('--current',
+                            action='store_true',
+                            help="Print name of the current case and exit.")
         self.parser = parser
 
     def run(self, outdir, case=None):
@@ -174,7 +180,21 @@ class TestBase:
         """
         self.args = self.parser.parse_args()
         args = self.args
+
         status = 0
+
+        if args.cases:
+            if self.cases:
+                print(' '.join(self.cases))
+            exit(status)
+
+        casefile = "testcase"
+        if args.current:
+            if os.path.isfile(casefile):
+                with open(casefile, 'r') as f:
+                    print(f.readlines()[0])
+            exit(status)
+
         if not any([args.run, args.check, args.plot, args.update, args.clean]):
             if self.cases and args.case is None:
                 self.parser.error(
@@ -184,7 +204,6 @@ class TestBase:
             args.run = True
             args.check = True
 
-        casefile = "testcase"
         if args.run:
             if self.cases:
                 self.case = args.case
@@ -228,7 +247,7 @@ class TestBase:
             self.update(self.outdir, self.refdir, self.output_files)
 
         if args.clean:
-            self.clean(self.output_files)
+            self.clean(self.outdir, self.output_files)
 
         if args.plot:
             self.printlog("plotting output data in '{}'".format(self.outdir))
