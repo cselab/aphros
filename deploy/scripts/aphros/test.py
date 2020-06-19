@@ -195,7 +195,10 @@ class TestBase:
                     print(f.readlines()[0])
             exit(status)
 
-        if not any([args.run, args.check, args.plot, args.update, args.clean]):
+        if not any([
+                args.run, args.check, args.plot, args.plotref, args.update,
+                args.clean
+        ]):
             if self.cases and args.case is None:
                 self.parser.error(
                     "Running without options is equivalent to '--run --check',"
@@ -266,3 +269,4 @@ class TestBase:
                 status = 1
 
         exit(status)
+

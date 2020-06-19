@@ -83,18 +83,11 @@ class Test(aphros.TestBase):
         return r
 
     def plot(self, datadir, output_files):
-        """
-        Plots output files.
-        datadir: `str`
-            Directory with data files (output or reference).
-        """
-        gnu = "a.gnu"
-        assert os.path.isfile(gnu), "{} not found".format(gnu)
-        gnurel = os.path.relpath(gnu, datadir)
-        refrel = os.path.relpath(self.refdir, datadir)
-        self.runcmd("cd '{}' && gnuplot -c '{}' '{}'".format(
-            datadir, gnurel, refrel))
-        pass
+        assert self.case == "2d"
+        exe = "plot.py"
+        assert os.path.isfile(exe), "{} not found".format(exe)
+        exerel = os.path.relpath(exe, datadir)
+        self.runcmd("cd '{}' && {}".format(datadir, exerel))
 
     def clean(self, outdir, output_files):
         self.runcmd("make -f $(ap.makesim) cleanall")
