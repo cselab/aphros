@@ -4,15 +4,14 @@ add_executable(${EXE} main.cpp)
 install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
 target_link_libraries(${EXE} distrsolver solver vof vofm tvd overlap curv init_vel)
 
-add_test_current(NAME loc8 COMMAND runshort tloc 8)
-add_test_current(NAME loc16 COMMAND runshort tloc 16)
-add_test_current(NAME loc32 COMMAND runshort tloc 32 1)
-add_test_current(NAME cub8 COMMAND runshort tcub 8)
-add_test_current(NAME cub16 COMMAND runshort tcub 16)
-add_test_current(NAME cub32 COMMAND runshort tcub 32 1)
-add_test_current(NAME cubm8 COMMAND runshort tcubm 8)
-add_test_current(NAME cubm16 COMMAND runshort tcubm 16)
-add_test_current(NAME cubm32 COMMAND runshort tcubm 32 1)
-add_test_current(NAME 3d-loc COMMAND run3d tloc3d)
-add_test_current(NAME 3d-cub COMMAND run3d tcub3d)
-add_test_current(NAME 3d-cubold COMMAND run3d tcubold3d)
+
+foreach(comm local cubismnc cubism)
+  foreach(block 8 16 32)
+    add_test_current(
+        NAME 2d-${comm}${block}
+        COMMAND ./test 2d -b ${block} -c ${comm})
+  endforeach()
+  add_test_current(
+      NAME 3d-${comm}${block}
+      COMMAND ./test 3d -c ${comm})
+endforeach()
