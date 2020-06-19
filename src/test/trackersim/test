@@ -36,6 +36,7 @@ class Test(aphros.TestBase):
     def check(self, outdir, refdir, output_files):
         r = True
         for f in output_files:
+
             def cmp(fa, fb):
                 ua = np.genfromtxt(fa, delimiter=',', names=True)
                 ub = np.genfromtxt(fb, delimiter=',', names=True)
@@ -52,10 +53,23 @@ class Test(aphros.TestBase):
             eps = 0.0005 if self.case == "gravity" in out else 1e-6
             error = cmp(out, ref)
             if error > eps:
-                self.printlog("error exceeded for '{}', {:} >= {:}".format(out, error, eps))
+                self.printlog("error exceeded for '{}', {:} >= {:}".format(
+                    out, error, eps))
                 r = False
             self.printlog("pass for '{}', {:} < {:}".format(f, error, eps))
         return r
+
+    def plot(self, datadir, output_files):
+        """
+        Plots output files.
+        datadir: `str`
+            Directory with data files (output or reference).
+        """
+        gnu = "a.gnu"
+        assert os.path.isfile(gnu), "{} not found".format(gnu)
+        gnuabs = os.path.abspath(gnu)
+        self.runcmd("cd '{}' && gnuplot -c '{}'".format(datadir, gnuabs))
+        pass
 
 
 Test().main()
