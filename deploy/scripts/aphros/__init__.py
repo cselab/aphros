@@ -14,7 +14,7 @@ import aphros.confgen
 Geometry = aphros.confgen.Geometry
 BoundaryConditions = aphros.confgen.BoundaryConditions
 Bc = aphros.confgen.BoundaryConditions
-Conf = aphros.confgen.Conf
-Var = aphros.confgen.Conf
+Config = aphros.confgen.Config
+Var = aphros.confgen.Config
 
 from aphros.test import TestBase
