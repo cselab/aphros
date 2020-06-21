@@ -12,7 +12,9 @@ stream = aphros.stream.stream
 
 import aphros.confgen
 Geometry = aphros.confgen.Geometry
-Bc = aphros.confgen.Bc
-Var = aphros.confgen.Var
+BoundaryConditions = aphros.confgen.BoundaryConditions
+Bc = aphros.confgen.BoundaryConditions
+Conf = aphros.confgen.Conf
+Var = aphros.confgen.Conf
 
 from aphros.test import TestBase

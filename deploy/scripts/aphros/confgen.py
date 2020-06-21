@@ -21,7 +21,7 @@ def NormalizeType(v):
     return v
 
 
-class Var:
+class Config:
     def __init__(self):
         self.var = dict()
 
@@ -100,7 +100,7 @@ class Geometry:
             f.write(self.Generate())
 
 
-class Bc:
+class BoundaryConditions:
     def __init__(self):
         self.lines = []
 
