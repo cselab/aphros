@@ -5,6 +5,7 @@ import math
 import os
 import sys
 import numpy as np
+import copy
 
 
 def NormalizeType(v):
@@ -59,6 +60,194 @@ def VectToStr(v):
     return ' '.join(map(str, v))
 
 
+class Domain:
+    """
+    Description of the domain size, the number of blocks and processors.
+    All arguments are optional but must provide enough
+    information to define th domain size and mesh size.
+
+    lx,ly,lz: `float`
+        Domain length.
+    nx,ny,nz: `int`
+        Number of cells in each direction.
+    h: `float`
+        Cell length.
+    extent: `float`
+        Maximum domain length over all directions.
+    bsx,bsy,bsz: `int`
+        Block size in each direction.
+    bx,by,bz: `int`
+        Number of blocks in each direction.
+    nproc: `int`
+        Number of processors.
+    """
+    def __init__(self,
+                 lx=None,
+                 ly=None,
+                 lz=None,
+                 nx=None,
+                 ny=None,
+                 nz=None,
+                 h=None,
+                 extent=None,
+                 bsx=None,
+                 bsy=None,
+                 bsz=None,
+                 bs=32,
+                 bx=None,
+                 by=None,
+                 bz=None,
+                 nproc=None):
+        conf = locals()
+
+        def t(line):
+            nonlocal conf
+            try:
+                exec(line, None, conf)
+            except:
+                pass
+
+        def tt(lines):
+            for line in lines:
+                t(line)
+
+        # TODO: detect conflicting parameters
+
+        tt([
+            "extent = max(lx, ly, lz)",
+            "nmax = max(nx, ny, nz)",
+            "bsx = bs if bsx is None else bsx",
+            "bsy = bs if bsy is None else bsy",
+            "bsz = bs if bsz is None else bsz",
+            "bs = bsx",
+            "h = lz / nz",
+            "h = lx / nx",
+            "h = ly / ny",
+            "h = extent / nmax",
+            "lx = float(nx * h)",
+            "ly = float(ny * h)",
+            "lz = float(nz * h)",
+            "nx = int(lx / h + 0.5)",
+            "ny = int(ly / h + 0.5)",
+            "nz = int(lz / h + 0.5)",
+            "bx = (nx + bsx - 1) // bsx",
+            "by = (ny + bsy - 1) // bsy",
+            "bz = (nz + bsz - 1) // bsz",
+            "nx = bx * bsx",
+            "ny = by * bsy",
+            "nz = bz * bsz",
+            "lx = float(nx * h)",
+            "ly = float(ny * h)",
+            "lz = float(nz * h)",
+            "extent = max(lx, ly, lz)",
+            "nmax = max(nx, ny, nz)",
+        ])
+
+        for k, v in conf.items():
+            if k in ['self']:
+                continue
+            setattr(self, k, v)
+
+    def __str__(self):
+        return "Domain: {}".format(str(vars(self)))
+
+    def compare(self, other):
+        def isclose(a, b):
+            return abs(a - b) < 1e-10
+
+        diff = dict()
+        v = vars(self)
+        vo = vars(other)
+        for k in v:
+            if not isclose(v[k], vo[k]):
+                diff[k] = (v[k], vo[k])
+        return diff
+
+    def printdiff(diff):
+        for k, v in diff.items():
+            print("{:>8}  {:<7} {:<7}".format(k, *v))
+
+
+def AdjustedDomain(verbose=True,
+                   decrease_nproc=True,
+                   increase_size=False,
+                   nproc_factor=0.9,
+                   size_factor=1.1,
+                   **kwargs):
+    domain = Domain(**kwargs)
+    newdomain = AdjustDomainToProcessors(
+        domain,
+        decrease_nproc=decrease_nproc,
+        increase_size=increase_size,
+        nproc_factor=nproc_factor,
+        size_factor=size_factor,
+    )
+    assert newdomain, "Compatible domain not found for \n{:}".format(domain)
+    diff = domain.compare(newdomain)
+    if diff and verbose:
+        print("Domain is adjusted. Changes:")
+        Domain.printdiff(diff)
+    domain = newdomain
+    assert CheckDomain(domain), "Check failed for \n{:}".format(domain)
+    return newdomain
+
+
+def CheckDomain(domain):
+    """
+    Reports statistics and performs quality checks of the domain:
+        - number of blocks is divisible by `nproc`
+
+    Returns True if checks pass.
+    """
+    if (domain.bx * domain.by * domain.bz) % domain.nproc == 0:
+        return True
+    return False
+
+
+def AdjustDomainToProcessors(domain,
+                             decrease_nproc=True,
+                             increase_size=False,
+                             nproc_factor=0.9,
+                             size_factor=1.1,
+                             verbose=True):
+    """
+    Adjusts the domain size and the number of processors
+    to make the number of blocks divisible by `domain.nproc`.
+
+    domain: `Domain`
+        Domain to start from.
+    decrease_nproc: `bool`
+        Allow less processors, down to `domain.nproc * nproc_factor`.
+    increase_size: `bool`
+        Allow larger domain, multiply the number
+        of blocks up to `size_factor`.
+    nproc_factor: `float`
+        Factor for minimal allowed number of processors.
+
+    Returns:
+    newdomain: `Domain`
+        Adjusted domain or None if not found.
+    """
+    b_range = lambda b: range(b, int(b * size_factor + 0.5) + 1)
+    nproc_range = lambda n: range(n, int(n * nproc_factor + 0.5) - 1, -1)
+    for bz in b_range(domain.bz):
+        for by in b_range(domain.by):
+            for bx in b_range(domain.bx):
+                for nproc in nproc_range(domain.nproc):
+                    if (bx * by * bz) % nproc == 0:
+                        d = Domain(bx=bx,
+                                   by=by,
+                                   bz=bz,
+                                   h=domain.h,
+                                   bsx=domain.bsx,
+                                   bsy=domain.bsy,
+                                   bsz=domain.bsz,
+                                   bs=domain.bs,
+                                   nproc=nproc)
+                        return d
+    return None
+
+
 class Geometry:
     def __init__(self):
         self.lines = []
@@ -79,11 +268,13 @@ class Geometry:
         s += "box {:}   {:}   {:}".format(VectToStr(center),
                                           VectToStr(halfsize), rotation_z)
         self.__Append(s)
+        return self
 
     def Sphere(self, center, radii, **kwargs):
         s = self.__Prefix(kwargs)
         s += "sphere {:}   {:}".format(VectToStr(center), VectToStr(radii))
         self.__Append(s)
+        return self
 
     def Cylinder(self, center, axis, radius, axisrange, **kwargs):
         s = self.__Prefix(kwargs)
@@ -91,6 +282,7 @@ class Geometry:
                                                      VectToStr(axis), radius,
                                                      VectToStr(axisrange))
         self.__Append(s)
+        return self
 
     def Generate(self):
         return '\n'.join(self.lines)

@@ -16,5 +16,9 @@ BoundaryConditions = aphros.confgen.BoundaryConditions
 Bc = aphros.confgen.BoundaryConditions
 Config = aphros.confgen.Config
 Var = aphros.confgen.Config
+Domain = aphros.confgen.Domain
+AdjustedDomain = aphros.confgen.AdjustedDomain
+AdjustDomainToProcessors = aphros.confgen.AdjustDomainToProcessors
+CheckDomain = aphros.confgen.CheckDomain
 
 from aphros.test import TestBase
