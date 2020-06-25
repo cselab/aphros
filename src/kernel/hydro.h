@@ -50,6 +50,7 @@
 #include "solver/reconst.h"
 #include "solver/simple.h"
 #include "solver/solver.h"
+#include "solver/tracer.h"
 #include "solver/tvd.h"
 #include "solver/vof.h"
 #include "solver/vofm.h"
@@ -137,6 +138,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
  private:
   void Init();
   void InitEmbed();
+  void InitTracer();
   void InitFluid(const FieldCell<Vect>& fc_vel);
   void InitAdvection(const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl);
   void InitStat();
@@ -442,6 +444,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper dmptrep_; // dumper for timer report
   std::unique_ptr<Events> events_; // events from var
   SingleTimer timer_;
+  std::unique_ptr<TracerInterface<M>> tracer_;
 };
 
 template <class M>
@@ -458,6 +461,21 @@ void Hydro<M>::InitEmbed() {
     }
     if (sem.Nested("init")) {
       eb_->Init(ctx->fnl);
+    }
+  }
+}
+
+template <class M>
+void Hydro<M>::InitTracer() {
+  if (var.Int["enable_tracer"]) {
+    typename TracerInterface<M>::Conf conf;
+    conf.layers = 1;
+    const auto trl = GRange<size_t>(conf.layers);
+    Multi<FieldCell<Scal>> vfcu(trl, m, 0);
+    if (eb_) {
+      tracer_.reset(new Tracer<EB>(m, *eb_, vfcu, {}, fs_->GetTime(), conf));
+    } else {
+      tracer_.reset(new Tracer<M>(m, m, vfcu, {}, fs_->GetTime(), conf));
     }
   }
 }
@@ -945,6 +963,8 @@ void Hydro<M>::Init() {
     InitFluid(fcvel);
 
     InitAdvection(fcvf, fccl);
+
+    InitTracer();
 
     st_.iter = 0;
     st_.t = fs_->GetTime();
@@ -1739,6 +1759,19 @@ void Hydro<M>::DumpFields() {
     }
 
     auto dl = GetWords(var.String["dumplist"]);
+
+    auto dump = [&dl, this](const FieldCell<Scal>& fc, std::string name) {
+      if (dl.count(name)) {
+        m.Dump(&fc, name);
+      }
+    };
+    auto dumpv = [&dl, this](
+                     const FieldCell<Vect>& fc, size_t i, std::string name) {
+      if (dl.count(name)) {
+        m.Dump(&fc, i, name);
+      }
+    };
+
     auto& fcv = fs_->GetVelocity();
     if (dl.count("vx")) m.Dump(&fcv, 0, "vx");
     if (dl.count("vy")) m.Dump(&fcv, 1, "vy");
@@ -1854,6 +1887,10 @@ void Hydro<M>::DumpFields() {
       if (fc_phi_.size() && dl.count("ebphi")) {
         m.Dump(&fc_phi_, "ebphi");
       }
+    }
+
+    if (tracer_) {
+      dump(tracer_->GetVolumeFraction()[0], "tu0");
     }
   }
   if (sem()) {
@@ -2083,6 +2120,11 @@ void Hydro<M>::Run() {
   if (sem.Nested("as-steps")) {
     if (var.Int["enable_advection"]) {
       StepAdvection();
+    }
+  }
+  if (tracer_) {
+    if (sem.Nested("tracer-step")) {
+      tracer_->Step(fs_->GetTimeStep(), fs_->GetVolumeFlux());
     }
   }
 

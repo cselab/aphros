@@ -26,9 +26,9 @@ set(T "tvd")
 add_library(${T} tvd.cpp)
 target_link_libraries(${T} solver approx utilvof)
 
-#set(T "tracer")
-#add_library(${T} tracer.cpp)
-#target_link_libraries(${T} approx_eb)
+set(T "tracer")
+add_library(${T} tracer.cpp)
+target_link_libraries(${T} approx_eb)
 
 set(T "normal")
 add_library(${T} normal.cpp)
