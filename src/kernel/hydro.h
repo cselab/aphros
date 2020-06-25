@@ -518,10 +518,15 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
       }
     }
     conf.gravity = Vect(var.Vect["gravity"]);
+    MapEmbed<BCond<Scal>> mebc; // boundary conditions
+    mebc_fluid_.LoopPairs([&](auto cf_bc) {
+      mebc[cf_bc.first] = BCond<Scal>(BCondType::neumann, cf_bc.second.nci);
+    });
+
     if (eb_) {
-      tracer_.reset(new Tracer<EB>(m, *eb_, vfcu, {}, fs_->GetTime(), conf));
+      tracer_.reset(new Tracer<EB>(m, *eb_, vfcu, mebc, fs_->GetTime(), conf));
     } else {
-      tracer_.reset(new Tracer<M>(m, m, vfcu, {}, fs_->GetTime(), conf));
+      tracer_.reset(new Tracer<M>(m, m, vfcu, mebc, fs_->GetTime(), conf));
     }
   }
 }

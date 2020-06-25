@@ -98,7 +98,10 @@ struct Tracer<EB_>::Imp {
       for (auto l : layers) {
         const auto feu = UEmbed<M>::Interpolate(vfcu_[l], mebc_, eb);
         eb.LoopFaces([&](auto cf) { //
-          const auto vel = GetSlipVelocity(l, fe_rho[cf], fe_mu[cf]);
+          auto vel = GetSlipVelocity(l, fe_rho[cf], fe_mu[cf]);
+          if (mebc_.find(cf)) { // zero flux on boundaries
+            vel = Vect(0);
+          }
           fev_carrier[cf] -= feu[cf] * vel.dot(eb.GetSurface(cf));
         });
       }
@@ -109,7 +112,10 @@ struct Tracer<EB_>::Imp {
             UEB::AverageGradient(UEB::Gradient(fcu, mebc_, eb), eb);
         FieldFaceb<Scal> fevl(m); // phase l flux with slip
         eb.LoopFaces([&](auto cf) { //
-          const auto vel = GetSlipVelocity(l, fe_rho[cf], fe_mu[cf]);
+          auto vel = GetSlipVelocity(l, fe_rho[cf], fe_mu[cf]);
+          if (mebc_.find(cf)) { // zero flux on boundaries
+            vel = Vect(0);
+          }
           fevl[cf] =
               fev_carrier[cf] + vel.dot(eb.GetSurface(cf));
         });
