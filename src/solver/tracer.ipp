@@ -37,8 +37,8 @@ struct Tracer<EB_>::Imp {
       , layers(conf.layers)
       , mebc_(mebc)
       , vfcu_(vfcu)
-      , fc_density_(m, GetNan<Scal>())
-      , fc_viscosity_(m, GetNan<Scal>()) {
+      , fc_density_(m, conf.density[0])
+      , fc_viscosity_(m, conf.viscosity[0]) {
     for (auto c : m.AllCells()) {
       Scal sum = 0;
       for (auto l : layers) {
@@ -83,9 +83,9 @@ struct Tracer<EB_>::Imp {
   void Step(Scal dt, const FieldEmbed<Scal>& fev) {
     auto sem = m.GetSem("step");
     if (sem("local")) {
-      FieldCell<Scal> fc_rho(m);
-      FieldCell<Scal> fc_mu(m);
-      for (auto c : m.Cells()) {
+      auto& fc_rho = fc_density_;
+      auto& fc_mu = fc_viscosity_;
+      for (auto c : eb.AllCells()) {
         fc_rho[c] = GetMixtureDensity(c);
         fc_mu[c] = GetMixtureViscosity(c);
       }

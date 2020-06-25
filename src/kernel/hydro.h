@@ -1675,7 +1675,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           a[c] = 0;
         }
       }
-      af = UEmbed<M>::Interpolate(a, {}, *eb_).GetFieldFace();
+      af = UEmbed<M>::Interpolate(a, {}, eb).GetFieldFace();
     } else {
       af = Interpolate(a, mf_cond_vfsm_, m);
     }
@@ -1694,13 +1694,34 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       fc_rho_[c] = r1 * v1 + r2 * v2;
       fc_mu_[c] = m1 * v1 + m2 * v2;
     }
-
     FieldFace<Scal> ff_rho(m);
-    // Init density and viscosity
     for (auto f : m.AllFaces()) {
       const Scal v2 = af[f];
       const Scal v1 = 1. - v2;
       ff_rho[f] = r1 * v1 + r2 * v2;
+    }
+
+    if (tracer_) {
+      const auto& fc_rho_mix = tracer_->GetMixtureDensity();
+      const auto& fc_mu_mix = tracer_->GetMixtureViscosity();
+      for (auto c : m.AllCells()) {
+        const Scal v2 = a[c];
+        const Scal v1 = 1. - v2;
+        fc_rho_[c] = fc_rho_mix[c] * v1 + r2 * v2;
+        fc_mu_[c] = fc_mu_mix[c] * v1 + m2 * v2;
+      }
+      FieldFace<Scal> ff_rho_mix(m);
+      if (eb_) {
+        ff_rho_mix =
+            UEmbed<M>::Interpolate(fc_rho_mix, {}, *eb_).GetFieldFace();
+      } else {
+        ff_rho_mix = Interpolate(fc_rho_mix, mf_cond_vfsm_, m);
+      }
+      for (auto f : m.AllFaces()) {
+        const Scal v2 = af[f];
+        const Scal v1 = 1. - v2;
+        ff_rho[f] = ff_rho_mix[f] * v1 + r2 * v2;
+      }
     }
 
     // Append gravity to force
@@ -2474,8 +2495,8 @@ void Hydro<M>::InitTracerFields(Multi<FieldCell<Scal>>& vfcu) {
     vfcu.InitAll(FieldCell<Scal>(m, 0));
   }
   for (int l = 0; l < var.Int["tracer_layers"]; ++l) {
+    const std::string prefix = "tracer" + std::to_string(l);
     if (sem("var" + std::to_string(l))) {
-      const std::string prefix = "tracer" + std::to_string(l);
       ctx->vart.String.Set("init_vf", var.String[prefix + "_init"]);
       ctx->vart.String.Set("list_path", var.String[prefix + "_list_path"]);
       ctx->vart.Int.Set("dim", var.Int["dim"]);
@@ -2483,6 +2504,12 @@ void Hydro<M>::InitTracerFields(Multi<FieldCell<Scal>>& vfcu) {
     }
     if (sem.Nested("field" + std::to_string(l))) {
       InitVf(vfcu[l], ctx->vart, m);
+    }
+    if (sem("factor" + std::to_string(l))) {
+      auto k = var.Double[prefix + "_factor"];
+      for (auto c : m.AllCells()) {
+        vfcu[l][c] *= k;
+      }
     }
   }
   if (sem()) {}
