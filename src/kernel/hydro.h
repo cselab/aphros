@@ -472,6 +472,9 @@ void Hydro<M>::InitTracer() {
     conf.layers = 1;
     const auto trl = GRange<size_t>(conf.layers);
     Multi<FieldCell<Scal>> vfcu(trl, m, 0);
+    if (as_) {
+      vfcu[0] = as_->GetField();
+    }
     if (eb_) {
       tracer_.reset(new Tracer<EB>(m, *eb_, vfcu, {}, fs_->GetTime(), conf));
     } else {

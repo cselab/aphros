@@ -37,9 +37,23 @@ struct Tracer<EB_>::Imp {
     auto sem = m.GetSem("step");
     if (sem("init")) {
       for (auto l : layers) {
-        for (auto c : m.Cells()) {
-          vfcu_[l][c] += 0.01;
+        auto& fcu = vfcu_[l];
+        auto feu = UEB::Interpolate(fcu, mebc_, eb);
+        auto fcg = UEB::Gradient(feu, eb);
+        auto ffvu =
+            InterpolateSuperbee(fcu, fcg, {}, fe_flux.GetFieldFace(), m);
+        for (auto f : eb.Faces()) {
+          ffvu[f] *= fe_flux[f];
         }
+        for (auto c : eb.Cells()) {
+          Scal sum = 0.;
+          for (auto q : eb.Nci(c)) {
+            const auto f = eb.GetFace(c, q);
+            sum += ffvu[f] * eb.GetOutwardFactor(c, q);
+          }
+          fcu[c] -= dt * sum / m.GetVolume(c);
+        }
+        m.Comm(&fcu);
       }
     }
     if (sem("stat")) {
