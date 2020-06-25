@@ -1780,16 +1780,16 @@ void Hydro<M>::DumpFields() {
     };
 
     auto& fcv = fs_->GetVelocity();
-    if (dl.count("vx")) m.Dump(&fcv, 0, "vx");
-    if (dl.count("vy")) m.Dump(&fcv, 1, "vy");
-    if (dl.count("vz")) m.Dump(&fcv, 2, "vz");
-    if (dl.count("p")) m.Dump(&fs_->GetPressure(), "p");
-    if (dl.count("vf")) m.Dump(&as_->GetField(), "vf");
-    if (dl.count("rho")) m.Dump(&fc_rho_, "rho");
-    if (dl.count("mu")) m.Dump(&fc_mu_, "mu");
-    if (dl.count("sig")) m.Dump(&fc_sig_, "sig");
-    if (dl.count("contang")) m.Dump(&fc_contang_, "contang");
-    if (dl.count("bc")) m.Dump(&fcbc_, "bc");
+    dumpv(fcv, 0, "vx");
+    dumpv(fcv, 1, "vy");
+    dumpv(fcv, 2, "vz");
+    dump(fs_->GetPressure(), "p");
+    dump(as_->GetField(), "vf");
+    dump(fc_rho_, "rho");
+    dump(fc_mu_, "mu");
+    dump(fc_sig_, "sig");
+    dump(fc_contang_, "contang");
+    dump(fcbc_, "bc");
     if (dl.count("cellcond")) {
       auto& fc = ctx->fc_cellcond;
       fc.Reinit(m, 0);
@@ -1799,17 +1799,17 @@ void Hydro<M>::DumpFields() {
       m.Dump(&fc, "cellcond");
     }
     if (var.Int["youngbc"]) {
-      if (dl.count("yvx")) m.Dump(&fcyv_, 0, "yvx");
-      if (dl.count("yvy")) m.Dump(&fcyv_, 1, "yvy");
-      if (dl.count("yvz")) m.Dump(&fcyv_, 2, "yvz");
+      dumpv(fcyv_, 0, "yvx");
+      dumpv(fcyv_, 1, "yvy");
+      dumpv(fcyv_, 2, "yvz");
     }
     if (dl.count("omx") || dl.count("omy") || dl.count("omz") ||
         dl.count("omm") || dl.count("omcalc")) {
       CalcVort();
-      if (dl.count("omx")) m.Dump(&fcom_, 0, "omx");
-      if (dl.count("omy")) m.Dump(&fcom_, 1, "omy");
-      if (dl.count("omz")) m.Dump(&fcom_, 2, "omz");
-      if (dl.count("omm")) m.Dump(&fcomm_, "omm");
+      dumpv(fcom_, 0, "omx");
+      dumpv(fcom_, 1, "omy");
+      dumpv(fcom_, 2, "omz");
+      dump(fcomm_, "omm");
     }
     if (dl.count("dis") || dl.count("strain")) {
       CalcStrain(fs_->GetVelocity(), fc_strain_);
@@ -1827,42 +1827,43 @@ void Hydro<M>::DumpFields() {
       m.Dump(&ctx->fcdiv, "div");
     }
     if (auto as = dynamic_cast<ASV*>(as_.get())) {
-      if (dl.count("nx")) m.Dump(&as->GetNormal(), 0, "nx");
-      if (dl.count("ny")) m.Dump(&as->GetNormal(), 1, "ny");
-      if (dl.count("nz")) m.Dump(&as->GetNormal(), 2, "nz");
-      if (dl.count("cls")) m.Dump(&as->GetColor(), "cls");
-      if (dl.count("k")) m.Dump(&fck_[0], "k");
+      dumpv(as->GetNormal(), 0, "nx");
+      dumpv(as->GetNormal(), 1, "ny");
+      dumpv(as->GetNormal(), 2, "nz");
+      dump(as->GetColor(), "cls");
+      dump(fck_[0], "k");
     }
     // TODO reuse ASV code
     if (auto as = dynamic_cast<ASVEB*>(as_.get())) {
-      if (dl.count("nx")) m.Dump(&as->GetNormal(), 0, "nx");
-      if (dl.count("ny")) m.Dump(&as->GetNormal(), 1, "ny");
-      if (dl.count("nz")) m.Dump(&as->GetNormal(), 2, "nz");
-      if (dl.count("cls")) m.Dump(&as->GetColor(), "cls");
-      if (dl.count("k")) m.Dump(&fck_[0], "k");
+      dumpv(as->GetNormal(), 0, "nx");
+      dumpv(as->GetNormal(), 1, "ny");
+      dumpv(as->GetNormal(), 2, "nz");
+      dump(as->GetColor(), "cls");
+      dump(fck_[0], "k");
     }
     if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       for (auto l : layers) {
         auto sl = std::to_string(l);
-        if (dl.count("vf" + sl)) m.Dump(as->GetFieldM()[l], "vf" + sl);
-        if (dl.count("cl" + sl)) m.Dump(as->GetColor()[l], "cl" + sl);
-        if (dl.count("nx" + sl)) m.Dump(as->GetNormal()[l], 0, "nx" + sl);
-        if (dl.count("ny" + sl)) m.Dump(as->GetNormal()[l], 1, "ny" + sl);
-        if (dl.count("nz" + sl)) m.Dump(as->GetNormal()[l], 2, "nz" + sl);
-        if (dl.count("k" + sl)) m.Dump(&fck_[l], "k" + sl);
+        dump(*as->GetFieldM()[l], "vf" + sl);
+        dump(*as->GetColor()[l], "cl" + sl);
+        dumpv(*as->GetNormal()[l], 0, "nx" + sl);
+        dumpv(*as->GetNormal()[l], 1, "ny" + sl);
+        dumpv(*as->GetNormal()[l], 2, "nz" + sl);
+        dump(fck_[l], "k" + sl);
       }
 
       // combined colors
-      if (dl.count("cls")) m.Dump(&as->GetColorSum(), "cls");
+      dump(as->GetColorSum(), "cls");
 
       // image
-      auto conv = [&](size_t d, size_t l, Multi<FieldCell<Scal>>& fc) {
+      auto conv = [&](size_t d, size_t l,
+                      Multi<FieldCell<Scal>>& fc) -> const FieldCell<Scal>& {
         fc.resize(layers);
         fc[l].Reinit(m);
         for (auto c : m.Cells()) {
           fc[l][c] = as->GetImage(l, c)[d];
         }
-        return &fc[l];
+        return fc[l];
       };
       for (auto d : {0, 1, 2}) {
         for (auto l : layers) {
@@ -1870,9 +1871,7 @@ void Hydro<M>::DumpFields() {
           st << "im"
              << "xyz"[d] << l;
           std::string s = st.str();
-          if (dl.count(s)) {
-            m.Dump(conv(d, l, ctx->im[d]), s);
-          }
+          dump(conv(d, l, ctx->im[d]), s);
         }
       }
     }
@@ -1888,11 +1887,11 @@ void Hydro<M>::DumpFields() {
         }
         m.Dump(&fc, "ebvf");
       }
-      if (fc_dist_.size() && dl.count("ebdist")) {
-        m.Dump(&fc_dist_, "ebdist");
+      if (fc_dist_.size()) {
+        dump(fc_dist_, "ebdist");
       }
-      if (fc_phi_.size() && dl.count("ebphi")) {
-        m.Dump(&fc_phi_, "ebphi");
+      if (fc_phi_.size()) {
+        dump(fc_phi_, "ebphi");
       }
     }
 
