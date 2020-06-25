@@ -65,6 +65,8 @@ class Tracer : public TracerInterface<typename EB_::M> {
   using TracerView = generic::TracerView<Scal>;
   using Conf = typename Base::Conf;
   using UEB = UEmbed<M>;
+  template <class T>
+  using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
 
   // Constructor
   // vfcu: initial volume fraction

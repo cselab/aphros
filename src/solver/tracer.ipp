@@ -33,25 +33,35 @@ struct Tracer<EB_>::Imp {
       , vfcu_(vfcu)
       , fc_density_(m, GetNan<Scal>())
       , fc_viscosity_(m, GetNan<Scal>()) {}
-  void Step(Scal dt, const FieldEmbed<Scal>& fe_flux) {
+  void Step(Scal dt, const FieldEmbed<Scal>& fev) {
     auto sem = m.GetSem("step");
     if (sem("init")) {
       for (auto l : layers) {
         auto& fcu = vfcu_[l];
-        auto feu = UEB::Interpolate(fcu, mebc_, eb);
-        auto fcg = UEB::Gradient(feu, eb);
-        auto ffvu =
-            InterpolateSuperbee(fcu, fcg, {}, fe_flux.GetFieldFace(), m);
-        for (auto f : eb.Faces()) {
-          ffvu[f] *= fe_flux[f];
-        }
+        const auto fcg = UEmbed<M>::Gradient(
+            UEmbed<M>::Interpolate(fcu, mebc_, eb), eb);
+        auto& ffv = fev.template Get<FieldFaceb<Scal>>();
+        auto feu =
+            UEmbed<M>::InterpolateUpwind(fcu, mebc_, ConvSc::sou, fcg, ffv, eb);
+
+        FieldEmbed<Scal> fevu(m, 0);
+        eb.LoopFaces([&](auto cf) { //
+          fevu[cf] = feu[cf] * fev[cf];
+        });
+        //auto ffvu =
+        //    InterpolateSuperbee(fcu, fcg, {}, fev.GetFieldFace(), m);
+        FieldCell<Scal> fct(eb, 0);
         for (auto c : eb.Cells()) {
           Scal sum = 0.;
           for (auto q : eb.Nci(c)) {
             const auto f = eb.GetFace(c, q);
-            sum += ffvu[f] * eb.GetOutwardFactor(c, q);
+            sum += fevu[f] * eb.GetOutwardFactor(c, q);
           }
-          fcu[c] -= dt * sum / m.GetVolume(c);
+          fct[c] = -dt * sum;
+        }
+        fct = UEmbed<M>::RedistributeCutCells(fct, eb);
+        for (auto c : eb.Cells()) {
+          fcu[c] += fct[c] / eb.GetVolume(c);
         }
         m.Comm(&fcu);
       }
