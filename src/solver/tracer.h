@@ -32,10 +32,19 @@ class TracerInterface {
   using Vect = typename M::Vect;
   using TracerView = generic::TracerView<Scal>;
 
+  enum class SlipType { none, stokes, constant };
+  struct Slip {
+    SlipType type;
+    Vect velocity;
+  };
+
   struct Conf {
     size_t layers;
     Multi<Scal> density;
     Multi<Scal> viscosity;
+    Multi<Scal> diameter;
+    Multi<Slip> slip;
+    Vect gravity;
   };
 
   virtual ~TracerInterface() {}
@@ -67,6 +76,7 @@ class Tracer : public TracerInterface<typename EB_::M> {
   using UEB = UEmbed<M>;
   template <class T>
   using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
+  using SlipType = typename Base::SlipType;
 
   // Constructor
   // vfcu: initial volume fraction

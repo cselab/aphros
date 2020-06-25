@@ -186,15 +186,13 @@ int RunMpi0(
 
 int RunMpi(
     int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> kernel) {
+  int status;
   try {
-    return RunMpi0(argc, argv, kernel);
-  } catch (const std::runtime_error& e) {
-    const int status = 1;
-    std::cerr << //
-        "\nterminate called after throwing an instance of "
-        "'std::runtime_error'\n"
-              << e.what() << std::endl;
-    MPI_Abort(MPI_COMM_WORLD, status);
-    return status;
+    status = RunMpi0(argc, argv, kernel);
+  } catch (const std::exception& e) {
+    status = 1;
+    std::cerr << "\nabort after throwing exception\n" << e.what() << '\n';
+    std::terminate();
   }
+  return status;
 }

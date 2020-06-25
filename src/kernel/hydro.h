@@ -61,6 +61,14 @@
 #include "util/posthook.h"
 #include "young/young.h"
 
+// force assert
+#define fassert(x)                                                        \
+  do {                                                                    \
+    if (!(x)) {                                                           \
+      throw std::runtime_error(FILELINE + ": assertion failed '" #x "'"); \
+    }                                                                     \
+  } while (0);
+
 class GPar {};
 
 template <class M>
@@ -138,7 +146,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
  private:
   void Init();
   void InitEmbed();
-  void InitTracer();
+  void InitTracer(Multi<FieldCell<Scal>>& vfcu);
+  void InitTracerFields(Multi<FieldCell<Scal>>& vfcu);
   void InitFluid(const FieldCell<Vect>& fc_vel);
   void InitAdvection(const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl);
   void InitStat();
@@ -469,20 +478,46 @@ void Hydro<M>::InitEmbed() {
 }
 
 template <class M>
-void Hydro<M>::InitTracer() {
+void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
   if (var.Int["enable_tracer"]) {
+    auto multi = [](const std::vector<Scal>& v) {
+      Multi<Scal> w(v.size());
+      w.data() = v;
+      return w;
+    };
     typename TracerInterface<M>::Conf conf;
     conf.layers = var.Int["tracer_layers"];
+
+    conf.density = multi(var.Vect["tracer_density"]);
+    fassert(conf.density.size() >= conf.layers);
+
+    conf.viscosity = multi(var.Vect["tracer_viscosity"]);
+    fassert(conf.viscosity.size() >= conf.layers);
+
+    conf.diameter = multi(var.Vect["tracer_diameter"]);
+    fassert(conf.diameter.size() >= conf.layers);
+
     const auto trl = GRange<size_t>(conf.layers);
-    Multi<FieldCell<Scal>> vfcu(trl, m, 0);
-    tracer_dt_ = fs_->GetTimeStep();
-    if (as_) {
-      for (auto l : trl) {
-        for (auto c : m.Cells()) {
-          vfcu[l][c] = as_->GetField()[c] * (Scal(l + 1) / trl.size());
-        }
+
+    using SlipType = typename TracerInterface<M>::SlipType;
+    conf.slip.resize(conf.layers);
+    for (auto l : trl) {
+      auto& slip = conf.slip[l];
+      std::stringstream arg(var.String["tracer" + std::to_string(l) + "_slip"]);
+      std::string type;
+      arg >> type;
+      if (type == "none") {
+        slip.type = SlipType::none;
+      } else if (type == "stokes") {
+        slip.type = SlipType::stokes;
+      } else if (type == "constant") {
+        slip.type = SlipType::constant;
+        arg >> slip.velocity;
+      } else {
+        throw std::runtime_error(FILELINE + "Unknown slip='" + type + "'");
       }
     }
+    conf.gravity = Vect(var.Vect["gravity"]);
     if (eb_) {
       tracer_.reset(new Tracer<EB>(m, *eb_, vfcu, {}, fs_->GetTime(), conf));
     } else {
@@ -718,6 +753,7 @@ void Hydro<M>::Init() {
     FieldCell<Scal> fccl; // initial color
     FieldCell<Scal> fcbody;
     FieldCell<bool> fcbodymask;
+    Multi<FieldCell<Scal>> tracer_vfcu;
     Vars varbody;
   } * ctx(sem);
   auto& fcvel = ctx->fcvel;
@@ -737,6 +773,11 @@ void Hydro<M>::Init() {
   }
   if (sem.Nested()) {
     InitVf(fcvf, var, m);
+  }
+  if (sem.Nested()) {
+    if (var.Int["enable_tracer"]) {
+      InitTracerFields(ctx->tracer_vfcu);
+    }
   }
   if (sem("fields")) {
     if (eb_) {
@@ -969,13 +1010,14 @@ void Hydro<M>::Init() {
     const Scal dt = var.Double["dt0"];
     st_.dt = dt;
     st_.dta = dt;
+    tracer_dt_ = dt;
   }
   if (sem("solv")) {
     InitFluid(fcvel);
 
     InitAdvection(fcvf, fccl);
 
-    InitTracer();
+    InitTracer(ctx->tracer_vfcu);
 
     st_.iter = 0;
     st_.t = fs_->GetTime();
@@ -2414,6 +2456,31 @@ void Hydro<M>::StepAdvection() {
       StepBubgen();
     }
   }
+}
+
+template <class M>
+void Hydro<M>::InitTracerFields(Multi<FieldCell<Scal>>& vfcu) {
+  auto sem = m.GetSem("tracerfields");
+  struct {
+    Vars vart;
+  } * ctx(sem);
+  if (sem("init")) {
+    vfcu.resize(var.Int["tracer_layers"]);
+    vfcu.InitAll(FieldCell<Scal>(m, 0));
+  }
+  for (int l = 0; l < var.Int["tracer_layers"]; ++l) {
+    if (sem("var" + std::to_string(l))) {
+      const std::string prefix = "tracer" + std::to_string(l);
+      ctx->vart.String.Set("init_vf", var.String[prefix + "_init"]);
+      ctx->vart.String.Set("list_path", var.String[prefix + "_list_path"]);
+      ctx->vart.Int.Set("dim", var.Int["dim"]);
+      ctx->vart.Int.Set("list_ls", 3);
+    }
+    if (sem.Nested("field" + std::to_string(l))) {
+      InitVf(vfcu[l], ctx->vart, m);
+    }
+  }
+  if (sem()) {}
 }
 
 template <class M>

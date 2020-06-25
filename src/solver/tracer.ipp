@@ -20,6 +20,12 @@ struct Tracer<EB_>::Imp {
   using Owner = Tracer<EB_>;
   using UEB = UEmbed<M>;
 
+  static Scal Clip(Scal a, Scal low, Scal high) {
+    return a < low ? low : a > high ? high : a;
+  }
+  static Scal Clip(Scal a) {
+    return Clip(a, 0, 1);
+  }
   Imp(Owner* owner, M& m, const EB& eb_,
       const Multi<const FieldCell<Scal>*>& vfcu,
       const MapEmbed<BCond<Scal>>& mebc, Scal time, Conf conf_)
@@ -32,24 +38,90 @@ struct Tracer<EB_>::Imp {
       , mebc_(mebc)
       , vfcu_(vfcu)
       , fc_density_(m, GetNan<Scal>())
-      , fc_viscosity_(m, GetNan<Scal>()) {}
+      , fc_viscosity_(m, GetNan<Scal>()) {
+    for (auto c : m.AllCells()) {
+      Scal sum = 0;
+      for (auto l : layers) {
+        if (l > 0) {
+          sum += vfcu_[l][c];
+        }
+      }
+      sum = Clip(sum);
+      vfcu_[0][c] = 1 - sum;
+    }
+  }
+  Scal GetMixtureViscosity(IdxCell c) const {
+    Scal sum = 0;
+    for (auto l : layers) {
+      sum += vfcu_[l][c] * conf.viscosity[l];
+    }
+    return sum;
+  }
+  Scal GetMixtureDensity(IdxCell c) const {
+    Scal sum = 0;
+    for (auto l : layers) {
+      sum += vfcu_[l][c] * conf.density[l];
+    }
+    return sum;
+  }
+  // rho: mixture density
+  // mu: mixture viscosity
+  Vect GetSlipVelocity(size_t l, Scal rho, Scal mu) const {
+    switch (conf.slip[l].type) {
+      case SlipType::none:
+        return Vect(0);
+      case SlipType::stokes:
+        return conf.gravity *
+               ((conf.density[l] - rho) * sqr(conf.diameter[l]) / (18 * mu));
+      case SlipType::constant:
+        return conf.slip[l].velocity;
+      default:
+        throw std::runtime_error(FILELINE + ": not implemented");
+    }
+    return Vect(0);
+  }
   void Step(Scal dt, const FieldEmbed<Scal>& fev) {
     auto sem = m.GetSem("step");
-    if (sem("init")) {
+    if (sem("local")) {
+      FieldCell<Scal> fc_rho(m);
+      FieldCell<Scal> fc_mu(m);
+      for (auto c : m.Cells()) {
+        fc_rho[c] = GetMixtureDensity(c);
+        fc_mu[c] = GetMixtureViscosity(c);
+      }
+      const auto fe_rho = UEmbed<M>::Interpolate(fc_rho, mebc_, eb);
+      const auto fe_mu = UEmbed<M>::Interpolate(fc_mu, mebc_, eb);
+      FieldFaceb<Scal> fev_carrier(m, 0);
+      eb.LoopFaces([&](auto cf) { //
+        fev_carrier[cf] = fev[cf];
+      });
+      for (auto l : layers) {
+        const auto feu = UEmbed<M>::Interpolate(vfcu_[l], mebc_, eb);
+        eb.LoopFaces([&](auto cf) { //
+          const auto vel = GetSlipVelocity(l, fe_rho[cf], fe_mu[cf]);
+          fev_carrier[cf] -= feu[cf] * vel.dot(eb.GetSurface(cf));
+        });
+      }
+
       for (auto l : layers) {
         auto& fcu = vfcu_[l];
-        const auto fcg = UEmbed<M>::Gradient(
-            UEmbed<M>::Interpolate(fcu, mebc_, eb), eb);
-        auto& ffv = fev.template Get<FieldFaceb<Scal>>();
-        auto feu =
-            UEmbed<M>::InterpolateUpwind(fcu, mebc_, ConvSc::sou, fcg, ffv, eb);
+        const auto fcg =
+            UEB::AverageGradient(UEB::Gradient(fcu, mebc_, eb), eb);
+        FieldFaceb<Scal> fevl(m); // phase l flux with slip
+        eb.LoopFaces([&](auto cf) { //
+          const auto vel = GetSlipVelocity(l, fe_rho[cf], fe_mu[cf]);
+          fevl[cf] =
+              fev_carrier[cf] + vel.dot(eb.GetSurface(cf));
+        });
+        auto feu = UEmbed<M>::InterpolateUpwind(
+            fcu, mebc_, ConvSc::sou, fcg, fevl, eb);
+        // auto feu =
+        //    InterpolateSuperbee(fcu, fcg, {}, fev.GetFieldFace(), m);
 
         FieldEmbed<Scal> fevu(m, 0);
         eb.LoopFaces([&](auto cf) { //
-          fevu[cf] = feu[cf] * fev[cf];
+          fevu[cf] = feu[cf] * fevl[cf];
         });
-        //auto ffvu =
-        //    InterpolateSuperbee(fcu, fcg, {}, fev.GetFieldFace(), m);
         FieldCell<Scal> fct(eb, 0);
         for (auto c : eb.Cells()) {
           Scal sum = 0.;
@@ -63,7 +135,24 @@ struct Tracer<EB_>::Imp {
         for (auto c : eb.Cells()) {
           fcu[c] += fct[c] / eb.GetVolume(c);
         }
-        m.Comm(&fcu);
+      }
+      // clip to [0, 1] and normalize to sum 1
+      for (auto c : eb.Cells()) {
+        Scal sum = 0;
+        for (auto l : layers) {
+          auto& u = vfcu_[l][c];
+          u = Clip(u);
+          sum += u;
+        }
+        if (sum > 0) {
+          for (auto l : layers) {
+            auto& u = vfcu_[l][c];
+            u /= sum;
+          }
+        }
+      }
+      for (auto l : layers) {
+        m.Comm(&vfcu_[l]);
       }
     }
     if (sem("stat")) {
