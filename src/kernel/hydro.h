@@ -156,11 +156,13 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void CalcDt();
   void ReportStep();
   void ReportStepAdv();
+  void ReportStepTracer();
   void ReportIter();
   // Issue sem.LoopBreak if abort conditions met
   void CheckAbort(Sem& sem, Scal& nabort);
   void StepFluid();
   void StepAdvection();
+  void StepTracer();
   void StepBubgen();
 
   using AST = Tvd<M>; // advection TVD
@@ -445,6 +447,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::unique_ptr<Events> events_; // events from var
   SingleTimer timer_;
   std::unique_ptr<TracerInterface<M>> tracer_;
+  Scal tracer_dt_;
 };
 
 template <class M>
@@ -472,6 +475,7 @@ void Hydro<M>::InitTracer() {
     conf.layers = var.Int["tracer_layers"];
     const auto trl = GRange<size_t>(conf.layers);
     Multi<FieldCell<Scal>> vfcu(trl, m, 0);
+    tracer_dt_ = fs_->GetTimeStep();
     if (as_) {
       for (auto l : trl) {
         for (auto c : m.Cells()) {
@@ -1498,16 +1502,19 @@ void Hydro<M>::CalcStat() {
 template <class M>
 void Hydro<M>::CalcDt() {
   auto sem = m.GetSem("calcdt");
+  struct {
+    Scal dtmin;
+  } * ctx(sem);
 
   if (sem("local")) {
     st_.t = fs_->GetTime();
-    st_.dtt = fs_->GetAutoTimeStep();
-    m.Reduce(&st_.dtt, "min");
+    ctx->dtmin = fs_->GetAutoTimeStep();
+    m.Reduce(&ctx->dtmin, "min");
   }
   if (sem("reduce")) {
     // set from cfl if defined
     if (auto* cfl = var.Double.Find("cfl")) {
-      st_.dt = st_.dtt * (*cfl);
+      st_.dt = ctx->dtmin * (*cfl);
       st_.dt = std::min<Scal>(st_.dt, var.Double["dtmax"]);
     }
 
@@ -1521,15 +1528,28 @@ void Hydro<M>::CalcDt() {
 
     // set from cfla if defined
     if (auto* cfla = var.Double.Find("cfla")) {
-      st_.dta = st_.dtt * (*cfla);
+      st_.dta = ctx->dtmin * (*cfla);
       st_.dta = std::min<Scal>(st_.dta, var.Double["dtmax"]);
     }
-
     // round up dta to such that dt / dta is integer
-    Scal dt = fs_->GetTime() + fs_->GetTimeStep() - as_->GetTime();
+    const Scal dt = fs_->GetTime() + fs_->GetTimeStep() - as_->GetTime();
     st_.dta = dt / std::max(1, int(dt / st_.dta + 0.5));
-
     as_->SetTimeStep(st_.dta);
+
+    if (tracer_) {
+      if (auto* cflt = var.Double.Find("cflt")) {
+        tracer_dt_ = ctx->dtmin * (*cflt);
+        // round up dta to such that dt / dta is integer
+        const Scal dtwhole =
+            fs_->GetTime() + fs_->GetTimeStep() - tracer_->GetTime();
+        tracer_dt_ = dtwhole / std::max(1, int(dtwhole / tracer_dt_ + 0.5));
+      } else {
+        tracer_dt_ = fs_->GetTimeStep();
+      }
+    }
+  }
+  if (sem()) {
+    // FIXME: empty stage
   }
 }
 
@@ -2130,9 +2150,9 @@ void Hydro<M>::Run() {
       StepAdvection();
     }
   }
-  if (tracer_) {
-    if (sem.Nested("tracer-step")) {
-      tracer_->Step(fs_->GetTimeStep(), fs_->GetVolumeFlux());
+  if (sem.Nested("tracer-step")) {
+    if (tracer_) {
+      StepTracer();
     }
   }
 
@@ -2182,6 +2202,13 @@ template <class M>
 void Hydro<M>::ReportStepAdv() {
   std::cout << std::fixed << std::setprecision(8)
             << ".....adv: t=" << as_->GetTime() << " dt=" << as_->GetTimeStep()
+            << std::endl;
+}
+
+template <class M>
+void Hydro<M>::ReportStepTracer() {
+  std::cout << std::fixed << std::setprecision(8)
+            << ".....tracer: t=" << tracer_->GetTime() << " dt=" << tracer_dt_
             << std::endl;
 }
 
@@ -2303,6 +2330,27 @@ void Hydro<M>::StepFluid() {
   sem.LoopEnd();
 }
 
+template <class M>
+void Hydro<M>::StepTracer() {
+  auto sem = m.GetSem("tracer-steps"); // sem nested
+  sem.LoopBegin();
+  if (sem.Nested("start")) {
+    tracer_->Step(tracer_dt_, fs_->GetVolumeFlux());
+  }
+  if (sem("report")) {
+    if (m.IsRoot()) {
+      if (st_.step % var.Int("report_step_every", 1) == 0) {
+        ReportStepTracer();
+      }
+    }
+  }
+  if (sem("convcheck")) {
+    if (tracer_->GetTime() >= fs_->GetTime() - 0.5 * tracer_dt_) {
+      sem.LoopBreak();
+    }
+  }
+  sem.LoopEnd();
+}
 template <class M>
 void Hydro<M>::StepAdvection() {
   auto sem = m.GetSem("steps"); // sem nested

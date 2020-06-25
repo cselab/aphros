@@ -116,3 +116,8 @@ template <class EB_>
 auto Tracer<EB_>::GetView() const -> TracerView {
   return {imp->layers, imp->vfcu_, imp->mebc_};
 }
+
+template <class EB_>
+auto Tracer<EB_>::GetTime() const -> Scal {
+  return imp->time_;
+}

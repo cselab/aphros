@@ -51,6 +51,7 @@ class TracerInterface {
   virtual const FieldCell<Scal>& GetMixtureViscosity() const = 0;
   // Returns view with pointers to fields.
   virtual TracerView GetView() const = 0;
+  virtual Scal GetTime() const = 0;
 };
 
 template <class EB_>
@@ -82,6 +83,7 @@ class Tracer : public TracerInterface<typename EB_::M> {
   const FieldCell<Scal>& GetMixtureViscosity() const override;
   // Returns view with pointers to fields.
   TracerView GetView() const override;
+  Scal GetTime() const;
 
  private:
   struct Imp;
