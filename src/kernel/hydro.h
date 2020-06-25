@@ -469,11 +469,15 @@ template <class M>
 void Hydro<M>::InitTracer() {
   if (var.Int["enable_tracer"]) {
     typename TracerInterface<M>::Conf conf;
-    conf.layers = 1;
+    conf.layers = var.Int["tracer_layers"];
     const auto trl = GRange<size_t>(conf.layers);
     Multi<FieldCell<Scal>> vfcu(trl, m, 0);
     if (as_) {
-      vfcu[0] = as_->GetField();
+      for (auto l : trl) {
+        for (auto c : m.Cells()) {
+          vfcu[l][c] = as_->GetField()[c] * (Scal(l + 1) / trl.size());
+        }
+      }
     }
     if (eb_) {
       tracer_.reset(new Tracer<EB>(m, *eb_, vfcu, {}, fs_->GetTime(), conf));
@@ -1893,7 +1897,9 @@ void Hydro<M>::DumpFields() {
     }
 
     if (tracer_) {
-      dump(tracer_->GetVolumeFraction()[0], "tu0");
+      for (auto l : tracer_->GetView().layers) {
+        dump(tracer_->GetVolumeFraction()[l], "tu" + std::to_string(l));
+      }
     }
   }
   if (sem()) {
