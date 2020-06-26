@@ -409,7 +409,7 @@ int h5_read_hdf(const char* path, /**/ int size[3], double** pbuf) {
   if (nbytes != sizeof(*buf)) {
     WARN(("file: %s", full));
     WARN(("nbytes=%ld != sizeof(*buf)=%d", nbytes, sizeof(*buf)));
-    // goto err;
+    goto err;
   }
   size[X] = dims[I];
   size[Y] = dims[J];
