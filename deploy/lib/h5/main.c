@@ -397,8 +397,8 @@ int h5_read_hdf(const char* path, /**/ int size[3], double** pbuf) {
     WARN(("get_dataset_ndims failed for '%s'", full));
     goto err;
   }
-  if (rank != 3) {
-    WARN(("rank=%d != 3 for '%s'", rank, full));
+  if (rank != 3 && rank != 4) {
+    WARN(("rank=%d != (3 or 4) for '%s'", rank, full));
     goto err;
   }
   status = H5LTget_dataset_info(file, Name, dims, NULL, &nbytes);
