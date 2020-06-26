@@ -3,9 +3,9 @@
 
 #include "approx_eb.h"
 
+#include <inside.h>
 #include "approx.h"
 #include "func/primlist.h"
-#include <inside.h>
 
 template <class Scal>
 auto ULinear<Scal>::FitLinear(
@@ -206,7 +206,7 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
   } else if (name == "model") {
     const std::string path = var.String["eb_model_path"];
     const Vect center(var.Vect["eb_model_center"]);
-    const Scal extent  = var.Double["eb_model_extent"];
+    const Scal extent = var.Double["eb_model_extent"];
     const Vect rotation(var.Vect["eb_model_rotation"]);
     fnl = GetModelLevelSet(center, extent, rotation, path, m);
   } else if (name == "list") {
@@ -461,24 +461,43 @@ auto UEmbed<M>::Gradient(
 
 template <class M>
 auto UEmbed<M>::InterpolateUpwind(
-    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
-    const FieldCell<Vect>& fcg, const FieldEmbed<Scal>& fev, const EB& eb)
-    -> FieldEmbed<Scal> {
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+    ConvSc scheme, const FieldCell<Vect>& fcg, const FieldEmbed<Scal>& fev,
+    const EB& eb) -> FieldEmbed<Scal> {
   auto& m = eb.GetMesh();
   FieldEmbed<Scal> feu(eb, 0);
-  // f = fmm*a[0] + fm*a[1] + fp*a[2]
-  const std::array<Scal, 3> a = GetCoeff<Scal>(sc);
-  for (auto f : eb.SuFaces()) {
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
-    if (fev[f] > 0) {
-      feu[f] = 4. * a[0] * fcg[cm].dot(m.GetVectToCell(f, 0)) + a[1] * fcu[cm] +
-               (a[2] + a[0]) * fcu[cp];
-    } else if (fev[f] < 0) {
-      feu[f] = 4. * a[0] * fcg[cp].dot(m.GetVectToCell(f, 1)) + a[1] * fcu[cp] +
-               (a[2] + a[0]) * fcu[cm];
-    } else {
-      feu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+  if (scheme == ConvSc::superbee) {
+    for (auto f : eb.SuFaces()) {
+      const IdxCell cm = eb.GetCell(f, 0);
+      const IdxCell cp = eb.GetCell(f, 1);
+      const Scal du = fcu[cp] - fcu[cm];
+      if (fev[f] > 0) {
+        const auto rm = m.GetVectToCell(f, 0);
+        feu[f] = fcu[cm] + 0.5 * Superbee(du, -4. * fcg[cm].dot(rm) - du);
+      } else if (fev[f] < 0) {
+        const auto rp = m.GetVectToCell(f, 1);
+        feu[f] = fcu[cp] - 0.5 * Superbee(du, 4. * fcg[cp].dot(rp) - du);
+      } else {
+        feu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+      }
+    }
+  } else {
+    const std::array<Scal, 3> a = GetCoeff<Scal>(scheme);
+    // f = fmm*a[0] + fm*a[1] + fp*a[2]
+    for (auto f : eb.SuFaces()) {
+      const IdxCell cm = eb.GetCell(f, 0);
+      const IdxCell cp = eb.GetCell(f, 1);
+      if (fev[f] > 0) {
+        const auto rm = m.GetVectToCell(f, 0);
+        feu[f] = 4. * a[0] * fcg[cm].dot(rm) //
+                 + a[1] * fcu[cm] + (a[2] + a[0]) * fcu[cp];
+      } else if (fev[f] < 0) {
+        const auto rp = m.GetVectToCell(f, 1);
+        feu[f] = 4. * a[0] * fcg[cp].dot(rp) //
+                 + a[1] * fcu[cp] + (a[2] + a[0]) * fcu[cm];
+      } else {
+        feu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+      }
     }
   }
   feu.GetFieldFace() = InterpolateBilinearFaces(feu.GetFieldFace(), eb);
@@ -797,25 +816,44 @@ auto UEmbed<M>::Gradient(
 
 template <class M>
 auto UEmbed<M>::InterpolateUpwind(
-    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
-    const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv, const M& m)
-    -> FieldFace<Scal> {
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+    ConvSc scheme, const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv,
+    const M& m) -> FieldFace<Scal> {
   FieldFace<Scal> ffu(m, 0);
 
-  // f = fmm*a[0] + fm*a[1] + fp*a[2]
-  std::array<Scal, 3> a = GetCoeff<Scal>(sc);
-  ffu.Reinit(m);
-  for (auto f : m.Faces()) {
-    IdxCell cm = m.GetCell(f, 0);
-    IdxCell cp = m.GetCell(f, 1);
-    if (ffv[f] > 0) {
-      ffu[f] = 4. * a[0] * fcg[cm].dot(m.GetVectToCell(f, 0)) + a[1] * fcu[cm] +
-               (a[2] + a[0]) * fcu[cp];
-    } else if (ffv[f] < 0) {
-      ffu[f] = 4. * a[0] * fcg[cp].dot(m.GetVectToCell(f, 1)) + a[1] * fcu[cp] +
-               (a[2] + a[0]) * fcu[cm];
-    } else {
-      ffu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+  if (scheme == ConvSc::superbee) {
+    for (auto f : m.SuFaces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      const Scal du = fcu[cp] - fcu[cm];
+      if (ffv[f] > 0) {
+        const auto rm = m.GetVectToCell(f, 0);
+        ffu[f] = fcu[cm] + 0.5 * Superbee(du, -4. * fcg[cm].dot(rm) - du);
+      } else if (ffv[f] < 0) {
+        const auto rp = m.GetVectToCell(f, 1);
+        ffu[f] = fcu[cp] - 0.5 * Superbee(du, 4. * fcg[cp].dot(rp) - du);
+      } else {
+        ffu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+      }
+    }
+  } else {
+    // f = fmm*a[0] + fm*a[1] + fp*a[2]
+    std::array<Scal, 3> a = GetCoeff<Scal>(scheme);
+    ffu.Reinit(m);
+    for (auto f : m.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      if (ffv[f] > 0) {
+        const auto rm = m.GetVectToCell(f, 0);
+        ffu[f] = 4. * a[0] * fcg[cm].dot(rm) //
+                 + a[1] * fcu[cm] + (a[2] + a[0]) * fcu[cp];
+      } else if (ffv[f] < 0) {
+        const auto rp = m.GetVectToCell(f, 1);
+        ffu[f] = 4. * a[0] * fcg[cp].dot(rp) //
+                 + a[1] * fcu[cp] + (a[2] + a[0]) * fcu[cm];
+      } else {
+        ffu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+      }
     }
   }
 
@@ -1107,14 +1145,14 @@ auto UEmbed<M>::InterpolateBilinearFaces(const FieldFace<T>& ffu, const EB& eb)
 
 template <class M>
 auto UEmbed<M>::InterpolateUpwindImplicit(
-    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
-    Scal deferred, const FieldCell<Vect>& fcg, const FieldEmbed<Scal>& fev,
-    const EB& eb) -> FieldEmbed<ExprFace> {
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+    ConvSc scheme, Scal deferred, const FieldCell<Vect>& fcg,
+    const FieldEmbed<Scal>& fev, const EB& eb) -> FieldEmbed<ExprFace> {
   (void)deferred;
   FieldEmbed<ExprFace> fee(eb, ExprFace(0));
 
   // explicit interpolation
-  FieldEmbed<Scal> feu = InterpolateUpwind(fcu, mebc, sc, fcg, fev, eb);
+  FieldEmbed<Scal> feu = InterpolateUpwind(fcu, mebc, scheme, fcg, fev, eb);
 
   // implicit interpolation with deferred correction
   for (auto f : eb.Faces()) {
@@ -1163,13 +1201,13 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
 
 template <class M>
 auto UEmbed<M>::InterpolateUpwindImplicit(
-    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
-    Scal deferred, const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv,
-    const M& m) -> FieldFace<ExprFace> {
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+    ConvSc scheme, Scal deferred, const FieldCell<Vect>& fcg,
+    const FieldFace<Scal>& ffv, const M& m) -> FieldFace<ExprFace> {
   FieldFace<ExprFace> ffe(m, ExprFace(0));
 
   // f = fmm*a[0] + fm*a[1] + fp*a[2]
-  std::array<Scal, 3> a = GetCoeff<Scal>(sc);
+  std::array<Scal, 3> a = GetCoeff<Scal>(scheme);
   const Scal df = deferred;
   const Scal dfm = 1 - df;
   for (auto f : m.Faces()) {

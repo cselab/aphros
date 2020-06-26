@@ -45,6 +45,7 @@ class TracerInterface {
     Multi<Scal> diameter;
     Multi<Slip> slip;
     Vect gravity;
+    ConvSc scheme = ConvSc::sou;
   };
 
   virtual ~TracerInterface() {}

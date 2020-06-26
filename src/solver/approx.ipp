@@ -33,7 +33,7 @@ std::array<Scal, 3> GetCoeff(ConvSc sc) {
       a = {-1. / 8., 6. / 8., 3. / 8.};
       break;
     default:
-      throw std::runtime_error("GetCoeff: invalid ConvSc");
+      throw std::runtime_error(FILELINE + ": GetCoeff: invalid ConvSc");
   }
   return a;
 }
@@ -360,16 +360,6 @@ FieldFace<T> Interpolate(
   InterpolateB(fc, mfc, ff, m);
 
   return ff;
-}
-
-template <class Scal>
-Scal Superbee(Scal p, Scal q) {
-  if (p > 0. && q > 0.) {
-    return std::max(std::min(2 * p, q), std::min(p, 2 * q));
-  } else if (p < 0. && q < 0.) {
-    return -std::max(std::min(-2 * p, -q), std::min(-p, -2 * q));
-  }
-  return 0.;
 }
 
 // Second order upwind interpolation with TVD Superbee limiter

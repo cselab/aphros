@@ -330,3 +330,14 @@ class FaceGradB : public Approx<IdxFace, Expr> {
   const M& m;
   const MapCondFace& mfc_;
 };
+
+template <class Scal>
+Scal Superbee(Scal p, Scal q) {
+  if (p > 0. && q > 0.) {
+    return std::max(std::min(2 * p, q), std::min(p, 2 * q));
+  } else if (p < 0. && q < 0.) {
+    return -std::max(std::min(-2 * p, -q), std::min(-p, -2 * q));
+  }
+  return 0.;
+}
+

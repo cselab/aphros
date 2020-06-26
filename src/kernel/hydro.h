@@ -497,6 +497,8 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
     conf.diameter = multi(var.Vect["tracer_diameter"]);
     fassert(conf.diameter.size() >= conf.layers);
 
+    conf.scheme = GetConvSc(var.String["tracer_scheme"]);
+
     const auto trl = GRange<size_t>(conf.layers);
 
     using SlipType = typename TracerInterface<M>::SlipType;

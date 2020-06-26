@@ -120,7 +120,7 @@ struct Tracer<EB_>::Imp {
               fev_carrier[cf] + vel.dot(eb.GetSurface(cf));
         });
         auto feu = UEmbed<M>::InterpolateUpwind(
-            fcu, mebc_, ConvSc::sou, fcg, fevl, eb);
+            fcu, mebc_, conf.scheme, fcg, fevl, eb);
         // auto feu =
         //    InterpolateSuperbee(fcu, fcg, {}, fev.GetFieldFace(), m);
 

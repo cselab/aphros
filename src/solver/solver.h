@@ -104,7 +104,7 @@ struct StepData {
 std::string GetName(Step);
 
 // Convection scheme
-enum class ConvSc { fou, cd, sou, quick };
+enum class ConvSc { fou, cd, sou, quick, superbee };
 // Convection scheme name
 std::string GetName(ConvSc sc);
 // Convection scheme by name.
