@@ -46,6 +46,7 @@
 #include "solver/fluid_dummy.h"
 #include "solver/multi.h"
 #include "solver/normal.h"
+#include "solver/particles.h"
 #include "solver/proj.h"
 #include "solver/reconst.h"
 #include "solver/simple.h"
@@ -60,14 +61,6 @@
 #include "util/metrics.h"
 #include "util/posthook.h"
 #include "young/young.h"
-
-// force assert
-#define fassert(x)                                                        \
-  do {                                                                    \
-    if (!(x)) {                                                           \
-      throw std::runtime_error(FILELINE + ": assertion failed '" #x "'"); \
-    }                                                                     \
-  } while (0);
 
 class GPar {};
 
@@ -148,6 +141,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void InitEmbed();
   void InitTracer(Multi<FieldCell<Scal>>& vfcu);
   void InitTracerFields(Multi<FieldCell<Scal>>& vfcu);
+  void InitParticles();
   void InitFluid(const FieldCell<Vect>& fc_vel);
   void InitAdvection(const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl);
   void InitStat();
@@ -166,12 +160,14 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void ReportStep();
   void ReportStepAdv();
   void ReportStepTracer();
+  void ReportStepParticles();
   void ReportIter();
   // Issue sem.LoopBreak if abort conditions met
   void CheckAbort(Sem& sem, Scal& nabort);
   void StepFluid();
   void StepAdvection();
   void StepTracer();
+  void StepParticles();
   void StepBubgen();
 
   using AST = Tvd<M>; // advection TVD
@@ -456,7 +452,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::unique_ptr<Events> events_; // events from var
   SingleTimer timer_;
   std::unique_ptr<TracerInterface<M>> tracer_;
+  std::unique_ptr<ParticlesInterface<M>> particles_;
   Scal tracer_dt_;
+  Scal particles_dt_;
 };
 
 template <class M>
@@ -473,6 +471,36 @@ void Hydro<M>::InitEmbed() {
     }
     if (sem.Nested("init")) {
       eb_->Init(ctx->fnl);
+    }
+  }
+}
+
+template <class M>
+void Hydro<M>::InitParticles() {
+  if (var.Int["enable_particles"]) {
+    typename ParticlesInterface<M>::Conf conf;
+    conf.mixture_density = var.Double["rho1"];
+    conf.mixture_viscosity = var.Double["mu1"];
+    conf.gravity = Vect(var.Vect["gravity"]);
+
+    std::vector<Vect> p_x;
+    std::vector<Vect> p_v;
+    std::vector<Scal> p_r;
+    std::vector<Scal> p_rho;
+    size_t i = 10;
+    for (auto c : m.Cells()) {
+      p_x.push_back(m.GetCenter(c));
+      p_v.push_back(Vect(1., 2., 3.));
+      p_r.push_back(4.);
+      p_rho.push_back(5.);
+      if (!--i) break;
+    }
+
+    typename ParticlesInterface<M>::ParticlesView init{p_x, p_v, p_r, p_rho};
+    if (eb_) {
+      particles_.reset(new Particles<EB>(m, *eb_, init, fs_->GetTime(), conf));
+    } else {
+      particles_.reset(new Particles<M>(m, m, init, fs_->GetTime(), conf));
     }
   }
 }
@@ -1018,6 +1046,7 @@ void Hydro<M>::Init() {
     st_.dt = dt;
     st_.dta = dt;
     tracer_dt_ = dt;
+    particles_dt_ = dt;
   }
   if (sem("solv")) {
     InitFluid(fcvel);
@@ -1025,6 +1054,8 @@ void Hydro<M>::Init() {
     InitAdvection(fcvf, fccl);
 
     InitTracer(ctx->tracer_vfcu);
+
+    InitParticles();
 
     st_.iter = 0;
     st_.t = fs_->GetTime();
@@ -1596,6 +1627,19 @@ void Hydro<M>::CalcDt() {
         tracer_dt_ = fs_->GetTimeStep();
       }
     }
+
+    if (particles_) {
+      if (auto* cflp = var.Double.Find("cflp")) {
+        particles_dt_ = ctx->dtmin * (*cflp);
+        // round up dta to such that dt / dta is integer
+        const Scal dtwhole =
+            fs_->GetTime() + fs_->GetTimeStep() - particles_->GetTime();
+        particles_dt_ =
+            dtwhole / std::max(1, int(dtwhole / particles_dt_ + 0.5));
+      } else {
+        particles_dt_ = fs_->GetTimeStep();
+      }
+    }
   }
   if (sem()) {
     // FIXME: empty stage
@@ -1991,9 +2035,6 @@ void Hydro<M>::DumpFields() {
       }
     }
   }
-  if (sem()) {
-    // XXX: empty stage, otherwise ctx is destroyed before dump
-  }
   if (var.Int["enable_advection"]) {
     if (var.Int["dumppoly"] && sem.Nested()) {
       as_->DumpInterface(GetDumpName("s", ".vtk", dumper_.GetN()));
@@ -2001,6 +2042,22 @@ void Hydro<M>::DumpFields() {
     if (var.Int["dumppolymarch"] && sem.Nested()) {
       as_->DumpInterfaceMarch(GetDumpName("sm", ".vtk", dumper_.GetN()));
     }
+  }
+  if (particles_ && var.Int["dump_particles"]) {
+    const std::string path = GetDumpName("part", ".csv", dumper_.GetN());
+    if (sem()) {
+      if (m.IsRoot()) {
+        std::cout << std::fixed << std::setprecision(8) << "dump"
+                  << " t=" << particles_->GetTime() << " to " << path
+                  << std::endl;
+      }
+    }
+    if (sem.Nested()) {
+      particles_->DumpCsv(path);
+    }
+  }
+  if (sem()) {
+    // XXX: empty stage, otherwise ctx is destroyed before dump
   }
 }
 
@@ -2225,6 +2282,11 @@ void Hydro<M>::Run() {
       StepTracer();
     }
   }
+  if (sem.Nested("particles-step")) {
+    if (particles_) {
+      StepParticles();
+    }
+  }
 
   if (sem.Nested()) {
     CalcDt(); // must be after CalcStat to keep dt for moving mesh velocity
@@ -2280,6 +2342,13 @@ void Hydro<M>::ReportStepTracer() {
   std::cout << std::fixed << std::setprecision(8)
             << ".....tracer: t=" << tracer_->GetTime() << " dt=" << tracer_dt_
             << std::endl;
+}
+
+template <class M>
+void Hydro<M>::ReportStepParticles() {
+  std::cout << std::fixed << std::setprecision(8)
+            << ".....particles: t=" << particles_->GetTime()
+            << " dt=" << particles_dt_ << std::endl;
 }
 
 template <class M>
@@ -2421,6 +2490,29 @@ void Hydro<M>::StepTracer() {
   }
   sem.LoopEnd();
 }
+
+template <class M>
+void Hydro<M>::StepParticles() {
+  auto sem = m.GetSem("particles-steps"); // sem nested
+  sem.LoopBegin();
+  if (sem.Nested("start")) {
+    particles_->Step(particles_dt_, fs_->GetVolumeFlux());
+  }
+  if (sem("report")) {
+    if (m.IsRoot()) {
+      if (st_.step % var.Int("report_step_every", 1) == 0) {
+        ReportStepParticles();
+      }
+    }
+  }
+  if (sem("convcheck")) {
+    if (particles_->GetTime() >= fs_->GetTime() - 0.5 * particles_dt_) {
+      sem.LoopBreak();
+    }
+  }
+  sem.LoopEnd();
+}
+
 template <class M>
 void Hydro<M>::StepAdvection() {
   auto sem = m.GetSem("steps"); // sem nested
@@ -2514,7 +2606,8 @@ void Hydro<M>::InitTracerFields(Multi<FieldCell<Scal>>& vfcu) {
       }
     }
   }
-  if (sem()) {}
+  if (sem()) {
+  }
 }
 
 template <class M>

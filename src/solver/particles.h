@@ -20,6 +20,7 @@ struct ParticlesView {
   std::vector<Vect>& x; // positions
   std::vector<Vect>& v; // velocity
   std::vector<Scal>& r; // radius
+  std::vector<Scal>& rho; // density
 };
 
 } // namespace generic
@@ -48,6 +49,7 @@ class ParticlesInterface {
   // Returns view with pointers to fields.
   virtual ParticlesView GetView() const = 0;
   virtual Scal GetTime() const = 0;
+  virtual void DumpCsv(std::string path) const = 0;
 };
 
 template <class EB_>
@@ -72,6 +74,7 @@ class Particles : public ParticlesInterface<typename EB_::M> {
   void Step(Scal dt, const FieldEmbed<Scal>& fe_flux) override;
   ParticlesView GetView() const override;
   Scal GetTime() const;
+  void DumpCsv(std::string path) const override;
 
  private:
   struct Imp;

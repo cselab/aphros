@@ -24,16 +24,17 @@ struct Particles<EB_>::Imp {
     std::vector<Vect> x;
     std::vector<Vect> v;
     std::vector<Scal> r;
+    std::vector<Scal> rho;
   };
 
-  Imp(Owner* owner, M& m, const EB& eb_, const ParticlesView& init,
-      Scal time, Conf conf_)
+  Imp(Owner* owner, M& m, const EB& eb_, const ParticlesView& init, Scal time,
+      Conf conf_)
       : owner_(owner)
       , m(m)
       , eb(eb_)
       , conf(conf_)
       , time_(time)
-      , state_({init.x, init.v, init.r}) {}
+      , state_({init.x, init.v, init.r, init.rho}) {}
   void Step(Scal dt, const FieldEmbed<Scal>& fev) {
     auto sem = m.GetSem("step");
     auto& s = state_;
@@ -94,6 +95,47 @@ struct Particles<EB_>::Imp {
     if (sem()) {
     }
   }
+  void DumpCsv(std::string path) const {
+    auto sem = m.GetSem("dumpcsv");
+    struct {
+      State s;
+    } * ctx(sem);
+    if (sem("gather")) {
+      auto& s = state_;
+      fassert(s.x.size() == s.x.size());
+      fassert(s.r.size() == s.x.size());
+      fassert(s.rho.size() == s.x.size());
+      ctx->s.x = s.x;
+      ctx->s.v = s.v;
+      ctx->s.r = s.r;
+      ctx->s.rho = s.rho;
+      using TV = typename M::template OpCatT<Vect>;
+      m.Reduce(std::make_shared<TV>(&ctx->s.x));
+      m.Reduce(std::make_shared<TV>(&ctx->s.v));
+      using TS = typename M::template OpCatT<Scal>;
+      m.Reduce(std::make_shared<TS>(&ctx->s.r));
+      m.Reduce(std::make_shared<TS>(&ctx->s.rho));
+    }
+    if (sem("init")) {
+      if (m.IsRoot()) {
+        std::ofstream o(path);
+        o.precision(16);
+        // header
+        o << "x,y,z,vx,vy,vz,r";
+        o << std::endl;
+        // content
+        auto& s = ctx->s;
+        for (size_t i = 0; i < s.x.size(); ++i) {
+          o << s.x[i][0] << ',' << s.x[i][1] << ',' << s.x[i][2];
+          o << ',' << s.v[i][0] << ',' << s.v[i][1] << ',' << s.v[i][2];
+          o << ',' << s.r[i];
+          o << "\n";
+        }
+      }
+    }
+    if (sem()) {
+    }
+  }
 
   Owner* owner_;
   M& m;
@@ -128,7 +170,12 @@ void Particles<EB_>::Step(Scal dt, const FieldEmbed<Scal>& fe_flux) {
 
 template <class EB_>
 auto Particles<EB_>::GetView() const -> ParticlesView {
-  return {imp->state_.x, imp->state_.v, imp->state_.r};
+  return {imp->state_.x, imp->state_.v, imp->state_.r, imp->state_.rho};
+}
+
+template <class EB_>
+void Particles<EB_>::DumpCsv(std::string path) const {
+  imp->DumpCsv(path);
 }
 
 template <class EB_>
