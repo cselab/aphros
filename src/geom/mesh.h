@@ -142,6 +142,9 @@ class MeshStructured {
   Vect GetCenter(IdxCell c) const {
     return (dom_.lb + hh_) + Vect(bcr_.GetMIdx(c) - mb_) * h_;
   }
+  Rect<Vect> GetBoundingBox() const {
+    return dom_;
+  }
   Vect GetCenter(IdxFace f) const {
     auto p = bfr_.GetMIdxDir(f);
     const MIdx& w = p.first;

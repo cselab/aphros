@@ -30,6 +30,10 @@ set(T "tracer")
 add_library(${T} tracer.cpp)
 target_link_libraries(${T} approx_eb)
 
+set(T "particles")
+add_library(${T} particles.cpp)
+target_link_libraries(${T})
+
 set(T "normal")
 add_library(${T} normal.cpp)
 target_link_libraries(${T} approx)
