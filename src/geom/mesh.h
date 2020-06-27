@@ -232,6 +232,15 @@ class MeshStructured {
       return bc.GetIdx(bc.GetMIdx(c) + wo);
     });
   }
+  IdxCell GetCellFromPoint(Vect x) const {
+    auto& ic = GetIndexCells();
+    auto& bc = GetInBlockCells();
+    const Vect h = GetCellSize();
+    MIdx w((x - dom_.lb) / h);
+    w = w.max(MIdx(0));
+    w = w.min(bc.GetSize() - MIdx(1));
+    return ic.GetIdx(bc.GetBegin() + w);
+  }
   // Cell indices over 3x3x3 stencil
   auto Stencil(IdxCell c) const {
     return StencilGeneral<1>(c);

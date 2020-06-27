@@ -63,6 +63,8 @@ class Particles : public ParticlesInterface<typename EB_::M> {
   using ParticlesView = generic::ParticlesView<Scal>;
   using Conf = typename Base::Conf;
   using UEB = UEmbed<M>;
+  template <class T>
+  using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
 
   // Constructor
   // vfcu: initial volume fraction

@@ -40,8 +40,23 @@ struct Particles<EB_>::Imp {
     auto sem = m.GetSem("step");
     auto& s = state_;
     if (sem("local")) {
+      // convert flux to normal velocity component
+      FieldFaceb<Scal> ff_vel = fev.template Get<FieldFaceb<Scal>>();
+      eb.LoopFaces([&](auto cf) { //
+        ff_vel[cf] /= eb.GetArea(cf);
+      });
+      // restore vector velocity field
+      const FieldCell<Vect> fc_vel = UEB::AverageGradient(ff_vel, eb);
+
       for (size_t i = 0; i < s.x.size(); ++i) {
-        s.v[i] += conf.gravity * dt;
+        const auto c = m.GetCellFromPoint(s.x[i]);
+        const Scal tau = (s.rho[i] - conf.mixture_density) * sqr(2 * s.r[i]) /
+                         (18 * conf.mixture_viscosity);
+        if (tau == 0) {
+          s.v[i] = fc_vel[c];
+        } else {
+          s.v[i] += ((fc_vel[c] - s.v[i]) / tau + conf.gravity) * dt;
+        }
         s.x[i] += s.v[i] * dt;
       }
     }
@@ -132,7 +147,7 @@ struct Particles<EB_>::Imp {
         // index in `gather_x` to index in `ctx->id`.
         std::vector<size_t> remote_index;
         for (size_t k = 0; k < ctx->gather_x.size(); ++k) {
-          const int id = m.GetIdFromPoint(ctx->gather_x[k]);
+          const size_t id = m.GetIdFromPoint(ctx->gather_x[k]);
           fassert(id < maxid);
           remote_index.push_back(id_to_index[id]);
         }

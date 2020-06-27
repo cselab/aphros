@@ -1378,6 +1378,7 @@ auto UEmbed<M>::Gradient(const FieldFace<Scal>& ffu, const M& m)
   return fcg;
 }
 
+// FIXME: rename to AverageVect
 template <class M>
 auto UEmbed<M>::AverageGradient(const FieldEmbed<Scal>& feg, const EB& eb)
     -> FieldCell<Vect> {
