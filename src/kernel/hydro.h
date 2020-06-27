@@ -490,9 +490,9 @@ void Hydro<M>::InitParticles() {
     size_t i = 10;
     for (auto c : m.Cells()) {
       p_x.push_back(m.GetCenter(c));
-      p_v.push_back(Vect(1., 2., 3.));
-      p_r.push_back(4.);
-      p_rho.push_back(5.);
+      p_v.push_back(Vect(0));
+      p_r.push_back(0.001);
+      p_rho.push_back(1.);
       if (!--i) break;
     }
 

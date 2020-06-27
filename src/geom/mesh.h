@@ -735,7 +735,7 @@ class MeshStructured {
     int GetIdFromBlock(MIdx block) const {
       return GetIdFromBlock(block, global_blocks);
     }
-    int GetBlockFromPoint(Vect x) const {
+    MIdx GetBlockFromPoint(Vect x) const {
       MIdx w((x - global_origin) / block_length);
       w = w.max(MIdx(0));
       w = w.min(global_blocks - MIdx(1));

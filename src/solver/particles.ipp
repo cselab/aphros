@@ -8,6 +8,7 @@
 #include <fstream>
 #include <limits>
 #include <memory>
+#include <type_traits>
 
 #include "approx.h"
 #include "approx_eb.h"
@@ -45,7 +46,7 @@ struct Particles<EB_>::Imp {
       }
     }
     if (sem.Nested()) {
-      Comm(s.x, {}, {}, m);
+      Comm(s.x, {&s.r, &s.rho}, {&s.v}, m);
     }
     if (sem("stat")) {
       time_ += dt;
@@ -56,49 +57,161 @@ struct Particles<EB_>::Imp {
   // x: particle positions
   // attr_scal: scalar attributes
   // attr_vect: vector attributes
+  // Output:
+  // x,attr_scal,attr_vect: updated
+  // ncomm: number of transferred particles
   static void Comm(
       std::vector<Vect>& x, const std::vector<std::vector<Scal>*>& attr_scal,
       const std::vector<std::vector<Vect>*>& attr_vect, M& m) {
     auto sem = m.GetSem("particles-comm");
     struct {
-      std::vector<Vect> send_x;
-      std::vector<std::vector<Scal>> send_attr_scal;
-      std::vector<std::vector<Vect>> send_attr_vect;
+      std::vector<Vect> gather_x;
+      std::vector<std::vector<Scal>> gather_scal;
+      std::vector<std::vector<Vect>> gather_vect;
+      std::vector<std::vector<Scal>> scatter_serial;
+      std::vector<Scal> recv_serial;
+      std::vector<int> id;
     } * ctx(sem);
-    auto& send_x = ctx->send_x;
-    auto& send_attr_scal = ctx->send_attr_scal;
-    auto& send_attr_vect = ctx->send_attr_vect;
     if (sem("local")) {
-      std::vector<size_t> outside;
       const auto box = m.GetBoundingBox();
+      std::vector<size_t> inside; // indices of particles inside box
+      std::vector<size_t> outside; // indices of particles outside box
       for (size_t i = 0; i < x.size(); ++i) {
-        if (!box.IsInside(x[i])) {
+        if (box.IsInside(x[i])) {
+          inside.push_back(i);
+        } else {
           outside.push_back(i);
         }
       }
-      for (auto i : outside) {
-        send_x.push_back(x[i]);
-      }
-      for (auto& attr : attr_scal) {
-        send_attr_scal.emplace_back();
-        for (auto i : outside) {
-          send_attr_scal.back().push_back((*attr)[i]);
+
+      // Returns elements with indices from `outside`,
+      // and overwrites `attr` with elements from `inside`.
+      auto select = [](const auto& attr, const std::vector<size_t>& indices) {
+        using T = typename std::decay<decltype(attr[0])>::type;
+        std::vector<T> res;
+        for (auto i : indices) {
+          res.push_back(attr[i]);
         }
+        return res;
+      };
+
+      ctx->gather_x = select(x, outside);
+      x = select(x, inside);
+      for (auto& attr : attr_scal) {
+        ctx->gather_scal.push_back(select(*attr, outside));
+        (*attr) = select(*attr, inside);
       }
       for (auto& attr : attr_vect) {
-        send_attr_vect.emplace_back();
-        for (auto i : outside) {
-          send_attr_vect.back().push_back((*attr)[i]);
-        }
+        ctx->gather_vect.push_back(select(*attr, outside));
+        (*attr) = select(*attr, inside);
       }
+      // gather
+      using TS = typename M::template OpCatT<Scal>;
+      using TV = typename M::template OpCatT<Vect>;
+      m.Reduce(std::make_shared<TV>(&ctx->gather_x));
+      for (auto& attr : ctx->gather_scal) {
+        m.Reduce(std::make_shared<TS>(&attr));
+      }
+      for (auto& attr : ctx->gather_vect) {
+        m.Reduce(std::make_shared<TV>(&attr));
+      }
+      ctx->id.push_back(m.GetId());
+      using TI = typename M::template OpCatT<int>;
+      m.Reduce(std::make_shared<TI>(&ctx->id));
     }
     if (sem()) {
+      if (m.IsRoot()) {
+        const size_t gather_size = ctx->gather_x.size();
+        const size_t maxid = ctx->id.size();
+
+        // block id to index in `ctx->id`
+        std::vector<size_t> id_to_index(ctx->id.size());
+        for (size_t i = 0; i < ctx->id.size(); ++i) {
+          id_to_index[ctx->id[i]] = i;
+        }
+        // index in `gather_x` to index in `ctx->id`.
+        std::vector<size_t> remote_index;
+        for (size_t k = 0; k < ctx->gather_x.size(); ++k) {
+          const int id = m.GetIdFromPoint(ctx->gather_x[k]);
+          fassert(id < maxid);
+          remote_index.push_back(id_to_index[id]);
+        }
+
+        // FIXME: serialization, revise with m.Scatter() that takes Vect
+        auto scatter = [&remote_index, gather_size, maxid](
+                           std::vector<std::vector<Scal>>& vscatter,
+                           const std::vector<Scal>& vgather) {
+          fassert(vgather.size() == gather_size);
+          vscatter.resize(maxid);
+          for (size_t i = 0; i < vgather.size(); ++i) {
+            vscatter[remote_index[i]].push_back(vgather[i]);
+          }
+        };
+        auto scatterv = [&remote_index, gather_size, maxid](
+                           std::vector<std::vector<Scal>>& vscatter,
+                           const std::vector<Vect>& vgather) {
+          fassert(vgather.size() == gather_size);
+          vscatter.resize(maxid);
+          for (size_t i = 0; i < vgather.size(); ++i) {
+            vscatter[remote_index[i]].push_back(vgather[i][0]);
+            vscatter[remote_index[i]].push_back(vgather[i][1]);
+            vscatter[remote_index[i]].push_back(vgather[i][2]);
+          }
+        };
+
+        scatterv(ctx->scatter_serial, ctx->gather_x);
+        for (size_t i = 0; i < attr_scal.size(); ++i) {
+          scatter(ctx->scatter_serial, ctx->gather_scal[i]);
+        }
+        for (size_t i = 0; i < attr_vect.size(); ++i) {
+          scatterv(ctx->scatter_serial, ctx->gather_vect[i]);
+        }
+      }
+      m.Scatter({&ctx->scatter_serial, &ctx->recv_serial});
+    }
+    if (sem()) {
+      const size_t nscal = 3 + attr_scal.size() + attr_vect.size() * 3;
+      fassert(ctx->recv_serial.size() % nscal == 0);
+      // number of particles received
+      const size_t recv_size = ctx->recv_serial.size() / nscal;
+      auto deserial = [recv_size](auto& attr, auto& serial) {
+        for (size_t i = 0; i < recv_size; ++i) {
+          attr.push_back(serial.back());
+          serial.pop_back();
+        }
+      };
+      auto deserialv = [recv_size](auto& attr, auto& serial) {
+        for (size_t i = 0; i < recv_size; ++i) {
+          Vect v;
+          v[2] = serial.back();
+          serial.pop_back();
+          v[1] = serial.back();
+          serial.pop_back();
+          v[0] = serial.back();
+          serial.pop_back();
+          attr.push_back(v);
+        }
+      };
+      // ctx->recv_serial contains serialized particles from root
+      // deserialize in reversed order
+      for (size_t i = attr_vect.size(); i > 0;) {
+        --i;
+        deserialv(*attr_vect[i], ctx->recv_serial);
+      }
+      for (size_t i = attr_scal.size(); i > 0;) {
+        --i;
+        deserial(*attr_scal[i], ctx->recv_serial);
+      }
+      deserialv(x, ctx->recv_serial);
+    }
+    if (sem()) { // FIXME: empty stage
     }
   }
   void DumpCsv(std::string path) const {
     auto sem = m.GetSem("dumpcsv");
     struct {
       State s;
+      std::vector<int> block;
     } * ctx(sem);
     if (sem("gather")) {
       auto& s = state_;
@@ -109,19 +222,24 @@ struct Particles<EB_>::Imp {
       ctx->s.v = s.v;
       ctx->s.r = s.r;
       ctx->s.rho = s.rho;
+      for (size_t i = 0; i < s.x.size(); ++i) {
+        ctx->block.push_back(m.GetId());
+      }
       using TV = typename M::template OpCatT<Vect>;
       m.Reduce(std::make_shared<TV>(&ctx->s.x));
       m.Reduce(std::make_shared<TV>(&ctx->s.v));
       using TS = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<TS>(&ctx->s.r));
       m.Reduce(std::make_shared<TS>(&ctx->s.rho));
+      using TI = typename M::template OpCatT<int>;
+      m.Reduce(std::make_shared<TI>(&ctx->block));
     }
     if (sem("init")) {
       if (m.IsRoot()) {
         std::ofstream o(path);
         o.precision(16);
         // header
-        o << "x,y,z,vx,vy,vz,r";
+        o << "x,y,z,vx,vy,vz,r,rho,block";
         o << std::endl;
         // content
         auto& s = ctx->s;
@@ -129,6 +247,8 @@ struct Particles<EB_>::Imp {
           o << s.x[i][0] << ',' << s.x[i][1] << ',' << s.x[i][2];
           o << ',' << s.v[i][0] << ',' << s.v[i][1] << ',' << s.v[i][2];
           o << ',' << s.r[i];
+          o << ',' << s.rho[i];
+          o << ',' << ctx->block[i];
           o << "\n";
         }
       }
