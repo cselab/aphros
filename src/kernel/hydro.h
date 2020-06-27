@@ -544,19 +544,31 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
     };
     typename TracerInterface<M>::Conf conf;
     conf.layers = var.Int["tracer_layers"];
+    const auto trl = GRange<size_t>(conf.layers);
 
     conf.density = multi(var.Vect["tracer_density"]);
     fassert(conf.density.size() >= conf.layers);
 
     conf.viscosity = multi(var.Vect["tracer_viscosity"]);
     fassert(conf.viscosity.size() >= conf.layers);
+    conf.gravity = Vect(var.Vect["gravity"]);
 
-    conf.diameter = multi(var.Vect["tracer_diameter"]);
+    auto termvel = multi(var.Vect["tracer_termvel"]);
+    conf.diameter.resize(conf.layers);
+    if (var.Int["tracer_use_termvel"]) {
+      const Scal mixture_density = var.Double["rho1"];
+      for (auto l : trl) {
+        conf.diameter[l] = std::sqrt(std::abs(
+            18 * conf.viscosity[l] * termvel[l] /
+            (conf.gravity.norm() * (conf.density[l] - mixture_density))));
+      }
+    } else {
+      conf.diameter = multi(var.Vect["tracer_diameter"]);
+    }
     fassert(conf.diameter.size() >= conf.layers);
 
     conf.scheme = GetConvSc(var.String["tracer_scheme"]);
 
-    const auto trl = GRange<size_t>(conf.layers);
 
     using SlipType = typename TracerInterface<M>::SlipType;
     conf.slip.resize(conf.layers);
@@ -576,7 +588,6 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
         throw std::runtime_error(FILELINE + "Unknown slip='" + type + "'");
       }
     }
-    conf.gravity = Vect(var.Vect["gravity"]);
     MapEmbed<BCond<Scal>> mebc; // boundary conditions
     mebc_fluid_.LoopPairs([&](auto cf_bc) {
       mebc[cf_bc.first] = BCond<Scal>(BCondType::neumann, cf_bc.second.nci);

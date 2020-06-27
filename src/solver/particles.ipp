@@ -41,7 +41,6 @@ struct Particles<EB_>::Imp {
     auto sem = m.GetSem("step");
     auto& s = state_;
     if (sem("local")) {
-      fassert(!conf.use_termvel || conf.gravity.sqrnorm() > 0);
       // convert flux to normal velocity component
       FieldFaceb<Scal> ff_vel = fev.template Get<FieldFaceb<Scal>>();
       eb.LoopFaces([&](auto cf) { //
@@ -60,7 +59,8 @@ struct Particles<EB_>::Imp {
         const auto gl = m.GetGlobalLength();
         // implicit drag
         // dv/dt = (u - v) / tau + g
-        if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || m.IsCut(c)) {
+        if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || eb.IsCut(c) ||
+            eb.IsExcluded(c)) {
           s.v[i] = Vect(0);
         } else {
           s.v[i] = //
@@ -68,6 +68,10 @@ struct Particles<EB_>::Imp {
               (1 + tau / dt);
         }
         s.x[i] += s.v[i] * dt;
+        if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || eb.IsCut(c) ||
+            eb.IsExcluded(c)) {
+          s.x[i] -= s.v[i] * dt;
+        }
         for (size_t d = 0; d < m.GetEdim(); ++d) {
           if (m.flags.is_periodic[d]) {
             if (s.x[i][d] < 0) {
