@@ -487,12 +487,12 @@ void Hydro<M>::InitParticles() {
     std::vector<Vect> p_v;
     std::vector<Scal> p_r;
     std::vector<Scal> p_rho;
-    size_t i = 10;
+    size_t i = 20;
     for (auto c : m.Cells()) {
       p_x.push_back(m.GetCenter(c));
       p_v.push_back(Vect(0));
-      p_r.push_back(0.001);
-      p_rho.push_back(1.);
+      p_r.push_back(0.01);
+      p_rho.push_back(2.);
       if (!--i) break;
     }
 

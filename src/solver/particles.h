@@ -49,6 +49,8 @@ class ParticlesInterface {
   // Returns view with pointers to fields.
   virtual ParticlesView GetView() const = 0;
   virtual Scal GetTime() const = 0;
+  // Returns the number of particles received at the last communication.
+  virtual size_t GetNumRecv() const = 0;
   virtual void DumpCsv(std::string path) const = 0;
 };
 
@@ -71,11 +73,12 @@ class Particles : public ParticlesInterface<typename EB_::M> {
   Particles(
       M& m, const EB& eb, const ParticlesView& init, Scal t, Conf conf);
   ~Particles();
-  const Conf& GetConf() const;
-  void SetConf(Conf);
+  const Conf& GetConf() const override;
+  void SetConf(Conf) override;
   void Step(Scal dt, const FieldEmbed<Scal>& fe_flux) override;
   ParticlesView GetView() const override;
-  Scal GetTime() const;
+  Scal GetTime() const override;
+  size_t GetNumRecv() const override;
   void DumpCsv(std::string path) const override;
 
  private:

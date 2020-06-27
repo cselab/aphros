@@ -149,6 +149,9 @@ class MeshStructured {
   Rect<Vect> GetBoundingBox() const {
     return dom_;
   }
+  Rect<Vect> GetGlobalBoundingBox() const {
+    return Rect<Vect>(Vect(0), GetGlobalLength());
+  }
   Vect GetCenter(IdxFace f) const {
     auto p = bfr_.GetMIdxDir(f);
     const MIdx& w = p.first;

@@ -52,16 +52,31 @@ struct Particles<EB_>::Imp {
         const auto c = m.GetCellFromPoint(s.x[i]);
         const Scal tau = (s.rho[i] - conf.mixture_density) * sqr(2 * s.r[i]) /
                          (18 * conf.mixture_viscosity);
-        if (tau == 0) {
-          s.v[i] = fc_vel[c];
+        const auto gl = m.GetGlobalLength();
+        // implicit drag
+        // dv/dt = (u - v) / tau + g
+        if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || m.IsCut(c)) {
+          s.v[i] = Vect(0);
         } else {
-          s.v[i] += ((fc_vel[c] - s.v[i]) / tau + conf.gravity) * dt;
+          s.v[i] = //
+              (fc_vel[c] + s.v[i] * (tau / dt) + conf.gravity * tau) /
+              (1 + tau / dt);
         }
         s.x[i] += s.v[i] * dt;
+        for (size_t d = 0; d < m.GetEdim(); ++d) {
+          if (m.flags.is_periodic[d]) {
+            if (s.x[i][d] < 0) {
+              s.x[i][d] += gl[d];
+            }
+            if (s.x[i][d] > gl[d]) {
+              s.x[i][d] -= gl[d];
+            }
+          }
+        }
       }
     }
     if (sem.Nested()) {
-      Comm(s.x, {&s.r, &s.rho}, {&s.v}, m);
+      Comm(s.x, {&s.r, &s.rho}, {&s.v}, m, nrecv_);
     }
     if (sem("stat")) {
       time_ += dt;
@@ -74,10 +89,10 @@ struct Particles<EB_>::Imp {
   // attr_vect: vector attributes
   // Output:
   // x,attr_scal,attr_vect: updated
-  // ncomm: number of transferred particles
+  // ncomm: number of recevied particles
   static void Comm(
       std::vector<Vect>& x, const std::vector<std::vector<Scal>*>& attr_scal,
-      const std::vector<std::vector<Vect>*>& attr_vect, M& m) {
+      const std::vector<std::vector<Vect>*>& attr_vect, M& m, size_t& ncomm) {
     auto sem = m.GetSem("particles-comm");
     struct {
       std::vector<Vect> gather_x;
@@ -189,6 +204,7 @@ struct Particles<EB_>::Imp {
       fassert(ctx->recv_serial.size() % nscal == 0);
       // number of particles received
       const size_t recv_size = ctx->recv_serial.size() / nscal;
+      ncomm = recv_size;
       auto deserial = [recv_size](auto& attr, auto& serial) {
         for (size_t i = 0; i < recv_size; ++i) {
           attr.push_back(serial.back());
@@ -278,6 +294,7 @@ struct Particles<EB_>::Imp {
   Conf conf;
   Scal time_;
   State state_;
+  size_t nrecv_;
 };
 
 template <class EB_>
@@ -311,6 +328,11 @@ auto Particles<EB_>::GetView() const -> ParticlesView {
 template <class EB_>
 void Particles<EB_>::DumpCsv(std::string path) const {
   imp->DumpCsv(path);
+}
+
+template <class EB_>
+auto Particles<EB_>::GetNumRecv() const -> size_t {
+  return imp->nrecv_;
 }
 
 template <class EB_>
