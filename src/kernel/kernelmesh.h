@@ -28,19 +28,22 @@ M CreateMesh(const MyBlockInfo& bi) {
   using Vect = typename M::Vect;
   int hl = bi.hl;
 
-  MIdx bs(bi.bs); // block size inner
-  Scal h = bi.h_gridpoint;
-  MIdx w(bi.index); // block index
-  Vect d0(bi.origin); // origin coord
-  Vect d1 = d0 + Vect(bs) * h; // end coord
-  Rect<Vect> d(d0, d1);
-  MIdx gs(bi.gs);
-  MIdx o = w * bs; // origin index
+  const MIdx bs(bi.bs); // block size inner
+  const Scal h = bi.h_gridpoint;
+  const MIdx w(bi.index); // block index
+  const Vect d0(bi.origin); // origin coord
+  const Vect d1 = d0 + Vect(bs) * h; // end coord
+  const Rect<Vect> d(d0, d1); // domain box
+  const MIdx gs(bi.gs); // global size
+  const MIdx o = w * bs; // origin index
 
-  MIdx wmax = gs / bs; // maximum block index
-  int id = w[0] + w[1] * wmax[0] + w[2] * wmax[0] * wmax[1]; // unique id
+  const MIdx wmax = gs / bs; // maximum block index
 
+  const int id = M::Flags::GetIdFromBlock(w, wmax);
   M m = InitUniformMesh<M>(d, o, bs, hl, bi.isroot, bi.islead, gs, id);
+  m.flags.global_origin = Vect(0);
+  m.flags.global_blocks = wmax;
+  m.flags.block_length = Vect(bs) * h;
   m.SetMaxComm(bi.maxcomm);
   return m;
 }

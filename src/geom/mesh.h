@@ -79,8 +79,12 @@ class MeshStructured {
   MIdx GetGlobalSize() const {
     return gs_;
   }
+  // Returns linear index of block between 0 and number of blocks - 1.
   int GetId() const {
     return id_;
+  }
+  int GetIdFromPoint(Vect x) const {
+    return flags.GetIdFromBlock(flags.GetBlockFromPoint(x));
   }
   Vect GetGlobalLength() const {
     return gl_;
@@ -718,6 +722,25 @@ class MeshStructured {
     Scal check_symmetry_dump_threshold = 1e-5;
     Scal nan_faces_value = 1e100;
     std::array<bool, dim> is_periodic = {false, false, false};
+    // FIXME: move to constructor
+    Vect global_origin = Vect(0); // origin of global mesh
+    MIdx global_blocks = MIdx(0); // number of blocks in global mesh
+    Vect block_length = Vect(0); // length of one block (local mesh)
+    static int GetIdFromBlock(MIdx block, MIdx global_blocks) {
+      const auto& w = block;
+      const auto& wmax = global_blocks;
+      const int id = w[0] + w[1] * wmax[0] + w[2] * wmax[0] * wmax[1];
+      return id;
+    };
+    int GetIdFromBlock(MIdx block) const {
+      return GetIdFromBlock(block, global_blocks);
+    }
+    int GetBlockFromPoint(Vect x) const {
+      MIdx w((x - global_origin) / block_length);
+      w = w.max(MIdx(0));
+      w = w.min(global_blocks - MIdx(1));
+      return w;
+    }
   };
   Flags flags;
 
