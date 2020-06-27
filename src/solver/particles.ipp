@@ -26,6 +26,7 @@ struct Particles<EB_>::Imp {
     std::vector<Vect> v;
     std::vector<Scal> r;
     std::vector<Scal> rho;
+    std::vector<Scal> termvel;
   };
 
   Imp(Owner* owner, M& m, const EB& eb_, const ParticlesView& init, Scal time,
@@ -35,11 +36,12 @@ struct Particles<EB_>::Imp {
       , eb(eb_)
       , conf(conf_)
       , time_(time)
-      , state_({init.x, init.v, init.r, init.rho}) {}
+      , state_({init.x, init.v, init.r, init.rho, init.termvel}) {}
   void Step(Scal dt, const FieldEmbed<Scal>& fev) {
     auto sem = m.GetSem("step");
     auto& s = state_;
     if (sem("local")) {
+      fassert(!conf.use_termvel || conf.gravity.sqrnorm() > 0);
       // convert flux to normal velocity component
       FieldFaceb<Scal> ff_vel = fev.template Get<FieldFaceb<Scal>>();
       eb.LoopFaces([&](auto cf) { //
@@ -50,8 +52,11 @@ struct Particles<EB_>::Imp {
 
       for (size_t i = 0; i < s.x.size(); ++i) {
         const auto c = m.GetCellFromPoint(s.x[i]);
-        const Scal tau = (s.rho[i] - conf.mixture_density) * sqr(2 * s.r[i]) /
-                         (18 * conf.mixture_viscosity);
+        const Scal tau_stokes = (s.rho[i] - conf.mixture_density) *
+                                sqr(2 * s.r[i]) / (18 * conf.mixture_viscosity);
+        const Scal tau =
+            (conf.use_termvel ? s.termvel[i] / conf.gravity.norm()
+                              : tau_stokes);
         const auto gl = m.GetGlobalLength();
         // implicit drag
         // dv/dt = (u - v) / tau + g
@@ -76,11 +81,28 @@ struct Particles<EB_>::Imp {
       }
     }
     if (sem.Nested()) {
-      Comm(s.x, {&s.r, &s.rho}, {&s.v}, m, nrecv_);
+      Comm(s.x, {&s.r, &s.rho, &s.termvel}, {&s.v}, m, nrecv_);
     }
     if (sem("stat")) {
       time_ += dt;
     }
+  }
+  static void CheckSize(const State& s) {
+    fassert(s.x.size() == s.x.size());
+    fassert(s.r.size() == s.x.size());
+    fassert(s.rho.size() == s.x.size());
+    fassert(s.termvel.size() == s.x.size());
+  }
+  static void Append(State& s, ParticlesView& app) {
+    auto append = [](auto& v, const auto& a) {
+      v.insert(v.end(), a.begin(), a.end());
+    };
+    append(s.x, app.x);
+    append(s.v, app.v);
+    append(s.r, app.r);
+    append(s.rho, app.rho);
+    append(s.termvel, app.termvel);
+    CheckSize(s);
   }
   // Exchanges particle positions and data between blocks
   // such that the positions are inside the owning block.
@@ -178,8 +200,8 @@ struct Particles<EB_>::Imp {
           }
         };
         auto scatterv = [&remote_index, gather_size, maxid](
-                           std::vector<std::vector<Scal>>& vscatter,
-                           const std::vector<Vect>& vgather) {
+                            std::vector<std::vector<Scal>>& vscatter,
+                            const std::vector<Vect>& vgather) {
           fassert(vgather.size() == gather_size);
           vscatter.resize(maxid);
           for (size_t i = 0; i < vgather.size(); ++i) {
@@ -245,14 +267,13 @@ struct Particles<EB_>::Imp {
       std::vector<int> block;
     } * ctx(sem);
     if (sem("gather")) {
+      CheckSize(state_);
       auto& s = state_;
-      fassert(s.x.size() == s.x.size());
-      fassert(s.r.size() == s.x.size());
-      fassert(s.rho.size() == s.x.size());
       ctx->s.x = s.x;
       ctx->s.v = s.v;
       ctx->s.r = s.r;
       ctx->s.rho = s.rho;
+      ctx->s.termvel = s.termvel;
       for (size_t i = 0; i < s.x.size(); ++i) {
         ctx->block.push_back(m.GetId());
       }
@@ -262,6 +283,7 @@ struct Particles<EB_>::Imp {
       using TS = typename M::template OpCatT<Scal>;
       m.Reduce(std::make_shared<TS>(&ctx->s.r));
       m.Reduce(std::make_shared<TS>(&ctx->s.rho));
+      m.Reduce(std::make_shared<TS>(&ctx->s.termvel));
       using TI = typename M::template OpCatT<int>;
       m.Reduce(std::make_shared<TI>(&ctx->block));
     }
@@ -270,7 +292,7 @@ struct Particles<EB_>::Imp {
         std::ofstream o(path);
         o.precision(16);
         // header
-        o << "x,y,z,vx,vy,vz,r,rho,block";
+        o << "x,y,z,vx,vy,vz,r,rho,termvel,block";
         o << std::endl;
         // content
         auto& s = ctx->s;
@@ -279,6 +301,7 @@ struct Particles<EB_>::Imp {
           o << ',' << s.v[i][0] << ',' << s.v[i][1] << ',' << s.v[i][2];
           o << ',' << s.r[i];
           o << ',' << s.rho[i];
+          o << ',' << s.termvel[i];
           o << ',' << ctx->block[i];
           o << "\n";
         }
@@ -322,7 +345,13 @@ void Particles<EB_>::Step(Scal dt, const FieldEmbed<Scal>& fe_flux) {
 
 template <class EB_>
 auto Particles<EB_>::GetView() const -> ParticlesView {
-  return {imp->state_.x, imp->state_.v, imp->state_.r, imp->state_.rho};
+  return {imp->state_.x, imp->state_.v, imp->state_.r, imp->state_.rho,
+          imp->state_.termvel};
+}
+
+template <class EB_>
+void Particles<EB_>::Append(ParticlesView& app) {
+  imp->Append(imp->state_, app);
 }
 
 template <class EB_>

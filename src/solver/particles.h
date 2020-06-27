@@ -21,6 +21,7 @@ struct ParticlesView {
   std::vector<Vect>& v; // velocity
   std::vector<Scal>& r; // radius
   std::vector<Scal>& rho; // density
+  std::vector<Scal>& termvel; // terminal hettling velocity
 };
 
 } // namespace generic
@@ -37,6 +38,8 @@ class ParticlesInterface {
     Scal mixture_density;
     Scal mixture_viscosity;
     Vect gravity;
+    bool use_termvel = true; // settling from terminal velocity
+                             // (requires non-zero gravity)
   };
 
   virtual ~ParticlesInterface() {}
@@ -46,6 +49,7 @@ class ParticlesInterface {
   // dt: time step
   // fe_flux: mixture volume flux
   virtual void Step(Scal dt, const FieldEmbed<Scal>& fe_flux) = 0;
+  virtual void Append(ParticlesView&) = 0;
   // Returns view with pointers to fields.
   virtual ParticlesView GetView() const = 0;
   virtual Scal GetTime() const = 0;
@@ -70,12 +74,12 @@ class Particles : public ParticlesInterface<typename EB_::M> {
 
   // Constructor
   // vfcu: initial volume fraction
-  Particles(
-      M& m, const EB& eb, const ParticlesView& init, Scal t, Conf conf);
+  Particles(M& m, const EB& eb, const ParticlesView& init, Scal t, Conf conf);
   ~Particles();
   const Conf& GetConf() const override;
   void SetConf(Conf) override;
   void Step(Scal dt, const FieldEmbed<Scal>& fe_flux) override;
+  void Append(ParticlesView&) override;
   ParticlesView GetView() const override;
   Scal GetTime() const override;
   size_t GetNumRecv() const override;

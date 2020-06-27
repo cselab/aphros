@@ -120,6 +120,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   template <class T>
   using Multi = Multi<T>;
   using UEB = UEmbed<M>;
+  using ParticlesView = typename ParticlesInterface<M>::ParticlesView;
   static constexpr size_t dim = M::dim;
   friend void StepHook<>(Hydro*);
 
@@ -142,6 +143,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void InitTracer(Multi<FieldCell<Scal>>& vfcu);
   void InitTracerFields(Multi<FieldCell<Scal>>& vfcu);
   void InitParticles();
+  void SpawnParticles(ParticlesView& view);
   void InitFluid(const FieldCell<Vect>& fc_vel);
   void InitAdvection(const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl);
   void InitStat();
@@ -388,6 +390,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Vect eb_pdrag; // pressure drag on embedded boundaries
     Vect eb_vdrag; // viscous drag
     Vect eb_drag; // total drag
+    Scal particles_n; // number of particles
+    Scal particles_nrecv; // number of particles received on last communciation
 
     std::map<std::string, Scal> mst; // map stat
     // Add scalar field for stat.
@@ -453,6 +457,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   SingleTimer timer_;
   std::unique_ptr<TracerInterface<M>> tracer_;
   std::unique_ptr<ParticlesInterface<M>> particles_;
+  std::mt19937 randgen_;
   Scal tracer_dt_;
   Scal particles_dt_;
 };
@@ -474,6 +479,37 @@ void Hydro<M>::InitEmbed() {
     }
   }
 }
+template <class M>
+void Hydro<M>::SpawnParticles(ParticlesView& view) {
+  const Vect sphere_c(var.Vect["particles_spawn_sphere_c"]);
+  const Scal sphere_r = var.Double["particles_spawn_sphere_r"];
+  // particles per unit time
+  const Scal spawn_rate = var.Double["particles_spawn_rate"];
+  const size_t dim = m.GetEdim();
+  const Scal sphere_vol =
+      (dim == 3 ? 4. / 3. * M_PI * std::pow(sphere_r, 3)
+                : M_PI * sqr(sphere_r));
+  const Vect h = m.GetCellSize();
+  const Scal cell_vol = (dim == 3 ? h.prod() : h[0] * h[1]);
+  const Scal termvel = var.Double["particles_termvel"];
+  const Scal diameter = var.Double["particles_diameter"];
+  const Scal density = var.Double["particles_density"];
+  const Scal prob = particles_dt_ * cell_vol * spawn_rate / sphere_vol;
+  std::uniform_real_distribution<Scal> u(0, 1);
+  std::uniform_real_distribution<Scal> um(-0.5, 0.5);
+
+  auto& g = randgen_;
+  for (auto c : m.Cells()) {
+    const auto xc = m.GetCenter(c);
+    if (xc.sqrdist(sphere_c) < sqr(sphere_r) && u(g) < prob) {
+      view.x.push_back(m.GetCenter(c) + Vect(um(g), um(g), um(g)) * h);
+      view.v.push_back(Vect(0));
+      view.r.push_back(diameter * 0.5);
+      view.rho.push_back(density);
+      view.termvel.push_back(termvel);
+    }
+  }
+}
 
 template <class M>
 void Hydro<M>::InitParticles() {
@@ -487,16 +523,9 @@ void Hydro<M>::InitParticles() {
     std::vector<Vect> p_v;
     std::vector<Scal> p_r;
     std::vector<Scal> p_rho;
-    size_t i = 20;
-    for (auto c : m.Cells()) {
-      p_x.push_back(m.GetCenter(c));
-      p_v.push_back(Vect(0));
-      p_r.push_back(0.01);
-      p_rho.push_back(2.);
-      if (!--i) break;
-    }
-
-    typename ParticlesInterface<M>::ParticlesView init{p_x, p_v, p_r, p_rho};
+    std::vector<Scal> p_termvel;
+    ParticlesView init{p_x, p_v, p_r, p_rho, p_termvel};
+    SpawnParticles(init);
     if (eb_) {
       particles_.reset(new Particles<EB>(m, *eb_, init, fs_->GetTime(), conf));
     } else {
@@ -774,6 +803,10 @@ void Hydro<M>::InitStat() {
       con.push_back(op("dragy", &s.eb_drag[1]));
       con.push_back(op("dragz", &s.eb_drag[2]));
     }
+    if (particles_) {
+      con.push_back(op("particles_n", &s.particles_n));
+      con.push_back(op("particles_nrecv", &s.particles_nrecv));
+    }
     ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
   }
 }
@@ -802,6 +835,7 @@ void Hydro<M>::Init() {
     m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
     m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
     m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
+    randgen_.seed(m.GetId() + 1);
   }
   if (sem.Nested("embed")) {
     InitEmbed();
@@ -1385,6 +1419,12 @@ void Hydro<M>::CalcStat() {
         m.Reduce(&st_.eb_vdrag[d], "sum");
         m.Reduce(&st_.eb_drag[d], "sum");
       }
+    }
+    if (particles_) {
+      st_.particles_n = particles_->GetView().x.size();
+      st_.particles_nrecv = particles_->GetNumRecv();
+      m.Reduce(&st_.particles_n, "sum");
+      m.Reduce(&st_.particles_nrecv, "sum");
     }
   }
 
@@ -2497,6 +2537,16 @@ void Hydro<M>::StepParticles() {
   sem.LoopBegin();
   if (sem.Nested("start")) {
     particles_->Step(particles_dt_, fs_->GetVolumeFlux());
+  }
+  if (sem("spawn")) {
+    std::vector<Vect> p_x;
+    std::vector<Vect> p_v;
+    std::vector<Scal> p_r;
+    std::vector<Scal> p_rho;
+    std::vector<Scal> p_termvel;
+    ParticlesView view{p_x, p_v, p_r, p_rho, p_termvel};
+    SpawnParticles(view);
+    particles_->Append(view);
   }
   if (sem("report")) {
     if (m.IsRoot()) {
