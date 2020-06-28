@@ -19,7 +19,7 @@ struct TracerView {
   using Vect = generic::Vect<Scal, 3>;
   GRange<size_t> layers;
   Multi<const FieldCell<Scal>*> vfcu; // volume fraction
-  const MapEmbed<BCond<Scal>>& mebc; // boundary conditions
+  Multi<const MapEmbed<BCond<Scal>>*> vmebc; // boundary conditions
 };
 
 } // namespace generic
@@ -84,7 +84,7 @@ class Tracer : public TracerInterface<typename EB_::M> {
   // vfcu: initial volume fraction
   Tracer(
       M& m, const EB& eb, const Multi<const FieldCell<Scal>*>& vfcu,
-      const MapEmbed<BCond<Scal>>& mebc, Scal t, Conf conf);
+      const Multi<const MapEmbed<BCond<Scal>>*>& vmebc, Scal t, Conf conf);
   ~Tracer();
   const Conf& GetConf() const;
   void SetConf(Conf);

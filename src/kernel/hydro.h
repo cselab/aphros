@@ -619,15 +619,23 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
         throw std::runtime_error(FILELINE + "Unknown slip='" + type + "'");
       }
     }
-    MapEmbed<BCond<Scal>> mebc; // boundary conditions
+    Multi<MapEmbed<BCond<Scal>>> vmebc(conf.layers); // boundary conditions
     mebc_fluid_.LoopPairs([&](auto cf_bc) {
-      mebc[cf_bc.first] = BCond<Scal>(BCondType::neumann, cf_bc.second.nci);
+      for (auto l : trl) {
+        if (l == 0) {
+          vmebc[l][cf_bc.first] =
+              BCond<Scal>(BCondType::dirichlet, cf_bc.second.nci, 1.);
+        } else {
+          vmebc[l][cf_bc.first] =
+              BCond<Scal>(BCondType::dirichlet, cf_bc.second.nci, 0.);
+        }
+      }
     });
 
     if (eb_) {
-      tracer_.reset(new Tracer<EB>(m, *eb_, vfcu, mebc, fs_->GetTime(), conf));
+      tracer_.reset(new Tracer<EB>(m, *eb_, vfcu, vmebc, fs_->GetTime(), conf));
     } else {
-      tracer_.reset(new Tracer<M>(m, m, vfcu, mebc, fs_->GetTime(), conf));
+      tracer_.reset(new Tracer<M>(m, m, vfcu, vmebc, fs_->GetTime(), conf));
     }
   }
 }

@@ -28,14 +28,14 @@ struct Tracer<EB_>::Imp {
   }
   Imp(Owner* owner, M& m, const EB& eb_,
       const Multi<const FieldCell<Scal>*>& vfcu,
-      const MapEmbed<BCond<Scal>>& mebc, Scal time, Conf conf_)
+      const Multi<const MapEmbed<BCond<Scal>>*>& vmebc, Scal time, Conf conf_)
       : owner_(owner)
       , m(m)
       , eb(eb_)
       , conf(conf_)
       , time_(time)
       , layers(conf.layers)
-      , mebc_(mebc)
+      , vmebc_(vmebc)
       , vfcu_(vfcu)
       , fc_density_(m, conf.density[0])
       , fc_viscosity_(m, conf.viscosity[0]) {
@@ -89,17 +89,21 @@ struct Tracer<EB_>::Imp {
         fc_rho[c] = GetMixtureDensity(c);
         fc_mu[c] = GetMixtureViscosity(c);
       }
-      const auto fe_rho = UEmbed<M>::Interpolate(fc_rho, mebc_, eb);
-      const auto fe_mu = UEmbed<M>::Interpolate(fc_mu, mebc_, eb);
+      MapEmbed<BCond<Scal>> me_neumann;
+      vmebc_[0].LoopBCond(eb, [&](auto cf, IdxCell, auto bc) { //
+        me_neumann[cf] = BCond<Scal>(BCondType::neumann, bc.nci);
+      });
+      const auto fe_rho = UEmbed<M>::Interpolate(fc_rho, me_neumann, eb);
+      const auto fe_mu = UEmbed<M>::Interpolate(fc_mu, me_neumann, eb);
       FieldFaceb<Scal> fev_carrier(m, 0);
       eb.LoopFaces([&](auto cf) { //
         fev_carrier[cf] = fev[cf];
       });
       for (auto l : layers) {
-        const auto feu = UEmbed<M>::Interpolate(vfcu_[l], mebc_, eb);
+        const auto feu = UEmbed<M>::Interpolate(vfcu_[l], vmebc_[l], eb);
         eb.LoopFaces([&](auto cf) { //
           auto vel = GetSlipVelocity(l, fe_rho[cf], fe_mu[cf]);
-          if (mebc_.find(cf)) { // zero flux on boundaries
+          if (vmebc_[l].find(cf)) { // zero flux on boundaries
             vel = Vect(0);
           }
           fev_carrier[cf] -= feu[cf] * vel.dot(eb.GetSurface(cf));
@@ -109,20 +113,18 @@ struct Tracer<EB_>::Imp {
       for (auto l : layers) {
         auto& fcu = vfcu_[l];
         const auto fcg =
-            UEB::AverageGradient(UEB::Gradient(fcu, mebc_, eb), eb);
+            UEB::AverageGradient(UEB::Gradient(fcu, vmebc_[l], eb), eb);
         FieldFaceb<Scal> fevl(m); // phase l flux with slip
         eb.LoopFaces([&](auto cf) { //
           auto vel = GetSlipVelocity(l, fe_rho[cf], fe_mu[cf]);
-          if (mebc_.find(cf)) { // zero flux on boundaries
+          if (vmebc_[l].find(cf)) { // zero flux on boundaries
             vel = Vect(0);
           }
           fevl[cf] =
               fev_carrier[cf] + vel.dot(eb.GetSurface(cf));
         });
         auto feu = UEmbed<M>::InterpolateUpwind(
-            fcu, mebc_, conf.scheme, fcg, fevl, eb);
-        // auto feu =
-        //    InterpolateSuperbee(fcu, fcg, {}, fev.GetFieldFace(), m);
+            fcu, vmebc_[l], conf.scheme, fcg, fevl, eb);
 
         FieldEmbed<Scal> fevu(m, 0);
         eb.LoopFaces([&](auto cf) { //
@@ -172,7 +174,7 @@ struct Tracer<EB_>::Imp {
   Conf conf;
   Scal time_;
   GRange<size_t> layers;
-  MapEmbed<BCond<Scal>> mebc_;
+  Multi<MapEmbed<BCond<Scal>>> vmebc_;
   Multi<FieldCell<Scal>> vfcu_;
   FieldCell<Scal> fc_density_;
   FieldCell<Scal> fc_viscosity_;
@@ -181,8 +183,8 @@ struct Tracer<EB_>::Imp {
 template <class EB_>
 Tracer<EB_>::Tracer(
     M& m, const EB& eb, const Multi<const FieldCell<Scal>*>& vfcu,
-    const MapEmbed<BCond<Scal>>& mebc, Scal time, Conf conf)
-    : imp(new Imp(this, m, eb, vfcu, mebc, time, conf)) {}
+    const Multi<const MapEmbed<BCond<Scal>>*>& vmebc, Scal time, Conf conf)
+    : imp(new Imp(this, m, eb, vfcu, vmebc, time, conf)) {}
 
 template <class EB_>
 Tracer<EB_>::~Tracer() = default;
@@ -224,7 +226,7 @@ auto Tracer<EB_>::GetMixtureViscosity() const -> const FieldCell<Scal>& {
 
 template <class EB_>
 auto Tracer<EB_>::GetView() const -> TracerView {
-  return {imp->layers, imp->vfcu_, imp->mebc_};
+  return {imp->layers, imp->vfcu_, imp->vmebc_};
 }
 
 template <class EB_>
