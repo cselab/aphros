@@ -142,6 +142,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void InitEmbed();
   void InitTracer(Multi<FieldCell<Scal>>& vfcu);
   void InitTracerFields(Multi<FieldCell<Scal>>& vfcu);
+  void SpawnTracer();
   void InitParticles();
   void SpawnParticles(ParticlesView& view);
   void InitFluid(const FieldCell<Vect>& fc_vel);
@@ -480,6 +481,31 @@ void Hydro<M>::InitEmbed() {
   }
 }
 template <class M>
+void Hydro<M>::SpawnTracer() {
+  auto& conf = tracer_->GetConf();
+  const auto trl = GRange<size_t>(conf.layers);
+  const Vect sphere_c(var.Vect["tracer_spawn_sphere_c"]);
+  const Scal sphere_r = var.Double["tracer_spawn_sphere_r"];
+  const size_t dim = m.GetEdim();
+  auto vfcu = tracer_->GetVolumeFraction();
+  for (auto l : trl) {
+    const std::string prefix = "tracer" + std::to_string(l);
+    auto k = var.Double[prefix + "_factor"];
+    for (auto c : m.AllCells()) {
+      const auto xc = m.GetCenter(c);
+      Vect dx = xc - sphere_c;
+      if (dim == 2) {
+        dx[2] = 0;
+      }
+      if (dx.sqrnorm() < sqr(sphere_r)) {
+        vfcu[l][c] = k;
+      }
+    }
+  }
+  tracer_->SetVolumeFraction(vfcu);
+}
+
+template <class M>
 void Hydro<M>::SpawnParticles(ParticlesView& view) {
   const Vect sphere_c(var.Vect["particles_spawn_sphere_c"]);
   const Scal sphere_r = var.Double["particles_spawn_sphere_r"];
@@ -501,7 +527,11 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
   auto& g = randgen_;
   for (auto c : m.Cells()) {
     const auto xc = m.GetCenter(c);
-    if (xc.sqrdist(sphere_c) < sqr(sphere_r) && u(g) < prob) {
+    Vect dx = xc - sphere_c;
+    if (dim == 2) {
+      dx[2] = 0;
+    }
+    if (dx.sqrnorm() < sqr(sphere_r) && u(g) < prob) {
       view.x.push_back(m.GetCenter(c) + Vect(um(g), um(g), um(g)) * h);
       view.v.push_back(Vect(0));
       view.r.push_back(diameter * 0.5);
@@ -2524,6 +2554,9 @@ template <class M>
 void Hydro<M>::StepTracer() {
   auto sem = m.GetSem("tracer-steps"); // sem nested
   sem.LoopBegin();
+  if (sem("spawn")) {
+    SpawnTracer();
+  }
   if (sem.Nested("start")) {
     tracer_->Step(tracer_dt_, fs_->GetVolumeFlux());
   }

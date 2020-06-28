@@ -208,6 +208,11 @@ auto Tracer<EB_>::GetVolumeFraction() const -> const Multi<FieldCell<Scal>>& {
 }
 
 template <class EB_>
+void Tracer<EB_>::SetVolumeFraction(const Multi<FieldCell<Scal>>& vfcu) {
+  imp->vfcu_ = vfcu;
+}
+
+template <class EB_>
 auto Tracer<EB_>::GetMixtureDensity() const -> const FieldCell<Scal>& {
   return imp->fc_density_;
 }

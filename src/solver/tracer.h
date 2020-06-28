@@ -57,6 +57,7 @@ class TracerInterface {
   // vfc_src: volume source, or nullptr
   virtual void Step(Scal dt, const FieldEmbed<Scal>& fe_flux) = 0;
   virtual const Multi<FieldCell<Scal>>& GetVolumeFraction() const = 0;
+  virtual void SetVolumeFraction(const Multi<FieldCell<Scal>>&) = 0;
   virtual const FieldCell<Scal>& GetMixtureDensity() const = 0;
   virtual const FieldCell<Scal>& GetMixtureViscosity() const = 0;
   // Returns view with pointers to fields.
@@ -92,6 +93,7 @@ class Tracer : public TracerInterface<typename EB_::M> {
   // vfc_src: volume source, or nullptr
   void Step(Scal dt, const FieldEmbed<Scal>& fe_flux) override;
   const Multi<FieldCell<Scal>>& GetVolumeFraction() const override;
+  void SetVolumeFraction(const Multi<FieldCell<Scal>>&) override;
   const FieldCell<Scal>& GetMixtureDensity() const override;
   const FieldCell<Scal>& GetMixtureViscosity() const override;
   // Returns view with pointers to fields.
