@@ -194,6 +194,14 @@ void Smoothen(FieldCell<T>& fc, const MapCondFace& mfc, M& m, size_t rep);
 template <class T, class M>
 void SmoothenNode(FieldCell<T>& fc, M& m, size_t rep);
 
+// Smoothens node field.
+// fc: fieldcell [s]
+// iters: number of iterations
+// Output:
+// fc: smooth field [s]
+template <class T, class M>
+void SmoothenNode(FieldNode<T>& fc, M& m, size_t iters);
+
 // Returns gradient.
 // ff: scalar fieldface [s]
 // Output:

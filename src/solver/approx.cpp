@@ -77,6 +77,7 @@ template void Smoothen(
 template void Smoothen(
     FieldCell<TV>& fc, const MapCondFace& mfc, M& m, size_t rep);
 template void SmoothenNode(FieldCell<T>& fc, M& m, size_t rep);
+template void SmoothenNode(FieldNode<T>& fn, M& m, size_t iters);
 
 template FieldCell<typename M::Vect> Gradient(
     const FieldFace<typename M::Scal>& ff, const M& m);

@@ -475,6 +475,9 @@ void Hydro<M>::InitEmbed() {
       ctx->fnl = UEmbed<M>::InitEmbed(m, var, m.IsRoot());
       InitEmbedHook(ctx->fnl, var, m);
     }
+    if (sem.Nested("smoothen")) {
+      SmoothenNode(ctx->fnl, m, var.Int["embed_smoothen_iters"]);
+    }
     if (sem.Nested("init")) {
       eb_->Init(ctx->fnl);
     }
