@@ -612,6 +612,9 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
         slip.type = SlipType::none;
       } else if (type == "stokes") {
         slip.type = SlipType::stokes;
+      } else if (type == "termvel") {
+        slip.type = SlipType::constant;
+        slip.velocity =  conf.gravity * (termvel[l] / conf.gravity.norm());
       } else if (type == "constant") {
         slip.type = SlipType::constant;
         arg >> slip.velocity;

@@ -158,6 +158,16 @@ struct Tracer<EB_>::Imp {
           }
         }
       }
+      // set phase 0 to sum of other phases
+      for (auto c : eb.Cells()) {
+        Scal sum = 0;
+        for (auto l : layers) {
+          if (l > 0) {
+            sum += vfcu_[l][c];
+          }
+        }
+        vfcu_[0][c] = 1 - sum;
+      }
       for (auto l : layers) {
         m.Comm(&vfcu_[l]);
       }
