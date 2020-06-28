@@ -67,11 +67,8 @@ struct Particles<EB_>::Imp {
               (fc_vel[c] + s.v[i] * (tau / dt) + conf.gravity * tau) /
               (1 + tau / dt);
         }
+        const Vect x_old = s.x[i];
         s.x[i] += s.v[i] * dt;
-        if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || eb.IsCut(c) ||
-            eb.IsExcluded(c)) {
-          s.x[i] -= s.v[i] * dt;
-        }
         for (size_t d = 0; d < m.GetEdim(); ++d) {
           if (m.flags.is_periodic[d]) {
             if (s.x[i][d] < 0) {
@@ -81,6 +78,10 @@ struct Particles<EB_>::Imp {
               s.x[i][d] -= gl[d];
             }
           }
+        }
+        if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || eb.IsCut(c) ||
+            eb.IsExcluded(c)) {
+          s.x[i] = x_old;
         }
       }
     }
