@@ -518,6 +518,7 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
   const Vect h = m.GetCellSize();
   const Scal cell_vol = (dim == 3 ? h.prod() : h[0] * h[1]);
   const Scal termvel = var.Double["particles_termvel"];
+  const Vect velocity(var.Vect["particles_spawn_velocity"]);
   const Scal diameter = var.Double["particles_diameter"];
   const Scal density = var.Double["particles_density"];
   const Scal prob = particles_dt_ * cell_vol * spawn_rate / sphere_vol;
@@ -533,7 +534,7 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
     }
     if (dx.sqrnorm() < sqr(sphere_r) && u(g) < prob) {
       view.x.push_back(m.GetCenter(c) + Vect(um(g), um(g), um(g)) * h);
-      view.v.push_back(Vect(0));
+      view.v.push_back(velocity);
       view.r.push_back(diameter * 0.5);
       view.rho.push_back(density);
       view.termvel.push_back(termvel);
@@ -1828,7 +1829,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       ff_rho[f] = r1 * v1 + r2 * v2;
     }
 
-    if (tracer_) {
+    if (tracer_ && var.Int["tracer_override_mixture"]) {
       const auto& fc_rho_mix = tracer_->GetMixtureDensity();
       const auto& fc_mu_mix = tracer_->GetMixtureViscosity();
       for (auto c : m.AllCells()) {
