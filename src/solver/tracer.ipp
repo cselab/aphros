@@ -120,8 +120,7 @@ struct Tracer<EB_>::Imp {
           if (vmebc_[l].find(cf)) { // zero flux on boundaries
             vel = Vect(0);
           }
-          fevl[cf] =
-              fev_carrier[cf] + vel.dot(eb.GetSurface(cf));
+          fevl[cf] = fev_carrier[cf] + vel.dot(eb.GetSurface(cf));
         });
         auto feu = UEmbed<M>::InterpolateUpwind(
             fcu, vmebc_[l], conf.scheme, fcg, fevl, eb);
@@ -141,7 +140,7 @@ struct Tracer<EB_>::Imp {
         }
         fct = UEmbed<M>::RedistributeCutCells(fct, eb);
         for (auto c : eb.Cells()) {
-          fcu[c] += fct[c] / eb.GetVolume(c);
+          fcu[c] += fct[c] / m.GetVolume(c);
         }
       }
       // clip to [0, 1] and normalize to sum 1
@@ -152,7 +151,7 @@ struct Tracer<EB_>::Imp {
           u = Clip(u);
           sum += u;
         }
-        if (sum > 0) {
+        if (sum > 1) {
           for (auto l : layers) {
             auto& u = vfcu_[l][c];
             u /= sum;
