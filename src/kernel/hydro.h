@@ -1975,6 +1975,7 @@ void Hydro<M>::DumpFields() {
     FieldCell<Scal> fcdiv; // divergence of velocity
     FieldCell<Scal> fcdis; // energy dissipation
     FieldCell<Scal> fc_ebvf; // embedded boundaries volume fraction
+    FieldCell<Scal> fc_tracer_sum; // sum of tracer_ fields starting from 1
   } * ctx(sem);
   if (sem("dump")) {
     if (m.IsRoot()) {
@@ -2114,6 +2115,18 @@ void Hydro<M>::DumpFields() {
     if (tracer_) {
       for (auto l : tracer_->GetView().layers) {
         dump(tracer_->GetVolumeFraction()[l], "tu" + std::to_string(l));
+      }
+      if (dl.count("tusum")) {
+        ctx->fc_tracer_sum.Reinit(m, 0);
+        for (auto l : tracer_->GetView().layers) {
+          if (l > 0) {
+            const auto& fc = tracer_->GetVolumeFraction()[l];
+            for (auto c : m.Cells()) {
+              ctx->fc_tracer_sum[c] += fc[c];
+            }
+          }
+        }
+        dump(ctx->fc_tracer_sum, "tusum");
       }
     }
   }
