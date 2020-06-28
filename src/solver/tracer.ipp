@@ -140,7 +140,7 @@ struct Tracer<EB_>::Imp {
         }
         fct = UEmbed<M>::RedistributeCutCells(fct, eb);
         for (auto c : eb.Cells()) {
-          fcu[c] += fct[c] / m.GetVolume(c);
+          fcu[c] += fct[c] / eb.GetVolume(c);
         }
       }
       // clip to [0, 1] and normalize to sum 1
