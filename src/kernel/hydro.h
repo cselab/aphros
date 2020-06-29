@@ -513,34 +513,41 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
   const Vect sphere_c(var.Vect["particles_spawn_sphere_c"]);
   const Scal sphere_r = var.Double["particles_spawn_sphere_r"];
   // particles per unit time
-  const Scal spawn_rate = var.Double["particles_spawn_rate"];
   const size_t dim = m.GetEdim();
   const Scal sphere_vol =
       (dim == 3 ? 4. / 3. * M_PI * std::pow(sphere_r, 3)
                 : M_PI * sqr(sphere_r));
   const Vect h = m.GetCellSize();
   const Scal cell_vol = (dim == 3 ? h.prod() : h[0] * h[1]);
-  const Scal termvel = var.Double["particles_termvel"];
   const Vect velocity(var.Vect["particles_spawn_velocity"]);
-  const Scal diameter = var.Double["particles_diameter"];
   const Scal density = var.Double["particles_density"];
-  const Scal prob = particles_dt_ * cell_vol * spawn_rate / sphere_vol;
+  const auto spawn_rate = var.Vect["particles_spawn_rate"];
+  const auto diameter = var.Vect["particles_diameter"];
+  const auto termvel = var.Vect["particles_termvel"];
+  const size_t num_rates = spawn_rate.size();
+  fassert_equal(diameter.size(), num_rates);
+  fassert_equal(termvel.size(), num_rates);
   std::uniform_real_distribution<Scal> u(0, 1);
   std::uniform_real_distribution<Scal> um(-0.5, 0.5);
-
   auto& g = randgen_;
+
   for (auto c : m.Cells()) {
     const auto xc = m.GetCenter(c);
     Vect dx = xc - sphere_c;
     if (dim == 2) {
       dx[2] = 0;
     }
-    if (dx.sqrnorm() < sqr(sphere_r) && u(g) < prob) {
-      view.x.push_back(m.GetCenter(c) + Vect(um(g), um(g), um(g)) * h);
-      view.v.push_back(velocity);
-      view.r.push_back(diameter * 0.5);
-      view.rho.push_back(density);
-      view.termvel.push_back(termvel);
+    if (dx.sqrnorm() < sqr(sphere_r)) {
+      for (size_t i = 0; i < num_rates; ++i) {
+        const Scal prob = particles_dt_ * cell_vol * spawn_rate[i] / sphere_vol;
+        if (u(g) < prob) {
+          view.x.push_back(m.GetCenter(c) + Vect(um(g), um(g), um(g)) * h);
+          view.v.push_back(velocity);
+          view.r.push_back(diameter[i] * 0.5);
+          view.rho.push_back(density);
+          view.termvel.push_back(termvel[i]);
+        }
+      }
     }
   }
 }

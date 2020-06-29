@@ -3,6 +3,7 @@
 
 #include <string>
 #include <stdexcept>
+#include <sstream>
 
 #define FILELINE \
   (std::string() + __FILE__ + ":" + std::to_string(__LINE__))
@@ -15,3 +16,12 @@
     }                                                                     \
   } while (0);
 
+#define fassert_equal(x, y)                                             \
+  do {                                                                  \
+    if (!((x) == (y))) {                                                \
+      std::stringstream s;                                              \
+      s << FILELINE << ": assertion failed ";                         \
+      s << " " << #x << "=" << (x) << " != " << (y) << "=" << #y; \
+      throw std::runtime_error(s.str());                                \
+    }                                                                   \
+  } while (0);

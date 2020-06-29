@@ -5,6 +5,8 @@
 #include <omp.h>
 #endif
 
+#include <stdexcept>
+
 #include "distr.h"
 
 template <class M>
@@ -47,7 +49,14 @@ template <class M>
 void DistrMesh<M>::RunKernels(const std::vector<MIdx>& bb) {
 #pragma omp parallel for schedule(dynamic, 1)
   for (size_t i = 0; i < bb.size(); ++i) {
-    mk.at(bb[i])->Run();
+    try {
+      mk.at(bb[i])->Run();
+    } catch (const std::exception& e) {
+      std::cerr << "\nabort on block=" << i << " after throwing exception\n"
+                << e.what() << '\n';
+      MPI_Abort(MPI_COMM_WORLD, 3);
+      std::terminate();
+    }
   }
 }
 
