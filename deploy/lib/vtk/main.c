@@ -141,10 +141,8 @@ struct VTK* vtk_read(FILE* f) {
   FREE(r);
   if (line_get(s, f) != 0) goto end_data;
   sscanf(s, "%s %d %*d", name, &nt);
-  if (!eq(name, "POLYGONS")) {
-    MSG(("preved: %s", name));
+  if (!eq(name, "POLYGONS"))
     goto end_polygons;
-  }
   FILL(4 * nt, f, &t);
   MALLOC(nt, &t0);
   MALLOC(nt, &t1);
