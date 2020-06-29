@@ -153,7 +153,7 @@ class Domain:
 
     def compare(self, other):
         def isclose(a, b):
-            return abs(a - b) < 1e-10
+            return np.all(np.isclose(a, b))
 
         diff = dict()
         v = vars(self)
