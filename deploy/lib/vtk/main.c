@@ -12,12 +12,12 @@ enum { N = 999 };
 
 #define FMT "%.20g"
 #define LINE(s, f)             \
-  do                           \
-    if (line_get(s, f) != 0) { \
-      MSG(("fail to read"));   \
-      goto fail;               \
-    }                          \
-  while (0)
+    do                         \
+        if (line_get(s, f) != 0) {              \
+            MSG(("fail to read"));              \
+            goto fail;                          \
+        }                                       \
+    while (0)
 
 #define SWAP(n, p) swap(n, sizeof(*(p)), p)
 #define FILL(n, f, p)    \
@@ -127,7 +127,7 @@ struct VTK* vtk_read(FILE* f) {
     goto fail;
   }
   if (line_get(s, f) != 0) goto end_polygons;
-  sscanf(s, "%s %d float", name, &nv);
+  sscanf(s, "%[^\t ] %d float", name, &nv);
   if (!eq(name, "POINTS")) goto end_polygons;
   FILL(3 * nv, f, &r);
   MALLOC(nv, &x);
@@ -140,7 +140,7 @@ struct VTK* vtk_read(FILE* f) {
   }
   FREE(r);
   if (line_get(s, f) != 0) goto end_data;
-  sscanf(s, "%s %d %*d", name, &nt);
+  sscanf(s, "%[^\t ] %d %*d", name, &nt);
   if (!eq(name, "POLYGONS"))
     goto end_polygons;
   FILL(4 * nt, f, &t);
@@ -164,7 +164,7 @@ end_polygons:
         MSG(("unknown location '%s'", location));
         goto fail;
       }
-      if (sscanf(s, "%s %s %s", rank, name, type) != 3) break;
+      if (sscanf(s, "%[^\t ] %[^\t ] %[^\t ]", rank, name, type) != 3) break;
       q->name[nf] = memory_strndup(name, N);
       if (eq(rank, "SCALARS")) {
         LINE(s, f);
