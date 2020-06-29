@@ -346,3 +346,30 @@ class BoundaryConditions:
     def GenerateFile(self, path):
         with open(path, 'w') as f:
             f.write(self.Generate())
+
+class Parameters:
+    """
+    Base class for parameters of a config generator.
+    Values of parameters are accessible as attributes:
+    >>> par = Parameters()
+    >>> par.extent = 1
+    """
+    def __init__(self, path=None):
+        for k in dir(self):
+            if not k.startswith('_') and k not in ['exec']:
+                setattr(self, k, getattr(self, k))
+        if path:
+            self.execfile(path)
+    def execfile(self, path):
+        """
+        Executes a Python script and saves the local variables as attributes.
+        path: `str`
+            Path to script.
+        """
+        with open(path) as f:
+            d = dict()
+            exec(f.read(), None, d)
+            for k, v in d.items():
+                setattr(self, k, v)
+        return self
+

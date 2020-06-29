@@ -20,5 +20,6 @@ Domain = aphros.confgen.Domain
 AdjustedDomain = aphros.confgen.AdjustedDomain
 AdjustDomainToProcessors = aphros.confgen.AdjustDomainToProcessors
 CheckDomain = aphros.confgen.CheckDomain
+from aphros.confgen import Parameters
 
 from aphros.test import TestBase
