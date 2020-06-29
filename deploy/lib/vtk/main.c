@@ -97,13 +97,30 @@ struct VTK* vtk_ini(
 }
 
 struct VTK* vtk_read(FILE* f) {
-  struct VTK* q;
-  double *x, *y, *z;
-  void* p;
+  char location[N];
+  char name[N];
+  char rank[N];
+  char s[N];
+  char type[N];
+  double *x;
+  double *y;
+  double *z;
   float* r;
-  int nv, nt, nf, n, m, i, j, size;
-  int *t, *t0, *t1, *t2;
-  char s[N], rank[N], name[N], type[N], location[N];
+  int i;
+  int j;
+  int m;
+  int n;
+  int nf;
+  int np0;
+  int nt;
+  int nv;
+  int size;
+  int *t;
+  int *t0;
+  int *t1;
+  int *t2;
+  struct VTK* q;
+  void* p;
 
   nv = nt = nf = 0;
   MALLOC(1, &q);
@@ -140,9 +157,14 @@ struct VTK* vtk_read(FILE* f) {
   }
   FREE(r);
   if (line_get(s, f) != 0) goto end_data;
-  sscanf(s, "%[^\t ] %d %*d", name, &nt);
+  sscanf(s, "%[^\t ] %d %d", name, &nt, &np0);
   if (!eq(name, "POLYGONS"))
     goto end_polygons;
+  if (4 * nt != np0) {
+      MSG(("line: %s", s));
+      MSG(("only triangles are supported"));
+      goto fail;
+  }
   FILL(4 * nt, f, &t);
   MALLOC(nt, &t0);
   MALLOC(nt, &t1);
