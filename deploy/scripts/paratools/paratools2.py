@@ -68,3 +68,16 @@ def SaveAnimation(steps, renderView, sources_ft, timearrays, pattern="a_{:}.png"
         SetTimeStep(index, sources_ft, timearrays)
         Log("{:}/{:}: {:}".format(index + 1, len(steps), outfile))
         para.SaveScreenshot(outfile, renderView)
+
+def GetBoundingBox(o):
+    '''
+    Returns bounding box of object o.
+    [x0, y0, z0], [x1, y1, z1]
+    '''
+    o.UpdatePipeline()
+    di = o.GetDataInformation()
+    lim = di.DataInformation.GetBounds()
+    lim0 = np.array(lim[::2])
+    lim1 = np.array(lim[1::2])
+    return np.array(lim0), np.array(lim1)
+
