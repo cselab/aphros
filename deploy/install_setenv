@@ -73,12 +73,12 @@ else:
     exe_path = os.path.join(gen_dir, name)
 
 with open(fpath, "wb") as f:
+    modenv = os.environ.copy()
+    modenv["PREFIX"] = prefix
+    modenv["PROFILE"] = profile
     subprocess.call([exe_path],
                     cwd=profile_dir,
-                    env={
-                        "PREFIX": prefix,
-                        "PROFILE": profile
-                    },
+                    env=modenv,
                     stdout=f)
 
 home_bin = os.path.expanduser("~/.local/bin")
