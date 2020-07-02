@@ -145,6 +145,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void SpawnTracer();
   void InitParticles();
   void SpawnParticles(ParticlesView& view);
+  void OverwriteBc();
   void InitFluid(const FieldCell<Vect>& fc_vel);
   void InitAdvection(const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl);
   void InitStat();
@@ -319,6 +320,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapEmbed<BCondAdvection<Scal>> mf_adv_;
   MapCondFace mf_cond_vfsm_;
   MapEmbed<BCondFluid<Vect>> mebc_fluid_;
+  MapEmbed<BCondFluid<Vect>> mebc_fluid_orig_;
   MapEmbed<size_t> me_group_;
   MapEmbed<Scal> me_contang_;
   std::vector<std::string> vdesc_;
@@ -507,6 +509,46 @@ void Hydro<M>::SpawnTracer() {
   }
   tracer_->SetVolumeFraction(vfcu);
 }
+
+template <class M>
+void Hydro<M>::OverwriteBc() {
+  const auto factors = var.Vect["overwrite_inlet_factors"];
+  const auto times = var.Vect["overwrite_inlet_times"];
+  fassert_equal(factors.size(), times.size());
+  if (times.size() == 0) {
+    return;
+  }
+  const Scal t = fs_->GetTime();
+  size_t i = 0;
+  while (i < times.size() && times[i] <= t) { ++i; }
+
+  auto apply = [&](Scal factor) {
+    mebc_fluid_.LoopPairs([&](auto cf_bc) {
+      auto& curr = mebc_fluid_[cf_bc.first];
+      const auto& orig = mebc_fluid_orig_[cf_bc.first];
+      if (curr.type == BCondFluidType::inlet) {
+        fassert(orig.type == BCondFluidType::inlet);
+        curr.velocity = orig.velocity * factor;
+      }
+    });
+  };
+
+  if (i == 0) { // t < times[0]
+    return;
+  }
+
+  if (i < times.size()) { // times[i - 1] <= t < times[i]
+    const auto t0 = times[i - 1];
+    const auto t1 = times[i];
+    const auto f0 = factors[i - 1];
+    const auto f1 = factors[i];
+    const auto f = (t0 < t1 ? f0 + (f1 - f0) * (t - t0) / (t1 - t0) : f0);
+    apply(f);
+  } else { // t > times[i - 1]
+    apply(factors[i - 1]);
+  }
+}
+
 
 template <class M>
 void Hydro<M>::SpawnParticles(ParticlesView& view) {
@@ -1002,6 +1044,7 @@ void Hydro<M>::Init() {
       GetFluidFaceCond(var, m, mf_fluid_, mf_adv_);
       mebc_fluid_ = GetBCondFluid<M>(mf_fluid_);
     }
+    mebc_fluid_orig_ = mebc_fluid_;
 
     // boundary conditions for smoothing of volume fraction
     for (auto& p : mebc_fluid_.GetMapFace()) {
@@ -2558,6 +2601,9 @@ void Hydro<M>::CheckAbort(Sem& sem, Scal& nabort) {
 template <class M>
 void Hydro<M>::StepFluid() {
   auto sem = m.GetSem("iter"); // sem nested
+  if (sem("iter")) {
+    OverwriteBc();
+  }
   sem.LoopBegin();
   if (sem.Nested("iter")) {
     fs_->MakeIteration();
