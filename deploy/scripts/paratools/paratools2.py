@@ -47,8 +47,8 @@ def ApplyForceTime(sources):
     Applies ForceTime filter to sources.
     Returns new sources and arrays with original time values.
     '''
-    timearrays = [np.array(s.TimestepValues) for s in sources]
-    sources_ft = [para.ForceTime(s) for s in sources]
+    timearrays = [np.array(s.TimestepValues) if hasattr(s, "TimestepValues") else None for s in sources]
+    sources_ft = [para.ForceTime(s) if s is not None else None for s in sources]
     return sources_ft, timearrays
 
 def SetTimeStep(index, sources_ft, timearrays):
@@ -56,8 +56,9 @@ def SetTimeStep(index, sources_ft, timearrays):
     Sets sources to time step given by index.
     '''
     for s,tt in zip(sources_ft, timearrays):
-        s.ForcedTime = tt[index]
-        s.UpdatePipeline()
+        if hasattr(s, "ForcedTime"):
+            s.ForcedTime = tt[index]
+            s.UpdatePipeline()
 
 def SaveAnimation(steps, renderView, sources_ft, timearrays, pattern="a_{:}.png", force=False):
     for index,step in enumerate(steps):
@@ -65,6 +66,7 @@ def SaveAnimation(steps, renderView, sources_ft, timearrays, pattern="a_{:}.png"
         if os.path.isfile(outfile) and not force:
             Log("skip existing {:}".format(outfile))
             continue
+        open(outfile, 'a').close()
         SetTimeStep(index, sources_ft, timearrays)
         Log("{:}/{:}: {:}".format(index + 1, len(steps), outfile))
         para.SaveScreenshot(outfile, renderView)
