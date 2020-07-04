@@ -127,6 +127,11 @@ under the supervision of
   [10.1103/APS.DFD.2019.GFM.V0018](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)
 [[item:cscs]] Annual report 2019 of the Swiss National Supercomputing Centre (cover page)
   [[link]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019)
+[[item:pasc21]] P. Karnakov, F. Wermelinger, S. Litvinov,
+  and P.  Koumoutsakos, "Aphros: High Performance Software for Multiphase Flows with Large Scale
+  Bubble and Drop Clusters" in _Proceedings of the platform for
+  advanced scientific computing conference on – PASC ’20_, 2020
+  [10.1145/3394277.3401856](https://doi.org/10.1145/3394277.3401856)
 '''
 
 m_refs = list(re.finditer("\[\[ref:[^]]*\]\]", text))
