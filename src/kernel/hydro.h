@@ -2195,8 +2195,12 @@ void Hydro<M>::DumpFields() {
       }
     }
   }
+  const std::string hdfpath = "test.h5";
   if (sem.Nested()) {
-    Hdf<M>::Write(as_->GetField(), "test.h5", m);
+    Hdf<M>::Write(as_->GetField(), hdfpath, m);
+  }
+  if (sem()) {
+    Hdf<M>::WriteXmf("test.xmf", "test", hdfpath, m);
   }
   if (var.Int["enable_advection"]) {
     if (var.Int["dumppoly"] && sem.Nested()) {

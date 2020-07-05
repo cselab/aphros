@@ -3,6 +3,7 @@
 
 #include <hdf5.h>
 #include <mpi.h>
+#include <fstream>
 
 #include "hdf.h"
 #include "util/logger.h"
@@ -86,5 +87,65 @@ void Hdf<M>::Write(
     H5Dclose(dataset);
     H5Fclose(file);
   }
-  if (sem()) {}
+  if (sem()) {
+  }
+}
+
+// Creates XMF file with uniform mesh and scalar data attribute
+// linked to HDF field with name 'data'.
+// xmfpath: path to output
+// name: name of attribute
+// origin,spacing,dims: mesh parameters
+// hdfpath: path to existing hdf
+// hdfdims: dimensions of hdf, either (nz,ny,nx,1) or (ny,nx,1)
+template <class M>
+void Hdf<M>::WriteXmf(
+    std::string xmfpath, std::string name, const std::array<double, 3>& origin,
+    const std::array<double, 3>& spacing, const std::array<size_t, 3>& dims,
+    std::string hdfpath) {
+  std::ofstream f(xmfpath);
+  f.precision(20);
+  f << "<?xml version='1.0' ?>\n";
+  f << "<!DOCTYPE Xdmf SYSTEM 'Xdmf.dtd' []>\n";
+  f << "<Xdmf Version='2.0'>\n";
+
+  f << " <Domain>\n";
+  f << "   <Grid GridType='Uniform'>\n";
+  f << "     <Topology TopologyType='3DCORECTMesh' Dimensions='";
+  f << dims[2] + 1 << " " << dims[1] + 1 << " " << dims[0] + 1 << "'/>\n\n";
+
+  f << "     <Geometry GeometryType='ORIGIN_DXDYDZ'>\n";
+  f << "       <DataItem Name='Origin' Dimensions='3' NumberType='Float' "
+       "Precision='8' Format='XML'>\n";
+  f << "         " << origin[0] << ' ' << origin[1] << ' ' << origin[2] << "\n";
+  f << "       </DataItem>\n";
+  f << "       <DataItem Name='Spacing' Dimensions='3' NumberType='Float' "
+       "Precision='8' Format='XML'>\n";
+  f << "         " << spacing[0] << ' ' << spacing[1] << ' ' << spacing[2]
+    << "\n";
+  f << "       </DataItem>\n";
+  f << "     </Geometry>\n\n";
+
+  f << "     <Attribute Name='" << name
+    << "' AttributeType='Scalar' Center='Cell'>\n";
+  f << "       <DataItem Dimensions='";
+  f << dims[2] << " " << dims[1] << " " << dims[0] << " " << 1;
+  f << "' NumberType='Float' Precision='" << sizeof(Scal)
+    << "' Format='HDF'>\n";
+  f << "        " << hdfpath << ":/data\n";
+  f << "       </DataItem>\n";
+  f << "     </Attribute>\n";
+  f << "   </Grid>\n";
+  f << " </Domain>\n";
+  f << "</Xdmf>\n";
+}
+
+template <class M>
+void Hdf<M>::WriteXmf(
+    std::string xmfpath, std::string name, std::string hdfpath, const M& m) {
+  const std::array<double, 3> origin = {0, 0, 0};
+  const auto h = m.GetCellSize();
+  const std::array<double, 3> spacing = {h[0], h[1], h[2]};
+  const auto dims = m.GetGlobalSize();
+  WriteXmf(xmfpath, name, origin, spacing, dims, hdfpath);
 }
