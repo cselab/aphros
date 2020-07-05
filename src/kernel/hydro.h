@@ -24,6 +24,7 @@
 
 #include "debug/isnan.h"
 #include "dump/dumper.h"
+#include "dump/hdf.h"
 #include "dump/output.h"
 #include "func/init.h"
 #include "func/init_bc.h"
@@ -2193,6 +2194,9 @@ void Hydro<M>::DumpFields() {
         dump(ctx->fc_tracer_sum, "tusum");
       }
     }
+  }
+  if (sem.Nested()) {
+    Hdf<M>::Write(as_->GetField(), "test.h5", m);
   }
   if (var.Int["enable_advection"]) {
     if (var.Int["dumppoly"] && sem.Nested()) {

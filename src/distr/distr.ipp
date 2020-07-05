@@ -6,14 +6,17 @@
 #endif
 
 #include <stdexcept>
+#include <memory>
 
 #include "distr.h"
 
 template <class M>
 void DistrMesh<M>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
   for (auto e : ee) {
-    MIdx d(e.index);
-    mk.emplace(d, std::unique_ptr<KernelMesh<M>>(kf_.Make(var_mutable, e)));
+    const MIdx d(e.index);
+    std::unique_ptr<KernelMesh<M>> kernel(kf_.Make(var_mutable, e));
+    kernel->GetMesh().flags.comm = comm_;
+    mk.emplace(d, kernel.release());
   }
 }
 

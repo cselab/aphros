@@ -327,10 +327,8 @@ Cubismnc<Par, M>::Cubismnc(
     }
     islead = false;
   }
-
-  this->MakeKernels(ee);
-
   comm_ = g_.getCartComm(); // XXX: overwrite comm_
+  this->MakeKernels(ee);
 }
 
 template <class Par, class M>

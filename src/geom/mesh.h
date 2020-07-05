@@ -1,7 +1,6 @@
 // Created by Petr Karnakov on 25.04.2018
 // Copyright 2018 ETH Zurich
 
-// vim: expandtab:smarttab:sw=2:ts=2
 #pragma once
 
 #include <array>
@@ -24,6 +23,7 @@
 #include "util/logger.h"
 #include "util/suspender.h"
 #include "vect.h"
+#include "mpi.h"
 
 // Returns column of cells cmm,cm,cp,cpp.
 // nci: 0 or 1 such that m.GetCell(f, nci) == cp
@@ -753,6 +753,7 @@ class MeshStructured {
       w = w.min(global_blocks - MIdx(1));
       return w;
     }
+    MPI_Comm comm;
   };
   Flags flags;
 
@@ -776,6 +777,9 @@ class MeshStructured {
   template <class T>
   using OpCatVT = typename Rd::template OpCatVT<T>;
 
+  MPI_Comm GetMpiComm() const {
+    return flags.comm;
+  }
   void Reduce(const std::shared_ptr<Op>& o) {
     rd_.Add(o);
   }
