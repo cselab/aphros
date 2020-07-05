@@ -57,8 +57,7 @@ void DistrMesh<M>::RunKernels(const std::vector<MIdx>& bb) {
     } catch (const std::exception& e) {
       std::cerr << "\nabort on block=" << i << " after throwing exception\n"
                 << e.what() << '\n';
-      MPI_Abort(MPI_COMM_WORLD, 3);
-      std::terminate();
+      throw e;
     }
   }
 }
@@ -117,13 +116,13 @@ void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
     }
   }
 
-  auto append = [&bb,this](auto* derived, auto buf, size_t i) {
+  auto append = [&bb,this](auto* derived, auto& buf, size_t i) {
     for (auto& b : bb) {
       const auto& v = mk.at(b)->GetMesh().GetReduceToLead();
       dynamic_cast<decltype(derived)>(v[i].get())->Append(buf);
     }
   };
-  auto set = [&bb,this](auto* derived, auto buf, size_t i) {
+  auto set = [&bb,this](auto* derived, auto& buf, size_t i) {
     for (auto& b : bb) {
       const auto& v = mk.at(b)->GetMesh().GetReduceToLead();
       dynamic_cast<decltype(derived)>(v[i].get())->Set(buf);
@@ -142,15 +141,7 @@ void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
       set(derived, buf, i);
     } else if (auto derived = dynamic_cast<ReductionConcat*>(request)) {
       auto buf = derived->Neut();
-      const GBlock<size_t, dim> qp(p_);
-      const GBlock<size_t, dim> qb(b_);
-      for (auto wp : qp) { // same ordering as in Cubism
-        for (auto wb : qb) {
-          const auto w = b_ * wp + wb;
-          const auto& v = mk.at(w)->GetMesh().GetReduceToLead();
-          dynamic_cast<ReductionConcat*>(v[i].get())->Append(buf);
-        }
-      }
+      append(derived, buf, i);
       set(derived, buf, i);
     } else {
       throw std::runtime_error(
@@ -497,16 +488,10 @@ void DistrMesh<M>::Report() {
       ParseReport(mp, std::cout);
     }
 
-    MIdx gs;
-    {
-      MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
-      MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
-      MIdx bs(var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]);
-      gs = p * b * bs;
-    }
-    size_t nc = gs.prod(); // total cells
-    size_t nt = var.Int["max_step"];
-    size_t ni = var.Int["iter"];
+    const auto& m = mk.begin()->second->GetMesh();
+    const size_t nc = m.GetGlobalSize().prod();
+    const size_t nt = var.Int["max_step"];
+    const size_t ni = var.Int("iter", 1);
 
     // Returns: hour, minute, second, millisecond
     auto get_hmsm = [](double t) {

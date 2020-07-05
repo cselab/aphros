@@ -31,10 +31,10 @@ void Hdf<M>::Write(
     }
 
     using OpCatM = typename M::template OpCatT<MIdx>;
-    m.Reduce(std::make_shared<OpCatM>(&ctx->origin));
-    m.Reduce(std::make_shared<OpCatM>(&ctx->size));
+    m.ReduceToLead(std::make_shared<OpCatM>(&ctx->origin));
+    m.ReduceToLead(std::make_shared<OpCatM>(&ctx->size));
     using OpCatVS = typename M::template OpCatVT<Scal>;
-    m.Reduce(std::make_shared<OpCatVS>(&ctx->data));
+    m.ReduceToLead(std::make_shared<OpCatVS>(&ctx->data));
   }
   if (sem("write") && m.IsLead()) {
     const auto hdf_type =
@@ -113,10 +113,10 @@ void Hdf<M>::Read(
     ctx->dataptr.push_back(&ctx->data);
 
     using OpCatM = typename M::template OpCatT<MIdx>;
-    m.Reduce(std::make_shared<OpCatM>(&ctx->origin));
-    m.Reduce(std::make_shared<OpCatM>(&ctx->size));
+    m.ReduceToLead(std::make_shared<OpCatM>(&ctx->origin));
+    m.ReduceToLead(std::make_shared<OpCatM>(&ctx->size));
     using OpCatP = typename M::template OpCatT<std::vector<Scal>*>;
-    m.Reduce(std::make_shared<OpCatP>(&ctx->dataptr));
+    m.ReduceToLead(std::make_shared<OpCatP>(&ctx->dataptr));
   }
   if (sem("read") && m.IsLead()) {
     const auto hdf_type =
@@ -180,13 +180,15 @@ void Hdf<M>::Read(
     H5Dclose(dataset);
     H5Fclose(file);
   }
-  if (sem("copy")) { // XXX empty stage
+  if (sem("copy")) {
     size_t i = 0;
+    fc.Reinit(m);
     for (auto c : m.Cells()) {
       fc[c] = ctx->data[i++];
     }
+    m.Comm(&fc);
   }
-  if (sem()) {
+  if (sem()) { // XXX empty stage
   }
 }
 

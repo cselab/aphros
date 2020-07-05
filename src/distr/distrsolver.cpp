@@ -192,7 +192,7 @@ int RunMpi(
   } catch (const std::exception& e) {
     status = 1;
     std::cerr << "\nabort after throwing exception\n" << e.what() << '\n';
-    MPI_Abort(MPI_COMM_WORLD, 3);
+    throw e;
   }
   return status;
 }

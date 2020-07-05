@@ -10,14 +10,14 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#include <tuple>
 #include <utility>
 
 #include "distr/distrsolver.h"
+#include "dump/hdf.h"
 #include "kernel/kernelmeshpar.h"
 #include "parse/vars.h"
-
-#include "dump/hdf.h"
+#include "solver/approx.h"
+#include "solver/approx_eb.h"
 #include "solver/embed.h"
 
 template <class M_>
@@ -38,12 +38,9 @@ class EmbedInterpolate : public KernelMeshPar<M_, GPar<M_>> {
   EmbedInterpolate(Vars& var, const MyBlockInfo& block, Par& par);
   void Run() override;
 
- protected:
-  using P::IsLead;
-  using P::IsRoot;
   using P::m;
-  using P::par_;
   using P::var;
+  std::unique_ptr<Embed<M>> eb_;
 };
 
 template <class M>
@@ -52,7 +49,32 @@ EmbedInterpolate<M>::EmbedInterpolate(Vars& var, const MyBlockInfo& block, Par& 
 
 template <class M>
 void EmbedInterpolate<M>::Run() {
-  auto sem = m.GetSem("advection");
+  auto sem = m.GetSem();
+  struct {
+    FieldNode<Scal> fnl;
+    FieldCell<Scal> fcu;
+    FieldEmbed<Scal> feu;
+  } * ctx(sem);
+  if (sem("ctor")) {
+    eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
+    ctx->fnl = UEmbed<M>::InitEmbed(m, var, m.IsRoot());
+    ctx->fcu.Reinit(m);
+  }
+  if (sem.Nested("smoothen")) {
+    SmoothenNode(ctx->fnl, m, var.Int["embed_smoothen_iters"]);
+  }
+  if (sem.Nested("init")) {
+    eb_->Init(ctx->fnl);
+  }
+  if (sem.Nested()) {
+    eb_->DumpPoly(var.Int["vtkbin"], var.Int["vtkmerge"]);
+  }
+  if (sem.Nested()) {
+    Hdf<M>::Read(ctx->fcu, var.String["input_hdf"], m);
+  }
+  if (sem.Nested()) {
+    Hdf<M>::Write(ctx->fcu, var.String["output_csv"], m);
+  }
   if (sem()) {}
 }
 
