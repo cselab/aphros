@@ -10,7 +10,8 @@
 
 template <class M>
 void Hdf<M>::Write(
-    const FieldCell<typename M::Scal>& fc, std::string path, M& m) {
+    const FieldCell<typename M::Scal>& fc, std::string path, M& m,
+    std::string dname) {
   auto sem = m.GetSem();
   struct {
     std::vector<MIdx> origin;
@@ -19,8 +20,9 @@ void Hdf<M>::Write(
   } * ctx(sem);
 
   if (sem("gather")) {
-    ctx->origin.push_back(m.GetInBlockCells().GetBegin());
-    ctx->size.push_back(m.GetInBlockCells().GetSize());
+    const auto bc = m.GetInBlockCells();
+    ctx->origin.push_back(bc.GetBegin());
+    ctx->size.push_back(bc.GetSize());
 
     ctx->data.emplace_back();
     auto& data = ctx->data.back();
@@ -31,19 +33,18 @@ void Hdf<M>::Write(
     using OpCatM = typename M::template OpCatT<MIdx>;
     m.Reduce(std::make_shared<OpCatM>(&ctx->origin));
     m.Reduce(std::make_shared<OpCatM>(&ctx->size));
-    using OpCatVT = typename M::template OpCatVT<Scal>;
-    m.Reduce(std::make_shared<OpCatVT>(&ctx->data));
+    using OpCatVS = typename M::template OpCatVT<Scal>;
+    m.Reduce(std::make_shared<OpCatVS>(&ctx->data));
   }
   if (sem("write") && m.IsLead()) {
     const auto hdf_type =
         (sizeof(Scal) == 4 ? H5T_NATIVE_FLOAT : H5T_NATIVE_DOUBLE);
-    MPI_Comm comm = m.GetMpiComm();
+    const MPI_Comm comm = m.GetMpiComm();
 
     MPI_Barrier(comm);
     H5open();
 
-    hid_t fapl;
-    fapl = H5Pcreate(H5P_FILE_ACCESS);
+    const hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
     H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
     const hid_t file =
         H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
@@ -63,46 +64,137 @@ void Hdf<M>::Write(
           static_cast<hsize_t>(w[0]), s};
     };
 
-    const auto fieldname = "data";
     const auto gsize = harray(m.GetGlobalSize(), kComps);
     const hid_t fspace = H5Screate_simple(kDim, gsize.data(), NULL);
     const hid_t dataset = H5Dcreate(
-        file, fieldname, hdf_type, fspace, H5P_DEFAULT, H5P_DEFAULT,
+        file, dname.c_str(), hdf_type, fspace, H5P_DEFAULT, H5P_DEFAULT,
         H5P_DEFAULT);
     for (size_t i = 0; i < nblocks; ++i) {
       const auto count = harray(ctx->size[i], kComps);
       const auto offset = harray(ctx->origin[i], 0);
+
+      H5Sselect_hyperslab(
+          fspace, H5S_SELECT_SET, offset.data(), NULL, count.data(), NULL);
+
       const hid_t mspace = H5Screate_simple(kDim, count.data(), NULL);
       const hid_t fapl = H5Pcreate(H5P_DATASET_XFER);
       H5Pset_dxpl_mpio(fapl, H5FD_MPIO_COLLECTIVE);
 
-      H5Sselect_hyperslab(
-          fspace, H5S_SELECT_SET, offset.data(), NULL, count.data(), NULL);
       H5Dwrite(dataset, hdf_type, mspace, fspace, fapl, ctx->data[i].data());
 
-      H5Sclose(mspace);
       H5Pclose(fapl);
+      H5Sclose(mspace);
     }
     H5Sclose(fspace);
     H5Dclose(dataset);
     H5Fclose(file);
   }
+  if (sem()) { // XXX empty stage
+  }
+}
+
+template <class M>
+void Hdf<M>::Read(
+    FieldCell<typename M::Scal>& fc, std::string path, M& m,
+    std::string dname) {
+  auto sem = m.GetSem();
+  struct {
+    std::vector<MIdx> origin;
+    std::vector<MIdx> size;
+    std::vector<Scal> data;
+    std::vector<std::vector<Scal>*> dataptr;
+  } * ctx(sem);
+
+  if (sem("gather")) {
+    const auto bc = m.GetInBlockCells();
+    ctx->origin.push_back(bc.GetBegin());
+    ctx->size.push_back(bc.GetSize());
+    ctx->data.resize(bc.size());
+    ctx->dataptr.push_back(&ctx->data);
+
+    using OpCatM = typename M::template OpCatT<MIdx>;
+    m.Reduce(std::make_shared<OpCatM>(&ctx->origin));
+    m.Reduce(std::make_shared<OpCatM>(&ctx->size));
+    using OpCatP = typename M::template OpCatT<std::vector<Scal>*>;
+    m.Reduce(std::make_shared<OpCatP>(&ctx->dataptr));
+  }
+  if (sem("read") && m.IsLead()) {
+    const auto hdf_type =
+        (sizeof(Scal) == 4 ? H5T_NATIVE_FLOAT : H5T_NATIVE_DOUBLE);
+    const MPI_Comm comm = m.GetMpiComm();
+
+    MPI_Barrier(comm);
+    H5open();
+
+    const hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
+    const hid_t file = H5Fopen(path.c_str(), H5F_ACC_RDONLY, fapl);
+    H5Pclose(fapl);
+    if (file < 0) {
+      throw std::runtime_error(FILELINE + ": cannot open file '" + path + "'");
+    }
+
+    const size_t kComps = 1;
+    const size_t nblocks = ctx->dataptr.size();
+    fassert_equal(ctx->dataptr.size(), nblocks);
+    fassert_equal(ctx->size.size(), nblocks);
+    fassert_equal(ctx->origin.size(), nblocks);
+
+    const size_t kDim = 4;
+
+    auto harray = [](MIdx w, size_t s) -> std::array<hsize_t, kDim> {
+      return {
+          static_cast<hsize_t>(w[2]), static_cast<hsize_t>(w[1]),
+          static_cast<hsize_t>(w[0]), s};
+    };
+
+    const hid_t dataset = H5Dopen2(file, dname.c_str(), H5P_DEFAULT);
+    const hid_t fspace = H5Dget_space(dataset);
+
+    const size_t ndims = H5Sget_simple_extent_ndims(fspace);
+    fassert_equal(ndims, kDim);
+
+    hsize_t dims[kDim];
+    H5Sget_simple_extent_dims(fspace, dims, NULL);
+    using V = generic::Vect<size_t, 4>;
+    fassert_equal(V(dims), V(harray(m.GetGlobalSize(), kComps)));
+
+    for (size_t i = 0; i < nblocks; ++i) {
+      const auto count = harray(ctx->size[i], kComps);
+      const auto offset = harray(ctx->origin[i], 0);
+      const hid_t mspace = H5Screate_simple(kDim, count.data(), NULL);
+
+      H5Sselect_hyperslab(
+          fspace, H5S_SELECT_SET, offset.data(), NULL, count.data(), NULL);
+
+      const hid_t fapl = H5Pcreate(H5P_DATASET_XFER);
+      H5Pset_dxpl_mpio(fapl, H5FD_MPIO_COLLECTIVE);
+
+      fassert_equal(ctx->dataptr[i]->size(), size_t(ctx->size[i].prod()));
+      H5Dread(dataset, hdf_type, mspace, fspace, fapl, ctx->dataptr[i]->data());
+
+      H5Pclose(fapl);
+      H5Sclose(mspace);
+    }
+    H5Sclose(fspace);
+    H5Dclose(dataset);
+    H5Fclose(file);
+  }
+  if (sem("copy")) { // XXX empty stage
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      fc[c] = ctx->data[i++];
+    }
+  }
   if (sem()) {
   }
 }
 
-// Creates XMF file with uniform mesh and scalar data attribute
-// linked to HDF field with name 'data'.
-// xmfpath: path to output
-// name: name of attribute
-// origin,spacing,dims: mesh parameters
-// hdfpath: path to existing hdf
-// hdfdims: dimensions of hdf, either (nz,ny,nx,1) or (ny,nx,1)
 template <class M>
 void Hdf<M>::WriteXmf(
     std::string xmfpath, std::string name, const std::array<double, 3>& origin,
     const std::array<double, 3>& spacing, const std::array<size_t, 3>& dims,
-    std::string hdfpath) {
+    std::string hdfpath, std::string dname) {
   std::ofstream f(xmfpath);
   f.precision(20);
   f << "<?xml version='1.0' ?>\n";
@@ -132,7 +224,7 @@ void Hdf<M>::WriteXmf(
   f << dims[2] << " " << dims[1] << " " << dims[0] << " " << 1;
   f << "' NumberType='Float' Precision='" << sizeof(Scal)
     << "' Format='HDF'>\n";
-  f << "        " << hdfpath << ":/data\n";
+  f << "        " << hdfpath << ":/" + dname + "\n";
   f << "       </DataItem>\n";
   f << "     </Attribute>\n";
   f << "   </Grid>\n";
@@ -142,10 +234,10 @@ void Hdf<M>::WriteXmf(
 
 template <class M>
 void Hdf<M>::WriteXmf(
-    std::string xmfpath, std::string name, std::string hdfpath, const M& m) {
+    std::string xmfpath, std::string name, std::string hdfpath, const M& m,
+    std::string dname) {
   const std::array<double, 3> origin = {0, 0, 0};
-  const auto h = m.GetCellSize();
-  const std::array<double, 3> spacing = {h[0], h[1], h[2]};
+  const std::array<double, 3> spacing = m.GetCellSize();
   const auto dims = m.GetGlobalSize();
-  WriteXmf(xmfpath, name, origin, spacing, dims, hdfpath);
+  WriteXmf(xmfpath, name, origin, spacing, dims, hdfpath, dname);
 }

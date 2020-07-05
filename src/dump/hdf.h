@@ -11,26 +11,37 @@ class Hdf {
  public:
   using Scal = typename M::Scal;
   using MIdx = typename M::MIdx;
-  // Creates XMF file with uniform mesh and scalar data attribute
-  // linked to HDF field with name 'data'.
-  // xmfpath: path to output
-  // name: name of attribute
-  // origin,spacing,dims: mesh parameters
-  // hdfpath: path to existing hdf
-  // hdfdims: dimensions of hdf, either (nz,ny,nx,1) or (ny,nx,1)
+  static constexpr const char* kDefaultName = "data";
+  // Writes HDF file with dimensions (nz, ny, nx, 1).
+  // fc: input field
+  // path: output path
+  // dname: dataset name
   static void Write(
-      const FieldCell<typename M::Scal>& fc, std::string path, M& m);
-  // Creates XMF file with uniform mesh and scalar data attribute
-  // linked to HDF field with name 'data'.
-  // xmfpath: path to output
+      const FieldCell<typename M::Scal>& fc, std::string path, M& m,
+      const std::string dname = kDefaultName);
+  // Reads HDF file with one scalar field. Dimensions of the dataset
+  // must match the global mesh size: (nz, ny, nx, 1).
+  //
+  // fc: output field
+  // path: input path
+  // dname: dataset name
+  static void Read(
+      FieldCell<typename M::Scal>& fc, std::string path, M& m,
+      const std::string dname = kDefaultName);
+  // Creates XMF file with uniform mesh and scalar data attribute linked to HDF.
+  // xmfpath: output path
   // name: name of attribute
-  // origin,spacing,dims: mesh parameters
+  // origin: mesh origin
+  // spacing: mesh spacing (cell size)
+  // dims: mesh size in cells (x,y,z)
   // hdfpath: path to existing hdf
-  // hdfdims: dimensions of hdf, either (nz,ny,nx,1) or (ny,nx,1)
+  // dname: hdf dataset name
   static void WriteXmf(
       std::string xmfpath, std::string name,
       const std::array<double, 3>& origin, const std::array<double, 3>& spacing,
-      const std::array<size_t, 3>& dims, std::string hdfpath);
+      const std::array<size_t, 3>& dims, std::string hdfpath,
+      std::string dname);
   static void WriteXmf(
-      std::string xmfpath, std::string name, std::string hdfpath, const M& m);
+      std::string xmfpath, std::string name, std::string hdfpath, const M& m,
+      std::string dname = kDefaultName);
 };
