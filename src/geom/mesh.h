@@ -794,6 +794,15 @@ class MeshStructured {
   void ClearReduce() {
     rd_.Clear();
   }
+  void ReduceToLead(const std::shared_ptr<Op>& o) {
+    reduce_lead_.Add(o);
+  }
+  const std::vector<std::shared_ptr<Op>>& GetReduceToLead() const {
+    return reduce_lead_.Get();
+  }
+  void ClearReduceToLead() {
+    reduce_lead_.Clear();
+  }
   void Bcast(const std::shared_ptr<Op>& o) {
     bcast_.push_back(o);
   }
@@ -904,6 +913,7 @@ class MeshStructured {
   std::vector<std::pair<std::shared_ptr<Co>, std::string>> vd_; // dump
   std::string trep_; // timer report filename
   Rd rd_;
+  Rd reduce_lead_;
   std::vector<LS> vls_; // solve
   std::vector<std::shared_ptr<Op>> bcast_; // list of broadcast requests
   std::vector<ScatterRequest> scatter_; // list of scatter requests

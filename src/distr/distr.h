@@ -84,6 +84,7 @@ class DistrMesh {
   virtual void WriteBuffer(const std::vector<MIdx>& bb) = 0;
   // Reduce TODO: extend doc
   virtual void Reduce(const std::vector<MIdx>& bb) = 0;
+  virtual void ReduceToLead(const std::vector<MIdx>& bb);
   virtual void Scatter(const std::vector<MIdx>& bb) = 0;
   virtual void Bcast(const std::vector<MIdx>& bb) = 0;
   virtual void Solve(const std::vector<MIdx>& bb);

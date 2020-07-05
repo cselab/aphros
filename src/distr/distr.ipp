@@ -100,6 +100,71 @@ void DistrMesh<M>::ClearTimerReport(const std::vector<MIdx>& bb) {
 }
 
 template <class M>
+void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
+  using ReductionScal = typename M::OpS;
+  using ReductionScalInt = typename M::OpSI;
+  using ReductionConcat = typename M::OpCat;
+  auto& first = *mk.at(bb[0]); // first kernel
+  auto& mfirst = first.GetMesh();
+  auto& vfirst = mfirst.GetReduceToLead(); // reduce requests
+
+  // Check size is the same for all kernels
+  for (auto& b : bb) {
+    const auto& v = mk.at(b)->GetMesh().GetReduceToLead(); // reduce requests
+    if (v.size() != vfirst.size()) {
+      throw std::runtime_error(
+          FILELINE + "ReduceToLead: v.size() != vf.size()");
+    }
+  }
+
+  auto append = [&bb,this](auto* derived, auto buf, size_t i) {
+    for (auto& b : bb) {
+      const auto& v = mk.at(b)->GetMesh().GetReduceToLead();
+      dynamic_cast<decltype(derived)>(v[i].get())->Append(buf);
+    }
+  };
+  auto set = [&bb,this](auto* derived, auto buf, size_t i) {
+    for (auto& b : bb) {
+      const auto& v = mk.at(b)->GetMesh().GetReduceToLead();
+      dynamic_cast<decltype(derived)>(v[i].get())->Set(buf);
+    }
+  };
+
+  for (size_t i = 0; i < vfirst.size(); ++i) {
+    auto* request = vfirst[i].get();
+    if (auto derived = dynamic_cast<ReductionScal*>(request)) {
+      auto buf = derived->Neut();
+      append(derived, buf, i);
+      set(derived, buf, i);
+    } else if (auto derived = dynamic_cast<ReductionScalInt*>(request)) {
+      auto buf = derived->Neut();
+      append(derived, buf, i);
+      set(derived, buf, i);
+    } else if (auto derived = dynamic_cast<ReductionConcat*>(request)) {
+      auto buf = derived->Neut();
+      const GBlock<size_t, dim> qp(p_);
+      const GBlock<size_t, dim> qb(b_);
+      for (auto wp : qp) { // same ordering as in Cubism
+        for (auto wb : qb) {
+          const auto w = b_ * wp + wb;
+          const auto& v = mk.at(w)->GetMesh().GetReduceToLead();
+          dynamic_cast<ReductionConcat*>(v[i].get())->Append(buf);
+        }
+      }
+      set(derived, buf, i);
+    } else {
+      throw std::runtime_error(
+          FILELINE + "ReduceToLead: Unknown M::Op implementation");
+    }
+  }
+
+  // Clear reduce requests
+  for (auto& b : bb) {
+    mk.at(b)->GetMesh().ClearReduceToLead();
+  }
+}
+
+template <class M>
 void DistrMesh<M>::DumpWrite(const std::vector<MIdx>& bb) {
   auto& m = mk.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
@@ -376,6 +441,10 @@ void DistrMesh<M>::Run() {
     hist_.SeedSample();
     Reduce(bb);
     hist_.CollectSample("Reduce");
+
+    hist_.SeedSample();
+    ReduceToLead(bb);
+    hist_.CollectSample("ReduceToLead");
 
     hist_.SeedSample();
     Scatter(bb);
