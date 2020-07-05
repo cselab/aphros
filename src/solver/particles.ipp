@@ -93,10 +93,10 @@ struct Particles<EB_>::Imp {
     }
   }
   static void CheckSize(const State& s) {
-    fassert(s.x.size() == s.x.size());
-    fassert(s.r.size() == s.x.size());
-    fassert(s.rho.size() == s.x.size());
-    fassert(s.termvel.size() == s.x.size());
+    fassert_equal(s.x.size(), s.x.size());
+    fassert_equal(s.r.size(), s.x.size());
+    fassert_equal(s.rho.size(), s.x.size());
+    fassert_equal(s.termvel.size(), s.x.size());
   }
   static void Append(State& s, ParticlesView& app) {
     auto append = [](auto& v, const auto& a) {
@@ -198,7 +198,7 @@ struct Particles<EB_>::Imp {
         auto scatter = [&remote_index, gather_size, maxid](
                            std::vector<std::vector<Scal>>& vscatter,
                            const std::vector<Scal>& vgather) {
-          fassert(vgather.size() == gather_size);
+          fassert_equal(vgather.size(), gather_size);
           vscatter.resize(maxid);
           for (size_t i = 0; i < vgather.size(); ++i) {
             vscatter[remote_index[i]].push_back(vgather[i]);
@@ -207,7 +207,7 @@ struct Particles<EB_>::Imp {
         auto scatterv = [&remote_index, gather_size, maxid](
                             std::vector<std::vector<Scal>>& vscatter,
                             const std::vector<Vect>& vgather) {
-          fassert(vgather.size() == gather_size);
+          fassert_equal(vgather.size(), gather_size);
           vscatter.resize(maxid);
           for (size_t i = 0; i < vgather.size(); ++i) {
             vscatter[remote_index[i]].push_back(vgather[i][0]);
@@ -228,7 +228,7 @@ struct Particles<EB_>::Imp {
     }
     if (sem()) {
       const size_t nscal = 3 + attr_scal.size() + attr_vect.size() * 3;
-      fassert(ctx->recv_serial.size() % nscal == 0);
+      fassert_equal(ctx->recv_serial.size() % nscal, 0);
       // number of particles received
       const size_t recv_size = ctx->recv_serial.size() / nscal;
       ncomm = recv_size;
@@ -292,24 +292,22 @@ struct Particles<EB_>::Imp {
       using TI = typename M::template OpCatT<int>;
       m.Reduce(std::make_shared<TI>(&ctx->block));
     }
-    if (sem("init")) {
-      if (m.IsRoot()) {
-        std::ofstream o(path);
-        o.precision(16);
-        // header
-        o << "x,y,z,vx,vy,vz,r,rho,termvel,block";
-        o << std::endl;
-        // content
-        auto& s = ctx->s;
-        for (size_t i = 0; i < s.x.size(); ++i) {
-          o << s.x[i][0] << ',' << s.x[i][1] << ',' << s.x[i][2];
-          o << ',' << s.v[i][0] << ',' << s.v[i][1] << ',' << s.v[i][2];
-          o << ',' << s.r[i];
-          o << ',' << s.rho[i];
-          o << ',' << s.termvel[i];
-          o << ',' << ctx->block[i];
-          o << "\n";
-        }
+    if (sem("write") && m.IsRoot()) {
+      std::ofstream o(path);
+      o.precision(16);
+      // header
+      o << "x,y,z,vx,vy,vz,r,rho,termvel,block";
+      o << std::endl;
+      // content
+      auto& s = ctx->s;
+      for (size_t i = 0; i < s.x.size(); ++i) {
+        o << s.x[i][0] << ',' << s.x[i][1] << ',' << s.x[i][2];
+        o << ',' << s.v[i][0] << ',' << s.v[i][1] << ',' << s.v[i][2];
+        o << ',' << s.r[i];
+        o << ',' << s.rho[i];
+        o << ',' << s.termvel[i];
+        o << ',' << ctx->block[i];
+        o << "\n";
       }
     }
     if (sem()) {

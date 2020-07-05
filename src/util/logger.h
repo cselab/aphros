@@ -16,12 +16,12 @@
     }                                                                     \
   } while (0);
 
-#define fassert_equal(x, y)                                             \
-  do {                                                                  \
-    if (!((x) == (y))) {                                                \
-      std::stringstream s;                                              \
-      s << FILELINE << ": assertion failed ";                         \
-      s << " " << #x << "=" << (x) << " != " << (y) << "=" << #y; \
-      throw std::runtime_error(s.str());                                \
-    }                                                                   \
+#define fassert_equal(x, y)                                               \
+  do {                                                                    \
+    if (!((x) == (y))) {                                                  \
+      std::stringstream fasrteq_s;                                        \
+      fasrteq_s << FILELINE << ": assertion failed ";                     \
+      fasrteq_s << " " << #x << "=" << (x) << " != " << (y) << "=" << #y; \
+      throw std::runtime_error(fasrteq_s.str());                          \
+    }                                                                     \
   } while (0);
