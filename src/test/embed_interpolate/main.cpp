@@ -52,13 +52,19 @@ void EmbedInterpolate<M>::Run() {
   auto sem = m.GetSem();
   struct {
     FieldNode<Scal> fnl;
-    FieldCell<Scal> fcu;
-    FieldEmbed<Scal> feu;
+    FieldCell<Scal> fcvx;
+    FieldCell<Scal> fcvy;
+    FieldCell<Scal> fcvz;
+    FieldEmbed<Scal> feomz;
+
+    std::vector<Vect> px;
+    std::vector<Scal> pomz;
   } * ctx(sem);
+  auto& px = ctx->px;
+  auto& pomz = ctx->pomz;
   if (sem("ctor")) {
     eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
     ctx->fnl = UEmbed<M>::InitEmbed(m, var, m.IsRoot());
-    ctx->fcu.Reinit(m);
   }
   if (sem.Nested("smoothen")) {
     SmoothenNode(ctx->fnl, m, var.Int["embed_smoothen_iters"]);
@@ -70,12 +76,50 @@ void EmbedInterpolate<M>::Run() {
     eb_->DumpPoly(var.Int["vtkbin"], var.Int["vtkmerge"]);
   }
   if (sem.Nested()) {
-    Hdf<M>::Read(ctx->fcu, var.String["input_hdf"], m);
+    Hdf<M>::Read(ctx->fcvx, var.String["input_hdf_vx"], m);
   }
   if (sem.Nested()) {
-    Hdf<M>::Write(ctx->fcu, var.String["output_csv"], m);
+    Hdf<M>::Read(ctx->fcvy, var.String["input_hdf_vy"], m);
   }
-  if (sem()) {}
+  if (sem("interpolate")) {
+    auto& eb = *eb_;
+    MapEmbed<BCond<Scal>> mebc;
+    for (auto c : eb.CFaces()) {
+      mebc[c] = BCond<Scal>(BCondType::dirichlet, 0);
+    }
+    const auto fegx = UEmbed<M>::Gradient(ctx->fcvx, mebc, eb);
+    const auto fegy = UEmbed<M>::Gradient(ctx->fcvy, mebc, eb);
+    ctx->feomz.Reinit(m, 0);
+    for (auto c : eb.CFaces()) {
+      const Vect n = -eb.GetNormal(c);
+      const Vect t{n[1], -n[0], 0.};
+      ctx->feomz[c] = fegx[c] * t[0] + fegy[c] * t[1];
+    }
+    for (auto c : eb.CFaces()) {
+      px.push_back(eb.GetFaceCenter(c));
+      pomz.push_back(ctx->feomz[c]);
+    }
+    using TV = typename M::template OpCatT<Vect>;
+    m.Reduce(std::make_shared<TV>(&px));
+    using TS = typename M::template OpCatT<Scal>;
+    m.Reduce(std::make_shared<TS>(&pomz));
+  }
+  if (sem("write") && m.IsRoot()) {
+    fassert_equal(px.size(), pomz.size());
+    std::ofstream o(var.String["output_csv_omz"]);
+    o.precision(16);
+    // header
+    o << "x,y,z,omz";
+    o << std::endl;
+    // content
+    for (size_t i = 0; i < px.size(); ++i) {
+      o << px[i][0] << ',' << px[i][1] << ',' << px[i][2];
+      o << ',' << pomz[i];
+      o << "\n";
+    }
+  }
+  if (sem()) { // XXX empty stage
+  }
 }
 
 void Main(MPI_Comm comm, Vars& var) {
