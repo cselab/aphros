@@ -12,14 +12,18 @@ OMP_NUM_THREADS ?= 1
 hook ?=
 
 error:
-	@echo Error: no target specified. Available targets:
+	@echo Error: no target specified.
+	make help
+	@exit 2
+
+help:
+	@echo Available targets:
 	@echo - cleanrun: cleanall, run
 	@echo - run: start in foreground
 	@echo - submit: submit job or start in background
 	@echo - clean: remove logs, generated conf
 	@echo - cleandat: remove output data
 	@echo - cleanall: clean, cleandat
-	@exit 2
 
 
 cleanrun: cleanall run
@@ -82,4 +86,4 @@ cleandat::
 
 cleanall: clean cleandat
 
-.PHONY: error cleanrun run submit clean cleandat base conf np tl kill
+.PHONY: error cleanrun run submit clean cleandat base conf np tl kill help
