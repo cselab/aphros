@@ -1776,7 +1776,7 @@ void ProjectVolumeFlux(
         const ExprFace v = ffe[f] * m.GetOutwardFactor(c, q);
         e[0] += v[1 - q % 2];
         e[1 + q] += v[q % 2];
-        e[Expr::dim - 1] += v[2];
+        e.back() += v[2];
       }
     }
   }

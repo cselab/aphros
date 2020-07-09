@@ -202,7 +202,7 @@ struct Simple<EB_>::Imp {
         auto& e = fcs[c];
         const Scal pc = cd->second() - fcpb[c]; // new value for p[c]
         e[0] += 1;
-        e[Expr::dim - 1] -= pc;
+        e.back() -= pc;
       }
     }
   }
@@ -243,7 +243,7 @@ struct Simple<EB_>::Imp {
         const ExprFace v = ffv[cf] * eb.GetOutwardFactor(c, q);
         eb.AppendExpr(sum, v, q);
       });
-      sum[Expr::dim - 1] -= fcsv[c] * eb.GetVolume(c);
+      sum.back() -= fcsv[c] * eb.GetVolume(c);
       fce[c] = sum;
     }
     return fce;

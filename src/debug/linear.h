@@ -122,7 +122,7 @@ struct UDebug {
       fc_const.Reinit(m, 0);
       for (auto c : m.Cells()) {
         fc_diag[c] = std::abs(fce[c][0]);
-        fc_const[c] = std::abs(fce[c][Expr::dim - 1]);
+        fc_const[c] = std::abs(fce[c].back());
         for (auto q : m.Nci(c)) {
           fc_nondiag[c] += std::abs(fce[c][q + 1]);
         }
@@ -135,7 +135,7 @@ struct UDebug {
     if (sem("sum_const")) {
       sum_const = 0;
       for (auto c : m.Cells()) {
-        sum_const += fce[c][Expr::dim - 1];
+        sum_const += fce[c].back();
       }
       m.Reduce(&sum_const, "sum");
     }

@@ -42,9 +42,6 @@ class Vect {
   static constexpr size_t dim = dim_;
   using value_type = Scal;
 
- private:
-  std::array<Scal, dim> comp_;
-
  public:
   friend void swap(Vect& first, Vect& second) {
     using std::swap;
@@ -103,6 +100,12 @@ class Vect {
   }
   const Scal& operator[](size_t i) const {
     return comp_[i];
+  }
+  Scal& back() {
+    return comp_.back();
+  }
+  const Scal& back() const {
+    return comp_.back();
   }
   Vect& operator+=(const Vect& vect) {
     for (size_t i = 0; i < dim; ++i) {
@@ -379,6 +382,9 @@ class Vect {
     }
     return in;
   }
+
+ private:
+  std::array<Scal, dim> comp_;
 };
 
 template <class Scal, size_t dim>
