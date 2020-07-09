@@ -337,11 +337,19 @@ class Embed {
   void AppendExpr(Expr& sum, const ExprFace& v, size_t q) const {
     sum[0] += v[1 - q % 2];
     sum[1 + q] += v[q % 2];
-    sum.back() += v[2];
+    sum.back() += v.back();
+  }
+  void AppendExpr(Expr& sum, const ExprFace& v, size_t q, IdxCell) const {
+    AppendExpr(sum, v, q);
   }
   void AppendExpr(Expr& sum, const ExprFace& v, NciEmbed) const {
     sum[0] += v[0];
-    sum.back() += v[2];
+    sum.back() += v.back();
+  }
+  void AppendExpr(Expr& sum, const ExprFace& v, NciEmbed, IdxCell c) const {
+    sum[0] += v[0];
+    sum[1 + GetRegularNeighborNci(c)] += v[1];
+    sum.back() += v.back();
   }
   auto Faces() const {
     return MakeFilterIterator(
@@ -363,6 +371,14 @@ class Embed {
   }
   IdxCell GetCell(IdxCell c, size_t q) const {
     return m.GetCell(c, q);
+  }
+  // Returns adjacent cell to regular or cut face.
+  IdxCell GetAdjacentCell(IdxFace f, size_t nci) const {
+    return GetCell(f, nci);
+  }
+  // Returns adjacent cell to embedded face.
+  IdxCell GetAdjacentCell(IdxCell c, size_t nci) const {
+    return nci == 0 ? c : GetRegularNeighbor(c);
   }
   auto Nci(IdxCell c) const {
     return MakeFilterIterator(m.Nci(c), [this, c](size_t q) {
@@ -418,12 +434,22 @@ class Embed {
   Vect GetNormal(IdxFace f) const {
     return m.GetNormal(f);
   }
-  IdxCell GetRegularNeighbor(IdxCell c) const {
+  size_t GetRegularNeighborNci(IdxCell c) const {
     // FIXME: may not return a regular cell for non-convex shapes
     const auto n = GetNormal(c);
     const size_t d = n.abs().argmax();
     const size_t s = (n[d] > 0 ? 0 : 1);
-    return GetCell(c, 2 * d + s);
+    return 2 * d + s;
+  }
+  IdxCell GetRegularNeighbor(IdxCell c) const {
+    if (IsCut(c)) {
+      // FIXME: may not return a regular cell for non-convex shapes
+      const auto n = GetNormal(c);
+      const size_t d = n.abs().argmax();
+      const size_t s = (n[d] > 0 ? 0 : 1);
+      return GetCell(c, 2 * d + s);
+    }
+    return c;
   }
   Scal GetAlpha(IdxCell c) const {
     return fca_[c];

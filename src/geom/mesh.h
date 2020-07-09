@@ -499,7 +499,10 @@ class MeshStructured {
   void AppendExpr(Expr& sum, const ExprFace& v, size_t q) const {
     sum[0] += v[1 - q % 2];
     sum[1 + q] += v[q % 2];
-    sum.back() += v[2];
+    sum.back() += v.back();
+  }
+  void AppendExpr(Expr& sum, const ExprFace& v, size_t q, IdxCell) const {
+    AppendExpr(sum, v, q);
   }
 
   bool IsInside(IdxCell c, Vect vect) const {
