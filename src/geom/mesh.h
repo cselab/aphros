@@ -186,6 +186,10 @@ class MeshStructured {
     assert(q < kCellNumNeighbourFaces);
     return IdxFace(size_t(c) + cnf_[q]);
   }
+  IdxFace GetFace(IdxFace f, size_t q) const {
+    assert(q < kCellNumNeighbourFaces);
+    return IdxFace(size_t(f) + fnf_[q]);
+  }
   Scal GetOutwardFactor(IdxCell, size_t q) const {
     assert(q < kCellNumNeighbourFaces);
     return co_[q];
@@ -908,6 +912,8 @@ class MeshStructured {
   std::array<size_t, kCellNumNeighbourNodes> cnn_;
   // face neighbour cell
   std::array<size_t, kFaceNumNeighbourCells * dim> fnc_;
+  // face neighbour face
+  std::array<size_t, kCellNumNeighbourFaces * dim> fnf_;
   // face neighbour node
   std::array<size_t, kFaceNumNeighbourNodes * dim> fnn_;
 
@@ -1005,7 +1011,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
           break;
       };
       IdxCell cn = bcr_.GetIdx(w + wo);
-      cnc_[q] = cn.GetRaw() - c.GetRaw();
+      cnc_[q] = size_t(cn) - size_t(c);
     }
   }
 
@@ -1044,7 +1050,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
           break;
       };
       IdxFace fn = bfr_.GetIdx(std::make_pair(w + wo, d));
-      cnf_[q] = fn.GetRaw() - c.GetRaw();
+      cnf_[q] = size_t(fn) - size_t(c);
     }
   }
 
@@ -1090,13 +1096,13 @@ MeshStructured<_Scal, _dim>::MeshStructured(
           break;
       };
       IdxNode nn = bnr_.GetIdx(w + wo);
-      cnn_[q] = nn.GetRaw() - c.GetRaw();
+      cnn_[q] = size_t(nn) - size_t(c);
     }
   }
 
   // face neighbour cell offset
   {
-    MIdx w = bcr_.GetBegin(); // any cell
+    const MIdx w = bcr_.GetBegin(); // any cell
     for (size_t d = 0; d < dim; ++d) {
       IdxFace f = bfr_.GetIdx(w, Dir(d));
       auto qm = kFaceNumNeighbourCells;
@@ -1112,14 +1118,29 @@ MeshStructured<_Scal, _dim>::MeshStructured(
             break;
         };
         IdxCell cn = bcr_.GetIdx(w + wo);
-        fnc_[d * qm + q] = cn.GetRaw() - f.GetRaw();
+        fnc_[d * qm + q] = size_t(cn) - size_t(f);
+      }
+    }
+  }
+
+  // face neighbour face offset
+  {
+    const MIdx w = bcr_.GetBegin(); // any cell
+    for (size_t d = 0; d < dim; ++d) {
+      const IdxFace f = bfr_.GetIdx(w, Dir(d));
+      auto qm = kFaceNumNeighbourCells;
+      for (size_t q = 0; q < qm; ++q) {
+        MIdx wo(0);
+        wo[q / 2] = (q % 2 == 0 ? -1 : 1);
+        const IdxFace fn = bfr_.GetIdx(w + wo, Dir(d));
+        fnf_[d * qm + q] = size_t(fn) - size_t(f);
       }
     }
   }
 
   // face neighbour cell offset
   {
-    MIdx w = bcr_.GetBegin(); // any cell
+    const MIdx w = bcr_.GetBegin(); // any cell
     for (size_t d = 0; d < dim; ++d) {
       IdxFace f = bfr_.GetIdx(w, Dir(d));
       auto qm = kFaceNumNeighbourNodes;
@@ -1175,7 +1196,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
           }
         }
         IdxNode nn = bnr_.GetIdx(w + wo);
-        fnn_[d * qm + q] = nn.GetRaw() - f.GetRaw();
+        fnn_[d * qm + q] = size_t(nn) - size_t(f);
       }
     }
   }
