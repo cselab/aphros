@@ -167,18 +167,20 @@ struct UEmbed {
   template <class T>
   static FieldCell<T> RedistributeCutCells(
       const FieldCell<T>& fcu, const EB& eb);
-
   template <class T>
-  static FieldCell<T> RedistributeCutCells(
-      const FieldCell<T>& fcu, const M& m);
+  static FieldCell<T> RedistributeCutCells(const FieldCell<T>& fcu, const M& m);
 
   static FieldCell<Scal> RedistributeCutCellsAdvection(
       const FieldCell<Scal>& fcs, const FieldFace<Scal>& ffv, Scal cfl, Scal dt,
       const M& m);
-
   static FieldCell<Scal> RedistributeCutCellsAdvection(
       const FieldCell<Scal>& fcs, const FieldEmbed<Scal>& ffv, Scal cfl,
       Scal dt, const EB& eb);
+
+  static void RedistributeConstTerms(
+      FieldCell<typename M::Expr>& fce, const Embed<M>& eb, M& m);
+  static void RedistributeConstTerms(
+      FieldCell<typename M::Expr>& fce, const M& eb, M& m);
 
   // Updates flux in cut faces using bilinear interpolation from regular faces
   // (Schwartz,2006).
@@ -270,7 +272,7 @@ struct UEmbed {
   template <class MEB>
   static Scal Eval(
       const Expr& e, IdxCell c, const FieldCell<Scal>& fcu, const MEB& meb) {
-    Scal r = e[Expr::dim - 1];
+    Scal r = e.back();
     r += fcu[c] * e[0];
     for (auto q : meb.Nci(c)) {
       r += fcu[meb.GetCell(c, q)] * e[1 + q];

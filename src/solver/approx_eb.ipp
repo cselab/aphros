@@ -275,58 +275,62 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
   return fnl;
 }
 
-//                                             //
-//            ---------------------            //
-//            |         |         |            //
-//            |   c0p   |   c1p   |            //
-//            |         |         |            //
-//            |\--------|---------|            //
-//            | \       |         |            //
-//            |  \ c0   |   c1    |            //
-//            |   \     |         |            //
-//            |----\----|---------|            //
-//            |         |         |            //
-//            |   c0m   |   c1m   |            //
-//            |         |         |            //
-//            |\--------|---------|            //
-//                                             //
+// Computes gradient at embeded face with Dirichlet conditions.
+// rf: face center
+// uf: given field value from boundary conditions
+// nf: normal to face
+// c: cell containign embedded face
+// fcu: input field
 template <class M, class T>
 T GradDirichletQuad(
-    typename M::Vect rf, typename M::Scal uf, typename M::Vect nf, IdxCell c,
+    typename M::Vect rf, T uf, typename M::Vect nf, IdxCell c,
     const FieldCell<T>& fcu, const Embed<M>& eb) {
+  //            ---------------------            //
+  //            |         |         |            //
+  //            |         |   c1p   |            //
+  //            |         |         |            //
+  //            |\--------|---------|            //
+  //            | \       |         |            //
+  //            |  f c    |   c1    |            //
+  //            |   \     |         |            //
+  //            |----\----|---------|            //
+  //            |     \   |         |            //
+  //            |      \  |   c1m   |            //
+  //            |       \ |         |            //
+  //            |---------|---------|            //
+  //                                             //
   using Scal = typename M::Scal;
-  auto quad = [](Scal x, Scal am, Scal a, Scal ap) {
+  auto quad = [](Scal x, T am, T a, T ap) {
     return (am * (x - 1) + ap * (x + 1)) * x * 0.5 - a * (x - 1) * (x + 1);
   };
 
-  auto& m = eb.GetMesh();
+  const auto& m = eb.GetMesh();
   const auto h = eb.GetCellSize()[0];
 
   const size_t dx = nf.abs().argmax();
   const size_t dy = (dx == 0 ? 1 : 0);
   const size_t sx = (nf[dx] > 0 ? 0 : 1); // step against normal
-  const IdxCell c0 = c;
-  const IdxCell c1 = eb.GetCell(c0, 2 * dx + sx);
+  const IdxCell c1 = eb.GetCell(c, 2 * dx + sx);
   const IdxCell c1p = eb.GetCell(c1, 2 * dy + 1);
   const IdxCell c1m = eb.GetCell(c1, 2 * dy);
-  const Scal y1 = m.GetCenter(c1)[dy];
   const Scal x1 = m.GetCenter(c1)[dx];
+  const Scal y1 = m.GetCenter(c1)[dy];
   const Scal xf = rf[dx];
   const Scal yf = rf[dy];
   const Scal xf1 = x1;
   const Scal yf1 = yf + (xf1 - xf) / nf[dx] * nf[dy];
-  const Scal u1 = quad((yf1 - y1) / h, fcu[c1m], fcu[c1], fcu[c1p]);
+  const T u1 = quad((yf1 - y1) / h, fcu[c1m], fcu[c1], fcu[c1p]);
   return (uf - u1) / ((xf - x1) / nf[dx]);
 }
 
 template <class M, class T>
 T GradDirichletLinear(
-    typename M::Vect rf, typename M::Scal uf, typename M::Vect nf, IdxCell c,
+    typename M::Vect rf, T uf, typename M::Vect nf, IdxCell c,
     const FieldCell<T>& fcu, const Embed<M>& eb) {
   using Scal = typename M::Scal;
-  auto linear = [](Scal x, Scal a0, Scal a1) { return x * a1 + (1 - x) * a0; };
+  auto linear = [](Scal x, T a0, T a1) { return a1 * x + a0 * (1 - x); };
 
-  auto& m = eb.GetMesh();
+  const auto& m = eb.GetMesh();
   const auto h = eb.GetCellSize()[0];
 
   const size_t dx = nf.abs().argmax();
@@ -336,13 +340,13 @@ T GradDirichletLinear(
   const IdxCell c0 = c;
   const IdxCell c1 = eb.GetCell(c0, 2 * dx + sx);
   const IdxCell c1p = eb.GetCell(c1, 2 * dy + sy);
-  const Scal y1 = m.GetCenter(c1)[dy];
   const Scal x1 = m.GetCenter(c1)[dx];
+  const Scal y1 = m.GetCenter(c1)[dy];
   const Scal xf = rf[dx];
   const Scal yf = rf[dy];
   const Scal xf1 = x1;
   const Scal yf1 = yf + (xf1 - xf) / nf[dx] * abs(nf[dy]);
-  const Scal u1 = linear(-(yf1 - y1) / h, fcu[c1], fcu[c1p]);
+  const T u1 = linear(-(yf1 - y1) / h, fcu[c1], fcu[c1p]);
   return (uf - u1) / ((xf - x1) / nf[dx]);
 }
 
@@ -426,10 +430,10 @@ auto UEmbed<M>::Gradient(
         const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
         return (val - u) / h;
-        /*
-        return GradDirichletQuad(
-            eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
-            */
+        // return GradDirichletQuad(
+        //    eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
+        // return GradDirichletLinear(
+        //    eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
       }
       case BCondType::neumann: {
         return val;
@@ -1084,6 +1088,44 @@ auto UEmbed<M>::RedistributeCutCellsAdvection(
 }
 
 template <class M>
+void UEmbed<M>::RedistributeConstTerms(
+    FieldCell<typename M::Expr>& fce, const Embed<M>& eb, M& m) {
+  auto sem = m.GetSem("redistr");
+  struct {
+    FieldCell<Scal> fcu;
+  } * ctx(sem);
+  auto& fcu = ctx->fcu;
+  auto get = [&fce](IdxCell c) -> Scal& { //
+    return fce[c].back();
+  };
+  if (sem("comm")) {
+    fcu.Reinit(eb, 0);
+    for (auto c : eb.Cells()) {
+      fcu[c] = get(c);
+    }
+    m.Comm(&fcu);
+  }
+  if (sem()) {
+    // FIXME: empty stage to finish communication in halo cells
+    // fcu gets different buffer in the next stage
+  }
+  if (sem("local")) {
+    fcu = RedistributeCutCells(fcu, eb);
+    for (auto c : eb.Cells()) {
+      get(c) = fcu[c];
+    }
+  }
+  if (sem()) {
+    // FIXME: empty stage to finish communication and keep ctx
+  }
+}
+template <class M>
+void UEmbed<M>::RedistributeConstTerms(
+    FieldCell<typename M::Expr>&, const M&, M&) {
+  return;
+}
+
+template <class M>
 template <class T>
 auto UEmbed<M>::InterpolateBilinearFaces(const FieldFace<T>& ffu, const M&)
     -> FieldFace<T> {
@@ -1268,7 +1310,7 @@ auto UEmbed<M>::GradientImplicit(
   const Scal h = eb.GetCellSize()[0];
 
   // explicit gradient
-  FieldEmbed<Scal> feg = Gradient(fcu, mebc, eb);
+  const FieldEmbed<Scal> feg = Gradient(fcu, mebc, eb);
 
   // implicit gradient with deferred correction
   for (auto f : eb.Faces()) {
@@ -1300,7 +1342,7 @@ auto UEmbed<M>::GradientImplicit(
       default:
         throw std::runtime_error(FILELINE + ": unknown");
     }
-    e[2] -= fcu[c] * e[nci];
+    e[2] -= fcu[c] * e[nci]; // subtract explicit part
     return e;
   };
   mebc.LoopBCond(eb, [&](auto cf, IdxCell c, const auto& bc) {

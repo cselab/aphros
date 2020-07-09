@@ -28,10 +28,6 @@ template FieldCell<T> UEB::RedistributeCutCells(
     const FieldCell<T>& fcu, const EB& eb);
 template FieldCell<T> UEB::RedistributeCutCells(
     const FieldCell<T>& fcu, const M& m);
-template FieldCell<Expr> UEB::RedistributeCutCells(
-    const FieldCell<Expr>& fcu, const EB& eb);
-template FieldCell<Expr> UEB::RedistributeCutCells(
-    const FieldCell<Expr>& fcu, const M& m);
 
 template FieldFace<T> UEB::InterpolateBilinearFaces(
     const FieldFace<T>& ffu, const EB& eb);

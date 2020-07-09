@@ -48,59 +48,12 @@ struct ConvDiffScalImp<EB_>::Imp {
     error_ = 0.;
   }
   Scal Eval(const Expr& e, IdxCell c, const FieldCell<Scal>& fcu) {
-    Scal r = e[Expr::dim - 1];
+    Scal r = e.back();
     r += fcu[c] * e[0];
     for (auto q : eb.Nci(c)) {
       r += fcu[eb.GetCell(c, q)] * e[1 + q];
     }
     return r;
-  }
-  void RedistributeConstTerms(FieldCell<Expr>& fce, const Embed<M>& eb) {
-    auto sem = m.GetSem("redistr");
-    struct {
-      FieldCell<Scal> fcu;
-    } * ctx(sem);
-    auto& fcu = ctx->fcu;
-    auto get = [&fce](IdxCell c) -> Scal& { //
-      return fce[c][Expr::dim - 1];
-    };
-    if (sem("comm")) {
-      fcu.Reinit(eb, 0);
-      for (auto c : eb.Cells()) {
-        fcu[c] = get(c);
-      }
-      m.Comm(&fcu);
-    }
-    if (sem("local")) {
-      FieldCell<Scal> fcr(eb);
-      for (auto c : eb.Cells()) {
-        fcr[c] = fce[c][Expr::dim - 1];
-        const Scal v0 = m.GetVolume(c);
-        const Scal v = eb.GetVolume(c);
-        // excess quantity
-        const Scal du = fcu[c] * (1 - v / v0);
-        // subtract from current cell
-        fcr[c] -= du;
-        // add from neighbor cells proportional to their volume
-        for (auto cn : eb.Stencil(c)) {
-          if (c != cn) {
-            const Scal vn = eb.GetVolume(cn);
-            // excess quantity in cell cn
-            const Scal dun = fcu[cn] * (1 - vn / v0);
-            fcr[c] += dun * (v / (eb.GetVolumeStencilSum(cn) - vn));
-          }
-        }
-      }
-      for (auto c : eb.Cells()) {
-        get(c) = fcr[c];
-      }
-    }
-    if (sem()) {
-      // FIXME: empty stage to finish communication and keep ctx
-    }
-  }
-  auto RedistributeConstTerms(FieldCell<Expr>&, const M&) {
-    return;
   }
   // Assembles linear system
   // fcu: field from previous iteration [a]
@@ -166,7 +119,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       }
     }
     if (sem.Nested()) {
-      RedistributeConstTerms(fcl, eb);
+      UEB::RedistributeConstTerms(fcl, eb, m);
     }
     if (sem("redistr")) {
       // time derivative
@@ -177,8 +130,7 @@ struct ConvDiffScalImp<EB_>::Imp {
         for (auto c : eb.Cells()) {
           Expr td(0);
           td[0] = tt[2];
-          td[Expr::dim - 1] =
-              tt[0] * fcu_.time_prev[c] + tt[1] * fcu_.time_curr[c];
+          td.back() = tt[0] * fcu_.time_prev[c] + tt[1] * fcu_.time_curr[c];
           fcl[c] += td * eb.GetVolume(c) * (*owner_->fcr_)[c];
         }
       }
@@ -186,9 +138,9 @@ struct ConvDiffScalImp<EB_>::Imp {
       for (auto c : eb.Cells()) {
         Expr& e = fcl[c];
         // source
-        e[Expr::dim - 1] -= (*owner_->fcs_)[c] * eb.GetVolume(c);
+        e.back() -= (*owner_->fcs_)[c] * eb.GetVolume(c);
         // delta-form
-        e[Expr::dim - 1] = Eval(e, c, fcu);
+        e.back() = Eval(e, c, fcu);
         // under-relaxation
         e[0] /= par.relax;
       }
@@ -278,7 +230,7 @@ struct ConvDiffScalImp<EB_>::Imp {
   FieldCell<Scal> GetConst() const {
     FieldCell<Scal> fc(eb, 0);
     for (auto c : eb.Cells()) {
-      fc[c] = fcucs_[c][Expr::dim - 1] / eb.GetVolume(c);
+      fc[c] = fcucs_[c].back() / eb.GetVolume(c);
     }
     return fc;
   }
