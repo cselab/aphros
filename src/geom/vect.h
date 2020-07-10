@@ -5,7 +5,8 @@
 
 #include <array>
 #include <cmath>
-#include <iostream>
+#include <ostream>
+#include <istream>
 #include <limits>
 #include <vector>
 

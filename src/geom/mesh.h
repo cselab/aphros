@@ -16,6 +16,8 @@
 #include "field.h"
 #include "idx.h"
 #include "map.h"
+#include "mpi.h"
+#include "notation.h"
 #include "range.h"
 #include "rangein.h"
 #include "transform.h"
@@ -23,7 +25,6 @@
 #include "util/logger.h"
 #include "util/suspender.h"
 #include "vect.h"
-#include "mpi.h"
 
 // Returns column of cells cmm,cm,cp,cpp.
 // nci: 0 or 1 such that m.GetCell(f, nci) == cp
@@ -47,6 +48,7 @@ class MeshStructured {
   static constexpr size_t dim = dim_;
   using Vect = generic::Vect<Scal, dim>;
   using Dir = GDir<dim>;
+  using Direction = generic::Direction<Scal, dim>;
   using MIdx = GMIdx<dim>;
   using BlockCells = GBlockCells<dim>;
   using BlockFaces = GBlockFaces<dim>;
@@ -600,6 +602,42 @@ class MeshStructured {
   }
   const MeshStructured& GetMesh() const {
     return *this;
+  }
+
+  // Notation
+  static Direction direction(size_t i) {
+    return Direction(i);
+  }
+  static Direction direction(size_t i, size_t forward) {
+    return Direction(i, forward);
+  }
+  IdxCellMesh<M> operator()(IdxCell c) const {
+    return IdxCellMesh<M>(c, *this);
+  }
+  IdxFaceMesh<M> operator()(IdxFace f) const {
+    return IdxFaceMesh<M>(f, *this);
+  }
+  IdxCellMesh<M> cell() const {
+    return IdxCellMesh<M>(*this);
+  }
+  IdxFaceMesh<M> face() const {
+    return IdxFaceMesh<M>(*this);
+  }
+  auto CellsM() const {
+    return MakeTransformIterator<IdxCellMesh<M>>(
+        Cells(), [this](IdxCell c) { return IdxCellMesh<M>(c, *this); });
+  }
+  auto SuCellsM() const {
+    return MakeTransformIterator<IdxCellMesh<M>>(
+        SuCells(), [this](IdxCell c) { return IdxCellMesh<M>(c, *this); });
+  }
+  auto FacesM() const {
+    return MakeTransformIterator<IdxFaceMesh<M>>(
+        Faces(), [this](IdxFace f) { return IdxFaceMesh<M>(f, *this); });
+  }
+  auto SuFacesM() const {
+    return MakeTransformIterator<IdxFaceMesh<M>>(
+        SuFaces(), [this](IdxFace f) { return IdxFaceMesh<M>(f, *this); });
   }
 
   // TODO: move to separate class: Sem, LS, Comm, Reduce, Solve

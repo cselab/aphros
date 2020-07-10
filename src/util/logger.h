@@ -16,12 +16,19 @@
     }                                                                     \
   } while (0);
 
-#define fassert_equal(x, y)                                               \
-  do {                                                                    \
-    if (!((x) == (y))) {                                                  \
-      std::stringstream fasrteq_s;                                        \
-      fasrteq_s << FILELINE << ": assertion failed ";                     \
-      fasrteq_s << " " << #x << "=" << (x) << " != " << (y) << "=" << #y; \
-      throw std::runtime_error(fasrteq_s.str());                          \
-    }                                                                     \
+#define NAMEVALUE(x)                 \
+  ([&]() -> std::string {            \
+    std::stringstream namevalue_s;   \
+    namevalue_s << #x << '=' << (x); \
+    return namevalue_s.str();        \
+  }())
+
+#define fassert_equal(x, y)                                                   \
+  do {                                                                        \
+    if (!((x) == (y))) {                                                      \
+      std::stringstream fasrteq_s;                                            \
+      fasrteq_s << FILELINE << ": assertion failed, expected equal ";      \
+      fasrteq_s << #x << "='" << (x) << "' and " << #y << "='" << (y) << "'"; \
+      throw std::runtime_error(fasrteq_s.str());                              \
+    }                                                                         \
   } while (0);

@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "geom/mesh.h"
+#include "geom/notation.h"
 
 // Returns true if a < b (lex starting from end)
 template <class T, size_t d>
@@ -173,7 +174,7 @@ void TestMesh() {
   }
 
   {
-    std::cout << "Face neighbor faces\n";
+    std::cout << "\nFace neighbor faces\n";
     const auto& index = m.GetIndexFaces();
     auto str = [&](IdxFace f) {
       std::stringstream s;
@@ -192,7 +193,7 @@ void TestMesh() {
   }
 
   {
-    std::cout << "Cell neighbor cells\n";
+    std::cout << "\nCell neighbor cells\n";
     IdxCell c(0);
     for (auto q : m.Nci(c)) {
       IdxFace f = m.GetFace(c, q);
@@ -219,9 +220,111 @@ void TestMesh() {
   }
 }
 
+void TestNotation() {
+  const Rect<Vect> dom(Vect(0), Vect(1));
+  using M = MeshStructured<Scal, dim>;
+  const MIdx begin(0); 
+  const MIdx size(1, 2, 3);
+  const size_t halos = 2;
+  const M m = InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);
+
+  {
+    std::cout << "\nTestNotation: IdxCellMesh\n";
+    for (auto c : m.CellsM()) {
+      auto dx = m.direction(0);
+      auto dxb = m.direction(0, 0);
+      auto dy = dx >> 1;
+      auto dyb = -dy;
+      auto dz = dx >> 2;
+      fassert_equal(dy, m.direction(1));
+      fassert_equal(dz, m.direction(2));
+      auto dzb = dz.orient(Vect(-1));
+      std::cout << NAMEVALUE(c) << " ";
+      std::cout << c + dx << " ";
+      std::cout << c + dy << " ";
+      std::cout << c + dz << " ";
+      std::cout << c + dxb << " ";
+      std::cout << c + dyb << " ";
+      std::cout << c + dzb << " ";
+      std::cout << c - dzb << " ";
+      std::cout << std::endl;
+    }
+    for (auto c : m.SuCellsM()) {
+      std::cout << MIdx(c).sum() << ' ';
+    }
+    std::cout << std::endl;
+    auto c = m.cell();
+    std::stringstream("0 0 1") >> c;
+    std::cout << NAMEVALUE(c) << ' ' << NAMEVALUE(size_t(IdxCell(c))) << ' '
+              << NAMEVALUE(m.GetCenter(c)) << ' ' << ' ' << NAMEVALUE(MIdx(c));
+    std::cout << std::endl;
+  }
+
+  {
+    std::cout << "\nTestNotation: IdxFaceMesh\n";
+    for (auto f : m.FacesM()) {
+      auto dx = m.direction(0);
+      auto dy = dx >> 1;
+      auto dz = dx >> 2;
+      auto dxb = dx.orient(Vect(-1));
+      auto dyb = dy.orient(Vect(-1));
+      auto dzb = dz.orient(Vect(-1));
+      std::cout << NAMEVALUE(f) << " ";
+      std::cout << f + dx << " ";
+      std::cout << f + dy << " ";
+      std::cout << f + dz << " ";
+      std::cout << f + dxb << " ";
+      std::cout << f + dyb << " ";
+      std::cout << f + dzb << " ";
+      std::cout << f - dzb << " ";
+      std::cout << std::endl;
+    }
+    for (auto f : m.SuFacesM()) {
+      std::cout << MIdx(f).sum() << ' ';
+    }
+    std::cout << std::endl;
+    auto f = m.face();
+    std::stringstream("0 1 1 y") >> f;
+    auto c = m.cell();
+    std::stringstream("0 0 1") >> c;
+    std::cout << NAMEVALUE(f) << ' ' << NAMEVALUE(size_t(IdxFace(f))) << ' '
+              << NAMEVALUE(f.direction()) << ' ' << NAMEVALUE(m.GetCenter(f))
+              << ' ' << NAMEVALUE(c) << ' ' << NAMEVALUE((c + f)) << ' '
+              << NAMEVALUE((c - f));
+    std::cout << std::endl;
+    std::cout << NAMEVALUE(f.cm()) << ' ' << NAMEVALUE(f.cp()) << ' '
+              << NAMEVALUE(m(f.cm)) << ' ' << NAMEVALUE(m(f.cp));
+    std::cout << std::endl;
+    std::cout << NAMEVALUE(c.center[0]) << ' ' << NAMEVALUE(c.center()) << ' '
+              << NAMEVALUE(f.center[0]) << ' ' << NAMEVALUE(f.center());
+    std::cout << std::endl;
+  }
+
+  {
+    std::cout << "\nTestNotation: IdxCellMesh gradient\n";
+    auto dx = m.direction(0);
+    auto dy = m.direction(1);
+    auto dz = m.direction(2);
+    FieldCell<Scal> u(m);
+    for (auto c : m.CellsM()) {
+      u[c] = c.center[0];
+    }
+    FieldCell<Scal> v(m);
+    for (auto c : m.CellsM()) {
+      v[c] = u[c + dx] + u[c - dx] + u[c + dy] + u[c - dy] + u[c + dz] +
+             u[c - dz] - u[c] * 6;
+    }
+    FieldFace<Scal> uf(m);
+    for (auto f : m.FacesM()) {
+      uf[f] = u[f.cm] + u[f.cp];
+    }
+  }
+}
+
 int main() {
   TestBlock();
   TestMesh();
+  TestNotation();
 
   {
     Rect<Vect> dom(Vect(0.), Vect(1.));
