@@ -560,6 +560,25 @@ class Embed {
     DumpPlaneSection("eb.dat", xc, n);
   }
 
+  // Notation
+  auto CellsM() const {
+    return MakeTransformIterator<IdxCellMesh<M>>(
+        Cells(), [this](IdxCell c) { return IdxCellMesh<M>(c, m); });
+  }
+  auto SuCellsM() const {
+    return MakeTransformIterator<IdxCellMesh<M>>(
+        SuCells(), [this](IdxCell c) { return IdxCellMesh<M>(c, m); });
+  }
+  auto FacesM() const {
+    return MakeTransformIterator<IdxFaceMesh<M>>(
+        Faces(), [this](IdxFace f) { return IdxFaceMesh<M>(f, m); });
+  }
+  auto SuFacesM() const {
+    return MakeTransformIterator<IdxFaceMesh<M>>(
+        SuFaces(), [this](IdxFace f) { return IdxFaceMesh<M>(f, m); });
+  }
+
+
  private:
   Vect GetFaceCenter0(IdxCell c) const {
     if (fct_[c] == Type::cut) {
@@ -641,6 +660,7 @@ class Embed {
     }
     return a;
   }
+
   // Determines the face types, constructs polygons and computes fractions.
   // fnl: level-set on nodes, fnl > 0 inside regular cells [a]
   // Output:

@@ -1132,54 +1132,52 @@ auto UEmbed<M>::InterpolateBilinearFaces(const FieldFace<T>& ffu, const M&)
   return ffu;
 }
 
+// Evaluates bilinear interpolant on points (0,0), (1,0), (0,1) and (1,1).
+// x,y: target point
+// u,ux,uy,uyx:  values of function for (x,y) = (0,0), (1,0), (0,1), (1,1)
+template <class T, class Scal>
+T Bilinear(Scal x, Scal y, T u, T ux, T uy, T uyx) {
+  //                      //
+  //   y                  //
+  //   |                  //
+  //   |*uy    *uyx       //
+  //   |                  //
+  //   |                  //
+  //   |*u     *ux        //
+  //   |-------------x    //
+  //                      //
+  const auto v = u * (1 - x) + ux * x;
+  const auto vy = uy * (1 - x) + uyx * x;
+  return v * (1 - y) + vy * y;
+}
+
 template <class M>
 template <class T>
 auto UEmbed<M>::InterpolateBilinearFaces(const FieldFace<T>& ffu, const EB& eb)
     -> FieldFace<T> {
-  auto& m = eb.GetMesh();
   FieldFace<T> ffb(eb, T(0));
-  for (auto f : eb.SuFaces()) {
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
+  for (auto f : eb.SuFacesM()) {
     const Scal h = eb.GetCellSize()[0];
-    if (eb.GetType(cm) == Type::regular && eb.GetType(cp) == Type::regular) {
+    if (eb.GetType(f) == EB::Type::regular) {
       ffb[f] = ffu[f];
     } else {
-      const size_t qz = eb.GetNci(cm, f); // f == GetFace(c, qz)
-      //                                             //
-      //            ---------------------            //
-      //            |         |         |            //
-      //            |   c01   |   c11   |            //
-      //            |         |         |            //
-      //            |\--------|---------|            //
-      //            | \       |         |            //
-      //            |  \ c00  |   c10   |            //
-      //            |   \     |         |            //
-      //            -----\---------------            //
-      //                                             //
-      const size_t dz = qz / 2; // face direction
-      const size_t dx = (dz + 1) % dim; // other directions
-      const size_t dy = (dz + 2) % dim; // other directions
-      const Vect n = eb.GetNormal(cm);
-      const size_t qx = dx * 2 + (n[dx] < 0 ? 1 : 0);
-      const size_t qy = dy * 2 + (n[dy] < 0 ? 1 : 0);
-      const IdxCell c00 = cm;
-      const IdxCell c10 = eb.GetCell(c00, qx);
-      const IdxCell c01 = eb.GetCell(c00, qy);
-      const IdxCell c11 = eb.GetCell(c10, qy);
-      const IdxFace f00 = eb.GetFace(c00, qz);
-      const IdxFace f10 = eb.GetFace(c10, qz);
-      const IdxFace f01 = eb.GetFace(c01, qz);
-      const IdxFace f11 = eb.GetFace(c11, qz);
-
-      assert(f == f00);
-      const Scal tx =
-          1 - std::abs(eb.GetFaceCenter(f)[dx] - m.GetCenter(f)[dx]) / h;
-      const Scal ty =
-          1 - std::abs(eb.GetFaceCenter(f)[dy] - m.GetCenter(f)[dy]) / h;
-      const T fy0 = ffu[f00] * tx + ffu[f10] * (1 - tx);
-      const T fy1 = ffu[f01] * tx + ffu[f11] * (1 - tx);
-      ffb[f] = fy0 * ty + fy1 * (1 - ty);
+      //   ---------------------  //
+      //   |         |         |  //
+      //   |    fy   |   fyx   |  //
+      //   |         |         |  //
+      //   |\--------|---------|  //
+      //   | \       |         |  //
+      //   |  r  f   |   fx    |  //
+      //   |   \     |         |  //
+      //   -----\---------------  //
+      auto n = eb.GetNormal(f.cm);
+      auto dz = f.direction();
+      auto dx = (dz >> 1).orient(-n);
+      auto dy = (dz >> 2).orient(-n);
+      auto r = (eb.GetFaceCenter(f) - f.center).abs();
+      ffb[f] = Bilinear(
+          r[dx] / h, r[dy] / h, //
+          ffu[f], ffu[f + dx], ffu[f + dy], ffu[f + dy + dx]);
     }
   }
   return ffb;
