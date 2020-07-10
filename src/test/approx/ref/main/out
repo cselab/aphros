@@ -62,7 +62,7 @@ eb.Interpolate() returning FieldEmbed<Scal>
 >> regular faces near cut cell:
    order [error]: min= 1.000 [ 7.216e-07]   max= 1.000 [ 7.216e-07]   mean= 1.000 [ 4.421e-05]
 >> cut faces:
-   order [error]: min=-1.807 [ 8.882e-17]   max= 1.000 [ 1.160e-06]   mean= 0.994 [ 1.857e-04]
+   order [error]: min=-1.585 [ 8.882e-17]   max= 1.000 [ 1.160e-06]   mean= 0.995 [ 1.857e-04]
 >> embed faces:
    order [error]: min=-0.008 [ 3.113e+00]   max=-0.003 [ 3.136e+00]   mean=-0.006 [ 3.125e+00]
 > func=Trilinear
