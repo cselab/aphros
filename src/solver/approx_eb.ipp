@@ -275,52 +275,47 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
   return fnl;
 }
 
+// Evaluates quadratic interpolant on points -1, 0, 1.
+// x: target point
+// um,u,up: values of function for x=-1, 0, 1.
+template <class Scal, class T>
+T Quad(Scal x, T um, T u, T up) {
+  return (um * (x - 1) + up * (x + 1)) * x * 0.5 - u * (x - 1) * (x + 1);
+}
+
+
 // Computes gradient at embeded face with Dirichlet conditions.
 // rf: face center
 // uf: given field value from boundary conditions
-// nf: normal to face
+// nf: normal to face, towards excluded domain
 // c: cell containign embedded face
 // fcu: input field
 template <class M, class T>
 T GradDirichletQuad(
     typename M::Vect rf, T uf, typename M::Vect nf, IdxCell c,
-    const FieldCell<T>& fcu, const Embed<M>& eb) {
+    const FieldCell<T>& fcu, const M& m) {
   //            ---------------------            //
   //            |         |         |            //
-  //            |         |   c1p   |            //
+  //            |         |  cw+dy  |            //
   //            |         |         |            //
   //            |\--------|---------|            //
   //            | \       |         |            //
-  //            |  f c    |   c1    |            //
+  //            |  f  c   | cw=c+dx |            //
   //            |   \     |         |            //
   //            |----\----|---------|            //
   //            |     \   |         |            //
-  //            |      \  |   c1m   |            //
+  //            |      \  |  cw-dy  |            //
   //            |       \ |         |            //
   //            |---------|---------|            //
   //                                             //
-  using Scal = typename M::Scal;
-  auto quad = [](Scal x, T am, T a, T ap) {
-    return (am * (x - 1) + ap * (x + 1)) * x * 0.5 - a * (x - 1) * (x + 1);
-  };
-
-  const auto& m = eb.GetMesh();
-  const auto h = eb.GetCellSize()[0];
-
-  const size_t dx = nf.abs().argmax();
-  const size_t dy = (dx == 0 ? 1 : 0);
-  const size_t sx = (nf[dx] > 0 ? 0 : 1); // step against normal
-  const IdxCell c1 = eb.GetCell(c, 2 * dx + sx);
-  const IdxCell c1p = eb.GetCell(c1, 2 * dy + 1);
-  const IdxCell c1m = eb.GetCell(c1, 2 * dy);
-  const Scal x1 = m.GetCenter(c1)[dx];
-  const Scal y1 = m.GetCenter(c1)[dy];
-  const Scal xf = rf[dx];
-  const Scal yf = rf[dy];
-  const Scal xf1 = x1;
-  const Scal yf1 = yf + (xf1 - xf) / nf[dx] * nf[dy];
-  const T u1 = quad((yf1 - y1) / h, fcu[c1m], fcu[c1], fcu[c1p]);
-  return (uf - u1) / ((xf - x1) / nf[dx]);
+  auto h = m.GetCellSize()[0];
+  auto dx = m.direction(nf.abs().argmax());
+  auto dy = m.direction(1 - nf.abs().argmax()).orient(-nf);
+  auto cw = m(c) + dx;
+  auto dist = (cw.center[dx] - rf[dx]) / nf[dx];
+  auto yi = rf[dy] + dist * nf[dy];
+  auto ui = Quad((yi - cw.center[dy]) / h, fcu[cw - dy], fcu[cw], fcu[cw + dy]);
+  return (uf - ui) / std::abs(dist);
 }
 
 template <class M, class T>
@@ -427,11 +422,11 @@ auto UEmbed<M>::Gradient(
     const T& val = bc.val;
     switch (bc.type) {
       case BCondType::dirichlet: {
-        const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
-        const T u = EvalLinearFit(x, c, fcu, eb);
-        return (val - u) / h;
-        // return GradDirichletQuad(
-        //    eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
+        //const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
+        //const T u = EvalLinearFit(x, c, fcu, eb);
+        //return (val - u) / h;
+        return GradDirichletQuad(
+            eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb.GetMesh());
         // return GradDirichletLinear(
         //    eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
       }

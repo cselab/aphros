@@ -7,6 +7,8 @@
 #include <functional>
 #include <memory>
 #include <stdexcept>
+#include <sstream>
+#include <fstream>
 
 #include "cubismnc.h"
 #include "distr.h"
@@ -56,4 +58,25 @@ int RunMpiBasic(int argc, const char** argv, Func func, std::string addconf) {
   conf << "\n" << addconf;
   Main main(func);
   return RunMpi0(argc, argv, main, conf);
+}
+
+template <class M, class Func>
+int RunMpiBasicFile(
+    int argc, const char** argv, Func func, std::string confpath = "a.conf") {
+  int status;
+  try {
+    std::ifstream file(confpath);
+    if (!file.good()) {
+      throw std::runtime_error(
+          FILELINE + ": Can't open config file '" + confpath + "'");
+    }
+    std::stringstream buf;
+    buf << file.rdbuf();
+    status = RunMpiBasic<M, Func>(argc, argv, func, buf.str());
+  } catch (const std::exception& e) {
+    status = 1;
+    std::cerr << "\nabort after throwing exception\n" << e.what() << '\n';
+    throw e;
+  }
+  return status;
 }
