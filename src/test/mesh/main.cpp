@@ -78,7 +78,7 @@ bool Cmp(size_t a, size_t b) {
 
 // Print CMP
 #define PCMP(a, b)                                                    \
-  std::cerr << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
+  std::cout << #a << "=" << a << ", " << #b << "=" << b << std::endl; \
   CMP(a, b);
 
 void TestMesh() {
@@ -159,8 +159,40 @@ void TestMesh() {
   PCMP(m.GetOpposite(5), 4);
   PCMP(m.GetOpposite(-1), -1);
 
-  // Index of neighbour face
   {
+    std::cout << "Cell neighbor cells\n";
+    const auto& ic = m.GetIndexCells();
+    for (auto c : m.Cells()) {
+      std::cout << "c=" << ic.GetMIdx(c) << ":";
+      for (auto q : m.Nci(c)) {
+        std::cout << " " << ic.GetMIdx(m.GetCell(c, q));
+      }
+      std::cout << std::endl;
+      break;
+    }
+  }
+
+  {
+    std::cout << "Face neighbor faces\n";
+    const auto& index = m.GetIndexFaces();
+    auto str = [&](IdxFace f) {
+      std::stringstream s;
+      s << index.GetMIdx(f) << "," << index.GetDir(f).GetLetter();
+      return s.str();
+    };
+    for (auto d : {0, 1, 2}) {
+      const IdxFace f = index.GetIdx(m.GetInBlockCells().GetBegin(), Dir(d));
+      std::cout << "f=" << str(f) << ":";
+      for (auto q : {0, 1, 2, 3, 4, 5}) {
+        const auto fn = m.GetFace(f, q);
+        std::cout << " " << str(fn);
+      }
+      std::cout << std::endl;
+    }
+  }
+
+  {
+    std::cout << "Cell neighbor cells\n";
     IdxCell c(0);
     for (auto q : m.Nci(c)) {
       IdxFace f = m.GetFace(c, q);

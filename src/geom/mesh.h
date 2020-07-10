@@ -187,8 +187,9 @@ class MeshStructured {
     return IdxFace(size_t(c) + cnf_[q]);
   }
   IdxFace GetFace(IdxFace f, size_t q) const {
-    assert(q < kCellNumNeighbourFaces);
-    return IdxFace(size_t(f) + fnf_[q]);
+    const auto qm = kCellNumNeighbourFaces;
+    assert(q < qm);
+    return IdxFace(size_t(f) + fnf_[size_t(bfr_.GetDir(f)) * qm + q]);
   }
   Scal GetOutwardFactor(IdxCell, size_t q) const {
     assert(q < kCellNumNeighbourFaces);
@@ -208,8 +209,7 @@ class MeshStructured {
   IdxCell GetCell(IdxFace f, size_t q) const {
     auto qm = kFaceNumNeighbourCells;
     assert(q < qm);
-    size_t d(bfr_.GetDir(f));
-    return IdxCell(size_t(f) + fnc_[d * qm + q]);
+    return IdxCell(size_t(f) + fnc_[size_t(bfr_.GetDir(f)) * qm + q]);
   }
   Vect GetVectToCell(IdxFace f, size_t n) const {
     assert(n < kFaceNumNeighbourCells);
@@ -1128,7 +1128,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     const MIdx w = bcr_.GetBegin(); // any cell
     for (size_t d = 0; d < dim; ++d) {
       const IdxFace f = bfr_.GetIdx(w, Dir(d));
-      auto qm = kFaceNumNeighbourCells;
+      auto qm = kCellNumNeighbourFaces;
       for (size_t q = 0; q < qm; ++q) {
         MIdx wo(0);
         wo[q / 2] = (q % 2 == 0 ? -1 : 1);
