@@ -68,6 +68,9 @@ struct ULinear {
     for (Int j = 0; j < N; ++j) {
       const Int ip = ipivot(j);
       swaprows(ip, j);
+      if (aa(j, j) == 0) { // case of degenerate system
+        aa(j, j) = 1;
+      }
       for (Int i = j + 1; i < N; ++i) {
         addrow(i, j, -aa(i, j) / aa(j, j));
       }

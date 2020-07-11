@@ -22,6 +22,9 @@ class Direction {
   Direction orient(const Vect& v) const {
     return Direction(index_, v[index_] > 0 ? 1 : 0);
   }
+  Scal sign() const {
+    return forward_ == 1 ? 1 : -1;
+  }
   Direction operator>>(int shift) const {
     return Direction((index_ + shift) % dim, forward_);
   }
