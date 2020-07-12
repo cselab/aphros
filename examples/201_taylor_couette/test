@@ -36,7 +36,7 @@ class Test(aphros.TestBase):
         ret = []
         if case == Cases.single:
             ret += self.run_nx(64)
-            ret += "theta_error_0001.h5"
+            ret.append("theta_error_0001.h5")
         elif case == Cases.convergence:
             ret += self.run_nx(32)
             ret += self.run_nx(64)
@@ -49,10 +49,14 @@ class Test(aphros.TestBase):
 
     def update(self, outdir, refdir, output_files):
         super().update(outdir, refdir, output_files)
-        f = "error.pdf"
-        self.copy_file(f, os.path.join(refdir, f))
+        if self.case == Cases.single:
+            f = "error.svg"
+            self.copy_file(os.path.join(outdir, f), os.path.join(refdir, f))
+        elif self.case == Cases.convergence:
+            f = "error.pdf"
+            self.copy_file(os.path.join(outdir, f), os.path.join(refdir, f))
 
-    def plot_error(self, datadir, refdir, files):
+    def plot_error(self, datadir, refdir, output_files):
         import matplotlib.pyplot as plt
         import numpy as np
         from matplotlib.ticker import ScalarFormatter, NullFormatter
@@ -83,7 +87,7 @@ class Test(aphros.TestBase):
                     ls='-' if ref else '--')
             if not ref:
                 ax.plot(vcpr, vdat[:, i], marker='o', label=l, c=c)
-        ax.plot(vcpr, 2.5 / vcpr ** 2, 'k--', label=r'$h^2$')
+        ax.plot(vcpr, 2.5 / vcpr**2, 'k--', label=r'$h^2$')
         ax.set_xlabel(r'R / h')
         ax.set_ylabel(r'error')
         formatter = ScalarFormatter()
@@ -99,14 +103,35 @@ class Test(aphros.TestBase):
                   fontsize=8,
                   handlelength=3.5)
         fig.tight_layout()
-        fig.savefig("error.pdf")
+        fpath = os.path.join(datadir, "error.pdf")
+        self.printlog(fpath)
+        fig.savefig(fpath)
 
     def plot_error_field(self, datadir, refdir, files):
-        files = [f for f in files if ".h5" in f]
-        print(files)
+        import aphros.plot
+        import numpy as np
+        import h5py
+
+        f = os.path.join(datadir, "theta_error_0001.h5")
+        with h5py.File(f, 'r') as h:
+            u = h['data']
+            u = np.array(u)
+            u = u[0, :, :, 0]
+
+        fig, ax = aphros.plot.GetSquareFigure()
+
+        u = abs(u)
+        u[u == 0] = np.nan
+        vmax = np.nanstd(u) * 1.5
+        aphros.plot.PlotSquareField(ax, u, vmin=0, vmax=vmax)
+
+        fpath = os.path.join(datadir, "error.svg")
+        self.printlog(fpath)
+        fig.savefig(fpath)
 
     def plot(self, datadir, output_files):
         self.plot_error(datadir, self.refdir, output_files)
+        self.plot_error_field(datadir, self.refdir, output_files)
 
 
 Test().main()

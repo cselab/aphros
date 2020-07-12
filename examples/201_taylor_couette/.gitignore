@@ -26,3 +26,4 @@ add.conf
 tl
 *.so
 output
+!Makefile

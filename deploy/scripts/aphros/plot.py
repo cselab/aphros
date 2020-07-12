@@ -90,6 +90,24 @@ def InitBasicFigure(field, grid=False):
     return fig, ax, meta
 
 
+def GetSquareFigure(grid=False, field=None):
+    figsize = 3.2
+    resx = 640
+    dpi = resx / figsize
+    fig = plt.figure(figsize=(resx / dpi, resx / dpi), dpi=dpi)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    fig.add_axes(ax)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    HideAxis(ax)
+    if grid:
+        x1 = np.linspace(0, 1, field.shape[1] + 1, endpoint=True)
+        y1 = np.linspace(0, 1, field.shape[0] + 1, endpoint=True)
+        PlotGrid(ax, x1, y1)
+    matplotlib.rcParams['svg.hashsalt'] = 123  # for reproducible svg
+    return fig, ax
+
+
 def PlotFieldCoolwarm(ax, u, vmin=None, vmax=None):
     ax.imshow(np.flipud(u),
               vmin=vmin,
@@ -97,6 +115,15 @@ def PlotFieldCoolwarm(ax, u, vmin=None, vmax=None):
               extent=(0, 1, 0, 1),
               interpolation='nearest',
               cmap=plt.get_cmap("coolwarm"))
+
+
+def PlotSquareField(ax, u, vmin=None, vmax=None, cmap=plt.get_cmap("viridis")):
+    ax.imshow(np.flipud(u),
+              vmin=vmin,
+              vmax=vmax,
+              extent=(0, 1, 0, 1),
+              interpolation='nearest',
+              cmap=cmap)
 
 
 def SaveBasicFigure(fig, filename):
