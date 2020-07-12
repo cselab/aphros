@@ -25,3 +25,5 @@ a.conf
 add.conf
 tl
 *.so
+error_*
+!ref*/error_*

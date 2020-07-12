@@ -2,11 +2,14 @@ r () {
   nx=$1
   np=${2:-1}
   echo "nx=$nx np=$np"
-  LD_PRELOAD=libposthook.so nice make -f sim.makefile m="$nx $nx 1" np=$np cleanrun > /dev/null
+  make m="$nx $nx 1" np=$np cleanrun &> /dev/null
+  cat error
   mv -v error error_$nx
 }
 
 r 032 1
-r 064 4
-r 128 4
-r 256 8
+r 064 2
+r 128 2
+#r 064 4
+#r 128 4
+#r 256 8
