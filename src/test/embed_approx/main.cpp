@@ -70,7 +70,7 @@ void Main(M& m, Vars& var) {
         const Scal t = 2 * M_PI * i / imax;
         const Vect nf(std::cos(t), std::sin(t), 0.);
         auto h = m.GetCellSize()[0];
-        const Vect rf = c.center() + Vect(h * 0.2, h * 0.3, 0);
+        const Vect rf = c.center() + Vect(h * 0.2, h * 0.3, 0.);
         //const Scal g = GradDirichletQuad(rf, func(rf), nf, c, fcu, eb);
         const Scal g = GradDirichletQuadSecond(rf, func(rf), nf, c, fcu, eb);
         //const Scal g = GradDirichletLinear(rf, func(rf), nf, c, fcu, eb);

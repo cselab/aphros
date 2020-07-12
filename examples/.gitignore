@@ -7,3 +7,4 @@ main
 *.vtk
 *.h5
 *.csv
+testcase

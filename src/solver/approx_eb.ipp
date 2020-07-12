@@ -538,7 +538,7 @@ auto UEmbed<M>::Gradient(
       case BCondType::dirichlet: {
         return GradDirichletLinearFit(
             eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
-        // return GradDirichletQuadSecond(
+        //return GradDirichletQuadSecond(
         //    eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
         // return GradDirichletQuad(
         //    eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);

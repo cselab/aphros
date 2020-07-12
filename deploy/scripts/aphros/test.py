@@ -106,10 +106,7 @@ class TestBase:
         """
         os.makedirs(refdir, exist_ok=True)
         for f in output_files:
-            out = os.path.join(outdir, f)
-            ref = os.path.join(refdir, f)
-            shutil.copy(out, ref)
-            self.printlog("copied '{}' to '{}'".format(out, ref))
+            self.copy_file(os.path.join(outdir, f), os.path.join(refdir, f))
 
     def plot(self, datadir, output_files):
         """
@@ -129,6 +126,14 @@ class TestBase:
             if os.path.isfile(f):
                 os.remove(f)
                 self.printlog("removed '{}'".format(f))
+
+    def copy_file(self, src, dst):
+        shutil.copy(src, dst)
+        self.printlog("copied '{}' to '{}'".format(src, dst))
+
+    def rename_file(self, src, dst):
+        os.rename(src, dst)
+        self.printlog("moved '{}' to '{}'".format(src, dst))
 
     def runcmd(self, cmd, echo=True):
         """
@@ -161,8 +166,7 @@ class TestBase:
         os.makedirs(outdir, exist_ok=True)
         for f in output_files:
             out = os.path.join(outdir, f)
-            os.rename(f, out)
-            self.printlog("moved '{}' to '{}'".format(f, out))
+            self.rename_file(f, out)
 
     def main(self):
         """
