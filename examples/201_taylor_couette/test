@@ -36,6 +36,7 @@ class Test(aphros.TestBase):
         ret = []
         if case == Cases.single:
             ret += self.run_nx(64)
+            ret += "theta_error_0001.h5"
         elif case == Cases.convergence:
             ret += self.run_nx(32)
             ret += self.run_nx(64)

@@ -220,55 +220,6 @@ struct Proj<EB_>::Imp {
       // FIXME: empty stage to finish communication in halo cells
     }
   }
-  auto GradientImplicit(
-      const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, const M& m)
-      -> FieldFace<ExprFace> {
-    return UEB::GradientImplicit(fcu, mebc, m);
-  }
-  auto GradientImplicit(
-      const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
-      const Embed<M>& eb) -> FieldEmbed<ExprFace> {
-    FieldEmbed<ExprFace> fee(eb, ExprFace(0));
-    const Scal h = eb.GetCellSize()[0];
-
-    // explicit gradient
-    const FieldEmbed<Scal> feg = UEB::Gradient(fcu, mebc, eb);
-
-    // implicit gradient with deferred correction
-    for (auto f : eb.Faces()) {
-      const IdxCell cm = eb.GetCell(f, 0);
-      const IdxCell cp = eb.GetCell(f, 1);
-      const Scal a = 1 / h;
-      ExprFace e(0);
-      e[0] = -a;
-      e[1] = a;
-      e.back() = feg[f];
-      e.back() -= fcu[cm] * e[0] + fcu[cp] * e[1];
-      fee[f] = e;
-    }
-
-    auto calc = [&](auto cf, IdxCell c, const BCond<Scal>& bc) {
-      ExprFace e(0);
-      switch (bc.type) {
-        case BCondType::dirichlet: {
-          e.back() = feg[cf];
-          break;
-        }
-        case BCondType::neumann: {
-          e.back() = feg[cf];
-          break;
-        }
-        default:
-          throw std::runtime_error(FILELINE + ": unknown");
-      }
-      return e;
-    };
-    mebc.LoopBCond(eb, [&](auto cf, IdxCell c, const auto& bc) {
-      fee[cf] = calc(cf, c, bc);
-    });
-
-    return fee;
-  }
   void DiffusionImplicit(
       FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvel_time_prev,
       const FieldCell<Scal>& fc_dens, const Scal dt) {
@@ -283,8 +234,7 @@ struct Proj<EB_>::Imp {
       if (sem("local" + std::to_string(d))) {
         const auto mebc = GetScalarCond(me_vel_, d, m);
         fcu = GetComponent(fcvel, d);
-        //const FieldFaceb<ExprFace> ffg = UEB::GradientImplicit(fcu, mebc, eb);
-        const FieldFaceb<ExprFace> ffg = GradientImplicit(fcu, mebc, eb);
+        const FieldFaceb<ExprFace> ffg = UEB::GradientImplicit(fcu, mebc, eb);
         fcl.Reinit(eb, Expr::GetUnit(0));
         ffg.CheckHalo(0);
         for (auto c : eb.Cells()) {
@@ -297,9 +247,6 @@ struct Proj<EB_>::Imp {
           fcl[c] = -sum;
         }
         fcl.SetName("velocity" + std::to_string(d));
-      }
-      if (sem.Nested()) {
-        UEB::RedistributeConstTerms(fcl, eb, m);
       }
       if (sem("time")) {
         for (auto c : eb.Cells()) {
