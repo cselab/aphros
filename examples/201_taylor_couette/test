@@ -20,6 +20,7 @@ class Test(aphros.TestBase):
         self.parser.add_argument(
             "--maxnx",
             default=256,
+            type=int,
             help="Maximum mesh size for convergence test.")
 
     def run_nx(self, nx):

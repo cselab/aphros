@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+
+import os
+import re
+
+import aphros
+
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__()
+        self.parser.add_argument(
+            "--maxnx",
+            default=256,
+            type=int,
+            help="Maximum mesh size for convergence test.")
+
+    def run(self):
+        self.runcmd("make cleanrun")
+        return ["p_0000.h5", "vy_0000.h5"]
+
+    def check(self, outdir, refdir, output_files):
+        return True
+
+    def update(self, outdir, refdir, output_files):
+        for f in ["velocity.svg", "pressure.svg"]:
+            self.copy_file(os.path.join(outdir, f), os.path.join(refdir, f))
+
+    def plot_error_field(self, datadir, refdir, files):
+        import aphros.plot
+        import numpy as np
+        import h5py
+
+        def plotfield(path, name, std=False):
+            f = os.path.join(datadir, path)
+            if not os.path.isfile(f):
+                return
+            with h5py.File(f, 'r') as h:
+                u = h['data']
+                u = np.array(u)
+                u = u[0, :, :, 0]
+
+            fig, ax = aphros.plot.GetSquareFigure()
+
+            u[u == 0] = np.nan
+            if std:
+                std = np.nanquantile(abs(u), 0.9)
+                vmin = -std
+                vmax = std
+                cmap = "coolwarm"
+            else:
+                vmin = np.nanmin(u)
+                vmax = np.nanmax(u)
+                cmap = "viridis"
+            print("range {:} {:}".format(vmin, vmax))
+            aphros.plot.PlotSquareField(ax, u, vmin=vmin, vmax=vmax, cmap=cmap)
+
+            fpath = os.path.join(datadir, name + ".svg")
+            self.printlog(fpath)
+            fig.savefig(fpath)
+
+        plotfield("vy_0000.h5", "velocity", True)
+        plotfield("p_0000.h5", "pressure", False)
+
+    def plot(self, datadir, output_files):
+        #self.plot_error(datadir, self.refdir, output_files)
+        self.plot_error_field(datadir, self.refdir, output_files)
+
+
+Test().main()
