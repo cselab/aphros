@@ -113,6 +113,25 @@ struct Proj<EB_>::Imp {
     ffvisc_ = UEB::Interpolate(*owner_->fcd_, me_visc_, eb);
     ffdens_ = UEB::InterpolateHarmonic(*owner_->fcr_, me_visc_, eb);
   }
+  void CalcInitialPressure(
+      FieldCell<Scal>& fcp, FieldFaceb<Scal>& ffv,
+      const FieldCell<Vect>& fcvel) {
+    auto sem = m.GetSem("initial-pressure");
+    const Scal dt = owner_->GetTimeStep();
+    if (sem("face-acceleration")) {
+      const FieldFaceb<Vect> ffvel = UEB::Interpolate(fcvel, me_vel_, eb);
+      eb.LoopFaces([&](auto cf) { //
+        auto& v = ffv[cf];
+        v = ffvel[cf].dot(eb.GetSurface(cf));
+        if (!is_boundary_[cf]) {
+          v += (*owner_->febp_)[cf] / ffdens_[cf] * dt * eb.GetArea(cf);
+        }
+      });
+    }
+    if (sem.Nested("project")) {
+      Project(fcp, ffv, dt);
+    }
+  }
   void Advection(
       FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvel_time_prev,
       const FieldFaceb<Scal>& ffv, const FieldCell<Vect>& fc_accel,
@@ -486,6 +505,12 @@ struct Proj<EB_>::Imp {
     }
 
     UpdateBc(sem);
+
+    if (sem.Nested()) {
+      if (owner_->GetTime() == 0) {
+        CalcInitialPressure(fcp_curr, ffv, fcvel);
+      }
+    }
 
     if (sem("forceinit")) {
       fc_accel_ = GetAcceleration(fcp_curr);
