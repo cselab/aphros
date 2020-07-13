@@ -135,7 +135,7 @@ def PlotFieldCoolwarm(ax, u, vmin=None, vmax=None):
               cmap=plt.get_cmap("coolwarm"))
 
 
-def PlotSquareField(ax, u, vmin=None, vmax=None, cmap=plt.get_cmap("viridis")):
+def PlotSquareField(ax, u, vmin=None, vmax=None, cmap="viridis"):
     ax.imshow(np.flipud(u),
               vmin=vmin,
               vmax=vmax,
