@@ -19,7 +19,7 @@ class Test(aphros.TestBase):
                                  help="Maximum number of processors.")
         self.parser.add_argument(
             "--maxnx",
-            default=128,
+            default=256,
             help="Maximum mesh size for convergence test.")
 
     def run_nx(self, nx):
@@ -38,10 +38,10 @@ class Test(aphros.TestBase):
             ret += self.run_nx(64)
             ret.append("theta_error_0001.h5")
         elif case == Cases.convergence:
-            ret += self.run_nx(32)
-            ret += self.run_nx(64)
-            ret += self.run_nx(128)
-            ret += self.run_nx(256)
+            nx = 32
+            while nx <= self.args.maxnx:
+                ret += self.run_nx(nx)
+                nx *= 2
         return ret
 
     def check(self, outdir, refdir, output_files):
@@ -50,10 +50,10 @@ class Test(aphros.TestBase):
     def update(self, outdir, refdir, output_files):
         super().update(outdir, refdir, output_files)
         if self.case == Cases.single:
-            f = "error.svg"
+            f = "field.svg"
             self.copy_file(os.path.join(outdir, f), os.path.join(refdir, f))
         elif self.case == Cases.convergence:
-            f = "error.pdf"
+            f = "error.svg"
             self.copy_file(os.path.join(outdir, f), os.path.join(refdir, f))
 
     def plot_error(self, datadir, refdir, output_files):
@@ -103,7 +103,7 @@ class Test(aphros.TestBase):
                   fontsize=8,
                   handlelength=3.5)
         fig.tight_layout()
-        fpath = os.path.join(datadir, "error.pdf")
+        fpath = os.path.join(datadir, "error.svg")
         self.printlog(fpath)
         fig.savefig(fpath)
 
@@ -113,6 +113,8 @@ class Test(aphros.TestBase):
         import h5py
 
         f = os.path.join(datadir, "theta_error_0001.h5")
+        if not os.path.isfile(f):
+            return
         with h5py.File(f, 'r') as h:
             u = h['data']
             u = np.array(u)
@@ -125,7 +127,7 @@ class Test(aphros.TestBase):
         vmax = np.nanstd(u) * 1.5
         aphros.plot.PlotSquareField(ax, u, vmin=0, vmax=vmax)
 
-        fpath = os.path.join(datadir, "error.svg")
+        fpath = os.path.join(datadir, "field.svg")
         self.printlog(fpath)
         fig.savefig(fpath)
 

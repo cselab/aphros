@@ -274,3 +274,19 @@ See full example in :linkpath:`examples/104_embed_diffusion/main.cpp`.
   +--------------+-------------+
   | |ex104_1_1|  | |ex104_2_1| |
   +--------------+-------------+
+
+Taylor-Couette flow
+-------------------
+
+See full example in :linkpath:`examples/201_taylor_couette`.
+
+.. |ex201_error| image:: ../../../examples/201_taylor_couette/ref/convergence/error.svg
+
+.. |ex201_field| image:: ../../../examples/201_taylor_couette/ref/single/field.svg
+
+.. table:: Error norms with grid refinement (left) and error field (right).
+  :align: center
+
+  +---------------+---------------+
+  | |ex201_error| | |ex201_field| |
+  +---------------+---------------+
