@@ -121,12 +121,15 @@ class Test(aphros.TestBase):
             u = np.array(u)
             u = u[0, :, :, 0]
 
-        fig, ax = aphros.plot.GetSquareFigure()
+        fig, ax = aphros.plot.GetSquareFigure(aspect=0.885)
 
         u = abs(u)
         u[u == 0] = np.nan
+        vmin = 0
         vmax = np.nanstd(u) * 1.5
-        aphros.plot.PlotSquareField(ax, u, vmin=0, vmax=vmax)
+        cmap = "viridis"
+        aphros.plot.PlotSquareField(ax, u, vmin=vmin, vmax=vmax, cmap=cmap)
+        aphros.plot.AddColorBar(fig, vmin, vmax, cmap=cmap)
 
         fpath = os.path.join(datadir, "field.svg")
         self.printlog(fpath)

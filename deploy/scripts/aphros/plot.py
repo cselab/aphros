@@ -90,12 +90,13 @@ def InitBasicFigure(field, grid=False):
     return fig, ax, meta
 
 
-def GetSquareFigure(grid=False, field=None):
+def GetSquareFigure(grid=False, field=None, aspect=1.):
     figsize = 3.2
     resx = 640
+    resy = 640 / aspect
     dpi = resx / figsize
-    fig = plt.figure(figsize=(resx / dpi, resx / dpi), dpi=dpi)
-    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    fig = plt.figure(figsize=(resx / dpi, resy / dpi), dpi=dpi)
+    ax = plt.Axes(fig, [0., 0., 1.,  resy / resx])
     fig.add_axes(ax)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -106,6 +107,23 @@ def GetSquareFigure(grid=False, field=None):
         PlotGrid(ax, x1, y1)
     matplotlib.rcParams['svg.hashsalt'] = 123  # for reproducible svg
     return fig, ax
+
+def AddColorBar(fig, vmin, vmax, cmap):
+    cbar_ax = fig.add_axes([0.15, 0.07, 0.7, 0.05])
+    norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    vv = [vmin, (vmin + vmax) * 0.5, vmax]
+    if abs(vv[1]) < 1e-14:
+        vv[1] = 0
+    cbar = fig.colorbar(sm,
+                        cax=cbar_ax,
+                        cmap=cmap,
+                        norm=norm,
+                        orientation='horizontal',
+                        ticks=vv)
+    cbar.ax.set_xticklabels(["{:.4g}".format(v) for v in vv])
+    return cbar
 
 
 def PlotFieldCoolwarm(ax, u, vmin=None, vmax=None):

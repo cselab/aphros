@@ -284,9 +284,25 @@ See full example in :linkpath:`examples/201_taylor_couette`.
 
 .. |ex201_field| image:: ../../../examples/201_taylor_couette/ref/single/field.svg
 
-.. table:: Error norms with grid refinement (left) and error field (right).
+.. table:: Error norms with grid refinement (left) and error field at :math:`R/h=25.6` (right).
   :align: center
 
   +---------------+---------------+
   | |ex201_error| | |ex201_field| |
   +---------------+---------------+
+
+Hydrostatic
+-----------
+
+See full example in :linkpath:`examples/203_hydrostatic`.
+
+.. |ex203_pressure| image:: ../../../examples/203_hydrostatic/ref/pressure.svg
+
+.. |ex203_velocity| image:: ../../../examples/203_hydrostatic/ref/velocity.svg
+
+.. table:: Pressure (left) and velocity (right).
+  :align: center
+
+  +------------------+------------------+
+  | |ex203_pressure| | |ex203_velocity| |
+  +------------------+------------------+
