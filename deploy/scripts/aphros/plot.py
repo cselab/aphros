@@ -90,7 +90,10 @@ def InitBasicFigure(field, grid=False):
     return fig, ax, meta
 
 
-def GetSquareFigure(grid=False, field=None, aspect=1.):
+def GetSquareFigure(grid=False, field=None, aspect=1, colorbar=False):
+    assert aspect == 1 or not colorbar, "conflicting options"
+    if colorbar:
+        aspect = 0.88
     figsize = 3.2
     resx = 640
     resy = 640 / aspect

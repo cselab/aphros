@@ -36,7 +36,7 @@ class Test(aphros.TestBase):
         fig, ax = aphros.plot.GetSquareFigure()
         aphros.plot.PlotSquareField(ax, u, vmin=0, vmax=1)
 
-        fpath = os.path.join(datadir, "vf.svg")
+        fpath = os.path.join(datadir, "vf.pdf")
         self.printlog(fpath)
         fig.savefig(fpath)
 
