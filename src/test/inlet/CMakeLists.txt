@@ -1,1 +1,1 @@
-add_test_current(COMMAND run inlet)
+add_test_current(COMMAND test)
