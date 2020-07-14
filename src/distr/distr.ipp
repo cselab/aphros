@@ -7,6 +7,7 @@
 
 #include <stdexcept>
 #include <memory>
+#include <iostream>
 
 #include "distr.h"
 
