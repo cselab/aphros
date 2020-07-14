@@ -1924,29 +1924,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       febp_[f] += grav.dot(n) * ff_rho[f];
     }
 
-    if (eb_) {
-      auto& eb = *eb_;
-      // Compute gravity as gradient of potential
-      // to ensure exact hydrostatic solution.
-      MapEmbed<BCond<Scal>> me_neumann;
-      mebc_fluid_.LoopBCond(eb, [&](auto cf, IdxCell, auto bc) { //
-        me_neumann[cf] = BCond<Scal>(BCondType::neumann, bc.nci);
-      });
-
-      auto fe_dens = UEB::InterpolateHarmonic(fc_rho_, me_neumann, eb);
-      FieldCell<Scal> fcp(eb);
-      for (auto c : eb.AllCells()) {
-        const auto x = m.GetCenter(c);
-        fcp[c] = grav.dot(x);
-      }
-      febp_ = UEB::Gradient(fcp, me_neumann, eb);
-      eb.LoopFaces([&](auto cf) { //
-        febp_[cf] *= fe_dens[cf];
-      });
-      febp_.SetName(FILELINE + "febp");
-      febp_.SetHalo(0);
-    }
-
     // Surface tension
     if (var.Int["enable_surftens"] && as_) {
       CalcSurfaceTension(
