@@ -1858,16 +1858,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     FieldFace<Scal>& af = ff_smvf_;
     if (eb_) {
       auto& eb = *eb_;
-      // Compute volume fraction relative to cut cell volume
-      // as needed for density and viscosity.
-      for (auto c : eb.AllCells()) {
-        const Scal ebv = eb.GetVolumeFraction(c);
-        if (ebv != 0) {
-          a[c] = std::min(a[c], ebv) / ebv;
-        } else {
-          a[c] = 0;
-        }
-      }
       af = UEmbed<M>::Interpolate(a, {}, eb).GetFieldFace();
     } else {
       af = Interpolate(a, mf_cond_vfsm_, m);
@@ -1875,33 +1865,33 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 
     const Vect force(var.Vect["force"]);
     const Vect grav(var.Vect["gravity"]);
-    const Scal r1(var.Double["rho1"]);
-    const Scal r2(var.Double["rho2"]);
-    const Scal m1(var.Double["mu1"]);
-    const Scal m2(var.Double["mu2"]);
+    const Scal rho1(var.Double["rho1"]);
+    const Scal rho2(var.Double["rho2"]);
+    const Scal mu1(var.Double["mu1"]);
+    const Scal mu2(var.Double["mu2"]);
 
     // Init density and viscosity
     for (auto c : m.AllCells()) {
-      const Scal v2 = a[c];
-      const Scal v1 = 1. - v2;
-      fc_rho_[c] = r1 * v1 + r2 * v2;
-      fc_mu_[c] = m1 * v1 + m2 * v2;
+      const Scal a2 = a[c];
+      const Scal a1 = 1 - a2;
+      fc_rho_[c] = rho1 * a1 + rho2 * a2;
+      fc_mu_[c] = mu1 * a1 + mu2 * a2;
     }
     FieldFace<Scal> ff_rho(m);
     for (auto f : m.AllFaces()) {
-      const Scal v2 = af[f];
-      const Scal v1 = 1. - v2;
-      ff_rho[f] = r1 * v1 + r2 * v2;
+      const Scal a2 = af[f];
+      const Scal a1 = 1 - a2;
+      ff_rho[f] = rho1 * a1 + rho2 * a2;
     }
 
     if (tracer_ && var.Int["tracer_override_mixture"]) {
       const auto& fc_rho_mix = tracer_->GetMixtureDensity();
       const auto& fc_mu_mix = tracer_->GetMixtureViscosity();
       for (auto c : m.AllCells()) {
-        const Scal v2 = a[c];
-        const Scal v1 = 1. - v2;
-        fc_rho_[c] = fc_rho_mix[c] * v1 + r2 * v2;
-        fc_mu_[c] = fc_mu_mix[c] * v1 + m2 * v2;
+        const Scal a2 = a[c];
+        const Scal a1 = 1. - a2;
+        fc_rho_[c] = fc_rho_mix[c] * a1 + rho2 * a2;
+        fc_mu_[c] = fc_mu_mix[c] * a1 + mu2 * a2;
       }
       FieldFace<Scal> ff_rho_mix(m);
       if (eb_) {
@@ -1911,9 +1901,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         ff_rho_mix = Interpolate(fc_rho_mix, mf_cond_vfsm_, m);
       }
       for (auto f : m.AllFaces()) {
-        const Scal v2 = af[f];
-        const Scal v1 = 1. - v2;
-        ff_rho[f] = ff_rho_mix[f] * v1 + r2 * v2;
+        const Scal a2 = af[f];
+        const Scal a1 = 1. - a2;
+        ff_rho[f] = ff_rho_mix[f] * a1 + rho2 * a2;
       }
     }
 
