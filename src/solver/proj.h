@@ -24,6 +24,8 @@ struct ProjPar {
   Conv conv = Conv::imp; // convection-diffusion solver
   bool bcg = false; // Bell-Colella-Glaz scheme
   Scal outlet_relax = 1;
+  bool redistr_adv = false; // use RedistributeCutCellsAdvection()
+                            // if true else RedistributeCutCells()
 };
 
 template <class EB_>

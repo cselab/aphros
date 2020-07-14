@@ -34,6 +34,7 @@ struct ParsePar<Proj<M>> {
       throw std::runtime_error("Parse: unknown conv=" + conv);
     }
     p.outlet_relax = var.Double["outlet_relax"];
+    p.redistr_adv = var.Int["proj_redistr_adv"];
     return p;
   }
 };

@@ -174,8 +174,11 @@ struct Proj<EB_>::Imp {
         // fc_sum gets different buffer in next assignment
       }
       if (sem("redist" + std::to_string(d))) {
-        fc_sum = UEB::RedistributeCutCellsAdvection(fc_sum, ffv, 1, dt, eb);
-        //fc_sum = UEB::RedistributeCutCells(fc_sum, eb);
+        if (par.redistr_adv) {
+          fc_sum = UEB::RedistributeCutCellsAdvection(fc_sum, ffv, 1, dt, eb);
+        } else {
+          fc_sum = UEB::RedistributeCutCells(fc_sum, eb);
+        }
         for (auto c : eb.Cells()) {
           fcvel[c][d] =
               fcvel_time_prev[c][d] + fc_sum[c] * dt / eb.GetVolume(c);
