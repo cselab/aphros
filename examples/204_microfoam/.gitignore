@@ -27,3 +27,9 @@ tl
 *.so
 output
 !Makefile
+b.dat
+bc.dat
+bg.dat
+body.dat
+par.conf
+par.make

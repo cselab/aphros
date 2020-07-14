@@ -1,18 +1,17 @@
-m = 128 128 1
-np = 1
-bs = 32 32 1
+include par.make
 
 default: help
 .PHONY: default
 
 include $(shell ap.makesim)
 
-single:
-	> add.conf
-	make m="128 128 1" cleanrun
+par.conf par.make: gen par.py
+	./gen
 
-multi:
-	cp multi.conf add.conf
-	make m="32 32 1" cleanrun
+conf: par.conf add.conf $(hook)
 
-.PHONY: single multi
+par.py:
+	touch $@
+
+clean::
+	rm -f par.make par.conf b.dat bc.dat bg.dat body.dat
