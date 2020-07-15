@@ -63,7 +63,21 @@ void TestMesh() {
   TR(CHECKNAN(f, m.CN());)
 }
 
+void TestAssert() {
+  TR(fassert(1);)
+  TR(fassert(1, "message");)
+  TR(fassert(0);)
+  TR(fassert(0, "message");)
+  TR(fassert_equal(0, 0);)
+  TR(fassert_equal(0, 1);)
+  const std::string a = "a";
+  const std::string b = "b";
+  TR(fassert_equal(a, a);)
+  TR(fassert_equal(a, b);)
+}
+
 int main() {
   TestRange();
   TestMesh();
+  TestAssert();
 }

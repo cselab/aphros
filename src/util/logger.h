@@ -9,12 +9,28 @@
   (std::string() + __FILE__ + ":" + std::to_string(__LINE__))
 
 // force assert
-#define fassert(x)                                                        \
+#define fassert_1(x)                                                      \
   do {                                                                    \
     if (!(x)) {                                                           \
       throw std::runtime_error(FILELINE + ": assertion failed '" #x "'"); \
     }                                                                     \
   } while (0);
+
+#define fassert_2(x, msg)                                    \
+  do {                                                       \
+    if (!(x)) {                                              \
+      throw std::runtime_error(                              \
+          FILELINE + ": assertion failed '" #x "'\n" + (msg)); \
+    }                                                        \
+  } while (0);
+
+#define GET_COUNT(_1, _2, _3, COUNT, ...) COUNT
+#define VA_SIZE(...) GET_COUNT(__VA_ARGS__, 3, 2, 1, 0)
+#define APHROS_CAT(x, y) x##y
+#define APHROS_XCAT(x, y) APHROS_CAT(x, y)
+
+#define fassert(...) \
+  APHROS_XCAT(fassert##_, VA_SIZE(__VA_ARGS__))(__VA_ARGS__)
 
 #define NAMEVALUE(x)                 \
   ([&]() -> std::string {            \
