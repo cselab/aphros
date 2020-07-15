@@ -25,6 +25,7 @@ void Main(M& m, Vars& var) {
     std::unique_ptr<Embed<M>> eb_;
     std::unique_ptr<Stat<M>> stat;
     FieldCell<Scal> vf;
+    std::ofstream fout;
   } * ctx(sem);
   auto& eb_ = ctx->eb_;
   auto& vf = ctx->vf;
@@ -39,37 +40,50 @@ void Main(M& m, Vars& var) {
     ctx->stat.reset(new Stat<M>(m, eb_.get()));
     auto& stat = *ctx->stat;
     vf.Reinit(m, 0.5);
-    stat.Add(
-        "vol1", "volume of phase 1", Stat<M>::Reduction::sum,
-        [&](IdxCell c, const M& m) { return (1 - vf[c]) * m.GetVolume(c); });
-    stat.Add(
-        "vol2", "volume of phase 2", Stat<M>::Reduction::sum,
-        [&](IdxCell c, const M& m) { return vf[c] * m.GetVolume(c); });
-    stat.Add("vol2b", "volume of phase 1", Stat<M>::Reduction::sum, [&]() {
+    stat.AddSum("vol", "volume", [&](IdxCell c, const M& m) { //
+      return m.GetVolume(c);
+    });
+    stat.AddSumHidden("xvfvol2", "x*vf*volume", [&](IdxCell c, const M& m) { //
+      return m.GetCenter(c)[0] * m.GetVolume(c) * vf[c];
+    });
+    stat.AddSum("vol1", "volume of phase 1", [&](IdxCell c, const M& m) {
+      return (1 - vf[c]) * m.GetVolume(c);
+    });
+    stat.AddSum("vol2", "volume of phase 2", [&](IdxCell c, const M& m) {
+      return vf[c] * m.GetVolume(c);
+    });
+    stat.AddSum("vol2b", "volume of phase 1", [&]() {
       Scal sum = 0;
       for (auto c : m.Cells()) {
         sum += (1 - vf[c]) * m.GetVolume(c);
       }
       return sum;
     });
-    stat.Add(
-        "vol2_eb", "volume of phase 1", Stat<M>::Reduction::sum,
+    stat.AddSum(
+        "vol2_eb", "volume of phase 1",
         [&](IdxCell c, const Embed<M>& eb) { return vf[c] * eb.GetVolume(c); });
-    stat.Add(
-        "vf2_max", "max volume fraction 2", Stat<M>::Reduction::max,
-        [&](IdxCell c, const M&) { return vf[c]; });
-    stat.Add(
-        "vf2_max_eb", "max volume fraction 2", Stat<M>::Reduction::max,
+    stat.AddMax("vf2_max", "max volume fraction 2", [&](IdxCell c, const M&) {
+      return vf[c];
+    });
+    stat.AddMax(
+        "vf2_max_eb", "max volume fraction 2",
         [&](IdxCell c, const Embed<M>&) { return vf[c]; });
-    stat.Add(
-        "vf2_min", "min volume fraction 2", Stat<M>::Reduction::min,
-        [&](IdxCell c, const M&) { return vf[c]; });
+    stat.AddMin("vf2_min", "min volume fraction 2", [&](IdxCell c, const M&) {
+      return vf[c];
+    });
+    stat.AddDerived("vol_copy", "copy of volume", [](const Stat<M>& stat) {
+      return stat["vol"];
+    });
+    stat.AddDerived("cx2", "centeroid of phase 2", [](const Stat<M>& stat) {
+      return stat["xvfvol2"] / stat["vol2"];
+    });
   }
   if (sem() && m.IsRoot()) {
     auto& stat = *ctx->stat;
     stat.WriteSummary(std::cout);
     std::cout << std::endl;
-    stat.WriteHeader(std::cout);
+    ctx->fout.open("stat.dat");
+    stat.WriteHeader(ctx->fout);
   }
   for (size_t i = 0; i < 2; ++i) {
     if (sem.Nested()) {
@@ -78,7 +92,7 @@ void Main(M& m, Vars& var) {
     }
     if (sem() && m.IsRoot()) {
       auto& stat = *ctx->stat;
-      stat.WriteValues(std::cout);
+      stat.WriteValues(ctx->fout);
     }
     if (sem()) {
       for (auto c : m.CellsM()) {

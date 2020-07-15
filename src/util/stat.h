@@ -15,7 +15,7 @@
 template <class M>
 class Stat {
  public:
-  enum class Reduction { sum, min, max };
+  enum class Reduction { none, sum, min, max };
   using Scal = typename M::Scal;
 
   struct Entry {
@@ -23,6 +23,8 @@ class Stat {
     std::string desc;
     Reduction op;
     std::function<Scal()> func;
+    bool hidden;
+    bool derived; // computed from other entires, postponed to second pass
   };
 
   Stat(M& m, const Embed<M>* eb = nullptr) : m(m), eb_(eb) {}
@@ -30,55 +32,117 @@ class Stat {
 
   void Add(
       std::string name, std::string desc, Reduction op,
-      std::function<Scal(IdxCell c, const M&)> func) {
+      std::function<Scal(IdxCell c, const M&)> func, bool hidden=false) {
     AddName(name);
-    AddMeshLoop(name, desc, op, func, m);
+    AddMeshLoop(name, desc, op, func, hidden, m);
   };
   void Add(
       std::string name, std::string desc, Reduction op,
-      std::function<Scal(IdxCell c, const Embed<M>&)> func) {
+      std::function<Scal(IdxCell c, const Embed<M>&)> func, bool hidden=false) {
     AddName(name);
     fassert(eb_, "Add: Can't add the entry to Stat created without Embed.");
-    AddMeshLoop(name, desc, op, func, *eb_);
+    AddMeshLoop(name, desc, op, func, hidden, *eb_);
   };
   void Add(
       std::string name, std::string desc, Reduction op,
-      std::function<Scal()> func) {
+      std::function<Scal()> func, bool hidden=false) {
     AddName(name);
-    entries_.emplace(name, Entry{name, desc, op, func});
+    entries_.emplace(name, Entry{name, desc, op, func, hidden, false});
   };
+  void AddDerived(
+      std::string name, std::string desc, std::function<Scal(const Stat&)> func,
+      bool hidden = false) {
+    AddName(name);
+    entries_.emplace(
+        name, Entry{
+                  name, desc, Reduction::none,
+                  [this, func]() { return func(*this); }, hidden, true});
+  };
+  template <class Func>
+  void AddSum(std::string name, std::string desc, Func func) {
+    Add(name, desc, Reduction::sum, func);
+  }
+  template <class Func>
+  void AddMax(std::string name, std::string desc, Func func) {
+    Add(name, desc, Reduction::max, func);
+  }
+  template <class Func>
+  void AddMin(std::string name, std::string desc, Func func) {
+    Add(name, desc, Reduction::min, func, true);
+  }
+  template <class Func>
+  void AddSumHidden(std::string name, std::string desc, Func func) {
+    Add(name, desc, Reduction::sum, func, true);
+  }
+  template <class Func>
+  void AddMaxHidden(std::string name, std::string desc, Func func) {
+    Add(name, desc, Reduction::max, func, true);
+  }
+  template <class Func>
+  void AddMinHidden(std::string name, std::string desc, Func func) {
+    Add(name, desc, Reduction::min, func, true);
+  }
   void Update() {
     auto sem = m.GetSem();
-    if (sem()) {
+    if (sem("reduce")) {
       for (auto& p : entries_) {
-        values_[p.first] = p.second.func();
+        if (!p.second.derived) {
+          values_[p.first] = p.second.func();
+        }
       }
       for (auto& p : values_) {
-        m.Reduce(&p.second, "sum");
+        auto& e = entries_.at(p.first);
+        if (!e.derived) {
+          switch (e.op) {
+            case Reduction::none:
+              throw std::runtime_error(
+                  FILELINE + ": Reduction::none not allowed here");
+            case Reduction::sum:
+              m.Reduce(&p.second, "sum");
+              break;
+            case Reduction::min:
+              m.Reduce(&p.second, "min");
+              break;
+            case Reduction::max:
+              m.Reduce(&p.second, "max");
+              break;
+          }
+        }
       }
     }
-    if (sem()) {
+    if (sem("derive")) {
+      for (auto& p : entries_) {
+        if (p.second.derived) {
+          values_[p.first] = p.second.func();
+        }
+      }
     }
   }
-  void WriteHeader(std::ostream& out) const {
+  void WriteHeader(std::ostream& out, bool with_hidden=false) const {
     bool first = true;
     for (auto n : names_) {
-      first || out << ' ', first = false;
-      out << n;
+      if (with_hidden || !entries_.at(n).hidden) {
+        first || out << ' ', first = false;
+        out << n;
+      }
     }
     out << std::endl;
   }
-  void WriteValues(std::ostream& out) const {
+  void WriteValues(std::ostream& out, bool with_hidden=false) const {
     bool first = true;
     for (auto n : names_) {
-      first || out << ' ', first = false;
-      out << values_.at(n);
+      if (with_hidden || !entries_.at(n).hidden) {
+        first || out << ' ', first = false;
+        out << values_.at(n);
+      }
     }
     out << std::endl;
   }
-  void WriteSummary(std::ostream& out) const {
+  void WriteSummary(std::ostream& out, bool with_hidden=false) const {
     for (auto n : names_) {
-      out << n << ": " << entries_.at(n).desc << '\n';
+      if (with_hidden || !entries_.at(n).hidden) {
+        out << n << ": " << entries_.at(n).desc << '\n';
+      }
     }
   }
   void SortNames() {
@@ -90,8 +154,18 @@ class Stat {
   const std::vector<std::string>& GetNames() const {
     return names_;
   }
+  bool IsHidden(std::string name) const {
+    return entries_[name].hidden;
+  }
   std::string GetDesc(std::string name) const {
     return entries_[name].desc;
+  }
+  Scal operator[](std::string name) const {
+    auto it = values_.find(name);
+    if (it == values_.end()) {
+      throw std::runtime_error(FILELINE + ": entry '" + name + "' not found");
+    }
+    return it->second;
   }
 
  private:
@@ -105,8 +179,12 @@ class Stat {
   template <class MEB>
   void AddMeshLoop(
       std::string name, std::string desc, Reduction op,
-      std::function<Scal(IdxCell c, const MEB&)> func, const MEB& meb) {
+      std::function<Scal(IdxCell c, const MEB&)> func, bool hidden,
+      const MEB& meb) {
     switch (op) {
+      case Reduction::none:
+        throw std::runtime_error(
+            FILELINE + ": Reduction::none not allowed here");
       case Reduction::sum:
         entries_.emplace(
             name, //
@@ -116,7 +194,7 @@ class Stat {
                       sum += func(c, meb);
                     }
                     return sum;
-                  }});
+                  }, hidden, false});
         break;
       case Reduction::max:
         entries_.emplace(
@@ -127,7 +205,7 @@ class Stat {
                       max = std::max(max, func(c, meb));
                     }
                     return max;
-                  }});
+                  }, hidden, false});
         break;
       case Reduction::min:
         entries_.emplace(
@@ -138,7 +216,7 @@ class Stat {
                       min = std::min(min, func(c, meb));
                     }
                     return min;
-                  }});
+                  }, hidden, false});
         break;
     }
   }
