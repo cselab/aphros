@@ -2,5 +2,5 @@ get_filename_component(p ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 set(EXE t.${p})
 add_executable(${EXE} main.cpp)
 target_link_libraries(${EXE} suspender timer)
-add_test_current(COMMAND /bin/bash -c "diff ref <(./t.debug)")
+add_test_current(COMMAND test)
 

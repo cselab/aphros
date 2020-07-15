@@ -1,0 +1,6 @@
+#!/bin/sh
+
+pre=/src/test/
+while read v ; do
+  echo "${v#*$pre}"
+done
