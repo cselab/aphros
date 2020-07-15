@@ -16,78 +16,115 @@ template <class M>
 class Stat {
  public:
   enum class Reduction { none, sum, min, max };
+  enum class Type { scal, vect };
   using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  static constexpr size_t dim = M::dim;
 
   struct Entry {
     std::string name;
     std::string desc;
     Reduction op;
+    Type type;
     std::function<Scal()> func;
+    std::function<Vect()> func_vect;
     bool hidden;
     bool derived; // computed from other entires, postponed to second pass
+    Entry(
+        std::string name, std::string desc, Reduction op,
+        std::function<Scal()> func, bool hidden, bool derived)
+        : name(name)
+        , desc(desc)
+        , op(op)
+        , type(Type::scal)
+        , func(func)
+        , hidden(hidden)
+        , derived(derived) {}
+    Entry(
+        std::string name, std::string desc, Reduction op,
+        std::function<Vect()> func_vect, bool hidden, bool derived)
+        : name(name)
+        , desc(desc)
+        , op(op)
+        , type(Type::vect)
+        , func_vect(func_vect)
+        , hidden(hidden)
+        , derived(derived) {}
   };
 
-  Stat(M& m, const Embed<M>* eb = nullptr) : m(m), eb_(eb) {}
+  Stat(M& m, const Embed<M>* eb = nullptr) : m(m), eb_(eb), vect(this) {}
   Stat(const Stat&) = delete;
 
+  template <class T>
   void Add(
       std::string name, std::string desc, Reduction op,
-      std::function<Scal(IdxCell c, const M&)> func, bool hidden=false) {
+      std::function<T(IdxCell c, const M&)> func, bool hidden = false) {
     AddName(name);
     AddMeshLoop(name, desc, op, func, hidden, m);
-  };
+  }
+  template <class T>
   void Add(
       std::string name, std::string desc, Reduction op,
-      std::function<Scal(IdxCell c, const Embed<M>&)> func, bool hidden=false) {
+      std::function<T(IdxCell c, const Embed<M>&)> func, bool hidden = false) {
     AddName(name);
     fassert(eb_, "Add: Can't add the entry to Stat created without Embed.");
     AddMeshLoop(name, desc, op, func, hidden, *eb_);
-  };
+  }
+  template <class T>
   void Add(
-      std::string name, std::string desc, Reduction op,
-      std::function<Scal()> func, bool hidden=false) {
+      std::string name, std::string desc, Reduction op, std::function<T()> func,
+      bool hidden = false) {
     AddName(name);
-    entries_.emplace(name, Entry{name, desc, op, func, hidden, false});
-  };
+    entries_.emplace(name, Entry(name, desc, op, func, hidden, false));
+  }
+  template <class T>
   void AddDerived(
-      std::string name, std::string desc, std::function<Scal(const Stat&)> func,
+      std::string name, std::string desc, std::function<T(const Stat&)> func,
       bool hidden = false) {
     AddName(name);
     entries_.emplace(
-        name, Entry{
+        name, Entry(
                   name, desc, Reduction::none,
-                  [this, func]() { return func(*this); }, hidden, true});
-  };
-  template <class Func>
+                  [this, func]() { return func(*this); }, hidden, true));
+  }
+  template <class T, class Func>
   void AddSum(std::string name, std::string desc, Func func) {
-    Add(name, desc, Reduction::sum, func);
+    Add<T>(name, desc, Reduction::sum, func);
   }
-  template <class Func>
+  template <class T, class Func>
   void AddMax(std::string name, std::string desc, Func func) {
-    Add(name, desc, Reduction::max, func);
+    Add<T>(name, desc, Reduction::max, func);
   }
-  template <class Func>
+  template <class T, class Func>
   void AddMin(std::string name, std::string desc, Func func) {
-    Add(name, desc, Reduction::min, func, true);
+    Add<T>(name, desc, Reduction::min, func, true);
   }
-  template <class Func>
+  template <class T, class Func>
   void AddSumHidden(std::string name, std::string desc, Func func) {
-    Add(name, desc, Reduction::sum, func, true);
+    Add<T>(name, desc, Reduction::sum, func, true);
   }
-  template <class Func>
+  template <class T, class Func>
   void AddMaxHidden(std::string name, std::string desc, Func func) {
-    Add(name, desc, Reduction::max, func, true);
+    Add<T>(name, desc, Reduction::max, func, true);
   }
-  template <class Func>
+  template <class T, class Func>
   void AddMinHidden(std::string name, std::string desc, Func func) {
-    Add(name, desc, Reduction::min, func, true);
+    Add<T>(name, desc, Reduction::min, func, true);
   }
   void Update() {
     auto sem = m.GetSem();
     if (sem("reduce")) {
       for (auto& p : entries_) {
-        if (!p.second.derived) {
-          values_[p.first] = p.second.func();
+        auto& e = p.second;
+        if (!e.derived) {
+          switch (e.type) {
+            case Type::scal:
+              values_[e.name] = p.second.func();
+              break;
+            case Type::vect:
+              values_vect_[e.name] = p.second.func_vect();
+              break;
+          }
         }
       }
       for (auto& p : values_) {
@@ -109,36 +146,82 @@ class Stat {
           }
         }
       }
+      for (auto& p : values_vect_) {
+        auto& e = entries_.at(p.first);
+        if (!e.derived) {
+          for (size_t d = 0; d < dim; ++d) {
+            switch (e.op) {
+              case Reduction::none:
+                throw std::runtime_error(
+                    FILELINE + ": Reduction::none not allowed here");
+              case Reduction::sum:
+                m.Reduce(&p.second[d], "sum");
+                break;
+              case Reduction::min:
+                m.Reduce(&p.second[d], "min");
+                break;
+              case Reduction::max:
+                m.Reduce(&p.second[d], "max");
+                break;
+            }
+          }
+        }
+      }
     }
     if (sem("derive")) {
       for (auto& p : entries_) {
-        if (p.second.derived) {
-          values_[p.first] = p.second.func();
+        auto& e = p.second;
+        if (e.derived) {
+          switch (e.type) {
+            case Type::scal:
+              values_[e.name] = p.second.func();
+              break;
+            case Type::vect:
+              values_vect_[e.name] = p.second.func_vect();
+              break;
+          }
         }
       }
     }
   }
-  void WriteHeader(std::ostream& out, bool with_hidden=false) const {
+  void WriteHeader(std::ostream& out, bool with_hidden = false) const {
     bool first = true;
     for (auto n : names_) {
-      if (with_hidden || !entries_.at(n).hidden) {
+      auto& e = entries_.at(n);
+      if (with_hidden || !e.hidden) {
         first || out << ' ', first = false;
-        out << n;
+        switch (e.type) {
+          case Type::scal:
+            out << n;
+            break;
+          case Type::vect:
+            out << n << ".x " << n << ".y " << n << ".z";
+            break;
+        }
       }
     }
     out << std::endl;
   }
-  void WriteValues(std::ostream& out, bool with_hidden=false) const {
+  void WriteValues(std::ostream& out, bool with_hidden = false) const {
     bool first = true;
     for (auto n : names_) {
-      if (with_hidden || !entries_.at(n).hidden) {
+      auto& e = entries_.at(n);
+      if (with_hidden || !e.hidden) {
         first || out << ' ', first = false;
-        out << values_.at(n);
+        switch (e.type) {
+          case Type::scal:
+            out << values_.at(n);
+            break;
+          case Type::vect:
+            auto& v = values_vect_.at(n);
+            out << v[0] << ' ' << v[1] << ' ' << v[2];
+            break;
+        }
       }
     }
     out << std::endl;
   }
-  void WriteSummary(std::ostream& out, bool with_hidden=false) const {
+  void WriteSummary(std::ostream& out, bool with_hidden = false) const {
     for (auto n : names_) {
       if (with_hidden || !entries_.at(n).hidden) {
         out << n << ": " << entries_.at(n).desc << '\n';
@@ -148,11 +231,17 @@ class Stat {
   void SortNames() {
     std::sort(names_.begin(), names_.end());
   }
-  const Entry& GetEntry(std::string name) const {
-    return entries_[name];
-  }
   const std::vector<std::string>& GetNames() const {
     return names_;
+  }
+  bool Exists(std::string name) const {
+    return entries_.count(name);
+  }
+  bool ExistsScal(std::string name) const {
+    return entries_.count(name) && entries_[name].type == Type::scal;
+  }
+  bool ExistsVect(std::string name) const {
+    return entries_.count(name) && entries_[name].type == Type::vect;
   }
   bool IsHidden(std::string name) const {
     return entries_[name].hidden;
@@ -161,11 +250,8 @@ class Stat {
     return entries_[name].desc;
   }
   Scal operator[](std::string name) const {
-    auto it = values_.find(name);
-    if (it == values_.end()) {
-      throw std::runtime_error(FILELINE + ": entry '" + name + "' not found");
-    }
-    return it->second;
+    fassert(values_.count(name), "entry '" + name + "' not found");
+    return values_.at(name);
   }
 
  private:
@@ -176,10 +262,10 @@ class Stat {
     CheckExisting(name);
     names_.push_back(name);
   }
-  template <class MEB>
+  template <class T, class MEB>
   void AddMeshLoop(
       std::string name, std::string desc, Reduction op,
-      std::function<Scal(IdxCell c, const MEB&)> func, bool hidden,
+      std::function<T(IdxCell c, const MEB&)> func, bool hidden,
       const MEB& meb) {
     switch (op) {
       case Reduction::none:
@@ -188,42 +274,68 @@ class Stat {
       case Reduction::sum:
         entries_.emplace(
             name, //
-            Entry{name, desc, op, [func, &meb = meb]() {
-                    Scal sum = 0;
-                    for (auto c : meb.Cells()) {
-                      sum += func(c, meb);
-                    }
-                    return sum;
-                  }, hidden, false});
+            Entry(
+                name, desc, op,
+                [func, &meb = meb]() {
+                  T sum(0);
+                  for (auto c : meb.Cells()) {
+                    sum += func(c, meb);
+                  }
+                  return sum;
+                },
+                hidden, false));
         break;
       case Reduction::max:
         entries_.emplace(
             name, //
-            Entry{name, desc, op, [func, &meb = meb]() {
-                    Scal max = -std::numeric_limits<Scal>::max();
-                    for (auto c : meb.Cells()) {
-                      max = std::max(max, func(c, meb));
-                    }
-                    return max;
-                  }, hidden, false});
+            Entry(
+                name, desc, op,
+                [func, &meb = meb]() {
+                  T max(-std::numeric_limits<Scal>::max());
+                  for (auto c : meb.Cells()) {
+                    max = std::max(max, func(c, meb));
+                  }
+                  return max;
+                },
+                hidden, false));
         break;
       case Reduction::min:
         entries_.emplace(
             name, //
-            Entry{name, desc, op, [func, &meb = meb]() {
-                    Scal min = std::numeric_limits<Scal>::max();
-                    for (auto c : meb.Cells()) {
-                      min = std::min(min, func(c, meb));
-                    }
-                    return min;
-                  }, hidden, false});
+            Entry(
+                name, desc, op,
+                [func, &meb = meb]() {
+                  T min(std::numeric_limits<Scal>::max());
+                  for (auto c : meb.Cells()) {
+                    min = std::min(min, func(c, meb));
+                  }
+                  return min;
+                },
+                hidden, false));
         break;
     }
   }
+
+  class LazyVect {
+   public:
+    LazyVect(const Stat* stat) : stat_(stat) {}
+    Vect operator[](std::string name) const {
+      fassert(
+          stat_->values_vect_.count(name), "entry '" + name + "' not found");
+      return stat_->values_vect_.at(name);
+    }
+
+   private:
+    const Stat* const stat_;
+  };
 
   M& m;
   const Embed<M>* eb_;
   std::vector<std::string> names_;
   std::map<std::string, Entry> entries_;
   std::map<std::string, Scal> values_;
+  std::map<std::string, Vect> values_vect_;
+
+ public:
+  LazyVect vect;
 };
