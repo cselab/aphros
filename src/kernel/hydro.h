@@ -909,7 +909,14 @@ void Hydro<M>::InitStat() {
       [&p](IdxCell c, const M&) { return p[c]; });
   stat.AddNone("t", "time", [&fs_ = fs_]() { return fs_->GetTime(); });
   stat.AddNone(
-      "dt", "time step", [&fs_ = fs_]() { return fs_->GetTimeStep(); });
+      "dt", "fluid time step", //
+      [&fs_ = fs_]() { return fs_->GetTimeStep(); });
+  stat.AddNone(
+      "dta", "advection time step", //
+      [&as_ = as_]() { return as_->GetTimeStep(); });
+  stat.AddNone(
+      "wt", "wall-clock time", //
+      [&timer_ = timer_]() { return timer_.GetSeconds(); });
   stat.AddNone("iter", "iteration", [&st_ = st_]() { return st_.iter; });
   stat.AddNone("step", "step", [&st_ = st_]() { return st_.step; });
   stat.AddNone(
@@ -971,6 +978,18 @@ void Hydro<M>::InitStat() {
   stat.AddDerived(
       "pavg2", "average pressure of phase 2", //
       [div](const Stat<M>& stat) { return div(stat["p*vol2"], stat["vol2"]); });
+  // XXX: relies on alphabetical order, "vol2_0" < "vol2_diff"
+  //      to have "vol2_0" defined before "vol2_diff"
+  stat.AddDerived(
+      "vol2_0", "initial volume of phase 2", //
+      [](const Stat<M>& stat) {
+        return stat["vol2_0"] == 0 ? stat["vol2"] : stat["vol2_0"];
+      });
+  stat.AddDerived(
+      "vol2_diff", "relative difference between vol2 and vol2_0", //
+      [div](const Stat<M>& stat) {
+        return div(stat["vol2"] - stat["vol2_0"], stat["vol2_0"]);
+      });
 
   if (var.Int["stat_dissip"]) {
     stat.AddSum(
