@@ -18,4 +18,4 @@ fi
 
 
 ./curv > ok
-ap.getcol m2 | head -n 1 > ovf
+ap.getcol vol2 | head -n 1 > ovf
