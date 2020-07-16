@@ -13,6 +13,49 @@
 #include "solver/embed.h"
 #include "util/logger.h"
 
+// Selects a non-void type.
+template <class...>
+struct NonVoid;
+
+template <class T>
+struct NonVoid<T> {
+  using type = T;
+};
+
+template <class T, class... TT>
+struct NonVoid<T, TT...> {
+  using type = typename std::conditional<
+      std::is_same<T, void>::value, typename NonVoid<TT...>::type, T>::type;
+};
+
+
+// Deduces the return type of Func() called with Args, void if invalid.
+// Case of no arguments.
+template <class Func, class... Args>
+struct ResultOf {
+  template <class>
+  static void Eval(...);
+  template <class U>
+  static auto Eval(decltype(std::declval<U>()())* r) {
+    return *r;
+  }
+  using type = decltype(Eval<Func>(0));
+};
+
+// Case of one or more arguments.
+template <class Func, class T, class... TT>
+struct ResultOf<Func, T, TT...> {
+  template <class...>
+  static void Eval(...);
+  template <class U, class... UU>
+  static auto Eval(decltype(std::declval<Func>()( //
+      std::declval<U>(), std::declval<UU>()...))* r) {
+    return *r;
+  }
+  using type = decltype(Eval<T, TT...>(0));
+};
+
+
 template <class M>
 class Stat {
  public:
@@ -57,65 +100,11 @@ class Stat {
   Stat(const Stat&) = delete;
 
   template <class Func>
-  struct ResultOf {
-    // Return type from call f(), void if invalid.
-    template <class... Args>
-    struct Try {
-      static Func f;
-      template <class>
-      static void Eval(...);
-      template <class U>
-      static auto Eval(decltype(U(f)())* r) {
-        return *r;
-      }
-      using type = decltype(Eval<Func>(0));
-    };
-
-    // Void by default.
-    template <class T, class... Args>
-    struct Try<T, Args...> {
-      using type = void;
-    };
-
-    // Return type from call f(T), void if invalid.
-    template <class T>
-    struct Try<T> {
-      static Func f;
-      template <class>
-      static void Eval(...);
-      template <class U>
-      static auto Eval(decltype(f(std::declval<U>()))* r) {
-        return *r;
-      }
-      using type = decltype(Eval<T>(0));
-    };
-
-    // Return type from call f(T0, T1), void if invalid.
-    template <class T0, class T1>
-    struct Try<T0, T1> {
-      static Func f;
-      template <class, class>
-      static void Eval(...);
-      template <class U0, class U1>
-      static auto Eval(
-          decltype(f(std::declval<U0>(), std::declval<U1>()))* r) {
-        return *r;
-      }
-      using type = decltype(Eval<T0, T1>(0));
-    };
-
-    // Select a non-void type.
-    template <class U, class V>
-    struct NonVoid {
-      using type =
-          typename std::conditional<std::is_same<V, void>::value, U, V>::type;
-    };
-
-    using t0 = typename Try<>::type;
-    using t1 = typename NonVoid<t0, typename Try<IdxCell, M>::type>::type;
-    using t2 =
-        typename NonVoid<t1, typename Try<IdxCell, Embed<M>>::type>::type;
-    using type = t2;
+  struct ResultOfMesh {
+    using type = typename NonVoid<
+        typename ResultOf<Func>::type, //
+        typename ResultOf<Func, IdxCell, M>::type, //
+        typename ResultOf<Func, IdxCell, Embed<M>>::type>::type;
   };
   template <class T>
   void Add(
@@ -150,32 +139,32 @@ class Stat {
   }
   template <class Func>
   void AddSum(std::string name, std::string desc, Func func) {
-    using Result = typename ResultOf<Func>::type;
+    using Result = typename ResultOfMesh<Func>::type;
     Add<Result>(name, desc, Reduction::sum, func);
   }
   template <class Func>
   void AddMax(std::string name, std::string desc, Func func) {
-    using Result = typename ResultOf<Func>::type;
+    using Result = typename ResultOfMesh<Func>::type;
     Add<Result>(name, desc, Reduction::max, func);
   }
   template <class Func>
   void AddMin(std::string name, std::string desc, Func func) {
-    using Result = typename ResultOf<Func>::type;
+    using Result = typename ResultOfMesh<Func>::type;
     Add<Result>(name, desc, Reduction::min, func, true);
   }
   template <class Func>
   void AddSumHidden(std::string name, std::string desc, Func func) {
-    using Result = typename ResultOf<Func>::type;
+    using Result = typename ResultOfMesh<Func>::type;
     Add<Result>(name, desc, Reduction::sum, func, true);
   }
   template <class Func>
   void AddMaxHidden(std::string name, std::string desc, Func func) {
-    using Result = typename ResultOf<Func>::type;
+    using Result = typename ResultOfMesh<Func>::type;
     Add<Result>(name, desc, Reduction::max, func, true);
   }
   template <class Func>
   void AddMinHidden(std::string name, std::string desc, Func func) {
-    using Result = typename ResultOf<Func>::type;
+    using Result = typename ResultOfMesh<Func>::type;
     Add<Result>(name, desc, Reduction::min, func, true);
   }
   void Update() {
