@@ -663,81 +663,15 @@ void Hydro<M>::InitAdvection(
 
 template <class M>
 void Hydro<M>::InitStat() {
-  /*
-  if (var.Int["statvel"]) {
-    con.push_back(op("vlmx", &s.vlm[0]));
-    con.push_back(op("vlmy", &s.vlm[1]));
-    con.push_back(op("vlmz", &s.vlm[2]));
-    con.push_back(op("vl2x", &s.vl2[0]));
-    con.push_back(op("vl2y", &s.vl2[1]));
-    con.push_back(op("vl2z", &s.vl2[2]));
-  }
-  if (var.Int["enstrophy"]) {
-    con.push_back(op("enstr", &s.enstr));
-  }
-  if (var.Int["stat_area"]) {
-    con.push_back(op("area", &s.area));
-  }
-  */
-  /*
-  if (var.Int["statvel"]) {
-    s.vlm = Vect(0);
-    s.vl2 = Vect(0);
-    Vect v0(var.Vect["vel"]);
-    for (auto c : m.Cells()) {
-      Scal o = m.GetVolume(c);
-      Scal a2 = fa[c];
-      Vect v = fv[c];
-      auto dv = (v - v0).abs();
-      for (size_t d = 0; d < dim; ++d) {
-        s.vlm[d] = std::max(s.vlm[d], dv[d] * a2);
-        s.vl2[d] += sqr(dv[d]) * o * a2;
-      }
-    }
-    for (size_t d = 0; d < dim; ++d) {
-      m.Reduce(&s.vlm[d], "max");
-      m.Reduce(&s.vl2[d], "sum");
-    }
-  }
-
-  if (var.Int["stat_area"]) {
-    s.area = 0;
-    if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-      using R = Reconst<Scal>;
-      auto& fcn = *as->GetNormal()[0];
-      auto& fca = *as->GetAlpha()[0];
-      auto& fcvf = as->GetField(Step::time_curr, 0);
-      Vect h = m.GetCellSize();
-      for (auto c : m.Cells()) {
-        if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
-          auto xx = R::GetCutPoly2(fcn[c], fca[c], h);
-          Scal ar = std::abs(R::GetArea(xx, fcn[c]));
-          s.area += ar;
-        }
-      }
-      if (IsNan(s.area)) {
-        s.area = 0;
-      }
-      m.Reduce(&s.area, "sum");
-    }
-  }
-
-if (sem("reduce")) {
-  if (var.Int["statvel"]) {
-    for (size_t d = 0; d < dim; ++d) {
-      s.vl2[d] = std::sqrt(s.vl2[d] * im2);
-    }
-    s.pd = s.pmax - s.pmin;
-  }
-}
-  */
-
   stat_.reset(new Stat<M>(m, eb_.get()));
   auto& stat = *stat_;
   auto& vf = as_->GetField();
   auto& vel = fs_->GetVelocity();
   auto& rho = fc_rho_;
   auto& p = fs_->GetPressure();
+  stat.AddSum(
+      "vol", "volume of domain", //
+      [](IdxCell c, const M& m) { return m.GetVolume(c); });
   stat.AddSum(
       "vol1", "volume of phase 1", //
       [&vf](IdxCell c, const M& m) { return (1 - vf[c]) * m.GetVolume(c); });
@@ -888,6 +822,43 @@ if (sem("reduce")) {
           return 0.5 * sqr(omm[c]) * rho[c] * m.GetVolume(c);
         });
   }
+  if (var.Int["statvel"]) {
+    const Vect vel0(var.Vect["vel"]);
+    stat.AddSumHidden(
+        "dv*dv*vol", "", [&vel0 = vel0, &vel](IdxCell c, const M& m) {
+          auto dv = vel[c] - vel0;
+          return dv * dv * m.GetVolume(c);
+        });
+    stat.AddSumHidden(
+        "dv*dv*vol2", "", [&vel0 = vel0, &vel, &vf](IdxCell c, const M& m) {
+          auto dv = vel[c] - vel0;
+          return dv * dv * vf[c] * m.GetVolume(c);
+        });
+    stat.AddMax(
+        "dvel_max", "maximum velocity difference with `vel`",
+        [&vel0 = vel0, &vel](IdxCell c, const M&) {
+          auto dv = vel[c] - vel0;
+          return dv.abs();
+        });
+    stat.AddDerived(
+        "dvel_l2", "L2 norm of velocity difference with `vel`", //
+        [](const Stat<M>& stat) {
+          const Vect v = stat.vect["dv*dv*vol"] / stat["vol"];
+          return Vect(std::sqrt(v[0]), std::sqrt(v[1]), std::sqrt(v[2]));
+        });
+    stat.AddMax(
+        "dvel2_max", "maximum phase 2 velocity difference with `vel`",
+        [&vel0 = vel0, &vel, &vf](IdxCell c, const M&) {
+          auto dv = (vel[c] - vel0) * vf[c];
+          return dv.abs();
+        });
+    stat.AddDerived(
+        "dvel2_l2", "L2 norm of phase 2 velocity difference with `vel`", //
+        [](const Stat<M>& stat) {
+          const Vect dv = stat.vect["dv*dv*vol2"] / stat["vol2"];
+          return Vect(std::sqrt(dv[0]), std::sqrt(dv[1]), std::sqrt(dv[2]));
+        });
+  }
   if (var.Int["stat_vofm"]) {
     auto add_vofm = [this, &stat](auto as) {
       for (auto l : layers) {
@@ -929,6 +900,26 @@ if (sem("reduce")) {
     }
     if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
       add_vofm(as);
+    }
+  }
+  if (var.Int["stat_area"]) {
+    if (auto as = dynamic_cast<ASV*>(as_.get())) {
+      auto& n = as->GetNormal();
+      auto& a = as->GetAlpha();
+      auto& vf = as->GetField();
+      const Vect h = m.GetCellSize();
+      stat.AddSum(
+          "area", "area of the interface", //
+          [&n, &a, &vf, &h](IdxCell c, const M&) -> Scal {
+            if (vf[c] > 0 && vf[c] < 1 && !IsNan(a[c])) {
+              using R = Reconst<Scal>;
+              auto s = std::abs(R::GetArea(R::GetCutPoly2(n[c], a[c], h), n[c]));
+              if (!IsNan(s)) {
+                return s;
+              }
+            }
+            return 0;
+          });
     }
   }
   if (eb_) {
