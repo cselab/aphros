@@ -6,6 +6,7 @@
 #include <limits>
 #include <map>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "geom/mesh.h"
@@ -55,6 +56,66 @@ class Stat {
   Stat(M& m, const Embed<M>* eb = nullptr) : m(m), eb_(eb), vect(this) {}
   Stat(const Stat&) = delete;
 
+  template <class Func>
+  struct ResultOf {
+    template <class... Args>
+    struct IsValid {
+      static Func f;
+      template <class>
+      static void Eval(...);
+      template <class U>
+      static auto Eval(decltype(U(f)())* r) {
+        return *r;
+      }
+      using Result = decltype(Eval<Func>(0));
+      constexpr static bool value = !std::is_same<void, Result>::value;
+    };
+
+    template <class T, class... Args>
+    struct IsValid<T, Args...> {
+      using Result = void;
+      constexpr static bool value = false;
+    };
+
+    template <class T>
+    struct IsValid<T> {
+      static Func f;
+      template <class>
+      static void Eval(...);
+      template <class U>
+      static auto Eval(decltype(f(std::declval<U>()))* r) {
+        return *r;
+      }
+      using Result = decltype(Eval<T>(0));
+      constexpr static bool value = !std::is_same<void, Result>::value;
+    };
+
+    template <class T0, class T1>
+    struct IsValid<T0, T1> {
+      static Func f;
+      template <class, class>
+      static void Eval(...);
+      template <class U0, class U1>
+      static auto Eval(
+          decltype(f(std::declval<U0>(), std::declval<U1>()))* r) {
+        return *r;
+      }
+      using Result = decltype(Eval<T0, T1>(0));
+      constexpr static bool value = !std::is_same<void, Result>::value;
+    };
+
+    constexpr static bool valid_void = IsValid<>::value;
+    constexpr static bool valid_m = IsValid<IdxCell, M>::value;
+    constexpr static bool valid_embed = IsValid<IdxCell, Embed<M>>::value;
+
+    using type_void = typename IsValid<>::Result;
+    using type_m = typename IsValid<IdxCell, M>::Result;
+    using type_embed = typename IsValid<IdxCell, Embed<M>>::Result;
+
+    using type = typename std::conditional<
+        valid_void, type_void,
+        typename std::conditional<valid_embed, type_embed, type_m>::type>::type;
+  };
   template <class T>
   void Add(
       std::string name, std::string desc, Reduction op,
@@ -77,39 +138,44 @@ class Stat {
     AddName(name);
     entries_.emplace(name, Entry(name, desc, op, func, hidden, false));
   }
-  template <class T>
+  template <class Func>
   void AddDerived(
-      std::string name, std::string desc, std::function<T(const Stat&)> func,
-      bool hidden = false) {
+      std::string name, std::string desc, Func func, bool hidden = false) {
     AddName(name);
     entries_.emplace(
         name, Entry(
                   name, desc, Reduction::none,
                   [this, func]() { return func(*this); }, hidden, true));
   }
-  template <class T, class Func>
+  template <class Func>
   void AddSum(std::string name, std::string desc, Func func) {
-    Add<T>(name, desc, Reduction::sum, func);
+    using Result = typename ResultOf<Func>::type;
+    Add<Result>(name, desc, Reduction::sum, func);
   }
-  template <class T, class Func>
+  template <class Func>
   void AddMax(std::string name, std::string desc, Func func) {
-    Add<T>(name, desc, Reduction::max, func);
+    using Result = typename ResultOf<Func>::type;
+    Add<Result>(name, desc, Reduction::max, func);
   }
-  template <class T, class Func>
+  template <class Func>
   void AddMin(std::string name, std::string desc, Func func) {
-    Add<T>(name, desc, Reduction::min, func, true);
+    using Result = typename ResultOf<Func>::type;
+    Add<Result>(name, desc, Reduction::min, func, true);
   }
-  template <class T, class Func>
+  template <class Func>
   void AddSumHidden(std::string name, std::string desc, Func func) {
-    Add<T>(name, desc, Reduction::sum, func, true);
+    using Result = typename ResultOf<Func>::type;
+    Add<Result>(name, desc, Reduction::sum, func, true);
   }
-  template <class T, class Func>
+  template <class Func>
   void AddMaxHidden(std::string name, std::string desc, Func func) {
-    Add<T>(name, desc, Reduction::max, func, true);
+    using Result = typename ResultOf<Func>::type;
+    Add<Result>(name, desc, Reduction::max, func, true);
   }
-  template <class T, class Func>
+  template <class Func>
   void AddMinHidden(std::string name, std::string desc, Func func) {
-    Add<T>(name, desc, Reduction::min, func, true);
+    using Result = typename ResultOf<Func>::type;
+    Add<Result>(name, desc, Reduction::min, func, true);
   }
   void Update() {
     auto sem = m.GetSem();

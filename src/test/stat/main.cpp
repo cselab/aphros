@@ -40,42 +40,42 @@ void Main(M& m, Vars& var) {
     ctx->stat.reset(new Stat<M>(m, eb_.get()));
     auto& stat = *ctx->stat;
     vf.Reinit(m, 0.5);
-    stat.AddSum<Scal>("vol", "volume", [&](IdxCell c, const M& m) { //
+    stat.AddSum("vol", "volume", [&](IdxCell c, const M& m) { //
       return m.GetVolume(c);
     });
-    stat.AddSumHidden<Vect>(
+    stat.AddSumHidden(
         "xvfvol2", "x*vf*volume", [&](IdxCell c, const M& m) { //
           return m.GetCenter(c) * m.GetVolume(c) * vf[c];
         });
-    stat.AddSum<Scal>("vol1", "volume of phase 1", [&](IdxCell c, const M& m) {
+    stat.AddSum("vol1", "volume of phase 1", [&](IdxCell c, const M& m) {
       return (1 - vf[c]) * m.GetVolume(c);
     });
-    stat.AddSum<Scal>("vol2", "volume of phase 2", [&](IdxCell c, const M& m) {
+    stat.AddSum("vol2", "volume of phase 2", [&](IdxCell c, const M& m) {
       return vf[c] * m.GetVolume(c);
     });
-    stat.AddSum<Scal>("vol2b", "volume of phase 1", [&]() {
+    stat.AddSum("vol2b", "volume of phase 1", [&]() {
       Scal sum = 0;
       for (auto c : m.Cells()) {
         sum += (1 - vf[c]) * m.GetVolume(c);
       }
       return sum;
     });
-    stat.AddSum<Scal>(
+    stat.AddSum(
         "vol2_eb", "volume of phase 1",
         [&](IdxCell c, const Embed<M>& eb) { return vf[c] * eb.GetVolume(c); });
-    stat.AddMax<Scal>(
+    stat.AddMax(
         "vf2_max", "max volume fraction 2",
         [&](IdxCell c, const M&) { return vf[c]; });
-    stat.AddMax<Scal>(
+    stat.AddMax(
         "vf2_max_eb", "max volume fraction 2",
         [&](IdxCell c, const Embed<M>&) { return vf[c]; });
-    stat.AddMin<Scal>(
+    stat.AddMin(
         "vf2_min", "min volume fraction 2",
         [&](IdxCell c, const M&) { return vf[c]; });
-    stat.AddDerived<Scal>(
+    stat.AddDerived(
         "vol_copy", "copy of volume",
         [](const Stat<M>& stat) { return stat["vol"]; });
-    stat.AddDerived<Vect>(
+    stat.AddDerived(
         "c2", "centeroid of phase 2",
         [](const Stat<M>& stat) { return stat.vect["xvfvol2"] / stat["vol2"]; });
   }
