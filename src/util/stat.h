@@ -55,6 +55,23 @@ struct ResultOf<Func, T, TT...> {
   using type = decltype(Eval<T, TT...>(0));
 };
 
+// Deduces the return type of `Func::operator() const` if unambiguous.
+template <class Func>
+class ResultOfDeducedArgs {
+ private:
+  template <class...>
+  static void Eval(...);
+  template <class R, class... Args>
+  static R Ret(R (Func::*)(Args...) const);
+  template <class T>
+  static auto Eval(decltype(Ret(&T::operator()))* r) {
+    return *r;
+  }
+
+ public:
+  using type = decltype(Eval<Func>(0));
+};
+
 
 template <class M>
 class Stat {
@@ -101,10 +118,13 @@ class Stat {
 
   template <class Func>
   struct ResultOfMesh {
+    using type = typename ResultOfDeducedArgs<Func>::type;
+    /*
     using type = typename NonVoid<
         typename ResultOf<Func>::type, //
         typename ResultOf<Func, IdxCell, M>::type, //
         typename ResultOf<Func, IdxCell, Embed<M>>::type>::type;
+        */
   };
   template <class T>
   void Add(
