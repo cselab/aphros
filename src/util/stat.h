@@ -163,6 +163,11 @@ class Stat {
     Add<Result>(name, desc, Reduction::sum, func);
   }
   template <class Func>
+  void AddNone(std::string name, std::string desc, Func func) {
+    using Result = typename ResultOfMesh<Func>::type;
+    Add<Result>(name, desc, Reduction::none, func);
+  }
+  template <class Func>
   void AddMax(std::string name, std::string desc, Func func) {
     using Result = typename ResultOfMesh<Func>::type;
     Add<Result>(name, desc, Reduction::max, func);
@@ -176,6 +181,11 @@ class Stat {
   void AddSumHidden(std::string name, std::string desc, Func func) {
     using Result = typename ResultOfMesh<Func>::type;
     Add<Result>(name, desc, Reduction::sum, func, true);
+  }
+  template <class Func>
+  void AddNoneHidden(std::string name, std::string desc, Func func) {
+    using Result = typename ResultOfMesh<Func>::type;
+    Add<Result>(name, desc, Reduction::none, func, true);
   }
   template <class Func>
   void AddMaxHidden(std::string name, std::string desc, Func func) {
@@ -208,8 +218,8 @@ class Stat {
         if (!e.derived) {
           switch (e.op) {
             case Reduction::none:
-              throw std::runtime_error(
-                  FILELINE + ": Reduction::none not allowed here");
+              // nop
+              break;
             case Reduction::sum:
               m.Reduce(&p.second, "sum");
               break;
@@ -228,8 +238,8 @@ class Stat {
           for (size_t d = 0; d < dim; ++d) {
             switch (e.op) {
               case Reduction::none:
-                throw std::runtime_error(
-                    FILELINE + ": Reduction::none not allowed here");
+                // nop
+                break;
               case Reduction::sum:
                 m.Reduce(&p.second[d], "sum");
                 break;
@@ -250,9 +260,15 @@ class Stat {
         if (e.derived) {
           switch (e.type) {
             case Type::scal:
+              if (!values_.count(e.name)) {
+                values_[e.name] = 0;
+              }
               values_[e.name] = p.second.func();
               break;
             case Type::vect:
+              if (!values_.count(e.name)) {
+                values_vect_[e.name] = Vect(0);
+              }
               values_vect_[e.name] = p.second.func_vect();
               break;
           }
@@ -397,7 +413,8 @@ class Stat {
     LazyVect(const Stat* stat) : stat_(stat) {}
     Vect operator[](std::string name) const {
       fassert(
-          stat_->values_vect_.count(name), "entry '" + name + "' not found");
+          stat_->values_vect_.count(name),
+          "vect entry '" + name + "' not found");
       return stat_->values_vect_.at(name);
     }
 

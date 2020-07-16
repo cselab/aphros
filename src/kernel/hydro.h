@@ -61,6 +61,7 @@
 #include "util/hydro.h"
 #include "util/metrics.h"
 #include "util/posthook.h"
+#include "util/stat.h"
 
 class GPar {};
 
@@ -236,10 +237,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       fcomm_[c] = fcom_[c].norm();
     }
   }
-  void CalcStrain(const FieldCell<Vect> fcvel, FieldCell<Scal>& fc_strain) {
+  FieldCell<Scal> CalcStrain(const FieldCell<Vect> fcvel) const {
     auto& fcv = fcvel;
-    auto& fcs = fc_strain;
-
     auto ffv = UEmbed<M>::Interpolate(fcv, fs_->GetVelocityCond(), m);
 
     std::array<FieldCell<Vect>, dim> g; // g[i][c][j] is derivative du_i/dx_j
@@ -247,7 +246,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       g[i] = Gradient(GetComponent(ffv, i), m);
     }
 
-    fcs.Reinit(m, 0);
+    FieldCell<Scal> fcs(m, 0);
     int edim = var.Int["dim"];
     for (auto c : m.Cells()) {
       for (int i = 0; i < edim; ++i) {
@@ -257,6 +256,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       }
       fcs[c] *= 0.5;
     }
+    return fcs;
   }
   FieldCell<Scal> GetDiv() {
     auto& ffv = fs_->GetVolumeFlux().GetFieldFace();
@@ -318,7 +318,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   Scal bgt_ = -1.; // bubgen last time
 
-  struct Stat {
+  struct StatHydro {
     struct Vofm {
       Scal cells_vf; // number of cells with vf>0
       Scal cells_cl; // number of cells wih cl != kClNone
@@ -418,8 +418,10 @@ class Hydro : public KernelMeshPar<M_, GPar> {
       mst.clear();
     }
   };
-  Stat st_;
+  StatHydro st_;
   std::shared_ptr<output::Ser> ost_; // output stat
+  std::ofstream fstat_;
+  std::unique_ptr<Stat<M>> stat_;
   Dumper dumper_;
   Dumper dmptraj_; // dumper for traj
   Dumper dmptrep_; // dumper for timer report
@@ -487,7 +489,9 @@ void Hydro<M>::OverwriteBc() {
   }
   const Scal t = fs_->GetTime();
   size_t i = 0;
-  while (i < times.size() && times[i] <= t) { ++i; }
+  while (i < times.size() && times[i] <= t) {
+    ++i;
+  }
 
   auto apply = [&](Scal factor) {
     mebc_fluid_.LoopPairs([&](auto cf_bc) {
@@ -515,7 +519,6 @@ void Hydro<M>::OverwriteBc() {
     apply(factors[i - 1]);
   }
 }
-
 
 template <class M>
 void Hydro<M>::SpawnParticles(ParticlesView& view) {
@@ -619,7 +622,6 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
 
     conf.scheme = GetConvSc(var.String["tracer_scheme"]);
 
-
     using SlipType = typename TracerInterface<M>::SlipType;
     conf.slip.resize(conf.layers);
     for (auto l : trl) {
@@ -633,7 +635,7 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
         slip.type = SlipType::stokes;
       } else if (type == "termvel") {
         slip.type = SlipType::constant;
-        slip.velocity =  conf.gravity * (termvel[l] / conf.gravity.norm());
+        slip.velocity = conf.gravity * (termvel[l] / conf.gravity.norm());
       } else if (type == "constant") {
         slip.type = SlipType::constant;
         arg >> slip.velocity;
@@ -758,7 +760,7 @@ void Hydro<M>::InitAdvection(
 template <class M>
 void Hydro<M>::InitStat() {
   if (m.IsRoot()) {
-    // Stat: var.Double[p] with name n
+    // StatHydro: var.Double[p] with name n
     /*
     auto on = [this](std::string n, std::string p) {
       return std::make_shared<output::OutScalFunc<Scal>>(
@@ -766,7 +768,7 @@ void Hydro<M>::InitStat() {
     };
     */
 
-    // Stat: *p with name n
+    // StatHydro: *p with name n
     auto op = [](std::string n, Scal* p) {
       return std::make_shared<output::OutScalFunc<Scal>>(
           n, [p]() { return *p; });
@@ -870,6 +872,217 @@ void Hydro<M>::InitStat() {
       con.push_back(op("particles_nrecv", &s.particles_nrecv));
     }
     ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
+  }
+
+  stat_.reset(new Stat<M>(m, eb_.get()));
+  auto& stat = *stat_;
+  auto& vf = as_->GetField();
+  auto& vel = fs_->GetVelocity();
+  auto& rho = fc_rho_;
+  auto& p = fs_->GetPressure();
+  stat.AddSum(
+      "vol1", "volume of phase 1", //
+      [&vf](IdxCell c, const M& m) { return (1 - vf[c]) * m.GetVolume(c); });
+  stat.AddSum(
+      "vol2", "volume of phase 2", //
+      [&vf](IdxCell c, const M& m) { return vf[c] * m.GetVolume(c); });
+  stat.AddSum(
+      "ekin", "kinetic energy of mixture", //
+      [&vel, &rho](IdxCell c, const M& m) {
+        return 0.5 * rho[c] * vel[c].sqrnorm() * m.GetVolume(c);
+      });
+  stat.AddSum(
+      "ekin1", "kinetic energy of phase 1", //
+      [&vf, &vel, &rho](IdxCell c, const M& m) {
+        return 0.5 * rho[c] * vel[c].sqrnorm() * m.GetVolume(c) * (1 - vf[c]);
+      });
+  stat.AddSum(
+      "ekin2", "kinetic energy of phase 2", //
+      [&vf, &vel, &rho](IdxCell c, const M& m) {
+        return 0.5 * rho[c] * vel[c].sqrnorm() * m.GetVolume(c) * vf[c];
+      });
+  stat.AddMax(
+      "pmax", "maximum pressure", //
+      [&p](IdxCell c, const M&) { return p[c]; });
+  stat.AddMin(
+      "pmin", "minimum pressure", //
+      [&p](IdxCell c, const M&) { return p[c]; });
+  stat.AddNone("t", "time", [&fs_ = fs_]() { return fs_->GetTime(); });
+  stat.AddNone(
+      "dt", "time step", [&fs_ = fs_]() { return fs_->GetTimeStep(); });
+  stat.AddNone("iter", "iteration", [&st_ = st_]() { return st_.iter; });
+  stat.AddNone("step", "step", [&st_ = st_]() { return st_.step; });
+  stat.AddNone(
+      "diff", "velocity difference between last two iterations", //
+      [&fs_ = fs_]() { return fs_->GetError(); });
+
+  stat.AddSumHidden("x*vol1", "", [&vf](IdxCell c, const M& m) { //
+    return m.GetCenter(c) * m.GetVolume(c) * (1 - vf[c]);
+  });
+  stat.AddSumHidden("x*vol2", "", [&vf](IdxCell c, const M& m) { //
+    return m.GetCenter(c) * m.GetVolume(c) * vf[c];
+  });
+  stat.AddSumHidden("v*vol1", "", [&vf, &vel](IdxCell c, const M& m) { //
+    return vel[c] * m.GetVolume(c) * (1 - vf[c]);
+  });
+  stat.AddSumHidden("v*vol2", "", [&vf, &vel](IdxCell c, const M& m) { //
+    return vel[c] * m.GetVolume(c) * vf[c];
+  });
+  stat.AddSumHidden("p*vol1", "", [&p, &vf](IdxCell c, const M& m) { //
+    return p[c] * (1 - vf[c]) * m.GetVolume(c);
+  });
+  stat.AddSumHidden("p*vol2", "", [&p, &vf](IdxCell c, const M& m) { //
+    return p[c] * vf[c] * m.GetVolume(c);
+  });
+
+  auto div = [](auto v, Scal d) {
+    if (d == 0) {
+      return v * 0;
+    }
+    return v / d;
+  };
+
+  stat.AddDerived(
+      "c1", "centeroid of phase 1", //
+      [div](const Stat<M>& stat) {
+        return div(stat.vect["x*vol1"], stat["vol1"]);
+      });
+  stat.AddDerived(
+      "c2", "centeroid of phase 2", //
+      [div](const Stat<M>& stat) {
+        return div(stat.vect["x*vol2"], stat["vol2"]);
+      });
+  stat.AddDerived(
+      "v1", "velocity of phase 1", //
+      [div](const Stat<M>& stat) {
+        return div(stat.vect["v*vol1"], stat["vol1"]);
+      });
+  stat.AddDerived(
+      "v2", "velocity of phase 2", //
+      [div](const Stat<M>& stat) {
+        return div(stat.vect["v*vol2"], stat["vol2"]);
+      });
+  stat.AddDerived(
+      "pd", "pressure max-min", //
+      [div](const Stat<M>& stat) { return stat["pmax"] - stat["pmin"]; });
+  stat.AddDerived(
+      "pavg1", "average pressure of phase 1", //
+      [div](const Stat<M>& stat) { return div(stat["p*vol1"], stat["vol1"]); });
+  stat.AddDerived(
+      "pavg2", "average pressure of phase 2", //
+      [div](const Stat<M>& stat) { return div(stat["p*vol2"], stat["vol2"]); });
+
+  if (var.Int["stat_dissip"]) {
+    stat.AddSum(
+        "dissip", "dissipation rate of mixture", //
+        [&str = fc_strain_, &mu = fc_mu_](IdxCell c, const M& m) {
+          return 2 * mu[c] * str[c] * m.GetVolume(c);
+        });
+    stat.AddSum(
+        "dissip1", "dissipation rate of phase 1", //
+        [&str = fc_strain_, &mu = fc_mu_, &vf](IdxCell c, const M& m) {
+          return 2 * mu[c] * str[c] * (1 - vf[c]) * m.GetVolume(c);
+        });
+    stat.AddSum(
+        "dissip2", "dissipation rate of phase 2", //
+        [&str = fc_strain_, &mu = fc_mu_, &vf](IdxCell c, const M& m) {
+          return 2 * mu[c] * str[c] * vf[c] * m.GetVolume(c);
+        });
+    stat.AddDerived(
+        "edis", "dissipated energy of mixture", //
+        [&fs_ = fs_](const Stat<M>& stat) {
+          return stat["edis"] + fs_->GetTimeStep() * stat["dissip"];
+        });
+    stat.AddDerived(
+        "edis1", "dissipated energy of phase 1", //
+        [&fs_ = fs_](const Stat<M>& stat) {
+          return stat["edis1"] + fs_->GetTimeStep() * stat["dissip1"];
+        });
+    stat.AddDerived(
+        "edis2", "dissipated energy of phase 2", //
+        [&fs_ = fs_](const Stat<M>& stat) {
+          return stat["edis2"] + fs_->GetTimeStep() * stat["dissip2"];
+        });
+  }
+  if (var.Int["stat_vofm"]) {
+    auto add_vofm = [this, &stat](auto as) {
+      for (auto l : layers) {
+        auto sl = std::to_string(l);
+        stat.AddSum(
+            "vofm_cells_vf" + sl, "cells with positive volume fraction", //
+            [&vf = *as->GetFieldM()[l]](IdxCell c, const M&) -> Scal {
+              return vf[c] > 0 ? 1 : 0;
+            });
+        stat.AddSum(
+            "vofm_cells_cl" + sl, "cells with defined color", //
+            [&cl = *as->GetColor()[l]](IdxCell c, const M&) -> Scal {
+              return cl[c] > 0 ? 1 : 0;
+            });
+        stat.AddSum(
+            "vofm_vol" + sl, "integral of volume fraction", //
+            [&vf = *as->GetFieldM()[l]](IdxCell c, const M& m) {
+              return vf[c] * m.GetVolume(c);
+            });
+        auto slp = std::to_string(l + 1);
+        // TODO: revise with `++hist[cnt]`, now takes L^2 operations.
+        stat.AddSum(
+            "vofm_hist" + slp,
+            "number of cells with " + slp + " non-empty layers", //
+            [vfm = as->GetFieldM(), &layers = layers, cnt_target = l + 1](
+                IdxCell c, const M&) -> Scal {
+              size_t cnt = 0;
+              for (auto l : layers) {
+                if ((*vfm[l])[c] > 0) {
+                  ++cnt;
+                }
+              }
+              return cnt == cnt_target ? 1 : 0;
+            });
+      }
+    };
+    if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+      add_vofm(as);
+    }
+    if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
+      add_vofm(as);
+    }
+  }
+  if (eb_) {
+    stat.AddSum("pdrag", "pressure drag", [this]() {
+      auto d = CalcPressureDrag(fs_->GetPressure(), *eb_);
+      if (m.GetEdim() == 2) {
+        d /= m.GetCellSize()[2];
+      }
+      return d;
+    });
+    stat.AddSum("vdrag", "viscous drag", [this]() {
+      auto d = CalcViscousDrag(fs_->GetVelocity(), fc_mu_, *eb_);
+      if (m.GetEdim() == 2) {
+        d /= m.GetCellSize()[2];
+      }
+      return d;
+    });
+    stat.AddDerived("drag", "total drag", [](const Stat<M>& stat) {
+      return stat.vect["pdrag"] + stat.vect["vdrag"];
+    });
+  }
+  if (particles_) {
+    stat.AddSum(
+        "particles_n", "number of particles",
+        [&p = particles_]() -> Scal { return p->GetView().x.size(); });
+    stat.AddSum(
+        "particles_nrecv", "number of particles transferred at last step",
+        [&p = particles_]() -> Scal { return p->GetNumRecv(); });
+  }
+
+  stat_->SortNames();
+  if (m.IsRoot()) {
+    fstat_.open("stat2.dat");
+    fstat_.precision(16);
+    stat_->WriteHeader(fstat_);
+
+    std::ofstream fsum("stat_summary");
+    stat_->WriteSummary(fsum);
   }
 }
 
@@ -1375,7 +1588,7 @@ void Hydro<M>::CalcStat() {
       s.dissip = 0.;
       s.dissip1 = 0.;
       s.dissip2 = 0.;
-      CalcStrain(fs_->GetVelocity(), fc_strain_);
+      fc_strain_ = CalcStrain(fs_->GetVelocity());
       auto& fcmu = fc_mu_;
       auto& fcd = fc_strain_;
       auto& fcvf = as_->GetField();
@@ -1391,6 +1604,9 @@ void Hydro<M>::CalcStat() {
       m.Reduce(&s.dissip, "sum");
       m.Reduce(&s.dissip1, "sum");
       m.Reduce(&s.dissip2, "sum");
+    }
+    if (var.Int["stat_dissip"]) {
+      fc_strain_ = CalcStrain(fs_->GetVelocity());
     }
     if (var.Int["stat_vofm"]) {
       if (auto as = dynamic_cast<ASVM*>(as_.get())) {
@@ -1789,7 +2005,7 @@ void Hydro<M>::DumpFields() {
       dump(fcomm_, "omm");
     }
     if (dl.count("dis") || dl.count("strain")) {
-      CalcStrain(fs_->GetVelocity(), fc_strain_);
+      fc_strain_ = CalcStrain(fs_->GetVelocity());
       if (dl.count("strain")) m.Dump(&fc_strain_, "strain");
       if (dl.count("dis")) {
         ctx->fcdis = fc_strain_;
@@ -1996,6 +2212,7 @@ void Hydro<M>::Dump(bool force) {
     if (m.IsRoot()) {
       if (st_.step % var.Int("stat_step_every", 1) == 0 || force) {
         ost_->Write(0., "");
+        stat_->WriteValues(fstat_);
       }
     }
   }
@@ -2126,7 +2343,6 @@ void Hydro<M>::Run() {
   if (sem.Nested("fs-finish")) {
     fs_->FinishStep();
   }
-
   if (sem.Nested("as-steps")) {
     if (var.Int["enable_advection"]) {
       StepAdvection();
@@ -2142,24 +2358,22 @@ void Hydro<M>::Run() {
       StepParticles();
     }
   }
-
+  if (sem.Nested("stat2")) {
+    stat_->Update();
+  }
   if (sem.Nested()) {
     CalcDt(); // must be after CalcStat to keep dt for moving mesh velocity
   }
-
   if (sem.Nested()) {
     Dump(false);
   }
-
   if (sem.Nested("stephook")) {
     StepHook(this);
   }
-
   if (sem("inc")) {
     ++st_.step;
     m.CollectSample("Hydro::Step");
   }
-
   sem.LoopEnd();
 
   if (sem.Nested("dumplast")) {
