@@ -44,7 +44,7 @@ class Test(aphros.TestBase):
         o += self.copy_last(['p', 'vy', 'rho'])
         if case == Case.multi:
             o.append("rho_0000.h5")
-            o.append(self.select_stat(['t', 'vl2y', 'vlmy']))
+            o.append(self.select_stat(['t', 'dvel_l2y', 'dvel_maxy']))
         return o
 
     def check(self, outdir, refdir, output_files):
