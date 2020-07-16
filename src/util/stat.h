@@ -58,8 +58,9 @@ class Stat {
 
   template <class Func>
   struct ResultOf {
+    // Return type from call f(), void if invalid.
     template <class... Args>
-    struct IsValid {
+    struct Try {
       static Func f;
       template <class>
       static void Eval(...);
@@ -67,18 +68,18 @@ class Stat {
       static auto Eval(decltype(U(f)())* r) {
         return *r;
       }
-      using Result = decltype(Eval<Func>(0));
-      constexpr static bool value = !std::is_same<void, Result>::value;
+      using type = decltype(Eval<Func>(0));
     };
 
+    // Void by default.
     template <class T, class... Args>
-    struct IsValid<T, Args...> {
-      using Result = void;
-      constexpr static bool value = false;
+    struct Try<T, Args...> {
+      using type = void;
     };
 
+    // Return type from call f(T), void if invalid.
     template <class T>
-    struct IsValid<T> {
+    struct Try<T> {
       static Func f;
       template <class>
       static void Eval(...);
@@ -86,12 +87,12 @@ class Stat {
       static auto Eval(decltype(f(std::declval<U>()))* r) {
         return *r;
       }
-      using Result = decltype(Eval<T>(0));
-      constexpr static bool value = !std::is_same<void, Result>::value;
+      using type = decltype(Eval<T>(0));
     };
 
+    // Return type from call f(T0, T1), void if invalid.
     template <class T0, class T1>
-    struct IsValid<T0, T1> {
+    struct Try<T0, T1> {
       static Func f;
       template <class, class>
       static void Eval(...);
@@ -100,21 +101,21 @@ class Stat {
           decltype(f(std::declval<U0>(), std::declval<U1>()))* r) {
         return *r;
       }
-      using Result = decltype(Eval<T0, T1>(0));
-      constexpr static bool value = !std::is_same<void, Result>::value;
+      using type = decltype(Eval<T0, T1>(0));
     };
 
-    constexpr static bool valid_void = IsValid<>::value;
-    constexpr static bool valid_m = IsValid<IdxCell, M>::value;
-    constexpr static bool valid_embed = IsValid<IdxCell, Embed<M>>::value;
+    // Select a non-void type.
+    template <class U, class V>
+    struct NonVoid {
+      using type =
+          typename std::conditional<std::is_same<V, void>::value, U, V>::type;
+    };
 
-    using type_void = typename IsValid<>::Result;
-    using type_m = typename IsValid<IdxCell, M>::Result;
-    using type_embed = typename IsValid<IdxCell, Embed<M>>::Result;
-
-    using type = typename std::conditional<
-        valid_void, type_void,
-        typename std::conditional<valid_embed, type_embed, type_m>::type>::type;
+    using t0 = typename Try<>::type;
+    using t1 = typename NonVoid<t0, typename Try<IdxCell, M>::type>::type;
+    using t2 =
+        typename NonVoid<t1, typename Try<IdxCell, Embed<M>>::type>::type;
+    using type = t2;
   };
   template <class T>
   void Add(
