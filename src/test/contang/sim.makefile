@@ -9,7 +9,7 @@ runpost:
 	$(MAKE) post
 
 post:
-	ap.getcol c2x > c2x
+	ap.getcol c2.x > c2x
 
 2d:
 	echo "include 2d.conf" > add.conf
