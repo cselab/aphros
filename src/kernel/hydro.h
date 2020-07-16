@@ -25,7 +25,6 @@
 #include "debug/isnan.h"
 #include "dump/dumper.h"
 #include "dump/hdf.h"
-#include "dump/output.h"
 #include "func/init.h"
 #include "func/init_bc.h"
 #include "func/init_contang.h"
@@ -319,107 +318,13 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Scal bgt_ = -1.; // bubgen last time
 
   struct StatHydro {
-    struct Vofm {
-      Scal cells_vf; // number of cells with vf>0
-      Scal cells_cl; // number of cells wih cl != kClNone
-      Scal sum_vf; // sum of vf
-      Scal hist; // vofm[l].hist is number of cells containing l+1
-                 // cells with vf>0
-    };
-
-    Scal m1, m2; // volume
-    Scal m20; // initial volume
-    Scal m2d; // relative volume difference
-    Vect c1, c2; // center of mass
-    Vect vc1, vc2; // center of mass velocity
-    Vect v1, v2; // average velocity
-    Scal dtt; // temporary to reduce
     Scal dt; // dt fluid
     Scal dta; // dt advection
-    size_t iter; // iter of fluid solver
-    Scal dumpt = -1e10; // last dump time (rounded to nearest dtdump)
     Scal t;
     size_t step;
-    size_t dumpn;
-    Vect meshpos; // mesh position
-    Vect meshvel; // mesh velocity
-    Scal ekin, ekin1, ekin2; // kinetic energy
-    Scal workst; // work by surface tension
-    Vect vlm, vl2; // max-norm and l2-norm of velocity minus "vel"
-    Scal pmin, pmax, pd; // pressure min,max
-    Scal pavg1, pavg2; // pressure average
-    Scal boxomm; // integral of vorticity magnitude over box
-    Scal boxomm2; // integral of vorticity magnitude over box
-    Vect vomm; // velocity weighted by vorticity
-    Scal vommw; // integral of vorticity
-    Scal enstr; // enstrophy
-    Scal area; // interface area
-    Scal dissip, dissip1, dissip2; // energy dissipation rate
-    Scal edis, edis1, edis2; // dissipated energy
-    std::vector<Vofm> vofm;
-    Vect eb_pdrag; // pressure drag on embedded boundaries
-    Vect eb_vdrag; // viscous drag
-    Vect eb_drag; // total drag
-    Scal particles_n; // number of particles
-    Scal particles_nrecv; // number of particles received on last communciation
-
-    std::map<std::string, Scal> mst; // map stat
-    // Add scalar field for stat.
-    void Add(const FieldCell<Scal>& fc, std::string name, M& m) {
-      Scal min = std::numeric_limits<Scal>::max();
-      Scal max = -std::numeric_limits<Scal>::max();
-      Scal sum = 0.;
-      for (auto c : m.Cells()) {
-        Scal v = fc[c];
-        min = std::min(min, v);
-        max = std::max(max, v);
-        sum += v * m.GetVolume(c);
-      }
-      m.Reduce(&(mst[name + "_min"] = min), "min");
-      m.Reduce(&(mst[name + "_max"] = max), "max");
-      m.Reduce(&(mst[name + "_sum"] = sum), "sum");
-    }
-    // Add component comp of vector field for stat.
-    void Add(const FieldCell<Vect>& fc, size_t comp, std::string name, M& m) {
-      Scal min = std::numeric_limits<Scal>::max();
-      Scal max = -std::numeric_limits<Scal>::max();
-      Scal sum = 0.;
-      for (auto c : m.Cells()) {
-        Scal v = fc[c][comp];
-        min = std::min(min, v);
-        max = std::max(max, v);
-        sum += v * m.GetVolume(c);
-      }
-      m.Reduce(&(mst[name + "_min"] = min), "min");
-      m.Reduce(&(mst[name + "_max"] = max), "max");
-      m.Reduce(&(mst[name + "_sum"] = sum), "sum");
-    }
-    void Print(std::ostream& out) {
-      std::string dl = "";
-      auto fl = out.flags();
-      out.precision(16);
-      out << std::scientific << std::setprecision(20);
-      size_t i = 0;
-      for (auto& it : mst) {
-        if (i % 3 == 0) {
-          out << "> ";
-          dl = "";
-        }
-        out << dl << it.first << "=" << it.second;
-        dl = ", ";
-        ++i;
-        if (i % 3 == 0) {
-          out << std::endl;
-        }
-      }
-      out.flags(fl);
-    }
-    void Clear() {
-      mst.clear();
-    }
+    size_t iter;
   };
   StatHydro st_;
-  std::shared_ptr<output::Ser> ost_; // output stat
   std::ofstream fstat_;
   std::unique_ptr<Stat<M>> stat_;
   Dumper dumper_;
@@ -750,7 +655,6 @@ void Hydro<M>::InitAdvection(
     throw std::runtime_error("Unknown advection_solver=" + as);
   }
 
-  st_.vofm.resize(layers.size());
   fck_.resize(layers);
   fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
   auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
@@ -759,120 +663,74 @@ void Hydro<M>::InitAdvection(
 
 template <class M>
 void Hydro<M>::InitStat() {
-  if (m.IsRoot()) {
-    // StatHydro: var.Double[p] with name n
-    /*
-    auto on = [this](std::string n, std::string p) {
-      return std::make_shared<output::OutScalFunc<Scal>>(
-          n, [&,p](){ return var.Double[p]; });
-    };
-    */
-
-    // StatHydro: *p with name n
-    auto op = [](std::string n, Scal* p) {
-      return std::make_shared<output::OutScalFunc<Scal>>(
-          n, [p]() { return *p; });
-    };
-
-    auto& s = st_;
-    output::VOut con = {
-        op("t", &s.t),
-        std::make_shared<output::OutScalFunc<int>>(
-            "iter", [this]() { return st_.iter; }),
-        op("dt", &s.dt),
-        op("dta", &s.dta),
-        std::make_shared<output::OutScalFunc<Scal>>(
-            "diff", [this]() { return fs_->GetError(); }),
-        std::make_shared<output::OutScalFunc<Scal>>(
-            "wt", [this]() { return timer_.GetSeconds(); }),
-        op("m1", &s.m1),
-        op("m2", &s.m2),
-        op("m20", &s.m20),
-        op("m2d", &s.m2d),
-        op("ekin", &s.ekin),
-        op("ekin1", &s.ekin1),
-        op("ekin2", &s.ekin2),
-        op("c1x", &s.c1[0]),
-        op("c1y", &s.c1[1]),
-        op("c1z", &s.c1[2]),
-        op("c2x", &s.c2[0]),
-        op("c2y", &s.c2[1]),
-        op("c2z", &s.c2[2]),
-        op("vc1x", &s.vc1[0]),
-        op("vc1y", &s.vc1[1]),
-        op("vc1z", &s.vc1[2]),
-        op("vc2x", &s.vc2[0]),
-        op("vc2y", &s.vc2[1]),
-        op("vc2z", &s.vc2[2]),
-        op("v1x", &s.v1[0]),
-        op("v1y", &s.v1[1]),
-        op("v1z", &s.v1[2]),
-        op("v2x", &s.v2[0]),
-        op("v2y", &s.v2[1]),
-        op("v2z", &s.v2[2]),
-        op("meshposx", &s.meshpos[0]),
-        op("meshvelx", &s.meshvel[0]),
-        op("meshvelz", &s.meshvel[2]),
-    };
-    if (var.Int["statbox"]) {
-      con.push_back(op("boxomm", &s.boxomm));
-      con.push_back(op("boxomm2", &s.boxomm2));
-      con.push_back(op("vommz", &s.vomm[2]));
-    }
-    if (var.Int["statvel"]) {
-      con.push_back(op("vlmx", &s.vlm[0]));
-      con.push_back(op("vlmy", &s.vlm[1]));
-      con.push_back(op("vlmz", &s.vlm[2]));
-      con.push_back(op("vl2x", &s.vl2[0]));
-      con.push_back(op("vl2y", &s.vl2[1]));
-      con.push_back(op("vl2z", &s.vl2[2]));
-    }
-    con.push_back(op("pmin", &s.pmin));
-    con.push_back(op("pmax", &s.pmax));
-    con.push_back(op("pd", &s.pd));
-    con.push_back(op("pavg1", &s.pavg1));
-    con.push_back(op("pavg2", &s.pavg2));
-    if (var.Int["enstrophy"]) {
-      con.push_back(op("enstr", &s.enstr));
-    }
-    if (var.Int["stat_area"]) {
-      con.push_back(op("area", &s.area));
-    }
-    if (var.Int["stat_dissip"]) {
-      con.push_back(op("dissip", &s.dissip));
-      con.push_back(op("dissip1", &s.dissip1));
-      con.push_back(op("dissip2", &s.dissip2));
-      con.push_back(op("edis", &s.edis));
-      con.push_back(op("edis1", &s.edis1));
-      con.push_back(op("edis2", &s.edis2));
-    }
-    if (var.Int["stat_vofm"]) {
-      s.vofm.resize(layers.size());
-      for (auto l : layers) {
-        auto sl = std::to_string(l);
-        con.push_back(op("vofm_cells_vf" + sl, &s.vofm[l].cells_vf));
-        con.push_back(op("vofm_cells_cl" + sl, &s.vofm[l].cells_cl));
-        con.push_back(op("vofm_sum_vf" + sl, &s.vofm[l].sum_vf));
-        con.push_back(op("vofm_hist" + std::to_string(l + 1), &s.vofm[l].hist));
+  /*
+  if (var.Int["statvel"]) {
+    con.push_back(op("vlmx", &s.vlm[0]));
+    con.push_back(op("vlmy", &s.vlm[1]));
+    con.push_back(op("vlmz", &s.vlm[2]));
+    con.push_back(op("vl2x", &s.vl2[0]));
+    con.push_back(op("vl2y", &s.vl2[1]));
+    con.push_back(op("vl2z", &s.vl2[2]));
+  }
+  if (var.Int["enstrophy"]) {
+    con.push_back(op("enstr", &s.enstr));
+  }
+  if (var.Int["stat_area"]) {
+    con.push_back(op("area", &s.area));
+  }
+  */
+  /*
+  if (var.Int["statvel"]) {
+    s.vlm = Vect(0);
+    s.vl2 = Vect(0);
+    Vect v0(var.Vect["vel"]);
+    for (auto c : m.Cells()) {
+      Scal o = m.GetVolume(c);
+      Scal a2 = fa[c];
+      Vect v = fv[c];
+      auto dv = (v - v0).abs();
+      for (size_t d = 0; d < dim; ++d) {
+        s.vlm[d] = std::max(s.vlm[d], dv[d] * a2);
+        s.vl2[d] += sqr(dv[d]) * o * a2;
       }
     }
-    if (eb_) {
-      con.push_back(op("pdragx", &s.eb_pdrag[0]));
-      con.push_back(op("pdragy", &s.eb_pdrag[1]));
-      con.push_back(op("pdragz", &s.eb_pdrag[2]));
-      con.push_back(op("vdragx", &s.eb_vdrag[0]));
-      con.push_back(op("vdragy", &s.eb_vdrag[1]));
-      con.push_back(op("vdragz", &s.eb_vdrag[2]));
-      con.push_back(op("dragx", &s.eb_drag[0]));
-      con.push_back(op("dragy", &s.eb_drag[1]));
-      con.push_back(op("dragz", &s.eb_drag[2]));
+    for (size_t d = 0; d < dim; ++d) {
+      m.Reduce(&s.vlm[d], "max");
+      m.Reduce(&s.vl2[d], "sum");
     }
-    if (particles_) {
-      con.push_back(op("particles_n", &s.particles_n));
-      con.push_back(op("particles_nrecv", &s.particles_nrecv));
-    }
-    ost_ = std::make_shared<output::SerScalPlain<Scal>>(con, "stat.dat");
   }
+
+  if (var.Int["stat_area"]) {
+    s.area = 0;
+    if (auto as = dynamic_cast<ASVM*>(as_.get())) {
+      using R = Reconst<Scal>;
+      auto& fcn = *as->GetNormal()[0];
+      auto& fca = *as->GetAlpha()[0];
+      auto& fcvf = as->GetField(Step::time_curr, 0);
+      Vect h = m.GetCellSize();
+      for (auto c : m.Cells()) {
+        if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
+          auto xx = R::GetCutPoly2(fcn[c], fca[c], h);
+          Scal ar = std::abs(R::GetArea(xx, fcn[c]));
+          s.area += ar;
+        }
+      }
+      if (IsNan(s.area)) {
+        s.area = 0;
+      }
+      m.Reduce(&s.area, "sum");
+    }
+  }
+
+if (sem("reduce")) {
+  if (var.Int["statvel"]) {
+    for (size_t d = 0; d < dim; ++d) {
+      s.vl2[d] = std::sqrt(s.vl2[d] * im2);
+    }
+    s.pd = s.pmax - s.pmin;
+  }
+}
+  */
 
   stat_.reset(new Stat<M>(m, eb_.get()));
   auto& stat = *stat_;
@@ -1023,6 +881,13 @@ void Hydro<M>::InitStat() {
           return stat["edis2"] + fs_->GetTimeStep() * stat["dissip2"];
         });
   }
+  if (var.Int["enstrophy"]) {
+    stat.AddSum(
+        "enstr", "enstrophy", //
+        [&omm = fcomm_, &rho = fc_rho_](IdxCell c, const M& m) {
+          return 0.5 * sqr(omm[c]) * rho[c] * m.GetVolume(c);
+        });
+  }
   if (var.Int["stat_vofm"]) {
     auto add_vofm = [this, &stat](auto as) {
       for (auto l : layers) {
@@ -1096,7 +961,7 @@ void Hydro<M>::InitStat() {
 
   stat_->SortNames();
   if (m.IsRoot()) {
-    fstat_.open("stat2.dat");
+    fstat_.open("stat.dat");
     fstat_.precision(16);
     stat_->WriteHeader(fstat_);
 
@@ -1352,7 +1217,6 @@ void Hydro<M>::Init() {
     InitParticles();
 
     st_.iter = 0;
-    st_.t = fs_->GetTime();
 
     if (m.IsLead()) {
       this->var_mutable.Int.Set("iter", st_.iter);
@@ -1411,7 +1275,6 @@ void Hydro<M>::Init() {
 template <class M>
 Hydro<M>::Hydro(Vars& var0, const MyBlockInfo& bi, Par& par)
     : KernelMeshPar<M, Par>(var0, bi, par)
-    , st_{}
     , dumper_(var, "dump_field_")
     , dmptraj_(var, "dump_traj_")
     , dmptrep_(var, "dump_trep_") {}
@@ -1419,346 +1282,12 @@ Hydro<M>::Hydro(Vars& var0, const MyBlockInfo& bi, Par& par)
 template <class M>
 void Hydro<M>::CalcStat() {
   auto sem = m.GetSem("stat");
-
-  auto& s = st_;
-  auto& fa = as_->GetField();
-  auto& fv = fs_->GetVelocity();
-  auto& fp = fs_->GetPressure();
-
-  if (sem("stat-add")) {
-    s.Add(fa, "vf", m);
-    s.Add(fv, 0, "vx", m);
-    s.Add(fv, 1, "vy", m);
-    s.Add(fv, 2, "vz", m);
-    s.Add(fp, "p", m);
-  }
-  if (sem("stat-print")) {
-    if (var.Int["report_stat"] && m.IsRoot()) {
-      s.Print(std::cout);
-    }
-    s.Clear();
-  }
-
   if (sem("local")) {
-    // Store vc1 and vc2
-    s.vc1 = s.c1;
-    s.vc2 = s.c2;
-
-    // mass, center, velocity, kinetic energy
-    s.m1 = 0;
-    s.m2 = 0;
-    s.c1 = Vect(0);
-    s.c2 = Vect(0);
-    s.v1 = Vect(0);
-    s.v2 = Vect(0);
-    s.ekin = 0;
-    s.ekin1 = 0;
-    s.ekin2 = 0;
-    for (auto i : m.Cells()) {
-      Scal o = m.GetVolume(i);
-      Scal a2 = fa[i];
-      Scal a1 = 1. - a2;
-      Vect v = fv[i];
-      Vect x = m.GetCenter(i);
-
-      s.m1 += a1 * o;
-      s.m2 += a2 * o;
-      s.c1 += x * (a1 * o);
-      s.c2 += x * (a2 * o);
-      s.v1 += v * (a1 * o);
-      s.v2 += v * (a2 * o);
-      s.ekin += 0.5 * v.dot(v) * fc_rho_[i] * o;
-      s.ekin1 += 0.5 * v.dot(v) * fc_rho_[i] * o * a1;
-      s.ekin2 += 0.5 * v.dot(v) * fc_rho_[i] * o * a2;
+    if (var.Int["stat_dissip"]) {
+      fc_strain_ = CalcStrain(fs_->GetVelocity());
     }
-
-    m.Reduce(&s.m1, "sum");
-    m.Reduce(&s.m2, "sum");
-    m.Reduce(&s.ekin, "sum");
-    m.Reduce(&s.ekin1, "sum");
-    m.Reduce(&s.ekin2, "sum");
-    for (size_t d = 0; d < dim; ++d) {
-      m.Reduce(&s.c1[d], "sum");
-      m.Reduce(&s.c2[d], "sum");
-      m.Reduce(&s.v1[d], "sum");
-      m.Reduce(&s.v2[d], "sum");
-    }
-
-    // pressure
-    s.pmin = 1e10;
-    s.pmax = -1e10;
-    s.pavg1 = 0.;
-    s.pavg2 = 0.;
-    for (auto c : m.Cells()) {
-      Scal o = m.GetVolume(c);
-      Scal a2 = fa[c];
-      Scal p = fp[c];
-      s.pmin = std::min(s.pmin, p);
-      s.pmax = std::max(s.pmax, p);
-      s.pavg1 += p * (1. - a2) * o;
-      s.pavg2 += p * a2 * o;
-    }
-    m.Reduce(&s.pmin, "min");
-    m.Reduce(&s.pmax, "max");
-    m.Reduce(&s.pavg1, "sum");
-    m.Reduce(&s.pavg2, "sum");
-
-    if (var.Int["statvel"]) {
-      s.vlm = Vect(0);
-      s.vl2 = Vect(0);
-      Vect v0(var.Vect["vel"]);
-      for (auto c : m.Cells()) {
-        Scal o = m.GetVolume(c);
-        Scal a2 = fa[c];
-        Vect v = fv[c];
-        auto dv = (v - v0).abs();
-        for (size_t d = 0; d < dim; ++d) {
-          s.vlm[d] = std::max(s.vlm[d], dv[d] * a2);
-          s.vl2[d] += sqr(dv[d]) * o * a2;
-        }
-      }
-      for (size_t d = 0; d < dim; ++d) {
-        m.Reduce(&s.vlm[d], "max");
-        m.Reduce(&s.vl2[d], "sum");
-      }
-    }
-
-    if (var.Int["statbox"] || var.Int["enstrophy"]) {
-      CalcVort();
-    }
-
-    // XXX: adhoc: also controls s.vomm
-    if (var.Int["statbox"]) {
-      // XXX requires CalcVort above
-      Vect xa(var.Vect["statboxa"]);
-      Vect xb(var.Vect["statboxb"]);
-      Vect x2a(var.Vect["statbox2a"]);
-      Vect x2b(var.Vect["statbox2b"]);
-      Vect h = m.GetCellSize();
-      size_t dm = (xb - xa).argmin();
-      size_t dm2 = (x2b - x2a).argmin();
-      // box size at least h
-      for (size_t d = 0; d < dim; ++d) {
-        xb[d] = std::max<Scal>(xb[d], xa[d] + h[d]);
-        x2b[d] = std::max<Scal>(x2b[d], x2a[d] + h[d]);
-      }
-      // integrate
-      s.boxomm = 0.;
-      s.boxomm2 = 0.;
-      for (auto c : m.Cells()) {
-        auto xc = m.GetCenter(c);
-        if (xa <= xc && xc <= xb) {
-          s.boxomm += m.GetVolume(c) * fcom_[c][dm];
-        }
-        if (x2a <= xc && xc <= x2b) {
-          s.boxomm2 += m.GetVolume(c) * fcom_[c][dm2];
-        }
-      }
-      // divide by smallest dimension to get integral over slice
-      s.boxomm /= h[dm];
-      s.boxomm2 /= h[dm2];
-      m.Reduce(&s.boxomm, "sum");
-      m.Reduce(&s.boxomm2, "sum");
-
-      // vomm
-      s.vomm = Vect(0);
-      s.vommw = 0;
-      for (auto c : m.Cells()) {
-        s.vomm += fv[c] * fcomm_[c];
-        s.vommw += fcomm_[c];
-      }
-      for (size_t d = 0; d < dim; ++d) {
-        m.Reduce(&s.vomm[d], "sum");
-      }
-      m.Reduce(&s.vommw, "sum");
-    }
-
     if (var.Int["enstrophy"]) {
-      // XXX requires CalcVort above
-      s.enstr = 0.;
-      for (auto c : m.Cells()) {
-        s.enstr += 0.5 * sqr(fcomm_[c]) * fc_rho_[c] * m.GetVolume(c);
-      }
-      m.Reduce(&s.enstr, "sum");
-    }
-    // surface area
-    if (var.Int["stat_area"]) {
-      s.area = 0;
-      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-        using R = Reconst<Scal>;
-        auto& fcn = *as->GetNormal()[0];
-        auto& fca = *as->GetAlpha()[0];
-        auto& fcvf = as->GetField(Step::time_curr, 0);
-        Vect h = m.GetCellSize();
-        for (auto c : m.Cells()) {
-          if (fcvf[c] > 0. && fcvf[c] < 1. && !IsNan(fca[c])) {
-            auto xx = R::GetCutPoly2(fcn[c], fca[c], h);
-            Scal ar = std::abs(R::GetArea(xx, fcn[c]));
-            s.area += ar;
-          }
-        }
-        if (IsNan(s.area)) {
-          s.area = 0;
-        }
-        m.Reduce(&s.area, "sum");
-      }
-    }
-    if (var.Int["stat_dissip"]) {
-      s.dissip = 0.;
-      s.dissip1 = 0.;
-      s.dissip2 = 0.;
-      fc_strain_ = CalcStrain(fs_->GetVelocity());
-      auto& fcmu = fc_mu_;
-      auto& fcd = fc_strain_;
-      auto& fcvf = as_->GetField();
-      for (auto c : m.Cells()) {
-        Scal o = m.GetVolume(c);
-        Scal mu = fcmu[c];
-        Scal d = fcd[c];
-        Scal vf = fcvf[c];
-        s.dissip += 2. * mu * d * o;
-        s.dissip1 += 2. * mu * d * (1. - vf) * o;
-        s.dissip2 += 2. * mu * d * vf * o;
-      }
-      m.Reduce(&s.dissip, "sum");
-      m.Reduce(&s.dissip1, "sum");
-      m.Reduce(&s.dissip2, "sum");
-    }
-    if (var.Int["stat_dissip"]) {
-      fc_strain_ = CalcStrain(fs_->GetVelocity());
-    }
-    if (var.Int["stat_vofm"]) {
-      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-        // clear
-        for (auto l : layers) {
-          auto& v = s.vofm[l];
-          v.cells_vf = 0;
-          v.cells_cl = 0;
-          v.sum_vf = 0;
-          v.hist = 0;
-        }
-        for (auto l : layers) {
-          auto& v = s.vofm[l];
-          auto& vf = *as->GetFieldM()[l];
-          auto& cl = *as->GetColor()[l];
-          for (auto c : m.Cells()) {
-            v.cells_vf += (vf[c] > 0 ? 1 : 0);
-            v.cells_cl += (cl[c] != kClNone ? 1 : 0);
-            v.sum_vf += vf[c] * m.GetVolume(c);
-          }
-          m.Reduce(&v.cells_vf, "sum");
-          m.Reduce(&v.cells_cl, "sum");
-          m.Reduce(&v.sum_vf, "sum");
-        }
-        for (auto c : m.Cells()) {
-          size_t cnt = 0;
-          for (auto l : layers) {
-            if ((*as->GetFieldM()[l])[c] > 0) {
-              ++cnt;
-            }
-          }
-          if (cnt > 0) {
-            assert(cnt - 1 >= 0 && cnt - 1 < layers.size());
-            s.vofm[cnt - 1].hist += 1;
-          }
-        }
-        for (auto l : layers) {
-          m.Reduce(&s.vofm[l].hist, "sum");
-        }
-      }
-    }
-    if (eb_) {
-      st_.eb_pdrag = CalcPressureDrag(fs_->GetPressure(), *eb_);
-      st_.eb_vdrag = CalcViscousDrag(fs_->GetVelocity(), fc_mu_, *eb_);
-      st_.eb_drag = st_.eb_pdrag + st_.eb_vdrag;
-      if (m.GetEdim() == 2) {
-        const Scal h = m.GetCellSize()[2];
-        st_.eb_pdrag /= h;
-        st_.eb_vdrag /= h;
-        st_.eb_drag /= h;
-      }
-      for (size_t d = 0; d < dim; ++d) {
-        m.Reduce(&st_.eb_pdrag[d], "sum");
-        m.Reduce(&st_.eb_vdrag[d], "sum");
-        m.Reduce(&st_.eb_drag[d], "sum");
-      }
-    }
-    if (particles_) {
-      st_.particles_n = particles_->GetView().x.size();
-      st_.particles_nrecv = particles_->GetNumRecv();
-      m.Reduce(&st_.particles_n, "sum");
-      m.Reduce(&st_.particles_nrecv, "sum");
-    }
-  }
-
-  if (sem("reduce")) {
-    Scal im1 = (s.m1 == 0 ? 0. : 1. / s.m1);
-    Scal im2 = (s.m2 == 0 ? 0. : 1. / s.m2);
-    s.c1 *= im1;
-    s.c2 *= im2;
-    s.v1 *= im1;
-    s.v2 *= im2;
-    s.pavg1 *= im1;
-    s.pavg2 *= im2;
-
-    if (s.m20 == 0.) {
-      s.m20 = s.m2;
-    } else {
-      s.m2d = (s.m2 - s.m20) / s.m20;
-    }
-
-    if (s.vommw != 0) {
-      s.vomm /= s.vommw;
-    }
-
-    Scal dt = fs_->GetTimeStep();
-
-    // Moving mesh
-    s.c1 += st_.meshpos;
-    s.c2 += st_.meshpos;
-    s.vc1 = (s.c1 - s.vc1) / dt;
-    s.vc2 = (s.c2 - s.vc2) / dt;
-
-    // dissipated energy
-    s.edis += s.dissip * dt;
-    s.edis1 += s.dissip1 * dt;
-    s.edis2 += s.dissip2 * dt;
-
-    if (const std::string* s = var.String.Find("meshvel_auto")) {
-      auto upd = [this, s](Vect& meshvel) {
-        Vect vel(0);
-        if (*s == "v") {
-          vel = st_.v2;
-        } else if (*s == "vc") {
-          vel = st_.vc2;
-        } else if (*s == "vomm") {
-          vel = st_.vomm;
-        } else {
-          throw std::runtime_error("Unknown meshvel_auto=" + *s);
-        }
-        Vect mask(var.Vect["meshvel_mask"]);
-        vel *= mask;
-        double w = var.Double["meshvel_weight"];
-        meshvel = vel * w + meshvel * (1. - w);
-        st_.meshvel = meshvel;
-        st_.meshpos += st_.meshvel * st_.dt;
-      };
-      if (auto fs = dynamic_cast<Simple<M>*>(fs_.get())) {
-        auto par = fs->GetPar();
-        upd(par.meshvel);
-        fs->SetPar(par);
-      } else if (auto fs = dynamic_cast<Proj<M>*>(fs_.get())) {
-        auto par = fs->GetPar();
-        upd(par.meshvel);
-        fs->SetPar(par);
-      }
-    }
-
-    if (var.Int["statvel"]) {
-      for (size_t d = 0; d < dim; ++d) {
-        s.vl2[d] = std::sqrt(s.vl2[d] * im2);
-      }
-      s.pd = s.pmax - s.pmin;
+      CalcVort();
     }
   }
 }
@@ -1840,46 +1369,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     fc_force_.Reinit(m, Vect(0));
     febp_.Reinit(m, 0);
     fc_smvf_ = fc_vf0;
-
-    // XXX: oscillating source
-    Scal source_mag = var.Double["source_mag"];
-    if (source_mag != 0) {
-      Scal mag = source_mag;
-      Scal mag0 = var.Double["source_mag0"]; // constant component
-      Scal freq = var.Double["source_freq"];
-      Scal wly = var.Double["source_wly"];
-      Scal mexp = var.Double["source_mexp"];
-      Scal mexp0 = var.Double["source_mexp0"];
-      Scal pi = M_PI;
-      Scal s = std::sin(st_.t * freq * 2. * pi);
-      fc_src_.Reinit(m, 0);
-      for (auto c : m.Cells()) {
-        const Vect x = m.GetCenter(c);
-        const Scal sy = std::cos(2. * pi * x[1] / wly);
-        const Scal vf = fc_vf0[c];
-        Scal q = s * sy * mag * vf;
-        Scal q0 = mag0 * vf;
-        if (st_.m20 > 0 && st_.m2 > 0) {
-          q *= std::pow(st_.m2 / st_.m20, mexp);
-          q0 *= std::pow(st_.m2 / st_.m20, mexp0);
-        }
-        fc_src_[c] = q + q0;
-      }
-    }
-
-    // XXX: oscillating force
-    Scal force_mag = var.Double["force_mag"];
-    if (force_mag != 0) {
-      Scal force_freq = var.Double["force_freq"];
-      Scal force_wly = var.Double["force_wly"];
-      Scal pi = M_PI;
-      Scal s = std::sin(st_.t * force_freq * 2. * pi);
-      for (auto c : m.Cells()) {
-        Vect x = m.GetCenter(c);
-        Scal sy = std::cos(2. * pi * x[1] / force_wly);
-        fc_force_[c][0] += s * sy * force_mag * fc_vf0[c];
-      }
-    }
   }
 
   if (sem.Nested("smooth")) {
@@ -2230,7 +1719,6 @@ void Hydro<M>::Dump(bool force) {
   if (sem("dumpstat")) {
     if (m.IsRoot()) {
       if (st_.step % var.Int("stat_step_every", 1) == 0 || force) {
-        ost_->Write(0., "");
         stat_->WriteValues(fstat_);
       }
     }
@@ -2348,9 +1836,6 @@ void Hydro<M>::Run() {
   if (sem.Nested("mixture")) {
     CalcMixture(as_->GetField());
   }
-  if (sem.Nested("stat")) {
-    CalcStat();
-  }
   if (sem.Nested("fs-start")) {
     fs_->StartStep();
   }
@@ -2377,7 +1862,10 @@ void Hydro<M>::Run() {
       StepParticles();
     }
   }
-  if (sem.Nested("stat2")) {
+  if (sem.Nested("stat")) {
+    CalcStat();
+  }
+  if (sem.Nested("stat")) {
     stat_->Update();
   }
   if (sem.Nested()) {
