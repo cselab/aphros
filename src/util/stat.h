@@ -368,7 +368,7 @@ class Stat {
             name, //
             Entry(
                 name, desc, op,
-                [func, &meb = meb]() {
+                [func, &meb]() {
                   T sum(0);
                   for (auto c : meb.Cells()) {
                     sum += func(c, meb);
@@ -382,7 +382,7 @@ class Stat {
             name, //
             Entry(
                 name, desc, op,
-                [func, &meb = meb]() {
+                [func, &meb]() {
                   T max(-std::numeric_limits<Scal>::max());
                   for (auto c : meb.Cells()) {
                     max = std::max(max, func(c, meb));
@@ -396,7 +396,7 @@ class Stat {
             name, //
             Entry(
                 name, desc, op,
-                [func, &meb = meb]() {
+                [func, &meb]() {
                   T min(std::numeric_limits<Scal>::max());
                   for (auto c : meb.Cells()) {
                     min = std::min(min, func(c, meb));

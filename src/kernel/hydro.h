@@ -825,18 +825,18 @@ void Hydro<M>::InitStat() {
   if (var.Int["statvel"]) {
     const Vect vel0(var.Vect["vel"]);
     stat.AddSumHidden(
-        "dv*dv*vol", "", [&vel0 = vel0, &vel](IdxCell c, const M& m) {
+        "dv*dv*vol", "", [&vel0, &vel](IdxCell c, const M& m) {
           auto dv = vel[c] - vel0;
           return dv * dv * m.GetVolume(c);
         });
     stat.AddSumHidden(
-        "dv*dv*vol2", "", [&vel0 = vel0, &vel, &vf](IdxCell c, const M& m) {
+        "dv*dv*vol2", "", [&vel0, &vel, &vf](IdxCell c, const M& m) {
           auto dv = vel[c] - vel0;
           return dv * dv * vf[c] * m.GetVolume(c);
         });
     stat.AddMax(
         "dvel_max", "maximum velocity difference with `vel`",
-        [&vel0 = vel0, &vel](IdxCell c, const M&) {
+        [&vel0, &vel](IdxCell c, const M&) {
           auto dv = vel[c] - vel0;
           return dv.abs();
         });
@@ -848,7 +848,7 @@ void Hydro<M>::InitStat() {
         });
     stat.AddMax(
         "dvel2_max", "maximum phase 2 velocity difference with `vel`",
-        [&vel0 = vel0, &vel, &vf](IdxCell c, const M&) {
+        [&vel0, &vel, &vf](IdxCell c, const M&) {
           auto dv = (vel[c] - vel0) * vf[c];
           return dv.abs();
         });
@@ -863,19 +863,21 @@ void Hydro<M>::InitStat() {
     auto add_vofm = [this, &stat](auto as) {
       for (auto l : layers) {
         auto sl = std::to_string(l);
+        const auto& vf = *as->GetFieldM()[l];
         stat.AddSum(
             "vofm_cells_vf" + sl, "cells with positive volume fraction", //
-            [&vf = *as->GetFieldM()[l]](IdxCell c, const M&) -> Scal {
+            [&vf](IdxCell c, const M&) -> Scal {
               return vf[c] > 0 ? 1 : 0;
             });
+        const auto& cl  = *as->GetColor()[l];
         stat.AddSum(
             "vofm_cells_cl" + sl, "cells with defined color", //
-            [&cl = *as->GetColor()[l]](IdxCell c, const M&) -> Scal {
+            [&cl](IdxCell c, const M&) -> Scal {
               return cl[c] > 0 ? 1 : 0;
             });
         stat.AddSum(
             "vofm_vol" + sl, "integral of volume fraction", //
-            [&vf = *as->GetFieldM()[l]](IdxCell c, const M& m) {
+            [&vf](IdxCell c, const M& m) {
               return vf[c] * m.GetVolume(c);
             });
         auto slp = std::to_string(l + 1);
