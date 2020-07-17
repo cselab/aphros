@@ -255,29 +255,29 @@ class Geometry:
     def __Append(self, line):
         self.lines.append(line)
 
-    def __Prefix(self, kwargs):
+    def __Prefix(self, intersect=False, invert=False):
         s = ''
-        if kwargs.get("intersect", False):
+        if intersect:
             s += '&'
-        if kwargs.get("invert", False):
+        if invert:
             s += '-'
         return s
 
     def Box(self, center, halfsize, rotation_z=0, **kwargs):
-        s = self.__Prefix(kwargs)
+        s = self.__Prefix(**kwargs)
         s += "box {:}   {:}   {:}".format(VectToStr(center),
                                           VectToStr(halfsize), rotation_z)
         self.__Append(s)
         return self
 
     def Sphere(self, center, radii, **kwargs):
-        s = self.__Prefix(kwargs)
+        s = self.__Prefix(**kwargs)
         s += "sphere {:}   {:}".format(VectToStr(center), VectToStr(radii))
         self.__Append(s)
         return self
 
     def Cylinder(self, center, axis, radius, axisrange, **kwargs):
-        s = self.__Prefix(kwargs)
+        s = self.__Prefix(**kwargs)
         s += "cylinder {:}   {:}   {:}   {:}".format(VectToStr(center),
                                                      VectToStr(axis), radius,
                                                      VectToStr(axisrange))
