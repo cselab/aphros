@@ -318,11 +318,11 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Scal bgt_ = -1.; // bubgen last time
 
   struct StatHydro {
-    Scal dt; // dt fluid
-    Scal dta; // dt advection
-    Scal t;
-    size_t step;
-    size_t iter;
+    Scal dt = 0; // dt fluid
+    Scal dta = 0; // dt advection
+    Scal t = 0;
+    size_t step = 0;
+    size_t iter = 0;
   };
   StatHydro st_;
   std::ofstream fstat_;
@@ -953,13 +953,19 @@ void Hydro<M>::InitStat() {
   }
 
   stat_->SortNames();
+
+  auto blacklist = GetWords(var.String("stat_blacklist", ""));
+  for (auto name : stat_->GetNames()) {
+    stat_->SetEnabled(name, !blacklist.count(name));
+  }
+
   if (m.IsRoot()) {
     fstat_.open("stat.dat");
     fstat_.precision(16);
     stat_->WriteHeader(fstat_);
 
     std::ofstream fsum("stat_summary");
-    stat_->WriteSummary(fsum);
+    stat_->WriteSummary(fsum, true);
   }
 }
 
@@ -1210,6 +1216,7 @@ void Hydro<M>::Init() {
     InitParticles();
 
     st_.iter = 0;
+    st_.step = 0;
 
     if (m.IsLead()) {
       this->var_mutable.Int.Set("iter", st_.iter);
@@ -1461,7 +1468,7 @@ void Hydro<M>::DumpFields() {
   } * ctx(sem);
   if (sem("dump")) {
     if (m.IsRoot()) {
-      dumper_.Report();
+      dumper_.Report(std::cout);
     }
 
     auto dl = GetWords(var.String["dumplist"]);

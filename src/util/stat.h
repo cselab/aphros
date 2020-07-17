@@ -85,12 +85,13 @@ class Stat {
   struct Entry {
     std::string name;
     std::string desc;
-    Reduction op;
-    Type type;
+    Reduction op = Reduction::none;
+    Type type = Type::scal;
     std::function<Scal()> func;
     std::function<Vect()> func_vect;
-    bool hidden;
-    bool derived; // computed from other entires, postponed to second pass
+    bool enabled = true;
+    bool hidden = false;
+    bool derived = false; // computed from other entires, postponed to second pass
     Entry(
         std::string name, std::string desc, Reduction op,
         std::function<Scal()> func, bool hidden, bool derived)
@@ -99,6 +100,7 @@ class Stat {
         , op(op)
         , type(Type::scal)
         , func(func)
+        , enabled(true)
         , hidden(hidden)
         , derived(derived) {}
     Entry(
@@ -109,6 +111,7 @@ class Stat {
         , op(op)
         , type(Type::vect)
         , func_vect(func_vect)
+        , enabled(true)
         , hidden(hidden)
         , derived(derived) {}
   };
@@ -202,20 +205,22 @@ class Stat {
     if (sem("reduce")) {
       for (auto& p : entries_) {
         auto& e = p.second;
-        if (!e.derived) {
+        if (e.enabled && !e.derived) {
           switch (e.type) {
             case Type::scal:
-              values_[e.name] = p.second.func();
+              fassert(e.func);
+              values_[e.name] = e.func();
               break;
             case Type::vect:
-              values_vect_[e.name] = p.second.func_vect();
+              fassert(e.func_vect);
+              values_vect_[e.name] = e.func_vect();
               break;
           }
         }
       }
       for (auto& p : values_) {
         auto& e = entries_.at(p.first);
-        if (!e.derived) {
+        if (e.enabled && !e.derived) {
           switch (e.op) {
             case Reduction::none:
               // nop
@@ -234,7 +239,7 @@ class Stat {
       }
       for (auto& p : values_vect_) {
         auto& e = entries_.at(p.first);
-        if (!e.derived) {
+        if (e.enabled && !e.derived) {
           for (size_t d = 0; d < dim; ++d) {
             switch (e.op) {
               case Reduction::none:
@@ -257,7 +262,7 @@ class Stat {
     if (sem("derive")) {
       for (auto& p : entries_) {
         auto& e = p.second;
-        if (e.derived) {
+        if (e.enabled && e.derived) {
           switch (e.type) {
             case Type::scal:
               if (!values_.count(e.name)) {
@@ -280,7 +285,7 @@ class Stat {
     bool first = true;
     for (auto n : names_) {
       auto& e = entries_.at(n);
-      if (with_hidden || !e.hidden) {
+      if (e.enabled && (with_hidden || !e.hidden)) {
         first || out << ' ', first = false;
         switch (e.type) {
           case Type::scal:
@@ -298,7 +303,7 @@ class Stat {
     bool first = true;
     for (auto n : names_) {
       auto& e = entries_.at(n);
-      if (with_hidden || !e.hidden) {
+      if (e.enabled && (with_hidden || !e.hidden)) {
         first || out << ' ', first = false;
         switch (e.type) {
           case Type::scal:
@@ -337,6 +342,12 @@ class Stat {
   }
   bool IsHidden(std::string name) const {
     return entries_[name].hidden;
+  }
+  bool IsEnabled(std::string name) const {
+    return entries_[name].enabled;
+  }
+  bool SetEnabled(std::string name, bool enabled) {
+    return entries_.at(name).enabled = enabled;
   }
   std::string GetDesc(std::string name) const {
     return entries_[name].desc;

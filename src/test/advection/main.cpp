@@ -204,7 +204,7 @@ void Advection<M>::Dump(Sem& sem) {
       }
 
       if (IsRoot()) {
-        dmf_.Report();
+        dmf_.Report(std::cout);
       }
     }
   }

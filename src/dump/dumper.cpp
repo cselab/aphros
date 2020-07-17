@@ -3,18 +3,19 @@
 
 #include <cassert>
 #include <iomanip>
-#include <iostream>
 #include <limits>
 #include <sstream>
 #include <string>
 
 #include "dumper.h"
 
+Dumper::Dumper(const Vars& var, std::string pre) : var(var), prefix_(pre) {}
+
 bool Dumper::Try(double t, double dt) {
-  if (pt_ == t) {
+  if (time_ == t) {
     return true;
   }
-  if (const double* t0 = var.Double.Find(pre_ + "t0")) {
+  if (const double* t0 = var.Double.Find(prefix_ + "t0")) {
     if (t < *t0 - dt * 0.5) {
       return false;
     }
@@ -23,35 +24,35 @@ bool Dumper::Try(double t, double dt) {
   // requirements:
   // * interval between dumps is at least dumpdt + dt
   // * dumpt % dtumpdt <= dt * 0.5
-  auto pdt = var.Double[pre_ + "dt"]; // dum[p] [d]t
+  auto dumpdt = var.Double[prefix_ + "dt"]; // dum[p] [d]t
 
   // next target time
-  if (pdt > 0.) {
-    ptt_ = int(std::max<double>(pt_ + pdt, 0.) / pdt + 0.5) * pdt;
+  if (dumpdt > 0.) {
+    target_ = int(std::max<double>(time_ + dumpdt, 0.) / dumpdt + 0.5) * dumpdt;
   } else {
-    ptt_ = t;
+    target_ = t;
   }
 
-  if (var.Int["output"] && t >= ptt_ - dt * 0.5 &&
-      pn_ < var.Int[pre_ + "max"]) {
-    pt_ = t;
-    ++pn_;
+  if (var.Int["output"] && t >= target_ - dt * 0.5 &&
+      frame_ < var.Int[prefix_ + "max"]) {
+    time_ = t;
+    ++frame_;
     return true;
   }
   return false;
 }
 
-void Dumper::Report() {
-  std::cerr << "Dump "
-            << "n=" << pn_ << " t=" << pt_ << " target=" << ptt_ << std::endl;
+void Dumper::Report(std::ostream& out) {
+  out << "Dump "
+      << "n=" << frame_ << " t=" << time_ << " target=" << target_ << std::endl;
 }
 
-std::string GetDumpName(std::string fld, std::string ext, int t, int it) {
+std::string GetDumpName(std::string fld, std::string ext, int t, int iter) {
   std::stringstream s;
   s << fld;
   s << "_" << std::setfill('0') << std::setw(4) << t;
-  if (it != -1) {
-    s << "_" << std::setfill('0') << std::setw(4) << it;
+  if (iter != -1) {
+    s << "_" << std::setfill('0') << std::setw(4) << iter;
   }
   s << ext;
   return s.str();
