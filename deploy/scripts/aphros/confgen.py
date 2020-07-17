@@ -321,8 +321,8 @@ class BoundaryConditions:
         s = "slipwall"
         self.__Append(s, geom)
 
-    def Inlet(self, geom, velocity):
-        s = "inlet {:}".format(VectToStr(velocity))
+    def Inlet(self, geom, velocity, extra=""):
+        s = "inlet {:}{}".format(VectToStr(velocity), extra)
         self.__Append(s, geom)
 
     def InletFlux(self, geom, velocity, index):
