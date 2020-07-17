@@ -558,9 +558,9 @@ void InitVf(FieldCell<typename M::Scal>& fcu, const Vars& var, M& m) {
     if (sem("list-bcast")) {
       if (m.IsRoot()) {
         std::stringstream path(var.String["list_path"]);
-        std::string filename;
-        path >> filename;
-        if (filename == "inline") {
+        std::string fname;
+        path >> fname;
+        if (fname == "inline") {
           std::cout
               << "InitVf: Reading inline list of primitives from list_path"
               << std::endl;
@@ -568,12 +568,12 @@ void InitVf(FieldCell<typename M::Scal>& fcu, const Vars& var, M& m) {
               std::istreambuf_iterator<char>(path),
               std::istreambuf_iterator<char>());
         } else {
-          std::ifstream fin(filename);
-          std::cout << "InitVf: Open list of primitives '" << filename << "'"
+          std::ifstream fin(fname);
+          std::cout << "InitVf: Open list of primitives '" << fname << "'"
                     << std::endl;
           if (!fin.good()) {
             throw std::runtime_error(
-                FILELINE + ": Can't open list of primitives");
+                FILELINE + ": Can't open list of primitives + '" + fname + "'");
           }
           ctx->buf = std::vector<char>(
               std::istreambuf_iterator<char>(fin),
