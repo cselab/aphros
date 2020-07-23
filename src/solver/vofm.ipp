@@ -777,6 +777,10 @@ struct Vofm<EB_>::Imp {
       // --> reflected fca [a], fcn [a]
     }
   }
+  static std::string GetFieldPath(
+      std::string dirpath, std::string field, size_t layer) {
+    return dirpath + "/" + field + "_" + std::to_string(layer) + ".h5";
+  }
   void SaveState(std::string dirpath) const {
     auto sem = m.GetSem();
     if (sem()) {
@@ -786,7 +790,7 @@ struct Vofm<EB_>::Imp {
     }
     for (auto l : layers) {
       auto fieldpath = [dirpath, l](std::string field) {
-        return dirpath + "/" + field + "_" + std::to_string(l) + ".h5";
+        return GetFieldPath(dirpath, field, l);
       };
       if (sem.Nested()) {
         Hdf<M>::Write(fcu_.time_curr[l], fieldpath("vf"), m);
@@ -797,7 +801,27 @@ struct Vofm<EB_>::Imp {
     }
   }
   void LoadState(std::string dirpath) {
-    fassert(util::IsDir(dirpath), "Not a directory '" + dirpath + "'");
+    auto sem = m.GetSem();
+    if (sem()) {
+      if (m.IsRoot()) {
+        fassert(util::IsDir(dirpath), "Not a directory '" + dirpath + "'");
+      }
+    }
+    for (auto l : layers) {
+      auto fieldpath = [dirpath, l](std::string field) {
+        return GetFieldPath(dirpath, field, l);
+      };
+      if (sem.Nested()) {
+        Hdf<M>::Read(fcu_.time_curr[l], fieldpath("vf"), m);
+      }
+      if (sem.Nested()) {
+        Hdf<M>::Read(fccl_[l], fieldpath("cl"), m);
+      }
+      if (sem()) {
+        m.Comm(&fcu_.time_curr[l]);
+        m.Comm(&fccl_[l]);
+      }
+    }
   }
 
   Owner* owner_;

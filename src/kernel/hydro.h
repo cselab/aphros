@@ -1235,16 +1235,14 @@ void Hydro<M>::Init() {
       m.flags.nan_faces_value = var.Double["fill_halo_nan_value"];
     }
 
-    if (m.IsLead()) {
-      events_ = std::unique_ptr<Events>(
-          new Events(this->var_mutable, m.IsRoot(), m.IsLead()));
-      events_->AddHandler(
-          "vf_save_state",
-          [&path = vf_save_state_path_](std::string arg) { //
-            path = arg;
-          });
-      events_->Parse();
-    }
+    events_ = std::unique_ptr<Events>(
+        new Events(this->var_mutable, m.IsRoot(), m.IsLead()));
+    events_->AddHandler(
+        "vf_save_state",
+        [&path = vf_save_state_path_](std::string arg) { //
+          path = arg;
+        });
+    events_->Parse();
   }
   if (sem.Nested("vofm-load")) {
     if (var.Int["init_vf_load_state"]) {
@@ -1468,13 +1466,10 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     }
   }
   // FIXME move, but keep inside nested call
-  if (sem.Nested("vf_save_state") && !vf_save_state_path_.empty()) {
+  if (!vf_save_state_path_.empty() && sem.Nested("vf_save_state")) {
     if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
       as->SaveState(vf_save_state_path_);
     }
-  }
-  if (sem()) {
-    vf_save_state_path_ = "";
   }
 }
 
@@ -1813,6 +1808,7 @@ void Hydro<M>::Run() {
 
   if (sem("events")) {
     if (events_) {
+      vf_save_state_path_ = "";
       events_->Execute(st_.t);
     }
   }

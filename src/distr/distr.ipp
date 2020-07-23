@@ -111,10 +111,7 @@ void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
   // Check size is the same for all kernels
   for (auto& b : bb) {
     const auto& v = mk.at(b)->GetMesh().GetReduceToLead(); // reduce requests
-    if (v.size() != vfirst.size()) {
-      throw std::runtime_error(
-          FILELINE + "ReduceToLead: v.size() != vf.size()");
-    }
+    fassert_equal(v.size(), vfirst.size());
   }
 
   auto append = [&bb,this](auto* derived, auto& buf, size_t i) {
