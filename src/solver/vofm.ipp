@@ -13,6 +13,7 @@
 #include "approx.h"
 #include "approx_eb.h"
 #include "debug/isnan.h"
+#include "dump/hdf.h"
 #include "geom/block.h"
 #include "multi.h"
 #include "normal.h"
@@ -777,7 +778,23 @@ struct Vofm<EB_>::Imp {
     }
   }
   void SaveState(std::string dirpath) const {
-    util::Makedir(dirpath);
+    auto sem = m.GetSem();
+    if (sem()) {
+      if (m.IsRoot()) {
+        util::Makedir(dirpath);
+      }
+    }
+    for (auto l : layers) {
+      auto fieldpath = [dirpath, l](std::string field) {
+        return dirpath + "/" + field + "_" + std::to_string(l) + ".h5";
+      };
+      if (sem.Nested()) {
+        Hdf<M>::Write(fcu_.time_curr[l], fieldpath("vf"), m);
+      }
+      if (sem.Nested()) {
+        Hdf<M>::Write(fccl_[l], fieldpath("cl"), m);
+      }
+    }
   }
   void LoadState(std::string dirpath) {
     fassert(util::IsDir(dirpath), "Not a directory '" + dirpath + "'");

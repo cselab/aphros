@@ -16,7 +16,7 @@ target_link_libraries(${T} approx embed vars inside)
 
 set(T "vofm")
 add_library(${T} vofm.cpp)
-target_link_libraries(${T} solver normal utilvof approx_eb)
+target_link_libraries(${T} solver normal utilvof approx_eb dump_hdf)
 
 set(T "vof")
 add_library(${T} vof.cpp)

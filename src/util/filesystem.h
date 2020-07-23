@@ -1,6 +1,8 @@
 // Created by Petr Karnakov on 23.07.2020
 // Copyright 2020 ETH Zurich
 
+#pragma once
+
 #include <string>
 
 namespace util {
