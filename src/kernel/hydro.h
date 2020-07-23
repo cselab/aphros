@@ -57,6 +57,7 @@
 #include "solver/vofm.h"
 #include "util/convdiff.h"
 #include "util/events.h"
+#include "util/filesystem.h"
 #include "util/hydro.h"
 #include "util/metrics.h"
 #include "util/posthook.h"
@@ -337,6 +338,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   std::mt19937 randgen_;
   Scal tracer_dt_;
   Scal particles_dt_;
+  std::string vf_save_state_path_;
 };
 
 template <class M>
@@ -1236,7 +1238,19 @@ void Hydro<M>::Init() {
     if (m.IsLead()) {
       events_ = std::unique_ptr<Events>(
           new Events(this->var_mutable, m.IsRoot(), m.IsLead()));
+      events_->AddHandler(
+          "vf_save_state",
+          [&path = vf_save_state_path_](std::string arg) { //
+            path = arg;
+          });
       events_->Parse();
+    }
+  }
+  if (sem.Nested("vofm-load")) {
+    if (var.Int["init_vf_load_state"]) {
+      if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
+        as->LoadState(var.String["init_vf_state_dir"]);
+      }
     }
   }
   if (var.Int["dumpbc"]) {
@@ -1452,6 +1466,15 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
+  }
+  // FIXME move, but keep inside nested call
+  if (sem.Nested("vf_save_state") && !vf_save_state_path_.empty()) {
+    if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
+      as->SaveState(vf_save_state_path_);
+    }
+  }
+  if (sem()) {
+    vf_save_state_path_ = "";
   }
 }
 
@@ -1790,7 +1813,7 @@ void Hydro<M>::Run() {
 
   if (sem("events")) {
     if (events_) {
-      events_->Exec(st_.t);
+      events_->Execute(st_.t);
     }
   }
   if (sem("loop-check")) {

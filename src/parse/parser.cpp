@@ -1,22 +1,16 @@
 // Created by Petr Karnakov on 07.08.2018
 // Copyright 2018 ETH Zurich
 
-#include <limits.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <cassert>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
 
 #include "parser.h"
+#include "util/filesystem.h"
 #include "util/logger.h"
 #include "vars.h"
-
-std::string GetRealpath(std::string path) {
-  char buf[PATH_MAX + 1];
-  char* ptr = realpath(path.c_str(), buf);
-  return std::string(ptr);
-}
 
 std::string Strip(std::string s) {
   size_t b = 0;
@@ -171,7 +165,7 @@ void Parser::Imp::Cmd(std::string s, std::string filename, int line) {
   } catch (const std::runtime_error& e) {
     std::string msg = e.what();
     if (filename != "" && line >= 0) {
-      const auto loc = GetRealpath(filename) + ':' + std::to_string(line);
+      const auto loc = util::GetRealpath(filename) + ':' + std::to_string(line);
       msg = loc + ": required from here\n" + msg;
     }
     throw std::runtime_error(msg);

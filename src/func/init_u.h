@@ -11,6 +11,7 @@
 #include <stdexcept>
 
 #include "debug/isnan.h"
+#include "dump/hdf.h"
 #include "geom/block.h"
 #include "geom/field.h"
 #include "geom/vect.h"
@@ -588,6 +589,10 @@ void InitVf(FieldCell<typename M::Scal>& fcu, const Vars& var, M& m) {
       std::copy(
           ctx->buf.begin(), ctx->buf.end(), std::ostream_iterator<char>(list));
       InitVfList(fcu, list, var.Int["list_ls"], var.Int["dim"], m);
+    }
+  } else if (v == "hdf") {
+    if (sem.Nested()) {
+      Hdf<M>::Read(fcu, var.String["init_vf_hdf_path"], m);
     }
   } else {
     if (sem("local")) {

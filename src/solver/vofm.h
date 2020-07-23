@@ -72,6 +72,10 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
   MIdx GetImage(size_t l, IdxCell c) const;
   void DumpInterface(std::string filename) const override;
   void DumpInterfaceMarch(std::string filename) const override;
+  // Saves current state to directory, created if needed.
+  void SaveState(std::string dirpath) const;
+  // Loads current state from directory.
+  void LoadState(std::string dirpath);
 
  private:
   struct Imp;

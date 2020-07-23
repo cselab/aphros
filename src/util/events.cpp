@@ -9,8 +9,28 @@
 #include "parse/parser.h"
 
 Events::Events(Vars& var, bool isroot, bool islead)
-    : var_(var), isroot_(isroot), islead_(islead) {}
+    : var_(var), isroot_(isroot), islead_(islead) {
+  AddHandler("echo", [isroot = isroot_](std::string arg) {
+    if (isroot) {
+      std::cout << arg << std::endl;
+    }
+  });
+  AddHandler("set", [this](std::string arg) {
+    Parser p(var_);
+    if (islead_) {
+      p.Run("set " + arg);
+    }
+  });
+}
 
+void Events::AddHandler(std::string cmd, Handler h) {
+  handlers_.emplace(cmd, h);
+}
+
+// Parses events in var.String selecting variables by names:
+// evN <time> <cmd> <arg>
+// Example:
+// ev0 0.1 set double prelax 1
 void Events::Parse() {
   // Check at least first nmax indices and all contiguous
   int n = 0;
@@ -34,7 +54,7 @@ void Events::Parse() {
       std::getline(b, s);
       e.arg = c + s;
 
-      ev_.emplace(k, e);
+      events_.emplace(k, e);
     } else if (n > nmax) {
       break;
     }
@@ -43,7 +63,7 @@ void Events::Parse() {
 
   if (isroot_) {
     std::cout << "Found events: \n=====" << std::endl;
-    for (auto p : ev_) {
+    for (auto p : events_) {
       Event& e = p.second;
       std::cout << p.first << " " << e.t << " " << e.cmd << " " << e.arg
                 << std::endl;
@@ -52,37 +72,28 @@ void Events::Parse() {
   }
 }
 
-// events: evN <time> <command>
-// comamnds: set, print, setdt, setdta, vf_init
+// Executes events in events_
 // set <type> <key> <value>
-// echo string
-// setdt <value>
-// setdta <value>
-// vf_init zero|list
-void Events::Exec(double t) {
-  for (auto it = ev_.begin(); it != ev_.end();) {
-    auto& e = it->second;
-    std::string c = e.cmd;
-    std::string a = e.arg;
+// echo <string>
+void Events::Execute(double t) {
+  for (auto it = events_.begin(); it != events_.end();) {
+    auto& event = it->second;
+    const std::string cmd = event.cmd;
+    const std::string arg = event.arg;
 
-    if (t >= e.t) {
+    if (t >= event.t) {
       if (isroot_) {
-        std::cout << std::fixed << std::setprecision(8) << "Event at t=" << e.t
-                  << ": " << c << " " << a << std::endl;
+        std::cout << std::fixed << std::setprecision(8)
+                  << "Event at t=" << event.t << ": " << cmd << " " << arg
+                  << std::endl;
       }
-      if (c == "echo") {
-        if (isroot_) {
-          std::cout << a << std::endl;
-        }
-      } else if (c == "set") {
-        Parser p(var_);
-        if (islead_) {
-          p.Run(c + " " + a);
-        }
+      auto ith = handlers_.find(cmd);
+      if (ith != handlers_.end()) {
+        ith->second(arg);
       } else {
-        throw std::runtime_error("ExecEvents(): Unknown command '" + c + "'");
+        throw std::runtime_error("ExecEvents(): Unknown command '" + cmd + "'");
       }
-      it = ev_.erase(it);
+      it = events_.erase(it);
     } else {
       ++it;
     }

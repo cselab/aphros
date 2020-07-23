@@ -164,6 +164,10 @@ CreateInitCl(const Vars& var, bool verb) {
         fc[c] = qfccl[qc];
       }
     };
+  } else if (v == "hdf") {
+    return [](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {
+      fc.Reinit(m, 0);
+    };
   } else if (v == "zero") {
     return [](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {
       fc.Reinit(m, kClNone);

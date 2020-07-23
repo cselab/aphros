@@ -27,6 +27,9 @@ add_library(${T} timer.cpp)
 add_library(gitgen gitgen.cpp)
 add_dependencies(gitgen gitrev)
 
+set(T "filesystem")
+add_library(${T} filesystem.cpp)
+
 set(T "git")
 add_library(${T} git.cpp)
 target_link_libraries(${T} gitgen)

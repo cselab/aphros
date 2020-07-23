@@ -19,6 +19,7 @@
 #include "reconst.h"
 #include "trackerm.h"
 #include "util/convdiff.h"
+#include "util/filesystem.h"
 #include "util/vof.h"
 #include "vofm.h"
 
@@ -775,6 +776,12 @@ struct Vofm<EB_>::Imp {
       // --> reflected fca [a], fcn [a]
     }
   }
+  void SaveState(std::string dirpath) const {
+    util::Makedir(dirpath);
+  }
+  void LoadState(std::string dirpath) {
+    fassert(util::IsDir(dirpath), "Not a directory '" + dirpath + "'");
+  }
 
   Owner* owner_;
   Par par;
@@ -923,6 +930,16 @@ auto Vofm<EB_>::GetPlic() const -> Plic {
 template <class EB_>
 size_t Vofm<EB_>::GetNumLayers() const {
   return imp->layers.size();
+}
+
+template <class EB_>
+void Vofm<EB_>::SaveState(std::string dirpath) const {
+  return imp->SaveState(dirpath);
+}
+
+template <class EB_>
+void Vofm<EB_>::LoadState(std::string dirpath) {
+  return imp->LoadState(dirpath);
 }
 
 template <class EB_>
