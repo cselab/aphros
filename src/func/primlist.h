@@ -123,11 +123,10 @@ struct UPrimList {
       dx = Vect(
           dx[0] * rotz_cos - dx[1] * rotz_sin,
           dx[0] * rotz_sin + dx[1] * rotz_cos, dx[2]);
-      dx /= r;
       if (edim == 2) {
-        dx[2] = 0.;
+        dx[2] = 0;
       }
-      return (1 - dx.abs().max()) * r.min();
+      return (r - dx.abs()).min();
     };
     p.name = "box";
     return true;
