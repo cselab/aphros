@@ -41,7 +41,7 @@ struct Proj<EB_>::Imp {
   using UEB = UEmbed<M>;
 
   Imp(Owner* owner, const EB& eb0, const FieldCell<Vect>& fcvel,
-      const MapEmbed<BCondFluid<Vect>>& mebc,
+      MapEmbed<BCondFluid<Vect>>& mebc,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par)
       : owner_(owner)
       , par(par)
@@ -442,6 +442,10 @@ struct Proj<EB_>::Imp {
       UFluid<M>::UpdateInletFlux(
           m, eb, fcvel_.iter_curr, mebc_, par.inletflux_numid, me_vel_);
     }
+    if (sem.Nested("bc-inletflux")) {
+      UFluid<M>::UpdateInletPressure(
+          m, eb, fcp_.iter_curr, mebc_, par.inletpressure_factor);
+    }
     if (sem.Nested("bc-outlet")) {
       UFluid<M>::template UpdateOutletVelocity(
           m, eb, fcvel_.iter_curr, mebc_, *owner_->fcsv_, par.outlet_relax,
@@ -641,7 +645,7 @@ struct Proj<EB_>::Imp {
   const GRange<size_t> edim_range_; // effective dimension range
 
   // Face conditions
-  const MapEmbed<BCondFluid<Vect>>& mebc_;
+  MapEmbed<BCondFluid<Vect>>& mebc_;
   MapEmbed<BCond<Vect>> me_vel_;
   MapEmbed<BCond<Scal>> me_pressure_;
   MapEmbed<BCond<Scal>> me_pressure_flux_; // conditions pressure in GetFlux
@@ -673,7 +677,7 @@ struct Proj<EB_>::Imp {
 template <class EB_>
 Proj<EB_>::Proj(
     M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-    const MapEmbed<BCondFluid<Vect>>& mebc,
+    MapEmbed<BCondFluid<Vect>>& mebc,
     const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
     const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
     const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* febp,

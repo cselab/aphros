@@ -285,6 +285,7 @@ enum class BCondFluidType {
   slipwall, // slip wall [velocity]
   inlet, // inlet [velocity]
   inletflux, // inlet only constraining the total flux [velocity]
+  inletpressure, // inlet with given pressure [pressure]
   outlet, // outlet [-]
   symm, // symmetry [-]
 };
@@ -292,8 +293,10 @@ enum class BCondFluidType {
 // Boundary condition for fluid on face or embedded boundary.
 template <class Vect>
 struct BCondFluid {
+  using Scal = typename Vect::value_type;
   BCondFluidType type = BCondFluidType::wall;
   Vect velocity = Vect(0);
+  Scal pressure = 0;
   size_t nci = 0; // neighbor cell id on faces and 0 on embedded boundaries
   size_t inletflux_id = 0;
 };
@@ -353,6 +356,9 @@ MapCondFaceFluid GetCondFluid(
         break;
       case BCondFluidType::inlet:
         cond.Set<InletFixed<M>>(bc.velocity, nci);
+        break;
+      case BCondFluidType::inletpressure:
+        cond.Set<InletFlux<M>>(bc.velocity, 0, nci);
         break;
       case BCondFluidType::inletflux:
         cond.Set<InletFlux<M>>(bc.velocity, 0, nci);
@@ -417,6 +423,7 @@ MapEmbed<BCond<typename M::Vect>> GetVelCond(
       case BCondFluidType::wall:
       case BCondFluidType::inlet:
       case BCondFluidType::inletflux:
+      case BCondFluidType::inletpressure:
       case BCondFluidType::outlet:
         bc.type = BCondType::dirichlet;
         bc.val = bcf.velocity;

@@ -65,10 +65,11 @@ class UFluid {
           case BCondFluidType::slipwall:
           case BCondFluidType::inlet:
           case BCondFluidType::inletflux:
+          case BCondFluidType::inletpressure:
           case BCondFluidType::symm: {
             const Scal q = (nci == 0 ? -1 : 1);
             if (m.IsInner(c)) {
-              fluxin += bc.velocity.dot(eb.GetSurface(cf)) * q;
+              fluxin += mebc_vel.at(cf).val.dot(eb.GetSurface(cf)) * q;
             }
             break;
           }
@@ -126,7 +127,6 @@ class UFluid {
       M & m, const EB& eb, const FieldCell<Vect>& fcvel,
       const MapEmbed<BCondFluid<Vect>>& mebc, size_t max_id,
       MapEmbed<BCond<Vect>>& mebc_vel) {
-    using namespace fluid_condition;
     auto sem = m.GetSem("inletflux");
 
     struct {
@@ -181,6 +181,69 @@ class UFluid {
           }
         });
       }
+    }
+  }
+
+  // fcvel: velocity
+  // fcp: pressure
+  // mfc: fluid face conditions
+  // factor: correction factor, velocity over pressure
+  template <class EB>
+  static void UpdateInletPressure(
+      M& m, const EB& eb, const FieldCell<Scal>& fcp,
+      MapEmbed<BCondFluid<Vect>>& mebc, Scal factor) {
+    auto sem = m.GetSem("inletpressure");
+
+    struct {
+      Scal inlet_pressure = 0;
+      Scal inlet_pressure_target = 0;
+      Scal inlet_area = 0;
+      Scal outlet_pressure = 0;
+      Scal outlet_area = 0;
+    } * ctx(sem);
+
+    if (sem("local")) {
+      auto& t = *ctx;
+      mebc.LoopBCond(eb, [&](auto cf, IdxCell c, auto& bc) {
+        if (bc.type == BCondFluidType::inletpressure) {
+          if (m.IsInner(c)) {
+            const auto area = eb.GetArea(cf);
+            t.inlet_pressure += fcp[c] * area;
+            t.inlet_pressure_target += bc.pressure * area;
+            t.inlet_area += area;
+          }
+        } else if (bc.type == BCondFluidType::outlet) {
+          if (m.IsInner(c)) {
+            const auto area = eb.GetArea(cf);
+            t.outlet_pressure += fcp[c] * area;
+            t.outlet_area += area;
+          }
+        }
+      });
+
+      m.Reduce(&t.inlet_area, "sum");
+      m.Reduce(&t.inlet_pressure, "sum");
+      m.Reduce(&t.inlet_pressure_target, "sum");
+      m.Reduce(&t.outlet_area, "sum");
+      m.Reduce(&t.outlet_pressure, "sum");
+    }
+
+    if (sem("corr")) {
+      auto& t = *ctx;
+      t.inlet_pressure /= t.inlet_area;
+      t.inlet_pressure_target /= t.inlet_area;
+      t.outlet_pressure /= t.outlet_area;
+      const Scal p_target = t.inlet_pressure_target;
+      const Scal p_current = t.inlet_pressure - t.outlet_pressure;
+      // additive correction of velocity
+      const Scal velcor = (p_target - p_current) * factor;
+      mebc.LoopBCond(eb, [&](auto cf, IdxCell, auto& bc) {
+        if (bc.type == BCondFluidType::inletpressure) {
+          const Scal q = (bc.nci == 0 ? -1. : 1.);
+          const Vect n = eb.GetNormal(cf);
+          mebc[cf].velocity += n * (velcor * q);
+        }
+      });
     }
   }
 };

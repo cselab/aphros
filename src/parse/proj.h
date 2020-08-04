@@ -35,6 +35,7 @@ struct ParsePar<Proj<M>> {
     }
     p.outlet_relax = var.Double["outlet_relax"];
     p.redistr_adv = var.Int["proj_redistr_adv"];
+    p.inletpressure_factor = var.Double["inletpressure_factor"];
     return p;
   }
 };

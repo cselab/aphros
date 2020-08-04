@@ -1020,6 +1020,7 @@ InitBc(const Vars& var, const MEB& eb) {
         break;
       case BCondFluidType::inlet:
       case BCondFluidType::inletflux:
+      case BCondFluidType::inletpressure:
         ca.halo = Halo::fill;
         ca.clear0 = 0;
         ca.clear1 = 1;

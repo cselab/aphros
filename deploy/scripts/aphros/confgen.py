@@ -329,6 +329,10 @@ class BoundaryConditions:
         s = "inletflux {:} {:}".format(VectToStr(velocity), index)
         self.__Append(s, geom)
 
+    def InletPressure(self, geom, pressure, extra=""):
+        s = "inletpressure {:}{}".format(pressure, extra)
+        self.__Append(s, geom)
+
     def Outlet(self, geom):
         s = "outlet"
         self.__Append(s, geom)

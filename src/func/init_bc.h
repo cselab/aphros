@@ -66,9 +66,11 @@ std::pair<bool, BCondFluid<Vect>> ParseBCondFluid(
     bc.type = BCondFluidType::inlet;
     arg >> bc.velocity;
   } else if (name == "inletflux") {
-    // inletflux <velocity> <id>
     bc.type = BCondFluidType::inletflux;
     arg >> bc.velocity >> bc.inletflux_id;
+  } else if (name == "inletpressure") {
+    bc.type = BCondFluidType::inletpressure;
+    arg >> bc.pressure;
   } else if (name == "outlet") {
     bc.type = BCondFluidType::outlet;
   } else if (name == "symm") {

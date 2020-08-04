@@ -574,7 +574,7 @@ void InitVf(FieldCell<typename M::Scal>& fcu, const Vars& var, M& m) {
                     << std::endl;
           if (!fin.good()) {
             throw std::runtime_error(
-                FILELINE + ": Can't open list of primitives + '" + fname + "'");
+                FILELINE + ": Can't open list of primitives '" + fname + "'");
           }
           ctx->buf = std::vector<char>(
               std::istreambuf_iterator<char>(fin),

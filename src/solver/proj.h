@@ -24,6 +24,7 @@ struct ProjPar {
   Conv conv = Conv::imp; // convection-diffusion solver
   bool bcg = false; // Bell-Colella-Glaz scheme
   Scal outlet_relax = 1;
+  Scal inletpressure_factor = 0; // correction factor on inlet with given pressure
   bool redistr_adv = false; // use RedistributeCutCellsAdvection()
                             // if true else RedistributeCutCells()
 };
@@ -56,7 +57,7 @@ class Proj final : public FluidSolver<typename EB_::M> {
   // par: parameters
   Proj(
       M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-      const MapEmbed<BCondFluid<Vect>>& mebc,
+      MapEmbed<BCondFluid<Vect>>& mebc,
       const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
       const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
       const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* ffbp,
