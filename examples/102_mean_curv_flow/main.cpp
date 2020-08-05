@@ -15,6 +15,7 @@
 #include <dump/vtk.h>
 #include <dump/dumper.h>
 #include <func/init.h>
+#include "func/init_bc.h"
 #include <solver/curv.h>
 #include <solver/reconst.h>
 #include <solver/vofm.h>
@@ -56,7 +57,7 @@ void CalcMeanCurvatureFlowFlux(
     const Multi<const FieldCell<Scal>*> fccl,
     const Multi<const FieldCell<Vect>*> fcn,
     const Multi<const FieldCell<Scal>*> fca,
-    const Multi<const FieldCell<Scal>*> fck, const MapCondFaceFluid& mff,
+    const Multi<const FieldCell<Scal>*> fck, const MapEmbed<BCondFluid<Vect>>& mff,
     bool divfree, Scal* voidpenal, M& m) {
   (void)fcn;
   (void)fca;
@@ -336,7 +337,7 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fcs; // volume source
     FieldEmbed<Scal> fev; // volume flux
     Multi<FieldCell<Scal>> fck; // curvature
-    MapCondFaceFluid mebc_fluid; // face conditions
+    MapEmbed<BCondFluid<Vect>> mebc_fluid; // face conditions
     MapEmbed<BCondAdvection<Scal>> mebc_adv; // face conditions
     GRange<size_t> layers;
     typename PartStrMeshM<M>::Par psm_par;
@@ -371,7 +372,11 @@ void Run(M& m, Vars& var) {
     m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
     m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
 
-    GetFluidFaceCond(var, m, ctx->mebc_fluid, ctx->mebc_adv);
+    {
+      auto p = InitBc(var, m);
+      ctx->mebc_fluid = std::get<0>(p);
+      ctx->mebc_adv = std::get<1>(p);
+    }
 
     typename Vofm<M>::Par p;
     p.sharpen = var.Int["sharpen"];
