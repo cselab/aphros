@@ -262,12 +262,14 @@ class UFluid {
       const auto fcg = UEB::AverageGradient(UEB::Gradient(fcu, mebc, eb), eb);
       const auto ffg = UEB::Interpolate(fcg, GetBCondZeroGrad<Vect>(mebc), eb);
       for (auto c : eb.Cells()) {
-        Vect s(0);
-        for (auto q : eb.Nci(c)) {
-          const IdxFace f = eb.GetFace(c, q);
-          s += ffg[f] * (ff_mu[f] * eb.GetOutwardSurface(c, q)[d]);
+        if (eb.IsRegular(c)) {
+          Vect s(0);
+          for (auto q : eb.Nci(c)) {
+            const IdxFace f = eb.GetFace(c, q);
+            s += ffg[f] * (ff_mu[f] * eb.GetOutwardSurface(c, q)[d]);
+          }
+          fc_force[c] += s / eb.GetVolume(c);
         }
-        fc_force[c] += s / eb.GetVolume(c);
       }
     }
   }
