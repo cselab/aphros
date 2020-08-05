@@ -8,7 +8,7 @@
 #include "distr/distrbasic.h"
 #include "dump/dump.h"
 #include "func/init_u.h"
-#include "solver/approx.h"
+#include "solver/approx_eb.h"
 #include "solver/solver.h"
 #include "solver/trackerm.h"
 #include "util/vof.h"
@@ -33,7 +33,7 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fccl;
     FieldCell<Scal> fcclm;
     UVof<M> uvof;
-    MapCondFace mfc;
+    MapEmbed<BCond<Scal>> mfc;
     std::unique_ptr<TRM> trm;
     FieldCell<Scal> fcim;
   } * ctx(sem);

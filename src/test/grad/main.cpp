@@ -10,6 +10,7 @@
 
 #include "geom/mesh.h"
 #include "solver/approx.h"
+#include "solver/approx_eb.h"
 #include "solver/cond.h"
 #include "solver/solver.h"
 
@@ -20,7 +21,7 @@ using IdxFace = IdxFace;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = generic::Vect<Scal, dim>;
-using Mesh = MeshStructured<Scal, dim>;
+using M = MeshStructured<Scal, dim>;
 
 bool Cmp(Scal a, Scal b) {
   return std::abs(a - b) < 1e-12;
@@ -45,10 +46,10 @@ typename V::value_type Prod(const V& v) {
 }
 
 template <class Idx, class M>
-typename Mesh::Scal DiffMax(
-    const GField<typename Mesh::Scal, Idx>& u,
-    const GField<typename Mesh::Scal, Idx>& v, const M& m) {
-  using Scal = typename Mesh::Scal;
+typename M::Scal DiffMax(
+    const GField<typename M::Scal, Idx>& u,
+    const GField<typename M::Scal, Idx>& v, const M& m) {
+  using Scal = typename M::Scal;
   Scal r = 0;
   for (auto i : m.template GetIn<Idx>()) {
     r = std::max(r, std::abs(u[i] - v[i]));
@@ -57,10 +58,10 @@ typename Mesh::Scal DiffMax(
 }
 
 template <class Idx, class M>
-typename Mesh::Scal DiffMax(
+typename M::Scal DiffMax(
     const GField<typename M::Vect, Idx>& u,
     const GField<typename M::Vect, Idx>& v, const M& m) {
-  using Scal = typename Mesh::Scal;
+  using Scal = typename M::Scal;
   Scal r = 0;
   for (auto i : m.template GetIn<Idx>()) {
     r = std::max(r, (u[i] - v[i]).norminf());
@@ -81,11 +82,11 @@ typename Mesh::Scal DiffMax(
   std::cerr << "\n" << #__VA_ARGS__ << std::endl; \
   __VA_ARGS__;
 
-Mesh GetMesh(MIdx s /*size in cells*/) {
+M GetMesh(MIdx s /*size in cells*/) {
   Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
   MIdx b(-2, -3, -4); // lower index
   int hl = 1; // halos
-  return InitUniformMesh<Mesh>(dom, b, s, hl, true, true, s, 0);
+  return InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
 }
 
 template <class T, class Idx, class M>
@@ -102,11 +103,8 @@ Scal RunInterp(std::function<Scal(Vect)> uf, const M& m) {
   FieldCell<Scal> cf;
   Eval(uf, cf, m);
 
-  // Empty bc
-  MapCondFace bc;
-
   // Interpolate to faces
-  FieldFace<Scal> ff = Interpolate(cf, bc, m);
+  FieldFace<Scal> ff = UEmbed<M>::Interpolate(cf, {}, m);
 
   // Init reference on faces
   FieldFace<Scal> fr;
@@ -118,19 +116,16 @@ Scal RunInterp(std::function<Scal(Vect)> uf, const M& m) {
 Scal RunGrad(
     std::function<Scal(Vect)> uf,
     std::function<Vect(Vect)> ugr, // reference
-    const Mesh& m) {
+    const M& m) {
   // Init field on all cells (including halos)
   FieldCell<Scal> f;
   Eval(uf, f, m);
 
-  // Empty bc
-  MapCondFace bc;
-
   // Interpolate to faces
-  FieldFace<Scal> ff = Interpolate(f, bc, m);
+  FieldFace<Scal> ff = UEmbed<M>::Interpolate(f, {}, m);
 
   // Gradient on cells
-  FieldCell<Vect> g = Gradient(ff, m);
+  FieldCell<Vect> g = UEmbed<M>::Gradient(ff, m);
 
   // Init reference on cells
   FieldCell<Vect> gr;

@@ -58,7 +58,6 @@ struct Vof<EB_>::Imp {
   void UpdateBc(const MapEmbed<BCondAdvection<Scal>>& mfc) {
     std::tie(me_vf_, me_cl_, me_im_, me_n_, me_a_) =
         UVof<M>::GetAdvectionBc(m, mfc);
-    mfc_cl_ = GetCond<Scal>(me_cl_);
   }
   // Computes normal and plane constant in interfacial cells.
   // uc: volume fraction to compute plane constant [a]
@@ -524,7 +523,7 @@ struct Vof<EB_>::Imp {
     if (sem.Nested()) {
       uvof_.Recolor(
           layers, &fcu_.iter_curr, &fccl_, &fcclm, par.clfixed, par.clfixed_x,
-          par.coalth, mfc_cl_, par.verb, par.recolor_unionfind,
+          par.coalth, me_cl_, par.verb, par.recolor_unionfind,
           par.recolor_reduce, par.recolor_grid, m);
     }
     if (sem("propagate")) {
@@ -614,7 +613,6 @@ struct Vof<EB_>::Imp {
   MapEmbed<BCond<Scal>> me_im_; // image
   MapEmbed<BCond<Vect>> me_n_; // normal
   MapEmbed<BCond<Scal>> me_a_; // plane constant
-  MapCondFace mfc_cl_; // color
 
   FieldCell<Scal> fccl_; // color
   FieldCell<Scal> fcim_; // image

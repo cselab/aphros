@@ -24,13 +24,11 @@
 #include "geom/mesh.h"
 #include "geom/vect.h"
 #include "parse/curv.h"
-#include "parse/tvd.h"
 #include "parse/vof.h"
 #include "solver/advection.h"
 #include "solver/curv.h"
 #include "solver/multi.h"
 #include "solver/solver.h"
-#include "solver/tvd.h"
 #include "solver/vof.h"
 #include "solver/vofm.h"
 #include "util/suspender.h"
@@ -77,7 +75,6 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using Sem = typename Mesh::Sem;
-  using AST = Tvd<M>; // advection TVD
   using ASV = Vof<M>; // advection VOF
   using ASVM = Vofm<M>; // advection VOF
 
@@ -147,11 +144,7 @@ void Advection<M>::Init(Sem& sem) {
     fc_src_.Reinit(m, 0.);
 
     std::string as = var.String["advection_solver"];
-    if (as == "tvd") {
-      auto p = ParsePar<AST>()(var);
-      as_.reset(
-          new AST(m, fcu_, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
-    } else if (as == "vof") {
+    if (as == "vof") {
       auto p = ParsePar<ASV>()(var);
       const FieldCell<Scal> fccl(m, 0);
       as_.reset(new ASV(

@@ -666,8 +666,8 @@ struct UVof<M_>::Imp {
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
-      Scal coalth, const MapCondFace& mfc_cl, bool verb, bool reduce, bool grid,
-      M& m) {
+      Scal coalth, const MapEmbed<BCond<Scal>>& mfc_cl, bool verb, bool reduce,
+      bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
       std::map<Scal, Scal> usermap;
@@ -762,8 +762,8 @@ struct UVof<M_>::Imp {
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
-      Scal coalth, const MapCondFace& mfc_cl, bool verb, bool reduce, bool grid,
-      M& m) {
+      Scal coalth, const MapEmbed<BCond<Scal>>& mfc_cl, bool verb, bool reduce,
+      bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
       std::map<Scal, Scal> usermap;
@@ -931,7 +931,7 @@ struct UVof<M_>::Imp {
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
-      Scal coalth, const MapCondFace& mfc, bool verb, bool unionfind,
+      Scal coalth, const MapEmbed<BCond<Scal>>& mfc, bool verb, bool unionfind,
       bool reduce, bool grid, M& m) {
     if (unionfind) {
       return RecolorUnionFind(
@@ -988,49 +988,11 @@ void UVof<M_>::Recolor(
     const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
     const Multi<FieldCell<Scal>*>& fccl,
     const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
-    Scal coalth, const MapCondFace& mfcu, bool verb, bool unionfind,
+    Scal coalth, const MapEmbed<BCond<Scal>>& mfcu, bool verb, bool unionfind,
     bool reduce, bool grid, M& m) {
   Imp::Recolor(
       layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfcu, verb,
       unionfind, reduce, grid, m);
-}
-
-template <class M_>
-void UVof<M_>::GetAdvectionFaceCond(
-    const M& m, const MapEmbed<BCondAdvection<Scal>>& mfc, MapCondFace& mfc_vf,
-    MapCondFace& mfc_cl, MapCondFace& mfc_im, MapCondFace& mfc_n,
-    MapCondFace& mfc_a) {
-  using MIdx = typename M::MIdx;
-  using TRM = Trackerm<M>;
-  mfc_vf.clear();
-  mfc_cl.clear();
-  mfc_im.clear();
-  mfc_n.clear();
-  mfc_a.clear();
-  using Halo = typename BCondAdvection<Scal>::Halo;
-  for (auto& it : mfc.GetMapFace()) {
-    IdxFace f = it.first;
-    const auto& cb = it.second;
-    size_t nci = cb.GetNci();
-    switch (cb.halo) {
-      case Halo::reflect:
-        mfc_vf[f].Set<CondFaceReflect>(nci);
-        mfc_cl[f].Set<CondFaceReflect>(nci);
-        mfc_im[f].Set<CondFaceReflect>(nci);
-        mfc_n[f].Set<CondFaceReflect>(nci);
-        mfc_a[f].Set<CondFaceReflect>(nci);
-        break;
-      case Halo::fill:
-        mfc_vf[f].Set<CondFaceValFixed<Scal>>(cb.fill_vf, nci);
-        mfc_cl[f].Set<CondFaceValFixed<Scal>>(cb.fill_cl, nci);
-        MIdx wim(0);
-        wim[size_t(m.GetDir(f))] = (nci == 1 ? -1 : 1);
-        mfc_im[f].Set<CondFaceValFixed<Scal>>(TRM::Pack(wim), nci);
-        mfc_n[f].Set<CondFaceValFixed<Vect>>(Vect(0), nci);
-        mfc_a[f].Set<CondFaceValFixed<Scal>>(Scal(0), nci);
-        break;
-    }
-  }
 }
 
 template <class M_>

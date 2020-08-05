@@ -14,6 +14,7 @@
 #include "solver/approx.h"
 #include "solver/cond.h"
 #include "solver/solver.h"
+#include "solver/approx_eb.h"
 #include "util/sysinfo.h"
 #include "util/timer.h"
 
@@ -91,22 +92,22 @@ class Interp : public TimerMesh {
       fc[i] = std::sin(i.GetRaw());
     }
     auto& bf = m.GetIndexFaces();
-    for (auto i : m.Faces()) {
-      if (bf.GetMIdx(i)[0] == 0 && bf.GetDir(i) == Dir::i) {
-        mfc[i].Set<CondFaceGradFixed<Scal>>(0, 1);
+    for (auto f : m.Faces()) {
+      if (bf.GetMIdx(f)[0] == 0 && bf.GetDir(f) == Dir::i) {
+        mfc[f].type = BCondType::neumann;
       }
     }
     assert(mfc.size() > 0);
   }
   void F() override {
     volatile size_t a = 0;
-    ff = Interpolate(fc, mfc, m);
+    ff = UEmbed<Mesh>::Interpolate(fc, mfc, m);
     a = ff[IdxFace(a)];
   }
 
  private:
   FieldCell<Scal> fc;
-  MapCondFace mfc;
+  MapEmbed<BCond<Scal>> mfc;
   FieldFace<Scal> ff;
 };
 

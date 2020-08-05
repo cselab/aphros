@@ -34,7 +34,6 @@
 #include "parse/parser.h"
 #include "parse/proj.h"
 #include "parse/simple.h"
-#include "parse/tvd.h"
 #include "parse/util.h"
 #include "parse/vars.h"
 #include "parse/vof.h"
@@ -52,7 +51,6 @@
 #include "solver/simple.h"
 #include "solver/solver.h"
 #include "solver/tracer.h"
-#include "solver/tvd.h"
 #include "solver/vof.h"
 #include "solver/vofm.h"
 #include "util/convdiff.h"
@@ -175,7 +173,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void StepParticles();
   void StepBubgen();
 
-  using AST = Tvd<M>; // advection TVD
   using ASV = Vof<M>; // advection VOF
   using ASVM = Vofm<M>; // advection multi VOF
   using ASVEB = Vof<Embed<M>>; // advection VOF embed
@@ -184,9 +181,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   static constexpr Scal kClNone = ASVM::kClNone;
 
   void UpdateAdvectionPar() {
-    if (auto as = dynamic_cast<AST*>(as_.get())) {
-      as->SetPar(ParsePar<AST>()(var));
-    } else if (auto as = dynamic_cast<ASV*>(as_.get())) {
+    if (auto as = dynamic_cast<ASV*>(as_.get())) {
       as->SetPar(ParsePar<ASV>()(var));
     } else if (auto as = dynamic_cast<ASVM*>(as_.get())) {
       as->SetPar(ParsePar<ASVM>()(var));
@@ -239,7 +234,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   }
   FieldCell<Scal> CalcStrain(const FieldCell<Vect> fcvel) const {
     auto& fcv = fcvel;
-    auto ffv = UEmbed<M>::Interpolate(fcv, fs_->GetVelocityCond(), m);
+    auto ffv = UEB::Interpolate(fcv, fs_->GetVelocityCond(), m);
 
     std::array<FieldCell<Vect>, dim> g; // g[i][c][j] is derivative du_i/dx_j
     for (size_t i = 0; i < dim; ++i) {
@@ -286,7 +281,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldEmbed<Scal> febp_; // balanced force projections
 
   MapEmbed<BCondAdvection<Scal>> mf_adv_;
-  MapCondFace mf_cond_vfsm_;
+  MapEmbed<BCond<Scal>> mebc_vfsm_;
   MapEmbed<BCondFluid<Vect>> mebc_fluid_;
   MapEmbed<BCondFluid<Vect>> mebc_fluid_orig_;
   MapEmbed<size_t> me_group_;
@@ -348,7 +343,7 @@ void Hydro<M>::InitEmbed() {
     } * ctx(sem);
     if (sem("ctor")) {
       eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
-      ctx->fnl = UEmbed<M>::InitEmbed(m, var, m.IsRoot());
+      ctx->fnl = UEB::InitEmbed(m, var, m.IsRoot());
       InitEmbedHook(ctx->fnl, var, m);
     }
     if (sem.Nested("smoothen")) {
@@ -615,12 +610,7 @@ template <class M>
 void Hydro<M>::InitAdvection(
     const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl) {
   std::string as = var.String["advection_solver"];
-  if (as == "tvd") {
-    auto p = ParsePar<AST>()(var);
-    as_.reset(new AST(
-        m, fcvf, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr), &fc_src2_, 0.,
-        st_.dta, p));
-  } else if (as == "vof") {
+  if (as == "vof") {
     if (eb_) {
       auto p = ParsePar<ASVEB>()(var);
       as_.reset(new ASVEB(
@@ -1096,11 +1086,9 @@ void Hydro<M>::Init() {
       const IdxFace f = p.first;
       auto& bc = p.second;
       const auto nci = bc.nci;
-      if (bc.type == BCondFluidType::symm) {
-        mf_cond_vfsm_[f].template Set<CondFaceReflect>(nci);
-      } else {
-        mf_cond_vfsm_[f].template Set<CondFaceGradFixed<Scal>>(Scal(0), nci);
-      }
+      auto& bcvf = mebc_vfsm_[f];
+      bcvf.nci = nci;
+      bcvf.type = BCondType::neumann;
     }
   }
 
@@ -1137,7 +1125,7 @@ void Hydro<M>::Init() {
   }
 
   if (sem.Nested("smooth")) {
-    Smoothen(fcvf, mf_cond_vfsm_, m, var.Int["vf_init_sm"]);
+    Smoothen(fcvf, mebc_vfsm_, m, var.Int["vf_init_sm"]);
   }
 
   if (sem.Nested("mixture")) {
@@ -1373,7 +1361,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   }
 
   if (sem.Nested("smooth")) {
-    Smoothen(fc_smvf_, mf_cond_vfsm_, m, var.Int["vfsmooth"]);
+    Smoothen(fc_smvf_, mebc_vfsm_, m, var.Int["vfsmooth"]);
   }
 
   if (sem("calc")) {
@@ -1381,9 +1369,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     FieldFace<Scal>& af = ff_smvf_;
     if (eb_) {
       auto& eb = *eb_;
-      af = UEmbed<M>::Interpolate(a, {}, eb).GetFieldFace();
+      af = UEB::Interpolate(a, {}, eb).GetFieldFace();
     } else {
-      af = Interpolate(a, mf_cond_vfsm_, m);
+      af = UEB::Interpolate(a, mebc_vfsm_, m);
     }
 
     const Vect force(var.Vect["force"]);
@@ -1418,10 +1406,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
       FieldFace<Scal> ff_rho_mix(m);
       if (eb_) {
-        ff_rho_mix =
-            UEmbed<M>::Interpolate(fc_rho_mix, {}, *eb_).GetFieldFace();
+        ff_rho_mix = UEB::Interpolate(fc_rho_mix, {}, *eb_).GetFieldFace();
       } else {
-        ff_rho_mix = Interpolate(fc_rho_mix, mf_cond_vfsm_, m);
+        ff_rho_mix = UEB::Interpolate(fc_rho_mix, mebc_vfsm_, m);
       }
       for (auto f : m.AllFaces()) {
         const Scal a2 = af[f];
@@ -1948,7 +1935,7 @@ auto Hydro<M>::CalcPressureDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb)
       me_pressure[cf] = BCond<Scal>(BCondType::extrap, nci);
     }
   });
-  auto fep = UEmbed<M>::Interpolate(fcp, me_pressure, eb);
+  auto fep = UEB::Interpolate(fcp, me_pressure, eb);
   Vect sum(0);
   mebc_fluid_.LoopBCond(eb, [&](auto cf, IdxCell c, auto bc) { //
     if (m.IsInner(c)) {
@@ -1969,8 +1956,8 @@ auto Hydro<M>::CalcViscousDrag(
   mebc_fluid_.LoopBCond(eb, [&](auto cf, IdxCell, auto bc) { //
     me_neumann[cf] = BCond<Scal>(BCondType::neumann, bc.nci);
   });
-  auto feg = UEmbed<M>::Gradient(fcvel, fs_->GetVelocityCond(), eb);
-  auto femu = UEmbed<M>::Interpolate(fcmu, me_neumann, eb);
+  auto feg = UEB::Gradient(fcvel, fs_->GetVelocityCond(), eb);
+  auto femu = UEB::Interpolate(fcmu, me_neumann, eb);
   Vect sum(0);
   mebc_fluid_.LoopBCond(eb, [&](auto cf, IdxCell c, auto bc) { //
     if (m.IsInner(c)) {

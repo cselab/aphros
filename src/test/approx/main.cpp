@@ -973,10 +973,10 @@ void TestMesh() {
     auto estimator = [](const Func<Vect>& func, const M& m) {
       FieldCell<Vect> fcr(m, Vect(0));
       const auto fcu = Eval<FieldCell<Vect>>(func(), m);
-      auto ffu = Interpolate(fcu, MapCondFace(), m);
+      auto ffu = UEB::Interpolate(fcu, {}, m);
       for (auto d : GRange<size_t>(Vect::dim)) {
-        auto fcg = Gradient(GetComponent(ffu, d), m);
-        auto ffg = Interpolate(fcg, MapCondFace(), m);
+        auto fcg = UEB::Gradient(GetComponent(ffu, d), m);
+        auto ffg = UEB::Interpolate(fcg, {}, m);
         for (auto c : m.Cells()) {
           Vect s(0);
           for (auto q : m.Nci(c)) {

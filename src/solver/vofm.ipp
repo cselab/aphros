@@ -93,7 +93,6 @@ struct Vofm<EB_>::Imp {
   void UpdateBc(const MapEmbed<BCondAdvection<Scal>>& mfc) {
     std::tie(me_vf_, me_cl_, me_im_, me_n_, me_a_) =
         UVof<M>::GetAdvectionBc(m, mfc);
-    mfc_cl_ = GetCond<Scal>(me_cl_);
   }
   // reconstruct interface
   void ReconstPlanes(const Multi<FieldCell<Scal>*>& uc) {
@@ -731,7 +730,7 @@ struct Vofm<EB_>::Imp {
     if (sem.Nested()) {
       uvof_.Recolor(
           layers, fcu_.iter_curr, fccl_, fccl_, par.clfixed, par.clfixed_x,
-          par.coalth, mfc_cl_, par.verb, par.recolor_unionfind,
+          par.coalth, me_cl_, par.verb, par.recolor_unionfind,
           par.recolor_reduce, par.recolor_grid, m);
     }
 
@@ -853,7 +852,6 @@ struct Vofm<EB_>::Imp {
   MapEmbed<BCond<Scal>> me_im_; // image
   MapEmbed<BCond<Vect>> me_n_; // normal
   MapEmbed<BCond<Scal>> me_a_; // plane constant
-  MapCondFace mfc_cl_; // color
 
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;

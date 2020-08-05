@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "approx.h"
+#include "approx_eb.h"
 #include "debug/isnan.h"
 #include "geom/mesh.h"
 #include "normal.h"
@@ -25,13 +26,11 @@ struct UNormal<M_>::Imp {
   // Output: modified in cells with msk=1
   // fcn: normal [s]
   static void CalcNormalGrad(
-      M& m, const FieldCell<Scal>& uc, const MapCondFace& mfc,
+      M& m, const FieldCell<Scal>& uc, const MapEmbed<BCond<Scal>>& mfc,
       FieldCell<Vect>& fcn) {
-    auto uf = Interpolate(uc, mfc, m);
-    auto gc = Gradient(uf, m);
-    for (auto c : m.AllCells()) {
-      Vect g = gc[c];
-      fcn[c] = g;
+    auto gc = UEmbed<M>::AverageGradient(UEmbed<M>::Gradient(uc, mfc, m), m);
+    for (auto c : m.SuCells()) {
+      fcn[c] = gc[c];
     }
   }
   // Computes normal by Young's scheme (interpolation of gradient from nodes).

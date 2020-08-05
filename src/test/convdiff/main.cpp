@@ -67,8 +67,7 @@ class Convdiff : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_; // buffer
   FieldCell<Scal> fc_sc_; // scaling
   FieldFace<Scal> ff_d_; // diffusion rate
-  MapCondFace mf_cond_;
-  MapEmbed<BCond<Scal>> mf_bcond_;
+  MapEmbed<BCond<Scal>> mf_cond_;
 };
 
 template <class T>
@@ -232,23 +231,24 @@ void Convdiff<M>::TestSolve(
              m.GetIndexFaces().GetMIdx(i)[2] == gs[2];
     };
     auto parse = [](std::string s, IdxFace, size_t nci,
-                    M&) -> UniquePtr<CondFace> {
+                    M&) -> BCond<Scal> {
       std::stringstream arg(s);
 
       std::string name;
       arg >> name;
 
+      BCond<Scal> bc;
+      bc.nci = nci;
       if (name == "value") {
-        Scal a;
-        arg >> a;
-        return UniquePtr<CondFaceValFixed<Scal>>(a, nci);
+        arg >> bc.val;
+        bc.type = BCondType::dirichlet;
       } else if (name == "derivative") {
-        Scal a;
-        arg >> a;
-        return UniquePtr<CondFaceGradFixed<Scal>>(a, nci);
+        arg >> bc.val;
+        bc.type = BCondType::neumann;
       } else {
-        assert(false);
+        fassert(false);
       }
+      return bc;
     };
     // Set condition bc for face i on global box boundary
     // choosing proper neighbour cell id (nci)
@@ -298,10 +298,8 @@ void Convdiff<M>::TestSolve(
     p.relax = var.Double["relax"];
     p.second = 0;
 
-    mf_bcond_ = GetBCond<Scal>(mf_cond_);
-
     as_.reset(new AS(
-        m, m, fc_u, mf_bcond_, &fc_sc_, &ff_d_, &fc_src_, &ff_flux_, 0.,
+        m, m, fc_u, mf_cond_, &fc_sc_, &ff_d_, &fc_src_, &ff_flux_, 0.,
         var.Double["dt"], p));
 
     // exact solution

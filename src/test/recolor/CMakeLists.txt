@@ -1,5 +1,5 @@
 get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 set(EXE t.${name})
 add_executable(${EXE} main.cpp)
-target_link_libraries(${EXE} distrbasic overlap utilvof dump_hdf)
+target_link_libraries(${EXE} distrbasic overlap utilvof dump_hdf approx_eb)
 add_test_current(COMMAND ap.run ./${EXE})

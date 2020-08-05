@@ -72,24 +72,6 @@ void InterpolateI(
   }
 }
 
-// Interpolates from cells to inner faces.
-// T: value type (Scal or Vect)
-// fc: field cell [s]
-// fcgp: gradient [s]
-// ffw: flow direction [i]
-// sc: scheme:
-// th: threshold for flow direction, ffw > th or ffw < -th
-// Output:
-// ff: face cell [i], resize if needed
-template <class T, class M>
-void Interpolate(
-    const FieldCell<T>& fc, const FieldCell<typename M::Vect>& fcgp,
-    const MapCondFace& mfc, const FieldFace<T>& ffw, const M& m, ConvSc sc,
-    typename M::Scal th, FieldFace<T>& ff) {
-  InterpolateI(fc, fcgp, ffw, m, sc, th, ff);
-  InterpolateB(fc, mfc, ff, m);
-}
-
 // Implicit interpolation to inner faces with deferred correction.
 // fc: field cell [s]
 // fc: gradient [s]
@@ -154,47 +136,6 @@ void GradientI(const FieldCell<T>& fc, const M& m, FieldFace<T>& ff) {
     const Scal a = m.GetArea(f) / m.GetVolume(cp);
     ff[f] = (fc[cp] - fc[cm]) * a;
   }
-}
-
-// Explicit gradient on boundary faces.
-// fc: field [s]
-// mfc: face conditions
-// Output:
-// ff: normal gradient [i]
-template <class M, class T>
-void GradientB(
-    const FieldCell<T>& fc, const MapCondFace& mfc, const M& m,
-    FieldFace<T>& ff) {
-  using Scal = typename M::Scal;
-
-  for (const auto& it : mfc) {
-    IdxFace f = it.first;
-    const CondFace* cb = it.second.Get(); // cond base
-    if (auto cd = dynamic_cast<const CondFaceGrad<T>*>(cb)) {
-      ff[f] = cd->GetGrad();
-    } else if (auto cd = dynamic_cast<const CondFaceVal<T>*>(cb)) {
-      size_t id = cd->GetNci();
-      IdxCell c = m.GetCell(f, id);
-      Scal g = (id == 0 ? 1. : -1.);
-      Scal hr = m.GetArea(f) / m.GetVolume(c);
-      Scal a = hr * 2 * g;
-      ff[f] = (cd->second() - fc[c]) * a;
-    } else {
-      throw std::runtime_error("GradientB: unknown cond");
-    }
-  }
-}
-
-// Explicit gradient on inner faces.
-// fc: field [s]
-// Output:
-// ff: normal gradient [i]
-template <class M, class T>
-void Gradient(
-    const FieldCell<T>& fc, const MapCondFace& mfc, const M& m,
-    FieldFace<T>& ff) {
-  GradientI(fc, m, ff);
-  GradientB(fc, mfc, m, ff);
 }
 
 // Implicit gradient in inner faces.
@@ -292,114 +233,6 @@ class UReflectCell {
   }
 };
 
-// Interpolation to faces with defined conditions.
-// fc: field cell [i]
-// mfc: face cond
-// Output:
-// ff: values updated on faces defined in mfc
-template <class T, class M>
-void InterpolateB(
-    const FieldCell<T>& fc, const MapCondFace& mfc, FieldFace<T>& ff,
-    const M& m) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-
-  for (const auto& it : mfc) {
-    IdxFace f = it.first;
-    const CondFace* cb = it.second.Get(); // cond base
-    size_t nci = cb->GetNci();
-    if (auto cd = dynamic_cast<const CondFaceVal<T>*>(cb)) {
-      ff[f] = cd->second();
-    } else if (auto cd = dynamic_cast<const CondFaceGrad<T>*>(cb)) {
-      IdxCell c = m.GetCell(f, nci);
-      Scal w = (nci == 0 ? 1. : -1.);
-      Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * w;
-      ff[f] = fc[c] + cd->GetGrad() * a;
-    } else if (dynamic_cast<const CondFaceExtrap*>(cb)) {
-      // TODO test
-      IdxCell c = m.GetCell(f, nci);
-      size_t q = m.GetNci(c, f);
-      size_t qo = m.GetOpposite(q);
-      IdxFace fo = m.GetFace(c, qo);
-      Vect n = m.GetNormal(f);
-      // cell
-      const T& v0 = fc[c];
-      Scal x0 = 0.;
-      // opposite face
-      const T& v1 = ff[fo];
-      Scal x1 = n.dot(m.GetCenter(fo) - m.GetCenter(c));
-      // target
-      Scal xt = n.dot(m.GetCenter(f) - m.GetCenter(c));
-
-      ff[f] = UExtrap(xt, x0, v0, x1, v1);
-    } else if (dynamic_cast<const CondFaceReflect*>(cb)) {
-      // TODO test
-      IdxCell c = m.GetCell(f, nci);
-      Vect n = m.GetNormal(f);
-      auto v = fc[c];
-      ff[f] = UReflectFace<Scal>::Get(v, n);
-    } else {
-      // TODO add name to CondFace etc
-      throw std::runtime_error("InterpolateB: unknown cond");
-    }
-  }
-}
-
-// Interpolates from cells to support faces.
-// T: value type (Scal or Vect)
-// fc: field cell [a]
-// mfc: face cond
-// Output:
-// field face [s]
-template <class T, class M>
-FieldFace<T> Interpolate(
-    const FieldCell<T>& fc, const MapCondFace& mfc, const M& m) {
-  FieldFace<T> ff(m); // Valid 0 needed for CondFaceExtrap
-
-  InterpolateS(fc, ff, m);
-  InterpolateB(fc, mfc, ff, m);
-
-  return ff;
-}
-
-// Second order upwind interpolation with TVD Superbee limiter
-// fc: fieldcell [a]
-// fcg: gradient of field [a]
-// mfc: face cond
-// ffw: flow direction [s]
-// Output:
-// fieldface [s]
-template <class M>
-FieldFace<typename M::Scal> InterpolateSuperbee(
-    const FieldCell<typename M::Scal>& fc,
-    const FieldCell<typename M::Vect>& fcg, const MapCondFace& mfc,
-    const FieldFace<typename M::Scal>& ffw, const M& m, typename M::Scal th) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-
-  FieldFace<Scal> ff(m);
-
-  for (IdxFace f : m.SuFaces()) {
-    IdxCell cm = m.GetCell(f, 0);
-    IdxCell cp = m.GetCell(f, 1);
-    Vect rm = m.GetVectToCell(f, 0);
-    Vect rp = m.GetVectToCell(f, 1);
-    const auto& u = fc;
-    const auto& g = fcg;
-    Scal du = u[cp] - u[cm];
-    if (ffw[f] > th) {
-      ff[f] = u[cm] + 0.5 * Superbee(du, -4. * g[cm].dot(rm) - du);
-    } else if (ffw[f] < -th) {
-      ff[f] = u[cp] - 0.5 * Superbee(du, 4. * g[cp].dot(rp) - du);
-    } else {
-      ff[f] = 0.5 * (u[cm] + u[cp]);
-    }
-  }
-
-  InterpolateB(fc, mfc, ff, m);
-  return ff;
-}
-
 // Returns average of fieldface.
 // ff: fieldface [a]
 // Output:
@@ -417,28 +250,6 @@ FieldCell<T> Average(const FieldFace<T>& ff, const M& m) {
     fc[c] = s / Scal(m.GetNumFaces(c));
   }
   return fc;
-}
-
-// Smoothens fieldcell.
-// fc: fieldcell [s]
-// mfc: condface
-// rep: number of iterations
-// Output:
-// fc: smooth field [s]
-template <class T, class M>
-void Smoothen(FieldCell<T>& fc, const MapCondFace& mfc, M& m, size_t rep) {
-  auto sem = m.GetSem("smoothen");
-  for (size_t i = 0; i < rep; ++i) {
-    if (sem()) {
-      fc = Average(Interpolate(fc, mfc, m), m);
-      m.Comm(&fc);
-    }
-    // FIXME empty stage, without it cubismnc fails
-    // on sim25 with m="128 16 16" np=2 OMP_NUM_THREADS=1 on two nodes
-    // which is a minimal case with inner/halo blocks and MPI communication
-    if (sem()) {
-    }
-  }
 }
 
 // Smoothens fieldcell with node-based averaging.
@@ -650,27 +461,6 @@ std::vector<Scal> GetGradCoeffs(Scal x, const std::vector<Scal>& z, size_t b) {
 
 // Apply boudnary conditions to halo cells
 template <class T, class M>
-void BcApply(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  for (const auto& it : mfc) {
-    IdxFace f = it.first;
-    auto& cb = it.second;
-    Vect n = m.GetNormal(f);
-    IdxCell cmm, cm, cp, cpp;
-    GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);
-    if (cb.template Get<CondFaceReflect>()) {
-      uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
-      uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
-    } else if (auto cd = cb.template Get<CondFaceVal<T>>()) {
-      uc[cm] = cd->second();
-      uc[cmm] = cd->second();
-    }
-  }
-}
-
-// Apply boudnary conditions to halo cells
-template <class T, class M>
 void BcApply(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
@@ -688,23 +478,6 @@ void BcApply(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
       uc[cmm] = bc.val;
     } else if (bc.type == BCondType::extrap) {
     }
-  }
-}
-
-// Apply reflection on all boundaries
-// fill: value for other types that CondFaceReflect
-template <class T, class M>
-void BcReflectAll(FieldCell<T>& uc, const MapCondFace& mfc, const M& m) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  for (const auto& it : mfc) {
-    IdxFace f = it.first;
-    auto& cb = it.second;
-    Vect n = m.GetNormal(f);
-    IdxCell cmm, cm, cp, cpp;
-    GetCellColumn(m, f, cb->GetNci(), cmm, cm, cp, cpp);
-    uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
-    uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
   }
 }
 

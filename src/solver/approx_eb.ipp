@@ -1030,6 +1030,22 @@ auto UEmbed<M>::Interpolate(const FieldEmbed<T>& feu, const EB& eb)
 }
 
 template <class M>
+template <class T>
+FieldCell<T> UEmbed<M>::Interpolate(const FieldFace<T>& feu, const M& m) {
+  FieldCell<T> fcu(m, T(0));
+  for (auto c : m.AllCells()) {
+    T sum(0);
+    Scal sumw = 0;
+    for (auto q : m.Nci(c)) {
+      sum += feu[m.GetFace(c, q)];
+      sumw += 1;
+    }
+    fcu[c] = sum / sumw;
+  }
+  return fcu;
+}
+
+template <class M>
 auto UEmbed<M>::GradientGauss(const FieldEmbed<Scal>& feu, const EB& eb)
     -> FieldCell<Vect> {
   auto& m = eb.GetMesh();

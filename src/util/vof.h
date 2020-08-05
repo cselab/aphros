@@ -70,13 +70,8 @@ class UVof {
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
-      Scal coalth, const MapCondFace& mfcu, bool verb, bool unionfind,
+      Scal coalth, const MapEmbed<BCond<Scal>>& mfcu, bool verb, bool unionfind,
       bool reduce, bool grid, M& m);
-
-  static void GetAdvectionFaceCond(
-      const M& m, const MapEmbed<BCondAdvection<Scal>>& mfc, MapCondFace& mfc_vf,
-      MapCondFace& mfc_cl, MapCondFace& mfc_im, MapCondFace& mfc_n,
-      MapCondFace& mfc_a);
 
   static std::tuple<
       MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>,
@@ -85,7 +80,8 @@ class UVof {
 
   // set volume fraction to 0 or 1 near wall
   static void BcClear(
-      FieldCell<Scal>& uc, const MapEmbed<BCondAdvection<Scal>>& mfc, const M& m) {
+      FieldCell<Scal>& uc, const MapEmbed<BCondAdvection<Scal>>& mfc,
+      const M& m) {
     for (const auto& it : mfc.GetMapFace()) {
       auto& cfa = it.second;
       const IdxCell c = m.GetCell(it.first, cfa.GetNci());

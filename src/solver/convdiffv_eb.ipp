@@ -16,8 +16,8 @@ template <class M_>
 struct ConvDiffVectEmbed<M_>::Imp {
   using Owner = ConvDiffVectEmbed<M_>;
 
-  Imp(Owner* owner, const FieldCell<Vect>& fcvel, const MapCondFace& mfc,
-      const FieldFaceb<Scal>* fed)
+  Imp(Owner* owner, const FieldCell<Vect>& fcvel,
+      const MapEmbed<BCond<Vect>>& mfc, const FieldFaceb<Scal>* fed)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
@@ -35,9 +35,9 @@ struct ConvDiffVectEmbed<M_>::Imp {
 
       // Initialize solver
       vs_[d] = std::make_shared<CD>(
-          m, eb, GetComponent(fcvel, d), vmfc_[d], owner_->fcr_,
-          fed_, &(vfcs_[d]), owner_->ffv_, owner_->GetTime(),
-          owner_->GetTimeStep(), par);
+          m, eb, GetComponent(fcvel, d), vmfc_[d], owner_->fcr_, fed_,
+          &(vfcs_[d]), owner_->ffv_, owner_->GetTime(), owner_->GetTimeStep(),
+          par);
     }
     CopyToVect(Step::time_curr, fcvel_);
     lvel_ = Step::time_curr;
@@ -157,7 +157,7 @@ struct ConvDiffVectEmbed<M_>::Imp {
   const Par& par;
   M& m; // mesh
   const Embed<M>& eb;
-  const MapCondFace& mfc_; // vect face cond
+  const MapEmbed<BCond<Vect>>& mfc_; // vect face cond
   const FieldFaceb<Scal>* fed_;
 
   FieldCell<Vect> fcvel_;
@@ -168,7 +168,7 @@ struct ConvDiffVectEmbed<M_>::Imp {
   using Array = std::array<T, dim>;
 
   // Scalar components
-  Array<MapCondFace> vmfc_; // face cond
+  Array<MapEmbed<BCond<Vect>>> vmfc_; // face cond
   Array<std::shared_ptr<CD>> vs_; // solver
   Array<FieldCell<Scal>> vfcs_; // force
   Array<FieldCell<Scal>> vfct_; // tmp
@@ -177,7 +177,7 @@ struct ConvDiffVectEmbed<M_>::Imp {
 template <class M_>
 ConvDiffVectEmbed<M_>::ConvDiffVectEmbed(
     M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-    const MapCondFace& mfc, const FieldCell<Scal>* fcr,
+    const MapEmbed<BCond<Vect>>& mfc, const FieldCell<Scal>* fcr,
     const FieldFaceb<Scal>* fed, const FieldCell<Vect>* fcs,
     const FieldFaceb<Scal>* ffv, double t, double dt, Par par)
     : Base(t, dt, m, eb, par, fcr, fed, fcs, ffv)
@@ -208,7 +208,8 @@ auto ConvDiffVectEmbed<M_>::GetConst(size_t d) const -> FieldCell<Scal> {
 }
 
 template <class M_>
-auto ConvDiffVectEmbed<M_>::GetVelocityCond(size_t d) -> MapCondFace& {
+auto ConvDiffVectEmbed<M_>::GetVelocityCond(size_t d)
+    -> MapEmbed<BCond<Vect>>& {
   return imp->vmfc_[d];
 }
 

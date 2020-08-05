@@ -22,10 +22,6 @@ set(T "vof")
 add_library(${T} vof.cpp)
 target_link_libraries(${T} solver normal utilvof approx_eb)
 
-set(T "tvd")
-add_library(${T} tvd.cpp)
-target_link_libraries(${T} solver approx utilvof)
-
 set(T "tracer")
 add_library(${T} tracer.cpp)
 target_link_libraries(${T} approx_eb)
@@ -36,7 +32,7 @@ target_link_libraries(${T})
 
 set(T "normal")
 add_library(${T} normal.cpp)
-target_link_libraries(${T} approx)
+target_link_libraries(${T} approx_eb)
 
 set(T "curv")
 add_library(${T} curv.cpp)

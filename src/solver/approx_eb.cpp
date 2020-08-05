@@ -18,6 +18,7 @@ template struct ULinear<Scal>;
 template struct UEmbed<M>;
 
 template FieldCell<T> UEB::Interpolate(const FieldEmbed<T>& feu, const EB& eb);
+template FieldCell<T> UEB::Interpolate(const FieldFace<T>& feu, const M&);
 
 template FieldCell<T> UEB::AverageCutCells(
     const FieldCell<T>& fcu, const EB& eb);

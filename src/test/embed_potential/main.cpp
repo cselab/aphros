@@ -43,7 +43,7 @@ FieldCell<typename M::Scal> GetDivergence(
 
 template <class M>
 void CalcPotential(
-    const MapCondFace& mfc, M& m, const Embed<M>& eb, FieldCell<Scal>& fcp,
+    const MapEmbed<BCond<Scal>>& mfc, M& m, const Embed<M>& eb, FieldCell<Scal>& fcp,
     FieldFace<Scal>& ffv) {
   using Scal = typename M::Scal;
   using ExprFace = generic::Vect<Scal, 3>;
@@ -72,12 +72,12 @@ void CalcPotential(
       ffe[f] = e;
     }
     // overwrite boundary conditions
-    for (auto& it : mfc) {
+    for (auto& it : mfc.GetMapFace()) {
       const IdxFace f = it.first;
-      const auto& cb = it.second;
-      if (auto* cd = cb.template Get<CondFaceGrad<Scal>>()) {
+      const auto& bc = it.second;
+      if (bc.type == BCondType::neumann) {
         ExprFace e(0);
-        e[2] = cd->GetGrad() * eb.GetArea(f);
+        e[2] = bc.val * eb.GetArea(f);
         ffe[f] = e;
       } else {
         throw std::runtime_error("unknown bc");
@@ -143,7 +143,7 @@ void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
   struct {
     std::unique_ptr<EB> eb;
-    MapCondFace mfc;
+    MapEmbed<BCond<Scal>> mfc;
     FieldCell<Scal> fcp;
     FieldFace<Scal> ffv;
     FieldCell<Scal> fcdiv;
@@ -168,16 +168,16 @@ void Run(M& m, Vars& var) {
     for (auto f : eb.Faces()) {
       const Vect x = eb.GetFaceCenter(f);
       if (isclose(x[0], 0.)) {
-        mfc[f] = UniquePtr<CondFaceGradFixed<Scal>>(1., 1);
+        mfc[f] = BCond<Scal>(BCondType::neumann, 1, 1.);
       }
       if (isclose(x[0], 1.)) {
-        mfc[f] = UniquePtr<CondFaceGradFixed<Scal>>(1., 0);
+        mfc[f] = BCond<Scal>(BCondType::neumann, 0, 1.);
       }
       if (isclose(x[1], 0.)) {
-        mfc[f] = UniquePtr<CondFaceGradFixed<Scal>>(0., 1);
+        mfc[f] = BCond<Scal>(BCondType::neumann, 1, 0.);
       }
       if (isclose(x[1], 1.)) {
-        mfc[f] = UniquePtr<CondFaceGradFixed<Scal>>(0., 0);
+        mfc[f] = BCond<Scal>(BCondType::neumann, 0, 0.);
       }
     }
   }
