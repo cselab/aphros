@@ -362,27 +362,6 @@ struct Proj<EB_>::Imp {
     }
     return fce;
   }
-  // Append explicit part of viscous force.
-  // fcvel: velocity [a]
-  // Output:
-  // fcf += viscous term [i]
-  void AppendExplViscous(
-      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const M& m) {
-    const auto wf = UEB::Interpolate(fcvel, me_vel_, m);
-    for (auto d : edim_range_) {
-      const auto wfo = GetComponent(wf, d);
-      const auto gc = ::Gradient(wfo, m);
-      const auto gf = UEB::Interpolate(gc, me_force_, m);
-      for (auto c : eb.Cells()) {
-        Vect s(0);
-        for (auto q : eb.Nci(c)) {
-          const IdxFace f = m.GetFace(c, q);
-          s += gf[f] * (ffvisc_[f] * m.GetOutwardSurface(c, q)[d]);
-        }
-        fcf[c] += s / m.GetVolume(c);
-      }
-    }
-  }
   void Project(FieldCell<Scal>& fcp, FieldFaceb<Scal>& ffv, Scal dt) {
     auto sem = m.GetSem("project");
     struct {
@@ -420,17 +399,16 @@ struct Proj<EB_>::Imp {
     for (auto c : eb.Cells()) {
       fca[c] += (*owner_->fcf_)[c] / (*owner_->fcr_)[c];
     }
+    if (par.explviscous) {
+      FieldCell<Vect> fc_force(m, Vect(0));
+      UFluid<M>::AppendExplViscous(
+          fc_force, fcvel_.iter_curr, me_vel_, ffvisc_, eb);
+      for (auto c : eb.Cells()) {
+        fca[c] += fc_force[c] / (*owner_->fcr_)[c];
+      }
+    }
     fca.SetHalo(0);
-    // AppendExplViscous(fcvel_.iter_curr, fc_accel_ / fcr, eb); XXX
     return fca;
-  }
-  void AppendExplViscous(
-      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const Embed<M>& eb) {
-    // FIXME: not implemented
-    (void)fcvel;
-    (void)fcf;
-    (void)eb;
-    return;
   }
   void UpdateBc(typename M::Sem& sem) {
     if (sem("bc-derived")) {

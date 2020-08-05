@@ -21,39 +21,13 @@
 #include "solver/embed.h"
 #include "solver/solver.h"
 #include "util/convdiff.h"
+#include "util/fluid.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using EB = Embed<M>;
 using UEB = UEmbed<M>;
-
-// Appends force with explicit viscosut terms.
-// fc_force: force to append
-// fc_vel: velocity
-// ff_mu: viscosity
-template <class MEB>
-void AppendExplViscous(
-    FieldCell<Vect>& fc_force, const FieldCell<Vect>& fc_vel,
-    const MapEmbed<BCond<Vect>>& mebc_vel, const FieldFace<Scal>& ff_mu,
-    const MEB& eb) {
-  fc_force.Reinit(eb);
-  auto& m = eb.GetMesh();
-  for (auto d : GRange<size_t>(m.GetEdim())) {
-    const auto fcu = GetComponent(fc_vel, d);
-    const auto mebc = GetScalarCond(mebc_vel, d, m);
-    const auto fcg = UEB::AverageGradient(UEB::Gradient(fcu, mebc, eb), eb);
-    const auto ffg = UEB::Interpolate(fcg, GetBCondZeroGrad<Vect>(mebc), eb);
-    for (auto c : eb.Cells()) {
-      Vect s(0);
-      for (auto q : eb.Nci(c)) {
-        const IdxFace f = eb.GetFace(c, q);
-        s += ffg[f] * (ff_mu[f] * eb.GetOutwardSurface(c, q)[d]);
-      }
-      fc_force[c] += s / eb.GetVolume(c);
-    }
-  }
-}
 
 template <class MEB>
 void Test(M& m, MEB& eb, std::string name) {
@@ -84,13 +58,10 @@ void Test(M& m, MEB& eb, std::string name) {
     }
 
     t.fc_force.Reinit(m, Vect(0));
-    AppendExplViscous(t.fc_force, t.fc_vel, {}, ff_mu, eb);
+    UFluid<M>::AppendExplViscous(t.fc_force, t.fc_vel, {}, ff_mu, eb);
     m.Dump(&t.fc_force, 0, "fx");
     m.Dump(&t.fc_force, 1, "fy");
     m.Dump(&t.fc_force, 2, "fz");
-    m.Dump(&t.fc_vel, 0, "vx");
-    m.Dump(&t.fc_vel, 1, "vy");
-    m.Dump(&t.fc_vel, 2, "vz");
   }
   if (sem()) {}
 }
@@ -113,8 +84,7 @@ void Main(M& m, Vars& var) {
     eb_->DumpPoly(true, true);
   }
   if (sem.Nested()) {
-    //Test(m, *eb_, "mesh");
-    Test(m, m, "mesh");
+    Test(m, *eb_, "mesh");
   }
 }
 

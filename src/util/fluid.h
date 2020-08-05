@@ -4,6 +4,7 @@
 #pragma once
 
 #include "geom/mesh.h"
+#include "solver/approx_eb.h"
 #include "solver/cond.h"
 #include "solver/fluid.h"
 
@@ -31,6 +32,7 @@ class UFluid {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using UEB = UEmbed<M>;
 
   // fcw: velocity
   // mfc: fluid face conditions
@@ -244,6 +246,29 @@ class UFluid {
           mebc[cf].velocity += n * (velcor * q);
         }
       });
+    }
+  }
+
+  template <class MEB>
+  static void AppendExplViscous(
+      FieldCell<Vect>& fc_force, const FieldCell<Vect>& fc_vel,
+      const MapEmbed<BCond<Vect>>& mebc_vel, const FieldFace<Scal>& ff_mu,
+      const MEB& eb) {
+    fc_force.Reinit(eb);
+    auto& m = eb.GetMesh();
+    for (auto d : GRange<size_t>(m.GetEdim())) {
+      const auto fcu = GetComponent(fc_vel, d);
+      const auto mebc = GetScalarCond(mebc_vel, d, m);
+      const auto fcg = UEB::AverageGradient(UEB::Gradient(fcu, mebc, eb), eb);
+      const auto ffg = UEB::Interpolate(fcg, GetBCondZeroGrad<Vect>(mebc), eb);
+      for (auto c : eb.Cells()) {
+        Vect s(0);
+        for (auto q : eb.Nci(c)) {
+          const IdxFace f = eb.GetFace(c, q);
+          s += ffg[f] * (ff_mu[f] * eb.GetOutwardSurface(c, q)[d]);
+        }
+        fc_force[c] += s / eb.GetVolume(c);
+      }
     }
   }
 };

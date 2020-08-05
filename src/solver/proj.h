@@ -25,6 +25,7 @@ struct ProjPar {
   bool bcg = false; // Bell-Colella-Glaz scheme
   Scal outlet_relax = 1;
   Scal inletpressure_factor = 0; // correction factor on inlet with given pressure
+  bool explviscous = true; // enable explicit viscous terms
   bool redistr_adv = false; // use RedistributeCutCellsAdvection()
                             // if true else RedistributeCutCells()
 };
