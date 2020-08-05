@@ -50,7 +50,6 @@ struct Proj<EB_>::Imp {
       , edim_range_(m.GetEdim())
       , mebc_(mebc)
       , mcc_(mcc) {
-    using namespace fluid_condition;
 
     UpdateDerivedConditions();
 
@@ -74,8 +73,6 @@ struct Proj<EB_>::Imp {
   }
 
   void UpdateDerivedConditions() {
-    using namespace fluid_condition;
-
     me_vel_ = GetVelCond<M>(mebc_);
     mebc_.LoopPairs([&](auto p) {
       const auto cf = p.first;
@@ -98,6 +95,7 @@ struct Proj<EB_>::Imp {
       const IdxCell c = it.first;
       const CondCellFluid* cb = it.second.get();
 
+      using namespace fluid_condition;
       if (auto cd = dynamic_cast<const GivenPressure<M>*>(cb)) {
         mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
       } else {

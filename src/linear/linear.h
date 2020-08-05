@@ -394,6 +394,7 @@ typename M::LS ConvertLsCompact(
 // Solve linear system fc_system = 0
 // fc_system: expressions [i]
 // fc_init: initial guess
+// prefix: custom refix for solver config
 // Output:
 // fc_sol: solution [a]
 // m.GetSolveTmp(): modified temporary fields
@@ -401,7 +402,8 @@ template <class M>
 void Solve(
     const FieldCell<typename M::Expr>& fc_system,
     const FieldCell<typename M::Scal>* fc_init,
-    FieldCell<typename M::Scal>& fc_sol, typename M::LS::T type, M& m) {
+    FieldCell<typename M::Scal>& fc_sol, typename M::LS::T type, M& m,
+    std::string prefix = "") {
   using Scal = typename M::Scal;
   auto sem = m.GetSem("solve");
   if (type == M::LS::T::symm && m.flags.check_symmetry) {
@@ -429,6 +431,7 @@ void Solve(
     }
     auto l = ConvertLsCompact(fc_system, *lsa, *lsb, *lsx, m);
     l.t = type;
+    l.prefix = prefix;
     m.Solve(l);
   }
   if (sem("copy")) {

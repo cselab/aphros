@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "convdiffv.h"
-#include "linear/linear.h"
 
 template <class EB_, class CD_>
 class ConvDiffVectGeneric final : public ConvDiffVect<EB_> {
@@ -17,7 +16,6 @@ class ConvDiffVectGeneric final : public ConvDiffVect<EB_> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr size_t dim = M::dim;
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   using CD = CD_;
   using Par = typename CD::Par;
   template <class T>

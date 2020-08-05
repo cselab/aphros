@@ -27,35 +27,11 @@
 
 #include "hydro.h"
 
-using namespace fluid_condition;
-
-template <class M>
-FieldCell<typename M::Scal> GetBcField(MapCondFaceFluid& mf, const M& m) {
-  FieldCell<typename M::Scal> fc(m, 0);
-  for (const auto& it : mf) {
-    const IdxFace f = it.first;
-    auto& cb = it.second;
-    const size_t nci = cb->GetNci();
-    const IdxCell c = m.GetCell(f, nci);
-    if (cb.template Get<fluid_condition::NoSlipWall<M>>()) {
-      fc[c] = 1.;
-    } else if (cb.template Get<fluid_condition::SlipWall<M>>()) {
-      fc[c] = 2.;
-    } else if (cb.template Get<fluid_condition::Inlet<M>>()) {
-      fc[c] = 3.;
-    } else if (cb.template Get<fluid_condition::Outlet<M>>()) {
-      fc[c] = 4.;
-    } else {
-      fc[c] = -1.;
-    }
-  }
-  return fc;
-}
-
 template <class M>
 FieldCell<typename M::Vect> GetVort(
-    const FieldCell<typename M::Vect>& fcv, const MapCondFace& mf, M& m) {
-  auto ffv = Interpolate(fcv, mf, m);
+    const FieldCell<typename M::Vect>& fcv,
+    const MapEmbed<BCond<typename M::Vect>>& mebc, M& m) {
+  auto ffv = UEmbed<M>::Interpolate(fcv, mebc, m);
 
   auto d0 = Gradient(GetComponent(ffv, 0), m);
   auto d1 = Gradient(GetComponent(ffv, 1), m);
@@ -629,59 +605,6 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
   }
 }
 
-// argstr: argument string
-// f: target face
-// nc: target neighbour cell id
-template <class M>
-UniquePtr<CondFaceFluid> ParseFluidFaceCond(
-    std::string argstr, IdxFace /*f*/, size_t nc, const M& /*m*/) {
-  using namespace fluid_condition;
-  using Vect = typename M::Vect;
-  std::stringstream arg(argstr);
-
-  std::string name;
-  arg >> name;
-
-  if (name == "wall") {
-    // wall <velocity>
-    // No-slip wall.
-    // zero derivative for pressure, fixed for velocity,
-    // fill-conditions for volume fraction.
-    Vect vel;
-    arg >> vel;
-    return UniquePtr<NoSlipWallFixed<M>>(vel, nc);
-  } else if (name == "inlet") {
-    // inlet <velocity>
-    // Fixed velocity inlet.
-    Vect vel;
-    arg >> vel;
-    return UniquePtr<InletFixed<M>>(vel, nc);
-  } else if (name == "inletflux") {
-    // inletflux <velocity> <id>
-    // Fixed flux inlet. Flux defined by given velocity is redistributed
-    // over all faces with same id.
-    Vect vel;
-    int id;
-    arg >> vel >> id;
-    return UniquePtr<InletFlux<M>>(vel, id, nc);
-  } else if (name == "outlet") {
-    // Outlet. Velocity is extrapolated from neighbour cells and corrected
-    // to yield zero total flux over outlet and inlet faces.
-    return UniquePtr<OutletAuto<M>>(nc);
-  } else if (name == "slipwall") {
-    // Free-slip wall:
-    // zero derivative for both pressure, velocity,
-    // fill-conditions for volume fraction.
-    // TODO: revise, should be non-penetration for velocity
-    return UniquePtr<SlipWall<M>>(nc);
-  } else if (name == "symm") {
-    // Zero derivative for pressure, velocity and volume fraction
-    // TODO: revise, should be non-penetration for velocity
-    return UniquePtr<Symm<M>>(nc);
-  }
-  return nullptr;
-}
-
 template <class Scal>
 std::ostream& operator<<(
     std::ostream& out, const BCondAdvection<Scal>& fca) {
@@ -731,259 +654,6 @@ bool ParseAdvectionFaceCond(std::string str, BCondAdvection<Scal>& cfa) {
     return true;
   }
   return false;
-}
-
-// Initializes advection condition
-// with default values given a fluid condition.
-template <class M, class Scal = typename M::Scal>
-void SetDefaultAdvectionFaceCond(
-    BCondAdvection<Scal>& ca, const UniquePtr<CondFaceFluid>& cf,
-    Scal clear0, Scal clear1, Scal inletcl, Scal fill_vf) {
-  using Halo = typename BCondAdvection<Scal>::Halo;
-  static constexpr Scal kClNone = -1; // TODO define kClNone once
-  ca.nci = cf->GetNci();
-  if (cf.Get<Symm<M>>()) {
-    ca.halo = Halo::reflect;
-  } else if (cf.Get<NoSlipWall<M>>() || cf.Get<SlipWall<M>>()) {
-    ca.halo = Halo::fill;
-    ca.clear0 = clear0;
-    ca.clear1 = clear1;
-    ca.fill_vf = fill_vf;
-    ca.fill_cl = kClNone;
-  } else if (cf.Get<Inlet<M>>()) {
-    ca.halo = Halo::fill;
-    ca.clear0 = 0;
-    ca.clear1 = 1;
-    ca.fill_vf = 0;
-    ca.fill_cl = inletcl;
-  } else if (cf.Get<Outlet<M>>()) {
-    ca.halo = Halo::reflect;
-  } else {
-    throw std::runtime_error(std::string(__func__) + ": Unknown fluid bc");
-  }
-}
-
-template <class M, class Scal = typename M::Scal>
-void ParseFaceCond(
-    IdxFace f, size_t nci, std::string str, const M& m, Scal clear0,
-    Scal clear1, Scal inletcl, Scal fill_vf, UniquePtr<CondFaceFluid>& cf,
-    BCondAdvection<typename M::Scal>& ca) {
-  std::vector<std::string> ss; // strings not recognized as fluid cond
-  for (auto s : Split(str, ',')) {
-    auto cft = ParseFluidFaceCond(s, f, nci, m); // try to parse as fluid
-    if (!cft.Get()) { // otherwise try as advection later
-      ss.push_back(s);
-    } else {
-      cf = std::move(cft);
-    }
-  }
-  if (!cf.Get<CondFaceFluid>()) {
-    throw std::runtime_error("No fluid condition found in '" + str + "'");
-  }
-  SetDefaultAdvectionFaceCond<M>(ca, cf, clear0, clear1, inletcl, fill_vf);
-  for (auto s : ss) {
-    if (!ParseAdvectionFaceCond(s, ca)) {
-      throw std::runtime_error("No advection condition found in '" + s + "'");
-    }
-  }
-}
-
-template <class M>
-void GetFluidFaceCond(
-    const Vars& var, const M& m, MapCondFaceFluid& mff,
-    MapEmbed<BCondAdvection<typename M::Scal>>& mfa) {
-  using Dir = typename M::Dir;
-  using MIdx = typename M::MIdx;
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  using Halo = typename BCondAdvection<Scal>::Halo;
-  size_t edim = var.Int["dim"];
-  auto& fi = m.GetIndexFaces();
-  MIdx gs = m.GetGlobalSize();
-
-  // Returns true if face belongs to domain boundary
-  auto gxm = [&fi](IdxFace i) -> bool {
-    return fi.GetDir(i) == Dir::i && fi.GetMIdx(i)[0] == 0;
-  };
-  auto gxp = [&fi, gs](IdxFace i) -> bool {
-    return fi.GetDir(i) == Dir::i && fi.GetMIdx(i)[0] == gs[0];
-  };
-  auto gym = [&fi](IdxFace i) -> bool {
-    return fi.GetDir(i) == Dir::j && fi.GetMIdx(i)[1] == 0;
-  };
-  auto gyp = [&fi, gs](IdxFace i) -> bool {
-    return fi.GetDir(i) == Dir::j && fi.GetMIdx(i)[1] == gs[1];
-  };
-  auto gzm = [&fi, edim](IdxFace i) -> bool {
-    return edim >= 3 && fi.GetDir(i) == Dir::k && fi.GetMIdx(i)[2] == 0;
-  };
-  auto gzp = [&fi, gs, edim](IdxFace i) -> bool {
-    return edim >= 3 && fi.GetDir(i) == Dir::k && fi.GetMIdx(i)[2] == gs[2];
-  };
-
-  using namespace fluid_condition;
-  // default
-  const Scal clear0 = var.Double["bcc_clear0"];
-  const Scal clear1 = var.Double["bcc_clear1"];
-  const Scal inletcl = var.Double["inletcl"];
-  const Scal fill_vf = var.Double["bcc_fill"];
-
-  auto set_bc = [&](IdxFace f, size_t nci, std::string str) {
-    ParseFaceCond(
-        f, nci, str, m, clear0, clear1, inletcl, fill_vf, mff[f], mfa[f]);
-  };
-
-  // List of domain boundaries: <name, func, nci>
-  std::vector<std::tuple<std::string, std::function<bool(IdxFace)>, size_t>>
-      bb = {{"bc_xm", gxm, 1}, {"bc_xp", gxp, 0}, {"bc_ym", gym, 1},
-            {"bc_yp", gyp, 0}, {"bc_zm", gzm, 1}, {"bc_zp", gzp, 0}};
-
-  // Set face conditions on domain boundaries
-  for (auto& b : bb) {
-    if (auto str = var.String.Find(std::get<0>(b))) {
-      for (auto f : m.AllFaces()) {
-        if (std::get<1>(b)(f)) {
-          set_bc(f, std::get<2>(b), *str);
-        }
-      }
-    }
-  }
-
-  // selection boxes
-  // Parameters (N>=0):
-  // string boxN -- bc description
-  // vect boxN_a -- lower corner
-  // vect boxN_b -- upper corner
-  // Check at least first nmax indices and all contiguous
-  {
-    int n = 0;
-    const int nmax = 100;
-    while (true) {
-      std::string k = "box" + std::to_string(n);
-      if (auto str = var.String.Find(k)) {
-        Vect a(var.Vect[k + "_a"]);
-        Vect b(var.Vect[k + "_b"]);
-        Rect<Vect> r(a, b);
-        for (auto& it : mff) {
-          const IdxFace f = it.first;
-          if (r.IsInside(m.GetCenter(f))) {
-            auto& cff = it.second;
-            auto nci = cff->GetNci();
-            cff.Set(nullptr);
-            set_bc(f, nci, *str);
-          }
-        }
-      } else if (n > nmax) {
-        break;
-      }
-      ++n;
-    }
-  }
-  // inlet spheres
-  // Parameters (N>=0):
-  // vect inlet_sphN_c: center
-  // vect inlet_sphN_r: radius
-  // vect inlet_sphN_vel: maximum velocity
-  // double inlet_sphN_vf: volume faction (0 or 1)
-  // Check at least first nmax indices and all contiguous
-  {
-    int n = 0;
-    const int nmax = 100;
-    while (true) {
-      std::string k = "inlet_sph" + std::to_string(n) + "_";
-      if (auto p = var.Vect.Find(k + "c")) {
-        Vect xc(var.Vect[k + "c"]);
-        Vect r(var.Vect[k + "r"]);
-        Vect vel(var.Vect[k + "vel"]);
-        Scal vf = var.Double[k + "vf"];
-
-        // Returns intersection fraction of cell c and sphere
-        auto V = [xc, r, &m](IdxCell c) {
-          auto ls = [xc, r](const Vect& x) -> Scal {
-            Vect xd = (x - xc) / r;
-            return (1. - xd.sqrnorm()) * sqr(r.min());
-          };
-          return GetLevelSetVolume<Scal>(ls, m.GetCenter(c), m.GetCellSize());
-        };
-
-        for (auto& it : mff) {
-          IdxFace f = it.first;
-          CondFaceFluid* cb = it.second.Get();
-          auto nci = cb->GetNci();
-          IdxCell c = m.GetCell(f, nci);
-          Scal inter = V(c);
-          auto& cfa = mfa[f];
-          if (inter > 0) {
-            mff[f].Set<InletFixed<M>>(vel * inter, nci);
-            cfa.halo = Halo::fill;
-            cfa.clear0 = 0;
-            cfa.clear1 = 1;
-            cfa.fill_vf = vf;
-            cfa.fill_cl = inletcl;
-          }
-        }
-      } else if (n > nmax) {
-        break;
-      }
-      ++n;
-    }
-  }
-  // selection faces
-  // Parameters (N>=0):
-  // string faceN -- bc description
-  // vect faceN_a -- lower corner
-  // vect faceN_b -- upper corner
-  // double faceN_vf -- inlet volume fraction
-  // Check at least first nmax indices and all contiguous
-  {
-    int n = -1;
-    const int nmax = 100;
-    while (true) {
-      ++n;
-      std::string k = "face" + std::to_string(n);
-      if (auto str = var.String.Find(k)) {
-        // set boundary conditions on faces of box (a,b)
-        // normal to d with outer normal towards (b-a)[d]
-        Vect a(var.Vect[k + "_a"]);
-        Vect b(var.Vect[k + "_b"]);
-        int d(var.Int[k + "_dir"]); // direction: 0:x, 1:y, 2:z
-        Rect<Vect> r(a, b);
-        Vect h = m.GetCellSize();
-        auto& cb = m.GetAllBlockCells();
-        auto& fi = m.GetIndexFaces();
-        Vect xd(0);
-        xd[d] = 1.;
-        // round to faces
-        a = Vect(MIdx((a + h * 0.5) / h)) * h;
-        b = Vect(MIdx((b + h * 0.5) / h)) * h;
-        // indices of [a,b), [begin,end)
-        MIdx wa(a / h + xd * 0.5);
-        MIdx wb(b / h + xd * 0.5);
-        wb[d] = wa[d] + 1; // size 1 in direction d
-        // direction
-        MIdx wd(0);
-        wd[d] = 1;
-        // direction of neighbour cell
-        int nci = ((b - a)[d] > 0. ? 0 : 1);
-        // box of valid indices
-        MIdx w0 = cb.GetBegin();
-        MIdx w1 = cb.GetEnd() + wd;
-        // clip (a,b) to valid indices
-        wa = wa.clip(w0, w1);
-        wb = wb.clip(w0, w1);
-        if ((wb - wa).prod() == 0) {
-          continue;
-        }
-        typename M::BlockCells bb(wa, wb - wa);
-        for (auto w : bb) {
-          IdxFace f = fi.GetIdx(w, Dir(d));
-          set_bc(f, nci, *str);
-        }
-      } else if (n > nmax) {
-        break;
-      }
-    }
-  }
 }
 
 template <class MEB>
@@ -1153,100 +823,16 @@ std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
   return xx;
 }
 
-template <class M>
-void DumpBcFaces(
-    const MapEmbed<BCondAdvection<typename M::Scal>>& mfa,
-    const MapCondFaceFluid& mff, std::string fn, M& m) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  auto sem = m.GetSem("DumpBcFaces");
-  struct {
-    std::vector<std::vector<Vect>> vxx;
-    std::vector<Scal> vcond;
-    std::vector<Scal> vcondf;
-    std::vector<Scal> vblock;
-  } * ctx(sem);
-  auto& vxx = ctx->vxx;
-  auto& vcond = ctx->vcond;
-  auto& vcondf = ctx->vcondf;
-  auto& vblock = ctx->vblock;
-  if (sem("local")) {
-    for (auto& it : mfa.GetMapFace()) {
-      IdxFace f = it.first;
-      const BCondAdvection<Scal>& b = it.second;
-      if (!m.IsInner(m.GetCell(f, b.GetNci()))) {
-        continue;
-      }
-      vxx.push_back(GetPoly(f, m));
-      int cond = 0;
-      int h = 0;
-      using Halo = typename BCondAdvection<Scal>::Halo;
-      switch (b.halo) {
-        case Halo::reflect:
-          h = 1;
-          break;
-        case Halo::fill:
-          h = 2;
-          break;
-      }
-      auto append = [&cond](int a) {
-        a = std::min(99, std::max(0, a));
-        cond = cond * 100 + a;
-      };
-      append(h);
-      append(b.fill_vf * 10);
-      append(b.fill_cl);
-      append(b.clear0 * 10);
-      append(b.clear1 * 10);
-
-      Scal condf = -1;
-      if (auto bs = mff.find(f)) {
-        auto& b = *bs;
-        if (b.Get<NoSlipWall<M>>()) {
-          condf = 1;
-        } else if (b.Get<SlipWall<M>>()) {
-          condf = 2;
-        } else if (b.Get<Inlet<M>>()) {
-          condf = 3;
-        } else if (b.Get<InletFlux<M>>()) {
-          condf = 4;
-        } else if (b.Get<Outlet<M>>()) {
-          condf = 5;
-        } else if (b.Get<Symm<M>>()) {
-          condf = 6;
-        }
-      }
-      vcond.push_back(cond);
-      vcondf.push_back(condf);
-      vblock.push_back(m.GetId());
-    }
-
-    using TV = typename M::template OpCatVT<Vect>;
-    m.Reduce(std::make_shared<TV>(&vxx));
-    using TS = typename M::template OpCatT<Scal>;
-    m.Reduce(std::make_shared<TS>(&vcond));
-    m.Reduce(std::make_shared<TS>(&vcondf));
-    m.Reduce(std::make_shared<TS>(&vblock));
-  }
-  if (sem("write")) {
-    if (m.IsRoot()) {
-      std::cout << "dump"
-                << " to " << fn << std::endl;
-      WriteVtkPoly<Vect>(
-          fn, vxx, nullptr, {&vcond, &vblock, &vcondf},
-          {"advection", "block", "fluid"}, "Boundary conditions", true, true,
-          true);
-    }
-  }
-}
-
 // FIXME: only fills SuFaces, more halo faces AllFaces may be needed
 template <class M, class Scal>
 void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,
-    MapCell<std::shared_ptr<CondCellFluid>>* mcf, MapCondFaceFluid& mff,
+    MapCell<std::shared_ptr<CondCellFluid>>* mcf,
+    MapEmbed<BCondFluid<typename M::Vect>>& mff,
     MapEmbed<BCondAdvection<Scal>>& mfa) {
+  fassert(false, "not implemented");
+  /*
   using Vect = typename M::Vect;
   for (auto f : m.SuFaces()) {
     const IdxCell cm = m.GetCell(f, 0);
@@ -1264,50 +850,48 @@ void AppendBodyCond(
       }
     }
   }
+  */
 }
 
 // Computes velocity fcvel from vorticity fcvort
-template <class M, class Vect>
+template <class M>
 void InitVort(
-    const FieldCell<Vect>& fcvort, FieldCell<Vect>& fcvel,
-    const MapCondFaceFluid& mf_fluid, bool verb, M& m) {
+    const FieldCell<typename M::Vect>& fcvort,
+    FieldCell<typename M::Vect>& fcvel,
+    const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid, M& m) {
   using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
   auto sem = m.GetSem("initvort");
   struct {
-    MapCondFace mfcw; // velocity cond
-    MapCondFace mfcwd; // velocity cond in one diretion
-    std::shared_ptr<PoisSolver<M>> ps;
-    FieldCell<Scal> fcvorts; // one component of vorticity
+    MapEmbed<BCond<Vect>> mebc; // velocity conditions
+    MapEmbed<BCond<Scal>> mebc_scal; // scalar conditions
+    FieldCell<Scal> fcvort_scal; // one component of vorticity
     FieldCell<Vect> fcpot; // velocity potential
+    FieldCell<Scal> fcpot_scal; // one component of potential
   } * ctx(sem);
+  auto& t = *ctx;
   if (sem("initpois")) {
-    ctx->fcpot.Reinit(m);
-    ctx->mfcw = GetVelCond(m, mf_fluid);
+    t.fcpot.Reinit(m);
+    t.mebc = GetVelCond<M>(mebc_fluid);
+    t.mebc_scal = GetBCondZeroGrad<Scal>(t.mebc);
   }
   for (size_t d = 0; d < M::dim; ++d) {
     const std::string dname = std::to_string(d);
     if (sem("init-" + dname)) {
-      ctx->mfcwd = GetScalarCond(ctx->mfcw, d, m);
-      ctx->ps = std::make_shared<PoisSolver<M>>(ctx->mfcwd, m);
-      ctx->fcvorts = GetComponent(fcvort, d);
+      t.fcvort_scal = GetComponent(fcvort, d);
       for (auto c : m.Cells()) {
-        ctx->fcvorts[c] *= -1;
+        t.fcvort_scal[c] *= -1;
       }
     }
     if (sem.Nested("solve-" + dname)) {
-      ctx->ps->Solve(ctx->fcvorts);
+      SolvePoisson(t.fcpot_scal, t.fcvort_scal, t.mebc_scal, m);
     }
     if (sem("post-" + dname)) {
-      SetComponent(ctx->fcpot, d, ctx->ps->GetField());
-      if (m.IsRoot() && verb) {
-        std::cout << "om" << ("xyz"[d]) << ":"
-                  << " res=" << m.GetResidual() << " iter=" << m.GetIter()
-                  << std::endl;
-      }
+      SetComponent(t.fcpot, d, t.fcpot_scal);
     }
   }
   if (sem("vel")) {
-    fcvel = GetVort(ctx->fcpot, ctx->mfcw, m);
+    fcvel = GetVort(t.fcpot, t.mebc, m);
     m.Comm(&fcvel);
   }
 }
@@ -1634,7 +1218,8 @@ void CalcSurfaceTension(
     const M& m, const GRange<size_t>& layers, const Vars& var,
     FieldCell<typename M::Vect>& fc_force,
     FieldFace<typename M::Scal>& ff_force,
-    const FieldCell<typename M::Scal>& fc_sig, const MapCondFace& mf_sig,
+    const FieldCell<typename M::Scal>& fc_sig,
+    const MapEmbed<BCond<typename M::Scal>>& mf_sig,
     const Multi<const FieldCell<typename M::Scal>*> fck,
     const FieldCell<typename M::Scal>& fcvf,
     const FieldFace<typename M::Scal>& ffvfsm, const AdvectionSolver<M>* asb) {
@@ -1646,7 +1231,7 @@ void CalcSurfaceTension(
     const FieldCell<Vect> gc = Gradient(ffvfsm, m); // [s]
     // volume fration gradient on faces
     const FieldFace<Vect> gf =
-        Interpolate(gc, GetCondZeroGrad<Vect>(mf_sig), m); // [i]
+        UEmbed<M>::Interpolate(gc, GetBCondZeroGrad<Vect>(mf_sig), m);
     auto stdiag = var.Double["stdiag"];
     for (auto c : m.Cells()) {
       Vect r(0);
@@ -1664,7 +1249,7 @@ void CalcSurfaceTension(
     }
   } else if (st == "kn") { // curvature * normal
     FieldFace<Scal> ff_st(m, 0.); // surface tension projections
-    const FieldFace<Scal> ff_sig = Interpolate(fc_sig, mf_sig, m);
+    const FieldFace<Scal> ff_sig = UEmbed<M>::Interpolate(fc_sig, mf_sig, m);
 
     if (auto as = dynamic_cast<const Vofm<M>*>(asb)) {
       AppendSurfaceTension(
@@ -1683,7 +1268,7 @@ void CalcSurfaceTension(
     }
 
     // zero on boundaries
-    for (auto& it : mf_sig) {
+    for (auto& it : mf_sig.GetMapFace()) {
       ff_st[it.first] = 0.;
     }
 
@@ -1732,7 +1317,8 @@ void CalcSurfaceTension(
 
 template <class M>
 void ProjectVolumeFlux(
-    FieldFace<typename M::Scal>& ffv, const MapCondFaceFluid& mfc, M& m) {
+    FieldFace<typename M::Scal>& ffv,
+    const MapEmbed<BCondFluid<typename M::Vect>>& mfc, M& m) {
   using Scal = typename M::Scal;
   using ExprFace = generic::Vect<Scal, 3>;
   using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
@@ -1751,7 +1337,7 @@ void ProjectVolumeFlux(
 
   if (sem("init")) {
     ffbd.Reinit(m, false);
-    for (auto& p : mfc) {
+    for (auto& p : mfc.GetMapFace()) {
       ffbd[p.first] = true;
     }
 

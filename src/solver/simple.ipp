@@ -51,8 +51,6 @@ struct Simple<EB_>::Imp {
       , drr_(m.GetEdim(), dim)
       , mebc_(mebc)
       , mcc_(mcc) {
-    using namespace fluid_condition;
-
     UpdateDerivedConditions();
 
     fcfcd_.Reinit(m, Vect(0));
@@ -81,8 +79,6 @@ struct Simple<EB_>::Imp {
   }
 
   void UpdateDerivedConditions() {
-    using namespace fluid_condition;
-
     me_vel_ = GetVelCond<M>(mebc_);
     mebc_.LoopPairs([&](auto p) {
       const auto cf = p.first;
@@ -107,6 +103,7 @@ struct Simple<EB_>::Imp {
       const IdxCell c = it.first;
       const CondCellFluid* cb = it.second.get();
 
+      using namespace fluid_condition;
       if (auto cd = dynamic_cast<const GivenPressure<M>*>(cb)) {
         mc_pressure_[c] =
             std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());

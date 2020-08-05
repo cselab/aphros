@@ -83,14 +83,12 @@ class Simple : public KernelMeshPar<M_, GPar> {
   std::vector<Scal> lsx_;
   FieldCell<Scal> fc_sol_;
   FieldCell<Scal> fc_exsol_;
-  FieldCell<Scal> fcr_; // rhs
   Scal r_; // test Reduce
   std::pair<Scal, int> rsi_; // test Reduce minloc
   std::vector<Scal> rvs_; // reduction vector<Scal> (concatenation)
   std::vector<int> rvi_; // reduction vector<int> (concatenation)
   std::vector<std::vector<int>> rvvi_; // reduction vector<vector<int>>
   std::vector<std::vector<Scal>> rvvs_; // reduction vector<vector<int>>
-  std::shared_ptr<PoisSolver<M>> ps_;
 };
 
 template <class Idx, class M>
@@ -549,8 +547,12 @@ template <class M>
 void Simple<M>::TestPois() {
   auto sem = m.GetSem("pois");
   struct {
-    MapCondFace mf;
+    MapEmbed<BCond<Scal>> mebc;
+    FieldCell<Scal> fc_sol;
+    FieldCell<Scal> fc_rhs;
+    FieldCell<Scal> fc_exsol;
   } * ctx(sem);
+  auto& t = *ctx;
   // exact solution
   auto fe = [](Vect x) {
     Scal pi = M_PI;
@@ -573,30 +575,26 @@ void Simple<M>::TestPois() {
     if (m.IsRoot()) {
       std::cout << "\n\n*** TestPois() ***" << std::endl;
     }
-    // solver
-    ps_ = std::make_shared<PoisSolver<M>>(ctx->mf, m);
     // exact solution
-    fc_exsol_.Reinit(m);
+    t.fc_exsol.Reinit(m);
     for (auto i : m.AllCells()) {
       Vect x = m.GetCenter(i);
-      fc_exsol_[i] = fe(x);
+      t.fc_exsol[i] = fe(x);
     }
     // rhs
-    fcr_.Reinit(m);
-    for (auto i : m.AllCells()) {
-      Vect x = m.GetCenter(i);
-      fcr_[i] = fr(x, m.GetCellSize());
+    t.fc_rhs.Reinit(m);
+    for (auto c : m.AllCells()) {
+      t.fc_rhs[c] = fr(m.GetCenter(c), m.GetCellSize());
     }
   }
   if (sem.Nested("solve")) {
-    ps_->Solve(fcr_);
+    SolvePoisson(t.fc_sol, t.fc_rhs, t.mebc, m);
   }
   if (sem("check")) {
-    fc_sol_ = ps_->GetField();
     // Check
-    PCMP(Mean(fc_exsol_, m), Mean(fc_sol_, m));
-    PCMP(DiffMean(fc_exsol_, fc_sol_, m), 0.);
-    PCMP(DiffMax(fc_exsol_, fc_sol_, m), 0.);
+    PCMP(Mean(t.fc_exsol, m), Mean(t.fc_sol, m));
+    PCMP(DiffMean(t.fc_exsol, t.fc_sol, m), 0.);
+    PCMP(DiffMax(t.fc_exsol, t.fc_sol, m), 0.);
   }
 }
 

@@ -10,18 +10,6 @@
 #include "solver/fluid.h"
 #include "solver/multi.h"
 
-// Returns field with the type (index)
-// of boundary conditions in an adjacent face:
-//   0: empty
-//   1: no-slip wall
-//   2: free-slip wall
-//   3: inlet
-//   4: outlet
-//   -1: unknown
-// mf: boundary conditions
-template <class M>
-FieldCell<typename M::Scal> GetBcField(MapCondFaceFluid& mf, const M& m);
-
 // Computes vorticity of vector field.
 // fcv: vector field [s]
 // mf: boundary conditions for fcv
@@ -29,7 +17,8 @@ FieldCell<typename M::Scal> GetBcField(MapCondFaceFluid& mf, const M& m);
 // fco: vorticity [i]
 template <class M>
 FieldCell<typename M::Vect> GetVort(
-    const FieldCell<typename M::Vect>& fcv, const MapCondFace& mf, M& m);
+    const FieldCell<typename M::Vect>& fcv,
+    const MapEmbed<BCond<typename M::Vect>>& mebc, M& m);
 
 // Initializes velocity from parameters.
 // fcv: vector field [s]
@@ -38,15 +27,6 @@ FieldCell<typename M::Vect> GetVort(
 // fco: vorticity [i]
 template <class M>
 void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m);
-
-// Returns fluid conditions on domain boundaries.
-// Output:
-// mfvel: conditions for velocity and pressure
-// mfvf: conditions for volume fraction
-template <class M>
-void GetFluidFaceCond(
-    const Vars& var, const M& m, MapCondFaceFluid& mff,
-    MapEmbed<BCondAdvection<typename M::Scal>>& mfa);
 
 template <class MEB>
 std::tuple<
@@ -79,22 +59,16 @@ template <class M, class Scal = typename M::Scal>
 void AppendBodyCond(
     const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
     Scal clear1, Scal inletcl, Scal fill_vf,
-    MapCell<std::shared_ptr<CondCellFluid>>* mcf, MapCondFaceFluid& mff,
+    MapCell<std::shared_ptr<CondCellFluid>>* mcf,
+    MapEmbed<BCondFluid<typename M::Vect>>& mff,
     MapEmbed<BCondAdvection<Scal>>& mfa);
 
-// Dumps faces with boundary conditions.
-// mfc: boundary conditions
-// fn: filename
-template <class M>
-void DumpBcFaces(
-    const MapEmbed<BCondAdvection<typename M::Scal>>& mfa,
-    const MapCondFaceFluid& mff, std::string fn, M& m);
-
 // Computes velocity fcvel from vorticity fcvort
-template <class M, class Vect = typename M::Vect>
+template <class M>
 void InitVort(
-    const FieldCell<Vect>& fcvort, FieldCell<Vect>& fcvel,
-    const MapCondFaceFluid& mf_fluid, bool verb, M& m);
+    const FieldCell<typename M::Vect>& fcvort,
+    FieldCell<typename M::Vect>& fcvel,
+    const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid, M& m);
 
 template <
     class EB, class Scal = typename EB::Scal, class Vect = typename EB::Vect>
@@ -118,7 +92,8 @@ void CalcSurfaceTension(
     const M& m, const GRange<size_t>& layers, const Vars& var,
     FieldCell<typename M::Vect>& fc_force,
     FieldFace<typename M::Scal>& ff_force,
-    const FieldCell<typename M::Scal>& fc_sig, const MapCondFace& mf_sig,
+    const FieldCell<typename M::Scal>& fc_sig,
+    const MapEmbed<BCond<typename M::Scal>>& mf_sig,
     const Multi<const FieldCell<typename M::Scal>*> fck,
     const FieldCell<typename M::Scal>& fcvf,
     const FieldFace<typename M::Scal>& ffvfsm, const AdvectionSolver<M>* as);
@@ -129,7 +104,8 @@ void CalcSurfaceTension(
 // ffv: divergence-free volume flux
 template <class M>
 void ProjectVolumeFlux(
-    FieldFace<typename M::Scal>& ffv, const MapCondFaceFluid& mfc, M& m);
+    FieldFace<typename M::Scal>& ffv,
+    const MapEmbed<BCondFluid<typename M::Vect>>& mfc, M& m);
 
 // Returns total volume of each color, map[cl]=area
 template <class M>

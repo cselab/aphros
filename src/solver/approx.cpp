@@ -10,7 +10,6 @@ using Vect = typename M::Vect;
 using T = Scal;
 using TV = Vect;
 constexpr size_t dim = 3;
-using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
 
 template std::array<Scal, 3> GetCoeff(ConvSc);
 
@@ -23,11 +22,6 @@ template void Interpolate(
     const FieldCell<T>& fc, const FieldCell<typename M::Vect>& fcgp,
     const MapCondFace& mfc, const FieldFace<T>& ffw, const M& m, ConvSc sc,
     typename M::Scal th, FieldFace<T>& ff);
-
-template void InterpolateI(
-    const FieldCell<T>& fc, const FieldCell<typename M::Vect>& fcgp,
-    const FieldFace<T>& ffw, FieldFace<Expr>& ff, const M& m, ConvSc sc,
-    typename M::Scal df, typename M::Scal th);
 
 template void GradientI(const FieldCell<T>& fc, const M& m, FieldFace<T>& ff);
 
@@ -44,8 +38,6 @@ template void GradientB(
 template void Gradient(
     const FieldCell<T>& fc, const MapCondFace& mfc, const M& m,
     FieldFace<T>& ff);
-
-template void GradientI(FieldFace<Expr>& ff, const M& m);
 
 template FieldFace<T> Interpolate(const FieldNode<T>& fn, const M& m);
 

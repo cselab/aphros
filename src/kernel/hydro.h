@@ -230,7 +230,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     if (eb_) {
       fcom_ = GetVort(fcv, fs_->GetVelocityCond(), *eb_);
     } else {
-      fcom_ = GetVort(fcv, GetCond<Vect>(fs_->GetVelocityCond()), m);
+      fcom_ = GetVort(fcv, fs_->GetVelocityCond(), m);
     }
     fcomm_.Reinit(m);
     for (auto c : m.Cells()) {
@@ -292,7 +292,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   MapEmbed<size_t> me_group_;
   MapEmbed<Scal> me_contang_;
   std::vector<std::string> vdesc_;
-  MapCondFaceFluid mf_fluid_;
   MapCell<std::shared_ptr<CondCell>> mc_cond_;
   MapCell<std::shared_ptr<CondCellFluid>> mc_velcond_;
 
@@ -310,7 +309,6 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   FieldCell<Vect> fcom_; // vorticity
   FieldCell<Scal> fcomm_; // vorticity magnitude
-  FieldCell<Scal> fcbc_; // boundary condition type by GetBcField()
   FieldCell<Scal> fc_strain_; // double inner product of strain rate tensor
   Multi<FieldCell<Scal>> fck_; // curvature
   typename PartStrMeshM<M>::Par psm_par_;
@@ -611,8 +609,6 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   } else {
     throw std::runtime_error("Unknown fluid_solver=" + fs);
   }
-
-  fcbc_ = GetBcField(mf_fluid_, m);
 }
 
 template <class M>
@@ -1069,35 +1065,29 @@ void Hydro<M>::Init() {
     }
 
     // boundary conditions
-    if (var.Int["enable_bc"]) {
-      if (eb_) {
-        auto p = InitBc(var, *eb_);
-        mebc_fluid_ = std::get<0>(p);
-        mf_adv_ = std::get<1>(p);
-        me_group_ = std::get<2>(p);
-        vdesc_ = std::get<3>(p);
-        mf_adv_.LoopBCond(*eb_, [&](auto cf, auto c, auto) { //
-          me_contang_[cf] = fc_contang_[c];
-          mf_adv_[cf].contang = fc_contang_[c];
-        });
-      } else {
-        auto p = InitBc(var, m);
-        mebc_fluid_ = std::get<0>(p);
-        mf_adv_ = std::get<1>(p);
-        me_group_ = std::get<2>(p);
-        vdesc_ = std::get<3>(p);
-        for (auto& p : mf_adv_.GetMapFace()) {
-          const auto& f = p.first;
-          auto& bc = p.second;
-          const auto c = m.GetCell(f, bc.nci);
-          me_contang_[f] = fc_contang_[c];
-          bc.contang = fc_contang_[c];
-        }
-      }
-      mf_fluid_ = GetCondFluid<M>(mebc_fluid_);
+    if (eb_) {
+      auto p = InitBc(var, *eb_);
+      mebc_fluid_ = std::get<0>(p);
+      mf_adv_ = std::get<1>(p);
+      me_group_ = std::get<2>(p);
+      vdesc_ = std::get<3>(p);
+      mf_adv_.LoopBCond(*eb_, [&](auto cf, auto c, auto) { //
+        me_contang_[cf] = fc_contang_[c];
+        mf_adv_[cf].contang = fc_contang_[c];
+      });
     } else {
-      GetFluidFaceCond(var, m, mf_fluid_, mf_adv_);
-      mebc_fluid_ = GetBCondFluid<M>(mf_fluid_);
+      auto p = InitBc(var, m);
+      mebc_fluid_ = std::get<0>(p);
+      mf_adv_ = std::get<1>(p);
+      me_group_ = std::get<2>(p);
+      vdesc_ = std::get<3>(p);
+      for (auto& p : mf_adv_.GetMapFace()) {
+        const auto& f = p.first;
+        auto& bc = p.second;
+        const auto c = m.GetCell(f, bc.nci);
+        me_contang_[f] = fc_contang_[c];
+        bc.contang = fc_contang_[c];
+      }
     }
     mebc_fluid_orig_ = mebc_fluid_;
 
@@ -1127,7 +1117,7 @@ void Hydro<M>::Init() {
   }
 
   if (var.Int["initvort"] && sem.Nested("initvort")) {
-    InitVort(fcvel, fcvel, mf_fluid_, var.Int["vort_report"], m);
+    InitVort(fcvel, fcvel, mebc_fluid_, m);
   }
 
   if (var.Int["vel_init_random"] && sem("random")) {
@@ -1180,6 +1170,8 @@ void Hydro<M>::Init() {
   if (sem.Nested("body-mask")) {
     InitVf(ctx->fcbody, ctx->varbody, m);
   }
+  /*
+  // TODO: implement
   if (sem("body-bc")) {
     // Step-wise approximation of bodies
     const Scal clear0 = var.Double["bcc_clear0"];
@@ -1198,8 +1190,9 @@ void Hydro<M>::Init() {
     }
     AppendBodyCond<M>(
         fc, var.String["body_bc"], m, clear0, clear1, inletcl, fill_vf, nullptr,
-        mf_fluid_, mf_adv_);
+        mebc_fluid_, mf_adv_);
   }
+  */
 
   if (sem("calcdt0")) {
     const Scal dt = var.Double["dt0"];
@@ -1267,10 +1260,6 @@ void Hydro<M>::Init() {
         } else {
           UInitEmbedBc<M>::DumpPoly("bc.vtk", me_group_, me_contang_, m, m);
         }
-      }
-    } else {
-      if (sem.Nested()) {
-        DumpBcFaces(mf_adv_, mf_fluid_, "bc.vtk", m);
       }
     }
   }
@@ -1452,7 +1441,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     if (var.Int["enable_surftens"] && as_) {
       CalcSurfaceTension(
           m, layers, var, fc_force_, febp_.GetFieldFace(), fc_sig_,
-          GetCondZeroGrad<Scal>(mf_fluid_), fck_, fc_vf0, af, as_.get());
+          GetBCondZeroGrad<Scal>(mebc_fluid_), fck_, fc_vf0, af, as_.get());
     }
 
     // zero force in z if 2D
@@ -1513,7 +1502,6 @@ void Hydro<M>::DumpFields() {
     dump(fc_mu_, "mu");
     dump(fc_sig_, "sig");
     dump(fc_contang_, "contang");
-    dump(fcbc_, "bc");
     if (dl.count("cellcond")) {
       auto& fc = ctx->fc_cellcond;
       fc.Reinit(m, 0);
