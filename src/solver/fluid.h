@@ -106,6 +106,7 @@ enum class BCondFluidType {
   inletflux, // inlet only constraining the total flux [velocity]
   inletpressure, // inlet with given pressure [pressure]
   outlet, // outlet [-]
+  outletpressure, // outlet with given pressure [pressure]
   symm, // symmetry [-]
 };
 
@@ -137,6 +138,7 @@ MapEmbed<BCond<typename M::Vect>> GetVelCond(
       case BCondFluidType::inletflux:
       case BCondFluidType::inletpressure:
       case BCondFluidType::outlet:
+      case BCondFluidType::outletpressure:
         bc.type = BCondType::dirichlet;
         bc.val = bcf.velocity;
         break;

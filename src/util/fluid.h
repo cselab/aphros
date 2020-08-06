@@ -68,6 +68,7 @@ class UFluid {
           case BCondFluidType::inlet:
           case BCondFluidType::inletflux:
           case BCondFluidType::inletpressure:
+          case BCondFluidType::outletpressure:
           case BCondFluidType::symm: {
             const Scal q = (nci == 0 ? -1 : 1);
             if (m.IsInner(c)) {
@@ -247,6 +248,23 @@ class UFluid {
         }
       });
     }
+  }
+
+  // fcvel: velocity
+  // fcp: pressure
+  // mfc: fluid face conditions
+  // factor: correction factor, velocity over pressure
+  template <class EB>
+  static void UpdateVelocityOnPressureBoundaries(
+      MapEmbed<BCond<Vect>>& mebc_vel, const EB& eb,
+      const FieldCell<Vect>& fcvel, const MapEmbed<BCondFluid<Vect>>& mebc) {
+    mebc.LoopBCond(eb, [&](auto cf, IdxCell c, auto& bc) {
+      if (bc.type == BCondFluidType::inletpressure ||
+          bc.type == BCondFluidType::outletpressure) {
+        const Vect vel = fcvel[c].proj(eb.GetNormal(cf));
+        mebc_vel.at(cf).val = vel;
+      }
+    });
   }
 
   template <class MEB>

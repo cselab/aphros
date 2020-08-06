@@ -19,7 +19,6 @@ struct ProjPar {
   ConvSc convsc = ConvSc::quick; // convection scheme
   Scal convdf = 1.; // deferred correction factor
   bool stokes = false; // Stokes flow
-  bool explconv = false; // explicit convectio for Conv::imp
   bool convsymm = false; // symmetric solver for linear system in convdiff
   Conv conv = Conv::imp; // convection-diffusion solver
   bool bcg = false; // Bell-Colella-Glaz scheme

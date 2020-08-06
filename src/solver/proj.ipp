@@ -328,14 +328,22 @@ struct Proj<EB_>::Imp {
   // ffv: flux
   FieldFaceb<ExprFace> GetFlux(
       const FieldCell<Scal>&, const FieldFaceb<Scal>& ffv, Scal dt) {
+    // pressure gradient
     FieldFaceb<ExprFace> ffe =
         UEB::GradientImplicit(FieldCell<Scal>(eb, 0), {}, eb);
-    eb.LoopFaces([&](auto cf) { //
-      if (!is_boundary_[cf]) {
-        ffe[cf] *= -eb.GetArea(cf) / ffdens_[cf] * dt;
+    mebc_.LoopBCond(eb, [&](auto cf, IdxCell, auto& bc) {
+      if (bc.type == BCondFluidType::inletpressure) {
+        ffe[cf].back() += ffe[cf][1 - bc.nci] * bc.pressure;
+        ffe[cf][1 - bc.nci] = 0;
+      } else if (bc.type == BCondFluidType::outletpressure) {
+        ffe[cf].back() += ffe[cf][1 - bc.nci] * bc.pressure;
+        ffe[cf][1 - bc.nci] = 0;
       } else {
         ffe[cf] = ExprFace(0);
       }
+    });
+    eb.LoopFaces([&](auto cf) { //
+      ffe[cf] *= -eb.GetArea(cf) / ffdens_[cf] * dt;
       ffe[cf][2] += ffv[cf];
     });
     return ffe;
@@ -413,14 +421,12 @@ struct Proj<EB_>::Imp {
   void UpdateBc(typename M::Sem& sem) {
     if (sem("bc-derived")) {
       UpdateDerivedConditions();
+      UFluid<M>::UpdateVelocityOnPressureBoundaries(
+          me_vel_, eb, fcvel_.iter_curr, mebc_);
     }
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(
           m, eb, fcvel_.iter_curr, mebc_, par.inletflux_numid, me_vel_);
-    }
-    if (sem.Nested("bc-inletflux")) {
-      UFluid<M>::UpdateInletPressure(
-          m, eb, fcp_.iter_curr, mebc_, par.inletpressure_factor);
     }
     if (sem.Nested("bc-outlet")) {
       UFluid<M>::template UpdateOutletVelocity(

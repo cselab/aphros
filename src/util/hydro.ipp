@@ -698,6 +698,7 @@ InitBc(const Vars& var, const MEB& eb) {
         ca.fill_cl = inletcl;
         break;
       case BCondFluidType::outlet:
+      case BCondFluidType::outletpressure:
         ca.halo = Halo::fill;
         ca.clear0 = 1;
         ca.clear1 = 1;

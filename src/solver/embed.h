@@ -136,6 +136,9 @@ const FieldEmbed<typename Vect::value_type> GetComponent(
       GetComponent(fev.GetFieldCell(), d), GetComponent(fev.GetFieldFace(), d));
 }
 
+template <class M>
+class Embed;
+
 template <class T>
 class MapEmbed {
  public:
@@ -214,9 +217,9 @@ class MapEmbed {
   }
   // Iterates over faces and passes the index of neighbor cell.
   // Value should have member variable `nci`.
-  // F: function void(IdxFace or IdxCell, IdxCell, BC)
-  template <class EB, class F>
-  void LoopBCond(const EB& eb, F lambda) {
+  // lambda: function void(IdxFace or IdxCell, IdxCell, BC)
+  template <class M, class F>
+  void LoopBCond(const Embed<M>& eb, F lambda) {
     for (auto& p : df_) {
       const IdxFace f = p.first;
       const auto& bc = p.second;
@@ -228,8 +231,8 @@ class MapEmbed {
       lambda(c, c, bc);
     }
   }
-  template <class EB, class F>
-  void LoopBCond(const EB& eb, F lambda) const {
+  template <class M, class F>
+  void LoopBCond(const Embed<M>& eb, F lambda) const {
     for (auto& p : df_) {
       const IdxFace f = p.first;
       const auto& bc = p.second;
@@ -239,6 +242,22 @@ class MapEmbed {
       const IdxCell c = p.first;
       const auto& bc = p.second;
       lambda(c, c, bc);
+    }
+  }
+  template <class M, class F>
+  void LoopBCond(const M& m, F lambda) {
+    for (auto& p : df_) {
+      const IdxFace f = p.first;
+      const auto& bc = p.second;
+      lambda(f, m.GetCell(f, bc.nci), bc);
+    }
+  }
+  template <class M, class F>
+  void LoopBCond(const M& m, F lambda) const {
+    for (auto& p : df_) {
+      const IdxFace f = p.first;
+      const auto& bc = p.second;
+      lambda(f, m.GetCell(f, bc.nci), bc);
     }
   }
 
