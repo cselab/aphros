@@ -326,14 +326,13 @@ struct Proj<EB_>::Imp {
   // fcp: pressure
   // fck: diagonal coefficient
   // ffv: flux
-  FieldFaceb<ExprFace> GetFlux(
-      const FieldCell<Scal>&, const FieldFaceb<Scal>& ffv, Scal dt) {
-    // pressure gradient
+  FieldFaceb<ExprFace> GetFlux(const FieldFaceb<Scal>& ffv, Scal dt) {
+    // implicit pressure gradient
     FieldFaceb<ExprFace> ffe =
         UEB::GradientImplicit(FieldCell<Scal>(eb, 0), {}, eb);
     mebc_.LoopBCond(eb, [&](auto cf, IdxCell, auto& bc) {
-      if (bc.type == BCondFluidType::inletpressure ||
-          bc.type == BCondFluidType::outletpressure) {
+      if ((bc.type == BCondFluidType::inletpressure ||
+           bc.type == BCondFluidType::outletpressure)) {
         ffe[cf].back() += ffe[cf][1 - bc.nci] * bc.pressure;
         ffe[cf][1 - bc.nci] = 0;
       } else {
@@ -375,7 +374,7 @@ struct Proj<EB_>::Imp {
       FieldCell<Expr> fcpcs; // linear system for pressure [i]
     } * ctx(sem);
     if (sem("local")) {
-      ctx->ffvc = GetFlux(fcp, ffv, dt);
+      ctx->ffvc = GetFlux(ffv, dt);
       ctx->fcpcs = GetFluxSum(ctx->ffvc, *owner_->fcsv_);
       ApplyCellCond(fcp, ctx->fcpcs);
       ctx->fcpcs.SetName("pressure");
@@ -419,8 +418,10 @@ struct Proj<EB_>::Imp {
   void UpdateBc(typename M::Sem& sem) {
     if (sem("bc-derived")) {
       UpdateDerivedConditions();
+    }
+    if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateVelocityOnPressureBoundaries(
-          me_vel_, eb, fcvel_.iter_curr, mebc_);
+          me_vel_, m, eb, fev_.iter_curr, mebc_);
     }
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(

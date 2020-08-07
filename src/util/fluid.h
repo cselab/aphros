@@ -256,6 +256,52 @@ class UFluid {
     });
   }
 
+  // fcvel: velocity
+  // fcp: pressure
+  // mfc: fluid face conditions
+  // factor: correction factor, velocity over pressure
+  template <class EB>
+  static void UpdateVelocityOnPressureBoundaries(
+      MapEmbed<BCond<Vect>>& mebc_vel, M& m, const EB& eb,
+      const FieldEmbed<Scal>& fev, const MapEmbed<BCondFluid<Vect>>& mebc) {
+    auto sem = m.GetSem("inletpressure");
+    struct {
+      Scal inlet_area = 0;
+      Scal inlet_flux = 0;
+    } * ctx(sem);
+    auto& t = *ctx;
+
+    if (sem("reduce")) {
+      mebc.LoopBCond(eb, [&](auto cf, IdxCell, auto& bc) {
+        if (bc.type == BCondFluidType::inletpressure) {
+          t.inlet_flux += fev[cf];
+          t.inlet_area += eb.GetArea(cf);
+        }
+      });
+      m.Reduce(&t.inlet_area, "sum");
+      m.Reduce(&t.inlet_flux, "sum");
+    }
+    if (sem("average")) {
+      mebc.LoopBCond(eb, [&](auto cf, IdxCell, auto& bc) {
+        if (bc.type == BCondFluidType::inletpressure) {
+          const Vect vel = eb.GetNormal(cf) * (t.inlet_flux / t.inlet_area);
+          mebc_vel.at(cf).val = vel;
+        } else if (bc.type == BCondFluidType::outletpressure) {
+          const Scal q = (bc.nci == 0 ? 1 : -1);
+          const Vect n = eb.GetNormal(cf);
+          Vect vel = eb.GetNormal(cf) * (fev[cf] / eb.GetArea(cf));
+          vel = vel.proj(n);
+          Scal vn = vel.dot(n);
+          // clip normal component, let only positive
+          // (otherwise reversed flow leads to instability)
+          vn = (q > 0 ? std::max(0., vn) : std::min(0., vn));
+          vel = n * vn + vel.orth(n);
+          mebc_vel.at(cf).val = vel;
+        }
+      });
+    }
+  }
+
   template <class MEB>
   static void AppendExplViscous(
       FieldCell<Vect>& fc_force, const FieldCell<Vect>& fc_vel,
