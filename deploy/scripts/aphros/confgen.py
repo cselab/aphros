@@ -337,6 +337,10 @@ class BoundaryConditions:
         s = "outlet"
         self.__Append(s, geom)
 
+    def OutletPressure(self, geom, pressure, extra=""):
+        s = "outletpressure {:}{}".format(pressure, extra)
+        self.__Append(s, geom)
+
     def Symm(self, geom):
         s = "symm"
         self.__Append(s, geom)

@@ -8,24 +8,6 @@
 #include "solver/cond.h"
 #include "solver/fluid.h"
 
-template <class M>
-struct Extrapolate {
-  using Vect = typename M::Vect;
-  template <class T>
-  T operator()(Vect x, IdxCell c, const FieldCell<T>& fcu, const Embed<M>& eb) {
-    // extrapolation from cell center
-    return fcu[c];
-    // (using EvalLinearFit here results in slower convergence for steady flow)
-    (void) x;
-    (void) eb;
-    //return EvalLinearFit(x, c, fcu, eb);
-  }
-  template <class T>
-  T operator()(Vect, IdxCell c, const FieldCell<T>& fcu, const M&) {
-    return fcu[c];
-  }
-};
-
 template <class M_>
 class UFluid {
  public:
@@ -78,8 +60,7 @@ class UFluid {
           }
           case BCondFluidType::outlet: {
             const Scal q = (nci == 0 ? 1 : -1);
-            Vect vel = Extrapolate<M>()(eb.GetFaceCenter(cf), c, fcvel, eb);
-            vel = vel * relax + mebc_vel.at(cf).val * (1 - relax);
+            Vect vel = fcvel[c] * relax + mebc_vel.at(cf).val * (1 - relax);
             const Vect n = eb.GetNormal(cf);
             Scal vn = vel.dot(n);
             // clip normal component, let only positive
@@ -153,7 +134,6 @@ class UFluid {
         if (bc.type == BCondFluidType::inletflux) {
           const size_t id = 0; // TODO: implement other id's
           const Scal q = (nci == 0 ? -1. : 1.);
-          // extrapolate velocity
           const Vect vel = fcvel[c].proj(eb.GetNormal(cf));
           if (m.IsInner(c)) {
             flux_target[id] += bc.velocity.dot(eb.GetSurface(cf)) * q;
@@ -259,9 +239,18 @@ class UFluid {
       MapEmbed<BCond<Vect>>& mebc_vel, const EB& eb,
       const FieldCell<Vect>& fcvel, const MapEmbed<BCondFluid<Vect>>& mebc) {
     mebc.LoopBCond(eb, [&](auto cf, IdxCell c, auto& bc) {
-      if (bc.type == BCondFluidType::inletpressure ||
-          bc.type == BCondFluidType::outletpressure) {
+      if (bc.type == BCondFluidType::inletpressure) {
         const Vect vel = fcvel[c].proj(eb.GetNormal(cf));
+        mebc_vel.at(cf).val = vel;
+      } else if (bc.type == BCondFluidType::outletpressure) {
+        const Scal q = (bc.nci == 0 ? 1 : -1);
+        const Vect n = eb.GetNormal(cf);
+        Vect vel = fcvel[c].proj(n);
+        Scal vn = vel.dot(n);
+        // clip normal component, let only positive
+        // (otherwise reversed flow leads to instability)
+        vn = (q > 0 ? std::max(0., vn) : std::min(0., vn));
+        vel = n * vn + vel.orth(n);
         mebc_vel.at(cf).val = vel;
       }
     });

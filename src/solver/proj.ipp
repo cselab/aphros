@@ -332,10 +332,8 @@ struct Proj<EB_>::Imp {
     FieldFaceb<ExprFace> ffe =
         UEB::GradientImplicit(FieldCell<Scal>(eb, 0), {}, eb);
     mebc_.LoopBCond(eb, [&](auto cf, IdxCell, auto& bc) {
-      if (bc.type == BCondFluidType::inletpressure) {
-        ffe[cf].back() += ffe[cf][1 - bc.nci] * bc.pressure;
-        ffe[cf][1 - bc.nci] = 0;
-      } else if (bc.type == BCondFluidType::outletpressure) {
+      if (bc.type == BCondFluidType::inletpressure ||
+          bc.type == BCondFluidType::outletpressure) {
         ffe[cf].back() += ffe[cf][1 - bc.nci] * bc.pressure;
         ffe[cf][1 - bc.nci] = 0;
       } else {
