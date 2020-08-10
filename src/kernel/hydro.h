@@ -2274,6 +2274,9 @@ void Hydro<M>::StepEraseVolumeFraction() {
   const Scal t0 = var.Double["erasevf_t0"];
   const Scal tper = var.Double["erasevf_per"];
   if (st_.t > t0 && st_.t - erasevf_last_t_ >= tper) {
+    if (m.IsRoot()) {
+      std::cout << "erasevf t=" << st_.t << std::endl;
+    }
     erasevf_last_t_ = st_.t;
     auto apply_vof = [&](auto* as, const auto& eb) {
       if (as) {
