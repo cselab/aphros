@@ -108,7 +108,7 @@ class UFluid {
   // nid: maximum id of inlet flux for reduction
   template <class EB>
   static void UpdateInletFlux(
-      M & m, const EB& eb, const FieldCell<Vect>& fcvel,
+      M& m, const EB& eb, const FieldCell<Vect>& fcvel,
       const MapEmbed<BCondFluid<Vect>>& mebc, size_t max_id,
       MapEmbed<BCond<Vect>>& mebc_vel) {
     auto sem = m.GetSem("inletflux");
@@ -263,11 +263,14 @@ class UFluid {
   template <class EB>
   static void UpdateVelocityOnPressureBoundaries(
       MapEmbed<BCond<Vect>>& mebc_vel, M& m, const EB& eb,
-      const FieldEmbed<Scal>& fev, const MapEmbed<BCondFluid<Vect>>& mebc) {
+      const FieldEmbed<Scal>& fev, const MapEmbed<BCondFluid<Vect>>& mebc,
+      Scal relax) {
     auto sem = m.GetSem("inletpressure");
     struct {
-      Scal inlet_area = 0;
       Scal inlet_flux = 0;
+      Scal inlet_area = 0;
+      Scal outlet_flux = 0;
+      Scal outlet_area = 0;
     } * ctx(sem);
     auto& t = *ctx;
 
@@ -276,10 +279,15 @@ class UFluid {
         if (bc.type == BCondFluidType::inletpressure) {
           t.inlet_flux += fev[cf];
           t.inlet_area += eb.GetArea(cf);
+        } else if (bc.type == BCondFluidType::outletpressure) {
+          t.outlet_flux += fev[cf];
+          t.outlet_area += eb.GetArea(cf);
         }
       });
-      m.Reduce(&t.inlet_area, "sum");
       m.Reduce(&t.inlet_flux, "sum");
+      m.Reduce(&t.inlet_area, "sum");
+      m.Reduce(&t.outlet_flux, "sum");
+      m.Reduce(&t.outlet_area, "sum");
     }
     if (sem("average")) {
       mebc.LoopBCond(eb, [&](auto cf, IdxCell, auto& bc) {
@@ -289,7 +297,10 @@ class UFluid {
         } else if (bc.type == BCondFluidType::outletpressure) {
           const Scal q = (bc.nci == 0 ? 1 : -1);
           const Vect n = eb.GetNormal(cf);
-          Vect vel = eb.GetNormal(cf) * (fev[cf] / eb.GetArea(cf));
+          const Vect velextrap = eb.GetNormal(cf) * (fev[cf] / eb.GetArea(cf));
+          const Vect velavg =
+              eb.GetNormal(cf) * (t.outlet_flux / t.outlet_area);
+          Vect vel = velextrap * relax + velavg * (1 - relax);
           vel = vel.proj(n);
           Scal vn = vel.dot(n);
           // clip normal component, let only positive

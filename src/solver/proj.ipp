@@ -421,7 +421,7 @@ struct Proj<EB_>::Imp {
     }
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateVelocityOnPressureBoundaries(
-          me_vel_, m, eb, fev_.iter_curr, mebc_);
+          me_vel_, m, eb, fev_.iter_curr, mebc_, par.outlet_relax);
     }
     if (sem.Nested("bc-inletflux")) {
       UFluid<M>::UpdateInletFlux(
