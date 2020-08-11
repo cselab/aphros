@@ -2278,23 +2278,25 @@ void Hydro<M>::StepEraseVolumeFraction() {
       std::cout << "erasevf t=" << st_.t << std::endl;
     }
     erasevf_last_t_ = st_.t;
-    auto apply_vof = [&](auto* as, const auto& eb) {
+    auto apply_vof = [this,&rect](auto* as, const auto& eb) {
       if (as) {
         auto& u = const_cast<FieldCell<Scal>&>(as->GetField());
         for (auto c : eb.AllCells()) {
-          if (rect.IsInside(m.GetCenter(c)) && u[c] > 0) {
+          const auto x = m.GetCenter(c);
+          if (rect.IsInside(x) && u[c] > 0) {
             u[c] = 0;
           }
         }
       }
     };
-    auto apply_vofm = [&](auto* as, const auto& eb) {
+    auto apply_vofm = [this,&rect](auto* as, const auto& eb) {
       if (as) {
         for (auto l : layers) {
           auto& u = const_cast<FieldCell<Scal>&>(*as->GetFieldM()[l]);
           auto& cl = const_cast<FieldCell<Scal>&>(*as->GetColor()[l]);
           for (auto c : eb.AllCells()) {
-            if (rect.IsInside(m.GetCenter(c)) && u[c] > 0) {
+            const auto x = m.GetCenter(c);
+            if (rect.IsInside(x) && u[c] > 0) {
               u[c] = 0;
               cl[c] = kClNone;
             }
