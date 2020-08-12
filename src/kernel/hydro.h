@@ -172,7 +172,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void StepTracer();
   void StepParticles();
   void StepBubgen();
-  void StepEraseVolumeFraction();
+  void StepEraseVolumeFraction(std::string prefix, Scal& last_t);
 
   using ASV = Vof<M>; // advection VOF
   using ASVM = Vofm<M>; // advection multi VOF
@@ -312,6 +312,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   Scal bgt_ = -1.; // bubgen last time
   Scal erasevf_last_t_ = -std::numeric_limits<Scal>::max();
+  Scal erasevf2_last_t_ = -std::numeric_limits<Scal>::max();
 
   struct StatHydro {
     Scal dt = 0; // dt fluid
@@ -2166,7 +2167,8 @@ void Hydro<M>::StepAdvection() {
   }
   if (var.Int["enable_erasevf"]) {
     if (sem("erasevf")) {
-      StepEraseVolumeFraction();
+      StepEraseVolumeFraction("erasevf", erasevf_last_t_);
+      StepEraseVolumeFraction("erasevf2", erasevf2_last_t_);
     }
   }
 }
@@ -2267,13 +2269,16 @@ void Hydro<M>::StepBubgen() {
 }
 
 template <class M>
-void Hydro<M>::StepEraseVolumeFraction() {
-  const Vect rect_x0(var.Vect["erasevf_rect_x0"]);
-  const Vect rect_x1(var.Vect["erasevf_rect_x1"]);
+void Hydro<M>::StepEraseVolumeFraction(std::string prefix, Scal& last_t) {
+  if (!var.Double.Contains(prefix + "_t0")) {
+    return;
+  }
+  const Vect rect_x0(var.Vect[prefix + "_rect_x0"]);
+  const Vect rect_x1(var.Vect[prefix + "_rect_x1"]);
   const Rect<Vect> rect(rect_x0, rect_x1);
-  const Scal t0 = var.Double["erasevf_t0"];
-  const Scal tper = var.Double["erasevf_per"];
-  if (st_.t > t0 && st_.t - erasevf_last_t_ >= tper) {
+  const Scal t0 = var.Double[prefix + "_t0"];
+  const Scal tper = var.Double[prefix + "_per"];
+  if (st_.t > t0 && st_.t - last_t >= tper) {
     if (m.IsRoot()) {
       std::cout << "erasevf t=" << st_.t << std::endl;
     }
