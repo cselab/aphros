@@ -2282,7 +2282,7 @@ void Hydro<M>::StepEraseVolumeFraction(std::string prefix, Scal& last_t) {
     if (m.IsRoot()) {
       std::cout << "erasevf t=" << st_.t << std::endl;
     }
-    erasevf_last_t_ = st_.t;
+    last_t = st_.t;
     auto apply_vof = [this,&rect](auto* as, const auto& eb) {
       if (as) {
         auto& u = const_cast<FieldCell<Scal>&>(as->GetField());
