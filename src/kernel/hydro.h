@@ -173,6 +173,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void StepParticles();
   void StepBubgen();
   void StepEraseVolumeFraction(std::string prefix, Scal& last_t);
+  void StepEraseColor(std::string prefix);
 
   using ASV = Vof<M>; // advection VOF
   using ASVM = Vofm<M>; // advection multi VOF
@@ -2170,6 +2171,9 @@ void Hydro<M>::StepAdvection() {
       StepEraseVolumeFraction("erasevf", erasevf_last_t_);
       StepEraseVolumeFraction("erasevf2", erasevf2_last_t_);
     }
+    if (sem.Nested("erasecl")) {
+      StepEraseColor("erasecl");
+    }
   }
 }
 
@@ -2279,8 +2283,8 @@ void Hydro<M>::StepEraseVolumeFraction(std::string prefix, Scal& last_t) {
   const Scal t0 = var.Double[prefix + "_t0"];
   const Scal tper = var.Double[prefix + "_per"];
   if (st_.t > t0 && st_.t - last_t >= tper) {
-    if (m.IsRoot()) {
-      std::cout << "erasevf t=" << st_.t << std::endl;
+    if (m.IsRoot() && tper > fs_->GetTimeStep()) {
+      std::cout << prefix + " t=" << st_.t << std::endl;
     }
     last_t = st_.t;
     auto apply_vof = [this,&rect](auto* as, const auto& eb) {
@@ -2316,5 +2320,56 @@ void Hydro<M>::StepEraseVolumeFraction(std::string prefix, Scal& last_t) {
       apply_vofm(dynamic_cast<ASVM*>(as_.get()), m);
       apply_vof(dynamic_cast<ASV*>(as_.get()), m);
     }
+  }
+}
+
+template <class M>
+void Hydro<M>::StepEraseColor(std::string prefix) {
+  if (!var.Vect.Contains(prefix + "_rect_x0")) {
+    return;
+  }
+  const Vect rect_x0(var.Vect[prefix + "_rect_x0"]);
+  const Vect rect_x1(var.Vect[prefix + "_rect_x1"]);
+  const Rect<Vect> rect(rect_x0, rect_x1);
+
+  auto sem = m.GetSem();
+  struct {
+    Scal cl = std::numeric_limits<Scal>::max();
+  } * ctx(sem);
+  auto& t = *ctx;
+  auto apply_vofm = [this, &rect, &t](
+                        auto* as, const auto& eb, M& m, Sem& sem) {
+    if (as) {
+      if (sem()) {
+        for (auto l : layers) {
+          auto& u = const_cast<FieldCell<Scal>&>(*as->GetFieldM()[l]);
+          auto& cl = const_cast<FieldCell<Scal>&>(*as->GetColor()[l]);
+          for (auto c : eb.AllCells()) {
+            const auto x = m.GetCenter(c);
+            if (rect.IsInside(x) && u[c] > 0 && cl[c] != kClNone) {
+              t.cl = cl[c];
+            }
+          }
+        }
+        m.Reduce(&t.cl, "min");
+      }
+      if (sem()) {
+        for (auto l : layers) {
+          auto& u = const_cast<FieldCell<Scal>&>(*as->GetFieldM()[l]);
+          auto& cl = const_cast<FieldCell<Scal>&>(*as->GetColor()[l]);
+          for (auto c : eb.AllCells()) {
+            if (cl[c] == t.cl) {
+              u[c] = 0;
+              cl[c] = kClNone;
+            }
+          }
+        }
+      }
+    }
+  };
+  if (eb_) {
+    apply_vofm(dynamic_cast<ASVMEB*>(as_.get()), *eb_, m, sem);
+  } else {
+    apply_vofm(dynamic_cast<ASVM*>(as_.get()), m, m, sem);
   }
 }
