@@ -725,6 +725,50 @@ void Hydro<M>::InitStat() {
   stat.AddSumHidden("p*vol2", "", [&p, &vf](IdxCell c, const M& m) { //
     return p[c] * vf[c] * m.GetVolume(c);
   });
+  auto& ffv = fs_->GetVolumeFlux();
+  if (eb_) {
+    stat.AddSum(
+        "q_inlet", "inlet volume rate", //
+        [&ffv, this]() {
+          Scal sum = 0;
+          mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
+            if (m.IsInner(c)) {
+              if (bc.type == BCondFluidType::inlet ||
+                  bc.type == BCondFluidType::inletflux) {
+                sum += ffv[cf] * (bc.nci == 0 ? -1 : 1);
+              }
+            }
+          });
+          return sum;
+        });
+    stat.AddSum(
+        "q_inletpressure", "inletpressure volume rate", //
+        [&ffv, this]() {
+          Scal sum = 0;
+          mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
+            if (m.IsInner(c)) {
+              if (bc.type == BCondFluidType::inletpressure) {
+                sum += ffv[cf] * (bc.nci == 0 ? -1 : 1);
+              }
+            }
+          });
+          return sum;
+        });
+    stat.AddSum(
+        "q_outlet", "outlet volume rate", //
+        [&ffv, this]() {
+          Scal sum = 0;
+          mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
+            if (m.IsInner(c)) {
+              if (bc.type == BCondFluidType::outlet ||
+                  bc.type == BCondFluidType::outletpressure) {
+                sum += ffv[cf] * (bc.nci == 0 ? 1 : -1);
+              }
+            }
+          });
+          return sum;
+        });
+  }
 
   auto div = [](auto v, Scal d) {
     if (d == 0) {
