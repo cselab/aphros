@@ -6,7 +6,7 @@ import numpy as np
 
 parser = argparse.ArgumentParser(
     description="Extracts columns from statistics file 'stat.dat'.")
-parser.add_argument('columns', nargs='+', help="columns")
+parser.add_argument('columns', nargs='*', help="columns")
 parser.add_argument('--path', default="stat.dat", help="path to 'stat.dat'")
 parser.add_argument('--header',
                     action="store_true",
@@ -17,11 +17,16 @@ u = np.genfromtxt(args.path, names=True)
 
 cc = args.columns
 
-unknown = [c for c in cc if c not in u.dtype.names]
+with open(args.path) as f:
+    head = f.readline().split()
+
+unknown = [c for c in cc if c not in head]
 assert not unknown, "invalid columns {:}\nvalid columns are {:}".format(
-    unknown, list(u.dtype.names))
+    unknown, head)
 
 if args.header:
     print(' '.join(cc))
 
-np.savetxt(sys.stdout, u[args.columns])
+ii = [head.index(c) for c in cc]
+
+np.savetxt(sys.stdout, u[ii])
