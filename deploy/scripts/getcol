@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
 
 import sys
+import argparse
+import numpy as np
 
+parser = argparse.ArgumentParser(
+    description="Extracts columns from statistics file 'stat.dat'.")
+parser.add_argument('columns', nargs='+', help="columns")
+parser.add_argument('--path', default="stat.dat", help="path to 'stat.dat'")
+parser.add_argument('--header',
+                    action="store_true",
+                    help="print header with columns")
+args = parser.parse_args()
 
-s = "stat.dat"
-v = sys.argv
+u = np.genfromtxt(args.path, names=True)
 
-if len(v) != 2:
-  print("usage: {:} columnname".format(v[0]))
-  print("print column of {:}".format(s))
-  exit(1)
+cc = args.columns
 
+unknown = [c for c in cc if c not in u.dtype.names]
+assert not unknown, "invalid columns {:}\nvalid columns are {:}".format(
+    unknown, list(u.dtype.names))
 
-c = v[1]
+if args.header:
+    print(' '.join(cc))
 
-with open(s) as f:
-  i = f.readline().split().index(c)
-  for l in f:
-    print(l.split()[i])
-
+np.savetxt(sys.stdout, u[args.columns])
