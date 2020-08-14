@@ -13,7 +13,7 @@ parser.add_argument('--header',
                     help="print header with columns")
 args = parser.parse_args()
 
-u = np.genfromtxt(args.path, names=True)
+u = np.genfromtxt(args.path, skip_header=1)
 
 cc = args.columns
 
@@ -29,4 +29,4 @@ if args.header:
 
 ii = [head.index(c) for c in cc]
 
-np.savetxt(sys.stdout, u[ii])
+np.savetxt(sys.stdout, u[:, ii])
