@@ -667,6 +667,16 @@ void Hydro<M>::InitStat() {
   stat.AddSum(
       "vol1", "volume of phase 1", //
       [&vf](IdxCell c, const M& m) { return (1 - vf[c]) * m.GetVolume(c); });
+  if (eb_) {
+    stat.AddSum(
+        "vol_eb", "volume of domain with embed", //
+        [](IdxCell c, const EB& eb) { return eb.GetVolume(c); });
+    stat.AddSum(
+        "vol1_eb", "volume of phase 1 with embed", //
+        [&vf](IdxCell c, const EB& eb) {
+          return eb.GetVolume(c) - vf[c] * eb.GetMesh().GetVolume(c);
+        });
+  }
   stat.AddSum(
       "vol2", "volume of phase 2", //
       [&vf](IdxCell c, const M& m) { return vf[c] * m.GetVolume(c); });
