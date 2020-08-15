@@ -2225,9 +2225,9 @@ void Hydro<M>::StepAdvection() {
       StepEraseVolumeFraction("erasevf", erasevf_last_t_);
       StepEraseVolumeFraction("erasevf2", erasevf2_last_t_);
     }
-    if (sem.Nested("erasecl")) {
-      StepEraseColor("erasecl");
-    }
+  }
+  if (sem.Nested("erasecl")) {
+    StepEraseColor("erasecl");
   }
 }
 
