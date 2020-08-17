@@ -747,6 +747,14 @@ void Hydro<M>::InitStat() {
   stat.AddSumHidden("p*vol2", "", [&p, &vf](IdxCell c, const M& m) { //
     return p[c] * vf[c] * m.GetVolume(c);
   });
+
+  auto div = [](auto v, Scal d) {
+    if (d == 0) {
+      return v * 0;
+    }
+    return v / d;
+  };
+
   auto& ffv = fs_->GetVolumeFlux();
   if (eb_) {
     stat.AddSum(
@@ -818,14 +826,12 @@ void Hydro<M>::InitStat() {
           });
           return sum;
         });
+    stat.AddDerived(
+        "p_inletpressure", "inletpressure average pressure", //
+        [div](const Stat<M>& stat) {
+          return div(stat["p*area_inletpressure"], stat["area_inletpressure"]);
+        });
   }
-
-  auto div = [](auto v, Scal d) {
-    if (d == 0) {
-      return v * 0;
-    }
-    return v / d;
-  };
 
   stat.AddDerived(
       "c1", "centeroid of phase 1", //
@@ -867,12 +873,6 @@ void Hydro<M>::InitStat() {
       "vol2_diff", "relative difference between vol2 and vol2_0", //
       [div](const Stat<M>& stat) {
         return div(stat["vol2"] - stat["vol2_0"], stat["vol2_0"]);
-      });
-  stat.AddDerived(
-      "p_inletpressure", "inletpressure average pressure", //
-      [div](const Stat<M>& stat) {
-        return div(
-            stat["p*area_inletpressure"], stat["area_inletpressure"]);
       });
 
   if (var.Int["stat_dissip"]) {
