@@ -429,7 +429,6 @@ void Hydro<M>::OverwriteBc() {
   if (!IsNan(p)) {
     mebc_fluid_.LoopPairs([&](auto cf_bc) {
       auto& curr = mebc_fluid_[cf_bc.first];
-      const auto& orig = mebc_fluid_orig_[cf_bc.first];
       if (curr.type == BCondFluidType::inletpressure) {
         curr.pressure = p;
       }
@@ -752,7 +751,7 @@ void Hydro<M>::InitStat() {
   if (eb_) {
     stat.AddSum(
         "q_inlet", "inlet volume rate", //
-        [&ffv, this]() {
+        [&ffv, this, &m=m]() {
           Scal sum = 0;
           mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
             if (m.IsInner(c)) {
@@ -766,7 +765,7 @@ void Hydro<M>::InitStat() {
         });
     stat.AddSum(
         "q_inletpressure", "inletpressure volume rate", //
-        [&ffv, this]() {
+        [&ffv, this, &m=m]() {
           Scal sum = 0;
           mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
             if (m.IsInner(c)) {
@@ -779,13 +778,41 @@ void Hydro<M>::InitStat() {
         });
     stat.AddSum(
         "q_outlet", "outlet volume rate", //
-        [&ffv, this]() {
+        [&ffv, this, &m=m]() {
           Scal sum = 0;
           mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
             if (m.IsInner(c)) {
               if (bc.type == BCondFluidType::outlet ||
                   bc.type == BCondFluidType::outletpressure) {
                 sum += ffv[cf] * (bc.nci == 0 ? 1 : -1);
+              }
+            }
+          });
+          return sum;
+        });
+    stat.AddSum(
+        "area_inletpressure", "inletpressure area", //
+        [this, &m=m]() {
+          Scal sum = 0;
+          auto& eb = *eb_;
+          mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
+            if (m.IsInner(c)) {
+              if (bc.type == BCondFluidType::inletpressure) {
+                sum += eb.GetArea(cf);
+              }
+            }
+          });
+          return sum;
+        });
+    stat.AddSumHidden(
+        "p*area_inletpressure", "inletpressure pressure * area", //
+        [&p, this, &m=m]() {
+          Scal sum = 0;
+          auto& eb = *eb_;
+          mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
+            if (m.IsInner(c)) {
+              if (bc.type == BCondFluidType::inletpressure) {
+                sum += p[c] * eb.GetArea(cf);
               }
             }
           });
@@ -840,6 +867,12 @@ void Hydro<M>::InitStat() {
       "vol2_diff", "relative difference between vol2 and vol2_0", //
       [div](const Stat<M>& stat) {
         return div(stat["vol2"] - stat["vol2_0"], stat["vol2_0"]);
+      });
+  stat.AddDerived(
+      "p_inletpressure", "inletpressure average pressure", //
+      [div](const Stat<M>& stat) {
+        return div(
+            stat["p*area_inletpressure"], stat["area_inletpressure"]);
       });
 
   if (var.Int["stat_dissip"]) {
