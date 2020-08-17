@@ -385,19 +385,34 @@ void Hydro<M>::SpawnTracer() {
 
 template <class M>
 void Hydro<M>::OverwriteBc() {
-  const auto factors = var.Vect["overwrite_inlet_factors"];
-  const auto times = var.Vect["overwrite_inlet_times"];
-  fassert_equal(factors.size(), times.size());
-  if (times.size() == 0) {
-    return;
-  }
-  const Scal t = fs_->GetTime();
-  size_t i = 0;
-  while (i < times.size() && times[i] <= t) {
-    ++i;
-  }
-
-  auto apply = [&](Scal factor) {
+  // piecewise-linear function
+  auto piecewise = [&](Scal t, const std::vector<Scal>& times,
+                       const std::vector<Scal>& values) {
+    fassert_equal(values.size(), times.size());
+    if (times.size() == 0) {
+      return GetNan<Scal>();
+    }
+    size_t i = 0;
+    while (i < times.size() && times[i] <= t) {
+      ++i;
+    }
+    if (i == 0) { // t < times[0]
+      return GetNan<Scal>();
+    }
+    if (i < times.size()) { // times[i - 1] <= t < times[i]
+      const Scal t0 = times[i - 1];
+      const Scal t1 = times[i];
+      const Scal v0 = values[i - 1];
+      const Scal v1 = values[i];
+      return t0 < t1 ? v0 + (v1 - v0) * (t - t0) / (t1 - t0) : v0;
+    } else {
+      return values.back();
+    }
+  };
+  const auto factor = piecewise(
+      fs_->GetTime(), var.Vect["overwrite_inlet_times"],
+      var.Vect["overwrite_inlet_factors"]);
+  if (!IsNan(factor)) {
     mebc_fluid_.LoopPairs([&](auto cf_bc) {
       auto& curr = mebc_fluid_[cf_bc.first];
       const auto& orig = mebc_fluid_orig_[cf_bc.first];
@@ -406,21 +421,19 @@ void Hydro<M>::OverwriteBc() {
         curr.velocity = orig.velocity * factor;
       }
     });
-  };
-
-  if (i == 0) { // t < times[0]
-    return;
   }
 
-  if (i < times.size()) { // times[i - 1] <= t < times[i]
-    const auto t0 = times[i - 1];
-    const auto t1 = times[i];
-    const auto f0 = factors[i - 1];
-    const auto f1 = factors[i];
-    const auto f = (t0 < t1 ? f0 + (f1 - f0) * (t - t0) / (t1 - t0) : f0);
-    apply(f);
-  } else { // t > times[i - 1]
-    apply(factors[i - 1]);
+  const auto p = piecewise(
+      fs_->GetTime(), var.Vect["overwrite_inletpressure_times"],
+      var.Vect["overwrite_inletpressure_pressure"]);
+  if (!IsNan(p)) {
+    mebc_fluid_.LoopPairs([&](auto cf_bc) {
+      auto& curr = mebc_fluid_[cf_bc.first];
+      const auto& orig = mebc_fluid_orig_[cf_bc.first];
+      if (curr.type == BCondFluidType::inletpressure) {
+        curr.pressure = p;
+      }
+    });
   }
 }
 
