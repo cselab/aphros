@@ -323,27 +323,12 @@ MapEmbed<BCond<T>> GetBCondZeroGrad(const MapEmbed<B>& mebc) {
   return r;
 }
 
-// Smoothens fieldcell.
+// Smoothens a cell field.
 // fc: fieldcell [s]
-// mfc: condface
+// mfc: boundary conditions
 // rep: number of iterations
 // Output:
 // fc: smooth field [s]
-template <class T, class M>
+template <class T, class MEB>
 void Smoothen(
-    FieldCell<T>& fc, const MapEmbed<BCond<T>>& mfc, M& m, size_t rep) {
-  auto sem = m.GetSem("smoothen");
-  using UEB = UEmbed<M>;
-  for (size_t i = 0; i < rep; ++i) {
-    if (sem()) {
-      const auto ff = UEB::Interpolate(fc, mfc, m);
-      fc = UEB::Interpolate(ff, m);
-      m.Comm(&fc);
-    }
-    // FIXME empty stage, without it cubismnc fails
-    // on sim25 with m="128 16 16" np=2 OMP_NUM_THREADS=1 on two nodes
-    // which is a minimal case with inner/halo blocks and MPI communication
-    if (sem()) {
-    }
-  }
-}
+    FieldCell<T>& fc, const MapEmbed<BCond<T>>& mfc, MEB& eb, size_t iters);

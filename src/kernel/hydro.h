@@ -1462,10 +1462,21 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     fc_force_.Reinit(m, Vect(0));
     febp_.Reinit(m, 0);
     fc_smvf_ = fc_vf0;
+    if (eb_ && var.Int["vfsmooth_extrapolate_cut"]) {
+      auto& eb = *eb_;
+      for (auto c : eb.CFaces()) {
+        fc_smvf_[c] = fc_vf0[eb.GetRegularNeighbor(c)];
+      }
+      m.Comm(&fc_smvf_);
+    }
   }
 
   if (sem.Nested("smooth")) {
-    Smoothen(fc_smvf_, mebc_vfsm_, m, var.Int["vfsmooth"]);
+    if (eb_) {
+      Smoothen(fc_smvf_, mebc_vfsm_, *eb_, var.Int["vfsmooth"]);
+    } else {
+      Smoothen(fc_smvf_, mebc_vfsm_, m, var.Int["vfsmooth"]);
+    }
   }
 
   if (sem("calc")) {

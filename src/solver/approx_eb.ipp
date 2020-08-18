@@ -1562,3 +1562,20 @@ auto UEmbed<M>::AverageGradient(const FieldFace<Scal>& ffg, const M& m)
   fcg.LimitHalo(ffg.GetHalo() - 1);
   return fcg;
 }
+
+template <class T, class MEB>
+void Smoothen(
+    FieldCell<T>& fc, const MapEmbed<BCond<T>>& mfc, MEB& eb, size_t iters) {
+  auto& m = eb.GetMesh();
+  auto sem = m.GetSem("smoothen");
+  using UEB = UEmbed<typename MEB::M>;
+  for (size_t i = 0; i < iters; ++i) {
+    if (sem()) {
+      fc = UEB::Interpolate(UEB::Interpolate(fc, mfc, eb), eb);
+      m.Comm(&fc);
+    }
+    if (sem()) {
+      // FIXME empty stage to finish communication in outer blocks
+    }
+  }
+}
