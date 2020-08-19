@@ -1186,14 +1186,7 @@ void Hydro<M>::Init() {
     mebc_fluid_orig_ = mebc_fluid_;
 
     // boundary conditions for smoothing of volume fraction
-    for (auto& p : mebc_fluid_.GetMapFace()) {
-      const IdxFace f = p.first;
-      auto& bc = p.second;
-      const auto nci = bc.nci;
-      auto& bcvf = mebc_vfsm_[f];
-      bcvf.nci = nci;
-      bcvf.type = BCondType::neumann;
-    }
+    mebc_vfsm_ = GetBCondZeroGrad<Scal>(mebc_fluid_);
   }
 
   if (var.Int["bc_wall_init_vel"] && sem("bc_wall_init_vel")) {
@@ -1472,7 +1465,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   }
 
   if (sem.Nested("smooth")) {
-    if (eb_) {
+    if (eb_ && var.Int["vfsmooth_extrapolate_cut"]) {
       Smoothen(fc_smvf_, mebc_vfsm_, *eb_, var.Int["vfsmooth"]);
     } else {
       Smoothen(fc_smvf_, mebc_vfsm_, m, var.Int["vfsmooth"]);
@@ -1483,8 +1476,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     FieldCell<Scal>& a = fc_smvf_;
     FieldFace<Scal>& af = ff_smvf_;
     if (eb_) {
-      auto& eb = *eb_;
-      af = UEB::Interpolate(a, {}, eb).GetFieldFace();
+      af = UEB::Interpolate(a, mebc_vfsm_, *eb_).GetFieldFace();
     } else {
       af = UEB::Interpolate(a, mebc_vfsm_, m);
     }

@@ -318,6 +318,7 @@ MapEmbed<BCond<T>> GetBCondZeroGrad(const MapEmbed<B>& mebc) {
   MapEmbed<BCond<T>> r;
   mebc.LoopPairs([&](auto p) {
     auto& bc = r[p.first];
+    bc.nci = p.second.nci;
     bc.type = BCondType::neumann;
   });
   return r;
