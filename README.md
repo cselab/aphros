@@ -74,7 +74,7 @@ Bubble trapped by vortex ring [[5]](https://doi.org/10.1016/j.ijmultiphaseflow.2
 [<img src="doc/images/reactor.jpg" width=384>](https://cselab.github.io/aphros/videos/reactor.mp4) | [<img src="doc/images/mesh_bubbles.jpg" width=384>](https://cselab.github.io/aphros/videos/mesh_bubbles.mp4)
 Electrochemical reactor [[1]](https://doi.org/10.1039/C9EE00219G) | Bubbles through mesh
 [<img src="doc/images/rising_bubbles.jpg" width=384>](https://cselab.github.io/aphros/videos/rising_bubbles.mp4) | [<img src="doc/images/foaming_waterfall.jpg" width=384>](https://cselab.github.io/aphros/videos/foaming_waterfall.mp4)
- Rising bubbles clustering on the surface [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) [[7]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019) | Foaming waterfall
+ Rising bubbles clustering on the surface [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) [[7]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019) | Foaming waterfall [[8]](https://doi.org/10.1145/3394277.3401856)
 
 |     |
 |:---:|

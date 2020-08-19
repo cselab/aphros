@@ -79,7 +79,7 @@ Bubble trapped by vortex ring [[ref:datadriven]] | Plunging jet [[ref:pasc19]]
 [<img src="doc/images/reactor.jpg" width=384>]([[VIDEOS]]/reactor.mp4) | [<img src="doc/images/mesh_bubbles.jpg" width=384>]([[VIDEOS]]/mesh_bubbles.mp4)
 Electrochemical reactor [[ref:ees]] | Bubbles through mesh
 [<img src="doc/images/rising_bubbles.jpg" width=384>]([[VIDEOS]]/rising_bubbles.mp4) | [<img src="doc/images/foaming_waterfall.jpg" width=384>]([[VIDEOS]]/foaming_waterfall.mp4)
- Rising bubbles clustering on the surface [[ref:aps]] [[ref:cscs]] | Foaming waterfall
+ Rising bubbles clustering on the surface [[ref:aps]] [[ref:cscs]] | Foaming waterfall [[ref:pasc20]]
 
 |     |
 |:---:|
@@ -127,7 +127,7 @@ under the supervision of
   [10.1103/APS.DFD.2019.GFM.V0018](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)
 [[item:cscs]] Annual report 2019 of the Swiss National Supercomputing Centre (cover page)
   [[link]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019)
-[[item:pasc21]] P. Karnakov, F. Wermelinger, S. Litvinov,
+[[item:pasc20]] P. Karnakov, F. Wermelinger, S. Litvinov,
   and P.  Koumoutsakos, "Aphros: High Performance Software for Multiphase Flows with Large Scale
   Bubble and Drop Clusters" in _Proceedings of the platform for
   advanced scientific computing conference on – PASC ’20_, 2020
