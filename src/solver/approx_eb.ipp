@@ -1535,7 +1535,7 @@ auto UEmbed<M>::AverageGradient(const FieldEmbed<Scal>& feg, const EB& eb)
     Vect sumw(0);
     for (auto q : eb.Nci(c)) {
       const auto f = eb.GetFace(c, q);
-      const Vect w = eb.GetSurface(f);
+      const Vect w = eb.GetNormal(f);
       sum += w * feg[f];
       sumw += w;
     }

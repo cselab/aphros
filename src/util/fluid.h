@@ -337,4 +337,25 @@ class UFluid {
       }
     }
   }
+
+  template <class MEB>
+  static void AppendExplViscousGradMu(
+      FieldCell<Vect>& fc_force, const FieldCell<Vect>& fc_vel,
+      const MapEmbed<BCond<Vect>>& mebc_vel, const FieldCell<Scal>& fc_mu,
+      const MapEmbed<BCond<Scal>>& mebc_mu, const MEB& eb) {
+    fc_force.Reinit(eb);
+    auto& m = eb.GetMesh();
+    const auto fcgm =
+        UEB::AverageGradient(UEB::Gradient(fc_mu, mebc_mu, eb), eb);
+    for (auto d : GRange<size_t>(m.GetEdim())) {
+      const auto fcu = GetComponent(fc_vel, d);
+      const auto mebc = GetScalarCond(mebc_vel, d, m);
+      const auto fcg = UEB::AverageGradient(UEB::Gradient(fcu, mebc, eb), eb);
+      for (auto c : eb.Cells()) {
+        if (eb.IsRegular(c)) {
+          fc_force[c] += fcg[c] * fcgm[c][d];
+        }
+      }
+    }
+  }
 };
