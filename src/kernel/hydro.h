@@ -1351,6 +1351,9 @@ void Hydro<M>::Init() {
   if (eb_ && sem.Nested()) {
     eb_->DumpPoly(var.Int["vtkbin"], var.Int["vtkmerge"]);
   }
+  if (sem.Nested("stat")) {
+    stat_->Update();
+  }
   if (var.Int["dumpinit"]) {
     if (sem.Nested()) {
       Dump(true);
