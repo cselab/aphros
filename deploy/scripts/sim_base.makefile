@@ -68,7 +68,7 @@ cleandat::
 	rm -vf *_*.{xmf,h5}
 	rm -vf *_*.vts
 	rm -vf p.pvd
-	rm -vf stat.dat
+	rm -vf stat.dat stat_summary
 	rm -vf partit_*.csv
 	rm -vf part_*.csv
 	rm -vf traj_*.csv
