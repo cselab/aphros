@@ -434,6 +434,28 @@ void Hydro<M>::OverwriteBc() {
       }
     });
   }
+
+  if (var.Int["enable_inlet_periodic"]) {
+    const Scal t0 = var.Double["inlet_periodic_t0"];
+    const Scal dur0 = var.Double["inlet_periodic_dur0"];
+    const Scal dur1 = var.Double["inlet_periodic_dur1"];
+    const Scal vf0 = var.Double["inlet_periodic_vf0"];
+    const Scal vf1 = var.Double["inlet_periodic_vf1"];
+    const Scal t = fs_->GetTime();
+    if (t >= t0) {
+      Scal intpart;
+      const Scal fractpart = std::modf((t - t0) / (dur0 + dur1), &intpart);
+      const Scal vf = (fractpart <= dur0 / (dur0 + dur1) ? vf0 : vf1);
+      mebc_fluid_.LoopPairs([&](auto cf_bc) {
+        auto cf = cf_bc.first;
+        auto& curr = mebc_fluid_[cf];
+        if (curr.type == BCondFluidType::inlet ||
+            curr.type == BCondFluidType::inletpressure) {
+          mf_adv_[cf].fill_vf = vf;
+        }
+      });
+    }
+  }
 }
 
 template <class M>
