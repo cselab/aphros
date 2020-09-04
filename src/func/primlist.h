@@ -131,6 +131,27 @@ struct UPrimList {
     p.name = "box";
     return true;
   }
+  static bool ParseRoundBox(std::string s, size_t edim, Primitive& p) {
+    auto d = GetMap("roundbox", s, "cx cy cz rx ry rz round", 7);
+    if (d.empty()) {
+      return false;
+    }
+
+    const Vect xc(d["cx"], d["cy"], d["cz"]); // center
+    const Vect r(d["rx"], d["ry"], d["rz"]); // radius (semi-axes)
+    const Scal round = d["round"]; // radius of rounding
+
+    p.ls = [edim, xc, r, round](const Vect& x) -> Scal {
+      Vect dx = (x - xc).abs();
+      if (edim == 2) {
+        dx[2] = 0;
+      }
+      const Vect q = (dx - r + Vect(round)).max(Vect(0));
+      return round - q.norm();
+    };
+    p.name = "roundbox";
+    return true;
+  }
   static bool ParseSmoothStep(std::string s, Primitive& p) {
     // smooth step (half of diverging channel from almgren1997)
     //  +   +   +   +   +   +  +
@@ -241,6 +262,7 @@ struct UPrimList {
       if (!r) r = ParseSphere(s, edim, p);
       if (!r) r = ParseRing(s, p);
       if (!r) r = ParseBox(s, edim, p);
+      if (!r) r = ParseRoundBox(s, edim, p);
       if (!r) r = ParseSmoothStep(s, p);
       if (!r) r = ParseCylinder(s, edim, p);
 
