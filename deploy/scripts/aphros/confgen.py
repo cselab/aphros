@@ -270,6 +270,13 @@ class Geometry:
         self.__Append(s)
         return self
 
+    def RoundBox(self, center, halfsize, roundradius=0, **kwargs):
+        s = self.__Prefix(**kwargs)
+        s += "roundbox {:}   {:}   {:}".format(
+                VectToStr(center), VectToStr(halfsize), roundradius)
+        self.__Append(s)
+        return self
+
     def Sphere(self, center, radii, **kwargs):
         s = self.__Prefix(**kwargs)
         s += "sphere {:}   {:}".format(VectToStr(center), VectToStr(radii))
