@@ -2413,10 +2413,11 @@ void Hydro<M>::StepBubgen() {
         if (as) {
           auto& u = const_cast<FieldCell<Scal>&>(*as->GetFieldM()[0]);
           auto& cl = const_cast<FieldCell<Scal>&>(*as->GetColor()[0]);
+          const Scal clnew = fs_->GetTime();
           for (auto c : eb.AllCells()) {
             if (fcvf[c] > 0) {
               u[c] = std::max(u[c], fcvf[c]);
-              cl[c] = 1.;
+              cl[c] = clnew;
             }
           }
         }
