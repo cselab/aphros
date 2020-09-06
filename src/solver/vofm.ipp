@@ -112,7 +112,8 @@ struct Vofm<EB_>::Imp {
         GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
         for (auto c : eb.SuCells()) {
           if (fci[c]) {
-            auto uu = GetStencil<M, 1, Scal>{}(layers, uc, fccl_, c, fccl[c], m);
+            auto uu =
+                GetStencil<M, 1, Scal>{}(layers, uc, fccl_, c, fccl[c], m);
             fcn[c] = UNormal<M>::GetNormalYoungs(uu);
             UNormal<M>::GetNormalHeight(uu, fcn[c]);
           } else {
@@ -715,6 +716,12 @@ struct Vofm<EB_>::Imp {
     if (par.sharpen && sem.Nested("sharpen")) {
       Sharpen(mfcu);
     }
+    if (modifier_) {
+      if (sem("modify")) {
+        modifier_(fcu_.iter_curr, fccl_, layers, eb);
+        modifier_ = nullptr;
+      }
+    }
     if (sem("bcc_clear")) {
       if (par.cloverride) {
         for (auto i : layers) {
@@ -856,6 +863,10 @@ struct Vofm<EB_>::Imp {
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   UVof<M> uvof_;
+  std::function<void(
+      const Multi<FieldCell<Scal>*>& fcu, const Multi<FieldCell<Scal>*>& fccl,
+      GRange<size_t> layers, const EB&)>
+      modifier_;
 };
 
 template <class EB_>
@@ -962,8 +973,8 @@ auto Vofm<EB_>::GetColorSum() const -> const FieldCell<Scal>& {
 
 template <class EB_>
 auto Vofm<EB_>::GetPlic() const -> Plic {
-  return {imp->layers,  GetFieldM(), GetAlpha(),
-          GetNormal(), GetMask(),  GetColor(), imp->mfc_};
+  return {imp->layers, GetFieldM(), GetAlpha(), GetNormal(),
+          GetMask(),   GetColor(),  imp->mfc_};
 }
 
 template <class EB_>
@@ -999,4 +1010,13 @@ void Vofm<EB_>::DumpInterface(std::string fn) const {
 template <class EB_>
 void Vofm<EB_>::DumpInterfaceMarch(std::string fn) const {
   return imp->DumpInterfaceMarch(fn);
+}
+
+template <class EB_>
+void Vofm<EB_>::AddModifier(
+    std::function<void(
+        const Multi<FieldCell<Scal>*>&, const Multi<FieldCell<Scal>*>&,
+        GRange<size_t>, const EB&)>
+        func) {
+  imp->modifier_ = func;
 }

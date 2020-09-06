@@ -2380,58 +2380,54 @@ template <class M>
 void Hydro<M>::StepBubgen() {
   auto sem = m.GetSem("bubgen");
   struct {
-    FieldCell<Scal> fcvf; // volume fraction
+    std::shared_ptr<FieldCell<Scal>> fcvf; // volume fraction
     Vars var;
   } * ctx(sem);
-  auto& fcvf = ctx->fcvf;
+  auto& t = *ctx;
   const Scal t0 = var.Double["bubgen_t0"];
   const Scal tper = var.Double["bubgen_per"];
   bool bg = (st_.t > t0 && st_.t - bgt_ >= tper);
   if (bg) {
     if (sem("as-bubgen-var")) {
-      ctx->var.String.Set("init_vf", "list");
-      ctx->var.String.Set("list_path", var.String["bubgen_path"]);
-      ctx->var.Int.Set("dim", var.Int["dim"]);
-      ctx->var.Int.Set("list_ls", var.Int["list_ls"]);
+      t.var.String.Set("init_vf", "list");
+      t.var.String.Set("list_path", var.String["bubgen_path"]);
+      t.var.Int.Set("dim", var.Int["dim"]);
+      t.var.Int.Set("list_ls", var.Int["list_ls"]);
+      t.fcvf = std::make_shared<FieldCell<Scal>>(m);
     }
     if (sem.Nested("as-bubgen-initvf")) {
-      InitVf(fcvf, ctx->var, m);
+      InitVf(*t.fcvf, t.var, m);
     }
     if (sem("as-bubgen-apply")) {
       bgt_ = st_.t;
-      auto apply_vof = [&](auto* as, const auto& eb) {
-        if (as) {
-          auto& u = const_cast<FieldCell<Scal>&>(as->GetField());
-          for (auto c : eb.AllCells()) {
-            if (fcvf[c] > 0) {
-              u[c] = std::max(u[c], fcvf[c]);
-            }
+      const Scal clnew = fs_->GetTime();
+      auto modify = [fcvf = t.fcvf, &clnew](auto& u, auto& cl, auto& eb) {
+        for (auto c : eb.AllCells()) {
+          if ((*fcvf)[c] > 0) {
+            const Scal v = std::min((*fcvf)[c], eb.GetVolumeFraction(c));
+            u[c] = std::max(u[c], v);
+            cl[c] = clnew;
           }
         }
       };
-      auto apply_vofm = [&](auto* as, const auto& eb) {
-        if (as) {
-          auto& u = const_cast<FieldCell<Scal>&>(*as->GetFieldM()[0]);
-          auto& cl = const_cast<FieldCell<Scal>&>(*as->GetColor()[0]);
-          const Scal clnew = fs_->GetTime();
-          for (auto c : eb.AllCells()) {
-            if (fcvf[c] > 0) {
-              u[c] = std::max(u[c], fcvf[c]);
-              cl[c] = clnew;
-            }
+      auto modifym = [fcvf = t.fcvf, &clnew](
+                         auto& u, auto& cl, auto, auto& eb) {
+        for (auto c : eb.AllCells()) {
+          if ((*fcvf)[c] > 0) {
+            const Scal v = std::min((*fcvf)[c], eb.GetVolumeFraction(c));
+            (*u[0])[c] = std::max((*u[0])[c], v);
+            (*cl[0])[c] = clnew;
           }
         }
       };
-      if (eb_) {
-        auto& eb = *eb_;
-        for (auto c : m.AllCells()) {
-          fcvf[c] = std::min(fcvf[c], eb.GetVolumeFraction(c));
-        }
-        apply_vofm(dynamic_cast<ASVMEB*>(as_.get()), *eb_);
-        apply_vof(dynamic_cast<ASVEB*>(as_.get()), *eb_);
-      } else {
-        apply_vofm(dynamic_cast<ASVM*>(as_.get()), m);
-        apply_vof(dynamic_cast<ASV*>(as_.get()), m);
+      if (auto* as = dynamic_cast<ASVEB*>(as_.get())) {
+        as->AddModifier(modify);
+      } else if (auto* as = dynamic_cast<ASVMEB*>(as_.get())) {
+        as->AddModifier(modifym);
+      } else if (auto* as = dynamic_cast<ASV*>(as_.get())) {
+        as->AddModifier(modify);
+      } else if (auto* as = dynamic_cast<ASVM*>(as_.get())) {
+        as->AddModifier(modifym);
       }
     }
     if (sem()) {

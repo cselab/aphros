@@ -76,6 +76,12 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
   void SaveState(std::string dirpath) const;
   // Loads current state from directory.
   void LoadState(std::string dirpath);
+  // Adds a function that modifies the fields at the next iteration
+  // and after which is removed.
+  void AddModifier(std::function<void(
+                  const Multi<FieldCell<Scal>*>& fcu,
+                  const Multi<FieldCell<Scal>*>& fccl, GRange<size_t> layers,
+                  const EB&)>);
 
  private:
   struct Imp;

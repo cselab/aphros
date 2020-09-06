@@ -509,6 +509,12 @@ struct Vof<EB_>::Imp {
     if (par.sharpen && sem.Nested("sharpen")) {
       Sharpen();
     }
+    if (modifier_) {
+      if (sem("modify")) {
+        modifier_(fcu_.iter_curr, fccl_, eb);
+        modifier_ = nullptr;
+      }
+    }
     if (sem("bcc_clear")) {
       UVof<M>::BcClear(fcu_.iter_curr, mfc_, m);
     }
@@ -624,6 +630,8 @@ struct Vof<EB_>::Imp {
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   UVof<M> uvof_;
+  std::function<void(FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const EB&)>
+      modifier_;
 };
 
 template <class EB_>
@@ -716,4 +724,11 @@ void Vof<EB_>::DumpInterface(std::string fn) const {
 template <class EB_>
 void Vof<EB_>::DumpInterfaceMarch(std::string fn) const {
   return imp->DumpInterfaceMarch(fn);
+}
+
+template <class EB_>
+void Vof<EB_>::AddModifier(
+    std::function<void(FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const EB&)>
+        func) {
+  imp->modifier_ = func;
 }

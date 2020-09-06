@@ -100,6 +100,11 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   MIdx GetImage(IdxCell c) const;
   void DumpInterface(std::string filename) const override;
   void DumpInterfaceMarch(std::string filename) const override;
+  // Adds a function that modifies the fields at the next iteration
+  // and after which is removed.
+  void AddModifier(
+      std::function<
+          void(FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const EB&)>);
 
  private:
   struct Imp;
