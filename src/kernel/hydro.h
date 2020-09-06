@@ -328,6 +328,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper dumper_;
   Dumper dmptraj_; // dumper for traj
   Dumper dmptrep_; // dumper for timer report
+  Dumper bubgen_;
   std::unique_ptr<Events> events_; // events from var
   SingleTimer timer_;
   std::unique_ptr<TracerInterface<M>> tracer_;
@@ -1388,7 +1389,9 @@ Hydro<M>::Hydro(Vars& var0, const MyBlockInfo& bi, Par& par)
     : KernelMeshPar<M, Par>(var0, bi, par)
     , dumper_(var, "dump_field_")
     , dmptraj_(var, "dump_traj_")
-    , dmptrep_(var, "dump_trep_") {}
+    , dmptrep_(var, "dump_trep_")
+    , bubgen_(var, "bubgen_")
+{}
 
 template <class M>
 void Hydro<M>::CalcStat() {
@@ -2382,12 +2385,10 @@ void Hydro<M>::StepBubgen() {
   struct {
     std::shared_ptr<FieldCell<Scal>> fcvf; // volume fraction
     Vars var;
+    Scal vf = 0;
   } * ctx(sem);
   auto& t = *ctx;
-  const Scal t0 = var.Double["bubgen_t0"];
-  const Scal tper = var.Double["bubgen_per"];
-  bool bg = (st_.t > t0 && st_.t - bgt_ >= tper);
-  if (bg) {
+  if (bubgen_.Try(st_.t, st_.dt)) {
     if (sem("as-bubgen-var")) {
       t.var.String.Set("init_vf", "list");
       t.var.String.Set("list_path", var.String["bubgen_path"]);
@@ -2399,7 +2400,6 @@ void Hydro<M>::StepBubgen() {
       InitVf(*t.fcvf, t.var, m);
     }
     if (sem("as-bubgen-apply")) {
-      bgt_ = st_.t;
       const Scal clnew = fs_->GetTime();
       auto modify = [fcvf = t.fcvf, &clnew](auto& u, auto& cl, auto& eb) {
         for (auto c : eb.AllCells()) {
@@ -2429,8 +2429,19 @@ void Hydro<M>::StepBubgen() {
       } else if (auto* as = dynamic_cast<ASVM*>(as_.get())) {
         as->AddModifier(modifym);
       }
+      if (eb_) {
+        auto& eb = *eb_;
+        for (auto c : m.Cells()) {
+          t.vf +=
+              m.GetVolume(c) * std::min((*t.fcvf)[c], eb.GetVolumeFraction(c));
+        }
+        m.Reduce(&t.vf, "sum");
+      }
     }
     if (sem()) {
+      if (m.IsRoot()) {
+        std::cout << "bubgen: vf=" << t.vf << std::endl;
+      }
       // FIXME: empty stage to finish communication to keep ctx
     }
   }
