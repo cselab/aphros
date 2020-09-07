@@ -2385,7 +2385,6 @@ void Hydro<M>::StepBubgen() {
   struct {
     std::shared_ptr<FieldCell<Scal>> fcvf; // volume fraction
     Vars var;
-    Scal vf = 0;
   } * ctx(sem);
   auto& t = *ctx;
   if (bubgen_.Try(st_.t, st_.dt)) {
@@ -2401,7 +2400,7 @@ void Hydro<M>::StepBubgen() {
     }
     if (sem("as-bubgen-apply")) {
       const Scal clnew = fs_->GetTime();
-      auto modify = [fcvf = t.fcvf, &clnew](auto& u, auto& cl, auto& eb) {
+      auto modify = [fcvf = t.fcvf, clnew](auto& u, auto& cl, auto& eb) {
         for (auto c : eb.AllCells()) {
           if ((*fcvf)[c] > 0) {
             const Scal v = std::min((*fcvf)[c], eb.GetVolumeFraction(c));
@@ -2410,7 +2409,7 @@ void Hydro<M>::StepBubgen() {
           }
         }
       };
-      auto modifym = [fcvf = t.fcvf, &clnew](
+      auto modifym = [fcvf = t.fcvf, clnew](
                          auto& u, auto& cl, auto, auto& eb) {
         for (auto c : eb.AllCells()) {
           if ((*fcvf)[c] > 0) {
@@ -2429,19 +2428,8 @@ void Hydro<M>::StepBubgen() {
       } else if (auto* as = dynamic_cast<ASVM*>(as_.get())) {
         as->AddModifier(modifym);
       }
-      if (eb_) {
-        auto& eb = *eb_;
-        for (auto c : m.Cells()) {
-          t.vf +=
-              m.GetVolume(c) * std::min((*t.fcvf)[c], eb.GetVolumeFraction(c));
-        }
-        m.Reduce(&t.vf, "sum");
-      }
     }
     if (sem()) {
-      if (m.IsRoot()) {
-        std::cout << "bubgen: vf=" << t.vf << std::endl;
-      }
       // FIXME: empty stage to finish communication to keep ctx
     }
   }

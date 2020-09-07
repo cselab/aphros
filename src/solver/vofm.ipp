@@ -719,8 +719,8 @@ struct Vofm<EB_>::Imp {
     if (modifier_) {
       if (sem("modify")) {
         modifier_(fcu_.iter_curr, fccl_, layers, eb);
-        modifier_ = nullptr;
       }
+      CommRec(sem, fcu_.iter_curr, fccl_, fcim_);
     }
     if (sem("bcc_clear")) {
       if (par.cloverride) {
@@ -755,6 +755,7 @@ struct Vofm<EB_>::Imp {
     fcu_.time_curr = fcu_.iter_curr;
     fcus_.time_curr = fcus_.iter_curr;
     owner_->IncTime();
+    modifier_ = nullptr;
   }
   void PostStep() {
     auto sem = m.GetSem("iter");

@@ -512,8 +512,8 @@ struct Vof<EB_>::Imp {
     if (modifier_) {
       if (sem("modify")) {
         modifier_(fcu_.iter_curr, fccl_, eb);
-        modifier_ = nullptr;
       }
+      CommRec(sem, fcu_.iter_curr, fccl_, fcim_);
     }
     if (sem("bcc_clear")) {
       UVof<M>::BcClear(fcu_.iter_curr, mfc_, m);
@@ -555,6 +555,7 @@ struct Vof<EB_>::Imp {
   void FinishStep() {
     fcu_.time_curr = fcu_.iter_curr;
     owner_->IncTime();
+    modifier_ = nullptr;
   }
   void PostStep() {
     auto sem = m.GetSem("iter");
