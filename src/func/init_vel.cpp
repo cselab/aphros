@@ -31,6 +31,28 @@ class TaylorGreen : public ModuleInitVelocity<M> {
 };
 
 template <class M>
+class KelvinHelmholtz : public ModuleInitVelocity<M> {
+ public:
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  KelvinHelmholtz() : ModuleInitVelocity<M>("kelvin-helmholtz") {}
+  void operator()(FieldCell<Vect>& fcv, const Vars& var, const M& m) override {
+    const Vect center(var.Vect["kh_center"]);
+    const Vect radius(var.Vect["kh_radius"]);
+    const Scal wavelength = var.Double["kh_wavelength"];
+    const Scal amplitude = var.Double["kh_amplitude"];
+    for (auto i : m.AllCells()) {
+      Vect& v = fcv[i];
+      const Vect x = m.GetCenter(i);
+      v[0] = (x - center).abs() < radius ? 0.5 : -0.5;
+      v[1] = std::sin(x[0] * 2 * M_PI / wavelength) * amplitude;
+      v[2] = 0.;
+    }
+  }
+};
+
+
+template <class M>
 class Uniform : public ModuleInitVelocity<M> {
  public:
   using Vect = typename M::Vect;
@@ -47,6 +69,7 @@ using M = MeshStructured<double, 3>;
 
 bool kReg[] = {
     RegisterModule<TaylorGreen<M>>(),
+    RegisterModule<KelvinHelmholtz<M>>(),
     RegisterModule<Uniform<M>>(),
 };
 
