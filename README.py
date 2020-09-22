@@ -73,7 +73,7 @@ in collaboration with Jean M. Favre at [CSCS](https://www.cscs.ch).
 |    |    |
 :---:|:---:
 [<img src="doc/images/coalescence.jpg" width=384>]([[VIDEOS]]/coalescence.mp4) | [<img src="doc/images/taylor_green.jpg" width=250>]([[VIDEOS]]/taylor_green.mp4)
-Coalescence of bubbles [[ref:partstr]] | Taylor-Green vortex with bubbles [[ref:pasc19]]
+Coalescence of bubbles [[ref:partstr]] | Taylor-Green vortex with bubbles [[ref:pasc19]] [[ref:datadriven]]
 [<img src="doc/images/vortex_bubble.jpg" width=200>]([[VIDEOS]]/vortex_bubble.mp4) | [<img src="doc/images/plunging_jet.jpg" width=200>]([[VIDEOS]]/plunging_jet.mp4)
 Bubble trapped by vortex ring [[ref:datadriven]] | Plunging jet [[ref:pasc19]]
 [<img src="doc/images/reactor.jpg" width=384>]([[VIDEOS]]/reactor.mp4) | [<img src="doc/images/mesh_bubbles.jpg" width=384>]([[VIDEOS]]/mesh_bubbles.mp4)
