@@ -58,9 +58,25 @@ class Uniform : public ModuleInitVelocity<M> {
   using Vect = typename M::Vect;
   Uniform() : ModuleInitVelocity<M>("uniform") {}
   void operator()(FieldCell<Vect>& fcv, const Vars& var, const M& m) override {
-    Vect v(var.Vect["vel"]);
+    const Vect v(var.Vect["vel"]);
     for (auto c : m.AllCells()) {
       fcv[c] = v;
+    }
+  }
+};
+
+template <class M>
+class Couette : public ModuleInitVelocity<M> {
+ public:
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  Couette() : ModuleInitVelocity<M>("couette") {}
+  void operator()(FieldCell<Vect>& fcv, const Vars& var, const M& m) override {
+    const Scal vy0 = var.Double["vx_y0"];
+    const Scal vy1 = var.Double["vx_y1"];
+    for (auto c : m.AllCells()) {
+      const Vect x = m.GetCenter(c);
+      fcv[c] = Vect(vy0 + (vy1 - vy0) * x[1], 0., 0.);
     }
   }
 };
@@ -71,6 +87,7 @@ bool kReg[] = {
     RegisterModule<TaylorGreen<M>>(),
     RegisterModule<KelvinHelmholtz<M>>(),
     RegisterModule<Uniform<M>>(),
+    RegisterModule<Couette<M>>(),
 };
 
 } // namespace init_velocity
