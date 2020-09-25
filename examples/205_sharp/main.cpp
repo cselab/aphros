@@ -111,9 +111,9 @@ int main(int argc, const char** argv) {
 
   if (pargs.size() != 6 || oargs.count("-h") || oargs.count("--help")) {
     std::cerr << "usage: " << argv[0]
-              << " HDF_IN NX NY NZ STEPS HDF_OUT"
-                 " [-h|--help]"
+              << " [-h|--help]"
                  " [-v|--verbose]"
+                 " HDF_IN NX NY NZ STEPS HDF_OUT"
               << std::endl;
     return 1;
   } else {
