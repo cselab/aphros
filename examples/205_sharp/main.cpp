@@ -49,7 +49,7 @@ void Run(M& m, Vars& var) {
     t.fc_src.Reinit(m, 0);
 
     Vof<M>::Par par;
-    par.clipth = 0;
+    par.clipth = 1e-10;
     par.sharpen = true;
     par.sharpen_cfl = 0.1;
     const FieldCell<Scal> fccl(m, 0);
