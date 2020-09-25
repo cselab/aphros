@@ -1,4 +1,4 @@
-// Created by Petr Karnakov on 05.07.2020
+// Created by Petr Karnakov on 25.09.2020
 // Copyright 2020 ETH Zurich
 
 #undef NDEBUG
@@ -94,6 +94,8 @@ int GetInt(std::string s) {
 }
 
 int main(int argc, const char** argv) {
+  const bool isroot = true;
+
   std::string hdf_in;
   int steps;
   int nx, ny, nz;
@@ -109,22 +111,52 @@ int main(int argc, const char** argv) {
   const std::map<std::string, std::string> oargs = args.first; // optional
   const std::vector<std::string> pargs = args.second; // positional
 
-  if (pargs.size() != 6 || oargs.count("-h") || oargs.count("--help")) {
-    std::cerr << "usage: " << argv[0]
-              << " [-h|--help]"
-                 " [-v|--verbose]"
-                 " HDF_IN NX NY NZ STEPS HDF_OUT"
-              << std::endl;
-    return 1;
-  } else {
-    int i = 0;
-    hdf_in = pargs[i++];
-    nx = GetInt(pargs[i++]);
-    ny = GetInt(pargs[i++]);
-    nz = GetInt(pargs[i++]);
-    steps = GetInt(pargs[i++]);
-    hdf_out = pargs[i++];
+  auto print_usage = [&argv, isroot](int status) {
+    if (isroot) {
+      std::cerr << "usage: " << argv[0]
+                << " [-h|--help]"
+                   " [-v|--verbose]"
+                   " HDF_IN NX NY NZ STEPS HDF_OUT"
+                   "\n";
+    }
+    return status;
+  };
+
+  if (oargs.count("-h") || oargs.count("--help")) {
+    return print_usage(0);
   }
+
+  if (pargs.size() != 6) {
+    if (isroot) {
+      std::cerr << "invalid number of arguments: " << pargs.size() << "\n";
+    }
+    return print_usage(1);
+  }
+
+  const auto known_args = novalue_args;
+  auto check_known_args = [&oargs, isroot, known_args]() {
+    bool pass = true;
+    for (auto p : oargs) {
+      if (!known_args.count(p.first)) {
+        pass = false;
+        if (isroot) {
+          std::cerr << "unrecognized option: " << p.first << '\n';
+        }
+      }
+    }
+    return pass;
+  };
+  if (!check_known_args()) {
+    return print_usage(1);
+  }
+
+  int i = 0;
+  hdf_in = pargs[i++];
+  nx = GetInt(pargs[i++]);
+  ny = GetInt(pargs[i++]);
+  nz = GetInt(pargs[i++]);
+  steps = GetInt(pargs[i++]);
+  hdf_out = pargs[i++];
 
   auto checkdiv = [](int n, int b, std::string name) {
     if (n % b) {
