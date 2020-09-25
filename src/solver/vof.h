@@ -105,6 +105,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   void AddModifier(
       std::function<
           void(FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const EB&)>);
+  void Sharpen();
 
  private:
   struct Imp;

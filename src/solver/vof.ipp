@@ -667,6 +667,11 @@ void Vof<EB_>::StartStep() {
 }
 
 template <class EB_>
+void Vof<EB_>::Sharpen() {
+  imp->Sharpen();
+}
+
+template <class EB_>
 void Vof<EB_>::MakeIteration() {
   imp->MakeIteration();
 }
