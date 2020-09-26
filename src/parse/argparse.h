@@ -242,11 +242,10 @@ class ArgumentParser {
     return name.substr(i);
   }
   static bool IsNumber(std::string str) {
-    std::stringstream buf;
-    buf << str;
+    std::stringstream buf(str);
     double a;
     buf >> a;
-    return buf.good();
+    return !buf.fail();
   }
   static bool StartsWithDash(std::string name) {
     return name.length() && name[0] == '-';
