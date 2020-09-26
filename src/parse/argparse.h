@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <iomanip>
 
 #include "parse/vars.h"
 #include "util/logger.h"
@@ -206,18 +207,20 @@ class ArgumentParser {
 
       out << "\npositional arguments:\n";
       for (auto key : pos_keys_) {
-        out << key;
-        out << '\t' << (help_.count(key) ? help_.at(key) : "") << '\n';
+        out << PadRight(key, 20);
+        out << (help_.count(key) ? help_.at(key) : "") << '\n';
       }
 
       out << "\noptional arguments:\n";
       for (auto key : opt_keys_) {
+        std::string pre;
         bool first = true;
         for (auto name : names_.at(key)) {
-          out << (first ? "" : ", ") << name;
+          pre += (first ? "" : ", ") + name;
           first = false;
         }
-        out << '\t' << (help_.count(key) ? help_.at(key) : "") << '\n';
+        out << PadRight(pre, 20);
+        out << (help_.count(key) ? help_.at(key) : "") << '\n';
       }
     }
   }
@@ -273,6 +276,9 @@ class ArgumentParser {
       c = std::toupper(c);
     }
     return s;
+  }
+  static std::string PadRight(std::string s, int width) {
+    return s + std::string(std::max<int>(0, width - s.length()), ' ');
   }
 
   std::string desc_;
