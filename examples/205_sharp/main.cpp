@@ -52,6 +52,7 @@ void Run(M& m, Vars& var) {
     par.clipth = 1e-10;
     par.sharpen = true;
     par.sharpen_cfl = var.Double["cfl"];
+    par.dim = var.Int["dim"];
     const FieldCell<Scal> fccl(m, 0);
     t.solver.reset(new Vof<M>(
         m, m, t.fcu, fccl, t.bc, &t.fe_flux, &t.fc_src, 0., 1., par));
@@ -186,6 +187,7 @@ int main(int argc, const char** argv) {
   steps = GetInt(pargs[i++]);
   hdf_out = pargs[i++];
 
+  /*
   auto checkdiv = [](int n, int b, std::string name) {
     if (n % b) {
       std::stringstream s;
@@ -195,7 +197,9 @@ int main(int argc, const char** argv) {
   };
 
   int bs = 8;
+  int bsy = bs;
   int bsz = 8;
+
   if (nz == 1) { // 2D
     checkdiv(nx, bs, "NX");
     checkdiv(ny, bs, "NY");
@@ -214,6 +218,12 @@ int main(int argc, const char** argv) {
     bs /= 2;
     bsz = bs;
   }
+  */
+
+  // XXX: adhoc for backend=local
+  int bs = nx;
+  int bsy = ny;
+  int bsz = nz;
 
   const bool verbose_steps = oargs.count("-v") || oargs.count("--verbose");
 
@@ -228,15 +238,19 @@ set int hl 2
 
 set int verbose_time 0
 set int verbose_stages 0
+set string backend local
+set int loc_maxcomm 16
 )EOF";
 
   conf << "set int bx " << nx / bs << '\n';
-  conf << "set int by " << ny / bs << '\n';
+  conf << "set int by " << ny / bsy << '\n';
   conf << "set int bz " << nz / bsz << '\n';
 
   conf << "set int bsx " << bs << '\n';
-  conf << "set int bsy " << bs << '\n';
+  conf << "set int bsy " << bsy << '\n';
   conf << "set int bsz " << bsz << '\n';
+
+  conf << "set int dim " << (nz == 1 ? 2 : 3) << '\n';
 
   conf << "set int steps " << steps << '\n';
 

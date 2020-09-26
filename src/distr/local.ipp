@@ -105,12 +105,16 @@ Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var)
   GBlockCells<3> bc(mb * mp);
   Scal h = (gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0)))[0];
   assert(h > 0);
-  std::cerr << "h from gm = " << h << std::endl;
+  if (var.Int["verbose"]) {
+    std::cerr << "h from gm = " << h << std::endl;
+  }
   for (MIdx i : bc) {
     MyBlockInfo b;
     IdxNode n = gm.GetIndexNodes().GetIdx(i * ms);
     Vect o = gm.GetNode(n);
-    std::cerr << "o=" << o << " n=" << n.GetRaw() << " i=" << i << std::endl;
+    if (var.Int["verbose"]) {
+      std::cerr << "o=" << o << " n=" << n.GetRaw() << " i=" << i << std::endl;
+    }
     for (int q = 0; q < 3; ++q) {
       b.index[q] = i[q];
       b.origin[q] = o[q];
