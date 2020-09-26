@@ -10,6 +10,7 @@
 #include "distr/distrbasic.h"
 #include "solver/approx_eb.h"
 #include "solver/embed.h"
+#include "parse/argparse.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -201,20 +202,18 @@ set double tmax 0.002
 set double diff 1
 set double cfl 0.25
 
-set double gradlim 0
-
-set int case 0
 )EOF";
 
-  if (argc > 1) {
-    const int case_ = atoi(argv[1]);
-    conf += "\nset int case " + std::to_string(case_);
+  ArgumentParser parser("Diffusion example with embedded boundaries");
+  parser.AddVariable<int>("case", 0).Help("Case to run, choices: 0, 1, 2");
+  parser.AddVariable<double>("gradlim", 0).Help("Value of gradient limiter");
+  auto args = parser.ParseArgs(argc, argv);
+  if (const int* p = args.Int.Find("EXIT")) {
+    return *p;
   }
 
-  if (argc > 2) {
-    const double gradlim = atof(argv[2]);
-    conf += "\nset double gradlim " + std::to_string(gradlim);
-  }
+  conf += "\nset int case " + args.Int.GetStr("case");
+  conf += "\nset double gradlim " + args.Double.GetStr("gradlim");
 
   return RunMpiBasic<M>(argc, argv, Run, conf);
 }

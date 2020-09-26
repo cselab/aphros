@@ -4,11 +4,11 @@
 #pragma once
 
 #include <cctype>
+#include <iomanip>
 #include <map>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <iomanip>
 
 #include "parse/vars.h"
 #include "util/logger.h"
@@ -29,8 +29,7 @@ class ArgumentParser {
     const std::string key_;
   };
 
-  ArgumentParser(
-      std::string desc = "", bool isroot = true)
+  ArgumentParser(std::string desc = "", bool isroot = true)
       : desc_(desc), isroot_(isroot) {
     AddSwitch({"--help", "-h"}).Help("Print help and exit");
   }
@@ -83,8 +82,7 @@ class ArgumentParser {
     return Proxy(*this, key);
   }
   template <class T>
-  auto AddVariable(
-      std::initializer_list<std::string> names, T defaultval) {
+  auto AddVariable(std::initializer_list<std::string> names, T defaultval) {
     return AddVariable<T>(std::vector<std::string>{names}, defaultval, true);
   }
   template <class T>
@@ -92,8 +90,7 @@ class ArgumentParser {
     return AddVariable<T>({name}, defaultval, true);
   }
   template <class T>
-  auto AddVariable(
-      std::initializer_list<std::string> names) {
+  auto AddVariable(std::initializer_list<std::string> names) {
     return AddVariable<T>(names, {}, false);
   }
   template <class T>
@@ -110,7 +107,7 @@ class ArgumentParser {
 
     for (auto& it : entries_) {
       auto entry = it.second;
-      if (entry.has_default) {
+      if (entry.hasdefault) {
         auto key = entry.key;
         auto type = known_args_.GetTypeName(key);
         args.SetStr(type, key, known_args_.GetStr(type, key));
@@ -161,17 +158,29 @@ class ArgumentParser {
       }
     }
 
-    if (ipos == 0) {
-      args.Int["FAIL"] = 1;
-    } else {
-      for (; ipos < pos_keys_.size(); ++ipos) {
-        if (!entries_.at(pos_keys_[ipos]).has_default && isroot_) {
-          std::cerr << "Missing value for positional argument '" +
-                           pos_keys_[ipos] + "' without a default\n";
-        }
+    if (args.Int["help"]) {
+      if (isroot_) {
+        PrintHelp(std::cerr, true, argv[0]);
+      }
+      args.Int.Set("EXIT", 0);
+      return args;
+    }
+
+    for (; ipos < pos_keys_.size(); ++ipos) {
+      if (!entries_.at(pos_keys_[ipos]).hasdefault && isroot_) {
+        std::cerr << "Missing value for positional argument '" +
+                         pos_keys_[ipos] + "' without a default\n";
         args.Int["FAIL"] = 1;
       }
     }
+
+    if (args.Int["FAIL"]) {
+      if (isroot_) {
+        PrintHelp(std::cerr, false, argv[0]);
+      }
+      args.Int.Set("EXIT", 1);
+    }
+
     return args;
   }
   auto ParseArgs(int argc, const char** argv) const {
@@ -208,7 +217,14 @@ class ArgumentParser {
       out << "\npositional arguments:\n";
       for (auto key : pos_keys_) {
         out << PadRight(key, 20);
-        out << (help_.count(key) ? help_.at(key) : "") << '\n';
+        auto help = help_.count(key) ? help_.at(key) : "";
+        out << help;
+        auto entry = entries_.at(key);
+        if (entry.hasdefault && entry.nargs) {
+          out << (help.length() ? ". " : "") << "Default is "
+              << known_args_.GetStr(known_args_.GetTypeName(key), key);
+        }
+        out << '\n';
       }
 
       out << "\noptional arguments:\n";
@@ -220,7 +236,14 @@ class ArgumentParser {
           first = false;
         }
         out << PadRight(pre, 20);
-        out << (help_.count(key) ? help_.at(key) : "") << '\n';
+        auto help = help_.count(key) ? help_.at(key) : "";
+        out << help;
+        auto entry = entries_.at(key);
+        if (entry.hasdefault && entry.nargs) {
+          out << (help.length() ? ". " : "") << "Default is "
+              << known_args_.GetStr(known_args_.GetTypeName(key), key);
+        }
+        out << '\n';
       }
     }
   }
@@ -229,7 +252,7 @@ class ArgumentParser {
   struct Entry {
     std::string key; // target key in vars
     bool optional; // if arguments starts with '-'
-    bool has_default; // if argument has default value
+    bool hasdefault; // if argument has default value
     int nargs; // number of arguments to read,
                // values larger than 1 only for std::vector<double>
                // -1 to keep reading while numbers

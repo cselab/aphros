@@ -12,14 +12,15 @@
 
 #include <debug/isnan.h>
 #include <distr/distrbasic.h>
-#include <dump/vtk.h>
 #include <dump/dumper.h>
+#include <dump/vtk.h>
 #include <func/init.h>
-#include "func/init_bc.h"
+#include <parse/argparse.h>
 #include <solver/curv.h>
 #include <solver/reconst.h>
 #include <solver/vofm.h>
 #include <util/hydro.h>
+#include "func/init_bc.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -467,14 +468,14 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-  std::string path;
-  if (argc == 2) {
-    path = argv[1];
-  } else {
-    std::cerr << "usage: " << argv[0] << " [a.conf]" << std::endl;
-    return 1;
+  ArgumentParser parser("Constrained mean curvature flow");
+  parser.AddVariable<std::string>("path", "a.conf").Help("Path to config file");
+  auto args = parser.ParseArgs(argc, argv);
+  if (const int* p = args.Int.Find("EXIT")) {
+    return *p;
   }
 
+  auto path = args.String["path"];
   std::ifstream fconf(path);
 
   if (!fconf.good()) {

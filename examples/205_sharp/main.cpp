@@ -118,38 +118,27 @@ int main(int argc, const char** argv) {
   int nx, ny, nz;
   std::string hdf_out;
 
-  ArgumentParser parser("Sharpens the image using PLIC advection");
+  ArgumentParser parser("Sharpens the image using PLIC advection", isroot);
   parser.AddSwitch({"--verbose", "-v"}).Help("Report steps");
   parser.AddVariable<double>("--cfl", 0.5)
       .Help("CFL number for advection, valid values between 0 and 1");
   parser.AddVariable<std::string>("--vtk_out_march")
-      .Help("path to output VTK with surface from marching cubes");
+      .Help("Path to output VTK with surface from marching cubes");
   parser.AddVariable<std::string>("--vtk_out").Help(
-      "path to output VTK with piecewise linear surface");
+      "Path to output VTK with piecewise linear surface");
 
   parser.AddVariable<std::string>("hdf_in").Help(
-      "path to input image as HDF5 array of floats between 0 and 1 and "
+      "Path to input image as HDF5 array of floats between 0 and 1 and "
       "shape (1,NZ,NY,NX)");
-  parser.AddVariable<int>("nx").Help("image size in x");
-  parser.AddVariable<int>("ny").Help("image size in y");
-  parser.AddVariable<int>("nz").Help("image size in z");
-  parser.AddVariable<int>("steps", 1).Help("number of sharpening steps");
-  parser.AddVariable<std::string>("hdf_out").Help("path to output image");
+  parser.AddVariable<int>("nx").Help("Image size in x");
+  parser.AddVariable<int>("ny").Help("Image size in y");
+  parser.AddVariable<int>("nz").Help("Image size in z");
+  parser.AddVariable<int>("steps", 1).Help("Number of sharpening steps");
+  parser.AddVariable<std::string>("hdf_out").Help("Path to output image");
 
   auto args = parser.ParseArgs(argc, argv);
-
-  auto print_usage = [&argv, isroot, &parser](bool full) {
-    if (isroot) {
-      parser.PrintHelp(std::cerr, full, argv[0]);
-    }
-  };
-
-  if (args.Int["help"]) {
-    print_usage(true);
-    return 0;
-  } else if (args.Int["FAIL"]) {
-    print_usage(false);
-    return 1;
+  if (const int* p = args.Int.Find("EXIT")) {
+    return *p;
   }
 
   hdf_in = args.String["hdf_in"];
