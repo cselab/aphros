@@ -51,7 +51,7 @@ void Run(M& m, Vars& var) {
     Vof<M>::Par par;
     par.clipth = 1e-10;
     par.sharpen = true;
-    par.sharpen_cfl = 0.1;
+    par.sharpen_cfl = var.Double["cfl"];
     const FieldCell<Scal> fccl(m, 0);
     t.solver.reset(new Vof<M>(
         m, m, t.fcu, fccl, t.bc, &t.fe_flux, &t.fc_src, 0., 1., par));
@@ -82,12 +82,23 @@ void Run(M& m, Vars& var) {
     Hdf<M>::Write(
         t.solver->GetField(Step::iter_curr), var.String["hdf_out"], m);
   }
+  std::string vtk_out = var.String("vtk_out", "");
+  if (vtk_out.length() && sem.Nested()) {
+    t.solver->DumpInterface(vtk_out);
+  }
   if (sem()) { // XXX empty stage
   }
 }
 
 int GetInt(std::string s) {
   int r;
+  std::stringstream t(s);
+  t >> r;
+  return r;
+}
+
+double GetDouble(std::string s) {
+  double r;
   std::stringstream t(s);
   t >> r;
   return r;
@@ -111,29 +122,45 @@ int main(int argc, const char** argv) {
   const std::map<std::string, std::string> oargs = args.first; // optional
   const std::vector<std::string> pargs = args.second; // positional
 
-  auto print_usage = [&argv, isroot](int status) {
+  auto print_usage = [&argv, isroot](bool full) {
+    auto& s = std::cerr;
     if (isroot) {
-      std::cerr << "usage: " << argv[0]
-                << " [-h|--help]"
-                   " [-v|--verbose]"
-                   " HDF_IN NX NY NZ STEPS HDF_OUT"
-                   "\n";
+      s << "usage: " << argv[0]
+        << " [-h|--help]"
+           " [-v|--verbose]"
+           " [--vtk_out VTK_OUT]"
+           " [--cfl CFL]"
+           " HDF_IN NX NY NZ STEPS HDF_OUT"
+           "\n";
+      if (full) {
+        s << 
+          "Sharpens the image using PLIC advection.\n"
+          "HDF_IN: path to input image as HDF5 array of floats between 0 and 1 and shape (1,NZ,NY,NX)\n"
+          "HDF_OUT: path to output image\n"
+          "VTK_OUT: path to output vtk with piecewise linear surface\n"
+          "STEPS: number of sharpening steps\n"
+          "CFL: CFL number for advection, valid values between 0 and 1\n"
+          ;
+      }
     }
-    return status;
   };
 
   if (oargs.count("-h") || oargs.count("--help")) {
-    return print_usage(0);
+    print_usage(true);
+    return 0;
   }
 
   if (pargs.size() != 6) {
     if (isroot) {
       std::cerr << "invalid number of arguments: " << pargs.size() << "\n";
     }
-    return print_usage(1);
+    print_usage(false);
+    return 1;
   }
 
-  const auto known_args = novalue_args;
+  auto known_args = novalue_args;
+  known_args.insert("--vtk_out");
+  known_args.insert("--cfl");
   auto check_known_args = [&oargs, isroot, known_args]() {
     bool pass = true;
     for (auto p : oargs) {
@@ -147,7 +174,8 @@ int main(int argc, const char** argv) {
     return pass;
   };
   if (!check_known_args()) {
-    return print_usage(1);
+    print_usage(false);
+    return 1;
   }
 
   int i = 0;
@@ -213,6 +241,16 @@ set int verbose_stages 0
 
   conf << "set string hdf_in " << hdf_in << '\n';
   conf << "set string hdf_out " << hdf_out << '\n';
+  if (oargs.count("--vtk_out")) {
+    conf << "set string vtk_out " << oargs.at("--vtk_out") << '\n';
+  }
+  {
+    double cfl = 0.5;
+    if (oargs.count("--cfl")) {
+      cfl = GetDouble(oargs.at("--cfl"));
+    }
+    conf << "set double cfl " << cfl << '\n';
+  }
   conf << "set int VERBOSE " << (verbose_steps ? 1 : 0) << '\n';
 
   return RunMpiBasic<M>(argc, argv, Run, conf.str());
