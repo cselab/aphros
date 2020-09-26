@@ -28,7 +28,11 @@ class ArgumentParser {
     const std::string key_;
   };
 
-  ArgumentParser(std::string desc = "") : desc_(desc) {}
+  ArgumentParser(
+      std::string desc = "", bool isroot = true)
+      : desc_(desc), isroot_(isroot) {
+    AddSwitch({"--help", "-h"}).Help("Print help and exit");
+  }
   // Adds a swtich.
   // If present in arguments, known_args_.Int[key] is set to 1, otherwise 0.
   Proxy AddSwitch(const std::vector<std::string>& names) {
@@ -49,10 +53,10 @@ class ArgumentParser {
     opt_keys_.push_back(key);
     return Proxy(*this, key);
   }
-  auto AddSwitch(std::initializer_list<std::string> names) {
+  Proxy AddSwitch(std::initializer_list<std::string> names) {
     return AddSwitch(std::vector<std::string>{names});
   }
-  auto AddSwitch(std::string name) {
+  Proxy AddSwitch(std::string name) {
     return AddSwitch({name});
   }
   template <class T>
@@ -101,6 +105,8 @@ class ArgumentParser {
   Vars ParseArgs(std::vector<std::string> argv) const {
     Vars args;
 
+    args.Int.Set("FAIL", 0);
+
     for (auto& it : entries_) {
       auto entry = it.second;
       if (entry.has_default) {
@@ -140,33 +146,41 @@ class ArgumentParser {
           s = S::name;
           break;
         case S::positional:
-          fassert(
-              ipos < pos_keys_.size(),
-              "Too many positional arguments: " + std::to_string(ipos + 1) +
-                  "expected " + std::to_string(pos_keys_.size()));
-          entry = entries_.at(pos_keys_[ipos]);
-          args.SetStr(known_args_.GetTypeName(entry.key), entry.key, str);
+          if (ipos >= pos_keys_.size()) {
+            std::cerr << "Too many positional arguments: " << ipos + 1
+                      << ", expected " << pos_keys_.size() << "\n";
+            args.Int["FAIL"] = 1;
+          } else {
+            entry = entries_.at(pos_keys_[ipos]);
+            args.SetStr(known_args_.GetTypeName(entry.key), entry.key, str);
+          }
           ++ipos;
           s = S::name;
           break;
       }
     }
-    for (; ipos < pos_keys_.size(); ++ipos) {
-      fassert(
-          entries_.at(pos_keys_[ipos]).has_default,
-          "Missing value for positional argument '" + pos_keys_[ipos] +
-              "' without a default");
+
+    if (ipos == 0) {
+      args.Int["FAIL"] = 1;
+    } else {
+      for (; ipos < pos_keys_.size(); ++ipos) {
+        if (!entries_.at(pos_keys_[ipos]).has_default && isroot_) {
+          std::cerr << "Missing value for positional argument '" +
+                           pos_keys_[ipos] + "' without a default\n";
+        }
+        args.Int["FAIL"] = 1;
+      }
     }
     return args;
   }
   auto ParseArgs(int argc, const char** argv) const {
     std::vector<std::string> v;
-    for (auto i = 0; i < argc; ++i) {
+    for (auto i = 1; i < argc; ++i) {
       v.push_back(argv[i]);
     }
     return ParseArgs(v);
   }
-  void PrintHelp(std::ostream& out, bool full, std::string program = "") const {
+  void PrintHelp(std::ostream& out, bool full, std::string program) const {
     out << "usage: " << program;
     for (auto key : opt_keys_) {
       out << " [";
@@ -262,6 +276,7 @@ class ArgumentParser {
   }
 
   std::string desc_;
+  const bool isroot_;
   std::map<std::string, Entry> entries_; // name or key to entry
   Vars known_args_;
   std::vector<std::string> pos_keys_;

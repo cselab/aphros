@@ -95,7 +95,6 @@ void TestArgumentParser() {
   std::cout << "\n" << __func__ << std::endl;
 
   ArgumentParser parser("Description");
-  parser.AddSwitch({"--help", "-h"}).Help("Print help and exit");
   parser.AddVariable<int>({"--int", "-i"}, 3);
   parser.AddVariable<double>("--double", 3);
   parser.AddVariable<std::string>("--string", "a");

@@ -15,6 +15,7 @@
 
 #include <distr/distrbasic.h>
 #include "dump/hdf.h"
+#include "parse/argparse.h"
 #include "parse/vars.h"
 #include "parse/vof.h"
 #include "solver/vof.h"
@@ -117,81 +118,46 @@ int main(int argc, const char** argv) {
   int nx, ny, nz;
   std::string hdf_out;
 
-  const std::set<std::string> novalue_args = {
-      "-v",
-      "--verbose",
-      "-h",
-      "--help",
-  };
-  const auto args = ParseArgs(argc, argv, novalue_args);
-  const std::map<std::string, std::string> oargs = args.first; // optional
-  const std::vector<std::string> pargs = args.second; // positional
+  ArgumentParser parser("Sharpens the image using PLIC advection");
+  parser.AddSwitch({"--verbose", "-v"}).Help("Report steps");
+  parser.AddVariable<double>("--cfl", 0.5)
+      .Help("CFL number for advection, valid values between 0 and 1");
+  parser.AddVariable<std::string>("--vtk_out_march")
+      .Help("path to output VTK with surface from marching cubes");
+  parser.AddVariable<std::string>("--vtk_out").Help(
+      "path to output VTK with piecewise linear surface");
 
-  auto print_usage = [&argv, isroot](bool full) {
-    auto& s = std::cerr;
+  parser.AddVariable<std::string>("hdf_in").Help(
+      "path to input image as HDF5 array of floats between 0 and 1 and "
+      "shape (1,NZ,NY,NX)");
+  parser.AddVariable<int>("nx").Help("image size in x");
+  parser.AddVariable<int>("ny").Help("image size in y");
+  parser.AddVariable<int>("nz").Help("image size in z");
+  parser.AddVariable<int>("steps", 1).Help("number of sharpening steps");
+  parser.AddVariable<std::string>("hdf_out").Help("path to output image");
+
+  auto args = parser.ParseArgs(argc, argv);
+
+  auto print_usage = [&argv, isroot, &parser](bool full) {
     if (isroot) {
-      s << "usage: " << argv[0]
-        << " [-h|--help]"
-           " [-v|--verbose]"
-           " [--vtk_out VTK_OUT]"
-           " [--cfl CFL]"
-           " HDF_IN NX NY NZ STEPS HDF_OUT"
-           "\n";
-      if (full) {
-        s << 
-          "Sharpens the image using PLIC advection.\n"
-          "HDF_IN: path to input image as HDF5 array of floats between 0 and 1 and shape (1,NZ,NY,NX)\n"
-          "HDF_OUT: path to output image\n"
-          "VTK_OUT: path to output vtk with piecewise linear surface\n"
-          "VTK_OUT_MARCH: path to output vtk with surface from marching cubes\n"
-          "STEPS: number of sharpening steps\n"
-          "CFL: CFL number for advection, valid values between 0 and 1\n"
-          ;
-      }
+      parser.PrintHelp(std::cerr, full, argv[0]);
     }
   };
 
-  if (oargs.count("-h") || oargs.count("--help")) {
+  if (args.Int["help"]) {
     print_usage(true);
     return 0;
-  }
-
-  if (pargs.size() != 6) {
-    if (isroot) {
-      std::cerr << "invalid number of arguments: " << pargs.size() << "\n";
-    }
+  } else if (args.Int["FAIL"]) {
     print_usage(false);
     return 1;
   }
 
-  auto known_args = novalue_args;
-  known_args.insert("--vtk_out");
-  known_args.insert("--vtk_out_march");
-  known_args.insert("--cfl");
-  auto check_known_args = [&oargs, isroot, known_args]() {
-    bool pass = true;
-    for (auto p : oargs) {
-      if (!known_args.count(p.first)) {
-        pass = false;
-        if (isroot) {
-          std::cerr << "unrecognized option: " << p.first << '\n';
-        }
-      }
-    }
-    return pass;
-  };
-  if (!check_known_args()) {
-    print_usage(false);
-    return 1;
-  }
-
-  int i = 0;
-  hdf_in = pargs[i++];
-  nx = GetInt(pargs[i++]);
-  ny = GetInt(pargs[i++]);
-  nz = GetInt(pargs[i++]);
-  steps = GetInt(pargs[i++]);
-  hdf_out = pargs[i++];
+  hdf_in = args.String["hdf_in"];
+  nx = args.Int["nx"];
+  ny = args.Int["ny"];
+  nz = args.Int["nz"];
+  steps = args.Int["steps"];
+  hdf_out = args.String["hdf_out"];
 
   /*
   auto checkdiv = [](int n, int b, std::string name) {
@@ -231,8 +197,6 @@ int main(int argc, const char** argv) {
   int bsy = ny;
   int bsz = nz;
 
-  const bool verbose_steps = oargs.count("-v") || oargs.count("--verbose");
-
   std::stringstream conf;
   conf << R"EOF(
 # ranks
@@ -262,20 +226,14 @@ set int loc_maxcomm 16
 
   conf << "set string hdf_in " << hdf_in << '\n';
   conf << "set string hdf_out " << hdf_out << '\n';
-  if (oargs.count("--vtk_out")) {
-    conf << "set string vtk_out " << oargs.at("--vtk_out") << '\n';
+  if (auto* p = args.String.Find("vtk_out")) {
+    conf << "set string vtk_out " << *p << '\n';
   }
-  if (oargs.count("--vtk_out_march")) {
-    conf << "set string vtk_out_march " << oargs.at("--vtk_out_march") << '\n';
+  if (auto* p = args.String.Find("vtk_out_march")) {
+    conf << "set string vtk_out_march " << *p << '\n';
   }
-  {
-    double cfl = 0.5;
-    if (oargs.count("--cfl")) {
-      cfl = GetDouble(oargs.at("--cfl"));
-    }
-    conf << "set double cfl " << cfl << '\n';
-  }
-  conf << "set int VERBOSE " << (verbose_steps ? 1 : 0) << '\n';
+  conf << "set double cfl " << args.Double["cfl"] << '\n';
+  conf << "set int VERBOSE " << args.Int["verbose"] << '\n';
 
   return RunMpiBasic<M>(argc, argv, Run, conf.str());
 }
