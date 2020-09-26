@@ -106,6 +106,16 @@ class ArgumentParser {
 
     args.Int.Set("FAIL", 0);
 
+    auto rassert = [&](bool cond, std::string msg) {
+      if (!cond) {
+        if (isroot_) {
+          std::cerr << msg << '\n';
+        }
+        args.Int["FAIL"] = 1;
+      }
+      return cond;
+    };
+
     for (auto& it : entries_) {
       auto entry = it.second;
       if (entry.hasdefault) {
@@ -124,16 +134,17 @@ class ArgumentParser {
       switch (s) {
         case S::name:
           if (IsOptional(str)) {
-            fassert(entries_.count(str), "Unknown argument: " + str);
-            entry = entries_.at(str);
-            fassert(entry.nargs == 0 || entry.nargs == 1);
-            if (entry.nargs == 1) {
-              s = S::optional;
-            } else { // expecting a switch, type int
-              fassert(
-                  known_args_.GetTypeName(entry.key) == "int",
-                  "Expected type int for name='" + str + "'");
-              args.SetStr(known_args_.GetTypeName(entry.key), entry.key, "1");
+            if (rassert(entries_.count(str), "Unknown argument: " + str)) {
+              entry = entries_.at(str);
+              fassert(entry.nargs == 0 || entry.nargs == 1);
+              if (entry.nargs == 1) {
+                s = S::optional;
+              } else { // expecting a switch, type int
+                fassert(
+                    known_args_.GetTypeName(entry.key) == "int",
+                    "Expected type int for name='" + str + "'");
+                args.SetStr(known_args_.GetTypeName(entry.key), entry.key, "1");
+              }
             }
           } else { // positional
             s = S::positional;
@@ -145,11 +156,10 @@ class ArgumentParser {
           s = S::name;
           break;
         case S::positional:
-          if (ipos >= pos_keys_.size()) {
-            std::cerr << "Too many positional arguments: " << ipos + 1
-                      << ", expected " << pos_keys_.size() << "\n";
-            args.Int["FAIL"] = 1;
-          } else {
+          if (rassert(
+                  ipos < pos_keys_.size(),
+                  "Too many positional arguments: " + std::to_string(ipos + 1) +
+                      ", expected " + std::to_string(pos_keys_.size()))) {
             entry = entries_.at(pos_keys_[ipos]);
             args.SetStr(known_args_.GetTypeName(entry.key), entry.key, str);
           }
@@ -168,13 +178,10 @@ class ArgumentParser {
     }
 
     for (; ipos < pos_keys_.size(); ++ipos) {
-      if (!entries_.at(pos_keys_[ipos]).hasdefault) {
-        if (isroot_) {
-          std::cerr << "Missing value for positional argument " +
-                           ToUpper(pos_keys_[ipos]) + " without a default\n";
-        }
-        args.Int["FAIL"] = 1;
-      }
+      rassert(
+          entries_.at(pos_keys_[ipos]).hasdefault,
+          "Missing value for positional argument " + ToUpper(pos_keys_[ipos]) +
+              " without a default");
     }
 
     if (args.Int["FAIL"]) {

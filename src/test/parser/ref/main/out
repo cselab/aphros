@@ -6,16 +6,16 @@ usage: program [--help|-h] [--int|-i INT] [--double DOUBLE] [--string STRING] [-
 Description
 
 positional arguments:
-nx                  size in x-direction
-ny                  size in y-direction
-nz                  size in z-direction
+NX                  size in x-direction
+NY                  size in y-direction
+NZ                  size in z-direction. Default is 1
 
 optional arguments:
 --help, -h          Print help and exit
---int, -i           
---double            
---string            
---vect              
+--int, -i           Default is 3
+--double            Default is 3
+--string            Default is a
+--vect              Default is 0 
 --int0, -i0         
 --double0           
 --string0           
@@ -38,7 +38,8 @@ vect vect0
 
 Parsed args:
 string string a
-int FAIL 1
+int EXIT 0
+int FAIL 0
 int help 1
 int int 7
 int nx 16
@@ -100,16 +101,16 @@ usage: program [--help|-h] [--int|-i INT] [--double DOUBLE] [--string STRING] [-
 Description
 
 positional arguments:
-nx                  size in x-direction
-ny                  size in y-direction
-nz                  size in z-direction
+NX                  size in x-direction
+NY                  size in y-direction
+NZ                  size in z-direction. Default is 1
 
 optional arguments:
 --help, -h          Print help and exit
---int, -i           
---double            
---string            
---vect              
+--int, -i           Default is 3
+--double            Default is 3
+--string            Default is a
+--vect              Default is 0 
 --int0, -i0         
 --double0           
 --string0           
@@ -132,7 +133,8 @@ vect vect0
 
 Parsed args:
 string string a
-int FAIL 1
+int EXIT 0
+int FAIL 0
 int help 1
 int int 7
 int nx 16
