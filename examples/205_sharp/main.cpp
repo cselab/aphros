@@ -83,9 +83,13 @@ void Run(M& m, Vars& var) {
     Hdf<M>::Write(
         t.solver->GetField(Step::iter_curr), var.String["hdf_out"], m);
   }
-  std::string vtk_out = var.String("vtk_out", "");
-  if (vtk_out.length() && sem.Nested()) {
-    t.solver->DumpInterface(vtk_out);
+  const std::string* vtk_out = var.String.Find("vtk_out");
+  if (vtk_out && sem.Nested()) {
+    t.solver->DumpInterface(*vtk_out);
+  }
+  const std::string* vtk_out_march = var.String.Find("vtk_out_march");
+  if (vtk_out_march && sem.Nested()) {
+    t.solver->DumpInterfaceMarch(*vtk_out_march);
   }
   if (sem()) { // XXX empty stage
   }
@@ -139,6 +143,7 @@ int main(int argc, const char** argv) {
           "HDF_IN: path to input image as HDF5 array of floats between 0 and 1 and shape (1,NZ,NY,NX)\n"
           "HDF_OUT: path to output image\n"
           "VTK_OUT: path to output vtk with piecewise linear surface\n"
+          "VTK_OUT_MARCH: path to output vtk with surface from marching cubes\n"
           "STEPS: number of sharpening steps\n"
           "CFL: CFL number for advection, valid values between 0 and 1\n"
           ;
@@ -161,6 +166,7 @@ int main(int argc, const char** argv) {
 
   auto known_args = novalue_args;
   known_args.insert("--vtk_out");
+  known_args.insert("--vtk_out_march");
   known_args.insert("--cfl");
   auto check_known_args = [&oargs, isroot, known_args]() {
     bool pass = true;
@@ -258,6 +264,9 @@ set int loc_maxcomm 16
   conf << "set string hdf_out " << hdf_out << '\n';
   if (oargs.count("--vtk_out")) {
     conf << "set string vtk_out " << oargs.at("--vtk_out") << '\n';
+  }
+  if (oargs.count("--vtk_out_march")) {
+    conf << "set string vtk_out_march " << oargs.at("--vtk_out_march") << '\n';
   }
   {
     double cfl = 0.5;
