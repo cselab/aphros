@@ -100,7 +100,8 @@ class ArgumentParser {
   const Vars& GetKnownArgs() const {
     return known_args_;
   }
-  Vars ParseArgs(std::vector<std::string> argv) const {
+  Vars ParseArgs(
+      std::vector<std::string> argv, std::string program = "") const {
     Vars args;
 
     args.Int.Set("FAIL", 0);
@@ -160,23 +161,25 @@ class ArgumentParser {
 
     if (args.Int["help"]) {
       if (isroot_) {
-        PrintHelp(std::cerr, true, argv[0]);
+        PrintHelp(std::cerr, true, program);
       }
       args.Int.Set("EXIT", 0);
       return args;
     }
 
     for (; ipos < pos_keys_.size(); ++ipos) {
-      if (!entries_.at(pos_keys_[ipos]).hasdefault && isroot_) {
-        std::cerr << "Missing value for positional argument '" +
-                         pos_keys_[ipos] + "' without a default\n";
+      if (!entries_.at(pos_keys_[ipos]).hasdefault) {
+        if (isroot_) {
+          std::cerr << "Missing value for positional argument " +
+                           ToUpper(pos_keys_[ipos]) + " without a default\n";
+        }
         args.Int["FAIL"] = 1;
       }
     }
 
     if (args.Int["FAIL"]) {
       if (isroot_) {
-        PrintHelp(std::cerr, false, argv[0]);
+        PrintHelp(std::cerr, false, program);
       }
       args.Int.Set("EXIT", 1);
     }
@@ -188,7 +191,7 @@ class ArgumentParser {
     for (auto i = 1; i < argc; ++i) {
       v.push_back(argv[i]);
     }
-    return ParseArgs(v);
+    return ParseArgs(v, argv[0]);
   }
   void PrintHelp(std::ostream& out, bool full, std::string program) const {
     out << "usage: " << program;
@@ -216,7 +219,7 @@ class ArgumentParser {
 
       out << "\npositional arguments:\n";
       for (auto key : pos_keys_) {
-        out << PadRight(key, 20);
+        out << PadRight(ToUpper(key), 20);
         auto help = help_.count(key) ? help_.at(key) : "";
         out << help;
         auto entry = entries_.at(key);

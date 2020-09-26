@@ -1,7 +1,6 @@
 // Created by Petr Karnakov on 25.09.2020
 // Copyright 2020 ETH Zurich
 
-#undef NDEBUG
 #include <mpi.h>
 #include <cassert>
 #include <fstream>
