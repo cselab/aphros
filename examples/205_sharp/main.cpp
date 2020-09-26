@@ -188,8 +188,9 @@ int main(int argc, const char** argv) {
 
   auto checkdiv = [](int n, int b, std::string name) {
     if (n % b) {
-      std::cerr << name << "=" << n << " not divisible by " << b << '\n';
-      std::terminate();
+      std::stringstream s;
+      s << name << "=" << n << " not divisible by " << b;
+      throw std::runtime_error(s.str());
     }
   };
 
