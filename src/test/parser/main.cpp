@@ -7,9 +7,11 @@
 #include <iostream>
 #include <sstream>
 
+#include "parse/argparse.h"
+#include "parse/config.h"
 #include "parse/parser.h"
 #include "parse/vars.h"
-#include "parse/config.h"
+#include "util/logger.h"
 
 namespace simple {
 
@@ -59,7 +61,6 @@ struct Config : public ConfigBase {
   VAR_BOOL(enable_fluid);
 };
 
-
 void TestConfig() {
   std::cout << "\n" << __func__ << std::endl;
 
@@ -90,9 +91,56 @@ void TestConfig() {
   std::cout << config.enable_fluid << std::endl;
 }
 
+void TestArgumentParser() {
+  std::cout << "\n" << __func__ << std::endl;
+
+  ArgumentParser parser("Description");
+  parser.AddSwitch({"--help", "-h"}).Help("Print help and exit");
+  parser.AddVariable<int>({"--int", "-i"}, 3);
+  parser.AddVariable<double>("--double", 3);
+  parser.AddVariable<std::string>("--string", "a");
+  parser.AddVariable<std::vector<double>>("--vect", {0});
+  parser.AddVariable<int>({"--int0", "-i0"});
+  parser.AddVariable<double>("--double0");
+  parser.AddVariable<std::string>("--string0");
+  parser.AddVariable<std::vector<double>>({"--vect0", "-v0"})
+      .Help("List of doubles");
+  parser.AddVariable<int>("nx").Help("size in x-direction");
+  parser.AddVariable<int>("ny").Help("size in y-direction");
+  parser.AddVariable<int>("nz", 1).Help("size in z-direction");
+
+  std::cout << '\n';
+  parser.PrintHelp(std::cout, true, "program");
+  std::cout << '\n';
+
+  std::cout << "\nKnown args:\n";
+  parser.GetKnownArgs().ForEachMap([](const auto& map) {
+    for (auto it = map.cbegin(); it != map.cend(); ++it) {
+      std::cout << map.GetTypeName() << ' ' << it->first << ' '
+                << map.GetStr(it->first) << '\n';
+    }
+  });
+
+  std::cout << "\nParsed args:\n";
+  auto args = parser.ParseArgs({
+      "--help", "--double0", "5.4", "-h", "--double", "2.4", "--int", "4", "-i",
+      "7",
+      "16", // nx
+      "8", // ny
+  });
+  args.ForEachMap([](const auto& map) {
+    for (auto it = map.cbegin(); it != map.cend(); ++it) {
+      std::cout << map.GetTypeName() << ' ' << it->first << ' '
+                << map.GetStr(it->first) << '\n';
+    }
+  });
+}
+
 int main() {
+  TestArgumentParser();
   simple::Simple();
 
   TestFile();
   TestConfig();
+  TestArgumentParser();
 }
