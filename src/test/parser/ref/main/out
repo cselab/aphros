@@ -1,4 +1,53 @@
 
+TestArgumentParser
+
+usage: program [--help|-h] [--int|-i INT] [--double DOUBLE] [--string STRING] [--vect VECT] [--int0|-i0 INT0] [--double0 DOUBLE0] [--string0 STRING0] [--vect0|-v0 VECT0] NX NY NZ
+
+Description
+
+positional arguments:
+nx                  size in x-direction
+ny                  size in y-direction
+nz                  size in z-direction
+
+optional arguments:
+--help, -h          Print help and exit
+--int, -i           
+--double            
+--string            
+--vect              
+--int0, -i0         
+--double0           
+--string0           
+--vect0, -v0        List of doubles
+
+
+Known args:
+string string a
+string string0 
+int help 0
+int int 3
+int int0 0
+int nx 0
+int ny 0
+int nz 1
+double double 3
+double double0 0
+vect vect 0 
+vect vect0 
+
+Parsed args:
+string string a
+int FAIL 1
+int help 1
+int int 7
+int nx 16
+int ny 8
+int nz 1
+double double 2.4
+double double0 5.4
+vect vect 0 
+
 Simple
 set string a 1
 set int b 1
@@ -43,3 +92,52 @@ TestConfig
 (4,5,6)
 name
 1
+
+TestArgumentParser
+
+usage: program [--help|-h] [--int|-i INT] [--double DOUBLE] [--string STRING] [--vect VECT] [--int0|-i0 INT0] [--double0 DOUBLE0] [--string0 STRING0] [--vect0|-v0 VECT0] NX NY NZ
+
+Description
+
+positional arguments:
+nx                  size in x-direction
+ny                  size in y-direction
+nz                  size in z-direction
+
+optional arguments:
+--help, -h          Print help and exit
+--int, -i           
+--double            
+--string            
+--vect              
+--int0, -i0         
+--double0           
+--string0           
+--vect0, -v0        List of doubles
+
+
+Known args:
+string string a
+string string0 
+int help 0
+int int 3
+int int0 0
+int nx 0
+int ny 0
+int nz 1
+double double 3
+double double0 0
+vect vect 0 
+vect vect0 
+
+Parsed args:
+string string a
+int FAIL 1
+int help 1
+int int 7
+int nx 16
+int ny 8
+int nz 1
+double double 2.4
+double double0 5.4
+vect vect 0 
