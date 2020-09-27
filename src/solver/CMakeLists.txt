@@ -69,3 +69,8 @@ target_link_libraries(${T} utilconvdiff)
 set(T "fluid_dummy")
 add_library(${T} fluid_dummy.cpp)
 target_link_libraries(${T} vars suspender posthook_default approx_eb)
+
+set(T "electro")
+add_library(${T} electro.cpp)
+target_link_libraries(${T} approx_eb)
+
