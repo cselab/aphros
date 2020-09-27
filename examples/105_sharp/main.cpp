@@ -114,17 +114,18 @@ int main(int argc, const char** argv) {
 
   ArgumentParser parser("Sharpens the image using PLIC advection", isroot);
   parser.AddSwitch({"--verbose", "-v"}).Help("Report steps");
-  parser.AddVariable<double>("--cfl", 0.5)
+  parser.AddVariable<double>("--cfl", 0.1)
       .Help("CFL number for advection, valid values between 0 and 1");
   parser.AddVariable<std::string>("--vtk_out_march")
       .Help("Path to output VTK with surface from marching cubes");
   parser.AddVariable<std::string>("--vtk_out").Help(
       "Path to output VTK with piecewise linear surface");
+  parser.AddVariable<int>("--steps", 5).Help("Number of sharpening steps");
 
   parser.AddVariable<std::string>("hdf_in").Help(
       "Path to input image as HDF5 array of floats between 0 and 1");
-  parser.AddVariable<int>("steps", 1).Help("Number of sharpening steps");
-  parser.AddVariable<std::string>("hdf_out").Help("Path to output image");
+  parser.AddVariable<std::string>("hdf_out").Help(
+      "Path to output image, can be the same as HDF_IN");
 
   auto args = parser.ParseArgs(argc, argv);
   if (const int* p = args.Int.Find("EXIT")) {
