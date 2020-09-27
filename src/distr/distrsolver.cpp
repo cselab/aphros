@@ -9,6 +9,7 @@
 
 #include "distrsolver.h"
 #include "linear/hypresub.h"
+#include "parse/argparse.h"
 #include "util/git.h"
 #include "util/subcomm.h"
 
@@ -46,67 +47,31 @@ int RunMpi0(
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   bool isroot = (!rank);
 
-  const std::set<std::string> novalue_args = {
-      "-v", "--verbose", "-h", "--help", "--version",
-  };
-  const auto known_args = novalue_args;
-  const auto args = ParseArgs(argc, argv, novalue_args);
-  const std::map<std::string, std::string> oargs = args.first; // optional
-  const std::vector<std::string> pargs = args.second; // positional
-
-  auto exit_usage = [&argv, isroot](int status) {
-    if (isroot) {
-      std::cerr << "usage: " << argv[0]
-                << " [-h|--help] [--version] [-v|--verbose] [a.conf]\n";
-    }
-    return status;
-  };
-
-  if (oargs.count("-h") || oargs.count("--help")) {
-    return exit_usage(0);
+  ArgumentParser parser("Distributed solver", isroot);
+  parser.AddSwitch({"--verbose", "-v"}).Help("Print initial configuration");
+  parser.AddSwitch({"--version"}).Help("Print version");
+  parser.AddVariable<std::string>("config", "a.conf")
+      .Help("Path to configuration file");
+  auto args = parser.ParseArgs(argc, argv);
+  if (const int* p = args.Int.Find("EXIT")) {
+    return *p;
   }
 
-  const bool verbose = oargs.count("-v") || oargs.count("--verbose");
-
-  std::string filename = "a.conf";
-  if (pargs.size() == 0) {
-    // nop
-  } else if (pargs.size() == 1) {
-    filename = pargs[0];
-  } else {
-    std::cerr << "too many positional arguments\n";
-    return exit_usage(1);
-  }
-
-  auto check_known_args = [&oargs, isroot, known_args]() {
-    bool pass = true;
-    for (auto p : oargs) {
-      if (!known_args.count(p.first)) {
-        pass = false;
-        if (isroot) {
-          std::cerr << "unrecognized option: " << p.first << '\n';
-        }
-      }
-    }
-    return pass;
-  };
-  if (!check_known_args()) {
-    return exit_usage(1);
-  }
-
-  if (oargs.count("--version") && isroot) {
+  const bool verbose = args.Int["verbose"];
+  const std::string config = args.String["config"];
+  if (args.Int["version"] && isroot) {
     std::cerr << "aphros " << GetGitRev() << "\nmsg: " << GetGitMsg()
               << "\ndiff: " << GetGitDiff() << '\n';
   }
 
   if (verbose && isroot) {
-    std::cerr << "Loading config from '" << filename << "'" << std::endl;
+    std::cerr << "Loading config from '" << config << "'" << std::endl;
   }
 
   Vars var; // parameter storage
   Parser ip(var); // parser
 
-  ip.ParseFile(filename);
+  ip.ParseFile(config);
 
   // Print vars on root
   if (verbose && isroot) {
@@ -115,9 +80,9 @@ int RunMpi0(
     std::cerr << "=== config end ===\n\n";
   }
 
-  std::string be = var.String["backend"];
+  const std::string backend = var.String["backend"];
 
-  if (be == "local") {
+  if (backend == "local") {
     MPI_Comm comm;
     MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
     if (rank == 0) {
