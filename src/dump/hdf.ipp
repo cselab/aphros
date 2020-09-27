@@ -193,6 +193,26 @@ void Hdf<M>::Read(
 }
 
 template <class M>
+std::vector<size_t> Hdf<M>::GetShape(std::string path, std::string dname) {
+  H5open();
+  const hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+  const hid_t file = H5Fopen(path.c_str(), H5F_ACC_RDONLY, fapl);
+  H5Pclose(fapl);
+  if (file < 0) {
+    throw std::runtime_error(FILELINE + ": cannot open file '" + path + "'");
+  }
+  const hid_t dataset = H5Dopen2(file, dname.c_str(), H5P_DEFAULT);
+  const hid_t fspace = H5Dget_space(dataset);
+  const size_t ndims = H5Sget_simple_extent_ndims(fspace);
+  std::vector<hsize_t> dims(ndims);
+  H5Sget_simple_extent_dims(fspace, dims.data(), NULL);
+  H5Sclose(fspace);
+  H5Dclose(dataset);
+  H5Fclose(file);
+  return {dims.begin(), dims.end()};
+}
+
+template <class M>
 void Hdf<M>::WriteXmf(
     std::string xmfpath, std::string name, const std::array<double, 3>& origin,
     const std::array<double, 3>& spacing, const std::array<size_t, 3>& dims,

@@ -112,11 +112,6 @@ double GetDouble(std::string s) {
 int main(int argc, const char** argv) {
   const bool isroot = true;
 
-  std::string hdf_in;
-  int steps;
-  int nx, ny, nz;
-  std::string hdf_out;
-
   ArgumentParser parser("Sharpens the image using PLIC advection", isroot);
   parser.AddSwitch({"--verbose", "-v"}).Help("Report steps");
   parser.AddVariable<double>("--cfl", 0.5)
@@ -127,11 +122,7 @@ int main(int argc, const char** argv) {
       "Path to output VTK with piecewise linear surface");
 
   parser.AddVariable<std::string>("hdf_in").Help(
-      "Path to input image as HDF5 array of floats between 0 and 1 and "
-      "shape (1,NZ,NY,NX)");
-  parser.AddVariable<int>("nx").Help("Image size in x");
-  parser.AddVariable<int>("ny").Help("Image size in y");
-  parser.AddVariable<int>("nz").Help("Image size in z");
+      "Path to input image as HDF5 array of floats between 0 and 1");
   parser.AddVariable<int>("steps", 1).Help("Number of sharpening steps");
   parser.AddVariable<std::string>("hdf_out").Help("Path to output image");
 
@@ -140,12 +131,10 @@ int main(int argc, const char** argv) {
     return *p;
   }
 
-  hdf_in = args.String["hdf_in"];
-  nx = args.Int["nx"];
-  ny = args.Int["ny"];
-  nz = args.Int["nz"];
-  steps = args.Int["steps"];
-  hdf_out = args.String["hdf_out"];
+  const auto shape = Hdf<M>::GetShape(args.String["hdf_in"]);
+  const int nx = shape[2];
+  const int ny = shape[1];
+  const int nz = shape[0];
 
   auto checkdiv = [](int n, int b, std::string name) {
     if (n % b) {
@@ -203,10 +192,10 @@ set int loc_maxcomm 16
 
   conf << "set int dim " << (nz == 1 ? 2 : 3) << '\n';
 
-  conf << "set int steps " << steps << '\n';
+  conf << "set int steps " << args.Int["steps"] << '\n';
 
-  conf << "set string hdf_in " << hdf_in << '\n';
-  conf << "set string hdf_out " << hdf_out << '\n';
+  conf << "set string hdf_in " << args.String["hdf_in"] << '\n';
+  conf << "set string hdf_out " << args.String["hdf_out"] << '\n';
   if (auto* p = args.String.Find("vtk_out")) {
     conf << "set string vtk_out " << *p << '\n';
   }

@@ -28,6 +28,11 @@ class Hdf {
   static void Read(
       FieldCell<typename M::Scal>& fc, std::string path, M& m,
       const std::string dname = kDefaultName);
+  // Returns shape of a dataset in HDF file.
+  // path: input path
+  // dname: dataset name
+  static std::vector<size_t> GetShape(
+      std::string path, const std::string dname = kDefaultName);
   // Creates XMF file with uniform mesh and scalar data attribute linked to HDF.
   // xmfpath: output path
   // name: name of attribute
