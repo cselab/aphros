@@ -147,7 +147,6 @@ int main(int argc, const char** argv) {
   steps = args.Int["steps"];
   hdf_out = args.String["hdf_out"];
 
-  /*
   auto checkdiv = [](int n, int b, std::string name) {
     if (n % b) {
       std::stringstream s;
@@ -157,7 +156,6 @@ int main(int argc, const char** argv) {
   };
 
   int bs = 8;
-  int bsy = bs;
   int bsz = 8;
 
   if (nz == 1) { // 2D
@@ -178,12 +176,7 @@ int main(int argc, const char** argv) {
     bs /= 2;
     bsz = bs;
   }
-  */
-
-  // XXX: adhoc for backend=local
-  int bs = nx;
-  int bsy = ny;
-  int bsz = nz;
+  int bsy = bs;
 
   std::stringstream conf;
   conf << R"EOF(
@@ -196,7 +189,7 @@ set int hl 2
 
 set int verbose_time 0
 set int verbose_stages 0
-set string backend local
+set string backend cubismnc
 set int loc_maxcomm 16
 )EOF";
 

@@ -122,8 +122,11 @@ void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
   };
   auto set = [&bb,this](auto* derived, auto& buf, size_t i) {
     for (auto& b : bb) {
-      const auto& v = mk.at(b)->GetMesh().GetReduceToLead();
-      dynamic_cast<decltype(derived)>(v[i].get())->Set(buf);
+      const auto& m = mk.at(b)->GetMesh();
+      if (m.IsLead()) {
+        const auto& v = m.GetReduceToLead();
+        dynamic_cast<decltype(derived)>(v[i].get())->Set(buf);
+      }
     }
   };
 
