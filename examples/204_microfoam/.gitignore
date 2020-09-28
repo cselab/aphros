@@ -33,3 +33,4 @@ bg.dat
 body.dat
 par.conf
 par.make
+gen_*.py
