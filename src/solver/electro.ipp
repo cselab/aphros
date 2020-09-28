@@ -11,6 +11,7 @@
 
 #include "approx.h"
 #include "approx_eb.h"
+#include "solver/pois.h"
 #include "util/vof.h"
 
 #include "electro.h"
@@ -33,9 +34,18 @@ struct Electro<EB_>::Imp {
       Scal dt, const FieldCell<Scal>& fc_permit,
       const FieldCell<Scal>& fc_charge) {
     auto sem = m.GetSem("step");
+    struct {
+      FieldCell<Scal> fc_rhs;
+    } * ctx(sem);
+    auto& t = *ctx;
     if (sem("local")) {
-      fc_pot_ = UEB::Interpolate(UEB::Interpolate(fc_pot_, mebc_pot_, eb), eb);
-      m.Comm(&fc_pot_);
+      t.fc_rhs.Reinit(m, 0);
+      for (auto c : eb.CellsM()) {
+        t.fc_rhs[c] = std::sin(c.center[0] * M_PI * 2);
+      }
+    }
+    if (sem.Nested("solve")) {
+      SolvePoisson(fc_pot_, t.fc_rhs, mebc_pot_, m);
     }
     if (sem("stat")) {
       time_ += dt;
