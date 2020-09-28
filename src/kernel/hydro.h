@@ -538,7 +538,7 @@ void Hydro<M>::InitParticles() {
 template <class M>
 void Hydro<M>::InitElectro() {
   if (var.Int["enable_electro"]) {
-    typename ElectroInterface<M>::Conf conf;
+    typename ElectroInterface<M>::Conf conf{var};
     if (eb_) {
       electro_.reset(
           new Electro<EB>(m, *eb_, mebc_electro_, fs_->GetTime(), conf));
@@ -2332,7 +2332,8 @@ void Hydro<M>::StepElectro() {
   auto sem = m.GetSem(__func__);
   if (sem.Nested("start")) {
     electro_->Step(
-        fs_->GetTimeStep(), FieldCell<Scal>(m, 0), FieldCell<Scal>(m, 0));
+        fs_->GetTimeStep(), FieldCell<Scal>(m, 0), FieldCell<Scal>(m, 0),
+        as_->GetField());
   }
   if (sem("report")) {
     if (m.IsRoot()) {
