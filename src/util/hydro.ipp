@@ -778,17 +778,14 @@ InitBc(const Vars& var, const MEB& eb, std::set<std::string> known_keys) {
   MapEmbed<size_t> me_group;
   MapEmbed<size_t> me_nci;
   std::tie(me_group, me_nci, vdesc) = UI::ParseGroups(in, eb);
-  std::vector<std::map<std::string, Scal>> vcustom;
-  vcustom.resize(vdesc.size());
+  std::vector<std::map<std::string, Scal>> vcustom(vdesc.size());
 
-  for (size_t group = 0; group < vdesc.size(); ++group) {
-    me_group.LoopPairs([&](const auto& p) {
-      const auto cf = p.first;
-      std::tie(me_fluid[cf], me_adv[cf], vcustom[group]) = parse(
-          vdesc[me_group.at(cf)], me_nci.at(cf), eb.GetFaceCenter(cf),
-          eb.GetNormal(cf));
-    });
-  }
+  me_group.LoopPairs([&](const auto& p) {
+    const auto cf = p.first;
+    const auto group = p.second;
+    std::tie(me_fluid[cf], me_adv[cf], vcustom[group]) = parse(
+        vdesc[group], me_nci.at(cf), eb.GetFaceCenter(cf), eb.GetNormal(cf));
+  });
   return {me_fluid, me_adv, me_group, vdesc, vcustom};
 }
 
