@@ -660,8 +660,9 @@ template <class MEB>
 std::tuple<
     MapEmbed<BCondFluid<typename MEB::Vect>>,
     MapEmbed<BCondAdvection<typename MEB::Scal>>, MapEmbed<size_t>,
-    std::vector<std::string>>
-InitBc(const Vars& var, const MEB& eb) {
+    std::vector<std::string>,
+    std::vector<std::map<std::string, typename MEB::Scal>>>
+InitBc(const Vars& var, const MEB& eb, std::set<std::string> known_keys) {
   using M = typename MEB::M;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
@@ -712,30 +713,45 @@ InitBc(const Vars& var, const MEB& eb) {
     return ca;
   };
 
+  auto parse_key_value = [&](std::string s) {
+    std::stringstream buf(s);
+    std::string key;
+    Scal value;
+    buf >> key;
+    buf >> value;
+    return std::pair<std::string, Scal>({key, value});
+  };
+
   auto parse = [&](std::string list, size_t nci, Vect face_center,
                    Vect face_normal) {
     std::vector<std::string> ss_adv; // strings to try as advection conditions
     bool found_fluid = false;
-    BCondFluid<Vect> bcf;
-    for (auto desc : Split(list, ',')) {
-      auto p = ParseBCondFluid<Vect>(desc, nci, face_center, face_normal);
-      if (p.first) {
+    std::map<std::string, Scal> custom;
+    BCondFluid<Vect> bc_fluid;
+    for (std::string s : Split(list, ',')) {
+      auto key_value = parse_key_value(s);
+      if (known_keys.count(key_value.first)) {
+        custom.insert(key_value);
+        continue;
+      }
+      auto p = ParseBCondFluid<Vect>(s, nci, face_center, face_normal);
+      if (p.first) { // parsed as fluid condition
         found_fluid = true;
-        bcf = p.second;
-      } else {
-        ss_adv.push_back(desc);
+        bc_fluid = p.second;
+      } else { // try as advection later
+        ss_adv.push_back(s);
       }
     }
     if (!found_fluid) {
       throw std::runtime_error("No fluid condition found in '" + list + "'");
     }
-    auto bca = default_adv(bcf);
-    for (auto s : ss_adv) {
-      if (!ParseAdvectionFaceCond(s, bca)) {
+    auto bc_adv = default_adv(bc_fluid);
+    for (std::string s : ss_adv) {
+      if (!ParseAdvectionFaceCond(s, bc_adv)) {
         throw std::runtime_error("No advection condition found in '" + s + "'");
       }
     }
-    return std::make_tuple(bcf, bca);
+    return std::make_tuple(bc_fluid, bc_adv, custom);
   };
 
   MapEmbed<BCondFluid<Vect>> me_fluid;
@@ -762,16 +778,18 @@ InitBc(const Vars& var, const MEB& eb) {
   MapEmbed<size_t> me_group;
   MapEmbed<size_t> me_nci;
   std::tie(me_group, me_nci, vdesc) = UI::ParseGroups(in, eb);
+  std::vector<std::map<std::string, Scal>> vcustom;
+  vcustom.resize(vdesc.size());
 
   for (size_t group = 0; group < vdesc.size(); ++group) {
     me_group.LoopPairs([&](const auto& p) {
       const auto cf = p.first;
-      std::tie(me_fluid[cf], me_adv[cf]) = parse(
+      std::tie(me_fluid[cf], me_adv[cf], vcustom[group]) = parse(
           vdesc[me_group.at(cf)], me_nci.at(cf), eb.GetFaceCenter(cf),
           eb.GetNormal(cf));
     });
   }
-  return {me_fluid, me_adv, me_group, vdesc};
+  return {me_fluid, me_adv, me_group, vdesc, vcustom};
 }
 
 template <class M>

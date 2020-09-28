@@ -20,20 +20,22 @@ struct Electro<EB_>::Imp {
   using Owner = Electro<EB_>;
   using UEB = UEmbed<M>;
 
-  Imp(Owner* owner, M& m, const EB& eb, const FieldCell<Scal>& fc_pot,
-      const MapEmbed<BCond<Scal>>& mebc_pot, Scal time, Conf conf)
+  Imp(Owner* owner, M& m, const EB& eb, const MapEmbed<BCond<Scal>>& mebc_pot,
+      Scal time, Conf conf)
       : owner_(owner)
       , m(m)
       , eb(eb)
       , conf(conf)
       , time_(time)
-      , fc_pot_(fc_pot)
+      , fc_pot_(m, 0)
       , mebc_pot_(mebc_pot) {}
   void Step(
       Scal dt, const FieldCell<Scal>& fc_permit,
       const FieldCell<Scal>& fc_charge) {
     auto sem = m.GetSem("step");
     if (sem("local")) {
+      fc_pot_ = UEB::Interpolate(UEB::Interpolate(fc_pot_, mebc_pot_, eb), eb);
+      m.Comm(&fc_pot_);
     }
     if (sem("stat")) {
       time_ += dt;
@@ -51,9 +53,9 @@ struct Electro<EB_>::Imp {
 
 template <class EB_>
 Electro<EB_>::Electro(
-    M& m, const EB& eb, const FieldCell<Scal>& fc_pot,
-    const MapEmbed<BCond<Scal>>& mebc_pot, Scal time, Conf conf)
-    : imp(new Imp(this, m, eb, fc_pot, mebc_pot, time, conf)) {}
+    M& m, const EB& eb, const MapEmbed<BCond<Scal>>& mebc_pot, Scal time,
+    Conf conf)
+    : imp(new Imp(this, m, eb, mebc_pot, time, conf)) {}
 
 template <class EB_>
 Electro<EB_>::~Electro() = default;

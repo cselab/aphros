@@ -48,8 +48,8 @@ class Electro : public ElectroInterface<typename EB_::M> {
   // Constructor
   // fc_pot: initial volume fraction
   Electro(
-      M& m, const EB& eb, const FieldCell<Scal>& fc_pot,
-      const MapEmbed<BCond<Scal>>& mebc_pot, Scal time, Conf conf);
+      M& m, const EB& eb, const MapEmbed<BCond<Scal>>& mebc_pot, Scal time,
+      Conf conf);
   ~Electro();
   const Conf& GetConf() const;
   void SetConf(Conf);

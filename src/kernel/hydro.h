@@ -41,6 +41,7 @@
 #include "solver/approx.h"
 #include "solver/approx_eb.h"
 #include "solver/curv.h"
+#include "solver/electro.h"
 #include "solver/embed.h"
 #include "solver/fluid_dummy.h"
 #include "solver/multi.h"
@@ -141,6 +142,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void InitEmbed();
   void InitTracer(Multi<FieldCell<Scal>>& vfcu);
   void InitTracerFields(Multi<FieldCell<Scal>>& vfcu);
+  void InitElectro();
   void SpawnTracer();
   void InitParticles();
   void SpawnParticles(ParticlesView& view);
@@ -164,6 +166,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void ReportStepAdv();
   void ReportStepTracer();
   void ReportStepParticles();
+  void ReportStepElectro();
   void ReportIter();
   // Issue sem.LoopBreak if abort conditions met
   void CheckAbort(Sem& sem, Scal& nabort);
@@ -171,6 +174,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void StepAdvection();
   void StepTracer();
   void StepParticles();
+  void StepElectro();
   void StepBubgen();
   void StepEraseVolumeFraction(std::string prefix, Scal& last_t);
   void StepEraseColor(std::string prefix);
@@ -282,13 +286,15 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_phi_; // distance from eb
   FieldEmbed<Scal> febp_; // balanced force projections
 
-  MapEmbed<BCondAdvection<Scal>> mf_adv_;
+  MapEmbed<BCondAdvection<Scal>> mebc_adv_;
   MapEmbed<BCond<Scal>> mebc_vfsm_;
   MapEmbed<BCondFluid<Vect>> mebc_fluid_;
   MapEmbed<BCondFluid<Vect>> mebc_fluid_orig_;
+  MapEmbed<BCond<Scal>> mebc_electro_;
   MapEmbed<size_t> me_group_;
   MapEmbed<Scal> me_contang_;
-  std::vector<std::string> vdesc_;
+  std::vector<std::string> bc_group_desc_;
+  std::vector<std::map<std::string, Scal>> bc_group_custom_;
   MapCell<std::shared_ptr<CondCell>> mc_cond_;
   MapCell<std::shared_ptr<CondCellFluid>> mc_velcond_;
 
@@ -337,6 +343,9 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Scal tracer_dt_;
   Scal particles_dt_;
   std::string vf_save_state_path_;
+
+  // electro
+  std::unique_ptr<ElectroInterface<M>> electro_;
 };
 
 template <class M>
@@ -452,7 +461,7 @@ void Hydro<M>::OverwriteBc() {
         auto& curr = mebc_fluid_[cf];
         if (curr.type == BCondFluidType::inlet ||
             curr.type == BCondFluidType::inletpressure) {
-          mf_adv_[cf].fill_vf = vf;
+          mebc_adv_[cf].fill_vf = vf;
         }
       });
     }
@@ -522,6 +531,19 @@ void Hydro<M>::InitParticles() {
       particles_.reset(new Particles<EB>(m, *eb_, init, fs_->GetTime(), conf));
     } else {
       particles_.reset(new Particles<M>(m, m, init, fs_->GetTime(), conf));
+    }
+  }
+}
+
+template <class M>
+void Hydro<M>::InitElectro() {
+  if (var.Int["enable_electro"]) {
+    typename ElectroInterface<M>::Conf conf;
+    if (eb_) {
+      electro_.reset(
+          new Electro<EB>(m, *eb_, mebc_electro_, fs_->GetTime(), conf));
+    } else {
+      electro_.reset(new Electro<M>(m, m, mebc_electro_, fs_->GetTime(), conf));
     }
   }
 }
@@ -653,12 +675,12 @@ void Hydro<M>::InitAdvection(
     if (eb_) {
       auto p = ParsePar<ASVEB>()(var);
       as_.reset(new ASVEB(
-          m, *eb_, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
+          m, *eb_, fcvf, fccl, mebc_adv_, &fs_->GetVolumeFlux(Step::time_curr),
           &fc_src2_, 0., st_.dta, p));
     } else {
       auto p = ParsePar<ASV>()(var);
       as_.reset(new ASV(
-          m, m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
+          m, m, fcvf, fccl, mebc_adv_, &fs_->GetVolumeFlux(Step::time_curr),
           &fc_src2_, 0., st_.dta, p));
     }
     layers = GRange<size_t>(1);
@@ -666,14 +688,14 @@ void Hydro<M>::InitAdvection(
     if (eb_) {
       auto p = ParsePar<ASVMEB>()(var);
       auto as = new ASVMEB(
-          m, *eb_, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
+          m, *eb_, fcvf, fccl, mebc_adv_, &fs_->GetVolumeFlux(Step::time_curr),
           &fc_src2_, 0., st_.dta, p);
       as_.reset(as);
       layers = GRange<size_t>(as->GetNumLayers());
     } else {
       auto p = ParsePar<ASVM>()(var);
       auto as = new ASVM(
-          m, m, fcvf, fccl, mf_adv_, &fs_->GetVolumeFlux(Step::time_curr),
+          m, m, fcvf, fccl, mebc_adv_, &fs_->GetVolumeFlux(Step::time_curr),
           &fc_src2_, 0., st_.dta, p);
       as_.reset(as);
       layers = GRange<size_t>(as->GetNumLayers());
@@ -782,7 +804,7 @@ void Hydro<M>::InitStat() {
   if (eb_) {
     stat.AddSum(
         "q_inlet", "inlet volume rate", //
-        [&ffv, this, &m=m]() {
+        [&ffv, this, &m = m]() {
           Scal sum = 0;
           mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
             if (m.IsInner(c)) {
@@ -796,7 +818,7 @@ void Hydro<M>::InitStat() {
         });
     stat.AddSum(
         "q_inletpressure", "inletpressure volume rate", //
-        [&ffv, this, &m=m]() {
+        [&ffv, this, &m = m]() {
           Scal sum = 0;
           mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
             if (m.IsInner(c)) {
@@ -809,7 +831,7 @@ void Hydro<M>::InitStat() {
         });
     stat.AddSum(
         "q_outlet", "outlet volume rate", //
-        [&ffv, this, &m=m]() {
+        [&ffv, this, &m = m]() {
           Scal sum = 0;
           mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
             if (m.IsInner(c)) {
@@ -823,7 +845,7 @@ void Hydro<M>::InitStat() {
         });
     stat.AddSum(
         "area_inletpressure", "inletpressure area", //
-        [this, &m=m]() {
+        [this, &m = m]() {
           Scal sum = 0;
           auto& eb = *eb_;
           mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
@@ -837,7 +859,7 @@ void Hydro<M>::InitStat() {
         });
     stat.AddSumHidden(
         "p*area_inletpressure", "inletpressure pressure * area", //
-        [&p, this, &m=m]() {
+        [&p, this, &m = m]() {
           Scal sum = 0;
           auto& eb = *eb_;
           mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
@@ -939,11 +961,10 @@ void Hydro<M>::InitStat() {
   }
   if (var.Int["statvel"]) {
     const Vect vel0(var.Vect["vel"]);
-    stat.AddSumHidden(
-        "dv*dv*vol", "", [&vel0, &vel](IdxCell c, const M& m) {
-          auto dv = vel[c] - vel0;
-          return dv * dv * m.GetVolume(c);
-        });
+    stat.AddSumHidden("dv*dv*vol", "", [&vel0, &vel](IdxCell c, const M& m) {
+      auto dv = vel[c] - vel0;
+      return dv * dv * m.GetVolume(c);
+    });
     stat.AddSumHidden(
         "dv*dv*vol2", "", [&vel0, &vel, &vf](IdxCell c, const M& m) {
           auto dv = vel[c] - vel0;
@@ -981,20 +1002,14 @@ void Hydro<M>::InitStat() {
         const auto& vf = *as->GetFieldM()[l];
         stat.AddSum(
             "vofm_cells_vf" + sl, "cells with positive volume fraction", //
-            [&vf](IdxCell c, const M&) -> Scal {
-              return vf[c] > 0 ? 1 : 0;
-            });
-        const auto& cl  = *as->GetColor()[l];
+            [&vf](IdxCell c, const M&) -> Scal { return vf[c] > 0 ? 1 : 0; });
+        const auto& cl = *as->GetColor()[l];
         stat.AddSum(
             "vofm_cells_cl" + sl, "cells with defined color", //
-            [&cl](IdxCell c, const M&) -> Scal {
-              return cl[c] > 0 ? 1 : 0;
-            });
+            [&cl](IdxCell c, const M&) -> Scal { return cl[c] > 0 ? 1 : 0; });
         stat.AddSum(
             "vofm_vol" + sl, "integral of volume fraction", //
-            [&vf](IdxCell c, const M& m) {
-              return vf[c] * m.GetVolume(c);
-            });
+            [&vf](IdxCell c, const M& m) { return vf[c] * m.GetVolume(c); });
         auto slp = std::to_string(l + 1);
         // TODO: revise with `++hist[cnt]`, now takes L^2 operations.
         stat.AddSum(
@@ -1030,7 +1045,8 @@ void Hydro<M>::InitStat() {
           [&n, &a, &vf, &h](IdxCell c, const M&) -> Scal {
             if (vf[c] > 0 && vf[c] < 1 && !IsNan(a[c])) {
               using R = Reconst<Scal>;
-              auto s = std::abs(R::GetArea(R::GetCutPoly2(n[c], a[c], h), n[c]));
+              auto s =
+                  std::abs(R::GetArea(R::GetCutPoly2(n[c], a[c], h), n[c]));
               if (!IsNan(s)) {
                 return s;
               }
@@ -1182,23 +1198,26 @@ void Hydro<M>::Init() {
     }
 
     // boundary conditions
+    std::set<std::string> known_keys = {"electro_dirichlet", "electro_neumann"};
     if (eb_) {
-      auto p = InitBc(var, *eb_);
+      auto p = InitBc(var, *eb_, known_keys);
       mebc_fluid_ = std::get<0>(p);
-      mf_adv_ = std::get<1>(p);
+      mebc_adv_ = std::get<1>(p);
       me_group_ = std::get<2>(p);
-      vdesc_ = std::get<3>(p);
-      mf_adv_.LoopBCond(*eb_, [&](auto cf, auto c, auto) { //
+      bc_group_desc_ = std::get<3>(p);
+      bc_group_custom_ = std::get<4>(p);
+      mebc_adv_.LoopBCond(*eb_, [&](auto cf, auto c, auto) { //
         me_contang_[cf] = fc_contang_[c];
-        mf_adv_[cf].contang = fc_contang_[c];
+        mebc_adv_[cf].contang = fc_contang_[c];
       });
     } else {
-      auto p = InitBc(var, m);
+      auto p = InitBc(var, m, known_keys);
       mebc_fluid_ = std::get<0>(p);
-      mf_adv_ = std::get<1>(p);
+      mebc_adv_ = std::get<1>(p);
       me_group_ = std::get<2>(p);
-      vdesc_ = std::get<3>(p);
-      for (auto& p : mf_adv_.GetMapFace()) {
+      bc_group_desc_ = std::get<3>(p);
+      bc_group_custom_ = std::get<4>(p);
+      for (auto& p : mebc_adv_.GetMapFace()) {
         const auto& f = p.first;
         auto& bc = p.second;
         const auto c = m.GetCell(f, bc.nci);
@@ -1207,6 +1226,27 @@ void Hydro<M>::Init() {
       }
     }
     mebc_fluid_orig_ = mebc_fluid_;
+
+    me_group_.LoopPairs([&](auto cf_group) {
+      auto cf = cf_group.first;
+      size_t group = cf_group.second;
+      auto nci = mebc_fluid_[cf].nci;
+
+      const auto& custom = bc_group_custom_[group];
+      auto getptr = [&](std::string key) -> const Scal* {
+        auto it = custom.find(key);
+        if (it != custom.end()) {
+          return &it->second;
+        }
+        return nullptr;
+      };
+
+      if (auto* ptr = getptr("electro_dirichlet")) {
+        mebc_electro_[cf] = BCond<Scal>(BCondType::dirichlet, nci, *ptr);
+      } else if (auto* ptr = getptr("electro_neumann")) {
+        mebc_electro_[cf] = BCond<Scal>(BCondType::neumann, nci, *ptr);
+      }
+    });
 
     // boundary conditions for smoothing of volume fraction
     mebc_vfsm_ = GetBCondZeroGrad<Scal>(mebc_fluid_);
@@ -1298,7 +1338,7 @@ void Hydro<M>::Init() {
     }
     AppendBodyCond<M>(
         fc, var.String["body_bc"], m, clear0, clear1, inletcl, fill_vf, nullptr,
-        mebc_fluid_, mf_adv_);
+        mebc_fluid_, mebc_adv_);
   }
   */
 
@@ -1316,6 +1356,8 @@ void Hydro<M>::Init() {
 
     InitTracer(ctx->tracer_vfcu);
 
+    InitElectro();
+
     InitParticles();
 
     st_.iter = 0;
@@ -1329,7 +1371,7 @@ void Hydro<M>::Init() {
 
     if (var.Int["fill_halo_nan"]) {
       std::vector<std::pair<IdxFace, size_t>> vf;
-      for (auto& p : mf_adv_.GetMapFace()) {
+      for (auto& p : mebc_adv_.GetMapFace()) {
         vf.emplace_back(p.first, p.second.GetNci());
       }
       m.SetNanFaces(vf);
@@ -1353,12 +1395,12 @@ void Hydro<M>::Init() {
     }
   }
   if (var.Int["dumpbc"]) {
-    if (vdesc_.size()) {
+    if (bc_group_desc_.size()) {
       if (sem("dump-bcgroups")) {
         if (m.IsRoot()) {
           std::ofstream fdesc("bc_groups.dat");
-          for (size_t i = 0; i < vdesc_.size(); ++i) {
-            fdesc << i << " " << vdesc_[i] << std::endl;
+          for (size_t i = 0; i < bc_group_desc_.size(); ++i) {
+            fdesc << i << " " << bc_group_desc_[i] << std::endl;
           }
         }
       }
@@ -1390,8 +1432,7 @@ Hydro<M>::Hydro(Vars& var0, const MyBlockInfo& bi, Par& par)
     , dumper_(var, "dump_field_")
     , dmptraj_(var, "dump_traj_")
     , dmptrep_(var, "dump_trep_")
-    , bubgen_(var, "bubgen_")
-{}
+    , bubgen_(var, "bubgen_") {}
 
 template <class M>
 void Hydro<M>::CalcStat() {
@@ -1590,7 +1631,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
     }
 
-
     // Append gravity to force
     for (auto f : m.AllFaces()) {
       const Vect n = m.GetNormal(f);
@@ -1779,6 +1819,9 @@ void Hydro<M>::DumpFields() {
         }
         dump(ctx->fc_tracer_sum, "tusum");
       }
+    }
+    if (electro_) {
+      dump(electro_->GetPotential(), "elpot");
     }
   }
   if (var.Int["enable_advection"]) {
@@ -2030,6 +2073,11 @@ void Hydro<M>::Run() {
       StepParticles();
     }
   }
+  if (sem.Nested("electro-step")) {
+    if (electro_) {
+      StepElectro();
+    }
+  }
   if (sem.Nested("stat")) {
     CalcStat();
   }
@@ -2069,9 +2117,8 @@ void Hydro<M>::Run() {
 template <class M>
 void Hydro<M>::ReportStep() {
   std::cout << std::fixed << std::setprecision(8) << "STEP=" << st_.step
-            << " t=" << st_.t << " dt=" << st_.dt << " ta=" << as_->GetTime()
-            << " dta=" << as_->GetTimeStep() << " wt=" << timer_.GetSeconds()
-            << std::endl;
+            << " t=" << st_.t << " dt=" << st_.dt
+            << " wt=" << timer_.GetSeconds() << std::endl;
 }
 
 template <class M>
@@ -2093,6 +2140,13 @@ void Hydro<M>::ReportStepParticles() {
   std::cout << std::fixed << std::setprecision(8)
             << ".....particles: t=" << particles_->GetTime()
             << " dt=" << particles_dt_ << std::endl;
+}
+
+template <class M>
+void Hydro<M>::ReportStepElectro() {
+  std::cout << std::fixed << std::setprecision(8)
+            << ".....electro: t=" << electro_->GetTime()
+            << " dt=" << fs_->GetTimeStep() << std::endl;
 }
 
 template <class M>
@@ -2274,6 +2328,23 @@ void Hydro<M>::StepParticles() {
 }
 
 template <class M>
+void Hydro<M>::StepElectro() {
+  auto sem = m.GetSem(__func__);
+  if (sem.Nested("start")) {
+    electro_->Step(
+        fs_->GetTimeStep(), FieldCell<Scal>(m, 0), FieldCell<Scal>(m, 0));
+  }
+  if (sem("report")) {
+    if (m.IsRoot()) {
+      if (st_.step % var.Int("report_step_every", 1) == 0) {
+        ReportStepElectro();
+      }
+    }
+  }
+}
+
+
+template <class M>
 void Hydro<M>::StepAdvection() {
   auto sem = m.GetSem("steps"); // sem nested
   sem.LoopBegin();
@@ -2409,8 +2480,7 @@ void Hydro<M>::StepBubgen() {
           }
         }
       };
-      auto modifym = [fcvf = t.fcvf, clnew](
-                         auto& u, auto& cl, auto, auto& eb) {
+      auto modifym = [fcvf = t.fcvf, clnew](auto& u, auto& cl, auto, auto& eb) {
         for (auto c : eb.AllCells()) {
           if ((*fcvf)[c] > 0) {
             const Scal v = std::min((*fcvf)[c], eb.GetVolumeFraction(c));
@@ -2450,7 +2520,7 @@ void Hydro<M>::StepEraseVolumeFraction(std::string prefix, Scal& last_t) {
       std::cout << prefix + " t=" << st_.t << std::endl;
     }
     last_t = st_.t;
-    auto apply_vof = [this,&rect](auto* as, const auto& eb) {
+    auto apply_vof = [this, &rect](auto* as, const auto& eb) {
       if (as) {
         auto& u = const_cast<FieldCell<Scal>&>(as->GetField());
         for (auto c : eb.AllCells()) {
@@ -2461,7 +2531,7 @@ void Hydro<M>::StepEraseVolumeFraction(std::string prefix, Scal& last_t) {
         }
       }
     };
-    auto apply_vofm = [this,&rect](auto* as, const auto& eb) {
+    auto apply_vofm = [this, &rect](auto* as, const auto& eb) {
       if (as) {
         for (auto l : layers) {
           auto& u = const_cast<FieldCell<Scal>&>(*as->GetFieldM()[l]);

@@ -3,6 +3,9 @@
 
 #pragma once
 
+#include <map>
+#include <set>
+
 #include "parse/vars.h"
 #include "solver/advection.h"
 #include "solver/convdiff.h"
@@ -28,12 +31,21 @@ FieldCell<typename M::Vect> GetVort(
 template <class M>
 void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m);
 
+// Reads boundary conditions. Error is generated for unknown keys.
+// known_keys: other keys to be parsed and returned in map<string, Scal>
+// Output:
+// - fluid conditions BCondFluid on faces,
+// - advection conditions BCondAdvection on faces,
+// - group index on faces
+// - string descriptors of boundary conditions for each group
+// - custom keys and values allowed by known_keys for each group
 template <class MEB>
 std::tuple<
     MapEmbed<BCondFluid<typename MEB::Vect>>,
     MapEmbed<BCondAdvection<typename MEB::Scal>>, MapEmbed<size_t>,
-    std::vector<std::string>>
-InitBc(const Vars& var, const MEB& eb);
+    std::vector<std::string>,
+    std::vector<std::map<std::string, typename MEB::Scal>>>
+InitBc(const Vars& var, const MEB& eb, std::set<std::string> known_keys);
 
 // Returns fluid cell conditions.
 // Output:

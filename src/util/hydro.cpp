@@ -17,14 +17,16 @@ template void InitVel(FieldCell<Vect>& fcv, const Vars& var, const M& m);
 template std::tuple<
     MapEmbed<BCondFluid<typename M::Vect>>,
     MapEmbed<BCondAdvection<typename M::Scal>>, MapEmbed<size_t>,
-    std::vector<std::string>>
-InitBc(const Vars& var, const M& eb);
+    std::vector<std::string>,
+    std::vector<std::map<std::string, typename M::Scal>>>
+InitBc(const Vars& var, const M& eb, std::set<std::string> known_keys);
 
 template std::tuple<
     MapEmbed<BCondFluid<typename M::Vect>>,
     MapEmbed<BCondAdvection<typename M::Scal>>, MapEmbed<size_t>,
-    std::vector<std::string>>
-InitBc(const Vars& var, const EB& eb);
+    std::vector<std::string>,
+    std::vector<std::map<std::string, typename M::Scal>>>
+InitBc(const Vars& var, const EB& eb, std::set<std::string> known_keys);
 
 template void GetFluidCellCond(
     const Vars& var, M& m, MapCell<std::shared_ptr<CondCellFluid>>& mcvel);
