@@ -1659,6 +1659,27 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
+
+    // source
+    if (auto* rate = var.Double.Find("growth_rate")) {
+      if (auto as = dynamic_cast<ASV*>(as_.get())) {
+        fc_src2_.Reinit(m, 0.);
+        auto& n = as->GetNormal();
+        auto& a = as->GetAlpha();
+        auto& vf = as->GetField();
+        const Vect h = m.GetCellSize();
+        for (auto c : m.Cells()) {
+          if (vf[c] > 0 && vf[c] < 1 && !IsNan(a[c])) {
+            using R = Reconst<Scal>;
+            auto area =
+                std::abs(R::GetArea(R::GetCutPoly2(n[c], a[c], h), n[c]));
+            auto src2 = (*rate) * area / m.GetVolume(c);
+            fc_src2_[c] = src2;
+            fc_src_[c] = src2;
+          }
+        }
+      }
+    }
   }
   // FIXME move, but keep inside nested call
   if (!vf_save_state_path_.empty() && sem.Nested("vf_save_state")) {
