@@ -44,6 +44,7 @@ class TracerInterface {
     Multi<Scal> viscosity;
     Multi<Scal> diameter;
     Multi<Slip> slip;
+    Multi<Scal> diffusion;
     Vect gravity;
     ConvSc scheme = ConvSc::sou;
   };

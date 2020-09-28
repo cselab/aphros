@@ -112,8 +112,8 @@ struct Tracer<EB_>::Imp {
 
       for (auto l : layers) {
         auto& fcu = vfcu_[l];
-        const auto fcg =
-            UEB::AverageGradient(UEB::Gradient(fcu, vmebc_[l], eb), eb);
+        const auto ffg = UEB::Gradient(fcu, vmebc_[l], eb);
+        const auto fcg = UEB::AverageGradient(ffg, eb);
         FieldFaceb<Scal> fevl(m); // phase l flux with slip
         eb.LoopFaces([&,this](auto cf) { //
           auto vel = this->GetSlipVelocity(l, fe_rho[cf], fe_mu[cf]);
@@ -125,18 +125,21 @@ struct Tracer<EB_>::Imp {
         auto feu = UEmbed<M>::InterpolateUpwind(
             fcu, vmebc_[l], conf.scheme, fcg, fevl, eb);
 
-        FieldEmbed<Scal> fevu(m, 0);
-        eb.LoopFaces([&](auto cf) { //
-          fevu[cf] = feu[cf] * fevl[cf];
-        });
+        FieldEmbed<Scal> fe_flux(m, 0);
+        eb.LoopFaces([&](auto cf) {
+          // advection
+          fe_flux[cf] = -feu[cf] * fevl[cf];
+          // diffusion
+          fe_flux[cf] += conf.diffusion[l] * ffg[cf] * eb.GetArea(cf);
+         });
         FieldCell<Scal> fct(eb, 0);
         for (auto c : eb.Cells()) {
           Scal sum = 0.;
           for (auto q : eb.Nci(c)) {
             const auto f = eb.GetFace(c, q);
-            sum += fevu[f] * eb.GetOutwardFactor(c, q);
+            sum += fe_flux[f] * eb.GetOutwardFactor(c, q);
           }
-          fct[c] = -dt * sum;
+          fct[c] = dt * sum;
         }
         fct = UEmbed<M>::RedistributeCutCells(fct, eb);
         for (auto c : eb.Cells()) {
