@@ -1256,26 +1256,31 @@ void Hydro<M>::Init() {
     }
     mebc_fluid_orig_ = mebc_fluid_;
 
-    me_group_.LoopPairs([&](auto cf_group) {
-      auto cf = cf_group.first;
-      size_t group = cf_group.second;
-      auto nci = mebc_fluid_[cf].nci;
+    if (var.Int["enable_electro"]) {
+      me_group_.LoopPairs([&](auto cf_group) {
+        auto cf = cf_group.first;
+        size_t group = cf_group.second;
+        auto nci = mebc_fluid_[cf].nci;
 
-      const auto& custom = bc_group_custom_[group];
-      auto getptr = [&](std::string key) -> const Scal* {
-        auto it = custom.find(key);
-        if (it != custom.end()) {
-          return &it->second;
+        const auto& custom = bc_group_custom_[group];
+        auto getptr = [&](std::string key) -> const Scal* {
+          auto it = custom.find(key);
+          if (it != custom.end()) {
+            return &it->second;
+          }
+          return nullptr;
+        };
+
+        if (auto* ptr = getptr("electro_dirichlet")) {
+          mebc_electro_[cf] = BCond<Scal>(BCondType::dirichlet, nci, *ptr);
+        } else if (auto* ptr = getptr("electro_neumann")) {
+          mebc_electro_[cf] = BCond<Scal>(BCondType::neumann, nci, *ptr);
+        } else {
+          throw std::runtime_error(
+              "Unknown electro conditions for group" + std::to_string(group));
         }
-        return nullptr;
-      };
-
-      if (auto* ptr = getptr("electro_dirichlet")) {
-        mebc_electro_[cf] = BCond<Scal>(BCondType::dirichlet, nci, *ptr);
-      } else if (auto* ptr = getptr("electro_neumann")) {
-        mebc_electro_[cf] = BCond<Scal>(BCondType::neumann, nci, *ptr);
-      }
-    });
+      });
+    }
 
     // boundary conditions for smoothing of volume fraction
     mebc_vfsm_ = GetBCondZeroGrad<Scal>(mebc_fluid_);
@@ -1710,7 +1715,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         if (auto as = dynamic_cast<ASV*>(as_.get())) {
           fc_src2_.Reinit(m, 0.);
           auto& vf = as->GetField();
-          const Vect h = m.GetCellSize();
           auto& trvf0 = tracer_->GetVolumeFraction()[0];
           for (auto c : m.Cells()) {
             auto src2 = trvf0[c] * (*rate) * vf[c];
@@ -1719,6 +1723,35 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             fc_src_[c] = src2;
           }
         }
+      }
+    }
+    if (tracer_ && electro_) {
+      if (auto* coeff = var.Double.Find("flux_from_current")) {
+        auto& vmebc = tracer_->GetBCondMutable();
+        auto& ff_current = electro_->GetFaceCurrent();
+        me_group_.LoopPairs([&](auto cf_group) {
+          auto cf = cf_group.first;
+          size_t group = cf_group.second;
+          auto nci = mebc_fluid_[cf].nci;
+
+          const auto& custom = bc_group_custom_[group];
+          auto getptr = [&](std::string key) -> const Scal* {
+            auto it = custom.find(key);
+            if (it != custom.end()) {
+              return &it->second;
+            }
+            return nullptr;
+          };
+
+          const size_t l = 0;
+          auto sl = std::to_string(l);
+          auto k = (*coeff) * ff_current[cf];
+          if (auto* ptr = getptr("tracer" + sl + "_dirichlet")) {
+            vmebc[l][cf] = BCond<Scal>(BCondType::dirichlet, nci, (*ptr) * k);
+          } else if (auto* ptr = getptr("tracer" + sl + "_neumann")) {
+            vmebc[l][cf] = BCond<Scal>(BCondType::neumann, nci, (*ptr) * k);
+          }
+        });
       }
     }
   }
@@ -2401,9 +2434,7 @@ template <class M>
 void Hydro<M>::StepElectro() {
   auto sem = m.GetSem(__func__);
   if (sem.Nested("start")) {
-    electro_->Step(
-        fs_->GetTimeStep(), FieldCell<Scal>(m, 0), FieldCell<Scal>(m, 0),
-        as_->GetField());
+    electro_->Step(fs_->GetTimeStep(), as_->GetField());
   }
   if (sem("report")) {
     if (m.IsRoot()) {

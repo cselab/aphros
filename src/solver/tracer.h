@@ -64,6 +64,7 @@ class TracerInterface {
   // Returns view with pointers to fields.
   virtual TracerView GetView() const = 0;
   virtual Scal GetTime() const = 0;
+  virtual Multi<MapEmbed<BCond<Scal>>>& GetBCondMutable() = 0;
 };
 
 template <class EB_>
@@ -100,6 +101,7 @@ class Tracer : public TracerInterface<typename EB_::M> {
   // Returns view with pointers to fields.
   TracerView GetView() const override;
   Scal GetTime() const;
+  Multi<MapEmbed<BCond<Scal>>>& GetBCondMutable();
 
  private:
   struct Imp;

@@ -153,6 +153,13 @@ struct Tracer<EB_>::Imp {
           fcu[c] += fct[c] / eb.GetVolume(c);
         }
       }
+      // clip to [0, 1]
+      for (auto c : eb.Cells()) {
+        for (auto l : layers) {
+          auto& u = vfcu_[l][c];
+          u = Clip(u);
+        }
+      }
       /*
       // clip to [0, 1] and normalize to sum 1
       for (auto c : eb.Cells()) {
@@ -253,4 +260,9 @@ auto Tracer<EB_>::GetView() const -> TracerView {
 template <class EB_>
 auto Tracer<EB_>::GetTime() const -> Scal {
   return imp->time_;
+}
+
+template <class EB_>
+auto Tracer<EB_>::GetBCondMutable() -> Multi<MapEmbed<BCond<Scal>>>& {
+  return imp->vmebc_;
 }

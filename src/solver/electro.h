@@ -30,11 +30,10 @@ class ElectroInterface {
   // dt: time step
   // fc_permit: electrical permitivity
   // fc_charge: charge density
-  virtual void Step(
-      Scal dt, const FieldCell<Scal>& fc_permit,
-      const FieldCell<Scal>& fc_charge, const FieldCell<Scal>& fc_vf) = 0;
+  virtual void Step(Scal dt, const FieldCell<Scal>& fc_vf) = 0;
   virtual const FieldCell<Scal>& GetPotential() const = 0;
   virtual const FieldCell<Vect>& GetCurrent() const = 0;
+  virtual const FieldEmbed<Scal>& GetFaceCurrent() const = 0;
   virtual const Stat& GetStat() const = 0;
   virtual Scal GetTime() const = 0;
 };
@@ -60,11 +59,10 @@ class Electro : public ElectroInterface<typename EB_::M> {
       const Conf& conf);
   ~Electro();
   Conf& GetConf() const;
-  void Step(
-      Scal dt, const FieldCell<Scal>& fc_permit,
-      const FieldCell<Scal>& fc_charge, const FieldCell<Scal>& fc_vf) override;
+  void Step(Scal dt, const FieldCell<Scal>& fc_vf) override;
   const FieldCell<Scal>& GetPotential() const override;
   const FieldCell<Vect>& GetCurrent() const override;
+  const FieldEmbed<Scal>& GetFaceCurrent() const override;
   const Stat& GetStat() const override;
   Scal GetTime() const;
 

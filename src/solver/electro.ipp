@@ -30,10 +30,10 @@ struct Electro<EB_>::Imp {
       , conf(conf)
       , time_(time)
       , fc_pot_(m, 0)
+      , fc_current_(m, Vect(0))
+      , ff_current_(m, 0)
       , mebc_pot_(mebc_pot) {}
-  void Step(
-      Scal dt, const FieldCell<Scal>& fc_permit,
-      const FieldCell<Scal>& fc_charge, const FieldCell<Scal>& fc_vf) {
+  void Step(Scal dt, const FieldCell<Scal>& fc_vf) {
     auto sem = m.GetSem("step");
     using Expr = typename M::Expr;
     using ExprFace = typename M::ExprFace;
@@ -46,7 +46,7 @@ struct Electro<EB_>::Imp {
     if (sem("local")) {
       t.fc_rhs.Reinit(m, 0);
     }
-    if (sem.Nested("solve")) {
+    if (sem("solve")) {
       const FieldFaceb<Scal> ff_vf =
           UEB::Interpolate(fc_vf, GetBCondZeroGrad<Scal>(mebc_pot_), eb);
       auto r1 = conf.var.Double["resist1"];
@@ -75,17 +75,17 @@ struct Electro<EB_>::Imp {
       time_ += dt;
 
       const auto ffg = UEB::Gradient(fc_pot_, mebc_pot_, m);
-      FieldFaceb<Scal> ff_current(m, 0);
+      ff_current_.Reinit(m, 0);
       for (auto f : eb.Faces()) {
-        ff_current[f] = ffg[f] / t.ff_resist[f];
+        ff_current_[f] = ffg[f] / t.ff_resist[f];
       }
-      fc_current_ = UEB::AverageGradient(ff_current, eb);
+      fc_current_ = UEB::AverageGradient(ff_current_, eb);
 
       stat_.current = 0;
       mebc_pot_.LoopBCond(eb, [&](auto cf, IdxCell c, auto& bc) {
         const auto nci = bc.nci;
         if (m.IsInner(c)) {
-          const Scal cur_in = ff_current[cf] * (nci == 0 ? -1 : 1);
+          const Scal cur_in = ff_current_[cf] * (nci == 0 ? -1 : 1);
           if (cur_in > 0) {
             stat_.current += cur_in * m.GetArea(cf);
           }
@@ -102,6 +102,7 @@ struct Electro<EB_>::Imp {
   Scal time_;
   FieldCell<Scal> fc_pot_;
   FieldCell<Vect> fc_current_;
+  FieldEmbed<Scal> ff_current_;
   const MapEmbed<BCond<Scal>>& mebc_pot_;
   Stat stat_;
 };
@@ -121,10 +122,8 @@ auto Electro<EB_>::GetConf() const -> Conf& {
 }
 
 template <class EB_>
-void Electro<EB_>::Step(
-    Scal dt, const FieldCell<Scal>& fc_permit,
-    const FieldCell<Scal>& fc_charge, const FieldCell<Scal>& fc_vf) {
-  imp->Step(dt, fc_permit, fc_charge, fc_vf);
+void Electro<EB_>::Step(Scal dt, const FieldCell<Scal>& fc_vf) {
+  imp->Step(dt, fc_vf);
 }
 
 template <class EB_>
@@ -136,6 +135,12 @@ template <class EB_>
 auto Electro<EB_>::GetCurrent() const -> const FieldCell<Vect>& {
   return imp->fc_current_;
 }
+
+template <class EB_>
+auto Electro<EB_>::GetFaceCurrent() const -> const FieldEmbed<Scal>& {
+  return imp->ff_current_;
+}
+
 
 template <class EB_>
 auto Electro<EB_>::GetStat() const -> const Stat& {
