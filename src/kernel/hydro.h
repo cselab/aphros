@@ -337,7 +337,10 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper bubgen_;
   std::unique_ptr<Events> events_; // events from var
   SingleTimer timer_;
+
   std::unique_ptr<TracerInterface<M>> tracer_;
+  FieldCell<Scal> fc_src_tracer0_; // source of tracer0
+
   std::unique_ptr<ParticlesInterface<M>> particles_;
   std::mt19937 randgen_;
   Scal tracer_dt_;
@@ -371,12 +374,12 @@ void Hydro<M>::InitEmbed() {
 template <class M>
 void Hydro<M>::SpawnTracer() {
   auto& conf = tracer_->GetConf();
-  const auto trl = GRange<size_t>(conf.layers);
+  const auto tracer_layers = GRange<size_t>(conf.layers);
   const Vect sphere_c(var.Vect["tracer_spawn_sphere_c"]);
   const Scal sphere_r = var.Double["tracer_spawn_sphere_r"];
   const size_t dim = m.GetEdim();
   auto vfcu = tracer_->GetVolumeFraction();
-  for (auto l : trl) {
+  for (auto l : tracer_layers) {
     const std::string prefix = "tracer" + std::to_string(l);
     auto k = var.Double[prefix + "_factor"];
     for (auto c : m.AllCells()) {
@@ -558,7 +561,7 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
     };
     typename TracerInterface<M>::Conf conf;
     conf.layers = var.Int["tracer_layers"];
-    const auto trl = GRange<size_t>(conf.layers);
+    const auto tracer_layers = GRange<size_t>(conf.layers);
 
     conf.density = multi(var.Vect["tracer_density"]);
     fassert(conf.density.size() >= conf.layers);
@@ -571,7 +574,7 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
     conf.diameter.resize(conf.layers);
     if (var.Int["tracer_use_termvel"]) {
       const Scal mixture_density = var.Double["rho1"];
-      for (auto l : trl) {
+      for (auto l : tracer_layers) {
         conf.diameter[l] = std::sqrt(std::abs(
             18 * conf.viscosity[l] * termvel[l] /
             (conf.gravity.norm() * (conf.density[l] - mixture_density))));
@@ -588,7 +591,7 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
 
     using SlipType = typename TracerInterface<M>::SlipType;
     conf.slip.resize(conf.layers);
-    for (auto l : trl) {
+    for (auto l : tracer_layers) {
       auto& slip = conf.slip[l];
       std::stringstream arg(var.String["tracer" + std::to_string(l) + "_slip"]);
       std::string type;
@@ -608,17 +611,32 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
       }
     }
     Multi<MapEmbed<BCond<Scal>>> vmebc(conf.layers); // boundary conditions
-    mebc_fluid_.LoopPairs([&](auto cf_bc) {
-      for (auto l : trl) {
-        if (l == 0) {
-          vmebc[l][cf_bc.first] =
-              BCond<Scal>(BCondType::dirichlet, cf_bc.second.nci, 1.);
-        } else {
-          vmebc[l][cf_bc.first] =
-              BCond<Scal>(BCondType::dirichlet, cf_bc.second.nci, 0.);
+    me_group_.LoopPairs([&](auto cf_group) {
+      auto cf = cf_group.first;
+      size_t group = cf_group.second;
+      auto nci = mebc_fluid_[cf].nci;
+
+      const auto& custom = bc_group_custom_[group];
+      auto getptr = [&](std::string key) -> const Scal* {
+        auto it = custom.find(key);
+        if (it != custom.end()) {
+          return &it->second;
+        }
+        return nullptr;
+      };
+
+      for (auto l : tracer_layers) {
+        auto sl = std::to_string(l);
+        if (auto* ptr = getptr("tracer" + sl + "_dirichlet")) {
+          vmebc[l][cf] = BCond<Scal>(BCondType::dirichlet, nci, *ptr);
+        } else if (auto* ptr = getptr("tracer" + sl + "_neumann")) {
+          vmebc[l][cf] = BCond<Scal>(BCondType::neumann, nci, *ptr);
         }
       }
     });
+
+    fc_src_tracer0_.Reinit(m, 0);
+    conf.fc_src = &fc_src_tracer0_;
 
     if (eb_) {
       tracer_.reset(new Tracer<EB>(m, *eb_, vfcu, vmebc, fs_->GetTime(), conf));
@@ -1206,7 +1224,10 @@ void Hydro<M>::Init() {
     }
 
     // boundary conditions
-    std::set<std::string> known_keys = {"electro_dirichlet", "electro_neumann"};
+    std::set<std::string> known_keys = {
+        "electro_dirichlet", "electro_neumann",   "tracer0_dirichlet",
+        "tracer0_neumann",   "tracer1_dirichlet", "tracer1_neumann",
+    };
     if (eb_) {
       auto p = InitBc(var, *eb_, known_keys);
       mebc_fluid_ = std::get<0>(p);
@@ -1663,7 +1684,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
     }
 
-    // source
+    // source for uniform bubble growth
     if (auto* rate = var.Double.Find("growth_rate")) {
       if (auto as = dynamic_cast<ASV*>(as_.get())) {
         fc_src2_.Reinit(m, 0.);
@@ -1678,6 +1699,23 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
                 std::abs(R::GetArea(R::GetCutPoly2(n[c], a[c], h), n[c]));
             auto src2 = (*rate) * area / m.GetVolume(c);
             fc_src2_[c] = src2;
+            fc_src_[c] = src2;
+          }
+        }
+      }
+    }
+    // source for bubble growth from tracer0
+    if (tracer_) {
+      if (auto* rate = var.Double.Find("growth_rate_tracer0")) {
+        if (auto as = dynamic_cast<ASV*>(as_.get())) {
+          fc_src2_.Reinit(m, 0.);
+          auto& vf = as->GetField();
+          const Vect h = m.GetCellSize();
+          auto& trvf0 = tracer_->GetVolumeFraction()[0];
+          for (auto c : m.Cells()) {
+            auto src2 = trvf0[c] * (*rate) * vf[c];
+            fc_src2_[c] = src2;
+            fc_src_tracer0_[c] = -src2;
             fc_src_[c] = src2;
           }
         }
@@ -2375,7 +2413,6 @@ void Hydro<M>::StepElectro() {
     }
   }
 }
-
 
 template <class M>
 void Hydro<M>::StepAdvection() {

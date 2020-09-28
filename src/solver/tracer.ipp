@@ -39,6 +39,7 @@ struct Tracer<EB_>::Imp {
       , vfcu_(vfcu)
       , fc_density_(m, conf.density[0])
       , fc_viscosity_(m, conf.viscosity[0]) {
+        /*
     for (auto c : m.AllCells()) {
       Scal sum = 0;
       for (auto l : layers) {
@@ -49,6 +50,7 @@ struct Tracer<EB_>::Imp {
       sum = Clip(sum);
       vfcu_[0][c] = 1 - sum;
     }
+    */
   }
   Scal GetMixtureViscosity(IdxCell c) const {
     Scal sum = 0;
@@ -132,7 +134,7 @@ struct Tracer<EB_>::Imp {
           // diffusion
           fe_flux[cf] += conf.diffusion[l] * ffg[cf] * eb.GetArea(cf);
          });
-        FieldCell<Scal> fct(eb, 0);
+        FieldCell<Scal> fct(eb, 0); // change of conserved quantity
         for (auto c : eb.Cells()) {
           Scal sum = 0.;
           for (auto q : eb.Nci(c)) {
@@ -141,11 +143,17 @@ struct Tracer<EB_>::Imp {
           }
           fct[c] = dt * sum;
         }
+        if (l == 0 && conf.fc_src) {
+          for (auto c : eb.Cells()) {
+            fct[c] += dt * (*conf.fc_src)[c] * eb.GetVolume(c);
+          }
+        }
         fct = UEmbed<M>::RedistributeCutCells(fct, eb);
         for (auto c : eb.Cells()) {
           fcu[c] += fct[c] / eb.GetVolume(c);
         }
       }
+      /*
       // clip to [0, 1] and normalize to sum 1
       for (auto c : eb.Cells()) {
         Scal sum = 0;
@@ -171,6 +179,7 @@ struct Tracer<EB_>::Imp {
         }
         vfcu_[0][c] = 1 - sum;
       }
+      */
       for (auto l : layers) {
         m.Comm(&vfcu_[l]);
       }

@@ -47,6 +47,7 @@ class TracerInterface {
     Multi<Scal> diffusion;
     Vect gravity;
     ConvSc scheme = ConvSc::sou;
+    const FieldCell<Scal>* fc_src = nullptr; // source of tracer0
   };
 
   virtual ~TracerInterface() {}
@@ -55,7 +56,6 @@ class TracerInterface {
   // Makes one time step.
   // dt: time step
   // fe_flux: mixture volume flux
-  // vfc_src: volume source, or nullptr
   virtual void Step(Scal dt, const FieldEmbed<Scal>& fe_flux) = 0;
   virtual const Multi<FieldCell<Scal>>& GetVolumeFraction() const = 0;
   virtual void SetVolumeFraction(const Multi<FieldCell<Scal>>&) = 0;
