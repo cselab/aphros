@@ -20,6 +20,10 @@ class ElectroInterface {
     const Vars& var;
   };
 
+  struct Stat {
+    Scal current = 0;
+  };
+
   virtual ~ElectroInterface() {}
   virtual const Conf& GetConf() const = 0;
   // Makes one time step.
@@ -30,6 +34,8 @@ class ElectroInterface {
       Scal dt, const FieldCell<Scal>& fc_permit,
       const FieldCell<Scal>& fc_charge, const FieldCell<Scal>& fc_vf) = 0;
   virtual const FieldCell<Scal>& GetPotential() const = 0;
+  virtual const FieldCell<Vect>& GetCurrent() const = 0;
+  virtual const Stat& GetStat() const = 0;
   virtual Scal GetTime() const = 0;
 };
 
@@ -42,6 +48,7 @@ class Electro : public ElectroInterface<typename EB_::M> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using Conf = typename Base::Conf;
+  using Stat = typename Base::Stat;
   using UEB = UEmbed<M>;
   template <class T>
   using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
@@ -57,6 +64,8 @@ class Electro : public ElectroInterface<typename EB_::M> {
       Scal dt, const FieldCell<Scal>& fc_permit,
       const FieldCell<Scal>& fc_charge, const FieldCell<Scal>& fc_vf) override;
   const FieldCell<Scal>& GetPotential() const override;
+  const FieldCell<Vect>& GetCurrent() const override;
+  const Stat& GetStat() const override;
   Scal GetTime() const;
 
  private:

@@ -1082,6 +1082,11 @@ void Hydro<M>::InitStat() {
         "particles_nrecv", "number of particles transferred at last step",
         [&p = particles_]() -> Scal { return p->GetNumRecv(); });
   }
+  if (electro_) {
+    stat.AddNone(
+        "el_current", "electro total current", //
+        [&electro_ = electro_]() { return electro_->GetStat().current; });
+  }
 
   stat_->SortNames();
 
@@ -1822,6 +1827,9 @@ void Hydro<M>::DumpFields() {
     }
     if (electro_) {
       dump(electro_->GetPotential(), "elpot");
+      dumpv(electro_->GetCurrent(), 0, "elcurx");
+      dumpv(electro_->GetCurrent(), 1, "elcury");
+      dumpv(electro_->GetCurrent(), 2, "elcurz");
     }
   }
   if (var.Int["enable_advection"]) {

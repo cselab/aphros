@@ -40,6 +40,7 @@ struct Electro<EB_>::Imp {
     struct {
       FieldCell<Scal> fc_rhs;
       FieldCell<Expr> fcl;
+      FieldFaceb<Scal> ff_resist;
     } * ctx(sem);
     auto& t = *ctx;
     if (sem("local")) {
@@ -48,11 +49,11 @@ struct Electro<EB_>::Imp {
     if (sem.Nested("solve")) {
       const FieldFaceb<Scal> ff_vf =
           UEB::Interpolate(fc_vf, GetBCondZeroGrad<Scal>(mebc_pot_), eb);
-      FieldFaceb<Scal> ff_resist_inv(m, 1);
       auto r1 = conf.var.Double["resist1"];
       auto r2 = conf.var.Double["resist2"];
+      t.ff_resist.Reinit(m);
       for (auto f : eb.Faces()) {
-        ff_resist_inv[f] = 1 / r2 * ff_vf[f] +  1 / r1 * (1 - ff_vf[f]);
+        t.ff_resist[f] = 1 / (1 / r2 * ff_vf[f] + 1 / r1 * (1 - ff_vf[f]));
       }
       const auto ffg = UEB::GradientImplicit(fc_pot_, mebc_pot_, m);
       t.fcl.Reinit(m, Expr::GetUnit(0));
@@ -60,7 +61,7 @@ struct Electro<EB_>::Imp {
         Expr sum(0);
         m.LoopNci(c, [&](auto q) {
           const auto cf = m.GetFace(c, q);
-          const ExprFace flux = ffg[cf] * ff_resist_inv[cf] * m.GetArea(cf);
+          const ExprFace flux = ffg[cf] / t.ff_resist[cf] * m.GetArea(cf);
           m.AppendExpr(sum, flux * m.GetOutwardFactor(c, q), q);
         });
         t.fcl[c] = sum;
@@ -70,8 +71,27 @@ struct Electro<EB_>::Imp {
     if (sem.Nested("solve")) {
       Solve(t.fcl, &fc_pot_, fc_pot_, M::LS::T::symm, m, "vort");
     }
-    if (sem("stat")) {
+    if (sem("post")) {
       time_ += dt;
+
+      const auto ffg = UEB::Gradient(fc_pot_, mebc_pot_, m);
+      FieldFaceb<Scal> ff_current(m, 0);
+      for (auto f : eb.Faces()) {
+        ff_current[f] = ffg[f] / t.ff_resist[f];
+      }
+      fc_current_ = UEB::AverageGradient(ff_current, eb);
+
+      stat_.current = 0;
+      mebc_pot_.LoopBCond(eb, [&](auto cf, IdxCell c, auto& bc) {
+        const auto nci = bc.nci;
+        if (m.IsInner(c)) {
+          const Scal cur_in = ff_current[cf] * (nci == 0 ? -1 : 1);
+          if (cur_in > 0) {
+            stat_.current += cur_in * m.GetArea(cf);
+          }
+        }
+      });
+      m.Reduce(&stat_.current, "sum");
     }
   }
 
@@ -81,7 +101,9 @@ struct Electro<EB_>::Imp {
   Conf conf;
   Scal time_;
   FieldCell<Scal> fc_pot_;
+  FieldCell<Vect> fc_current_;
   const MapEmbed<BCond<Scal>>& mebc_pot_;
+  Stat stat_;
 };
 
 template <class EB_>
@@ -110,6 +132,15 @@ auto Electro<EB_>::GetPotential() const -> const FieldCell<Scal>& {
   return imp->fc_pot_;
 }
 
+template <class EB_>
+auto Electro<EB_>::GetCurrent() const -> const FieldCell<Vect>& {
+  return imp->fc_current_;
+}
+
+template <class EB_>
+auto Electro<EB_>::GetStat() const -> const Stat& {
+  return imp->stat_;
+}
 template <class EB_>
 auto Electro<EB_>::GetTime() const -> Scal {
   return imp->time_;
