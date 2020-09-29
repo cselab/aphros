@@ -489,7 +489,8 @@ struct Vof<EB_>::Imp {
       auto& fcs = *owner_->fcs_;
       fcuu_.Reinit(m);
       for (auto c : eb.Cells()) {
-        uc[c] = fcu_.time_prev[c] + dt * fcs[c];
+        auto um = fcu_.time_prev[c];
+        uc[c] = um + dt * fcs[c] * (1 - um);
         fcuu_[c] = (uc[c] < 0.5 ? 0 : 1);
       }
     }
