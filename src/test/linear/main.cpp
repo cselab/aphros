@@ -18,7 +18,7 @@ using Expr = typename M::Expr;
 using ExprFace = typename M::ExprFace;
 using UEB = UEmbed<M>;
 
-enum class Solver { hypre, zero, jacobi };
+enum class Solver { hypre, zero, jacobi, conjugate };
 
 struct SolverInfo {
   Scal residual;
@@ -71,6 +71,94 @@ SolverInfo SolveJacobi(
   return t.info;
 }
 
+SolverInfo SolveConjugate(
+    M& m, const FieldCell<Expr>& fc_system, FieldCell<Scal>& fc_sol,
+    int maxiter, Scal tol) {
+  auto sem = m.GetSem();
+  struct {
+    FieldCell<Scal> fcu;
+    FieldCell<Scal> fcr;
+    FieldCell<Scal> fcrn;
+    FieldCell<Scal> fcp;
+    FieldCell<Scal> fcsp;
+    Scal a;
+    Scal b;
+    Scal p_dot_sp;
+    Scal rn_dot_rn;
+    Scal r_dot_r;
+
+    Scal maxdiff;
+    int iter = 0;
+    SolverInfo info;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem("init")) {
+    t.fcu = fc_sol;
+    t.fcr.Reinit(m);
+    for (auto c : m.Cells()) {
+      t.fcr[c] = -fc_system[c].back();
+    }
+    t.fcp = t.fcr;
+    t.fcsp.Reinit(m);
+    t.fcrn.Reinit(m);
+    m.Comm(&t.fcp);
+  }
+  sem.LoopBegin();
+  if (sem("iter")) {
+    // fcsp: A(p)
+    for (auto c : m.Cells()) {
+      const auto& e = fc_system[c];
+      Scal p = t.fcp[c] * e[0];
+      for (auto q : m.Nci(c)) {
+        p += t.fcp[m.GetCell(c, q)] * e[1 + q];
+      }
+      t.fcsp[c] = p;
+    }
+
+    t.r_dot_r = 0;
+    t.p_dot_sp = 0;
+    for (auto c : m.Cells()) {
+      t.r_dot_r += sqr(t.fcr[c]);
+      t.p_dot_sp += t.fcp[c] * t.fcsp[c];
+    }
+    m.Reduce(&t.r_dot_r, "sum");
+    m.Reduce(&t.p_dot_sp, "sum");
+  }
+  if (sem("iter2")) {
+    t.maxdiff = 0;
+    t.a = t.r_dot_r / t.p_dot_sp;
+    t.rn_dot_rn = 0;
+    for (auto c : m.Cells()) {
+      t.fcu[c] += t.fcp[c] * t.a;
+      t.fcrn[c] = t.fcr[c] - t.fcsp[c] * t.a;
+      t.rn_dot_rn += sqr(t.fcrn[c]);
+      t.maxdiff = std::max(t.maxdiff, std::abs(t.fcp[c] * t.a));
+    }
+    m.Reduce(&t.rn_dot_rn, "sum");
+    m.Reduce(&t.maxdiff, "max");
+  }
+  if (sem("iter3")) {
+    t.b = t.rn_dot_rn / t.r_dot_r;
+    for (auto c : m.Cells()) {
+      t.fcp[c] = t.fcrn[c] + t.fcp[c] * t.b;
+      t.fcr[c] = t.fcrn[c];
+    }
+    m.Comm(&t.fcp);
+  }
+  if (sem("check")) {
+    t.info.residual = t.maxdiff;
+    t.info.iter = t.iter;
+    if (t.iter++ > maxiter || t.maxdiff < tol) {
+      sem.LoopBreak();
+    }
+  }
+  sem.LoopEnd();
+  if (sem("result")) {
+    fc_sol = t.fcu;
+  }
+  return t.info;
+}
+
 Solver GetSolver(std::string name) {
   if (name == "hypre") {
     return Solver::hypre;
@@ -78,6 +166,8 @@ Solver GetSolver(std::string name) {
     return Solver::zero;
   } else if (name == "jacobi") {
     return Solver::jacobi;
+  } else if (name == "conjugate") {
+    return Solver::conjugate;
   }
   fassert(false, "Unknown solver=" + name);
 }
@@ -94,6 +184,8 @@ SolverInfo Solve(
       return SolverInfo{0, 0};
     case Solver::jacobi:
       return SolveJacobi(m, fc_system, fc_sol, maxiter, tol);
+    case Solver::conjugate:
+      return SolveConjugate(m, fc_system, fc_sol, maxiter, tol);
   }
   fassert(false);
 }
@@ -131,7 +223,7 @@ void Run(M& m, Vars& var) {
       t.ff_rho[f] = (Vect(0.5, 0.25, 0.125).dist(f.center()) < 0.2 ? 1000 : 1);
     }
 
-    // system, only lhs
+    // system, only coefficients, zero constant term
     FieldCell<Scal> fc_zero(m, 0);
     const auto ffg = UEmbed<M>::GradientImplicit(fc_zero, t.mebc, m);
     t.fc_system.Reinit(m, Expr::GetUnit(0));
@@ -151,7 +243,7 @@ void Run(M& m, Vars& var) {
       t.fc_rhs[c] = UEB::Eval(t.fc_system[c], c, t.fc_sol_exact, m);
     }
 
-    // system with rhs
+    // system with constant term
     for (auto c : m.Cells()) {
       t.fc_system[c].back() = -t.fc_rhs[c];
     }
@@ -206,11 +298,11 @@ int main(int argc, const char** argv) {
   std::string conf = R"EOF(
 set int bx 2
 set int by 2
-set int bz 1
+set int bz 2
 
-set int bsx 8
-set int bsy 8
-set int bsz 8
+set int bsx 32
+set int bsy 32
+set int bsz 32
 
 set int px 2
 set int py 1
