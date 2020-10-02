@@ -18,33 +18,84 @@ using Expr = typename M::Expr;
 using ExprFace = typename M::ExprFace;
 using UEB = UEmbed<M>;
 
-enum class Solver { hypre, zero };
+enum class Solver { hypre, zero, jacobi };
+
+struct SolverInfo {
+  Scal residual;
+  int iter;
+};
+
+SolverInfo SolveJacobi(
+    M& m, const FieldCell<Expr>& fc_system, FieldCell<Scal>& fc_sol,
+    int maxiter, Scal tol) {
+  auto sem = m.GetSem();
+  struct {
+    FieldCell<Scal> fcu;
+    FieldCell<Scal> fcu_new;
+    Scal maxdiff;
+    int iter = 0;
+    SolverInfo info;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem("init")) {
+    t.fcu = fc_sol;
+    t.fcu_new.Reinit(m, 0);
+  }
+  sem.LoopBegin();
+  if (sem("iter")) {
+    t.maxdiff = 0;
+    for (auto c : m.Cells()) {
+      const auto& e = fc_system[c];
+      Scal nondiag = e.back();
+      for (auto q : m.Nci(c)) {
+        nondiag += t.fcu[m.GetCell(c, q)] * e[1 + q];
+      }
+      t.fcu_new[c] = -nondiag / e[0];
+      t.maxdiff = std::max(t.maxdiff, std::abs(t.fcu_new[c] - t.fcu[c]));
+    }
+    t.fcu.swap(t.fcu_new);
+    m.Comm(&t.fcu);
+    m.Reduce(&t.maxdiff, "max");
+  }
+  if (sem("check")) {
+    t.info.residual = t.maxdiff;
+    t.info.iter = t.iter;
+    if (t.iter++ > maxiter || t.maxdiff < tol) {
+      sem.LoopBreak();
+    }
+  }
+  sem.LoopEnd();
+  if (sem("result")) {
+    fc_sol = t.fcu;
+  }
+  return t.info;
+}
 
 Solver GetSolver(std::string name) {
   if (name == "hypre") {
     return Solver::hypre;
   } else if (name == "zero") {
     return Solver::zero;
+  } else if (name == "jacobi") {
+    return Solver::jacobi;
   }
   fassert(false, "Unknown solver=" + name);
 }
 
-void Solve(
+SolverInfo Solve(
     M& m, const FieldCell<Expr>& fc_system, FieldCell<Scal>& fc_sol,
-    Solver solver) {
-  auto sem = m.GetSem();
-  if (sem.Nested()) {
-    switch (solver) {
-      case Solver::hypre:
-        Solve(fc_system, &fc_sol, fc_sol, M::LS::T::symm, m, "symm");
-        break;
-      case Solver::zero:
-        fc_sol.Reinit(m, 0);
-        break;
-    }
+    Solver solver, int maxiter, Scal tol) {
+  switch (solver) {
+    case Solver::hypre:
+      Solve(fc_system, &fc_sol, fc_sol, M::LS::T::symm, m, "symm");
+      return SolverInfo{m.GetResidual(), m.GetIter()};
+    case Solver::zero:
+      fc_sol.Reinit(m, 0);
+      return SolverInfo{0, 0};
+    case Solver::jacobi:
+      return SolveJacobi(m, fc_system, fc_sol, maxiter, tol);
   }
-  if (sem()) {
-  }
+  fassert(false);
 }
 
 void Run(M& m, Vars& var) {
@@ -59,6 +110,7 @@ void Run(M& m, Vars& var) {
     MapEmbed<BCond<Scal>> mebc;
     Solver solver;
     std::vector<generic::Vect<Scal, 3>> norms;
+    SolverInfo info;
   } * ctx(sem);
   auto& t = *ctx;
   if (sem()) {
@@ -111,7 +163,9 @@ void Run(M& m, Vars& var) {
     m.flags.linreport = 1;
   }
   if (sem.Nested("solve")) {
-    Solve(m, t.fc_system, t.fc_sol, t.solver);
+    t.info = Solve(
+        m, t.fc_system, t.fc_sol, t.solver, var.Int["maxiter"],
+        var.Double["tol"]);
   }
   if (sem("diff")) {
     t.fc_diff.Reinit(m);
@@ -126,8 +180,12 @@ void Run(M& m, Vars& var) {
     m.Dump(&t.fc_rhs, "rhs");
     m.Dump(&t.fc_sol, "sol");
     m.Dump(&t.fc_sol_exact, "exact");
+    m.Dump(&t.fc_diff, "diff");
     if (m.IsRoot()) {
-      std::cout << t.norms[0][1];
+      std::cout << "\nmax_diff_exact=" << t.norms[0][2];
+      std::cout << "\nresidual=" << t.info.residual;
+      std::cout << "\niter=" << t.info.iter;
+      std::cout << std::endl;
     }
   }
   if (sem()) {
@@ -138,10 +196,8 @@ int main(int argc, const char** argv) {
   auto parser = ArgumentParser("Test for linear solvers.");
   parser.AddVariable<std::string>("--solver", "hypre")
       .Help("Linear solver to use. Options are: hypre, zero");
-  parser.AddVariable<double>("--tol", 1e-3)
-      .Help("Convergence tolerance");
-  parser.AddVariable<int>("--maxiter", 100)
-      .Help("Maximum iterations");
+  parser.AddVariable<double>("--tol", 1e-3).Help("Convergence tolerance");
+  parser.AddVariable<int>("--maxiter", 100).Help("Maximum iterations");
   auto args = parser.ParseArgs(argc, argv);
   if (const int* p = args.Int.Find("EXIT")) {
     return *p;
@@ -164,6 +220,8 @@ set int pz 1
   conf += "\nset string solver " + args.String["solver"];
   conf += "\nset double hypre_symm_tol " + args.Double.GetStr("tol");
   conf += "\nset int hypre_symm_maxiter " + args.Int.GetStr("maxiter");
+  conf += "\nset double tol " + args.Double.GetStr("tol");
+  conf += "\nset int maxiter " + args.Int.GetStr("maxiter");
 
   return RunMpiBasic<M>(argc, argv, Run, conf);
 }
