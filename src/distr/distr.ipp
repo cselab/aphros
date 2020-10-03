@@ -258,10 +258,10 @@ void DistrMesh<M>::Solve(const std::vector<MIdx>& bb) {
 
     {
       std::string srs = var.String["hypre_symm_solver"]; // solver symm
-      assert(srs == "pcg+smg" || srs == "smg" || srs == "pcg" || srs == "zero");
+      fassert(srs == "pcg+smg" || srs == "smg" || srs == "pcg" || srs == "zero");
 
       std::string srg = var.String["hypre_gen_solver"]; // solver gen
-      assert(srg == "gmres" || srg == "zero");
+      fassert(srg == "gmres" || srg == "zero");
 
       using T = typename M::LS::T; // system type
       switch (sf.t) {
@@ -315,7 +315,7 @@ bool DistrMesh<M>::Pending(const std::vector<MIdx>& bb) {
     }
   }
   // Check either all blocks done or all pending
-  assert(np == 0 || np == bb.size());
+  fassert(np == 0 || np == bb.size());
   return np;
 }
 

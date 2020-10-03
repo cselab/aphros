@@ -210,22 +210,23 @@ SolverInfo SolveDefault(
 
 namespace linear {
 
-struct Conf {
-  double tol;
-  int maxiter;
-};
-
-struct Info {
-  double residual;
-  int iter;
-};
-
 template <class M>
 class Solver {
  public:
-  Solver(const Conf& conf_)
-      : conf(conf_) {
-  }
+  using Scal = typename M::Scal;
+  using Expr = typename M::Expr;
+
+  struct Conf {
+    Scal tol = 0;
+    int maxiter = 100;
+  };
+
+  struct Info {
+    Scal residual;
+    int iter;
+  };
+
+  Solver(const Conf& conf_) : conf(conf_) {}
   virtual ~Solver() = default;
   // Solves linear system
   //   system(x) = 0
@@ -239,9 +240,8 @@ class Solver {
   // fc_sol: solution
   // Info: final residual and number of iterations
   virtual Info Solve(
-      const FieldCell<typename M::Expr>& fc_system,
-      const FieldCell<typename M::Scal>* fc_init,
-      FieldCell<typename M::Scal>& fc_sol, M& m) = 0;
+      const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
+      FieldCell<Scal>& fc_sol, M& m) = 0;
   virtual void SetConf(const Conf& c) {
     conf = c;
   }
@@ -257,11 +257,18 @@ template <class M>
 class SolverHypre : public Solver<M> {
  public:
   using Base = Solver<M>;
-  SolverHypre(const Conf& conf, std::string solver);
+  using Conf = typename Base::Conf;
+  using Info = typename Base::Info;
+  using Scal = typename M::Scal;
+  using Expr = typename M::Expr;
+  struct Extra { // extra config
+    std::string solver = "pcg"; // name of the solver to use
+    int print = 0; // print level, 0 for none
+  };
+  SolverHypre(const Conf& conf, const Extra& extra);
   Info Solve(
-      const FieldCell<typename M::Expr>& fc_system,
-      const FieldCell<typename M::Scal>* fc_init,
-      FieldCell<typename M::Scal>& fc_sol, M& m) override;
+      const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
+      FieldCell<Scal>& fc_sol, M& m) override;
 
  private:
   struct Imp;
@@ -272,29 +279,148 @@ template <class M>
 struct SolverHypre<M>::Imp {
   using Owner = SolverHypre<M>;
 
-  int instance;
-
-  Imp(Owner* owner, std::string solver) : owner_(owner), solver_(solver) {}
+  Imp(Owner* owner, const Extra& extra)
+      : owner_(owner), conf(owner_->conf), extra(extra) {}
   Info Solve(
-      const FieldCell<typename M::Expr>& fc_system,
-      const FieldCell<typename M::Scal>* fc_init,
-      FieldCell<typename M::Scal>& fc_sol, M& m) {
-    return {};
+      const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
+      FieldCell<Scal>& fc_sol, M& m) {
+    auto sem = m.GetSem("solve");
+    struct {
+      // local on all blocks
+      std::vector<MIdx> stencil;
+      std::vector<Scal> data_a;
+      std::vector<Scal> data_b;
+      std::vector<Scal> data_x;
+      Info info;
+
+      // reduced to lead block
+      std::vector<MIdx> origin;
+      std::vector<MIdx> size;
+      std::vector<std::vector<Scal>*> ptr_a;
+      std::vector<std::vector<Scal>*> ptr_b;
+      std::vector<std::vector<Scal>*> ptr_x;
+      std::vector<Info*> ptr_info;
+      std::unique_ptr<Hypre> hypre;
+    } * ctx(sem);
+    auto& t = *ctx;
+    if (sem("solve")) {
+      const auto bic = m.GetInBlockCells();
+      t.origin.push_back(bic.GetBegin());
+      t.size.push_back(bic.GetSize());
+
+      // copy data from l to block-local buffer
+      t.stencil = {
+          MIdx{0, 0, 0}, MIdx{-1, 0, 0}, MIdx{1, 0, 0}, MIdx{0, -1, 0},
+          MIdx{0, 1, 0}, MIdx{0, 0, -1}, MIdx{0, 0, 1},
+      };
+
+      t.data_a.resize(t.stencil.size() * bic.size());
+      t.data_b.resize(bic.size());
+      t.data_x.resize(bic.size(), 0);
+
+      { // matrix coeffs
+        size_t i = 0;
+        for (auto c : m.Cells()) {
+          for (size_t k = 0; k < 7; ++k) {
+            t.data_a[i++] = fc_system[c][k];
+          }
+        }
+      }
+
+      { // rhs
+        size_t i = 0;
+        for (auto c : m.Cells()) {
+          t.data_b[i++] = -fc_system[c].back();
+        }
+      }
+
+      if (fc_init) { // initial guess
+        size_t i = 0;
+        for (auto c : m.Cells()) {
+          t.data_x[i++] = (*fc_init)[c];
+        }
+      }
+
+      // pass pointers to block-local data to the lead block
+      t.ptr_a.push_back(&t.data_a);
+      t.ptr_b.push_back(&t.data_b);
+      t.ptr_x.push_back(&t.data_x);
+      t.ptr_info.push_back(&t.info);
+
+      using OpCatM = typename M::template OpCatT<MIdx>;
+      m.ReduceToLead(std::make_shared<OpCatM>(&t.origin));
+      m.ReduceToLead(std::make_shared<OpCatM>(&t.size));
+      using OpCatP = typename M::template OpCatT<std::vector<Scal>*>;
+      m.ReduceToLead(std::make_shared<OpCatP>(&t.ptr_a));
+      m.ReduceToLead(std::make_shared<OpCatP>(&t.ptr_b));
+      m.ReduceToLead(std::make_shared<OpCatP>(&t.ptr_x));
+      using OpCatPInfo = typename M::template OpCatT<Info*>;
+      m.ReduceToLead(std::make_shared<OpCatPInfo>(&t.ptr_info));
+    }
+    if (sem("hypre") && m.IsLead()) {
+      using HypreBlock = typename Hypre::Block;
+      using HypreMIdx = typename Hypre::MIdx;
+
+      const size_t nblocks = t.origin.size();
+      fassert_equal(t.size.size(), nblocks);
+      fassert_equal(t.ptr_a.size(), nblocks);
+      fassert_equal(t.ptr_b.size(), nblocks);
+      fassert_equal(t.ptr_x.size(), nblocks);
+
+      std::vector<HypreBlock> blocks(nblocks);
+      for (size_t i = 0; i < nblocks; ++i) {
+        HypreBlock& block = blocks[i];
+        block.l = t.origin[i];
+        block.u = t.origin[i] + t.size[i] - MIdx(1);
+        for (auto w : t.stencil) {
+          block.st.push_back(w);
+        }
+        block.a = t.ptr_a[i];
+        block.r = t.ptr_b[i];
+        block.x = t.ptr_x[i];
+      }
+
+      const HypreMIdx per = MIdx(m.flags.is_periodic);
+      t.hypre = std::make_unique<Hypre>(
+          m.GetMpiComm(), blocks, m.GetGlobalSize(), per);
+
+      t.hypre->Solve(conf.tol, extra.print, extra.solver, conf.maxiter);
+
+      // fill local info and update by pointers on other blocks
+      t.info.residual = t.hypre->GetResidual();
+      t.info.iter = t.hypre->GetIter();
+      for (size_t i = 0; i < nblocks; ++i) {
+        t.ptr_info[i] = &t.info;
+      }
+    }
+    if (sem()) {
+      // copy solution from t.data_x to field
+      fc_sol.Reinit(m);
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        fc_sol[c] = t.data_x[i++];
+      }
+      m.Comm(&fc_sol);
+    }
+    if (sem()) {
+    }
+    return t.info;
   }
 
  private:
   Owner* owner_;
-  std::string solver_;
+  Conf& conf;
+  Extra extra;
 };
 
 template <class M>
-SolverHypre<M>::SolverHypre(const Conf& conf, std::string solver)
-    : Base(conf), imp(new Imp(this, solver)) {}
+SolverHypre<M>::SolverHypre(const Conf& conf, const Extra& extra)
+    : Base(conf), imp(new Imp(this, extra)) {}
 
 template <class M>
-Info SolverHypre<M>::Solve(const FieldCell<typename M::Expr>& fc_system,
-      const FieldCell<typename M::Scal>* fc_init,
-      FieldCell<typename M::Scal>& fc_sol, M& m) {
+auto SolverHypre<M>::Solve(
+    const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
+    FieldCell<Scal>& fc_sol, M& m) -> Info {
   return imp->Solve(fc_system, fc_init, fc_sol, m);
 }
 
@@ -305,125 +431,26 @@ SolverInfo SolveHypre(
     const FieldCell<typename M::Expr>& fc_system,
     const FieldCell<typename M::Scal>* fc_init,
     FieldCell<typename M::Scal>& fc_sol, M& m, int maxiter, Scal tol) {
-  using Scal = typename M::Scal;
-  auto sem = m.GetSem("solve");
+  auto sem = m.GetSem(__func__);
   struct {
-    // local on all blocks
-    std::vector<MIdx> stencil;
-    std::vector<Scal> data_a;
-    std::vector<Scal> data_b;
-    std::vector<Scal> data_x;
-    SolverInfo info;
-
-    // reduced to lead block
-    std::vector<MIdx> origin;
-    std::vector<MIdx> size;
-    std::vector<std::vector<Scal>*> ptr_a;
-    std::vector<std::vector<Scal>*> ptr_b;
-    std::vector<std::vector<Scal>*> ptr_x;
-    std::vector<SolverInfo*> ptr_info;
-    std::unique_ptr<Hypre> hypre;
+    std::unique_ptr<linear::Solver<M>> solver;
   } * ctx(sem);
   auto& t = *ctx;
-  if (sem("solve")) {
-    const auto bic = m.GetInBlockCells();
-    t.origin.push_back(bic.GetBegin());
-    t.size.push_back(bic.GetSize());
+  if (sem("init")) {
+    typename linear::Solver<M>::Conf conf;
+    typename linear::SolverHypre<M>::Extra extra;
 
-    // copy data from l to block-local buffer
-    t.stencil = {
-        MIdx{0, 0, 0}, MIdx{-1, 0, 0}, MIdx{1, 0, 0}, MIdx{0, -1, 0},
-        MIdx{0, 1, 0}, MIdx{0, 0, -1}, MIdx{0, 0, 1},
-    };
+    conf.tol = tol;
+    conf.maxiter = maxiter;
+    extra.solver = "pcg";
 
-    t.data_a.resize(t.stencil.size() * bic.size());
-    t.data_b.resize(bic.size());
-    t.data_x.resize(bic.size(), 0);
-
-    { // matrix coeffs
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        for (size_t k = 0; k < 7; ++k) {
-          t.data_a[i++] = fc_system[c][k];
-        }
-      }
-    }
-
-    { // rhs
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        t.data_b[i++] = -fc_system[c].back();
-      }
-    }
-
-    if (fc_init) { // initial guess
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        t.data_x[i++] = (*fc_init)[c];
-      }
-    }
-
-    // pass pointers to block-local data to the lead block
-    t.ptr_a.push_back(&t.data_a);
-    t.ptr_b.push_back(&t.data_b);
-    t.ptr_x.push_back(&t.data_x);
-    t.ptr_info.push_back(&t.info);
-
-    using OpCatM = typename M::template OpCatT<MIdx>;
-    m.ReduceToLead(std::make_shared<OpCatM>(&t.origin));
-    m.ReduceToLead(std::make_shared<OpCatM>(&t.size));
-    using OpCatP = typename M::template OpCatT<std::vector<Scal>*>;
-    m.ReduceToLead(std::make_shared<OpCatP>(&t.ptr_a));
-    m.ReduceToLead(std::make_shared<OpCatP>(&t.ptr_b));
-    m.ReduceToLead(std::make_shared<OpCatP>(&t.ptr_x));
-    using OpCatPInfo = typename M::template OpCatT<SolverInfo*>;
-    m.ReduceToLead(std::make_shared<OpCatPInfo>(&t.ptr_info));
+    t.solver = std::make_unique<linear::SolverHypre<M>>(conf, extra);
   }
-  if (sem("hypre") && m.IsLead()) {
-    using HypreBlock = typename Hypre::Block;
-    using HypreMIdx = typename Hypre::MIdx;
-
-    const size_t nblocks = t.origin.size();
-    fassert_equal(t.size.size(), nblocks);
-    fassert_equal(t.ptr_a.size(), nblocks);
-    fassert_equal(t.ptr_b.size(), nblocks);
-    fassert_equal(t.ptr_x.size(), nblocks);
-
-    std::vector<HypreBlock> blocks(nblocks);
-    for (size_t i = 0; i < nblocks; ++i) {
-      HypreBlock& block = blocks[i];
-      block.l = t.origin[i];
-      block.u = t.origin[i] + t.size[i] - MIdx(1);
-      for (auto w : t.stencil) {
-        block.st.push_back(w);
-      }
-      block.a = t.ptr_a[i];
-      block.r = t.ptr_b[i];
-      block.x = t.ptr_x[i];
-    }
-
-    HypreMIdx per{true, true, true};
-    t.hypre =
-        std::make_unique<Hypre>(m.GetMpiComm(), blocks, m.GetGlobalSize(), per);
-    t.hypre->Solve(tol, false, "pcg", maxiter);
-
-    t.info = SolverInfo{t.hypre->GetResidual(), t.hypre->GetIter()};
-    for (size_t i = 0; i < nblocks; ++i) {
-      t.ptr_info[i] = &t.info;
-    }
+  if (sem.Nested("solve")) {
+    auto info = t.solver->Solve(fc_system, fc_init, fc_sol, m);
+    return {info.residual, info.iter};
   }
-  if (sem()) {
-    // copy solution from t.data_x to field
-    fc_sol.Reinit(m);
-    size_t i = 0;
-    for (auto c : m.Cells()) {
-      fc_sol[c] = t.data_x[i++];
-    }
-    m.Comm(&fc_sol);
-  }
-  if (sem()) {
-  }
-  return t.info;
+  return {};
 }
 
 Solver GetSolver(std::string name) {
@@ -476,6 +503,11 @@ void Run(M& m, Vars& var) {
   } * ctx(sem);
   auto& t = *ctx;
   if (sem()) {
+    // TODO unify with hydro.h
+    m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
+    m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
+    m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
+
     // exact solution
     t.fc_sol_exact.Reinit(m);
     for (auto c : m.CellsM()) {
@@ -550,12 +582,6 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-
-  {
-    std::unique_ptr<linear::Solver<M>> solver(
-        new linear::SolverHypre<M>(linear::Conf{0, 0}, ""));
-  }
-
   auto parser = ArgumentParser("Test for linear solvers.");
   parser.AddVariable<std::string>("--solver", "hypre")
       .Help(
