@@ -208,6 +208,98 @@ SolverInfo SolveDefault(
   return {};
 }
 
+namespace linear {
+
+struct Conf {
+  double tol;
+  int maxiter;
+};
+
+struct Info {
+  double residual;
+  int iter;
+};
+
+template <class M>
+class Solver {
+ public:
+  Solver(const Conf& conf_)
+      : conf(conf_) {
+  }
+  virtual ~Solver() = default;
+  // Solves linear system
+  //   system(x) = 0
+  //
+  // Input:
+  // fc_system: coefficients `e` of linear expressions
+  //   e[0] * x[c] + sum_i(e[i + 1] * x[c(i)]) + e.back() = 0
+  // fc_init: initial guess, may equal &fc_sol, nullptr to assume zero guess.
+  //
+  // Output:
+  // fc_sol: solution
+  // Info: final residual and number of iterations
+  virtual Info Solve(
+      const FieldCell<typename M::Expr>& fc_system,
+      const FieldCell<typename M::Scal>* fc_init,
+      FieldCell<typename M::Scal>& fc_sol, M& m) = 0;
+  virtual void SetConf(const Conf& c) {
+    conf = c;
+  }
+  virtual const Conf& GetConf() {
+    return conf;
+  }
+
+ protected:
+  Conf conf;
+};
+
+template <class M>
+class SolverHypre : public Solver<M> {
+ public:
+  using Base = Solver<M>;
+  SolverHypre(const Conf& conf, std::string solver);
+  Info Solve(
+      const FieldCell<typename M::Expr>& fc_system,
+      const FieldCell<typename M::Scal>* fc_init,
+      FieldCell<typename M::Scal>& fc_sol, M& m) override;
+
+ private:
+  struct Imp;
+  std::unique_ptr<Imp> imp;
+};
+
+template <class M>
+struct SolverHypre<M>::Imp {
+  using Owner = SolverHypre<M>;
+
+  int instance;
+
+  Imp(Owner* owner, std::string solver) : owner_(owner), solver_(solver) {}
+  Info Solve(
+      const FieldCell<typename M::Expr>& fc_system,
+      const FieldCell<typename M::Scal>* fc_init,
+      FieldCell<typename M::Scal>& fc_sol, M& m) {
+    return {};
+  }
+
+ private:
+  Owner* owner_;
+  std::string solver_;
+};
+
+template <class M>
+SolverHypre<M>::SolverHypre(const Conf& conf, std::string solver)
+    : Base(conf), imp(new Imp(this, solver)) {}
+
+template <class M>
+Info SolverHypre<M>::Solve(const FieldCell<typename M::Expr>& fc_system,
+      const FieldCell<typename M::Scal>* fc_init,
+      FieldCell<typename M::Scal>& fc_sol, M& m) {
+  return imp->Solve(fc_system, fc_init, fc_sol, m);
+}
+
+} // namespace linear
+
 template <class M>
 SolverInfo SolveHypre(
     const FieldCell<typename M::Expr>& fc_system,
@@ -458,6 +550,12 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
+
+  {
+    std::unique_ptr<linear::Solver<M>> solver(
+        new linear::SolverHypre<M>(linear::Conf{0, 0}, ""));
+  }
+
   auto parser = ArgumentParser("Test for linear solvers.");
   parser.AddVariable<std::string>("--solver", "hypre")
       .Help(
