@@ -5,6 +5,7 @@
 
 #include "debug/linear.h"
 #include "distr/distrbasic.h"
+#include "linear/hypre.h"
 #include "linear/linear.h"
 #include "parse/argparse.h"
 #include "solver/approx_eb.h"
@@ -207,6 +208,124 @@ SolverInfo SolveDefault(
   return {};
 }
 
+template <class M>
+SolverInfo SolveHypre(
+    const FieldCell<typename M::Expr>& fc_system,
+    const FieldCell<typename M::Scal>* fc_init,
+    FieldCell<typename M::Scal>& fc_sol, M& m, int maxiter, Scal tol) {
+  using Scal = typename M::Scal;
+  auto sem = m.GetSem("solve");
+  struct {
+    std::vector<MIdx> origin;
+    std::vector<MIdx> size;
+    std::vector<std::vector<Scal>*> ptr_a;
+    std::vector<std::vector<Scal>*> ptr_b;
+    std::vector<std::vector<Scal>*> ptr_x;
+    std::vector<SolverInfo*> ptr_info;
+    std::vector<MIdx> stencil;
+
+    std::vector<Scal> data_a;
+    std::vector<Scal> data_b;
+    std::vector<Scal> data_x;
+
+    std::unique_ptr<Hypre> hypre;
+    SolverInfo info;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem("solve")) {
+    std::vector<Scal>* lsa;
+    std::vector<Scal>* lsb;
+    std::vector<Scal>* lsx;
+    m.GetSolveTmp(lsa, lsb, lsx);
+    lsx->resize(m.GetInBlockCells().size());
+    if (fc_init) {
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        (*lsx)[i++] = (*fc_init)[c];
+      }
+    } else {
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        (void)c;
+        (*lsx)[i++] = 0;
+      }
+    }
+    auto l = ConvertLsCompact(fc_system, *lsa, *lsb, *lsx, m);
+
+    const auto bc = m.GetInBlockCells();
+    t.origin.push_back(bc.GetBegin());
+    t.size.push_back(bc.GetSize());
+
+    // copy data from l to block-local buffer
+    t.stencil = l.st;
+    t.data_a = *l.a;
+    t.data_b = *l.b;
+    t.data_x = *l.x;
+
+    // pass pointers to block-local data to the lead block
+    t.stencil = l.st;
+    t.ptr_a.push_back(&t.data_a);
+    t.ptr_b.push_back(&t.data_b);
+    t.ptr_x.push_back(&t.data_x);
+    t.ptr_info.push_back(&t.info);
+
+    using OpCatM = typename M::template OpCatT<MIdx>;
+    m.ReduceToLead(std::make_shared<OpCatM>(&t.origin));
+    m.ReduceToLead(std::make_shared<OpCatM>(&t.size));
+    using OpCatP = typename M::template OpCatT<std::vector<Scal>*>;
+    m.ReduceToLead(std::make_shared<OpCatP>(&t.ptr_a));
+    m.ReduceToLead(std::make_shared<OpCatP>(&t.ptr_b));
+    m.ReduceToLead(std::make_shared<OpCatP>(&t.ptr_x));
+    using OpCatPInfo = typename M::template OpCatT<SolverInfo*>;
+    m.ReduceToLead(std::make_shared<OpCatPInfo>(&t.ptr_info));
+  }
+  if (sem("hypre") && m.IsLead()) {
+    using HypreBlock = typename Hypre::Block;
+    using HypreMIdx = typename Hypre::MIdx;
+
+    const size_t nblocks = t.origin.size();
+    fassert_equal(t.size.size(), nblocks);
+    fassert_equal(t.ptr_a.size(), nblocks);
+    fassert_equal(t.ptr_b.size(), nblocks);
+    fassert_equal(t.ptr_x.size(), nblocks);
+
+    std::vector<HypreBlock> blocks(nblocks);
+    for (size_t i = 0; i < nblocks; ++i) {
+      HypreBlock& block = blocks[i];
+      block.l = t.origin[i];
+      block.u = t.origin[i] + t.size[i] - MIdx(1);
+      for (auto w : t.stencil) {
+        block.st.push_back(w);
+      }
+      block.a = t.ptr_a[i];
+      block.r = t.ptr_b[i];
+      block.x = t.ptr_x[i];
+    }
+
+    HypreMIdx per{true, true, true};
+    t.hypre =
+        std::make_unique<Hypre>(m.GetMpiComm(), blocks, m.GetGlobalSize(), per);
+    t.hypre->Solve(tol, false, "pcg", maxiter);
+
+    t.info = SolverInfo{t.hypre->GetResidual(), t.hypre->GetIter()};
+    for (size_t i = 0; i < nblocks; ++i) {
+      t.ptr_info[i] = &t.info;
+    }
+  }
+  if (sem()) {
+    // copy solution from t.data_x to field
+    fc_sol.Reinit(m);
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      fc_sol[c] = t.data_x[i++];
+    }
+    m.Comm(&fc_sol);
+  }
+  if (sem()) {
+  }
+  return t.info;
+}
+
 Solver GetSolver(std::string name) {
   if (name == "default") {
     return Solver::def;
@@ -227,8 +346,10 @@ SolverInfo Solve(
     Solver solver, int maxiter, Scal tol) {
   switch (solver) {
     case Solver::def:
+      return SolveDefault(
+          fc_system, &fc_sol, fc_sol, M::LS::T::symm, m, "symm");
     case Solver::hypre:
-      return SolveDefault(fc_system, &fc_sol, fc_sol, M::LS::T::symm, m, "symm");
+      return SolveHypre(fc_system, &fc_sol, fc_sol, m, maxiter, tol);
     case Solver::zero:
       fc_sol.Reinit(m, 0);
       return SolverInfo{0, 0};
@@ -269,8 +390,7 @@ void Run(M& m, Vars& var) {
     // resistivity
     t.ff_rho.Reinit(m);
     for (auto f : m.FacesM()) {
-      t.ff_rho[f] =
-          (f.center().dist(m.GetGlobalLength() * 0.5) < 0.2 ? 10 : 1);
+      t.ff_rho[f] = (f.center().dist(m.GetGlobalLength() * 0.5) < 0.2 ? 10 : 1);
     }
 
     // system, only coefficients, zero constant term
@@ -313,9 +433,11 @@ void Run(M& m, Vars& var) {
     t.norms = UDebug<M>::GetNorms({&t.fc_diff}, m);
   }
   if (sem("print")) {
-    m.Dump(&t.fc_sol, "sol");
-    m.Dump(&t.fc_sol_exact, "exact");
-    m.Dump(&t.fc_diff, "diff");
+    if (var.Int("dump", 0)) {
+      m.Dump(&t.fc_sol, "sol");
+      m.Dump(&t.fc_sol_exact, "exact");
+      m.Dump(&t.fc_diff, "diff");
+    }
     if (m.IsRoot()) {
       std::cout << "\nmax_diff_exact=" << t.norms[0][2];
       std::cout << "\nresidual=" << t.info.residual;
@@ -335,6 +457,8 @@ int main(int argc, const char** argv) {
           " Options are: default, hypre, zero, conjugate");
   parser.AddVariable<double>("--tol", 1e-3).Help("Convergence tolerance");
   parser.AddVariable<int>("--maxiter", 100).Help("Maximum iterations");
+  parser.AddSwitch("--dump").Help(
+      "Dump solution, exact solution, and difference");
   auto args = parser.ParseArgs(argc, argv);
   if (const int* p = args.Int.Find("EXIT")) {
     return *p;
@@ -359,6 +483,7 @@ set int pz 1
   conf += "\nset int hypre_symm_maxiter " + args.Int.GetStr("maxiter");
   conf += "\nset double tol " + args.Double.GetStr("tol");
   conf += "\nset int maxiter " + args.Int.GetStr("maxiter");
+  conf += "\nset int dump " + args.Int.GetStr("dump");
 
   return RunMpiBasic<M>(argc, argv, Run, conf);
 }
