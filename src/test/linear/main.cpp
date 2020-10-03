@@ -216,54 +216,62 @@ SolverInfo SolveHypre(
   using Scal = typename M::Scal;
   auto sem = m.GetSem("solve");
   struct {
+    // local on all blocks
+    std::vector<MIdx> stencil;
+    std::vector<Scal> data_a;
+    std::vector<Scal> data_b;
+    std::vector<Scal> data_x;
+    SolverInfo info;
+
+    // reduced to lead block
     std::vector<MIdx> origin;
     std::vector<MIdx> size;
     std::vector<std::vector<Scal>*> ptr_a;
     std::vector<std::vector<Scal>*> ptr_b;
     std::vector<std::vector<Scal>*> ptr_x;
     std::vector<SolverInfo*> ptr_info;
-    std::vector<MIdx> stencil;
-
-    std::vector<Scal> data_a;
-    std::vector<Scal> data_b;
-    std::vector<Scal> data_x;
-
     std::unique_ptr<Hypre> hypre;
-    SolverInfo info;
   } * ctx(sem);
   auto& t = *ctx;
   if (sem("solve")) {
-    std::vector<Scal>* lsa;
-    std::vector<Scal>* lsb;
-    std::vector<Scal>* lsx;
-    m.GetSolveTmp(lsa, lsb, lsx);
-    lsx->resize(m.GetInBlockCells().size());
-    if (fc_init) {
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        (*lsx)[i++] = (*fc_init)[c];
-      }
-    } else {
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        (void)c;
-        (*lsx)[i++] = 0;
-      }
-    }
-    auto l = ConvertLsCompact(fc_system, *lsa, *lsb, *lsx, m);
-
-    const auto bc = m.GetInBlockCells();
-    t.origin.push_back(bc.GetBegin());
-    t.size.push_back(bc.GetSize());
+    const auto bic = m.GetInBlockCells();
+    t.origin.push_back(bic.GetBegin());
+    t.size.push_back(bic.GetSize());
 
     // copy data from l to block-local buffer
-    t.stencil = l.st;
-    t.data_a = *l.a;
-    t.data_b = *l.b;
-    t.data_x = *l.x;
+    t.stencil = {
+        MIdx{0, 0, 0}, MIdx{-1, 0, 0}, MIdx{1, 0, 0}, MIdx{0, -1, 0},
+        MIdx{0, 1, 0}, MIdx{0, 0, -1}, MIdx{0, 0, 1},
+    };
+
+    t.data_a.resize(t.stencil.size() * bic.size());
+    t.data_b.resize(bic.size());
+    t.data_x.resize(bic.size(), 0);
+
+    { // matrix coeffs
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        for (size_t k = 0; k < 7; ++k) {
+          t.data_a[i++] = fc_system[c][k];
+        }
+      }
+    }
+
+    { // rhs
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        t.data_b[i++] = -fc_system[c].back();
+      }
+    }
+
+    if (fc_init) { // initial guess
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        t.data_x[i++] = (*fc_init)[c];
+      }
+    }
 
     // pass pointers to block-local data to the lead block
-    t.stencil = l.st;
     t.ptr_a.push_back(&t.data_a);
     t.ptr_b.push_back(&t.data_b);
     t.ptr_x.push_back(&t.data_x);
