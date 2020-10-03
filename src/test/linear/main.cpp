@@ -26,54 +26,6 @@ struct SolverInfo {
   int iter;
 };
 
-template <class M>
-SolverInfo SolveDefault(
-    const FieldCell<typename M::Expr>& fc_system,
-    const FieldCell<typename M::Scal>* fc_init,
-    FieldCell<typename M::Scal>& fc_sol, typename M::LS::T type, M& m,
-    std::string prefix = "") {
-  using Scal = typename M::Scal;
-  auto sem = m.GetSem(__func__);
-  if (sem("solve")) {
-    std::vector<Scal>* lsa;
-    std::vector<Scal>* lsb;
-    std::vector<Scal>* lsx;
-    m.GetSolveTmp(lsa, lsb, lsx);
-    lsx->resize(m.GetInBlockCells().size());
-    if (fc_init) {
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        (*lsx)[i++] = (*fc_init)[c];
-      }
-    } else {
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        (void)c;
-        (*lsx)[i++] = 0;
-      }
-    }
-    auto l = ConvertLsCompact(fc_system, *lsa, *lsb, *lsx, m);
-    l.t = type;
-    l.prefix = prefix;
-    m.Solve(l);
-  }
-  if (sem("copy")) {
-    std::vector<Scal>* lsa;
-    std::vector<Scal>* lsb;
-    std::vector<Scal>* lsx;
-    m.GetSolveTmp(lsa, lsb, lsx);
-
-    fc_sol.Reinit(m);
-    size_t i = 0;
-    for (auto c : m.Cells()) {
-      fc_sol[c] = (*lsx)[i++];
-    }
-    m.Comm(&fc_sol);
-    return SolverInfo{m.GetResidual(), m.GetIter()};
-  }
-  return {};
-}
-
 namespace linear {
 
 template <class M>
@@ -513,6 +465,96 @@ auto SolverJacobi<M>::Solve(
   return imp->Solve(fc_system, fc_init, fc_sol, m);
 }
 
+
+template <class M>
+class SolverDefault : public Solver<M> {
+ public:
+  using Base = Solver<M>;
+  using Conf = typename Base::Conf;
+  using Info = typename Base::Info;
+  using Scal = typename M::Scal;
+  using Expr = typename M::Expr;
+  struct Extra {
+    typename M::LS::T type;
+    std::string prefix = "";
+  };
+  SolverDefault(const Conf& conf, const Extra& extra);
+  Info Solve(
+      const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
+      FieldCell<Scal>& fc_sol, M& m) override;
+
+ private:
+  struct Imp;
+  std::unique_ptr<Imp> imp;
+};
+
+template <class M>
+struct SolverDefault<M>::Imp {
+  using Owner = SolverDefault<M>;
+
+  Imp(Owner* owner, const Extra& extra)
+      : owner_(owner), conf(owner_->conf), extra(extra) {}
+  Info Solve(
+      const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
+      FieldCell<Scal>& fc_sol, M& m) {
+    auto sem = m.GetSem(__func__);
+    if (sem("solve")) {
+      std::vector<Scal>* lsa;
+      std::vector<Scal>* lsb;
+      std::vector<Scal>* lsx;
+      m.GetSolveTmp(lsa, lsb, lsx);
+      lsx->resize(m.GetInBlockCells().size());
+      if (fc_init) {
+        size_t i = 0;
+        for (auto c : m.Cells()) {
+          (*lsx)[i++] = (*fc_init)[c];
+        }
+      } else {
+        size_t i = 0;
+        for (auto c : m.Cells()) {
+          (void)c;
+          (*lsx)[i++] = 0;
+        }
+      }
+      auto l = ConvertLsCompact(fc_system, *lsa, *lsb, *lsx, m);
+      l.t = extra.type;
+      l.prefix = extra.prefix;
+      m.Solve(l);
+    }
+    if (sem("copy")) {
+      std::vector<Scal>* lsa;
+      std::vector<Scal>* lsb;
+      std::vector<Scal>* lsx;
+      m.GetSolveTmp(lsa, lsb, lsx);
+
+      fc_sol.Reinit(m);
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        fc_sol[c] = (*lsx)[i++];
+      }
+      m.Comm(&fc_sol);
+      return Info{m.GetResidual(), m.GetIter()};
+    }
+    return {};
+  }
+
+ private:
+  Owner* owner_;
+  Conf& conf;
+  Extra extra;
+};
+
+template <class M>
+SolverDefault<M>::SolverDefault(const Conf& conf, const Extra& extra)
+    : Base(conf), imp(new Imp(this, extra)) {}
+
+template <class M>
+auto SolverDefault<M>::Solve(
+    const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
+    FieldCell<Scal>& fc_sol, M& m) -> Info {
+  return imp->Solve(fc_system, fc_init, fc_sol, m);
+}
+
 } // namespace linear
 
 template <class M>
@@ -589,6 +631,34 @@ SolverInfo SolveJacobi(
   }
   return {};
 }
+
+template <class M>
+SolverInfo SolveDefault(
+    const FieldCell<typename M::Expr>& fc_system,
+    const FieldCell<typename M::Scal>* fc_init,
+    FieldCell<typename M::Scal>& fc_sol, typename M::LS::T type, M& m,
+    std::string prefix = "") {
+  auto sem = m.GetSem(__func__);
+  struct {
+    std::unique_ptr<linear::Solver<M>> solver;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem("init")) {
+    typename linear::Solver<M>::Conf conf;
+    typename linear::SolverDefault<M>::Extra extra;
+
+    extra.type = type;
+    extra.prefix = prefix;
+
+    t.solver = std::make_unique<linear::SolverDefault<M>>(conf, extra);
+  }
+  if (sem.Nested("solve")) {
+    auto info = t.solver->Solve(fc_system, fc_init, fc_sol, m);
+    return {info.residual, info.iter};
+  }
+  return {};
+}
+
 
 Solver GetSolver(std::string name) {
   if (name == "default") {
