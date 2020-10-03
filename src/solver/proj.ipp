@@ -42,15 +42,16 @@ struct Proj<EB_>::Imp {
 
   Imp(Owner* owner, const EB& eb0, const FieldCell<Vect>& fcvel,
       MapEmbed<BCondFluid<Vect>>& mebc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par)
+      const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
+      std::shared_ptr<linear::Solver<M>> linsolver, Par par)
       : owner_(owner)
       , par(par)
+      , linsolver_(linsolver)
       , m(owner_->m)
       , eb(eb0)
       , edim_range_(m.GetEdim())
       , mebc_(mebc)
       , mcc_(mcc) {
-
     UpdateDerivedConditions();
 
     fc_accel_.Reinit(m, Vect(0));
@@ -277,7 +278,7 @@ struct Proj<EB_>::Imp {
         }
       }
       if (sem.Nested("solve")) {
-        Solve(fcl, &fcu, fcu, M::LS::T::symm, m);
+        linsolver_->Solve(fcl, &fcu, fcu, m);
       }
       if (sem("copy")) {
         SetComponent(fcvel, d, fcu);
@@ -380,7 +381,7 @@ struct Proj<EB_>::Imp {
       ctx->fcpcs.SetName("pressure");
     }
     if (sem.Nested("solve")) {
-      Solve(ctx->fcpcs, &fcp, fcp, M::LS::T::symm, m);
+      linsolver_->Solve(ctx->fcpcs, &fcp, fcp, m);
     }
     if (sem("fluxes")) {
       eb.LoopFaces([&](auto cf) { //
@@ -621,6 +622,7 @@ struct Proj<EB_>::Imp {
 
   Owner* owner_;
   Par par;
+  std::shared_ptr<linear::Solver<M>> linsolver_;
   M& m;
   const EB& eb;
   const GRange<size_t> edim_range_; // effective dimension range
@@ -663,9 +665,9 @@ Proj<EB_>::Proj(
     const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
     const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* febp,
     const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
-    double dt, Par par)
+    double dt, std::shared_ptr<linear::Solver<M>> linsolver, Par par)
     : Base(t, dt, m, fcr, fcd, fcf, febp, fcsv, fcsm)
-    , imp(new Imp(this, eb, fcvel, mebc, mcc, par)) {}
+    , imp(new Imp(this, eb, fcvel, mebc, mcc, linsolver, par)) {}
 
 template <class EB_>
 Proj<EB_>::~Proj() = default;

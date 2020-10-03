@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "fluid.h"
+#include "linear/linear.h"
 #include "util/convdiff.h"
 
 template <class Scal>
@@ -62,7 +63,7 @@ class Proj final : public FluidSolver<typename EB_::M> {
       const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
       const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* ffbp,
       const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
-      double dt, Par par);
+      double dt, std::shared_ptr<linear::Solver<M>> linsolver, Par par);
   ~Proj();
   const Par& GetPar() const;
   void SetPar(Par);

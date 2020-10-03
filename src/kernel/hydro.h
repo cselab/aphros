@@ -30,6 +30,7 @@
 #include "func/init_contang.h"
 #include "geom/mesh.h"
 #include "kernelmeshpar.h"
+#include "linear/linear.h"
 #include "parse/curv.h"
 #include "parse/parser.h"
 #include "parse/proj.h"
@@ -663,15 +664,23 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
           &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
     }
   } else if (fs == "proj") {
-    auto p = ParsePar<Proj<M>>()(var);
+    auto par = ParsePar<Proj<M>>()(var);
+    typename linear::Solver<M>::Conf conf;
+    conf.tol = var.Double["hypre_symm_tol"];
+    conf.maxiter = var.Int["hypre_symm_maxiter"];
+    typename linear::SolverHypre<M>::Extra extra;
+    extra.solver = var.String["hypre_symm_solver"];
+    extra.print = var.Int["hypre_print"];
+    std::shared_ptr<linear::Solver<M>> linsolver(
+        new linear::SolverHypre<M>(conf, extra));
     if (eb_) {
       fs_.reset(new Proj<Embed<M>>(
           m, *eb_, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
-          &fc_force_, &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+          &fc_force_, &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, linsolver, par));
     } else {
       fs_.reset(new Proj<M>(
           m, m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
-          &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+          &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, linsolver, par));
     }
   } else if (fs == "dummy") {
     if (eb_) {
