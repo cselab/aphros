@@ -72,94 +72,6 @@ SolverInfo SolveJacobi(
   return t.info;
 }
 
-SolverInfo SolveConjugate(
-    M& m, const FieldCell<Expr>& fc_system, FieldCell<Scal>& fc_sol,
-    int maxiter, Scal tol) {
-  auto sem = m.GetSem();
-  struct {
-    FieldCell<Scal> fcu;
-    FieldCell<Scal> fcr;
-    FieldCell<Scal> fcrn;
-    FieldCell<Scal> fcp;
-    FieldCell<Scal> fcsp;
-    Scal a;
-    Scal b;
-    Scal p_dot_sp;
-    Scal rn_dot_rn;
-    Scal r_dot_r;
-
-    Scal maxdiff;
-    int iter = 0;
-    SolverInfo info;
-  } * ctx(sem);
-  auto& t = *ctx;
-  if (sem("init")) {
-    t.fcu = fc_sol;
-    t.fcr.Reinit(m);
-    for (auto c : m.Cells()) {
-      t.fcr[c] = -fc_system[c].back();
-    }
-    t.fcp = t.fcr;
-    t.fcsp.Reinit(m);
-    t.fcrn.Reinit(m);
-    m.Comm(&t.fcp);
-  }
-  sem.LoopBegin();
-  if (sem("iter")) {
-    // fcsp: A(p)
-    for (auto c : m.Cells()) {
-      const auto& e = fc_system[c];
-      Scal p = t.fcp[c] * e[0];
-      for (auto q : m.Nci(c)) {
-        p += t.fcp[m.GetCell(c, q)] * e[1 + q];
-      }
-      t.fcsp[c] = p;
-    }
-
-    t.r_dot_r = 0;
-    t.p_dot_sp = 0;
-    for (auto c : m.Cells()) {
-      t.r_dot_r += sqr(t.fcr[c]);
-      t.p_dot_sp += t.fcp[c] * t.fcsp[c];
-    }
-    m.Reduce(&t.r_dot_r, "sum");
-    m.Reduce(&t.p_dot_sp, "sum");
-  }
-  if (sem("iter2")) {
-    t.maxdiff = 0;
-    t.a = t.r_dot_r / t.p_dot_sp;
-    t.rn_dot_rn = 0;
-    for (auto c : m.Cells()) {
-      t.fcu[c] += t.fcp[c] * t.a;
-      t.fcrn[c] = t.fcr[c] - t.fcsp[c] * t.a;
-      t.rn_dot_rn += sqr(t.fcrn[c]);
-      t.maxdiff = std::max(t.maxdiff, std::abs(t.fcp[c] * t.a));
-    }
-    m.Reduce(&t.rn_dot_rn, "sum");
-    m.Reduce(&t.maxdiff, "max");
-  }
-  if (sem("iter3")) {
-    t.b = t.rn_dot_rn / t.r_dot_r;
-    for (auto c : m.Cells()) {
-      t.fcp[c] = t.fcrn[c] + t.fcp[c] * t.b;
-      t.fcr[c] = t.fcrn[c];
-    }
-    m.Comm(&t.fcp);
-  }
-  if (sem("check")) {
-    t.info.residual = t.maxdiff;
-    t.info.iter = t.iter;
-    if (t.iter++ > maxiter || t.maxdiff < tol) {
-      sem.LoopBreak();
-    }
-  }
-  sem.LoopEnd();
-  if (sem("result")) {
-    fc_sol = t.fcu;
-  }
-  return t.info;
-}
-
 template <class M>
 SolverInfo SolveDefault(
     const FieldCell<typename M::Expr>& fc_system,
@@ -424,6 +336,141 @@ auto SolverHypre<M>::Solve(
   return imp->Solve(fc_system, fc_init, fc_sol, m);
 }
 
+
+template <class M>
+class SolverConjugate : public Solver<M> {
+ public:
+  using Base = Solver<M>;
+  using Conf = typename Base::Conf;
+  using Info = typename Base::Info;
+  using Scal = typename M::Scal;
+  using Expr = typename M::Expr;
+  struct Extra {};
+  SolverConjugate(const Conf& conf, const Extra& extra);
+  Info Solve(
+      const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
+      FieldCell<Scal>& fc_sol, M& m) override;
+
+ private:
+  struct Imp;
+  std::unique_ptr<Imp> imp;
+};
+
+template <class M>
+struct SolverConjugate<M>::Imp {
+  using Owner = SolverConjugate<M>;
+
+  Imp(Owner* owner, const Extra& extra)
+      : owner_(owner), conf(owner_->conf), extra(extra) {}
+  Info Solve(
+      const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
+      FieldCell<Scal>& fc_sol, M& m) {
+    auto sem = m.GetSem();
+    struct {
+      FieldCell<Scal> fcu;
+      FieldCell<Scal> fcr;
+      FieldCell<Scal> fcrn;
+      FieldCell<Scal> fcp;
+      FieldCell<Scal> fcsp;
+      Scal a;
+      Scal b;
+      Scal p_dot_sp;
+      Scal rn_dot_rn;
+      Scal r_dot_r;
+
+      Scal maxdiff;
+      int iter = 0;
+      Info info;
+    } * ctx(sem);
+    auto& t = *ctx;
+    // TODO: use fc_init
+    if (sem("init")) {
+      t.fcu = fc_sol;
+      t.fcr.Reinit(m);
+      for (auto c : m.Cells()) {
+        t.fcr[c] = -fc_system[c].back();
+      }
+      t.fcp = t.fcr;
+      t.fcsp.Reinit(m);
+      t.fcrn.Reinit(m);
+      m.Comm(&t.fcp);
+    }
+    sem.LoopBegin();
+    if (sem("iter")) {
+      // fcsp: A(p)
+      for (auto c : m.Cells()) {
+        const auto& e = fc_system[c];
+        Scal p = t.fcp[c] * e[0];
+        for (auto q : m.Nci(c)) {
+          p += t.fcp[m.GetCell(c, q)] * e[1 + q];
+        }
+        t.fcsp[c] = p;
+      }
+
+      t.r_dot_r = 0;
+      t.p_dot_sp = 0;
+      for (auto c : m.Cells()) {
+        t.r_dot_r += sqr(t.fcr[c]);
+        t.p_dot_sp += t.fcp[c] * t.fcsp[c];
+      }
+      m.Reduce(&t.r_dot_r, "sum");
+      m.Reduce(&t.p_dot_sp, "sum");
+    }
+    if (sem("iter2")) {
+      t.maxdiff = 0;
+      t.a = t.r_dot_r / t.p_dot_sp;
+      t.rn_dot_rn = 0;
+      for (auto c : m.Cells()) {
+        t.fcu[c] += t.fcp[c] * t.a;
+        t.fcrn[c] = t.fcr[c] - t.fcsp[c] * t.a;
+        t.rn_dot_rn += sqr(t.fcrn[c]);
+        t.maxdiff = std::max(t.maxdiff, std::abs(t.fcp[c] * t.a));
+      }
+      m.Reduce(&t.rn_dot_rn, "sum");
+      m.Reduce(&t.maxdiff, "max");
+    }
+    if (sem("iter3")) {
+      t.b = t.rn_dot_rn / t.r_dot_r;
+      for (auto c : m.Cells()) {
+        t.fcp[c] = t.fcrn[c] + t.fcp[c] * t.b;
+        t.fcr[c] = t.fcrn[c];
+      }
+      m.Comm(&t.fcp);
+    }
+    if (sem("check")) {
+      t.info.residual = t.maxdiff;
+      t.info.iter = t.iter;
+      if (t.iter++ > conf.maxiter || t.maxdiff < conf.tol) {
+        sem.LoopBreak();
+      }
+    }
+    sem.LoopEnd();
+    if (sem("result")) {
+      fc_sol = t.fcu;
+    }
+    return t.info;
+  }
+
+ private:
+  Owner* owner_;
+  Conf& conf;
+  Extra extra;
+};
+
+template <class M>
+SolverConjugate<M>::SolverConjugate(const Conf& conf, const Extra& extra)
+    : Base(conf), imp(new Imp(this, extra)) {}
+
+template <class M>
+auto SolverConjugate<M>::Solve(
+    const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
+    FieldCell<Scal>& fc_sol, M& m) -> Info {
+  return imp->Solve(fc_system, fc_init, fc_sol, m);
+}
+
+
+
+
 } // namespace linear
 
 template <class M>
@@ -445,6 +492,30 @@ SolverInfo SolveHypre(
     extra.solver = "pcg";
 
     t.solver = std::make_unique<linear::SolverHypre<M>>(conf, extra);
+  }
+  if (sem.Nested("solve")) {
+    auto info = t.solver->Solve(fc_system, fc_init, fc_sol, m);
+    return {info.residual, info.iter};
+  }
+  return {};
+}
+
+SolverInfo SolveConjugate(
+    M& m, const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
+    FieldCell<Scal>& fc_sol, int maxiter, Scal tol) {
+  auto sem = m.GetSem(__func__);
+  struct {
+    std::unique_ptr<linear::Solver<M>> solver;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem("init")) {
+    typename linear::Solver<M>::Conf conf;
+    typename linear::SolverConjugate<M>::Extra extra;
+
+    conf.tol = tol;
+    conf.maxiter = maxiter;
+
+    t.solver = std::make_unique<linear::SolverConjugate<M>>(conf, extra);
   }
   if (sem.Nested("solve")) {
     auto info = t.solver->Solve(fc_system, fc_init, fc_sol, m);
@@ -483,7 +554,7 @@ SolverInfo Solve(
     case Solver::jacobi:
       return SolveJacobi(m, fc_system, fc_sol, maxiter, tol);
     case Solver::conjugate:
-      return SolveConjugate(m, fc_system, fc_sol, maxiter, tol);
+      return SolveConjugate(m, fc_system, &fc_sol, fc_sol, maxiter, tol);
   }
   fassert(false);
 }
