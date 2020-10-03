@@ -18,7 +18,7 @@ using Expr = typename M::Expr;
 using ExprFace = typename M::ExprFace;
 using UEB = UEmbed<M>;
 
-enum class Solver { hypre, zero, jacobi, conjugate };
+enum class Solver { def, hypre, zero, jacobi, conjugate };
 
 struct SolverInfo {
   Scal residual;
@@ -159,8 +159,58 @@ SolverInfo SolveConjugate(
   return t.info;
 }
 
+template <class M>
+SolverInfo SolveDefault(
+    const FieldCell<typename M::Expr>& fc_system,
+    const FieldCell<typename M::Scal>* fc_init,
+    FieldCell<typename M::Scal>& fc_sol, typename M::LS::T type, M& m,
+    std::string prefix = "") {
+  using Scal = typename M::Scal;
+  auto sem = m.GetSem("solve");
+  if (sem("solve")) {
+    std::vector<Scal>* lsa;
+    std::vector<Scal>* lsb;
+    std::vector<Scal>* lsx;
+    m.GetSolveTmp(lsa, lsb, lsx);
+    lsx->resize(m.GetInBlockCells().size());
+    if (fc_init) {
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        (*lsx)[i++] = (*fc_init)[c];
+      }
+    } else {
+      size_t i = 0;
+      for (auto c : m.Cells()) {
+        (void)c;
+        (*lsx)[i++] = 0;
+      }
+    }
+    auto l = ConvertLsCompact(fc_system, *lsa, *lsb, *lsx, m);
+    l.t = type;
+    l.prefix = prefix;
+    m.Solve(l);
+  }
+  if (sem("copy")) {
+    std::vector<Scal>* lsa;
+    std::vector<Scal>* lsb;
+    std::vector<Scal>* lsx;
+    m.GetSolveTmp(lsa, lsb, lsx);
+
+    fc_sol.Reinit(m);
+    size_t i = 0;
+    for (auto c : m.Cells()) {
+      fc_sol[c] = (*lsx)[i++];
+    }
+    m.Comm(&fc_sol);
+    return SolverInfo{m.GetResidual(), m.GetIter()};
+  }
+  return {};
+}
+
 Solver GetSolver(std::string name) {
-  if (name == "hypre") {
+  if (name == "default") {
+    return Solver::def;
+  } else if (name == "hypre") {
     return Solver::hypre;
   } else if (name == "zero") {
     return Solver::zero;
@@ -176,9 +226,9 @@ SolverInfo Solve(
     M& m, const FieldCell<Expr>& fc_system, FieldCell<Scal>& fc_sol,
     Solver solver, int maxiter, Scal tol) {
   switch (solver) {
+    case Solver::def:
     case Solver::hypre:
-      Solve(fc_system, &fc_sol, fc_sol, M::LS::T::symm, m, "symm");
-      return SolverInfo{m.GetResidual(), m.GetIter()};
+      return SolveDefault(fc_system, &fc_sol, fc_sol, M::LS::T::symm, m, "symm");
     case Solver::zero:
       fc_sol.Reinit(m, 0);
       return SolverInfo{0, 0};
@@ -193,7 +243,6 @@ SolverInfo Solve(
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
   struct {
-    FieldCell<Scal> fc_rhs;
     FieldCell<Scal> fc_sol;
     FieldCell<Scal> fc_sol_exact;
     FieldCell<Scal> fc_diff;
@@ -210,9 +259,9 @@ void Run(M& m, Vars& var) {
     t.fc_sol_exact.Reinit(m);
     for (auto c : m.CellsM()) {
       auto x = c.center;
-      t.fc_sol_exact[c] = std::sin(M_PI * std::pow(x[0], 1)) *
-                          std::sin(M_PI * std::pow(x[1], 2)) *
-                          std::sin(M_PI * std::pow(x[2], 3));
+      t.fc_sol_exact[c] = std::sin(2 * M_PI * std::pow(x[0], 1)) *
+                          std::sin(2 * M_PI * std::pow(x[1], 2)) *
+                          std::sin(2 * M_PI * std::pow(x[2], 3));
     }
     m.Comm(&t.fc_sol_exact);
   }
@@ -220,7 +269,8 @@ void Run(M& m, Vars& var) {
     // resistivity
     t.ff_rho.Reinit(m);
     for (auto f : m.FacesM()) {
-      t.ff_rho[f] = (Vect(0.5, 0.25, 0.125).dist(f.center()) < 0.2 ? 1000 : 1);
+      t.ff_rho[f] =
+          (f.center().dist(m.GetGlobalLength() * 0.5) < 0.2 ? 10 : 1);
     }
 
     // system, only coefficients, zero constant term
@@ -237,15 +287,9 @@ void Run(M& m, Vars& var) {
       t.fc_system[c] = sum;
     }
 
-    // rhs
-    t.fc_rhs.Reinit(m, 0);
+    // constant term from exact solution
     for (auto c : m.Cells()) {
-      t.fc_rhs[c] = UEB::Eval(t.fc_system[c], c, t.fc_sol_exact, m);
-    }
-
-    // system with constant term
-    for (auto c : m.Cells()) {
-      t.fc_system[c].back() = -t.fc_rhs[c];
+      t.fc_system[c].back() = -UEB::Eval(t.fc_system[c], c, t.fc_sol_exact, m);
     }
 
     // initial guess
@@ -269,7 +313,6 @@ void Run(M& m, Vars& var) {
     t.norms = UDebug<M>::GetNorms({&t.fc_diff}, m);
   }
   if (sem("print")) {
-    m.Dump(&t.fc_rhs, "rhs");
     m.Dump(&t.fc_sol, "sol");
     m.Dump(&t.fc_sol_exact, "exact");
     m.Dump(&t.fc_diff, "diff");
@@ -287,7 +330,9 @@ void Run(M& m, Vars& var) {
 int main(int argc, const char** argv) {
   auto parser = ArgumentParser("Test for linear solvers.");
   parser.AddVariable<std::string>("--solver", "hypre")
-      .Help("Linear solver to use. Options are: hypre, zero");
+      .Help(
+          "Linear solver to use."
+          " Options are: default, hypre, zero, conjugate");
   parser.AddVariable<double>("--tol", 1e-3).Help("Convergence tolerance");
   parser.AddVariable<int>("--maxiter", 100).Help("Maximum iterations");
   auto args = parser.ParseArgs(argc, argv);
@@ -296,13 +341,13 @@ int main(int argc, const char** argv) {
   }
 
   std::string conf = R"EOF(
-set int bx 2
+set int bx 1
 set int by 2
 set int bz 2
 
-set int bsx 32
-set int bsy 32
-set int bsz 32
+set int bsx 16
+set int bsy 16
+set int bsz 16
 
 set int px 2
 set int py 1
