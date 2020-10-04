@@ -37,6 +37,12 @@ struct SolverHypre<M>::Imp {
       std::unique_ptr<Hypre> hypre;
     } * ctx(sem);
     auto& t = *ctx;
+    if (m.flags.check_symmetry &&
+        (extra.solver == "pcg" || extra.solver == "pcg+smg")) {
+      if (sem.Nested()) {
+        UDebug<M>::CheckSymmetry(fc_system, m);
+      }
+    }
     if (sem("solve")) {
       const auto bic = m.GetInBlockCells();
       t.origin.push_back(bic.GetBegin());
@@ -135,6 +141,12 @@ struct SolverHypre<M>::Imp {
         fc_sol[c] = t.data_x[i++];
       }
       m.Comm(&fc_sol);
+      if (m.flags.linreport && m.IsRoot()) {
+        std::cout << std::scientific;
+        std::cout << "linear solver '" + fc_system.GetName() + "':"
+                  << " res=" << t.info.residual << " iter=" << t.info.iter
+                  << std::endl;
+      }
     }
     if (sem()) {
     }

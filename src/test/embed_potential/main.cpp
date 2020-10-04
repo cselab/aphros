@@ -12,6 +12,7 @@
 
 #include "distr/distrbasic.h"
 #include "linear/linear.h"
+#include "util/linear.h"
 #include "solver/convdiffv_eb.h"
 #include "solver/embed.h"
 #include "solver/approx_eb.h"
@@ -43,8 +44,9 @@ FieldCell<typename M::Scal> GetDivergence(
 
 template <class M>
 void CalcPotential(
-    const MapEmbed<BCond<Scal>>& mfc, M& m, const Embed<M>& eb, FieldCell<Scal>& fcp,
-    FieldFace<Scal>& ffv) {
+    const MapEmbed<BCond<Scal>>& mfc, M& m, const Embed<M>& eb,
+    FieldCell<Scal>& fcp, FieldFace<Scal>& ffv,
+    std::shared_ptr<linear::Solver<M>> linsolver) {
   using Scal = typename M::Scal;
   using ExprFace = generic::Vect<Scal, 3>;
   using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
@@ -52,10 +54,10 @@ void CalcPotential(
   auto sem = m.GetSem();
   struct {
     FieldFace<ExprFace> ffe; // expression for volume flux in terms of p [i]
-    FieldCell<Expr> fce; // linear system for potential [i]
+    FieldCell<Expr> fc_system; // linear system for potential [i]
   } * ctx(sem);
   auto& ffe = ctx->ffe;
-  auto& fce = ctx->fce;
+  auto& fc_system = ctx->fc_system;
 
   if (sem("init")) {
     ffe.Reinit(m);
@@ -85,7 +87,7 @@ void CalcPotential(
     }
 
     // initialize as diagonal system
-    fce.Reinit(m, Expr::GetUnit(0));
+    fc_system.Reinit(m, Expr::GetUnit(0));
     // overwrite with div=0 equation in non-excluded cells
     for (auto c : eb.Cells()) {
       Expr e(0);
@@ -96,37 +98,11 @@ void CalcPotential(
         e[1 + q] += v[q % 2];
         e[Expr::dim - 1] += v[2];
       }
-      fce[c] = e;
+      fc_system[c] = e;
     }
   }
-  if (sem("solve")) {
-    std::vector<Scal>* lsa;
-    std::vector<Scal>* lsb;
-    std::vector<Scal>* lsx;
-    m.GetSolveTmp(lsa, lsb, lsx);
-    lsx->resize(m.GetInBlockCells().size());
-    size_t i = 0;
-    for (auto c : m.Cells()) {
-      (void)c;
-      (*lsx)[i++] = 0;
-    }
-    auto l = ConvertLsCompact(fce, *lsa, *lsb, *lsx, m);
-    using T = typename M::LS::T;
-    l.t = T::symm;
-    m.Solve(l);
-  }
-  if (sem("copy")) {
-    std::vector<Scal>* lsa;
-    std::vector<Scal>* lsb;
-    std::vector<Scal>* lsx;
-    m.GetSolveTmp(lsa, lsb, lsx);
-
-    fcp.Reinit(m);
-    size_t i = 0;
-    for (auto c : m.Cells()) {
-      fcp[c] = (*lsx)[i++];
-    }
-    m.Comm(&fcp);
+  if (sem.Nested("solve")) {
+    linsolver->Solve(fc_system, nullptr, fcp, m);
   }
   if (sem("flux")) {
     ffv.Reinit(m);
@@ -148,19 +124,22 @@ void Run(M& m, Vars& var) {
     FieldFace<Scal> ffv;
     FieldCell<Scal> fcdiv;
     FieldNode<Scal> fnl;
+    std::shared_ptr<linear::Solver<M>> linsolver;
   } * ctx(sem);
   auto& fcdiv = ctx->fcdiv;
   auto& mfc = ctx->mfc;
   auto& fcp = ctx->fcp;
   auto& ffv = ctx->ffv;
   auto& eb_ = ctx->eb;
+  auto& t = *ctx;
 
   if (sem("eb_ctor")) {
     eb_.reset(new EB(m));
-    ctx->fnl = UEB::InitEmbed(m, var, m.IsRoot());
+    t.fnl = UEB::InitEmbed(m, var, m.IsRoot());
+    t.linsolver = ULinear<M>::MakeLinearSolver(var, "symm");
   }
   if (sem.Nested("eb_init")) {
-    eb_->Init(ctx->fnl);
+    eb_->Init(t.fnl);
   }
   if (sem("eb_ctor")) {
     auto& eb = *eb_;
@@ -185,12 +164,12 @@ void Run(M& m, Vars& var) {
     eb_->DumpPoly();
   }
   if (sem.Nested("flux-proj")) {
-    CalcPotential(mfc, m, *eb_, fcp, ffv);
+    CalcPotential(mfc, m, *eb_, fcp, ffv, t.linsolver);
   }
   if (sem("dump")) {
     fcdiv = GetDivergence(ffv, *eb_);
     m.Dump(&fcdiv, "div");
-    m.Dump(&ctx->fcp, "p");
+    m.Dump(&t.fcp, "p");
   }
   if (sem()) {
     if (m.IsRoot()) {
