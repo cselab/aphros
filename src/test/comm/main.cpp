@@ -53,7 +53,6 @@ class Simple : public KernelMeshPar<M_, GPar> {
 
  private:
   void TestComm();
-  void TestSolve();
   void TestReduce();
   void TestScatter();
   void TestPois();
@@ -455,95 +454,6 @@ void Simple<M>::TestScatter() {
 }
 
 template <class M>
-void Simple<M>::TestSolve() {
-  auto sem = m.GetSem("Solve");
-  auto& bc = m.GetIndexCells();
-  auto f = [](Vect v) {
-    for (size_t i = 0; i < dim; ++i) {
-      while (v[i] < 0.) {
-        v[i] += 1.;
-      }
-      while (v[i] > 1.) {
-        v[i] -= 1.;
-      }
-    }
-    return std::sin(v[0] * v[1]) * std::cos(v[1] * v[2]) *
-           std::exp(v[2] + v[0]);
-  };
-
-  // global mesh size
-  MIdx gs;
-  MIdx bs(var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]);
-  {
-    MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
-    MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
-    gs = p * b * bs;
-  }
-
-  if (sem("init")) {
-    if (m.IsRoot()) {
-      std::cout << "\n\n*** TestSolve() ***" << std::endl;
-    }
-    // exact solution
-    fc_exsol_.Reinit(m);
-    for (auto i : m.AllCells()) {
-      Vect x = m.GetCenter(i);
-      fc_exsol_[i] = f(x);
-    }
-    // init hydro system
-    fc_system_.Reinit(m);
-    for (auto i : m.Cells()) {
-      MIdx mi = bc.GetMIdx(i);
-      IdxCell ipx = bc.GetIdx(mi + MIdx(1, 0, 0));
-      IdxCell imx = bc.GetIdx(mi + MIdx(-1, 0, 0));
-      IdxCell ipy = bc.GetIdx(mi + MIdx(0, 1, 0));
-      IdxCell imy = bc.GetIdx(mi + MIdx(0, -1, 0));
-      IdxCell ipz = bc.GetIdx(mi + MIdx(0, 0, 1));
-      IdxCell imz = bc.GetIdx(mi + MIdx(0, 0, -1));
-
-      MIdx mpx = bc.GetMIdx(ipx);
-      MIdx mmx = bc.GetMIdx(imx);
-      MIdx mpy = bc.GetMIdx(ipy);
-      MIdx mmy = bc.GetMIdx(imy);
-      MIdx mpz = bc.GetMIdx(ipz);
-      MIdx mmz = bc.GetMIdx(imz);
-
-      auto& e = fc_system_[i];
-      e.Clear();
-
-      bool per = var.Int["periodic"];
-
-      e.InsertTerm(mpx < gs || per ? -0.0 : 0., ipx);
-      e.InsertTerm(MIdx(0) <= mmx || per ? -0.0 : 0., imx);
-      e.InsertTerm(mpy < gs || per ? -1.0 : 0., ipy);
-      e.InsertTerm(MIdx(0) <= mmy || per ? -1.0 : 0., imy);
-      e.InsertTerm(mpz < gs || per ? -1.0 : 0., ipz);
-      e.InsertTerm(MIdx(0) <= mmz || per ? -1.0 : 0., imz);
-
-      e.InsertTerm(6., i);
-
-      Scal r = e.Evaluate(fc_exsol_);
-      e.SetConstant(-r);
-    }
-
-    using LS = typename M::LS;
-    LS l = ConvertLs(fc_system_, lsa_, lsb_, lsx_, m);
-    m.Solve(l);
-  }
-  if (sem("check")) {
-    // Copy solution to field
-    fc_sol_.Reinit(m);
-    size_t i = 0;
-    for (auto c : m.Cells()) {
-      fc_sol_[c] = lsx_[i++];
-    }
-    // Check
-    PCMP(Mean(fc_exsol_, m), Mean(fc_sol_, m));
-    PCMP(DiffMax(fc_exsol_, fc_sol_, m), 0.);
-  }
-}
-
-template <class M>
 void Simple<M>::TestPois() {
   auto sem = m.GetSem("pois");
   struct {
@@ -603,9 +513,6 @@ void Simple<M>::Run() {
   auto sem = m.GetSem("Run");
   if (sem.Nested()) {
     TestComm();
-  }
-  if (sem.Nested()) {
-    TestSolve();
   }
   if (sem.Nested()) {
     TestReduce();
