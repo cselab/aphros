@@ -16,7 +16,7 @@
 #include "solver.h"
 
 template <class Scal_>
-struct ULinear {
+struct ULinearFit {
   static constexpr size_t dim = 3;
   using Scal = Scal_;
   using Vect = generic::Vect<Scal, dim>;
@@ -119,14 +119,14 @@ auto FitLinear(IdxCell c, const FieldCell<T>& fcu, const EB& eb) {
     xx.push_back(m.GetCenter(cn));
     uu.push_back(fcu[cn]);
   }
-  return ULinear<Scal>::FitLinear(xx, uu);
+  return ULinearFit<Scal>::FitLinear(xx, uu);
 }
 
 template <class EB, class T>
 T EvalLinearFit(
     typename EB::Vect x, IdxCell c, const FieldCell<T>& fcu, const EB& eb) {
   auto p = FitLinear(c, fcu, eb);
-  return ULinear<typename EB::Scal>::EvalLinear(p, x);
+  return ULinearFit<typename EB::Scal>::EvalLinear(p, x);
 }
 
 template <class M_>

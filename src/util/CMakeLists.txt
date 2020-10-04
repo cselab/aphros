@@ -5,6 +5,10 @@ set(T "utilhydro")
 add_library(${T} hydro.cpp)
 target_link_libraries(${T} vars dumper approx vof vofm)
 
+set(T "utillinear")
+add_library(${T} linear.cpp)
+target_link_libraries(${T} vars linear)
+
 set(T "utilfluid")
 add_library(${T} fluid.cpp)
 target_link_libraries(${T})

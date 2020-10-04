@@ -7,7 +7,6 @@
 #include "approx.h"
 #include "func/primlist.h"
 
-
 namespace interp {
 
 // Evaluates quadratic interpolant on points -1, 0, 1.
@@ -48,7 +47,7 @@ T Bilinear(Scal x, Scal y, T u, T ux, T uy, T uyx) {
 } // namespace interp
 
 template <class Scal>
-auto ULinear<Scal>::FitLinear(
+auto ULinearFit<Scal>::FitLinear(
     const std::vector<Vect>& xx, const std::vector<Scal>& uu)
     -> std::pair<Vect, Scal> {
   assert(xx.size() == uu.size());
@@ -80,7 +79,7 @@ auto ULinear<Scal>::FitLinear(
 }
 
 template <class Scal>
-auto ULinear<Scal>::FitLinear(
+auto ULinearFit<Scal>::FitLinear(
     const std::vector<Vect>& xx, const std::vector<Vect>& uu)
     -> std::pair<generic::Vect<Vect, dim>, Vect> {
   std::pair<generic::Vect<Vect, dim>, Vect> p;
@@ -538,7 +537,7 @@ auto UEmbed<M>::Gradient(
       case BCondType::dirichlet: {
         return GradDirichletLinearFit(
             eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
-        //return GradDirichletQuadSecond(
+        // return GradDirichletQuadSecond(
         //    eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
         // return GradDirichletQuad(
         //    eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
@@ -559,8 +558,8 @@ auto UEmbed<M>::Gradient(
         auto p = FitLinear(c, fcu, eb);
         const Vect x1 = eb.GetFaceCenter(cf);
         const Vect x0 = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
-        const T u1 = ULinear<typename M::Scal>::EvalLinear(p, x1);
-        const T u0 = ULinear<typename M::Scal>::EvalLinear(p, x0);
+        const T u1 = ULinearFit<typename M::Scal>::EvalLinear(p, x1);
+        const T u0 = ULinearFit<typename M::Scal>::EvalLinear(p, x0);
         return (u1 - u0) / h;
       }
     }
@@ -1093,7 +1092,7 @@ auto UEmbed<M>::GradientLinearFit(const FieldEmbed<Scal>& feu, const EB& eb)
         xx.push_back(eb.GetFaceCenter(f));
         uu.push_back(feu[f]);
       }
-      auto p = ULinear<Scal>::FitLinear(xx, uu);
+      auto p = ULinearFit<Scal>::FitLinear(xx, uu);
       fcg[c] = p.first;
     }
   }

@@ -115,9 +115,9 @@ struct Vof<EB_>::Imp {
               }
             }
             if (xx.size()) {
-              const auto p = ULinear<Scal>::FitLinear(xx, uu);
-              fcu[c] =
-                  ULinear<typename EB::Scal>::EvalLinear(p, m.GetCenter(c));
+              const auto p = ULinearFit<Scal>::FitLinear(xx, uu);
+              fcu[c] = ULinearFit<typename EB::Scal>::EvalLinear(
+                  p, m.GetCenter(c));
             }
           }
         }

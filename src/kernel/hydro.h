@@ -59,6 +59,7 @@
 #include "util/events.h"
 #include "util/filesystem.h"
 #include "util/hydro.h"
+#include "util/linear.h"
 #include "util/metrics.h"
 #include "util/posthook.h"
 #include "util/stat.h"
@@ -665,14 +666,8 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
     }
   } else if (fs == "proj") {
     auto par = ParsePar<Proj<M>>()(var);
-    typename linear::Solver<M>::Conf conf;
-    conf.tol = var.Double["hypre_symm_tol"];
-    conf.maxiter = var.Int["hypre_symm_maxiter"];
-    typename linear::SolverHypre<M>::Extra extra;
-    extra.solver = var.String["hypre_symm_solver"];
-    extra.print = var.Int["hypre_print"];
     std::shared_ptr<linear::Solver<M>> linsolver(
-        new linear::SolverHypre<M>(conf, extra));
+        ULinear<M>::GetLinearSolverHypre(var, "symm"));
     if (eb_) {
       fs_.reset(new Proj<Embed<M>>(
           m, *eb_, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,

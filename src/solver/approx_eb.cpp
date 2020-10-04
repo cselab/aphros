@@ -14,7 +14,7 @@ using TV = Vect;
 using Expr = typename M::Expr;
 constexpr size_t dim = M::dim;
 
-template struct ULinear<Scal>;
+template struct ULinearFit<Scal>;
 template struct UEmbed<M>;
 
 template FieldCell<T> UEB::Interpolate(const FieldEmbed<T>& feu, const EB& eb);
