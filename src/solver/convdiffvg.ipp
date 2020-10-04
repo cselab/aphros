@@ -22,7 +22,6 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       , eb(owner_->eb)
       , mebc_(args.mebc)
       , dr_(0, m.GetEdim()) {
-    fassert(args.linsolver);
     for (auto d : dr_) {
       UpdateDerivedCond(d);
 

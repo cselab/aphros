@@ -874,7 +874,8 @@ template <class M>
 void InitVort(
     const FieldCell<typename M::Vect>& fcvort,
     FieldCell<typename M::Vect>& fcvel,
-    const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid, M& m) {
+    const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   auto sem = m.GetSem("initvort");
@@ -900,7 +901,7 @@ void InitVort(
       }
     }
     if (sem.Nested("solve-" + dname)) {
-      SolvePoisson(t.fcpot_scal, t.fcvort_scal, t.mebc_scal, m);
+      SolvePoisson(t.fcpot_scal, t.fcvort_scal, t.mebc_scal, linsolver, m);
     }
     if (sem("post-" + dname)) {
       SetComponent(t.fcpot, d, t.fcpot_scal);
@@ -1334,7 +1335,8 @@ void CalcSurfaceTension(
 template <class M>
 void ProjectVolumeFlux(
     FieldFace<typename M::Scal>& ffv,
-    const MapEmbed<BCondFluid<typename M::Vect>>& mfc, M& m) {
+    const MapEmbed<BCondFluid<typename M::Vect>>& mfc,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m) {
   using Scal = typename M::Scal;
   using ExprFace = generic::Vect<Scal, 3>;
   using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
@@ -1342,14 +1344,15 @@ void ProjectVolumeFlux(
   auto sem = m.GetSem();
   struct {
     FieldFace<ExprFace> ffe; // expression for corrected volume flux [i]
-    FieldCell<Expr> fce; // linear system for pressure [i]
+    FieldCell<Expr> fc_system; // linear system for pressure [i]
     FieldFace<bool> ffbd; // true for faces with boundary conditions
     FieldCell<Scal> fcp; // pressure (up to a constant)
   } * ctx(sem);
   auto& ffe = ctx->ffe;
-  auto& fce = ctx->fce;
+  auto& fc_system = ctx->fc_system;
   auto& ffbd = ctx->ffbd;
   auto& fcp = ctx->fcp;
+  auto& t = *ctx;
 
   if (sem("init")) {
     ffbd.Reinit(m, false);
@@ -1371,9 +1374,9 @@ void ProjectVolumeFlux(
       e[2] = ffv[f];
     }
 
-    fce.Reinit(m, Expr(0));
+    fc_system.Reinit(m, Expr(0));
     for (auto c : m.Cells()) {
-      auto& e = fce[c];
+      auto& e = fc_system[c];
       for (auto q : m.Nci(c)) {
         const IdxFace f = m.GetFace(c, q);
         const ExprFace v = ffe[f] * m.GetOutwardFactor(c, q);
@@ -1383,34 +1386,8 @@ void ProjectVolumeFlux(
       }
     }
   }
-  if (sem("solve")) {
-    std::vector<Scal>* lsa;
-    std::vector<Scal>* lsb;
-    std::vector<Scal>* lsx;
-    m.GetSolveTmp(lsa, lsb, lsx);
-    lsx->resize(m.GetInBlockCells().size());
-    size_t i = 0;
-    for (auto c : m.Cells()) {
-      (void)c;
-      (*lsx)[i++] = 0;
-    }
-    auto l = ConvertLsCompact(fce, *lsa, *lsb, *lsx, m);
-    using T = typename M::LS::T;
-    l.t = T::symm;
-    m.Solve(l);
-  }
-  if (sem("copy")) {
-    std::vector<Scal>* lsa;
-    std::vector<Scal>* lsb;
-    std::vector<Scal>* lsx;
-    m.GetSolveTmp(lsa, lsb, lsx);
-
-    fcp.Reinit(m);
-    size_t i = 0;
-    for (auto c : m.Cells()) {
-      fcp[c] = (*lsx)[i++];
-    }
-    m.Comm(&fcp);
+  if (sem.Nested("solve")) {
+    linsolver->Solve(t.fc_system, nullptr, t.fcp, m);
   }
   if (sem("apply")) {
     for (auto f : m.Faces()) {

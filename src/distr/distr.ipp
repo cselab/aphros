@@ -16,7 +16,11 @@ void DistrMesh<M>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
   for (auto e : ee) {
     const MIdx d(e.index);
     std::unique_ptr<KernelMesh<M>> kernel(kf_.Make(var_mutable, e));
-    kernel->GetMesh().flags.comm = comm_;
+    auto& m = kernel->GetMesh();
+    m.flags.comm = comm_;
+    m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
+    m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
+    m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
     mk.emplace(d, kernel.release());
   }
 }

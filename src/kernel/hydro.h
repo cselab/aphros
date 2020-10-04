@@ -656,9 +656,9 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   if (fs == "simple") {
     auto par = ParsePar<Simple<M>>()(var);
     std::shared_ptr<linear::Solver<M>> linsolver_symm(
-        std::move(ULinear<M>::MakeLinearSolver(var, "symm")));
+        ULinear<M>::MakeLinearSolver(var, "symm"));
     std::shared_ptr<linear::Solver<M>> linsolver_gen(
-        std::move(ULinear<M>::MakeLinearSolver(var, "gen")));
+        ULinear<M>::MakeLinearSolver(var, "gen"));
     const SimpleArgs<M> args{
         fc_vel,     mebc_fluid_,    mc_velcond_,   &fc_rho_,  &fc_mu_,
         &fc_force_, &febp_,         &fc_src_,      &fc_srcm_, 0.,
@@ -671,7 +671,7 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   } else if (fs == "proj") {
     auto par = ParsePar<Proj<M>>()(var);
     std::shared_ptr<linear::Solver<M>> linsolver(
-        std::move(ULinear<M>::MakeLinearSolver(var, "symm")));
+        ULinear<M>::MakeLinearSolver(var, "symm"));
     const ProjArgs<M> args{fc_vel,    mebc_fluid_, mc_velcond_, &fc_rho_,
                            &fc_mu_,   &fc_force_,  &febp_,      &fc_src_,
                            &fc_srcm_, 0.,          st_.dt,      linsolver,
@@ -1146,7 +1146,9 @@ void Hydro<M>::Init() {
     FieldCell<bool> fcbodymask;
     Multi<FieldCell<Scal>> tracer_vfcu;
     Vars varbody;
+    std::shared_ptr<linear::Solver<M>> linsolver_vort;
   } * ctx(sem);
+  auto& t = *ctx;
   auto& fcvel = ctx->fcvel;
   auto& fcvf = ctx->fcvf;
   auto& fccl = ctx->fccl;
@@ -1155,9 +1157,6 @@ void Hydro<M>::Init() {
     m.flags.check_symmetry = var.Int["check_symmetry"];
     m.flags.check_symmetry_dump_threshold =
         var.Double["check_symmetry_dump_threshold"];
-    m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
-    m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
-    m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
     randgen_.seed(m.GetId() + 1);
   }
   if (sem.Nested("embed")) {
@@ -1306,8 +1305,13 @@ void Hydro<M>::Init() {
     }
   }
 
-  if (var.Int["initvort"] && sem.Nested("initvort")) {
-    InitVort(fcvel, fcvel, mebc_fluid_, m);
+  if (var.Int["initvort"]) {
+    if (sem()) {
+      t.linsolver_vort = ULinear<M>::MakeLinearSolver(var, "vort");
+    }
+    if (sem.Nested("initvort")) {
+      InitVort(fcvel, fcvel, mebc_fluid_, t.linsolver_vort, m);
+    }
   }
 
   if (var.Int["vel_init_random"] && sem("random")) {

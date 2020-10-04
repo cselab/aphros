@@ -33,7 +33,8 @@ template void GetFluidCellCond(
 
 template void InitVort(
     const FieldCell<Vect>& fcvort, FieldCell<Vect>& fcvel,
-    const MapEmbed<BCondFluid<Vect>>& mebc_fluid, M& m);
+    const MapEmbed<BCondFluid<Vect>>& mebc_fluid,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m);
 
 template void DumpTraj(
     M& m, bool dm, const Vars& var, size_t frame, typename M::Scal t,
@@ -66,7 +67,8 @@ template void CalcSurfaceTension(
 
 template void ProjectVolumeFlux(
     FieldFace<typename M::Scal>& ffv,
-    const MapEmbed<BCondFluid<typename M::Vect>>& mfc, M& m);
+    const MapEmbed<BCondFluid<typename M::Vect>>& mfc,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m);
 
 template std::map<Scal, Scal> CalcArea(
     const GRange<size_t>& layers,

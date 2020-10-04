@@ -15,11 +15,13 @@
 #include <dump/dumper.h>
 #include <dump/vtk.h>
 #include <func/init.h>
+#include <linear/linear.h>
 #include <parse/argparse.h>
 #include <solver/curv.h>
 #include <solver/reconst.h>
 #include <solver/vofm.h>
 #include <util/hydro.h>
+#include <util/linear.h>
 #include "func/init_bc.h"
 
 using M = MeshStructured<double, 3>;
@@ -58,8 +60,9 @@ void CalcMeanCurvatureFlowFlux(
     const Multi<const FieldCell<Scal>*> fccl,
     const Multi<const FieldCell<Vect>*> fcn,
     const Multi<const FieldCell<Scal>*> fca,
-    const Multi<const FieldCell<Scal>*> fck, const MapEmbed<BCondFluid<Vect>>& mff,
-    bool divfree, Scal* voidpenal, M& m) {
+    const Multi<const FieldCell<Scal>*> fck,
+    const MapEmbed<BCondFluid<Vect>>& mff, bool divfree, Scal* voidpenal,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m) {
   (void)fcn;
   (void)fca;
   auto sem = m.GetSem();
@@ -99,7 +102,7 @@ void CalcMeanCurvatureFlowFlux(
     }
   }
   if (divfree && sem.Nested("proj")) {
-    ProjectVolumeFlux(ffv, mff, m);
+    ProjectVolumeFlux(ffv, mff, linsolver, m);
   }
   if (voidpenal && sem("void-penal")) {
     for (auto f : m.Faces()) {
@@ -347,6 +350,7 @@ void Run(M& m, Vars& var) {
     size_t step = 0;
     size_t frame = 0;
     std::unique_ptr<Dumper> dumper;
+    std::shared_ptr<linear::Solver<M>> linsolver:
   } * ctx(sem);
   auto& fcs = ctx->fcs;
   auto& fev = ctx->fev;
@@ -358,6 +362,7 @@ void Run(M& m, Vars& var) {
   auto& step = ctx->step;
   auto& frame = ctx->frame;
   auto& dumper = ctx->dumper;
+  auto& t = *ctx;
 
   auto& as = ctx->as;
   const Scal tmax = var.Double["tmax"];
@@ -368,6 +373,8 @@ void Run(M& m, Vars& var) {
     dumper = std::make_unique<Dumper>(var, "dump_");
     fcs.Reinit(m, 0);
     fev.Reinit(m, 0);
+
+    t.linsolver_vort = ULinear<M>::MakeLinearSolver(var, "symm");
 
     m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
     m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
@@ -424,7 +431,7 @@ void Run(M& m, Vars& var) {
     CalcMeanCurvatureFlowFlux(
         fev.GetFieldFace(), layers, as->GetFieldM(), as->GetColor(),
         as->GetNormal(), as->GetAlpha(), fck, ctx->mebc_fluid,
-        var.Int["divfree"], var.Double.Find("voidpenal"), m);
+        var.Int["divfree"], var.Double.Find("voidpenal"), t.linsolver, m);
   }
   if (sem("dt")) {
     if (var.Int["zero_boundary_flux"]) {

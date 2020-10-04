@@ -80,7 +80,8 @@ template <class M>
 void InitVort(
     const FieldCell<typename M::Vect>& fcvort,
     FieldCell<typename M::Vect>& fcvel,
-    const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid, M& m);
+    const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m);
 
 template <
     class EB, class Scal = typename EB::Scal, class Vect = typename EB::Vect>

@@ -179,11 +179,6 @@ void Run(M& m, Vars& var) {
   } * ctx(sem);
   auto& t = *ctx;
   if (sem()) {
-    // TODO unify with hydro.h
-    m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
-    m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
-    m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
-
     // exact solution
     t.fc_sol_exact.Reinit(m);
     for (auto c : m.CellsM()) {

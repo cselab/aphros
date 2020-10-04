@@ -16,6 +16,7 @@
 #include "geom/mesh.h"
 #include "kernel/kernelmeshpar.h"
 #include "linear/linear.h"
+#include "util/linear.h"
 #include "solver/pois.h"
 #include "solver/solver.h"
 #include "util/suspender.h"
@@ -453,6 +454,7 @@ void Simple<M>::TestPois() {
     FieldCell<Scal> fc_sol;
     FieldCell<Scal> fc_rhs;
     FieldCell<Scal> fc_exsol;
+    std::shared_ptr<linear::Solver<M>> linsolver;
   } * ctx(sem);
   auto& t = *ctx;
   // exact solution
@@ -477,6 +479,7 @@ void Simple<M>::TestPois() {
     if (m.IsRoot()) {
       std::cout << "\n\n*** TestPois() ***" << std::endl;
     }
+    t.linsolver = ULinear<M>::MakeLinearSolver(var, "vort");
     // exact solution
     t.fc_exsol.Reinit(m);
     for (auto i : m.AllCells()) {
@@ -490,7 +493,7 @@ void Simple<M>::TestPois() {
     }
   }
   if (sem.Nested("solve")) {
-    SolvePoisson(t.fc_sol, t.fc_rhs, t.mebc, m);
+    SolvePoisson(t.fc_sol, t.fc_rhs, t.mebc, t.linsolver, m);
   }
   if (sem("check")) {
     // Check
