@@ -26,12 +26,6 @@
 #include "util/suspender.h"
 #include "vect.h"
 
-namespace linear {
-
-template <class M>
-class Solver;
-}
-
 // Returns column of cells cmm,cm,cp,cpp.
 // nci: 0 or 1 such that m.GetCell(f, nci) == cp
 template <class M>
@@ -646,19 +640,10 @@ class MeshStructured {
         SuFaces(), [this](IdxFace f) { return IdxFaceMesh<M>(f, *this); });
   }
 
-  // TODO: move to separate class: Sem, LS, Comm, Reduce, Solve
+  // TODO: move to separate class: Sem, Comm, Reduce
   // BEGIN DISTR
  public:
   using Sem = Suspender::Sem;
-  struct LS { // linear system ax=r
-    std::vector<MIdx> st; // stencil
-    std::vector<Scal>* a; // matrix coeffs of size n * st.size()
-    std::vector<Scal>* b; // rhs of size n
-    std::vector<Scal>* x; // solution and initial guess of size n
-    enum class T { gen, symm };
-    T t = T::gen;
-    std::string prefix = ""; // custom prefix for config (tol, solver, maxiter)
-  };
   Sem GetSem(std::string name = "") {
     return susp_.GetSem(name);
   }
@@ -755,16 +740,6 @@ class MeshStructured {
   }
   void Dump(const std::shared_ptr<Co>& o, std::string name) {
     vd_.push_back(std::make_pair(o, name));
-  }
-  // Returns buffers for linear system
-  void GetSolveTmp(
-      std::vector<Scal>*& a, std::vector<Scal>*& b, std::vector<Scal>*& x) {
-    a = &lsa_;
-    b = &lsb_;
-    x = &lsx_;
-  }
-  void Solve(const LS& ls) {
-    vls_.push_back(ls);
   }
   const std::vector<std::shared_ptr<Co>>& GetComm() const {
     return vcm_;
@@ -880,24 +855,6 @@ class MeshStructured {
   void ClearScatter() {
     scatter_.clear();
   }
-  const std::vector<LS>& GetSolve() const {
-    return vls_;
-  }
-  Scal GetResidual() const {
-    return lin_res_;
-  }
-  int GetIter() const {
-    return lin_iter_;
-  }
-  void SetResidual(Scal res) {
-    lin_res_ = res;
-  }
-  void SetIter(int iter) {
-    lin_iter_ = iter;
-  }
-  void ClearSolve() {
-    vls_.clear();
-  }
   // Request timer report to file s
   void TimerReport(const std::string& s) {
     trep_ = s;
@@ -967,15 +924,8 @@ class MeshStructured {
   std::string trep_; // timer report filename
   Rd rd_;
   Rd reduce_lead_;
-  std::vector<LS> vls_; // solve
   std::vector<std::shared_ptr<Op>> bcast_; // list of broadcast requests
   std::vector<ScatterRequest> scatter_; // list of scatter requests
-  // tmp for GetSolveTmp()
-  std::vector<Scal> lsa_; // matrix coeffs of size n * st.size()
-  std::vector<Scal> lsb_; // rhs of size n
-  std::vector<Scal> lsx_; // solution and initial guess of size n
-  Scal lin_res_;
-  int lin_iter_;
 
   Sampler samp_; // sample collector for histogram usage, always active
 };

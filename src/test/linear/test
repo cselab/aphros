@@ -6,7 +6,7 @@ import aphros
 
 class Test(aphros.TestBase):
     def __init__(self):
-        cases = ["hypre", "conjugate", "jacobi", "default"]
+        cases = ["hypre", "conjugate", "jacobi"]
         super().__init__(cases=cases)
 
     def run(self, case):

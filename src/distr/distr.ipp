@@ -195,119 +195,6 @@ void DistrMesh<M>::DumpWrite(const std::vector<MIdx>& bb) {
   }
 }
 
-// TODO: move
-template <class M>
-void DistrMesh<M>::Solve(const std::vector<MIdx>& bb) {
-  auto& vf = mk.at(bb[0])->GetMesh().GetSolve(); // systems to solve on bb[0]
-
-  // Check size is the same for all blocks
-  for (auto& b : bb) {
-    auto& v = mk.at(b)->GetMesh().GetSolve(); // systems to solve
-    if (v.size() != vf.size()) {
-      std::stringstream s;
-      s << "v.size()=" << v.size() << ",b=" << b << " != "
-        << "vf.size()=" << vf.size() << ",bf=" << bb[0];
-      throw std::runtime_error(s.str());
-    }
-  }
-
-  for (size_t j = 0; j < vf.size(); ++j) {
-    auto& sf = vf[j]; // system to solve on bb[0]
-    auto k = sf.t; // key
-
-    if (!mhp_.count(k)) { // create new instance of hypre // XXX
-      using LB = typename Hypre::Block;
-      std::vector<LB> lbb;
-      using LI = typename Hypre::MIdx;
-
-      using MIdx = typename M::MIdx;
-      std::vector<MIdx> st = sf.st; // stencil
-
-      for (auto& b : bb) {
-        LB lb;
-        auto& m = mk.at(b)->GetMesh();
-        auto& v = m.GetSolve();
-        auto& bc = m.GetInBlockCells();
-        auto& s = v[j];
-        lb.l = bc.GetBegin();
-        lb.u = bc.GetEnd() - MIdx(1);
-        for (MIdx& e : st) {
-          lb.st.emplace_back(e);
-        }
-        lb.a = s.a;
-        lb.r = s.b;
-        lb.x = s.x;
-        lbb.push_back(lb);
-      }
-
-      LI per{false, false, false};
-      per[0] = var.Int["hypre_periodic_x"];
-      per[1] = var.Int["hypre_periodic_y"];
-      per[2] = var.Int["hypre_periodic_z"];
-
-      LI gs(bs_ * b_ * p_);
-
-      mhp_.emplace(k, new HypreSub(comm_, lbb, gs, per));
-    } else { // update current instance
-      hist_.SeedSample();
-      mhp_.at(k)->Update();
-      hist_.CollectSample("Hypre::Update");
-    }
-
-    auto& s = mhp_.at(k);
-
-    std::string sr; // solver
-    int maxiter;
-    Scal tol;
-
-    {
-      std::string srs = var.String["hypre_symm_solver"]; // solver symm
-      fassert(srs == "pcg+smg" || srs == "smg" || srs == "pcg" || srs == "zero");
-
-      std::string srg = var.String["hypre_gen_solver"]; // solver gen
-      fassert(srg == "gmres" || srg == "zero");
-
-      using T = typename M::LS::T; // system type
-      switch (sf.t) {
-        case T::gen:
-          sr = srg;
-          maxiter = var.Int["hypre_gen_maxiter"];
-          tol = var.Double["hypre_gen_tol"];
-          break;
-        case T::symm:
-          sr = srs;
-          maxiter = var.Int["hypre_symm_maxiter"];
-          tol = var.Double["hypre_symm_tol"];
-          break;
-        default:
-          throw std::runtime_error(
-              "Solve(): Unknown system type = " + std::to_string((size_t)sf.t));
-      }
-    }
-
-    if (sf.prefix != "") {
-      sr = var.String["hypre_" + sf.prefix + "_solver"];
-      maxiter = var.Int["hypre_" + sf.prefix + "_maxiter"];
-      tol = var.Double["hypre_" + sf.prefix + "_tol"];
-    }
-
-    hist_.SeedSample();
-    s->Solve(tol, var.Int["hypre_print"], sr, maxiter);
-    hist_.CollectSample("Hypre::Solve");
-
-    for (auto& b : bb) {
-      auto& m = mk.at(b)->GetMesh();
-      m.SetResidual(s->GetResidual());
-      m.SetIter(s->GetIter());
-    }
-  }
-
-  for (auto& b : bb) {
-    auto& m = mk.at(b)->GetMesh();
-    m.ClearSolve();
-  }
-}
-
 template <class M>
 bool DistrMesh<M>::Pending(const std::vector<MIdx>& bb) {
   size_t np = 0;
@@ -449,10 +336,6 @@ void DistrMesh<M>::Run() {
     hist_.SeedSample();
     Bcast(bb);
     hist_.CollectSample("Bcast");
-
-    hist_.SeedSample();
-    Solve(bb);
-    hist_.CollectSample("Solve");
 
     hist_.CollectSample("Run");
 

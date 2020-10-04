@@ -16,8 +16,6 @@
 #include "dump/dumper.h"
 #include "geom/mesh.h"
 #include "kernel/kernelmesh.h"
-#include "linear/hypre.h"
-#include "linear/hypresub.h"
 #include "parse/vars.h"
 #include "report.h"
 #include "util/histogram.h"
@@ -87,7 +85,6 @@ class DistrMesh {
   virtual void ReduceToLead(const std::vector<MIdx>& bb);
   virtual void Scatter(const std::vector<MIdx>& bb) = 0;
   virtual void Bcast(const std::vector<MIdx>& bb) = 0;
-  virtual void Solve(const std::vector<MIdx>& bb);
   // Writes dumps.
   virtual void DumpWrite(const std::vector<MIdx>& bb);
   virtual void ClearComm(const std::vector<MIdx>& bb);
@@ -104,6 +101,4 @@ class DistrMesh {
   Histogram hist_; // histogram sample collector
   MultiTimer<std::string> mt_; // timer all
   MultiTimer<std::string> mtp_; // timer partial
-  using LS = typename M::LS;
-  std::map<typename LS::T, std::unique_ptr<HypreSub>> mhp_; // hypre instances
 };

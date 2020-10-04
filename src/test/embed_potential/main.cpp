@@ -172,9 +172,6 @@ void Run(M& m, Vars& var) {
     m.Dump(&t.fcp, "p");
   }
   if (sem()) {
-    if (m.IsRoot()) {
-      std::cout << "iter=" << m.GetIter() << std::endl;
-    }
   }
 }
 
