@@ -15,6 +15,7 @@ class ConvDiffScalExp final : public ConvDiffScal<EB_> {
   using Base = ConvDiffScal<EB>;
   using Scal = typename M::Scal;
   using Par = typename ConvDiffScal<M>::Par;
+  using Args = ConvDiffArgs<EB>;
   template <class T>
   using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
 
@@ -29,11 +30,7 @@ class ConvDiffScalExp final : public ConvDiffScal<EB_> {
   // t: initial time
   // dt: time step
   // par: parameters
-  ConvDiffScalExp(
-      M& m, const EB& eb, const FieldCell<Scal>& fcu,
-      const MapEmbed<BCond<Scal>>& mebc, const FieldCell<Scal>* fcr,
-      const FieldFaceb<Scal>* fed, const FieldCell<Scal>* fcs,
-      const FieldFaceb<Scal>* fev, double t, double dt, Par par);
+  ConvDiffScalExp(M& m, const EB& eb, const Args& args);
   ~ConvDiffScalExp();
   const FieldCell<Scal>& GetField(Step) const override;
   using Base::GetField;

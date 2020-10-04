@@ -21,18 +21,17 @@ struct ConvDiffScalImp<EB_>::Imp {
   using Expr = typename M::Expr;
   using UEB = UEmbed<M>;
 
-  Imp(Owner* owner, const FieldCell<Scal>& fcu,
-      const MapEmbed<BCond<Scal>>& mebc)
+  Imp(Owner* owner, const Args& args)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
       , eb(owner_->eb)
-      , mebc_(mebc)
+      , mebc_(args.mebc)
       , dtprev_(-1.)
       , error_(0) {
-    fcu_.time_curr = fcu;
-    fcu_.time_prev = fcu;
-    fcu_.iter_curr = fcu;
+    fcu_.time_curr = args.fcu;
+    fcu_.time_prev = args.fcu;
+    fcu_.iter_curr = args.fcu;
   }
   // Fields:
   void StartStep() {
@@ -250,13 +249,11 @@ struct ConvDiffScalImp<EB_>::Imp {
 };
 
 template <class EB_>
-ConvDiffScalImp<EB_>::ConvDiffScalImp(
-    M& m, const EB& eb, const FieldCell<Scal>& fcu,
-    const MapEmbed<BCond<Scal>>& mebc, const FieldCell<Scal>* fcr,
-    const FieldFaceb<Scal>* ffd, const FieldCell<Scal>* fcs,
-    const FieldFaceb<Scal>* ffv, double t, double dt, Par par)
-    : Base(t, dt, m, eb, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcu, mebc)) {}
+ConvDiffScalImp<EB_>::ConvDiffScalImp(M& m, const EB& eb, const Args& args)
+    : Base(
+          args.t, args.dt, m, eb, args.par, args.fcr, args.ffd, args.fcs,
+          args.ffv)
+    , imp(new Imp(this, args)) {}
 
 template <class EB_>
 ConvDiffScalImp<EB_>::~ConvDiffScalImp() = default;

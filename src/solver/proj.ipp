@@ -43,10 +43,10 @@ struct Proj<EB_>::Imp {
   Imp(Owner* owner, const EB& eb, const Args& args)
       : owner_(owner)
       , par(args.par)
-      , linsolver_(args.linsolver)
       , m(owner_->m)
       , eb(eb)
       , edim_range_(m.GetEdim())
+      , linsolver_(args.linsolver)
       , mebc_(args.mebc)
       , mcc_(args.mcc) {
     UpdateDerivedConditions();
@@ -619,10 +619,10 @@ struct Proj<EB_>::Imp {
 
   Owner* owner_;
   Par par;
-  std::shared_ptr<linear::Solver<M>> linsolver_;
   M& m;
   const EB& eb;
   const GRange<size_t> edim_range_; // effective dimension range
+  std::shared_ptr<linear::Solver<M>> linsolver_;
 
   // Face conditions
   MapEmbed<BCondFluid<Vect>>& mebc_;

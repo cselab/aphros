@@ -23,8 +23,8 @@
 #include "parse/vars.h"
 #include "solver/convdiffi.h"
 #include "solver/solver.h"
-#include "util/suspender.h"
 #include "util/convdiff.h"
+#include "util/suspender.h"
 
 struct GPar {};
 
@@ -62,8 +62,8 @@ class Convdiff : public KernelMeshPar<M_, GPar> {
   FieldCell<Scal> fc_exact_;
   FieldFace<Scal> ff_flux_;
   FieldCell<Scal> fc_src_;
-  using AS = ConvDiffScalImp<M>;
-  std::unique_ptr<AS> as_;
+  using CD = ConvDiffScalImp<M>;
+  std::unique_ptr<CD> cd_;
   FieldCell<Scal> fc_; // buffer
   FieldCell<Scal> fc_sc_; // scaling
   FieldFace<Scal> ff_d_; // diffusion rate
@@ -230,8 +230,7 @@ void Convdiff<M>::TestSolve(
       return dim >= 3 && m.GetDir(i) == Dir::k &&
              m.GetIndexFaces().GetMIdx(i)[2] == gs[2];
     };
-    auto parse = [](std::string s, IdxFace, size_t nci,
-                    M&) -> BCond<Scal> {
+    auto parse = [](std::string s, IdxFace, size_t nci, M&) -> BCond<Scal> {
       std::stringstream arg(s);
 
       std::string name;
@@ -291,16 +290,17 @@ void Convdiff<M>::TestSolve(
     // diffusion rate
     ff_d_.Reinit(m, var.Double["mu"]);
 
-    // scaling for as_
+    // scaling for cd_
     fc_sc_.Reinit(m, 1.);
 
-    typename AS::Par p;
+    typename CD::Par p;
     p.relax = var.Double["relax"];
     p.second = 0;
+    typename CD::Args args{fc_u,   mf_cond_,         &fc_sc_,
+                           &ff_d_, &fc_src_,         &ff_flux_,
+                           0.,     var.Double["dt"], p};
 
-    as_.reset(new AS(
-        m, m, fc_u, mf_cond_, &fc_sc_, &ff_d_, &fc_src_, &ff_flux_, 0.,
-        var.Double["dt"], p));
+    cd_.reset(new CD(m, m, args));
 
     // exact solution
     fc_exact_.Reinit(m);
@@ -311,13 +311,13 @@ void Convdiff<M>::TestSolve(
   }
   for (size_t n = 0; n < size_t(var.Int["num_steps"]); ++n) {
     if (sem.Nested("as->StartStep()")) {
-      as_->StartStep();
+      cd_->StartStep();
     }
     if (sem.Nested("as->MakeIteration")) {
-      as_->MakeIteration();
+      cd_->MakeIteration();
     }
     if (sem.Nested("as->FinishStep()")) {
-      as_->FinishStep();
+      cd_->FinishStep();
     }
   }
   if (sem("check")) {
@@ -330,14 +330,14 @@ void Convdiff<M>::TestSolve(
         mask[i] = true;
       }
     }
-    auto& fc = as_->GetField();
+    auto& fc = cd_->GetField();
     if (check) {
       PCMP(Mean(fc_exact_, m, mask), Mean(fc, m, mask), check);
       PCMP(DiffMax(fc_exact_, fc, m, mask), 0., check);
     }
   }
   if (sem("comm")) {
-    fc_ = as_->GetField();
+    fc_ = cd_->GetField();
     m.Comm(&fc_);
     m.Comm(&fc_exact_);
   }

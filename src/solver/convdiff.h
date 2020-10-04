@@ -20,6 +20,21 @@ struct ConvDiffPar {
   bool explconv = false; // explicit convective fluxes in case Conv::imp
 };
 
+template <class EB>
+struct ConvDiffArgs {
+  using Scal = typename EB::Scal;
+  template <typename T>
+  using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
+  const FieldCell<Scal>& fcu;
+  const MapEmbed<BCond<Scal>>& mebc;
+  const FieldCell<Scal>* fcr;
+  const FieldFaceb<Scal>* ffd;
+  const FieldCell<Scal>* fcs;
+  const FieldFaceb<Scal>* ffv;
+  double t;
+  double dt;
+  ConvDiffPar<Scal> par;
+};
 
 // Solver for convection-diffusion equation
 // du/dt + div(v * u) = 1/r(d * grad^2 u + s)

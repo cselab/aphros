@@ -17,13 +17,13 @@ std::unique_ptr<ConvDiffVect<M>> GetConvDiff<M>::operator()(
   using CDI = ConvDiffVectGeneric<M, ConvDiffScalImp<M>>; // implicit
   using CDE = ConvDiffVectGeneric<M, ConvDiffScalExp<M>>; // explicit
 
+  const ConvDiffVectArgs<M> args{fcw, mebc, fcr, ffd, fcs, &fev->GetFieldFace(),
+                                 t,   dt,   par};
   switch (conv) {
     case Conv::imp:
-      return std::unique_ptr<CDI>(new CDI(
-          m, eb, fcw, mebc, fcr, ffd, fcs, &fev->GetFieldFace(), t, dt, par));
+      return std::unique_ptr<CDI>(new CDI(m, eb, args));
     case Conv::exp:
-      return std::unique_ptr<CDE>(new CDE(
-          m, eb, fcw, mebc, fcr, ffd, fcs, &fev->GetFieldFace(), t, dt, par));
+      return std::unique_ptr<CDE>(new CDE(m, eb, args));
   }
   return nullptr;
 }
@@ -38,15 +38,12 @@ std::unique_ptr<ConvDiffVect<Embed<M>>> GetConvDiff<Embed<M>>::operator()(
   using CDI = ConvDiffVectGeneric<EB, ConvDiffScalImp<EB>>; // implicit
   using CDE = ConvDiffVectGeneric<EB, ConvDiffScalExp<EB>>; // explicit
 
+  const ConvDiffVectArgs<EB> args{fcw, mebc, fcr, fed, fcs, fev, t, dt, par};
   switch (conv) {
     case Conv::exp:
-      return std::unique_ptr<CDE>(
-          new CDE(m, eb, fcw, mebc, fcr, fed, fcs, fev, t, dt, par));
+      return std::unique_ptr<CDE>(new CDE(m, eb, args));
     case Conv::imp:
-      return std::unique_ptr<CDI>(
-          new CDI(m, eb, fcw, mebc, fcr, fed, fcs, fev, t, dt, par));
-    default:
-      throw std::runtime_error(FILELINE + "not implemented");
+      return std::unique_ptr<CDI>(new CDI(m, eb, args));
   }
   return nullptr;
 }

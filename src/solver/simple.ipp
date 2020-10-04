@@ -47,6 +47,8 @@ struct Simple<EB_>::Imp {
       , eb(eb)
       , edim_range_(0, m.GetEdim())
       , drr_(m.GetEdim(), dim)
+      , linsolver_symm_(args.linsolver_symm)
+      , linsolver_gen_(args.linsolver_gen)
       , mebc_(args.mebc)
       , mcc_(args.mcc) {
     UpdateDerivedConditions();
@@ -398,7 +400,7 @@ struct Simple<EB_>::Imp {
     }
 
     if (sem.Nested("pcorr-solve")) {
-      Solve(fcpcs, nullptr, fcpc, M::LS::T::symm, m);
+      linsolver_symm_->Solve(fcpcs, nullptr, fcpc, m);
     }
     if (sem("pcorr-apply")) {
       CHECKNAN(fcpc, m.CN())
@@ -466,6 +468,8 @@ struct Simple<EB_>::Imp {
   const EB& eb;
   const GRange<size_t> edim_range_; // effective dimension range
   const GRange<size_t> drr_; // remaining dimensions
+  std::shared_ptr<linear::Solver<M>> linsolver_symm_;
+  std::shared_ptr<linear::Solver<M>> linsolver_gen_;
 
   // Boundary conditions
   const MapEmbed<BCondFluid<Vect>>& mebc_;

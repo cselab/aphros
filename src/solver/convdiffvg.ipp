@@ -15,13 +15,12 @@ template <class M_, class CD_>
 struct ConvDiffVectGeneric<M_, CD_>::Imp {
   using Owner = ConvDiffVectGeneric<M_, CD_>;
 
-  Imp(Owner* owner, const FieldCell<Vect>& fcvel,
-      const MapEmbed<BCond<Vect>>& mebc)
+  Imp(Owner* owner, const Args& args)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
       , eb(owner_->eb)
-      , mebc_(mebc)
+      , mebc_(args.mebc)
       , dr_(0, m.GetEdim()) {
     for (auto d : dr_) {
       UpdateDerivedCond(d);
@@ -30,13 +29,15 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       vfcs_[d] = GetComponent(*owner_->fcs_, d);
 
       // initial velocity
-      auto fcu = GetComponent(fcvel, d);
+      auto fcu = GetComponent(args.fcvel, d);
       fcu.SetName(std::string("velocity_") + "xyz"[d]);
 
       // solver
-      vs_[d] = std::make_shared<CD>(
-          m, eb, fcu, vmebc_[d], owner_->fcr_, owner_->ffd_, &(vfcs_[d]),
-          owner_->ffv_, owner_->GetTime(), owner_->GetTimeStep(), par);
+      ConvDiffArgs<EB> args{
+          fcu,         vmebc_[d],    owner_->fcr_,      owner_->ffd_,
+          &(vfcs_[d]), owner_->ffv_, owner_->GetTime(), owner_->GetTimeStep(),
+          par};
+      vs_[d] = std::make_shared<CD>(m, eb, args);
     }
     CopyToVect(Step::time_curr, fcvel_);
     lvel_ = Step::time_curr;
@@ -169,12 +170,11 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
 
 template <class M_, class CD_>
 ConvDiffVectGeneric<M_, CD_>::ConvDiffVectGeneric(
-    M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-    const MapEmbed<BCond<Vect>>& mebc, const FieldCell<Scal>* fcr,
-    const FieldFaceb<Scal>* ffd, const FieldCell<Vect>* fcs,
-    const FieldFaceb<Scal>* ffv, double t, double dt, Par par)
-    : Base(t, dt, m, eb, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcvel, mebc)) {}
+    M& m, const EB& eb, const Args& args)
+    : Base(
+          args.t, args.dt, m, eb, args.par, args.fcr, args.ffd, args.fcs,
+          args.ffv)
+    , imp(new Imp(this, args)) {}
 
 template <class M_, class CD_>
 ConvDiffVectGeneric<M_, CD_>::~ConvDiffVectGeneric() = default;

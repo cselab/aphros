@@ -655,9 +655,14 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   std::string fs = var.String["fluid_solver"];
   if (fs == "simple") {
     auto p = ParsePar<Simple<M>>()(var);
-    const SimpleArgs<M> args{fc_vel,    mebc_fluid_, mc_velcond_, &fc_rho_,
-                             &fc_mu_,   &fc_force_,  &febp_,      &fc_src_,
-                             &fc_srcm_, 0.,          st_.dt,      p};
+    std::shared_ptr<linear::Solver<M>> linsolver_symm(
+        ULinear<M>::MakeLinearSolver(var, "symm"));
+    std::shared_ptr<linear::Solver<M>> linsolver_gen(
+        ULinear<M>::MakeLinearSolver(var, "gen"));
+    const SimpleArgs<M> args{
+        fc_vel,     mebc_fluid_,    mc_velcond_,   &fc_rho_,  &fc_mu_,
+        &fc_force_, &febp_,         &fc_src_,      &fc_srcm_, 0.,
+        st_.dt,     linsolver_symm, linsolver_gen, p};
     if (eb_) {
       fs_.reset(new Simple<Embed<M>>(m, *eb_, args));
     } else {

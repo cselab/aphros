@@ -41,6 +41,8 @@ struct SimpleArgs {
   const FieldCell<Scal>* fcsm;
   double t;
   double dt;
+  std::shared_ptr<linear::Solver<M>> linsolver_symm;
+  std::shared_ptr<linear::Solver<M>> linsolver_gen;
   SimplePar<Scal> par;
 };
 

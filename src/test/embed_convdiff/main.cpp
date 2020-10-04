@@ -108,8 +108,9 @@ void Run(M& m, Vars& var) {
               << "dt/dt0=" << dt / dt0 << "dt/dt0a=" << dt / dt0a << " "
               << std::endl;
     typename CD::Par par;
-    cd.reset(new CD(
-        m, eb, fcvel, mebc, &ctx->fcr, &ctx->fed, &ctx->fcs, &fev, 0, dt, par));
+    typename CD::Args args{fcvel, mebc, &ctx->fcr, &ctx->fed, &ctx->fcs,
+                           &fev,  0,    dt,        par};
+    cd.reset(new CD(m, eb, args));
   }
   if (sem.Nested("dumppoly")) {
     ctx->eb->DumpPoly();
