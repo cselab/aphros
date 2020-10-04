@@ -8,34 +8,19 @@
 #include "geom/map.h"
 #include "solver/cond.h"
 #include "solver/convdiff.h"
-#include "solver/convdiffv.h"
+#include "solver/convdiffvg.h"
 
 enum class Conv { exp, imp };
 
-template <class M>
+template <class MEB>
 struct GetConvDiff {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  using Par = typename ConvDiffScal<M>::Par;
+  using Scal = typename MEB::Scal;
+  using Vect = typename MEB::Vect;
+  using Par = typename ConvDiffScal<MEB>::Par;
 
-  std::unique_ptr<ConvDiffVect<M>> operator()(
-      Conv conv, M& m, const M& eb, const FieldCell<Vect>& fcvel,
-      const MapEmbed<BCond<Vect>>& mebc, const FieldCell<Scal>* fcr,
-      const FieldFace<Scal>* ffd, const FieldCell<Vect>* fcs,
-      const FieldEmbed<Scal>* fev, double t, double dt, Par par);
-};
-
-template <class M>
-struct GetConvDiff<Embed<M>> {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  using Par = typename ConvDiffScal<M>::Par;
-
-  std::unique_ptr<ConvDiffVect<Embed<M>>> operator()(
-      Conv conv, M& m, const Embed<M>& eb, const FieldCell<Vect>& fcvel,
-      const MapEmbed<BCond<Vect>>& mebc, const FieldCell<Scal>* fcr,
-      const FieldEmbed<Scal>* fed, const FieldCell<Vect>* fcs,
-      const FieldEmbed<Scal>* fev, double t, double dt, Par par);
+  std::unique_ptr<ConvDiffVect<MEB>> operator()(
+      Conv conv, typename MEB::M& m, const MEB& eb,
+      const ConvDiffVectArgs<MEB>& args);
 };
 
 template <class ConvDiffPar, class FluidPar>

@@ -6,6 +6,7 @@
 #include "cond.h"
 #include "embed.h"
 #include "geom/mesh.h"
+#include "linear/linear.h"
 #include "solver.h"
 
 template <class Scal>
@@ -33,6 +34,7 @@ struct ConvDiffArgs {
   const FieldFaceb<Scal>* ffv;
   double t;
   double dt;
+  std::shared_ptr<linear::Solver<typename EB::M>> linsolver;
   ConvDiffPar<Scal> par;
 };
 

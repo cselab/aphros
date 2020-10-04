@@ -20,6 +20,7 @@
 #include "geom/mesh.h"
 #include "geom/vect.h"
 #include "kernel/kernelmeshpar.h"
+#include "util/linear.h"
 #include "parse/vars.h"
 #include "solver/convdiffi.h"
 #include "solver/solver.h"
@@ -296,9 +297,11 @@ void Convdiff<M>::TestSolve(
     typename CD::Par p;
     p.relax = var.Double["relax"];
     p.second = 0;
-    typename CD::Args args{fc_u,   mf_cond_,         &fc_sc_,
-                           &ff_d_, &fc_src_,         &ff_flux_,
-                           0.,     var.Double["dt"], p};
+    typename CD::Args args{
+        fc_u,   mf_cond_,         &fc_sc_,
+        &ff_d_, &fc_src_,         &ff_flux_,
+        0.,     var.Double["dt"], ULinear<M>::MakeLinearSolver(var, "gen"),
+        p};
 
     cd_.reset(new CD(m, m, args));
 

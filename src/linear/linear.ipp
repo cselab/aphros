@@ -190,7 +190,11 @@ struct SolverConjugate<M>::Imp {
     } * ctx(sem);
     auto& t = *ctx;
     if (sem("init")) {
-      t.fcu = fc_sol;
+      if (fc_init) {
+        t.fcu = *fc_init;
+      } else {
+        t.fcu.Reinit(m, 0);
+      }
       t.fcr.Reinit(m);
       for (auto c : m.Cells()) {
         t.fcr[c] = -fc_system[c].back();

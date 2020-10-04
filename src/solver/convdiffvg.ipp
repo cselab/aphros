@@ -22,6 +22,7 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       , eb(owner_->eb)
       , mebc_(args.mebc)
       , dr_(0, m.GetEdim()) {
+    fassert(args.linsolver);
     for (auto d : dr_) {
       UpdateDerivedCond(d);
 
@@ -33,11 +34,18 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
       fcu.SetName(std::string("velocity_") + "xyz"[d]);
 
       // solver
-      ConvDiffArgs<EB> args{
-          fcu,         vmebc_[d],    owner_->fcr_,      owner_->ffd_,
-          &(vfcs_[d]), owner_->ffv_, owner_->GetTime(), owner_->GetTimeStep(),
+      const ConvDiffArgs<EB> cdargs{
+          fcu,
+          vmebc_[d],
+          owner_->fcr_,
+          owner_->ffd_,
+          &(vfcs_[d]),
+          owner_->ffv_,
+          owner_->GetTime(),
+          owner_->GetTimeStep(),
+          args.linsolver,
           par};
-      vs_[d] = std::make_shared<CD>(m, eb, args);
+      vs_[d] = std::make_shared<CD>(m, eb, cdargs);
     }
     CopyToVect(Step::time_curr, fcvel_);
     lvel_ = Step::time_curr;

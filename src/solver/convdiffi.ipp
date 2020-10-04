@@ -26,9 +26,11 @@ struct ConvDiffScalImp<EB_>::Imp {
       , par(owner_->GetPar())
       , m(owner_->m)
       , eb(owner_->eb)
+      , linsolver_(args.linsolver)
       , mebc_(args.mebc)
       , dtprev_(-1.)
       , error_(0) {
+    fassert(linsolver_);
     fcu_.time_curr = args.fcu;
     fcu_.time_prev = args.fcu;
     fcu_.iter_curr = args.fcu;
@@ -167,8 +169,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       Assemble(prev, *owner_->ffv_, fcucs_);
     }
     if (sem.Nested("solve")) {
-      using Type = typename M::LS::T;
-      Solve(fcucs_, nullptr, curr, par.symm ? Type::symm : Type::gen, m);
+      linsolver_->Solve(fcucs_, nullptr, curr, m);
     }
     if (sem("apply")) {
       // apply, store result in curr
@@ -238,6 +239,7 @@ struct ConvDiffScalImp<EB_>::Imp {
   Par par;
   M& m;
   const EB& eb;
+  std::shared_ptr<linear::Solver<M>> linsolver_;
 
   StepData<FieldCell<Scal>> fcu_; // field
   const MapEmbed<BCond<Scal>>& mebc_; // boundary conditions

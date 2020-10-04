@@ -56,9 +56,17 @@ struct Simple<EB_>::Imp {
     fcfcd_.Reinit(m, Vect(0));
     typename CD::Par p;
     SetConvDiffPar(p, par);
-    cd_ = GetConvDiff<EB>()(
-        par.conv, m, eb, args.fcvel, me_vel_, owner_->fcr_, &ffvisc_, &fcfcd_,
-        &fev_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
+
+    fassert(linsolver_symm_);
+    fassert(linsolver_gen_);
+
+    const auto& ffv = fev_.iter_prev.template Get<FieldFaceb<Scal>>();
+    const ConvDiffVectArgs<EB> cdargs{
+        args.fcvel,     me_vel_, owner_->fcr_,      &ffvisc_,
+        &fcfcd_,        &ffv,    owner_->GetTime(), owner_->GetTimeStep(),
+        linsolver_gen_, p};
+
+    cd_ = GetConvDiff<EB>()(par.conv, m, eb, cdargs);
 
     fcp_.time_curr.Reinit(m, 0.);
     fcp_.time_prev = fcp_.time_curr;

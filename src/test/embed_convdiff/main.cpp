@@ -109,7 +109,7 @@ void Run(M& m, Vars& var) {
               << std::endl;
     typename CD::Par par;
     typename CD::Args args{fcvel, mebc, &ctx->fcr, &ctx->fed, &ctx->fcs,
-                           &fev,  0,    dt,        par};
+                           &fev,  0,    dt,        nullptr,   par};
     cd.reset(new CD(m, eb, args));
   }
   if (sem.Nested("dumppoly")) {

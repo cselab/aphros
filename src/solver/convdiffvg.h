@@ -21,6 +21,7 @@ struct ConvDiffVectArgs {
   const FieldFaceb<Scal>* ffv;
   double t;
   double dt;
+  std::shared_ptr<linear::Solver<typename EB::M>> linsolver;
   ConvDiffPar<Scal> par;
 };
 
