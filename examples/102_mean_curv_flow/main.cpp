@@ -350,7 +350,7 @@ void Run(M& m, Vars& var) {
     size_t step = 0;
     size_t frame = 0;
     std::unique_ptr<Dumper> dumper;
-    std::shared_ptr<linear::Solver<M>> linsolver:
+    std::shared_ptr<linear::Solver<M>> linsolver;
   } * ctx(sem);
   auto& fcs = ctx->fcs;
   auto& fev = ctx->fev;
@@ -374,7 +374,7 @@ void Run(M& m, Vars& var) {
     fcs.Reinit(m, 0);
     fev.Reinit(m, 0);
 
-    t.linsolver_vort = ULinear<M>::MakeLinearSolver(var, "symm");
+    t.linsolver = ULinear<M>::MakeLinearSolver(var, "symm");
 
     m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
     m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];

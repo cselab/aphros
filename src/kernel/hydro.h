@@ -543,7 +543,9 @@ void Hydro<M>::InitParticles() {
 template <class M>
 void Hydro<M>::InitElectro() {
   if (var.Int["enable_electro"]) {
-    typename ElectroInterface<M>::Conf conf{var};
+    std::shared_ptr<linear::Solver<M>> linsolver =
+        ULinear<M>::MakeLinearSolver(var, "vort");
+    typename ElectroInterface<M>::Conf conf{var, linsolver};
     if (eb_) {
       electro_.reset(
           new Electro<EB>(m, *eb_, mebc_electro_, fs_->GetTime(), conf));

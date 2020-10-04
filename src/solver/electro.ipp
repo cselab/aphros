@@ -69,7 +69,7 @@ struct Electro<EB_>::Imp {
       t.fcl.SetName("electro");
     }
     if (sem.Nested("solve")) {
-      Solve(t.fcl, &fc_pot_, fc_pot_, M::LS::T::symm, m, "vort");
+      conf.linsolver->Solve(t.fcl, &fc_pot_, fc_pot_, m);
     }
     if (sem("post")) {
       time_ += dt;

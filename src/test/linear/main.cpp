@@ -19,7 +19,7 @@ using Expr = typename M::Expr;
 using ExprFace = typename M::ExprFace;
 using UEB = UEmbed<M>;
 
-enum class Solver { def, hypre, zero, jacobi, conjugate };
+enum class Solver { hypre, zero, jacobi, conjugate };
 
 struct SolverInfo {
   Scal residual;
@@ -101,38 +101,9 @@ SolverInfo SolveJacobi(
   return {};
 }
 
-template <class M>
-SolverInfo SolveDefault(
-    const FieldCell<typename M::Expr>& fc_system,
-    const FieldCell<typename M::Scal>* fc_init,
-    FieldCell<typename M::Scal>& fc_sol, typename M::LS::T type, M& m,
-    std::string prefix = "") {
-  auto sem = m.GetSem(__func__);
-  struct {
-    std::unique_ptr<linear::Solver<M>> solver;
-  } * ctx(sem);
-  auto& t = *ctx;
-  if (sem("init")) {
-    typename linear::Solver<M>::Conf conf;
-    typename linear::SolverDefault<M>::Extra extra;
-
-    extra.type = type;
-    extra.prefix = prefix;
-
-    t.solver = std::make_unique<linear::SolverDefault<M>>(conf, extra);
-  }
-  if (sem.Nested("solve")) {
-    auto info = t.solver->Solve(fc_system, fc_init, fc_sol, m);
-    return {info.residual, info.iter};
-  }
-  return {};
-}
-
 
 Solver GetSolver(std::string name) {
-  if (name == "default") {
-    return Solver::def;
-  } else if (name == "hypre") {
+  if (name == "hypre") {
     return Solver::hypre;
   } else if (name == "zero") {
     return Solver::zero;
@@ -148,9 +119,6 @@ SolverInfo Solve(
     M& m, const FieldCell<Expr>& fc_system, FieldCell<Scal>& fc_sol,
     Solver solver, int maxiter, Scal tol) {
   switch (solver) {
-    case Solver::def:
-      return SolveDefault(
-          fc_system, &fc_sol, fc_sol, M::LS::T::symm, m, "symm");
     case Solver::hypre:
       return SolveHypre(fc_system, &fc_sol, fc_sol, m, maxiter, tol);
     case Solver::zero:
@@ -257,7 +225,7 @@ int main(int argc, const char** argv) {
   parser.AddVariable<std::string>("--solver", "hypre")
       .Help(
           "Linear solver to use."
-          " Options are: default, hypre, zero, conjugate");
+          " Options are: hypre, zero, conjugate");
   parser.AddVariable<double>("--tol", 1e-3).Help("Convergence tolerance");
   parser.AddVariable<int>("--maxiter", 100).Help("Maximum iterations");
   parser.AddSwitch("--dump").Help(

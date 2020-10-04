@@ -18,6 +18,7 @@ class ElectroInterface {
 
   struct Conf {
     const Vars& var;
+    std::shared_ptr<linear::Solver<M>> linsolver;
   };
 
   struct Stat {

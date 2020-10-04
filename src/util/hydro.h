@@ -118,7 +118,8 @@ void CalcSurfaceTension(
 template <class M>
 void ProjectVolumeFlux(
     FieldFace<typename M::Scal>& ffv,
-    const MapEmbed<BCondFluid<typename M::Vect>>& mfc, M& m);
+    const MapEmbed<BCondFluid<typename M::Vect>>& mfc,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m);
 
 // Returns total volume of each color, map[cl]=area
 template <class M>

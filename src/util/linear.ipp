@@ -28,12 +28,6 @@ auto ULinear<M_>::MakeLinearSolver(const Vars& var, std::string prefix)
   } else if (name == "jacobi") {
     return std::make_unique<linear::SolverJacobi<M>>(
         conf, typename linear::SolverJacobi<M>::Extra());
-  } else if (name == "default") {
-    typename linear::SolverDefault<M>::Extra extra;
-    using T = typename M::LS::T;
-    extra.type = (prefix == "symm" ? T::symm : T::gen);
-    extra.prefix = prefix;
-    return std::make_unique<linear::SolverDefault<M>>(conf, extra);
   }
   fassert(false, "Unknown linsolver_" + prefix + "=" + name);
 }
