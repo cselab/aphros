@@ -655,19 +655,18 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   std::string fs = var.String["fluid_solver"];
   if (fs == "simple") {
     auto p = ParsePar<Simple<M>>()(var);
+    const SimpleArgs<M> args{fc_vel,    mebc_fluid_, mc_velcond_, &fc_rho_,
+                             &fc_mu_,   &fc_force_,  &febp_,      &fc_src_,
+                             &fc_srcm_, 0.,          st_.dt,      p};
     if (eb_) {
-      fs_.reset(new Simple<Embed<M>>(
-          m, *eb_, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
-          &fc_force_, &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+      fs_.reset(new Simple<Embed<M>>(m, *eb_, args));
     } else {
-      fs_.reset(new Simple<M>(
-          m, m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
-          &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, p));
+      fs_.reset(new Simple<M>(m, m, args));
     }
   } else if (fs == "proj") {
     auto par = ParsePar<Proj<M>>()(var);
     std::shared_ptr<linear::Solver<M>> linsolver(
-        ULinear<M>::GetLinearSolverHypre(var, "symm"));
+        ULinear<M>::MakeLinearSolver(var, "symm"));
     if (eb_) {
       fs_.reset(new Proj<Embed<M>>(
           m, *eb_, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,

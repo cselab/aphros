@@ -26,6 +26,24 @@ struct SimplePar {
   Scal outlet_relax = 1;
 };
 
+template <class M>
+struct SimpleArgs {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  const FieldCell<Vect>& fcvel;
+  const MapEmbed<BCondFluid<Vect>>& mebc;
+  const MapCell<std::shared_ptr<CondCellFluid>>& mcc;
+  const FieldCell<Scal>* fcr;
+  const FieldCell<Scal>* fcd;
+  const FieldCell<Vect>* fcf;
+  const FieldEmbed<Scal>* febp;
+  const FieldCell<Scal>* fcsv;
+  const FieldCell<Scal>* fcsm;
+  double t;
+  double dt;
+  SimplePar<Scal> par;
+};
+
 template <class EB_>
 class Simple final : public FluidSolver<typename EB_::M> {
  public:
@@ -38,6 +56,7 @@ class Simple final : public FluidSolver<typename EB_::M> {
   template <class T>
   using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
   using Par = SimplePar<Scal>;
+  using Args = SimpleArgs<M>;
 
   // Constructor.
   // fcvel: initial velocity
@@ -52,14 +71,7 @@ class Simple final : public FluidSolver<typename EB_::M> {
   // t: initial time
   // dt: time step
   // par: parameters
-  Simple(
-      M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-      const MapEmbed<BCondFluid<Vect>>& mebc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-      const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
-      const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* febp,
-      const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
-      double dt, Par par);
+  Simple(M& m, const EB& eb, const Args& args);
   ~Simple();
   const Par& GetPar() const;
   void SetPar(Par);

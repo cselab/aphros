@@ -40,24 +40,22 @@ struct Simple<EB_>::Imp {
   using Expr = typename M::Expr;
   using UEB = UEmbed<M>;
 
-  Imp(Owner* owner, const EB& eb0, const FieldCell<Vect>& fcvel,
-      const MapEmbed<BCondFluid<Vect>>& mebc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par)
+  Imp(Owner* owner, const EB& eb, const Args& args)
       : owner_(owner)
-      , par(par)
+      , par(args.par)
       , m(owner_->m)
-      , eb(eb0)
+      , eb(eb)
       , edim_range_(0, m.GetEdim())
       , drr_(m.GetEdim(), dim)
-      , mebc_(mebc)
-      , mcc_(mcc) {
+      , mebc_(args.mebc)
+      , mcc_(args.mcc) {
     UpdateDerivedConditions();
 
     fcfcd_.Reinit(m, Vect(0));
     typename CD::Par p;
     SetConvDiffPar(p, par);
     cd_ = GetConvDiff<EB>()(
-        par.conv, m, eb, fcvel, me_vel_, owner_->fcr_, &ffvisc_, &fcfcd_,
+        par.conv, m, eb, args.fcvel, me_vel_, owner_->fcr_, &ffvisc_, &fcfcd_,
         &fev_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
 
     fcp_.time_curr.Reinit(m, 0.);
@@ -497,16 +495,11 @@ struct Simple<EB_>::Imp {
 };
 
 template <class EB_>
-Simple<EB_>::Simple(
-    M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-    const MapEmbed<BCondFluid<Vect>>& mebc,
-    const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-    const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
-    const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* febp,
-    const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
-    double dt, Par par)
-    : Base(t, dt, m, fcr, fcd, fcf, febp, fcsv, fcsm)
-    , imp(new Imp(this, eb, fcvel, mebc, mcc, par)) {}
+Simple<EB_>::Simple(M& m, const EB& eb, const Args& args)
+    : Base(
+          args.t, args.dt, m, args.fcr, args.fcd, args.fcf, args.febp,
+          args.fcsv, args.fcsm)
+    , imp(new Imp(this, eb, args)) {}
 
 template <class EB_>
 Simple<EB_>::~Simple() = default;

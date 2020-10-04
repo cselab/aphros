@@ -26,6 +26,12 @@
 #include "util/suspender.h"
 #include "vect.h"
 
+namespace linear {
+
+template <class M>
+class Solver;
+}
+
 // Returns column of cells cmm,cm,cp,cpp.
 // nci: 0 or 1 such that m.GetCell(f, nci) == cp
 template <class M>

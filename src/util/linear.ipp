@@ -7,12 +7,8 @@
 #include "util/logger.h"
 
 template <class M_>
-auto ULinear<M_>::GetLinearSolverHypre(const Vars& var, std::string prefix)
+auto ULinear<M_>::MakeLinearSolver(const Vars& var, std::string prefix)
     -> std::unique_ptr<linear::Solver<M>> {
-  fassert(
-      prefix == "symm" || prefix == "gen" || prefix == "vort",
-      "Unknown prefix=" + prefix);
-
   auto addprefix = [prefix](std::string name) {
     return "hypre_" + prefix + "_" + name;
   };
