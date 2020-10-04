@@ -30,6 +30,25 @@ struct ProjPar {
                             // if true else RedistributeCutCells()
 };
 
+template <class M>
+struct ProjArgs {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  const FieldCell<Vect>& fcvel;
+  MapEmbed<BCondFluid<Vect>>& mebc;
+  const MapCell<std::shared_ptr<CondCellFluid>>& mcc;
+  const FieldCell<Scal>* fcr;
+  const FieldCell<Scal>* fcd;
+  const FieldCell<Vect>* fcf;
+  const FieldEmbed<Scal>* ffbp;
+  const FieldCell<Scal>* fcsv;
+  const FieldCell<Scal>* fcsm;
+  double t;
+  double dt;
+  std::shared_ptr<linear::Solver<M>> linsolver;
+  ProjPar<Scal> par;
+};
+
 template <class EB_>
 class Proj final : public FluidSolver<typename EB_::M> {
  public:
@@ -42,6 +61,7 @@ class Proj final : public FluidSolver<typename EB_::M> {
   template <class T>
   using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
   using Par = ProjPar<Scal>;
+  using Args = ProjArgs<M>;
 
   // Constructor.
   // fcvel: initial velocity
@@ -56,14 +76,7 @@ class Proj final : public FluidSolver<typename EB_::M> {
   // t: initial time
   // dt: time step
   // par: parameters
-  Proj(
-      M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-      MapEmbed<BCondFluid<Vect>>& mebc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-      const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
-      const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* ffbp,
-      const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
-      double dt, std::shared_ptr<linear::Solver<M>> linsolver, Par par);
+  Proj(M& m, const EB& eb, const Args& args);
   ~Proj();
   const Par& GetPar() const;
   void SetPar(Par);

@@ -40,22 +40,19 @@ struct Proj<EB_>::Imp {
   using Expr = typename M::Expr;
   using UEB = UEmbed<M>;
 
-  Imp(Owner* owner, const EB& eb0, const FieldCell<Vect>& fcvel,
-      MapEmbed<BCondFluid<Vect>>& mebc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-      std::shared_ptr<linear::Solver<M>> linsolver, Par par)
+  Imp(Owner* owner, const EB& eb, const Args& args)
       : owner_(owner)
-      , par(par)
-      , linsolver_(linsolver)
+      , par(args.par)
+      , linsolver_(args.linsolver)
       , m(owner_->m)
-      , eb(eb0)
+      , eb(eb)
       , edim_range_(m.GetEdim())
-      , mebc_(mebc)
-      , mcc_(mcc) {
+      , mebc_(args.mebc)
+      , mcc_(args.mcc) {
     UpdateDerivedConditions();
 
     fc_accel_.Reinit(m, Vect(0));
-    fcvel_.time_curr = fcvel;
+    fcvel_.time_curr = args.fcvel;
 
     fcp_.time_curr.Reinit(m, 0.);
     fcp_predict_ = fcp_.time_curr;
@@ -658,16 +655,11 @@ struct Proj<EB_>::Imp {
 };
 
 template <class EB_>
-Proj<EB_>::Proj(
-    M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-    MapEmbed<BCondFluid<Vect>>& mebc,
-    const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-    const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
-    const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* febp,
-    const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
-    double dt, std::shared_ptr<linear::Solver<M>> linsolver, Par par)
-    : Base(t, dt, m, fcr, fcd, fcf, febp, fcsv, fcsm)
-    , imp(new Imp(this, eb, fcvel, mebc, mcc, linsolver, par)) {}
+Proj<EB_>::Proj(M& m, const EB& eb, const Args& args)
+    : Base(
+          args.t, args.dt, m, args.fcr, args.fcd, args.fcf, args.ffbp,
+          args.fcsv, args.fcsm)
+    , imp(new Imp(this, eb, args)) {}
 
 template <class EB_>
 Proj<EB_>::~Proj() = default;

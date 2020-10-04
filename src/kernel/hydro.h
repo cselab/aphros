@@ -667,14 +667,14 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
     auto par = ParsePar<Proj<M>>()(var);
     std::shared_ptr<linear::Solver<M>> linsolver(
         ULinear<M>::MakeLinearSolver(var, "symm"));
+    const ProjArgs<M> args{fc_vel,    mebc_fluid_, mc_velcond_, &fc_rho_,
+                           &fc_mu_,   &fc_force_,  &febp_,      &fc_src_,
+                           &fc_srcm_, 0.,          st_.dt,      linsolver,
+                           par};
     if (eb_) {
-      fs_.reset(new Proj<Embed<M>>(
-          m, *eb_, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_,
-          &fc_force_, &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, linsolver, par));
+      fs_.reset(new Proj<Embed<M>>(m, *eb_, args));
     } else {
-      fs_.reset(new Proj<M>(
-          m, m, fc_vel, mebc_fluid_, mc_velcond_, &fc_rho_, &fc_mu_, &fc_force_,
-          &febp_, &fc_src_, &fc_srcm_, 0., st_.dt, linsolver, par));
+      fs_.reset(new Proj<M>(m, m, args));
     }
   } else if (fs == "dummy") {
     if (eb_) {
