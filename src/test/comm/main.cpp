@@ -74,14 +74,6 @@ class Simple : public KernelMeshPar<M_, GPar> {
 
   FieldCell<Scal> fc_;
   FieldCell<Vect> fcv_;
-  // LS
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
-  FieldCell<Expr> fc_system_;
-  std::vector<Scal> lsa_;
-  std::vector<Scal> lsb_;
-  std::vector<Scal> lsx_;
-  FieldCell<Scal> fc_sol_;
-  FieldCell<Scal> fc_exsol_;
   Scal r_; // test Reduce
   std::pair<Scal, int> rsi_; // test Reduce minloc
   std::vector<Scal> rvs_; // reduction vector<Scal> (concatenation)
