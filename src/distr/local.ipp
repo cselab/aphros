@@ -89,8 +89,8 @@ auto Local<M>::CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext) -> M {
 }
 
 template <class M>
-Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var)
-    : DistrMesh<M>(comm, kf, var)
+Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
+    : DistrMesh<M>(comm, kf, var_)
     , buf_(var.Int["loc_maxcomm"])
     , gm(CreateGlobalMesh(bs_, b_, p_, ext_)) {
   // Resize buffer for mesh
@@ -214,7 +214,9 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
         OpS* ob = dynamic_cast<OpS*>(v[i].get());
         ob->Set(r);
       }
-    } else if (OpSI* o = dynamic_cast<OpSI*>(vf[i].get())) {
+      continue;
+    }
+    if (OpSI* o = dynamic_cast<OpSI*>(vf[i].get())) {
       // Reduction on std::pair<Scal, int>
 
       auto r = o->Neut(); // result
@@ -232,7 +234,9 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
         OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
         ob->Set(r);
       }
-    } else if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
+      continue;
+    }
+    if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
       // Concatenation of std::vector<T>
 
       auto r = o->Neut(); // result
@@ -259,9 +263,9 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
           ob->Set(r);
         }
       }
-    } else {
-      throw std::runtime_error("Reduce: Unknown M::Op implementation");
+      continue;
     }
+    throw std::runtime_error("Reduce: Unknown M::Op implementation");
   }
 
   // Clear reduce requests
@@ -441,12 +445,12 @@ size_t Local<M>::ReadBuffer(FieldCell<Scal>& fc, size_t e, M& m) {
 
 // Reads from buffer to component of vector field [a]
 // fc: field
-// d: component (0,1,2)
+// comp: component (0,1,2)
 // e: offset in buffer
 // Returns:
 // number of scalar fields read
 template <class M>
-size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e, M& m) {
+size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t comp, size_t e, M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
   }
@@ -464,9 +468,9 @@ size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e, M& m) {
     // XXX: addhoc nan in halos
     if (MIdx(0) <= w && w < gs) {
       auto gc = gbc.GetIdx(w);
-      fc[c][d] = buf_[e][gc];
+      fc[c][comp] = buf_[e][gc];
     } else {
-      fc[c][d] = std::numeric_limits<Scal>::quiet_NaN();
+      fc[c][comp] = std::numeric_limits<Scal>::quiet_NaN();
     }
   }
   return 1;
@@ -493,7 +497,8 @@ template <class M>
 size_t Local<M>::ReadBuffer(typename M::Co* o, size_t e, M& m) {
   if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
     return ReadBuffer(*od->field, e, m);
-  } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
+  }
+  if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
     if (od->d == -1) {
       return ReadBuffer(*od->field, e, m);
     }
@@ -571,14 +576,14 @@ template <class M>
 size_t Local<M>::WriteBuffer(typename M::Co* o, size_t e, M& m) {
   if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
     return WriteBuffer(*od->field, e, m);
-  } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
+  }
+  if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
     if (od->d == -1) {
       return WriteBuffer(*od->field, e, m);
     }
     return WriteBuffer(*od->field, od->d, e, m);
   }
   throw std::runtime_error("WriteBuffer: Unknown Co instance");
-  return 0;
 }
 template <class M>
 void Local<M>::WriteBuffer(M& m) {

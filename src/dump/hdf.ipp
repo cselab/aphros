@@ -8,6 +8,20 @@
 #include "hdf.h"
 #include "util/logger.h"
 
+class Fapl {
+ public:
+  Fapl(hid_t cls_id) : fapl_(H5Pcreate(cls_id)) {}
+  ~Fapl() {
+    H5Pclose(fapl_);
+  }
+  operator hid_t() const {
+    return fapl_;
+  }
+
+ private:
+  const hid_t fapl_;
+};
+
 template <class M>
 void Hdf<M>::Write(
     const FieldCell<typename M::Scal>& fc, std::string path, M& m,
@@ -44,11 +58,11 @@ void Hdf<M>::Write(
     MPI_Barrier(comm);
     H5open();
 
-    const hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
-    const hid_t file =
-        H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
-    H5Pclose(fapl);
+    const hid_t file = [&comm, &path]() {
+      const Fapl fapl(H5P_FILE_ACCESS);
+      H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
+      return H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
+    }();
 
     const size_t kComps = 1;
     const size_t nblocks = ctx->data.size();
@@ -126,10 +140,11 @@ void Hdf<M>::Read(
     MPI_Barrier(comm);
     H5open();
 
-    const hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
-    const hid_t file = H5Fopen(path.c_str(), H5F_ACC_RDONLY, fapl);
-    H5Pclose(fapl);
+    const hid_t file = [&comm, &path]() {
+      const Fapl fapl(H5P_FILE_ACCESS);
+      H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
+      return H5Fopen(path.c_str(), H5F_ACC_RDONLY, fapl);
+    }();
     if (file < 0) {
       throw std::runtime_error(FILELINE + ": cannot open file '" + path + "'");
     }

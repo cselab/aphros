@@ -40,7 +40,6 @@ class Linear : public ModuleInitContang<M> {
     conf.Read(var, "contang_");
     conf.contang0 *= M_PI / 180.;
     conf.contang1 *= M_PI / 180.;
-    using Scal = typename M::Scal;
     for (auto c : m.AllCells()) {
       Scal a = (m.GetCenter(c) - conf.x0).dot(conf.x1 - conf.x0) /
                      (conf.x1 - conf.x0).sqrnorm();
@@ -66,7 +65,6 @@ class Radial : public ModuleInitContang<M> {
     conf.Read(var, "contang_");
     conf.contang0 *= M_PI / 180.;
     conf.contang1 *= M_PI / 180.;
-    using Scal = typename M::Scal;
     for (auto c : m.AllCells()) {
       Scal a = m.GetCenter(c).dist(conf.x0) / conf.r;
       a = std::min(1., a);

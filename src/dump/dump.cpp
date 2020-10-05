@@ -17,10 +17,12 @@ void DumpCsv(
   }
   std::ofstream o(path);
   o.precision(16);
-  bool first = true;
-  for (auto& d : data) {
-    first || o << ',', first = false;
-    o << d.first;
+  {
+    bool first = true;
+    for (auto& d : data) {
+      first || o << ',', first = false;
+      o << d.first;
+    }
   }
   o << std::endl;
   for (size_t i = 0; i < data[0].second.size(); ++i) {
