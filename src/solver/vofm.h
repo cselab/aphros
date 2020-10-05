@@ -13,7 +13,7 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
  public:
   using EB = EB_;
   using M = typename EB::M;
-  using P = AdvectionSolver<M>;
+  using Base = AdvectionSolver<M>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
@@ -53,7 +53,8 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
   const FieldCell<Scal>& GetField(Step l, size_t i) const;
   Multi<const FieldCell<Scal>*> GetFieldM() const;
   // ...
-  using P::GetField;
+  using Base::GetField;
+  using Base::m;
   // Plane constant
   Multi<const FieldCell<Scal>*> GetAlpha() const;
   // Normal to interface

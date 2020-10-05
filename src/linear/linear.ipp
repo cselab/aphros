@@ -12,8 +12,8 @@ template <class M>
 struct SolverHypre<M>::Imp {
   using Owner = SolverHypre<M>;
 
-  Imp(Owner* owner, const Extra& extra)
-      : owner_(owner), conf(owner_->conf), extra(extra) {}
+  Imp(Owner* owner, const Extra& extra_)
+      : owner_(owner), conf(owner_->conf), extra(extra_) {}
   Info Solve(
       const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
       FieldCell<Scal>& fc_sol, M& m) {
@@ -160,8 +160,8 @@ struct SolverHypre<M>::Imp {
 };
 
 template <class M>
-SolverHypre<M>::SolverHypre(const Conf& conf, const Extra& extra)
-    : Base(conf), imp(new Imp(this, extra)) {}
+SolverHypre<M>::SolverHypre(const Conf& conf_, const Extra& extra)
+    : Base(conf_), imp(new Imp(this, extra)) {}
 
 template <class M>
 SolverHypre<M>::~SolverHypre() = default;
@@ -177,8 +177,8 @@ template <class M>
 struct SolverConjugate<M>::Imp {
   using Owner = SolverConjugate<M>;
 
-  Imp(Owner* owner, const Extra& extra)
-      : owner_(owner), conf(owner_->conf), extra(extra) {}
+  Imp(Owner* owner, const Extra& extra_)
+      : owner_(owner), conf(owner_->conf), extra(extra_) {}
   // TODO: use fc_init
   Info Solve(
       const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
@@ -279,8 +279,8 @@ struct SolverConjugate<M>::Imp {
 };
 
 template <class M>
-SolverConjugate<M>::SolverConjugate(const Conf& conf, const Extra& extra)
-    : Base(conf), imp(new Imp(this, extra)) {}
+SolverConjugate<M>::SolverConjugate(const Conf& conf_, const Extra& extra)
+    : Base(conf_), imp(new Imp(this, extra)) {}
 
 template <class M>
 SolverConjugate<M>::~SolverConjugate() = default;
@@ -296,8 +296,8 @@ template <class M>
 struct SolverJacobi<M>::Imp {
   using Owner = SolverJacobi<M>;
 
-  Imp(Owner* owner, const Extra& extra)
-      : owner_(owner), conf(owner_->conf), extra(extra) {}
+  Imp(Owner* owner, const Extra& extra_)
+      : owner_(owner), conf(owner_->conf), extra(extra_) {}
   Info Solve(
       const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
       FieldCell<Scal>& fc_sol, M& m) {
@@ -355,8 +355,8 @@ struct SolverJacobi<M>::Imp {
 };
 
 template <class M>
-SolverJacobi<M>::SolverJacobi(const Conf& conf, const Extra& extra)
-    : Base(conf), imp(new Imp(this, extra)) {}
+SolverJacobi<M>::SolverJacobi(const Conf& conf_, const Extra& extra)
+    : Base(conf_), imp(new Imp(this, extra)) {}
 
 template <class M>
 SolverJacobi<M>::~SolverJacobi() = default;

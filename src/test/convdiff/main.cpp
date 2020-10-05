@@ -190,13 +190,13 @@ template <class M>
 void Convdiff<M>::TestSolve(
     std::function<Scal(Vect)> fi /*initial*/,
     std::function<Scal(Vect)> fe /*exact*/,
-    size_t cg /*check gap (separate from boundary)*/, std::string name,
+    size_t cg /*check gap (separate from boundary)*/, std::string testname,
     bool check /*abort if different from exact*/) {
   auto sem = m.GetSem("TestSolve");
-  auto& bc = m.GetIndexCells();
+  auto& indexc = m.GetIndexCells();
   if (sem("init")) {
     if (IsRoot()) {
-      std::cerr << name << std::endl;
+      std::cerr << testname << std::endl;
     }
     // initial field
     FieldCell<Scal> fc_u(m);
@@ -329,7 +329,7 @@ void Convdiff<M>::TestSolve(
         m.GetGlobalSize() - MIdx(2 * cg)); // check block
     FieldCell<bool> mask(m, false);
     for (auto i : m.AllCells()) {
-      if (cbc.IsInside(bc.GetMIdx(i))) {
+      if (cbc.IsInside(indexc.GetMIdx(i))) {
         mask[i] = true;
       }
     }

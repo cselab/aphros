@@ -34,14 +34,14 @@ struct Vofm<EB_>::Imp {
   using Sem = typename M::Sem;
   using UEB = UEmbed<M>;
 
-  Imp(Owner* owner, const EB& eb0, const GRange<size_t> layers0,
+  Imp(Owner* owner, const EB& eb_, const GRange<size_t> layers0,
       const Multi<const FieldCell<Scal>*>& fcu0,
       const Multi<const FieldCell<Scal>*>& fccl0,
-      const MapEmbed<BCondAdvection<Scal>>& mfc, Par par)
+      const MapEmbed<BCondAdvection<Scal>>& mfc, Par par_)
       : owner_(owner)
-      , par(par)
+      , par(par_)
       , m(owner_->m)
-      , eb(eb0)
+      , eb(eb_)
       , layers(layers0)
       , fcuu_(layers, m)
       , fccls_(m, kClNone)
@@ -438,8 +438,8 @@ struct Vofm<EB_>::Imp {
     const Dir md(d); // direction as Dir
     const MIdx wd(md); // offset in direction d
     const auto& m = eb.GetMesh();
-    const auto& bc = m.GetIndexCells();
-    const auto& bf = m.GetIndexFaces();
+    const auto& indexc = m.GetIndexCells();
+    const auto& indexf = m.GetIndexFaces();
     const MIdx gs = m.GetGlobalSize();
     const auto h = m.GetCellSize();
 
@@ -458,7 +458,7 @@ struct Vofm<EB_>::Imp {
       ffvu.Reinit(m, 0);
       ffcl.Reinit(m, kClNone);
       for (auto f : eb.Faces()) {
-        auto p = bf.GetMIdxDir(f);
+        auto p = indexf.GetMIdxDir(f);
         Dir df = p.second;
 
         if (df != md) {
@@ -507,7 +507,7 @@ struct Vofm<EB_>::Imp {
             for (auto j : layers) {
               if ((*mfccl[j])[cd] == kClNone) {
                 (*mfccl[j])[cd] = fccl[c];
-                MIdx w = bc.GetMIdx(c);
+                MIdx w = indexc.GetMIdx(c);
                 MIdx im = TRM::Unpack((*mfcim[i])[c]);
                 if (w[d] < 0) im[d] += 1;
                 if (w[d] >= gs[d]) im[d] -= 1;
@@ -540,10 +540,10 @@ struct Vofm<EB_>::Imp {
       auto& fccl = *mfccl[i];
       for (auto c : eb.Cells()) {
         if (fccl[c] != kClNone) {
-          auto w = bc.GetMIdx(c);
+          auto w = indexc.GetMIdx(c);
           const Scal vol = m.GetVolume(c);
-          IdxFace fm = bf.GetIdx(w, md);
-          IdxFace fp = bf.GetIdx(w + wd, md);
+          IdxFace fm = indexf.GetIdx(w, md);
+          IdxFace fp = indexf.GetIdx(w + wd, md);
           // mixture cfl
           const Scal ds = (ffv[fp] - ffv[fm]) * dt / vol;
           // phase 2 cfl
@@ -875,11 +875,11 @@ constexpr typename EB_::M::Scal Vofm<EB_>::kClNone;
 
 template <class EB_>
 Vofm<EB_>::Vofm(
-    M& m, const EB& eb, const FieldCell<Scal>& fcu0,
+    M& m_, const EB& eb, const FieldCell<Scal>& fcu0,
     const FieldCell<Scal>& fccl0, const MapEmbed<BCondAdvection<Scal>>& mfc,
     const FieldEmbed<Scal>* fev, const FieldCell<Scal>* fcs, double t,
     double dt, Par par)
-    : AdvectionSolver<M>(t, dt, m, fev, fcs) {
+    : AdvectionSolver<M>(t, dt, m_, fev, fcs) {
   const GRange<size_t> layers(par.layers);
   Multi<FieldCell<Scal>> fcu(layers, m, 0);
   Multi<FieldCell<Scal>> fccl(layers, m, kClNone);
@@ -890,11 +890,11 @@ Vofm<EB_>::Vofm(
 
 template <class EB_>
 Vofm<EB_>::Vofm(
-    M& m, const EB& eb, const Multi<const FieldCell<Scal>*>& fcu0,
+    M& m_, const EB& eb, const Multi<const FieldCell<Scal>*>& fcu0,
     const Multi<const FieldCell<Scal>*>& fccl0,
     const MapEmbed<BCondAdvection<Scal>>& mfc, const FieldEmbed<Scal>* fev,
     const FieldCell<Scal>* fcs, double t, double dt, Par par)
-    : AdvectionSolver<M>(t, dt, m, fev, fcs) {
+    : AdvectionSolver<M>(t, dt, m_, fev, fcs) {
   const GRange<size_t> layers(par.layers);
   imp.reset(new Imp(this, eb, layers, fcu0, fccl0, mfc, par));
 }

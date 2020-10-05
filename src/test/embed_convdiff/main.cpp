@@ -18,13 +18,6 @@
 #include "solver/fluid.h"
 #include "solver/reconst.h"
 
-using M = MeshStructured<double, 3>;
-using Scal = typename M::Scal;
-using Vect = typename M::Vect;
-using EB = Embed<M>;
-using Type = typename EB::Type;
-using CD = ConvDiffVectGeneric<EB, ConvDiffScalExp<EB>>;
-
 template <class M>
 FieldCell<typename M::Scal> GetDivergence(
     FieldEmbed<typename M::Scal>& fev, const M& m, const Embed<M>& eb) {
@@ -54,6 +47,13 @@ FieldCell<typename M::Scal> GetDivergence(
   }
   return fcdiv;
 }
+
+using M = MeshStructured<double, 3>;
+using Scal = typename M::Scal;
+using Vect = typename M::Vect;
+using EB = Embed<M>;
+using Type = typename EB::Type;
+using CD = ConvDiffVectGeneric<EB, ConvDiffScalExp<EB>>;
 
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");

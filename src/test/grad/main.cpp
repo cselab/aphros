@@ -14,6 +14,31 @@
 #include "solver/cond.h"
 #include "solver/solver.h"
 
+template <class Idx, class M>
+typename M::Scal DiffMax(
+    const GField<typename M::Scal, Idx>& u,
+    const GField<typename M::Scal, Idx>& v, const M& m) {
+  using Scal = typename M::Scal;
+  Scal r = 0;
+  for (auto i : m.template GetIn<Idx>()) {
+    r = std::max(r, std::abs(u[i] - v[i]));
+  }
+  return r;
+}
+
+template <class Idx, class M>
+typename M::Scal DiffMax(
+    const GField<typename M::Vect, Idx>& u,
+    const GField<typename M::Vect, Idx>& v, const M& m) {
+  using Scal = typename M::Scal;
+  Scal r = 0;
+  for (auto i : m.template GetIn<Idx>()) {
+    r = std::max(r, (u[i] - v[i]).norminf());
+  }
+  return r;
+}
+
+
 const int dim = 3;
 using MIdx = GMIdx<dim>;
 using IdxCell = IdxCell;
@@ -41,30 +66,6 @@ typename V::value_type Prod(const V& v) {
   auto r = v[0];
   for (size_t i = 1; i < v.size(); ++i) {
     r *= v[i];
-  }
-  return r;
-}
-
-template <class Idx, class M>
-typename M::Scal DiffMax(
-    const GField<typename M::Scal, Idx>& u,
-    const GField<typename M::Scal, Idx>& v, const M& m) {
-  using Scal = typename M::Scal;
-  Scal r = 0;
-  for (auto i : m.template GetIn<Idx>()) {
-    r = std::max(r, std::abs(u[i] - v[i]));
-  }
-  return r;
-}
-
-template <class Idx, class M>
-typename M::Scal DiffMax(
-    const GField<typename M::Vect, Idx>& u,
-    const GField<typename M::Vect, Idx>& v, const M& m) {
-  using Scal = typename M::Scal;
-  Scal r = 0;
-  for (auto i : m.template GetIn<Idx>()) {
-    r = std::max(r, (u[i] - v[i]).norminf());
   }
   return r;
 }

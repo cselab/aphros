@@ -44,8 +44,8 @@ class EmbedInterpolate : public KernelMeshPar<M_, GPar<M_>> {
 };
 
 template <class M>
-EmbedInterpolate<M>::EmbedInterpolate(Vars& var, const MyBlockInfo& block, Par& par)
-    : KernelMeshPar<M, Par>(var, block, par) {}
+EmbedInterpolate<M>::EmbedInterpolate(Vars& var_, const MyBlockInfo& block, Par& par)
+    : KernelMeshPar<M, Par>(var_, block, par) {}
 
 template <class M>
 void EmbedInterpolate<M>::Run() {

@@ -36,7 +36,6 @@ using M = MeshStructured<Scal, dim>;
 
 M GetMesh() {
   Rect<Vect> dom(Vect(0., 0., 0.), Vect(1., 1., 1.));
-  using M = MeshStructured<Scal, dim>;
   MIdx b(0, 0, 0); // lower index
   MIdx s(2, 2, 1); // size in cells
   int hl = 0; // halos

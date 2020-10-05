@@ -655,9 +655,9 @@ struct Proj<EB_>::Imp {
 };
 
 template <class EB_>
-Proj<EB_>::Proj(M& m, const EB& eb, const Args& args)
+Proj<EB_>::Proj(M& m_, const EB& eb, const Args& args)
     : Base(
-          args.t, args.dt, m, args.fcr, args.fcd, args.fcf, args.ffbp,
+          args.t, args.dt, m_, args.fcr, args.fcd, args.fcf, args.ffbp,
           args.fcsv, args.fcsm)
     , imp(new Imp(this, eb, args)) {}
 

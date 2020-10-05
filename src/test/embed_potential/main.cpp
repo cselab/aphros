@@ -12,19 +12,12 @@
 
 #include "distr/distrbasic.h"
 #include "linear/linear.h"
-#include "util/linear.h"
+#include "solver/approx_eb.h"
 #include "solver/convdiffv_eb.h"
 #include "solver/embed.h"
-#include "solver/approx_eb.h"
 #include "solver/fluid.h"
 #include "solver/reconst.h"
-
-using M = MeshStructured<double, 3>;
-using Scal = typename M::Scal;
-using Vect = typename M::Vect;
-using EB = Embed<M>;
-using UEB = UEmbed<M>;
-using Type = typename EB::Type;
+#include "util/linear.h"
 
 template <class M>
 FieldCell<typename M::Scal> GetDivergence(
@@ -44,8 +37,8 @@ FieldCell<typename M::Scal> GetDivergence(
 
 template <class M>
 void CalcPotential(
-    const MapEmbed<BCond<Scal>>& mfc, M& m, const Embed<M>& eb,
-    FieldCell<Scal>& fcp, FieldFace<Scal>& ffv,
+    const MapEmbed<BCond<typename M::Scal>>& mfc, M& m, const Embed<M>& eb,
+    FieldCell<typename M::Scal>& fcp, FieldFace<typename M::Scal>& ffv,
     std::shared_ptr<linear::Solver<M>> linsolver) {
   using Scal = typename M::Scal;
   using ExprFace = generic::Vect<Scal, 3>;
@@ -114,6 +107,13 @@ void CalcPotential(
     }
   }
 }
+
+using M = MeshStructured<double, 3>;
+using Scal = typename M::Scal;
+using Vect = typename M::Vect;
+using EB = Embed<M>;
+using UEB = UEmbed<M>;
+using Type = typename EB::Type;
 
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");

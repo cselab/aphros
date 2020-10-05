@@ -124,10 +124,10 @@ class SerScalPlain : public Ser {
   void Write(double /*time*/, std::string /*title*/) override {
     for (auto& og : vo_) { // out generic
       og->Prepare();
-      if (auto o = dynamic_cast<OutScal<Scal>*>(og.get())) {
-        out_ << o->second() << " ";
-      } else if (auto o = dynamic_cast<OutScal<int>*>(og.get())) {
-        out_ << o->second() << " ";
+      if (auto oscal = dynamic_cast<OutScal<Scal>*>(og.get())) {
+        out_ << oscal->second() << " ";
+      } else if (auto oint = dynamic_cast<OutScal<int>*>(og.get())) {
+        out_ << oint->second() << " ";
       } else {
         throw std::runtime_error("SerScalPlain: Unknown entry type");
       }

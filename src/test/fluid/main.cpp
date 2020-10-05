@@ -39,7 +39,6 @@ void Test(M& m, MEB& eb, std::string name) {
   auto& t = *ctx;
   if (sem()) {
     std::cout << name << " " << typeid(MEB).name() << std::endl;
-    auto& m = eb.GetMesh();
     const Vect v0(0);
     const Vect vx(1., 2., 3.);
     const Vect vy = vx * 2;

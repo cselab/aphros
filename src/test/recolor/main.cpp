@@ -89,7 +89,7 @@ void Run(M& m, Vars& var) {
       Smoothen(fcu, mfc, m, 1);
     }
     if (sem()) {
-      auto fcclm = fccl;
+      fcclm = fccl;
       for (auto c : m.Cells()) {
         if (fcu[c] == 0) {
           fccl[c] = kClNone;

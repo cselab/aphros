@@ -113,11 +113,11 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
 };
 
 template <class M>
-Advection<M>::Advection(Vars& v, const MyBlockInfo& b, Par& p)
-    : KernelMeshPar<M, Par>(v, b, p)
+Advection<M>::Advection(Vars& var_, const MyBlockInfo& b, Par& p)
+    : KernelMeshPar<M, Par>(var_, b, p)
     , layers(1)
-    , dmf_(v, "dump_field_")
-    , dms_(v, "dump_stat_") {}
+    , dmf_(var, "dump_field_")
+    , dms_(var, "dump_stat_") {}
 
 template <class M>
 void Advection<M>::Init(Sem& sem) {

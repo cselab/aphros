@@ -14,8 +14,8 @@ class KernelMeshPar : public KernelMesh<M_> {
   using Par = Par_;
   static constexpr size_t dim = M::dim;
 
-  KernelMeshPar(Vars& var, const MyBlockInfo& bi, Par& par)
-      : KernelMesh<M>(var, bi), par_(par) {}
+  KernelMeshPar(Vars& var_, const MyBlockInfo& bi, Par& par)
+      : KernelMesh<M>(var_, bi), par_(par) {}
   void Run() override = 0;
 
  protected:

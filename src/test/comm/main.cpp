@@ -200,12 +200,12 @@ void Simple<M>::TestComm() {
 template <class M>
 void Simple<M>::TestReduce() {
   auto sem = m.GetSem("Reduce");
-  MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
-  MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
-  GBlock<IdxCell, dim> bq(p * b);
-  GIndex<size_t, dim> ndq(p * b);
-  GBlock<IdxCell, dim> qp(p);
-  GBlock<IdxCell, dim> qb(b);
+  MIdx proc(var.Int["px"], var.Int["py"], var.Int["pz"]);
+  MIdx block(var.Int["bx"], var.Int["by"], var.Int["bz"]);
+  GBlock<IdxCell, dim> bq(proc * block);
+  GIndex<size_t, dim> ndq(proc * block);
+  GBlock<IdxCell, dim> qp(proc);
+  GBlock<IdxCell, dim> qb(block);
   auto f = [](MIdx w) {
     return std::sin(w[0] + 1.7) * std::cos(w[1]) * std::exp(w[2] * 0.1);
   };
@@ -298,7 +298,7 @@ void Simple<M>::TestReduce() {
     std::vector<Scal> rvs;
     for (auto wp : qp) {
       for (auto wb : qb) {
-        auto w = b * wp + wb;
+        auto w = block * wp + wb;
         rvs.push_back(ndq.GetIdx(w));
       }
     }
@@ -323,7 +323,7 @@ void Simple<M>::TestReduce() {
     std::vector<int> rvi;
     for (auto wp : qp) {
       for (auto wb : qb) {
-        auto w = b * wp + wb;
+        auto w = block * wp + wb;
         size_t i = ndq.GetIdx(w);
         for (size_t j = 0; j < i % q; ++j) {
           rvi.push_back(q * i + j);
@@ -350,7 +350,7 @@ void Simple<M>::TestReduce() {
     std::vector<std::vector<int>> rvvi;
     for (auto wp : qp) {
       for (auto wb : qb) {
-        auto w = b * wp + wb;
+        auto w = block * wp + wb;
         size_t i = ndq.GetIdx(w);
         for (size_t j = 0; j < i % q; ++j) {
           rvvi.push_back(std::vector<int>({int(q * i + j)}));
@@ -387,12 +387,12 @@ void Simple<M>::TestReduce() {
 template <class M>
 void Simple<M>::TestScatter() {
   auto sem = m.GetSem("scatter");
-  MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
-  MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
-  GBlock<IdxCell, dim> bq(p * b);
-  GIndex<size_t, dim> ndq(p * b);
-  GBlock<IdxCell, dim> qp(p);
-  GBlock<IdxCell, dim> qb(b);
+  MIdx proc(var.Int["px"], var.Int["py"], var.Int["pz"]);
+  MIdx block(var.Int["bx"], var.Int["by"], var.Int["bz"]);
+  GBlock<IdxCell, dim> bq(proc * block);
+  GIndex<size_t, dim> ndq(proc * block);
+  GBlock<IdxCell, dim> qp(proc);
+  GBlock<IdxCell, dim> qb(block);
   auto GetBlockData = [](size_t i) {
     std::vector<Scal> r;
     r.push_back(Scal(i));
@@ -402,11 +402,10 @@ void Simple<M>::TestScatter() {
     return r;
   };
   if (sem("vector<Scal>")) {
-    MIdx w(bi_.index);
     rvvs_.clear();
     for (auto wp : qp) {
       for (auto wb : qb) {
-        auto w = b * wp + wb;
+        auto w = block * wp + wb;
         size_t i = ndq.GetIdx(w);
         rvvs_.push_back(GetBlockData(i));
       }
@@ -419,7 +418,6 @@ void Simple<M>::TestScatter() {
     }
   }
   if (sem("check")) {
-    MIdx w(bi_.index);
     assert(rvs_.size() > 0);
     PCMPF(rvs_, GetBlockData(std::lround(rvs_[0])));
   }
@@ -431,7 +429,6 @@ void Simple<M>::TestScatter() {
     m.Reduce(std::make_shared<T>(&rvvs_));
   }
   if (sem("scatter")) {
-    MIdx w(bi_.index);
     if (m.IsRoot()) {
       std::cerr << "rvvs=" << rvvs_ << std::endl;
       m.Scatter({&rvvs_, &rvs_});

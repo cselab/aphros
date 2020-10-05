@@ -93,27 +93,27 @@ class Stat {
     bool hidden = false;
     bool derived = false; // computed from other entires, postponed to second pass
     Entry(
-        std::string name, std::string desc, Reduction op,
-        std::function<Scal()> func, bool hidden, bool derived)
-        : name(name)
-        , desc(desc)
-        , op(op)
+        std::string name_, std::string desc_, Reduction op_,
+        std::function<Scal()> func_, bool hidden_, bool derived_)
+        : name(name_)
+        , desc(desc_)
+        , op(op_)
         , type(Type::scal)
-        , func(func)
+        , func(func_)
         , enabled(true)
-        , hidden(hidden)
-        , derived(derived) {}
+        , hidden(hidden_)
+        , derived(derived_) {}
     Entry(
-        std::string name, std::string desc, Reduction op,
-        std::function<Vect()> func_vect, bool hidden, bool derived)
-        : name(name)
-        , desc(desc)
-        , op(op)
+        std::string name_, std::string desc_, Reduction op_,
+        std::function<Vect()> func_vect_, bool hidden_, bool derived_)
+        : name(name_)
+        , desc(desc_)
+        , op(op_)
         , type(Type::vect)
-        , func_vect(func_vect)
+        , func_vect(func_vect_)
         , enabled(true)
-        , hidden(hidden)
-        , derived(derived) {}
+        , hidden(hidden_)
+        , derived(derived_) {}
   };
 
   Stat(M& m_, const Embed<M>* eb = nullptr) : m(m_), eb_(eb), vect(this) {}

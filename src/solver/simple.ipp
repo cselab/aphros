@@ -281,7 +281,7 @@ struct Simple<EB_>::Imp {
   // Output:
   // fcf += viscous term [i]
   void AppendExplViscous(
-      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const M& m) {
+      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const M&) {
     const auto wf = UEB::Interpolate(fcvel, me_vel_, m);
     for (auto d : edim_range_) {
       const auto wfo = GetComponent(wf, d);
@@ -298,7 +298,7 @@ struct Simple<EB_>::Imp {
     }
   }
   void AppendExplViscous(
-      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const Embed<M>& eb) {
+      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const Embed<M>&) {
     // FIXME: not implemented
     (void)fcvel;
     (void)fcf;
@@ -507,9 +507,9 @@ struct Simple<EB_>::Imp {
 };
 
 template <class EB_>
-Simple<EB_>::Simple(M& m, const EB& eb, const Args& args)
+Simple<EB_>::Simple(M& m_, const EB& eb, const Args& args)
     : Base(
-          args.t, args.dt, m, args.fcr, args.fcd, args.fcf, args.febp,
+          args.t, args.dt, m_, args.fcr, args.fcd, args.fcf, args.febp,
           args.fcsv, args.fcsm)
     , imp(new Imp(this, eb, args)) {}
 

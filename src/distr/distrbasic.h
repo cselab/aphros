@@ -44,7 +44,7 @@ int RunMpiBasic(int argc, const char** argv, Func func, std::string addconf) {
   };
 
   struct Main {
-    Main(Func func) : func(func) {}
+    Main(Func func_) : func(func_) {}
     void operator()(MPI_Comm comm, Vars& var) {
       Par par{func};
       DistrSolver<M, Basic> ds(comm, var, par);

@@ -149,11 +149,14 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     const Multi<FieldCell<Scal>*>& fck, M& m) {
   if (auto as = dynamic_cast<const Vof<M>*>(asbase)) {
     return CalcCurvPart(as->GetPlic(), par, fck, m, m);
-  } else if (auto as = dynamic_cast<const Vofm<M>*>(asbase)) {
+  }
+  if (auto as = dynamic_cast<const Vofm<M>*>(asbase)) {
     return CalcCurvPart(as->GetPlic(), par, fck, m, m);
-  } else if (auto as = dynamic_cast<const Vof<Embed<M>>*>(asbase)) {
+  }
+  if (auto as = dynamic_cast<const Vof<Embed<M>>*>(asbase)) {
     return CalcCurvPart(as->GetPlic(), par, fck, m, as->GetEmbed());
-  } else if (auto as = dynamic_cast<const Vofm<Embed<M>>*>(asbase)) {
+  }
+  if (auto as = dynamic_cast<const Vofm<Embed<M>>*>(asbase)) {
     return CalcCurvPart(as->GetPlic(), par, fck, m, as->GetEmbed());
   }
   throw std::runtime_error("CalcCurvPart: unknown advection solver");

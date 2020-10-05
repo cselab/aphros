@@ -251,9 +251,9 @@ struct ConvDiffScalImp<EB_>::Imp {
 };
 
 template <class EB_>
-ConvDiffScalImp<EB_>::ConvDiffScalImp(M& m, const EB& eb, const Args& args)
+ConvDiffScalImp<EB_>::ConvDiffScalImp(M& m_, const EB& eb_, const Args& args)
     : Base(
-          args.t, args.dt, m, eb, args.par, args.fcr, args.ffd, args.fcs,
+          args.t, args.dt, m_, eb_, args.par, args.fcr, args.ffd, args.fcs,
           args.ffv)
     , imp(new Imp(this, args)) {}
 

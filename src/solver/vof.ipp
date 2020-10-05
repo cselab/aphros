@@ -219,7 +219,7 @@ struct Vof<EB_>::Imp {
     const Dir md(d); // direction as Dir
     const MIdx wd(md); // offset in direction d
     const auto& m = eb.GetMesh();
-    const auto& bc = m.GetIndexCells();
+    const auto& indexc = m.GetIndexCells();
     const auto& bf = m.GetIndexFaces();
     const MIdx gs = m.GetGlobalSize();
     const auto h = m.GetCellSize();
@@ -264,7 +264,7 @@ struct Vof<EB_>::Imp {
         const IdxCell cd = m.GetCell(f, v > 0. ? 1 : 0); // downwind cell
         if (fccl[cd] == kClNone) {
           fccl[cd] = fccl[c];
-          const MIdx w = bc.GetMIdx(c);
+          const MIdx w = indexc.GetMIdx(c);
           MIdx im = TRM::Unpack(fcim[c]);
           if (w[d] < 0) im[d] += 1;
           if (w[d] >= gs[d]) im[d] -= 1;
@@ -638,10 +638,10 @@ struct Vof<EB_>::Imp {
 
 template <class EB_>
 Vof<EB_>::Vof(
-    M& m, const EB& eb, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
+    M& m_, const EB& eb, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
     const MapEmbed<BCondAdvection<Scal>>& mfc, const FieldEmbed<Scal>* fev,
     const FieldCell<Scal>* fcs, double t, double dt, Par par)
-    : AdvectionSolver<M>(t, dt, m, fev, fcs)
+    : AdvectionSolver<M>(t, dt, m_, fev, fcs)
     , imp(new Imp(this, eb, fcu, fccl, mfc, par)) {}
 
 template <class EB_>
