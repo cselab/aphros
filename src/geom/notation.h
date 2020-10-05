@@ -67,8 +67,8 @@ class IdxCellMesh {
   using MIdx = typename M::MIdx;
   using Direction = generic::Direction<Scal, dim>;
 
-  IdxCellMesh(IdxCell c, const M& m) : center(*this), c_(c), m(m) {}
-  IdxCellMesh(const M& m) : IdxCellMesh(IdxCell(0), m) {}
+  IdxCellMesh(IdxCell c, const M& m_) : center(*this), c_(c), m(m_) {}
+  IdxCellMesh(const M& m_) : IdxCellMesh(IdxCell(0), m_) {}
   IdxCellMesh operator+(Direction d) const {
     return m(m.GetCell(c_, d.nci()));
   }
@@ -130,8 +130,8 @@ class IdxFaceMesh {
   using MIdx = typename M::MIdx;
   using Direction = generic::Direction<Scal, dim>;
 
-  IdxFaceMesh(IdxFace f, const M& m) : center(*this), cm(*this), cp(*this), f_(f), m(m) {}
-  IdxFaceMesh(const M& m) : IdxFaceMesh(IdxFace(0), m) {}
+  IdxFaceMesh(IdxFace f, const M& m_) : center(*this), cm(*this), cp(*this), f_(f), m(m_) {}
+  IdxFaceMesh(const M& m_) : IdxFaceMesh(IdxFace(0), m_) {}
   IdxFaceMesh operator+(Direction d) const {
     return m(m.GetFace(f_, d.GetIndex() * 2 + d.GetForward()));
   }

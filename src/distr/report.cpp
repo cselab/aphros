@@ -8,87 +8,87 @@
 #include "report.h"
 
 // Splits string by whitespace, skips every second.
-std::vector<std::string> Split(const std::string& str) {
-  std::vector<std::string> ss; // result
-  std::stringstream st(str);
-  st >> std::skipws;
-  while (st) {
+std::vector<std::string> SplitSkip(const std::string& str) {
+  std::vector<std::string> names; // result
+  std::stringstream buf(str);
+  buf >> std::skipws;
+  while (buf) {
     std::string s;
-    st >> s;
-    ss.push_back(s);
-    st >> s; // skip
+    buf >> s;
+    names.push_back(s);
+    buf >> s; // skip
   }
-  return ss;
+  return names;
 }
 
-// Node
-struct N {
+struct Node {
   const double kNone = -1.; // empty time
-  std::vector<N> nn; // children
-  std::string s; // stage name
-  double t; // time
-  N(const std::string& s, double t) : s(s), t(t) {}
-  N(const std::string& s) : s(s), t(kNone) {}
-  N* Find(const std::string& s) {
-    for (auto& n : nn) {
-      if (n.s == s) {
+  std::vector<Node> nodes; // children
+  std::string stage; // stage name
+  double time; // time
+  Node(const std::string& s_, double t_) : stage(s_), time(t_) {}
+  Node(const std::string& s_) : stage(s_), time(kNone) {}
+  Node* Find(const std::string& s) {
+    for (auto& n : nodes) {
+      if (n.stage == s) {
         return &n;
       }
     }
     return nullptr;
   }
-  N* Add(const std::string& s) {
-    nn.emplace_back(s, kNone);
-    return &nn.back();
+  Node* Add(const std::string& s) {
+    nodes.emplace_back(s, kNone);
+    return &nodes.back();
   }
   void Print(std::ostream& out, std::string pre, double ta) const {
     auto fl = out.flags();
-    out << pre << s << " [" << std::setprecision(5) << t << " s, "
-        << std::setprecision(3) << 100. * t / ta << "%]" << std::endl;
-    for (auto& n : nn) {
+    out << pre << stage << " [" << std::setprecision(5) << time << " s, "
+        << std::setprecision(3) << 100. * time / ta << "%]" << std::endl;
+    for (auto& n : nodes) {
       n.Print(out, pre + "|     ", ta);
     }
     out.flags(fl);
   }
   void FillTime() {
     double ts = 0.; // sum
-    if (t == kNone) {
-      for (auto& n : nn) {
-        if (n.t == kNone) {
+    if (time == kNone) {
+      for (auto& n : nodes) {
+        if (n.time == kNone) {
           n.FillTime();
         }
-        ts += n.t;
+        ts += n.time;
       }
-      t = ts;
+      time = ts;
     }
   }
 };
 
-void ParseReport(const std::map<std::string, double>& mp, std::ostream& out) {
-  std::vector<std::string> ss0; // list of strings previous
-  N r("all"); // root
-  // split strings, mp stores graph traversal in depth-first order
-  for (auto& it : mp) {
-    std::vector<std::string> ss = Split(it.first);
-    if (ss.empty() || (ss.size() == 1 && ss[0] == "")) {
-      ss = {"other"};
+void ParseReport(
+    const std::map<std::string, double>& timings, std::ostream& out) {
+  std::vector<std::string> names_prev; // list of strings previous
+  Node root("all");
+  for (auto& it : timings) {
+    std::vector<std::string> names = SplitSkip(it.first);
+    if (names.empty() || (names.size() == 1 && names[0] == "")) {
+      names = {"other"};
     }
 
-    // from root to last common node with ss0
+    // collect names from root to last common node with names_prev
     size_t i = 0;
-    N* p = &r; // position
-    while (i < ss.size() && i < ss0.size() && ss[i] == ss0[i]) {
-      p = p->Find(ss[i]);
+    Node* pos = &root;
+    while (i < names.size() && i < names_prev.size() &&
+           names[i] == names_prev[i]) {
+      pos = pos->Find(names[i]);
       ++i;
     }
-    while (i < ss.size()) {
-      p = p->Add(ss[i]);
+    while (i < names.size()) {
+      pos = pos->Add(names[i]);
       ++i;
     }
-    p->t = it.second;
-    ss0 = ss;
+    pos->time = it.second;
+    names_prev.swap(names);
   }
 
-  r.FillTime();
-  r.Print(out, "", r.t);
+  root.FillTime();
+  root.Print(out, "", root.time);
 }

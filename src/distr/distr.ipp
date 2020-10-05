@@ -234,9 +234,9 @@ void DistrMesh<M>::ApplyNanFaces(const std::vector<MIdx>& bb) {
     auto& m = mk.at(b)->GetMesh();
     for (auto& o : m.GetComm()) {
       if (auto od = dynamic_cast<typename M::CoFcs*>(o.get())) {
-        m.ApplyNanFaces(*od->f);
+        m.ApplyNanFaces(*od->field);
       } else if (auto od = dynamic_cast<typename M::CoFcv*>(o.get())) {
-        m.ApplyNanFaces(*od->f);
+        m.ApplyNanFaces(*od->field);
       } else {
         throw std::runtime_error("Distr::Run(): unknown field type for nan");
       }

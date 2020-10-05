@@ -675,7 +675,7 @@ class MeshStructured {
   };
   // FieldCell<Scal>
   struct CoFcs : public Co {
-    CoFcs(FieldCell<Scal>* f) : f(f) {}
+    CoFcs(FieldCell<Scal>* field_) : field(field_) {}
     size_t GetSize() const override {
       return 1;
     }
@@ -686,15 +686,15 @@ class MeshStructured {
       return 1;
     }
     Scal* GetBasePtr() override {
-      return &(*f)[IdxCell(0)];
+      return &(*field)[IdxCell(0)];
     }
-    FieldCell<Scal>* f;
+    FieldCell<Scal>* field;
   };
   // FieldCell<Vect>
   struct CoFcv : public Co {
     // f: vector field
     // i: component (0,1,2), or -1 for all
-    CoFcv(FieldCell<Vect>* f, int d) : f(f), d(d) {}
+    CoFcv(FieldCell<Vect>* field_, int d_) : field(field_), d(d_) {}
     size_t GetSize() const override {
       return d == -1 ? Vect::dim : 1;
     }
@@ -705,9 +705,9 @@ class MeshStructured {
       return Vect::dim;
     }
     Scal* GetBasePtr() override {
-      return &(*f)[IdxCell(0)][0];
+      return &(*field)[IdxCell(0)][0];
     }
-    FieldCell<Vect>* f;
+    FieldCell<Vect>* field;
     int d;
   };
   void Comm(const std::shared_ptr<Co>& r) {

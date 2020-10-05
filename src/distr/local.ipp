@@ -492,12 +492,12 @@ size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t e, M& m) {
 template <class M>
 size_t Local<M>::ReadBuffer(typename M::Co* o, size_t e, M& m) {
   if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
-    return ReadBuffer(*od->f, e, m);
+    return ReadBuffer(*od->field, e, m);
   } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
     if (od->d == -1) {
-      return ReadBuffer(*od->f, e, m);
+      return ReadBuffer(*od->field, e, m);
     }
-    return ReadBuffer(*od->f, od->d, e, m);
+    return ReadBuffer(*od->field, od->d, e, m);
   }
   throw std::runtime_error("ReadBuffer: Unknown Co instance");
   return 0;
@@ -570,12 +570,12 @@ size_t Local<M>::WriteBuffer(const FieldCell<Vect>& fc, size_t e, M& m) {
 template <class M>
 size_t Local<M>::WriteBuffer(typename M::Co* o, size_t e, M& m) {
   if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
-    return WriteBuffer(*od->f, e, m);
+    return WriteBuffer(*od->field, e, m);
   } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
     if (od->d == -1) {
-      return WriteBuffer(*od->f, e, m);
+      return WriteBuffer(*od->field, e, m);
     }
-    return WriteBuffer(*od->f, od->d, e, m);
+    return WriteBuffer(*od->field, od->d, e, m);
   }
   throw std::runtime_error("WriteBuffer: Unknown Co instance");
   return 0;

@@ -85,12 +85,12 @@ bool Cmp(size_t a, size_t b) {
 void TestMesh() {
   Rect<Vect> dom(Vect(0., 1.5, 2.7), Vect(5.3, 4.1, 3.));
   using M = MeshStructured<Scal, dim>;
-  MIdx b(-2, -3, -4); // lower index
-  MIdx s(5, 4, 3); // size in cells
+  MIdx begin(-2, -3, -4); // lower index
+  MIdx size(5, 4, 3); // size in cells
   int hl = 2; // halos
   Vect doms = dom.GetDimensions();
-  Vect h = dom.GetDimensions() / Vect(s);
-  M m = InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
+  Vect h = dom.GetDimensions() / Vect(size);
+  M m = InitUniformMesh<M>(dom, begin, size, hl, true, true, size, 0);
 
   // Total volume
   Scal v = 0.;
@@ -100,10 +100,12 @@ void TestMesh() {
   PCMP(v, doms.prod());
 
   // Cell volume
-  IdxCell c(0);
-  PCMP(m.GetVolume(c), h.prod());
-  for (auto i : m.AllCells()) {
-    CMP(m.GetVolume(i), m.GetVolume(c));
+  {
+    IdxCell c(0);
+    PCMP(m.GetVolume(c), h.prod());
+    for (auto i : m.AllCells()) {
+      CMP(m.GetVolume(i), m.GetVolume(c));
+    }
   }
 
   // Face area
@@ -128,7 +130,7 @@ void TestMesh() {
   }
 
   // Number of elements
-  auto sh = s + MIdx(hl * 2); // size with halos
+  auto sh = size + MIdx(hl * 2); // size with halos
   PCMP(m.GetAllBlockCells().size(), sh.prod());
   size_t nf = 0;
   for (int q = 0; q < 3; ++q) {
@@ -206,7 +208,7 @@ void TestMesh() {
   FieldCell<Scal> fc;
   m.Comm(&fc);
   auto p = dynamic_cast<typename M::CoFcs*>(m.GetComm()[0].get());
-  CMP(p->f, &fc);
+  CMP(p->field, &fc);
 
   // Stencil indices
   {
@@ -329,10 +331,10 @@ int main() {
   {
     Rect<Vect> dom(Vect(0.), Vect(1.));
     using M = MeshStructured<Scal, dim>;
-    MIdx b(1, 1, 1); // lower index
-    MIdx s(2, 2, 2); // size in cells
+    MIdx begin(1, 1, 1); // lower index
+    MIdx size(2, 2, 2); // size in cells
     int hl = 0; // halos
-    M m = InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
+    M m = InitUniformMesh<M>(dom, begin, size, hl, true, true, size, 0);
 
     std::cout << "\nm.GetAllBlockCells()" << std::endl;
     auto bca = m.GetAllBlockCells();
@@ -352,8 +354,8 @@ int main() {
     std::cout << std::endl;
 
     std::cout << "\n(MIdx,Dir) <-> IdxFace" << std::endl;
-    GBlock<IdxFace, 3> sb(b, s);
-    GIndex<IdxFace, 3> ind(b, s + MIdx(1));
+    GBlock<IdxFace, 3> sb(begin, size);
+    GIndex<IdxFace, 3> ind(begin, size + MIdx(1));
     for (auto p : sb) { // p: (w,d)
       auto j = ind.GetIdx(p);
       auto pp = ind.GetMIdxDir(j);
@@ -378,7 +380,9 @@ int main() {
         l();
         ++c;
       }
-      assert(c == 3 * s.prod() + s[0] * s[1] + s[1] * s[2] + s[2] * s[0]);
+      assert(
+          c == 3 * size.prod() + size[0] * size[1] + size[1] * size[2] +
+                   size[2] * size[0]);
     }
   }
 }

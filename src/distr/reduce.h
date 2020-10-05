@@ -229,14 +229,14 @@ class UReduce {
    private:
     // Serialize vt
     static V Ser(const VT& vt) {
-      V r; // result
+      V res;
       for (auto& xx : vt) {
         // write size
         {
           size_t s = xx.size();
           const char* c = (const char*)(const void*)&s;
           for (size_t i = 0; i < sizeof(size_t); ++i) {
-            r.push_back(c[i]);
+            res.push_back(c[i]);
           }
         }
 
@@ -244,39 +244,38 @@ class UReduce {
         for (auto& x : xx) {
           const char* c = (const char*)(const void*)&x;
           for (size_t i = 0; i < sizeof(T); ++i) {
-            r.push_back(c[i]);
+            res.push_back(c[i]);
           }
         }
       }
-      return r;
+      return res;
     }
     // Deserialize v
-    static VT Des(const V& v) {
-      VT r; // result
-      // assert(v.size() % sizeof(T) == 0); // TODO: add assert
-      size_t k = 0;
-      while (k < v.size()) {
-        r.emplace_back();
-        size_t s;
+    static VT Des(const V& buf) {
+      VT res;
+      size_t k = 0; // index in buf
+      while (k < buf.size()) {
+        res.emplace_back();
+        size_t size = 0;
         // read size
         {
-          char* c = (char*)(void*)&s;
+          auto* bytes = reinterpret_cast<unsigned char*>(&size);
           for (size_t i = 0; i < sizeof(size_t); ++i) {
-            c[i] = v[k++];
+            bytes[i] = buf[k++];
           }
         }
         // read elems
-        for (size_t i = 0; i < s; ++i) {
-          assert(k < v.size());
+        for (size_t i = 0; i < size; ++i) {
+          assert(k < buf.size());
           T x;
-          char* c = (char*)(void*)&x;
-          for (size_t i = 0; i < sizeof(T); ++i) {
-            c[i] = v[k++];
+          auto* bytes = reinterpret_cast<unsigned char*>(&x);
+          for (size_t j = 0; j < sizeof(T); ++j) {
+            bytes[j] = buf[k++];
           }
-          r.back().push_back(x);
+          res.back().push_back(x);
         }
       }
-      return r;
+      return res;
     }
   };
 

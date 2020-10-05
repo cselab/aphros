@@ -400,7 +400,7 @@ struct Rect {
 
   Vect lb, rt;
   Rect() {}
-  Rect(const Vect& lb, const Vect& rt) : lb(lb), rt(rt) {}
+  Rect(const Vect& lb_, const Vect& rt_) : lb(lb_), rt(rt_) {}
   bool IsInside(Vect x) const {
     for (size_t i = 0; i < dim; ++i) {
       if (x[i] < lb[i] || rt[i] < x[i]) {

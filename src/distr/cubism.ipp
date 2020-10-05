@@ -282,12 +282,12 @@ class Cubism : public DistrMesh<M_> {
   // number of scalar fields written
   size_t ReadBuffer(typename M::Co* o, Lab& l, size_t e, M& m) {
     if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
-      return ReadBuffer(*od->f, l, e, m);
+      return ReadBuffer(*od->field, l, e, m);
     } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
       if (od->d == -1) {
-        return ReadBuffer(*od->f, l, e, m);
+        return ReadBuffer(*od->field, l, e, m);
       }
-      return ReadBuffer(*od->f, od->d, l, e, m);
+      return ReadBuffer(*od->field, od->d, l, e, m);
     }
     throw std::runtime_error("ReadBuffer: Unknown Co instance");
     return 0;
@@ -371,12 +371,12 @@ class Cubism : public DistrMesh<M_> {
   // number of scalar fields written
   size_t WriteBuffer(typename M::Co* o, Block& b, size_t e, M& m) {
     if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
-      return WriteBuffer(*od->f, b, e, m);
+      return WriteBuffer(*od->field, b, e, m);
     } else if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
       if (od->d == -1) {
-        return WriteBuffer(*od->f, b, e, m);
+        return WriteBuffer(*od->field, b, e, m);
       }
-      return WriteBuffer(*od->f, od->d, b, e, m);
+      return WriteBuffer(*od->field, od->d, b, e, m);
     }
     throw std::runtime_error("WriteBuffer: Unknown Co instance");
     return 0;

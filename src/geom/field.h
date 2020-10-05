@@ -112,11 +112,11 @@ class GField {
     return data_;
   }
   Value& operator[](const Idx& i) {
-    assert(size_t(i) >= 0 && size_t(i) < size_t(*range_.end()));
+    assert(size_t(i) < size_t(*range_.end()));
     return data_[size_t(i)];
   }
   const Value& operator[](const Idx& i) const {
-    assert(size_t(i) >= 0 && size_t(i) < size_t(*range_.end()));
+    assert(size_t(i) < size_t(*range_.end()));
     return data_[size_t(i)];
   }
   std::string GetName() const {

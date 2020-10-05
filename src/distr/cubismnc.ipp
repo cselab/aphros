@@ -979,14 +979,14 @@ auto Cubismnc<Par, M>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       // get field fc associated to index e
       const PF bf = GetField(m);
       if (const auto fcptr = dynamic_cast<const typename M::CoFcs*>(bf)) {
-        const FieldCell<Scal>& fc = *(fcptr->f);
+        const FieldCell<Scal>& fc = *(fcptr->field);
         // copy from inner cells to global field
         for (auto w : bc) {
           gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)];
         }
       } else if (
           const auto fcptr = dynamic_cast<const typename M::CoFcv*>(bf)) {
-        const FieldCell<Vect>& fc = *(fcptr->f);
+        const FieldCell<Vect>& fc = *(fcptr->field);
         // copy from inner cells to global field
         for (auto w : bc) {
           gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)][fcptr->d];
@@ -1027,7 +1027,7 @@ auto Cubismnc<Par, M>::GetGlobalField(size_t e) -> FieldCell<Scal> {
       // get field fc associated to index e
       const PF bf = GetField(m);
       if (const auto fcptr = dynamic_cast<const typename M::CoFcs*>(bf)) {
-        const FieldCell<Scal>& fc = *(fcptr->f);
+        const FieldCell<Scal>& fc = *(fcptr->field);
         size_t i = 0;
         // copy from inner cells to global field
         for (auto w : bc) {
@@ -1035,7 +1035,7 @@ auto Cubismnc<Par, M>::GetGlobalField(size_t e) -> FieldCell<Scal> {
         }
       } else if (
           const auto fcptr = dynamic_cast<const typename M::CoFcv*>(bf)) {
-        const FieldCell<Vect>& fc = *(fcptr->f);
+        const FieldCell<Vect>& fc = *(fcptr->field);
         size_t i = 0;
         // copy from inner cells to global field
         for (auto w : bc) {

@@ -25,7 +25,7 @@ class Suspender {
    public:
     // Constructor
     // Advance list iterator, add new counter if needed, reset counter
-    Sem(Suspender& p, std::string name = "");
+    Sem(Suspender& owner_, std::string name = "");
     Sem(Sem&) = delete;
     Sem& operator=(Sem&) = delete;
     Sem(Sem&&) = default;
@@ -45,8 +45,8 @@ class Suspender {
     void LoopEnd();
     template <class T>
     T* Get() {
-      U& u = *p.lui_;
-      std::unique_ptr<BaseHolder>& h = u.context;
+      State& s = *owner_.pos_;
+      std::unique_ptr<BaseHolder>& h = s.context;
       if (!h) {
         h = std::unique_ptr<BaseHolder>(new Holder<T>(new T()));
       }
@@ -62,7 +62,7 @@ class Suspender {
     }
 
    private:
-    Suspender& p; // parent
+    Suspender& owner_;
     std::string name_;
     // Returns true if current stage needs execution
     // and advances stage counter
@@ -99,18 +99,16 @@ class Suspender {
    private:
     std::unique_ptr<T> p_;
   };
-  struct U { // stage co[u]nter
-    int c; // current
-    int t; // target
-    int lb; // loop begin
-    int le; // loop end
+  struct State { // state of a suspended function
+    int current; // current stage index
+    int target; // target stage index
+    int loop_begin = -1; // index of stage with LoopBegin
+    int loop_end = -1; // index of stage with LoopEnd
     std::unique_ptr<BaseHolder> context;
-    U(int c, int t) : c(c), t(t), lb(-1), le(-1) {}
+    State(int current_, int target_) : current(current_), target(target_) {}
   };
-  using LU = std::list<U>;
-
-  LU lu_; // [l]ist of co[u]nters
-  LU::iterator lui_; // [l]ist of co[u]nters [i]terator
+  std::list<State> states_; // states of all suspended functions in nested call
+  std::list<State>::iterator pos_; // current function
   bool nest_; // allow nested calls
   std::string curname_; // name+suff of current stage
   size_t depth_;
