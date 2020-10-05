@@ -169,7 +169,7 @@ template <class M, class Expr>
 class FaceGrad : public Approx<IdxFace, Expr> {
  public:
   using Scal = typename M::Scal;
-  explicit FaceGrad(const M& m) : m(m) {}
+  explicit FaceGrad(const M& m_) : m(m_) {}
   Expr GetExpr(IdxFace f) const override {
     Expr e;
     IdxCell cm = m.GetCell(f, 0);

@@ -58,8 +58,8 @@ class KernelMesh {
   using MIdx = typename M::MIdx;
   static constexpr size_t dim = M::dim;
 
-  KernelMesh(Vars& var, const MyBlockInfo& bi)
-      : var(var), var_mutable(var), bi_(bi), m(CreateMesh<M>(bi)) {
+  KernelMesh(Vars& var_, const MyBlockInfo& bi)
+      : var(var_), var_mutable(var_), bi_(bi), m(CreateMesh<M>(bi)) {
     m.SetCN(var.Int["CHECKNAN"]); // TODO: revise, avoid optional setters
     m.SetEdim(var.Int["dim"]);
   }

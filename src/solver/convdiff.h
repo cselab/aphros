@@ -61,13 +61,13 @@ class ConvDiffScal : public UnsteadyIterativeSolver {
   // fcs: source
   // ffv: volume flux
   ConvDiffScal(
-      double t, double dt, M& m, const EB& eb, Par par,
+      double t, double dt, M& m_, const EB& eb_, Par par_,
       const FieldCell<Scal>* fcr, const FieldFaceb<Scal>* ffd,
       const FieldCell<Scal>* fcs, const FieldFaceb<Scal>* ffv)
       : UnsteadyIterativeSolver(t, dt)
-      , m(m)
-      , eb(eb)
-      , par(par)
+      , m(m_)
+      , eb(eb_)
+      , par(par_)
       , fcr_(fcr)
       , ffd_(ffd)
       , fcs_(fcs)

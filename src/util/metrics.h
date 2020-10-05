@@ -14,14 +14,14 @@ class MultiTimer {
   using Value = double;
 
   // Marks start of timer with given key
-  void Push(const Key& k);
+  void Push(const Key& key);
   void Push() {
     Push("");
   }
   // Marks stop of timer with last key.
-  // Overwrites the key if k != "".
+  // Overwrites the key if key != "".
   // Appends to accumulated time for new key.
-  void Pop(const Key& k);
+  void Pop(const Key& key);
   void Pop() {
     Pop("");
   }
@@ -32,40 +32,41 @@ class MultiTimer {
 
  private:
   using Clock = std::chrono::steady_clock;
-  Clock c_;
-  struct S { // start
-    Key k;
-    Clock::time_point t;
-    S(const Key& k, Clock::time_point t) : k(k), t(t) {}
+  Clock clock_;
+  struct Start { // start
+    Key key;
+    Clock::time_point time;
+    Start(const Key& key, Clock::time_point time) : key(key), time(time) {}
   };
-  std::map<Key, Value> a_; // accumulated time
-  std::stack<S> ss_; // stack of starts
+  std::map<Key, Value> accum_; // accumulated time
+  std::stack<Start> starts_;
 };
 
-template <class K>
-void MultiTimer<K>::Push(const Key& k) {
-  ss_.emplace(k, c_.now());
+template <class Key>
+void MultiTimer<Key>::Push(const Key& key) {
+  starts_.emplace(key, clock_.now());
 }
 
-template <class K>
-void MultiTimer<K>::Pop(const Key& k) {
-  S& s = ss_.top();
-  if (k != "") {
-    s.k = k;
+template <class Key>
+void MultiTimer<Key>::Pop(const Key& key) {
+  Start& start = starts_.top();
+  if (key != "") {
+    start.key = key;
   }
-  if (!a_.count(s.k)) {
-    a_[s.k] = 0.;
+  if (!accum_.count(start.key)) {
+    accum_[start.key] = 0.;
   }
-  a_[s.k] += std::chrono::duration<Value>(c_.now() - s.t).count();
-  ss_.pop();
+  accum_[start.key] +=
+      std::chrono::duration<Value>(clock_.now() - start.time).count();
+  starts_.pop();
 }
 
-template <class K>
-auto MultiTimer<K>::GetMap() const -> const std::map<Key, Value>& {
-  return a_;
+template <class Key>
+auto MultiTimer<Key>::GetMap() const -> const std::map<Key, Value>& {
+  return accum_;
 }
 
-template <class K>
-void MultiTimer<K>::Reset() {
-  a_.clear();
+template <class Key>
+void MultiTimer<Key>::Reset() {
+  accum_.clear();
 }

@@ -33,8 +33,8 @@ struct Primitive {
   Vect c; // center XXX adhoc for GetSphereOverlap
   Vect r; // radius XXX adhoc for GetSphereOverlap
 
-  Primitive(std::string name)
-      : name(name), inter([](const Rect<Vect>&) -> bool { return true; }) {}
+  Primitive(std::string name_)
+      : name(name_), inter([](const Rect<Vect>&) -> bool { return true; }) {}
   Primitive() : Primitive("") {}
 
   friend std::ostream& operator<<(std::ostream& o, const Primitive<Scal>& p) {

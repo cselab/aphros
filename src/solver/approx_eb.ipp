@@ -214,33 +214,33 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
     const Vect xc(var.Vect["eb_box_c"]);
     const Vect r(var.Vect["eb_box_r"]);
     const Scal angle = M_PI * var.Double["eb_box_angle"];
+    auto rotate = [angle](Vect xx) {
+      const Scal sin = std::sin(angle);
+      const Scal cos = std::cos(angle);
+      const Scal x = xx[0];
+      const Scal y = xx[1];
+      const Scal z = xx[2];
+      return Vect(x * cos - y * sin, x * sin + y * cos, z);
+    };
     for (auto n : m.AllNodes()) {
       const Vect x = m.GetNode(n);
-      auto rot = [angle](Vect xx) {
-        const Scal sin = std::sin(angle);
-        const Scal cos = std::cos(angle);
-        const Scal x = xx[0];
-        const Scal y = xx[1];
-        const Scal z = xx[2];
-        return Vect(x * cos - y * sin, x * sin + y * cos, z);
-      };
-      fnl[n] = (1 - (rot(x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
+      fnl[n] = (1 - (rotate(x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
     }
   } else if (name == "sphere") {
     const Vect xc(var.Vect["eb_sphere_c"]);
     const Vect r(var.Vect["eb_sphere_r"]);
     const Scal angle = M_PI * var.Double["eb_sphere_angle"];
+    auto rotate = [angle](Vect xx) {
+      const Scal sin = std::sin(angle);
+      const Scal cos = std::cos(angle);
+      const Scal x = xx[0];
+      const Scal y = xx[1];
+      const Scal z = xx[2];
+      return Vect(x * cos - y * sin, x * sin + y * cos, z);
+    };
     for (auto n : m.AllNodes()) {
       const Vect x = m.GetNode(n);
-      auto rot = [angle](Vect xx) {
-        const Scal sin = std::sin(angle);
-        const Scal cos = std::cos(angle);
-        const Scal x = xx[0];
-        const Scal y = xx[1];
-        const Scal z = xx[2];
-        return Vect(x * cos - y * sin, x * sin + y * cos, z);
-      };
-      fnl[n] = (rot(x - xc) / r).norm() - 1;
+      fnl[n] = (rotate(x - xc) / r).norm() - 1;
     }
   } else if (name == "model") {
     const std::string path = var.String["eb_model_path"];
@@ -680,15 +680,18 @@ auto UEmbed<M>::InterpolateBcg(
 
     // temporal derivative, initial from acceleration
     Scal ut = (fc_src[cm] + fc_src[cp]) * 0.5;
+    // normal derivative
+    Scal ux = 0;
     // convective terms
     // normal direction
-    const IdxFace fm = Fm(0);
-    const IdxFace fp = Fp(0);
-    const Scal ux = (is_boundary[fm] || is_boundary[fp])
-                        ? feg[f]
-                        : (feg[fm] + feg[fp]) * 0.5; // normal derivative
-    const Scal w = fev[f] / eb.GetArea(f); // velocity
-    ut -= ux * w;
+    {
+      const IdxFace fm = Fm(0);
+      const IdxFace fp = Fp(0);
+      ux += (is_boundary[fm] || is_boundary[fp]) ? feg[f]
+                                                 : (feg[fm] + feg[fp]) * 0.5;
+      const Scal w = fev[f] / eb.GetArea(f); // velocity
+      ut -= ux * w;
+    }
     // tangential directions
     for (auto d : {1, 2}) {
       const IdxFace fm = Fm(d);
@@ -759,13 +762,17 @@ auto UEmbed<M>::InterpolateBcg(
 
     // temporal derivative, initial from acceleration
     Scal ut = (fc_src[cm] + fc_src[cp]) * 0.5;
+    // normal derivative
+    Scal ux = 0;
     // convective terms
     // normal direction
-    const IdxFace fm = Fm(0);
-    const IdxFace fp = Fp(0);
-    const Scal ux = (ffg[fm] + ffg[fp]) * 0.5; // normal derivative
-    const Scal w = ffv[f] / m.GetArea(f); // velocity
-    ut -= ux * w;
+    {
+      const IdxFace fm = Fm(0);
+      const IdxFace fp = Fp(0);
+      ux += (ffg[fm] + ffg[fp]) * 0.5;
+      const Scal w = ffv[f] / m.GetArea(f); // velocity
+      ut -= ux * w;
+    }
     // tangential directions
     for (auto d : {1, 2}) {
       const IdxFace fm = Fm(d);
@@ -843,7 +850,6 @@ auto UEmbed<M>::Interpolate(
         return CombineMixed<Scal>()(val, fcu[c] + val * a, m.GetNormal(f));
       }
       case BCondType::extrap: {
-        const IdxCell c = m.GetCell(f, nci);
         const size_t q = m.GetNci(c, f);
         const size_t qo = m.GetOpposite(q);
         const IdxFace fo = m.GetFace(c, qo);
@@ -1013,14 +1019,14 @@ auto UEmbed<M>::Interpolate(const FieldEmbed<T>& feu, const EB& eb)
       }
       fcu[c] = sum / sumw;
     } else { // Type::cut
-      const Scal w = 1 / std::abs(eb.GetFaceOffset(c));
-      T sum = feu[c] * w;
-      Scal sumw = w;
+      const Scal wc = 1 / std::abs(eb.GetFaceOffset(c));
+      T sum = feu[c] * wc;
+      Scal sumw = wc;
       for (auto q : eb.Nci(c)) {
         IdxFace f = eb.GetFace(c, q);
-        const Scal w = 1 / std::abs(eb.GetFaceOffset(c, q));
-        sum += feu[f] * w;
-        sumw += w;
+        const Scal wf = 1 / std::abs(eb.GetFaceOffset(c, q));
+        sum += feu[f] * wf;
+        sumw += wf;
       }
       fcu[c] = sum / sumw;
     }
@@ -1386,10 +1392,10 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
         break;
       }
       case BCondType::neumann: {
-        const Scal g = (nci == 0 ? 1 : -1);
-        const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * g;
+        const Scal sgn = (nci == 0 ? 1 : -1);
+        const Scal d = m.GetVolume(c) / m.GetArea(f) * 0.5 * sgn;
         e[nci] = 1;
-        e[2] = a * bc.val;
+        e[2] = d * bc.val;
         break;
       }
       default:

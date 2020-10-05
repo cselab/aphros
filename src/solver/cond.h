@@ -53,8 +53,9 @@ enum class BCondType {
 template <class T>
 struct BCond {
   BCond() = default;
-  BCond(BCondType type, size_t nci, T val) : type(type), nci(nci), val(val) {}
-  BCond(BCondType type, size_t nci) : type(type), nci(nci) {}
+  BCond(BCondType type_, size_t nci_, T val_)
+      : type(type_), nci(nci_), val(val_) {}
+  BCond(BCondType type_, size_t nci_) : type(type_), nci(nci_) {}
   BCondType type = BCondType::dirichlet;
   size_t nci = 0; // neighbor cell id on faces and 0 on embedded boundaries
   T val = T(0); // field value (dirichlet) or normal gradient (neumann)

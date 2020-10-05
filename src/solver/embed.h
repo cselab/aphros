@@ -287,8 +287,8 @@ class Embed {
   class NciEmbed {};
   // Constructor
   // fnl: level-set function on nodes, interface at fnl=0
-  Embed(M& m, Scal gradlim) : m(m), eb(*this), gradlim_(gradlim) {}
-  explicit Embed(M& m) : Embed(m, 0.5) {}
+  Embed(M& m_, Scal gradlim) : m(m_), eb(*this), gradlim_(gradlim) {}
+  explicit Embed(M& m_) : Embed(m_, 0.5) {}
   // Initializes embedded boundaries with level-set function.
   // Suspendable, requires communication.
   // fnl: level-set function [a]
@@ -627,14 +627,14 @@ class Embed {
       case Type::regular:
         return m.GetCenter(c);
       case Type::cut: {
-        const Scal w = GetArea(c);
-        Vect sum = GetFaceCenter0(c) * w;
-        Scal sumw = w;
+        const Scal wc = GetArea(c);
+        Vect sum = GetFaceCenter0(c) * wc;
+        Scal sumw = wc;
         for (auto q : this->Nci(c)) {
           auto f = m.GetFace(c, q);
-          const Scal w = GetArea(f);
-          sum += GetFaceCenter0(f) * w;
-          sumw += w;
+          const Scal wf = GetArea(f);
+          sum += GetFaceCenter0(f) * wf;
+          sumw += wf;
         }
         return sum / sumw;
       }
