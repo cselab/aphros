@@ -6,7 +6,7 @@
 
 #include "young.h"
 
-static YoungParam param;
+static YoungParam g_param;
 
 #define SET(key, val) \
   if ((key) != NULL) *(key) = (val)
@@ -139,7 +139,7 @@ int young_set(YoungParam* p) {
 }
 
 int young_ini(YoungParam p) {
-  param = p;
+  g_param = p;
   return 0;
 }
 
@@ -148,13 +148,13 @@ int young_fields(
   double R, r, th;
   double vr, vth, vy, vz;
 
-  R = param.R;
+  R = g_param.R;
   yz2sph(y, z, &r, &th);
 
   if (r > R)
-    v(param, r, th, &vr, &vth, p, T);
+    v(g_param, r, th, &vr, &vth, p, T);
   else
-    u(param, r, th, &vr, &vth, p, T);
+    u(g_param, r, th, &vr, &vth, p, T);
 
   sph2yz(th, vr, vth, &vy, &vz);
 

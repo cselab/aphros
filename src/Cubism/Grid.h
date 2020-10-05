@@ -73,7 +73,6 @@ class Grid {
   }
 
   Block* _linaccess(const size_t idx) const {
-    assert(idx >= 0);
     assert(idx < N);
 
     return m_blocks + idx;

@@ -47,12 +47,14 @@ int RunMpi0(
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   bool isroot = (!rank);
 
-  ArgumentParser parser("Distributed solver", isroot);
-  parser.AddSwitch({"--verbose", "-v"}).Help("Print initial configuration");
-  parser.AddSwitch({"--version"}).Help("Print version");
-  parser.AddVariable<std::string>("config", "a.conf")
-      .Help("Path to configuration file");
-  auto args = parser.ParseArgs(argc, argv);
+  const auto args = [&argc, &argv, &isroot]() {
+    ArgumentParser parser("Distributed solver", isroot);
+    parser.AddSwitch({"--verbose", "-v"}).Help("Print initial configuration");
+    parser.AddSwitch({"--version"}).Help("Print version");
+    parser.AddVariable<std::string>("config", "a.conf")
+        .Help("Path to configuration file");
+    return parser.ParseArgs(argc, argv);
+  }();
   if (const int* p = args.Int.Find("EXIT")) {
     return *p;
   }
