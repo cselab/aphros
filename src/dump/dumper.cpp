@@ -9,7 +9,7 @@
 
 #include "dumper.h"
 
-Dumper::Dumper(const Vars& var, std::string pre) : var(var), prefix_(pre) {}
+Dumper::Dumper(const Vars& var_, std::string pre) : var(var_), prefix_(pre) {}
 
 bool Dumper::Try(double t, double dt) {
   if (time_ == t) {

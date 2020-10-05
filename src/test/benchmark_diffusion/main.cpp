@@ -36,7 +36,7 @@ Mesh GetMesh(MIdx s /*size in cells*/) {
 
 class TimerMesh : public Timer {
  public:
-  TimerMesh(const std::string& name, Mesh& m) : Timer(name, 0.1, 3), m(m) {}
+  TimerMesh(const std::string& name, Mesh& m_) : Timer(name, 0.1, 3), m(m_) {}
 
  protected:
   Mesh& m;

@@ -133,21 +133,21 @@ void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
       }
     }
   };
+  auto apply = [append, set](auto* derived, size_t i) {
+    if (derived) {
+      auto buf = derived->Neut();
+      append(derived, buf, i);
+      set(derived, buf, i);
+      return true;
+    }
+    return false;
+  };
 
   for (size_t i = 0; i < vfirst.size(); ++i) {
     auto* request = vfirst[i].get();
-    if (auto derived = dynamic_cast<ReductionScal*>(request)) {
-      auto buf = derived->Neut();
-      append(derived, buf, i);
-      set(derived, buf, i);
-    } else if (auto derived = dynamic_cast<ReductionScalInt*>(request)) {
-      auto buf = derived->Neut();
-      append(derived, buf, i);
-      set(derived, buf, i);
-    } else if (auto derived = dynamic_cast<ReductionConcat*>(request)) {
-      auto buf = derived->Neut();
-      append(derived, buf, i);
-      set(derived, buf, i);
+    if (apply(dynamic_cast<ReductionScal*>(request), i) ||
+        apply(dynamic_cast<ReductionScalInt*>(request), i) ||
+        apply(dynamic_cast<ReductionConcat*>(request), i)) {
     } else {
       throw std::runtime_error(
           FILELINE + "ReduceToLead: Unknown M::Op implementation");
@@ -233,10 +233,10 @@ void DistrMesh<M>::ApplyNanFaces(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
     auto& m = mk.at(b)->GetMesh();
     for (auto& o : m.GetComm()) {
-      if (auto od = dynamic_cast<typename M::CoFcs*>(o.get())) {
-        m.ApplyNanFaces(*od->field);
-      } else if (auto od = dynamic_cast<typename M::CoFcv*>(o.get())) {
-        m.ApplyNanFaces(*od->field);
+      if (auto* os = dynamic_cast<typename M::CoFcs*>(o.get())) {
+        m.ApplyNanFaces(*os->field);
+      } else if (auto* ov = dynamic_cast<typename M::CoFcv*>(o.get())) {
+        m.ApplyNanFaces(*ov->field);
       } else {
         throw std::runtime_error("Distr::Run(): unknown field type for nan");
       }

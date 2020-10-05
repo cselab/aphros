@@ -12,7 +12,7 @@ struct BCondAdvection {
   enum class Halo { fill, reflect };
 
   BCondAdvection() = default;
-  BCondAdvection(size_t nci) : nci(nci) {}
+  BCondAdvection(size_t nci_) : nci(nci_) {}
   size_t GetNci() const {
     return nci;
   }
@@ -40,9 +40,9 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
   // fev: volume flux
   // fcs: source
   AdvectionSolver(
-      double t, double dt, M& m, const FieldEmbed<Scal>* fev,
+      double t, double dt, M& m_, const FieldEmbed<Scal>* fev,
       const FieldCell<Scal>* fcs)
-      : UnsteadyIterativeSolver(t, dt), m(m), fev_(fev), fcs_(fcs) {}
+      : UnsteadyIterativeSolver(t, dt), m(m_), fev_(fev), fcs_(fcs) {}
   // Postprocessing after time step (dumps)
   virtual void PostStep() {}
   // Volume fraction

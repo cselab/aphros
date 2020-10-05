@@ -36,7 +36,7 @@ class MultiTimer {
   struct Start { // start
     Key key;
     Clock::time_point time;
-    Start(const Key& key, Clock::time_point time) : key(key), time(time) {}
+    Start(const Key& key_, Clock::time_point time_) : key(key_), time(time_) {}
   };
   std::map<Key, Value> accum_; // accumulated time
   std::stack<Start> starts_;

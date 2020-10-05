@@ -40,11 +40,11 @@ struct Proj<EB_>::Imp {
   using Expr = typename M::Expr;
   using UEB = UEmbed<M>;
 
-  Imp(Owner* owner, const EB& eb, const Args& args)
+  Imp(Owner* owner, const EB& eb_, const Args& args)
       : owner_(owner)
       , par(args.par)
       , m(owner_->m)
-      , eb(eb)
+      , eb(eb_)
       , edim_range_(m.GetEdim())
       , linsolver_(args.linsolver)
       , mebc_(args.mebc)

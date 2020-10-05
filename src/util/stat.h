@@ -116,7 +116,7 @@ class Stat {
         , derived(derived) {}
   };
 
-  Stat(M& m, const Embed<M>* eb = nullptr) : m(m), eb_(eb), vect(this) {}
+  Stat(M& m_, const Embed<M>* eb = nullptr) : m(m_), eb_(eb), vect(this) {}
   Stat(const Stat&) = delete;
 
   template <class Func>

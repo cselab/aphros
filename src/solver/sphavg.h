@@ -20,24 +20,24 @@ class Sphavg {
  public:
   struct Sph {
     Vect x = Vect(0); // center
-    Scal r = 1.; // radius
-    Scal h = 1.; // kernel width
+    Scal r = 1; // radius
+    Scal h = 1; // kernel width
     Sph() = default;
-    Sph(const Vect& x, Scal r, Scal h) : x(x), r(r), h(h) {}
+    Sph(const Vect& x_, Scal r_, Scal h_) : x(x_), r(r_), h(h_) {}
   };
   struct Avg {
-    Scal b = 0.; // total weight
+    Scal b = 0; // total weight
     Vect x = Vect(0); // average of position
     Vect v = Vect(0); // velocity
     Vect dvt = Vect(0); // dv/dt
     Vect dvx = Vect(0); // dv/dx * v
     Vect dvmat = Vect(0); // dv/dt + dv/dx * v
     Vect gp = Vect(0); // gp/dx
-    Scal vm = 0.; // velocity magnitude
-    Scal p = 0.; // pressure
-    Scal r = 1.; // equivalent radius
-    Scal rhm = 1.; // shell inner
-    Scal rhp = 1.; // shell outer
+    Scal vm = 0; // velocity magnitude
+    Scal p = 0; // pressure
+    Scal r = 1; // equivalent radius
+    Scal rhm = 1; // shell inner
+    Scal rhp = 1; // shell outer
     Vect gvx = Vect(0); // dv/dx
     Vect gvy = Vect(0); // dv/dy
     Vect gvz = Vect(0); // dv/dz
@@ -136,7 +136,7 @@ class Sphavg {
   };
   // Constructor.
   // edim: effective dimension, 2 or 3
-  Sphavg(M& m, size_t edim) : m(m), edim_(edim) {}
+  Sphavg(M& m_, size_t edim) : m(m_), edim_(edim) {}
   // Computes averages over spheres.
   // fcu: volume fraction [a]
   // fcv: velocity [a]

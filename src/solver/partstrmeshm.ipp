@@ -16,6 +16,7 @@
 
 #include "partstrmeshm.h"
 
+// Returns array with new elements selected by index idx.
 template <class T>
 void Reorder(std::vector<T>& v, const std::vector<size_t> idx) {
   std::vector<T> t = v;
@@ -31,8 +32,8 @@ struct PartStrMeshM<M_>::Imp {
   using R = Reconst<Scal>;
   static constexpr Scal kClNone = -1;
 
-  Imp(M& m, Par par, const GRange<size_t>& layers)
-      : m(m), par(par), layers(layers), vfckp_(layers.size()) {
+  Imp(M& m_, Par par_, const GRange<size_t>& layers_)
+      : m(m_), par(par_), layers(layers_), vfckp_(layers.size()) {
     par.ps.hc = m.GetCellSize().norminf();
     partstr_.reset(new PartStr<Scal>(par.ps));
     vfckp_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
@@ -278,28 +279,29 @@ struct PartStrMeshM<M_>::Imp {
       auto& fci = *plic.vfci[l];
       auto& fccl = *plic.vfccl[l];
       for (auto c : eb.Cells()) {
-        const Vect xc = m.GetCenter(c);
         if (fci[c] && (nocl || fccl[c] != kClNone)) {
           // number of strings
-          size_t ns = (par.dim == 2 ? 1 : par.ns);
+          const size_t ns = (par.dim == 2 ? 1 : par.ns);
           for (size_t s = 0; s < ns; ++s) {
-            const Scal angle = s * M_PI / ns; // angle
-            const auto v = GetPlaneBasis(xc, fcn[c], fca[c], angle);
+            const Scal section_angle = s * M_PI / ns;
+            const auto basis =
+                GetPlaneBasis(m.GetCenter(c), fcn[c], fca[c], section_angle);
 
-            auto contang_segment = [&v, &fcn, this, &plic](
-                                       IdxCell c, Scal contang, Vect2 xl,
+            // Returns segment to insert in cell cn to enforce contact angle
+            auto contang_segment = [&basis, &fcn, this, &plic](
+                                       IdxCell cn, Scal contang, Vect2 xl,
                                        Vect nf) -> std::array<Vect2, 2> {
               const Scal h = m.GetCellSize()[0];
               auto unit = [](const Vect& t) { return t / t.norm(); };
-              const Vect tf = unit(unit(fcn[c]).orth(nf));
+              const Vect tf = unit(unit(fcn[cn]).orth(nf));
               const Vect ni = tf * std::sin(contang) - nf * std::cos(contang);
-              Vect dir = ni.cross(v[1].cross(v[2]));
+              Vect dir = ni.cross(basis[1].cross(basis[2]));
               if (dir.dot(nf) < 0) {
                 dir *= -1;
               }
-              const Vect xc = GetSpaceCoords(xl, v);
-              const Vect2 pe0 = GetPlaneCoords(xc, v);
-              const Vect2 pe1 = GetPlaneCoords(xc + dir * (3 * h), v);
+              const Vect xc = GetSpaceCoords(xl, basis);
+              const Vect2 pe0 = GetPlaneCoords(xc, basis);
+              const Vect2 pe1 = GetPlaneCoords(xc + dir * (3 * h), basis);
               return {pe0, pe1};
             };
 
@@ -316,7 +318,7 @@ struct PartStrMeshM<M_>::Imp {
                 auto& fccl2 = *plic.vfccl[j];
                 if (fci2[cn] && (nocl || fccl2[cn] == fccl[c])) {
                   if (AppendInterface(
-                          v, m.GetCenter(cn), fca2[cn], fcn2[cn], lx, ls)) {
+                          basis, m.GetCenter(cn), fca2[cn], fcn2[cn], lx, ls)) {
                     if (auto* p = boundary.find(cn)) {
                       // Contact angle is specified in cell cn.
                       if (c == cn || eb.IsCut(cn)) {
@@ -347,7 +349,7 @@ struct PartStrMeshM<M_>::Imp {
             partstr_->Add(Vect2(0.), Vect2(1., 0.), lx, ls);
             vsc_.push_back(c);
             vsl_.push_back(l);
-            vsan_.push_back(angle);
+            vsan_.push_back(section_angle);
           }
         }
       }
@@ -449,7 +451,7 @@ struct PartStrMeshM<M_>::Imp {
           // cell
           IdxCell c = vsc_[s];
           size_t l = vsl_[s];
-          auto v = GetPlaneBasis(
+          auto basis = GetPlaneBasis(
               m.GetCenter(c), (*vfcn[l])[c], (*vfca[l])[c], vsan_[s]);
 
           auto p = partstr_->GetStr(s);
@@ -458,7 +460,7 @@ struct PartStrMeshM<M_>::Imp {
 
           size_t ic = m.GetHash(c);
           for (size_t i = 0; i < sx; ++i) {
-            auto x = GetSpaceCoords(xx[i], v);
+            auto x = GetSpaceCoords(xx[i], basis);
             dpx.push_back(x);
             dpc.push_back(ic);
             dpk.push_back(partstr_->GetCurv(s));
@@ -514,18 +516,17 @@ struct PartStrMeshM<M_>::Imp {
 
     if (sem("local")) {
       for (size_t s = 0; s < partstr_->GetNumStr(); ++s) {
-        // cell containing string
-        IdxCell c = vsc_[s];
-        size_t l = vsl_[s];
-        auto v = GetPlaneBasis(
-            m.GetCenter(c), (*vfcn[l])[c], (*vfca[l])[c], vsan_[s]);
-        auto in = partstr_->GetInter(s);
+        const IdxCell c = vsc_[s]; // cell containing string
+        const size_t layer = vsl_[s];
+        const auto basis = GetPlaneBasis(
+            m.GetCenter(c), (*vfcn[layer])[c], (*vfca[layer])[c], vsan_[s]);
+        const auto inter = partstr_->GetInter(s);
+        const size_t hc = m.GetHash(c);
         size_t i = 0;
-        size_t hc = m.GetHash(c);
-        for (size_t l = 0; l < in.n; ++l) {
+        for (size_t l = 0; l < inter.n; ++l) {
           std::vector<Vect> xx;
-          for (size_t k = 0; k < in.s[l]; ++k) {
-            xx.push_back(GetSpaceCoords(in.x[i], v));
+          for (size_t k = 0; k < inter.s[l]; ++k) {
+            xx.push_back(GetSpaceCoords(inter.x[i], basis));
             ++i;
           }
           dl.push_back(xx);

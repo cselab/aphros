@@ -33,16 +33,16 @@ using M = MeshStructured<Scal, dim>;
   std::cerr << "\n" << #__VA_ARGS__ << std::endl; \
   __VA_ARGS__;
 
-M GetMesh(MIdx s /*size in cells*/) {
+M GetMesh(MIdx size) {
   Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
-  MIdx b(-2, -3, -4); // lower index
-  int hl = 2; // halos
-  return InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
+  MIdx begin(-2, -3, -4);
+  int halos = 2;
+  return InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);
 }
 
 class TimerMesh : public Timer {
  public:
-  TimerMesh(const std::string& name, M& m) : Timer(name), m(m) {}
+  TimerMesh(const std::string& name, M& m_) : Timer(name), m(m_) {}
 
  protected:
   M& m;
@@ -67,13 +67,13 @@ class FactoryTimerMesh : IFactoryTimerMesh {
 
 class Empty : public TimerMesh {
  public:
-  Empty(M& m) : TimerMesh("empty", m) {}
+  Empty(M& m_) : TimerMesh("empty", m_) {}
   void F() override {}
 };
 
 class LoopPlain : public TimerMesh {
  public:
-  LoopPlain(M& m) : TimerMesh("loop-plain", m) {}
+  LoopPlain(M& m_) : TimerMesh("loop-plain", m_) {}
   void F() override {
     volatile size_t a = 0;
     for (size_t i = 0; i < m.GetAllBlockCells().size(); ++i) {
@@ -84,7 +84,7 @@ class LoopPlain : public TimerMesh {
 
 class LoopAllCells : public TimerMesh {
  public:
-  LoopAllCells(M& m) : TimerMesh("loop-allcells", m) {}
+  LoopAllCells(M& m_) : TimerMesh("loop-allcells", m_) {}
   void F() override {
     volatile size_t a = 0;
     for (auto i : m.AllCells()) {
@@ -95,7 +95,7 @@ class LoopAllCells : public TimerMesh {
 
 class LoopInCells : public TimerMesh {
  public:
-  LoopInCells(M& m) : TimerMesh("loop-incells", m) {}
+  LoopInCells(M& m_) : TimerMesh("loop-incells", m_) {}
   void F() override {
     volatile size_t a = 0;
     for (auto i : m.Cells()) {
@@ -106,7 +106,7 @@ class LoopInCells : public TimerMesh {
 
 class LoopAllFaces : public TimerMesh {
  public:
-  LoopAllFaces(M& m) : TimerMesh("loop-allfaces", m) {}
+  LoopAllFaces(M& m_) : TimerMesh("loop-allfaces", m_) {}
   void F() override {
     volatile size_t a = 0;
     for (auto i : m.AllFaces()) {
@@ -117,7 +117,7 @@ class LoopAllFaces : public TimerMesh {
 
 class LoopInFaces : public TimerMesh {
  public:
-  LoopInFaces(M& m) : TimerMesh("loop-infaces", m) {}
+  LoopInFaces(M& m_) : TimerMesh("loop-infaces", m_) {}
   void F() override {
     volatile size_t a = 0;
     for (auto i : m.Faces()) {
@@ -129,8 +129,8 @@ class LoopInFaces : public TimerMesh {
 // Loop access to field
 class LoopFldPlain : public TimerMesh {
  public:
-  LoopFldPlain(M& m)
-      : TimerMesh("loop-fld-plain", m), v(GRange<IdxCell>(m).size()) {}
+  LoopFldPlain(M& m_)
+      : TimerMesh("loop-fld-plain", m_), v(GRange<IdxCell>(m).size()) {}
   void F() override {
     volatile Scal a = 0;
     for (size_t i = 0; i < v.size(); ++i) {
@@ -145,7 +145,7 @@ class LoopFldPlain : public TimerMesh {
 
 class LoopFldAllCells : public TimerMesh {
  public:
-  LoopFldAllCells(M& m) : TimerMesh("loop-fld-allcells", m), v(m) {}
+  LoopFldAllCells(M& m_) : TimerMesh("loop-fld-allcells", m_), v(m) {}
   void F() override {
     volatile Scal a = 0;
     for (auto i : m.AllCells()) {
@@ -160,7 +160,7 @@ class LoopFldAllCells : public TimerMesh {
 
 class LoopMIdxAllCells : public TimerMesh {
  public:
-  LoopMIdxAllCells(M& m) : TimerMesh("loop-midx-allcells", m) {}
+  LoopMIdxAllCells(M& m_) : TimerMesh("loop-midx-allcells", m_) {}
   void F() override {
     volatile size_t a = 0;
     for (auto c : m.AllCells()) {
@@ -172,7 +172,7 @@ class LoopMIdxAllCells : public TimerMesh {
 
 class LoopMIdxAllFaces : public TimerMesh {
  public:
-  LoopMIdxAllFaces(M& m) : TimerMesh("loop-midx-allfaces", m) {}
+  LoopMIdxAllFaces(M& m_) : TimerMesh("loop-midx-allfaces", m_) {}
   void F() override {
     volatile size_t a = 0;
     for (auto f : m.AllFaces()) {
@@ -185,7 +185,7 @@ class LoopMIdxAllFaces : public TimerMesh {
 
 class CellVolume : public TimerMesh {
  public:
-  CellVolume(M& m) : TimerMesh("m-cell-volume", m) {}
+  CellVolume(M& m_) : TimerMesh("m-cell-volume", m_) {}
   void F() override {
     volatile size_t a = 1;
     for (auto c : m.Cells()) {
@@ -196,7 +196,7 @@ class CellVolume : public TimerMesh {
 
 class CellCenter : public TimerMesh {
  public:
-  CellCenter(M& m) : TimerMesh("m-cell-center", m) {}
+  CellCenter(M& m_) : TimerMesh("m-cell-center", m_) {}
   void F() override {
     volatile int a = 0;
     for (auto c : m.Cells()) {
@@ -207,7 +207,7 @@ class CellCenter : public TimerMesh {
 
 class CellNCell : public TimerMesh {
  public:
-  CellNCell(M& m) : TimerMesh("m-cell-n-cell", m) {}
+  CellNCell(M& m_) : TimerMesh("m-cell-n-cell", m_) {}
   void F() override {
     volatile size_t a = 1;
     for (auto c : m.Cells()) {
@@ -220,7 +220,7 @@ class CellNCell : public TimerMesh {
 
 class CellNFace : public TimerMesh {
  public:
-  CellNFace(M& m) : TimerMesh("m-cell-n-face", m) {}
+  CellNFace(M& m_) : TimerMesh("m-cell-n-face", m_) {}
   void F() override {
     volatile size_t a = 1;
     for (auto c : m.Cells()) {
@@ -233,7 +233,7 @@ class CellNFace : public TimerMesh {
 
 class CellOutward : public TimerMesh {
  public:
-  CellOutward(M& m) : TimerMesh("m-cell-outward", m) {}
+  CellOutward(M& m_) : TimerMesh("m-cell-outward", m_) {}
   void F() override {
     volatile size_t a = 0;
     for (auto c : m.Cells()) {
@@ -246,7 +246,7 @@ class CellOutward : public TimerMesh {
 
 class CellNNode : public TimerMesh {
  public:
-  CellNNode(M& m) : TimerMesh("m-cell-n-node", m) {}
+  CellNNode(M& m_) : TimerMesh("m-cell-n-node", m_) {}
   void F() override {
     volatile size_t a = 1;
     for (auto c : m.Cells()) {
@@ -259,7 +259,7 @@ class CellNNode : public TimerMesh {
 
 class FaceCenter : public TimerMesh {
  public:
-  FaceCenter(M& m) : TimerMesh("m-face-center", m) {}
+  FaceCenter(M& m_) : TimerMesh("m-face-center", m_) {}
   void F() override {
     volatile int a = 0;
     for (auto f : m.Faces()) {
@@ -270,7 +270,7 @@ class FaceCenter : public TimerMesh {
 
 class FaceSurf : public TimerMesh {
  public:
-  FaceSurf(M& m) : TimerMesh("m-face-surf", m) {}
+  FaceSurf(M& m_) : TimerMesh("m-face-surf", m_) {}
   void F() override {
     volatile int a = 0;
     for (auto f : m.Faces()) {
@@ -281,7 +281,7 @@ class FaceSurf : public TimerMesh {
 
 class FaceArea : public TimerMesh {
  public:
-  FaceArea(M& m) : TimerMesh("m-face-area", m) {}
+  FaceArea(M& m_) : TimerMesh("m-face-area", m_) {}
   void F() override {
     volatile int a = 0;
     for (auto f : m.Faces()) {
@@ -292,7 +292,7 @@ class FaceArea : public TimerMesh {
 
 class FaceNCell : public TimerMesh {
  public:
-  FaceNCell(M& m) : TimerMesh("m-face-n-cell", m) {}
+  FaceNCell(M& m_) : TimerMesh("m-face-n-cell", m_) {}
   void F() override {
     volatile size_t a = 1;
     for (auto f : m.Faces()) {
@@ -305,7 +305,7 @@ class FaceNCell : public TimerMesh {
 
 class FaceNNode : public TimerMesh {
  public:
-  FaceNNode(M& m) : TimerMesh("m-face-n-node", m) {}
+  FaceNNode(M& m_) : TimerMesh("m-face-n-node", m_) {}
   void F() override {
     volatile size_t a = 1;
     for (auto f : m.Faces()) {
@@ -318,7 +318,7 @@ class FaceNNode : public TimerMesh {
 
 class Interp : public TimerMesh {
  public:
-  Interp(M& m) : TimerMesh("interp", m), fc(m), ff(m) {
+  Interp(M& m_) : TimerMesh("interp", m_), fc(m), ff(m) {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -344,7 +344,7 @@ class Interp : public TimerMesh {
 
 class Grad : public TimerMesh {
  public:
-  Grad(M& m) : TimerMesh("grad", m), fc(m), ff(m) {
+  Grad(M& m_) : TimerMesh("grad", m_), fc(m), ff(m) {
     for (auto i : m.AllFaces()) {
       ff[i] = std::sin(i.GetRaw());
     }
@@ -362,7 +362,7 @@ class Grad : public TimerMesh {
 
 class ExplVisc : public TimerMesh {
  public:
-  ExplVisc(M& m) : TimerMesh("explvisc", m), fcv(m), fcf(m), ffmu(m) {
+  ExplVisc(M& m_) : TimerMesh("explvisc", m_), fcv(m), fcf(m), ffmu(m) {
     for (auto i : m.AllCells()) {
       auto a = i.GetRaw();
       fcv[i] = Vect(std::sin(a), std::sin(a + 1), std::sin(a + 2));

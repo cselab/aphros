@@ -17,6 +17,18 @@
 #include "util/sysinfo.h"
 #include "util/timer.h"
 
+template <class Idx, class M>
+typename M::Scal DiffMax(
+    const GField<typename M::Vect, Idx>& u,
+    const GField<typename M::Vect, Idx>& v, const M& m) {
+  using Scal = typename M::Scal;
+  Scal r = 0;
+  for (auto i : m.template GetIn<Idx>()) {
+    r = std::max(r, (u[i] - v[i]).norminf());
+  }
+  return r;
+}
+
 const int dim = 3;
 using MIdx = GMIdx<dim>;
 using IdxCell = IdxCell;
@@ -37,18 +49,6 @@ Scal Rndn(Scal& q) {
   return std::sin(std::sin(q * 123.456) * 654.321);
 }
 
-template <class Idx, class M>
-typename M::Scal DiffMax(
-    const GField<typename M::Vect, Idx>& u,
-    const GField<typename M::Vect, Idx>& v, const M& m) {
-  using Scal = typename M::Scal;
-  Scal r = 0;
-  for (auto i : m.template GetIn<Idx>()) {
-    r = std::max(r, (u[i] - v[i]).norminf());
-  }
-  return r;
-}
-
 Mesh GetMesh(MIdx s /*size in cells*/) {
   Rect<Vect> dom(Vect(0), Vect(1));
   MIdx b(0, 0, 0); // lower index
@@ -58,7 +58,7 @@ Mesh GetMesh(MIdx s /*size in cells*/) {
 
 class TimerMesh : public Timer {
  public:
-  TimerMesh(const std::string& name, Mesh& m) : Timer(name, 0.1, 3), m(m) {}
+  TimerMesh(const std::string& name, Mesh& m_) : Timer(name, 0.1, 3), m(m_) {}
 
  protected:
   Mesh& m;
@@ -67,8 +67,8 @@ class TimerMesh : public Timer {
 template <int id>
 class Young : public TimerMesh {
  public:
-  Young(Mesh& m)
-      : TimerMesh("young" + std::to_string(id), m), fc(m), fci(m, true) {
+  Young(Mesh& m_)
+      : TimerMesh("young" + std::to_string(id), m_), fc(m), fci(m, true) {
     for (auto i : m.AllCells()) {
       fc[i] = Rnd(i.GetRaw());
     }
@@ -94,8 +94,8 @@ class Young : public TimerMesh {
 template <int id>
 class Height : public TimerMesh {
  public:
-  Height(Mesh& m)
-      : TimerMesh("height" + std::to_string(id), m), fc(m), fci(m, true) {
+  Height(Mesh& m_)
+      : TimerMesh("height" + std::to_string(id), m_), fc(m), fci(m, true) {
     for (auto i : m.AllCells()) {
       fc[i] = Rnd(i.GetRaw());
     }
@@ -122,8 +122,8 @@ class Height : public TimerMesh {
 
 class Partstr : public TimerMesh {
  public:
-  Partstr(Mesh& m)
-      : TimerMesh("partstr", m), fc(m), fci(m, true), fcn(m), fca(m) {
+  Partstr(Mesh& m_)
+      : TimerMesh("partstr", m_), fc(m), fci(m, true), fcn(m), fca(m) {
     for (auto c : m.AllCells()) {
       Scal q = c.GetRaw();
       fc[c] = Rndn(q);

@@ -20,7 +20,7 @@ class Tracker {
 
  public:
   // fccl: initial color [a]
-  Tracker(M& m, const FieldCell<Scal>& fccl) : m(m), layers(1), fccl_(fccl) {
+  Tracker(M& m_, const FieldCell<Scal>& fccl) : m(m_), layers(1), fccl_(fccl) {
     trm_ = std::unique_ptr<TRM>(new TRM(m, layers));
   }
   // Propagates color.

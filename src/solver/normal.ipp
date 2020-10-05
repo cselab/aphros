@@ -343,8 +343,7 @@ struct UNormal<M_>::Imp {
 
       // Evaluates height function from nearest interface
       // o: offset from w
-      auto hh = [&w, &fch, &di, &bc, &on, &fcu](MIdx o) -> Scal {
-        auto I = [](Scal a) { return a > 0 && a < 1; }; // true if interface
+      auto hh = [I, &w, &fch, &di, &bc, &on, &fcu](MIdx o) -> Scal {
         const int si = 5; // stencil size
         const int sih = si / 2;
         int i = sih; // closest interface to center

@@ -26,11 +26,11 @@ struct Tracer<EB_>::Imp {
   static Scal Clip(Scal a) {
     return Clip(a, 0, 1);
   }
-  Imp(Owner* owner, M& m, const EB& eb_,
+  Imp(Owner* owner, M& m_, const EB& eb_,
       const Multi<const FieldCell<Scal>*>& vfcu,
       const Multi<const MapEmbed<BCond<Scal>>*>& vmebc, Scal time, Conf conf_)
       : owner_(owner)
-      , m(m)
+      , m(m_)
       , eb(eb_)
       , conf(conf_)
       , time_(time)

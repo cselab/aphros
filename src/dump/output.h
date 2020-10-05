@@ -52,8 +52,8 @@ class OutFldFunc : public OutFld<GField<V, I>> {
   // n: name
   // m: mesh
   // f: function returning output value
-  OutFldFunc(std::string n, const M& m, const std::function<V(I)>& u)
-      : OutFld<F>(n), m(m), f_(m), u_(u) {}
+  OutFldFunc(std::string n, const M& m_, const std::function<V(I)>& u)
+      : OutFld<F>(n), m(m_), f_(m), u_(u) {}
 
   // Updates field from function.
   void Prepare() override {

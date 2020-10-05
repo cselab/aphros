@@ -29,10 +29,10 @@ struct Particles<EB_>::Imp {
     std::vector<Scal> termvel;
   };
 
-  Imp(Owner* owner, M& m, const EB& eb_, const ParticlesView& init, Scal time,
+  Imp(Owner* owner, M& m_, const EB& eb_, const ParticlesView& init, Scal time,
       Conf conf_)
       : owner_(owner)
-      , m(m)
+      , m(m_)
       , eb(eb_)
       , conf(conf_)
       , time_(time)

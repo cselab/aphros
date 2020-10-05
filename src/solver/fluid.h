@@ -39,12 +39,12 @@ class FluidSolver : public UnsteadyIterativeSolver {
   // fcsv: volume source
   // fcsm: mass source
   FluidSolver(
-      double t, double dt, M& m, const FieldCell<Scal>* fcr,
+      double t, double dt, M& m_, const FieldCell<Scal>* fcr,
       const FieldCell<Scal>* fcd, const FieldCell<Vect>* fcf,
       const FieldEmbed<Scal>* febp, const FieldCell<Scal>* fcsv,
       const FieldCell<Scal>* fcsm)
       : UnsteadyIterativeSolver(t, dt)
-      , m(m)
+      , m(m_)
       , fcr_(fcr)
       , fcd_(fcd)
       , fcf_(fcf)

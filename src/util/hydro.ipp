@@ -606,8 +606,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
 }
 
 template <class Scal>
-std::ostream& operator<<(
-    std::ostream& out, const BCondAdvection<Scal>& fca) {
+std::ostream& operator<<(std::ostream& out, const BCondAdvection<Scal>& fca) {
   using Halo = typename BCondAdvection<Scal>::Halo;
   out << "nci=" << fca.nci << " clear0=" << fca.clear0
       << " clear1=" << fca.clear1
@@ -1268,19 +1267,28 @@ void CalcSurfaceTension(
     FieldFace<Scal> ff_st(m, 0.); // surface tension projections
     const FieldFace<Scal> ff_sig = UEmbed<M>::Interpolate(fc_sig, mf_sig, m);
 
-    if (auto as = dynamic_cast<const Vofm<M>*>(asb)) {
+    bool found = false; // separate if's needed to prevent Wshadow
+    if (auto* as = dynamic_cast<const Vofm<M>*>(asb)) {
+      found = true;
       AppendSurfaceTension(
           m, ff_st, layers, as->GetFieldM(), as->GetColor(), fck, ff_sig);
-    } else if (auto as = dynamic_cast<const Vofm<Embed<M>>*>(asb)) {
+    }
+    if (auto* as = dynamic_cast<const Vofm<Embed<M>>*>(asb)) {
+      found = true;
       AppendSurfaceTension(
           as->GetEmbed(), ff_st, layers, as->GetFieldM(), as->GetColor(), fck,
           ff_sig);
-    } else if (auto as = dynamic_cast<const Vof<M>*>(asb)) {
+    }
+    if (auto* as = dynamic_cast<const Vof<M>*>(asb)) {
+      found = true;
       AppendSurfaceTension(m, ff_st, as->GetField(), *fck[0], ff_sig);
-    } else if (auto as = dynamic_cast<const Vof<Embed<M>>*>(asb)) {
+    }
+    if (auto* as = dynamic_cast<const Vof<Embed<M>>*>(asb)) {
+      found = true;
       AppendSurfaceTension(
           as->GetEmbed(), ff_st, as->GetField(), *fck[0], ff_sig);
-    } else {
+    }
+    if (!found) {
       throw std::runtime_error("CalcSurfaceTension: unknown advection solver");
     }
 

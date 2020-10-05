@@ -22,12 +22,12 @@ struct Electro<EB_>::Imp {
   using Owner = Electro<EB_>;
   using UEB = UEmbed<M>;
 
-  Imp(Owner* owner, M& m, const EB& eb, const MapEmbed<BCond<Scal>>& mebc_pot,
-      Scal time, const Conf& conf)
+  Imp(Owner* owner, M& m_, const EB& eb_, const MapEmbed<BCond<Scal>>& mebc_pot,
+      Scal time, const Conf& conf_)
       : owner_(owner)
-      , m(m)
-      , eb(eb)
-      , conf(conf)
+      , m(m_)
+      , eb(eb_)
+      , conf(conf_)
       , time_(time)
       , fc_pot_(m, 0)
       , fc_current_(m, Vect(0))

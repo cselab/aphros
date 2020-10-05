@@ -47,7 +47,7 @@ class PartStr {
   static constexpr size_t dim = 2;
   using Vect = generic::Vect<Scal, dim>;
 
-  PartStr(Par par) : par(par) {
+  PartStr(Par par_) : par(par_) {
     Clear();
   }
   const Par& GetPar() const {
