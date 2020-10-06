@@ -26,7 +26,7 @@
 #include "util/suspender.h"
 #include "vect.h"
 
-namespace Reduction {
+namespace ReductionType {
 struct Sum {};
 struct Prod {};
 struct Max {};
@@ -34,14 +34,16 @@ struct Min {};
 struct MaxLoc {};
 struct MinLoc {};
 struct Concat {};
+} // namespace ReductionType
 
-constexpr Sum sum;
-constexpr Prod prod;
-constexpr Max max;
-constexpr Min min;
-constexpr MaxLoc maxloc;
-constexpr MinLoc minloc;
-constexpr Concat concat;
+namespace Reduction {
+constexpr ReductionType::Sum sum;
+constexpr ReductionType::Prod prod;
+constexpr ReductionType::Max max;
+constexpr ReductionType::Min min;
+constexpr ReductionType::MaxLoc maxloc;
+constexpr ReductionType::MinLoc minloc;
+constexpr ReductionType::Concat concat;
 } // namespace Reduction
 
 // Returns column of cells cmm,cm,cp,cpp.
@@ -835,30 +837,30 @@ class MeshStructured {
   const std::vector<std::shared_ptr<Op>>& GetReduce() const {
     return rd_.Get();
   }
-  void Reduce(Scal* buf, Reduction::Sum) {
+  void Reduce(Scal* buf, ReductionType::Sum) {
     Reduce(buf, "sum");
   }
-  void Reduce(Scal* buf, Reduction::Prod) {
+  void Reduce(Scal* buf, ReductionType::Prod) {
     Reduce(buf, "prod");
   }
-  void Reduce(Scal* buf, Reduction::Max) {
+  void Reduce(Scal* buf, ReductionType::Max) {
     Reduce(buf, "max");
   }
-  void Reduce(Scal* buf, Reduction::Min) {
+  void Reduce(Scal* buf, ReductionType::Min) {
     Reduce(buf, "min");
   }
-  void Reduce(std::pair<Scal, int>* buf, Reduction::MaxLoc) {
+  void Reduce(std::pair<Scal, int>* buf, ReductionType::MaxLoc) {
     Reduce(std::make_shared<OpMaxloc>(buf));
   }
-  void Reduce(std::pair<Scal, int>* buf, Reduction::MinLoc) {
+  void Reduce(std::pair<Scal, int>* buf, ReductionType::MinLoc) {
     Reduce(std::make_shared<OpMinloc>(buf));
   }
   template <class T>
-  void Reduce(std::vector<T>* buf, Reduction::Concat) {
+  void Reduce(std::vector<T>* buf, ReductionType::Concat) {
     Reduce(std::make_shared<OpCatT<T>>(buf));
   }
   template <class T>
-  void Reduce(std::vector<std::vector<T>>* buf, Reduction::Concat) {
+  void Reduce(std::vector<std::vector<T>>* buf, ReductionType::Concat) {
     Reduce(std::make_shared<OpCatVT<T>>(buf));
   }
 
@@ -876,6 +878,14 @@ class MeshStructured {
   }
   void Bcast(const std::shared_ptr<Op>& o) {
     bcast_.push_back(o);
+  }
+  template <class T>
+  void Bcast(std::vector<T>* buf) {
+    Bcast(std::make_shared<OpCatT<T>>(buf));
+  }
+  template <class T>
+  void Bcast(std::vector<std::vector<T>>* buf) {
+    Bcast(std::make_shared<OpCatVT<T>>(buf));
   }
   const std::vector<std::shared_ptr<Op>>& GetBcast() const {
     return bcast_;

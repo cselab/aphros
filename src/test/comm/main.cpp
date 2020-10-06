@@ -368,8 +368,7 @@ void Simple<M>::TestReduce() {
     for (size_t j = 0; j < (i + 5) % q; ++j) {
       rvvi_.push_back(std::vector<int>({int(100 * i + j)}));
     }
-    using T = typename M::template OpCatVT<int>;
-    m.Bcast(std::make_shared<T>(&rvvi_));
+    m.Bcast(&rvvi_);
   }
   if (sem("bcast-catvi-check")) {
     // init for root block
