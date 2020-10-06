@@ -87,12 +87,10 @@ struct UVof<M_>::Imp {
           }
         }
       }
-      using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dl));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dlc));
-      m.Reduce(std::make_shared<TS>(&dll));
-      m.Reduce(std::make_shared<TS>(&dlcl));
+      m.Reduce(&dl, Reduction::concat);
+      m.Reduce(&dlc, Reduction::concat);
+      m.Reduce(&dll, Reduction::concat);
+      m.Reduce(&dlcl, Reduction::concat);
     }
     if (sem("write")) {
       if (m.IsRoot()) {
@@ -364,13 +362,11 @@ struct UVof<M_>::Imp {
           }
         }
       }
-      using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dl));
-      m.Reduce(std::make_shared<TV>(&dln));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dlc));
-      m.Reduce(std::make_shared<TS>(&dll));
-      m.Reduce(std::make_shared<TS>(&dlcl));
+      m.Reduce(&dl, Reduction::concat);
+      m.Reduce(&dln, Reduction::concat);
+      m.Reduce(&dlc, Reduction::concat);
+      m.Reduce(&dll, Reduction::concat);
+      m.Reduce(&dlcl, Reduction::concat);
     }
     if (sem("write")) {
       if (m.IsRoot()) {
@@ -415,9 +411,8 @@ struct UVof<M_>::Imp {
         vcl.push_back(p.first);
         vcln.push_back(p.second);
       }
-      using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&vcl));
-      m.Reduce(std::make_shared<T>(&vcln));
+      m.Reduce(&vcl, Reduction::concat);
+      m.Reduce(&vcln, Reduction::concat);
     }
     if (sem("gather")) {
       usermap.clear();
@@ -460,9 +455,8 @@ struct UVof<M_>::Imp {
           }
         }
       }
-      using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&merge0));
-      m.Reduce(std::make_shared<T>(&merge1));
+      m.Reduce(&merge0, Reduction::concat);
+      m.Reduce(&merge1, Reduction::concat);
     }
     if (sem("reduce")) {
       if (m.IsRoot()) {
@@ -493,9 +487,8 @@ struct UVof<M_>::Imp {
           merge1.push_back(p.second);
         }
       }
-      using T = typename M::template OpCatT<Scal>;
-      m.Bcast(std::make_shared<T>(&merge0));
-      m.Bcast(std::make_shared<T>(&merge1));
+      m.Bcast(&merge0);
+      m.Bcast(&merge1);
     }
     if (sem("apply")) {
       std::map<Scal, Scal> map;
@@ -543,8 +536,7 @@ struct UVof<M_>::Imp {
       }
       vcl = std::vector<Scal>(s.begin(), s.end());
       vvcl = {vcl};
-      using T = typename M::template OpCatVT<Scal>;
-      m.Reduce(std::make_shared<T>(&vvcl));
+      m.Reduce(&vvcl, Reduction::concat);
     }
     // replace with reduced set, applying usermap if possible
     auto& vcln = ctx->vcln;
@@ -618,7 +610,7 @@ struct UVof<M_>::Imp {
         IdxCell c = m.FindNearestCell(clfixed_x);
         cldist.first = m.GetCenter(c).dist(clfixed_x);
         cldist.second = m.GetId();
-        m.Reduce(std::make_shared<typename M::OpMinloc>(&cldist));
+        m.Reduce(&cldist, Reduction::minloc);
       } else {
         cldist.second = -1;
       }
@@ -726,7 +718,7 @@ struct UVof<M_>::Imp {
         m.Comm(&fcclt[i]);
       }
       ctx->tries = tries;
-      m.Reduce(&ctx->tries, "max");
+      m.Reduce(&ctx->tries, Reduction::max);
     }
     if (sem("reflect")) {
       for (auto i : layers) {
@@ -895,7 +887,7 @@ struct UVof<M_>::Imp {
         m.Comm(&fcclt[l]);
       }
       ctx->tries = tries;
-      m.Reduce(&ctx->tries, "max");
+      m.Reduce(&ctx->tries, Reduction::max);
     }
     if (sem("reflect")) {
       for (auto i : layers) {

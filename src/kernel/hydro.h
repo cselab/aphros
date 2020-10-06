@@ -1505,7 +1505,7 @@ void Hydro<M>::CalcDt() {
   if (sem("local")) {
     st_.t = fs_->GetTime();
     ctx->dtmin = fs_->GetAutoTimeStep();
-    m.Reduce(&ctx->dtmin, "min");
+    m.Reduce(&ctx->dtmin, Reduction::min);
   }
   if (sem("reduce")) {
     // set from cfl if defined
@@ -2347,7 +2347,7 @@ void Hydro<M>::CheckAbort(Sem& sem, Scal& nabort) {
       std::cout << e.what() << std::endl;
       nabort += 1.;
     }
-    m.Reduce(&nabort, "sum");
+    m.Reduce(&nabort, Reduction::sum);
   }
 
   if (sem("abort-reduce")) {
@@ -2707,7 +2707,7 @@ void Hydro<M>::StepEraseColor(std::string prefix) {
             }
           }
         }
-        m.Reduce(&t.cl, "min");
+        m.Reduce(&t.cl, Reduction::min);
       }
       if (sem()) {
         for (auto l : layers) {
