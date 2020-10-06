@@ -46,7 +46,7 @@ void Hdf<M>::Write(
 
     m.GatherToLead(&ctx->origin);
     m.GatherToLead(&ctx->size);
-    m.GatherToLead((&ctx->data);
+    m.GatherToLead(&ctx->data);
   }
   if (sem("write") && m.IsLead()) {
     const auto hdf_type =
