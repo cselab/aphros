@@ -199,7 +199,7 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
     if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
       // Reduction on Scal
 
-      auto r = o->Neut(); // result
+      auto r = o->Neutral(); // result
 
       // Reduce over all blocks
       for (auto& b : bb) {
@@ -219,7 +219,7 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
     if (OpSI* o = dynamic_cast<OpSI*>(vf[i].get())) {
       // Reduction on std::pair<Scal, int>
 
-      auto r = o->Neut(); // result
+      auto r = o->Neutral(); // result
 
       // Reduce over all blocks
       for (auto& b : bb) {
@@ -239,7 +239,7 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
     if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
       // Concatenation of std::vector<T>
 
-      auto r = o->Neut(); // result
+      auto r = o->Neutral(); // result
 
       GBlock<size_t, dim> qp(p_);
       GBlock<size_t, dim> qb(b_);
@@ -334,7 +334,7 @@ void Local<M>::Bcast(const std::vector<MIdx>& bb) {
 
   for (size_t i = 0; i < vf.size(); ++i) {
     if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
-      std::vector<char> r = o->Neut(); // buffer
+      std::vector<char> r = o->Neutral(); // buffer
 
       // read from root block
       for (auto& b : bb) {

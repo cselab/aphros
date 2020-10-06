@@ -79,9 +79,9 @@ class Grid {
   }
 
   size_t _encode(const size_t ix, const size_t iy, const size_t iz) const {
-    assert(ix >= 0 && ix < NX);
-    assert(iy >= 0 && iy < NY);
-    assert(iz >= 0 && iz < NZ);
+    assert(ix < NX);
+    assert(iy < NY);
+    assert(iz < NZ);
 
     return ix + NX * (iy + NY * iz);
   }

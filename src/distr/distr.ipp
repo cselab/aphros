@@ -135,7 +135,7 @@ void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
   };
   auto apply = [append, set](auto* derived, size_t i) {
     if (derived) {
-      auto buf = derived->Neut();
+      auto buf = derived->Neutral();
       append(derived, buf, i);
       set(derived, buf, i);
       return true;

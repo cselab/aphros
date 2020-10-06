@@ -203,7 +203,7 @@ void Simple<M>::TestReduce() {
   MIdx proc(var.Int["px"], var.Int["py"], var.Int["pz"]);
   MIdx block(var.Int["bx"], var.Int["by"], var.Int["bz"]);
   GBlock<IdxCell, dim> bq(proc * block);
-  GIndex<size_t, dim> ndq(proc * block);
+  GIndex<size_t, dim> indexc(proc * block);
   GBlock<IdxCell, dim> qp(proc);
   GBlock<IdxCell, dim> qb(block);
   auto f = [](MIdx w) {
@@ -212,6 +212,7 @@ void Simple<M>::TestReduce() {
   if (sem("sum")) {
     r_ = f(MIdx(bi_.index));
     m.Reduce(&r_, "sum");
+    // m.Reduce(&r, Reduction::sum);
   }
   if (sem("sum-check")) {
     Scal s = 0.;
@@ -222,7 +223,7 @@ void Simple<M>::TestReduce() {
   }
   if (sem("prod")) {
     r_ = f(MIdx(bi_.index));
-    m.Reduce(&r_, "prod");
+    m.Reduce(&r_, Reduction::prod);
   }
   if (sem("prod-check")) {
     Scal s = 1.;
@@ -233,7 +234,7 @@ void Simple<M>::TestReduce() {
   }
   if (sem("max")) {
     r_ = f(MIdx(bi_.index));
-    m.Reduce(&r_, "max");
+    m.Reduce(&r_, Reduction::max);
   }
   if (sem("max-check")) {
     Scal s = -std::numeric_limits<Scal>::max();
@@ -244,7 +245,7 @@ void Simple<M>::TestReduce() {
   }
   if (sem("min")) {
     r_ = f(MIdx(bi_.index));
-    m.Reduce(&r_, "min");
+    m.Reduce(&r_, Reduction::min);
   }
   if (sem("min-check")) {
     Scal s = std::numeric_limits<Scal>::max();
@@ -255,8 +256,8 @@ void Simple<M>::TestReduce() {
   }
   if (sem("minloc")) {
     MIdx w(bi_.index);
-    rsi_ = std::make_pair(f(w), ndq.GetIdx(w));
-    m.Reduce(std::make_shared<typename M::OpMinloc>(&rsi_));
+    rsi_ = std::make_pair(f(w), indexc.GetIdx(w));
+    m.Reduce(&rsi_, Reduction::minloc);
   }
   if (sem("minloc-check")) {
     Scal s = std::numeric_limits<Scal>::max();
@@ -268,12 +269,12 @@ void Simple<M>::TestReduce() {
       }
     }
     PCMP(rsi_.first, s);
-    PCMP(ndq.GetMIdx(rsi_.second), ws);
+    PCMP(indexc.GetMIdx(rsi_.second), ws);
   }
   if (sem("maxloc")) {
     MIdx w(bi_.index);
-    rsi_ = std::make_pair(f(w), ndq.GetIdx(w));
-    m.Reduce(std::make_shared<typename M::OpMaxloc>(&rsi_));
+    rsi_ = std::make_pair(f(w), indexc.GetIdx(w));
+    m.Reduce(&rsi_, Reduction::maxloc);
   }
   if (sem("maxloc-check")) {
     Scal s = -std::numeric_limits<Scal>::max();
@@ -285,21 +286,20 @@ void Simple<M>::TestReduce() {
       }
     }
     PCMP(rsi_.first, s);
-    PCMP(ndq.GetMIdx(rsi_.second), ws);
+    PCMP(indexc.GetMIdx(rsi_.second), ws);
   }
   if (sem("cat")) {
     MIdx w(bi_.index);
     rvs_.resize(0);
-    rvs_.push_back(ndq.GetIdx(w));
-    using T = typename M::template OpCatT<Scal>;
-    m.Reduce(std::make_shared<T>(&rvs_));
+    rvs_.push_back(indexc.GetIdx(w));
+    m.Reduce(&rvs_, Reduction::concat);
   }
   if (sem("cat-check")) {
     std::vector<Scal> rvs;
     for (auto wp : qp) {
       for (auto wb : qb) {
         auto w = block * wp + wb;
-        rvs.push_back(ndq.GetIdx(w));
+        rvs.push_back(indexc.GetIdx(w));
       }
     }
     if (m.IsRoot()) {
@@ -312,19 +312,18 @@ void Simple<M>::TestReduce() {
   if (sem("cati")) {
     MIdx w(bi_.index);
     rvi_.resize(0);
-    size_t i = ndq.GetIdx(w);
+    size_t i = indexc.GetIdx(w);
     for (size_t j = 0; j < i % q; ++j) {
       rvi_.push_back(q * i + j);
     }
-    using T = typename M::template OpCatT<int>;
-    m.Reduce(std::make_shared<T>(&rvi_));
+    m.Reduce(&rvi_, Reduction::concat);
   }
   if (sem("cati-check")) {
     std::vector<int> rvi;
     for (auto wp : qp) {
       for (auto wb : qb) {
         auto w = block * wp + wb;
-        size_t i = ndq.GetIdx(w);
+        size_t i = indexc.GetIdx(w);
         for (size_t j = 0; j < i % q; ++j) {
           rvi.push_back(q * i + j);
         }
@@ -339,19 +338,18 @@ void Simple<M>::TestReduce() {
   if (sem("catvi")) {
     MIdx w(bi_.index);
     rvvi_.resize(0);
-    size_t i = ndq.GetIdx(w);
+    size_t i = indexc.GetIdx(w);
     for (size_t j = 0; j < i % q; ++j) {
       rvvi_.push_back(std::vector<int>({int(q * i + j)}));
     }
-    using T = typename M::template OpCatVT<int>;
-    m.Reduce(std::make_shared<T>(&rvvi_));
+    m.Reduce(&rvvi_, Reduction::concat);
   }
   if (sem("catvi-check")) {
     std::vector<std::vector<int>> rvvi;
     for (auto wp : qp) {
       for (auto wb : qb) {
         auto w = block * wp + wb;
-        size_t i = ndq.GetIdx(w);
+        size_t i = indexc.GetIdx(w);
         for (size_t j = 0; j < i % q; ++j) {
           rvvi.push_back(std::vector<int>({int(q * i + j)}));
         }
@@ -366,7 +364,7 @@ void Simple<M>::TestReduce() {
   if (sem("bcast-catvi")) {
     MIdx w(bi_.index);
     rvvi_.resize(0);
-    size_t i = ndq.GetIdx(w);
+    size_t i = indexc.GetIdx(w);
     for (size_t j = 0; j < (i + 5) % q; ++j) {
       rvvi_.push_back(std::vector<int>({int(100 * i + j)}));
     }
@@ -376,7 +374,7 @@ void Simple<M>::TestReduce() {
   if (sem("bcast-catvi-check")) {
     // init for root block
     std::vector<std::vector<int>> rvvi;
-    size_t i = ndq.GetIdx(MIdx(0));
+    size_t i = indexc.GetIdx(MIdx(0));
     for (size_t j = 0; j < (i + 5) % q; ++j) {
       rvvi.push_back(std::vector<int>({int(100 * i + j)}));
     }
@@ -390,7 +388,7 @@ void Simple<M>::TestScatter() {
   MIdx proc(var.Int["px"], var.Int["py"], var.Int["pz"]);
   MIdx block(var.Int["bx"], var.Int["by"], var.Int["bz"]);
   GBlock<IdxCell, dim> bq(proc * block);
-  GIndex<size_t, dim> ndq(proc * block);
+  GIndex<size_t, dim> indexc(proc * block);
   GBlock<IdxCell, dim> qp(proc);
   GBlock<IdxCell, dim> qb(block);
   auto GetBlockData = [](size_t i) {
@@ -406,7 +404,7 @@ void Simple<M>::TestScatter() {
     for (auto wp : qp) {
       for (auto wb : qb) {
         auto w = block * wp + wb;
-        size_t i = ndq.GetIdx(w);
+        size_t i = indexc.GetIdx(w);
         rvvs_.push_back(GetBlockData(i));
       }
     }
@@ -423,10 +421,9 @@ void Simple<M>::TestScatter() {
   }
   if (sem("gather")) {
     MIdx w(bi_.index);
-    size_t i = ndq.GetIdx(w);
-    using T = typename M::template OpCatVT<Scal>;
+    size_t i = indexc.GetIdx(w);
     rvvs_ = {GetBlockData(i)};
-    m.Reduce(std::make_shared<T>(&rvvs_));
+    m.Reduce(&rvvs_, Reduction::concat);
   }
   if (sem("scatter")) {
     if (m.IsRoot()) {
@@ -438,7 +435,7 @@ void Simple<M>::TestScatter() {
   }
   if (sem("check")) {
     MIdx w(bi_.index);
-    size_t i = ndq.GetIdx(w);
+    size_t i = indexc.GetIdx(w);
     PCMPF(rvs_, GetBlockData(i));
   }
 }

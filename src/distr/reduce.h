@@ -26,7 +26,7 @@ class UReduce {
       Append(a, *v_);
     }
     // Returns neutral value a such that Append(a, v) would set a=v
-    virtual T Neut() const = 0;
+    virtual T Neutral() const = 0;
     virtual void Set(const T& v) {
       *v_ = v;
     }
@@ -43,7 +43,7 @@ class UReduce {
   class OpSum : public OpS {
    public:
     using OpS::OpS;
-    Scal Neut() const override {
+    Scal Neutral() const override {
       return 0.;
     }
 
@@ -55,8 +55,8 @@ class UReduce {
   class OpProd : public OpS {
    public:
     using OpS::OpS;
-    Scal Neut() const override {
-      return 1.;
+    Scal Neutral() const override {
+      return 1;
     }
 
    protected:
@@ -67,7 +67,7 @@ class UReduce {
   class OpMax : public OpS {
    public:
     using OpS::OpS;
-    Scal Neut() const override {
+    Scal Neutral() const override {
       return -std::numeric_limits<Scal>::max();
     }
 
@@ -79,7 +79,7 @@ class UReduce {
   class OpMin : public OpS {
    public:
     using OpS::OpS;
-    Scal Neut() const override {
+    Scal Neutral() const override {
       return std::numeric_limits<Scal>::max();
     }
 
@@ -95,7 +95,7 @@ class UReduce {
    public:
     using T = std::pair<Scal, int>;
     using OpSI::OpSI;
-    T Neut() const override {
+    T Neutral() const override {
       return std::make_pair(std::numeric_limits<Scal>::max(), int());
     }
 
@@ -110,7 +110,7 @@ class UReduce {
    public:
     using T = std::pair<Scal, int>;
     using OpSI::OpSI;
-    T Neut() const override {
+    T Neutral() const override {
       return std::make_pair(-std::numeric_limits<Scal>::max(), int());
     }
 
@@ -131,18 +131,18 @@ class UReduce {
   class OpCat : public OpVT<char> {
    public:
     using P = OpVT<char>;
-    using V = std::vector<char>;
+    using Bytes = std::vector<char>;
 
     using OpVT<char>::OpVT;
     using P::Append;
     using P::Set;
     using P::v_;
-    V Neut() const override {
-      return V();
+    Bytes Neutral() const override {
+      return {};
     }
 
    protected:
-    void Append(V& a, const V& v) const override {
+    void Append(Bytes& a, const Bytes& v) const override {
       a.insert(a.end(), v.begin(), v.end());
     }
   };
@@ -153,29 +153,28 @@ class UReduce {
   class OpCatT : public OpCat {
    public:
     using P = OpCat; // parent
-    using V = std::vector<char>;
-    using VT = std::vector<T>;
+    using Bytes = std::vector<char>;
     // vt: buffer containing current value and used for result
     // OpCat::v_ initialized with nullptr // TODO: revise
-    OpCatT(VT* vt) : OpCat(nullptr), vt_(vt) {}
+    OpCatT(std::vector<T>* vt) : OpCat(nullptr), vt_(vt) {}
     // Serializes vt_ and appends to a
-    void Append(V& a) override {
-      V v = Ser(*vt_);
+    void Append(Bytes& a) override {
+      Bytes v = Serialize(*vt_);
       a.insert(a.end(), v.begin(), v.end());
     }
     // Deserializes v to vt_
-    void Set(const V& v) override {
-      *vt_ = Des(v);
+    void Set(const Bytes& v) override {
+      *vt_ = Deserialize(v);
     }
 
    protected:
     using P::Append;
-    VT* vt_;
+    std::vector<T>* vt_;
 
    private:
     // Serialize vt
-    static V Ser(const VT& vt) {
-      V r; // result
+    static Bytes Serialize(const std::vector<T>& vt) {
+      Bytes r; // result
       for (const T& x : vt) {
         const char* c = (const char*)(const void*)&x;
         for (size_t i = 0; i < sizeof(T); ++i) {
@@ -185,8 +184,8 @@ class UReduce {
       return r;
     }
     // Deserialize v
-    static VT Des(const V& v) {
-      VT r; // result
+    static std::vector<T> Deserialize(const Bytes& v) {
+      std::vector<T> r; // result
       assert(v.size() % sizeof(T) == 0);
       size_t k = 0;
       while (k < v.size()) {
@@ -207,29 +206,27 @@ class UReduce {
   class OpCatVT : public OpCat {
    public:
     using P = OpCat; // parent
-    using V = std::vector<char>;
-    using VT = std::vector<std::vector<T>>;
+    using Bytes = std::vector<char>;
     // vt: buffer containing current value and used for result
     // OpCat::v_ initialized with nullptr // TODO: revise
-    OpCatVT(VT* vt) : OpCat(nullptr), vt_(vt) {}
+    OpCatVT(std::vector<std::vector<T>>* vt) : OpCat(nullptr), vt_(vt) {}
     // Serializes vt_ and appends to a
-    void Append(V& a) override {
-      V v = Ser(*vt_);
+    void Append(Bytes& a) override {
+      Bytes v = Serialize(*vt_);
       a.insert(a.end(), v.begin(), v.end());
     }
     // Deserializes v to vt_
-    void Set(const V& v) override {
-      *vt_ = Des(v);
+    void Set(const Bytes& v) override {
+      *vt_ = Deserialize(v);
     }
 
    protected:
     using P::Append;
-    VT* vt_;
+    std::vector<std::vector<T>>* vt_;
 
    private:
-    // Serialize vt
-    static V Ser(const VT& vt) {
-      V res;
+    static Bytes Serialize(const std::vector<std::vector<T>>& vt) {
+      Bytes res;
       for (auto& xx : vt) {
         // write size
         {
@@ -250,9 +247,8 @@ class UReduce {
       }
       return res;
     }
-    // Deserialize v
-    static VT Des(const V& buf) {
-      VT res;
+    static std::vector<std::vector<T>> Deserialize(const Bytes& buf) {
+      std::vector<std::vector<T>> res;
       size_t k = 0; // index in buf
       while (k < buf.size()) {
         res.emplace_back();

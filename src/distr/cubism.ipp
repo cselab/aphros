@@ -624,7 +624,7 @@ void Cubism<Par, M>::Bcast(const std::vector<MIdx>& bb) {
 
   for (size_t i = 0; i < vf.size(); ++i) {
     if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
-      std::vector<char> r = o->Neut(); // buffer
+      std::vector<char> r = o->Neutral(); // buffer
 
       if (isroot_) {
         // read from root block
@@ -792,7 +792,7 @@ void Cubism<Par, M>::Reduce(const std::vector<MIdx>& bb) {
 
   for (size_t i = 0; i < vf.size(); ++i) {
     if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
-      auto r = o->Neut(); // result
+      auto r = o->Neutral(); // result
 
       // Reduce over all blocks on current rank
       for (auto& b : bb) {
@@ -827,7 +827,7 @@ void Cubism<Par, M>::Reduce(const std::vector<MIdx>& bb) {
         ob->Set(r);
       }
     } else if (OpSI* o = dynamic_cast<OpSI*>(vf[i].get())) {
-      auto r = o->Neut(); // result
+      auto r = o->Neutral(); // result
 
       // Reduce over all blocks on current rank
       for (auto& b : bb) {
@@ -859,7 +859,7 @@ void Cubism<Par, M>::Reduce(const std::vector<MIdx>& bb) {
         ob->Set(r);
       }
     } else if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
-      std::vector<char> r = o->Neut(); // result local
+      std::vector<char> r = o->Neutral(); // result local
 
       // Reduce over all local blocks
       for (auto& b : bb) {

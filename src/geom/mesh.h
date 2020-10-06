@@ -26,6 +26,24 @@
 #include "util/suspender.h"
 #include "vect.h"
 
+namespace Reduction {
+struct Sum {};
+struct Prod {};
+struct Max {};
+struct Min {};
+struct MaxLoc {};
+struct MinLoc {};
+struct Concat {};
+
+constexpr Sum sum;
+constexpr Prod prod;
+constexpr Max max;
+constexpr Min min;
+constexpr MaxLoc maxloc;
+constexpr MinLoc minloc;
+constexpr Concat concat;
+} // namespace Reduction
+
 // Returns column of cells cmm,cm,cp,cpp.
 // nci: 0 or 1 such that m.GetCell(f, nci) == cp
 template <class M>
@@ -817,6 +835,33 @@ class MeshStructured {
   const std::vector<std::shared_ptr<Op>>& GetReduce() const {
     return rd_.Get();
   }
+  void Reduce(Scal* buf, Reduction::Sum) {
+    Reduce(buf, "sum");
+  }
+  void Reduce(Scal* buf, Reduction::Prod) {
+    Reduce(buf, "prod");
+  }
+  void Reduce(Scal* buf, Reduction::Max) {
+    Reduce(buf, "max");
+  }
+  void Reduce(Scal* buf, Reduction::Min) {
+    Reduce(buf, "min");
+  }
+  void Reduce(std::pair<Scal, int>* buf, Reduction::MaxLoc) {
+    Reduce(std::make_shared<OpMaxloc>(buf));
+  }
+  void Reduce(std::pair<Scal, int>* buf, Reduction::MinLoc) {
+    Reduce(std::make_shared<OpMinloc>(buf));
+  }
+  template <class T>
+  void Reduce(std::vector<T>* buf, Reduction::Concat) {
+    Reduce(std::make_shared<OpCatT<T>>(buf));
+  }
+  template <class T>
+  void Reduce(std::vector<std::vector<T>>* buf, Reduction::Concat) {
+    Reduce(std::make_shared<OpCatVT<T>>(buf));
+  }
+
   void ClearReduce() {
     rd_.Clear();
   }
