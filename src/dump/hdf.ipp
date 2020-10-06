@@ -44,11 +44,9 @@ void Hdf<M>::Write(
       data.push_back(fc[c]);
     }
 
-    using OpCatM = typename M::template OpCatT<MIdx>;
-    m.ReduceToLead(std::make_shared<OpCatM>(&ctx->origin));
-    m.ReduceToLead(std::make_shared<OpCatM>(&ctx->size));
-    using OpCatVS = typename M::template OpCatVT<Scal>;
-    m.ReduceToLead(std::make_shared<OpCatVS>(&ctx->data));
+    m.GatherToLead(&ctx->origin);
+    m.GatherToLead(&ctx->size);
+    m.GatherToLead((&ctx->data);
   }
   if (sem("write") && m.IsLead()) {
     const auto hdf_type =
@@ -126,11 +124,9 @@ void Hdf<M>::Read(
     ctx->data.resize(bc.size());
     ctx->dataptr.push_back(&ctx->data);
 
-    using OpCatM = typename M::template OpCatT<MIdx>;
-    m.ReduceToLead(std::make_shared<OpCatM>(&ctx->origin));
-    m.ReduceToLead(std::make_shared<OpCatM>(&ctx->size));
-    using OpCatP = typename M::template OpCatT<std::vector<Scal>*>;
-    m.ReduceToLead(std::make_shared<OpCatP>(&ctx->dataptr));
+    m.GatherToLead(&ctx->origin);
+    m.GatherToLead(&ctx->size);
+    m.GatherToLead(&ctx->dataptr);
   }
   if (sem("read") && m.IsLead()) {
     const auto hdf_type =

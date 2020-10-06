@@ -87,15 +87,12 @@ struct SolverHypre<M>::Imp {
       t.ptr_x.push_back(&t.data_x);
       t.ptr_info.push_back(&t.info);
 
-      using OpCatM = typename M::template OpCatT<MIdx>;
-      m.ReduceToLead(std::make_shared<OpCatM>(&t.origin));
-      m.ReduceToLead(std::make_shared<OpCatM>(&t.size));
-      using OpCatP = typename M::template OpCatT<std::vector<Scal>*>;
-      m.ReduceToLead(std::make_shared<OpCatP>(&t.ptr_a));
-      m.ReduceToLead(std::make_shared<OpCatP>(&t.ptr_b));
-      m.ReduceToLead(std::make_shared<OpCatP>(&t.ptr_x));
-      using OpCatPInfo = typename M::template OpCatT<Info*>;
-      m.ReduceToLead(std::make_shared<OpCatPInfo>(&t.ptr_info));
+      m.GatherToLead(&t.origin);
+      m.GatherToLead(&t.size);
+      m.GatherToLead(&t.ptr_a);
+      m.GatherToLead(&t.ptr_b);
+      m.GatherToLead(&t.ptr_x);
+      m.GatherToLead(&t.ptr_info);
     }
     if (sem("hypre") && m.IsLead()) {
       using HypreBlock = typename Hypre::Block;
@@ -234,8 +231,8 @@ struct SolverConjugate<M>::Imp {
         t.r_dot_r += sqr(t.fcr[c]);
         t.p_dot_sp += t.fcp[c] * t.fcsp[c];
       }
-      m.Reduce(&t.r_dot_r, "sum");
-      m.Reduce(&t.p_dot_sp, "sum");
+      m.Reduce(&t.r_dot_r, Reduction::sum);
+      m.Reduce(&t.p_dot_sp, Reduction::sum);
     }
     if (sem("iter2")) {
       t.maxdiff = 0;
@@ -247,8 +244,8 @@ struct SolverConjugate<M>::Imp {
         t.rn_dot_rn += sqr(t.fcrn[c]);
         t.maxdiff = std::max(t.maxdiff, std::abs(t.fcp[c] * t.a));
       }
-      m.Reduce(&t.rn_dot_rn, "sum");
-      m.Reduce(&t.maxdiff, "max");
+      m.Reduce(&t.rn_dot_rn, Reduction::sum);
+      m.Reduce(&t.maxdiff, Reduction::max);
     }
     if (sem("iter3")) {
       t.b = t.rn_dot_rn / t.r_dot_r;
@@ -332,7 +329,7 @@ struct SolverJacobi<M>::Imp {
       }
       t.fcu.swap(t.fcu_new);
       m.Comm(&t.fcu);
-      m.Reduce(&t.maxdiff, "max");
+      m.Reduce(&t.maxdiff, Reduction::max);
     }
     if (sem("check")) {
       t.info.residual = t.maxdiff;

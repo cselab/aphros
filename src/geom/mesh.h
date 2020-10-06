@@ -870,6 +870,14 @@ class MeshStructured {
   void ReduceToLead(const std::shared_ptr<Op>& o) {
     reduce_lead_.Add(o);
   }
+  template <class T>
+  void GatherToLead(std::vector<T>* buf) {
+    ReduceToLead(std::make_shared<OpCatT<T>>(buf));
+  }
+  template <class T>
+  void GatherToLead(std::vector<std::vector<T>>* buf) {
+    ReduceToLead(std::make_shared<OpCatVT<T>>(buf));
+  }
   const std::vector<std::shared_ptr<Op>>& GetReduceToLead() const {
     return reduce_lead_.Get();
   }
