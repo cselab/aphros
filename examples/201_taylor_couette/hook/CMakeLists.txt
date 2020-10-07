@@ -4,5 +4,5 @@ find_package(aphros/hydro)
 
 set(T hook)
 add_library(${T} SHARED hook.cpp)
-target_link_libraries(${T} suspender vars)
+target_link_libraries(${T} hydro)
 

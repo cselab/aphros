@@ -4,5 +4,5 @@ find_package(aphros/hydro)
 
 set(EXE main)
 add_executable(${EXE} main.cpp)
-target_link_libraries(${EXE} distrbasic vofm init curv utilhydro dumper dump_hdf utillinear)
+target_link_libraries(${EXE} hydro)
 
