@@ -22,7 +22,7 @@ set(CMAKE_C_COMPILER ${MPI_C_COMPILER})
 set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
 
 # warnings
-add_compile_options(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic -Wextra")
+add_compile_options(-Wall -pedantic -Wextra)
 
 # hdf5
 set(T "hdf")
