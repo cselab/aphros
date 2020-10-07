@@ -2289,7 +2289,7 @@ auto Hydro<M>::CalcPressureDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb)
   });
   auto fep = UEB::Interpolate(fcp, me_pressure, eb);
   Vect sum(0);
-  mebc_fluid_.LoopBCond(eb, [&](auto cf, IdxCell c, auto bc) { //
+  mebc_fluid_.LoopBCond(eb, [&, &m = m](auto cf, IdxCell c, auto bc) { //
     if (m.IsInner(c)) {
       if (bc.type == BCondFluidType::wall) {
         sum += eb.GetSurface(cf) * fep[cf];
@@ -2310,7 +2310,7 @@ auto Hydro<M>::CalcViscousDrag(
   auto feg = UEB::Gradient(fcvel, fs_->GetVelocityCond(), eb);
   auto femu = UEB::Interpolate(fcmu, me_neumann, eb);
   Vect sum(0);
-  mebc_fluid_.LoopBCond(eb, [&](auto cf, IdxCell c, auto bc) { //
+  mebc_fluid_.LoopBCond(eb, [&, &m = m](auto cf, IdxCell c, auto bc) { //
     if (m.IsInner(c)) {
       if (bc.type == BCondFluidType::wall) {
         sum += feg[cf] * (-eb.GetArea(cf) * femu[cf]);
