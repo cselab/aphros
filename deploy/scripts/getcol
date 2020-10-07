@@ -29,4 +29,4 @@ if args.header:
 
 ii = [head.index(c) for c in cc]
 
-np.savetxt(sys.stdout, u[:, ii])
+np.savetxt(sys.stdout.buffer, u[:, ii])
