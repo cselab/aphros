@@ -2,7 +2,7 @@ get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 set(EXE t.${name})
 add_executable(${EXE} main.cpp)
 install(TARGETS ${EXE} DESTINATION "${APHROS_PREFIX}/bin")
-target_link_libraries(${EXE} hydro)
+target_link_libraries(${EXE} aphros)
 
 
 foreach(comm local cubismnc cubism)

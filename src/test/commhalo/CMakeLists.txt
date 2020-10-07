@@ -6,4 +6,4 @@ include_directories(${S})
 
 add_executable(${EXE} main.cpp)
 
-target_link_libraries(${EXE} hydro)
+target_link_libraries(${EXE} aphros)

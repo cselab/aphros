@@ -49,11 +49,10 @@ function(add_library name)
     _add_library(${name} OBJECT ${ARGN})
   endif()
   if (NOT "${ARGN}" MATCHES "INTERFACE")
-    set_target_properties(${name} PROPERTIES PREFIX "libaphros_")
     target_compile_options(${name} PRIVATE -Wall -Wextra -pedantic -Wshadow)
   endif()
   install(TARGETS ${name} EXPORT export DESTINATION lib)
-  target_include_directories(${name} INTERFACE "${APHROS_PREFIX}/include/hydro")
+  target_include_directories(${name} INTERFACE "${APHROS_PREFIX}/include/aphros")
 endfunction(add_library)
 
 add_subdirectory(linear)
@@ -73,11 +72,10 @@ foreach(name ${ObjLibs})
   list(APPEND ObjLibsTarget "$<TARGET_OBJECTS:${name}>")
 endforeach()
 
-set(T "hydro")
-
+set(T "aphros")
 add_library(${T} SHARED ${ObjLibsTarget})
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
-    "${APHROS_PREFIX}/include/hydro")
+    "${APHROS_PREFIX}/include/aphros")
 target_link_libraries(${T} ${ObjLibs})
 
 # binary
@@ -85,12 +83,12 @@ set(EXE "mfer")
 add_executable(${EXE} main.cpp)
 install(TARGETS ${EXE} DESTINATION bin)
 set_target_properties(${EXE} PROPERTIES PREFIX "ap.")
-target_link_libraries(${EXE} hydro)
+target_link_libraries(${EXE} aphros)
 
 # test
 add_subdirectory(test)
 enable_testing()
 
-install(EXPORT export FILE export.cmake DESTINATION cmake/aphros)
-install(FILES client.cmake hydroConfig.cmake DESTINATION cmake/aphros)
+install(EXPORT export FILE export.cmake DESTINATION cmake)
+install(FILES client.cmake aphrosConfig.cmake DESTINATION cmake)
 include(header.cmake)
