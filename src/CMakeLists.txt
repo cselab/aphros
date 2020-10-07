@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.3.0)
 
 project("mfer")
 
-# Disallow in-source build
-if (CMAKE_SOURCE_DIR} STREQUAL CMAKE_BINARY_DIR)
+#Require out - of - source build
+if (CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR
     "Aphros requires an out-of-source build. Run CMake from a separate build directory.")
 endif ()
@@ -37,11 +37,18 @@ set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)
 
 include_directories(.)
 
+set(ObjLibs)
+
+# Override add_library().
+# By default, creates OBJECT libraries.
 function(add_library name)
-  if ("${ARGN}" MATCHES "INTERFACE")
+  if ("${ARGN}" MATCHES "SHARED|STATIC|INTERFACE")
     _add_library(${name} ${ARGN})
   else()
-    _add_library(${name} SHARED ${ARGN})
+    set(ObjLibs "${ObjLibs}" "${name}" CACHE INTERNAL "ObjLibs")
+    _add_library(${name} OBJECT ${ARGN})
+  endif()
+  if (NOT "${ARGN}" MATCHES "INTERFACE")
     set_target_properties(${name} PROPERTIES PREFIX "libaphros_")
     target_compile_options(${name} PRIVATE -Wall -Wextra -pedantic -Wshadow)
   endif()
@@ -60,16 +67,18 @@ add_subdirectory(overlap)
 add_subdirectory(young)
 add_subdirectory(color)
 
-# hydro
+
+set(ObjLibsTarget)
+foreach(name ${ObjLibs})
+  list(APPEND ObjLibsTarget "$<TARGET_OBJECTS:${name}>")
+endforeach()
+
 set(T "hydro")
-add_library(${T} INTERFACE)
+
+add_library(${T} SHARED ${ObjLibsTarget})
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
     "${APHROS_PREFIX}/include/hydro")
-set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES
-    distrsolver solver vof vofm normal convdiffvg simple proj proj_eb
-    fluid_dummy init init_vel init_contang
-    utilhydro events curv approx posthook_default tracer
-    particles dump_hdf electro linear utillinear distrbasic)
+target_link_libraries(${T} ${ObjLibs})
 
 # binary
 set(EXE "mfer")

@@ -2,7 +2,7 @@ get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 set(EXE t.${name})
 add_executable(${EXE} main.cpp)
 install(TARGETS ${EXE} DESTINATION "${APHROS_PREFIX}/bin")
-target_link_libraries(${EXE} distrsolver solver vof vofm overlap curv init_vel dump_hdf)
+target_link_libraries(${EXE} hydro)
 
 
 foreach(comm local cubismnc cubism)

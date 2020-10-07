@@ -2,5 +2,5 @@ get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 
 set(T t.${name})
 add_executable(${T} main.cpp)
-target_link_libraries(${T} distrbasic suspender timer approx_eb dump_hdf utilfluid)
+target_link_libraries(${T} hydro)
 #add_test_current(NAME "" COMMAND ./test)
