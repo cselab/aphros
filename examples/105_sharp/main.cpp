@@ -29,8 +29,6 @@ void Run(M& m, Vars& var) {
   using Scal = typename M::Scal;
   auto sem = m.GetSem();
   struct {
-    FieldNode<Scal> fnl;
-    FieldCell<Scal> fcvx;
     std::unique_ptr<Vof<M>> solver;
 
     FieldCell<Scal> fcu;
@@ -93,20 +91,6 @@ void Run(M& m, Vars& var) {
   }
   if (sem()) { // XXX empty stage
   }
-}
-
-int GetInt(std::string s) {
-  int r;
-  std::stringstream t(s);
-  t >> r;
-  return r;
-}
-
-double GetDouble(std::string s) {
-  double r;
-  std::stringstream t(s);
-  t >> r;
-  return r;
 }
 
 int main(int argc, const char** argv) {
