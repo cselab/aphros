@@ -39,7 +39,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
 
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
-    Scal clipth = 1e-6; // vf clipping threshold
+    Scal clipth = 1e-10; // vf clipping threshold
     bool recolor_unionfind = true;
     bool recolor_reduce = true;
     bool recolor_grid = true;
