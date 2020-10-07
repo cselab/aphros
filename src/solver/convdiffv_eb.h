@@ -41,8 +41,7 @@ class ConvDiffVectEmbed final : public ConvDiffVect<MEB_> {
       const FieldFaceb<Scal>* ffv, double t, double dt, Par par);
   ~ConvDiffVectEmbed();
   // ...
-  void Assemble(
-      const FieldCell<Vect>& fcw, const FieldFaceb<Scal>& ffv);
+  void Assemble(const FieldCell<Vect>& fcw, const FieldFaceb<Scal>& ffv);
   // Corrects field and comm.
   // fc: correction [i]
   // Output:

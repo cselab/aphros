@@ -70,7 +70,6 @@ class YoungMarangoni {
 }
 
 void Force() {
-
 }
 
 void Init() {

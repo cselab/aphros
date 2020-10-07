@@ -9,4 +9,5 @@
 //   arguments of Sem() separated by ' --> '
 // Example:
 //   "fluid --> step --> init" : 0.1
-void ParseReport(const std::map<std::string, double>& timings, std::ostream& out);
+void ParseReport(
+    const std::map<std::string, double>& timings, std::ostream& out);

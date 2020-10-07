@@ -210,9 +210,8 @@ void RemoveDuplicatesUnordered(std::vector<V>& pp) {
 template <class Scal, class Vect = generic::Vect<Scal, 3>>
 void ConvertMerge(
     const std::vector<std::vector<Vect>>& vv,
-    const std::vector<std::vector<Vect>>* vvn, Scal tol,
-    std::vector<Vect>& xx, std::vector<Vect>& nn,
-    std::vector<std::vector<size_t>>& pp) {
+    const std::vector<std::vector<Vect>>* vvn, Scal tol, std::vector<Vect>& xx,
+    std::vector<Vect>& nn, std::vector<std::vector<size_t>>& pp) {
   struct Hash {
     size_t operator()(const Vect& x) const noexcept {
       const size_t h0 = std::hash<Scal>{}(x[0]);

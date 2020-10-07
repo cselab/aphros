@@ -39,18 +39,18 @@ struct Tracer<EB_>::Imp {
       , vfcu_(vfcu)
       , fc_density_(m, conf.density[0])
       , fc_viscosity_(m, conf.viscosity[0]) {
-        /*
-    for (auto c : m.AllCells()) {
-      Scal sum = 0;
-      for (auto l : layers) {
-        if (l > 0) {
-          sum += vfcu_[l][c];
-        }
-      }
-      sum = Clip(sum);
-      vfcu_[0][c] = 1 - sum;
+    /*
+for (auto c : m.AllCells()) {
+  Scal sum = 0;
+  for (auto l : layers) {
+    if (l > 0) {
+      sum += vfcu_[l][c];
     }
-    */
+  }
+  sum = Clip(sum);
+  vfcu_[0][c] = 1 - sum;
+}
+*/
   }
   Scal GetMixtureViscosity(IdxCell c) const {
     Scal sum = 0;
@@ -103,7 +103,7 @@ struct Tracer<EB_>::Imp {
       });
       for (auto l : layers) {
         const auto feu = UEmbed<M>::Interpolate(vfcu_[l], vmebc_[l], eb);
-        eb.LoopFaces([&,this](auto cf) { //
+        eb.LoopFaces([&, this](auto cf) { //
           auto vel = this->GetSlipVelocity(l, fe_rho[cf], fe_mu[cf]);
           if (vmebc_[l].find(cf)) { // zero flux on boundaries
             vel = Vect(0);
@@ -117,7 +117,7 @@ struct Tracer<EB_>::Imp {
         const auto ffg = UEB::Gradient(fcu, vmebc_[l], eb);
         const auto fcg = UEB::AverageGradient(ffg, eb);
         FieldFaceb<Scal> fevl(m); // phase l flux with slip
-        eb.LoopFaces([&,this](auto cf) { //
+        eb.LoopFaces([&, this](auto cf) { //
           auto vel = this->GetSlipVelocity(l, fe_rho[cf], fe_mu[cf]);
           if (vmebc_[l].find(cf)) { // zero flux on boundaries
             vel = Vect(0);
@@ -133,7 +133,7 @@ struct Tracer<EB_>::Imp {
           fe_flux[cf] = -feu[cf] * fevl[cf];
           // diffusion
           fe_flux[cf] += conf.diffusion[l] * ffg[cf] * eb.GetArea(cf);
-         });
+        });
         FieldCell<Scal> fct(eb, 0); // change of conserved quantity
         for (auto c : eb.Cells()) {
           Scal sum = 0.;

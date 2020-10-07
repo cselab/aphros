@@ -158,6 +158,7 @@ struct UDebug {
         m.Dump(&fc_asymm, "asymm_" + fce.GetName());
       }
     }
-    if (sem()) {}
+    if (sem()) {
+    }
   }
 };

@@ -49,15 +49,11 @@ void Main(M& m, Vars& var) {
     auto& eb = *eb_;
     fcu.Reinit(m);
     const Vect kA(-3., -3., 0.);
-    //const Vect kA(0);
+    // const Vect kA(0);
     const Vect kB(3., 3., 0.);
     const Vect kC(0.5, 0.5, 0.);
-    auto func = [&](Vect x) {
-      return (kA * x).dot(x) + kB.dot(x - kC);
-    };
-    auto funcg = [&](Vect x) {
-      return kA * x * 2 + kB;
-    };
+    auto func = [&](Vect x) { return (kA * x).dot(x) + kB.dot(x - kC); };
+    auto funcg = [&](Vect x) { return kA * x * 2 + kB; };
     for (auto c : m.AllCells()) {
       fcu[c] = func(m.GetCenter(c));
     }
@@ -71,10 +67,10 @@ void Main(M& m, Vars& var) {
         const Vect nf(std::cos(t), std::sin(t), 0.);
         auto h = m.GetCellSize()[0];
         const Vect rf = c.center() + Vect(h * 0.2, h * 0.3, 0.);
-        //const Scal g = GradDirichletQuad(rf, func(rf), nf, c, fcu, eb);
+        // const Scal g = GradDirichletQuad(rf, func(rf), nf, c, fcu, eb);
         const Scal g = GradDirichletQuadSecond(rf, func(rf), nf, c, fcu, eb);
-        //const Scal g = GradDirichletLinear(rf, func(rf), nf, c, fcu, eb);
-        //const Scal g = GradDirichletLinearFit(rf, func(rf), nf, c, fcu, eb);
+        // const Scal g = GradDirichletLinear(rf, func(rf), nf, c, fcu, eb);
+        // const Scal g = GradDirichletLinearFit(rf, func(rf), nf, c, fcu, eb);
         theta.push_back(t);
         grad.push_back(g);
         exact.push_back(funcg(rf).dot(nf));

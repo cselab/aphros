@@ -332,8 +332,8 @@ struct PartStrMeshM<M_>::Imp {
                           // Append the segment from contact angle.
                           const auto n = p->first;
                           const auto contang = p->second;
-                          auto xx =
-                              contang_segment(cn, contang, (lx0 + lx1) * 0.5, n);
+                          auto xx = contang_segment(
+                              cn, contang, (lx0 + lx1) * 0.5, n);
                           lx.push_back(xx[0]);
                           lx.push_back(xx[1]);
                           ls.push_back(2);

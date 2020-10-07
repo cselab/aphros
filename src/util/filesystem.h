@@ -13,7 +13,7 @@ std::string GetRealpath(std::string path);
 // Creates directory.
 // path: path to target directory
 // parent: if true, make parent directories as needed
-void Makedir(std::string path, bool parent=true);
+void Makedir(std::string path, bool parent = true);
 
 // Returns true if path is a directory.
 bool IsDir(std::string path);

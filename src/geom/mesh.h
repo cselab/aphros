@@ -319,7 +319,7 @@ class MeshStructured {
     const IdxCell cpp = GetCell(cp, d * 2 + nci);
     return {cmm, cm, cp, cpp};
   }
-    // Returns true if cell is not a halo cell.
+  // Returns true if cell is not a halo cell.
   bool IsInner(IdxCell c) const {
     MIdx w = bcr_.GetMIdx(c);
     return bci_.GetBegin() <= w && w < bci_.GetEnd();

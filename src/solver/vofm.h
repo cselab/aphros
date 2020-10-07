@@ -80,9 +80,9 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
   // Adds a function that modifies the fields at the next iteration
   // and after which is removed.
   void AddModifier(std::function<void(
-                  const Multi<FieldCell<Scal>*>& fcu,
-                  const Multi<FieldCell<Scal>*>& fccl, GRange<size_t> layers,
-                  const EB&)>);
+                       const Multi<FieldCell<Scal>*>& fcu,
+                       const Multi<FieldCell<Scal>*>& fccl,
+                       GRange<size_t> layers, const EB&)>);
 
  private:
   struct Imp;

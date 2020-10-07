@@ -28,8 +28,8 @@ std::string GetName(Step l) {
 }
 
 ConvSc GetConvSc(std::string s) {
-  auto l = {ConvSc::fou, ConvSc::cd, ConvSc::sou, ConvSc::quick,
-            ConvSc::superbee};
+  auto l = {
+      ConvSc::fou, ConvSc::cd, ConvSc::sou, ConvSc::quick, ConvSc::superbee};
   for (ConvSc sc : l) {
     if (GetName(sc) == s) {
       return sc;

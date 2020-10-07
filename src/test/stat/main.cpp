@@ -43,10 +43,9 @@ void Main(M& m, Vars& var) {
     stat.AddSum("vol", "volume", [&](IdxCell c, const M&) { //
       return m.GetVolume(c);
     });
-    stat.AddSumHidden(
-        "xvfvol2", "x*vf*volume", [&](IdxCell c, const M&) { //
-          return m.GetCenter(c) * m.GetVolume(c) * vf[c];
-        });
+    stat.AddSumHidden("xvfvol2", "x*vf*volume", [&](IdxCell c, const M&) { //
+      return m.GetCenter(c) * m.GetVolume(c) * vf[c];
+    });
     stat.AddSum("vol1", "volume of phase 1", [&](IdxCell c, const M&) {
       return (1 - vf[c]) * m.GetVolume(c);
     });
@@ -63,21 +62,21 @@ void Main(M& m, Vars& var) {
     stat.AddSum(
         "vol2_eb", "volume of phase 1",
         [&](IdxCell c, const Embed<M>& eb) { return vf[c] * eb.GetVolume(c); });
-    stat.AddMax(
-        "vf2_max", "max volume fraction 2",
-        [&](IdxCell c, const M&) { return vf[c]; });
+    stat.AddMax("vf2_max", "max volume fraction 2", [&](IdxCell c, const M&) {
+      return vf[c];
+    });
     stat.AddMax(
         "vf2_max_eb", "max volume fraction 2",
         [&](IdxCell c, const Embed<M>&) { return vf[c]; });
-    stat.AddMin(
-        "vf2_min", "min volume fraction 2",
-        [&](IdxCell c, const M&) { return vf[c]; });
-    stat.AddDerived(
-        "vol_copy", "copy of volume",
-        [](const Stat<M>& s) { return s["vol"]; });
-    stat.AddDerived(
-        "c2", "centeroid of phase 2",
-        [](const Stat<M>& s) { return s.vect["xvfvol2"] / s["vol2"]; });
+    stat.AddMin("vf2_min", "min volume fraction 2", [&](IdxCell c, const M&) {
+      return vf[c];
+    });
+    stat.AddDerived("vol_copy", "copy of volume", [](const Stat<M>& s) {
+      return s["vol"];
+    });
+    stat.AddDerived("c2", "centeroid of phase 2", [](const Stat<M>& s) {
+      return s.vect["xvfvol2"] / s["vol2"];
+    });
   }
   if (sem() && m.IsRoot()) {
     auto& stat = *ctx->stat;

@@ -1,9 +1,9 @@
 // Created by Petr Karnakov on 11.02.2020
 // Copyright 2020 ETH Zurich
 
-#include "embed.h"
 #include "dump/dumper.h"
 #include "dump/vtk.h"
+#include "embed.h"
 #include "func/init_u.h"
 
 template <class M>
@@ -33,7 +33,7 @@ void Embed<M>::Init(const FieldNode<Scal>& fnl) {
     }
     fc_cell_center_.Reinit(m, GetNan<Vect>());
     for (auto c : eb.AllCells()) {
-      fc_cell_center_[c] = GetCellCenter0(c);;
+      fc_cell_center_[c] = GetCellCenter0(c);
     }
 
     fc_sdf_.Reinit(eb, GetNan<Scal>());
@@ -53,7 +53,8 @@ void Embed<M>::Init(const FieldNode<Scal>& fnl) {
     }
     m.Comm(&fc_sdf_);
   }
-  if (sem()) {}
+  if (sem()) {
+  }
 }
 
 template <class M>
@@ -217,7 +218,7 @@ void Embed<M>::InitFaces(
         break;
       }
       case Type::cut: {
-        //ffs[f] = std::abs(R::GetArea(xx, m.GetNormal(f)));
+        // ffs[f] = std::abs(R::GetArea(xx, m.GetNormal(f)));
         const Scal eps = 1e-3;
         const Scal area0 = m.GetArea(f);
         Scal area = std::abs(R::GetArea(xx, m.GetNormal(f)));

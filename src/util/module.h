@@ -10,7 +10,11 @@
 #include <typeinfo>
 
 #define DECLARE_FORCE_LINK_TARGET(x) int kForceLink_##x = 0
-#define FORCE_LINK(x) do { extern int kForceLink_##x; kForceLink_##x = 1; } while(0)
+#define FORCE_LINK(x)          \
+  do {                         \
+    extern int kForceLink_##x; \
+    kForceLink_##x = 1;        \
+  } while (0)
 
 template <class Mod>
 bool RegisterModule() {
@@ -70,8 +74,8 @@ class Module {
  private:
   const std::string name_;
   const std::string desc_;
-  // Access through GetTable() ensures that the table is constructed on first use
-  // (would be undefined for member variables).
+  // Access through GetTable() ensures that the table is constructed on first
+  // use (would be undefined for member variables).
   static auto& GetTable() {
     static std::map<std::string, std::unique_ptr<Base>> table;
     return table;

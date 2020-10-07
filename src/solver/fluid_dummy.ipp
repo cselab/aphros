@@ -14,8 +14,8 @@
 #include "debug/isnan.h"
 #include "debug/linear.h"
 #include "fluid.h"
-#include "linear/linear.h"
 #include "fluid_dummy.h"
+#include "linear/linear.h"
 #include "util/posthook.h"
 
 // ranges (cells/faces)

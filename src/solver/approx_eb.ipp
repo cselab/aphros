@@ -224,7 +224,8 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
     };
     for (auto n : m.AllNodes()) {
       const Vect x = m.GetNode(n);
-      fnl[n] = (1 - (rotate(x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
+      fnl[n] =
+          (1 - (rotate(x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
     }
   } else if (name == "sphere") {
     const Vect xc(var.Vect["eb_sphere_c"]);

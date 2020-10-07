@@ -5,9 +5,9 @@
 #include <omp.h>
 #endif
 
-#include <stdexcept>
-#include <memory>
 #include <iostream>
+#include <memory>
+#include <stdexcept>
 
 #include "distr.h"
 
@@ -118,13 +118,13 @@ void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
     fassert_equal(v.size(), vfirst.size());
   }
 
-  auto append = [&bb,this](auto* derived, auto& buf, size_t i) {
+  auto append = [&bb, this](auto* derived, auto& buf, size_t i) {
     for (auto& b : bb) {
       const auto& v = mk.at(b)->GetMesh().GetReduceToLead();
       dynamic_cast<decltype(derived)>(v[i].get())->Append(buf);
     }
   };
-  auto set = [&bb,this](auto* derived, auto& buf, size_t i) {
+  auto set = [&bb, this](auto* derived, auto& buf, size_t i) {
     for (auto& b : bb) {
       const auto& m = mk.at(b)->GetMesh();
       if (m.IsLead()) {

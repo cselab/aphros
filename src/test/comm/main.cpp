@@ -16,9 +16,9 @@
 #include "geom/mesh.h"
 #include "kernel/kernelmeshpar.h"
 #include "linear/linear.h"
-#include "util/linear.h"
 #include "solver/pois.h"
 #include "solver/solver.h"
+#include "util/linear.h"
 #include "util/suspender.h"
 
 template <class T>

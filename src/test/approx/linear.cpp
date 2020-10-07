@@ -12,8 +12,8 @@
 #include <sstream>
 
 #include "geom/vect.h"
-#include "solver/embed.h"
 #include "solver/approx_eb.h"
+#include "solver/embed.h"
 
 using Scal = double;
 using Vect = generic::Vect<Scal, 3>;

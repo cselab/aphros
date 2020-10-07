@@ -12,8 +12,8 @@
 #include <utility>
 
 #include "distr/distrbasic.h"
-#include "solver/embed.h"
 #include "solver/approx_eb.h"
+#include "solver/embed.h"
 #include "solver/reconst.h"
 
 using M = MeshStructured<double, 3>;

@@ -141,7 +141,6 @@ auto Electro<EB_>::GetFaceCurrent() const -> const FieldEmbed<Scal>& {
   return imp->ff_current_;
 }
 
-
 template <class EB_>
 auto Electro<EB_>::GetStat() const -> const Stat& {
   return imp->stat_;

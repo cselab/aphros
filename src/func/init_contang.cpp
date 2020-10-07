@@ -42,7 +42,7 @@ class Linear : public ModuleInitContang<M> {
     conf.contang1 *= M_PI / 180.;
     for (auto c : m.AllCells()) {
       Scal a = (m.GetCenter(c) - conf.x0).dot(conf.x1 - conf.x0) /
-                     (conf.x1 - conf.x0).sqrnorm();
+               (conf.x1 - conf.x0).sqrnorm();
       a = std::max(0., std::min(1., a));
       fc_contang[c] = conf.contang0 * (1 - a) + conf.contang1 * a;
     }

@@ -225,7 +225,7 @@ void TestMesh() {
 void TestNotation() {
   const Rect<Vect> dom(Vect(0), Vect(1));
   using M = MeshStructured<Scal, dim>;
-  const MIdx begin(0); 
+  const MIdx begin(0);
   const MIdx size(1, 2, 3);
   const size_t halos = 2;
   const M m = InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);

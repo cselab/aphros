@@ -20,11 +20,11 @@
 #include "geom/mesh.h"
 #include "geom/vect.h"
 #include "kernel/kernelmeshpar.h"
-#include "util/linear.h"
 #include "parse/vars.h"
 #include "solver/convdiffi.h"
 #include "solver/solver.h"
 #include "util/convdiff.h"
+#include "util/linear.h"
 #include "util/suspender.h"
 
 struct GPar {};

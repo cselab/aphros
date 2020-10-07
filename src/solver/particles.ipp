@@ -348,8 +348,9 @@ void Particles<EB_>::Step(Scal dt, const FieldEmbed<Scal>& fe_flux) {
 
 template <class EB_>
 auto Particles<EB_>::GetView() const -> ParticlesView {
-  return {imp->state_.x, imp->state_.v, imp->state_.r, imp->state_.rho,
-          imp->state_.termvel};
+  return {
+      imp->state_.x, imp->state_.v, imp->state_.r, imp->state_.rho,
+      imp->state_.termvel};
 }
 
 template <class EB_>

@@ -3,7 +3,6 @@
 
 #include "linear.ipp"
 
-
 namespace linear {
 
 using M = MeshStructured<double, 3>;

@@ -1,8 +1,8 @@
 // Created by Petr Karnakov on 07.08.2018
 // Copyright 2018 ETH Zurich
 
-#include <cstdlib>
 #include <cassert>
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>

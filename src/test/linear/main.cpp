@@ -101,7 +101,6 @@ SolverInfo SolveJacobi(
   return {};
 }
 
-
 Solver GetSolver(std::string name) {
   if (name == "hypre") {
     return Solver::hypre;

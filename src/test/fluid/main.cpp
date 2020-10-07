@@ -62,7 +62,8 @@ void Test(M& m, MEB& eb, std::string name) {
     m.Dump(&t.fc_force, 1, "fy");
     m.Dump(&t.fc_force, 2, "fz");
   }
-  if (sem()) {}
+  if (sem()) {
+  }
 }
 
 void Main(M& m, Vars& var) {

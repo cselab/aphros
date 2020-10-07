@@ -173,8 +173,8 @@ void Cmp(int f) {
   Scal r = DiffMax(fcn, fcn2, m);
   Scal eps = 1e-15;
   if (r > eps) {
-    std::vector<std::string> nn = {"NormalYoung", "NormalHeight,edim=3",
-                                   "NormalHeight,edim=2"};
+    std::vector<std::string> nn = {
+        "NormalYoung", "NormalHeight,edim=3", "NormalHeight,edim=2"};
     std::cerr << "Cmp " + nn[f] + ": max difference excceded "
               << std::scientific << std::setprecision(16) << r << " > " << eps
               << std::endl;

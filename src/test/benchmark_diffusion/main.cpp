@@ -12,9 +12,9 @@
 
 #include "geom/mesh.h"
 #include "solver/approx.h"
+#include "solver/approx_eb.h"
 #include "solver/cond.h"
 #include "solver/solver.h"
-#include "solver/approx_eb.h"
 #include "util/sysinfo.h"
 #include "util/timer.h"
 

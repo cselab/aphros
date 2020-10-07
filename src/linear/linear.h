@@ -125,4 +125,3 @@ class SolverJacobi : public Solver<M> {
 };
 
 } // namespace linear
-

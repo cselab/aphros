@@ -116,8 +116,8 @@ struct Vof<EB_>::Imp {
             }
             if (xx.size()) {
               const auto p = ULinearFit<Scal>::FitLinear(xx, uu);
-              fcu[c] = ULinearFit<typename EB::Scal>::EvalLinear(
-                  p, m.GetCenter(c));
+              fcu[c] =
+                  ULinearFit<typename EB::Scal>::EvalLinear(p, m.GetCenter(c));
             }
           }
         }
@@ -638,9 +638,10 @@ struct Vof<EB_>::Imp {
 
 template <class EB_>
 Vof<EB_>::Vof(
-    M& m_, const EB& eb, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-    const MapEmbed<BCondAdvection<Scal>>& mfc, const FieldEmbed<Scal>* fev,
-    const FieldCell<Scal>* fcs, double t, double dt, Par par)
+    M& m_, const EB& eb, const FieldCell<Scal>& fcu,
+    const FieldCell<Scal>& fccl, const MapEmbed<BCondAdvection<Scal>>& mfc,
+    const FieldEmbed<Scal>* fev, const FieldCell<Scal>* fcs, double t,
+    double dt, Par par)
     : AdvectionSolver<M>(t, dt, m_, fev, fcs)
     , imp(new Imp(this, eb, fcu, fccl, mfc, par)) {}
 

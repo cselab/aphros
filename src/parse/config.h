@@ -21,7 +21,7 @@ class ConfigBase {
   ConfigBase(ConfigBase&&) = delete;
   ConfigBase& operator=(const ConfigBase&) = delete;
   ConfigBase& operator=(ConfigBase&&) = delete;
-  void Read(const Vars& var, const std::string prefix="") {
+  void Read(const Vars& var, const std::string prefix = "") {
     for (auto p : ptrs_double_) {
       *p.second = var.Double[prefix + p.first];
     }

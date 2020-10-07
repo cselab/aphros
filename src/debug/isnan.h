@@ -8,10 +8,10 @@
 #include <sstream>
 #include <string>
 
-#include "solver/embed.h"
 #include "geom/field.h"
 #include "geom/range.h"
 #include "geom/vect.h"
+#include "solver/embed.h"
 #include "util/logger.h"
 
 template <class T, class Idx>
@@ -122,10 +122,10 @@ inline std::string SrcPath(const std::string& s) {
 // C: condition
 // Requires in scope:
 // m: mesh or GRange
-#define CHECKHALO(field, halo)                                        \
-  if (field.GetHalo() < halo) {                                       \
-    throw std::runtime_error(                                         \
-        FILELINE + ": required " + std::to_string(halo) +             \
-        " halos for field '" + field.GetName() + "' but only " +      \
-        std::to_string(field.GetHalo()) + " are valid");              \
+#define CHECKHALO(field, halo)                                   \
+  if (field.GetHalo() < halo) {                                  \
+    throw std::runtime_error(                                    \
+        FILELINE + ": required " + std::to_string(halo) +        \
+        " halos for field '" + field.GetName() + "' but only " + \
+        std::to_string(field.GetHalo()) + " are valid");         \
   }

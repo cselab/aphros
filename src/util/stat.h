@@ -28,7 +28,6 @@ struct NonVoid<T, TT...> {
       std::is_same<T, void>::value, typename NonVoid<TT...>::type, T>::type;
 };
 
-
 // Deduces the return type of Func() called with Args, void if invalid.
 // Case of no arguments.
 template <class Func, class... Args>
@@ -72,7 +71,6 @@ class ResultOfDeducedArgs {
   using type = decltype(Eval<Func>(0));
 };
 
-
 template <class M>
 class Stat {
  public:
@@ -91,7 +89,8 @@ class Stat {
     std::function<Vect()> func_vect;
     bool enabled = true;
     bool hidden = false;
-    bool derived = false; // computed from other entires, postponed to second pass
+    bool derived =
+        false; // computed from other entires, postponed to second pass
     Entry(
         std::string name_, std::string desc_, Reduction op_,
         std::function<Scal()> func_, bool hidden_, bool derived_)

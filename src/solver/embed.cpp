@@ -9,5 +9,3 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 
 template class Embed<M>;
-
-

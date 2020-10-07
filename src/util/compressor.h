@@ -58,7 +58,7 @@ class PassThrough : public FPCompressor {
   }
 
   size_t Decompress() override {
-      return 0;
+    return 0;
   }
 
  private:

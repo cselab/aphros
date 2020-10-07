@@ -95,7 +95,8 @@ int RunMpi0(
   int errorcode;
   int prov;
   int resultlen;
-  if ((errorcode = MPI_Init_thread(&argc, (char***)&argv, MPI_THREAD_MULTIPLE, &prov)) != MPI_SUCCESS) {
+  if ((errorcode = MPI_Init_thread(
+           &argc, (char***)&argv, MPI_THREAD_MULTIPLE, &prov)) != MPI_SUCCESS) {
     MPI_Error_string(errorcode, string, &resultlen);
     throw std::runtime_error(FILELINE + ": mpi failed: " + string);
   }

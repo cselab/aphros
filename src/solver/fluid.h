@@ -98,7 +98,6 @@ class GivenPressureFixed : public GivenPressure<M> {
 
 } // namespace fluid_condition
 
-
 enum class BCondFluidType {
   wall, // no-slip wall [velocity]
   slipwall, // slip wall [velocity]

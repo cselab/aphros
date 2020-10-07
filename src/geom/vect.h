@@ -5,9 +5,9 @@
 
 #include <array>
 #include <cmath>
-#include <ostream>
 #include <istream>
 #include <limits>
+#include <ostream>
 #include <vector>
 
 template <class T>

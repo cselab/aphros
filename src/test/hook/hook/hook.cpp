@@ -1,8 +1,7 @@
 #include <iostream>
 
-#include <util/posthook.h>
 #include <parse/config.h>
-
+#include <util/posthook.h>
 
 template <class M>
 void InitVelHook(FieldCell<typename M::Vect>&, const Vars& var, const M&) {

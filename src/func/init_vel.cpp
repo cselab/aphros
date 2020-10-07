@@ -3,8 +3,8 @@
 
 #include <cmath>
 
-#include "init_vel.h"
 #include "geom/mesh.h"
+#include "init_vel.h"
 
 DECLARE_FORCE_LINK_TARGET(init_vel);
 
@@ -50,7 +50,6 @@ class KelvinHelmholtz : public ModuleInitVelocity<M> {
     }
   }
 };
-
 
 template <class M>
 class Uniform : public ModuleInitVelocity<M> {

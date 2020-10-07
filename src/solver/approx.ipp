@@ -484,8 +484,7 @@ void BcApply(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
 // Apply reflection on all boundaries
 // fill: value for other types that CondFaceReflect
 template <class T, class M>
-void BcReflectAll(
-    FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
+void BcReflectAll(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 

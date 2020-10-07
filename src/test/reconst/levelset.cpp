@@ -15,8 +15,8 @@ using Vect = generic::Vect<Scal, 3>;
 int main(int, char** argc) {
   std::string f = argc[1];
   if (f == "area") {
-    const std::array<Scal, 4> ee{atof(argc[2]), atof(argc[3]), atof(argc[4]),
-                                 atof(argc[5])};
+    const std::array<Scal, 4> ee{
+        atof(argc[2]), atof(argc[3]), atof(argc[4]), atof(argc[5])};
     std::cout << GetFaceAreaFraction(ee);
   }
   std::cout << std::endl;
