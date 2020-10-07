@@ -26,7 +26,6 @@ if [ "${[[FLAGVAR]]:-x}" != "1" ] ; then
 
   export [[PREFIXVAR]]="[[PREFIX]]"
   export [[PROFILEVAR]]="[[PROFILE]]"
-  export CHPREFIX="${[[PREFIXVAR]]}"
   export PATH="${[[PREFIXVAR]]}/bin:$PATH"
   export LD_LIBRARY_PATH="${[[PREFIXVAR]]}/lib:${LD_LIBRARY_PATH}"
   export PYTHONPATH="${[[PREFIXVAR]]}/bin:$PYTHONPATH"

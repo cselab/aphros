@@ -2,7 +2,7 @@
 .SUFFIXES: .o .c
 CC = cc
 CFLAGS = -g -Og
-PREFIX = $(CHPREFIX)
+PREFIX = $(APHROS_PREFIX)
 
 O = main.o err.o memory.o
 L = libtable.a

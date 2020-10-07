@@ -1,9 +1,9 @@
 from ctypes import *
 import os
 
-p = os.getenv("CHPREFIX")
+p = os.getenv("APHROS_PREFIX")
 if p == None:
-    sys.stderr.write("CHPREFIX is not set")
+    sys.stderr.write("APHROS_PREFIX is not set")
     sys.exit(2)
 p = os.path.join(p, "lib", "libvof.so")
 

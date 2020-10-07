@@ -1,7 +1,7 @@
 .POSIX:
 .SUFFIXES: .o .c
 CFLAGS = -g -Og
-PREFIX = $(CHPREFIX)
+PREFIX = $(APHROS_PREFIX)
 
 O = main.o err.o memory.o
 L = libcsv.a

@@ -2,9 +2,11 @@ cmake_minimum_required(VERSION 3.3.0)
 
 project("mfer")
 
-set(EXE "mfer")
-
-set(CHPREFIX $ENV{CHPREFIX})
+# Disallow in-source build
+if (CMAKE_SOURCE_DIR} STREQUAL CMAKE_BINARY_DIR)
+  message(FATAL_ERROR
+    "Aphros requires an out-of-source build. Run CMake from a separate build directory.")
+endif ()
 
 option(USE_OPENMP "Build with OpenMP support." ON)
 
@@ -43,8 +45,8 @@ function(add_library name)
     set_target_properties(${name} PROPERTIES PREFIX "libaphros_")
     target_compile_options(${name} PRIVATE -Wall -Wextra -pedantic -Wshadow)
   endif()
-  install(TARGETS ${name} EXPORT export DESTINATION ${CHPREFIX}/lib)
-  target_include_directories(${name} INTERFACE "${CHPREFIX}/include/hydro")
+  install(TARGETS ${name} EXPORT export DESTINATION lib)
+  target_include_directories(${name} INTERFACE "${APHROS_PREFIX}/include/hydro")
 endfunction(add_library)
 
 add_subdirectory(linear)
@@ -62,7 +64,7 @@ add_subdirectory(color)
 set(T "hydro")
 add_library(${T} INTERFACE)
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
-    "${CHPREFIX}/include/hydro")
+    "${APHROS_PREFIX}/include/hydro")
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES
     distrsolver solver vof vofm normal convdiffvg simple proj proj_eb
     fluid_dummy init init_vel init_contang
@@ -70,8 +72,9 @@ set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES
     particles dump_hdf electro linear utillinear distrbasic)
 
 # binary
+set(EXE "mfer")
 add_executable(${EXE} main.cpp)
-install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
+install(TARGETS ${EXE} DESTINATION bin)
 set_target_properties(${EXE} PROPERTIES PREFIX "ap.")
 target_link_libraries(${EXE} hydro)
 
@@ -79,6 +82,6 @@ target_link_libraries(${EXE} hydro)
 add_subdirectory(test)
 enable_testing()
 
-install(EXPORT export FILE export.cmake DESTINATION ${CHPREFIX}/cmake/aphros)
-install(FILES client.cmake hydroConfig.cmake DESTINATION ${CHPREFIX}/cmake/aphros)
+install(EXPORT export FILE export.cmake DESTINATION cmake/aphros)
+install(FILES client.cmake hydroConfig.cmake DESTINATION cmake/aphros)
 include(header.cmake)

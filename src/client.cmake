@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.3.0)
 
-set(CHPREFIX $ENV{CHPREFIX})
+if (DEFINED ENV{APHROS_PREFIX})
+  set(CMAKE_INSTALL_PREFIX $ENV{APHROS_PREFIX}
+      CACHE PATH "Install path prefix. Detected from environment APHROS_PREFIX" FORCE)
+else()
+  message(FATAL_ERROR
+    "Environment variable APHROS_PREFIX not set. Use `. ap.setenv`")
+endif()
+
+set(APHROS_PREFIX $ENV{APHROS_PREFIX})
 
 # default build type
 set(BuildTypeValues None Debug Release RelWithDebInfo MinSizeRel)
@@ -37,7 +45,7 @@ set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${HDF5_LIBRARI
 
 # hypre
 set(T "hypreext")
-set(HYPRE_DIR ${CHPREFIX})
+set(HYPRE_DIR ${APHROS_PREFIX})
 add_library(${T} INTERFACE IMPORTED)
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${HYPRE_DIR}/include)
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES -L${HYPRE_DIR}/lib -lHYPRE -lm)

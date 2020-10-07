@@ -2,7 +2,7 @@
 .SUFFIXES: .o .c
 CFLAGS = -g -Og
 GSL_CFLAGS = `gsl-config --cflags`
-PREFIX = $(CHPREFIX)
+PREFIX = $(APHROS_PREFIX)
 
 O = main.o err.o
 L = libchmath.a
