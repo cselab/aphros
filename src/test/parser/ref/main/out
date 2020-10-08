@@ -58,6 +58,8 @@ set vect d 1
 TestFile
 set string c a b   s c
 set string dumplist p vx vy vf
+set string from_c.conf 
+set string from_d.conf 
 set string multi "inline 
 
 line1

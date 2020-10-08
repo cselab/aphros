@@ -39,14 +39,9 @@ void Simple() {
 
 void TestFile() {
   std::cout << "\n" << __func__ << std::endl;
-  // open script
-  std::string ni = "a.conf";
-  std::ifstream fi(ni);
-
-  // run all commands
   Vars par;
   Parser parser(par);
-  parser.ParseStream(fi);
+  parser.ParseFile("a.conf");
 
   // print variables to cout
   parser.PrintAll(std::cout);

@@ -122,8 +122,8 @@ struct Parser::Imp {
   }
   // Executes single command
   // In cases of error, if `filename != ""` and `line >= 0`
-  // appends the error message with filename and line.
-  void Cmd(std::string, std::string filename, int line);
+  // appends the error message with curpath and line.
+  void Cmd(std::string, std::string curpath, int line);
   // set <type> <key> <value>
   void CmdSet(std::string);
   // setnext <type> <key> <value>
@@ -131,8 +131,9 @@ struct Parser::Imp {
   void CmdSetNext(std::string);
   // del <name>
   void CmdDel(std::string);
-  // include <filename>
-  void CmdInclude(std::string);
+  // include <path>
+  // curpath: path to file from which the command is called
+  void CmdInclude(std::string path, std::string curpath);
 
   Owner* owner_;
   Vars& v_;
@@ -142,7 +143,7 @@ Parser::Parser(Vars& v) : imp(new Imp(this, v)) {}
 
 Parser::~Parser() = default;
 
-void Parser::Imp::Cmd(std::string s, std::string filename, int line) {
+void Parser::Imp::Cmd(std::string s, std::string curpath, int line) {
   try {
     s = RemoveComment(s);
     s = ExpandVariables(s);
@@ -156,7 +157,7 @@ void Parser::Imp::Cmd(std::string s, std::string filename, int line) {
     } else if (cmd == "del") {
       CmdDel(s);
     } else if (cmd == "include") {
-      CmdInclude(s);
+      CmdInclude(s, curpath);
     } else if (cmd == "") {
       // nop
     } else {
@@ -164,8 +165,8 @@ void Parser::Imp::Cmd(std::string s, std::string filename, int line) {
     }
   } catch (const std::runtime_error& e) {
     std::string msg = e.what();
-    if (filename != "" && line >= 0) {
-      const auto loc = util::GetRealpath(filename) + ':' + std::to_string(line);
+    if (curpath != "" && line >= 0) {
+      const auto loc = util::GetRealpath(curpath) + ':' + std::to_string(line);
       msg = loc + ": required from here\n" + msg;
     }
     throw std::runtime_error(msg);
@@ -220,12 +221,13 @@ void Parser::Imp::CmdDel(std::string s) {
   }
 }
 
-void Parser::Imp::CmdInclude(std::string s) {
+void Parser::Imp::CmdInclude(std::string s, std::string curpath) {
   std::string cmd;
   std::string filename;
   std::stringstream b(s);
   b >> cmd >> filename;
-  owner_->ParseFile(filename);
+  std::string dir;
+  owner_->ParseFile(filename, curpath != "" ? util::GetDirname(curpath) : "");
 }
 
 void Parser::Run(std::string s) {
@@ -304,12 +306,23 @@ void Parser::ParseStream(std::istream& in) {
   }
 }
 
-void Parser::ParseFile(std::string path) {
-  int line = 0;
+void Parser::ParseFile(std::string path, std::string dir) {
+  fassert(path != "", "Empty path");
   std::ifstream f(path);
-  if (!f.good()) {
-    throw std::runtime_error("ParseFile(): Can't open '" + path + "'");
+  if (dir != "") {
+    fassert(
+        util::IsDir(dir), "Not a directory: '" + dir +
+                              "' specified to look for file '" + path + "'");
+    auto path2 = dir + "/" + path;
+    if (!f.good() && path[0] != '/') {
+      f.open(path2);
+      fassert(f.good(), "Can't open file '" + path + "' or '" + path2 + "'");
+    }
+    path = path2;
   }
+  fassert(f.good(), "Can't open file '" + path + "'");
+
+  int line = 0;
   while (f) {
     const std::pair<std::string, int> p = ReadMultiline(f);
     line += p.second;

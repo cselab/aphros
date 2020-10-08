@@ -27,8 +27,11 @@ class Parser {
   // Executes all lines from stream
   void ParseStream(std::istream&);
   // Executes all lines from file.
-  // Includes line number to error messages.
-  void ParseFile(std::string path);
+  // If `path` is a relative path, looks for the file relative to:
+  // - current directory
+  // - directory `dir` (if `dir != ""`)
+  // Reports file path and line number in case of error.
+  void ParseFile(std::string path, std::string dir = "");
   // Prints content of Map
   template <class T>
   static void Print(const Vars::Map<T>& m, std::ostream& out);
