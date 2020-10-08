@@ -308,6 +308,15 @@ Cubismnc<Par, M>::Cubismnc(
       bs_[0] == FieldView::bx && bs_[1] == FieldView::by &&
       bs_[2] == FieldView::bz);
 
+  int commsize; // size of communicator
+  MPI_Comm_size(comm, &commsize);
+  if (commsize != p_[0] * p_[1] * p_[2]) {
+    throw std::runtime_error(
+        "Number of MPI tasks (" + std::to_string(commsize) +
+        ") does not match the number of subdomains in px,py,pz (" +
+        std::to_string(p_[0] * p_[1] * p_[2]) + ")");
+  }
+
   int r;
   MPI_Comm_rank(comm, &r);
   isroot_ = (0 == r); // XXX: overwrite isroot_
