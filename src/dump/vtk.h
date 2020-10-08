@@ -11,6 +11,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "geom/vect.h"
+
 // Returns true if machine is little endian
 static inline bool IsLittleEnd() {
   int a = 1;
