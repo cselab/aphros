@@ -8,6 +8,8 @@
 #include <vector>
 
 #include "util/sysinfo.h"
+#include "util/filesystem.h"
+#include "util/logger.h"
 
 using namespace sysinfo;
 
@@ -35,6 +37,22 @@ void Test() {
   assert(b >= a + s);
 }
 
+void TestFilesystem() {
+  using namespace util;
+  std::cout << NAMEVALUE(GetBasename("./")) << std::endl;
+  std::cout << NAMEVALUE(GetBasename("./.")) << std::endl;
+  std::cout << NAMEVALUE(GetBasename("a/b")) << std::endl;
+  std::cout << NAMEVALUE(GetBasename("a")) << std::endl;
+  std::cout << NAMEVALUE(GetDirname("./")) << std::endl;
+  std::cout << NAMEVALUE(GetDirname("./.")) << std::endl;
+  std::cout << NAMEVALUE(GetDirname("a/b")) << std::endl;
+  std::cout << NAMEVALUE(GetDirname("a")) << std::endl;
+  std::cout << NAMEVALUE(IsFile("main.cpp")) << std::endl;
+  std::cout << NAMEVALUE(IsFile("main2.cpp")) << std::endl;
+  std::cout << NAMEVALUE(IsDir(".")) << std::endl;
+}
+
 int main() {
+  TestFilesystem();
   Test();
 }

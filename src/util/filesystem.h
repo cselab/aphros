@@ -10,10 +10,18 @@ namespace util {
 // Returns resolved path.
 std::string GetRealpath(std::string path);
 
+std::string GetDirname(std::string path);
+
+std::string GetBasename(std::string path);
+
+
 // Creates directory.
 // path: path to target directory
 // parent: if true, make parent directories as needed
 void Makedir(std::string path, bool parent = true);
+
+// Returns true if path is a file.
+bool IsFile(std::string path);
 
 // Returns true if path is a directory.
 bool IsDir(std::string path);
