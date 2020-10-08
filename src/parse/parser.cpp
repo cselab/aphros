@@ -313,7 +313,7 @@ void Parser::ParseFile(std::string path, std::string dir) {
     fassert(
         util::IsDir(dir), "Not a directory: '" + dir +
                               "' specified to look for file '" + path + "'");
-    auto path2 = dir + "/" + path;
+    auto path2 = util::Join(dir, path);
     if (!f.good() && path[0] != '/') {
       f.open(path2);
       fassert(f.good(), "Can't open file '" + path + "' or '" + path2 + "'");

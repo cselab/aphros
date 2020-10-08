@@ -17,7 +17,7 @@ namespace util {
 std::string GetRealpath(std::string path) {
   char buf[PATH_MAX + 1];
   char* ptr = realpath(path.c_str(), buf);
-  return std::string(ptr);
+  return ptr ? std::string(ptr) : "";
 }
 
 std::string GetDirname(std::string path) {
@@ -32,6 +32,22 @@ std::string GetBasename(std::string path) {
   strcpy(buf, path.c_str());
   const char* ptr = basename(buf);
   return std::string(ptr);
+}
+
+std::string Join(std::string a, std::string b) {
+  if (b == "") {
+    return a;
+  }
+  if (a == "") {
+    return b;
+  }
+  if (b[0] == '/') {
+    return b;
+  }
+  if (a.back() == '/') {
+    return a + b;
+  }
+  return a + '/' + b;
 }
 
 void Makedir(std::string path, bool parent) {

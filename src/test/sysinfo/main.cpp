@@ -33,22 +33,31 @@ void Test() {
   F(s);
 
   b = GetMem();
-  std::cout << MB(a) << " " << MB(b) << std::endl;
+  std::cerr << MB(a) << " " << MB(b) << std::endl;
   assert(b >= a + s);
 }
 
 void TestFilesystem() {
   using namespace util;
+  std::cout << NAMEVALUE(GetBasename("")) << std::endl;
   std::cout << NAMEVALUE(GetBasename("./")) << std::endl;
   std::cout << NAMEVALUE(GetBasename("./.")) << std::endl;
   std::cout << NAMEVALUE(GetBasename("a/b")) << std::endl;
   std::cout << NAMEVALUE(GetBasename("a")) << std::endl;
+  std::cout << NAMEVALUE(GetDirname("")) << std::endl;
   std::cout << NAMEVALUE(GetDirname("./")) << std::endl;
   std::cout << NAMEVALUE(GetDirname("./.")) << std::endl;
   std::cout << NAMEVALUE(GetDirname("a/b")) << std::endl;
   std::cout << NAMEVALUE(GetDirname("a")) << std::endl;
   std::cout << NAMEVALUE(IsFile("main.cpp")) << std::endl;
   std::cout << NAMEVALUE(IsFile("main2.cpp")) << std::endl;
+  std::cout << NAMEVALUE(GetRealpath("main.cpp")) << std::endl;
+  std::cout << NAMEVALUE(GetRealpath("main2.cpp")) << std::endl;
+  std::cout << NAMEVALUE(Join("a", "")) << std::endl;
+  std::cout << NAMEVALUE(Join("", "b")) << std::endl;
+  std::cout << NAMEVALUE(Join("a", "b")) << std::endl;
+  std::cout << NAMEVALUE(Join("a/", "b")) << std::endl;
+  std::cout << NAMEVALUE(Join("a", "/b")) << std::endl;
   std::cout << NAMEVALUE(IsDir(".")) << std::endl;
 }
 

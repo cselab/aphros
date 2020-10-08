@@ -14,6 +14,7 @@ std::string GetDirname(std::string path);
 
 std::string GetBasename(std::string path);
 
+std::string Join(std::string path0, std::string path1);
 
 // Creates directory.
 // path: path to target directory
