@@ -10,7 +10,6 @@ GetDirname("a/b")=a
 GetDirname("a")=.
 IsFile("main.cpp")=1
 IsFile("main2.cpp")=0
-GetRealpath("main.cpp")=/home/petr/work/ethz/proj/electrochem/ch/src/test/sysinfo/main.cpp
 GetRealpath("main2.cpp")=
 Join("a", "")=a
 Join("", "b")=b

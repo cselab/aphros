@@ -51,7 +51,7 @@ void TestFilesystem() {
   std::cout << NAMEVALUE(GetDirname("a")) << std::endl;
   std::cout << NAMEVALUE(IsFile("main.cpp")) << std::endl;
   std::cout << NAMEVALUE(IsFile("main2.cpp")) << std::endl;
-  std::cout << NAMEVALUE(GetRealpath("main.cpp")) << std::endl;
+  std::cerr << NAMEVALUE(GetRealpath("main.cpp")) << std::endl;
   std::cout << NAMEVALUE(GetRealpath("main2.cpp")) << std::endl;
   std::cout << NAMEVALUE(Join("a", "")) << std::endl;
   std::cout << NAMEVALUE(Join("", "b")) << std::endl;
