@@ -28,6 +28,14 @@ template std::tuple<
     std::vector<std::map<std::string, typename M::Scal>>>
 InitBc(const Vars& var, const EB& eb, std::set<std::string> known_keys);
 
+template void DumpBcPoly(
+    const std::string filename, const MapEmbed<size_t>& me_group,
+    const MapEmbed<Scal>& me_contang, const M&, M&);
+
+template void DumpBcPoly(
+    const std::string filename, const MapEmbed<size_t>& me_group,
+    const MapEmbed<Scal>& me_contang, const EB&, M&);
+
 template void GetFluidCellCond(
     const Vars& var, M& m, MapCell<std::shared_ptr<CondCellFluid>>& mcvel);
 

@@ -171,44 +171,4 @@ struct UInitEmbedBc {
     }
     return mebc;
   }
-
-  template <class MEB>
-  static void DumpPoly(
-      const std::string filename, const MapEmbed<size_t>& me_group,
-      const MapEmbed<Scal>& me_contang, const MEB& meb, M& m) {
-    auto sem = m.GetSem("dumppoly");
-    struct {
-      std::vector<std::vector<Vect>> dpoly;
-      std::vector<Scal> dgroup;
-      std::vector<Scal> dcontang;
-      std::vector<Scal> dface;
-    } * ctx(sem);
-    auto& dpoly = ctx->dpoly;
-    auto& dgroup = ctx->dgroup;
-    auto& dcontang = ctx->dcontang;
-    auto& dface = ctx->dface;
-    if (sem("local")) {
-      me_group.LoopPairs([&](auto p) {
-        const auto cf = p.first;
-        dpoly.push_back(meb.GetFacePoly(cf));
-        dgroup.push_back(p.second);
-        dcontang.push_back(me_contang.at(cf));
-        dface.push_back(meb.IsCell(cf) ? 0 : 1);
-      });
-      using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dpoly));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dgroup));
-      m.Reduce(std::make_shared<TS>(&dcontang));
-      m.Reduce(std::make_shared<TS>(&dface));
-    }
-    if (sem("write")) {
-      if (m.IsRoot()) {
-        WriteVtkPoly<Vect>(
-            filename, dpoly, nullptr, {&dgroup, &dcontang, &dface},
-            {"group", "contang", "face"}, "Boundary conditions", true, true,
-            true);
-      }
-    }
-  }
 };

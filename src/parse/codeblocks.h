@@ -1,6 +1,8 @@
 // Created by Petr Karnakov on 20.02.2020
 // Copyright 2020 ETH Zurich
 
+#pragma once
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>

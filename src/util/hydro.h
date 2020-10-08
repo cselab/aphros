@@ -47,6 +47,12 @@ std::tuple<
     std::vector<std::map<std::string, typename MEB::Scal>>>
 InitBc(const Vars& var, const MEB& eb, std::set<std::string> known_keys);
 
+template <class MEB>
+void DumpBcPoly(
+    const std::string filename, const MapEmbed<size_t>& me_group,
+    const MapEmbed<typename MEB::Scal>& me_contang, const MEB& meb,
+    typename MEB::M& m);
+
 // Returns fluid cell conditions.
 // Output:
 // mcvel: output

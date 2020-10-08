@@ -788,6 +788,48 @@ InitBc(const Vars& var, const MEB& eb, std::set<std::string> known_keys) {
   return {me_fluid, me_adv, me_group, vdesc, vcustom};
 }
 
+template <class MEB>
+void DumpBcPoly(
+    const std::string filename, const MapEmbed<size_t>& me_group,
+    const MapEmbed<typename MEB::Scal>& me_contang, const MEB& meb,
+    typename MEB::M& m) {
+  using M = typename MEB::M;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  auto sem = m.GetSem("dumppoly");
+  struct {
+    std::vector<std::vector<Vect>> dpoly;
+    std::vector<Scal> dgroup;
+    std::vector<Scal> dcontang;
+    std::vector<Scal> dface;
+  } * ctx(sem);
+  auto& dpoly = ctx->dpoly;
+  auto& dgroup = ctx->dgroup;
+  auto& dcontang = ctx->dcontang;
+  auto& dface = ctx->dface;
+  if (sem("local")) {
+    me_group.LoopPairs([&](auto p) {
+      const auto cf = p.first;
+      dpoly.push_back(meb.GetFacePoly(cf));
+      dgroup.push_back(p.second);
+      dcontang.push_back(me_contang.at(cf));
+      dface.push_back(meb.IsCell(cf) ? 0 : 1);
+    });
+    m.Reduce(&dpoly, Reduction::concat);
+    m.Reduce(&dgroup, Reduction::concat);
+    m.Reduce(&dcontang, Reduction::concat);
+    m.Reduce(&dface, Reduction::concat);
+  }
+  if (sem("write")) {
+    if (m.IsRoot()) {
+      WriteVtkPoly<Vect>(
+          filename, dpoly, nullptr, {&dgroup, &dcontang, &dface},
+          {"group", "contang", "face"}, "Boundary conditions", true, true,
+          true);
+    }
+  }
+}
+
 template <class M>
 void GetFluidCellCond(
     const Vars& var, M& m, MapCell<std::shared_ptr<CondCellFluid>>& mcvel) {

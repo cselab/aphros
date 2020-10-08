@@ -26,7 +26,6 @@
 #include "dump/dumper.h"
 #include "dump/hdf.h"
 #include "func/init.h"
-#include "func/init_bc.h"
 #include "func/init_contang.h"
 #include "geom/mesh.h"
 #include "kernelmeshpar.h"
@@ -65,6 +64,17 @@
 #include "util/stat.h"
 
 class GPar {};
+
+template <class M>
+class Hydro;
+
+template <class M>
+class ModulePostStep : public Module<ModulePostStep<M>> {
+ public:
+  using Vect = typename M::Vect;
+  using Module<ModulePostStep>::Module;
+  virtual void operator()(Hydro<M>*, M& m) = 0;
+};
 
 template <class M>
 FieldCell<typename M::Scal> GetDivergence(
@@ -134,12 +144,15 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     return m;
   }
 
- protected:
+ // FIXME: make private and introduce public interface
+ public:
   using P::bi_;
   using P::m;
   using P::var;
 
- private:
+ // FIXME: make private and introduce public interface
+ // Needed for ModulePostStep
+ public:
   void Init();
   void InitEmbed();
   void InitTracer(Multi<FieldCell<Scal>>& vfcu);
@@ -354,6 +367,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   // electro
   std::unique_ptr<ElectroInterface<M>> electro_;
+
+  ModulePostStep<M>* module_post_step_ = nullptr;
 };
 
 template <class M>
@@ -1159,6 +1174,13 @@ void Hydro<M>::Init() {
     m.flags.check_symmetry_dump_threshold =
         var.Double["check_symmetry_dump_threshold"];
     randgen_.seed(m.GetId() + 1);
+
+    if (auto* name = var.String.Find("module_post_step")) {
+      module_post_step_ = ModulePostStep<M>::GetInstance(*name);
+      fassert(
+          module_post_step_,
+          "ModulePostStep instance '" + *name + "' not found");
+    }
   }
   if (sem.Nested("embed")) {
     InitEmbed();
@@ -1454,9 +1476,9 @@ void Hydro<M>::Init() {
       }
       if (sem.Nested("bcdump")) {
         if (eb_) {
-          UInitEmbedBc<M>::DumpPoly("bc.vtk", me_group_, me_contang_, *eb_, m);
+          DumpBcPoly("bc.vtk", me_group_, me_contang_, *eb_, m);
         } else {
-          UInitEmbedBc<M>::DumpPoly("bc.vtk", me_group_, me_contang_, m, m);
+          DumpBcPoly("bc.vtk", me_group_, me_contang_, m, m);
         }
       }
     }
@@ -2217,6 +2239,9 @@ void Hydro<M>::Run() {
   }
   if (sem.Nested("stephook")) {
     StepHook(this);
+  }
+  if (sem.Nested("module_post_step") && module_post_step_) {
+    (*module_post_step_)(this, m);
   }
   if (sem("inc")) {
     ++st_.step;

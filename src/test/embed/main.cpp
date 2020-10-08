@@ -14,6 +14,7 @@
 #include "solver/approx_eb.h"
 #include "solver/embed.h"
 #include "solver/reconst.h"
+#include "util/hydro.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -93,8 +94,7 @@ void Run(M& m, Vars& var) {
     }
   }
   if (sem.Nested("bcdump")) {
-    UInitEmbedBc<M>::DumpPoly(
-        "bc.vtk", ctx->me_group, ctx->me_contang, *ctx->eb, m);
+    DumpBcPoly("bc.vtk", ctx->me_group, ctx->me_contang, *ctx->eb, m);
   }
   const size_t maxt = 10;
   for (size_t t = 0; t < maxt; ++t) {
