@@ -145,3 +145,7 @@ int nz 1
 double double 2.4
 double double0 5.4
 vect vect 0 
+
+TestFormat
+Char 's' at position 5 in string 'qwerasdf'
+Vect (0,1,2)

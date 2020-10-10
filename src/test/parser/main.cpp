@@ -12,6 +12,7 @@
 #include "parse/parser.h"
 #include "parse/vars.h"
 #include "util/logger.h"
+#include "util/format.h"
 
 namespace simple {
 
@@ -130,6 +131,18 @@ void TestArgumentParser() {
   });
 }
 
+void TestFormat() {
+  std::cout << "\n" << __func__ << std::endl;
+
+  int i = 5;
+  std::string s = "qwerasdf";
+  std::cout << util::Format(
+      "Char '{0}' at position {1} in string '{2}'\n", s[i], i, s);
+  using Vect = generic::Vect<double, 3>;
+  std::cout << util::Format("Vect {}\n", Vect(0., 1., 2.));
+}
+
+
 int main() {
   TestArgumentParser();
   simple::Simple();
@@ -137,4 +150,5 @@ int main() {
   TestFile();
   TestConfig();
   TestArgumentParser();
+  TestFormat();
 }
