@@ -617,9 +617,7 @@ void Cubism<Par, M>::Bcast(const std::vector<MIdx>& bb) {
   // Check size is the same for all kernels
   for (auto& b : bb) {
     auto& v = mk.at(b)->GetMesh().GetBcast(); // pointers to broadcast
-    if (v.size() != vf.size()) {
-      throw std::runtime_error("Bcast: v.size() != vf.size()");
-    }
+    fassert_equal(v.size(), vf.size());
   }
 
   for (size_t i = 0; i < vf.size(); ++i) {
@@ -677,9 +675,7 @@ void Cubism<Par, M>::Scatter(const std::vector<MIdx>& bb) {
   // Check size is the same for all blocks
   for (auto& b : bb) {
     auto& vreq = mk.at(b)->GetMesh().GetScatter();
-    if (vreq.size() != vreq0.size()) {
-      throw std::runtime_error("Scatter: vreq.size() != vreq0.size()");
-    }
+    fassert_equal(vreq.size(), vreq0.size());
   }
 
   for (size_t q = 0; q < vreq0.size(); ++q) {
@@ -782,9 +778,7 @@ void Cubism<Par, M>::Reduce(const std::vector<MIdx>& bb) {
   // Check size is the same for all kernels
   for (auto& b : bb) {
     auto& v = mk.at(b)->GetMesh().GetReduce(); // pointers to reduce
-    if (v.size() != vf.size()) {
-      throw std::runtime_error("Reduce: v.size() != vf.size()");
-    }
+    fassert_equal(v.size(), vf.size());
   }
 
   // TODO: Check operation is the same for all kernels

@@ -13,6 +13,7 @@
 #include "distr.h"
 #include "dump/dumper.h"
 #include "util/histogram.h"
+#include "util/format.h"
 
 #include "CubismNoCopy/BlockInfo.h"
 #include "CubismNoCopy/BlockLab.h"
@@ -311,10 +312,10 @@ Cubismnc<Par, M>::Cubismnc(
   int commsize; // size of communicator
   MPI_Comm_size(comm, &commsize);
   if (commsize != p_[0] * p_[1] * p_[2]) {
-    throw std::runtime_error(
-        "Number of MPI tasks (" + std::to_string(commsize) +
-        ") does not match the number of subdomains in px,py,pz (" +
-        std::to_string(p_[0] * p_[1] * p_[2]) + ")");
+    throw std::runtime_error(util::Format(
+        "Number of MPI tasks ({}) does not match the number of subdomains "
+        "px={} py={} pz={}",
+        commsize, p_[0], p_[1], p_[2]));
   }
 
   int r;
@@ -559,9 +560,7 @@ void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
   // Check size is the same for all kernels
   for (auto& b : bb) {
     auto& v = mk.at(b)->GetMesh().GetBcast(); // pointers to broadcast
-    if (v.size() != vf.size()) {
-      throw std::runtime_error("Bcast: v.size() != vf.size()");
-    }
+    fassert_equal(v.size(), vf.size());
   }
 
   for (size_t i = 0; i < vf.size(); ++i) {
@@ -724,9 +723,7 @@ void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
   // Check size is the same for all kernels
   for (auto& b : bb) {
     auto& v = mk.at(b)->GetMesh().GetReduce(); // pointers to reduce
-    if (v.size() != vf.size()) {
-      throw std::runtime_error("Reduce: v.size() != vf.size()");
-    }
+    fassert_equal(v.size(), vf.size());
   }
 
   // TODO: Check operation is the same for all kernels

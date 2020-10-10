@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "geom/vect.h"
+#include "util/format.h"
 
 namespace generic {
 
@@ -387,19 +388,18 @@ struct UPrimList {
       }
     }
     if (d.size() < nreq && kk) {
-      throw std::runtime_error(
-          "PrimList: missing field '" + k + "' in '" + str +
-          "' while parsing keys '" + keys + "'");
+      throw std::runtime_error(util::Format(
+          "PrimList: missing field '{}' in '{}' while parsing keys '{}'", k,
+          str, keys));
     }
     if (d.size() < nreq && !kk) {
-      throw std::runtime_error(
-          "PrimList: no keys for " + std::to_string(nreq) +
-          " required fields in '" + keys + "'");
+      throw std::runtime_error(util::Format(
+          "PrimList: no keys for {} required fields in '{}'", nreq, keys));
     }
     if (vv && !kk) {
-      throw std::runtime_error(
-          "PrimList: no key for '" + std::to_string(v) + "' in '" + str +
-          "' while parsing keys '" + keys + "'");
+      throw std::runtime_error(util::Format(
+          "PrimList: no key for '{}' in '{}' while parsing keys '{}'", v, str,
+          keys));
     }
     return d;
   }

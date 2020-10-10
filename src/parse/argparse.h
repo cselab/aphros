@@ -12,6 +12,7 @@
 
 #include "parse/vars.h"
 #include "util/logger.h"
+#include "util/format.h"
 
 class ArgumentParser {
  public:
@@ -158,8 +159,9 @@ class ArgumentParser {
         case S::positional:
           if (rassert(
                   ipos < pos_keys_.size(),
-                  "Too many positional arguments: " + std::to_string(ipos + 1) +
-                      ", expected " + std::to_string(pos_keys_.size()))) {
+                  util::Format(
+                      "Too many positional arguments: {}, expected {}",
+                      ipos + 1, pos_keys_.size()))) {
             entry = entries_.at(pos_keys_[ipos]);
             args.SetStr(known_args_.GetTypeName(entry.key), entry.key, str);
           }

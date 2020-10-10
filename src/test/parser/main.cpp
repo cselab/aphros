@@ -144,7 +144,6 @@ void TestFormat() {
 
 
 int main() {
-  TestArgumentParser();
   simple::Simple();
 
   TestFile();

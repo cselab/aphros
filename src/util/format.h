@@ -1,12 +1,15 @@
+#pragma once
+
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include "logger.h"
 
 namespace util {
 
-void AppendStrings(std::vector<std::string>&) {}
+inline void AppendStrings(std::vector<std::string>&) {}
 
 // Converts `args` to strings and appends to `strs`.
 template <class T, class... Args>
@@ -23,7 +26,8 @@ void AppendStrings(
 // strs: strings to substitute with
 // Example:
 //   ParseFormat("{0} {1} {} {2} {}", {"a", "b", "c"}) == "a b a c b"
-std::string ParseFormat(std::string fmt, const std::vector<std::string>& strs) {
+inline std::string ParseFormat(
+    std::string fmt, const std::vector<std::string>& strs) {
   enum class S { normal, curly };
   auto toint = [](std::string str) {
     std::stringstream ss(str);

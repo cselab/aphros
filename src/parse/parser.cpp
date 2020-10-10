@@ -9,6 +9,7 @@
 
 #include "parser.h"
 #include "util/filesystem.h"
+#include "util/format.h"
 #include "util/logger.h"
 #include "vars.h"
 
@@ -311,16 +312,18 @@ void Parser::ParseFile(std::string path, std::string dir) {
   std::ifstream f(path);
   if (dir != "") {
     fassert(
-        util::IsDir(dir), "Not a directory: '" + dir +
-                              "' specified to look for file '" + path + "'");
+        util::IsDir(dir),
+        util::Format(
+            "Not a directory '{}' specified to look for file '{}'", dir, path));
     auto path2 = util::Join(dir, path);
     if (!f.good() && path[0] != '/') {
       f.open(path2);
-      fassert(f.good(), "Can't open file '" + path + "' or '" + path2 + "'");
+      fassert(
+          f.good(), util::Format("Can't open file '{}' or '{}'", path, path2));
     }
     path = path2;
   }
-  fassert(f.good(), "Can't open file '" + path + "'");
+  fassert(f.good(), util::Format("Can't open file '{}'", path));
 
   int line = 0;
   while (f) {
