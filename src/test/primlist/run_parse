@@ -1,14 +1,10 @@
 #!/bin/bash
 
-o=parse_out
-
-> $o
-
 R () {
   c="./t.primlist.parse '$1'"
-  echo "$c" >> $o
-  eval "$c 2>&1" >> $o
-  echo "" >> $o
+  echo "$c"
+  eval "$c 2>&1"
+  echo ""
 }
 R "# comment"
 
@@ -48,7 +44,3 @@ R "ring   0.3 0.7 0.5   0 1 0.5   0.15  0.05"
 R "smooth_step 0.5 0.5 0.1   0 0 1   0 1 0   0.05   0.1"
 
 R "cylinder   0.75 0.7 0.3   -2 1 0.5   0.1   -0.2 0.2"
-
-if ! diff -q $o parse_ref ; then
-  exit 1
-fi

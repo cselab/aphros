@@ -1,13 +1,9 @@
 #!/bin/bash
 
-o=getmap_out
-
-> $o
-
 R () {
   c="./t.primlist.getmap '$1' '$2' '$3' '$4'"
-  echo "$c" >> $o
-  eval "$c 2>&1" >> $o
+  echo "$c"
+  eval "$c 2>&1"
 }
 
 R "s" "s 1 2 3" "x y z" 3
@@ -18,7 +14,3 @@ R "s" "s 1 2 3" "x y z" 4
 R "" "1 2 3" "x y z" 3
 R "s" "1 2 3" "x y z" 3
 R "" "s 1 2 3" "x y z" 3
-
-if ! diff -q $o getmap_ref ; then
-  exit 1
-fi
