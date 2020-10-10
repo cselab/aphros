@@ -12,8 +12,8 @@
 #include "cubismnc.h"
 #include "distr.h"
 #include "dump/dumper.h"
-#include "util/histogram.h"
 #include "util/format.h"
+#include "util/histogram.h"
 
 #include "CubismNoCopy/BlockInfo.h"
 #include "CubismNoCopy/BlockLab.h"

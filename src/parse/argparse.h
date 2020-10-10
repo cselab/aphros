@@ -11,8 +11,8 @@
 #include <vector>
 
 #include "parse/vars.h"
-#include "util/logger.h"
 #include "util/format.h"
+#include "util/logger.h"
 
 class ArgumentParser {
  public:

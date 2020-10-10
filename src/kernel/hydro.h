@@ -144,14 +144,14 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     return m;
   }
 
- // FIXME: make private and introduce public interface
+  // FIXME: make private and introduce public interface
  public:
   using P::bi_;
   using P::m;
   using P::var;
 
- // FIXME: make private and introduce public interface
- // Needed for ModulePostStep
+  // FIXME: make private and introduce public interface
+  // Needed for ModulePostStep
  public:
   void Init();
   void InitEmbed();

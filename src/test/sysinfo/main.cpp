@@ -7,9 +7,9 @@
 #include <iostream>
 #include <vector>
 
-#include "util/sysinfo.h"
 #include "util/filesystem.h"
 #include "util/logger.h"
+#include "util/sysinfo.h"
 
 using namespace sysinfo;
 

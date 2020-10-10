@@ -46,89 +46,83 @@ class Vect {
  public:
   friend void swap(Vect& first, Vect& second) {
     using std::swap;
-    swap(first.comp_, second.comp_);
+    swap(first.data_, second.data_);
   }
-  Vect() {}
-  Vect(const Vect& vect) : comp_(vect.comp_) {}
-  size_t size() const {
-    return comp_.size();
-  }
+  Vect() = default;
+  Vect(const Vect& vect) = default;
   explicit Vect(Scal value) {
-    for (auto& a : comp_) {
+    for (auto& a : data_) {
       a = value;
     }
   }
   template <class... Args>
-  explicit Vect(Scal first, Args... args) : comp_{{first, args...}} {
-    constexpr size_t num_args = 1 + sizeof...(args);
+  explicit Vect(Scal first, Args... args)
+      : data_{{first, static_cast<Scal>(args)...}} {
     static_assert(
-        num_args == dim,
-        "Vect braced initializer must contain exactly 'dim' arguments");
+        1 + sizeof...(args) == dim,
+        "Vect constructor takes exactly 1 or dim arguments");
   }
-  template <class OtherScal>
-  explicit Vect(const Vect<OtherScal, dim>& other) {
+  template <class T>
+  explicit Vect(const Vect<T, dim>& other) {
     for (size_t i = 0; i < dim; ++i) {
-      comp_[i] = static_cast<Scal>(other[i]);
+      data_[i] = static_cast<Scal>(other[i]);
     }
   }
-  template <class OtherScal>
-  explicit Vect(const std::vector<OtherScal>& v) {
-    // TODO dim instead of dim_ causes linker error
+  template <class T>
+  explicit Vect(const std::vector<T>& v) {
     for (size_t i = 0; i < dim; ++i) {
-      comp_[i] = (i < v.size() ? static_cast<Scal>(v[i]) : 0);
+      data_[i] = (i < v.size() ? static_cast<Scal>(v[i]) : 0);
     }
   }
-  template <class OtherScal>
-  explicit Vect(const std::array<OtherScal, dim>& v) {
-    // TODO dim instead of dim_ causes linker error
+  template <class T>
+  explicit Vect(const std::array<T, dim>& v) {
     for (size_t i = 0; i < dim; ++i) {
-      comp_[i] = static_cast<Scal>(v[i]);
+      data_[i] = static_cast<Scal>(v[i]);
     }
   }
-  template <class OtherScal>
-  explicit Vect(const OtherScal* v) {
-    // TODO dim instead of dim_ causes linker error
-    for (size_t i = 0; i < dim_; ++i) {
-      comp_[i] = static_cast<Scal>(v[i]);
+  template <class T>
+  explicit Vect(const T* v) {
+    for (size_t i = 0; i < dim; ++i) {
+      data_[i] = static_cast<Scal>(v[i]);
     }
   }
-  Vect& operator=(Vect other) {
-    comp_ = other.comp_;
-    return *this;
+  Vect& operator=(const Vect&) = default;
+  size_t size() const {
+    return data_.size();
   }
   Scal& operator[](size_t i) {
-    return comp_[i];
+    return data_[i];
   }
   const Scal& operator[](size_t i) const {
-    return comp_[i];
+    return data_[i];
   }
   Scal& back() {
-    return comp_.back();
+    return data_.back();
   }
   const Scal& back() const {
-    return comp_.back();
+    return data_.back();
   }
   Vect& operator+=(const Vect& vect) {
     for (size_t i = 0; i < dim; ++i) {
-      comp_[i] += vect.comp_[i];
+      data_[i] += vect.data_[i];
     }
     return *this;
   }
   Vect& operator-=(const Vect& other) {
     for (size_t i = 0; i < dim; ++i) {
-      comp_[i] -= other.comp_[i];
+      data_[i] -= other.data_[i];
     }
     return *this;
   }
   Vect& operator*=(Scal k) {
     for (size_t i = 0; i < dim; ++i) {
-      comp_[i] *= k;
+      data_[i] *= k;
     }
     return *this;
   }
   Vect& operator/=(Scal k) {
     for (size_t i = 0; i < dim; ++i) {
-      comp_[i] /= k;
+      data_[i] /= k;
     }
     return *this;
   }
@@ -160,7 +154,7 @@ class Vect {
   }
   Vect& operator*=(const Vect& other) {
     for (size_t i = 0; i < dim; ++i) {
-      comp_[i] *= other.comp_[i];
+      data_[i] *= other.data_[i];
     }
     return *this;
   }
@@ -171,7 +165,7 @@ class Vect {
   }
   Vect& operator/=(const Vect& other) {
     for (size_t i = 0; i < dim; ++i) {
-      comp_[i] /= other.comp_[i];
+      data_[i] /= other.data_[i];
     }
     return *this;
   }
@@ -182,7 +176,7 @@ class Vect {
   }
   bool operator==(const Vect& other) const {
     for (size_t i = 0; i < dim; ++i) {
-      if (!(comp_[i] == other.comp_[i])) {
+      if (!(data_[i] == other.data_[i])) {
         return false;
       }
     }
@@ -193,7 +187,7 @@ class Vect {
   }
   bool operator<(const Vect& other) const {
     for (size_t i = 0; i < dim; ++i) {
-      if (!(comp_[i] < other.comp_[i])) {
+      if (!(data_[i] < other.data_[i])) {
         return false;
       }
     }
@@ -201,27 +195,24 @@ class Vect {
   }
   bool operator<=(const Vect& other) const {
     for (size_t i = 0; i < dim; ++i) {
-      if (!(comp_[i] <= other.comp_[i])) {
+      if (!(data_[i] <= other.data_[i])) {
         return false;
       }
     }
     return true;
   }
   bool lexless(const Vect& o) const {
-    return comp_ < o.comp_;
+    return data_ < o.data_;
   }
-  // TODO: remove, replace with Vect(0)
-  static const Vect kZero;
-  // TODO: remove, replace with Vect(1)
   static Vect GetUnit(size_t i) {
-    Vect res = kZero;
+    Vect res(0);
     res[i] = 1;
     return res;
   }
   Scal sqrnorm() const {
     Scal res = 0;
     for (size_t i = 0; i < dim; ++i) {
-      res += sqr(comp_[i]);
+      res += sqr(data_[i]);
     }
     return res;
   }
@@ -231,7 +222,7 @@ class Vect {
   Scal dot(const Vect& other) const {
     Scal sum = 0;
     for (size_t i = 0; i < dim; ++i) {
-      sum += comp_[i] * other.comp_[i];
+      sum += data_[i] * other.data_[i];
     }
     return sum;
   }
@@ -244,7 +235,7 @@ class Vect {
     return (*this) - proj(n);
   }
   Scal cross_third(const Vect& other) const {
-    return comp_[0] * other.comp_[1] - comp_[1] * other.comp_[0];
+    return data_[0] * other.data_[1] - data_[1] * other.data_[0];
   }
   Vect cross(const Vect& other) const {
     const Vect& a = *this;
@@ -264,7 +255,7 @@ class Vect {
   Scal sum() const {
     Scal r = 0;
     for (size_t i = 0; i < dim; ++i) {
-      r += comp_[i];
+      r += data_[i];
     }
     return r;
   }
@@ -272,44 +263,44 @@ class Vect {
     return sum() / dim;
   }
   Scal prod() const {
-    Scal r = comp_[0];
+    Scal r = data_[0];
     for (size_t i = 1; i < dim; ++i) {
-      r *= comp_[i];
+      r *= data_[i];
     }
     return r;
   }
   Scal norm1() const {
     Scal r = 0;
     for (size_t i = 0; i < dim; ++i) {
-      r += std::abs(comp_[i]);
+      r += std::abs(data_[i]);
     }
     return r;
   }
   Scal norminf() const {
     Scal r = 0;
     for (size_t i = 0; i < dim; ++i) {
-      r = std::max(r, std::abs(comp_[i]));
+      r = std::max(r, std::abs(data_[i]));
     }
     return r;
   }
   Scal max() const {
-    Scal r = comp_[0];
+    Scal r = data_[0];
     for (size_t i = 1; i < dim; ++i) {
-      r = std::max(r, comp_[i]);
+      r = std::max(r, data_[i]);
     }
     return r;
   }
   Scal min() const {
-    Scal r = comp_[0];
+    Scal r = data_[0];
     for (size_t i = 1; i < dim; ++i) {
-      r = std::min(r, comp_[i]);
+      r = std::min(r, data_[i]);
     }
     return r;
   }
   size_t argmax() const {
     size_t r = 0;
     for (size_t i = 1; i < dim; ++i) {
-      if (comp_[i] > comp_[r]) {
+      if (data_[i] > data_[r]) {
         r = i;
       }
     }
@@ -318,7 +309,7 @@ class Vect {
   size_t argmin() const {
     size_t r = 0;
     for (size_t i = 1; i < dim; ++i) {
-      if (comp_[i] < comp_[r]) {
+      if (data_[i] < data_[r]) {
         r = i;
       }
     }
@@ -333,29 +324,28 @@ class Vect {
   }
   Vect max(Vect o) const {
     for (size_t i = 0; i < dim; ++i) {
-      o[i] = std::max(comp_[i], o[i]);
+      o[i] = std::max(data_[i], o[i]);
     }
     return o;
   }
   Vect min(Vect o) const {
     for (size_t i = 0; i < dim; ++i) {
-      o[i] = std::min(comp_[i], o[i]);
+      o[i] = std::min(data_[i], o[i]);
     }
     return o;
   }
   Vect clip(const Vect& v0, const Vect& v1) const {
     return (*this).max(v0).min(v1);
   }
-  // TODO: revise, may lead to undesired conversion
   template <class T = Scal>
   operator std::vector<T>() const {
-    return std::vector<T>(comp_.begin(), comp_.end());
+    return std::vector<T>(data_.begin(), data_.end());
   }
   template <class T = Scal>
   operator std::array<T, dim>() const {
     std::array<T, dim> r;
     for (size_t i = 0; i < dim; ++i) {
-      r[i] = static_cast<T>(comp_[i]);
+      r[i] = static_cast<T>(data_[i]);
     }
     return r;
   }
@@ -385,33 +375,29 @@ class Vect {
   }
 
  private:
-  std::array<Scal, dim> comp_;
+  std::array<Scal, dim> data_;
 };
-
-template <class Scal, size_t dim>
-const Vect<Scal, dim> Vect<Scal, dim>::kZero =
-    Vect<Scal, dim>(static_cast<Scal>(0.));
 
 } // namespace generic
 
 template <class Vect>
 struct Rect {
   static constexpr size_t dim = Vect::dim;
-
-  Vect lb, rt;
-  Rect() {}
-  Rect(const Vect& lb_, const Vect& rt_) : lb(lb_), rt(rt_) {}
+  Rect() = default;
+  Rect(const Vect& low_, const Vect& high_) : low(low_), high(high_) {}
   bool IsInside(Vect x) const {
     for (size_t i = 0; i < dim; ++i) {
-      if (x[i] < lb[i] || rt[i] < x[i]) {
+      if (x[i] < low[i] || high[i] < x[i]) {
         return false;
       }
     }
     return true;
   }
   Vect GetDimensions() const {
-    return rt - lb;
+    return high - low;
   }
+
+  Vect low, high;
 };
 
 template <>

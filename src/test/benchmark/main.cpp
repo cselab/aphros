@@ -380,7 +380,7 @@ class ExplVisc : public TimerMesh {
       auto gc = UEmbed<M>::Gradient(ff, m);
       auto gf = UEmbed<M>::Interpolate(gc, {}, m); // adhoc: zero-der cond
       for (auto idxcell : m.SuCells()) {
-        Vect sum = Vect::kZero;
+        Vect sum(0);
         for (size_t i = 0; i < m.GetNumFaces(idxcell); ++i) {
           IdxFace idxface = m.GetFace(idxcell, i);
           sum += gf[idxface] *

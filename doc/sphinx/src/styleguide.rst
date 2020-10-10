@@ -36,11 +36,6 @@ Naming conventions
 -  Other: ``u`` - generic field ``q`` - neighbour cell id ``o`` - other
 -  Treat pointers same as values
 
-Other
------
-
--  use Vect(0) and MIdx(0) instead of Vect::kZero
-
 
 Toolbox classes
 ---------------

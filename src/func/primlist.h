@@ -78,7 +78,7 @@ struct UPrimList {
     };
 
     p.inter = [xc, r](const Rect<Vect>& rect) -> bool {
-      const Rect<Vect> rectbig(rect.lb - r, rect.rt + r);
+      const Rect<Vect> rectbig(rect.low - r, rect.high + r);
       return rectbig.IsInside(xc);
     };
     p.name = "sphere";

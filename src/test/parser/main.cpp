@@ -11,8 +11,8 @@
 #include "parse/config.h"
 #include "parse/parser.h"
 #include "parse/vars.h"
-#include "util/logger.h"
 #include "util/format.h"
+#include "util/logger.h"
 
 namespace simple {
 
@@ -141,7 +141,6 @@ void TestFormat() {
   using Vect = generic::Vect<double, 3>;
   std::cout << util::Format("Vect {}\n", Vect(0., 1., 2.));
 }
-
 
 int main() {
   simple::Simple();

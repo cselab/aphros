@@ -223,10 +223,10 @@ class Sphavg {
   // r: must lie in standard domain
   // ro: periodic conditions applied
   bool Inter(const Rect<MIdx>& r, const Rect<MIdx>& ro) const {
-    MIdx b = r.lb;
-    MIdx e = r.rt;
-    MIdx bo = ro.lb;
-    MIdx eo = ro.rt;
+    MIdx b = r.low;
+    MIdx e = r.high;
+    MIdx bo = ro.low;
+    MIdx eo = ro.high;
     auto gs = m.GetGlobalSize();
     // equivalent to intersection of projections in all directions
     for (size_t d = 0; d < dim; ++d) {
@@ -303,7 +303,7 @@ void Sphavg<M_>::Update(
       auto rs = GetBox(s);
       if (Inter(rm, rs)) {
         // traverse bounding box
-        typename M::BlockCells bs(rs.lb, rs.GetDimensions() + MIdx(1));
+        typename M::BlockCells bs(rs.low, rs.GetDimensions() + MIdx(1));
         for (auto w : bs) {
           MIdx wt = GetStd(w);
           Sph st = s;

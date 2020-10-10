@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <mpi.h>
 #include <array>
 #include <cassert>
 #include <limits>
@@ -16,7 +17,6 @@
 #include "field.h"
 #include "idx.h"
 #include "map.h"
-#include "mpi.h"
 #include "notation.h"
 #include "range.h"
 #include "rangein.h"
@@ -166,7 +166,7 @@ class MeshStructured {
     return bna_;
   }
   Vect GetCenter(IdxCell c) const {
-    return (dom_.lb + hh_) + Vect(bcr_.GetMIdx(c) - mb_) * h_;
+    return (dom_.low + hh_) + Vect(bcr_.GetMIdx(c) - mb_) * h_;
   }
   Rect<Vect> GetBoundingBox() const {
     return dom_;
@@ -178,7 +178,7 @@ class MeshStructured {
     auto p = bfr_.GetMIdxDir(f);
     const MIdx& w = p.first;
     size_t d(p.second);
-    Vect r = (dom_.lb + hh_) + Vect(w - mb_) * h_;
+    Vect r = (dom_.low + hh_) + Vect(w - mb_) * h_;
     r[d] -= hh_[d];
     return r;
   }
@@ -186,7 +186,7 @@ class MeshStructured {
     return vs_[size_t(bfr_.GetDir(f))];
   }
   Vect GetNode(IdxNode n) const {
-    return dom_.lb + Vect(bnr_.GetMIdx(n) - mb_) * h_;
+    return dom_.low + Vect(bnr_.GetMIdx(n) - mb_) * h_;
   }
   Scal GetVolume(IdxCell) const {
     return vol_;
@@ -265,7 +265,7 @@ class MeshStructured {
     auto& ic = GetIndexCells();
     auto& bc = GetInBlockCells();
     const Vect h = GetCellSize();
-    MIdx w((x - dom_.lb) / h);
+    MIdx w((x - dom_.low) / h);
     w = w.max(MIdx(0));
     w = w.min(bc.GetSize() - MIdx(1));
     return ic.GetIdx(bc.GetBegin() + w);

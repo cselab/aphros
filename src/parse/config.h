@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 01.05.2020
+// Copyright 2020 ETH Zurich
+
 #pragma once
 
 #include "geom/vect.h"

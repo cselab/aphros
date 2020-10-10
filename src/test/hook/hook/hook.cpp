@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 03.05.2020
+// Copyright 2020 ETH Zurich
+
 #include <iostream>
 
 #include <parse/config.h>
