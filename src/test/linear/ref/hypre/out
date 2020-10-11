@@ -1,4 +1,5 @@
+linear(hypre) '': res=9.118344e-06 iter=93
 
-max_diff_exact=2.22937e-05
-residual=8.74593e-06
-iter=98
+max_diff_exact=6.919527e-03
+residual=9.118344e-06
+iter=93
