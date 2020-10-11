@@ -140,7 +140,7 @@ struct SolverHypre<M>::Imp {
       m.Comm(&fc_sol);
       if (m.flags.linreport && m.IsRoot()) {
         std::cout << std::scientific;
-        std::cout << "linear solver '" + fc_system.GetName() + "':"
+        std::cout << "linear(hypre) '" + fc_system.GetName() + "':"
                   << " res=" << t.info.residual << " iter=" << t.info.iter
                   << std::endl;
       }
@@ -184,14 +184,11 @@ struct SolverConjugate<M>::Imp {
     struct {
       FieldCell<Scal> fcu;
       FieldCell<Scal> fcr;
-      FieldCell<Scal> fcrn;
       FieldCell<Scal> fcp;
-      FieldCell<Scal> fcsp;
-      Scal a;
-      Scal b;
-      Scal p_dot_sp;
-      Scal rn_dot_rn;
-      Scal r_dot_r;
+      FieldCell<Scal> fc_opp; // linear fc_system operator applied to p
+      Scal dot_p_opp;
+      Scal dot_r;
+      Scal dot_r_prev;
 
       Scal maxdiff;
       int iter = 0;
@@ -206,52 +203,55 @@ struct SolverConjugate<M>::Imp {
       }
       t.fcr.Reinit(m);
       for (auto c : m.Cells()) {
-        t.fcr[c] = -fc_system[c].back();
+        const auto& e = fc_system[c];
+        Scal u = t.fcu[c] * e[0] + e.back();
+        for (auto q : m.Nci(c)) {
+          u += t.fcu[m.GetCell(c, q)] * e[1 + q];
+        }
+        t.fcr[c] = -u;
       }
+      m.Comm(&t.fcr);
+    }
+    if (sem("init")) {
       t.fcp = t.fcr;
-      t.fcsp.Reinit(m);
-      t.fcrn.Reinit(m);
-      m.Comm(&t.fcp);
+      t.fc_opp.Reinit(m);
     }
     sem.LoopBegin();
     if (sem("iter")) {
-      // fcsp: A(p)
       for (auto c : m.Cells()) {
         const auto& e = fc_system[c];
         Scal p = t.fcp[c] * e[0];
         for (auto q : m.Nci(c)) {
           p += t.fcp[m.GetCell(c, q)] * e[1 + q];
         }
-        t.fcsp[c] = p;
+        t.fc_opp[c] = p;
       }
 
-      t.r_dot_r = 0;
-      t.p_dot_sp = 0;
+      t.dot_r_prev = 0;
+      t.dot_p_opp = 0;
       for (auto c : m.Cells()) {
-        t.r_dot_r += sqr(t.fcr[c]);
-        t.p_dot_sp += t.fcp[c] * t.fcsp[c];
+        t.dot_r_prev += sqr(t.fcr[c]);
+        t.dot_p_opp += t.fcp[c] * t.fc_opp[c];
       }
-      m.Reduce(&t.r_dot_r, Reduction::sum);
-      m.Reduce(&t.p_dot_sp, Reduction::sum);
+      m.Reduce(&t.dot_r_prev, Reduction::sum);
+      m.Reduce(&t.dot_p_opp, Reduction::sum);
     }
     if (sem("iter2")) {
       t.maxdiff = 0;
-      t.a = t.r_dot_r / t.p_dot_sp;
-      t.rn_dot_rn = 0;
+      const Scal alpha = t.dot_r_prev / t.dot_p_opp;
+      t.dot_r = 0;
       for (auto c : m.Cells()) {
-        t.fcu[c] += t.fcp[c] * t.a;
-        t.fcrn[c] = t.fcr[c] - t.fcsp[c] * t.a;
-        t.rn_dot_rn += sqr(t.fcrn[c]);
-        t.maxdiff = std::max(t.maxdiff, std::abs(t.fcp[c] * t.a));
+        t.fcu[c] += alpha * t.fcp[c];
+        t.fcr[c] -= alpha * t.fc_opp[c];
+        t.dot_r += sqr(t.fcr[c]);
+        t.maxdiff = std::max(t.maxdiff, std::abs(t.fcp[c] * alpha));
       }
-      m.Reduce(&t.rn_dot_rn, Reduction::sum);
+      m.Reduce(&t.dot_r, Reduction::sum);
       m.Reduce(&t.maxdiff, Reduction::max);
     }
     if (sem("iter3")) {
-      t.b = t.rn_dot_rn / t.r_dot_r;
       for (auto c : m.Cells()) {
-        t.fcp[c] = t.fcrn[c] + t.fcp[c] * t.b;
-        t.fcr[c] = t.fcrn[c];
+        t.fcp[c] = t.fcr[c] + (t.dot_r / t.dot_r_prev) * t.fcp[c];
       }
       m.Comm(&t.fcp);
     }
@@ -265,6 +265,15 @@ struct SolverConjugate<M>::Imp {
     sem.LoopEnd();
     if (sem("result")) {
       fc_sol = t.fcu;
+      m.Comm(&fc_sol);
+      if (m.flags.linreport && m.IsRoot()) {
+        std::cout << std::scientific;
+        std::cout << "linear(conjugate) '" + fc_system.GetName() + "':"
+                  << " res=" << t.info.residual << " iter=" << t.info.iter
+                  << std::endl;
+      }
+    }
+    if (sem()) {
     }
     return t.info;
   }
@@ -341,6 +350,15 @@ struct SolverJacobi<M>::Imp {
     sem.LoopEnd();
     if (sem("result")) {
       fc_sol = t.fcu;
+      m.Comm(&fc_sol);
+      if (m.flags.linreport && m.IsRoot()) {
+        std::cout << std::scientific;
+        std::cout << "linear(jacobi) '" + fc_system.GetName() + "':"
+                  << " res=" << t.info.residual << " iter=" << t.info.iter
+                  << std::endl;
+      }
+    }
+    if (sem("")) {
     }
     return t.info;
   }

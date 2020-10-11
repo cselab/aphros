@@ -184,6 +184,10 @@ void Run(M& m, Vars& var) {
 
     // initial guess
     t.fc_sol.Reinit(m, 0);
+    for (auto c : m.SuCellsM()) {
+      t.fc_sol[c] =
+          t.fc_sol_exact[c] * (t.fc_sol_exact[c] * 0.1 + 1);
+    }
 
     t.solver = GetSolver(var.String["solver"]);
     m.flags.linreport = 1;
