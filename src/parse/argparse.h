@@ -60,13 +60,8 @@ class ArgumentParser {
   }
   const Vars& GetKnownArgs() const;
   Vars ParseArgs(std::vector<std::string> argv, std::string program = "") const;
-  auto ParseArgs(int argc, const char** argv) const {
-    std::vector<std::string> v;
-    for (auto i = 1; i < argc; ++i) {
-      v.push_back(argv[i]);
-    }
-    return ParseArgs(v, argv[0]);
-  }
+  Vars ParseArgs(
+      int argc, const char** argv, std::string ignore_after = "") const;
   void PrintHelp(std::ostream& out, bool full, std::string program) const;
 
  private:

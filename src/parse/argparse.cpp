@@ -310,6 +310,18 @@ auto ArgumentParser::ParseArgs(
   return imp->ParseArgs(argv, program);
 }
 
+auto ArgumentParser::ParseArgs(
+    int argc, const char** argv, std::string ignore_after) const -> Vars {
+  std::vector<std::string> v;
+  for (auto i = 1; i < argc; ++i) {
+    if (ignore_after != "" && argv[i] == ignore_after) {
+      break;
+    }
+    v.push_back(argv[i]);
+  }
+  return ParseArgs(v, argv[0]);
+}
+
 auto ArgumentParser::GetKnownArgs() const -> const Vars& {
   return imp->known_args_;
 }
