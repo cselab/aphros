@@ -20,8 +20,9 @@ class ArgumentParser {
  public:
   class Proxy {
    public:
+    Proxy() = delete;
     Proxy(ArgumentParser& parser, std::string key);
-    Proxy Help(std::string help);
+    Proxy& Help(std::string help);
 
    private:
     ArgumentParser& parser_;

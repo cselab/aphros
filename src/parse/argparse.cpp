@@ -5,9 +5,7 @@
 
 struct ArgumentParser::Imp {
   Imp(ArgumentParser& owner, std::string desc, bool isroot)
-      : owner_(owner), desc_(desc), isroot_(isroot) {
-    AddSwitch({"--help", "-h"}).Help("Print help and exit");
-  }
+      : owner_(owner), desc_(desc), isroot_(isroot) {}
   Proxy AddSwitch(const std::vector<std::string>& names) {
     fassert(!names.empty(), "Empty list of names");
     const std::string key = StripDash(names[0]);
@@ -50,8 +48,7 @@ struct ArgumentParser::Imp {
     return Proxy(owner_, key);
   }
 
-  Vars ParseArgs(
-      std::vector<std::string> argv, std::string program) const {
+  Vars ParseArgs(std::vector<std::string> argv, std::string program) const {
     Vars args;
 
     args.Int.Set("FAIL", 0);
@@ -256,7 +253,7 @@ struct ArgumentParser::Imp {
   static std::string PadRight(std::string s, int width) {
     return s + std::string(std::max<int>(0, width - s.length()), ' ');
   }
-  
+
   ArgumentParser& owner_;
   std::string desc_;
   const bool isroot_;
@@ -271,13 +268,15 @@ struct ArgumentParser::Imp {
 ArgumentParser::Proxy::Proxy(ArgumentParser& parser, std::string key)
     : parser_(parser), key_(key) {}
 
-ArgumentParser::Proxy ArgumentParser::Proxy::Help(std::string help) {
+ArgumentParser::Proxy& ArgumentParser::Proxy::Help(std::string help) {
   parser_.imp->help_[key_] = help;
   return *this;
 }
 
 ArgumentParser::ArgumentParser(std::string desc, bool isroot)
-    : imp(new Imp(*this, desc, isroot)) {}
+    : imp(new Imp(*this, desc, isroot)) {
+  AddSwitch({"--help", "-h"}).Help("Print help and exit");
+}
 
 ArgumentParser::~ArgumentParser() = default;
 
@@ -293,17 +292,17 @@ auto ArgumentParser::AddVariable(
 }
 
 template auto ArgumentParser::AddVariable(
-    const std::vector<std::string>& names, double defaultval,
-    bool hasdefault)->Proxy;
+    const std::vector<std::string>& names, double defaultval, bool hasdefault)
+    -> Proxy;
 template auto ArgumentParser::AddVariable(
-    const std::vector<std::string>& names, int defaultval,
-    bool hasdefault)->Proxy;
+    const std::vector<std::string>& names, int defaultval, bool hasdefault)
+    -> Proxy;
 template auto ArgumentParser::AddVariable(
     const std::vector<std::string>& names, std::string defaultval,
-    bool hasdefault)->Proxy;
+    bool hasdefault) -> Proxy;
 template auto ArgumentParser::AddVariable(
     const std::vector<std::string>& names, std::vector<double> defaultval,
-    bool hasdefault)->Proxy;
+    bool hasdefault) -> Proxy;
 
 auto ArgumentParser::ParseArgs(
     std::vector<std::string> argv, std::string program) const -> Vars {
