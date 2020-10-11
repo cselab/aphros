@@ -1,4 +1,10 @@
-add_library(parser parser.cpp)
-target_link_libraries(parser vars filesystem)
+set(T parser)
+add_library(${T} parser.cpp)
+target_link_libraries(${T} vars filesystem)
 
-add_library(vars vars.cpp)
+set(T vars)
+add_library(${T} vars.cpp)
+
+set(T argparse)
+add_library(${T} argparse.cpp)
+target_link_libraries(${T} vars format)

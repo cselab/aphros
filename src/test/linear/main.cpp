@@ -224,7 +224,7 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-  auto parser = ArgumentParser("Test for linear solvers.");
+  ArgumentParser parser("Test for linear solvers.");
   parser.AddVariable<std::string>("--solver", "hypre")
       .Help(
           "Linear solver to use."
