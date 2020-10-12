@@ -190,7 +190,7 @@ void Run(M& m, Vars& var) {
     }
 
     t.solver = GetSolver(var.String["solver"]);
-    m.flags.linreport = 1;
+    m.flags.linreport = var.Int["VERBOSE"];
   }
   if (sem.Nested("solve")) {
     t.info = Solve(
@@ -212,7 +212,7 @@ void Run(M& m, Vars& var) {
       m.Dump(&t.fc_sol_exact, "exact");
       m.Dump(&t.fc_diff, "diff");
     }
-    if (m.IsRoot()) {
+    if (var.Int["VERBOSE"] && m.IsRoot()) {
       std::cout << "\nmax_diff_exact=" << t.norms[0][2];
       std::cout << "\nresidual=" << t.info.residual;
       std::cout << "\niter=" << t.info.iter;
@@ -225,12 +225,15 @@ void Run(M& m, Vars& var) {
 
 int main(int argc, const char** argv) {
   ArgumentParser parser("Test for linear solvers.");
+  parser.AddSwitch("--verbose").Help("Print solver info.");
   parser.AddVariable<std::string>("--solver", "hypre")
       .Help(
           "Linear solver to use."
           " Options are: hypre, zero, conjugate");
   parser.AddVariable<double>("--tol", 1e-3).Help("Convergence tolerance");
   parser.AddVariable<int>("--maxiter", 100).Help("Maximum iterations");
+  parser.AddVariable<int>("--px", 2).Help("MPI ranks in x-direction");
+  parser.AddVariable<int>("--bx", 1).Help("Blocks per rank in x-direction");
   parser.AddSwitch("--dump").Help(
       "Dump solution, exact solution, and difference");
   auto args = parser.ParseArgs(argc, argv);
@@ -258,6 +261,14 @@ set int pz 1
   conf += "\nset double tol " + args.Double.GetStr("tol");
   conf += "\nset int maxiter " + args.Int.GetStr("maxiter");
   conf += "\nset int dump " + args.Int.GetStr("dump");
+  conf += "\nset int VERBOSE " + args.Int.GetStr("verbose");
+
+  const auto px = args.Int["px"];
+  const auto bx = args.Int["bx"];
+  conf += "\nset int px " + std::to_string(px);
+  conf += "\nset int bx " + std::to_string(bx);
+  conf += "\nset int by " + std::to_string(px * bx);
+  conf += "\nset int bz " + std::to_string(px * bx);
 
   return RunMpiBasic<M>(argc, argv, Run, conf);
 }
