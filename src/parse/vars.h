@@ -43,6 +43,7 @@ class Vars {
     ConstIterator cend() const {
       return m_.cend();
     }
+    static std::string ValueToStr(Value value);
 
    private:
     M m_;

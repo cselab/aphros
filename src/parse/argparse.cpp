@@ -1,12 +1,29 @@
 // Created by Petr Karnakov on 11.10.2020
 // Copyright 2020 ETH Zurich
 
+#include <algorithm>
+
 #include "argparse.h"
+
+template <class Iterator>
+std::string Join(std::string delim, Iterator begin, Iterator end) {
+  std::string res;
+  bool first = true;
+  for (auto it = begin; it != end; ++it) {
+    if (first) {
+      first = false;
+    } else {
+      res += delim;
+    }
+    res += *it;
+  }
+  return res;
+}
 
 struct ArgumentParser::Imp {
   Imp(ArgumentParser& owner, std::string desc, bool isroot)
       : owner_(owner), desc_(desc), isroot_(isroot) {}
-  Proxy AddSwitch(const std::vector<std::string>& names) {
+  Proxy<int> AddSwitch(const std::vector<std::string>& names) {
     fassert(!names.empty(), "Empty list of names");
     const std::string key = StripDash(names[0]);
     const bool optional = IsOptional(names[0]);
@@ -22,11 +39,11 @@ struct ArgumentParser::Imp {
     entries_[key] = entry;
     known_args_.Int.Set(key, 0);
     opt_keys_.push_back(key);
-    return Proxy(owner_, key);
+    return Proxy<int>(owner_, key);
   }
 
   template <class T>
-  Proxy AddVariable(
+  Proxy<T> AddVariable(
       const std::vector<std::string>& names, T defaultval, bool hasdefault) {
     fassert(!names.empty(), "Empty list of names");
     const std::string key = StripDash(names[0]);
@@ -45,7 +62,7 @@ struct ArgumentParser::Imp {
     } else if (!optional) {
       pos_keys_.push_back(key);
     }
-    return Proxy(owner_, key);
+    return Proxy<T>(owner_, key);
   }
 
   Vars ParseArgs(std::vector<std::string> argv, std::string program) const {
@@ -131,6 +148,21 @@ struct ArgumentParser::Imp {
           "Missing value for positional argument " + ToUpper(pos_keys_[ipos]) +
               " without a default");
     }
+    for (const auto& it : entries_) {
+      // TODO revise without conversion to string
+      auto key = it.first;
+      auto options = GetOptionsFromKey(key);
+      auto type = args.GetTypeName(key);
+      if (type.length() && !options.empty()) {
+        auto value = args.GetStr(type, key);
+        auto pos = std::find(options.begin(), options.end(), value);
+        rassert(
+            pos != options.end(),
+            util::Format(
+                "Invalid value '{}' of parameter '{}', valid options are: {}",
+                value, key, Join(", ", options.begin(), options.end())));
+      }
+    }
 
     if (args.Int["FAIL"]) {
       if (isroot_) {
@@ -146,11 +178,8 @@ struct ArgumentParser::Imp {
     out << "usage: " << program;
     for (auto key : opt_keys_) {
       out << " [";
-      bool first = true;
-      for (auto name : names_.at(key)) {
-        out << (first ? "" : "|") << name;
-        first = false;
-      }
+      const auto& names = names_.at(key);
+      out << Join("|", names.begin(), names.end());
       if (entries_.at(key).nargs == 1) {
         out << ' ' << ToUpper(key);
       }
@@ -166,35 +195,43 @@ struct ArgumentParser::Imp {
         out << '\n' << desc_ << '\n';
       }
 
+      auto append_options = [&](bool& need_dot, auto key) {
+        const auto options = GetOptionsFromKey(key);
+        if (!options.empty()) {
+          out << (need_dot ? ". " : "") << "Options are: ";
+          out << Join(", ", options.begin(), options.end());
+          need_dot = true;
+        }
+      };
+      auto append_default = [&](bool& need_dot, auto key) {
+        const auto& entry = entries_.at(key);
+        if (entry.hasdefault && entry.nargs) {
+          out << (need_dot ? ". " : "") << "Default is "
+              << known_args_.GetStr(known_args_.GetTypeName(key), key);
+          need_dot = true;
+        }
+      };
+
       out << "\npositional arguments:\n";
       for (auto key : pos_keys_) {
         out << PadRight(ToUpper(key), 20);
         auto help = help_.count(key) ? help_.at(key) : "";
         out << help;
-        auto entry = entries_.at(key);
-        if (entry.hasdefault && entry.nargs) {
-          out << (help.length() ? ". " : "") << "Default is "
-              << known_args_.GetStr(known_args_.GetTypeName(key), key);
-        }
+        bool need_dot = help.length();
+        append_options(need_dot, key);
+        append_default(need_dot, key);
         out << '\n';
       }
 
       out << "\noptional arguments:\n";
       for (auto key : opt_keys_) {
-        std::string pre;
-        bool first = true;
-        for (auto name : names_.at(key)) {
-          pre += (first ? "" : ", ") + name;
-          first = false;
-        }
-        out << PadRight(pre, 20);
+        const auto& names = names_.at(key);
+        out << PadRight(Join(", ", names.begin(), names.end()), 20);
         auto help = help_.count(key) ? help_.at(key) : "";
         out << help;
-        auto entry = entries_.at(key);
-        if (entry.hasdefault && entry.nargs) {
-          out << (help.length() ? ". " : "") << "Default is "
-              << known_args_.GetStr(known_args_.GetTypeName(key), key);
-        }
+        bool need_dot = help.length();
+        append_options(need_dot, key);
+        append_default(need_dot, key);
         out << '\n';
       }
     }
@@ -254,6 +291,55 @@ struct ArgumentParser::Imp {
     return s + std::string(std::max<int>(0, width - s.length()), ' ');
   }
 
+  template <class T>
+  auto& GetOptions() {
+    return const_cast<std::map<std::string, std::vector<T>>&>(
+        GetOptionsImpl((T*)nullptr));
+  }
+  template <class T>
+  const std::map<std::string, std::vector<T>>& GetOptions() const {
+    return GetOptionsImpl((T*)nullptr);
+  }
+  auto& GetOptionsImpl(int*) const {
+    return options_int_;
+  }
+  auto& GetOptionsImpl(double*) const {
+    return options_double_;
+  }
+  auto& GetOptionsImpl(std::string*) const {
+    return options_string_;
+  }
+  auto& GetOptionsImpl(std::vector<double>*) const {
+    return options_vect_;
+  }
+  template <class T>
+  std::vector<std::string> OptionsToStrings(std::string key) const {
+    std::vector<std::string> res;
+    const auto& opt = GetOptions<T>();
+    auto it = opt.find(key);
+    if (it != opt.end()) {
+      for (auto value : it->second) {
+        res.push_back(Vars::Map<T>::ValueToStr(value));
+      }
+    }
+    return res;
+  }
+  std::vector<std::string> GetOptionsFromKey(std::string key) const {
+    if (known_args_.Int.Contains(key)) {
+      return OptionsToStrings<int>(key);
+    }
+    if (known_args_.Double.Contains(key)) {
+      return OptionsToStrings<double>(key);
+    }
+    if (known_args_.String.Contains(key)) {
+      return OptionsToStrings<std::string>(key);
+    }
+    if (known_args_.Vect.Contains(key)) {
+      return OptionsToStrings<std::vector<double>>(key);
+    }
+    return {};
+  }
+
   ArgumentParser& owner_;
   std::string desc_;
   const bool isroot_;
@@ -263,15 +349,34 @@ struct ArgumentParser::Imp {
   std::vector<std::string> opt_keys_;
   std::map<std::string, std::string> help_; // key to help
   std::map<std::string, std::vector<std::string>> names_; // key to names
+
+  std::map<std::string, std::vector<int>> options_int_;
+  std::map<std::string, std::vector<double>> options_double_;
+  std::map<std::string, std::vector<std::string>> options_string_;
+  std::map<std::string, std::vector<std::vector<double>>> options_vect_;
 };
 
-ArgumentParser::Proxy::Proxy(ArgumentParser& parser, std::string key)
+template <class T>
+ArgumentParser::Proxy<T>::Proxy(ArgumentParser& parser, std::string key)
     : parser_(parser), key_(key) {}
 
-ArgumentParser::Proxy& ArgumentParser::Proxy::Help(std::string help) {
+template <class T>
+ArgumentParser::Proxy<T>& ArgumentParser::Proxy<T>::Help(std::string help) {
   parser_.imp->help_[key_] = help;
   return *this;
 }
+
+template <class T>
+ArgumentParser::Proxy<T>& ArgumentParser::Proxy<T>::Options(
+    const std::vector<T>& options) {
+  parser_.imp->GetOptions<T>()[key_] = options;
+  return *this;
+}
+
+template class ArgumentParser::Proxy<int>;
+template class ArgumentParser::Proxy<double>;
+template class ArgumentParser::Proxy<std::string>;
+template class ArgumentParser::Proxy<std::vector<double>>;
 
 ArgumentParser::ArgumentParser(std::string desc, bool isroot)
     : imp(new Imp(*this, desc, isroot)) {
@@ -280,29 +385,30 @@ ArgumentParser::ArgumentParser(std::string desc, bool isroot)
 
 ArgumentParser::~ArgumentParser() = default;
 
-auto ArgumentParser::AddSwitch(const std::vector<std::string>& names) -> Proxy {
+auto ArgumentParser::AddSwitch(const std::vector<std::string>& names)
+    -> Proxy<int> {
   return imp->AddSwitch(names);
 }
 
 template <class T>
 auto ArgumentParser::AddVariable(
     const std::vector<std::string>& names, T defaultval, bool hasdefault)
-    -> Proxy {
+    -> Proxy<T> {
   return imp->AddVariable(names, defaultval, hasdefault);
 }
 
 template auto ArgumentParser::AddVariable(
     const std::vector<std::string>& names, double defaultval, bool hasdefault)
-    -> Proxy;
+    -> Proxy<double>;
 template auto ArgumentParser::AddVariable(
     const std::vector<std::string>& names, int defaultval, bool hasdefault)
-    -> Proxy;
+    -> Proxy<int>;
 template auto ArgumentParser::AddVariable(
     const std::vector<std::string>& names, std::string defaultval,
-    bool hasdefault) -> Proxy;
+    bool hasdefault) -> Proxy<std::string>;
 template auto ArgumentParser::AddVariable(
     const std::vector<std::string>& names, std::vector<double> defaultval,
-    bool hasdefault) -> Proxy;
+    bool hasdefault) -> Proxy<std::vector<double>>;
 
 auto ArgumentParser::ParseArgs(
     std::vector<std::string> argv, std::string program) const -> Vars {

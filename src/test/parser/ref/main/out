@@ -48,19 +48,21 @@ name
 
 TestArgumentParser
 
-usage: program [--help|-h] [--int|-i INT] [--double DOUBLE] [--string STRING] [--vect VECT] [--int0|-i0 INT0] [--double0 DOUBLE0] [--string0 STRING0] [--vect0|-v0 VECT0] NX NY NZ
+usage: program [--help|-h] [--int|-i INT] [--double DOUBLE] [--string STRING] [--vect VECT] [--int0|-i0 INT0] [--double0 DOUBLE0] [--string0 STRING0] [--vect0|-v0 VECT0] NX NY NZ BS BSY
 
 Description
 
 positional arguments:
-NX                  size in x-direction
-NY                  size in y-direction
-NZ                  size in z-direction. Default is 1
+NX                  Size in x-direction
+NY                  Size in y-direction
+NZ                  Size in z-direction. Default is 1
+BS                  Block size. Options are: 8, 16, 32. Default is 32
+BSY                 Block size in y. Options are: 8, 16, 32
 
 optional arguments:
 --help, -h          Print help and exit
---int, -i           Default is 3
---double            Default is 3
+--int, -i           Options are: 3, 4. Default is 3
+--double            Type double. Options are: 3, 4. Default is 3
 --string            Default is a
 --vect              Default is 0 
 --int0, -i0         
@@ -72,6 +74,8 @@ optional arguments:
 Known args:
 string string a
 string string0 
+int bs 32
+int bsy 0
 int help 0
 int int 3
 int int0 0
@@ -84,18 +88,24 @@ vect vect 0
 vect vect0 
 
 Parsed args:
+Invalid value '9' of parameter 'bs', valid options are: 8, 16, 32
+Invalid value '3.4' of parameter 'double', valid options are: 3, 4
+Invalid value '7' of parameter 'int', valid options are: 3, 4
+usage:  [--help|-h] [--int|-i INT] [--double DOUBLE] [--string STRING] [--vect VECT] [--int0|-i0 INT0] [--double0 DOUBLE0] [--string0 STRING0] [--vect0|-v0 VECT0] NX NY NZ BS BSY
 string string a
-int EXIT 0
-int FAIL 0
-int help 1
+int EXIT 1
+int FAIL 1
+int bs 9
+int bsy 8
+int help 0
 int int 7
 int nx 16
 int ny 8
-int nz 1
-double double 2.4
+int nz 8
+double double 3.4
 double double0 5.4
 vect vect 0 
 
 TestFormat
-Char 's' at position 5 in string 'qwerasdf'
+Char 'f' at position 5 in string 'abcdefgh'
 Vect (0,1,2)

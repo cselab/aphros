@@ -186,8 +186,7 @@ void Run(M& m, Vars& var) {
     // initial guess
     t.fc_sol.Reinit(m, 0);
     for (auto c : m.SuCellsM()) {
-      t.fc_sol[c] =
-          t.fc_sol_exact[c] * (t.fc_sol_exact[c] * 0.1 + 1);
+      t.fc_sol[c] = t.fc_sol_exact[c] * (t.fc_sol_exact[c] * 0.1 + 1);
     }
 
     t.solver = GetSolver(var.String["solver"]);
@@ -230,14 +229,14 @@ int main(int argc, const char** argv) {
   ArgumentParser parser("Test for linear solvers.", mpi.IsRoot());
   parser.AddSwitch("--verbose").Help("Print solver info.");
   parser.AddVariable<std::string>("--solver", "hypre")
-      .Help(
-          "Linear solver to use."
-          " Options are: hypre, zero, conjugate");
+      .Help("Linear solver to use")
+      .Options({"hypre", "conjugate", "jacobi"});
   parser.AddVariable<double>("--tol", 1e-3).Help("Convergence tolerance");
   parser.AddVariable<int>("--maxiter", 100).Help("Maximum iterations");
-  parser.AddVariable<int>("--mesh", 64).Help("Mesh size in all directions");
+  parser.AddVariable<int>("--mesh", 32).Help("Mesh size in all directions");
   parser.AddVariable<int>("--block", 16)
-      .Help("Block size in all directions. Options are: 8, 16, 32");
+      .Help("Block size in all directions")
+      .Options({8, 16, 32});
   parser.AddSwitch("--dump").Help(
       "Dump solution, exact solution, and difference");
   auto args = parser.ParseArgs(argc, argv);

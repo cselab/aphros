@@ -85,10 +85,24 @@ std::string Vars::GetTypeName(Key k) const {
 }
 
 template <class T>
+std::string Vars::Map<T>::ValueToStr(Value value) {
+  std::stringstream buf;
+  buf << value;
+  return buf.str();
+}
+
+template <>
+std::string Vars::Map<std::vector<double>>::ValueToStr(Value value) {
+  std::stringstream buf;
+  for (auto a : value) {
+    buf << a << " ";
+  }
+  return buf.str();
+}
+
+template <class T>
 std::string Vars::Map<T>::GetStr(Key k) const {
-  std::stringstream b;
-  b << m_.at(k);
-  return b.str();
+  return ValueToStr(m_.at(k));
 }
 
 template <class T>
@@ -113,15 +127,6 @@ void Vars::Map<T>::SetStr(Key k, std::string v) {
         FILELINE + ": trailing characters '" + v + "' as '" + GetTypeName() +
         "' for variable named '" + k + "'");
   }
-}
-
-template <>
-std::string Vars::Map<std::vector<double>>::GetStr(Key k) const {
-  std::stringstream b;
-  for (auto a : m_.at(k)) {
-    b << a << " ";
-  }
-  return b.str();
 }
 
 template <>

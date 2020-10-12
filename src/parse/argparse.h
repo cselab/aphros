@@ -18,11 +18,13 @@
 
 class ArgumentParser {
  public:
+  template <class T>
   class Proxy {
    public:
     Proxy() = delete;
     Proxy(ArgumentParser& parser, std::string key);
     Proxy& Help(std::string help);
+    Proxy& Options(const std::vector<T>&);
 
    private:
     ArgumentParser& parser_;
@@ -33,15 +35,15 @@ class ArgumentParser {
   ~ArgumentParser();
   // Adds a swtich.
   // If present in arguments, known_args_.Int[key] is set to 1, otherwise 0.
-  Proxy AddSwitch(const std::vector<std::string>& names);
-  Proxy AddSwitch(std::initializer_list<std::string> names) {
+  Proxy<int> AddSwitch(const std::vector<std::string>& names);
+  Proxy<int> AddSwitch(std::initializer_list<std::string> names) {
     return AddSwitch(std::vector<std::string>{names});
   }
-  Proxy AddSwitch(std::string name) {
+  Proxy<int> AddSwitch(std::string name) {
     return AddSwitch({name});
   }
   template <class T>
-  Proxy AddVariable(
+  Proxy<T> AddVariable(
       const std::vector<std::string>& names, T defaultval, bool hasdefault);
   template <class T>
   auto AddVariable(std::initializer_list<std::string> names, T defaultval) {

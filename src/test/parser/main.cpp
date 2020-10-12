@@ -91,8 +91,8 @@ void TestArgumentParser() {
   std::cout << "\n" << __func__ << std::endl;
 
   ArgumentParser parser("Description");
-  parser.AddVariable<int>({"--int", "-i"}, 3);
-  parser.AddVariable<double>("--double", 3);
+  parser.AddVariable<int>({"--int", "-i"}, 3).Options({3, 4});
+  parser.AddVariable<double>("--double", 3).Help("Type double").Options({3, 4});
   parser.AddVariable<std::string>("--string", "a");
   parser.AddVariable<std::vector<double>>("--vect", {0});
   parser.AddVariable<int>({"--int0", "-i0"});
@@ -100,9 +100,11 @@ void TestArgumentParser() {
   parser.AddVariable<std::string>("--string0");
   parser.AddVariable<std::vector<double>>({"--vect0", "-v0"})
       .Help("List of doubles");
-  parser.AddVariable<int>("nx").Help("size in x-direction");
-  parser.AddVariable<int>("ny").Help("size in y-direction");
-  parser.AddVariable<int>("nz", 1).Help("size in z-direction");
+  parser.AddVariable<int>("nx").Help("Size in x-direction");
+  parser.AddVariable<int>("ny").Help("Size in y-direction");
+  parser.AddVariable<int>("nz", 1).Help("Size in z-direction");
+  parser.AddVariable<int>("bs", 32).Help("Block size").Options({8, 16, 32});
+  parser.AddVariable<int>("bsy").Help("Block size in y").Options({8, 16, 32});
 
   std::cout << '\n';
   parser.PrintHelp(std::cout, true, "program");
@@ -118,10 +120,12 @@ void TestArgumentParser() {
 
   std::cout << "\nParsed args:\n";
   auto args = parser.ParseArgs({
-      "--help", "--double0", "5.4", "-h", "--double", "2.4", "--int", "4", "-i",
-      "7",
+      "--double0", "5.4", "--double", "3.4", "--int", "4", "-i", "7",
       "16", // nx
       "8", // ny
+      "8", // nz
+      "9", // bs
+      "8", // bsy
   });
   args.ForEachMap([](const auto& map) {
     for (auto it = map.cbegin(); it != map.cend(); ++it) {
@@ -135,7 +139,7 @@ void TestFormat() {
   std::cout << "\n" << __func__ << std::endl;
 
   int i = 5;
-  std::string s = "qwerasdf";
+  std::string s = "abcdefgh";
   std::cout << util::Format(
       "Char '{0}' at position {1} in string '{2}'\n", s[i], i, s);
   using Vect = generic::Vect<double, 3>;

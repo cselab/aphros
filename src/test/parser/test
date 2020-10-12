@@ -12,9 +12,9 @@ class Test(aphros.TestBase):
 
     def run(self, case):
         if case == "main":
-            self.runcmd("./t.parser > out")
+            self.runcmd("./t.parser > out 2>&1")
         elif case == "codeblocks":
-            self.runcmd("./t.parser.codeblocks < codeblocks_in > out")
+            self.runcmd("./t.parser.codeblocks < codeblocks_in > out 2>&1")
         else:
             raise NotImplementedError()
         return ["out"]
