@@ -3,3 +3,4 @@ linear(conjugate) '': res=8.213038e-06 iter=90
 max_diff_exact=6.926950e-03
 residual=8.213038e-06
 iter=90
+time=0.060896

@@ -11,6 +11,7 @@
 #include "solver/approx_eb.h"
 #include "solver/embed.h"
 #include "util/distr.h"
+#include "util/timer.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -144,6 +145,9 @@ void Run(M& m, Vars& var) {
     Solver solver;
     std::vector<generic::Vect<Scal, 3>> norms;
     SolverInfo info;
+    SingleTimer timer;
+    double time_start;
+    double time_stop;
   } * ctx(sem);
   auto& t = *ctx;
   if (sem()) {
@@ -191,6 +195,7 @@ void Run(M& m, Vars& var) {
 
     t.solver = GetSolver(var.String["solver"]);
     m.flags.linreport = var.Int["VERBOSE"];
+    t.time_start = t.timer.GetSeconds();
   }
   if (sem.Nested("solve")) {
     t.info = Solve(
@@ -198,6 +203,7 @@ void Run(M& m, Vars& var) {
         var.Double["tol"]);
   }
   if (sem("diff")) {
+    t.time_stop = t.timer.GetSeconds();
     t.fc_diff.Reinit(m);
     for (auto c : m.Cells()) {
       t.fc_diff[c] = t.fc_sol[c] - t.fc_sol_exact[c];
@@ -216,6 +222,7 @@ void Run(M& m, Vars& var) {
       std::cout << "\nmax_diff_exact=" << t.norms[0][2];
       std::cout << "\nresidual=" << t.info.residual;
       std::cout << "\niter=" << t.info.iter;
+      std::cout << "\ntime=" << std::fixed << t.time_stop - t.time_start;
       std::cout << std::endl;
     }
   }
