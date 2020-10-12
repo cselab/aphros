@@ -492,5 +492,6 @@ int main(int argc, const char** argv) {
   std::stringstream conf;
   conf << fconf.rdbuf();
 
-  return RunMpiBasic<M>(argc, argv, Run, conf.str());
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf.str());
 }

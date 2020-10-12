@@ -182,5 +182,7 @@ set double cflvis 0.5
 
 set int eb_init_inverse 0
 )EOF";
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

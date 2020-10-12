@@ -72,4 +72,31 @@ class DistrSolver {
   KF kf_;
 };
 
+class MpiWrapper {
+ public:
+  MpiWrapper(int* argc, const char*** argv);
+  ~MpiWrapper();
+  MPI_Comm GetComm() const;
+  static int GetCommSize(MPI_Comm);
+  static int GetCommRank(MPI_Comm);
+  static bool IsRoot(MPI_Comm);
+  int GetCommSize() const;
+  int GetCommRank() const;
+  bool IsRoot() const;
+ private:
+  MPI_Comm comm_;
+};
+
+#define MPICALL(x)                                                    \
+  do {                                                                \
+    int errorcode;                                                    \
+    errorcode = x;                                                    \
+    if (errorcode != MPI_SUCCESS) {                                   \
+      char string[MPI_MAX_ERROR_STRING];                              \
+      int resultlen;                                                  \
+      MPI_Error_string(errorcode, string, &resultlen);                \
+      throw std::runtime_error(FILELINE + ": mpi failed: " + string); \
+    }                                                                 \
+  } while (0)
+
 int RunMpi(int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> r);

@@ -24,7 +24,7 @@ struct Subdomains {
   // set int px 2
   // set int bx 4
   // ... (same for y and z)
-  std::string ToConfig() const;
+  std::string GetConfig() const;
 
   static std::vector<MIdx> GetValidProcs(
       MIdx mesh_size, MIdx block_size, size_t nproc);

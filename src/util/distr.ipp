@@ -21,7 +21,7 @@ std::vector<MIdx> Subdomains<MIdx>::GetValidProcs(
   }
   const auto gblocks = ms / bs; // global blocks
   auto is_valid = [&](MIdx procs) -> bool {
-    if (nproc != procs.prod()) {
+    if (int(nproc) != procs.prod()) {
       return false;
     }
     if (gblocks % procs != MIdx(0)) {
@@ -31,7 +31,7 @@ std::vector<MIdx> Subdomains<MIdx>::GetValidProcs(
   };
 
   std::vector<size_t> divisors; // divisors of nproc
-  for (size_t px = 1; px < nproc; ++px) {
+  for (size_t px = 1; px <= nproc; ++px) {
     if (nproc % px == 0) {
       divisors.push_back(px);
     }
@@ -91,6 +91,19 @@ Subdomains<MIdx>::Subdomains(MIdx mesh_size, MIdx block_size, size_t nproc) {
 }
 
 template <class MIdx>
-std::string Subdomains<MIdx>::ToConfig() const {
-  return "asdf";
+std::string Subdomains<MIdx>::GetConfig() const {
+  std::string res;
+  res += "set int px " + std::to_string(info.procs[0]);
+  res += "\nset int py " + std::to_string(info.procs[1]);
+  res += "\nset int pz " + std::to_string(info.procs[2]);
+
+  res += "\n\nset int bx " + std::to_string(info.blocks[0]);
+  res += "\nset int by " + std::to_string(info.blocks[1]);
+  res += "\nset int bz " + std::to_string(info.blocks[2]);
+
+  res += "\n\nset int bsx " + std::to_string(info.block_size[0]);
+  res += "\nset int bsy " + std::to_string(info.block_size[1]);
+  res += "\nset int bsz " + std::to_string(info.block_size[2]);
+  res += "\n";
+  return res;
 }

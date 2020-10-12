@@ -4,13 +4,13 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-
 #include <set>
 
 #include "distrsolver.h"
 #include "linear/hypresub.h"
 #include "parse/argparse.h"
 #include "util/git.h"
+#include "util/logger.h"
 #include "util/subcomm.h"
 
 static void RunKernelOpenMP(
@@ -29,22 +29,56 @@ static void RunKernelOpenMP(
   }
 }
 
-int RunMpi0(
-    int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> kernel) {
+MpiWrapper::MpiWrapper(int* argc, const char*** argv) : comm_(MPI_COMM_WORLD) {
 #ifdef _OPENMP
   omp_set_dynamic(0);
 #endif
-  char string[MPI_MAX_ERROR_STRING];
-  int errorcode;
-  int prov;
-  int resultlen;
-  if ((errorcode = MPI_Init_thread(
-           &argc, (char***)&argv, MPI_THREAD_MULTIPLE, &prov)) != MPI_SUCCESS) {
-    MPI_Error_string(errorcode, string, &resultlen);
-    throw std::runtime_error(FILELINE + ": mpi failed: " + string);
-  }
+  int required = MPI_THREAD_MULTIPLE;
+  int provided;
+  MPICALL(MPI_Init_thread(argc, (char***)argv, required, &provided));
+  fassert_equal(required, provided, ", mismatch in thread support level");
+}
+
+MpiWrapper::~MpiWrapper() {
+  MPI_Finalize();
+}
+
+MPI_Comm MpiWrapper::GetComm() const {
+  return comm_;
+}
+
+int MpiWrapper::GetCommSize(MPI_Comm comm) {
+  int size;
+  MPICALL(MPI_Comm_size(comm, &size));
+  return size;
+}
+
+int MpiWrapper::GetCommRank(MPI_Comm comm) {
   int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPICALL(MPI_Comm_rank(comm, &rank));
+  return rank;
+}
+
+int MpiWrapper::GetCommSize() const {
+  return GetCommSize(comm_);
+}
+
+int MpiWrapper::GetCommRank() const {
+  return GetCommRank(comm_);
+}
+
+bool MpiWrapper::IsRoot(MPI_Comm comm) {
+  return GetCommRank(comm) == 0;
+}
+
+bool MpiWrapper::IsRoot() const {
+  return IsRoot(comm_);
+}
+
+int RunMpi0(
+    int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> kernel) {
+  MpiWrapper mpi(&argc, &argv);
+  const int rank = mpi.GetCommRank();
   bool isroot = (!rank);
 
   const auto args = [&argc, &argv, &isroot]() {
@@ -86,7 +120,7 @@ int RunMpi0(
 
   if (backend == "local") {
     MPI_Comm comm;
-    MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
+    MPICALL(MPI_Comm_split(mpi.GetComm(), rank, rank, &comm));
     if (rank == 0) {
       RunKernelOpenMP(comm, comm, comm, kernel, var);
     }
@@ -102,9 +136,9 @@ int RunMpi0(
       }
       RunKernelOpenMP(comm_world, comm_omp, comm_master, kernel, var);
     } else {
-      MPI_Comm comm = MPI_COMM_WORLD;
+      MPI_Comm comm = mpi.GetComm();
       MPI_Comm comm_omp;
-      MPI_Comm_split(comm, rank, rank, &comm_omp);
+      MPICALL(MPI_Comm_split(comm, rank, rank, &comm_omp));
       RunKernelOpenMP(comm, comm_omp, comm, kernel, var);
     }
   }
@@ -146,8 +180,6 @@ int RunMpi0(
       });
     }
   }
-
-  MPI_Finalize();
   return 0;
 }
 

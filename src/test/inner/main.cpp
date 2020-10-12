@@ -61,5 +61,6 @@ set int histogram 0
 set int mpi_compress_msg 0
 )EOF";
 
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

@@ -119,6 +119,9 @@ void TestDistr() {
   SUB((MIdx(192), MIdx(8), 97));
   SUB((MIdx(192, 192, 128), MIdx(8), 96));
   SUB((MIdx(192, 192, 127), MIdx(8), 96));
+
+  Subdomains<MIdx> sub(MIdx(128, 192, 256), MIdx(32, 16, 8), 16);
+  std::cout << sub.GetConfig() << std::endl;
 }
 
 int main() {

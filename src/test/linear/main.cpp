@@ -10,6 +10,7 @@
 #include "parse/argparse.h"
 #include "solver/approx_eb.h"
 #include "solver/embed.h"
+#include "util/distr.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -224,7 +225,9 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-  ArgumentParser parser("Test for linear solvers.");
+  MpiWrapper mpi(&argc, &argv);
+
+  ArgumentParser parser("Test for linear solvers.", mpi.IsRoot());
   parser.AddSwitch("--verbose").Help("Print solver info.");
   parser.AddVariable<std::string>("--solver", "hypre")
       .Help(
@@ -232,8 +235,8 @@ int main(int argc, const char** argv) {
           " Options are: hypre, zero, conjugate");
   parser.AddVariable<double>("--tol", 1e-3).Help("Convergence tolerance");
   parser.AddVariable<int>("--maxiter", 100).Help("Maximum iterations");
-  parser.AddVariable<int>("--mesh", 2).Help("Mesh size in all directions");
-  parser.AddVariable<int>("--block", 1)
+  parser.AddVariable<int>("--mesh", 64).Help("Mesh size in all directions");
+  parser.AddVariable<int>("--block", 16)
       .Help("Block size in all directions. Options are: 8, 16, 32");
   parser.AddSwitch("--dump").Help(
       "Dump solution, exact solution, and difference");
@@ -242,19 +245,10 @@ int main(int argc, const char** argv) {
     return *p;
   }
 
-  std::string conf = R"EOF(
-set int bx 1
-set int bx 2
-set int bz 2
-
-set int bsx 16
-set int bsy 16
-set int bsz 16
-
-set int px 2
-set int py 1
-set int pz 1
-)EOF";
+  Subdomains<MIdx> sub(
+      MIdx(args.Int["mesh"]), MIdx(args.Int["block"]), mpi.GetCommSize());
+  std::string conf = "";
+  conf += sub.GetConfig();
 
   conf += "\nset string solver " + args.String["solver"];
   conf += "\nset double hypre_symm_tol " + args.Double.GetStr("tol");
@@ -264,12 +258,5 @@ set int pz 1
   conf += "\nset int dump " + args.Int.GetStr("dump");
   conf += "\nset int VERBOSE " + args.Int.GetStr("verbose");
 
-  const auto px = args.Int["px"];
-  const auto bx = args.Int["bx"];
-  conf += "\nset int px " + std::to_string(px);
-  conf += "\nset int bx " + std::to_string(bx);
-  conf += "\nset int by " + std::to_string(px * bx);
-  conf += "\nset int bz " + std::to_string(px * bx);
-
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

@@ -132,5 +132,6 @@ set int list_ls 1
 set string list_path b.dat
   )EOF";
 
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

@@ -88,5 +88,6 @@ void Main(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-  return RunMpiBasicFile<M>(argc, argv, Main);
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicFile<M>(mpi, Main);
 }

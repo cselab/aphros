@@ -42,16 +42,17 @@ set(ObjLibs)
 # Override add_library().
 # By default, creates OBJECT libraries.
 function(add_library name)
-  if ("${ARGN}" MATCHES "SHARED|STATIC|INTERFACE")
+  if ("${ARGN}" MATCHES "SHARED|STATIC|INTERFACE") # normal library
     _add_library(${name} ${ARGN})
-  else()
+    install(TARGETS ${name} EXPORT export DESTINATION lib)
+  else() # object library
     set(ObjLibs "${ObjLibs}" "${name}" CACHE INTERNAL "ObjLibs")
     _add_library(${name} OBJECT ${ARGN})
+    install(TARGETS ${name} EXPORT export)
   endif()
   if (NOT "${ARGN}" MATCHES "INTERFACE")
     target_compile_options(${name} PRIVATE -Wall -Wextra -pedantic -Wshadow)
   endif()
-  install(TARGETS ${name} EXPORT export DESTINATION lib)
   target_include_directories(${name} INTERFACE "${APHROS_PREFIX}/include/aphros")
 endfunction(add_library)
 

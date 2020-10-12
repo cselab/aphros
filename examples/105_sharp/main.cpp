@@ -190,5 +190,6 @@ set int loc_maxcomm 16
   conf << "set double cfl " << args.Double["cfl"] << '\n';
   conf << "set int VERBOSE " << args.Int["verbose"] << '\n';
 
-  return RunMpiBasic<M>(argc, argv, Run, conf.str());
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf.str());
 }

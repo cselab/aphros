@@ -206,5 +206,6 @@ set int hypre_symm_maxiter 10000
   conf += "set int bsx " + std::to_string(bsx) + "\n";
   conf += "set int bsy " + std::to_string(bsx) + "\n";
 
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

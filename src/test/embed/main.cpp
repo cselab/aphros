@@ -159,5 +159,7 @@ set vect eb_sphere_r 0.5 0.349 0.249
 set double eb_sphere_angle 0
 set int eb_init_inverse 1
 )EOF";
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

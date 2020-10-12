@@ -215,5 +215,6 @@ set double cfl 0.25
   conf += "\nset int case " + args.Int.GetStr("case");
   conf += "\nset double gradlim " + args.Double.GetStr("gradlim");
 
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }
