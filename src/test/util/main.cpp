@@ -14,6 +14,8 @@
 #include <utility>
 
 #include "debug/isnan.h"
+#include "util/distr.h"
+#include "util/format.h"
 #include "util/height.h"
 
 using Scal = double;
@@ -30,7 +32,7 @@ std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
 }
 
 void TestGood() {
-  std::cout << "UHeight::Good(v,n)" << std::endl;
+  std::cout << "\nUHeight::Good(v,n)" << std::endl;
   auto t = [](const std::vector<Scal>& v, Scal n, bool ref) {
     auto b = (!IsNan(U::Good(v, n)) ? "true" : "false");
     auto br = (ref ? "true" : "false");
@@ -57,7 +59,7 @@ void TestGood() {
 }
 
 void TestGood2() {
-  std::cout << "UHeight::Good(v)" << std::endl;
+  std::cout << "\nUHeight::Good(v)" << std::endl;
   auto t = [](const std::vector<Scal>& v, Scal ref) {
     Scal r = U::Good(v);
     bool cl = (std::abs(r - ref) < 1e-6);
@@ -85,7 +87,42 @@ void TestGood2() {
   t({1, 1, 0.42, 0.1, 0, 0, 0}, -0.98);
 }
 
+std::string SkipLine(std::string s) {
+  auto pos = s.find_first_of("\n");
+  if (pos != std::string::npos) {
+    ++pos;
+    return s.substr(pos);
+  }
+  return s;
+}
+
+#define SUB(x)                                                                 \
+  try {                                                                        \
+    auto sub = Subdomains<MIdx> x;                                             \
+    auto info = sub.info;                                                      \
+    std::cout << util::Format(                                                 \
+                     "Valid partition m={}, bs={}, np={}, b={}, area={}",      \
+                     info.mesh_size, info.block_size, info.procs, info.blocks, \
+                     info.area)                                                \
+              << std::endl;                                                    \
+  } catch (const std::runtime_error& e) {                                      \
+    std::cout << SkipLine(e.what()) << std::endl;                              \
+  }
+
+void TestDistr() {
+  std::cout << "\n" << __func__ << std::endl;
+  using MIdx = GMIdx<3>;
+  SUB((MIdx(192), MIdx(8), 96));
+  SUB((MIdx(32, 32, 0), MIdx(8, 8, 8), 16));
+  SUB((MIdx(32, 32, 1), MIdx(8, 8, 1), 16));
+  SUB((MIdx(32, 32, 1), MIdx(8, 8, 1), 128));
+  SUB((MIdx(192), MIdx(8), 97));
+  SUB((MIdx(192, 192, 128), MIdx(8), 96));
+  SUB((MIdx(192, 192, 127), MIdx(8), 96));
+}
+
 int main() {
   TestGood();
   TestGood2();
+  TestDistr();
 }

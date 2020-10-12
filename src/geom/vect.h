@@ -126,6 +126,12 @@ class Vect {
     }
     return *this;
   }
+  Vect& operator%=(Scal k) {
+    for (size_t i = 0; i < dim; ++i) {
+      data_[i] &= k;
+    }
+    return *this;
+  }
   Vect operator+(Vect other) const {
     other += *this;
     return other;
@@ -152,6 +158,11 @@ class Vect {
     tmp /= k;
     return tmp;
   }
+  Vect operator%(Scal k) const {
+    Vect tmp(*this);
+    tmp %= k;
+    return tmp;
+  }
   Vect& operator*=(const Vect& other) {
     for (size_t i = 0; i < dim; ++i) {
       data_[i] *= other.data_[i];
@@ -174,6 +185,17 @@ class Vect {
     tmp /= other;
     return tmp;
   }
+  Vect& operator%=(const Vect& other) {
+    for (size_t i = 0; i < dim; ++i) {
+      data_[i] %= other.data_[i];
+    }
+    return *this;
+  }
+  Vect operator%(const Vect& other) const {
+    Vect tmp(*this);
+    tmp %= other;
+    return tmp;
+  }
   bool operator==(const Vect& other) const {
     for (size_t i = 0; i < dim; ++i) {
       if (!(data_[i] == other.data_[i])) {
@@ -193,6 +215,9 @@ class Vect {
     }
     return true;
   }
+  bool operator>(const Vect& other) const {
+    return other < (*this);
+  }
   bool operator<=(const Vect& other) const {
     for (size_t i = 0; i < dim; ++i) {
       if (!(data_[i] <= other.data_[i])) {
@@ -200,6 +225,9 @@ class Vect {
       }
     }
     return true;
+  }
+  bool operator>=(const Vect& other) const {
+    return other <= (*this);
   }
   bool lexless(const Vect& o) const {
     return data_ < o.data_;
@@ -355,6 +383,9 @@ class Vect {
       return a.lexless(b);
     }
   };
+  friend Vect& operator*(Scal k, const Vect& v) {
+    return v * k;
+  }
   friend std::ostream& operator<<(std::ostream& out, const Vect& v) {
     out << "(";
     for (size_t i = 0; i < dim; ++i) {

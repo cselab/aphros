@@ -232,8 +232,9 @@ int main(int argc, const char** argv) {
           " Options are: hypre, zero, conjugate");
   parser.AddVariable<double>("--tol", 1e-3).Help("Convergence tolerance");
   parser.AddVariable<int>("--maxiter", 100).Help("Maximum iterations");
-  parser.AddVariable<int>("--px", 2).Help("MPI ranks in x-direction");
-  parser.AddVariable<int>("--bx", 1).Help("Blocks per rank in x-direction");
+  parser.AddVariable<int>("--mesh", 2).Help("Mesh size in all directions");
+  parser.AddVariable<int>("--block", 1)
+      .Help("Block size in all directions. Options are: 8, 16, 32");
   parser.AddSwitch("--dump").Help(
       "Dump solution, exact solution, and difference");
   auto args = parser.ParseArgs(argc, argv);
@@ -243,7 +244,7 @@ int main(int argc, const char** argv) {
 
   std::string conf = R"EOF(
 set int bx 1
-set int by 2
+set int bx 2
 set int bz 2
 
 set int bsx 16
