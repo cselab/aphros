@@ -33,7 +33,7 @@ MpiWrapper::MpiWrapper(int* argc, const char*** argv) : comm_(MPI_COMM_WORLD) {
 #ifdef _OPENMP
   omp_set_dynamic(0);
 #endif
-  int required = MPI_THREAD_MULTIPLE;
+  int required = MPI_THREAD_FUNNELED;
   int provided;
   MPICALL(MPI_Init_thread(argc, (char***)argv, required, &provided));
   fassert_equal(required, provided, ", mismatch in thread support level");
