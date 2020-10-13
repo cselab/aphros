@@ -1187,7 +1187,7 @@ void Hydro<M>::Init() {
     InitEmbed();
   }
   if (sem.Nested()) {
-    InitVf(fcvf, var, m);
+    InitVf(fcvf, var, m, true);
   }
   if (sem.Nested()) {
     if (var.Int["enable_tracer"]) {
@@ -1387,7 +1387,7 @@ void Hydro<M>::Init() {
     varbody.Int.Set("list_ls", 3);
   }
   if (sem.Nested("body-mask")) {
-    InitVf(ctx->fcbody, ctx->varbody, m);
+    InitVf(ctx->fcbody, ctx->varbody, m, true);
   }
   /*
   // TODO: implement
@@ -2530,7 +2530,7 @@ void Hydro<M>::InitTracerFields(Multi<FieldCell<Scal>>& vfcu) {
       ctx->vart.Int.Set("list_ls", 3);
     }
     if (sem.Nested("field" + std::to_string(l))) {
-      InitVf(vfcu[l], ctx->vart, m);
+      InitVf(vfcu[l], ctx->vart, m, true);
     }
     if (sem("factor" + std::to_string(l))) {
       auto k = var.Double[prefix + "_factor"];
@@ -2549,6 +2549,7 @@ void Hydro<M>::StepBubgen() {
   struct {
     std::shared_ptr<FieldCell<Scal>> fcvf; // volume fraction
     Vars var;
+    bool verbose = false;
   } * ctx(sem);
   auto& t = *ctx;
   if (bubgen_.Try(st_.t, st_.dt)) {
@@ -2558,9 +2559,10 @@ void Hydro<M>::StepBubgen() {
       t.var.Int.Set("dim", var.Int["dim"]);
       t.var.Int.Set("list_ls", var.Int["list_ls"]);
       t.fcvf = std::make_shared<FieldCell<Scal>>(m);
+      t.verbose = var.Int("verbose_bubgen", 0);
     }
     if (sem.Nested("as-bubgen-initvf")) {
-      InitVf(*t.fcvf, t.var, m);
+      InitVf(*t.fcvf, t.var, m, t.verbose);
     }
     if (sem("as-bubgen-apply")) {
       const Scal clnew = fs_->GetTime();

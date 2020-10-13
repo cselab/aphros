@@ -202,12 +202,12 @@ FieldCell<typename M::Scal> GetPositiveVolumeFraction(
 template <class M>
 void InitVfList(
     FieldCell<typename M::Scal>& fc, std::istream& list, int approx,
-    size_t edim, const M& m) {
+    size_t edim, const M& m, bool verbose) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using Primitive = typename UPrimList<Scal>::Primitive;
   const std::vector<Primitive> ppa =
-      UPrimList<Scal>::Parse(list, m.IsRoot(), edim);
+      UPrimList<Scal>::Parse(list, verbose && m.IsRoot(), edim);
 
   const Vect h = m.GetCellSize();
   // filter to bounding box
@@ -545,7 +545,8 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
 }
 
 template <class M>
-void InitVf(FieldCell<typename M::Scal>& fcu, const Vars& var, M& m) {
+void InitVf(
+    FieldCell<typename M::Scal>& fcu, const Vars& var, M& m, bool verbose) {
   auto sem = m.GetSem("initvf");
   struct {
     std::vector<char> buf;
@@ -562,16 +563,20 @@ void InitVf(FieldCell<typename M::Scal>& fcu, const Vars& var, M& m) {
         std::string fname;
         path >> fname;
         if (fname == "inline") {
-          std::cout
-              << "InitVf: Reading inline list of primitives from list_path"
-              << std::endl;
+          if (verbose) {
+            std::cout
+                << "InitVf: Reading inline list of primitives from list_path"
+                << std::endl;
+          }
           ctx->buf = std::vector<char>(
               std::istreambuf_iterator<char>(path),
               std::istreambuf_iterator<char>());
         } else {
           std::ifstream fin(fname);
-          std::cout << "InitVf: Open list of primitives '" << fname << "'"
-                    << std::endl;
+          if (verbose) {
+            std::cout << "InitVf: Open list of primitives '" << fname << "'"
+                      << std::endl;
+          }
           if (!fin.good()) {
             throw std::runtime_error(
                 FILELINE + ": Can't open list of primitives '" + fname + "'");
@@ -588,7 +593,7 @@ void InitVf(FieldCell<typename M::Scal>& fcu, const Vars& var, M& m) {
       std::stringstream list;
       std::copy(
           ctx->buf.begin(), ctx->buf.end(), std::ostream_iterator<char>(list));
-      InitVfList(fcu, list, var.Int["list_ls"], var.Int["dim"], m);
+      InitVfList(fcu, list, var.Int["list_ls"], var.Int["dim"], m, verbose);
     }
   } else if (v == "hdf") {
     if (sem.Nested()) {

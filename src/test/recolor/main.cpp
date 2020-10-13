@@ -62,7 +62,7 @@ void Run(M& m, Vars& var) {
   };
 
   if (sem.Nested()) {
-    InitVf(fcu, var, m);
+    InitVf(fcu, var, m, true);
   }
   if (sem()) {
     fccl.Reinit(m);

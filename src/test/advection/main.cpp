@@ -122,7 +122,7 @@ Advection<M>::Advection(Vars& var_, const MyBlockInfo& b, Par& p)
 template <class M>
 void Advection<M>::Init(Sem& sem) {
   if (sem.Nested("init-field")) {
-    InitVf(fcu_, var, m);
+    InitVf(fcu_, var, m, true);
   }
 
   if (sem("init-create")) {
