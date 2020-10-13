@@ -954,70 +954,61 @@ void InitVort(
   }
 }
 
-template <
-    class EB, class Scal = typename EB::Scal, class Vect = typename EB::Vect>
-void DumpTraj(
-    EB& eb, bool dm, const Vars& var, size_t frame, Scal t,
-    const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcvf,
-    const Multi<const FieldCell<Scal>*>& fccl,
+template <class EB>
+void CalcTraj(
+    EB& eb, const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename EB::Scal>*>& fcvf,
+    const Multi<const FieldCell<typename EB::Scal>*>& fccl,
     const Multi<const FieldCell<typename EB::MIdx>*>& fcim,
-    const FieldCell<Scal>& fcp, const FieldCell<Vect>& fcvel,
-    const FieldCell<Vect>& fcvelm, Scal dt) {
+    const FieldCell<typename EB::Scal>& fcp,
+    const FieldCell<typename EB::Vect>& fcvel,
+    std::vector<std::string>& column_names,
+    std::vector<typename EB::Scal>& row_colors,
+    std::vector<std::vector<typename EB::Scal>>& table) {
   using M = typename EB::M;
-  using SA = Sphavg<M>; // spherical averages
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
   constexpr Scal kClNone = -1;
   auto& m = eb.GetMesh();
 
   auto sem = m.GetSem("dumptraj");
-  struct {
-    std::vector<std::string> names; // color reduce: variable name
-    std::vector<Scal> colors; // color reduce: cl
-    std::vector<std::vector<Scal>> values; // color reduce: vector
-    std::unique_ptr<SA> sphavg; // spherical averages
-    std::vector<typename SA::Sph> vsph;
-  } * ctx(sem);
-  auto& names = ctx->names;
-  auto& colors = ctx->colors;
-  auto& values = ctx->values;
-  auto& sphavg = ctx->sphavg;
-  auto& vsph = ctx->vsph;
   if (sem("color-calc")) {
-    std::map<Scal, std::vector<Scal>> mp; // map color to vector
-    Vect gh = m.GetGlobalLength(); // global domain length
+    std::map<Scal, std::vector<Scal>> cl2row;
 
     // add scalar name
-    auto nma = [&](const std::string nm) { names.push_back(nm); };
+    auto add_name = [&](const std::string nm) { column_names.push_back(nm); };
     // add vector name
-    auto nmav = [&](const std::string nm) {
-      names.push_back(nm + "x");
-      names.push_back(nm + "y");
-      names.push_back(nm + "z");
+    auto add_name_vect = [&](const std::string nm) {
+      column_names.push_back(nm + "x");
+      column_names.push_back(nm + "y");
+      column_names.push_back(nm + "z");
     };
 
-    // XXX: adhoc, the following order assumed in post: vs,r,x,y,z,...
+    // XXX: adhoc, the following order assumed in post: vf,r,x,y,z,...
 
-    // list of vars // TODO: revise
-    names.clear();
-    nma("vf");
-    nma("r");
-    nmav("");
-    nmav("v");
-    nma("p");
-    nma("xx");
-    nma("xy");
-    nma("xz");
-    nma("yy");
-    nma("yz");
-    nma("zz");
+    // list of vars
+    column_names.clear();
+    add_name("vf");
+    add_name("r");
+    add_name_vect("");
+    add_name_vect("v");
+    add_name("p");
+    add_name("xx");
+    add_name("xy");
+    add_name("xz");
+    add_name("yy");
+    add_name("yz");
+    add_name("zz");
 
-    // traverse cells, append to mp
+    // traverse cells, append to cl2row
     for (auto c : eb.Cells()) {
       for (auto l : layers) {
         auto cl = (*fccl[l])[c];
         if (cl != kClNone) {
-          auto& v = mp[cl]; // vector for data
+          auto& v = cl2row[cl]; // vector for data
           auto x = m.GetCenter(c); // cell center
-          x += Vect((*fcim[l])[c]) * gh; // translation by image vector
+          // translation by image vector
+          x += Vect((*fcim[l])[c]) * m.GetGlobalLength();
           const auto w = (*fcvf[l])[c] * m.GetVolume(c); // volume
 
           size_t i = 0;
@@ -1036,9 +1027,9 @@ void DumpTraj(
             add(a[2]);
           };
 
-          // list of vars, XXX: keep consistent with names
-          add(w); // vf,  XXX: adhoc, vf must be first, divided on dump
-          add(0.); // r,  XXX: adhoc, r must be second, computed on dump
+          // list of vars, XXX: keep consistent with column_names
+          add(w); // vf, must be first, divided  after reduction
+          add(0); // r, must be second, computed after reduction
           addv(x * w); // x
           addv(fcvel[c] * w); // velocity
           add(fcp[c] * w); // pressure
@@ -1052,31 +1043,26 @@ void DumpTraj(
       }
     }
     // copy to vector
-    colors.clear();
-    values.clear();
-    for (auto& it : mp) {
-      colors.push_back(it.first); // color
-      values.push_back(it.second); // vector
+    row_colors.clear();
+    table.clear();
+    for (auto& it : cl2row) {
+      row_colors.push_back(it.first);
+      table.push_back(it.second);
     }
-    using TS = typename M::template OpCatT<Scal>;
-    using TVS = typename M::template OpCatVT<Scal>;
-    m.Reduce(std::make_shared<TS>(&colors));
-    m.Reduce(std::make_shared<TVS>(&values));
+    m.Reduce(&row_colors, Reduction::concat);
+    m.Reduce(&table, Reduction::concat);
   }
   if (sem("color-post")) {
     if (m.IsRoot()) {
-      // root has concatenation of all colors and values
-      if (colors.size() != values.size()) {
-        throw std::runtime_error(
-            "color-reduce: colors.size() != values.size()");
-      }
+      // root has concatenation of all row_colors and table
+      fassert_equal(row_colors.size(), table.size());
 
-      std::map<Scal, std::vector<Scal>> clmp;
+      std::map<Scal, std::vector<Scal>> cl2row;
       // reduce to map
-      for (size_t k = 0; k < colors.size(); ++k) {
-        auto cl = colors[k];
-        auto& v = values[k];
-        auto& vm = clmp[cl];
+      for (size_t k = 0; k < row_colors.size(); ++k) {
+        auto cl = row_colors[k];
+        auto& v = table[k];
+        auto& vm = cl2row[cl];
         vm.resize(v.size(), 0.);
         for (size_t i = 0; i < v.size(); ++i) {
           vm[i] += v[i];
@@ -1084,7 +1070,7 @@ void DumpTraj(
       }
 
       // divide by vf
-      for (auto& it : clmp) {
+      for (auto& it : cl2row) {
         auto& v = it.second;
         Scal vf = v[0]; // XXX: assume vf is first
         Scal pi = M_PI;
@@ -1096,18 +1082,47 @@ void DumpTraj(
         }
       }
 
-      colors.clear();
-      values.clear();
-      for (auto& it : clmp) {
-        colors.push_back(it.first);
-        values.push_back(it.second);
+      row_colors.clear();
+      table.clear();
+      for (auto& it : cl2row) {
+        row_colors.push_back(it.first);
+        table.push_back(it.second);
       }
     }
 
-    using TS = typename M::template OpCatT<Scal>;
-    using TVS = typename M::template OpCatVT<Scal>;
-    m.Bcast(std::make_shared<TS>(&colors));
-    m.Bcast(std::make_shared<TVS>(&values));
+    m.Bcast(&row_colors);
+    m.Bcast(&table);
+  }
+}
+
+template <
+    class EB, class Scal = typename EB::Scal, class Vect = typename EB::Vect>
+void DumpTraj(
+    EB& eb, bool dm, const Vars& var, size_t frame, Scal time,
+    const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcvf,
+    const Multi<const FieldCell<Scal>*>& fccl,
+    const Multi<const FieldCell<typename EB::MIdx>*>& fcim,
+    const FieldCell<Scal>& fcp, const FieldCell<Vect>& fcvel,
+    const FieldCell<Vect>& fcvelm, Scal dt) {
+  using M = typename EB::M;
+  using SA = Sphavg<M>; // spherical averages
+  auto& m = eb.GetMesh();
+
+  auto sem = m.GetSem("dumptraj");
+  struct {
+    std::vector<std::string> column_names; // color reduce: variable name
+    std::vector<Scal> row_colors; // color reduce: cl
+    std::vector<std::vector<Scal>> table; // color reduce: vector
+    std::unique_ptr<SA> sphavg; // spherical averages
+    std::vector<typename SA::Sph> vsph;
+  } * ctx(sem);
+  auto& t = *ctx;
+  auto& sphavg = ctx->sphavg;
+  auto& vsph = ctx->vsph;
+  if (sem.Nested("calc")) {
+    CalcTraj(
+        eb, layers, fcvf, fccl, fcim, fcp, fcvel, t.column_names, t.row_colors,
+        t.table);
   }
   if (sem("sphavg-init")) {
     if (var.Int["enable_shell"]) {
@@ -1123,8 +1138,8 @@ void DumpTraj(
     auto h = m.GetCellSize();
 
     vsph.clear();
-    for (auto& s : values) {
-      // XXX: adhoc, assume vf,r,x,y,z in values
+    for (auto& s : t.table) {
+      // XXX: adhoc, assume vf,r,x,y,z in t.table
       Vect x(s[2], s[3], s[4]);
       Scal r = s[1] * shrr + shr;
       vsph.emplace_back(x, r, h[0] * shh);
@@ -1137,22 +1152,22 @@ void DumpTraj(
     if (m.IsRoot()) {
       std::string s = GetDumpName("traj", ".csv", frame);
       std::cout << std::fixed << std::setprecision(8) << "dump"
-                << " t=" << t << " to " << s << std::endl;
+                << " t=" << time << " to " << s << std::endl;
       std::ofstream o;
       o.open(s);
       o.precision(20);
       // header
       {
         o << "cl";
-        for (size_t i = 0; i < names.size(); ++i) {
-          o << "," << names[i];
+        for (size_t i = 0; i < t.column_names.size(); ++i) {
+          o << "," << t.column_names[i];
         }
         o << std::endl;
       }
       // content
-      for (size_t i = 0; i < colors.size(); ++i) {
-        o << colors[i];
-        for (auto v : values[i]) {
+      for (size_t i = 0; i < t.row_colors.size(); ++i) {
+        o << t.row_colors[i];
+        for (auto v : t.table[i]) {
           o << "," << v;
         }
         o << "\n";
@@ -1162,7 +1177,7 @@ void DumpTraj(
       if (m.IsRoot()) {
         std::string s = GetDumpName("trajsh", ".csv", frame);
         std::cout << std::fixed << std::setprecision(8) << "dump"
-                  << " t=" << t << " to " << s << std::endl;
+                  << " t=" << time << " to " << s << std::endl;
         std::ofstream o;
         o.open(s);
         o.precision(20);
@@ -1176,8 +1191,8 @@ void DumpTraj(
           o << std::endl;
         }
         // content
-        auto cl = colors;
-        auto av = sphavg->GetAvg();
+        const auto& cl = t.row_colors;
+        const auto& av = sphavg->GetAvg();
         if (cl.size() != av.size()) {
           throw std::runtime_error(
               "trajsh: cl.size()=" + std::to_string(cl.size()) +
