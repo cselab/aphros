@@ -99,6 +99,19 @@ void DumpTraj(
     const FieldCell<Scal>& fcp, const FieldCell<Vect>& fcvel,
     const FieldCell<Vect>& fcvelm, Scal dt);
 
+template <class EB>
+void CalcTraj(
+    EB& eb, const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename EB::Scal>*>& fcvf,
+    const Multi<const FieldCell<typename EB::Scal>*>& fccl,
+    const Multi<const FieldCell<typename EB::MIdx>*>& fcim,
+    const FieldCell<typename EB::Scal>& fcp,
+    const FieldCell<typename EB::Vect>& fcvel,
+    /*out*/
+    std::vector<std::string>& column_names,
+    std::vector<typename EB::Scal>& row_colors,
+    std::vector<std::vector<typename EB::Scal>>& table);
+
 // fc_force: force field to append
 // ff_force: face force field to append
 // fc_sig: surface tension coefficient

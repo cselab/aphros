@@ -67,10 +67,10 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
   Multi<const FieldCell<Scal>*> GetColor() const;
   // Colors combined
   const FieldCell<Scal>& GetColorSum() const;
-  // Volume fraction, plane constant, normal, color.
-  Plic GetPlic() const;
   // Image vector, number of passes through periodic boundaries
-  MIdx GetImage(size_t l, IdxCell c) const;
+  Multi<const FieldCell<MIdx>*> GetImage() const;
+  // Volume fraction, plane constant, normal, color.
+  Plic GetPlic() const override;
   void DumpInterface(std::string filename) const override;
   void DumpInterfaceMarch(std::string filename) const override;
   // Saves current state to directory, created if needed.

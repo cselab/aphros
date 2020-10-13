@@ -1804,7 +1804,7 @@ template <class M>
 void Hydro<M>::DumpFields() {
   auto sem = m.GetSem("dumpfields");
   struct {
-    std::array<Multi<FieldCell<Scal>>, dim> im;
+    Multi<FieldCell<Vect>> fcim;
     FieldCell<Scal> fc_cellcond;
     FieldCell<Scal> fcdiv; // divergence of velocity
     FieldCell<Scal> fcdis; // energy dissipation
@@ -1900,24 +1900,18 @@ void Hydro<M>::DumpFields() {
       // combined colors
       dump(as->GetColorSum(), "cls");
 
-      // image
-      auto conv = [&](size_t d, size_t l,
-                      Multi<FieldCell<Scal>>& fc) -> const FieldCell<Scal>& {
-        fc.resize(layers);
-        fc[l].Reinit(m);
+      // image vector
+      ctx->fcim.resize(layers);
+      ctx->fcim.Reinit(m);
+      for (auto l : layers) {
+        auto& fcim = *as->GetImage()[l];
         for (auto c : m.Cells()) {
-          fc[l][c] = as->GetImage(l, c)[d];
+          ctx->fcim[l][c] = Vect(fcim[c]);
         }
-        return fc[l];
-      };
-      for (auto d : {0, 1, 2}) {
-        for (auto l : layers) {
-          std::stringstream st;
-          st << "im"
-             << "xyz"[d] << l;
-          std::string s = st.str();
-          dump(conv(d, l, ctx->im[d]), s);
-        }
+        auto sl = std::to_string(l);
+        dumpv(ctx->fcim[l], 0, "imx" + sl);
+        dumpv(ctx->fcim[l], 1, "imy" + sl);
+        dumpv(ctx->fcim[l], 2, "imz" + sl);
       }
     }
     // TODO add ASVMEB
@@ -1993,73 +1987,25 @@ void Hydro<M>::DumpFields() {
 template <class M>
 void Hydro<M>::Dump(bool force) {
   auto sem = m.GetSem("dump");
-  struct {
-    Multi<FieldCell<MIdx>> fcim;
-  } * ctx(sem);
   if (sem.Nested("fields")) {
     if (dumper_.Try(st_.t, st_.dt) || force) {
       DumpFields();
     }
   }
   if (dmptraj_.Try(st_.t, st_.dt) || force) {
-    if (sem("copyimage")) {
-      ctx->fcim.resize(layers);
-      ctx->fcim.InitAll(FieldCell<MIdx>(m));
-      if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-        for (auto c : m.AllCells()) {
-          for (auto l : layers) {
-            ctx->fcim[l][c] = as->GetImage(l, c);
-          }
-        }
-      }
-      if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
-        for (auto c : m.AllCells()) {
-          for (auto l : layers) {
-            ctx->fcim[l][c] = as->GetImage(l, c);
-          }
-        }
-      }
-      if (auto as = dynamic_cast<ASV*>(as_.get())) {
-        for (auto c : m.AllCells()) {
-          ctx->fcim[0][c] = as->GetImage(c);
-        }
-      }
-      if (auto as = dynamic_cast<ASVEB*>(as_.get())) {
-        for (auto c : m.AllCells()) {
-          ctx->fcim[0][c] = as->GetImage(c);
-        }
-      }
-    }
     if (sem.Nested("trajdump")) {
       if (var.Int["enable_color"]) {
-        Multi<const FieldCell<Scal>*> fcu(layers);
-        Multi<const FieldCell<Scal>*> fccl(layers);
-        if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-          fcu = as->GetFieldM();
-          fccl = as->GetColor();
-        }
-        if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
-          // TODO reuse ASVM code
-          fcu = as->GetFieldM();
-          fccl = as->GetColor();
-        }
-        if (auto as = dynamic_cast<ASVEB*>(as_.get())) {
-          // TODO reuse ASV code
-          fcu[0] = &as->GetField();
-          fccl[0] = &as->GetColor();
-        }
-        if (auto as = dynamic_cast<ASV*>(as_.get())) {
-          fcu[0] = &as->GetField();
-          fccl[0] = &as->GetColor();
-        }
+        auto plic = as_->GetPlic();
         if (eb_) {
           DumpTraj<EB>(
-              *eb_, true, var, dmptraj_.GetN(), st_.t, layers, fcu, fccl,
-              ctx->fcim, fs_->GetPressure(), fs_->GetVelocity(), fcvm_, st_.dt);
+              *eb_, true, var, dmptraj_.GetN(), st_.t, layers, plic.vfcu,
+              plic.vfccl, plic.vfcim, fs_->GetPressure(), fs_->GetVelocity(),
+              fcvm_, st_.dt);
         } else {
           DumpTraj<M>(
-              m, true, var, dmptraj_.GetN(), st_.t, layers, fcu, fccl,
-              ctx->fcim, fs_->GetPressure(), fs_->GetVelocity(), fcvm_, st_.dt);
+              m, true, var, dmptraj_.GetN(), st_.t, layers, plic.vfcu,
+              plic.vfccl, plic.vfcim, fs_->GetPressure(), fs_->GetVelocity(),
+              fcvm_, st_.dt);
         }
       }
     }

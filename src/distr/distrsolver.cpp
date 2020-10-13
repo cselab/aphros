@@ -84,6 +84,8 @@ int RunMpi0(
   const auto args = [&argc, &argv, &isroot]() {
     ArgumentParser parser("Distributed solver", isroot);
     parser.AddSwitch({"--verbose", "-v"}).Help("Print initial configuration");
+    parser.AddSwitch("--confverbose")
+        .Help("Add 'set int verbose 1' to configuration");
     parser.AddSwitch({"--version"}).Help("Print version");
     parser.AddVariable<std::string>("config", "a.conf")
         .Help("Path to configuration file");
@@ -106,8 +108,10 @@ int RunMpi0(
 
   Vars var; // parameter storage
   Parser ip(var); // parser
-
   ip.ParseFile(config);
+  if (args.Int["confverbose"]) {
+    var.Int.Set("verbose", 1);
+  }
 
   // Print vars on root
   if (verbose && isroot) {

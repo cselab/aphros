@@ -63,6 +63,27 @@ template void DumpTraj(
     const FieldCell<typename M::Vect>& fcvel,
     const FieldCell<typename M::Vect>& fcvelm, typename M::Scal dt);
 
+template void CalcTraj(
+    M& m, const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename EB::Scal>*>& fcvf,
+    const Multi<const FieldCell<typename EB::Scal>*>& fccl,
+    const Multi<const FieldCell<typename EB::MIdx>*>& fcim,
+    const FieldCell<typename EB::Scal>& fcp,
+    const FieldCell<typename EB::Vect>& fcvel,
+    std::vector<std::string>& column_names,
+    std::vector<typename EB::Scal>& row_colors,
+    std::vector<std::vector<typename EB::Scal>>& table);
+template void CalcTraj(
+    EB& eb, const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename EB::Scal>*>& fcvf,
+    const Multi<const FieldCell<typename EB::Scal>*>& fccl,
+    const Multi<const FieldCell<typename EB::MIdx>*>& fcim,
+    const FieldCell<typename EB::Scal>& fcp,
+    const FieldCell<typename EB::Vect>& fcvel,
+    std::vector<std::string>& column_names,
+    std::vector<typename EB::Scal>& row_colors,
+    std::vector<std::vector<typename EB::Scal>>& table);
+
 template void CalcSurfaceTension(
     const M& m, const GRange<size_t>& layers, const Vars& var,
     FieldCell<typename M::Vect>& fc_force,

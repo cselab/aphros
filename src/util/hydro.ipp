@@ -962,6 +962,7 @@ void CalcTraj(
     const Multi<const FieldCell<typename EB::MIdx>*>& fcim,
     const FieldCell<typename EB::Scal>& fcp,
     const FieldCell<typename EB::Vect>& fcvel,
+    /*out*/
     std::vector<std::string>& column_names,
     std::vector<typename EB::Scal>& row_colors,
     std::vector<std::vector<typename EB::Scal>>& table) {
@@ -971,7 +972,7 @@ void CalcTraj(
   constexpr Scal kClNone = -1;
   auto& m = eb.GetMesh();
 
-  auto sem = m.GetSem("dumptraj");
+  auto sem = m.GetSem("calctraj");
   if (sem("color-calc")) {
     std::map<Scal, std::vector<Scal>> cl2row;
 
@@ -1191,16 +1192,11 @@ void DumpTraj(
           o << std::endl;
         }
         // content
-        const auto& cl = t.row_colors;
-        const auto& av = sphavg->GetAvg();
-        if (cl.size() != av.size()) {
-          throw std::runtime_error(
-              "trajsh: cl.size()=" + std::to_string(cl.size()) +
-              " != av.size()=" + std::to_string(av.size()));
-        }
-        for (size_t i = 0; i < cl.size(); ++i) {
-          o << cl[i];
-          for (auto& a : av[i].SerOut()) {
+        const auto& avg = sphavg->GetAvg();
+        fassert_equal(t.row_colors.size(), avg.size());
+        for (size_t i = 0; i < t.row_colors.size(); ++i) {
+          o << t.row_colors[i];
+          for (auto& a : avg[i].SerOut()) {
             o << "," << a;
           }
           o << "\n";
