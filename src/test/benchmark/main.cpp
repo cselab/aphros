@@ -18,6 +18,11 @@
 #include "util/sysinfo.h"
 #include "util/timer.h"
 
+#define EXPOSE(x) do { \
+  volatile auto EXPOSE_vol = x; \
+  (void) EXPOSE_vol; \
+} while (0);
+
 const int dim = 3;
 using MIdx = GMIdx<dim>;
 using IdxCell = IdxCell;
@@ -75,10 +80,11 @@ class LoopPlain : public TimerMesh {
  public:
   LoopPlain(M& m_) : TimerMesh("loop-plain", m_) {}
   void F() override {
-    volatile size_t a = 0;
+    size_t a = 0;
     for (size_t i = 0; i < m.GetAllBlockCells().size(); ++i) {
       a += i;
     }
+    EXPOSE(a);
   }
 };
 
@@ -86,10 +92,11 @@ class LoopAllCells : public TimerMesh {
  public:
   LoopAllCells(M& m_) : TimerMesh("loop-allcells", m_) {}
   void F() override {
-    volatile size_t a = 0;
+    size_t a = 0;
     for (auto i : m.AllCells()) {
       a += i.GetRaw();
     }
+    EXPOSE(a);
   }
 };
 
@@ -97,10 +104,11 @@ class LoopInCells : public TimerMesh {
  public:
   LoopInCells(M& m_) : TimerMesh("loop-incells", m_) {}
   void F() override {
-    volatile size_t a = 0;
+    size_t a = 0;
     for (auto i : m.Cells()) {
       a += i.GetRaw();
     }
+    EXPOSE(a);
   }
 };
 
@@ -108,10 +116,11 @@ class LoopAllFaces : public TimerMesh {
  public:
   LoopAllFaces(M& m_) : TimerMesh("loop-allfaces", m_) {}
   void F() override {
-    volatile size_t a = 0;
+    size_t a = 0;
     for (auto i : m.AllFaces()) {
       a += i.GetRaw();
     }
+    EXPOSE(a);
   }
 };
 
@@ -119,10 +128,11 @@ class LoopInFaces : public TimerMesh {
  public:
   LoopInFaces(M& m_) : TimerMesh("loop-infaces", m_) {}
   void F() override {
-    volatile size_t a = 0;
+    size_t a = 0;
     for (auto i : m.Faces()) {
       a += i.GetRaw();
     }
+    EXPOSE(a);
   }
 };
 
@@ -132,11 +142,12 @@ class LoopFldPlain : public TimerMesh {
   LoopFldPlain(M& m_)
       : TimerMesh("loop-fld-plain", m_), v(GRange<IdxCell>(m).size()) {}
   void F() override {
-    volatile Scal a = 0;
+    Scal a = 0;
     for (size_t i = 0; i < v.size(); ++i) {
       v[i] += a;
       a = v[i];
     }
+    EXPOSE(a);
   }
 
  private:
@@ -147,11 +158,12 @@ class LoopFldAllCells : public TimerMesh {
  public:
   LoopFldAllCells(M& m_) : TimerMesh("loop-fld-allcells", m_), v(m) {}
   void F() override {
-    volatile Scal a = 0;
+    Scal a = 0;
     for (auto i : m.AllCells()) {
       v[i] += a;
       a = v[i];
     }
+    EXPOSE(a);
   }
 
  private:
@@ -162,11 +174,12 @@ class LoopMIdxAllCells : public TimerMesh {
  public:
   LoopMIdxAllCells(M& m_) : TimerMesh("loop-midx-allcells", m_) {}
   void F() override {
-    volatile size_t a = 0;
+    size_t a = 0;
     for (auto c : m.AllCells()) {
       auto w = m.GetIndexCells().GetMIdx(c);
       a += w[0];
     }
+    EXPOSE(a);
   }
 };
 
@@ -174,12 +187,13 @@ class LoopMIdxAllFaces : public TimerMesh {
  public:
   LoopMIdxAllFaces(M& m_) : TimerMesh("loop-midx-allfaces", m_) {}
   void F() override {
-    volatile size_t a = 0;
+    size_t a = 0;
     for (auto f : m.AllFaces()) {
       auto wd = m.GetIndexFaces().GetMIdxDir(f);
       a += wd.first[0];
       a += wd.second.GetLetter();
     }
+    EXPOSE(a);
   }
 };
 
@@ -187,10 +201,11 @@ class CellVolume : public TimerMesh {
  public:
   CellVolume(M& m_) : TimerMesh("m-cell-volume", m_) {}
   void F() override {
-    volatile size_t a = 1;
+    size_t a = 1;
     for (auto c : m.Cells()) {
       a += m.GetVolume(c);
     }
+    EXPOSE(a);
   }
 };
 
@@ -198,10 +213,11 @@ class CellCenter : public TimerMesh {
  public:
   CellCenter(M& m_) : TimerMesh("m-cell-center", m_) {}
   void F() override {
-    volatile int a = 0;
+    int a = 0;
     for (auto c : m.Cells()) {
       a += m.GetCenter(c)[0];
     }
+    EXPOSE(a);
   }
 };
 
@@ -209,12 +225,13 @@ class CellNCell : public TimerMesh {
  public:
   CellNCell(M& m_) : TimerMesh("m-cell-n-cell", m_) {}
   void F() override {
-    volatile size_t a = 1;
+    size_t a = 1;
     for (auto c : m.Cells()) {
       for (auto q : m.Nci(c)) {
         a += m.GetCell(c, q).GetRaw();
       }
     }
+    EXPOSE(a);
   }
 };
 
@@ -222,12 +239,13 @@ class CellNFace : public TimerMesh {
  public:
   CellNFace(M& m_) : TimerMesh("m-cell-n-face", m_) {}
   void F() override {
-    volatile size_t a = 1;
+    size_t a = 1;
     for (auto c : m.Cells()) {
       for (auto q : m.Nci(c)) {
         a += m.GetFace(c, q).GetRaw();
       }
     }
+    EXPOSE(a);
   }
 };
 
@@ -235,12 +253,13 @@ class CellOutward : public TimerMesh {
  public:
   CellOutward(M& m_) : TimerMesh("m-cell-outward", m_) {}
   void F() override {
-    volatile size_t a = 0;
+    size_t a = 0;
     for (auto c : m.Cells()) {
       for (auto q : m.Nci(c)) {
         a += m.GetOutwardFactor(c, q);
       }
     }
+    EXPOSE(a);
   }
 };
 
@@ -248,12 +267,13 @@ class CellNNode : public TimerMesh {
  public:
   CellNNode(M& m_) : TimerMesh("m-cell-n-node", m_) {}
   void F() override {
-    volatile size_t a = 1;
+    size_t a = 1;
     for (auto c : m.Cells()) {
       for (size_t q = 0; q < m.GetNumNodes(c); ++q) {
         a += m.GetNode(c, q).GetRaw();
       }
     }
+    EXPOSE(a);
   }
 };
 
@@ -261,10 +281,11 @@ class FaceCenter : public TimerMesh {
  public:
   FaceCenter(M& m_) : TimerMesh("m-face-center", m_) {}
   void F() override {
-    volatile int a = 0;
+    int a = 0;
     for (auto f : m.Faces()) {
       a += m.GetCenter(f)[0];
     }
+    EXPOSE(a);
   }
 };
 
@@ -272,10 +293,11 @@ class FaceSurf : public TimerMesh {
  public:
   FaceSurf(M& m_) : TimerMesh("m-face-surf", m_) {}
   void F() override {
-    volatile int a = 0;
+    int a = 0;
     for (auto f : m.Faces()) {
       a += m.GetSurface(f)[0];
     }
+    EXPOSE(a);
   }
 };
 
@@ -283,10 +305,11 @@ class FaceArea : public TimerMesh {
  public:
   FaceArea(M& m_) : TimerMesh("m-face-area", m_) {}
   void F() override {
-    volatile int a = 0;
+    int a = 0;
     for (auto f : m.Faces()) {
       a += m.GetSurface(f)[0];
     }
+    EXPOSE(a);
   }
 };
 
@@ -294,12 +317,13 @@ class FaceNCell : public TimerMesh {
  public:
   FaceNCell(M& m_) : TimerMesh("m-face-n-cell", m_) {}
   void F() override {
-    volatile size_t a = 1;
+    size_t a = 1;
     for (auto f : m.Faces()) {
       for (size_t q = 0; q < m.GetNumCells(f); ++q) {
         a += m.GetCell(f, q).GetRaw();
       }
     }
+    EXPOSE(a);
   }
 };
 
@@ -307,12 +331,13 @@ class FaceNNode : public TimerMesh {
  public:
   FaceNNode(M& m_) : TimerMesh("m-face-n-node", m_) {}
   void F() override {
-    volatile size_t a = 1;
+    size_t a = 1;
     for (auto f : m.Faces()) {
       for (size_t q = 0; q < m.GetNumNodes(f); ++q) {
         a += m.GetNode(f, q).GetRaw();
       }
     }
+    EXPOSE(a);
   }
 };
 
@@ -331,9 +356,10 @@ class Interp : public TimerMesh {
     assert(mfc.size() > 0);
   }
   void F() override {
-    volatile size_t a = 0;
+    size_t a = 0;
     ff = UEmbed<M>::Interpolate(fc, mfc, m);
     a = ff[IdxFace(a)];
+    EXPOSE(a);
   }
 
  private:
@@ -350,9 +376,10 @@ class Grad : public TimerMesh {
     }
   }
   void F() override {
-    static volatile size_t a = 0;
+    static size_t a = 0;
     fc = UEmbed<M>::Gradient(ff, m);
     a += fc[IdxCell(0)][0];
+    EXPOSE(a);
   }
 
  private:
@@ -373,7 +400,7 @@ class ExplVisc : public TimerMesh {
     }
   }
   void F() override {
-    static volatile size_t a = 0;
+    static size_t a = 0;
     for (size_t n = 0; n < dim; ++n) {
       FieldCell<Scal> fc = GetComponent(fcv, n);
       auto ff = UEmbed<M>::Interpolate(fc, {}, m);
@@ -390,6 +417,7 @@ class ExplVisc : public TimerMesh {
       }
     }
     a += fcf[IdxCell(0)][0];
+    EXPOSE(a);
   }
 
  private:
