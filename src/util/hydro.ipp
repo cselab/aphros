@@ -1074,9 +1074,13 @@ void CalcTraj(
       for (auto& it : cl2row) {
         auto& v = it.second;
         Scal vf = v[0]; // XXX: assume vf is first
-        Scal pi = M_PI;
+        const Scal pi = M_PI;
         // XXX: assume r is second
-        v[1] = std::pow(3. / (4. * pi) * vf, 1. / 3.);
+        if (m.GetEdim() == 3) {
+          v[1] = std::pow(3. / (4. * pi) * vf, 1. / 3.);
+        } else { // dim 2
+          v[1] = std::sqrt(vf / pi / m.GetCellSize()[2]);
+        }
         // divide remaining by vf
         for (size_t i = 2; i < v.size(); ++i) {
           v[i] /= vf;
