@@ -45,20 +45,20 @@ do case "$1" in
    esac
 done
 
+prg=/tmp/prog.$$.awk
+tmp=/tmp/cawk.$$.awk
 if test $# -eq 0; then err 'needs prog'; fi
-prog=$1
+printf '%s\n' "$1"  > $prg
 shift
 if test $# -eq 0; then err 'needs file'; fi
-
-tmp=/tmp/cawk.$$.awk
-trap 'rm $tmp; exit 2' 1 2 3 4 15
+trap 'rm $tmp $prg; exit 2' 1 2 3 4 15
 "$AWK" \
 -v me="$me" \
 -v sep="$sep" \
 -v tmp=$tmp \
 -v awk="$AWK" \
 -v arg="$arg" \
--v prog="$prog" \
+-v prg="$prg" \
 -v Q=\' '
 BEGIN {
       file = ARGV[1]
@@ -67,7 +67,7 @@ BEGIN {
           err("fail to read %s", quote(file))
       close(file)
       rsplit($0, key, sep)
-      s = prog
+      for ( ; getline c < prg == 1; s = c "\n");
       prog = ""
       for (;;) {
           if (match(s, /^\$[a-zA-Z_][0-9a-zA-Z_]*/)) {
@@ -131,5 +131,5 @@ function Quote(a,   i, ans)
 ' "$@"
 
 status=$?
-rm -f $tmp
+rm -f $tmp $prg
 exit $status
