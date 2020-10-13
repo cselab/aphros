@@ -977,8 +977,8 @@ auto Vofm<EB_>::GetColorSum() const -> const FieldCell<Scal>& {
 
 template <class EB_>
 auto Vofm<EB_>::GetPlic() const -> Plic {
-  return {imp->layers, GetFieldM(), GetAlpha(), GetNormal(),
-          GetMask(),   GetColor(),  GetImage(), imp->mebc_};
+  return {imp->layers, GetFieldM(), GetAlpha(), GetNormal(), GetMask(),
+          GetColor(),  GetColor(),  GetImage(), imp->mebc_};
 }
 
 template <class EB_>

@@ -701,8 +701,8 @@ auto Vof<EB_>::GetColor() const -> const FieldCell<Scal>& {
 
 template <class EB_>
 auto Vof<EB_>::GetPlic() const -> Plic {
-  return {imp->layers, &GetField(), &GetAlpha(), &GetNormal(),
-          &GetMask(),  &GetColor(), &GetImage(), imp->mebc_};
+  return {imp->layers, &GetField(), &GetAlpha(), &GetNormal(), &GetMask(),
+          nullptr,     &GetColor(), &GetImage(), imp->mebc_};
 }
 
 template <class EB_>

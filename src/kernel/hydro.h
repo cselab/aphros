@@ -1999,13 +1999,13 @@ void Hydro<M>::Dump(bool force) {
         if (eb_) {
           DumpTraj<EB>(
               *eb_, true, var, dmptraj_.GetN(), st_.t, layers, plic.vfcu,
-              plic.vfccl, plic.vfcim, fs_->GetPressure(), fs_->GetVelocity(),
-              fcvm_, st_.dt);
+              plic.vfccl_stat, plic.vfcim, fs_->GetPressure(),
+              fs_->GetVelocity(), fcvm_, st_.dt);
         } else {
           DumpTraj<M>(
               m, true, var, dmptraj_.GetN(), st_.t, layers, plic.vfcu,
-              plic.vfccl, plic.vfcim, fs_->GetPressure(), fs_->GetVelocity(),
-              fcvm_, st_.dt);
+              plic.vfccl_stat, plic.vfcim, fs_->GetPressure(),
+              fs_->GetVelocity(), fcvm_, st_.dt);
         }
       }
     }

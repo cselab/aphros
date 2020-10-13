@@ -41,6 +41,12 @@ struct Plic {
   Multi<const FieldCell<Vect>*> vfcn; // normal
   Multi<const FieldCell<bool>*> vfci; // interface mask
   Multi<const FieldCell<Scal>*> vfccl; // color
+  // XXX Field `vfccl_stat` may have value kClNone even in cells with u>0
+  // close to the interface and should be used for statitics only,
+  // and not for filtering the cells (e.g. in surface tension).
+  // Required for single-field VOF solver where the criterion for merging the
+  // cells is more strict to distinguish closely located bubbles.
+  Multi<const FieldCell<Scal>*> vfccl_stat; // color for statistics only
   Multi<const FieldCell<MIdx>*> vfcim; // image vector
   const MapEmbed<BCondAdvection<Scal>>& me_adv; // boundary conditions
 };
