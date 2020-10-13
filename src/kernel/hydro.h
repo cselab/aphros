@@ -149,6 +149,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using P::bi_;
   using P::m;
   using P::var;
+  using P::var_mutable;
 
   // FIXME: make private and introduce public interface
   // Needed for ModulePostStep
