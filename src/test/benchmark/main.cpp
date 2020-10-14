@@ -47,7 +47,7 @@ M GetMesh(MIdx size) {
 
 class TimerMesh : public Timer {
  public:
-  TimerMesh(const std::string& name, M& m_) : Timer(name), m(m_) {}
+  TimerMesh(const std::string& name, M& m_) : Timer(name, 0.01, 10), m(m_) {}
 
  protected:
   M& m;
@@ -76,12 +76,26 @@ class Empty : public TimerMesh {
   void F() override {}
 };
 
-class LoopPlain : public TimerMesh {
+class LoopAllCellsPlain : public TimerMesh {
  public:
-  LoopPlain(M& m_) : TimerMesh("loop-plain", m_) {}
+  LoopAllCellsPlain(M& m_) : TimerMesh("loop-allcells-plain", m_) {}
   void F() override {
-    size_t a = 0;
-    for (size_t i = 0; i < m.GetAllBlockCells().size(); ++i) {
+    double a = 0;
+    //for (size_t i = 0; i < m.GetAllBlockCells().size(); ++i) {
+    for (size_t i = 0; i < m.GetInBlockCells().size(); ++i) {
+      a += i;
+    }
+    EXPOSE(a);
+  }
+};
+
+class LoopInCellsPlain : public TimerMesh {
+ public:
+  LoopInCellsPlain(M& m_) : TimerMesh("loop-incells-plain", m_) {}
+  void F() override {
+    double a = 0;
+    //for (size_t i = 0; i < m.GetInBlockCells().size(); ++i) {
+    for (size_t i = 0; i < m.GetInBlockCells().size(); ++i) {
       a += i;
     }
     EXPOSE(a);
@@ -453,8 +467,9 @@ bool Run(
   size_t k = 0;
   Timer* p = nullptr;
 
-  Try<Empty>(m, i, k, p);
-  Try<LoopPlain>(m, i, k, p);
+  //Try<Empty>(m, i, k, p);
+  Try<LoopAllCellsPlain>(m, i, k, p);
+  Try<LoopInCellsPlain>(m, i, k, p);
   Try<LoopAllCells>(m, i, k, p);
   Try<LoopInCells>(m, i, k, p);
   Try<LoopAllFaces>(m, i, k, p);
@@ -466,6 +481,8 @@ bool Run(
   Try<Interp>(m, i, k, p);
   Try<Grad>(m, i, k, p);
   Try<ExplVisc>(m, i, k, p);
+  Try<LoopAllCellsPlain>(m, i, k, p);
+  Try<LoopInCellsPlain>(m, i, k, p);
 
   Try<CellVolume>(m, i, k, p);
   Try<CellCenter>(m, i, k, p);
@@ -495,15 +512,16 @@ bool Run(
 
 int main() {
   // mesh size
-  std::vector<MIdx> ss = {MIdx(4),  MIdx(8),  MIdx(16),
-                          MIdx(32), MIdx(64), MIdx(128)};
+  std::vector<MIdx> ss = {MIdx(4), MIdx(8), MIdx(16), MIdx(32), MIdx(64)};
 
+  std::array<int, 7> ww = {22, 18, 18, 18, 14, 10, 7};
+
+  std::stringstream header;
   using std::setw;
-  std::cout << setw(20) << "name" << setw(20) << "t/allcells [ns]" << setw(20)
-            << "t/incells [ns]" << setw(20) << "t [ns]" << setw(20) << "iters"
-            << setw(20) << "mem [MB]" << setw(20) << "mem/allcells [B]"
-            << std::endl
-            << std::endl;
+  header << setw(ww[0]) << "name" << setw(ww[1]) << "t/allcells [ns]"
+            << setw(ww[2]) << "t/incells [ns]" << setw(ww[3]) << "t [ns]"
+            << setw(ww[4]) << "iters" << setw(ww[5]) << "mem [MB]"
+            << setw(ww[6]) << "mem/allcells [B]";
 
   for (auto s : ss) {
     size_t mem0 = sysinfo::GetMem();
@@ -513,6 +531,7 @@ int main() {
     std::cout << "Mesh"
               << " size=" << s << " allcells=" << nca << " incells=" << nci
               << std::endl;
+    std::cout << header.str() << std::endl;
 
     int i = 0;
     double t;
@@ -521,10 +540,10 @@ int main() {
     std::string name;
     while (Run(i++, m, t, n, mem, name)) {
       size_t dmem = mem - mem0;
-      std::cout << setw(20) << name << setw(20) << t * 1e9 / nca << setw(20)
-                << t * 1e9 / nci << setw(20) << t * 1e9 * n << setw(20) << n
-                << setw(20) << (dmem / double(1 << 20)) << setw(20)
-                << (dmem / nca) << std::endl;
+      std::cout << setw(ww[0]) << name << setw(ww[1]) << t * 1e9 / nca
+                << setw(ww[2]) << t * 1e9 / nci << setw(ww[3]) << t * 1e9 * n
+                << setw(ww[4]) << n << setw(ww[5]) << (dmem / double(1 << 20))
+                << setw(ww[6]) << (dmem / nca) << std::endl;
     }
     std::cout << std::endl;
   }
