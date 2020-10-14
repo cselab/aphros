@@ -67,7 +67,7 @@ class LoopAllCellsPlain : public TimerMesh {
  public:
   LoopAllCellsPlain(M& m_) : TimerMesh("loop-allcells-plain", m_, Cover::all) {}
   void F() override {
-    double a = 0;
+    size_t a = 0;
     for (size_t i = 0; i < m.GetAllBlockCells().size(); ++i) {
       a += i;
     }
@@ -79,7 +79,7 @@ class LoopInCellsPlain : public TimerMesh {
  public:
   LoopInCellsPlain(M& m_) : TimerMesh("loop-incells-plain", m_) {}
   void F() override {
-    double a = 0;
+    size_t a = 0;
     for (size_t i = 0; i < m.GetInBlockCells().size(); ++i) {
       a += i;
     }
@@ -139,7 +139,8 @@ class LoopInFaces : public TimerMesh {
 class LoopFldPlain : public TimerMesh {
  public:
   LoopFldPlain(M& m_)
-      : TimerMesh("loop-fld-plain", m_), v(GRange<IdxCell>(m).size()) {}
+      : TimerMesh("loop-fld-plain", m_, Cover::all)
+      , v(GRange<IdxCell>(m).size()) {}
   void F() override {
     Scal a = 0;
     for (size_t i = 0; i < v.size(); ++i) {
