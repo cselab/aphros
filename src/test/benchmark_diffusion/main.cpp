@@ -34,9 +34,9 @@ Mesh GetMesh(MIdx s /*size in cells*/) {
   return InitUniformMesh<Mesh>(dom, b, s, hl, true, true, s, 0);
 }
 
-class TimerMesh : public Timer {
+class TimerMesh : public ExecutionTimer {
  public:
-  TimerMesh(const std::string& name, Mesh& m_) : Timer(name, 0.1, 3), m(m_) {}
+  TimerMesh(const std::string& name, Mesh& m_) : ExecutionTimer(name, 0.1, 3), m(m_) {}
 
  protected:
   Mesh& m;
@@ -304,7 +304,7 @@ class DiffusionPlainFace : public TimerMesh {
 // ++k
 // p: pointer to new instance
 template <class T>
-void Try(Mesh& m, size_t i, size_t& k, Timer*& p) {
+void Try(Mesh& m, size_t i, size_t& k, ExecutionTimer*& p) {
   if (k++ == i) {
     p = new T(m);
   }
@@ -322,7 +322,7 @@ bool Run(
     const size_t i, Mesh& m, double& t, size_t& n, size_t& mem,
     std::string& name) {
   size_t k = 0;
-  Timer* p = nullptr;
+  ExecutionTimer* p = nullptr;
 
   // Try<LoopPlain>(m, i, k, p);
   // Try<LoopInCells>(m, i, k, p);
@@ -337,9 +337,9 @@ bool Run(
     return false;
   }
 
-  std::pair<double, size_t> e = p->Run();
-  t = e.first;
-  n = e.second;
+  auto e = p->Run();
+  t = e.min_call_time;
+  n = e.iters;
   mem = sysinfo::GetMem();
   name = p->GetName();
   delete p;
