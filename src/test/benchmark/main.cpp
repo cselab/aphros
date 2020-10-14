@@ -9,6 +9,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <type_traits>
 
 #include "geom/mesh.h"
 #include "solver/approx.h"
@@ -18,10 +19,11 @@
 #include "util/sysinfo.h"
 #include "util/timer.h"
 
-#define EXPOSE(x) do { \
-  volatile auto EXPOSE_vol = x; \
-  (void) EXPOSE_vol; \
-} while (0);
+#define EXPOSE(x)                 \
+  do {                            \
+    volatile auto EXPOSE_vol = x; \
+    (void)EXPOSE_vol;             \
+  } while (0);
 
 const int dim = 3;
 using MIdx = GMIdx<dim>;
@@ -39,50 +41,34 @@ using M = MeshStructured<Scal, dim>;
   __VA_ARGS__;
 
 M GetMesh(MIdx size) {
-  Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
-  MIdx begin(-2, -3, -4);
-  int halos = 2;
+  const Rect<Vect> dom(Vect(0), Vect(1));
+  const MIdx begin(0);
+  const int halos = 2;
   return InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);
 }
 
-class TimerMesh : public Timer {
+// Covered range of cells
+enum class Cover { all, su, in };
+
+class TimerMesh : public ExecutionTimer {
  public:
-  TimerMesh(const std::string& name, M& m_) : Timer(name, 0.01, 10), m(m_) {}
+  TimerMesh(const std::string& name, M& m_, Cover cover = Cover::in)
+      : ExecutionTimer(name, 0.01, 1), m(m_), cover_(cover) {}
+  Cover GetCover() const {
+    return cover_;
+  }
 
  protected:
   M& m;
-};
-
-/*
-class IFactoryTimerMesh {
- public:
-  virtual TimerMesh* Make(M& m) = 0;
-};
-
-std::vector<std::unique_ptr<IFactoryTimerMesh>> reg;
-
-template <class T>
-class FactoryTimerMesh : IFactoryTimerMesh {
- public:
-  TimerMesh* Make(M& m) override {
-    return new T(m);
-  }
-};
-*/
-
-class Empty : public TimerMesh {
- public:
-  Empty(M& m_) : TimerMesh("empty", m_) {}
-  void F() override {}
+  Cover cover_;
 };
 
 class LoopAllCellsPlain : public TimerMesh {
  public:
-  LoopAllCellsPlain(M& m_) : TimerMesh("loop-allcells-plain", m_) {}
+  LoopAllCellsPlain(M& m_) : TimerMesh("loop-allcells-plain", m_, Cover::all) {}
   void F() override {
     double a = 0;
-    //for (size_t i = 0; i < m.GetAllBlockCells().size(); ++i) {
-    for (size_t i = 0; i < m.GetInBlockCells().size(); ++i) {
+    for (size_t i = 0; i < m.GetAllBlockCells().size(); ++i) {
       a += i;
     }
     EXPOSE(a);
@@ -94,7 +80,6 @@ class LoopInCellsPlain : public TimerMesh {
   LoopInCellsPlain(M& m_) : TimerMesh("loop-incells-plain", m_) {}
   void F() override {
     double a = 0;
-    //for (size_t i = 0; i < m.GetInBlockCells().size(); ++i) {
     for (size_t i = 0; i < m.GetInBlockCells().size(); ++i) {
       a += i;
     }
@@ -104,7 +89,7 @@ class LoopInCellsPlain : public TimerMesh {
 
 class LoopAllCells : public TimerMesh {
  public:
-  LoopAllCells(M& m_) : TimerMesh("loop-allcells", m_) {}
+  LoopAllCells(M& m_) : TimerMesh("loop-allcells", m_, Cover::all) {}
   void F() override {
     size_t a = 0;
     for (auto i : m.AllCells()) {
@@ -128,7 +113,7 @@ class LoopInCells : public TimerMesh {
 
 class LoopAllFaces : public TimerMesh {
  public:
-  LoopAllFaces(M& m_) : TimerMesh("loop-allfaces", m_) {}
+  LoopAllFaces(M& m_) : TimerMesh("loop-allfaces", m_, Cover::all) {}
   void F() override {
     size_t a = 0;
     for (auto i : m.AllFaces()) {
@@ -170,7 +155,8 @@ class LoopFldPlain : public TimerMesh {
 
 class LoopFldAllCells : public TimerMesh {
  public:
-  LoopFldAllCells(M& m_) : TimerMesh("loop-fld-allcells", m_), v(m) {}
+  LoopFldAllCells(M& m_)
+      : TimerMesh("loop-fld-allcells", m_, Cover::all), v(m) {}
   void F() override {
     Scal a = 0;
     for (auto i : m.AllCells()) {
@@ -186,7 +172,7 @@ class LoopFldAllCells : public TimerMesh {
 
 class LoopMIdxAllCells : public TimerMesh {
  public:
-  LoopMIdxAllCells(M& m_) : TimerMesh("loop-midx-allcells", m_) {}
+  LoopMIdxAllCells(M& m_) : TimerMesh("loop-midx-allcells", m_, Cover::all) {}
   void F() override {
     size_t a = 0;
     for (auto c : m.AllCells()) {
@@ -199,7 +185,7 @@ class LoopMIdxAllCells : public TimerMesh {
 
 class LoopMIdxAllFaces : public TimerMesh {
  public:
-  LoopMIdxAllFaces(M& m_) : TimerMesh("loop-midx-allfaces", m_) {}
+  LoopMIdxAllFaces(M& m_) : TimerMesh("loop-midx-allfaces", m_, Cover::all) {}
   void F() override {
     size_t a = 0;
     for (auto f : m.AllFaces()) {
@@ -403,7 +389,8 @@ class Grad : public TimerMesh {
 
 class ExplVisc : public TimerMesh {
  public:
-  ExplVisc(M& m_) : TimerMesh("explvisc", m_), fcv(m), fcf(m), ffmu(m) {
+  ExplVisc(M& m_)
+      : TimerMesh("explvisc", m_, Cover::su), fcv(m), fcf(m), ffmu(m) {
     for (auto i : m.AllCells()) {
       auto a = i.GetRaw();
       fcv[i] = Vect(std::sin(a), std::sin(a + 1), std::sin(a + 2));
@@ -440,70 +427,63 @@ class ExplVisc : public TimerMesh {
   FieldFace<Scal> ffmu;
 };
 
-// i: target index
-// k: current index
-// Output:
-// create if k == i
-// ++k
-// p: pointer to new instance
-template <class T>
-void Try(M& m, size_t i, size_t& k, Timer*& p) {
-  if (k++ == i) {
-    p = new T(m);
-  }
-}
-
-// i: test index
+// test: test index
 // m: mesh
 // Output:
-// t: total per one call [sec]
-// n: number of calls
+// time: total per one call [sec]
+// iters: number of calls
 // mem: memory usage in bytes
+// cover: covered range of cells
 // name: test name
-// Returns 1 if test with index i found
-bool Run(
-    const size_t i, M& m, double& t, size_t& n, size_t& mem,
-    std::string& name) {
+// Returns 1 if test with index test found
+bool RunTest(
+    const size_t test, M& m, /*out*/ double& time, size_t& iters, size_t& mem,
+    Cover& cover, std::string& name) {
   size_t k = 0;
-  Timer* p = nullptr;
+  TimerMesh* p = nullptr;
 
-  //Try<Empty>(m, i, k, p);
-  Try<LoopAllCellsPlain>(m, i, k, p);
-  Try<LoopInCellsPlain>(m, i, k, p);
-  Try<LoopAllCells>(m, i, k, p);
-  Try<LoopInCells>(m, i, k, p);
-  Try<LoopAllFaces>(m, i, k, p);
-  Try<LoopInFaces>(m, i, k, p);
-  Try<LoopFldPlain>(m, i, k, p);
-  Try<LoopFldAllCells>(m, i, k, p);
-  Try<LoopMIdxAllCells>(m, i, k, p);
-  Try<LoopMIdxAllFaces>(m, i, k, p);
-  Try<Interp>(m, i, k, p);
-  Try<Grad>(m, i, k, p);
-  Try<ExplVisc>(m, i, k, p);
-  Try<LoopAllCellsPlain>(m, i, k, p);
-  Try<LoopInCellsPlain>(m, i, k, p);
+  auto create = [&](auto* kernel) {
+    if (k++ == test) {
+      using T = typename std::remove_pointer<decltype(kernel)>::type;
+      p = new T(m);
+    }
+  };
 
-  Try<CellVolume>(m, i, k, p);
-  Try<CellCenter>(m, i, k, p);
-  Try<FaceCenter>(m, i, k, p);
-  Try<FaceSurf>(m, i, k, p);
-  Try<FaceArea>(m, i, k, p);
-  Try<CellNCell>(m, i, k, p);
-  Try<CellNFace>(m, i, k, p);
-  Try<CellOutward>(m, i, k, p);
-  Try<CellNNode>(m, i, k, p);
-  Try<FaceNCell>(m, i, k, p);
-  Try<FaceNNode>(m, i, k, p);
+  create((LoopAllCellsPlain*)0);
+  create((LoopInCellsPlain*)0);
+  create((LoopAllCells*)0);
+  create((LoopInCells*)0);
+  create((LoopAllFaces*)0);
+  create((LoopInFaces*)0);
+  create((LoopFldPlain*)0);
+  create((LoopFldAllCells*)0);
+  create((LoopMIdxAllCells*)0);
+  create((LoopMIdxAllFaces*)0);
+  create((Interp*)0);
+  create((Grad*)0);
+  create((ExplVisc*)0);
+
+  create((CellVolume*)0);
+  create((CellCenter*)0);
+  create((FaceCenter*)0);
+  create((FaceSurf*)0);
+  create((FaceArea*)0);
+  create((CellNCell*)0);
+  create((CellNFace*)0);
+  create((CellOutward*)0);
+  create((CellNNode*)0);
+  create((FaceNCell*)0);
+  create((FaceNNode*)0);
 
   if (!p) {
     return false;
   }
 
-  std::pair<double, size_t> e = p->Run();
-  t = e.first;
-  n = e.second;
+  auto e = p->Run();
+  time = e.min_call_time;
+  iters = e.iters;
   mem = sysinfo::GetMem();
+  cover = p->GetCover();
   name = p->GetName();
   delete p;
 
@@ -511,39 +491,50 @@ bool Run(
 }
 
 int main() {
-  // mesh size
-  std::vector<MIdx> ss = {MIdx(4), MIdx(8), MIdx(16), MIdx(32), MIdx(64)};
+  const std::vector<MIdx> meshsizes = {MIdx(8), MIdx(16), MIdx(32)};
 
-  std::array<int, 7> ww = {22, 18, 18, 18, 14, 10, 7};
+  const std::array<int, 7> ww = {22, 16, 8, 8, 10, 17};
 
   std::stringstream header;
   using std::setw;
-  header << setw(ww[0]) << "name" << setw(ww[1]) << "t/allcells [ns]"
-            << setw(ww[2]) << "t/incells [ns]" << setw(ww[3]) << "t [ns]"
-            << setw(ww[4]) << "iters" << setw(ww[5]) << "mem [MB]"
-            << setw(ww[6]) << "mem/allcells [B]";
+  size_t col = 0;
+  header << setw(ww[col++]) << "name";
+  header << setw(ww[col++]) << "t/cell[ns]";
+  header << setw(ww[col++]) << "cover";
+  header << setw(ww[col++]) << "iters";
+  header << setw(ww[col++]) << "mem[MB]";
+  header << setw(ww[col++]) << "mem/allcells[B]";
 
-  for (auto s : ss) {
+  for (auto meshsize : meshsizes) {
     size_t mem0 = sysinfo::GetMem();
-    auto m = GetMesh(s);
-    const size_t nca = m.GetAllBlockCells().size();
-    const size_t nci = m.GetInBlockCells().size();
-    std::cout << "Mesh"
-              << " size=" << s << " allcells=" << nca << " incells=" << nci
-              << std::endl;
+    auto m = GetMesh(meshsize);
+    const size_t allcells = m.GetAllBlockCells().size();
+    const size_t sucells = m.GetSuBlockCells().size();
+    const size_t incells = m.GetInBlockCells().size();
+    std::cout << "Mesh " << meshsize << " allcells=" << allcells
+              << " incells=" << incells << std::endl;
     std::cout << header.str() << std::endl;
 
-    int i = 0;
-    double t;
-    size_t n;
+    int test = 0;
+    double time;
+    size_t iters;
     size_t mem;
+    Cover cover;
     std::string name;
-    while (Run(i++, m, t, n, mem, name)) {
+    while (RunTest(test++, m, time, iters, mem, cover, name)) {
       size_t dmem = mem - mem0;
-      std::cout << setw(ww[0]) << name << setw(ww[1]) << t * 1e9 / nca
-                << setw(ww[2]) << t * 1e9 / nci << setw(ww[3]) << t * 1e9 * n
-                << setw(ww[4]) << n << setw(ww[5]) << (dmem / double(1 << 20))
-                << setw(ww[6]) << (dmem / nca) << std::endl;
+      const auto covcells =
+          (cover == Cover::all ? allcells
+                               : cover == Cover::in ? incells : sucells);
+      const auto covname =
+          (cover == Cover::all ? "all" : cover == Cover::in ? "in" : "su");
+      size_t col = 0;
+      std::cout << setw(ww[col++]) << name;
+      std::cout << setw(ww[col++]) << time * 1e9 / covcells;
+      std::cout << setw(ww[col++]) << covname;
+      std::cout << setw(ww[col++]) << iters;
+      std::cout << setw(ww[col++]) << (dmem / double(1 << 20));
+      std::cout << setw(ww[col++]) << (dmem / allcells) << std::endl;
     }
     std::cout << std::endl;
   }

@@ -3,39 +3,39 @@
 
 #include <cassert>
 #include <chrono>
+#include <limits>
 
 #include "timer.h"
 
-Timer::Timer(std::string name, double timeout /*sec*/, size_t batch)
-    : n_(name), to_(timeout), b_(batch) {}
+ExecutionTimer::ExecutionTimer(std::string name, double timeout, size_t batch)
+    : name_(name), timeout_(timeout), batch_(batch) {}
 
-Timer::Timer(std::string name, double timeout) : Timer(name, timeout, 1) {}
-
-Timer::Timer(std::string name) : Timer(name, 0.01, 1) {}
-
-std::string Timer::GetName() const {
-  return n_;
+std::string ExecutionTimer::GetName() const {
+  return name_;
 }
 
-std::pair<double, size_t> Timer::Run() {
-  using C = std::chrono::steady_clock; // clock
-  C c;
-  C::time_point s = c.now(); // start
-  double e; // execution time in sec
-  size_t i = 0;
+auto ExecutionTimer::Run() -> Result {
+  using Clock = std::chrono::steady_clock;
+  Clock clock;
+  auto startall = clock.now();
+  double total_time = 0;
+  double min_batch_time = std::numeric_limits<double>::max();
+  size_t iter = 0;
   do {
-    B();
-    i += b_;
-    e = std::chrono::duration<double>(c.now() - s).count();
-  } while (e < to_);
+    auto start = clock.now();
+    Batch();
+    auto stop = clock.now();
+    iter += batch_;
+    total_time = std::chrono::duration<double>(stop - startall).count();
+    min_batch_time = std::min(
+        min_batch_time, std::chrono::duration<double>(stop - start).count());
+  } while (total_time < timeout_);
 
-  assert(i > 0);
-
-  return std::make_pair(e / i, i);
+  return {min_batch_time / batch_, iter};
 }
 
-void Timer::B() {
-  for (size_t i = 0; i < b_; ++i) {
+void ExecutionTimer::Batch() {
+  for (size_t i = 0; i < batch_; ++i) {
     F();
   }
 }

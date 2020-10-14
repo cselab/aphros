@@ -7,31 +7,32 @@
 #include <string>
 #include <utility>
 
-class Timer {
+class ExecutionTimer {
  public:
   // name: returned by GetName()
   // timeout: time in seconds for which to repeat F()
   // batch: number of calls F() at every iteration
-  Timer(std::string name, double timeout, size_t batch);
-  // batch=1
-  Timer(std::string name, double timeout);
-  // timeout=0.01, batch=1
-  Timer(std::string name);
-  virtual ~Timer() {}
+  ExecutionTimer(std::string name, double timeout=0.01, size_t batch=1);
+  ExecutionTimer(std::string name);
+  virtual ~ExecutionTimer() = default;
   std::string GetName() const;
-  // Runs F() until reaching the timeout in batches of b_ calls.
-  // Returns execution time per call and number of calls.
-  std::pair<double, size_t> Run();
-
- private:
+  // Repeats batches of  F() until reaching the timeout.
+  // Returns minimal execution time per call and number of calls.
+  struct Result {
+    double min_call_time;
+    size_t iters;
+  };
+  Result Run();
   // Function to evaluate.
   // Implementation note: use a volatile variable to prevent optimization.
   virtual void F() = 0;
-  void B();
 
-  std::string n_; // name
-  double to_; // timeout
-  size_t b_; // batch size
+ private:
+  void Batch();
+
+  const std::string name_;
+  const double timeout_;
+  const size_t batch_;
 };
 
 class SingleTimer {
