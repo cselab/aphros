@@ -81,7 +81,9 @@ def ReadVtkPoly(f, verbose=False):
                 num_points = int(re.findall("\D*(\d*)\D*", l)[0])
                 points = np.empty((num_points, dim))
                 if binary:
-                    points = np.fromfile(f, dtype='>f4', count=num_points * 3)
+                    dt = np.dtype('>f4')
+                    bytes = f.read(3 * num_points * dt.itemsize)
+                    points = np.frombuffer(bytes, dtype=dt)
                     points = points.astype(np.float)
                     f.readline()
                 else:
@@ -100,7 +102,9 @@ def ReadVtkPoly(f, verbose=False):
                 num_poly = int(m[0])
                 num_ints = int(m[1])
                 if binary:
-                    ints = np.fromfile(f, dtype='>i', count=num_ints)
+                    dt = np.dtype('>i')
+                    bytes = f.read(num_ints * dt.itemsize)
+                    ints = np.frombuffer(bytes, dtype=dt)
                     ints = ints.astype(np.int)
                     f.readline()
                 else:
@@ -135,7 +139,9 @@ def ReadVtkPoly(f, verbose=False):
             elif s == S.cell_field:
                 Assert("LOOKUP_TABLE" in l)
                 if binary:
-                    u = np.fromfile(f, dtype='>f4', count=num_poly)
+                    dt = np.dtype('>f4')
+                    bytes = f.read(num_poly * dt.itemsize)
+                    u = np.frombuffer(bytes, dtype=dt)
                     u = u.astype(np.float)
                     f.readline()
                 else:
