@@ -10,11 +10,11 @@ import os
 def printerr(m):
     sys.stderr.write(str(m) + "\n")
 
-def ReadVtkPoly(path, verbose=False):
+def ReadVtkPoly(f, verbose=False):
     """
     Reads vtk points, polygons and fields from legacy VTK file.
-    path: `str`
-        Path to legacy VTK file.
+    f: `str` or file-like
+        Path to legacy VTK file or file-like object.
     Returns:
     points: `numpy.ndarray`, (num_points, 3)
         Points (vertices).
@@ -50,8 +50,15 @@ def ReadVtkPoly(path, verbose=False):
     cell_field_name = None
     binary = False
 
+    path = None
+    if type(f) is str:
+        path = f
+        f = open(path, 'rb')
+    else:
+        pass # expect file-like
+
     s = S.header
-    with open(path, 'rb') as f:
+    if f:
         for lnum, l in enumerate(f):
             l = str(l)
             if not l.strip():
@@ -139,4 +146,8 @@ def ReadVtkPoly(path, verbose=False):
                     printerr("Read cell field '{:}'".format(cell_field_name))
                 cell_fields[cell_field_name] = u
                 s = S.cell_scalars
+
+    if path:
+        f.close()
+
     return points, poly, cell_fields
