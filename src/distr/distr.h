@@ -71,7 +71,7 @@ class DistrMesh {
     }
   };
 
-  std::map<MIdx, std::unique_ptr<KernelMesh<M>, typename MIdx::LexLess>, typename MIdx::LexLess> kernels_;
+  std::map<MIdx, std::unique_ptr<KernelMesh<M>>, typename MIdx::LexLess> kernels_;
   //std::unordered_map<MIdx, std::unique_ptr<KernelMesh<M>>, Hash> kernels_;
 
   DistrMesh(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
