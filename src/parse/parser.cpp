@@ -45,7 +45,15 @@ struct Parser::Imp {
     throw std::runtime_error(FILELINE + ": undefined variable '" + key + "'");
   }
   std::string ExpandVariables(std::string str) const {
-    enum class S { normal, dollar, varname, expand, varname_braced, stop };
+    enum class S {
+      normal,
+      dollar,
+      escape,
+      varname,
+      expand,
+      varname_braced,
+      stop
+    };
     S s = S::normal; // state
     size_t i = 0;
     std::string res; // result
@@ -57,7 +65,10 @@ struct Parser::Imp {
         auto next = [&i]() { ++i; };
         switch (s) {
           case S::normal: {
-            if (c == '$') {
+            if (c == '\\') {
+              s = S::escape;
+              next();
+            } else if (c == '$') {
               s = S::dollar;
               next();
             } else if (c == kEnd) {
@@ -68,6 +79,12 @@ struct Parser::Imp {
             }
             break;
           }
+          case S::escape: {
+            res += c;
+            next();
+            s = S::normal;
+            break;
+          }
           case S::dollar: {
             if (c == '{') {
               s = S::varname_braced;
@@ -75,8 +92,9 @@ struct Parser::Imp {
             } else if (IsNameChar(c)) {
               s = S::varname;
             } else {
-              throw std::runtime_error(
-                  std::string() + "S::dollar: invalid character '" + c + "'");
+              throw std::runtime_error(util::Format(
+                  "unexpected character '{}' following $ while parsing '{}'", c,
+                  str));
             }
             break;
           }
@@ -97,11 +115,12 @@ struct Parser::Imp {
               s = S::expand;
               next();
             } else if (c == kEnd) {
-              throw std::runtime_error(std::string() + "unmatched brace {");
-            } else {
               throw std::runtime_error(
-                  std::string() + "S::varname_braced: invalid character '" + c +
-                  "'");
+                  util::Format("unmatched brace {{ while parsing '{}'", str));
+            } else {
+              throw std::runtime_error(util::Format(
+                  "unexpected character '{}' inside {{}} while parsing '{}'", c,
+                  str));
             }
             break;
           }
