@@ -7,6 +7,7 @@
 #include <array>
 #include <iomanip>
 #include <map>
+#include <unordered_map>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -61,7 +62,17 @@ class DistrMesh {
 
   bool isroot_; // XXX: overwritten by Local<M> and Cubism<M>
 
-  std::map<MIdx, std::unique_ptr<KernelMesh<M>>, typename MIdx::LexLess> mk;
+  struct Hash {
+    size_t operator()(const MIdx& x) const noexcept {
+      const size_t h0 = std::hash<IntIdx>{}(x[0]);
+      const size_t h1 = std::hash<IntIdx>{}(x[1]);
+      const size_t h2 = std::hash<IntIdx>{}(x[2]);
+      return h0 ^ (h1 << 1) ^ (h2 << 2);
+    }
+  };
+
+  std::map<MIdx, std::unique_ptr<KernelMesh<M>, typename MIdx::LexLess>, typename MIdx::LexLess> kernels_;
+  //std::unordered_map<MIdx, std::unique_ptr<KernelMesh<M>>, Hash> kernels_;
 
   DistrMesh(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   // Performs communication and returns indices of blocks with updated halos.
@@ -91,7 +102,7 @@ class DistrMesh {
   virtual void ClearDump(const std::vector<MIdx>& bb);
   // TODO: make Pending const
   virtual bool Pending(const std::vector<MIdx>& bb);
-  // Create a kernel for each block and put into mk
+  // Create a kernel for each block and put into kernels_
   // Requires initialized isroot_;
   virtual void MakeKernels(const std::vector<MyBlockInfo>&);
   virtual void TimerReport(const std::vector<MIdx>& bb);

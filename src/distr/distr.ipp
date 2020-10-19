@@ -21,7 +21,7 @@ void DistrMesh<M>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
     m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
     m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
     m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
-    mk.emplace(d, kernel.release());
+    kernels_.emplace(d, kernel.release());
   }
 }
 
@@ -58,7 +58,7 @@ void DistrMesh<M>::RunKernels(const std::vector<MIdx>& bb) {
 #pragma omp parallel for schedule(dynamic, 1)
   for (size_t i = 0; i < bb.size(); ++i) {
     try {
-      mk.at(bb[i])->Run();
+      kernels_.at(bb[i])->Run();
     } catch (const std::exception& e) {
       std::cerr << "\nabort on block=" << i << " after throwing exception\n"
                 << e.what() << '\n';
@@ -70,20 +70,20 @@ void DistrMesh<M>::RunKernels(const std::vector<MIdx>& bb) {
 template <class M>
 void DistrMesh<M>::ClearComm(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
-    mk.at(b)->GetMesh().ClearComm();
+    kernels_.at(b)->GetMesh().ClearComm();
   }
 }
 
 template <class M>
 void DistrMesh<M>::ClearDump(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
-    mk.at(b)->GetMesh().ClearDump();
+    kernels_.at(b)->GetMesh().ClearDump();
   }
 }
 
 template <class M>
 void DistrMesh<M>::TimerReport(const std::vector<MIdx>& bb) {
-  auto& m = mk.at(bb[0])->GetMesh(); // assume same on all blocks
+  auto& m = kernels_.at(bb[0])->GetMesh(); // assume same on all blocks
   std::string fn = m.GetTimerReport();
   if (fn.length()) {
     std::ofstream out;
@@ -99,7 +99,7 @@ void DistrMesh<M>::TimerReport(const std::vector<MIdx>& bb) {
 template <class M>
 void DistrMesh<M>::ClearTimerReport(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
-    mk.at(b)->GetMesh().ClearTimerReport();
+    kernels_.at(b)->GetMesh().ClearTimerReport();
   }
 }
 
@@ -108,25 +108,26 @@ void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
   using ReductionScal = typename M::OpS;
   using ReductionScalInt = typename M::OpSI;
   using ReductionConcat = typename M::OpCat;
-  auto& first = *mk.at(bb[0]); // first kernel
+  auto& first = *kernels_.at(bb[0]); // first kernel
   auto& mfirst = first.GetMesh();
   auto& vfirst = mfirst.GetReduceToLead(); // reduce requests
 
   // Check size is the same for all kernels
   for (auto& b : bb) {
-    const auto& v = mk.at(b)->GetMesh().GetReduceToLead(); // reduce requests
+    const auto& v =
+        kernels_.at(b)->GetMesh().GetReduceToLead(); // reduce requests
     fassert_equal(v.size(), vfirst.size());
   }
 
   auto append = [&bb, this](auto* derived, auto& buf, size_t i) {
     for (auto& b : bb) {
-      const auto& v = mk.at(b)->GetMesh().GetReduceToLead();
+      const auto& v = kernels_.at(b)->GetMesh().GetReduceToLead();
       dynamic_cast<decltype(derived)>(v[i].get())->Append(buf);
     }
   };
   auto set = [&bb, this](auto* derived, auto& buf, size_t i) {
     for (auto& b : bb) {
-      const auto& m = mk.at(b)->GetMesh();
+      const auto& m = kernels_.at(b)->GetMesh();
       if (m.IsLead()) {
         const auto& v = m.GetReduceToLead();
         dynamic_cast<decltype(derived)>(v[i].get())->Set(buf);
@@ -156,13 +157,13 @@ void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
 
   // Clear reduce requests
   for (auto& b : bb) {
-    mk.at(b)->GetMesh().ClearReduceToLead();
+    kernels_.at(b)->GetMesh().ClearReduceToLead();
   }
 }
 
 template <class M>
 void DistrMesh<M>::DumpWrite(const std::vector<MIdx>& bb) {
-  auto& m = mk.at(bb[0])->GetMesh();
+  auto& m = kernels_.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
     std::string df = var.String["dumpformat"];
     if (df == "plain") {
@@ -199,7 +200,7 @@ template <class M>
 bool DistrMesh<M>::Pending(const std::vector<MIdx>& bb) {
   size_t np = 0;
   for (auto& b : bb) {
-    auto& k = *mk.at(b);
+    auto& k = *kernels_.at(b);
     auto& m = k.GetMesh();
     if (m.Pending()) {
       ++np;
@@ -231,7 +232,7 @@ auto DistrMesh<M>::GetGlobalField(size_t) -> FieldCell<Scal> {
 template <class M>
 void DistrMesh<M>::ApplyNanFaces(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
-    auto& m = mk.at(b)->GetMesh();
+    auto& m = kernels_.at(b)->GetMesh();
     for (auto& o : m.GetComm()) {
       if (auto* os = dynamic_cast<typename M::CoFcs*>(o.get())) {
         m.ApplyNanFaces(*os->field);
@@ -254,7 +255,7 @@ void DistrMesh<M>::Run() {
   do {
     hist_.SeedSample();
     std::vector<MIdx> bb;
-    if (mk.begin()->second->GetMesh().GetDump().size() > 0) {
+    if (kernels_.begin()->second->GetMesh().GetDump().size() > 0) {
       hist_.SeedSample();
       bb = GetBlocks(); // all blocks, sync communication
       hist_.CollectSample("GetBlocks(sync)");
@@ -297,16 +298,16 @@ void DistrMesh<M>::Run() {
 
     // Print current stage name
     if (isroot_ && var.Int["verbose"]) {
-      const auto& mf = mk.begin()->second->GetMesh();
+      const auto& mf = kernels_.begin()->second->GetMesh();
       std::cerr << "*** STAGE"
                 << " #" << stage_ << " depth=" << mf.GetDepth() << " "
                 << mf.GetCurName() << " ***" << std::endl;
       // Check stage name is the same for all kernels
       for (auto& b : bb) {
-        auto& m = mk.at(b)->GetMesh();
+        auto& m = kernels_.at(b)->GetMesh();
         if (m.GetCurName() != mf.GetCurName()) {
           std::stringstream s;
-          s << "Blocks " << b << " and " << mk.begin()->first
+          s << "Blocks " << b << " and " << kernels_.begin()->first
             << " diverged to different stages '" << m.GetCurName() << "' and '"
             << mf.GetCurName() << "'";
           throw std::runtime_error(s.str());
@@ -339,10 +340,10 @@ void DistrMesh<M>::Run() {
 
     hist_.CollectSample("Run");
 
-    mt_.Pop(mk.at(bb[0])->GetMesh().GetCurName());
+    mt_.Pop(kernels_.at(bb[0])->GetMesh().GetCurName());
     mt_.Push();
 
-    mtp_.Pop(mk.at(bb[0])->GetMesh().GetCurName());
+    mtp_.Pop(kernels_.at(bb[0])->GetMesh().GetCurName());
     TimerReport(bb);
     mtp_.Push();
   } while (true);
@@ -351,7 +352,7 @@ void DistrMesh<M>::Run() {
 
   std::vector<MIdx> bb = GetBlocks();
   for (const auto& b : bb) {
-    const auto& samp = mk.at(b)->GetMesh().GetSampler();
+    const auto& samp = kernels_.at(b)->GetMesh().GetSampler();
     hist_.Append(samp); // collect samples from meshes
   }
 
@@ -376,7 +377,7 @@ void DistrMesh<M>::Report() {
       ParseReport(mp, std::cout);
     }
 
-    const auto& m = mk.begin()->second->GetMesh();
+    const auto& m = kernels_.begin()->second->GetMesh();
     const size_t nc = m.GetGlobalSize().prod();
     const size_t nt = var.Int["max_step"];
     const size_t ni = var.Int("iter", 1);

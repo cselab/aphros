@@ -39,8 +39,8 @@ class Local : public DistrMesh<M_> {
   using P::frame_;
   using P::hl_;
   using P::isroot_;
+  using P::kernels_;
   using P::kf_;
-  using P::mk;
   using P::p_;
   using P::stage_;
   using P::var;
@@ -162,7 +162,7 @@ auto Local<M>::GetBlocks(bool inner) -> std::vector<MIdx> {
 template <class M>
 void Local<M>::ReadBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
-    auto& m = mk.at(b)->GetMesh();
+    auto& m = kernels_.at(b)->GetMesh();
     ReadBuffer(m);
   }
 }
@@ -170,7 +170,7 @@ void Local<M>::ReadBuffer(const std::vector<MIdx>& bb) {
 template <class M>
 void Local<M>::WriteBuffer(const std::vector<MIdx>& bb) {
   for (auto& b : bb) {
-    auto& m = mk.at(b)->GetMesh();
+    auto& m = kernels_.at(b)->GetMesh();
     WriteBuffer(m);
   }
 }
@@ -180,13 +180,13 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
   using OpS = typename M::OpS;
   using OpSI = typename M::OpSI;
   using OpCat = typename M::OpCat;
-  auto& f = *mk.at(bb[0]); // first kernel
+  auto& f = *kernels_.at(bb[0]); // first kernel
   auto& mf = f.GetMesh();
   auto& vf = mf.GetReduce(); // reduce requests
 
   // Check size is the same for all kernels
   for (auto& b : bb) {
-    auto& v = mk.at(b)->GetMesh().GetReduce(); // reduce requests
+    auto& v = kernels_.at(b)->GetMesh().GetReduce(); // reduce requests
     if (v.size() != vf.size()) {
       throw std::runtime_error("Reduce: v.size() != vf.size()");
     }
@@ -203,14 +203,14 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
 
       // Reduce over all blocks
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
+        auto& v = kernels_.at(b)->GetMesh().GetReduce();
         OpS* ob = dynamic_cast<OpS*>(v[i].get());
         ob->Append(r);
       }
 
       // Write results to all blocks
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
+        auto& v = kernels_.at(b)->GetMesh().GetReduce();
         OpS* ob = dynamic_cast<OpS*>(v[i].get());
         ob->Set(r);
       }
@@ -223,14 +223,14 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
 
       // Reduce over all blocks
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
+        auto& v = kernels_.at(b)->GetMesh().GetReduce();
         OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
         ob->Append(r);
       }
 
       // Write results to all blocks
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
+        auto& v = kernels_.at(b)->GetMesh().GetReduce();
         OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
         ob->Set(r);
       }
@@ -248,7 +248,7 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
       for (auto wp : qp) { // same ordering as with Cubism
         for (auto wb : qb) {
           auto w = b_ * wp + wb;
-          auto& v = mk.at(w)->GetMesh().GetReduce();
+          auto& v = kernels_.at(w)->GetMesh().GetReduce();
           OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
           ob->Append(r);
         }
@@ -256,7 +256,7 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
 
       // Write results to root block
       for (auto& b : bb) {
-        auto& m = mk.at(b)->GetMesh();
+        auto& m = kernels_.at(b)->GetMesh();
         if (m.IsRoot()) {
           auto& v = m.GetReduce();
           OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
@@ -270,7 +270,7 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
 
   // Clear reduce requests
   for (auto& b : bb) {
-    auto& k = *mk.at(b);
+    auto& k = *kernels_.at(b);
     auto& m = k.GetMesh();
     m.ClearReduce();
   }
@@ -278,11 +278,12 @@ void Local<M>::Reduce(const std::vector<MIdx>& bb) {
 
 template <class M>
 void Local<M>::Scatter(const std::vector<MIdx>& bb) {
-  auto& vreq0 = mk.at(bb[0])->GetMesh().GetScatter(); // requests on first block
+  auto& vreq0 =
+      kernels_.at(bb[0])->GetMesh().GetScatter(); // requests on first block
 
   // Check size is the same for all blocks
   for (auto& b : bb) {
-    auto& vreq = mk.at(b)->GetMesh().GetScatter();
+    auto& vreq = kernels_.at(b)->GetMesh().GetScatter();
     if (vreq.size() != vreq0.size()) {
       throw std::runtime_error("Scatter: vreq.size() != vreq0.size()");
     }
@@ -291,7 +292,7 @@ void Local<M>::Scatter(const std::vector<MIdx>& bb) {
   for (size_t q = 0; q < vreq0.size(); ++q) {
     // find root block
     for (auto& b : bb) {
-      auto& m = mk.at(b)->GetMesh();
+      auto& m = kernels_.at(b)->GetMesh();
       if (m.IsRoot()) {
         auto& req = m.GetScatter()[q];
 
@@ -303,7 +304,7 @@ void Local<M>::Scatter(const std::vector<MIdx>& bb) {
         for (auto wp : qp) { // same ordering as with Cubism
           for (auto wb : qb) {
             auto w = b_ * wp + wb;
-            auto& v = *mk.at(w)->GetMesh().GetScatter()[q].second;
+            auto& v = *kernels_.at(w)->GetMesh().GetScatter()[q].second;
             v = (*req.first)[i++];
           }
         }
@@ -313,18 +314,18 @@ void Local<M>::Scatter(const std::vector<MIdx>& bb) {
 
   // Clear requests
   for (auto& b : bb) {
-    mk.at(b)->GetMesh().ClearScatter();
+    kernels_.at(b)->GetMesh().ClearScatter();
   }
 }
 
 template <class M>
 void Local<M>::Bcast(const std::vector<MIdx>& bb) {
   using OpCat = typename M::OpCat;
-  auto& vf = mk.at(bb[0])->GetMesh().GetBcast(); // pointers to broadcast
+  auto& vf = kernels_.at(bb[0])->GetMesh().GetBcast(); // pointers to broadcast
 
   // Check size is the same for all kernels
   for (auto& b : bb) {
-    auto& v = mk.at(b)->GetMesh().GetBcast(); // pointers to broadcast
+    auto& v = kernels_.at(b)->GetMesh().GetBcast(); // pointers to broadcast
     if (v.size() != vf.size()) {
       throw std::runtime_error(
           "Bcast: v.size()=" + std::to_string(v.size()) +
@@ -338,7 +339,7 @@ void Local<M>::Bcast(const std::vector<MIdx>& bb) {
 
       // read from root block
       for (auto& b : bb) {
-        auto& m = mk.at(b)->GetMesh();
+        auto& m = kernels_.at(b)->GetMesh();
         if (m.IsRoot()) {
           auto& v = m.GetBcast();
           OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
@@ -348,7 +349,7 @@ void Local<M>::Bcast(const std::vector<MIdx>& bb) {
 
       // write to all blocks
       for (auto& b : bb) {
-        auto& m = mk.at(b)->GetMesh();
+        auto& m = kernels_.at(b)->GetMesh();
         auto& v = m.GetBcast();
         OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
         ob->Set(r);
@@ -360,7 +361,7 @@ void Local<M>::Bcast(const std::vector<MIdx>& bb) {
 
   // Clear bcast requests
   for (auto& b : bb) {
-    auto& k = *mk.at(b);
+    auto& k = *kernels_.at(b);
     auto& m = k.GetMesh();
     m.ClearBcast();
   }
@@ -368,7 +369,7 @@ void Local<M>::Bcast(const std::vector<MIdx>& bb) {
 
 template <class M>
 void Local<M>::DumpWrite(const std::vector<MIdx>& bb) {
-  auto& m = mk.at(bb[0])->GetMesh();
+  auto& m = kernels_.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
     std::string df = var.String["dumpformat"];
     if (df == "default") {

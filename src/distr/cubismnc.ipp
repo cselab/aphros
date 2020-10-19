@@ -172,8 +172,8 @@ class Cubismnc : public DistrMesh<M_> {
   using P::frame_;
   using P::hl_;
   using P::isroot_;
+  using P::kernels_;
   using P::kf_;
-  using P::mk;
   using P::p_;
   using P::samp_;
   using P::stage_;
@@ -357,7 +357,7 @@ auto Cubismnc<Par, M>::GetBlocks() -> std::vector<MIdx> {
 
   // Get all blocks
   std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
-  auto& m = mk.at(MIdx(cc[0].index))->GetMesh();
+  auto& m = kernels_.at(MIdx(cc[0].index))->GetMesh();
   std::vector<BlockInfo> aa;
   // Perform communication if necessary
   if (m.GetComm().size() > 0) {
@@ -366,7 +366,7 @@ auto Cubismnc<Par, M>::GetBlocks() -> std::vector<MIdx> {
     const size_t n_fields = m.GetComm().size();
     fviews.resize(n_fields);
     for (const auto& b : cc) {
-      auto& bm = mk.at(MIdx(b.index))->GetMesh();
+      auto& bm = kernels_.at(MIdx(b.index))->GetMesh();
       auto& bf = bm.GetComm();
       assert(n_fields == bf.size());
       for (size_t fi = 0; fi < n_fields; ++fi) {
@@ -435,7 +435,7 @@ template <class Par, class M>
 auto Cubismnc<Par, M>::GetBlocks(bool inner) -> std::vector<MIdx> {
   const std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
   if (inner) {
-    n_fields_ = mk.at(MIdx(cc[0].index))->GetMesh().GetComm().size();
+    n_fields_ = kernels_.at(MIdx(cc[0].index))->GetMesh().GetComm().size();
     std::vector<MIdx> bb;
     // Perform communication if necessary
     if (n_fields_ > 0) {
@@ -444,7 +444,7 @@ auto Cubismnc<Par, M>::GetBlocks(bool inner) -> std::vector<MIdx> {
       fviews_.clear();
       fviews_.resize(n_fields_);
       for (const auto& b : cc) {
-        auto& bm = mk.at(MIdx(b.index))->GetMesh();
+        auto& bm = kernels_.at(MIdx(b.index))->GetMesh();
         auto& bf = bm.GetComm();
         assert(n_fields_ == bf.size());
         for (size_t fi = 0; fi < n_fields_; ++fi) {
@@ -555,11 +555,11 @@ void Cubismnc<Par, M>::WriteBuffer(const std::vector<MIdx>&) {}
 template <class Par, class M>
 void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
   using OpCat = typename M::OpCat;
-  auto& vf = mk.at(bb[0])->GetMesh().GetBcast(); // pointers to broadcast
+  auto& vf = kernels_.at(bb[0])->GetMesh().GetBcast(); // pointers to broadcast
 
   // Check size is the same for all kernels
   for (auto& b : bb) {
-    auto& v = mk.at(b)->GetMesh().GetBcast(); // pointers to broadcast
+    auto& v = kernels_.at(b)->GetMesh().GetBcast(); // pointers to broadcast
     fassert_equal(v.size(), vf.size());
   }
 
@@ -570,7 +570,7 @@ void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
       if (isroot_) {
         // read from root block
         for (auto& b : bb) {
-          auto& m = mk.at(b)->GetMesh();
+          auto& m = kernels_.at(b)->GetMesh();
           if (m.IsRoot()) {
             auto& v = m.GetBcast();
             OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
@@ -594,7 +594,7 @@ void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
 
       // write to all blocks
       for (auto& b : bb) {
-        auto& m = mk.at(b)->GetMesh();
+        auto& m = kernels_.at(b)->GetMesh();
         auto& v = m.GetBcast();
         OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
         ob->Set(r);
@@ -606,18 +606,19 @@ void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
 
   // Clear bcast requests
   for (auto& b : bb) {
-    auto& k = *mk.at(b);
+    auto& k = *kernels_.at(b);
     auto& m = k.GetMesh();
     m.ClearBcast();
   }
 }
 template <class Par, class M>
 void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
-  auto& vreq0 = mk.at(bb[0])->GetMesh().GetScatter(); // requests on first block
+  auto& vreq0 =
+      kernels_.at(bb[0])->GetMesh().GetScatter(); // requests on first block
 
   // Check size is the same for all blocks
   for (auto& b : bb) {
-    auto& vreq = mk.at(b)->GetMesh().GetScatter();
+    auto& vreq = kernels_.at(b)->GetMesh().GetScatter();
     if (vreq.size() != vreq0.size()) {
       throw std::runtime_error("Scatter: vreq.size() != vreq0.size()");
     }
@@ -642,7 +643,7 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
       std::vector<int> sizes_cnt(sc, 0);
       // find root block
       for (auto& b : bb) {
-        auto& m = mk.at(b)->GetMesh();
+        auto& m = kernels_.at(b)->GetMesh();
         if (m.IsRoot()) {
           auto& req = m.GetScatter()[q];
           size_t i = 0;
@@ -701,7 +702,7 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
     // write to blocks on current rank
     size_t off = 0;
     for (size_t k = 0; k < bb.size(); ++k) {
-      auto& v = *mk.at(bb[k])->GetMesh().GetScatter()[q].second;
+      auto& v = *kernels_.at(bb[k])->GetMesh().GetScatter()[q].second;
       v = std::vector<Scal>(
           rbuf.data() + off, rbuf.data() + off + sizes_rbuf[k]);
       off += sizes_rbuf[k];
@@ -710,7 +711,7 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
 
   // Clear requests
   for (auto& b : bb) {
-    mk.at(b)->GetMesh().ClearScatter();
+    kernels_.at(b)->GetMesh().ClearScatter();
   }
 }
 template <class Par, class M>
@@ -718,11 +719,11 @@ void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
   using OpS = typename M::OpS;
   using OpSI = typename M::OpSI;
   using OpCat = typename M::OpCat;
-  auto& vf = mk.at(bb[0])->GetMesh().GetReduce(); // pointers to reduce
+  auto& vf = kernels_.at(bb[0])->GetMesh().GetReduce(); // pointers to reduce
 
   // Check size is the same for all kernels
   for (auto& b : bb) {
-    auto& v = mk.at(b)->GetMesh().GetReduce(); // pointers to reduce
+    auto& v = kernels_.at(b)->GetMesh().GetReduce(); // pointers to reduce
     fassert_equal(v.size(), vf.size());
   }
 
@@ -735,7 +736,7 @@ void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
 
       // Reduce over all blocks on current rank
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
+        auto& v = kernels_.at(b)->GetMesh().GetReduce();
         OpS* ob = dynamic_cast<OpS*>(v[i].get());
         ob->Append(r);
       }
@@ -761,7 +762,7 @@ void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
 
       // Write results to all blocks on current rank
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
+        auto& v = kernels_.at(b)->GetMesh().GetReduce();
         OpS* ob = dynamic_cast<OpS*>(v[i].get());
         ob->Set(r);
       }
@@ -770,7 +771,7 @@ void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
 
       // Reduce over all blocks on current rank
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
+        auto& v = kernels_.at(b)->GetMesh().GetReduce();
         OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
         ob->Append(r);
       }
@@ -793,7 +794,7 @@ void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
 
       // Write results to all blocks on current rank
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
+        auto& v = kernels_.at(b)->GetMesh().GetReduce();
         OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
         ob->Set(r);
       }
@@ -802,7 +803,7 @@ void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
 
       // Reduce over all local blocks
       for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
+        auto& v = kernels_.at(b)->GetMesh().GetReduce();
         OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
         ob->Append(r);
       }
@@ -839,7 +840,7 @@ void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
         // Write results to root block
         size_t cnt = 0;
         for (auto& b : bb) {
-          auto& m = mk.at(b)->GetMesh();
+          auto& m = kernels_.at(b)->GetMesh();
           if (m.IsRoot()) {
             auto& v = m.GetReduce();
             OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
@@ -867,7 +868,7 @@ void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
 
   // Clear reduce requests
   for (auto& b : bb) {
-    auto& k = *mk.at(b);
+    auto& k = *kernels_.at(b);
     auto& m = k.GetMesh();
     m.ClearReduce();
   }
@@ -875,7 +876,7 @@ void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
 
 template <class Par, class M>
 void Cubismnc<Par, M>::DumpWrite(const std::vector<MIdx>& bb) {
-  auto& m = mk.at(bb[0])->GetMesh();
+  auto& m = kernels_.at(bb[0])->GetMesh();
   if (m.GetDump().size()) {
     std::string df = var.String["dumpformat"];
     if (df == "default") {
@@ -888,7 +889,7 @@ void Cubismnc<Par, M>::DumpWrite(const std::vector<MIdx>& bb) {
       std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
       std::vector<std::vector<FieldView>> fviews(n_fields);
       for (const auto& b : cc) {
-        auto& bm = mk.at(MIdx(b.index))->GetMesh();
+        auto& bm = kernels_.at(MIdx(b.index))->GetMesh();
         auto& bf = bm.GetDump();
         assert(n_fields == bf.size());
         for (size_t fi = 0; fi < n_fields; ++fi) {
@@ -977,7 +978,7 @@ auto Cubismnc<Par, M>::GetGlobalField(size_t e) -> FieldCell<Scal> {
     // Copy from blocks on root
     for (auto& b : bb) {
       // block mesh
-      auto& m = mk.at(b)->GetMesh();
+      auto& m = kernels_.at(b)->GetMesh();
       // index cells
       auto& mbc = m.GetIndexCells();
       // get corner of inner cells block
@@ -1025,7 +1026,7 @@ auto Cubismnc<Par, M>::GetGlobalField(size_t e) -> FieldCell<Scal> {
     // send to root
     for (auto b : bb) {
       // block mesh
-      auto& m = mk.at(b)->GetMesh();
+      auto& m = kernels_.at(b)->GetMesh();
       // block cells
       auto& mbc = m.GetIndexCells();
       // get corner of inner cells block
