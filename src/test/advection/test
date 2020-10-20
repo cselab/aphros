@@ -19,7 +19,7 @@ class Test(aphros.TestBase):
         self.parser.add_argument('--comm',
                                  '-c',
                                  default='cubismnc',
-                                 choices=['local', 'cubism', 'cubismnc'],
+                                 choices=['local', 'cubismnc'],
                                  help="Communication backend.")
         self.parser.add_argument('--nproc',
                                  '-n',
@@ -95,4 +95,3 @@ class Test(aphros.TestBase):
         super().clean(outdir, output_files)
 
 Test().main()
-

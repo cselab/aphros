@@ -2,13 +2,6 @@ set(T "local")
 add_library(${T} local.cpp)
 target_link_libraries(${T} distr)
 
-set(T "cubism")
-add_library(${T} cubism.cpp)
-target_link_libraries(${T} distr hdf)
-target_compile_definitions(${T} PUBLIC _ALIGNBYTES_=16)
-target_compile_definitions(${T} PUBLIC _USE_HDF_)
-target_compile_options(${T} PRIVATE -Wall -Wextra -pedantic -Wno-shadow)
-
 set(T "cubismnc")
 add_library(${T} cubismnc.cpp)
 target_link_libraries(${T} hdf distr)
@@ -32,7 +25,7 @@ target_link_libraries(${T}
 
 set(T "distrsolver")
 add_library(${T} distrsolver.cpp)
-target_link_libraries(${T} distr local cubism cubismnc)
+target_link_libraries(${T} distr local cubismnc)
 
 set(T "distrbasic")
 add_library(${T} distrbasic.cpp)

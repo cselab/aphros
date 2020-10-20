@@ -8,7 +8,6 @@
 #include <memory>
 #include <stdexcept>
 
-#include "cubism.h"
 #include "cubismnc.h"
 #include "distr.h"
 #include "geom/block.h"
@@ -38,8 +37,6 @@ class DistrSolver {
     const std::string be = var.String["backend"];
     if (be == "local") {
       d_ = CreateLocal<M>(comm, kf_, var_mutable);
-    } else if (be == "cubism") {
-      d_ = CreateCubism<M>(comm, kf_, var_mutable);
     } else if (be == "cubismnc") {
       d_ = CreateCubismnc<M>(comm, kf_, var_mutable);
     } else {

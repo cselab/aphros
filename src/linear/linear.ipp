@@ -217,6 +217,7 @@ struct SolverConjugate<M>::Imp {
       t.fc_opp.Reinit(m);
     }
     sem.LoopBegin();
+    /*
     if (sem("iter")) {
       for (auto c : m.Cells()) {
         const auto& e = fc_system[c];
@@ -254,6 +255,10 @@ struct SolverConjugate<M>::Imp {
         t.fcp[c] = t.fcr[c] + (t.dot_r / t.dot_r_prev) * t.fcp[c];
       }
       m.Comm(&t.fcp);
+    }
+    */
+    for (auto i : GRange<int>(10)) {
+      if (sem()){}
     }
     if (sem("check")) {
       t.info.residual = t.maxdiff;
