@@ -173,6 +173,8 @@ void DistrMesh<M>::DumpWrite(const std::vector<MIdx>& bb) {
         k += o->GetSize();
       }
       // Write dump
+      fassert(false, "plain not implemented");
+      /*
       for (auto& on : m.GetDump()) {
         std::string fn = GetDumpName(on.second, ".dat", frame_);
         auto ndc = GetGlobalIndex();
@@ -186,6 +188,7 @@ void DistrMesh<M>::DumpWrite(const std::vector<MIdx>& bb) {
           throw std::runtime_error("DumpWrite(): Support only size 1");
         }
       }
+      */
       if (isroot_) {
         std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
       }
@@ -209,24 +212,6 @@ bool DistrMesh<M>::Pending(const std::vector<MIdx>& bb) {
   // Check either all blocks done or all pending
   fassert(np == 0 || np == bb.size());
   return np;
-}
-
-template <class M>
-auto DistrMesh<M>::GetGlobalBlock() const -> typename M::BlockCells {
-  throw std::runtime_error("Not implemented");
-  return typename M::BlockCells();
-}
-
-template <class M>
-auto DistrMesh<M>::GetGlobalIndex() const -> typename M::IndexCells {
-  throw std::runtime_error("Not implemented");
-  return typename M::IndexCells();
-}
-
-template <class M>
-auto DistrMesh<M>::GetGlobalField(size_t) -> FieldCell<Scal> {
-  throw std::runtime_error("Not implemented");
-  return FieldCell<Scal>();
 }
 
 template <class M>

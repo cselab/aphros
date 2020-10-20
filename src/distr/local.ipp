@@ -22,10 +22,6 @@ class Local : public DistrMesh<M_> {
   using Vect = typename M::Vect;
 
   Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
-  typename M::BlockCells GetGlobalBlock() const override;
-  typename M::IndexCells GetGlobalIndex() const override;
-  // Returns data field i from buffer defined on global mesh
-  FieldCell<Scal> GetGlobalField(size_t i) override;
 
  private:
   using MIdx = typename M::MIdx;
@@ -595,19 +591,4 @@ void Local<M>::WriteBuffer(M& m) {
   for (auto& on : m.GetDump()) {
     e += WriteBuffer(on.first.get(), e, m);
   }
-}
-
-template <class M>
-auto Local<M>::GetGlobalBlock() const -> typename M::BlockCells {
-  return gm.GetInBlockCells();
-}
-
-template <class M>
-auto Local<M>::GetGlobalIndex() const -> typename M::IndexCells {
-  return gm.GetIndexCells();
-}
-
-template <class M>
-auto Local<M>::GetGlobalField(size_t i) -> FieldCell<Scal> {
-  return buf_[i];
 }

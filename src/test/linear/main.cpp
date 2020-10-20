@@ -246,6 +246,8 @@ int main(int argc, const char** argv) {
       .Options({8, 16, 32});
   parser.AddSwitch("--dump").Help(
       "Dump solution, exact solution, and difference");
+  parser.AddVariable<std::string>("--extra", "").Help(
+      "Extra configuration (commands 'set ... ')");
   auto args = parser.ParseArgs(argc, argv);
   if (const int* p = args.Int.Find("EXIT")) {
     return *p;
@@ -263,6 +265,8 @@ int main(int argc, const char** argv) {
   conf += "\nset int maxiter " + args.Int.GetStr("maxiter");
   conf += "\nset int dump " + args.Int.GetStr("dump");
   conf += "\nset int VERBOSE " + args.Int.GetStr("verbose");
+
+  conf += "\n" + args.String["extra"];
 
   return RunMpiBasicString<M>(mpi, Run, conf);
 }

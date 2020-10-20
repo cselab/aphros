@@ -38,10 +38,6 @@ class DistrMesh {
   virtual void Report();
   virtual void ReportOpenmp();
   virtual ~DistrMesh();
-  virtual typename M::BlockCells GetGlobalBlock() const;
-  virtual typename M::IndexCells GetGlobalIndex() const;
-  // Returns data field i from buffer defined on global mesh
-  virtual FieldCell<Scal> GetGlobalField(size_t i);
 
  protected:
   // TODO: remove comm, needed only by Hypre

@@ -49,18 +49,6 @@ class DistrSolver {
   void Report() {
     d_->Report();
   }
-  GBlock<IdxCell, dim> GetBlock() const {
-    return d_->GetGlobalBlock();
-  }
-  GIndex<IdxCell, dim> GetIndex() const {
-    return d_->GetGlobalIndex();
-  }
-  FieldCell<Scal> GetField() const {
-    return d_->GetGlobalField(0);
-  }
-  FieldCell<Scal> GetField(size_t i) const {
-    return d_->GetGlobalField(i);
-  }
 
  private:
   const Vars& var;
