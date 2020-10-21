@@ -147,6 +147,7 @@ class Cubismnc : public DistrMesh<M_> {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using RedOp = typename M::Op;
 
   Cubismnc(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   ~Cubismnc();
@@ -196,7 +197,8 @@ class Cubismnc : public DistrMesh<M_> {
   void ReadBuffer(const std::vector<MIdx>& bb) override;
   // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
   void WriteBuffer(const std::vector<MIdx>& bb) override;
-  void Reduce(const std::vector<MIdx>& bb) override;
+  void ReduceSingleRequest(
+      const std::vector<std::shared_ptr<RedOp>>& blocks) override;
   void Bcast(const std::vector<MIdx>& bb) override;
   void Scatter(const std::vector<MIdx>& bb) override;
   void DumpWrite(const std::vector<MIdx>& bb) override;
@@ -551,7 +553,7 @@ void Cubismnc<Par, M>::WriteBuffer(const std::vector<MIdx>&) {}
 
 template <class Par, class M>
 void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
-  using OpCat = typename M::OpCat;
+  using OpConcat = typename M::OpCat;
   auto& vf = kernels_.at(bb[0])->GetMesh().GetBcast(); // pointers to broadcast
 
   // Check size is the same for all kernels
@@ -561,7 +563,7 @@ void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
   }
 
   for (size_t i = 0; i < vf.size(); ++i) {
-    if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
+    if (OpConcat* o = dynamic_cast<OpConcat*>(vf[i].get())) {
       std::vector<char> r = o->Neutral(); // buffer
 
       if (isroot_) {
@@ -570,7 +572,7 @@ void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
           auto& m = kernels_.at(b)->GetMesh();
           if (m.IsRoot()) {
             auto& v = m.GetBcast();
-            OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+            OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
             ob->Append(r);
           }
         }
@@ -593,7 +595,7 @@ void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
       for (auto& b : bb) {
         auto& m = kernels_.at(b)->GetMesh();
         auto& v = m.GetBcast();
-        OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+        OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
         ob->Set(r);
       }
     } else {
@@ -630,14 +632,14 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
     MPI_Datatype mscal = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
 
     if (isroot_) {
-      int sc; // size of communicator
-      MPI_Comm_size(comm_, &sc);
+      int commsize; // size of communicator
+      MPI_Comm_size(comm_, &commsize);
       std::vector<Scal> buf;
-      std::vector<int> dis(sc, 0);
-      std::vector<int> cnt(sc, 0);
+      std::vector<int> dis(commsize, 0);
+      std::vector<int> cnt(commsize, 0);
       std::vector<int> sizes_buf;
-      std::vector<int> sizes_dis(sc, 0);
-      std::vector<int> sizes_cnt(sc, 0);
+      std::vector<int> sizes_dis(commsize, 0);
+      std::vector<int> sizes_cnt(commsize, 0);
       // find root block
       for (auto& b : bb) {
         auto& m = kernels_.at(b)->GetMesh();
@@ -645,7 +647,7 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
           auto& req = m.GetScatter()[q];
           size_t i = 0;
           // concatenate data for all blocks in buf
-          for (int rank = 0; rank < sc; ++rank) {
+          for (int rank = 0; rank < commsize; ++rank) {
             dis[rank] = buf.size();
             sizes_dis[rank] = sizes_buf.size();
             // XXX assuming the same number of blocks on all ranks
@@ -711,164 +713,134 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
     kernels_.at(b)->GetMesh().ClearScatter();
   }
 }
+
 template <class Par, class M>
-void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
-  using OpS = typename M::OpS;
-  using OpSI = typename M::OpSI;
-  using OpCat = typename M::OpCat;
-  auto& vf = kernels_.at(bb[0])->GetMesh().GetReduce(); // pointers to reduce
+void Cubismnc<Par, M>::ReduceSingleRequest(
+    const std::vector<std::shared_ptr<RedOp>>& blocks) {
+  using OpScal = typename M::OpS;
+  using OpScalInt = typename M::OpSI;
+  using OpConcat = typename M::OpCat;
 
-  // Check size is the same for all kernels
-  for (auto& b : bb) {
-    auto& v = kernels_.at(b)->GetMesh().GetReduce(); // pointers to reduce
-    fassert_equal(v.size(), vf.size());
-  }
+  auto* firstbase = blocks.front().get();
 
-  // TODO: Check operation is the same for all kernels
-  // TODO: avoid code duplication
+  if (auto* first = dynamic_cast<OpScal*>(firstbase)) {
+    auto buf = first->Neutral(); // result
 
-  for (size_t i = 0; i < vf.size(); ++i) {
-    if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
-      auto r = o->Neutral(); // result
-
-      // Reduce over all blocks on current rank
-      for (auto& b : bb) {
-        auto& v = kernels_.at(b)->GetMesh().GetReduce();
-        OpS* ob = dynamic_cast<OpS*>(v[i].get());
-        ob->Append(r);
-      }
-
-      MPI_Op mo;
-      if (dynamic_cast<typename M::OpSum*>(o)) {
-        mo = MPI_SUM;
-      } else if (dynamic_cast<typename M::OpProd*>(o)) {
-        mo = MPI_PROD;
-      } else if (dynamic_cast<typename M::OpMax*>(o)) {
-        mo = MPI_MAX;
-      } else if (dynamic_cast<typename M::OpMin*>(o)) {
-        mo = MPI_MIN;
-      } else {
-        throw std::runtime_error("Reduce(): Can't find MPI_Op");
-      }
-      MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
-
-      // Reduce over all ranks
-      samp_.SeedSample();
-      MPI_Allreduce(MPI_IN_PLACE, &r, 1, mt, mo, comm_);
-      samp_.CollectSample("MPI_Allreduce");
-
-      // Write results to all blocks on current rank
-      for (auto& b : bb) {
-        auto& v = kernels_.at(b)->GetMesh().GetReduce();
-        OpS* ob = dynamic_cast<OpS*>(v[i].get());
-        ob->Set(r);
-      }
-    } else if (OpSI* o = dynamic_cast<OpSI*>(vf[i].get())) {
-      auto r = o->Neutral(); // result
-
-      // Reduce over all blocks on current rank
-      for (auto& b : bb) {
-        auto& v = kernels_.at(b)->GetMesh().GetReduce();
-        OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
-        ob->Append(r);
-      }
-
-      MPI_Op mo;
-      if (dynamic_cast<typename M::OpMinloc*>(o)) {
-        mo = MPI_MINLOC;
-      } else if (dynamic_cast<typename M::OpMaxloc*>(o)) {
-        mo = MPI_MAXLOC;
-      } else {
-        throw std::runtime_error("Reduce(): Can't find MPI_Op");
-      }
-
-      MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE_INT : MPI_FLOAT_INT);
-
-      // Reduce over all ranks
-      samp_.SeedSample();
-      MPI_Allreduce(MPI_IN_PLACE, &r, 1, mt, mo, comm_);
-      samp_.CollectSample("MPI_Allreduce");
-
-      // Write results to all blocks on current rank
-      for (auto& b : bb) {
-        auto& v = kernels_.at(b)->GetMesh().GetReduce();
-        OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
-        ob->Set(r);
-      }
-    } else if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
-      std::vector<char> r = o->Neutral(); // result local
-
-      // Reduce over all local blocks
-      for (auto& b : bb) {
-        auto& v = kernels_.at(b)->GetMesh().GetReduce();
-        OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-        ob->Append(r);
-      }
-
-      int s = r.size(); // size local
-
-      if (isroot_) {
-        int sc; // size of communicator
-        MPI_Comm_size(comm_, &sc);
-
-        std::vector<int> ss(sc); // size of r on all ranks
-
-        // Gather ss
-        MPI_Gather(&s, 1, MPI_INT, ss.data(), 1, MPI_INT, 0, comm_);
-
-        int sa = 0; // size all
-        std::vector<int> oo = {0}; // offsets
-        for (auto& q : ss) {
-          sa += q;
-          oo.push_back(oo.back() + q);
-        }
-        oo.pop_back();
-        assert(ss.size() == oo.size());
-
-        std::vector<char> ra(sa); // result all
-
-        // Gather ra
-        samp_.SeedSample();
-        MPI_Gatherv(
-            r.data(), r.size(), MPI_CHAR, ra.data(), ss.data(), oo.data(),
-            MPI_CHAR, 0, comm_);
-        samp_.CollectSample("MPI_Gatherv");
-
-        // Write results to root block
-        size_t cnt = 0;
-        for (auto& b : bb) {
-          auto& m = kernels_.at(b)->GetMesh();
-          if (m.IsRoot()) {
-            auto& v = m.GetReduce();
-            OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-            ob->Set(ra);
-            ++cnt;
-          }
-        }
-        assert(cnt == 1);
-      } else {
-        // Send s to root
-        MPI_Gather(&s, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm_);
-
-        // Send r to root
-        samp_.SeedSample();
-        MPI_Gatherv(
-            r.data(), r.size(), MPI_CHAR, nullptr, nullptr, nullptr, MPI_CHAR,
-            0, comm_);
-        samp_.CollectSample("MPI_Gatherv");
-      }
-
-    } else {
-      throw std::runtime_error("Reduce: Unknown M::Op implementation");
+    // Reduce over blocks on current rank
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpScal*>(otherbase.get());
+      other->Append(buf);
     }
-  }
 
-  // Clear reduce requests
-  for (auto& b : bb) {
-    auto& k = *kernels_.at(b);
-    auto& m = k.GetMesh();
-    m.ClearReduce();
+    MPI_Op mpiop;
+    if (dynamic_cast<typename M::OpSum*>(first)) {
+      mpiop = MPI_SUM;
+    } else if (dynamic_cast<typename M::OpProd*>(first)) {
+      mpiop = MPI_PROD;
+    } else if (dynamic_cast<typename M::OpMax*>(first)) {
+      mpiop = MPI_MAX;
+    } else if (dynamic_cast<typename M::OpMin*>(first)) {
+      mpiop = MPI_MIN;
+    } else {
+      throw std::runtime_error("Reduce(): Can't find MPI_Op");
+    }
+    MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
+
+    // Reduce over ranks
+    samp_.SeedSample();
+    MPI_Allreduce(MPI_IN_PLACE, &buf, 1, mt, mpiop, comm_);
+    samp_.CollectSample("MPI_Allreduce");
+
+    // Write results to all blocks on current rank
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpScal*>(otherbase.get());
+      other->Set(buf);
+    }
+    return;
   }
+  if (auto* first = dynamic_cast<OpScalInt*>(firstbase)) {
+    auto buf = first->Neutral(); // result
+
+    // Reduce over blocks on current rank
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpScalInt*>(otherbase.get());
+      other->Append(buf);
+    }
+
+    MPI_Op mpiop;
+    if (dynamic_cast<typename M::OpMinloc*>(first)) {
+      mpiop = MPI_MINLOC;
+    } else if (dynamic_cast<typename M::OpMaxloc*>(first)) {
+      mpiop = MPI_MAXLOC;
+    } else {
+      throw std::runtime_error("Reduce(): Can't find MPI_Op");
+    }
+
+    MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE_INT : MPI_FLOAT_INT);
+
+    // Reduce over all ranks
+    samp_.SeedSample();
+    MPI_Allreduce(MPI_IN_PLACE, &buf, 1, mt, mpiop, comm_);
+    samp_.CollectSample("MPI_Allreduce");
+
+    // Write results to all blocks on current rank
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpScalInt*>(otherbase.get());
+      other->Set(buf);
+    }
+    return;
+  }
+  if (auto* first = dynamic_cast<OpConcat*>(firstbase)) {
+    std::vector<char> buf = first->Neutral();
+
+    // Reduce over local blocks
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpConcat*>(otherbase.get());
+      other->Append(buf);
+    }
+
+    int bufsize = buf.size();
+
+    if (isroot_) {
+      int commsize;
+      MPI_Comm_size(comm_, &commsize);
+
+      std::vector<int> sizes(commsize);
+
+      MPI_Gather(&bufsize, 1, MPI_INT, sizes.data(), 1, MPI_INT, 0, comm_);
+
+      int size_all = 0;
+      std::vector<int> offsets = {0};
+      for (auto& q : sizes) {
+        size_all += q;
+        offsets.push_back(offsets.back() + q);
+      }
+      offsets.pop_back();
+      assert(sizes.size() == offsets.size());
+
+      std::vector<char> buf_all(size_all);
+
+      samp_.SeedSample();
+      MPI_Gatherv(
+          buf.data(), buf.size(), MPI_CHAR, buf_all.data(), sizes.data(),
+          offsets.data(), MPI_CHAR, 0, comm_);
+      samp_.CollectSample("MPI_Gatherv");
+
+      // Write results to root block only (assume first)
+      // FIXME get IsRoot() from kernel_ after using std::vector for kernels
+      first->Set(buf_all);
+    } else {
+      MPI_Gather(&bufsize, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm_);
+
+      samp_.SeedSample();
+      MPI_Gatherv(
+          buf.data(), buf.size(), MPI_CHAR, nullptr, nullptr, nullptr, MPI_CHAR,
+          0, comm_);
+      samp_.CollectSample("MPI_Gatherv");
+    }
+    return;
+  }
+  fassert(false, "Reduce: Unknown M::Op implementation");
 }
 
 template <class Par, class M>

@@ -104,6 +104,31 @@ void DistrMesh<M>::ClearTimerReport(const std::vector<MIdx>& bb) {
 }
 
 template <class M>
+void DistrMesh<M>::Reduce(const std::vector<MIdx>& bb) {
+  auto& kfirst = *kernels_.at(bb[0]);
+
+  for (auto& k : kernels_) {
+    fassert_equal(
+        k.second->GetMesh().GetReduce().size(),
+        kfirst.GetMesh().GetReduce().size());
+  }
+
+  for (auto i : GRange<size_t>(kfirst.GetMesh().GetReduce().size())) {
+    std::vector<std::shared_ptr<RedOp>> blocks;
+    for (auto b : bb) {
+      auto& v = kernels_.at(b)->GetMesh().GetReduce();
+      blocks.push_back(v[i]);
+    }
+    ReduceSingleRequest(blocks);
+  }
+
+  for (auto& b : bb) {
+    kernels_.at(b)->GetMesh().ClearReduce();
+  }
+}
+
+
+template <class M>
 void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
   using ReductionScal = typename M::OpS;
   using ReductionScalInt = typename M::OpSI;

@@ -33,6 +33,7 @@ class DistrMesh {
   using MIdx = typename M::MIdx;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using RedOp = typename M::Op;
 
   virtual void Run();
   virtual void Report();
@@ -87,8 +88,13 @@ class DistrMesh {
   virtual void RunKernels(const std::vector<MIdx>& bb);
   // Copy from fields to communication buffer
   virtual void WriteBuffer(const std::vector<MIdx>& bb) = 0;
-  // Reduce TODO: extend doc
-  virtual void Reduce(const std::vector<MIdx>& bb) = 0;
+  // Performs reduction with a single request over all blocks.
+  // block_request: request for each block, same dimension as `kernels_`
+  virtual void ReduceSingleRequest(
+      const std::vector<std::shared_ptr<RedOp>>& blocks) = 0;
+  // Performs reduction with all requests collected in m.GetReduce()
+  // for all elements in `kernels_`
+  virtual void Reduce(const std::vector<MIdx>& bb);
   virtual void ReduceToLead(const std::vector<MIdx>& bb);
   virtual void Scatter(const std::vector<MIdx>& bb) = 0;
   virtual void Bcast(const std::vector<MIdx>& bb) = 0;

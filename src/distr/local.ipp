@@ -26,6 +26,7 @@ class Local : public DistrMesh<M_> {
  private:
   using MIdx = typename M::MIdx;
   using P = DistrMesh<M>;
+  using RedOp = typename M::Op;
 
   using P::b_;
   using P::bs_;
@@ -68,7 +69,8 @@ class Local : public DistrMesh<M_> {
   std::vector<MIdx> GetBlocks(bool inner) override;
   void ReadBuffer(const std::vector<MIdx>& bb) override;
   void WriteBuffer(const std::vector<MIdx>& bb) override;
-  void Reduce(const std::vector<MIdx>& bb) override;
+  void ReduceSingleRequest(
+      const std::vector<std::shared_ptr<RedOp>>& blocks) override;
   void Scatter(const std::vector<MIdx>& bb) override;
   void Bcast(const std::vector<MIdx>& bb) override;
   void DumpWrite(const std::vector<MIdx>& bb) override;
@@ -98,32 +100,37 @@ Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
   MIdx ms(bs_); // block size
   MIdx mb(b_[0], b_[1], b_[2]); // number of blocks
   MIdx mp(p_[0], p_[1], p_[2]); // number of PEs
-  GBlockCells<3> bc(mb * mp);
+  GBlock<size_t, dim> procs(p_);
+  GBlock<size_t, dim> blocks(b_);
   Scal h = (gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0)))[0];
   assert(h > 0);
   if (var.Int["verbose"]) {
     std::cerr << "h from gm = " << h << std::endl;
   }
-  for (MIdx i : bc) {
-    MyBlockInfo b;
-    IdxNode n = gm.GetIndexNodes().GetIdx(i * ms);
-    Vect o = gm.GetNode(n);
-    if (var.Int["verbose"]) {
-      std::cerr << "o=" << o << " n=" << n.GetRaw() << " i=" << i << std::endl;
+  for (auto wp : procs) { // same ordering as in Cubism
+    for (auto wb : blocks) {
+      auto w = b_ * wp + wb;
+      MyBlockInfo b;
+      IdxNode n = gm.GetIndexNodes().GetIdx(w * ms);
+      Vect o = gm.GetNode(n);
+      if (var.Int["verbose"]) {
+        std::cerr << "o=" << o << " n=" << n.GetRaw() << " w=" << w
+                  << std::endl;
+      }
+      for (int q = 0; q < 3; ++q) {
+        b.index[q] = w[q];
+        b.origin[q] = o[q];
+        b.bs[q] = bs_[q];
+      }
+      b.h_gridpoint = h;
+      b.hl = hl_;
+      b.maxcomm = buf_.size();
+      MIdx gs = p_ * b_ * bs_; // global size
+      for (int j = 0; j < 3; ++j) {
+        b.gs[j] = gs[j];
+      }
+      bb_.push_back(b);
     }
-    for (int q = 0; q < 3; ++q) {
-      b.index[q] = i[q];
-      b.origin[q] = o[q];
-      b.bs[q] = bs_[q];
-    }
-    b.h_gridpoint = h;
-    b.hl = hl_;
-    b.maxcomm = buf_.size();
-    MIdx gs = p_ * b_ * bs_; // global size
-    for (int j = 0; j < 3; ++j) {
-      b.gs[j] = gs[j];
-    }
-    bb_.push_back(b);
   }
 
   isroot_ = true; // XXX: overwrite isroot_
@@ -172,104 +179,57 @@ void Local<M>::WriteBuffer(const std::vector<MIdx>& bb) {
 }
 
 template <class M>
-void Local<M>::Reduce(const std::vector<MIdx>& bb) {
-  using OpS = typename M::OpS;
-  using OpSI = typename M::OpSI;
-  using OpCat = typename M::OpCat;
-  auto& f = *kernels_.at(bb[0]); // first kernel
-  auto& mf = f.GetMesh();
-  auto& vf = mf.GetReduce(); // reduce requests
+void Local<M>::ReduceSingleRequest(
+    const std::vector<std::shared_ptr<RedOp>>& blocks) {
+  using OpScal = typename M::OpS;
+  using OpScalInt = typename M::OpSI;
+  using OpConcat = typename M::OpCat;
 
-  // Check size is the same for all kernels
-  for (auto& b : bb) {
-    auto& v = kernels_.at(b)->GetMesh().GetReduce(); // reduce requests
-    if (v.size() != vf.size()) {
-      throw std::runtime_error("Reduce: v.size() != vf.size()");
+  auto* firstbase = blocks.front().get();
+
+  if (auto* first = dynamic_cast<OpScal*>(firstbase)) {
+    auto buf = first->Neutral();
+
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpScal*>(otherbase.get());
+      other->Append(buf);
     }
+
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpScal*>(otherbase.get());
+      other->Set(buf);
+    }
+    return;
   }
+  if (auto* first = dynamic_cast<OpScalInt*>(firstbase)) {
+    auto buf = first->Neutral();
 
-  // TODO: Check operation is the same for all kernels
-  // TODO: avoid code duplication
-
-  for (size_t i = 0; i < vf.size(); ++i) {
-    if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
-      // Reduction on Scal
-
-      auto r = o->Neutral(); // result
-
-      // Reduce over all blocks
-      for (auto& b : bb) {
-        auto& v = kernels_.at(b)->GetMesh().GetReduce();
-        OpS* ob = dynamic_cast<OpS*>(v[i].get());
-        ob->Append(r);
-      }
-
-      // Write results to all blocks
-      for (auto& b : bb) {
-        auto& v = kernels_.at(b)->GetMesh().GetReduce();
-        OpS* ob = dynamic_cast<OpS*>(v[i].get());
-        ob->Set(r);
-      }
-      continue;
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpScalInt*>(otherbase.get());
+      other->Append(buf);
     }
-    if (OpSI* o = dynamic_cast<OpSI*>(vf[i].get())) {
-      // Reduction on std::pair<Scal, int>
 
-      auto r = o->Neutral(); // result
-
-      // Reduce over all blocks
-      for (auto& b : bb) {
-        auto& v = kernels_.at(b)->GetMesh().GetReduce();
-        OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
-        ob->Append(r);
-      }
-
-      // Write results to all blocks
-      for (auto& b : bb) {
-        auto& v = kernels_.at(b)->GetMesh().GetReduce();
-        OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
-        ob->Set(r);
-      }
-      continue;
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpScalInt*>(otherbase.get());
+      other->Set(buf);
     }
-    if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
-      // Concatenation of std::vector<T>
-
-      auto r = o->Neutral(); // result
-
-      GBlock<size_t, dim> qp(p_);
-      GBlock<size_t, dim> qb(b_);
-
-      // Reduce over all blocks
-      for (auto wp : qp) { // same ordering as with Cubism
-        for (auto wb : qb) {
-          auto w = b_ * wp + wb;
-          auto& v = kernels_.at(w)->GetMesh().GetReduce();
-          OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-          ob->Append(r);
-        }
-      }
-
-      // Write results to root block
-      for (auto& b : bb) {
-        auto& m = kernels_.at(b)->GetMesh();
-        if (m.IsRoot()) {
-          auto& v = m.GetReduce();
-          OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-          ob->Set(r);
-        }
-      }
-      continue;
-    }
-    throw std::runtime_error("Reduce: Unknown M::Op implementation");
+    return;
   }
+  if (auto* first = dynamic_cast<OpConcat*>(firstbase)) {
+    // Concatenation of std::vector<T>
+    auto buf = first->Neutral();
 
-  // Clear reduce requests
-  for (auto& b : bb) {
-    auto& k = *kernels_.at(b);
-    auto& m = k.GetMesh();
-    m.ClearReduce();
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpConcat*>(otherbase.get());
+      other->Append(buf);
+    }
+
+    // Write results to root block only (assume first)
+    // FIXME get IsRoot() from kernel_ after using std::vector for kernels
+    first->Set(buf);
+    return;
   }
+  fassert(false, "Reduce: Unknown M::Op implementation");
 }
 
 template <class M>
@@ -316,7 +276,7 @@ void Local<M>::Scatter(const std::vector<MIdx>& bb) {
 
 template <class M>
 void Local<M>::Bcast(const std::vector<MIdx>& bb) {
-  using OpCat = typename M::OpCat;
+  using OpConcat = typename M::OpCat;
   auto& vf = kernels_.at(bb[0])->GetMesh().GetBcast(); // pointers to broadcast
 
   // Check size is the same for all kernels
@@ -330,16 +290,16 @@ void Local<M>::Bcast(const std::vector<MIdx>& bb) {
   }
 
   for (size_t i = 0; i < vf.size(); ++i) {
-    if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
-      std::vector<char> r = o->Neutral(); // buffer
+    if (OpConcat* o = dynamic_cast<OpConcat*>(vf[i].get())) {
+      std::vector<char> buf = o->Neutral(); // buffer
 
       // read from root block
       for (auto& b : bb) {
         auto& m = kernels_.at(b)->GetMesh();
         if (m.IsRoot()) {
           auto& v = m.GetBcast();
-          OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-          ob->Append(r);
+          OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
+          ob->Append(buf);
         }
       }
 
@@ -347,8 +307,8 @@ void Local<M>::Bcast(const std::vector<MIdx>& bb) {
       for (auto& b : bb) {
         auto& m = kernels_.at(b)->GetMesh();
         auto& v = m.GetBcast();
-        OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-        ob->Set(r);
+        OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
+        ob->Set(buf);
       }
     } else {
       throw std::runtime_error("Bcast: Unknown M::Op instance");
