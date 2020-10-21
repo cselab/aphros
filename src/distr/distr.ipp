@@ -398,12 +398,6 @@ void DistrMesh<M>::Run() {
   mt_.Pop("last");
   mtp_.Pop("last");
 
-  std::vector<MIdx> bb = GetBlocks();
-  for (const auto& b : bb) {
-    const auto& samp = kernels_.at(b)->GetMesh().GetSampler();
-    hist_.Append(samp); // collect samples from meshes
-  }
-
   if (var.Int["verbose_time"]) {
     Report();
   }

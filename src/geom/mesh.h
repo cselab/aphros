@@ -21,7 +21,6 @@
 #include "range.h"
 #include "rangein.h"
 #include "transform.h"
-#include "util/histogram.h"
 #include "util/logger.h"
 #include "util/suspender.h"
 #include "vect.h"
@@ -584,19 +583,6 @@ class MeshStructured {
   void SetMaxComm(size_t maxcomm) {
     maxcomm_ = maxcomm;
   }
-  // time sampler
-  Sampler& GetSampler() {
-    return samp_;
-  }
-  const Sampler& GetSampler() const {
-    return samp_;
-  }
-  void SeedSample() {
-    samp_.SeedSample();
-  }
-  void CollectSample(const std::string& name) {
-    samp_.CollectSample(name);
-  }
   // Fills halo cell with garbage.
   // Using actual NaNs not allowed since some code relies on u*0 == 0
   template <class T>
@@ -989,8 +975,6 @@ class MeshStructured {
   Rd reduce_lead_;
   std::vector<std::shared_ptr<Op>> bcast_; // list of broadcast requests
   std::vector<ScatterRequest> scatter_; // list of scatter requests
-
-  Sampler samp_; // sample collector for histogram usage, always active
 };
 
 template <class _Scal, size_t _dim>
