@@ -2122,7 +2122,6 @@ void Hydro<M>::Run() {
           ReportStep();
         }
       }
-      m.SeedSample();
     }
   }
 
@@ -2192,7 +2191,6 @@ void Hydro<M>::Run() {
   }
   if (sem("inc")) {
     ++st_.step;
-    m.CollectSample("Hydro::Step");
   }
   sem.LoopEnd();
 
