@@ -747,9 +747,7 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
     MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
 
     // Reduce over ranks
-    samp_.SeedSample();
     MPI_Allreduce(MPI_IN_PLACE, &buf, 1, mt, mpiop, comm_);
-    samp_.CollectSample("MPI_Allreduce");
 
     // Write results to all blocks on current rank
     for (auto otherbase : blocks) {
@@ -779,9 +777,7 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
     MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE_INT : MPI_FLOAT_INT);
 
     // Reduce over all ranks
-    samp_.SeedSample();
     MPI_Allreduce(MPI_IN_PLACE, &buf, 1, mt, mpiop, comm_);
-    samp_.CollectSample("MPI_Allreduce");
 
     // Write results to all blocks on current rank
     for (auto otherbase : blocks) {
@@ -791,7 +787,7 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
     return;
   }
   if (auto* first = dynamic_cast<OpConcat*>(firstbase)) {
-    std::vector<char> buf = first->Neutral();
+    auto buf = first->Neutral();
 
     // Reduce over local blocks
     for (auto otherbase : blocks) {
@@ -820,11 +816,9 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
 
       std::vector<char> buf_all(size_all);
 
-      samp_.SeedSample();
       MPI_Gatherv(
           buf.data(), buf.size(), MPI_CHAR, buf_all.data(), sizes.data(),
           offsets.data(), MPI_CHAR, 0, comm_);
-      samp_.CollectSample("MPI_Gatherv");
 
       // Write results to root block only (assume first)
       // FIXME get IsRoot() from kernel_ after using std::vector for kernels
@@ -832,11 +826,9 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
     } else {
       MPI_Gather(&bufsize, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm_);
 
-      samp_.SeedSample();
       MPI_Gatherv(
           buf.data(), buf.size(), MPI_CHAR, nullptr, nullptr, nullptr, MPI_CHAR,
           0, comm_);
-      samp_.CollectSample("MPI_Gatherv");
     }
     return;
   }

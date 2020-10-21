@@ -10,6 +10,7 @@
 #include <stdexcept>
 
 #include "distr.h"
+#include "util/format.h"
 
 template <class M>
 void DistrMesh<M>::MakeKernels(const std::vector<MyBlockInfo>& ee) {
@@ -57,13 +58,7 @@ template <class M>
 void DistrMesh<M>::RunKernels(const std::vector<MIdx>& bb) {
 #pragma omp parallel for schedule(dynamic, 1)
   for (size_t i = 0; i < bb.size(); ++i) {
-    try {
-      kernels_.at(bb[i])->Run();
-    } catch (const std::exception& e) {
-      std::cerr << "\nabort on block=" << i << " after throwing exception\n"
-                << e.what() << '\n';
-      throw e;
-    }
+    kernels_.at(bb[i])->Run();
   }
 }
 
@@ -127,7 +122,6 @@ void DistrMesh<M>::Reduce(const std::vector<MIdx>& bb) {
   }
 }
 
-
 template <class M>
 void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
   using ReductionScal = typename M::OpS;
@@ -188,38 +182,82 @@ void DistrMesh<M>::ReduceToLead(const std::vector<MIdx>& bb) {
 
 template <class M>
 void DistrMesh<M>::DumpWrite(const std::vector<MIdx>& bb) {
-  auto& m = kernels_.at(bb[0])->GetMesh();
-  if (m.GetDump().size()) {
-    std::string df = var.String["dumpformat"];
-    if (df == "plain") {
-      size_t k = 0; // offset in buffer
-      // Skip comm
-      for (auto& o : m.GetComm()) {
-        k += o->GetSize();
-      }
-      // Write dump
-      fassert(false, "plain not implemented");
-      /*
-      for (auto& on : m.GetDump()) {
-        std::string fn = GetDumpName(on.second, ".dat", frame_);
-        auto ndc = GetGlobalIndex();
-        auto bc = GetGlobalBlock();
-        auto fc = GetGlobalField(k);
+  auto& mfirst = kernels_.at(bb[0])->GetMesh();
+  if (mfirst.GetDump().size()) {
+    const std::string dumpformat = var.String["dumpformat"];
+    if (dumpformat == "plain") {
+      const auto& dumpfirst = mfirst.GetDump();
+      for (size_t idump = 0; idump < dumpfirst.size(); ++idump) {
+        const size_t nblocks = kernels_.size();
+        std::vector<std::vector<Scal>> b_data(nblocks);
+        std::vector<std::vector<MIdx>> b_origin(nblocks);
+        std::vector<std::vector<MIdx>> b_size(nblocks);
+        std::vector<std::shared_ptr<RedOp>> reduce_data;
+        std::vector<std::shared_ptr<RedOp>> reduce_origin;
+        std::vector<std::shared_ptr<RedOp>> reduce_size;
+        size_t iblock = 0;
+        for (auto& k : kernels_) {
+          auto& m = k.second->GetMesh();
+          auto& data = b_data[iblock];
+          auto& origin = b_origin[iblock];
+          auto& size = b_size[iblock];
+          data.reserve(m.GetInBlockCells().size() * kernels_.size());
+          const auto* req = m.GetDump()[idump].first.get();
+          if (auto* req_scal = dynamic_cast<const typename M::CoFcs*>(req)) {
+            for (auto c : m.Cells()) {
+              data.push_back((*req_scal->field)[c]);
+            }
+          } else if (
+              auto* req_vect = dynamic_cast<const typename M::CoFcv*>(req)) {
+            fassert(
+                req_vect->d != -1,
+                "Dump supports vector fields with only selected one component");
+            for (auto c : m.Cells()) {
+              data.push_back((*req_vect->field)[c][req_vect->d]);
+            }
+          } else {
+            fassert(false);
+          }
+          origin.push_back(m.GetInBlockCells().GetBegin());
+          size.push_back(m.GetInBlockCells().GetSize());
+          reduce_data.push_back(
+              std::make_shared<typename M::OpCatT<Scal>>(&data));
+          reduce_origin.push_back(
+              std::make_shared<typename M::OpCatT<MIdx>>(&origin));
+          reduce_size.push_back(
+              std::make_shared<typename M::OpCatT<MIdx>>(&size));
+          ++iblock;
+        }
+        ReduceSingleRequest(reduce_data);
+        ReduceSingleRequest(reduce_origin);
+        ReduceSingleRequest(reduce_size);
         if (isroot_) {
-          Dump(fc, ndc, bc, fn);
+          const std::string path =
+              GetDumpName(dumpfirst[idump].second, ".dat", frame_);
+          typename M::IndexCells indexc(MIdx(0), mfirst.GetGlobalSize());
+          typename M::BlockCells blockc(MIdx(0), mfirst.GetGlobalSize());
+          auto& data = b_data[0]; // XXX assume root is first block
+          auto& origin = b_origin[0];
+          auto& size = b_size[0];
+          const size_t nblocks_global = origin.size();
+          fassert_equal(data.size(), indexc.size());
+          fassert_equal(
+              nblocks_global * mfirst.GetInBlockCells().size(), indexc.size());
+          fassert_equal(size.size(), nblocks_global);
+          FieldCell<Scal> fc_global(indexc);
+          size_t i = 0;
+          for (size_t b = 0; b < nblocks_global; ++b) {
+            for (auto w : GBlock<IntIdx, dim>(origin[b], size[b])) {
+              fc_global[indexc.GetIdx(w)] = data[i++];
+            }
+          }
+          Dump(fc_global, indexc, blockc, path);
+          std::cerr << util::Format("Dump {} to {}", frame_, path) << std::endl;
         }
-        k += on.first->GetSize();
-        if (on.first->GetSize() != 1) {
-          throw std::runtime_error("DumpWrite(): Support only size 1");
-        }
-      }
-      */
-      if (isroot_) {
-        std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
       }
       ++frame_;
     } else {
-      throw std::runtime_error("Unknown dumpformat=" + df);
+      throw std::runtime_error("Unknown dumpformat=" + dumpformat);
     }
   }
 }

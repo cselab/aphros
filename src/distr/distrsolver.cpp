@@ -19,13 +19,22 @@ static void RunKernelOpenMP(
   int rank_omp;
   MPI_Comm_rank(comm_omp, &rank_omp);
 
-  Histogram hist(comm_world, "runkernelOMP", var.Int["histogram"]);
-  HypreSub::InitServer(comm_world, comm_omp);
-  if (rank_omp == 0) {
-    kernel(comm_master, var);
-    HypreSub::StopServer();
-  } else {
-    HypreSub::RunServer(hist);
+  // XXX moving exception handlers to RunMpi() (around RunMpi0())
+  // is not possible with MPI since the destructor of MpiWrapper
+  // calls MPI_Finalize() so in case of an exception the program freezes.
+  try {
+    Histogram hist(comm_world, "runkernelOMP", var.Int["histogram"]);
+    HypreSub::InitServer(comm_world, comm_omp);
+    if (rank_omp == 0) {
+      kernel(comm_master, var);
+      HypreSub::StopServer();
+    } else {
+      HypreSub::RunServer(hist);
+    }
+  } catch (const std::exception& e) {
+    std::cerr << FILELINE + "\nabort after throwing exception\n"
+              << e.what() << '\n';
+    std::terminate();
   }
 }
 
@@ -189,13 +198,5 @@ int RunMpi0(
 
 int RunMpi(
     int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> kernel) {
-  int status;
-  try {
-    status = RunMpi0(argc, argv, kernel);
-  } catch (const std::exception& e) {
-    status = 1;
-    std::cerr << "\nabort after throwing exception\n" << e.what() << '\n';
-    throw e;
-  }
-  return status;
+  return RunMpi0(argc, argv, kernel);
 }
