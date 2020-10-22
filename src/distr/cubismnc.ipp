@@ -343,7 +343,6 @@ Cubismnc<Par, M>::Cubismnc(
       proxy.gs[j] = globalsize[j];
     }
     islead = false;
-    std::cerr << util::Format("q=({} {})", midx, i) << " ";
     midx_to_kernel_[midx] = i;
   }
   comm_ = g_.getCartComm(); // XXX: overwrite comm_
@@ -447,21 +446,6 @@ auto Cubismnc<Par, M>::TransferHalos(bool inner) -> std::vector<size_t> {
           var.Int["mpi_compress_msg"], var.Int["histogram"]);
       const std::vector<BlockInfo> avail = sync_->avail_inner();
 
-      {
-        std::cerr << "*1***\n";
-        for (auto& info : avail) {
-          std::cerr << " " << MIdx(info.index);
-        }
-        std::cerr << "\n";
-      }
-      {
-        std::cerr << "*midx_to_kernel***\n";
-        for (auto q : midx_to_kernel_) {
-          std::cerr << util::Format("({} {})", q.first, q.second) << " ";
-        }
-        std::cerr << "\n";
-      }
-
       // Create vector of indices and save block info to map
       std::set<size_t> availset;
       for (const auto& info : avail) {
@@ -529,10 +513,6 @@ auto Cubismnc<Par, M>::TransferHalos(bool inner) -> std::vector<size_t> {
     }
   }
 
-  std::cerr << util::Format(
-                   "stage={} bb={} isroot_={} n_fields={} inner={}", stage_, bb,
-                   isroot_, n_fields_, inner)
-            << std::endl;
   return bb;
 }
 

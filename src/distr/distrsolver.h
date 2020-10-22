@@ -68,6 +68,7 @@ class MpiWrapper {
   int GetCommSize() const;
   int GetCommRank() const;
   bool IsRoot() const;
+
  private:
   MPI_Comm comm_;
 };
