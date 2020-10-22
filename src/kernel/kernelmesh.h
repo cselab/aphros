@@ -6,8 +6,8 @@
 #include "geom/mesh.h"
 #include "parse/vars.h"
 
-// TODO: remove h_gridpoint from MyBlockInfo
-struct MyBlockInfo {
+// TODO: remove h_gridpoint from BlockInfoProxy
+struct BlockInfoProxy {
   using Idx = std::array<int, 3>;
   Idx index;
   void* ptrBlock;
@@ -22,7 +22,7 @@ struct MyBlockInfo {
 };
 
 template <class M>
-M CreateMesh(const MyBlockInfo& bi) {
+M CreateMesh(const BlockInfoProxy& bi) {
   using MIdx = typename M::MIdx;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
@@ -58,7 +58,7 @@ class KernelMesh {
   using MIdx = typename M::MIdx;
   static constexpr size_t dim = M::dim;
 
-  KernelMesh(Vars& var_, const MyBlockInfo& bi)
+  KernelMesh(Vars& var_, const BlockInfoProxy& bi)
       : var(var_), var_mutable(var_), bi_(bi), m(CreateMesh<M>(bi)) {
     m.SetCN(var.Int["CHECKNAN"]); // TODO: revise, avoid optional setters
     m.SetEdim(var.Int["dim"]);
@@ -77,7 +77,7 @@ class KernelMesh {
  protected:
   const Vars& var; // shared among all blocks on each PEs
   Vars& var_mutable; // shared among all blocks on each PEs
-  MyBlockInfo bi_;
+  BlockInfoProxy bi_;
   M m;
 };
 
@@ -87,5 +87,5 @@ class KernelMeshFactory {
  public:
   using M = M_;
   using K = KernelMesh<M>;
-  virtual K* Make(Vars&, const MyBlockInfo&) const = 0;
+  virtual K* Make(Vars&, const BlockInfoProxy&) const = 0;
 };

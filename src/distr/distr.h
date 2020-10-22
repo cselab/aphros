@@ -7,7 +7,6 @@
 #include <array>
 #include <iomanip>
 #include <map>
-#include <unordered_map>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -45,14 +44,14 @@ class DistrMesh {
   MPI_Comm comm_; // XXX: overwritten by Cubism<M>
   const Vars& var;
   Vars& var_mutable;
-  const KernelMeshFactory<M>& kf_; // kernel factory
+  const KernelMeshFactory<M>& kernelfactory_; // kernel factory
   Sampler samp_; // sampler accessible to derived classes
 
-  int hl_; // number of halo cells (same in all directions)
-  MIdx bs_; // block size
-  MIdx p_; // number of ranks
-  MIdx b_; // number of blocks
-  Scal ext_; // extent (maximum over all directions)
+  int halos_; // number of halo cells (same in all directions)
+  MIdx blocksize_; // block size
+  MIdx nprocs_; // number of ranks
+  MIdx nblocks_; // number of blocks
+  Scal extent_; // extent (maximum over all directions)
 
   int stage_ = 0;
   size_t frame_ = 0; // current dump frame
@@ -68,47 +67,45 @@ class DistrMesh {
     }
   };
 
-  std::map<MIdx, std::unique_ptr<KernelMesh<M>>, typename MIdx::LexLess> kernels_;
-  //std::unordered_map<MIdx, std::unique_ptr<KernelMesh<M>>, Hash> kernels_;
+  std::vector<std::unique_ptr<KernelMesh<M>>> kernels_;
 
   DistrMesh(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   // Performs communication and returns indices of blocks with updated halos.
-  virtual std::vector<MIdx> GetBlocks(bool inner) = 0;
-  virtual std::vector<MIdx> GetBlocks() {
-    auto bbi = GetBlocks(true);
-    auto bbh = GetBlocks(false);
+  virtual std::vector<size_t> TransferHalos(bool inner) = 0;
+  virtual std::vector<size_t> TransferHalos() {
+    auto bbi = TransferHalos(true);
+    auto bbh = TransferHalos(false);
     bbi.insert(bbi.end(), bbh.begin(), bbh.end());
     return bbi;
   }
   // Fill selected halo cells with garbage
-  void ApplyNanFaces(const std::vector<MIdx>& bb);
+  void ApplyNanFaces(const std::vector<size_t>& bb);
   // Copy from communication buffer to fields
-  virtual void ReadBuffer(const std::vector<MIdx>& bb) = 0;
+  virtual void ReadBuffer(const std::vector<size_t>& bb) = 0;
   // Call kernels for current stage
-  virtual void RunKernels(const std::vector<MIdx>& bb);
+  virtual void RunKernels(const std::vector<size_t>& bb);
   // Copy from fields to communication buffer
-  virtual void WriteBuffer(const std::vector<MIdx>& bb) = 0;
+  virtual void WriteBuffer(const std::vector<size_t>& bb) = 0;
   // Performs reduction with a single request over all blocks.
   // block_request: request for each block, same dimension as `kernels_`
   virtual void ReduceSingleRequest(
       const std::vector<std::shared_ptr<RedOp>>& blocks) = 0;
   // Performs reduction with all requests collected in m.GetReduce()
   // for all elements in `kernels_`
-  virtual void Reduce(const std::vector<MIdx>& bb);
-  virtual void ReduceToLead(const std::vector<MIdx>& bb);
-  virtual void Scatter(const std::vector<MIdx>& bb) = 0;
-  virtual void Bcast(const std::vector<MIdx>& bb) = 0;
-  // Writes dumps.
-  virtual void DumpWrite(const std::vector<MIdx>& bb);
-  virtual void ClearComm(const std::vector<MIdx>& bb);
-  virtual void ClearDump(const std::vector<MIdx>& bb);
+  virtual void Reduce(const std::vector<size_t>& bb);
+  virtual void ReduceToLead(const std::vector<size_t>& bb);
+  virtual void Scatter(const std::vector<size_t>& bb) = 0;
+  virtual void Bcast(const std::vector<size_t>& bb) = 0;
+  virtual void DumpWrite(const std::vector<size_t>& bb);
+  virtual void ClearComm(const std::vector<size_t>& bb);
+  virtual void ClearDump(const std::vector<size_t>& bb);
   // TODO: make Pending const
-  virtual bool Pending(const std::vector<MIdx>& bb);
+  virtual bool Pending(const std::vector<size_t>& bb);
   // Create a kernel for each block and put into kernels_
   // Requires initialized isroot_;
-  virtual void MakeKernels(const std::vector<MyBlockInfo>&);
-  virtual void TimerReport(const std::vector<MIdx>& bb);
-  virtual void ClearTimerReport(const std::vector<MIdx>& bb);
+  virtual void MakeKernels(const std::vector<BlockInfoProxy>&);
+  virtual void TimerReport(const std::vector<size_t>& bb);
+  virtual void ClearTimerReport(const std::vector<size_t>& bb);
 
  private:
   Histogram hist_; // histogram sample collector

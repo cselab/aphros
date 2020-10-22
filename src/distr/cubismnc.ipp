@@ -7,6 +7,7 @@
 #include <cassert>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <stdexcept>
 
 #include "cubismnc.h"
@@ -22,6 +23,16 @@
 #include "CubismNoCopy/GridMPI.h"
 #include "CubismNoCopy/HDF5Dumper_MPI.h"
 #include "CubismNoCopy/StencilInfo.h"
+
+template <class T>
+std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
+  std::string p = "";
+  for (auto a : v) {
+    o << p << a;
+    p = " ";
+  }
+  return o;
+}
 
 // Hide implementation and avoid collision with GBlk
 // TODO: rename cubism_impl::GBlk
@@ -162,52 +173,48 @@ class Cubismnc : public DistrMesh<M_> {
   using P = DistrMesh<M>; // parent
   using MIdx = typename M::MIdx;
 
-  using P::b_;
-  using P::bs_;
+  // Convert Cubism BlockInfo to BlockInfoProxy
+  static std::vector<BlockInfoProxy> Convert(
+      const std::vector<BlockInfo>&, MIdx bs, size_t hl);
+
+  std::vector<size_t> TransferHalos() override;
+  std::vector<size_t> TransferHalos(bool inner) override;
+  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
+  void ReadBuffer(const std::vector<size_t>& bb) override;
+  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
+  void WriteBuffer(const std::vector<size_t>& bb) override;
+  void ReduceSingleRequest(
+      const std::vector<std::shared_ptr<RedOp>>& blocks) override;
+  void Bcast(const std::vector<size_t>& bb) override;
+  void Scatter(const std::vector<size_t>& bb) override;
+  void DumpWrite(const std::vector<size_t>& bb) override;
+
+  using P::blocksize_;
   using P::comm_;
   using P::dim;
-  using P::ext_;
+  using P::extent_;
   using P::frame_;
-  using P::hl_;
+  using P::halos_;
   using P::isroot_;
+  using P::kernelfactory_;
   using P::kernels_;
-  using P::kf_;
-  using P::p_;
+  using P::nblocks_;
+  using P::nprocs_;
   using P::samp_;
   using P::stage_;
   using P::var;
 
   Grid g_;
-  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] The map is not really needed
-  struct S { // cubism [s]tate
-    std::map<MIdx, BlockInfo, typename MIdx::LexLess> mb;
-  };
-  S s_;
   std::vector<std::vector<FieldView>> fviews_; // fields from last communication
   Synch* sync_;
   size_t n_fields_;
-
-  // Convert Cubism BlockInfo to MyBlockInfo
-  static std::vector<MyBlockInfo> Convert(
-      const std::vector<BlockInfo>&, MIdx bs, size_t hl);
-
-  std::vector<MIdx> GetBlocks() override;
-  std::vector<MIdx> GetBlocks(bool inner) override;
-  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
-  void ReadBuffer(const std::vector<MIdx>& bb) override;
-  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
-  void WriteBuffer(const std::vector<MIdx>& bb) override;
-  void ReduceSingleRequest(
-      const std::vector<std::shared_ptr<RedOp>>& blocks) override;
-  void Bcast(const std::vector<MIdx>& bb) override;
-  void Scatter(const std::vector<MIdx>& bb) override;
-  void DumpWrite(const std::vector<MIdx>& bb) override;
+  std::map<MIdx, size_t, typename MIdx::LexLess> midx_to_kernel_;
 };
 
-// B_ - instance of GFieldViewRaw
-template <class B_>
+// nblocks_ - instance of GFieldViewRaw
+template <class nblocks_>
 struct StreamHdfScal {
-  using B = B_;
+  using B = nblocks_;
   using Scal = typename B::Scal;
 
   // Required by Cubism
@@ -238,10 +245,10 @@ struct StreamHdfScal {
   }
 };
 
-// B_ - instance of GFieldViewRaw
-template <class B_>
+// nblocks_ - instance of GFieldViewRaw
+template <class nblocks_>
 struct StreamHdfVect {
-  using B = B_;
+  using B = nblocks_;
   using Scal = typename B::Scal;
 
   // Required by Cubism
@@ -280,64 +287,73 @@ struct StreamHdfVect {
 };
 
 template <class Par, class M>
-std::vector<MyBlockInfo> Cubismnc<Par, M>::Convert(
-    const std::vector<BlockInfo>& cc, MIdx bs, size_t hl) {
-  std::vector<MyBlockInfo> bb;
-  for (size_t i = 0; i < cc.size(); i++) {
-    const BlockInfo& c = cc[i];
-    MyBlockInfo b;
+std::vector<BlockInfoProxy> Cubismnc<Par, M>::Convert(
+    const std::vector<BlockInfo>& infos, MIdx bs, size_t halos) {
+  std::vector<BlockInfoProxy> proxies;
+  for (size_t i = 0; i < infos.size(); i++) {
+    const BlockInfo& info = infos[i];
+    BlockInfoProxy proxy;
     for (int j = 0; j < 3; ++j) {
-      b.index[j] = c.index[j];
-      b.origin[j] = c.origin[j];
-      b.bs[j] = bs[j];
+      proxy.index[j] = info.index[j];
+      proxy.origin[j] = info.origin[j];
+      proxy.bs[j] = bs[j];
     }
-    b.h_gridpoint = c.h_gridpoint;
-    b.hl = hl;
-    b.maxcomm = 65536;
-    bb.push_back(b);
+    proxy.h_gridpoint = info.h_gridpoint;
+    proxy.hl = halos;
+    proxy.maxcomm = 65536;
+    proxies.push_back(proxy);
   }
-  return bb;
+  return proxies;
 }
 
 template <class Par, class M>
 Cubismnc<Par, M>::Cubismnc(
     MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var)
     : DistrMesh<M>(comm, kf, var)
-    , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm) {
-  assert(
-      bs_[0] == FieldView::bx && bs_[1] == FieldView::by &&
-      bs_[2] == FieldView::bz);
+    , g_(nprocs_[0], nprocs_[1], nprocs_[2], nblocks_[0], nblocks_[1],
+         nblocks_[2], extent_, comm) {
+  fassert_equal(blocksize_[0], FieldView::bx);
+  fassert_equal(blocksize_[1], FieldView::by);
+  fassert_equal(blocksize_[2], FieldView::bz);
 
   int commsize; // size of communicator
   MPI_Comm_size(comm, &commsize);
-  if (commsize != p_[0] * p_[1] * p_[2]) {
+  if (commsize != nprocs_[0] * nprocs_[1] * nprocs_[2]) {
     throw std::runtime_error(util::Format(
         "Number of MPI tasks ({}) does not match the number of subdomains "
         "px={} py={} pz={}",
-        commsize, p_[0], p_[1], p_[2]));
+        commsize, nprocs_[0], nprocs_[1], nprocs_[2]));
   }
 
-  int r;
-  MPI_Comm_rank(comm, &r);
-  isroot_ = (0 == r); // XXX: overwrite isroot_
+  {
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    isroot_ = (0 == rank); // XXX: overwrite isroot_
+  }
 
   // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Get rid of BlockInfo type
-  std::vector<BlockInfo> cc = g_.getBlocksInfo();
-  std::vector<MyBlockInfo> ee = Convert(cc, bs_, hl_);
+  const std::vector<BlockInfo> infos = g_.getBlocksInfo();
+  std::vector<BlockInfoProxy> proxies = Convert(infos, blocksize_, halos_);
 
   bool islead = true;
-  for (auto& e : ee) {
-    MIdx d(e.index);
-    e.isroot = (d == MIdx(0));
-    e.islead = islead;
-    MIdx gs = p_ * b_ * bs_; // global size
+  for (size_t i = 0; i < proxies.size(); ++i) {
+    auto& proxy = proxies[i];
+    const MIdx midx(proxy.index);
+    proxy.isroot = (midx == MIdx(0));
+    if (proxy.isroot) {
+      fassert_equal(i, 0, "Root block must be first");
+    }
+    proxy.islead = islead;
+    const MIdx globalsize = nprocs_ * nblocks_ * blocksize_;
     for (int j = 0; j < 3; ++j) {
-      e.gs[j] = gs[j];
+      proxy.gs[j] = globalsize[j];
     }
     islead = false;
+    std::cerr << util::Format("q=({} {})", midx, i) << " ";
+    midx_to_kernel_[midx] = i;
   }
   comm_ = g_.getCartComm(); // XXX: overwrite comm_
-  this->MakeKernels(ee);
+  this->MakeKernels(proxies);
 }
 
 template <class Par, class M>
@@ -348,37 +364,36 @@ Cubismnc<Par, M>::~Cubismnc() {
 }
 
 template <class Par, class M>
-auto Cubismnc<Par, M>::GetBlocks() -> std::vector<MIdx> {
+auto Cubismnc<Par, M>::TransferHalos() -> std::vector<size_t> {
   // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] not needed
   samp_.SeedSample();
   MPI_Barrier(comm_);
   samp_.CollectSample("MPI_Barrier");
 
-  // Get all blocks
-  std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
-  auto& m = kernels_.at(MIdx(cc[0].index))->GetMesh();
-  std::vector<BlockInfo> aa;
+  const std::vector<BlockInfo> infos = g_.getBlocksInfo(); // all blocks
+  fassert_equal(infos.size(), kernels_.size());
+  auto& m = kernels_.front()->GetMesh();
   // Perform communication if necessary
   if (m.GetComm().size() > 0) {
     // 0. Construct vector of fields to communicate for all blocks on this rank
     std::vector<std::vector<FieldView>> fviews;
     const size_t n_fields = m.GetComm().size();
     fviews.resize(n_fields);
-    for (const auto& b : cc) {
-      auto& bm = kernels_.at(MIdx(b.index))->GetMesh();
-      auto& bf = bm.GetComm();
-      assert(n_fields == bf.size());
+    for (size_t i = 0; i < infos.size(); ++i) {
+      auto& reqs = kernels_[i]->GetMesh().GetComm();
+      assert(n_fields == fields.size());
       for (size_t fi = 0; fi < n_fields; ++fi) {
-        auto& o = bf[fi];
-        fviews[fi].push_back(FieldView(o->GetBasePtr(), b.index, o->GetSize()));
+        auto& req = reqs[fi];
+        fviews[fi].push_back(
+            FieldView(req->GetBasePtr(), infos[i].index, req->GetSize()));
       }
     }
 
     // 1. Exchange halos in buffer mesh.
     // stencil type
     const bool is_tensorial = true;
-    const int nhalo_start[3] = {hl_, hl_, hl_};
-    const int nhalo_end[3] = {hl_, hl_, hl_};
+    const int nhalo_start[3] = {halos_, halos_, halos_};
+    const int nhalo_end[3] = {halos_, halos_, halos_};
 
     // schedule asynchronous communication
     Synch& s = g_.sync(
@@ -391,7 +406,8 @@ auto Cubismnc<Par, M>::GetBlocks() -> std::vector<MIdx> {
     samp_.CollectSample("MPI_Barrier");
 
     // Get all blocks synchronized
-    aa = s.avail_halo();
+    const std::vector<BlockInfo> avail = s.avail_halo();
+    fassert_equal(avail.size(), infos.size());
 
     // 2. Load exchanged halos into the local fields
     // FIXME: [fabianw@mavt.ethz.ch; 2019-12-07] This parallel structure is
@@ -401,79 +417,78 @@ auto Cubismnc<Par, M>::GetBlocks() -> std::vector<MIdx> {
       Lab l;
       l.prepare(g_, s);
 #pragma omp for schedule(dynamic, 1)
-      for (size_t i = 0; i < cc.size(); ++i) {
-        for (auto& field : fviews_) {
+      for (size_t i = 0; i < infos.size(); ++i) {
+        for (auto& field : fviews) {
           FieldView& block = field[i];
           l.load(block, field);
         }
       }
     }
-  } else {
-    aa = cc;
   }
 
-  if (aa.size() != cc.size()) {
-    std::cerr << "aa.size()=" << aa.size() << " != "
-              << "cc.size()=" << cc.size() << std::endl;
-    assert(false);
-  }
-
-  // Create vector of indices and save block info to map
-  std::vector<MIdx> bb;
-  s_.mb.clear();
-  for (auto a : aa) {
-    MIdx b(a.index);
-    s_.mb.emplace(b, a);
-    bb.push_back(b);
-  }
-
+  std::vector<size_t> bb(infos.size());
+  std::iota(bb.begin(), bb.end(), 0);
   return bb;
 }
 
 template <class Par, class M>
-auto Cubismnc<Par, M>::GetBlocks(bool inner) -> std::vector<MIdx> {
-  const std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
+auto Cubismnc<Par, M>::TransferHalos(bool inner) -> std::vector<size_t> {
+  const std::vector<BlockInfo> infos = g_.getBlocksInfo(); // all blocks
+  fassert_equal(infos.size(), kernels_.size());
+
+  std::vector<size_t> bb;
   if (inner) {
-    n_fields_ = kernels_.at(MIdx(cc[0].index))->GetMesh().GetComm().size();
-    std::vector<MIdx> bb;
+    n_fields_ = kernels_.front()->GetMesh().GetComm().size();
     // Perform communication if necessary
     if (n_fields_ > 0) {
       // 0. Construct vector of fields to communicate for all blocks on this
       // rank
       fviews_.clear();
       fviews_.resize(n_fields_);
-      for (const auto& b : cc) {
-        auto& bm = kernels_.at(MIdx(b.index))->GetMesh();
-        auto& bf = bm.GetComm();
-        assert(n_fields_ == bf.size());
+      for (size_t i = 0; i < infos.size(); ++i) {
+        auto& reqs = kernels_[i]->GetMesh().GetComm();
+        assert(n_fields_ == reqs.size());
         for (size_t fi = 0; fi < n_fields_; ++fi) {
-          auto& o = bf[fi];
+          auto& req = reqs[fi];
           fviews_[fi].push_back(
-              FieldView(o->GetBasePtr(), b.index, o->GetSize()));
+              FieldView(req->GetBasePtr(), infos[i].index, req->GetSize()));
         }
       }
 
       // 1. Exchange halos in buffer mesh.
       // stencil type
       const bool is_tensorial = true;
-      const int nhalo_start[3] = {hl_, hl_, hl_};
-      const int nhalo_end[3] = {hl_, hl_, hl_};
+      const int nhalo_start[3] = {halos_, halos_, halos_};
+      const int nhalo_end[3] = {halos_, halos_, halos_};
 
       // schedule asynchronous communication
       sync_ = &g_.sync(
           fviews_, nhalo_start, nhalo_end, is_tensorial,
           var.Int["mpi_compress_msg"], var.Int["histogram"]);
-      std::vector<BlockInfo> aa = sync_->avail_inner();
+      const std::vector<BlockInfo> avail = sync_->avail_inner();
 
-      // Create vector of indices and save block info to map
-      s_.mb.clear();
-      for (auto a : aa) {
-        MIdx b(a.index);
-        s_.mb.emplace(b, a);
-        bb.push_back(b);
+      {
+        std::cerr << "*1***\n";
+        for (auto& info : avail) {
+          std::cerr << " " << MIdx(info.index);
+        }
+        std::cerr << "\n";
+      }
+      {
+        std::cerr << "*midx_to_kernel***\n";
+        for (auto q : midx_to_kernel_) {
+          std::cerr << util::Format("({} {})", q.first, q.second) << " ";
+        }
+        std::cerr << "\n";
       }
 
-      std::set<MIdx> set(bb.begin(), bb.end());
+      // Create vector of indices and save block info to map
+      std::set<size_t> availset;
+      for (const auto& info : avail) {
+        const size_t i = midx_to_kernel_.at(MIdx(info.index));
+        bb.push_back(i);
+        availset.insert(i);
+      }
 
       // 2. Load exchanged halos into the local fields
       // FIXME: [fabianw@mavt.ethz.ch; 2019-12-07] This parallel structure is
@@ -486,37 +501,29 @@ auto Cubismnc<Par, M>::GetBlocks(bool inner) -> std::vector<MIdx> {
         Lab l;
         l.prepare(g_, *sync_);
 #pragma omp for schedule(dynamic, 1)
-        for (size_t i = 0; i < cc.size(); ++i) {
+        for (size_t i = 0; i < infos.size(); ++i) {
           for (auto& field : fviews_) {
             FieldView& block = field[i];
-            if (set.count(MIdx(block.index))) {
+            if (availset.count(i)) {
               l.load(block, field);
             }
           }
         }
       }
-    } else {
-      s_.mb.clear();
-      for (auto a : cc) {
-        MIdx b(a.index);
-        s_.mb.emplace(b, a);
-        bb.push_back(b);
-      }
+    } else { // no communication, return all blocks
+      bb.resize(infos.size());
+      std::iota(bb.begin(), bb.end(), 0);
     }
-    return bb;
-  } else {
-    std::vector<MIdx> bb;
+  } else { // not inner
     // Perform communication if necessary
     if (n_fields_ > 0) {
-      std::vector<BlockInfo> aa = sync_->avail_halo();
-
-      for (auto a : aa) {
-        MIdx b(a.index);
-        s_.mb.emplace(b, a);
-        bb.push_back(b);
+      const std::vector<BlockInfo> avail = sync_->avail_halo();
+      std::set<size_t> availset;
+      for (auto info : avail) {
+        const size_t i = midx_to_kernel_.at(MIdx(info.index));
+        bb.push_back(i);
+        availset.insert(i);
       }
-
-      std::set<MIdx> set(bb.begin(), bb.end());
 
       // Load exchanged halos into the local fields
       // FIXME: [fabianw@mavt.ethz.ch; 2019-12-07] This parallel structure is
@@ -529,36 +536,42 @@ auto Cubismnc<Par, M>::GetBlocks(bool inner) -> std::vector<MIdx> {
         Lab l;
         l.prepare(g_, *sync_);
 #pragma omp for schedule(dynamic, 1)
-        for (size_t i = 0; i < cc.size(); ++i) {
+        for (size_t i = 0; i < infos.size(); ++i) {
           for (auto& field : fviews_) {
             FieldView& block = field[i];
-            if (set.count(MIdx(block.index))) {
+            if (availset.count(i)) {
               l.load(block, field);
             }
           }
         }
       }
+    } else { // no communication, return no blocks
     }
-    return bb;
   }
+
+  std::cerr << util::Format(
+                   "stage={} bb={} isroot_={} n_fields={} inner={}", stage_, bb,
+                   isroot_, n_fields_, inner)
+            << std::endl;
+  return bb;
 }
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
 template <class Par, class M>
-void Cubismnc<Par, M>::ReadBuffer(const std::vector<MIdx>&) {}
+void Cubismnc<Par, M>::ReadBuffer(const std::vector<size_t>&) {}
 
 // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
 template <class Par, class M>
-void Cubismnc<Par, M>::WriteBuffer(const std::vector<MIdx>&) {}
+void Cubismnc<Par, M>::WriteBuffer(const std::vector<size_t>&) {}
 
 template <class Par, class M>
-void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
+void Cubismnc<Par, M>::Bcast(const std::vector<size_t>& bb) {
   using OpConcat = typename M::OpCat;
-  auto& vf = kernels_.at(bb[0])->GetMesh().GetBcast(); // pointers to broadcast
+  auto& vf = kernels_.front()->GetMesh().GetBcast(); // pointers to broadcast
 
   // Check size is the same for all kernels
-  for (auto& b : bb) {
-    auto& v = kernels_.at(b)->GetMesh().GetBcast(); // pointers to broadcast
+  for (auto b : bb) {
+    auto& v = kernels_[b]->GetMesh().GetBcast(); // pointers to broadcast
     fassert_equal(v.size(), vf.size());
   }
 
@@ -568,8 +581,8 @@ void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
 
       if (isroot_) {
         // read from root block
-        for (auto& b : bb) {
-          auto& m = kernels_.at(b)->GetMesh();
+        for (auto b : bb) {
+          auto& m = kernels_[b]->GetMesh();
           if (m.IsRoot()) {
             auto& v = m.GetBcast();
             OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
@@ -592,8 +605,8 @@ void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
       samp_.CollectSample("MPI_Bcast");
 
       // write to all blocks
-      for (auto& b : bb) {
-        auto& m = kernels_.at(b)->GetMesh();
+      for (auto b : bb) {
+        auto& m = kernels_[b]->GetMesh();
         auto& v = m.GetBcast();
         OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
         ob->Set(r);
@@ -604,23 +617,21 @@ void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
   }
 
   // Clear bcast requests
-  for (auto& b : bb) {
-    auto& k = *kernels_.at(b);
+  for (auto b : bb) {
+    auto& k = *kernels_[b];
     auto& m = k.GetMesh();
     m.ClearBcast();
   }
 }
 template <class Par, class M>
-void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
+void Cubismnc<Par, M>::Scatter(const std::vector<size_t>& bb) {
   auto& vreq0 =
-      kernels_.at(bb[0])->GetMesh().GetScatter(); // requests on first block
+      kernels_.front()->GetMesh().GetScatter(); // requests on first block
 
   // Check size is the same for all blocks
-  for (auto& b : bb) {
-    auto& vreq = kernels_.at(b)->GetMesh().GetScatter();
-    if (vreq.size() != vreq0.size()) {
-      throw std::runtime_error("Scatter: vreq.size() != vreq0.size()");
-    }
+  for (auto b : bb) {
+    auto& vreq = kernels_[b]->GetMesh().GetScatter();
+    fassert_equal(vreq.size(), vreq0.size());
   }
 
   for (size_t q = 0; q < vreq0.size(); ++q) {
@@ -641,8 +652,8 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
       std::vector<int> sizes_dis(commsize, 0);
       std::vector<int> sizes_cnt(commsize, 0);
       // find root block
-      for (auto& b : bb) {
-        auto& m = kernels_.at(b)->GetMesh();
+      for (auto b : bb) {
+        auto& m = kernels_[b]->GetMesh();
         if (m.IsRoot()) {
           auto& req = m.GetScatter()[q];
           size_t i = 0;
@@ -701,7 +712,7 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
     // write to blocks on current rank
     size_t off = 0;
     for (size_t k = 0; k < bb.size(); ++k) {
-      auto& v = *kernels_.at(bb[k])->GetMesh().GetScatter()[q].second;
+      auto& v = *kernels_[bb[k]]->GetMesh().GetScatter()[q].second;
       v = std::vector<Scal>(
           rbuf.data() + off, rbuf.data() + off + sizes_rbuf[k]);
       off += sizes_rbuf[k];
@@ -709,8 +720,8 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
   }
 
   // Clear requests
-  for (auto& b : bb) {
-    kernels_.at(b)->GetMesh().ClearScatter();
+  for (auto b : bb) {
+    kernels_[b]->GetMesh().ClearScatter();
   }
 }
 
@@ -742,7 +753,7 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
     } else if (dynamic_cast<typename M::OpMin*>(first)) {
       mpiop = MPI_MIN;
     } else {
-      throw std::runtime_error("Reduce(): Can't find MPI_Op");
+      fassert(false, "Unknown reduction");
     }
     MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
 
@@ -771,7 +782,7 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
     } else if (dynamic_cast<typename M::OpMaxloc*>(first)) {
       mpiop = MPI_MAXLOC;
     } else {
-      throw std::runtime_error("Reduce(): Can't find MPI_Op");
+      fassert(false, "Unknown reduction");
     }
 
     MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE_INT : MPI_FLOAT_INT);
@@ -832,57 +843,57 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
     }
     return;
   }
-  fassert(false, "Reduce: Unknown M::Op implementation");
+  fassert(false, "Unknown M::Op implementation");
 }
 
 template <class Par, class M>
-void Cubismnc<Par, M>::DumpWrite(const std::vector<MIdx>& bb) {
-  auto& m = kernels_.at(bb[0])->GetMesh();
-  if (m.GetDump().size()) {
-    std::string df = var.String["dumpformat"];
-    if (df == "default") {
-      df = "hdf";
+void Cubismnc<Par, M>::DumpWrite(const std::vector<size_t>& bb) {
+  auto& mfirst = kernels_.front()->GetMesh();
+  if (mfirst.GetDump().size()) {
+    std::string dumpformat = var.String["dumpformat"];
+    if (dumpformat == "default") {
+      dumpformat = "hdf";
     }
 
-    if (df == "hdf") {
+    if (dumpformat == "hdf") {
       // Create FieldView's for dump
-      const size_t n_fields = m.GetDump().size();
-      std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
+      const size_t n_fields = mfirst.GetDump().size();
+      std::vector<BlockInfo> infos = g_.getBlocksInfo(); // all blocks
       std::vector<std::vector<FieldView>> fviews(n_fields);
-      for (const auto& b : cc) {
-        auto& bm = kernels_.at(MIdx(b.index))->GetMesh();
-        auto& bf = bm.GetDump();
-        assert(n_fields == bf.size());
+      for (size_t i = 0; i < infos.size(); ++i) {
+        auto& reqs = kernels_[i]->GetMesh().GetDump();
+        assert(n_fields == reqs.size());
         for (size_t fi = 0; fi < n_fields; ++fi) {
-          auto& o = bf[fi].first;
+          auto& req = reqs[fi].first;
           fviews[fi].push_back(
-              FieldView(o->GetBasePtr(), b.index, o->GetStride()));
+              FieldView(req->GetBasePtr(), infos[i].index, req->GetStride()));
         }
       }
 
       // Write dump
-      auto& bf = m.GetDump();
-      assert(bf.size() == fviews.size());
+      auto& reqs = mfirst.GetDump();
+      fassert_equal(reqs.size(), fviews.size());
       for (size_t fi = 0; fi < fviews.size(); ++fi) {
-        auto fn = GetDumpName(bf[fi].second, "", frame_);
-        const int aos_idx = (bf[fi].first)->GetIndex();
+        const auto name = GetDumpName(reqs[fi].second, "", frame_);
+        const int aos_idx = (reqs[fi].first)->GetIndex();
         auto& blocks = fviews[fi];
         if (0 <= aos_idx) {
-          StreamHdfScal<FieldView>::NAME = bf[fi].second;
+          StreamHdfScal<FieldView>::NAME = reqs[fi].second;
           DumpHDF5_MPI<StreamHdfScal<FieldView>>(
-              blocks, aos_idx, g_, frame_, frame_, fn, ".", Vect(0),
-              m.GetCellSize(), true);
+              blocks, aos_idx, g_, frame_, frame_, name, ".", Vect(0),
+              mfirst.GetCellSize(), true);
         } else if (3 == blocks[0].n_comp) {
-          StreamHdfVect<FieldView>::NAME = bf[fi].second;
+          StreamHdfVect<FieldView>::NAME = reqs[fi].second;
           DumpHDF5_MPI<StreamHdfVect<FieldView>>(
-              blocks, aos_idx, g_, frame_, frame_, fn, ".", Vect(0),
-              m.GetCellSize(), true);
+              blocks, aos_idx, g_, frame_, frame_, name, ".", Vect(0),
+              mfirst.GetCellSize(), true);
         } else {
           throw std::runtime_error("DumpWrite(): Support only size 1 and 3");
         }
       }
       if (isroot_) {
-        std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
+        std::cout << "Dump " << frame_ << ": format=" << dumpformat
+                  << std::endl;
       }
       ++frame_;
     } else {

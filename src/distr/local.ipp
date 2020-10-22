@@ -6,6 +6,7 @@
 #include <mpi.h>
 #include <limits>
 #include <map>
+#include <numeric>
 #include <stdexcept>
 #include <vector>
 
@@ -28,24 +29,24 @@ class Local : public DistrMesh<M_> {
   using P = DistrMesh<M>;
   using RedOp = typename M::Op;
 
-  using P::b_;
-  using P::bs_;
+  using P::nblocks_;
+  using P::blocksize_;
   using P::comm_;
   using P::dim;
-  using P::ext_;
+  using P::extent_;
   using P::frame_;
-  using P::hl_;
+  using P::halos_;
   using P::isroot_;
   using P::kernels_;
-  using P::kf_;
-  using P::p_;
+  using P::kernelfactory_;
+  using P::nprocs_;
   using P::stage_;
   using P::var;
 
   std::vector<FieldCell<Scal>> buf_; // buffer on mesh
   M gm; // global mesh
   std::unique_ptr<output::Ser> oser_; // output series
-  std::vector<MyBlockInfo> bb_;
+  std::vector<BlockInfoProxy> proxies_;
   generic::Vect<bool, 3> per_; // periodic in direction
 
   size_t WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m);
@@ -66,14 +67,14 @@ class Local : public DistrMesh<M_> {
   // ext: extent
   static M CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext);
 
-  std::vector<MIdx> GetBlocks(bool inner) override;
-  void ReadBuffer(const std::vector<MIdx>& bb) override;
-  void WriteBuffer(const std::vector<MIdx>& bb) override;
+  std::vector<size_t> TransferHalos(bool inner) override;
+  void ReadBuffer(const std::vector<size_t>& bb) override;
+  void WriteBuffer(const std::vector<size_t>& bb) override;
   void ReduceSingleRequest(
       const std::vector<std::shared_ptr<RedOp>>& blocks) override;
-  void Scatter(const std::vector<MIdx>& bb) override;
-  void Bcast(const std::vector<MIdx>& bb) override;
-  void DumpWrite(const std::vector<MIdx>& bb) override;
+  void Scatter(const std::vector<size_t>& bb) override;
+  void Bcast(const std::vector<size_t>& bb) override;
+  void DumpWrite(const std::vector<size_t>& bb) override;
 };
 
 template <class M>
@@ -90,46 +91,47 @@ template <class M>
 Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
     : DistrMesh<M>(comm, kf, var_)
     , buf_(var.Int["loc_maxcomm"])
-    , gm(CreateGlobalMesh(bs_, b_, p_, ext_)) {
+    , gm(CreateGlobalMesh(blocksize_, nblocks_, nprocs_, extent_)) {
   // Resize buffer for mesh
   for (auto& u : buf_) {
     u.Reinit(gm);
   }
 
   // Fill block info
-  MIdx ms(bs_); // block size
-  MIdx mb(b_[0], b_[1], b_[2]); // number of blocks
-  MIdx mp(p_[0], p_[1], p_[2]); // number of PEs
-  GBlock<size_t, dim> procs(p_);
-  GBlock<size_t, dim> blocks(b_);
-  Scal h = (gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0)))[0];
-  assert(h > 0);
+  GBlock<size_t, dim> procs(nprocs_);
+  GBlock<size_t, dim> blocks(nblocks_);
+  const Scal cellsize = (gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0)))[0];
+  assert(cellsize > 0);
   if (var.Int["verbose"]) {
-    std::cerr << "h from gm = " << h << std::endl;
+    std::cerr << "global mesh cellsize = " << cellsize << std::endl;
   }
+  bool islead = true;
   for (auto wp : procs) { // same ordering as in Cubism
     for (auto wb : blocks) {
-      auto w = b_ * wp + wb;
-      MyBlockInfo b;
-      IdxNode n = gm.GetIndexNodes().GetIdx(w * ms);
-      Vect o = gm.GetNode(n);
+      auto midx = nblocks_ * wp + wb;
+      BlockInfoProxy proxy;
+      const IdxNode node = gm.GetIndexNodes().GetIdx(midx * blocksize_);
+      const Vect origin = gm.GetNode(node);
       if (var.Int["verbose"]) {
-        std::cerr << "o=" << o << " n=" << n.GetRaw() << " w=" << w
-                  << std::endl;
+        std::cerr << "origin=" << origin << " node=" << node.GetRaw()
+                  << " midx=" << midx << std::endl;
       }
       for (int q = 0; q < 3; ++q) {
-        b.index[q] = w[q];
-        b.origin[q] = o[q];
-        b.bs[q] = bs_[q];
+        proxy.index[q] = midx[q];
+        proxy.origin[q] = origin[q];
+        proxy.bs[q] = blocksize_[q];
       }
-      b.h_gridpoint = h;
-      b.hl = hl_;
-      b.maxcomm = buf_.size();
-      MIdx gs = p_ * b_ * bs_; // global size
+      proxy.h_gridpoint = cellsize;
+      proxy.hl = halos_;
+      proxy.maxcomm = buf_.size();
+      const MIdx globalsize = nprocs_ * nblocks_ * blocksize_;
       for (int j = 0; j < 3; ++j) {
-        b.gs[j] = gs[j];
+        proxy.gs[j] = globalsize[j];
       }
-      bb_.push_back(b);
+      proxy.isroot = (midx == MIdx(0));
+      proxy.islead = islead;
+      islead = false;
+      proxies_.push_back(proxy);
     }
   }
 
@@ -140,41 +142,30 @@ Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
   per_[1] = var.Int["loc_periodic_y"];
   per_[2] = var.Int["loc_periodic_z"];
 
-  bool islead = true;
-  for (auto& b : bb_) {
-    MIdx d(b.index);
-    b.isroot = (d == MIdx(0));
-    b.islead = islead;
-    islead = false;
-  }
-
-  this->MakeKernels(bb_);
+  this->MakeKernels(proxies_);
 }
 
 template <class M>
-auto Local<M>::GetBlocks(bool inner) -> std::vector<MIdx> {
-  std::vector<MIdx> bb;
+auto Local<M>::TransferHalos(bool inner) -> std::vector<size_t> {
+  std::vector<size_t> bb;
   if (inner) {
-    for (auto e : bb_) {
-      bb.emplace_back(e.index);
-    }
+    bb.resize(proxies_.size());
+    std::iota(bb.begin(), bb.end(), 0);
   }
   return bb;
 }
 
 template <class M>
-void Local<M>::ReadBuffer(const std::vector<MIdx>& bb) {
-  for (auto& b : bb) {
-    auto& m = kernels_.at(b)->GetMesh();
-    ReadBuffer(m);
+void Local<M>::ReadBuffer(const std::vector<size_t>& bb) {
+  for (auto b : bb) {
+    ReadBuffer(kernels_[b]->GetMesh());
   }
 }
 
 template <class M>
-void Local<M>::WriteBuffer(const std::vector<MIdx>& bb) {
-  for (auto& b : bb) {
-    auto& m = kernels_.at(b)->GetMesh();
-    WriteBuffer(m);
+void Local<M>::WriteBuffer(const std::vector<size_t>& bb) {
+  for (auto b : bb) {
+    WriteBuffer(kernels_[b]->GetMesh());
   }
 }
 
@@ -233,106 +224,82 @@ void Local<M>::ReduceSingleRequest(
 }
 
 template <class M>
-void Local<M>::Scatter(const std::vector<MIdx>& bb) {
-  auto& vreq0 =
-      kernels_.at(bb[0])->GetMesh().GetScatter(); // requests on first block
+void Local<M>::Scatter(const std::vector<size_t>& bb) {
+  const size_t nreq = kernels_.front()->GetMesh().GetScatter().size();
 
-  // Check size is the same for all blocks
-  for (auto& b : bb) {
-    auto& vreq = kernels_.at(b)->GetMesh().GetScatter();
-    if (vreq.size() != vreq0.size()) {
-      throw std::runtime_error("Scatter: vreq.size() != vreq0.size()");
-    }
+  for (auto b : bb) {
+    fassert_equal(kernels_[b]->GetMesh().GetScatter().size(), nreq);
   }
 
-  for (size_t q = 0; q < vreq0.size(); ++q) {
-    // find root block
-    for (auto& b : bb) {
-      auto& m = kernels_.at(b)->GetMesh();
-      if (m.IsRoot()) {
-        auto& req = m.GetScatter()[q];
-
-        GBlock<size_t, dim> qp(p_);
-        GBlock<size_t, dim> qb(b_);
-
-        // write to blocks on current rank
+  for (size_t q = 0; q < nreq; ++q) {
+    for (auto broot : bb) {
+      auto& mroot = kernels_[broot]->GetMesh();
+      if (mroot.IsRoot()) {
+        auto& req = mroot.GetScatter()[q];
         size_t i = 0;
-        for (auto wp : qp) { // same ordering as with Cubism
-          for (auto wb : qb) {
-            auto w = b_ * wp + wb;
-            auto& v = *kernels_.at(w)->GetMesh().GetScatter()[q].second;
-            v = (*req.first)[i++];
-          }
+        for (auto b : bb) {
+          auto& v = *kernels_[b]->GetMesh().GetScatter()[q].second;
+          v = (*req.first)[i++];
         }
       }
     }
   }
 
-  // Clear requests
-  for (auto& b : bb) {
-    kernels_.at(b)->GetMesh().ClearScatter();
+  for (auto b : bb) {
+    kernels_[b]->GetMesh().ClearScatter();
   }
 }
 
 template <class M>
-void Local<M>::Bcast(const std::vector<MIdx>& bb) {
+void Local<M>::Bcast(const std::vector<size_t>& bb) {
   using OpConcat = typename M::OpCat;
-  auto& vf = kernels_.at(bb[0])->GetMesh().GetBcast(); // pointers to broadcast
+  auto& vf = kernels_.front()->GetMesh().GetBcast(); // pointers to broadcast
 
-  // Check size is the same for all kernels
-  for (auto& b : bb) {
-    auto& v = kernels_.at(b)->GetMesh().GetBcast(); // pointers to broadcast
-    if (v.size() != vf.size()) {
-      throw std::runtime_error(
-          "Bcast: v.size()=" + std::to_string(v.size()) +
-          " != vf.size()=" + std::to_string(vf.size()));
-    }
+  for (auto b : bb) {
+    fassert_equal(kernels_[b]->GetMesh().GetBcast().size(), vf.size());
   }
 
   for (size_t i = 0; i < vf.size(); ++i) {
-    if (OpConcat* o = dynamic_cast<OpConcat*>(vf[i].get())) {
-      std::vector<char> buf = o->Neutral(); // buffer
+    if (OpConcat* first = dynamic_cast<OpConcat*>(vf[i].get())) {
+      std::vector<char> buf = first->Neutral();
 
       // read from root block
-      for (auto& b : bb) {
-        auto& m = kernels_.at(b)->GetMesh();
+      for (auto b : bb) {
+        auto& m = kernels_[b]->GetMesh();
         if (m.IsRoot()) {
           auto& v = m.GetBcast();
-          OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
-          ob->Append(buf);
+          OpConcat* other = dynamic_cast<OpConcat*>(v[i].get());
+          other->Append(buf);
         }
       }
 
       // write to all blocks
-      for (auto& b : bb) {
-        auto& m = kernels_.at(b)->GetMesh();
+      for (auto b : bb) {
+        auto& m = kernels_[b]->GetMesh();
         auto& v = m.GetBcast();
-        OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
-        ob->Set(buf);
+        OpConcat* other = dynamic_cast<OpConcat*>(v[i].get());
+        other->Set(buf);
       }
     } else {
-      throw std::runtime_error("Bcast: Unknown M::Op instance");
+      fassert(false, "Bcast: Unknown M::Op instance");
     }
   }
 
-  // Clear bcast requests
-  for (auto& b : bb) {
-    auto& k = *kernels_.at(b);
-    auto& m = k.GetMesh();
-    m.ClearBcast();
+  for (auto b : bb) {
+    kernels_[b]->GetMesh().ClearBcast();
   }
 }
 
 template <class M>
-void Local<M>::DumpWrite(const std::vector<MIdx>& bb) {
-  auto& m = kernels_.at(bb[0])->GetMesh();
+void Local<M>::DumpWrite(const std::vector<size_t>& bb) {
+  auto& m = kernels_.front()->GetMesh();
   if (m.GetDump().size()) {
-    std::string df = var.String["dumpformat"];
-    if (df == "default") {
-      df = "vtk";
+    std::string dumpformat = var.String["dumpformat"];
+    if (dumpformat == "default") {
+      dumpformat = "vtk";
     }
 
-    if (df == "vtk") {
+    if (dumpformat == "vtk") {
       // Initialize on first call
       if (!oser_) {
         // TODO: check all blocks are same as first
@@ -359,7 +326,7 @@ void Local<M>::DumpWrite(const std::vector<MIdx>& bb) {
       //       (otherwise oser_ needs reinitialization)
 
       oser_->Write(frame_, "title"); // TODO: t instead of stage_
-      std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
+      std::cerr << "Dump " << frame_ << ": format=" << dumpformat << std::endl;
       ++frame_;
     } else {
       P::DumpWrite(bb);
@@ -411,11 +378,11 @@ size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t comp, size_t e, M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
   }
-  auto& bc = m.GetIndexCells();
-  auto& gbc = gm.GetIndexCells();
+  auto& indexc = m.GetIndexCells();
+  auto& indexc_global = gm.GetIndexCells();
   MIdx gs = gm.GetInBlockCells().GetSize();
   for (auto c : m.AllCells()) {
-    auto w = bc.GetMIdx(c);
+    auto w = indexc.GetMIdx(c);
     // periodic
     for (int d = 0; d < 3; ++d) {
       if (per_[d]) {
@@ -424,7 +391,7 @@ size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t comp, size_t e, M& m) {
     }
     // XXX: addhoc nan in halos
     if (MIdx(0) <= w && w < gs) {
-      auto gc = gbc.GetIdx(w);
+      auto gc = indexc_global.GetIdx(w);
       fc[c][comp] = buf_[e][gc];
     } else {
       fc[c][comp] = std::numeric_limits<Scal>::quiet_NaN();
@@ -482,11 +449,11 @@ size_t Local<M>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
   if (e >= buf_.size()) {
     throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
   }
-  auto& bc = m.GetIndexCells();
-  auto& gbc = gm.GetIndexCells();
+  auto& indexc = m.GetIndexCells();
+  auto& indexc_global = gm.GetIndexCells();
   for (auto c : m.Cells()) {
-    auto w = bc.GetMIdx(c);
-    auto gc = gbc.GetIdx(w);
+    auto w = indexc.GetMIdx(c);
+    auto gc = indexc_global.GetIdx(w);
     buf_[e][gc] = fc[c];
   }
   return 1;
@@ -503,11 +470,11 @@ size_t Local<M>::WriteBuffer(
   if (e >= buf_.size()) {
     throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
   }
-  auto& bc = m.GetIndexCells();
-  auto& gbc = gm.GetIndexCells();
+  auto& indexc = m.GetIndexCells();
+  auto& indexc_global = gm.GetIndexCells();
   for (auto c : m.Cells()) {
-    auto w = bc.GetMIdx(c);
-    auto gc = gbc.GetIdx(w);
+    auto w = indexc.GetMIdx(c);
+    auto gc = indexc_global.GetIdx(w);
     buf_[e][gc] = fc[c][d];
   }
   return 1;

@@ -79,7 +79,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   using ASVM = Vofm<M>; // advection VOF
 
   // using P::P; // inherit constructor
-  Advection(Vars& var, const MyBlockInfo& bi, Par& par);
+  Advection(Vars& var, const BlockInfoProxy& bi, Par& par);
   void Run() override;
   void Init(Sem& sem);
   void Dump(Sem& sem);
@@ -113,7 +113,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
 };
 
 template <class M>
-Advection<M>::Advection(Vars& var_, const MyBlockInfo& b, Par& p)
+Advection<M>::Advection(Vars& var_, const BlockInfoProxy& b, Par& p)
     : KernelMeshPar<M, Par>(var_, b, p)
     , layers(1)
     , dmf_(var, "dump_field_")

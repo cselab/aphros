@@ -35,7 +35,7 @@ class EmbedInterpolate : public KernelMeshPar<M_, GPar<M_>> {
   using Vect = typename M::Vect;
   using Sem = typename Mesh::Sem;
 
-  EmbedInterpolate(Vars& var, const MyBlockInfo& block, Par& par);
+  EmbedInterpolate(Vars& var, const BlockInfoProxy& block, Par& par);
   void Run() override;
 
   using P::m;
@@ -45,7 +45,7 @@ class EmbedInterpolate : public KernelMeshPar<M_, GPar<M_>> {
 
 template <class M>
 EmbedInterpolate<M>::EmbedInterpolate(
-    Vars& var_, const MyBlockInfo& block, Par& par)
+    Vars& var_, const BlockInfoProxy& block, Par& par)
     : KernelMeshPar<M, Par>(var_, block, par) {}
 
 template <class M>

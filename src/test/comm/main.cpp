@@ -211,26 +211,25 @@ void Simple<M>::TestReduce() {
   };
   if (sem("sum")) {
     r_ = f(MIdx(bi_.index));
-    m.Reduce(&r_, "sum");
-    // m.Reduce(&r, Reduction::sum);
+    m.Reduce(&r_, Reduction::sum);
   }
   if (sem("sum-check")) {
-    Scal s = 0.;
+    Scal exact = 0.;
     for (auto b : bq) {
-      s += f(b);
+      exact += f(b);
     }
-    PCMP(r_, s);
+    PCMP(r_, exact);
   }
   if (sem("prod")) {
     r_ = f(MIdx(bi_.index));
     m.Reduce(&r_, Reduction::prod);
   }
   if (sem("prod-check")) {
-    Scal s = 1.;
+    Scal exact = 1.;
     for (auto b : bq) {
-      s *= f(b);
+      exact *= f(b);
     }
-    PCMP(r_, s);
+    PCMP(r_, exact);
   }
   if (sem("max")) {
     r_ = f(MIdx(bi_.index));
@@ -295,17 +294,18 @@ void Simple<M>::TestReduce() {
     m.Reduce(&rvs_, Reduction::concat);
   }
   if (sem("cat-check")) {
-    std::vector<Scal> rvs;
+    std::vector<Scal> exact;
     for (auto wp : qp) {
       for (auto wb : qb) {
         auto w = block * wp + wb;
-        rvs.push_back(indexc.GetIdx(w));
+        exact.push_back(indexc.GetIdx(w));
       }
     }
     if (m.IsRoot()) {
+      std::cout << "****" << NAMEVALUE(m.GetId()) << std::endl;
       std::sort(rvs_.begin(), rvs_.end());
-      std::sort(rvs.begin(), rvs.end());
-      PCMPF(rvs_, rvs);
+      std::sort(exact.begin(), exact.end());
+      PCMPF(rvs_, exact);
     }
   }
   const size_t q = 10;

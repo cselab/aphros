@@ -138,7 +138,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
   // TODO: issue warning if variable in Vars was not used
   // but differs from default (like in CMake)
-  Hydro(Vars&, const MyBlockInfo&, Par&);
+  Hydro(Vars&, const BlockInfoProxy&, Par&);
   void Run() override;
   M& GetMesh() {
     return m;
@@ -1498,7 +1498,7 @@ void Hydro<M>::Init() {
 }
 
 template <class M>
-Hydro<M>::Hydro(Vars& var0, const MyBlockInfo& bi, Par& par)
+Hydro<M>::Hydro(Vars& var0, const BlockInfoProxy& bi, Par& par)
     : KernelMeshPar<M, Par>(var0, bi, par)
     , dumper_(var, "dump_field_")
     , dmptraj_(var, "dump_traj_")

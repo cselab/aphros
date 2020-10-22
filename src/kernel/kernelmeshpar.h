@@ -14,7 +14,7 @@ class KernelMeshPar : public KernelMesh<M_> {
   using Par = Par_;
   static constexpr size_t dim = M::dim;
 
-  KernelMeshPar(Vars& var_, const MyBlockInfo& bi, Par& par)
+  KernelMeshPar(Vars& var_, const BlockInfoProxy& bi, Par& par)
       : KernelMesh<M>(var_, bi), par_(par) {}
   void Run() override = 0;
 
@@ -37,7 +37,7 @@ class KernelMeshParFactory : public KernelMeshFactory<M_> {
   using K = K_;
   using Par = typename K::Par;
   KernelMeshParFactory(Par& par) : par_(par) {}
-  K* Make(Vars& var, const MyBlockInfo& bi) const override {
+  K* Make(Vars& var, const BlockInfoProxy& bi) const override {
     return new K(var, bi, par_);
   }
 
