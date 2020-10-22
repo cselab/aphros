@@ -178,10 +178,6 @@ class Cubismnc : public DistrMesh<M_> {
 
   std::vector<size_t> TransferHalos() override;
   std::vector<size_t> TransferHalos(bool inner) override;
-  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
-  void ReadBuffer(const std::vector<size_t>& bb) override;
-  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
-  void WriteBuffer(const std::vector<size_t>& bb) override;
   void ReduceSingleRequest(
       const std::vector<std::shared_ptr<RedOp>>& blocks) override;
   void Bcast(const std::vector<size_t>& bb) override;
@@ -539,14 +535,6 @@ auto Cubismnc<Par, M>::TransferHalos(bool inner) -> std::vector<size_t> {
             << std::endl;
   return bb;
 }
-
-// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
-template <class Par, class M>
-void Cubismnc<Par, M>::ReadBuffer(const std::vector<size_t>&) {}
-
-// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
-template <class Par, class M>
-void Cubismnc<Par, M>::WriteBuffer(const std::vector<size_t>&) {}
 
 template <class Par, class M>
 void Cubismnc<Par, M>::Bcast(const std::vector<size_t>& bb) {

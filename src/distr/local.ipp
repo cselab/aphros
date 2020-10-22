@@ -29,7 +29,6 @@ class Local : public DistrMesh<M_> {
   using P = DistrMesh<M>;
   using RedOp = typename M::Op;
 
-  using P::nblocks_;
   using P::blocksize_;
   using P::comm_;
   using P::dim;
@@ -37,8 +36,9 @@ class Local : public DistrMesh<M_> {
   using P::frame_;
   using P::halos_;
   using P::isroot_;
-  using P::kernels_;
   using P::kernelfactory_;
+  using P::kernels_;
+  using P::nblocks_;
   using P::nprocs_;
   using P::stage_;
   using P::var;
@@ -68,8 +68,6 @@ class Local : public DistrMesh<M_> {
   static M CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext);
 
   std::vector<size_t> TransferHalos(bool inner) override;
-  void ReadBuffer(const std::vector<size_t>& bb) override;
-  void WriteBuffer(const std::vector<size_t>& bb) override;
   void ReduceSingleRequest(
       const std::vector<std::shared_ptr<RedOp>>& blocks) override;
   void Scatter(const std::vector<size_t>& bb) override;
@@ -151,22 +149,14 @@ auto Local<M>::TransferHalos(bool inner) -> std::vector<size_t> {
   if (inner) {
     bb.resize(proxies_.size());
     std::iota(bb.begin(), bb.end(), 0);
+    for (auto b : bb) {
+      WriteBuffer(kernels_[b]->GetMesh());
+    }
+    for (auto b : bb) {
+      ReadBuffer(kernels_[b]->GetMesh());
+    }
   }
   return bb;
-}
-
-template <class M>
-void Local<M>::ReadBuffer(const std::vector<size_t>& bb) {
-  for (auto b : bb) {
-    ReadBuffer(kernels_[b]->GetMesh());
-  }
-}
-
-template <class M>
-void Local<M>::WriteBuffer(const std::vector<size_t>& bb) {
-  for (auto b : bb) {
-    WriteBuffer(kernels_[b]->GetMesh());
-  }
 }
 
 template <class M>

@@ -78,12 +78,8 @@ class DistrMesh {
   }
   // Fill selected halo cells with garbage
   void ApplyNanFaces(const std::vector<size_t>& bb);
-  // Copy from communication buffer to fields
-  virtual void ReadBuffer(const std::vector<size_t>& bb) = 0;
   // Call kernels for current stage
   virtual void RunKernels(const std::vector<size_t>& bb);
-  // Copy from fields to communication buffer
-  virtual void WriteBuffer(const std::vector<size_t>& bb) = 0;
   // Performs reduction with a single request over all blocks.
   // block_request: request for each block, same dimension as `kernels_`
   virtual void ReduceSingleRequest(

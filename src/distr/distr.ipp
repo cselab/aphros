@@ -293,30 +293,25 @@ void DistrMesh<M>::Run() {
     std::vector<size_t> bb;
     if (kernels_.front()->GetMesh().GetDump().size() > 0) {
       bb = TransferHalos(); // all blocks, sync communication
-      ReadBuffer(bb);
-      ApplyNanFaces(bb);
+      // ApplyNanFaces(bb);
       DumpWrite(bb);
       ClearDump(bb);
       ClearComm(bb);
       RunKernels(bb);
     } else {
       auto bbi = TransferHalos(true); // inner blocks, async communication
-      ReadBuffer(bbi);
-      ApplyNanFaces(bbi);
+      // ApplyNanFaces(bbi);
       ClearComm(bbi);
       RunKernels(bbi);
 
       auto bbh = TransferHalos(false); // halo blocks, wait for communication
-      ReadBuffer(bbh);
-      ApplyNanFaces(bbh);
+      // ApplyNanFaces(bbh);
       ClearComm(bbh);
       RunKernels(bbh);
 
       bb = bbi;
       bb.insert(bb.end(), bbh.begin(), bbh.end());
     }
-
-    WriteBuffer(bb);
 
     stage_ += 1;
 
