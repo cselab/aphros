@@ -15,7 +15,7 @@ Suspender::Sem::Sem(Suspender& owner, std::string name)
 
   if (pos == states.begin()) {
     owner_.nest_ = true; // allow nested calls on first level
-    owner_.curname_ = "";
+    //owner_.curname_ = "";
     owner_.depth_ = 0;
   }
 
@@ -59,12 +59,14 @@ Suspender::Sem::~Sem() {
 bool Suspender::Sem::Next(std::string suff) {
   auto& pos = owner_.pos_;
   if (pos->current++ == pos->target) {
+    /*
     if (owner_.curname_ != "") {
       owner_.curname_ += " --> ";
     }
     std::stringstream st;
     st << std::setfill('0') << std::setw(2) << pos->target;
     owner_.curname_ += name_ + ":" + st.str() + ":" + suff;
+    */
     ++owner_.depth_;
     return true;
   }
