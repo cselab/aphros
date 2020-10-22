@@ -62,6 +62,7 @@
 #include "util/metrics.h"
 #include "util/posthook.h"
 #include "util/stat.h"
+#include "util/timer.h"
 
 class GPar {};
 
