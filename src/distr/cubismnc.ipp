@@ -14,7 +14,6 @@
 #include "distr.h"
 #include "dump/dumper.h"
 #include "util/format.h"
-#include "util/histogram.h"
 
 #include "CubismNoCopy/BlockInfo.h"
 #include "CubismNoCopy/BlockLab.h"
@@ -200,7 +199,6 @@ class Cubismnc : public DistrMesh<M_> {
   using P::kernels_;
   using P::nblocks_;
   using P::nprocs_;
-  using P::samp_;
   using P::stage_;
   using P::var;
 
@@ -357,19 +355,10 @@ Cubismnc<Par, M>::Cubismnc(
 }
 
 template <class Par, class M>
-Cubismnc<Par, M>::~Cubismnc() {
-  for (const auto& sm : g_.getSynchronizerMPI()) {
-    samp_.Append(sm.second->getSampler());
-  }
-}
+Cubismnc<Par, M>::~Cubismnc() {}
 
 template <class Par, class M>
 auto Cubismnc<Par, M>::TransferHalos() -> std::vector<size_t> {
-  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] not needed
-  samp_.SeedSample();
-  MPI_Barrier(comm_);
-  samp_.CollectSample("MPI_Barrier");
-
   const std::vector<BlockInfo> infos = g_.getBlocksInfo(); // all blocks
   fassert_equal(infos.size(), kernels_.size());
   auto& m = kernels_.front()->GetMesh();
@@ -399,11 +388,6 @@ auto Cubismnc<Par, M>::TransferHalos() -> std::vector<size_t> {
     Synch& s = g_.sync(
         fviews, nhalo_start, nhalo_end, is_tensorial,
         var.Int["mpi_compress_msg"], var.Int["histogram"]);
-
-    // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] not needed
-    samp_.SeedSample();
-    MPI_Barrier(comm_);
-    samp_.CollectSample("MPI_Barrier");
 
     // Get all blocks synchronized
     const std::vector<BlockInfo> avail = s.avail_halo();
@@ -567,16 +551,18 @@ void Cubismnc<Par, M>::WriteBuffer(const std::vector<size_t>&) {}
 template <class Par, class M>
 void Cubismnc<Par, M>::Bcast(const std::vector<size_t>& bb) {
   using OpConcat = typename M::OpCat;
-  auto& vf = kernels_.front()->GetMesh().GetBcast(); // pointers to broadcast
+  auto& vfirst = kernels_.front()->GetMesh().GetBcast();
 
-  // Check size is the same for all kernels
-  for (auto b : bb) {
-    auto& v = kernels_[b]->GetMesh().GetBcast(); // pointers to broadcast
-    fassert_equal(v.size(), vf.size());
+  if (!vfirst.size()) {
+    return;
   }
 
-  for (size_t i = 0; i < vf.size(); ++i) {
-    if (OpConcat* o = dynamic_cast<OpConcat*>(vf[i].get())) {
+  for (auto b : bb) {
+    fassert_equal(kernels_[b]->GetMesh().GetBcast().size(), vfirst.size());
+  }
+
+  for (size_t i = 0; i < vfirst.size(); ++i) {
+    if (OpConcat* o = dynamic_cast<OpConcat*>(vfirst[i].get())) {
       std::vector<char> r = o->Neutral(); // buffer
 
       if (isroot_) {
@@ -600,9 +586,7 @@ void Cubismnc<Par, M>::Bcast(const std::vector<size_t>& bb) {
       r.resize(s);
 
       // broadcast data
-      samp_.SeedSample();
       MPI_Bcast(r.data(), r.size(), MPI_CHAR, 0, comm_);
-      samp_.CollectSample("MPI_Bcast");
 
       // write to all blocks
       for (auto b : bb) {
@@ -616,25 +600,23 @@ void Cubismnc<Par, M>::Bcast(const std::vector<size_t>& bb) {
     }
   }
 
-  // Clear bcast requests
   for (auto b : bb) {
-    auto& k = *kernels_[b];
-    auto& m = k.GetMesh();
-    m.ClearBcast();
+    kernels_[b]->GetMesh().ClearBcast();
   }
 }
 template <class Par, class M>
 void Cubismnc<Par, M>::Scatter(const std::vector<size_t>& bb) {
-  auto& vreq0 =
-      kernels_.front()->GetMesh().GetScatter(); // requests on first block
+  auto& vfirst = kernels_.front()->GetMesh().GetScatter();
 
-  // Check size is the same for all blocks
-  for (auto b : bb) {
-    auto& vreq = kernels_[b]->GetMesh().GetScatter();
-    fassert_equal(vreq.size(), vreq0.size());
+  if (!vfirst.size()) {
+    return;
   }
 
-  for (size_t q = 0; q < vreq0.size(); ++q) {
+  for (auto b : bb) {
+    fassert_equal(kernels_[b]->GetMesh().GetScatter().size(), vfirst.size());
+  }
+
+  for (size_t q = 0; q < vfirst.size(); ++q) {
     int recvcount;
     int sizes_recvcount;
     std::vector<Scal> rbuf;
@@ -677,11 +659,9 @@ void Cubismnc<Par, M>::Scatter(const std::vector<size_t>& bb) {
       MPI_Scatter(cnt.data(), 1, MPI_INT, &recvcount, 1, MPI_INT, 0, comm_);
       rbuf.resize(recvcount);
       // data
-      samp_.SeedSample();
       MPI_Scatterv(
           buf.data(), cnt.data(), dis.data(), mscal, rbuf.data(), recvcount,
           mscal, 0, comm_);
-      samp_.CollectSample("MPI_Scatterv");
       // sizes recvcount
       MPI_Scatter(
           sizes_cnt.data(), 1, MPI_INT, &sizes_recvcount, 1, MPI_INT, 0, comm_);
@@ -695,11 +675,9 @@ void Cubismnc<Par, M>::Scatter(const std::vector<size_t>& bb) {
       MPI_Scatter(nullptr, 0, MPI_INT, &recvcount, 1, MPI_INT, 0, comm_);
       rbuf.resize(recvcount);
       // data
-      samp_.SeedSample();
       MPI_Scatterv(
           nullptr, nullptr, nullptr, mscal, rbuf.data(), recvcount, mscal, 0,
           comm_);
-      samp_.CollectSample("MPI_Scatterv");
       // sizes recvcount
       MPI_Scatter(nullptr, 0, MPI_INT, &sizes_recvcount, 1, MPI_INT, 0, comm_);
       sizes_rbuf.resize(sizes_recvcount);

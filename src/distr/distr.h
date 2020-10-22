@@ -18,7 +18,6 @@
 #include "kernel/kernelmesh.h"
 #include "parse/vars.h"
 #include "report.h"
-#include "util/histogram.h"
 #include "util/metrics.h"
 #include "util/suspender.h"
 #include "util/sysinfo.h"
@@ -45,7 +44,6 @@ class DistrMesh {
   const Vars& var;
   Vars& var_mutable;
   const KernelMeshFactory<M>& kernelfactory_; // kernel factory
-  Sampler samp_; // sampler accessible to derived classes
 
   int halos_; // number of halo cells (same in all directions)
   MIdx blocksize_; // block size
@@ -108,7 +106,6 @@ class DistrMesh {
   virtual void ClearTimerReport(const std::vector<size_t>& bb);
 
  private:
-  Histogram hist_; // histogram sample collector
   MultiTimer<std::string> mt_; // timer all
   MultiTimer<std::string> mtp_; // timer partial
 };

@@ -34,26 +34,14 @@ DistrMesh<M>::DistrMesh(
     , var(var0)
     , var_mutable(var0)
     , kernelfactory_(kf)
-    , samp_(var.Int["histogram"])
     , halos_(var.Int["hl"])
     , blocksize_{var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]}
     , nprocs_{var.Int["px"], var.Int["py"], var.Int["pz"]}
     , nblocks_{var.Int["bx"], var.Int["by"], var.Int["bz"]}
-    , extent_(var.Double["extent"])
-    , hist_(comm, "distrmesh", var.Int["histogram"]) {}
+    , extent_(var.Double["extent"]) {}
 
 template <class M>
-DistrMesh<M>::~DistrMesh() {
-  hist_.Append(this->samp_); // collect samples from derived classes
-  const auto it_comp = hist_.GetSamples().find("RunKernels(inner)");
-  if (it_comp != hist_.GetSamples().end()) {
-    hist_.Insert("ComputeTime", it_comp->second);
-  }
-  const auto it_wait = hist_.GetSamples().find("waitall_avail_halo");
-  if (it_wait != hist_.GetSamples().end()) {
-    hist_.Insert("TransferTime", it_wait->second);
-  }
-}
+DistrMesh<M>::~DistrMesh() {}
 
 template <class M>
 void DistrMesh<M>::RunKernels(const std::vector<size_t>& bb) {
@@ -128,9 +116,11 @@ void DistrMesh<M>::ReduceToLead(const std::vector<size_t>& bb) {
   using ReductionScal = typename M::OpS;
   using ReductionScalInt = typename M::OpSI;
   using ReductionConcat = typename M::OpCat;
-  auto& first = *kernels_.front(); // first kernel
-  auto& mfirst = first.GetMesh();
-  auto& vfirst = mfirst.GetReduceToLead(); // reduce requests
+  auto& vfirst = kernels_.front()->GetMesh().GetReduceToLead();
+
+  if (!vfirst.size()) {
+    return;
+  }
 
   for (auto b : bb) {
     fassert_equal(
@@ -300,40 +290,27 @@ void DistrMesh<M>::Run() {
   mt_.Push();
   mtp_.Push();
   do {
-    hist_.SeedSample();
     std::vector<size_t> bb;
     if (kernels_.front()->GetMesh().GetDump().size() > 0) {
-      hist_.SeedSample();
       bb = TransferHalos(); // all blocks, sync communication
-      hist_.CollectSample("TransferHalos(sync)");
       ReadBuffer(bb);
       ApplyNanFaces(bb);
       DumpWrite(bb);
       ClearDump(bb);
       ClearComm(bb);
-      hist_.SeedSample();
       RunKernels(bb);
-      hist_.CollectSample("RunKernels(sync)");
     } else {
-      hist_.SeedSample();
       auto bbi = TransferHalos(true); // inner blocks, async communication
-      hist_.CollectSample("TransferHalos(inner)");
       ReadBuffer(bbi);
       ApplyNanFaces(bbi);
       ClearComm(bbi);
-      hist_.SeedSample();
       RunKernels(bbi);
-      hist_.CollectSample("RunKernels(inner)");
 
-      hist_.SeedSample();
       auto bbh = TransferHalos(false); // halo blocks, wait for communication
-      hist_.CollectSample("TransferHalos(halo)");
       ReadBuffer(bbh);
       ApplyNanFaces(bbh);
       ClearComm(bbh);
-      hist_.SeedSample();
       RunKernels(bbh);
-      hist_.CollectSample("RunKernels(halo)");
 
       bb = bbi;
       bb.insert(bb.end(), bbh.begin(), bbh.end());
@@ -362,28 +339,13 @@ void DistrMesh<M>::Run() {
 
     // Break if no pending stages
     if (!Pending(bb)) {
-      hist_.CollectSample("Run");
-      hist_.PopLast("Run"); // last sample is invalid
       break;
     }
 
-    hist_.SeedSample();
     Reduce(bb);
-    hist_.CollectSample("Reduce");
-
-    hist_.SeedSample();
     ReduceToLead(bb);
-    hist_.CollectSample("ReduceToLead");
-
-    hist_.SeedSample();
     Scatter(bb);
-    hist_.CollectSample("Scatter");
-
-    hist_.SeedSample();
     Bcast(bb);
-    hist_.CollectSample("Bcast");
-
-    hist_.CollectSample("Run");
 
     mt_.Pop(kernels_.front()->GetMesh().GetCurName());
     mt_.Push();
