@@ -195,8 +195,8 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
         std::vector<std::shared_ptr<RedOp>> reduce_origin;
         std::vector<std::shared_ptr<RedOp>> reduce_size;
         size_t iblock = 0;
-        for (auto& k : kernels_) {
-          auto& m = k->GetMesh();
+        for (auto b : bb) {
+          auto& m = kernels_[b]->GetMesh();
           auto& data = b_data[iblock];
           auto& origin = b_origin[iblock];
           auto& size = b_size[iblock];

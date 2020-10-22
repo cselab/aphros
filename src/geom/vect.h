@@ -411,6 +411,16 @@ class Vect {
 
 } // namespace generic
 
+// Specialization providing a strict total order,
+// to be used by ordered containers.
+template <class T, size_t dim>
+struct std::less<generic::Vect<T, dim>> {
+  bool operator()(
+      const generic::Vect<T, dim>& a, const generic::Vect<T, dim>& b) const {
+    return a.lexless(b);
+  }
+};
+
 template <class Vect>
 struct Rect {
   static constexpr size_t dim = Vect::dim;

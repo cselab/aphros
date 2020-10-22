@@ -208,7 +208,7 @@ class Cubismnc : public DistrMesh<M_> {
   std::vector<std::vector<FieldView>> fviews_; // fields from last communication
   Synch* sync_;
   size_t n_fields_;
-  std::map<MIdx, size_t, typename MIdx::LexLess> midx_to_kernel_;
+  std::map<MIdx, size_t> midx_to_kernel_;
 };
 
 // nblocks_ - instance of GFieldViewRaw
