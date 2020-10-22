@@ -210,11 +210,11 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
           origin.push_back(m.GetInBlockCells().GetBegin());
           size.push_back(m.GetInBlockCells().GetSize());
           reduce_data.push_back(
-              std::make_shared<typename M::OpCatT<Scal>>(&data));
+              std::make_shared<typename M::template OpCatT<Scal>>(&data));
           reduce_origin.push_back(
-              std::make_shared<typename M::OpCatT<MIdx>>(&origin));
+              std::make_shared<typename M::template OpCatT<MIdx>>(&origin));
           reduce_size.push_back(
-              std::make_shared<typename M::OpCatT<MIdx>>(&size));
+              std::make_shared<typename M::template OpCatT<MIdx>>(&size));
           ++iblock;
         }
         ReduceSingleRequest(reduce_data);
