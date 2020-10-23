@@ -14,7 +14,7 @@
 
 static void RunKernelOpenMP(
     MPI_Comm comm_world, MPI_Comm comm_omp, MPI_Comm comm_master,
-    std::function<void(MPI_Comm, Vars&)> kernel, Vars& var) {
+    const std::function<void(MPI_Comm, Vars&)>& kernel, Vars& var) {
   int rank_omp;
   MPI_Comm_rank(comm_omp, &rank_omp);
 
@@ -86,7 +86,8 @@ bool MpiWrapper::IsRoot() const {
 }
 
 int RunMpi0(
-    int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> kernel) {
+    int argc, const char** argv,
+    const std::function<void(MPI_Comm, Vars&)>& kernel) {
   MpiWrapper mpi(&argc, &argv);
   const int rank = mpi.GetCommRank();
   bool isroot = (!rank);
@@ -198,6 +199,7 @@ int RunMpi0(
 }
 
 int RunMpi(
-    int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> kernel) {
+    int argc, const char** argv,
+    const std::function<void(MPI_Comm, Vars&)>& kernel) {
   return RunMpi0(argc, argv, kernel);
 }

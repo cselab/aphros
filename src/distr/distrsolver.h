@@ -85,4 +85,5 @@ class MpiWrapper {
     }                                                                 \
   } while (0)
 
-int RunMpi(int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> r);
+int RunMpi(
+    int argc, const char** argv, const std::function<void(MPI_Comm, Vars&)>&);
