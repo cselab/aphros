@@ -10,6 +10,9 @@
 
 #include "linear.h"
 
+DECLARE_FORCE_LINK_TARGET(linear_conjugate);
+DECLARE_FORCE_LINK_TARGET(linear_jacobi);
+
 namespace linear {
 
 template <class M>
@@ -224,5 +227,38 @@ auto SolverJacobi<M>::Solve(
     FieldCell<Scal>& fc_sol, M& m) -> Info {
   return imp->Solve(fc_system, fc_init, fc_sol, m);
 }
+
+
+template <class M>
+class ModuleLinearConjugate : public ModuleLinear<M> {
+ public:
+  ModuleLinearConjugate() : ModuleLinear<M>("conjugate") {}
+  std::unique_ptr<Solver<M>> Make(
+      const Vars& var, std::string prefix) override {
+    typename linear::SolverConjugate<M>::Extra extra;
+    return std::make_unique<linear::SolverConjugate<M>>(
+        this->GetConf(var, prefix), extra);
+  }
+};
+
+template <class M>
+class ModuleLinearJacobi : public ModuleLinear<M> {
+ public:
+  ModuleLinearJacobi() : ModuleLinear<M>("jacobi") {}
+  std::unique_ptr<Solver<M>> Make(
+      const Vars& var, std::string prefix) override {
+    typename linear::SolverJacobi<M>::Extra extra;
+    return std::make_unique<linear::SolverJacobi<M>>(
+        this->GetConf(var, prefix), extra);
+  }
+};
+
+
+using M = MeshStructured<double, 3>;
+
+bool kReg_base[] = {
+    RegisterModule<ModuleLinearConjugate<M>>(),
+    RegisterModule<ModuleLinearJacobi<M>>(),
+};
 
 } // namespace linear

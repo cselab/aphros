@@ -11,17 +11,18 @@ class Test(aphros.TestBase):
 
     def run(self, case):
         self.runcmd(
-            "ap.run ./t.linear --tol 1e-5 --maxiter 1000 --verbose --solver {} | grep max_diff_exact > outdiff".format(
-                case))
+            "ap.run ./t.linear --tol 1e-5 --maxiter 1000 --verbose --solver {} | grep max_diff_exact > outdiff"
+            .format(case))
         return ["out", "outdiff"]
 
     def check(self, outdir, refdir, output_files):
         def get_diff(path):
             d = dict()
             with open(path, 'r') as f:
-                exec(f.read(), None, d,)
+                exec(f.read(), None, d)
             print(d)
             return d["max_diff_exact"]
+
         name = "outdiff"
         out = os.path.join(outdir, name)
         ref = os.path.join(refdir, name)

@@ -187,14 +187,14 @@ class ModuleLinearHypre : public ModuleLinear<M> {
     typename SolverHypre<M>::Extra extra;
     extra.solver = var.String[addprefix("solver")];
     extra.print = var.Int["hypre_print"];
-    auto conf = this->GetConf(var, prefix);
-    return std::make_unique<linear::SolverHypre<M>>(conf, extra);
+    return std::make_unique<linear::SolverHypre<M>>(
+        this->GetConf(var, prefix), extra);
   }
 };
 
 using M = MeshStructured<double, 3>;
 
-bool kReg[] = {
+bool kReg_hypre[] = {
     RegisterModule<ModuleLinearHypre<M>>(),
 };
 
