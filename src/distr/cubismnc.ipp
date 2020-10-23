@@ -365,7 +365,7 @@ auto Cubismnc<Par, M>::TransferHalos() -> std::vector<size_t> {
     fviews.resize(n_fields);
     for (size_t i = 0; i < infos.size(); ++i) {
       auto& reqs = kernels_[i]->GetMesh().GetComm();
-      assert(n_fields == fields.size());
+      assert(n_fields == fviews.size());
       for (size_t fi = 0; fi < n_fields; ++fi) {
         auto& req = reqs[fi];
         fviews[fi].push_back(
