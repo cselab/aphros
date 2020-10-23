@@ -21,7 +21,7 @@ set(T "distr")
 add_library(${T} distr.cpp)
 target_link_libraries(${T}
     sysinfo report hypre parser suspender vars histogram
-    dumper git subcomm hypresub openmp)
+    dumper git subcomm openmp)
 
 set(T "distrsolver")
 add_library(${T} distrsolver.cpp)

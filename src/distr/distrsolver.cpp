@@ -7,7 +7,6 @@
 #include <set>
 
 #include "distrsolver.h"
-#include "linear/hypresub.h"
 #include "parse/argparse.h"
 #include "util/git.h"
 #include "util/logger.h"
@@ -23,13 +22,15 @@ static void RunKernelOpenMP(
   // is not possible with MPI since the destructor of MpiWrapper
   // calls MPI_Finalize() so in case of an exception the program freezes.
   try {
-    Histogram hist(comm_world, "runkernelOMP", var.Int["histogram"]);
-    HypreSub::InitServer(comm_world, comm_omp);
+    (void)comm_world;
+    (void)comm_omp;
+    // Histogram hist(comm_world, "runkernelOMP", var.Int["histogram"]);
+    // HypreSub::InitServer(comm_world, comm_omp);
     if (rank_omp == 0) {
       kernel(comm_master, var);
-      HypreSub::StopServer();
+      // HypreSub::StopServer();
     } else {
-      HypreSub::RunServer(hist);
+      // HypreSub::RunServer(hist);
     }
   } catch (const std::exception& e) {
     std::cerr << FILELINE + "\nabort after throwing exception\n"

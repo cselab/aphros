@@ -6,7 +6,6 @@
 #endif
 
 #include "distrsolver.h"
-#include "linear/hypresub.h"
 #include "util/git.h"
 #include "util/subcomm.h"
 
@@ -16,13 +15,21 @@ static void RunKernelOpenMP(
   int rank_omp;
   MPI_Comm_rank(comm_omp, &rank_omp);
 
-  Histogram hist(comm_world, "runkernelOMP", var.Int["histogram"]);
-  HypreSub::InitServer(comm_world, comm_omp);
-  if (rank_omp == 0) {
-    kernel(comm_master, var);
-    HypreSub::StopServer();
-  } else {
-    HypreSub::RunServer(hist);
+  try {
+    (void)comm_world;
+    (void)comm_omp;
+    // Histogram hist(comm_world, "runkernelOMP", var.Int["histogram"]);
+    // HypreSub::InitServer(comm_world, comm_omp);
+    if (rank_omp == 0) {
+      kernel(comm_master, var);
+      // HypreSub::StopServer();
+    } else {
+      // HypreSub::RunServer(hist);
+    }
+  } catch (const std::exception& e) {
+    std::cerr << FILELINE + "\nabort after throwing exception\n"
+              << e.what() << '\n';
+    std::terminate();
   }
 }
 
