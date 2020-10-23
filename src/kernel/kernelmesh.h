@@ -63,6 +63,7 @@ class KernelMesh {
     m.SetCN(var.Int["CHECKNAN"]); // TODO: revise, avoid optional setters
     m.SetEdim(var.Int["dim"]);
   }
+  virtual ~KernelMesh() = default;
   virtual void Run() = 0;
   M& GetMesh() {
     return m;
