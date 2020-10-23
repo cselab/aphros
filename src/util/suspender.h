@@ -25,7 +25,7 @@ class Suspender {
    public:
     // Constructor
     // Advance list iterator, add new counter if needed, reset counter
-    Sem(Suspender& owner_, std::string name = "");
+    Sem(Suspender& owner_, const std::string& name = "");
     Sem(Sem&) = delete;
     Sem& operator=(Sem&) = delete;
     Sem(Sem&&) = default;
@@ -34,46 +34,45 @@ class Suspender {
     // If all stages on current level done, remove current level
     ~Sem();
     // Next() without nested calls
-    bool operator()(std::string suff = "" /*name suffix*/);
+    bool operator()(const std::string& suff = "");
     // Next() with nested calls
-    bool Nested(std::string suff = "" /*name suffix*/);
-    std::string GetName() const {
+    bool Nested(const std::string& suff = "");
+    const std::string& GetName() const {
       return name_;
     }
     void LoopBegin();
     void LoopBreak();
     void LoopEnd();
     template <class T>
-    T* Get() {
-      State& s = *owner_.pos_;
-      std::unique_ptr<BaseHolder>& h = s.context;
-      if (!h) {
-        h = std::unique_ptr<BaseHolder>(new Holder<T>(new T()));
+    T* GetContext() {
+      State& state = *owner_.pos_;
+      std::unique_ptr<BaseHolder>& holder = state.context;
+      if (!holder) {
+        holder = std::make_unique<Holder<T>>(new T());
       }
-      return dynamic_cast<Holder<T>*>(h.get())->Get();
+      return dynamic_cast<Holder<T>*>(holder.get())->Get();
     }
     template <class T>
-    T* Get(T*) {
-      return Get<T>();
+    T* GetContext(T*) {
+      return GetContext<T>();
     }
     template <class T>
     explicit operator T*() {
-      return Get<T>();
+      return GetContext<T>();
     }
 
    private:
     Suspender& owner_;
     std::string name_;
-    // Returns true if current stage needs execution
-    // and advances stage counter
-    bool Next(std::string suff = "" /*name suffix*/);
+    // Returns true if current stage needs execution and advances stage counter
+    bool Next(const std::string& suff = "");
   };
   friend Sem;
   // Intializes list with auxiliary counter (-1,-1), sets iterator to it
   Suspender();
-  Sem GetSem(std::string name = "");
+  Sem GetSem(const std::string& name = "");
   // Returns name+suff of current stage
-  std::string GetCurName() const;
+  const std::string& GetCurName() const;
   // Converts counter list to string
   size_t GetDepth() const {
     return depth_;
@@ -85,19 +84,19 @@ class Suspender {
  private:
   class BaseHolder {
    public:
-    virtual ~BaseHolder() {}
+    virtual ~BaseHolder() = default;
   };
   // Container for user-defined context object
   template <class T>
   class Holder : public BaseHolder {
    public:
-    Holder(T* p) : p_(std::unique_ptr<T>(p)) {}
+    Holder(T* raw) : ptr_(raw) {}
     T* Get() {
-      return p_.get();
+      return ptr_.get();
     }
 
    private:
-    std::unique_ptr<T> p_;
+    std::unique_ptr<T> ptr_;
   };
   struct State { // state of a suspended function
     int current; // current stage index

@@ -8,14 +8,14 @@
 
 #include "suspender.h"
 
-Suspender::Sem::Sem(Suspender& owner, std::string name)
+Suspender::Sem::Sem(Suspender& owner, const std::string& name)
     : owner_(owner), name_(name) {
   auto& states = owner_.states_;
   auto& pos = owner_.pos_;
 
   if (pos == states.begin()) {
     owner_.nest_ = true; // allow nested calls on first level
-    //owner_.curname_ = "";
+    // owner_.curname_ = "";
     owner_.depth_ = 0;
   }
 
@@ -56,7 +56,7 @@ Suspender::Sem::~Sem() {
   pos = ip;
 }
 
-bool Suspender::Sem::Next(std::string suff) {
+bool Suspender::Sem::Next(const std::string& suff) {
   auto& pos = owner_.pos_;
   if (pos->current++ == pos->target) {
     /*
@@ -73,12 +73,12 @@ bool Suspender::Sem::Next(std::string suff) {
   return false;
 }
 
-bool Suspender::Sem::operator()(std::string suff) {
+bool Suspender::Sem::operator()(const std::string& suff) {
   owner_.nest_ = false;
   return Next(suff);
 }
 
-bool Suspender::Sem::Nested(std::string suff) {
+bool Suspender::Sem::Nested(const std::string& suff) {
   owner_.nest_ = true;
   return Next(suff);
 }
@@ -118,11 +118,11 @@ Suspender::Suspender() : nest_(false) {
   pos_ = states_.begin();
 }
 
-Suspender::Sem Suspender::GetSem(std::string name) {
+Suspender::Sem Suspender::GetSem(const std::string& name) {
   return Sem(*this, name);
 }
 
-std::string Suspender::GetCurName() const {
+const std::string& Suspender::GetCurName() const {
   return curname_;
 }
 

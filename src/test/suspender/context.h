@@ -38,8 +38,7 @@ void A(Suspender& susp) {
     std::vector<double> v;
   };
   Suspender::Sem sem = susp.GetSem();
-  // auto ctx = sem.Get<Context>();
-  auto ctx = sem.Get((Context*)0);
+  Context* ctx(sem);
   if (sem()) {
     ctx->v = {1., 2., 3., 4.};
     std::cerr << "A1" << std::endl;
