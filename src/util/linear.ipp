@@ -9,6 +9,8 @@
 template <class M_>
 auto ULinear<M_>::MakeLinearSolver(const Vars& var, std::string prefix)
     -> std::unique_ptr<linear::Solver<M>> {
+  FORCE_LINK(linear_hypre);
+
   auto addprefix = [prefix](std::string name) {
     return "hypre_" + prefix + "_" + name;
   };
@@ -17,11 +19,8 @@ auto ULinear<M_>::MakeLinearSolver(const Vars& var, std::string prefix)
   typename linear::Solver<M>::Conf conf;
   conf.tol = var.Double[addprefix("tol")];
   conf.maxiter = var.Int[addprefix("maxiter")];
-  if (name == "hypre") {
-    typename linear::SolverHypre<M>::Extra extra;
-    extra.solver = var.String[addprefix("solver")];
-    extra.print = var.Int["hypre_print"];
-    return std::make_unique<linear::SolverHypre<M>>(conf, extra);
+  if (auto* module = linear::ModuleLinear<M>::GetInstance(name)) {
+    return module->Make(var, prefix);
   } else if (name == "conjugate") {
     return std::make_unique<linear::SolverConjugate<M>>(
         conf, typename linear::SolverConjugate<M>::Extra());

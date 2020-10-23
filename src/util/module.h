@@ -30,6 +30,7 @@ bool RegisterModule() {
   return true;
 }
 
+// XXX Note about namespaces
 // Definitions of module implementations must be inside a separate namespace
 // for each module type.
 // Otherwise, calls such as `RegisterModule<Uniform<M>>()`

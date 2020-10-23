@@ -8,5 +8,9 @@ target_link_libraries(${T} hypre subcomm histogram)
 
 set(T "linear")
 add_library(${T} linear.cpp)
-target_link_libraries(${T} hypre subcomm)
+target_link_libraries(${T})
+
+set(T "linear_hypre")
+add_library(${T} linear_hypre.cpp)
+target_link_libraries(${T} hypre)
 

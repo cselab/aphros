@@ -74,6 +74,7 @@ class ModulePostStep : public Module<ModulePostStep<M>> {
  public:
   using Vect = typename M::Vect;
   using Module<ModulePostStep>::Module;
+  virtual ~ModulePostStep() = default;
   virtual void operator()(Hydro<M>*, M& m) = 0;
 };
 

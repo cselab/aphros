@@ -21,118 +21,6 @@ using Expr = typename M::Expr;
 using ExprFace = typename M::ExprFace;
 using UEB = UEmbed<M>;
 
-enum class Solver { hypre, zero, jacobi, conjugate };
-
-struct SolverInfo {
-  Scal residual;
-  int iter;
-};
-
-template <class M>
-SolverInfo SolveHypre(
-    const FieldCell<typename M::Expr>& fc_system,
-    const FieldCell<typename M::Scal>* fc_init,
-    FieldCell<typename M::Scal>& fc_sol, M& m, int maxiter, Scal tol) {
-  auto sem = m.GetSem(__func__);
-  struct {
-    std::unique_ptr<linear::Solver<M>> solver;
-  } * ctx(sem);
-  auto& t = *ctx;
-  if (sem("init")) {
-    typename linear::Solver<M>::Conf conf;
-    typename linear::SolverHypre<M>::Extra extra;
-
-    conf.tol = tol;
-    conf.maxiter = maxiter;
-    extra.solver = "pcg";
-
-    t.solver = std::make_unique<linear::SolverHypre<M>>(conf, extra);
-  }
-  if (sem.Nested("solve")) {
-    auto info = t.solver->Solve(fc_system, fc_init, fc_sol, m);
-    return {info.residual, info.iter};
-  }
-  return {};
-}
-
-SolverInfo SolveConjugate(
-    M& m, const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
-    FieldCell<Scal>& fc_sol, int maxiter, Scal tol) {
-  auto sem = m.GetSem(__func__);
-  struct {
-    std::unique_ptr<linear::Solver<M>> solver;
-  } * ctx(sem);
-  auto& t = *ctx;
-  if (sem("init")) {
-    typename linear::Solver<M>::Conf conf;
-    typename linear::SolverConjugate<M>::Extra extra;
-
-    conf.tol = tol;
-    conf.maxiter = maxiter;
-
-    t.solver = std::make_unique<linear::SolverConjugate<M>>(conf, extra);
-  }
-  if (sem.Nested("solve")) {
-    auto info = t.solver->Solve(fc_system, fc_init, fc_sol, m);
-    return {info.residual, info.iter};
-  }
-  return {};
-}
-
-SolverInfo SolveJacobi(
-    M& m, const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
-    FieldCell<Scal>& fc_sol, int maxiter, Scal tol) {
-  auto sem = m.GetSem(__func__);
-  struct {
-    std::unique_ptr<linear::Solver<M>> solver;
-  } * ctx(sem);
-  auto& t = *ctx;
-  if (sem("init")) {
-    typename linear::Solver<M>::Conf conf;
-    typename linear::SolverJacobi<M>::Extra extra;
-
-    conf.tol = tol;
-    conf.maxiter = maxiter;
-
-    t.solver = std::make_unique<linear::SolverJacobi<M>>(conf, extra);
-  }
-  if (sem.Nested("solve")) {
-    auto info = t.solver->Solve(fc_system, fc_init, fc_sol, m);
-    return {info.residual, info.iter};
-  }
-  return {};
-}
-
-Solver GetSolver(std::string name) {
-  if (name == "hypre") {
-    return Solver::hypre;
-  } else if (name == "zero") {
-    return Solver::zero;
-  } else if (name == "jacobi") {
-    return Solver::jacobi;
-  } else if (name == "conjugate") {
-    return Solver::conjugate;
-  }
-  fassert(false, "Unknown solver=" + name);
-}
-
-SolverInfo Solve(
-    M& m, const FieldCell<Expr>& fc_system, FieldCell<Scal>& fc_sol,
-    Solver solver, int maxiter, Scal tol) {
-  switch (solver) {
-    case Solver::hypre:
-      return SolveHypre(fc_system, &fc_sol, fc_sol, m, maxiter, tol);
-    case Solver::zero:
-      fc_sol.Reinit(m, 0);
-      return SolverInfo{0, 0};
-    case Solver::jacobi:
-      return SolveJacobi(m, fc_system, &fc_sol, fc_sol, maxiter, tol);
-    case Solver::conjugate:
-      return SolveConjugate(m, fc_system, &fc_sol, fc_sol, maxiter, tol);
-  }
-  fassert(false);
-}
-
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem(__func__);
   struct {
@@ -142,9 +30,9 @@ void Run(M& m, Vars& var) {
     FieldFace<Scal> ff_rho;
     FieldCell<Expr> fc_system;
     MapEmbed<BCond<Scal>> mebc;
-    Solver solver;
+    std::unique_ptr<linear::Solver<M>> solver;
     std::vector<generic::Vect<Scal, 3>> norms;
-    SolverInfo info;
+    typename linear::Solver<M>::Info info;
     SingleTimer timer;
     double time_start;
     double time_stop;
@@ -193,14 +81,15 @@ void Run(M& m, Vars& var) {
       t.fc_sol[c] = t.fc_sol_exact[c] * (t.fc_sol_exact[c] * 0.1 + 1);
     }
 
-    t.solver = GetSolver(var.String["solver"]);
+    const auto name = var.String["linsolver_symm"];
+    auto factory = linear::ModuleLinear<M>::GetInstance(name);
+    fassert(factory, "Solver not found: " + name);
+    t.solver = factory->Make(var, "symm");
     m.flags.linreport = var.Int["VERBOSE"];
     t.time_start = t.timer.GetSeconds();
   }
   if (sem.Nested("solve")) {
-    t.info = Solve(
-        m, t.fc_system, t.fc_sol, t.solver, var.Int["maxiter"],
-        var.Double["tol"]);
+    t.info = t.solver->Solve(t.fc_system, &t.fc_sol, t.fc_sol, m);
   }
   if (sem("diff")) {
     t.time_stop = t.timer.GetSeconds();
@@ -231,6 +120,8 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
+  FORCE_LINK(linear_hypre);
+
   MpiWrapper mpi(&argc, &argv);
 
   ArgumentParser parser("Test for linear solvers.", mpi.IsRoot());
@@ -258,9 +149,11 @@ int main(int argc, const char** argv) {
   std::string conf = "";
   conf += sub.GetConfig();
 
-  conf += "\nset string solver " + args.String["solver"];
+  conf += "\nset string linsolver_symm " + args.String["solver"];
   conf += "\nset double hypre_symm_tol " + args.Double.GetStr("tol");
   conf += "\nset int hypre_symm_maxiter " + args.Int.GetStr("maxiter");
+  conf += "\nset int hypre_print 0";
+  conf += "\nset string hypre_symm_solver pcg";
   conf += "\nset double tol " + args.Double.GetStr("tol");
   conf += "\nset int maxiter " + args.Int.GetStr("maxiter");
   conf += "\nset int dump " + args.Int.GetStr("dump");

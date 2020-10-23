@@ -6,7 +6,6 @@
 namespace linear {
 
 using M = MeshStructured<double, 3>;
-template class SolverHypre<M>;
 template class SolverConjugate<M>;
 template class SolverJacobi<M>;
 

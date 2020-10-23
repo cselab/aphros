@@ -3,18 +3,12 @@
 
 #pragma once
 
-#include <algorithm>
-#include <array>
-#include <cassert>
-#include <cstdint>
-#include <iostream>
-#include <map>
 #include <memory>
-#include <vector>
 
-#include "debug/isnan.h"
 #include "debug/linear.h"
 #include "geom/mesh.h"
+#include "parse/vars.h"
+#include "util/module.h"
 
 namespace linear {
 
@@ -62,26 +56,20 @@ class Solver {
 };
 
 template <class M>
-class SolverHypre : public Solver<M> {
+class ModuleLinear : public Module<ModuleLinear<M>> {
  public:
-  using Base = Solver<M>;
-  using Conf = typename Base::Conf;
-  using Info = typename Base::Info;
-  using Scal = typename M::Scal;
-  using Expr = typename M::Expr;
-  struct Extra { // extra config
-    std::string solver = "pcg"; // name of the solver to use
-    int print = 0; // print level, 0 for none
-  };
-  SolverHypre(const Conf& conf, const Extra& extra);
-  ~SolverHypre();
-  Info Solve(
-      const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
-      FieldCell<Scal>& fc_sol, M& m) override;
-
- private:
-  struct Imp;
-  std::unique_ptr<Imp> imp;
+  using Vect = typename M::Vect;
+  using Module<ModuleLinear>::Module;
+  virtual std::unique_ptr<Solver<M>> Make(const Vars&, std::string prefix) = 0;
+  static typename Solver<M>::Conf GetConf(const Vars& var, std::string prefix) {
+    auto addprefix = [prefix](std::string name) {
+      return "hypre_" + prefix + "_" + name;
+    };
+    typename linear::Solver<M>::Conf conf;
+    conf.tol = var.Double[addprefix("tol")];
+    conf.maxiter = var.Int[addprefix("maxiter")];
+    return conf;
+  }
 };
 
 template <class M>
@@ -101,7 +89,7 @@ class SolverConjugate : public Solver<M> {
 
  private:
   struct Imp;
-  std::unique_ptr<Imp> imp;
+  const std::unique_ptr<Imp> imp;
 };
 
 template <class M>
@@ -121,7 +109,7 @@ class SolverJacobi : public Solver<M> {
 
  private:
   struct Imp;
-  std::unique_ptr<Imp> imp;
+  const std::unique_ptr<Imp> imp;
 };
 
 } // namespace linear
