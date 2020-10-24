@@ -1983,6 +1983,9 @@ void Hydro<M>::DumpFields() {
     }
   }
   if (sem()) {
+    if (m.IsRoot() && var.Int("create_dumpdone", false)) {
+      std::ofstream(GetDumpName(".dumpdone", "", dumper_.GetN()));
+    }
     // XXX: empty stage, otherwise ctx is destroyed before dump
   }
 }
