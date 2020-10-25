@@ -121,14 +121,24 @@ void Run(M& m, Vars& var) {
 
 int main(int argc, const char** argv) {
   FORCE_LINK(linear_hypre);
+  FORCE_LINK(linear_conjugate);
+  FORCE_LINK(linear_jacobi);
 
   MpiWrapper mpi(&argc, &argv);
 
   ArgumentParser parser("Test for linear solvers.", mpi.IsRoot());
   parser.AddSwitch("--verbose").Help("Print solver info.");
+  auto instances = []() {
+    auto map = linear::ModuleLinear<M>::GetInstances();
+    std::vector<std::string> res;
+    for (auto p : map) {
+      res.push_back(p.first);
+    }
+    return res;
+  }();
   parser.AddVariable<std::string>("--solver", "hypre")
       .Help("Linear solver to use")
-      .Options({"hypre", "conjugate", "jacobi"});
+      .Options(instances);
   parser.AddVariable<double>("--tol", 1e-3).Help("Convergence tolerance");
   parser.AddVariable<int>("--maxiter", 100).Help("Maximum iterations");
   parser.AddVariable<int>("--mesh", 32).Help("Mesh size in all directions");
