@@ -108,4 +108,8 @@ vect vect 0
 
 TestFormat
 Char 'f' at position 5 in string 'abcdefgh'
-Vect (0,1,2)
+scientific 3.142e+00, fixed 3.142, default 3.14
+scientific 3.142e+00, fixed 3.142, default 3.14
+scientific 0.000e+00, fixed 1.100, default 2.2
+scientific 0.000e+00, fixed 1.100, default 2.2
+Vect (0,1,2) (0.0000000000,1.0000000000,2.0000000000)

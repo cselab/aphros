@@ -142,8 +142,16 @@ void TestFormat() {
   std::string s = "abcdefgh";
   std::cout << util::Format(
       "Char '{0}' at position {1} in string '{2}'\n", s[i], i, s);
+  std::cout << util::Format(
+      "scientific {0:.3e}, fixed {0:.3f}, default {0:.3g}\n", M_PI);
+  std::cout << util::Format(
+      "scientific {:.3e}, fixed {:.3f}, default {:.3g}\n", M_PI, M_PI, M_PI);
+  std::cout << util::Format(
+      "scientific {:.3e}, fixed {:.3f}, default {:.3g}\n", 0.0, 1.1, 2.2);
+  std::cout << util::Format(
+      "scientific {0:.3e}, fixed {1:.3f}, default {2:.3g}\n", 0.0, 1.1, 2.2);
   using Vect = generic::Vect<double, 3>;
-  std::cout << util::Format("Vect {}\n", Vect(0., 1., 2.));
+  std::cout << util::Format("Vect {} {0:.10f}\n", Vect(0., 1., 2.));
 }
 
 int main() {
