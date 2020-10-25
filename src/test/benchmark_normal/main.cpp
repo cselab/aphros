@@ -14,6 +14,7 @@
 #include "solver/normal.h"
 #include "solver/normal.ipp"
 #include "solver/solver.h"
+#include "util/format.h"
 #include "util/sysinfo.h"
 #include "util/timer.h"
 
@@ -39,26 +40,25 @@ using Vect = generic::Vect<Scal, dim>;
 using Mesh = MeshStructured<Scal, dim>;
 using Normal = typename UNormal<Mesh>::Imp;
 
-Scal Rnd(Scal q) {
+Scal Random(Scal q) {
   return std::sin(std::sin(q * 123.456) * 654.321);
 }
 
-// rnd next
-Scal Rndn(Scal& q) {
-  q += 0.1;
-  return std::sin(std::sin(q * 123.456) * 654.321);
+Scal RandomNext(Scal& q) {
+  return Random(q += 0.1);
 }
 
-Mesh GetMesh(MIdx s /*size in cells*/) {
-  Rect<Vect> dom(Vect(0), Vect(1));
-  MIdx b(0, 0, 0); // lower index
-  int hl = 2; // halos
-  return InitUniformMesh<Mesh>(dom, b, s, hl, true, true, s, 0);
+Mesh GetMesh(MIdx size) {
+  const Rect<Vect> dom(Vect(0), Vect(1));
+  const MIdx begin(0, 0, 0);
+  const int halos = 2;
+  return InitUniformMesh<Mesh>(dom, begin, size, halos, true, true, size, 0);
 }
 
 class TimerMesh : public ExecutionTimer {
  public:
-  TimerMesh(const std::string& name, Mesh& m_) : ExecutionTimer(name, 0.1, 3), m(m_) {}
+  TimerMesh(const std::string& name, Mesh& m_)
+      : ExecutionTimer(name, 0.1, 3), m(m_) {}
 
  protected:
   Mesh& m;
@@ -68,26 +68,26 @@ template <int id>
 class Young : public TimerMesh {
  public:
   Young(Mesh& m_)
-      : TimerMesh("young" + std::to_string(id), m_), fc(m), fci(m, true) {
+      : TimerMesh("young" + std::to_string(id), m_), fcu(m), fcmask(m, true) {
     for (auto i : m.AllCells()) {
-      fc[i] = Rnd(i.GetRaw());
+      fcu[i] = Random(i.GetRaw());
     }
   }
   void F() override {
     volatile size_t ii = 0;
 
     if (id == 0) {
-      Normal::CalcNormalYoung(m, fc, fci, fcn);
+      Normal::CalcNormalYoung(m, fcu, fcmask, fcn);
     } else {
-      Normal::CalcNormalYoung1(m, fc, fci, fcn);
+      Normal::CalcNormalYoung1(m, fcu, fcmask, fcn);
     }
 
     ii = fcn[IdxCell(ii)][0];
   }
 
  private:
-  FieldCell<Scal> fc;
-  FieldCell<bool> fci;
+  FieldCell<Scal> fcu;
+  FieldCell<bool> fcmask;
   FieldCell<Vect> fcn;
 };
 
@@ -95,9 +95,9 @@ template <int id>
 class Height : public TimerMesh {
  public:
   Height(Mesh& m_)
-      : TimerMesh("height" + std::to_string(id), m_), fc(m), fci(m, true) {
+      : TimerMesh("height" + std::to_string(id), m_), fcu(m), fcmask(m, true) {
     for (auto i : m.AllCells()) {
-      fc[i] = Rnd(i.GetRaw());
+      fcu[i] = Random(i.GetRaw());
     }
   }
   void F() override {
@@ -105,17 +105,17 @@ class Height : public TimerMesh {
     size_t edim = 3;
 
     if (id == 0) {
-      Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn);
+      Normal::CalcNormalHeight(m, fcu, fcmask, edim, true, fcn);
     } else {
-      Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn);
+      Normal::CalcNormalHeight1(m, fcu, fcmask, edim, true, fcn);
     }
 
     ii = fcn[IdxCell(ii)][0];
   }
 
  private:
-  FieldCell<Scal> fc;
-  FieldCell<bool> fci;
+  FieldCell<Scal> fcu;
+  FieldCell<bool> fcmask;
   FieldCell<Vect> fcn;
   FieldCell<char> fcd;
 };
@@ -123,12 +123,12 @@ class Height : public TimerMesh {
 class Partstr : public TimerMesh {
  public:
   Partstr(Mesh& m_)
-      : TimerMesh("partstr", m_), fc(m), fci(m, true), fcn(m), fca(m) {
+      : TimerMesh("partstr", m_), fcu(m), fcmask(m, true), fcn(m), fca(m) {
     for (auto c : m.AllCells()) {
       Scal q = c.GetRaw();
-      fc[c] = Rndn(q);
-      fcn[c] = Vect(Rndn(q), Rndn(q), Rndn(q));
-      fca[c] = Rndn(q);
+      fcu[c] = RandomNext(q);
+      fcn[c] = Vect(RandomNext(q), RandomNext(q), RandomNext(q));
+      fca[c] = RandomNext(q);
     }
   }
   void F() override {
@@ -138,11 +138,10 @@ class Partstr : public TimerMesh {
   }
 
  private:
-  FieldCell<Scal> fc;
-  FieldCell<bool> fci;
+  FieldCell<Scal> fcu;
+  FieldCell<bool> fcmask;
   FieldCell<Vect> fcn;
   FieldCell<Scal> fca;
-  FieldCell<Scal> fck;
 };
 
 // f=0: youngs
@@ -150,81 +149,72 @@ class Partstr : public TimerMesh {
 // f=2: height edim=2
 void Cmp(int f) {
   auto m = GetMesh(MIdx(8));
-  FieldCell<Scal> fc(m);
-  FieldCell<bool> fci(m, true);
+  FieldCell<Scal> fcu(m);
+  FieldCell<bool> fcmask(m, true);
   FieldCell<Vect> fcn(m);
   FieldCell<Vect> fcn2(m);
   for (auto c : m.AllCells()) {
-    fc[c] = Rnd(c.GetRaw());
+    fcu[c] = Random(c.GetRaw());
   }
   if (f == 0) {
-    Normal::CalcNormalYoung(m, fc, fci, fcn);
-    Normal::CalcNormalYoung1(m, fc, fci, fcn2);
+    Normal::CalcNormalYoung(m, fcu, fcmask, fcn);
+    Normal::CalcNormalYoung1(m, fcu, fcmask, fcn2);
   } else if (f == 1) {
     size_t edim = 3;
-    Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn);
-    Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn2);
+    Normal::CalcNormalHeight(m, fcu, fcmask, edim, true, fcn);
+    Normal::CalcNormalHeight1(m, fcu, fcmask, edim, true, fcn2);
   } else {
     size_t edim = 2;
-    Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn);
-    Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn2);
+    Normal::CalcNormalHeight(m, fcu, fcmask, edim, true, fcn);
+    Normal::CalcNormalHeight1(m, fcu, fcmask, edim, true, fcn2);
   }
 
-  Scal r = DiffMax(fcn, fcn2, m);
-  Scal eps = 1e-15;
-  if (r > eps) {
-    std::vector<std::string> nn = {
-        "NormalYoung", "NormalHeight,edim=3", "NormalHeight,edim=2"};
-    std::cerr << "Cmp " + nn[f] + ": max difference excceded "
-              << std::scientific << std::setprecision(16) << r << " > " << eps
-              << std::endl;
-    std::terminate();
-  }
+  const Scal r = DiffMax(fcn, fcn2, m);
+  std::vector<std::string> names = {
+      "NormalYoung", "NormalHeight,edim=3", "NormalHeight,edim=2"};
+  const Scal eps = 1e-15;
+  fassert(
+      r <= eps, //
+      util::Format(
+          "Cmp {}: max difference exceeded: {:.16e} > {:.16e}", names[f], r,
+          eps));
 }
 
-// i: target index
-// k: current index
+// test: test index
 // Output:
-// create if k == i
-// ++k
-// p: pointer to new instance
-template <class T>
-void Try(Mesh& m, size_t i, size_t& k, ExecutionTimer*& p) {
-  if (k++ == i) {
-    p = new T(m);
-  }
-}
-
-// i: test index
-// m: mesh
-// Output:
-// t: total per one call [sec]
-// n: number of calls
+// time: total per one call [sec]
+// niters: number of calls
 // mem: memory usage in bytes
 // name: test name
 // Returns 1 if test with index i found
 bool Run(
-    const size_t i, Mesh& m, double& t, size_t& n, size_t& mem,
-    std::string& name) {
-  size_t k = 0;
-  ExecutionTimer* p = nullptr;
+    const size_t test, Mesh& m, /*out*/ double& time, size_t& niters,
+    size_t& mem, std::string& name) {
+  size_t current = 0;
+  std::unique_ptr<ExecutionTimer> ptr;
 
-  Try<Young<0>>(m, i, k, p);
-  Try<Young<1>>(m, i, k, p);
-  Try<Height<0>>(m, i, k, p);
-  Try<Height<1>>(m, i, k, p);
-  Try<Partstr>(m, i, k, p);
+  auto create = [&](auto* kernel) {
+    if (current++ == test) {
+      using T = typename std::remove_pointer<decltype(kernel)>::type;
+      ptr = std::make_unique<T>(m);
+    }
+  };
 
-  if (!p) {
+  create((Young<0>*)0);
+  create((Young<1>*)0);
+  create((Height<0>*)0);
+  create((Height<1>*)0);
+  create((Partstr*)0);
+
+  if (!ptr) {
     return false;
   }
 
-  auto e = p->Run();
-  t = e.min_call_time;
-  n = e.iters;
+  auto e = ptr->Run();
+  time = e.min_call_time;
+  niters = e.iters;
   mem = sysinfo::GetMem();
-  name = p->GetName();
-  delete p;
+  name = ptr->GetName();
 
   return true;
 }
@@ -234,30 +224,29 @@ int main() {
   Cmp(1);
   Cmp(2);
 
-  // mesh size
-  std::vector<MIdx> ss;
+  std::vector<MIdx> sizes;
   for (int n : {8, 16, 32, 64}) {
-    ss.emplace_back(n, n, 8);
+    sizes.emplace_back(n, n, 8);
   }
 
   const size_t ww = 16;
 
   using std::setw;
 
-  for (auto s : ss) {
-    auto m = GetMesh(s);
-    const size_t nci = m.GetInBlockCells().size();
+  for (auto size : sizes) {
+    auto m = GetMesh(size);
+    const size_t ncells = m.GetInBlockCells().size();
     std::cout << "Mesh"
-              << " size=" << s << " incells=" << nci << std::endl;
+              << " size=" << size << " incells=" << ncells << std::endl;
 
-    int i = 0;
-    double t;
-    size_t n;
+    int test = 0;
+    double time;
+    size_t niters;
     size_t mem;
     std::string name;
-    while (Run(i++, m, t, n, mem, name)) {
-      std::cout << setw(ww) << name << setw(ww) << t * 1e9 / nci << setw(ww)
-                << n << std::endl;
+    while (Run(test++, m, time, niters, mem, name)) {
+      std::cout << setw(ww) << name << setw(ww) << time * 1e9 / ncells
+                << setw(ww) << niters << std::endl;
     }
     std::cout << std::endl;
     std::cout << std::endl;
