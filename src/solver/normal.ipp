@@ -509,13 +509,9 @@ struct UNormal<M_>::Imp {
   // u: volume fraction, array of size 3x3x3
   // pn: guess for normal, updated if heights give steeper estimate
   static void GetNormalHeight(const std::array<Scal, 27>& u, Vect& n) {
-    auto q = [&u](int dx, int dy, int dz) {
-      const int w = 3; // stencil width
-      int i = (dx + 1) + (dy + 1) * w + (dz + 1) * w * w;
-      return u[i];
-    };
-
-    H(q, n, 3, false);
+    const int w = 3;
+    const int offset[] = {1, w, w * w};
+    GetNormal(&u[1 + w + w * w], n, 3, false, offset);
   }
 };
 
