@@ -40,65 +40,45 @@ using Vect = generic::Vect<Scal, dim>;
 using Mesh = MeshStructured<Scal, dim>;
 using Normal = typename UNormal<Mesh>::Imp;
 
-static void GetNormal(
-    const Scal* q, Vect& pn, size_t edim, bool force_overwrite,
-    const int s[3]) {
-  Vect best_n(0);
-  size_t best_dz = 0;
-  for (size_t dz : {0, 1, 2}) {
-    if (dz >= edim) {
-      continue;
-    }
-    const size_t dx = (dz + 1) % dim;
-    const size_t dy = (dz + 2) % dim;
-
-    Vect n(0);
-    n[dx] = (q[s[dx] - s[dz]] + q[s[dx]] + q[s[dx] + s[dz]]) -
-            (q[-s[dx] - s[dz]] + q[-s[dx]] + q[-s[dx] + s[dz]]);
-    n[dy] = (q[s[dy] - s[dz]] + q[s[dy]] + q[s[dy] + s[dz]]) -
-            (q[-s[dy] - s[dz]] + q[-s[dy]] + q[-s[dy] + s[dz]]);
-    n[dz] = (q[s[dz]] - q[-s[dz]] > 0 ? 2 : -2);
-    n /= -n.norm1();
-    if (std::abs(best_n[best_dz]) < std::abs(n[dz])) {
-      best_n = n;
-      best_dz = dz;
-    }
-  }
-
-  if (force_overwrite || std::abs(best_n[best_dz]) < std::abs(pn[best_dz])) {
-    pn = best_n;
-  }
-}
-
 template <class M>
 void CalcNormalHeight2(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci, size_t edim,
     bool force_overwrite, FieldCell<Vect>& fcn) {
-  using MIdx = typename M::MIdx;
-  const auto indexc = m.GetIndexCells();
-  const auto blockc_su = m.GetSuBlockCells();
-  const auto s = indexc.GetSize();
-  const int nx = s[0];
-  const int ny = s[1];
-  const int offset[] = {1, nx, ny * nx};
-
-  const MIdx wb = blockc_su.GetBegin() - indexc.GetBegin();
-  const MIdx we = blockc_su.GetEnd() - indexc.GetBegin();
-
   fcn.Reinit(m);
 
-  const Scal* pu = fcu.data();
-  Vect* pn = fcn.data();
-  const bool* pi = fci.data();
-  for (int z = wb[2]; z < we[2]; ++z) {
-    for (int y = wb[1]; y < we[1]; ++y) {
-      for (int x = wb[0]; x < we[0]; ++x) {
-        const int i = (z * ny + y) * nx + x;
-        if (!pi[i]) {
-          continue;
-        }
-        GetNormal(&pu[i], pn[i], edim, force_overwrite, offset);
+  using Direction = typename M::Direction;
+  for (auto c : m.SuCellsM()) {
+    if (!fci[c]) {
+      continue;
+    }
+    Vect best_n(0);
+    size_t best_dz(0);
+    for (size_t ddz : {0, 1, 2}) {
+      if (ddz >= edim) {
+        continue;
       }
+      const Direction dz(ddz);
+      const auto dx = dz >> 1;
+      const auto dy = dz >> 2;
+
+      auto hh = [&](Direction d) {
+        return fcu[c + d - dz] + fcu[c + d] + fcu[c + d + dz];
+      };
+
+      Vect n;
+      n[dx] = hh(dx) - hh(-dx);
+      n[dy] = hh(dy) - hh(-dy);
+      n[dz] = (fcu[c + dz] - fcu[c - dz] > 0 ? 2 : -2);
+      n /= -n.norm1();
+      if (std::abs(best_n[best_dz]) < std::abs(n[dz])) {
+        best_n = n;
+        best_dz = dz;
+      }
+    }
+
+    if (force_overwrite ||
+        std::abs(best_n[best_dz]) < std::abs(fcn[c][best_dz])) {
+      fcn[c] = best_n;
     }
   }
 }
@@ -185,15 +165,15 @@ class Height : public TimerMesh {
   FieldCell<char> fcd;
 };
 
-#define CMP(fca, fcb)                                                          \
-  do {                                                                         \
-    Scal diff;                                                                 \
-    if ((diff = DiffMax(fca, fcb, m)) > eps) {                                 \
-      std::cerr << util::Format(                                               \
-          "Verify {}: max difference exceeded: {:.8e} > {:.8e}\n", name, diff, \
-          eps);                                                                \
-      ++failed;                                                                \
-    }                                                                          \
+#define CMP(fca, fcb)                                                      \
+  do {                                                                     \
+    Scal diff;                                                             \
+    if ((diff = DiffMax(fca, fcb, m)) > eps) {                             \
+      std::cerr << util::Format(                                           \
+          "Verify {}: max difference ({},{}) exceeded: {:.4e} > {:.4e}\n", \
+          name, #fca, #fcb, diff, eps);                                    \
+      ++failed;                                                            \
+    }                                                                      \
   } while (0);
 
 // Returns the number of failed tests
@@ -231,7 +211,9 @@ static int Verify() {
     size_t edim = 2;
     Normal::CalcNormalHeight(m, fcu, fcmask, edim, true, fcn);
     Normal::CalcNormalHeight1(m, fcu, fcmask, edim, true, fcn1);
+    CalcNormalHeight2(m, fcu, fcmask, edim, true, fcn2);
     CMP(fcn, fcn1);
+    CMP(fcn, fcn2);
   } else {
     fassert(false, util::Format("Unknown test={}", test));
   }

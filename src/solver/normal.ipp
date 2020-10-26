@@ -159,84 +159,42 @@ struct UNormal<M_>::Imp {
   // fcn: normal, antigradient of fcu, if gives steeper profile or ow=1 [s]
   static void CalcNormalHeight(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci, size_t edim,
-      bool ow, FieldCell<Vect>& fcn) {
-    using MIdx = typename M::MIdx;
-    using Dir = typename M::Dir;
-    auto& bc = m.GetIndexCells();
+      bool force_overwrite, FieldCell<Vect>& fcn) {
+    fcn.Reinit(m);
 
-    fcn.Reinit(m); // XXX
-
-    for (auto c : m.SuCells()) {
+    using Direction = typename M::Direction;
+    for (auto c : m.SuCellsM()) {
       if (!fci[c]) {
         continue;
       }
-      Vect bn; // best normal
-      Scal bhx = 0., bhy = 0.; // best first derivative
-      Dir bd = Dir::i; // best direction
-      bool fst = true; // first
-      std::vector<Dir> dd; // direction of plane normal
-      if (edim == 2) {
-        dd = {Dir::i, Dir::j};
-      } else {
-        dd = {Dir::i, Dir::j, Dir::k};
-      }
-      for (Dir dn : dd) {
-        // directions of plane tangents ([d]irection [t]angents)
-        Dir dtx((size_t(dn) + 1) % dim);
-        Dir dty((size_t(dn) + 2) % dim);
+      Vect best_n(0);
+      size_t best_dz(0);
+      for (size_t ddz : {0, 1, 2}) {
+        if (ddz >= edim) {
+          continue;
+        }
+        const Direction dz(ddz);
+        const auto dx = dz >> 1;
+        const auto dy = dz >> 2;
 
-        MIdx w = bc.GetMIdx(c);
-
-        // offset in normal direction
-        MIdx on = MIdx(dn);
-        // offset in dtx,dty
-        MIdx otx = MIdx(dtx);
-        MIdx oty = MIdx(dty);
-        // mesh step
-        const Scal lx = m.GetCellSize()[size_t(dtx)];
-        const Scal ly = m.GetCellSize()[size_t(dty)];
-        const Scal ln = m.GetCellSize()[size_t(dn)];
-
-        // Evaluates height function
-        // o: offset from w
-        auto hh = [&](MIdx o) -> Scal {
-          return (fcu[bc.GetIdx(w + o - on)] + fcu[bc.GetIdx(w + o)] +
-                  fcu[bc.GetIdx(w + o + on)]) *
-                 ln;
+        auto hh = [&](Direction d) {
+          return fcu[c + d - dz] + fcu[c + d] + fcu[c + d + dz];
         };
 
-        // height function
-        const Scal hxm = hh(-otx);
-        const Scal hxp = hh(otx);
-        const Scal hym = hh(-oty);
-        const Scal hyp = hh(oty);
-
-        // first derivative (slope)
-        Scal hx = (hxp - hxm) / (2. * lx); // centered
-        Scal hy = (hyp - hym) / (2. * ly);
-        // sign: +1 if u increases in dn
-        Scal sg =
-            (fcu[bc.GetIdx(w + on)] - fcu[bc.GetIdx(w - on)] > 0. ? 1. : -1.);
-        // outer normal
         Vect n;
-        n[size_t(dtx)] = -hx;
-        n[size_t(dty)] = -hy;
-        n[size_t(dn)] = -sg;
-        // select best with minimal slope
-        using std::abs;
-        if (fst || abs(hx) + abs(hy) < abs(bhx) + abs(bhy)) {
-          bn = n;
-          bhx = hx;
-          bhy = hy;
-          bd = dn;
-          fst = false;
+        n[dx] = hh(dx) - hh(-dx);
+        n[dy] = hh(dy) - hh(-dy);
+        n[dz] = (fcu[c + dz] - fcu[c - dz] > 0 ? 2 : -2);
+        n /= -n.norm1();
+        if (std::abs(best_n[best_dz]) < std::abs(n[dz])) {
+          best_n = n;
+          best_dz = dz;
         }
       }
-      bn /= bn.norm1(); // normalize
 
-      // update if ow=1 or gives steeper profile in plane dn
-      if (ow || std::abs(bn[size_t(bd)]) < std::abs(fcn[c][size_t(bd)])) {
-        fcn[c] = bn;
+      if (force_overwrite ||
+          std::abs(best_n[best_dz]) < std::abs(fcn[c][best_dz])) {
+        fcn[c] = best_n;
       }
     }
   }
@@ -399,7 +357,7 @@ struct UNormal<M_>::Imp {
     }
   }
   static void GetNormal(
-      const Scal* q, Vect& pn, size_t edim, bool force_overwrite,
+      const Scal* u, Vect& pn, size_t edim, bool force_overwrite,
       const int s[3]) {
     Vect best_n(0);
     size_t best_dz = 0;
@@ -410,12 +368,12 @@ struct UNormal<M_>::Imp {
       const size_t dx = (dz + 1) % dim;
       const size_t dy = (dz + 2) % dim;
 
-      Vect n(0);
-      n[dx] = (q[s[dx] - s[dz]] + q[s[dx]] + q[s[dx] + s[dz]]) -
-              (q[-s[dx] - s[dz]] + q[-s[dx]] + q[-s[dx] + s[dz]]);
-      n[dy] = (q[s[dy] - s[dz]] + q[s[dy]] + q[s[dy] + s[dz]]) -
-              (q[-s[dy] - s[dz]] + q[-s[dy]] + q[-s[dy] + s[dz]]);
-      n[dz] = (q[s[dz]] - q[-s[dz]] > 0 ? 2 : -2);
+      auto hh = [&](int ss) { return u[ss - s[dz]] + u[ss] + u[ss + s[dz]]; };
+
+      Vect n;
+      n[dx] = hh(s[dx]) - hh(-s[dx]);
+      n[dy] = hh(s[dy]) - hh(-s[dy]);
+      n[dz] = (u[s[dz]] - u[-s[dz]] > 0 ? 2 : -2);
       n /= -n.norm1();
       if (std::abs(best_n[best_dz]) < std::abs(n[dz])) {
         best_n = n;
