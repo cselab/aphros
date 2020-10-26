@@ -16,6 +16,7 @@
 #include "solver/approx_eb.h"
 #include "solver/cond.h"
 #include "solver/solver.h"
+#include "util/format.h"
 #include "util/sysinfo.h"
 #include "util/timer.h"
 
@@ -494,17 +495,13 @@ bool RunTest(
 int main() {
   const std::vector<MIdx> meshsizes = {MIdx(8), MIdx(16), MIdx(32)};
 
-  const std::array<int, 7> ww = {22, 16, 8, 8, 10, 17};
+  const std::string fmt = "{:22}{:13.2f}{:8}{:8}{:10.1f}{:17}\n";
 
   std::stringstream header;
   using std::setw;
-  size_t col = 0;
-  header << setw(ww[col++]) << "name";
-  header << setw(ww[col++]) << "t/cell[ns]";
-  header << setw(ww[col++]) << "cover";
-  header << setw(ww[col++]) << "iters";
-  header << setw(ww[col++]) << "mem[MB]";
-  header << setw(ww[col++]) << "mem/allcells[B]";
+  header << util::Format(
+      fmt, //
+      "name", "t/cell[ns]", "cover", "iters", "mem[MB]", "mem/allcells[B]");
 
   for (auto meshsize : meshsizes) {
     size_t mem0 = sysinfo::GetMem();
@@ -514,7 +511,7 @@ int main() {
     const size_t incells = m.GetInBlockCells().size();
     std::cout << "Mesh " << meshsize << " allcells=" << allcells
               << " incells=" << incells << std::endl;
-    std::cout << header.str() << std::endl;
+    std::cout << header.str();
 
     int test = 0;
     double time;
@@ -529,13 +526,10 @@ int main() {
                                : cover == Cover::in ? incells : sucells);
       const auto covname =
           (cover == Cover::all ? "all" : cover == Cover::in ? "in" : "su");
-      size_t col = 0;
-      std::cout << setw(ww[col++]) << name;
-      std::cout << setw(ww[col++]) << time * 1e9 / covcells;
-      std::cout << setw(ww[col++]) << covname;
-      std::cout << setw(ww[col++]) << iters;
-      std::cout << setw(ww[col++]) << (dmem / double(1 << 20));
-      std::cout << setw(ww[col++]) << (dmem / allcells) << std::endl;
+      std::cout << util::Format(
+          fmt, //
+          name, time * 1e9 / covcells, covname, iters, (dmem / double(1 << 20)),
+          (dmem / allcells));
     }
     std::cout << std::endl;
   }

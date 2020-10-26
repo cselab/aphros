@@ -229,9 +229,7 @@ int main() {
     sizes.emplace_back(n, n, 8);
   }
 
-  const size_t ww = 16;
-
-  using std::setw;
+  const std::string fmt = "{:10} {:16} {:16}\n";
 
   for (auto size : sizes) {
     auto m = GetMesh(size);
@@ -244,9 +242,9 @@ int main() {
     size_t niters;
     size_t mem;
     std::string name;
+    std::cout << util::Format(fmt, "name", "time/ncells", "niters");
     while (Run(test++, m, time, niters, mem, name)) {
-      std::cout << setw(ww) << name << setw(ww) << time * 1e9 / ncells
-                << setw(ww) << niters << std::endl;
+      std::cout << util::Format(fmt, name, time * 1e9 / ncells, niters);
     }
     std::cout << std::endl;
     std::cout << std::endl;
