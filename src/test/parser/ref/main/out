@@ -117,3 +117,4 @@ width leadzero scientific 3.141593e+00, fixed 000003.142, default 0000003.14
 leadzero scientific -3.141593e+00, fixed -00003.142, default -000003.14
 width leadzero 001 00123 00123456
 Vect (0,1,2) (0.0000000000,1.0000000000,2.0000000000)
+a=3.14159 b=3.14159 c=   3.14 d=  3.142 e=003.142 f=0003.14 g=3.142e+00

@@ -162,6 +162,10 @@ void TestFormat() {
       "width leadzero {:03d} {:05} {:08d}\n", 1, 123, 123456);
   using Vect = generic::Vect<double, 3>;
   std::cout << util::Format("Vect {} {0:.10f}\n", Vect(0., 1., 2.));
+  std::cout << //
+      util::Format(
+          "a={0} b={0:} c={1:7} d={0:7.3f} e={0:07.3f} f={0:07.3g} g={0:.3e}\n",
+          M_PI, 3.14);
 }
 
 int main() {
