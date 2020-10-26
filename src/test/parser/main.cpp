@@ -150,6 +150,16 @@ void TestFormat() {
       "scientific {:.3e}, fixed {:.3f}, default {:.3g}\n", 0.0, 1.1, 2.2);
   std::cout << util::Format(
       "scientific {0:.3e}, fixed {1:.3f}, default {2:.3g}\n", 0.0, 1.1, 2.2);
+  std::cout << util::Format(
+      "width scientific {0:10.3e}, fixed {0:10.3f}, default {0:10.3g}\n", M_PI);
+  std::cout << util::Format(
+      "width leadzero scientific {0:010.e}, fixed {0:010.3f}, default {0:010.3g}\n",
+      M_PI);
+  std::cout << util::Format(
+      "leadzero scientific {0:010.e}, fixed {0:010.3f}, default {0:010.3g}\n",
+      -M_PI);
+  std::cout << util::Format(
+      "width leadzero {:03d} {:05} {:08d}\n", 1, 123, 123456);
   using Vect = generic::Vect<double, 3>;
   std::cout << util::Format("Vect {} {0:.10f}\n", Vect(0., 1., 2.));
 }

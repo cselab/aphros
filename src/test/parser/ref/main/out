@@ -112,4 +112,8 @@ scientific 3.142e+00, fixed 3.142, default 3.14
 scientific 3.142e+00, fixed 3.142, default 3.14
 scientific 0.000e+00, fixed 1.100, default 2.2
 scientific 0.000e+00, fixed 1.100, default 2.2
+width scientific  3.142e+00, fixed      3.142, default       3.14
+width leadzero scientific 3.141593e+00, fixed 000003.142, default 0000003.14
+leadzero scientific -3.141593e+00, fixed -00003.142, default -000003.14
+width leadzero 001 00123 00123456
 Vect (0,1,2) (0.0000000000,1.0000000000,2.0000000000)
