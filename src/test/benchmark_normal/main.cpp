@@ -40,129 +40,68 @@ using Vect = generic::Vect<Scal, dim>;
 using Mesh = MeshStructured<Scal, dim>;
 using Normal = typename UNormal<Mesh>::Imp;
 
-template <class Q>
-static void F(
-    Q& qn, Scal& gxm, Scal& gxp, Scal& gym, Scal& gyp, Scal& sg, Scal& gc,
-    Scal& gmm, Scal& gmp, Scal& gpm, Scal& gpp) {
-  auto g = [&qn](int dx, int dy) {
-    return qn(dx, dy, 1) + qn(dx, dy, 0) + qn(dx, dy, -1);
-  };
-  gxm = g(-1, 0);
-  gxp = g(1, 0);
-  gym = g(0, -1);
-  gyp = g(0, 1);
-  sg = (qn(0, 0, 1) - qn(0, 0, -1) > 0. ? 1. : -1);
-  gc = g(0, 0);
-  gmm = g(-1, -1);
-  gmp = g(-1, 1);
-  gpm = g(1, -1);
-  gpp = g(1, 1);
-}
-
-template <class Q>
-// TODO: check what optimizer generates with lambdas
-static void GetHeight(Q& q, Vect& pn, size_t edim, bool ow) {
-  auto qx = [&q](int dx, int dy, int dz) { return q(dz, dx, dy); };
-  auto qy = [&q](int dx, int dy, int dz) { return q(dy, dz, dx); };
-  auto qz = [&q](int dx, int dy, int dz) { return q(dx, dy, dz); };
-
-  Vect bn(0); // best normal
-  size_t bd = 0; // best direction
-  std::vector<size_t> dd; // direction of plane normal
-  if (edim == 2) {
-    dd = {0, 1};
-  } else {
-    dd = {0, 1, 2};
-  }
-  for (size_t dn : dd) {
-    size_t dx = (dn + 1) % dim;
-    size_t dy = (dn + 2) % dim;
-
-    // height function
-    Scal gxm, gxp, gym, gyp;
-    Scal gc, gmm, gmp, gpm, gpp;
-    // sign: +1 if u increases in dn
-    Scal sg;
-    switch (dn) {
-      case 0: { // dx:1 , dy:2
-        F(qx, gxm, gxp, gym, gyp, sg, gc, gmm, gmp, gpm, gpp);
-        break;
-      }
-      case 1: { // dx:2 , dy:0
-        F(qy, gxm, gxp, gym, gyp, sg, gc, gmm, gmp, gpm, gpp);
-        break;
-      }
-      default: { // dx:0 , dy:1
-        F(qz, gxm, gxp, gym, gyp, sg, gc, gmm, gmp, gpm, gpp);
-        break;
-      }
+static void GetNormal(
+    const Scal* q, Vect& pn, size_t edim, bool force_overwrite,
+    const int s[3]) {
+  Vect best_n(0);
+  size_t best_dz = 0;
+  for (size_t dz : {0, 1, 2}) {
+    if (dz >= edim) {
+      continue;
     }
+    const size_t dx = (dz + 1) % dim;
+    const size_t dy = (dz + 2) % dim;
 
-    // first derivative (slope)
-    Scal gx = (gxp - gxm) * 0.5; // centered
-    Scal gy = (gyp - gym) * 0.5;
-    // outer normal
-    Vect n;
-    n[dx] = -gx;
-    n[dy] = -gy;
-    n[dn] = -sg;
-    n /= n.norm1();
-    // select best with minimal slope
-    if (std::abs(n[dn]) > std::abs(bn[bd])) {
-      bn = n;
-      bd = dn;
+    Vect n(0);
+    n[dx] = (q[s[dx] - s[dz]] + q[s[dx]] + q[s[dx] + s[dz]]) -
+            (q[-s[dx] - s[dz]] + q[-s[dx]] + q[-s[dx] + s[dz]]);
+    n[dy] = (q[s[dy] - s[dz]] + q[s[dy]] + q[s[dy] + s[dz]]) -
+            (q[-s[dy] - s[dz]] + q[-s[dy]] + q[-s[dy] + s[dz]]);
+    n[dz] = (q[s[dz]] - q[-s[dz]] > 0 ? 2 : -2);
+    n /= -n.norm1();
+    if (std::abs(best_n[best_dz]) < std::abs(n[dz])) {
+      best_n = n;
+      best_dz = dz;
     }
   }
 
-  // update if ow=1 or gives steeper profile in plane dn
-  if (ow || std::abs(bn[bd]) < std::abs(pn[bd])) {
-    pn = bn;
+  if (force_overwrite || std::abs(best_n[best_dz]) < std::abs(pn[best_dz])) {
+    pn = best_n;
   }
 }
 
 template <class M>
 void CalcNormalHeight2(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci, size_t edim,
-    bool ow, FieldCell<Vect>& fcn) {
+    bool force_overwrite, FieldCell<Vect>& fcn) {
   using MIdx = typename M::MIdx;
-  auto ic = m.GetIndexCells();
-  auto bc = m.GetSuBlockCells();
-  MIdx s = ic.GetSize();
-  const size_t nx = s[0];
-  const size_t ny = s[1];
-  // offset
-  const size_t fx = 1;
-  const size_t fy = nx;
-  const size_t fz = ny * nx;
+  const auto indexc = m.GetIndexCells();
+  const auto blockc_su = m.GetSuBlockCells();
+  const auto s = indexc.GetSize();
+  const int nx = s[0];
+  const int ny = s[1];
+  const int offset[] = {1, nx, ny * nx};
 
-  // index range
-  const MIdx wb = bc.GetBegin() - ic.GetBegin();
-  const MIdx we = bc.GetEnd() - ic.GetBegin();
-  const size_t xb = wb[0], yb = wb[1], zb = wb[2];
-  const size_t xe = we[0], ye = we[1], ze = we[2];
+  const MIdx wb = blockc_su.GetBegin() - indexc.GetBegin();
+  const MIdx we = blockc_su.GetEnd() - indexc.GetBegin();
 
   fcn.Reinit(m);
 
   const Scal* pu = fcu.data();
   Vect* pn = fcn.data();
   const bool* pi = fci.data();
-  for (size_t z = zb; z < ze; ++z) {
-    for (size_t y = yb; y < ye; ++y) {
-      for (size_t x = xb; x < xe; ++x) {
-        size_t i = (z * ny + y) * nx + x;
+  for (int z = wb[2]; z < we[2]; ++z) {
+    for (int y = wb[1]; y < we[1]; ++y) {
+      for (int x = wb[0]; x < we[0]; ++x) {
+        const int i = (z * ny + y) * nx + x;
         if (!pi[i]) {
           continue;
         }
-        auto q = [i, fy, fz, pu](int dx, int dy, int dz) {
-          size_t ii = i + dx * fx + dy * fy + dz * fz;
-          return pu[ii];
-        };
-        GetHeight(q, pn[i], edim, ow);
+        GetNormal(&pu[i], pn[i], edim, force_overwrite, offset);
       }
     }
   }
 }
-
 
 Scal Random(Scal q) {
   return std::sin(std::sin(q * 123.456) * 654.321);
@@ -246,21 +185,21 @@ class Height : public TimerMesh {
   FieldCell<char> fcd;
 };
 
-#define CMP(fca, fcb)                                                        \
-  do {                                                                       \
-    Scal diff;                                                               \
-    if ((diff = DiffMax(fca, fcb, m)) > eps) {                               \
-      std::cerr << util::Format(                                             \
-          "Verify {}: max difference exceeded: {:.8e} > {:.8e}", name, diff, \
-          eps);                                                              \
-      ++failed;                                                              \
-    }                                                                        \
+#define CMP(fca, fcb)                                                          \
+  do {                                                                         \
+    Scal diff;                                                                 \
+    if ((diff = DiffMax(fca, fcb, m)) > eps) {                                 \
+      std::cerr << util::Format(                                               \
+          "Verify {}: max difference exceeded: {:.8e} > {:.8e}\n", name, diff, \
+          eps);                                                                \
+      ++failed;                                                                \
+    }                                                                          \
   } while (0);
 
 // Returns the number of failed tests
 template <int test>
 static int Verify() {
-  int failed =0;
+  int failed = 0;
   auto m = GetMesh(MIdx(32, 16, 8));
   FieldCell<Scal> fcu(m);
   FieldCell<bool> fcmask(m, true);
@@ -347,25 +286,25 @@ int main() {
 
   std::vector<MIdx> sizes;
   for (int n : {8, 16, 32, 64}) {
-    sizes.emplace_back(n, n, 8);
+    sizes.emplace_back(n, n, n);
   }
 
   const std::string fmt = "{:10} {:16} {:16}\n";
 
   for (auto size : sizes) {
     auto m = GetMesh(size);
-    const size_t ncells = m.GetInBlockCells().size();
+    const size_t sucells = m.GetSuBlockCells().size();
     std::cout << "Mesh"
-              << " size=" << size << " incells=" << ncells << std::endl;
+              << " size=" << size << " sucells=" << sucells << std::endl;
 
     int test = 0;
     double time;
     size_t niters;
     size_t mem;
     std::string name;
-    std::cout << util::Format(fmt, "name", "time/ncells", "niters");
+    std::cout << util::Format(fmt, "name", "time/sucells", "niters");
     while (Run(test++, m, time, niters, mem, name)) {
-      std::cout << util::Format(fmt, name, time * 1e9 / ncells, niters);
+      std::cout << util::Format(fmt, name, time * 1e9 / sucells, niters);
     }
     std::cout << std::endl;
     std::cout << std::endl;
