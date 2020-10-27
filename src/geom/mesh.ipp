@@ -7,6 +7,23 @@ using M = MeshStructured<double, 3>;
 
 template <class _Scal, size_t _dim>
 struct MeshStructured<_Scal, _dim>::Imp {
+  using Owner = MeshStructured<_Scal, _dim>;
+  Imp(Owner* owner_) : owner(owner_) {}
+
+  // sw: stencil half-width, results in stencil [-sw,sw]
+  template <size_t sw>
+  TransformIterator<IdxCell, GBlock<size_t, dim>> StencilGeneral(
+      IdxCell c) const {
+    constexpr size_t sn = sw * 2 + 1;
+    const GBlock<size_t, dim> bo(MIdx(-sw), MIdx(sn));
+    return MakeTransformIterator<IdxCell>(bo, [this, c](MIdx wo) {
+      auto& indexc = owner->GetIndexCells();
+      return indexc.GetIdx(indexc.GetMIdx(c) + wo);
+    });
+  }
+
+  Owner* owner;
+
   // Requests
   std::vector<std::unique_ptr<CommRequest>> commreq;
   std::vector<std::pair<std::unique_ptr<CommRequest>, std::string>> dump;
@@ -15,6 +32,7 @@ struct MeshStructured<_Scal, _dim>::Imp {
   std::vector<std::unique_ptr<typename UReduce<Scal>::Op>> bcast;
   std::vector<ScatterRequest> scatter;
   std::vector<std::pair<IdxFace, size_t>> vfnan;
+
 };
 
 template <class _Scal, size_t _dim>
@@ -48,7 +66,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , global_size_(gs)
     , id_(id)
     , global_length_(Vect(gs) * cell_size_)
-    , imp(new Imp()) {
+    , imp(new Imp(this)) {
   static_assert(dim == 3, "Not implemented for dim != 3");
 
   // surface area
@@ -61,8 +79,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
   face_surface_[1] = Vect(0., face_area_[1], 0.);
   face_surface_[2] = Vect(0., 0., face_area_[2]);
 
-  // cell neighbour cell offset
-  {
+  { // cell neighbour cell offset
     MIdx w = indexc_.GetBegin(); // any cell
     IdxCell c = indexc_.GetIdx(w);
     for (auto q : Nci(c)) {
@@ -93,8 +110,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     }
   }
 
-  // cell neighbour face offset
-  {
+  { // cell neighbour face offset
     MIdx w = indexc_.GetBegin(); // any cell
     IdxCell c = indexc_.GetIdx(w);
     for (auto q : Nci(c)) {
@@ -132,15 +148,13 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     }
   }
 
-  // cell outward factor
-  {
+  { // cell outward factor
     for (size_t q = 0; q < kCellNumNeighbourFaces; ++q) {
       cell_outward_[q] = (q % 2 == 0 ? -1. : 1.);
     }
   }
 
-  // cell neighbour node offset
-  {
+  { // cell neighbour node offset
     MIdx w = indexc_.GetBegin(); // any cell
     IdxCell c = indexc_.GetIdx(w);
     auto qm = kCellNumNeighbourNodes;
@@ -178,8 +192,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     }
   }
 
-  // face neighbour cell offset
-  {
+  { // face neighbour cell offset
     const MIdx w = indexc_.GetBegin(); // any cell
     for (size_t d = 0; d < dim; ++d) {
       IdxFace f = indexf_.GetIdx(w, Dir(d));
@@ -201,8 +214,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     }
   }
 
-  // face neighbour face offset
-  {
+  { // face neighbour face offset
     const MIdx w = indexc_.GetBegin(); // any cell
     for (size_t d = 0; d < dim; ++d) {
       const IdxFace f = indexf_.GetIdx(w, Dir(d));
@@ -216,8 +228,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     }
   }
 
-  // face neighbour cell offset
-  {
+  { // face neighbour cell offset
     const MIdx w = indexc_.GetBegin(); // any cell
     for (size_t d = 0; d < dim; ++d) {
       IdxFace f = indexf_.GetIdx(w, Dir(d));
@@ -278,23 +289,29 @@ MeshStructured<_Scal, _dim>::MeshStructured(
       }
     }
   }
-  // stencil 3x3x3 offsets
-  {
+  { // stencil 3x3x3 offsets
     const IdxCell c = indexc_.GetIdx(blockci_.GetBegin());
     size_t i = 0;
-    for (auto cn : StencilGeneral<1>(c)) {
+    for (auto cn : imp->template StencilGeneral<1>(c)) {
       stencil_[i++] = size_t(cn) - size_t(c);
     }
     fassert_equal(i, kNumStencil);
   }
-  // stencil 5x5x5 offsets
-  {
+  { // stencil 5x5x5 offsets
     const IdxCell c = indexc_.GetIdx(blockci_.GetBegin());
     size_t i = 0;
-    for (auto cn : StencilGeneral<2>(c)) {
+    for (auto cn : imp->template StencilGeneral<2>(c)) {
       stencil5_[i++] = size_t(cn) - size_t(c);
     }
     fassert_equal(i, kNumStencil5);
+  }
+
+  { // cell centers
+    fc_center_.Reinit(*this);
+    for (auto c : AllCells()) {
+      fc_center_[c] = (domain_.low + half_cell_size_) +
+                      Vect(indexc_.GetMIdx(c) - incells_begin_) * cell_size_;
+    }
   }
 }
 

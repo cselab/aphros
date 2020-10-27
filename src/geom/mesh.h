@@ -177,8 +177,7 @@ class MeshStructured {
     return blockna_;
   }
   Vect GetCenter(IdxCell c) const {
-    return (domain_.low + half_cell_size_) +
-           Vect(indexc_.GetMIdx(c) - incells_begin_) * cell_size_;
+    return fc_center_[c];
   }
   Rect<Vect> GetBoundingBox() const {
     return domain_;
@@ -262,17 +261,6 @@ class MeshStructured {
   // Neighbour cell indices
   GRange<size_t> Nci(IdxCell c) const {
     return GRange<size_t>(0, GetNumFaces(c));
-  }
-  // sw: stencil half-width, results in stencil [-sw,sw]
-  template <size_t sw>
-  TransformIterator<IdxCell, GBlock<size_t, dim>> StencilGeneral(
-      IdxCell c) const {
-    constexpr size_t sn = sw * 2 + 1;
-    const GBlock<size_t, dim> bo(MIdx(-sw), MIdx(sn));
-    return MakeTransformIterator<IdxCell>(bo, [this, c](MIdx wo) {
-      auto& bc = GetIndexCells();
-      return bc.GetIdx(bc.GetMIdx(c) + wo);
-    });
   }
   IdxCell GetCellFromPoint(Vect x) const {
     auto& ic = GetIndexCells();
@@ -820,6 +808,8 @@ class MeshStructured {
   std::array<size_t, kFaceNumNeighbourNodes * dim> face_node_;
   std::array<size_t, kNumStencil> stencil_; // 3x3x3 stencil
   std::array<size_t, kNumStencil5> stencil5_; // 5x5x5 stencil
+
+  FieldCell<Vect> fc_center_;
 
   Suspender susp_;
   std::string timer_report_path_;
