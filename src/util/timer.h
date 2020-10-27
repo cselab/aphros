@@ -12,7 +12,7 @@ class ExecutionTimer {
   // name: returned by GetName()
   // timeout: time in seconds for which to repeat F()
   // batch: number of calls F() at every iteration
-  ExecutionTimer(std::string name, double timeout=0.01, size_t batch=1);
+  ExecutionTimer(std::string name, double timeout = 0.01, size_t batch = 1);
   ExecutionTimer(std::string name);
   virtual ~ExecutionTimer() = default;
   std::string GetName() const;

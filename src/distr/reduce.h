@@ -291,38 +291,38 @@ class UReduce {
     }
   };
 
-  void Add(const std::shared_ptr<Op>& o) {
-    vrd_.push_back(o);
+  void Add(std::unique_ptr<Op>&& o) {
+    reqs_.emplace_back(std::move(o));
   }
   // u: src and dst buffer
   // o: operation
   void Add(Scal* u, std::string o) {
     if (o == "sum") {
-      vrd_.push_back(std::make_shared<OpSum>(u));
+      reqs_.push_back(std::make_unique<OpSum>(u));
     } else if (o == "prod") {
-      vrd_.push_back(std::make_shared<OpProd>(u));
+      reqs_.push_back(std::make_unique<OpProd>(u));
     } else if (o == "max") {
-      vrd_.push_back(std::make_shared<OpMax>(u));
+      reqs_.push_back(std::make_unique<OpMax>(u));
     } else if (o == "min") {
-      vrd_.push_back(std::make_shared<OpMin>(u));
+      reqs_.push_back(std::make_unique<OpMin>(u));
     } else {
       throw std::runtime_error("Reduce: unknown operation: '" + o);
     }
   }
 
-  const std::vector<std::shared_ptr<Op>>& Get() const {
-    return vrd_;
+  const std::vector<std::unique_ptr<Op>>& Get() const {
+    return reqs_;
   }
   void Clear() {
-    vrd_.clear();
+    reqs_.clear();
   }
 
   template <class T>
-  static std::shared_ptr<OpCatT<T>> Make(
+  static std::unique_ptr<OpCatT<T>> Make(
       std::vector<T>* buf, ReductionType::Concat) {
-    return std::make_shared<OpCatT<T>>(buf);
+    return std::make_unique<OpCatT<T>>(buf);
   }
 
  private:
-  std::vector<std::shared_ptr<Op>> vrd_; // list of requests
+  std::vector<std::unique_ptr<Op>> reqs_; // list of requests
 };

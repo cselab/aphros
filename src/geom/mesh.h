@@ -693,17 +693,17 @@ class MeshStructured {
     FieldCell<Vect>* field;
     int d;
   };
-  void Comm(const std::shared_ptr<CommRequest>& r);
+  void Comm(std::unique_ptr<CommRequest>&& r);
   void Comm(FieldCell<Scal>* field);
   void Comm(FieldCell<Vect>* field, int component);
   void Comm(FieldCell<Vect>* field);
-  const std::vector<std::shared_ptr<CommRequest>>& GetComm() const;
+  const std::vector<std::unique_ptr<CommRequest>>& GetComm() const;
   void ClearComm();
 
   void Dump(const FieldCell<Scal>* field, std::string name);
   void Dump(const FieldCell<Vect>* field, int component, std::string name);
-  void Dump(const std::shared_ptr<CommRequest>& request, std::string name);
-  const std::vector<std::pair<std::shared_ptr<CommRequest>, std::string>>&
+  void Dump(std::unique_ptr<CommRequest>&& request, std::string name);
+  const std::vector<std::pair<std::unique_ptr<CommRequest>, std::string>>&
   GetDump() const;
   void ClearDump();
 
@@ -712,9 +712,9 @@ class MeshStructured {
   MPI_Comm GetMpiComm() const {
     return flags.comm;
   }
-  void Reduce(const std::shared_ptr<Op>& o);
+  void Reduce(std::unique_ptr<Op>&& o);
   void Reduce(Scal* u, std::string o);
-  const std::vector<std::shared_ptr<Op>>& GetReduce() const;
+  const std::vector<std::unique_ptr<Op>>& GetReduce() const;
   void Reduce(Scal* buf, ReductionType::Sum);
   void Reduce(Scal* buf, ReductionType::Prod);
   void Reduce(Scal* buf, ReductionType::Max);
@@ -723,36 +723,36 @@ class MeshStructured {
   void Reduce(std::pair<Scal, int>* buf, ReductionType::MinLoc);
   template <class T>
   void Reduce(std::vector<T>* buf, ReductionType::Concat) {
-    Reduce(std::make_shared<typename UReduce<Scal>::template OpCatT<T>>(buf));
+    Reduce(std::make_unique<typename UReduce<Scal>::template OpCatT<T>>(buf));
   }
   template <class T>
   void Reduce(std::vector<std::vector<T>>* buf, ReductionType::Concat) {
-    Reduce(std::make_shared<typename UReduce<Scal>::template OpCatVT<T>>(buf));
+    Reduce(std::make_unique<typename UReduce<Scal>::template OpCatVT<T>>(buf));
   }
   void ClearReduce();
-  void ReduceToLead(const std::shared_ptr<Op>& o);
+  void ReduceToLead(std::unique_ptr<Op>&& o);
   template <class T>
   void GatherToLead(std::vector<T>* buf) {
     ReduceToLead(
-        std::make_shared<typename UReduce<Scal>::template OpCatT<T>>(buf));
+        std::make_unique<typename UReduce<Scal>::template OpCatT<T>>(buf));
   }
   template <class T>
   void GatherToLead(std::vector<std::vector<T>>* buf) {
     ReduceToLead(
-        std::make_shared<typename UReduce<Scal>::template OpCatVT<T>>(buf));
+        std::make_unique<typename UReduce<Scal>::template OpCatVT<T>>(buf));
   }
-  const std::vector<std::shared_ptr<Op>>& GetReduceToLead() const;
+  const std::vector<std::unique_ptr<Op>>& GetReduceToLead() const;
   void ClearReduceToLead();
-  void Bcast(const std::shared_ptr<Op>& o);
+  void Bcast(std::unique_ptr<Op>&& o);
   template <class T>
   void Bcast(std::vector<T>* buf) {
-    Bcast(std::make_shared<typename UReduce<Scal>::template OpCatT<T>>(buf));
+    Bcast(std::make_unique<typename UReduce<Scal>::template OpCatT<T>>(buf));
   }
   template <class T>
   void Bcast(std::vector<std::vector<T>>* buf) {
-    Bcast(std::make_shared<typename UReduce<Scal>::template OpCatVT<T>>(buf));
+    Bcast(std::make_unique<typename UReduce<Scal>::template OpCatVT<T>>(buf));
   }
-  const std::vector<std::shared_ptr<Op>>& GetBcast() const;
+  const std::vector<std::unique_ptr<Op>>& GetBcast() const;
   void ClearBcast();
   // Scatter request:
   // first: sendbuffer on root, vector for each block; ignored on others

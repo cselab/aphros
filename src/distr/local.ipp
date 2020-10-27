@@ -68,8 +68,7 @@ class Local : public DistrMesh<M_> {
   static M CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext);
 
   std::vector<size_t> TransferHalos(bool inner) override;
-  void ReduceSingleRequest(
-      const std::vector<std::shared_ptr<RedOp>>& blocks) override;
+  void ReduceSingleRequest(const std::vector<RedOp*>& blocks) override;
   void Scatter(const std::vector<size_t>& bb) override;
   void Bcast(const std::vector<size_t>& bb) override;
   void DumpWrite(const std::vector<size_t>& bb) override;
@@ -160,24 +159,23 @@ auto Local<M>::TransferHalos(bool inner) -> std::vector<size_t> {
 }
 
 template <class M>
-void Local<M>::ReduceSingleRequest(
-    const std::vector<std::shared_ptr<RedOp>>& blocks) {
+void Local<M>::ReduceSingleRequest(const std::vector<RedOp*>& blocks) {
   using OpScal = typename UReduce<Scal>::OpS;
   using OpScalInt = typename UReduce<Scal>::OpSI;
   using OpConcat = typename UReduce<Scal>::OpCat;
 
-  auto* firstbase = blocks.front().get();
+  auto* firstbase = blocks.front();
 
   if (auto* first = dynamic_cast<OpScal*>(firstbase)) {
     auto buf = first->Neutral();
 
     for (auto otherbase : blocks) {
-      auto* other = dynamic_cast<OpScal*>(otherbase.get());
+      auto* other = dynamic_cast<OpScal*>(otherbase);
       other->Append(buf);
     }
 
     for (auto otherbase : blocks) {
-      auto* other = dynamic_cast<OpScal*>(otherbase.get());
+      auto* other = dynamic_cast<OpScal*>(otherbase);
       other->Set(buf);
     }
     return;
@@ -186,12 +184,12 @@ void Local<M>::ReduceSingleRequest(
     auto buf = first->Neutral();
 
     for (auto otherbase : blocks) {
-      auto* other = dynamic_cast<OpScalInt*>(otherbase.get());
+      auto* other = dynamic_cast<OpScalInt*>(otherbase);
       other->Append(buf);
     }
 
     for (auto otherbase : blocks) {
-      auto* other = dynamic_cast<OpScalInt*>(otherbase.get());
+      auto* other = dynamic_cast<OpScalInt*>(otherbase);
       other->Set(buf);
     }
     return;
@@ -201,7 +199,7 @@ void Local<M>::ReduceSingleRequest(
     auto buf = first->Neutral();
 
     for (auto otherbase : blocks) {
-      auto* other = dynamic_cast<OpConcat*>(otherbase.get());
+      auto* other = dynamic_cast<OpConcat*>(otherbase);
       other->Append(buf);
     }
 

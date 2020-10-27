@@ -8,8 +8,8 @@
 #include "format.h"
 
 #define fassert_match(c, seq) \
-  fassert(                  \
-      match(c, seq),        \
+  fassert(                    \
+      match(c, seq),          \
       std::string() + "Expected one of \"" + seq + "\", " + report())
 
 namespace util {

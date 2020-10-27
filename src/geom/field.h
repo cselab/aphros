@@ -6,9 +6,9 @@
 #include <algorithm>
 #include <cassert>
 #include <iosfwd>
+#include <memory>
 #include <stdexcept>
 #include <string>
-#include <memory>
 
 #include "idx.h"
 #include "range.h"
@@ -63,7 +63,6 @@ class Vector {
   size_t size_ = 0;
   std::unique_ptr<T[]> data_;
 };
-
 
 template <class Value_, class Idx_>
 class GField {

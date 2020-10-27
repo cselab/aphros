@@ -443,7 +443,6 @@ class Stencil : public TimerMesh {
   }
 };
 
-
 class StencilField : public TimerMesh {
  public:
   StencilField(M& m_) : TimerMesh("stencil_field", m_), fc(m) {
@@ -465,7 +464,6 @@ class StencilField : public TimerMesh {
  private:
   FieldCell<Scal> fc;
 };
-
 
 // test: test index
 // m: mesh

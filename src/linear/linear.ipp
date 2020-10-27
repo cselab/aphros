@@ -228,7 +228,6 @@ auto SolverJacobi<M>::Solve(
   return imp->Solve(fc_system, fc_init, fc_sol, m);
 }
 
-
 template <class M>
 class ModuleLinearConjugate : public ModuleLinear<M> {
  public:
@@ -252,7 +251,6 @@ class ModuleLinearJacobi : public ModuleLinear<M> {
         this->GetConf(var, prefix), extra);
   }
 };
-
 
 using M = MeshStructured<double, 3>;
 

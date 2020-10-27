@@ -178,8 +178,7 @@ class Cubismnc : public DistrMesh<M_> {
 
   std::vector<size_t> TransferHalos() override;
   std::vector<size_t> TransferHalos(bool inner) override;
-  void ReduceSingleRequest(
-      const std::vector<std::shared_ptr<RedOp>>& blocks) override;
+  void ReduceSingleRequest(const std::vector<RedOp*>& blocks) override;
   void Bcast(const std::vector<size_t>& bb) override;
   void Scatter(const std::vector<size_t>& bb) override;
   void DumpWrite(const std::vector<size_t>& bb) override;
@@ -679,20 +678,19 @@ void Cubismnc<Par, M>::Scatter(const std::vector<size_t>& bb) {
 }
 
 template <class Par, class M>
-void Cubismnc<Par, M>::ReduceSingleRequest(
-    const std::vector<std::shared_ptr<RedOp>>& blocks) {
+void Cubismnc<Par, M>::ReduceSingleRequest(const std::vector<RedOp*>& blocks) {
   using OpScal = typename UReduce<Scal>::OpS;
   using OpScalInt = typename UReduce<Scal>::OpSI;
   using OpConcat = typename UReduce<Scal>::OpCat;
 
-  auto* firstbase = blocks.front().get();
+  auto* firstbase = blocks.front();
 
   if (auto* first = dynamic_cast<OpScal*>(firstbase)) {
     auto buf = first->Neutral(); // result
 
     // Reduce over blocks on current rank
     for (auto otherbase : blocks) {
-      auto* other = dynamic_cast<OpScal*>(otherbase.get());
+      auto* other = dynamic_cast<OpScal*>(otherbase);
       other->Append(buf);
     }
 
@@ -715,7 +713,7 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
 
     // Write results to all blocks on current rank
     for (auto otherbase : blocks) {
-      auto* other = dynamic_cast<OpScal*>(otherbase.get());
+      auto* other = dynamic_cast<OpScal*>(otherbase);
       other->Set(buf);
     }
     return;
@@ -725,7 +723,7 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
 
     // Reduce over blocks on current rank
     for (auto otherbase : blocks) {
-      auto* other = dynamic_cast<OpScalInt*>(otherbase.get());
+      auto* other = dynamic_cast<OpScalInt*>(otherbase);
       other->Append(buf);
     }
 
@@ -745,7 +743,7 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
 
     // Write results to all blocks on current rank
     for (auto otherbase : blocks) {
-      auto* other = dynamic_cast<OpScalInt*>(otherbase.get());
+      auto* other = dynamic_cast<OpScalInt*>(otherbase);
       other->Set(buf);
     }
     return;
@@ -755,7 +753,7 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
 
     // Reduce over local blocks
     for (auto otherbase : blocks) {
-      auto* other = dynamic_cast<OpConcat*>(otherbase.get());
+      auto* other = dynamic_cast<OpConcat*>(otherbase);
       other->Append(buf);
     }
 

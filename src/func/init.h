@@ -9,7 +9,8 @@
 #include "parse/vars.h"
 
 template <class M>
-void InitVf(FieldCell<typename M::Scal>& fcu, const Vars& var, M& m, bool verbose);
+void InitVf(
+    FieldCell<typename M::Scal>& fcu, const Vars& var, M& m, bool verbose);
 
 template <class M>
 std::function<void(

@@ -81,8 +81,8 @@ class DistrMesh {
   virtual void RunKernels(const std::vector<size_t>& bb);
   // Performs reduction with a single request over all blocks.
   // block_request: request for each block, same dimension as `kernels_`
-  virtual void ReduceSingleRequest(
-      const std::vector<std::shared_ptr<RedOp>>& blocks) = 0;
+  virtual void ReduceSingleRequest(const std::vector<RedOp*>& blocks) = 0;
+  void ReduceSingleRequest(const std::vector<std::unique_ptr<RedOp>>& blocks);
   // Performs reduction with all requests collected in m.GetReduce()
   // for all elements in `kernels_`
   virtual void Reduce(const std::vector<size_t>& bb);

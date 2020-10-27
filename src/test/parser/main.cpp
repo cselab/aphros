@@ -152,7 +152,8 @@ void TestFormat() {
   std::cout << util::Format(
       "width scientific {0:10.3e}, fixed {0:10.3f}, default {0:10.3g}\n", M_PI);
   std::cout << util::Format(
-      "width leadzero scientific {0:010.e}, fixed {0:010.3f}, default {0:010.3g}\n",
+      "width leadzero scientific {0:010.e}, fixed {0:010.3f}, default "
+      "{0:010.3g}\n",
       M_PI);
   std::cout << util::Format(
       "leadzero scientific {0:010.e}, fixed {0:010.3f}, default {0:010.3g}\n",

@@ -8,11 +8,11 @@ using M = MeshStructured<double, 3>;
 template <class _Scal, size_t _dim>
 struct MeshStructured<_Scal, _dim>::Imp {
   // Requests
-  std::vector<std::shared_ptr<CommRequest>> commreq;
-  std::vector<std::pair<std::shared_ptr<CommRequest>, std::string>> dump;
+  std::vector<std::unique_ptr<CommRequest>> commreq;
+  std::vector<std::pair<std::unique_ptr<CommRequest>, std::string>> dump;
   UReduce<Scal> reduce;
   UReduce<Scal> reduce_lead;
-  std::vector<std::shared_ptr<typename UReduce<Scal>::Op>> bcast;
+  std::vector<std::unique_ptr<typename UReduce<Scal>::Op>> bcast;
   std::vector<ScatterRequest> scatter;
   std::vector<std::pair<IdxFace, size_t>> vfnan;
 };
@@ -312,16 +312,16 @@ M InitUniformMesh(
 }
 
 template <class Scal, size_t dim>
-void MeshStructured<Scal, dim>::Comm(const std::shared_ptr<CommRequest>& r) {
-  imp->commreq.push_back(r);
+void MeshStructured<Scal, dim>::Comm(std::unique_ptr<CommRequest>&& r) {
+  imp->commreq.emplace_back(std::move(r));
 }
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::Comm(FieldCell<Scal>* f) {
-  Comm(std::make_shared<CommRequestScal>(f));
+  Comm(std::make_unique<CommRequestScal>(f));
 }
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::Comm(FieldCell<Vect>* f, int d) {
-  Comm(std::make_shared<CommRequestVect>(f, d));
+  Comm(std::make_unique<CommRequestVect>(f, d));
 }
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::Comm(FieldCell<Vect>* f) {
@@ -330,28 +330,27 @@ void MeshStructured<Scal, dim>::Comm(FieldCell<Vect>* f) {
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::Dump(const FieldCell<Scal>* f, std::string n) {
   auto ff = const_cast<FieldCell<Scal>*>(f);
-  imp->dump.push_back(std::make_pair(std::make_shared<CommRequestScal>(ff), n));
+  imp->dump.emplace_back(std::make_unique<CommRequestScal>(ff), n);
 }
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::Dump(
     const FieldCell<Vect>* f, int d, std::string n) {
   auto ff = const_cast<FieldCell<Vect>*>(f);
-  imp->dump.push_back(
-      std::make_pair(std::make_shared<CommRequestVect>(ff, d), n));
+  imp->dump.emplace_back(std::make_unique<CommRequestVect>(ff, d), n);
 }
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::Dump(
-    const std::shared_ptr<CommRequest>& o, std::string name) {
-  imp->dump.push_back(std::make_pair(o, name));
+    std::unique_ptr<CommRequest>&& o, std::string name) {
+  imp->dump.emplace_back(std::move(o), name);
 }
 template <class Scal, size_t dim>
 auto MeshStructured<Scal, dim>::GetComm() const
-    -> const std::vector<std::shared_ptr<CommRequest>>& {
+    -> const std::vector<std::unique_ptr<CommRequest>>& {
   return imp->commreq;
 }
 template <class Scal, size_t dim>
 auto MeshStructured<Scal, dim>::GetDump() const -> const
-    std::vector<std::pair<std::shared_ptr<CommRequest>, std::string>>& {
+    std::vector<std::pair<std::unique_ptr<CommRequest>, std::string>>& {
   return imp->dump;
 }
 template <class Scal, size_t dim>
@@ -364,15 +363,15 @@ void MeshStructured<Scal, dim>::ClearDump() {
 }
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::Reduce(
-    const std::shared_ptr<typename UReduce<Scal>::Op>& o) {
-  imp->reduce.Add(o);
+    std::unique_ptr<typename UReduce<Scal>::Op>&& o) {
+  imp->reduce.Add(std::move(o));
 }
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::Reduce(Scal* u, std::string o) {
   imp->reduce.Add(u, o);
 }
 template <class Scal, size_t dim>
-const std::vector<std::shared_ptr<typename UReduce<Scal>::Op>>&
+const std::vector<std::unique_ptr<typename UReduce<Scal>::Op>>&
 MeshStructured<Scal, dim>::GetReduce() const {
   return imp->reduce.Get();
 }
@@ -395,12 +394,12 @@ void MeshStructured<Scal, dim>::Reduce(Scal* buf, ReductionType::Min) {
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::Reduce(
     std::pair<Scal, int>* buf, ReductionType::MaxLoc) {
-  Reduce(std::make_shared<typename UReduce<Scal>::OpMaxloc>(buf));
+  Reduce(std::make_unique<typename UReduce<Scal>::OpMaxloc>(buf));
 }
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::Reduce(
     std::pair<Scal, int>* buf, ReductionType::MinLoc) {
-  Reduce(std::make_shared<typename UReduce<Scal>::OpMinloc>(buf));
+  Reduce(std::make_unique<typename UReduce<Scal>::OpMinloc>(buf));
 }
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::ClearReduce() {
@@ -408,11 +407,11 @@ void MeshStructured<Scal, dim>::ClearReduce() {
 }
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::ReduceToLead(
-    const std::shared_ptr<typename UReduce<Scal>::Op>& o) {
-  imp->reduce_lead.Add(o);
+    std::unique_ptr<typename UReduce<Scal>::Op>&& o) {
+  imp->reduce_lead.Add(std::move(o));
 }
 template <class Scal, size_t dim>
-const std::vector<std::shared_ptr<typename UReduce<Scal>::Op>>&
+const std::vector<std::unique_ptr<typename UReduce<Scal>::Op>>&
 MeshStructured<Scal, dim>::GetReduceToLead() const {
   return imp->reduce_lead.Get();
 }
@@ -436,12 +435,12 @@ void MeshStructured<Scal, dim>::ClearScatter() {
 }
 template <class Scal, size_t dim>
 void MeshStructured<Scal, dim>::Bcast(
-    const std::shared_ptr<typename UReduce<Scal>::Op>& o) {
-  imp->bcast.push_back(o);
+    std::unique_ptr<typename UReduce<Scal>::Op>&& o) {
+  imp->bcast.emplace_back(std::move(o));
 }
 template <class Scal, size_t dim>
 auto MeshStructured<Scal, dim>::GetBcast() const
-    -> const std::vector<std::shared_ptr<Op>>& {
+    -> const std::vector<std::unique_ptr<Op>>& {
   return imp->bcast;
 }
 template <class Scal, size_t dim>

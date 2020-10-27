@@ -75,10 +75,10 @@ class FieldEmbed {
   const FieldFace<Value>& GetFieldFace() const {
     return df_;
   }
-  operator FieldFace<Value> &() {
+  operator FieldFace<Value>&() {
     return df_;
   }
-  operator const FieldFace<Value> &() const {
+  operator const FieldFace<Value>&() const {
     return df_;
   }
   template <class Field>

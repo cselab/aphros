@@ -101,9 +101,9 @@ void DistrMesh<M>::Reduce(const std::vector<size_t>& bb) {
   }
 
   for (size_t i = 0; i < nreqs; ++i) {
-    std::vector<std::shared_ptr<RedOp>> blocks;
+    std::vector<RedOp*> blocks;
     for (auto b : bb) {
-      blocks.push_back(kernels_[b]->GetMesh().GetReduce()[i]);
+      blocks.push_back(kernels_[b]->GetMesh().GetReduce()[i].get());
     }
     ReduceSingleRequest(blocks);
   }
@@ -183,9 +183,9 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
         std::vector<std::vector<Scal>> b_data(nblocks);
         std::vector<std::vector<MIdx>> b_origin(nblocks);
         std::vector<std::vector<MIdx>> b_size(nblocks);
-        std::vector<std::shared_ptr<RedOp>> reduce_data;
-        std::vector<std::shared_ptr<RedOp>> reduce_origin;
-        std::vector<std::shared_ptr<RedOp>> reduce_size;
+        std::vector<std::unique_ptr<RedOp>> reduce_data;
+        std::vector<std::unique_ptr<RedOp>> reduce_origin;
+        std::vector<std::unique_ptr<RedOp>> reduce_size;
         size_t iblock = 0;
         for (auto b : bb) {
           auto& m = kernels_[b]->GetMesh();
@@ -431,4 +431,14 @@ void DistrMesh<M>::ReportOpenmp() {
     }
   }
 #endif
+}
+
+template <class M>
+void DistrMesh<M>::ReduceSingleRequest(
+    const std::vector<std::unique_ptr<RedOp>>& blocks) {
+  std::vector<RedOp*> raw;
+  for (auto& p : blocks) {
+    raw.push_back(p.get());
+  }
+  ReduceSingleRequest(raw);
 }
