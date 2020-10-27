@@ -44,7 +44,6 @@ M CreateMesh(const BlockInfoProxy& bi) {
   m.flags.global_origin = Vect(0);
   m.flags.global_blocks = wmax;
   m.flags.block_length = Vect(bs) * h;
-  m.SetMaxComm(bi.maxcomm);
   return m;
 }
 
@@ -60,7 +59,8 @@ class KernelMesh {
 
   KernelMesh(Vars& var_, const BlockInfoProxy& bi)
       : var(var_), var_mutable(var_), bi_(bi), m(CreateMesh<M>(bi)) {
-    m.SetCN(var.Int["CHECKNAN"]); // TODO: revise, avoid optional setters
+    m.flags.check_nan_ = var.Int["CHECKNAN"];
+    m.flags.
     m.SetEdim(var.Int["dim"]);
   }
   virtual ~KernelMesh() = default;

@@ -131,7 +131,7 @@ struct Simple<EB_>::Imp {
     auto sem = m.GetSem("fluid-start");
     if (sem("convdiff-init")) {
       owner_->ClearIter();
-      CHECKNAN(fcp_.time_curr, m.CN())
+      CHECKNAN(fcp_.time_curr, m.flags.check_nan)
       cd_->SetTimeStep(owner_->GetTimeStep());
     }
 
@@ -268,7 +268,7 @@ struct Simple<EB_>::Imp {
         fck[c] /= edim_range_.size();
       }
 
-      CHECKNAN(fck, m.CN())
+      CHECKNAN(fck, m.flags.check_nan)
 
       m.Comm(&fck);
     }
@@ -395,13 +395,13 @@ struct Simple<EB_>::Imp {
     if (sem("pcorr-assemble")) {
       const auto fev_rhie =
           RhieChow(cd_->GetVelocity(Step::iter_curr), fcp_curr, fcgp, fck, ffk);
-      CHECKNAN(fev_rhie, m.CN())
+      CHECKNAN(fev_rhie, m.flags.check_nan)
 
       ffvc = GetFlux(ffk, fev_rhie);
-      CHECKNAN(ffvc, m.CN())
+      CHECKNAN(ffvc, m.flags.check_nan)
 
       fcpcs = GetFluxSum(ffvc, *owner_->fcsv_);
-      CHECKNAN(fcpcs, m.CN())
+      CHECKNAN(fcpcs, m.flags.check_nan)
 
       ApplyCellCond(fcp_curr, fcpcs);
       fcpcs.SetName("pressure");
@@ -411,7 +411,7 @@ struct Simple<EB_>::Imp {
       linsolver_symm_->Solve(fcpcs, nullptr, fcpc, m);
     }
     if (sem("pcorr-apply")) {
-      CHECKNAN(fcpc, m.CN())
+      CHECKNAN(fcpc, m.flags.check_nan)
 
       // Correct pressure
       Scal pr = par.prelax; // pressure relaxation
@@ -423,7 +423,7 @@ struct Simple<EB_>::Imp {
       eb.LoopFaces([&](auto cf) {
         fev_.iter_curr[cf] = UEB::Eval(ffvc[cf], cf, fcpc, eb);
       });
-      CHECKNAN(fev_.iter_curr, m.CN())
+      CHECKNAN(fev_.iter_curr, m.flags.check_nan)
 
       const auto fcgpc =
           UEB::AverageGradient(UEB::Gradient(fcpc, me_pcorr_, eb), eb);
@@ -433,7 +433,7 @@ struct Simple<EB_>::Imp {
       for (auto c : eb.Cells()) {
         fcvel_corr[c] = -fcgpc[c] / fck[c];
       }
-      CHECKNAN(fcvel_corr, m.CN())
+      CHECKNAN(fcvel_corr, m.flags.check_nan)
     }
     if (sem.Nested("convdiff-corr")) {
       cd_->CorrectVelocity(Step::iter_curr, fcvel_corr);
@@ -449,7 +449,7 @@ struct Simple<EB_>::Imp {
       fev_.time_prev = fev_.time_curr;
       fcp_.time_curr = fcp_.iter_curr;
       fev_.time_curr = fev_.iter_curr;
-      CHECKNAN(fcp_.time_curr, m.CN())
+      CHECKNAN(fcp_.time_curr, m.flags.check_nan)
       owner_->IncTime();
     }
     if (sem.Nested("convdiff-finish")) {

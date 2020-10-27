@@ -84,22 +84,52 @@ class MeshStructured {
   static constexpr bool kIsEmbed = false;
   enum class Type { regular, cut, excluded };
 
+  struct Flags {
+    bool linreport = false;
+    bool check_nan = false; // check_nan field read by CHECKNAN macro
+    bool check_symmetry = false;
+    Scal check_symmetry_dump_threshold = 1e-5;
+    Scal nan_faces_value = 1e100;
+    std::array<bool, dim> is_periodic = {false, false, false};
+    // FIXME: move to constructor
+    Vect global_origin = Vect(0); // origin of global mesh
+    MIdx global_blocks = MIdx(0); // number of blocks in global mesh
+    Vect block_length = Vect(0); // length of one block (local mesh)
+    static int GetIdFromBlock(MIdx block, MIdx global_blocks) {
+      const auto& w = block;
+      const auto& wmax = global_blocks;
+      const int id = w[0] + w[1] * wmax[0] + w[2] * wmax[0] * wmax[1];
+      return id;
+    };
+    int GetIdFromBlock(MIdx block) const {
+      return GetIdFromBlock(block, global_blocks);
+    }
+    MIdx GetBlockFromPoint(Vect x) const {
+      MIdx w((x - global_origin) / block_length);
+      w = w.max(MIdx(0));
+      w = w.min(global_blocks - MIdx(1));
+      return w;
+    }
+    MPI_Comm comm;
+  };
+
   // b: begin, lower corner cell index
   // cs: inner cells size
-  // dom: domain, rectangle covering inner cells
+  // domain: domain, rectangle covering inner cells
   // halos: halo cells from each side
   // isroot: root block
   // gs: global mesh size
   // id: unique id
   MeshStructured(
-      MIdx b, MIdx cs, Rect<Vect> dom, int halos, bool isroot, bool islead,
+      MIdx b, MIdx cs, Rect<Vect> domain, int halos, bool isroot, bool islead,
       MIdx gs, int id);
   MeshStructured(const MeshStructured&) = delete;
   MeshStructured(MeshStructured&&) = default;
   MeshStructured& operator=(const MeshStructured&) = delete;
   MeshStructured& operator=(MeshStructured&&) = delete;
+  ~MeshStructured() = default;
   MIdx GetGlobalSize() const {
-    return gs_;
+    return global_size_;
   }
   // Returns linear index of block between 0 and number of blocks - 1.
   int GetId() const {
@@ -109,10 +139,10 @@ class MeshStructured {
     return flags.GetIdFromBlock(flags.GetBlockFromPoint(x));
   }
   Vect GetGlobalLength() const {
-    return gl_;
+    return global_length_;
   }
   Vect GetCellSize() const {
-    return h_;
+    return cell_size_;
   }
   IntIdx GetHash(MIdx w) {
     // XXX: adhoc, hash for cell index, assume mesh size <= mn
@@ -124,75 +154,77 @@ class MeshStructured {
   }
   // Indexer
   const IndexCells& GetIndexCells() const {
-    return bcr_;
+    return indexc_;
   }
   const IndexFaces& GetIndexFaces() const {
-    return bfr_;
+    return indexf_;
   }
   const IndexNodes& GetIndexNodes() const {
-    return bnr_;
+    return indexn_;
   }
 
   // In blocks
   const BlockCells& GetInBlockCells() const {
-    return bci_;
+    return blockci_;
   }
   const BlockFaces& GetInBlockFaces() const {
-    return bfi_;
+    return blockfi_;
   }
   const BlockNodes& GetInBlockNodes() const {
-    return bni_;
+    return blockni_;
   }
 
   // Su blocks
   const BlockCells& GetSuBlockCells() const {
-    return bcs_;
+    return blockcs_;
   }
   const BlockFaces& GetSuBlockFaces() const {
-    return bfs_;
+    return blockfs_;
   }
   const BlockNodes& GetSuBlockNodes() const {
-    return bns_;
+    return blockns_;
   }
 
   // All blocks
   const BlockCells& GetAllBlockCells() const {
-    return bca_;
+    return blockca_;
   }
   const BlockFaces& GetAllBlockFaces() const {
-    return bfa_;
+    return blockfa_;
   }
   const BlockNodes& GetAllBlockNodes() const {
-    return bna_;
+    return blockna_;
   }
   Vect GetCenter(IdxCell c) const {
-    return (dom_.low + hh_) + Vect(bcr_.GetMIdx(c) - mb_) * h_;
+    return (domain_.low + half_cell_size_) +
+           Vect(indexc_.GetMIdx(c) - incells_begin_) * cell_size_;
   }
   Rect<Vect> GetBoundingBox() const {
-    return dom_;
+    return domain_;
   }
   Rect<Vect> GetGlobalBoundingBox() const {
     return Rect<Vect>(Vect(0), GetGlobalLength());
   }
   Vect GetCenter(IdxFace f) const {
-    auto p = bfr_.GetMIdxDir(f);
+    auto p = indexf_.GetMIdxDir(f);
     const MIdx& w = p.first;
     size_t d(p.second);
-    Vect r = (dom_.low + hh_) + Vect(w - mb_) * h_;
-    r[d] -= hh_[d];
+    Vect r =
+        (domain_.low + half_cell_size_) + Vect(w - incells_begin_) * cell_size_;
+    r[d] -= half_cell_size_[d];
     return r;
   }
   const Vect& GetSurface(IdxFace f) const {
-    return vs_[size_t(bfr_.GetDir(f))];
+    return vs_[size_t(indexf_.GetDir(f))];
   }
   Vect GetNode(IdxNode n) const {
-    return dom_.low + Vect(bnr_.GetMIdx(n) - mb_) * h_;
+    return domain_.low + Vect(indexn_.GetMIdx(n) - incells_begin_) * cell_size_;
   }
   Scal GetVolume(IdxCell) const {
-    return vol_;
+    return cell_volume_;
   }
   Scal GetArea(IdxFace f) const {
-    return va_[size_t(bfr_.GetDir(f))];
+    return face_area_[size_t(indexf_.GetDir(f))];
   }
   Scal GetAreaFraction(IdxFace) const {
     return 1;
@@ -202,20 +234,20 @@ class MeshStructured {
   }
   IdxCell GetCell(IdxCell c, size_t q) const {
     assert(q < kCellNumNeighbourFaces);
-    return IdxCell(size_t(c) + cnc_[q]);
+    return IdxCell(size_t(c) + cell_cell_[q]);
   }
   IdxFace GetFace(IdxCell c, size_t q) const {
     assert(q < kCellNumNeighbourFaces);
-    return IdxFace(size_t(c) + cnf_[q]);
+    return IdxFace(size_t(c) + cell_face_[q]);
   }
   IdxFace GetFace(IdxFace f, size_t q) const {
     const auto qm = kCellNumNeighbourFaces;
     assert(q < qm);
-    return IdxFace(size_t(f) + fnf_[size_t(bfr_.GetDir(f)) * qm + q]);
+    return IdxFace(size_t(f) + face_face_[size_t(indexf_.GetDir(f)) * qm + q]);
   }
   Scal GetOutwardFactor(IdxCell, size_t q) const {
     assert(q < kCellNumNeighbourFaces);
-    return co_[q];
+    return cell_outward_[q];
   }
   Vect GetOutwardSurface(IdxCell c, size_t n) const {
     assert(n < kCellNumNeighbourFaces);
@@ -223,15 +255,15 @@ class MeshStructured {
   }
   IdxNode GetNode(IdxCell c, size_t q) const {
     assert(q < kCellNumNeighbourNodes);
-    return IdxNode(size_t(c) + cnn_[q]);
+    return IdxNode(size_t(c) + cell_node_[q]);
   }
   Dir GetDir(IdxFace f) const {
-    return bfr_.GetDir(f);
+    return indexf_.GetDir(f);
   }
   IdxCell GetCell(IdxFace f, size_t q) const {
     auto qm = kFaceNumNeighbourCells;
     assert(q < qm);
-    return IdxCell(size_t(f) + fnc_[size_t(bfr_.GetDir(f)) * qm + q]);
+    return IdxCell(size_t(f) + face_cell_[size_t(indexf_.GetDir(f)) * qm + q]);
   }
   Vect GetVectToCell(IdxFace f, size_t n) const {
     assert(n < kFaceNumNeighbourCells);
@@ -240,8 +272,8 @@ class MeshStructured {
   IdxNode GetNode(IdxFace f, size_t q) const {
     auto qm = kFaceNumNeighbourNodes;
     assert(q < qm);
-    size_t d(bfr_.GetDir(f));
-    return IdxNode(size_t(f) + fnn_[d * qm + q]);
+    size_t d(indexf_.GetDir(f));
+    return IdxNode(size_t(f) + face_node_[d * qm + q]);
   }
   size_t GetNumFaces(IdxCell) const {
     return kCellNumNeighbourFaces;
@@ -265,7 +297,7 @@ class MeshStructured {
     auto& ic = GetIndexCells();
     auto& bc = GetInBlockCells();
     const Vect h = GetCellSize();
-    MIdx w((x - dom_.low) / h);
+    MIdx w((x - domain_.low) / h);
     w = w.max(MIdx(0));
     w = w.min(bc.GetSize() - MIdx(1));
     return ic.GetIdx(bc.GetBegin() + w);
@@ -325,8 +357,8 @@ class MeshStructured {
   }
   // Returns true if cell is not a halo cell.
   bool IsInner(IdxCell c) const {
-    MIdx w = bcr_.GetMIdx(c);
-    return bci_.GetBegin() <= w && w < bci_.GetEnd();
+    MIdx w = indexc_.GetMIdx(c);
+    return blockci_.GetBegin() <= w && w < blockci_.GetEnd();
   }
   bool IsBoundary(IdxFace f, size_t& nci) const {
     auto p = GetIndexFaces().GetMIdxDir(f);
@@ -345,13 +377,13 @@ class MeshStructured {
     return false;
   }
   GIndex<IdxCell, dim> GetIndexer(IdxCell*) const {
-    return bcr_;
+    return indexc_;
   }
   GIndex<IdxFace, dim> GetIndexer(IdxFace*) const {
-    return bfr_;
+    return indexf_;
   }
   GIndex<IdxNode, dim> GetIndexer(IdxNode*) const {
-    return bnr_;
+    return indexn_;
   }
   template <class Idx>
   GIndex<Idx, dim> GetIndexer() const {
@@ -564,14 +596,6 @@ class MeshStructured {
   bool IsLead() const {
     return islead_;
   }
-
-  // CheckNan flag
-  bool CN() const {
-    return checknan_;
-  }
-  void SetCN(bool c) {
-    checknan_ = c;
-  }
   // Pairs face,nci for which the halos cells
   // are set to nan after each communication
   const std::vector<std::pair<IdxFace, size_t>>& GetNanFaces() const {
@@ -579,13 +603,6 @@ class MeshStructured {
   }
   void SetNanFaces(const std::vector<std::pair<IdxFace, size_t>>& vfnan) {
     vfnan_ = vfnan;
-  }
-  // Maximum number of communication requests (limited in legacy Cubism)
-  size_t GetMaxComm() const {
-    return maxcomm_;
-  }
-  void SetMaxComm(size_t maxcomm) {
-    maxcomm_ = maxcomm;
   }
   // Fills halo cell with garbage.
   // Using actual NaNs not allowed since some code relies on u*0 == 0
@@ -660,14 +677,8 @@ class MeshStructured {
   bool Pending() const {
     return susp_.Pending();
   }
-  const Suspender& GetSusp() const {
+  const Suspender& GetSuspender() const {
     return susp_;
-  }
-  std::string GetCurName() const {
-    return susp_.GetCurName();
-  }
-  size_t GetDepth() const {
-    return susp_.GetDepth();
   }
 
   // Comm request
@@ -721,7 +732,7 @@ class MeshStructured {
     int d;
   };
   void Comm(const std::shared_ptr<Co>& r) {
-    vcm_.push_back(r);
+    commreq_.push_back(r);
   }
   // Comm request for field f
   void Comm(FieldCell<Scal>* f) {
@@ -752,80 +763,52 @@ class MeshStructured {
     vd_.push_back(std::make_pair(o, name));
   }
   const std::vector<std::shared_ptr<Co>>& GetComm() const {
-    return vcm_;
+    return commreq_;
   }
   const std::vector<std::pair<std::shared_ptr<Co>, std::string>>& GetDump()
       const {
     return vd_;
   }
   void ClearComm() {
-    vcm_.clear();
+    commreq_.clear();
   }
   void ClearDump() {
     vd_.clear();
   }
-  struct Flags {
-    bool linreport = false;
-    bool check_symmetry = false;
-    Scal check_symmetry_dump_threshold = 1e-5;
-    Scal nan_faces_value = 1e100;
-    std::array<bool, dim> is_periodic = {false, false, false};
-    // FIXME: move to constructor
-    Vect global_origin = Vect(0); // origin of global mesh
-    MIdx global_blocks = MIdx(0); // number of blocks in global mesh
-    Vect block_length = Vect(0); // length of one block (local mesh)
-    static int GetIdFromBlock(MIdx block, MIdx global_blocks) {
-      const auto& w = block;
-      const auto& wmax = global_blocks;
-      const int id = w[0] + w[1] * wmax[0] + w[2] * wmax[0] * wmax[1];
-      return id;
-    };
-    int GetIdFromBlock(MIdx block) const {
-      return GetIdFromBlock(block, global_blocks);
-    }
-    MIdx GetBlockFromPoint(Vect x) const {
-      MIdx w((x - global_origin) / block_length);
-      w = w.max(MIdx(0));
-      w = w.min(global_blocks - MIdx(1));
-      return w;
-    }
-    MPI_Comm comm;
-  };
-  Flags flags;
 
-  using Rd = UReduce<Scal>;
-  using Op = typename Rd::Op;
+  using ReduceUtil = UReduce<Scal>;
+  using Op = typename ReduceUtil::Op;
   template <class T>
-  using OpT = typename Rd::template OpT<T>;
-  using OpS = typename Rd::OpS;
-  using OpSum = typename Rd::OpSum;
-  using OpProd = typename Rd::OpProd;
-  using OpMax = typename Rd::OpMax;
-  using OpMin = typename Rd::OpMin;
-  using OpSI = typename Rd::OpSI;
-  using OpMinloc = typename Rd::OpMinloc;
-  using OpMaxloc = typename Rd::OpMaxloc;
+  using OpT = typename ReduceUtil::template OpT<T>;
+  using OpS = typename ReduceUtil::OpS;
+  using OpSum = typename ReduceUtil::OpSum;
+  using OpProd = typename ReduceUtil::OpProd;
+  using OpMax = typename ReduceUtil::OpMax;
+  using OpMin = typename ReduceUtil::OpMin;
+  using OpSI = typename ReduceUtil::OpSI;
+  using OpMinloc = typename ReduceUtil::OpMinloc;
+  using OpMaxloc = typename ReduceUtil::OpMaxloc;
   template <class T>
-  using OpVT = typename Rd::template OpT<T>;
-  using OpCat = typename Rd::OpCat;
+  using OpVT = typename ReduceUtil::template OpT<T>;
+  using OpCat = typename ReduceUtil::OpCat;
   template <class T>
-  using OpCatT = typename Rd::template OpCatT<T>;
+  using OpCatT = typename ReduceUtil::template OpCatT<T>;
   template <class T>
-  using OpCatVT = typename Rd::template OpCatVT<T>;
+  using OpCatVT = typename ReduceUtil::template OpCatVT<T>;
 
   MPI_Comm GetMpiComm() const {
     return flags.comm;
   }
   void Reduce(const std::shared_ptr<Op>& o) {
-    rd_.Add(o);
+    reduce_.Add(o);
   }
   // u: src and dst buffer
   // o: operation
   void Reduce(Scal* u, std::string o) {
-    rd_.Add(u, o);
+    reduce_.Add(u, o);
   }
   const std::vector<std::shared_ptr<Op>>& GetReduce() const {
-    return rd_.Get();
+    return reduce_.Get();
   }
   void Reduce(Scal* buf, ReductionType::Sum) {
     Reduce(buf, "sum");
@@ -855,7 +838,7 @@ class MeshStructured {
   }
 
   void ClearReduce() {
-    rd_.Clear();
+    reduce_.Clear();
   }
   void ReduceToLead(const std::shared_ptr<Op>& o) {
     reduce_lead_.Add(o);
@@ -919,68 +902,62 @@ class MeshStructured {
     trep_ = "";
   }
 
+ public:
+  Flags flags;
+
  private:
   // b:Block, fc:FieldCell, ff:FieldFace, fn:FieldNode
   // inner
-  const BlockCells bci_;
-  const BlockFaces bfi_;
-  const BlockNodes bni_;
+  const BlockCells blockci_;
+  const BlockFaces blockfi_;
+  const BlockNodes blockni_;
   // all
-  const BlockCells bca_;
-  const BlockFaces bfa_;
-  const BlockNodes bna_;
+  const BlockCells blockca_;
+  const BlockFaces blockfa_;
+  const BlockNodes blockna_;
   // support
-  const BlockCells bcs_;
-  const BlockFaces bfs_;
-  const BlockNodes bns_;
-  // raw
-  const IndexCells bcr_;
-  const IndexFaces bfr_;
-  const IndexNodes bnr_;
+  const BlockCells blockcs_;
+  const BlockFaces blockfs_;
+  const BlockNodes blockns_;
+  // index
+  const IndexCells indexc_;
+  const IndexFaces indexf_;
+  const IndexNodes indexn_;
 
   const bool isroot_;
   const bool islead_;
-  const MIdx mb_, me_; // begin,end of bci_
-  const Rect<Vect> dom_; // domain covering bci_
-  const Vect h_;
-  const Vect hh_; // h_/2
-  const Scal vol_;
-  const MIdx gs_; // global mesh size
+  const MIdx incells_begin_, incells_end_;
+  const Rect<Vect> domain_; // domain covering blockci_
+  const Vect cell_size_;
+  const Vect half_cell_size_;
+  const Scal cell_volume_;
+  const MIdx global_size_; // global mesh size
   const int id_; // unique id
-  const Vect gl_; // global domain length
+  const Vect global_length_; // global domain length
   bool checknan_; // CheckNan flag
   // pairs face,nci for which the halos cells
   // are set to nan after each communication
   std::vector<std::pair<IdxFace, size_t>> vfnan_;
-  size_t maxcomm_ = 0; // maximum number of communication requests
-  size_t edim_; // effective dimension
+  size_t edim_ = dim; // effective dimension
   std::array<Vect, dim> vs_; // surface vectors
-  Vect va_; // surface area
-  // cell neighbour cell
-  std::array<size_t, kCellNumNeighbourFaces> cnc_;
-  // cell neighbour face
-  std::array<size_t, kCellNumNeighbourFaces> cnf_;
-  // cell outward factor
-  std::array<Scal, kCellNumNeighbourFaces> co_;
-  // cell neighbour node
-  std::array<size_t, kCellNumNeighbourNodes> cnn_;
-  // face neighbour cell
-  std::array<size_t, kFaceNumNeighbourCells * dim> fnc_;
-  // face neighbour face
-  std::array<size_t, kCellNumNeighbourFaces * dim> fnf_;
-  // face neighbour node
-  std::array<size_t, kFaceNumNeighbourNodes * dim> fnn_;
-  // 3x3x3 stencil offsets
-  std::array<size_t, kNumStencil> stencil_;
-  // 5x5x5 stencil offsets
-  std::array<size_t, kNumStencil5> stencil5_;
+  Vect face_area_; // surface area
+  // offsets
+  std::array<size_t, kCellNumNeighbourFaces> cell_cell_;
+  std::array<size_t, kCellNumNeighbourFaces> cell_face_;
+  std::array<Scal, kCellNumNeighbourFaces> cell_outward_;
+  std::array<size_t, kCellNumNeighbourNodes> cell_node_;
+  std::array<size_t, kFaceNumNeighbourCells * dim> face_cell_;
+  std::array<size_t, kCellNumNeighbourFaces * dim> face_face_;
+  std::array<size_t, kFaceNumNeighbourNodes * dim> face_node_;
+  std::array<size_t, kNumStencil> stencil_; // 3x3x3 stencil
+  std::array<size_t, kNumStencil5> stencil5_; // 5x5x5 stencil
 
   Suspender susp_;
-  std::vector<std::shared_ptr<Co>> vcm_; // comm
+  std::vector<std::shared_ptr<Co>> commreq_; // comm
   std::vector<std::pair<std::shared_ptr<Co>, std::string>> vd_; // dump
   std::string trep_; // timer report filename
-  Rd rd_;
-  Rd reduce_lead_;
+  ReduceUtil reduce_;
+  ReduceUtil reduce_lead_;
   std::vector<std::shared_ptr<Op>> bcast_; // list of broadcast requests
   std::vector<ScatterRequest> scatter_; // list of scatter requests
 };

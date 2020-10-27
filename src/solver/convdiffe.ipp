@@ -31,7 +31,7 @@ struct ConvDiffScalExp<EB_>::Imp {
   // Fields:
   void StartStep() {
     owner_->ClearIter();
-    CHECKNAN(fcu_.time_curr, m.CN())
+    CHECKNAN(fcu_.time_curr, m.flags.check_nan)
 
     fcu_.iter_curr = fcu_.time_curr;
 
@@ -164,7 +164,7 @@ struct ConvDiffScalExp<EB_>::Imp {
   void FinishStep() {
     fcu_.time_prev.swap(fcu_.time_curr);
     fcu_.time_curr = fcu_.iter_curr;
-    CHECKNAN(fcu_.time_curr, m.CN())
+    CHECKNAN(fcu_.time_curr, m.flags.check_nan)
     owner_->IncTime();
     dtp_ = owner_->GetTimeStep();
   }

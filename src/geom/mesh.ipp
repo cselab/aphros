@@ -7,55 +7,53 @@ using M = MeshStructured<double, 3>;
 
 template <class _Scal, size_t _dim>
 MeshStructured<_Scal, _dim>::MeshStructured(
-    MIdx b, MIdx cs, Rect<Vect> dom, int halos, bool isroot, bool islead, MIdx gs,
-    int id)
+    MIdx b, MIdx cs, Rect<Vect> domain, int halos, bool isroot, bool islead,
+    MIdx gs, int id)
     // inner
-    : bci_(b, cs)
-    , bfi_(bci_.GetBegin(), bci_.GetSize())
-    , bni_(bci_.GetBegin(), bci_.GetSize() + MIdx(1))
+    : blockci_(b, cs)
+    , blockfi_(blockci_.GetBegin(), blockci_.GetSize())
+    , blockni_(blockci_.GetBegin(), blockci_.GetSize() + MIdx(1))
     // all
-    , bca_(b - MIdx(halos), cs + MIdx(2 * halos))
-    , bfa_(bca_.GetBegin(), bca_.GetSize())
-    , bna_(bca_.GetBegin(), bca_.GetSize() + MIdx(1))
+    , blockca_(b - MIdx(halos), cs + MIdx(2 * halos))
+    , blockfa_(blockca_.GetBegin(), blockca_.GetSize())
+    , blockna_(blockca_.GetBegin(), blockca_.GetSize() + MIdx(1))
     // support
-    , bcs_(bca_.GetBegin() + MIdx(1), bca_.GetSize() - MIdx(2))
-    , bfs_(bcs_.GetBegin(), bcs_.GetSize())
-    , bns_(bcs_.GetBegin(), bcs_.GetSize() + MIdx(1))
-    // raw
-    , bcr_(bca_.GetBegin(), bca_.GetSize() + MIdx(1))
-    , bfr_(bcr_.GetBegin(), bcr_.GetSize())
-    , bnr_(bcr_.GetBegin(), bcr_.GetSize())
+    , blockcs_(blockca_.GetBegin() + MIdx(1), blockca_.GetSize() - MIdx(2))
+    , blockfs_(blockcs_.GetBegin(), blockcs_.GetSize())
+    , blockns_(blockcs_.GetBegin(), blockcs_.GetSize() + MIdx(1))
+    // index
+    , indexc_(blockca_.GetBegin(), blockca_.GetSize() + MIdx(1))
+    , indexf_(indexc_.GetBegin(), indexc_.GetSize())
+    , indexn_(indexc_.GetBegin(), indexc_.GetSize())
     , isroot_(isroot)
     , islead_(islead)
-    , mb_(bci_.GetBegin())
-    , me_(bci_.GetEnd())
-    , dom_(dom)
-    , h_(dom.GetDimensions() / Vect(bci_.GetSize()))
-    , hh_(h_ * 0.5)
-    , vol_(h_.prod())
-    , gs_(gs)
+    , incells_begin_(blockci_.GetBegin())
+    , incells_end_(blockci_.GetEnd())
+    , domain_(domain)
+    , cell_size_(domain.GetDimensions() / Vect(blockci_.GetSize()))
+    , half_cell_size_(cell_size_ * 0.5)
+    , cell_volume_(cell_size_.prod())
+    , global_size_(gs)
     , id_(id)
-    , gl_(Vect(gs) * h_)
-    , checknan_(false)
-    , edim_(dim) {
+    , global_length_(Vect(gs) * cell_size_) {
   static_assert(dim == 3, "Not implemented for dim != 3");
 
   // mesh step
 
   // surface area
-  va_[0] = h_[1] * h_[2];
-  va_[1] = h_[2] * h_[0];
-  va_[2] = h_[0] * h_[1];
+  face_area_[0] = cell_size_[1] * cell_size_[2];
+  face_area_[1] = cell_size_[2] * cell_size_[0];
+  face_area_[2] = cell_size_[0] * cell_size_[1];
 
   // surface vectors
-  vs_[0] = Vect(va_[0], 0., 0.);
-  vs_[1] = Vect(0., va_[1], 0.);
-  vs_[2] = Vect(0., 0., va_[2]);
+  vs_[0] = Vect(face_area_[0], 0., 0.);
+  vs_[1] = Vect(0., face_area_[1], 0.);
+  vs_[2] = Vect(0., 0., face_area_[2]);
 
   // cell neighbour cell offset
   {
-    MIdx w = bcr_.GetBegin(); // any cell
-    IdxCell c = bcr_.GetIdx(w);
+    MIdx w = indexc_.GetBegin(); // any cell
+    IdxCell c = indexc_.GetIdx(w);
     for (auto q : Nci(c)) {
       MIdx wo;
       switch (q) {
@@ -79,15 +77,15 @@ MeshStructured<_Scal, _dim>::MeshStructured(
           wo = MIdx(0, 0, 1);
           break;
       };
-      IdxCell cn = bcr_.GetIdx(w + wo);
-      cnc_[q] = size_t(cn) - size_t(c);
+      IdxCell cn = indexc_.GetIdx(w + wo);
+      cell_cell_[q] = size_t(cn) - size_t(c);
     }
   }
 
   // cell neighbour face offset
   {
-    MIdx w = bcr_.GetBegin(); // any cell
-    IdxCell c = bcr_.GetIdx(w);
+    MIdx w = indexc_.GetBegin(); // any cell
+    IdxCell c = indexc_.GetIdx(w);
     for (auto q : Nci(c)) {
       MIdx wo;
       Dir d;
@@ -118,22 +116,22 @@ MeshStructured<_Scal, _dim>::MeshStructured(
           d = Dir::k;
           break;
       };
-      IdxFace fn = bfr_.GetIdx(std::make_pair(w + wo, d));
-      cnf_[q] = size_t(fn) - size_t(c);
+      IdxFace fn = indexf_.GetIdx(std::make_pair(w + wo, d));
+      cell_face_[q] = size_t(fn) - size_t(c);
     }
   }
 
   // cell outward factor
   {
     for (size_t q = 0; q < kCellNumNeighbourFaces; ++q) {
-      co_[q] = (q % 2 == 0 ? -1. : 1.);
+      cell_outward_[q] = (q % 2 == 0 ? -1. : 1.);
     }
   }
 
   // cell neighbour node offset
   {
-    MIdx w = bcr_.GetBegin(); // any cell
-    IdxCell c = bcr_.GetIdx(w);
+    MIdx w = indexc_.GetBegin(); // any cell
+    IdxCell c = indexc_.GetIdx(w);
     auto qm = kCellNumNeighbourNodes;
     for (size_t q = 0; q < qm; ++q) {
       MIdx wo;
@@ -164,16 +162,16 @@ MeshStructured<_Scal, _dim>::MeshStructured(
           wo = MIdx(1, 1, 1);
           break;
       };
-      IdxNode nn = bnr_.GetIdx(w + wo);
-      cnn_[q] = size_t(nn) - size_t(c);
+      IdxNode nn = indexn_.GetIdx(w + wo);
+      cell_node_[q] = size_t(nn) - size_t(c);
     }
   }
 
   // face neighbour cell offset
   {
-    const MIdx w = bcr_.GetBegin(); // any cell
+    const MIdx w = indexc_.GetBegin(); // any cell
     for (size_t d = 0; d < dim; ++d) {
-      IdxFace f = bfr_.GetIdx(w, Dir(d));
+      IdxFace f = indexf_.GetIdx(w, Dir(d));
       auto qm = kFaceNumNeighbourCells;
       for (size_t q = 0; q < qm; ++q) {
         MIdx wo(0);
@@ -186,32 +184,32 @@ MeshStructured<_Scal, _dim>::MeshStructured(
             wo[d] = 0;
             break;
         };
-        IdxCell cn = bcr_.GetIdx(w + wo);
-        fnc_[d * qm + q] = size_t(cn) - size_t(f);
+        IdxCell cn = indexc_.GetIdx(w + wo);
+        face_cell_[d * qm + q] = size_t(cn) - size_t(f);
       }
     }
   }
 
   // face neighbour face offset
   {
-    const MIdx w = bcr_.GetBegin(); // any cell
+    const MIdx w = indexc_.GetBegin(); // any cell
     for (size_t d = 0; d < dim; ++d) {
-      const IdxFace f = bfr_.GetIdx(w, Dir(d));
+      const IdxFace f = indexf_.GetIdx(w, Dir(d));
       auto qm = kCellNumNeighbourFaces;
       for (size_t q = 0; q < qm; ++q) {
         MIdx wo(0);
         wo[q / 2] = (q % 2 == 0 ? -1 : 1);
-        const IdxFace fn = bfr_.GetIdx(w + wo, Dir(d));
-        fnf_[d * qm + q] = size_t(fn) - size_t(f);
+        const IdxFace fn = indexf_.GetIdx(w + wo, Dir(d));
+        face_face_[d * qm + q] = size_t(fn) - size_t(f);
       }
     }
   }
 
   // face neighbour cell offset
   {
-    const MIdx w = bcr_.GetBegin(); // any cell
+    const MIdx w = indexc_.GetBegin(); // any cell
     for (size_t d = 0; d < dim; ++d) {
-      IdxFace f = bfr_.GetIdx(w, Dir(d));
+      IdxFace f = indexf_.GetIdx(w, Dir(d));
       auto qm = kFaceNumNeighbourNodes;
       for (size_t q = 0; q < qm; ++q) {
         MIdx wo;
@@ -264,14 +262,14 @@ MeshStructured<_Scal, _dim>::MeshStructured(
               break;
           }
         }
-        IdxNode nn = bnr_.GetIdx(w + wo);
-        fnn_[d * qm + q] = size_t(nn) - size_t(f);
+        IdxNode nn = indexn_.GetIdx(w + wo);
+        face_node_[d * qm + q] = size_t(nn) - size_t(f);
       }
     }
   }
   // stencil 3x3x3 offsets
   {
-    const IdxCell c = bcr_.GetIdx(bci_.GetBegin());
+    const IdxCell c = indexc_.GetIdx(blockci_.GetBegin());
     size_t i = 0;
     for (auto cn : StencilGeneral<1>(c)) {
       stencil_[i++] = size_t(cn) - size_t(c);
@@ -280,7 +278,7 @@ MeshStructured<_Scal, _dim>::MeshStructured(
   }
   // stencil 5x5x5 offsets
   {
-    const IdxCell c = bcr_.GetIdx(bci_.GetBegin());
+    const IdxCell c = indexc_.GetIdx(blockci_.GetBegin());
     size_t i = 0;
     for (auto cn : StencilGeneral<2>(c)) {
       stencil5_[i++] = size_t(cn) - size_t(c);

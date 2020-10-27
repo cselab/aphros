@@ -319,16 +319,17 @@ void DistrMesh<M>::Run() {
     if (isroot_ && var.Int["verbose"]) {
       const auto& mf = kernels_.front()->GetMesh();
       std::cerr << "*** STAGE"
-                << " #" << stage_ << " depth=" << mf.GetDepth() << " "
-                << mf.GetCurName() << " ***" << std::endl;
+                << " #" << stage_ << " depth=" << mf.GetSuspender().GetDepth()
+                << " " << mf.GetSuspender().GetCurName() << " ***" << std::endl;
       // Check stage name is the same for all kernels
       for (auto b : bb) {
         auto& m = kernels_[b]->GetMesh();
         fassert(
-            m.GetCurName() == mf.GetCurName(),
+            m.GetSuspender().GetCurName() == mf.GetSuspender().GetCurName(),
             util::Format(
                 "Blocks {} and {} diverged to different stages {} and {}",
-                m.GetId(), mf.GetId(), m.GetCurName(), mf.GetCurName()));
+                m.GetId(), mf.GetId(), m.GetSuspender().GetCurName(),
+                mf.GetSuspender().GetCurName()));
       }
     }
 
@@ -342,10 +343,10 @@ void DistrMesh<M>::Run() {
     Scatter(bb);
     Bcast(bb);
 
-    mt_.Pop(kernels_.front()->GetMesh().GetCurName());
+    mt_.Pop(kernels_.front()->GetMesh().GetSuspender().GetCurName());
     mt_.Push();
 
-    mtp_.Pop(kernels_.front()->GetMesh().GetCurName());
+    mtp_.Pop(kernels_.front()->GetMesh().GetSuspender().GetCurName());
     TimerReport(bb);
     mtp_.Push();
   } while (true);

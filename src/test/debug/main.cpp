@@ -55,11 +55,11 @@ void TestMesh() {
   PF;
 
   M m = GetMesh();
-  m.SetCN(true);
+  m.flags.check_nan = true;
   FieldCell<Scal> f(m);
   f[IdxCell(0)] = GetNan<Scal>();
   TR(CheckNan(f, "f", m);)
-  TR(CHECKNAN(f, m.CN());)
+  TR(CHECKNAN(f, m.flags.check_nan);)
 }
 
 void TestAssert() {

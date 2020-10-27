@@ -294,7 +294,7 @@ struct Proj<EB_>::Imp {
     auto sem = m.GetSem("fluid-start");
     if (sem("convdiff-init")) {
       owner_->ClearIter();
-      CHECKNAN(fcp_.time_curr, m.CN())
+      CHECKNAN(fcp_.time_curr, m.flags.check_nan)
     }
 
     if (sem("convdiff-start")) {
@@ -599,7 +599,7 @@ struct Proj<EB_>::Imp {
       fcp_.time_curr = fcp_.iter_curr;
       fev_.time_curr = fev_.iter_curr;
       fcvel_.time_curr = fcvel_.iter_curr;
-      CHECKNAN(fcp_.time_curr, m.CN())
+      CHECKNAN(fcp_.time_curr, m.flags.check_nan)
       owner_->IncTime();
     }
   }
