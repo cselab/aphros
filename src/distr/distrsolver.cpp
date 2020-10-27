@@ -124,13 +124,6 @@ int RunMpi0(
     var.Int.Set("verbose", 1);
   }
 
-  // Print vars on root
-  if (verbose && isroot) {
-    std::cerr << "\n=== config begin ===\n";
-    ip.PrintAll(std::cerr);
-    std::cerr << "=== config end ===\n\n";
-  }
-
   const std::string backend = var.String["backend"];
 
   if (backend == "local") {

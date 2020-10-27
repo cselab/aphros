@@ -94,8 +94,14 @@ std::string Vars::Map<T>::ValueToStr(Value value) {
 template <>
 std::string Vars::Map<std::vector<double>>::ValueToStr(Value value) {
   std::stringstream buf;
+  bool first = true;
   for (auto a : value) {
-    buf << a << " ";
+    if (!first) {
+      buf << ' ';
+    } else {
+      first = false;
+    }
+    buf << a;
   }
   return buf.str();
 }

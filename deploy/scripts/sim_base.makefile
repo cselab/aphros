@@ -77,7 +77,7 @@ cleandat::
 	rm -vf sp_*.vtk
 	rm -vf sm_*.vtk
 	rm -vf bc.vtk
-	rm -vf out
+	rm -vf out out.conf
 	rm -vf lsf.o*
 	rm -vf slurm*.out
 	rm -vf {vx,vy,vz,p,vf,cl,cls,div,omm}_*.dat

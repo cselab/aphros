@@ -28,7 +28,7 @@ void Simple() {
   s << "set vect d 1" << std::endl;
 
   parser.ParseStream(s);
-  parser.PrintAll(std::cout);
+  parser.PrintVars(std::cout);
 
   assert(par.String["a"] == "1");
   assert(par.Int["b"] == 1);
@@ -44,8 +44,7 @@ void TestFile() {
   Parser parser(par);
   parser.ParseFile("a.conf");
 
-  // print variables to cout
-  parser.PrintAll(std::cout);
+  parser.PrintVars(std::cout);
 }
 
 struct Config : public ConfigBase {

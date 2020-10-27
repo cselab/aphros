@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <iostream>
+#include <iosfwd>
 #include <map>
 #include <memory>
 #include <set>
@@ -32,34 +32,15 @@ class Parser {
   // - directory `dir` (if `dir != ""`)
   // Reports file path and line number in case of error.
   void ParseFile(std::string path, std::string dir = "");
-  // Prints content of Map
+  // Prints commands "set" for variables in `map`.
   template <class T>
-  static void Print(const Vars::Map<T>& m, std::ostream& out);
-  // Prints content of v_
-  void PrintAll(std::ostream& out) const;
-  // Prints content of v_ to std::cout
-  void PrintAll() const;
+  static void PrintMap(const Vars::Map<T>& map, std::ostream& out);
+  // Prints commands "set" for variables in `var`.
+  static void PrintVars(const Vars& var, std::ostream& out);
+  // Prints commands "set" for variables in all maps.
+  void PrintVars(std::ostream& out) const;
 
  private:
   struct Imp;
   std::unique_ptr<Imp> imp;
 };
-
-// Parses arguments.
-//   argc, argv: arguments
-//   novalue: names of arguments without value (which is set to "")
-// Returns:
-//   - map `key:value` for arguments starting from '--' or '-'
-//   - list of positional arguments
-// Example:
-// ./main --a 0 -b -c 2 a b c
-// {
-//   {
-//     {"--a", "0"},
-//     {"-b", ""},
-//     {"-c", "2"},
-//   },
-//   {"a", "b", "c"},
-// }
-std::pair<std::map<std::string, std::string>, std::vector<std::string>>
-ParseArgs(int argc, const char** argv, const std::set<std::string>& novalue);

@@ -28,7 +28,7 @@ static std::string Strip(std::string s) {
 struct Parser::Imp {
   using Owner = Parser;
 
-  Imp(Owner* owner, Vars& v) : owner_(owner), v_(v) {}
+  Imp(Owner* owner, Vars& var) : owner_(owner), var_(var) {}
 
   static std::string RemoveComment(std::string s) {
     return s.substr(0, s.find('#', 0));
@@ -38,9 +38,9 @@ struct Parser::Imp {
            (c >= 'A' && c <= 'Z') || c == '_';
   }
   std::string GetStr(std::string key) const {
-    auto type = v_.GetTypeName(key);
+    auto type = var_.GetTypeName(key);
     if (type != "") {
-      return v_.GetStr(type, key);
+      return var_.GetStr(type, key);
     }
     throw std::runtime_error(FILELINE + ": undefined variable '" + key + "'");
   }
@@ -147,7 +147,7 @@ struct Parser::Imp {
   // set <type> <key> <value>
   void CmdSet(std::string);
   // setnext <type> <key> <value>
-  // Sets value with name key+id and increments id stored in v_.Int[key]
+  // Sets value with name key+id and increments id stored in var_.Int[key]
   void CmdSetNext(std::string);
   // del <name>
   void CmdDel(std::string);
@@ -156,10 +156,10 @@ struct Parser::Imp {
   void CmdInclude(std::string path, std::string curpath);
 
   Owner* owner_;
-  Vars& v_;
+  Vars& var_;
 };
 
-Parser::Parser(Vars& v) : imp(new Imp(this, v)) {}
+Parser::Parser(Vars& var) : imp(new Imp(this, var)) {}
 
 Parser::~Parser() = default;
 
@@ -208,7 +208,7 @@ void Parser::Imp::CmdSet(std::string s) {
     b >> c;
   }
   val = Strip(val);
-  v_.SetStr(type, key, val);
+  var_.SetStr(type, key, val);
 }
 
 void Parser::Imp::CmdSetNext(std::string s) {
@@ -223,11 +223,11 @@ void Parser::Imp::CmdSetNext(std::string s) {
   std::getline(b, val);
   val = c + val;
 
-  if (!v_.Int.Contains(key)) {
-    v_.Int.Set(key, 0);
+  if (!var_.Int.Contains(key)) {
+    var_.Int.Set(key, 0);
   }
-  int& id = v_.Int[key];
-  v_.SetStr(type, key + std::to_string(id), val);
+  int& id = var_.Int[key];
+  var_.SetStr(type, key + std::to_string(id), val);
   ++id;
 }
 
@@ -235,7 +235,7 @@ void Parser::Imp::CmdDel(std::string s) {
   std::string cmd, key;
   std::stringstream b(s);
   b >> cmd >> key;
-  if (!v_.Del(key)) {
+  if (!var_.Del(key)) {
     throw std::runtime_error(
         FILELINE + ": CmdDel(): unknown variable '" + key + "'");
   }
@@ -353,7 +353,7 @@ void Parser::ParseFile(std::string path, std::string dir) {
 }
 
 template <class T>
-void Parser::Print(const Vars::Map<T>& m, std::ostream& out) {
+void Parser::PrintMap(const Vars::Map<T>& m, std::ostream& out) {
   for (auto it = m.cbegin(); it != m.cend(); ++it) {
     const std::string val = m.GetStr(it->first);
     out << "set " << m.GetTypeName() << " " << it->first << " ";
@@ -366,40 +366,13 @@ void Parser::Print(const Vars::Map<T>& m, std::ostream& out) {
   }
 }
 
-void Parser::PrintAll(std::ostream& out) const {
-  Print(imp->v_.String, out);
-  Print(imp->v_.Int, out);
-  Print(imp->v_.Double, out);
-  Print(imp->v_.Vect, out);
+void Parser::PrintVars(const Vars& var, std::ostream& out) {
+  PrintMap(var.String, out);
+  PrintMap(var.Int, out);
+  PrintMap(var.Double, out);
+  PrintMap(var.Vect, out);
 }
 
-void Parser::PrintAll() const {
-  PrintAll(std::cout);
-}
-
-std::pair<std::map<std::string, std::string>, std::vector<std::string>>
-ParseArgs(int argc, const char** argv, const std::set<std::string>& novalue) {
-  int i = 1;
-  std::map<std::string, std::string> named;
-  while (i < argc) {
-    const std::string key(argv[i]);
-    if (key.length() && key[0] == '-') {
-      named[key] = "";
-      if (!novalue.count(key) && i + 1 < argc) {
-        const std::string val(argv[i + 1]);
-        if (!val.length() || val[0] != '-') {
-          named[key] = val;
-          ++i;
-        }
-      }
-      ++i;
-    } else {
-      break;
-    }
-  }
-  std::vector<std::string> pos;
-  while (i < argc) {
-    pos.push_back(argv[i++]);
-  }
-  return {named, pos};
+void Parser::PrintVars(std::ostream& out) const {
+  PrintVars(imp->var_, out);
 }

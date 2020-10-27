@@ -1172,6 +1172,11 @@ void Hydro<M>::Init() {
   auto& fcvf = ctx->fcvf;
   auto& fccl = ctx->fccl;
   if (sem("flags")) {
+    if (m.IsRoot() && var.Int("dumpconfig", 1)) {
+      std::ofstream out("out.conf");
+      Parser::PrintVars(var, out);
+    }
+
     m.flags.linreport = var.Int["linreport"];
     m.flags.check_symmetry = var.Int["check_symmetry"];
     m.flags.check_symmetry_dump_threshold =
