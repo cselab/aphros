@@ -429,6 +429,44 @@ class ExplVisc : public TimerMesh {
   FieldFace<Scal> ffmu;
 };
 
+class Stencil : public TimerMesh {
+ public:
+  Stencil(M& m_) : TimerMesh("stencil", m_) {}
+  void F() override {
+    size_t a = 0;
+    for (auto c : m.Cells()) {
+      for (auto cn : m.Stencil(c)) {
+        a += size_t(cn);
+      }
+    }
+    EXPOSE(a);
+  }
+};
+
+
+class StencilField : public TimerMesh {
+ public:
+  StencilField(M& m_) : TimerMesh("stencil_field", m_), fc(m) {
+    for (auto i : m.AllCells()) {
+      fc[i] = std::sin(i.GetRaw());
+    }
+    assert(mfc.size() > 0);
+  }
+  void F() override {
+    size_t a = 0;
+    for (auto c : m.Cells()) {
+      for (auto cn : m.Stencil(c)) {
+        a += fc[cn];
+      }
+    }
+    EXPOSE(a);
+  }
+
+ private:
+  FieldCell<Scal> fc;
+};
+
+
 // test: test index
 // m: mesh
 // Output:
@@ -476,6 +514,9 @@ bool RunTest(
   create((CellNNode*)0);
   create((FaceNCell*)0);
   create((FaceNNode*)0);
+
+  create((Stencil*)0);
+  create((StencilField*)0);
 
   if (!p) {
     return false;

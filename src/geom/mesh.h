@@ -21,7 +21,6 @@
 #include "range.h"
 #include "rangein.h"
 #include "transform.h"
-#include "util/logger.h"
 #include "util/suspender.h"
 #include "vect.h"
 
@@ -48,7 +47,7 @@ constexpr ReductionType::Concat concat;
 // Returns column of cells cmm,cm,cp,cpp.
 // nci: 0 or 1 such that m.GetCell(f, nci) == cp
 template <class M>
-void GetCellColumn(
+inline void GetCellColumn(
     const M& m, IdxFace f, size_t nci, IdxCell& cmm, IdxCell& cm, IdxCell& cp,
     IdxCell& cpp) {
   const size_t d{m.GetIndexFaces().GetDir(f)};
@@ -80,18 +79,20 @@ class MeshStructured {
   static constexpr size_t kCellNumNeighbourNodes = 8;
   static constexpr size_t kFaceNumNeighbourNodes = 4;
   static constexpr size_t kFaceNumNeighbourCells = 2;
+  static constexpr size_t kNumStencil = std::pow<size_t>(3, dim);
+  static constexpr size_t kNumStencil5 = std::pow<size_t>(5, dim);
   static constexpr bool kIsEmbed = false;
   enum class Type { regular, cut, excluded };
 
   // b: begin, lower corner cell index
   // cs: inner cells size
   // dom: domain, rectangle covering inner cells
-  // hl: halo cells from each side
+  // halos: halo cells from each side
   // isroot: root block
   // gs: global mesh size
   // id: unique id
   MeshStructured(
-      MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, bool islead,
+      MIdx b, MIdx cs, Rect<Vect> dom, int halos, bool isroot, bool islead,
       MIdx gs, int id);
   MeshStructured(const MeshStructured&) = delete;
   MeshStructured(MeshStructured&&) = default;
@@ -271,11 +272,15 @@ class MeshStructured {
   }
   // Cell indices over 3x3x3 stencil
   auto Stencil(IdxCell c) const {
-    return StencilGeneral<1>(c);
+    return MakeTransformIterator<IdxCell>(
+        GRange<size_t>(0, kNumStencil),
+        [this, c](size_t i) { return IdxCell(size_t(c) + stencil_[i]); });
   }
   // Cell indices over 5x5x5 stencil
   auto Stencil5(IdxCell c) const {
-    return StencilGeneral<2>(c);
+    return MakeTransformIterator<IdxCell>(
+        GRange<size_t>(0, kNumStencil5),
+        [this, c](size_t i) { return IdxCell(size_t(c) + stencil5_[i]); });
   }
   // Returns id of cell adjacent to c by face f.
   // -1 if f and c are not neighbours
@@ -529,9 +534,8 @@ class MeshStructured {
   void AppendExpr(Expr& sum, const ExprFace& v, size_t q, IdxCell) const {
     AppendExpr(sum, v, q);
   }
-
   bool IsInside(IdxCell c, Vect vect) const {
-    for (auto q : Nci()) {
+    for (auto q : Nci(c)) {
       IdxFace f = GetFace(c, q);
       if (GetOutwardSurface(c, q).dot(vect - GetCenter(f)) > 0) {
         return false;
@@ -966,6 +970,10 @@ class MeshStructured {
   std::array<size_t, kCellNumNeighbourFaces * dim> fnf_;
   // face neighbour node
   std::array<size_t, kFaceNumNeighbourNodes * dim> fnn_;
+  // 3x3x3 stencil offsets
+  std::array<size_t, kNumStencil> stencil_;
+  // 5x5x5 stencil offsets
+  std::array<size_t, kNumStencil5> stencil5_;
 
   Suspender susp_;
   std::vector<std::shared_ptr<Co>> vcm_; // comm
@@ -977,277 +985,11 @@ class MeshStructured {
   std::vector<ScatterRequest> scatter_; // list of scatter requests
 };
 
-template <class _Scal, size_t _dim>
-MeshStructured<_Scal, _dim>::MeshStructured(
-    MIdx b, MIdx cs, Rect<Vect> dom, int hl, bool isroot, bool islead, MIdx gs,
-    int id)
-    // inner
-    : bci_(b, cs)
-    , bfi_(bci_.GetBegin(), bci_.GetSize())
-    , bni_(bci_.GetBegin(), bci_.GetSize() + MIdx(1))
-    // all
-    , bca_(b - MIdx(hl), cs + MIdx(2 * hl))
-    , bfa_(bca_.GetBegin(), bca_.GetSize())
-    , bna_(bca_.GetBegin(), bca_.GetSize() + MIdx(1))
-    // support
-    , bcs_(bca_.GetBegin() + MIdx(1), bca_.GetSize() - MIdx(2))
-    , bfs_(bcs_.GetBegin(), bcs_.GetSize())
-    , bns_(bcs_.GetBegin(), bcs_.GetSize() + MIdx(1))
-    // raw
-    , bcr_(bca_.GetBegin(), bca_.GetSize() + MIdx(1))
-    , bfr_(bcr_.GetBegin(), bcr_.GetSize())
-    , bnr_(bcr_.GetBegin(), bcr_.GetSize())
-    , isroot_(isroot)
-    , islead_(islead)
-    , mb_(bci_.GetBegin())
-    , me_(bci_.GetEnd())
-    , dom_(dom)
-    , h_(dom.GetDimensions() / Vect(bci_.GetSize()))
-    , hh_(h_ * 0.5)
-    , vol_(h_.prod())
-    , gs_(gs)
-    , id_(id)
-    , gl_(Vect(gs) * h_)
-    , checknan_(false)
-    , edim_(dim) {
-  static_assert(dim == 3, "Not implemented for dim != 3");
-
-  // mesh step
-
-  // surface area
-  va_[0] = h_[1] * h_[2];
-  va_[1] = h_[2] * h_[0];
-  va_[2] = h_[0] * h_[1];
-
-  // surface vectors
-  vs_[0] = Vect(va_[0], 0., 0.);
-  vs_[1] = Vect(0., va_[1], 0.);
-  vs_[2] = Vect(0., 0., va_[2]);
-
-  // cell neighbour cell offset
-  {
-    MIdx w = bcr_.GetBegin(); // any cell
-    IdxCell c = bcr_.GetIdx(w);
-    for (auto q : Nci(c)) {
-      MIdx wo;
-      switch (q) {
-        case 0:
-          wo = MIdx(-1, 0, 0);
-          break;
-        case 1:
-          wo = MIdx(1, 0, 0);
-          break;
-        case 2:
-          wo = MIdx(0, -1, 0);
-          break;
-        case 3:
-          wo = MIdx(0, 1, 0);
-          break;
-        case 4:
-          wo = MIdx(0, 0, -1);
-          break;
-        default:
-        case 5:
-          wo = MIdx(0, 0, 1);
-          break;
-      };
-      IdxCell cn = bcr_.GetIdx(w + wo);
-      cnc_[q] = size_t(cn) - size_t(c);
-    }
-  }
-
-  // cell neighbour face offset
-  {
-    MIdx w = bcr_.GetBegin(); // any cell
-    IdxCell c = bcr_.GetIdx(w);
-    for (auto q : Nci(c)) {
-      MIdx wo;
-      Dir d;
-      switch (q) {
-        case 0:
-          wo = MIdx(0, 0, 0);
-          d = Dir::i;
-          break;
-        case 1:
-          wo = MIdx(1, 0, 0);
-          d = Dir::i;
-          break;
-        case 2:
-          wo = MIdx(0, 0, 0);
-          d = Dir::j;
-          break;
-        case 3:
-          wo = MIdx(0, 1, 0);
-          d = Dir::j;
-          break;
-        case 4:
-          wo = MIdx(0, 0, 0);
-          d = Dir::k;
-          break;
-        default:
-        case 5:
-          wo = MIdx(0, 0, 1);
-          d = Dir::k;
-          break;
-      };
-      IdxFace fn = bfr_.GetIdx(std::make_pair(w + wo, d));
-      cnf_[q] = size_t(fn) - size_t(c);
-    }
-  }
-
-  // cell outward factor
-  {
-    for (size_t q = 0; q < kCellNumNeighbourFaces; ++q) {
-      co_[q] = (q % 2 == 0 ? -1. : 1.);
-    }
-  }
-
-  // cell neighbour node offset
-  {
-    MIdx w = bcr_.GetBegin(); // any cell
-    IdxCell c = bcr_.GetIdx(w);
-    auto qm = kCellNumNeighbourNodes;
-    for (size_t q = 0; q < qm; ++q) {
-      MIdx wo;
-      switch (q) {
-        case 0:
-          wo = MIdx(0, 0, 0);
-          break;
-        case 1:
-          wo = MIdx(1, 0, 0);
-          break;
-        case 2:
-          wo = MIdx(0, 1, 0);
-          break;
-        case 3:
-          wo = MIdx(1, 1, 0);
-          break;
-        case 4:
-          wo = MIdx(0, 0, 1);
-          break;
-        case 5:
-          wo = MIdx(1, 0, 1);
-          break;
-        case 6:
-          wo = MIdx(0, 1, 1);
-          break;
-        default:
-        case 7:
-          wo = MIdx(1, 1, 1);
-          break;
-      };
-      IdxNode nn = bnr_.GetIdx(w + wo);
-      cnn_[q] = size_t(nn) - size_t(c);
-    }
-  }
-
-  // face neighbour cell offset
-  {
-    const MIdx w = bcr_.GetBegin(); // any cell
-    for (size_t d = 0; d < dim; ++d) {
-      IdxFace f = bfr_.GetIdx(w, Dir(d));
-      auto qm = kFaceNumNeighbourCells;
-      for (size_t q = 0; q < qm; ++q) {
-        MIdx wo(0);
-        switch (q) {
-          case 0:
-            wo[d] = -1;
-            break;
-          default:
-          case 1:
-            wo[d] = 0;
-            break;
-        };
-        IdxCell cn = bcr_.GetIdx(w + wo);
-        fnc_[d * qm + q] = size_t(cn) - size_t(f);
-      }
-    }
-  }
-
-  // face neighbour face offset
-  {
-    const MIdx w = bcr_.GetBegin(); // any cell
-    for (size_t d = 0; d < dim; ++d) {
-      const IdxFace f = bfr_.GetIdx(w, Dir(d));
-      auto qm = kCellNumNeighbourFaces;
-      for (size_t q = 0; q < qm; ++q) {
-        MIdx wo(0);
-        wo[q / 2] = (q % 2 == 0 ? -1 : 1);
-        const IdxFace fn = bfr_.GetIdx(w + wo, Dir(d));
-        fnf_[d * qm + q] = size_t(fn) - size_t(f);
-      }
-    }
-  }
-
-  // face neighbour cell offset
-  {
-    const MIdx w = bcr_.GetBegin(); // any cell
-    for (size_t d = 0; d < dim; ++d) {
-      IdxFace f = bfr_.GetIdx(w, Dir(d));
-      auto qm = kFaceNumNeighbourNodes;
-      for (size_t q = 0; q < qm; ++q) {
-        MIdx wo;
-        if (d == 0) {
-          switch (q) {
-            case 0:
-              wo = MIdx(0, 0, 0);
-              break;
-            case 1:
-              wo = MIdx(0, 1, 0);
-              break;
-            case 2:
-              wo = MIdx(0, 1, 1);
-              break;
-            default:
-            case 3:
-              wo = MIdx(0, 0, 1);
-              break;
-          }
-        } else if (d == 1) {
-          switch (q) {
-            case 0:
-              wo = MIdx(0, 0, 0);
-              break;
-            case 1:
-              wo = MIdx(0, 0, 1);
-              break;
-            case 2:
-              wo = MIdx(1, 0, 1);
-              break;
-            default:
-            case 3:
-              wo = MIdx(1, 0, 0);
-              break;
-          }
-        } else {
-          switch (q) {
-            case 0:
-              wo = MIdx(0, 0, 0);
-              break;
-            case 1:
-              wo = MIdx(1, 0, 0);
-              break;
-            case 2:
-              wo = MIdx(1, 1, 0);
-              break;
-            default:
-            case 3:
-              wo = MIdx(0, 1, 0);
-              break;
-          }
-        }
-        IdxNode nn = bnr_.GetIdx(w + wo);
-        fnn_[d * qm + q] = size_t(nn) - size_t(f);
-      }
-    }
-  }
-}
-
 // Create uniform mesh
 // domain: rectangle covering inner cells
 // begin: index of lower inner cells
 // s: number of inner cells in each direction
-// hl: number of halo layers
+// halos: number of halo layers
 // isroot: root block
 // islead: lead block
 // gs: global mesh size
@@ -1255,14 +997,4 @@ MeshStructured<_Scal, _dim>::MeshStructured(
 template <class M>
 M InitUniformMesh(
     Rect<typename M::Vect> domain, typename M::MIdx begin, typename M::MIdx s,
-    int hl, bool isroot, bool islead, typename M::MIdx gs, int id) {
-  return M(begin, s, domain, hl, isroot, islead, gs, id);
-}
-
-template <class M>
-M InitUniformMesh(
-    const Rect<typename M::Vect>& domain, typename M::MIdx s,
-    typename M::MIdx gs, int id) {
-  using MIdx = typename M::MIdx;
-  return InitUniformMesh<M>(domain, MIdx(0), s, true, true, gs, id);
-}
+    int halos, bool isroot, bool islead, typename M::MIdx gs, int id);
