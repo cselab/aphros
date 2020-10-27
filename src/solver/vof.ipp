@@ -215,7 +215,6 @@ struct Vof<EB_>::Imp {
       SweepType type, const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
       const FieldCell<Scal>* fcuu, Scal dt, Scal clipth, const EB& eb) {
     using Dir = typename M::Dir;
-    using MIdx = typename M::MIdx;
     const Dir md(d); // direction as Dir
     const MIdx wd(md); // offset in direction d
     const auto& m = eb.GetMesh();

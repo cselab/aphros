@@ -30,7 +30,7 @@ template <class M>
 int RunMpiBasicString(
     MpiWrapper& mpi, std::function<void(M& m, Vars&)> kernel,
     std::string addconf) {
-  using Kernel = std::function<void(M& m, Vars&)>;
+  using Kernel = std::function<void(M & m, Vars&)>;
   struct Par {
     Kernel kernel;
   };
@@ -67,20 +67,12 @@ template <class M>
 int RunMpiBasicFile(
     MpiWrapper& mpi, std::function<void(M& m, Vars&)> kernel,
     std::string confpath = "a.conf") {
-  int status;
-  try {
-    std::ifstream file(confpath);
-    if (!file.good()) {
-      throw std::runtime_error(
-          FILELINE + ": Can't open config file '" + confpath + "'");
-    }
-    std::stringstream buf;
-    buf << file.rdbuf();
-    status = RunMpiBasicString<M>(mpi, kernel, buf.str());
-  } catch (const std::exception& e) {
-    status = 1;
-    std::cerr << "\nabort after throwing exception\n" << e.what() << '\n';
-    throw e;
+  std::ifstream file(confpath);
+  if (!file.good()) {
+    throw std::runtime_error(
+        FILELINE + ": Can't open config file '" + confpath + "'");
   }
-  return status;
+  std::stringstream buf;
+  buf << file.rdbuf();
+  return RunMpiBasicString<M>(mpi, kernel, buf.str());
 }

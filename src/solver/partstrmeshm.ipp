@@ -118,7 +118,6 @@ struct PartStrMeshM<M_>::Imp {
     const Scal v = (r2 * m11 - r1 * m12) / det;
     // point on intersection line:
     const Vect xl = xc + n * u + np * v;
-    const int dim = 3;
     // intersection vector
     Vect t = n.cross(np);
     if (t.norm1() == 0) {
@@ -131,7 +130,7 @@ struct PartStrMeshM<M_>::Imp {
     const int im = t.abs().argmax();
     ss[0] = (xc[im] - hh[im] - xl[im]) / t[im];
     ss[1] = (xc[im] + hh[im] - xl[im]) / t[im];
-    for (int i = 0; i < dim; ++i) {
+    for (size_t i = 0; i < dim; ++i) {
       if (!ClipSegment(
               xl[i], t[i], xc[i] - hh[i], xc[i] + hh[i], ss[0], ss[1])) {
         return false;

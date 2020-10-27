@@ -723,32 +723,34 @@ class MeshStructured {
   void Reduce(std::pair<Scal, int>* buf, ReductionType::MinLoc);
   template <class T>
   void Reduce(std::vector<T>* buf, ReductionType::Concat) {
-    Reduce(std::make_shared<typename UReduce<Scal>::OpCatT<T>>(buf));
+    Reduce(std::make_shared<typename UReduce<Scal>::template OpCatT<T>>(buf));
   }
   template <class T>
   void Reduce(std::vector<std::vector<T>>* buf, ReductionType::Concat) {
-    Reduce(std::make_shared<typename UReduce<Scal>::OpCatVT<T>>(buf));
+    Reduce(std::make_shared<typename UReduce<Scal>::template OpCatVT<T>>(buf));
   }
   void ClearReduce();
   void ReduceToLead(const std::shared_ptr<Op>& o);
   template <class T>
   void GatherToLead(std::vector<T>* buf) {
-    ReduceToLead(std::make_shared<typename UReduce<Scal>::OpCatT<T>>(buf));
+    ReduceToLead(
+        std::make_shared<typename UReduce<Scal>::template OpCatT<T>>(buf));
   }
   template <class T>
   void GatherToLead(std::vector<std::vector<T>>* buf) {
-    ReduceToLead(std::make_shared<typename UReduce<Scal>::OpCatVT<T>>(buf));
+    ReduceToLead(
+        std::make_shared<typename UReduce<Scal>::template OpCatVT<T>>(buf));
   }
   const std::vector<std::shared_ptr<Op>>& GetReduceToLead() const;
   void ClearReduceToLead();
   void Bcast(const std::shared_ptr<Op>& o);
   template <class T>
   void Bcast(std::vector<T>* buf) {
-    Bcast(std::make_shared<typename UReduce<Scal>::OpCatT<T>>(buf));
+    Bcast(std::make_shared<typename UReduce<Scal>::template OpCatT<T>>(buf));
   }
   template <class T>
   void Bcast(std::vector<std::vector<T>>* buf) {
-    Bcast(std::make_shared<typename UReduce<Scal>::OpCatVT<T>>(buf));
+    Bcast(std::make_shared<typename UReduce<Scal>::template OpCatVT<T>>(buf));
   }
   const std::vector<std::shared_ptr<Op>>& GetBcast() const;
   void ClearBcast();
