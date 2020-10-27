@@ -85,13 +85,13 @@ void Test() {
   TestParse<std::string>("asdf");
   TestParse<int>("123");
   TestParse<double>("123.456");
-  TestParse<std::vector<double>>("1.2 3.4 5.6 ");
+  TestParse<std::vector<double>>("1.2 3.4 5.6");
 
   std::cerr << "TestTypeName" << std::endl;
   TestTypeName("asdf", "string");
   TestTypeName("123", "int");
   TestTypeName("123.456", "double");
-  TestTypeName("1.2 3.4 5.6 ", "vect");
+  TestTypeName("1.2 3.4 5.6", "vect");
 
   std::cerr << "TestPtr" << std::endl;
   TestPtr<std::string>("asdf", "qwer");
@@ -103,7 +103,7 @@ void Test() {
   TestDel<std::string>("asdf");
   TestDel<int>("123");
   TestDel<double>("123.456");
-  TestDel<std::vector<double>>("1.2 3.4 5.6 ");
+  TestDel<std::vector<double>>("1.2 3.4 5.6");
 
   std::cerr << "test_vars::Test() done\n" << std::endl;
 }
