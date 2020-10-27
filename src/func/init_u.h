@@ -586,8 +586,7 @@ void InitVf(
               std::istreambuf_iterator<char>());
         }
       }
-      using T = typename M::template OpCatT<char>;
-      m.Bcast(std::make_shared<T>(&ctx->buf));
+      m.Bcast(&ctx->buf);
     }
     if (sem("list-local")) {
       std::stringstream list;

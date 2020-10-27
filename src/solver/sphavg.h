@@ -348,8 +348,7 @@ void Sphavg<M_>::Update(
       vv_.push_back(aa_[i].Ser());
     }
 
-    using TVS = typename M::template OpCatVT<Scal>;
-    m.Reduce(std::make_shared<TVS>(&vv_));
+    m.Reduce(&vv_, Reduction::concat);
   }
   if (sem("reduce")) {
     // root has concatenation of all vv_
@@ -375,8 +374,7 @@ void Sphavg<M_>::Update(
         }
       }
     }
-    using TVS = typename M::template OpCatVT<Scal>;
-    m.Bcast(std::make_shared<TVS>(&vv_));
+    m.Bcast(&vv_);
   }
   if (sem("bcast")) {
     if (vv_.size() != ss_.size()) {

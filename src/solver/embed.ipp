@@ -104,12 +104,10 @@ void Embed<M>::DumpPoly(
       }
     }
 
-    using TV = typename M::template OpCatVT<Vect>;
-    m.Reduce(std::make_shared<TV>(&dl));
-    using TS = typename M::template OpCatT<Scal>;
-    m.Reduce(std::make_shared<TS>(&dld));
-    m.Reduce(std::make_shared<TS>(&dls));
-    m.Reduce(std::make_shared<TS>(&dlf));
+    m.Reduce(&dl, Reduction::concat);
+    m.Reduce(&dld, Reduction::concat);
+    m.Reduce(&dls, Reduction::concat);
+    m.Reduce(&dlf, Reduction::concat);
   }
   if (sem("write")) {
     if (m.IsRoot()) {
@@ -143,8 +141,7 @@ void Embed<M>::DumpPlaneSection(
         }
       }
     }
-    using TV = typename M::template OpCatVT<Vect>;
-    m.Reduce(std::make_shared<TV>(&dl));
+    m.Reduce(&dl, Reduction::concat);
   }
   if (sem("write")) {
     if (m.IsRoot()) {

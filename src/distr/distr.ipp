@@ -10,6 +10,8 @@
 #include <stdexcept>
 
 #include "distr.h"
+#include "reduce.h"
+#include "report.h"
 #include "util/format.h"
 
 template <class M>
@@ -74,8 +76,8 @@ void DistrMesh<M>::TimerReport(const std::vector<size_t>& bb) {
     out.open(fn);
     out << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB"
         << std::endl;
-    ParseReport(mtp_.GetMap(), out);
-    mtp_.Reset();
+    ParseReport(multitimer_report_.GetMap(), out);
+    multitimer_report_.Reset();
   }
   ClearTimerReport(bb);
 }
@@ -113,9 +115,9 @@ void DistrMesh<M>::Reduce(const std::vector<size_t>& bb) {
 
 template <class M>
 void DistrMesh<M>::ReduceToLead(const std::vector<size_t>& bb) {
-  using ReductionScal = typename M::OpS;
-  using ReductionScalInt = typename M::OpSI;
-  using ReductionConcat = typename M::OpCat;
+  using ReductionScal = typename UReduce<Scal>::OpS;
+  using ReductionScalInt = typename UReduce<Scal>::OpSI;
+  using ReductionConcat = typename UReduce<Scal>::OpCat;
   auto& vfirst = kernels_.front()->GetMesh().GetReduceToLead();
 
   if (!vfirst.size()) {
@@ -192,12 +194,14 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
           auto& size = b_size[iblock];
           data.reserve(m.GetInBlockCells().size() * kernels_.size());
           const auto* req = m.GetDump()[idump].first.get();
-          if (auto* req_scal = dynamic_cast<const typename M::CoFcs*>(req)) {
+          if (auto* req_scal =
+                  dynamic_cast<const typename M::CommRequestScal*>(req)) {
             for (auto c : m.Cells()) {
               data.push_back((*req_scal->field)[c]);
             }
           } else if (
-              auto* req_vect = dynamic_cast<const typename M::CoFcv*>(req)) {
+              auto* req_vect =
+                  dynamic_cast<const typename M::CommRequestVect*>(req)) {
             fassert(
                 req_vect->d != -1,
                 "Dump supports vector fields with only selected one component");
@@ -209,12 +213,10 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
           }
           origin.push_back(m.GetInBlockCells().GetBegin());
           size.push_back(m.GetInBlockCells().GetSize());
-          reduce_data.push_back(
-              std::make_shared<typename M::template OpCatT<Scal>>(&data));
-          reduce_origin.push_back(
-              std::make_shared<typename M::template OpCatT<MIdx>>(&origin));
-          reduce_size.push_back(
-              std::make_shared<typename M::template OpCatT<MIdx>>(&size));
+          using R = UReduce<Scal>;
+          reduce_data.push_back(R::Make(&data, Reduction::concat));
+          reduce_origin.push_back(R::Make(&origin, Reduction::concat));
+          reduce_size.push_back(R::Make(&size, Reduction::concat));
           ++iblock;
         }
         ReduceSingleRequest(reduce_data);
@@ -271,9 +273,10 @@ void DistrMesh<M>::ApplyNanFaces(const std::vector<size_t>& bb) {
   for (auto b : bb) {
     auto& m = kernels_[b]->GetMesh();
     for (auto& o : m.GetComm()) {
-      if (auto* os = dynamic_cast<typename M::CoFcs*>(o.get())) {
+      if (auto* os = dynamic_cast<typename M::CommRequestScal*>(o.get())) {
         m.ApplyNanFaces(*os->field);
-      } else if (auto* ov = dynamic_cast<typename M::CoFcv*>(o.get())) {
+      } else if (
+          auto* ov = dynamic_cast<typename M::CommRequestVect*>(o.get())) {
         m.ApplyNanFaces(*ov->field);
       } else {
         throw std::runtime_error("Distr::Run(): unknown field type for nan");
@@ -287,8 +290,8 @@ void DistrMesh<M>::Run() {
   if (var.Int["verbose_openmp"]) {
     ReportOpenmp();
   }
-  mt_.Push();
-  mtp_.Push();
+  multitimer_all_.Push();
+  multitimer_report_.Push();
   do {
     std::vector<size_t> bb;
     if (kernels_.front()->GetMesh().GetDump().size() > 0) {
@@ -343,15 +346,17 @@ void DistrMesh<M>::Run() {
     Scatter(bb);
     Bcast(bb);
 
-    mt_.Pop(kernels_.front()->GetMesh().GetSuspender().GetCurName());
-    mt_.Push();
+    multitimer_all_.Pop(
+        kernels_.front()->GetMesh().GetSuspender().GetCurName());
+    multitimer_all_.Push();
 
-    mtp_.Pop(kernels_.front()->GetMesh().GetSuspender().GetCurName());
+    multitimer_report_.Pop(
+        kernels_.front()->GetMesh().GetSuspender().GetCurName());
     TimerReport(bb);
-    mtp_.Push();
+    multitimer_report_.Push();
   } while (true);
-  mt_.Pop("last");
-  mtp_.Pop("last");
+  multitimer_all_.Pop("last");
+  multitimer_report_.Pop("last");
 
   if (var.Int["verbose_time"]) {
     Report();
@@ -362,16 +367,16 @@ template <class M>
 void DistrMesh<M>::Report() {
   if (isroot_) {
     double a = 0.; // total
-    for (auto e : mt_.GetMap()) {
+    for (auto e : multitimer_all_.GetMap()) {
       a += e.second;
     }
 
     if (var.Int["verbose_stages"]) {
       std::cout << std::fixed;
-      auto& mp = mt_.GetMap();
+      auto& map = multitimer_all_.GetMap();
       std::cout << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB"
                 << std::endl;
-      ParseReport(mp, std::cout);
+      ParseReport(map, std::cout);
     }
 
     const auto& m = kernels_.front()->GetMesh();

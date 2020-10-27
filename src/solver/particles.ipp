@@ -163,18 +163,15 @@ struct Particles<EB_>::Imp {
         (*attr) = select(*attr, inside);
       }
       // gather
-      using TS = typename M::template OpCatT<Scal>;
-      using TV = typename M::template OpCatT<Vect>;
-      m.Reduce(std::make_shared<TV>(&ctx->gather_x));
+      m.Reduce(&ctx->gather_x, Reduction::concat);
       for (auto& attr : ctx->gather_scal) {
-        m.Reduce(std::make_shared<TS>(&attr));
+        m.Reduce(&attr, Reduction::concat);
       }
       for (auto& attr : ctx->gather_vect) {
-        m.Reduce(std::make_shared<TV>(&attr));
+        m.Reduce(&attr, Reduction::concat);
       }
       ctx->id.push_back(m.GetId());
-      using TI = typename M::template OpCatT<int>;
-      m.Reduce(std::make_shared<TI>(&ctx->id));
+      m.Reduce(&ctx->id, Reduction::concat);
     }
     if (sem()) {
       if (m.IsRoot()) {
@@ -282,15 +279,12 @@ struct Particles<EB_>::Imp {
       for (size_t i = 0; i < s.x.size(); ++i) {
         ctx->block.push_back(m.GetId());
       }
-      using TV = typename M::template OpCatT<Vect>;
-      m.Reduce(std::make_shared<TV>(&ctx->s.x));
-      m.Reduce(std::make_shared<TV>(&ctx->s.v));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&ctx->s.r));
-      m.Reduce(std::make_shared<TS>(&ctx->s.rho));
-      m.Reduce(std::make_shared<TS>(&ctx->s.termvel));
-      using TI = typename M::template OpCatT<int>;
-      m.Reduce(std::make_shared<TI>(&ctx->block));
+      m.Reduce(&ctx->s.x, Reduction::concat);
+      m.Reduce(&ctx->s.v, Reduction::concat);
+      m.Reduce(&ctx->s.r, Reduction::concat);
+      m.Reduce(&ctx->s.rho, Reduction::concat);
+      m.Reduce(&ctx->s.termvel, Reduction::concat);
+      m.Reduce(&ctx->block, Reduction::concat);
     }
     if (sem("write") && m.IsRoot()) {
       std::ofstream o(path);

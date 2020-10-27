@@ -24,26 +24,6 @@
 #include "util/suspender.h"
 #include "vect.h"
 
-namespace ReductionType {
-struct Sum {};
-struct Prod {};
-struct Max {};
-struct Min {};
-struct MaxLoc {};
-struct MinLoc {};
-struct Concat {};
-} // namespace ReductionType
-
-namespace Reduction {
-constexpr ReductionType::Sum sum;
-constexpr ReductionType::Prod prod;
-constexpr ReductionType::Max max;
-constexpr ReductionType::Min min;
-constexpr ReductionType::MaxLoc maxloc;
-constexpr ReductionType::MinLoc minloc;
-constexpr ReductionType::Concat concat;
-} // namespace Reduction
-
 // Returns column of cells cmm,cm,cp,cpp.
 // nci: 0 or 1 such that m.GetCell(f, nci) == cp
 template <class M>
@@ -75,6 +55,8 @@ class MeshStructured {
   using IndexFaces = GIndex<IdxFace, dim>;
   using IndexNodes = GIndex<IdxNode, dim>;
   using M = MeshStructured;
+  enum class Type { regular, cut, excluded };
+
   static constexpr size_t kCellNumNeighbourFaces = 6;
   static constexpr size_t kCellNumNeighbourNodes = 8;
   static constexpr size_t kFaceNumNeighbourNodes = 4;
@@ -82,16 +64,15 @@ class MeshStructured {
   static constexpr size_t kNumStencil = std::pow<size_t>(3, dim);
   static constexpr size_t kNumStencil5 = std::pow<size_t>(5, dim);
   static constexpr bool kIsEmbed = false;
-  enum class Type { regular, cut, excluded };
 
   struct Flags {
+    size_t edim = dim; // effective dimension
     bool linreport = false;
     bool check_nan = false; // check_nan field read by CHECKNAN macro
     bool check_symmetry = false;
     Scal check_symmetry_dump_threshold = 1e-5;
     Scal nan_faces_value = 1e100;
     std::array<bool, dim> is_periodic = {false, false, false};
-    // FIXME: move to constructor
     Vect global_origin = Vect(0); // origin of global mesh
     MIdx global_blocks = MIdx(0); // number of blocks in global mesh
     Vect block_length = Vect(0); // length of one block (local mesh)
@@ -124,10 +105,10 @@ class MeshStructured {
       MIdx b, MIdx cs, Rect<Vect> domain, int halos, bool isroot, bool islead,
       MIdx gs, int id);
   MeshStructured(const MeshStructured&) = delete;
-  MeshStructured(MeshStructured&&) = default;
+  MeshStructured(MeshStructured&&);
   MeshStructured& operator=(const MeshStructured&) = delete;
   MeshStructured& operator=(MeshStructured&&) = delete;
-  ~MeshStructured() = default;
+  ~MeshStructured();
   MIdx GetGlobalSize() const {
     return global_size_;
   }
@@ -215,7 +196,7 @@ class MeshStructured {
     return r;
   }
   const Vect& GetSurface(IdxFace f) const {
-    return vs_[size_t(indexf_.GetDir(f))];
+    return face_surface_[size_t(indexf_.GetDir(f))];
   }
   Vect GetNode(IdxNode n) const {
     return domain_.low + Vect(indexn_.GetMIdx(n) - incells_begin_) * cell_size_;
@@ -598,31 +579,15 @@ class MeshStructured {
   }
   // Pairs face,nci for which the halos cells
   // are set to nan after each communication
-  const std::vector<std::pair<IdxFace, size_t>>& GetNanFaces() const {
-    return vfnan_;
-  }
-  void SetNanFaces(const std::vector<std::pair<IdxFace, size_t>>& vfnan) {
-    vfnan_ = vfnan;
-  }
+  const std::vector<std::pair<IdxFace, size_t>>& GetNanFaces() const;
+  void SetNanFaces(const std::vector<std::pair<IdxFace, size_t>>& vfnan);
   // Fills halo cell with garbage.
   // Using actual NaNs not allowed since some code relies on u*0 == 0
   template <class T>
-  void ApplyNanFaces(FieldCell<T>& fc) {
-    for (auto p : vfnan_) {
-      IdxFace f = p.first;
-      size_t nci = p.second;
-      auto cc = GetCellColumn(f, nci);
-      fc[cc[0]] = T(flags.nan_faces_value);
-      fc[cc[1]] = T(flags.nan_faces_value);
-    }
-  }
+  void ApplyNanFaces(FieldCell<T>& fc);
 
-  // Effective dimension
   size_t GetEdim() const {
-    return edim_;
-  }
-  void SetEdim(size_t edim) {
-    edim_ = edim;
+    return flags.edim;
   }
   MeshStructured& GetMesh() {
     return *this;
@@ -667,8 +632,6 @@ class MeshStructured {
         SuFaces(), [this](IdxFace f) { return IdxFaceMesh<M>(f, *this); });
   }
 
-  // TODO: move to separate class: Sem, Comm, Reduce
-  // BEGIN DISTR
  public:
   using Sem = Suspender::Sem;
   Sem GetSem(std::string name = "") {
@@ -681,9 +644,8 @@ class MeshStructured {
     return susp_;
   }
 
-  // Comm request
-  struct Co {
-    virtual ~Co() {}
+  struct CommRequest {
+    virtual ~CommRequest() {}
     // Number of scalar cell fields  (used in Dump and ghost communication)
     virtual size_t GetSize() const = 0;
     // Currently active index and element stride required for dumping individual
@@ -695,8 +657,8 @@ class MeshStructured {
     virtual Scal* GetBasePtr() = 0;
   };
   // FieldCell<Scal>
-  struct CoFcs : public Co {
-    CoFcs(FieldCell<Scal>* field_) : field(field_) {}
+  struct CommRequestScal : public CommRequest {
+    CommRequestScal(FieldCell<Scal>* field_) : field(field_) {}
     size_t GetSize() const override {
       return 1;
     }
@@ -712,10 +674,10 @@ class MeshStructured {
     FieldCell<Scal>* field;
   };
   // FieldCell<Vect>
-  struct CoFcv : public Co {
+  struct CommRequestVect : public CommRequest {
     // f: vector field
     // i: component (0,1,2), or -1 for all
-    CoFcv(FieldCell<Vect>* field_, int d_) : field(field_), d(d_) {}
+    CommRequestVect(FieldCell<Vect>* field_, int d_) : field(field_), d(d_) {}
     size_t GetSize() const override {
       return d == -1 ? Vect::dim : 1;
     }
@@ -731,175 +693,82 @@ class MeshStructured {
     FieldCell<Vect>* field;
     int d;
   };
-  void Comm(const std::shared_ptr<Co>& r) {
-    commreq_.push_back(r);
-  }
-  // Comm request for field f
-  void Comm(FieldCell<Scal>* f) {
-    Comm(std::make_shared<CoFcs>(f));
-  }
-  // Comm request for component d of f
-  void Comm(FieldCell<Vect>* f, int d) {
-    Comm(std::make_shared<CoFcv>(f, d));
-  }
-  // Comm request for all components of f
-  void Comm(FieldCell<Vect>* f) {
-    Comm(f, -1);
-  }
-  // f: scalar field
-  // n: name
-  void Dump(const FieldCell<Scal>* f, std::string n) {
-    auto ff = const_cast<FieldCell<Scal>*>(f);
-    vd_.push_back(std::make_pair(std::make_shared<CoFcs>(ff), n));
-  }
-  // f: vector field
-  // d: component (0,1,2)
-  // n: name
-  void Dump(const FieldCell<Vect>* f, int d, std::string n) {
-    auto ff = const_cast<FieldCell<Vect>*>(f);
-    vd_.push_back(std::make_pair(std::make_shared<CoFcv>(ff, d), n));
-  }
-  void Dump(const std::shared_ptr<Co>& o, std::string name) {
-    vd_.push_back(std::make_pair(o, name));
-  }
-  const std::vector<std::shared_ptr<Co>>& GetComm() const {
-    return commreq_;
-  }
-  const std::vector<std::pair<std::shared_ptr<Co>, std::string>>& GetDump()
-      const {
-    return vd_;
-  }
-  void ClearComm() {
-    commreq_.clear();
-  }
-  void ClearDump() {
-    vd_.clear();
-  }
+  void Comm(const std::shared_ptr<CommRequest>& r);
+  void Comm(FieldCell<Scal>* field);
+  void Comm(FieldCell<Vect>* field, int component);
+  void Comm(FieldCell<Vect>* field);
+  const std::vector<std::shared_ptr<CommRequest>>& GetComm() const;
+  void ClearComm();
 
-  using ReduceUtil = UReduce<Scal>;
-  using Op = typename ReduceUtil::Op;
-  template <class T>
-  using OpT = typename ReduceUtil::template OpT<T>;
-  using OpS = typename ReduceUtil::OpS;
-  using OpSum = typename ReduceUtil::OpSum;
-  using OpProd = typename ReduceUtil::OpProd;
-  using OpMax = typename ReduceUtil::OpMax;
-  using OpMin = typename ReduceUtil::OpMin;
-  using OpSI = typename ReduceUtil::OpSI;
-  using OpMinloc = typename ReduceUtil::OpMinloc;
-  using OpMaxloc = typename ReduceUtil::OpMaxloc;
-  template <class T>
-  using OpVT = typename ReduceUtil::template OpT<T>;
-  using OpCat = typename ReduceUtil::OpCat;
-  template <class T>
-  using OpCatT = typename ReduceUtil::template OpCatT<T>;
-  template <class T>
-  using OpCatVT = typename ReduceUtil::template OpCatVT<T>;
+  void Dump(const FieldCell<Scal>* field, std::string name);
+  void Dump(const FieldCell<Vect>* field, int component, std::string name);
+  void Dump(const std::shared_ptr<CommRequest>& request, std::string name);
+  const std::vector<std::pair<std::shared_ptr<CommRequest>, std::string>>&
+  GetDump() const;
+  void ClearDump();
+
+  using Op = typename UReduce<Scal>::Op;
 
   MPI_Comm GetMpiComm() const {
     return flags.comm;
   }
-  void Reduce(const std::shared_ptr<Op>& o) {
-    reduce_.Add(o);
-  }
-  // u: src and dst buffer
-  // o: operation
-  void Reduce(Scal* u, std::string o) {
-    reduce_.Add(u, o);
-  }
-  const std::vector<std::shared_ptr<Op>>& GetReduce() const {
-    return reduce_.Get();
-  }
-  void Reduce(Scal* buf, ReductionType::Sum) {
-    Reduce(buf, "sum");
-  }
-  void Reduce(Scal* buf, ReductionType::Prod) {
-    Reduce(buf, "prod");
-  }
-  void Reduce(Scal* buf, ReductionType::Max) {
-    Reduce(buf, "max");
-  }
-  void Reduce(Scal* buf, ReductionType::Min) {
-    Reduce(buf, "min");
-  }
-  void Reduce(std::pair<Scal, int>* buf, ReductionType::MaxLoc) {
-    Reduce(std::make_shared<OpMaxloc>(buf));
-  }
-  void Reduce(std::pair<Scal, int>* buf, ReductionType::MinLoc) {
-    Reduce(std::make_shared<OpMinloc>(buf));
-  }
+  void Reduce(const std::shared_ptr<Op>& o);
+  void Reduce(Scal* u, std::string o);
+  const std::vector<std::shared_ptr<Op>>& GetReduce() const;
+  void Reduce(Scal* buf, ReductionType::Sum);
+  void Reduce(Scal* buf, ReductionType::Prod);
+  void Reduce(Scal* buf, ReductionType::Max);
+  void Reduce(Scal* buf, ReductionType::Min);
+  void Reduce(std::pair<Scal, int>* buf, ReductionType::MaxLoc);
+  void Reduce(std::pair<Scal, int>* buf, ReductionType::MinLoc);
   template <class T>
   void Reduce(std::vector<T>* buf, ReductionType::Concat) {
-    Reduce(std::make_shared<OpCatT<T>>(buf));
+    Reduce(std::make_shared<typename UReduce<Scal>::OpCatT<T>>(buf));
   }
   template <class T>
   void Reduce(std::vector<std::vector<T>>* buf, ReductionType::Concat) {
-    Reduce(std::make_shared<OpCatVT<T>>(buf));
+    Reduce(std::make_shared<typename UReduce<Scal>::OpCatVT<T>>(buf));
   }
-
-  void ClearReduce() {
-    reduce_.Clear();
-  }
-  void ReduceToLead(const std::shared_ptr<Op>& o) {
-    reduce_lead_.Add(o);
-  }
+  void ClearReduce();
+  void ReduceToLead(const std::shared_ptr<Op>& o);
   template <class T>
   void GatherToLead(std::vector<T>* buf) {
-    ReduceToLead(std::make_shared<OpCatT<T>>(buf));
+    ReduceToLead(std::make_shared<typename UReduce<Scal>::OpCatT<T>>(buf));
   }
   template <class T>
   void GatherToLead(std::vector<std::vector<T>>* buf) {
-    ReduceToLead(std::make_shared<OpCatVT<T>>(buf));
+    ReduceToLead(std::make_shared<typename UReduce<Scal>::OpCatVT<T>>(buf));
   }
-  const std::vector<std::shared_ptr<Op>>& GetReduceToLead() const {
-    return reduce_lead_.Get();
-  }
-  void ClearReduceToLead() {
-    reduce_lead_.Clear();
-  }
-  void Bcast(const std::shared_ptr<Op>& o) {
-    bcast_.push_back(o);
-  }
+  const std::vector<std::shared_ptr<Op>>& GetReduceToLead() const;
+  void ClearReduceToLead();
+  void Bcast(const std::shared_ptr<Op>& o);
   template <class T>
   void Bcast(std::vector<T>* buf) {
-    Bcast(std::make_shared<OpCatT<T>>(buf));
+    Bcast(std::make_shared<typename UReduce<Scal>::OpCatT<T>>(buf));
   }
   template <class T>
   void Bcast(std::vector<std::vector<T>>* buf) {
-    Bcast(std::make_shared<OpCatVT<T>>(buf));
+    Bcast(std::make_shared<typename UReduce<Scal>::OpCatVT<T>>(buf));
   }
-  const std::vector<std::shared_ptr<Op>>& GetBcast() const {
-    return bcast_;
-  }
-  void ClearBcast() {
-    bcast_.clear();
-  }
+  const std::vector<std::shared_ptr<Op>>& GetBcast() const;
+  void ClearBcast();
   // Scatter request:
-  // first: on root, vector for each block; ignored on others
+  // first: sendbuffer on root, vector for each block; ignored on others
   // second: receive buffer
   using ScatterRequest =
       std::pair<const std::vector<std::vector<Scal>>*, std::vector<Scal>*>;
-  // scatter vo, send from root vo[block] to block vo[0]
-  // vo: array of size comm_size on root
-  //     array of size 1 on others
-  void Scatter(const ScatterRequest& req) {
-    scatter_.push_back(req);
-  }
-  const std::vector<ScatterRequest>& GetScatter() const {
-    return scatter_;
-  }
-  void ClearScatter() {
-    scatter_.clear();
-  }
+  void Scatter(const ScatterRequest& req);
+  const std::vector<ScatterRequest>& GetScatter() const;
+  void ClearScatter();
   // Request timer report to file s
   void TimerReport(const std::string& s) {
-    trep_ = s;
+    timer_report_path_ = s;
   }
   std::string GetTimerReport() const {
-    return trep_;
+    return timer_report_path_;
   }
   void ClearTimerReport() {
-    trep_ = "";
+    timer_report_path_ = "";
   }
 
  public:
@@ -931,16 +800,14 @@ class MeshStructured {
   const Vect cell_size_;
   const Vect half_cell_size_;
   const Scal cell_volume_;
-  const MIdx global_size_; // global mesh size
+  const MIdx global_size_;
   const int id_; // unique id
   const Vect global_length_; // global domain length
   bool checknan_; // CheckNan flag
   // pairs face,nci for which the halos cells
   // are set to nan after each communication
-  std::vector<std::pair<IdxFace, size_t>> vfnan_;
-  size_t edim_ = dim; // effective dimension
-  std::array<Vect, dim> vs_; // surface vectors
-  Vect face_area_; // surface area
+  std::array<Vect, dim> face_surface_; // surface vectors
+  Vect face_area_;
   // offsets
   std::array<size_t, kCellNumNeighbourFaces> cell_cell_;
   std::array<size_t, kCellNumNeighbourFaces> cell_face_;
@@ -953,13 +820,9 @@ class MeshStructured {
   std::array<size_t, kNumStencil5> stencil5_; // 5x5x5 stencil
 
   Suspender susp_;
-  std::vector<std::shared_ptr<Co>> commreq_; // comm
-  std::vector<std::pair<std::shared_ptr<Co>, std::string>> vd_; // dump
-  std::string trep_; // timer report filename
-  ReduceUtil reduce_;
-  ReduceUtil reduce_lead_;
-  std::vector<std::shared_ptr<Op>> bcast_; // list of broadcast requests
-  std::vector<ScatterRequest> scatter_; // list of scatter requests
+  std::string timer_report_path_;
+  struct Imp;
+  std::unique_ptr<Imp> imp;
 };
 
 // Create uniform mesh

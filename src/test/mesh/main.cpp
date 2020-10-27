@@ -207,7 +207,7 @@ void TestMesh() {
   // Comm
   FieldCell<Scal> fc;
   m.Comm(&fc);
-  auto p = dynamic_cast<typename M::CoFcs*>(m.GetComm()[0].get());
+  auto p = dynamic_cast<typename M::CommRequestScal*>(m.GetComm()[0].get());
   CMP(p->field, &fc);
 
   // Stencil indices

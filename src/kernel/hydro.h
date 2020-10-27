@@ -1728,7 +1728,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       for (auto f : m.Faces()) {
         using Dir = typename M::Dir;
         if (m.GetIndexFaces().GetDir(f) == Dir::k) {
-          febp_[f] = 0.; // XXX: zero in z
+          febp_[f] = 0;
         }
       }
     }
@@ -2023,10 +2023,10 @@ void Hydro<M>::Dump(bool force) {
   }
   if (sem("dmptrep")) {
     if (m.IsRoot() && dmptrep_.Try(st_.t, st_.dt)) {
-      std::string s = GetDumpName("trep", ".log", dmptrep_.GetN());
-      m.TimerReport(s);
+      const std::string path = GetDumpName("trep", ".log", dmptrep_.GetN());
+      m.TimerReport(path);
       std::cout << std::fixed << std::setprecision(8) << "timer report"
-                << " t=" << st_.t << " to " << s << std::endl;
+                << " t=" << st_.t << " to " << path << std::endl;
     }
   }
   if (sem("dumpstat")) {

@@ -50,9 +50,8 @@ void DumpCsv(
     for (auto& d : indata) {
       data.push_back({d.first, d.second});
     }
-    using TS = typename M::template OpCatT<Scal>;
     for (auto& d : data) {
-      m.Reduce(std::make_shared<TS>(&d.second));
+      m.Reduce(&d.second, Reduction::concat);
     }
   }
   if (sem("write") && m.IsRoot()) {

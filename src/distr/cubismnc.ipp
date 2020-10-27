@@ -527,7 +527,7 @@ auto Cubismnc<Par, M>::TransferHalos(bool inner) -> std::vector<size_t> {
 
 template <class Par, class M>
 void Cubismnc<Par, M>::Bcast(const std::vector<size_t>& bb) {
-  using OpConcat = typename M::OpCat;
+  using OpConcat = typename UReduce<Scal>::OpCat;
   auto& vfirst = kernels_.front()->GetMesh().GetBcast();
 
   if (!vfirst.size()) {
@@ -681,9 +681,9 @@ void Cubismnc<Par, M>::Scatter(const std::vector<size_t>& bb) {
 template <class Par, class M>
 void Cubismnc<Par, M>::ReduceSingleRequest(
     const std::vector<std::shared_ptr<RedOp>>& blocks) {
-  using OpScal = typename M::OpS;
-  using OpScalInt = typename M::OpSI;
-  using OpConcat = typename M::OpCat;
+  using OpScal = typename UReduce<Scal>::OpS;
+  using OpScalInt = typename UReduce<Scal>::OpSI;
+  using OpConcat = typename UReduce<Scal>::OpCat;
 
   auto* firstbase = blocks.front().get();
 
@@ -697,13 +697,13 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
     }
 
     MPI_Op mpiop;
-    if (dynamic_cast<typename M::OpSum*>(first)) {
+    if (dynamic_cast<typename UReduce<Scal>::OpSum*>(first)) {
       mpiop = MPI_SUM;
-    } else if (dynamic_cast<typename M::OpProd*>(first)) {
+    } else if (dynamic_cast<typename UReduce<Scal>::OpProd*>(first)) {
       mpiop = MPI_PROD;
-    } else if (dynamic_cast<typename M::OpMax*>(first)) {
+    } else if (dynamic_cast<typename UReduce<Scal>::OpMax*>(first)) {
       mpiop = MPI_MAX;
-    } else if (dynamic_cast<typename M::OpMin*>(first)) {
+    } else if (dynamic_cast<typename UReduce<Scal>::OpMin*>(first)) {
       mpiop = MPI_MIN;
     } else {
       fassert(false, "Unknown reduction");
@@ -730,9 +730,9 @@ void Cubismnc<Par, M>::ReduceSingleRequest(
     }
 
     MPI_Op mpiop;
-    if (dynamic_cast<typename M::OpMinloc*>(first)) {
+    if (dynamic_cast<typename UReduce<Scal>::OpMinloc*>(first)) {
       mpiop = MPI_MINLOC;
-    } else if (dynamic_cast<typename M::OpMaxloc*>(first)) {
+    } else if (dynamic_cast<typename UReduce<Scal>::OpMaxloc*>(first)) {
       mpiop = MPI_MAXLOC;
     } else {
       fassert(false, "Unknown reduction");

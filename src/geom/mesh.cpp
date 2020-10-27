@@ -3,8 +3,15 @@
 
 #include "mesh.ipp"
 
+using M = MeshStructured<double, 3>;
+using Scal = typename M::Scal;
+using Vect = typename M::Vect;
+
 template class MeshStructured<double, 3>;
 
 template M InitUniformMesh(
     Rect<typename M::Vect> domain, typename M::MIdx begin, typename M::MIdx s,
     int halos, bool isroot, bool islead, typename M::MIdx gs, int id);
+
+template void M::ApplyNanFaces(FieldCell<Scal>& fc);
+template void M::ApplyNanFaces(FieldCell<Vect>& fc);

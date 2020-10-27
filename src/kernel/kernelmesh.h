@@ -59,9 +59,8 @@ class KernelMesh {
 
   KernelMesh(Vars& var_, const BlockInfoProxy& bi)
       : var(var_), var_mutable(var_), bi_(bi), m(CreateMesh<M>(bi)) {
-    m.flags.check_nan_ = var.Int["CHECKNAN"];
-    m.flags.
-    m.SetEdim(var.Int["dim"]);
+    m.flags.check_nan = var.Int["CHECKNAN"];
+    m.flags.edim = var.Int["dim"];
   }
   virtual ~KernelMesh() = default;
   virtual void Run() = 0;

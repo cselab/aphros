@@ -20,8 +20,7 @@ void Run(M& m, Vars&) {
   for (auto i = 0; i < 10; ++i) {
     if (sem("std")) {
       v = {Scal(m.GetId())};
-      using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&v));
+      m.Reduce(&v, Reduction::concat);
     }
   }
 

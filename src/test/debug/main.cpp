@@ -35,11 +35,11 @@ using Vect = generic::Vect<Scal, dim>;
 using M = MeshStructured<Scal, dim>;
 
 M GetMesh() {
-  Rect<Vect> dom(Vect(0., 0., 0.), Vect(1., 1., 1.));
-  MIdx b(0, 0, 0); // lower index
-  MIdx s(2, 2, 1); // size in cells
-  int hl = 0; // halos
-  return InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
+  const Rect<Vect> dom(Vect(0), Vect(1));
+  const MIdx begin(0, 0, 0);
+  const MIdx size(2, 2, 1);
+  const int halos = 0;
+  return InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);
 }
 
 void TestRange() {

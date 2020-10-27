@@ -467,13 +467,9 @@ struct PartStrMeshM<M_>::Imp {
           }
         }
 
-        // comm
-        using TV = typename M::template OpCatT<Vect>;
-        using TI = typename M::template OpCatT<size_t>;
-        using TS = typename M::template OpCatT<Scal>;
-        m.Reduce(std::make_shared<TV>(&dpx));
-        m.Reduce(std::make_shared<TI>(&dpc));
-        m.Reduce(std::make_shared<TS>(&dpk));
+        m.Reduce(&dpx, Reduction::concat);
+        m.Reduce(&dpc, Reduction::concat);
+        m.Reduce(&dpk, Reduction::concat);
       }
       if (sem("write")) {
         if (m.IsRoot()) {
@@ -533,10 +529,8 @@ struct PartStrMeshM<M_>::Imp {
           dlc.push_back(hc);
         }
       }
-      using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dl));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dlc));
+      m.Reduce(&dl, Reduction::concat);
+      m.Reduce(&dlc, Reduction::concat);
     }
     if (sem("write")) {
       if (m.IsRoot()) {

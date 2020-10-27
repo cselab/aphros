@@ -1,11 +1,31 @@
 // Created by Petr Karnakov on 20.07.2018
 // Copyright 2018 ETH Zurich
 
+#pragma once
+
 #include <memory>
 #include <utility>
 #include <vector>
 
-// U: utility class
+namespace ReductionType {
+struct Sum {};
+struct Prod {};
+struct Max {};
+struct Min {};
+struct MaxLoc {};
+struct MinLoc {};
+struct Concat {};
+} // namespace ReductionType
+
+namespace Reduction {
+constexpr ReductionType::Sum sum;
+constexpr ReductionType::Prod prod;
+constexpr ReductionType::Max max;
+constexpr ReductionType::Min min;
+constexpr ReductionType::MaxLoc maxloc;
+constexpr ReductionType::MinLoc minloc;
+constexpr ReductionType::Concat concat;
+} // namespace Reduction
 
 template <class Scal>
 class UReduce {
@@ -172,7 +192,6 @@ class UReduce {
     std::vector<T>* vt_;
 
    private:
-    // Serialize vt
     static Bytes Serialize(const std::vector<T>& vt) {
       Bytes r; // result
       for (const T& x : vt) {
@@ -183,7 +202,6 @@ class UReduce {
       }
       return r;
     }
-    // Deserialize v
     static std::vector<T> Deserialize(const Bytes& v) {
       std::vector<T> r; // result
       assert(v.size() % sizeof(T) == 0);
@@ -210,12 +228,10 @@ class UReduce {
     // vt: buffer containing current value and used for result
     // OpCat::v_ initialized with nullptr // TODO: revise
     OpCatVT(std::vector<std::vector<T>>* vt) : OpCat(nullptr), vt_(vt) {}
-    // Serializes vt_ and appends to a
     void Append(Bytes& a) override {
       Bytes v = Serialize(*vt_);
       a.insert(a.end(), v.begin(), v.end());
     }
-    // Deserializes v to vt_
     void Set(const Bytes& v) override {
       *vt_ = Deserialize(v);
     }
@@ -299,6 +315,12 @@ class UReduce {
   }
   void Clear() {
     vrd_.clear();
+  }
+
+  template <class T>
+  static std::shared_ptr<OpCatT<T>> Make(
+      std::vector<T>* buf, ReductionType::Concat) {
+    return std::make_shared<OpCatT<T>>(buf);
   }
 
  private:

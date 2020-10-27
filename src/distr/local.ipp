@@ -52,13 +52,13 @@ class Local : public DistrMesh<M_> {
   size_t WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m);
   size_t WriteBuffer(const FieldCell<Vect>& f, size_t d, size_t e, M& m);
   size_t WriteBuffer(const FieldCell<Vect>& fc, size_t e, M& m);
-  size_t WriteBuffer(typename M::Co* o, size_t e, M& m);
+  size_t WriteBuffer(typename M::CommRequest* o, size_t e, M& m);
   void WriteBuffer(M& m);
 
   size_t ReadBuffer(FieldCell<Scal>& fc, size_t e, M& m);
   size_t ReadBuffer(FieldCell<Vect>& fc, size_t d, size_t e, M& m);
   size_t ReadBuffer(FieldCell<Vect>& fc, size_t e, M& m);
-  size_t ReadBuffer(typename M::Co* o, size_t e, M& m);
+  size_t ReadBuffer(typename M::CommRequest* o, size_t e, M& m);
   void ReadBuffer(M& m);
 
   // bs: inner block size
@@ -162,9 +162,9 @@ auto Local<M>::TransferHalos(bool inner) -> std::vector<size_t> {
 template <class M>
 void Local<M>::ReduceSingleRequest(
     const std::vector<std::shared_ptr<RedOp>>& blocks) {
-  using OpScal = typename M::OpS;
-  using OpScalInt = typename M::OpSI;
-  using OpConcat = typename M::OpCat;
+  using OpScal = typename UReduce<Scal>::OpS;
+  using OpScalInt = typename UReduce<Scal>::OpSI;
+  using OpConcat = typename UReduce<Scal>::OpCat;
 
   auto* firstbase = blocks.front().get();
 
@@ -242,7 +242,7 @@ void Local<M>::Scatter(const std::vector<size_t>& bb) {
 
 template <class M>
 void Local<M>::Bcast(const std::vector<size_t>& bb) {
-  using OpConcat = typename M::OpCat;
+  using OpConcat = typename UReduce<Scal>::OpCat;
   auto& vf = kernels_.front()->GetMesh().GetBcast(); // pointers to broadcast
 
   for (auto b : bb) {
@@ -402,23 +402,23 @@ size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t e, M& m) {
   }
   return Vect::dim;
 }
-// Reads from buffer to Co
-// o: instance of Co
+// Reads from buffer to CommRequest
+// o: instance of CommRequest
 // e: offset in buffer
 // Returns:
 // number of scalar fields written
 template <class M>
-size_t Local<M>::ReadBuffer(typename M::Co* o, size_t e, M& m) {
-  if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
+size_t Local<M>::ReadBuffer(typename M::CommRequest* o, size_t e, M& m) {
+  if (auto od = dynamic_cast<typename M::CommRequestScal*>(o)) {
     return ReadBuffer(*od->field, e, m);
   }
-  if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
+  if (auto od = dynamic_cast<typename M::CommRequestVect*>(o)) {
     if (od->d == -1) {
       return ReadBuffer(*od->field, e, m);
     }
     return ReadBuffer(*od->field, od->d, e, m);
   }
-  throw std::runtime_error("ReadBuffer: Unknown Co instance");
+  throw std::runtime_error("ReadBuffer: Unknown CommRequest instance");
   return 0;
 }
 template <class M>
@@ -481,23 +481,23 @@ size_t Local<M>::WriteBuffer(const FieldCell<Vect>& fc, size_t e, M& m) {
   }
   return Vect::dim;
 }
-// Writes Co to buffer.
-// o: instance of Co
+// Writes CommRequest to buffer.
+// o: instance of CommRequest
 // e: offset in buffer
 // Returns:
 // number of scalar fields written
 template <class M>
-size_t Local<M>::WriteBuffer(typename M::Co* o, size_t e, M& m) {
-  if (auto od = dynamic_cast<typename M::CoFcs*>(o)) {
+size_t Local<M>::WriteBuffer(typename M::CommRequest* o, size_t e, M& m) {
+  if (auto od = dynamic_cast<typename M::CommRequestScal*>(o)) {
     return WriteBuffer(*od->field, e, m);
   }
-  if (auto od = dynamic_cast<typename M::CoFcv*>(o)) {
+  if (auto od = dynamic_cast<typename M::CommRequestVect*>(o)) {
     if (od->d == -1) {
       return WriteBuffer(*od->field, e, m);
     }
     return WriteBuffer(*od->field, od->d, e, m);
   }
-  throw std::runtime_error("WriteBuffer: Unknown Co instance");
+  throw std::runtime_error("WriteBuffer: Unknown CommRequest instance");
 }
 template <class M>
 void Local<M>::WriteBuffer(M& m) {

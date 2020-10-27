@@ -848,7 +848,7 @@ void GetFluidCellCond(
       IdxCell c = m.FindNearestCell(x);
       pdist.first = m.GetCenter(c).dist(x);
       pdist.second = m.GetId();
-      m.Reduce(std::make_shared<typename M::OpMinloc>(&pdist));
+      m.Reduce(&pdist, Reduction::minloc);
     }
   }
 
@@ -1498,9 +1498,8 @@ std::map<typename M::Scal, typename M::Scal> CalcArea(
       vcl.push_back(p.first);
       vs.push_back(p.second);
     }
-    using T = typename M::template OpCatT<Scal>;
-    m.Reduce(std::make_shared<T>(&vcl));
-    m.Reduce(std::make_shared<T>(&vs));
+    m.Reduce(&vcl, Reduction::concat);
+    m.Reduce(&vs, Reduction::concat);
   }
   if (sem("bcast")) {
     if (m.IsRoot()) {
@@ -1515,9 +1514,8 @@ std::map<typename M::Scal, typename M::Scal> CalcArea(
         vs.push_back(p.second);
       }
     }
-    using T = typename M::template OpCatT<Scal>;
-    m.Bcast(std::make_shared<T>(&vcl));
-    m.Bcast(std::make_shared<T>(&vs));
+    m.Bcast(&vcl);
+    m.Bcast(&vs);
   }
   if (sem("map")) {
     std::map<Scal, Scal> map;
@@ -1557,9 +1555,8 @@ std::map<typename M::Scal, typename M::Scal> CalcVolume(
       vcl.push_back(p.first);
       vvol.push_back(p.second);
     }
-    using T = typename M::template OpCatT<Scal>;
-    m.Reduce(std::make_shared<T>(&vcl));
-    m.Reduce(std::make_shared<T>(&vvol));
+    m.Reduce(&vcl, Reduction::concat);
+    m.Reduce(&vvol, Reduction::concat);
   }
   if (sem("bcast")) {
     if (m.IsRoot()) {
@@ -1574,9 +1571,8 @@ std::map<typename M::Scal, typename M::Scal> CalcVolume(
         vvol.push_back(p.second);
       }
     }
-    using T = typename M::template OpCatT<Scal>;
-    m.Bcast(std::make_shared<T>(&vcl));
-    m.Bcast(std::make_shared<T>(&vvol));
+    m.Bcast(&vcl);
+    m.Bcast(&vvol);
   }
   if (sem("map")) {
     std::map<Scal, Scal> map;

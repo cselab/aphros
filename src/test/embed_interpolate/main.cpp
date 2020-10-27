@@ -92,8 +92,7 @@ void EmbedInterpolate<M>::Run() {
     for (auto c : eb.CFaces()) {
       px.push_back(eb.GetFaceCenter(c));
     }
-    using TV = typename M::template OpCatT<Vect>;
-    m.Reduce(std::make_shared<TV>(&px));
+    m.Reduce(&px, Reduction::concat);
   }
   if (sem("calc_omz")) {
     auto& eb = *eb_;
@@ -112,8 +111,7 @@ void EmbedInterpolate<M>::Run() {
     for (auto c : eb.CFaces()) {
       pomz.push_back(feomz[c]);
     }
-    using TS = typename M::template OpCatT<Scal>;
-    m.Reduce(std::make_shared<TS>(&pomz));
+    m.Reduce(&pomz, Reduction::concat);
   }
   if (sem("interpolate_omz")) {
     auto& eb = *eb_;
@@ -125,8 +123,7 @@ void EmbedInterpolate<M>::Run() {
     for (auto c : eb.CFaces()) {
       pomz_interp.push_back(feomz[c]);
     }
-    using TS = typename M::template OpCatT<Scal>;
-    m.Reduce(std::make_shared<TS>(&pomz_interp));
+    m.Reduce(&pomz_interp, Reduction::concat);
   }
   if (sem("write") && m.IsRoot()) {
     fassert_equal(px.size(), pomz.size());

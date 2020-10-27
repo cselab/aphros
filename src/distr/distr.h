@@ -17,7 +17,6 @@
 #include "geom/mesh.h"
 #include "kernel/kernelmesh.h"
 #include "parse/vars.h"
-#include "report.h"
 #include "util/metrics.h"
 #include "util/suspender.h"
 #include "util/sysinfo.h"
@@ -102,6 +101,6 @@ class DistrMesh {
   virtual void ClearTimerReport(const std::vector<size_t>& bb);
 
  private:
-  MultiTimer<std::string> mt_; // timer all
-  MultiTimer<std::string> mtp_; // timer partial
+  MultiTimer<std::string> multitimer_all_;
+  MultiTimer<std::string> multitimer_report_;
 };

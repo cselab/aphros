@@ -6,6 +6,18 @@
 using M = MeshStructured<double, 3>;
 
 template <class _Scal, size_t _dim>
+struct MeshStructured<_Scal, _dim>::Imp {
+  // Requests
+  std::vector<std::shared_ptr<CommRequest>> commreq;
+  std::vector<std::pair<std::shared_ptr<CommRequest>, std::string>> dump;
+  UReduce<Scal> reduce;
+  UReduce<Scal> reduce_lead;
+  std::vector<std::shared_ptr<typename UReduce<Scal>::Op>> bcast;
+  std::vector<ScatterRequest> scatter;
+  std::vector<std::pair<IdxFace, size_t>> vfnan;
+};
+
+template <class _Scal, size_t _dim>
 MeshStructured<_Scal, _dim>::MeshStructured(
     MIdx b, MIdx cs, Rect<Vect> domain, int halos, bool isroot, bool islead,
     MIdx gs, int id)
@@ -35,10 +47,9 @@ MeshStructured<_Scal, _dim>::MeshStructured(
     , cell_volume_(cell_size_.prod())
     , global_size_(gs)
     , id_(id)
-    , global_length_(Vect(gs) * cell_size_) {
+    , global_length_(Vect(gs) * cell_size_)
+    , imp(new Imp()) {
   static_assert(dim == 3, "Not implemented for dim != 3");
-
-  // mesh step
 
   // surface area
   face_area_[0] = cell_size_[1] * cell_size_[2];
@@ -46,9 +57,9 @@ MeshStructured<_Scal, _dim>::MeshStructured(
   face_area_[2] = cell_size_[0] * cell_size_[1];
 
   // surface vectors
-  vs_[0] = Vect(face_area_[0], 0., 0.);
-  vs_[1] = Vect(0., face_area_[1], 0.);
-  vs_[2] = Vect(0., 0., face_area_[2]);
+  face_surface_[0] = Vect(face_area_[0], 0., 0.);
+  face_surface_[1] = Vect(0., face_area_[1], 0.);
+  face_surface_[2] = Vect(0., 0., face_area_[2]);
 
   // cell neighbour cell offset
   {
@@ -287,9 +298,174 @@ MeshStructured<_Scal, _dim>::MeshStructured(
   }
 }
 
+template <class Scal, size_t dim>
+MeshStructured<Scal, dim>::~MeshStructured() = default;
+
+template <class Scal, size_t dim>
+MeshStructured<Scal, dim>::MeshStructured(MeshStructured&&) = default;
+
 template <class M>
 M InitUniformMesh(
     Rect<typename M::Vect> domain, typename M::MIdx begin, typename M::MIdx s,
     int halos, bool isroot, bool islead, typename M::MIdx gs, int id) {
-  return M(begin, s, domain, halos, isroot, islead, gs, id);
+  return {begin, s, domain, halos, isroot, islead, gs, id};
+}
+
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Comm(const std::shared_ptr<CommRequest>& r) {
+  imp->commreq.push_back(r);
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Comm(FieldCell<Scal>* f) {
+  Comm(std::make_shared<CommRequestScal>(f));
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Comm(FieldCell<Vect>* f, int d) {
+  Comm(std::make_shared<CommRequestVect>(f, d));
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Comm(FieldCell<Vect>* f) {
+  Comm(f, -1);
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Dump(const FieldCell<Scal>* f, std::string n) {
+  auto ff = const_cast<FieldCell<Scal>*>(f);
+  imp->dump.push_back(std::make_pair(std::make_shared<CommRequestScal>(ff), n));
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Dump(
+    const FieldCell<Vect>* f, int d, std::string n) {
+  auto ff = const_cast<FieldCell<Vect>*>(f);
+  imp->dump.push_back(
+      std::make_pair(std::make_shared<CommRequestVect>(ff, d), n));
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Dump(
+    const std::shared_ptr<CommRequest>& o, std::string name) {
+  imp->dump.push_back(std::make_pair(o, name));
+}
+template <class Scal, size_t dim>
+auto MeshStructured<Scal, dim>::GetComm() const
+    -> const std::vector<std::shared_ptr<CommRequest>>& {
+  return imp->commreq;
+}
+template <class Scal, size_t dim>
+auto MeshStructured<Scal, dim>::GetDump() const -> const
+    std::vector<std::pair<std::shared_ptr<CommRequest>, std::string>>& {
+  return imp->dump;
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::ClearComm() {
+  imp->commreq.clear();
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::ClearDump() {
+  imp->dump.clear();
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Reduce(
+    const std::shared_ptr<typename UReduce<Scal>::Op>& o) {
+  imp->reduce.Add(o);
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Reduce(Scal* u, std::string o) {
+  imp->reduce.Add(u, o);
+}
+template <class Scal, size_t dim>
+const std::vector<std::shared_ptr<typename UReduce<Scal>::Op>>&
+MeshStructured<Scal, dim>::GetReduce() const {
+  return imp->reduce.Get();
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Reduce(Scal* buf, ReductionType::Sum) {
+  Reduce(buf, "sum");
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Reduce(Scal* buf, ReductionType::Prod) {
+  Reduce(buf, "prod");
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Reduce(Scal* buf, ReductionType::Max) {
+  Reduce(buf, "max");
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Reduce(Scal* buf, ReductionType::Min) {
+  Reduce(buf, "min");
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Reduce(
+    std::pair<Scal, int>* buf, ReductionType::MaxLoc) {
+  Reduce(std::make_shared<typename UReduce<Scal>::OpMaxloc>(buf));
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Reduce(
+    std::pair<Scal, int>* buf, ReductionType::MinLoc) {
+  Reduce(std::make_shared<typename UReduce<Scal>::OpMinloc>(buf));
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::ClearReduce() {
+  imp->reduce.Clear();
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::ReduceToLead(
+    const std::shared_ptr<typename UReduce<Scal>::Op>& o) {
+  imp->reduce_lead.Add(o);
+}
+template <class Scal, size_t dim>
+const std::vector<std::shared_ptr<typename UReduce<Scal>::Op>>&
+MeshStructured<Scal, dim>::GetReduceToLead() const {
+  return imp->reduce_lead.Get();
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::ClearReduceToLead() {
+  imp->reduce_lead.Clear();
+}
+
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Scatter(const ScatterRequest& req) {
+  imp->scatter.push_back(req);
+}
+template <class Scal, size_t dim>
+auto MeshStructured<Scal, dim>::GetScatter() const
+    -> const std::vector<ScatterRequest>& {
+  return imp->scatter;
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::ClearScatter() {
+  imp->scatter.clear();
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::Bcast(
+    const std::shared_ptr<typename UReduce<Scal>::Op>& o) {
+  imp->bcast.push_back(o);
+}
+template <class Scal, size_t dim>
+auto MeshStructured<Scal, dim>::GetBcast() const
+    -> const std::vector<std::shared_ptr<Op>>& {
+  return imp->bcast;
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::ClearBcast() {
+  imp->bcast.clear();
+}
+template <class Scal, size_t dim>
+auto MeshStructured<Scal, dim>::GetNanFaces() const
+    -> const std::vector<std::pair<IdxFace, size_t>>& {
+  return imp->vfnan;
+}
+template <class Scal, size_t dim>
+void MeshStructured<Scal, dim>::SetNanFaces(
+    const std::vector<std::pair<IdxFace, size_t>>& vfnan) {
+  imp->vfnan = vfnan;
+}
+template <class Scal, size_t dim>
+template <class T>
+void MeshStructured<Scal, dim>::ApplyNanFaces(FieldCell<T>& fc) {
+  for (auto p : imp->vfnan) {
+    IdxFace f = p.first;
+    size_t nci = p.second;
+    auto cc = GetCellColumn(f, nci);
+    fc[cc[0]] = T(flags.nan_faces_value);
+    fc[cc[1]] = T(flags.nan_faces_value);
+  }
 }
