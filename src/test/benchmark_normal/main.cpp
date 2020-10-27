@@ -83,6 +83,31 @@ void CalcNormalHeight2(
   }
 }
 
+template <class M>
+static void CalcNormalYoung2(
+    M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
+    FieldCell<Vect>& fcn) {
+  FieldNode<Vect> fng(m, Vect(0));
+  for (auto c : m.AllCells()) {
+    for (size_t q = 0; q < m.GetNumNodes(c); ++q) {
+      const IdxNode n = m.GetNode(c, q);
+      for (size_t d = 0; d < dim; ++d) {
+        fng[n][d] += ((q >> d) % 2 == 0 ? 1 : -1) * fcu[c];
+      }
+    }
+  }
+  fcn.Reinit(m);
+  for (auto c : m.SuCells()) {
+    if (fci[c]) {
+      Vect v(0);
+      for (size_t q = 0; q < m.GetNumNodes(c); ++q) {
+        v += fng[m.GetNode(c, q)];
+      }
+      fcn[c] = -v / v.norm1();
+    }
+  }
+}
+
 Scal Random(Scal q) {
   return std::sin(std::sin(q * 123.456) * 654.321);
 }
@@ -108,9 +133,9 @@ class TimerMesh : public ExecutionTimer {
 };
 
 template <int id>
-class Young : public TimerMesh {
+class Youngs : public TimerMesh {
  public:
-  Young(Mesh& m_)
+  Youngs(Mesh& m_)
       : TimerMesh("young" + std::to_string(id), m_), fcu(m), fcmask(m, true) {
     for (auto i : m.AllCells()) {
       fcu[i] = Random(i.GetRaw());
@@ -121,8 +146,12 @@ class Young : public TimerMesh {
 
     if (id == 0) {
       Normal::CalcNormalYoung(m, fcu, fcmask, fcn);
-    } else {
+    } else if (id == 1) {
       Normal::CalcNormalYoung1(m, fcu, fcmask, fcn);
+    } else if (id == 2) {
+      CalcNormalYoung2(m, fcu, fcmask, fcn);
+    } else {
+      fassert(false);
     }
 
     ii = fcn[IdxCell(ii)][0];
@@ -151,8 +180,10 @@ class Height : public TimerMesh {
       Normal::CalcNormalHeight(m, fcu, fcmask, edim, true, fcn);
     } else if (id == 1) {
       Normal::CalcNormalHeight1(m, fcu, fcmask, edim, true, fcn);
-    } else {
+    } else if (id == 2) {
       CalcNormalHeight2(m, fcu, fcmask, edim, true, fcn);
+    } else {
+      fassert(false);
     }
 
     ii = fcn[IdxCell(ii)][0];
@@ -197,7 +228,9 @@ static int Verify() {
     name = "NormalYoung";
     Normal::CalcNormalYoung(m, fcu, fcmask, fcn);
     Normal::CalcNormalYoung1(m, fcu, fcmask, fcn1);
+    CalcNormalYoung2(m, fcu, fcmask, fcn2);
     CMP(fcn, fcn1);
+    CMP(fcn, fcn2);
   } else if (test == 1) {
     name = "NormalHeight,edim=3";
     size_t edim = 3;
@@ -241,8 +274,9 @@ static bool Run(
     }
   };
 
-  create((Young<0>*)0);
-  create((Young<1>*)0);
+  create((Youngs<0>*)0);
+  create((Youngs<1>*)0);
+  create((Youngs<2>*)0);
   create((Height<0>*)0);
   create((Height<1>*)0);
   create((Height<2>*)0);
