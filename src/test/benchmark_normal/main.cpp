@@ -25,6 +25,9 @@ static typename M::Scal DiffMax(
   using Scal = typename M::Scal;
   Scal r = 0;
   for (auto i : m.template GetIn<Idx>()) {
+    if (IsNan(u[i] - v[i])) {
+      return GetNan<Scal>();
+    }
     r = std::max(r, (u[i] - v[i]).norminf());
   }
   return r;
@@ -83,27 +86,146 @@ void CalcNormalHeight2(
   }
 }
 
+#include <x86intrin.h>
+
+std::ostream& operator<<(std::ostream& out, const __m256d& d) {
+  constexpr int width = 4;
+  double dd[width];
+  _mm256_storeu_pd(dd, d);
+  bool first = true;
+  for (size_t i = 0; i < width; ++i) {
+    if (!first) {
+      out << " ";
+    }
+    first = false;
+    out << dd[i];
+  }
+  return out;
+}
+
+
 template <class M>
 static void CalcNormalYoung2(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
     FieldCell<Vect>& fcn) {
-  FieldNode<Vect> fng(m, Vect(0));
-  for (auto c : m.AllCells()) {
-    for (size_t q = 0; q < m.GetNumNodes(c); ++q) {
-      const IdxNode n = m.GetNode(c, q);
-      for (size_t d = 0; d < dim; ++d) {
-        fng[n][d] += ((q >> d) % 2 == 0 ? 1 : -1) * fcu[c];
+  using MIdx = typename M::MIdx;
+  auto ic = m.GetIndexCells();
+  auto bc = m.GetSuBlockCells();
+  const MIdx s = ic.GetSize();
+  const size_t nx = s[0];
+  const size_t ny = s[1];
+  // offset
+  const size_t fx = 1;
+  const size_t fy = nx;
+  const size_t fz = ny * nx;
+
+  fcn.Reinit(m, Vect(0));
+
+  // index range
+  const MIdx wb = bc.GetBegin() - ic.GetBegin();
+  const MIdx we = bc.GetEnd() - ic.GetBegin();
+  const Scal* pu = fcu.data();
+  Vect* pn = fcn.data();
+  const bool* pi = fci.data();
+
+  auto interleave = [](const __m256d& x, const __m256d& y, const __m256d& z,
+                       __m256d& v0, __m256d& v1, __m256d& v2) {
+    // x: x0 x1 x2 x3
+    // y: y0 y1 y2 y3
+    // z: z0 z1 z2 z3
+    auto xp = _mm256_permute2f128_pd(x, x, 0b00000001); // x2 x3 x0 x1
+    auto zp = _mm256_permute2f128_pd(z, z, 0b00000001); // z2 z3 z0 z1
+    auto xs = _mm256_blend_pd(x, xp, 0b1010); /// x0 x3 x2 x1
+    auto ys = _mm256_shuffle_pd(y, y, 0b0101); // y1 y0 y3 y2
+    auto zs = _mm256_blend_pd(z, zp, 0b0101); /// z2 z1 z0 z3
+    auto xyb = _mm256_blend_pd(xs, ys, 0b1010); // x0 y0 x2 y2
+    auto yzb = _mm256_blend_pd(ys, zs, 0b1010); // y1 z1 y3 z3
+    auto zxb = _mm256_blend_pd(zs, xs, 0b1010); // z2 x3 z0 x1
+    v0 = _mm256_blend_pd(xyb, zxb, 0b1100); // x0 y0 z0 x1
+    v1 = _mm256_blend_pd(yzb, xyb, 0b1100); // y1 z1 x2 y2
+    v2 = _mm256_blend_pd(zxb, yzb, 0b1100); // y2 z3 x3 y3
+  };
+
+  auto normalize1 = [](__m256d& x, __m256d& y, __m256d& z) {
+    auto xa = _mm256_max_pd(_mm256_sub_pd(_mm256_setzero_pd(), x), x);
+    auto ya = _mm256_max_pd(_mm256_sub_pd(_mm256_setzero_pd(), y), y);
+    auto za = _mm256_max_pd(_mm256_sub_pd(_mm256_setzero_pd(), z), z);
+    auto sum = _mm256_add_pd(xa, ya);
+    sum = _mm256_add_pd(sum, za);
+    sum = _mm256_sub_pd(_mm256_setzero_pd(), sum);
+    x = _mm256_div_pd(x, sum);
+    y = _mm256_div_pd(y, sum);
+    z = _mm256_div_pd(z, sum);
+  };
+
+  const __m256d c1 = _mm256_set1_pd(1);
+  const __m256d c2 = _mm256_set1_pd(2);
+  const __m256d c4 = _mm256_set1_pd(4);
+  constexpr int W = 4;
+  for (int z = wb[2]; z < we[2]; ++z) {
+    for (int y = wb[1]; y < we[1]; ++y) {
+      for (int x = wb[0]; x < we[0]; x += W) {
+        int i = (z * ny + y) * nx + x;
+        if (!pi[i]) {
+          continue;
+        }
+        auto q = [i, fy, fz, pu](int dx, int dy, int dz) -> const Scal* {
+          size_t ii = i + dx * fx + dy * fy + dz * fz;
+          return pu + ii;
+        };
+        auto add = [&q](
+                       __m256d& vx, __m256d& vy, __m256d& vz, const __m256d k,
+                       int dx, int dy, int dz) {
+          const __m256d mqx = _mm256_loadu_pd(q(dx, dy, dz));
+          const __m256d mqy = _mm256_loadu_pd(q(dz, dx, dy));
+          const __m256d mqz = _mm256_loadu_pd(q(dy, dz, dx));
+          vx = _mm256_fmadd_pd(k, mqx, vx);
+          vy = _mm256_fmadd_pd(k, mqy, vy);
+          vz = _mm256_fmadd_pd(k, mqz, vz);
+        };
+        auto sub = [&q](
+                       __m256d& vx, __m256d& vy, __m256d& vz, const __m256d k,
+                       int dx, int dy, int dz) {
+          const __m256d mqx = _mm256_loadu_pd(q(dx, dy, dz));
+          const __m256d mqy = _mm256_loadu_pd(q(dz, dx, dy));
+          const __m256d mqz = _mm256_loadu_pd(q(dy, dz, dx));
+          vx = _mm256_fnmadd_pd(k, mqx, vx);
+          vy = _mm256_fnmadd_pd(k, mqy, vy);
+          vz = _mm256_fnmadd_pd(k, mqz, vz);
+        };
+        __m256d vx = _mm256_setzero_pd();
+        __m256d vy = _mm256_setzero_pd();
+        __m256d vz = _mm256_setzero_pd();
+        sub(vx, vy, vz, c1, -1, -1, -1);
+        sub(vx, vy, vz, c2, -1, -1, +0);
+        sub(vx, vy, vz, c1, -1, -1, +1);
+        sub(vx, vy, vz, c2, -1, +0, -1);
+        sub(vx, vy, vz, c4, -1, +0, +0);
+        sub(vx, vy, vz, c2, -1, +0, +1);
+        sub(vx, vy, vz, c1, -1, +1, -1);
+        sub(vx, vy, vz, c2, -1, +1, +0);
+        sub(vx, vy, vz, c1, -1, +1, +1);
+        add(vx, vy, vz, c1, +1, -1, -1);
+        add(vx, vy, vz, c2, +1, -1, +0);
+        add(vx, vy, vz, c1, +1, -1, +1);
+        add(vx, vy, vz, c2, +1, +0, -1);
+        add(vx, vy, vz, c4, +1, +0, +0);
+        add(vx, vy, vz, c2, +1, +0, +1);
+        add(vx, vy, vz, c1, +1, +1, -1);
+        add(vx, vy, vz, c2, +1, +1, +0);
+        add(vx, vy, vz, c1, +1, +1, +1);
+
+        normalize1(vx, vy, vz);
+
+        __m256d d0;
+        __m256d d1;
+        __m256d d2;
+
+        interleave(vx, vy, vz, d0, d1, d2);
+        _mm256_storeu_pd((Scal*)(pn + i) + 0, d0);
+        _mm256_storeu_pd((Scal*)(pn + i) + 4, d1);
+        _mm256_storeu_pd((Scal*)(pn + i) + 8, d2);
       }
-    }
-  }
-  fcn.Reinit(m);
-  for (auto c : m.SuCells()) {
-    if (fci[c]) {
-      Vect v(0);
-      for (size_t q = 0; q < m.GetNumNodes(c); ++q) {
-        v += fng[m.GetNode(c, q)];
-      }
-      fcn[c] = -v / v.norm1();
     }
   }
 }
@@ -198,8 +320,8 @@ class Height : public TimerMesh {
 
 #define CMP(fca, fcb)                                                      \
   do {                                                                     \
-    Scal diff;                                                             \
-    if ((diff = DiffMax(fca, fcb, m)) > eps) {                             \
+    const Scal diff = DiffMax(fca, fcb, m);                                \
+    if (!(diff <= eps)) {                                                  \
       std::cerr << util::Format(                                           \
           "Verify {}: max difference ({},{}) exceeded: {:.4e} > {:.4e}\n", \
           name, #fca, #fcb, diff, eps);                                    \
@@ -305,7 +427,7 @@ int main() {
     sizes.emplace_back(n, n, n);
   }
 
-  const std::string fmt = "{:10} {:16} {:16}\n";
+  const std::string fmt = "{:10} {:16.2f} {:16}\n";
 
   for (auto size : sizes) {
     auto m = GetMesh(size);
@@ -318,7 +440,7 @@ int main() {
     size_t niters;
     size_t mem;
     std::string name;
-    std::cout << util::Format(fmt, "name", "time/sucells", "niters");
+    std::cout << util::Format(fmt, "name", "ns/cell", "niters");
     while (Run(test++, m, time, niters, mem, name)) {
       std::cout << util::Format(fmt, name, time * 1e9 / sucells, niters);
     }
