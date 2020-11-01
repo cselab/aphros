@@ -59,3 +59,6 @@ target_link_libraries(${T} timer)
 
 set(T "format")
 add_library(${T} format.cpp)
+
+set(T "allocator")
+add_library(${T} fixed_allocator.cpp)
