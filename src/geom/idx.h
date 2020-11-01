@@ -34,6 +34,10 @@ class GIdx {
     ++i_;
     return *this;
   }
+  GIdx& operator+=(size_t add) {
+    i_ += add;
+    return *this;
+  }
   bool operator==(GIdx o) const {
     return i_ == o.i_;
   }

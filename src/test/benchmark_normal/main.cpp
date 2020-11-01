@@ -24,8 +24,8 @@ static typename M::Scal DiffMax(
     const GField<typename M::Vect, Idx>& v, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
-  for (auto i : m.template GetIn<Idx>()) {
-    if (IsNan(u[i] - v[i])) {
+    for (auto i : m.template GetRangeIn<Idx>()) {
+      if (IsNan(u[i] - v[i])) {
       return GetNan<Scal>();
     }
     r = std::max(r, (u[i] - v[i]).norminf());

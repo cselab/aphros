@@ -112,6 +112,22 @@ class LoopInCells : public TimerMesh {
   }
 };
 
+class LoopInCellsNew : public TimerMesh {
+ public:
+  LoopInCellsNew(M& m_) : TimerMesh("loop-incells-new", m_) {}
+  void F() override {
+    size_t a = 0;
+    const auto indexc = m.GetIndexCells();
+    const auto blockci = m.GetInBlockCells();
+    const auto range = GRangeMulti<IdxCell, dim, 1>(
+        indexc.GetIdx(blockci.GetBegin()), blockci.GetSize(), indexc.GetSize());
+    for (auto i : range) {
+      a += i.GetRaw();
+    }
+    EXPOSE(a);
+  }
+};
+
 class LoopAllFaces : public TimerMesh {
  public:
   LoopAllFaces(M& m_) : TimerMesh("loop-allfaces", m_, Cover::all) {}
@@ -491,6 +507,7 @@ bool RunTest(
   create((LoopInCellsPlain*)0);
   create((LoopAllCells*)0);
   create((LoopInCells*)0);
+  create((LoopInCellsNew*)0);
   create((LoopAllFaces*)0);
   create((LoopInFaces*)0);
   create((LoopFldPlain*)0);

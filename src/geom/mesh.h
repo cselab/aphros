@@ -367,74 +367,74 @@ class MeshStructured {
 
   // Returns range of inner indices
   template <class Idx>
-  GRangeIn<Idx, dim> GetIn() const {
-    return GetIn((Idx*)0);
+  GRangeIn<Idx, dim> GetRangeIn() const {
+    return GetRangeIn((Idx*)0);
   }
-  GRangeIn<IdxCell, dim> GetIn(IdxCell*) const {
+  GRangeIn<IdxCell, dim> GetRangeIn(IdxCell*) const {
     return GRangeIn<IdxCell, dim>(GetIndexCells(), GetInBlockCells());
   }
-  GRangeIn<IdxFace, dim> GetIn(IdxFace*) const {
+  GRangeIn<IdxFace, dim> GetRangeIn(IdxFace*) const {
     return GRangeIn<IdxFace, dim>(GetIndexFaces(), GetInBlockFaces());
   }
-  GRangeIn<IdxNode, dim> GetIn(IdxNode*) const {
+  GRangeIn<IdxNode, dim> GetRangeIn(IdxNode*) const {
     return GRangeIn<IdxNode, dim>(GetIndexNodes(), GetInBlockNodes());
   }
   GRangeIn<IdxCell, dim> Cells() const {
-    return GetIn<IdxCell>();
+    return GetRangeIn<IdxCell>();
   }
   GRangeIn<IdxFace, dim> Faces() const {
-    return GetIn<IdxFace>();
+    return GetRangeIn<IdxFace>();
   }
   GRangeIn<IdxNode, dim> Nodes() const {
-    return GetIn<IdxNode>();
+    return GetRangeIn<IdxNode>();
   }
 
   // Returns range of support indices
   template <class Idx>
-  GRangeIn<Idx, dim> GetSu() const {
-    return GetSu((Idx*)0);
+  GRangeIn<Idx, dim> GetRangeSu() const {
+    return GetRangeSu((Idx*)0);
   }
-  GRangeIn<IdxCell, dim> GetSu(IdxCell*) const {
+  GRangeIn<IdxCell, dim> GetRangeSu(IdxCell*) const {
     return GRangeIn<IdxCell, dim>(GetIndexCells(), GetSuBlockCells());
   }
-  GRangeIn<IdxFace, dim> GetSu(IdxFace*) const {
+  GRangeIn<IdxFace, dim> GetRangeSu(IdxFace*) const {
     return GRangeIn<IdxFace, dim>(GetIndexFaces(), GetSuBlockFaces());
   }
-  GRangeIn<IdxNode, dim> GetSu(IdxNode*) const {
+  GRangeIn<IdxNode, dim> GetRangeSu(IdxNode*) const {
     return GRangeIn<IdxNode, dim>(GetIndexNodes(), GetSuBlockNodes());
   }
   GRangeIn<IdxCell, dim> SuCells() const {
-    return GetSu<IdxCell>();
+    return GetRangeSu<IdxCell>();
   }
   GRangeIn<IdxFace, dim> SuFaces() const {
-    return GetSu<IdxFace>();
+    return GetRangeSu<IdxFace>();
   }
   GRangeIn<IdxNode, dim> SuNodes() const {
-    return GetSu<IdxNode>();
+    return GetRangeSu<IdxNode>();
   }
 
   // Returns range of all indices
   template <class Idx>
-  GRangeIn<Idx, dim> GetAll() const {
-    return GetAll((Idx*)0);
+  GRangeIn<Idx, dim> GetRangeAll() const {
+    return GetRangeAll((Idx*)0);
   }
-  GRangeIn<IdxCell, dim> GetAll(IdxCell*) const {
+  GRangeIn<IdxCell, dim> GetRangeAll(IdxCell*) const {
     return GRangeIn<IdxCell, dim>(GetIndexCells(), GetAllBlockCells());
   }
-  GRangeIn<IdxFace, dim> GetAll(IdxFace*) const {
+  GRangeIn<IdxFace, dim> GetRangeAll(IdxFace*) const {
     return GRangeIn<IdxFace, dim>(GetIndexFaces(), GetAllBlockFaces());
   }
-  GRangeIn<IdxNode, dim> GetAll(IdxNode*) const {
+  GRangeIn<IdxNode, dim> GetRangeAll(IdxNode*) const {
     return GRangeIn<IdxNode, dim>(GetIndexNodes(), GetAllBlockNodes());
   }
   GRangeIn<IdxCell, dim> AllCells() const {
-    return GetAll<IdxCell>();
+    return GetRangeAll<IdxCell>();
   }
   GRangeIn<IdxFace, dim> AllFaces() const {
-    return GetAll<IdxFace>();
+    return GetRangeAll<IdxFace>();
   }
   GRangeIn<IdxNode, dim> AllNodes() const {
-    return GetAll<IdxNode>();
+    return GetRangeAll<IdxNode>();
   }
 
   // Expression on face: v[0] * cm + v[1] * cp + v[2]
