@@ -168,7 +168,7 @@ void Simple<M>::TestComm() {
     return std::sin(v[0]) * std::cos(v[1]) * std::exp(v[2]);
   };
   auto fv = [=](Vect v) { return Vect(f(v), f(v * 2.), f(v * 3.)); };
-  auto& bc = m.GetRangeIndexCells();
+  auto& bc = m.GetIndexCells();
   if (sem("init")) {
     fc_.Reinit(m);
     fcv_.Reinit(m);

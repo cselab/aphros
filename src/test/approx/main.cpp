@@ -833,7 +833,7 @@ void PrintOrder(
 }
 
 void DumpField(const FieldCell<Scal>& fc, std::string filename, const M& m) {
-  Dump(fc, m.GetRangeIndexCells(), m.GetRangeInBlockCells(), filename);
+  Dump(fc, m.GetIndexCells(), m.GetInBlockCells(), filename);
 }
 
 void DumpField(const FieldCell<Scal>& fc, std::string filename) {

@@ -271,7 +271,7 @@ void SmoothenNode(FieldCell<T>& fc, M& m, size_t iters) {
           0.03125,  0.0625,   0.03125,  0.015625, 0.03125,  0.015625};
 
       using MIdx = typename M::MIdx;
-      auto& bc = m.GetRangeIndexCells();
+      auto& bc = m.GetIndexCells();
       GBlock<IdxCell, M::dim> bo(MIdx(-1), MIdx(3));
       auto fcm = fc;
       for (auto c : m.Cells()) {
