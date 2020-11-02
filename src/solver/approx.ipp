@@ -342,7 +342,7 @@ void SmoothenNode(FieldNode<T>& fn, M& m, size_t iters) {
           0.03125,  0.0625,   0.03125,  0.015625, 0.03125,  0.015625};
 
       using MIdx = typename M::MIdx;
-      auto& index = m.GetRangeIndexNodes();
+      auto& index = m.GetIndexNodes();
       GBlock<IdxCell, M::dim> stencil(MIdx(-1), MIdx(3));
       auto fnm = fn;
       for (auto n : m.Nodes()) {
