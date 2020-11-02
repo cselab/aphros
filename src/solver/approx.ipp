@@ -271,7 +271,7 @@ void SmoothenNode(FieldCell<T>& fc, M& m, size_t iters) {
           0.03125,  0.0625,   0.03125,  0.015625, 0.03125,  0.015625};
 
       using MIdx = typename M::MIdx;
-      auto& bc = m.GetIndexCells();
+      auto& bc = m.GetRangeIndexCells();
       GBlock<IdxCell, M::dim> bo(MIdx(-1), MIdx(3));
       auto fcm = fc;
       for (auto c : m.Cells()) {
@@ -342,7 +342,7 @@ void SmoothenNode(FieldNode<T>& fn, M& m, size_t iters) {
           0.03125,  0.0625,   0.03125,  0.015625, 0.03125,  0.015625};
 
       using MIdx = typename M::MIdx;
-      auto& index = m.GetIndexNodes();
+      auto& index = m.GetRangeIndexNodes();
       GBlock<IdxCell, M::dim> stencil(MIdx(-1), MIdx(3));
       auto fnm = fn;
       for (auto n : m.Nodes()) {
@@ -390,7 +390,7 @@ typename M::Scal CalcDiff(const Field& fa, const Field& fb, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0.;
   using Idx = typename Field::Idx;
-  for (Idx i : m.template GetIn<Idx>()) {
+  for (Idx i : m.template GetRangeIn<Idx>()) {
     r = std::max<Scal>(r, std::abs(fa[i] - fb[i]));
   }
   return r;
@@ -402,7 +402,7 @@ typename M::Scal CalcDiff(
     const GField<typename M::Vect, Idx>& fb, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0.;
-  for (Idx i : m.template GetIn<Idx>()) {
+  for (Idx i : m.template GetRangeIn<Idx>()) {
     r = std::max<Scal>(r, (fa[i] - fb[i]).norminf());
   }
   return r;

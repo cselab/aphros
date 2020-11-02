@@ -57,7 +57,7 @@ class OutFldFunc : public OutFld<GField<V, I>> {
 
   // Updates field from function.
   void Prepare() override {
-    for (auto i : m.template GetIn<I>()) {
+    for (auto i : m.template GetRangeIn<I>()) {
       f_[i] = u_(i);
     }
   }

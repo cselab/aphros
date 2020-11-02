@@ -20,7 +20,7 @@ typename M::Scal DiffMax(
     const GField<typename M::Scal, Idx>& v, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
     r = std::max(r, std::abs(u[i] - v[i]));
   }
   return r;
@@ -32,7 +32,7 @@ typename M::Scal DiffMax(
     const GField<typename M::Vect, Idx>& v, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
     r = std::max(r, (u[i] - v[i]).norminf());
   }
   return r;
@@ -92,7 +92,7 @@ M GetMesh(MIdx s /*size in cells*/) {
 template <class T, class Idx, class M>
 void Eval(std::function<T(Vect)> f, GField<T, Idx>& r, const M& m) {
   r.Reinit(m);
-  for (auto i : m.template GetAll<Idx>()) {
+  for (auto i : m.template GetRangeAll<Idx>()) {
     r[i] = f(m.GetCenter(i));
   }
 }

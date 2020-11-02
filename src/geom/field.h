@@ -224,7 +224,7 @@ std::ostream& operator<<(std::ostream& out, const GField<T, Idx>& u) {
 
 template <class T, class M, class Idx>
 void PrintIn(const GField<T, Idx>& u, const M& m, std::ostream& out) {
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
     out << u[i] << " ";
   }
 }

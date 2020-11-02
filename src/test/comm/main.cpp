@@ -89,7 +89,7 @@ typename M::Scal DiffMax(
     const GField<typename M::Scal, Idx>& v, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
     r = std::max(r, std::abs(u[i] - v[i]));
   }
   return r;
@@ -102,7 +102,7 @@ typename M::Scal DiffMean(
   using Scal = typename M::Scal;
   Scal r = 0;
   Scal w = 0;
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
     r += std::abs(u[i] - v[i]);
     w += 1.;
   }
@@ -113,7 +113,7 @@ template <class Idx, class M>
 typename M::Scal Max(const GField<typename M::Scal, Idx>& u, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
     r = std::max(r, u[i]);
   }
   return r;
@@ -124,7 +124,7 @@ typename M::Scal Mean(const GField<typename M::Scal, Idx>& u, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
   Scal w = 0.;
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
     r += u[i];
     w += 1.;
   }
@@ -168,7 +168,7 @@ void Simple<M>::TestComm() {
     return std::sin(v[0]) * std::cos(v[1]) * std::exp(v[2]);
   };
   auto fv = [=](Vect v) { return Vect(f(v), f(v * 2.), f(v * 3.)); };
-  auto& bc = m.GetIndexCells();
+  auto& bc = m.GetRangeIndexCells();
   if (sem("init")) {
     fc_.Reinit(m);
     fcv_.Reinit(m);

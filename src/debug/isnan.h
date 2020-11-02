@@ -77,7 +77,7 @@ bool CheckNan(
   if (w != "") {
     w += ": ";
   }
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
     if (IsNan(u[i])) {
       std::stringstream s;
       s << w << "Nan " << n << " at x=" << m.GetCenter(i);

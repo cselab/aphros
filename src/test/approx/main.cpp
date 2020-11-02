@@ -317,7 +317,7 @@ struct EvalHelper<Field, M> {
   using Idx = typename Field::Idx;
   Field operator()(const std::function<Value(Vect)>& u, const M& m) {
     Field r(m, Value(0));
-    for (auto i : m.template GetAll<Idx>()) {
+    for (auto i : m.template GetRangeAll<Idx>()) {
       r[i] = u(m.GetCenter(i));
     }
     return r;
@@ -375,7 +375,7 @@ struct EvalHelper<Field, M> {
   Field operator()(
       const std::function<Value(Value)>& func, const Field& u0, const M& m) {
     Field r(m, Value(0));
-    for (auto i : m.template GetAll<Idx>()) {
+    for (auto i : m.template GetRangeAll<Idx>()) {
       r[i] = func(u0[i]);
     }
     return r;
@@ -437,7 +437,7 @@ struct EvalHelper<Field, M> {
       const std::function<Value(Value, Value)>& func, const Field& u0,
       const Field& u1, const M& m) {
     Field r(m, Value(0));
-    for (auto i : m.template GetAll<Idx>()) {
+    for (auto i : m.template GetRangeAll<Idx>()) {
       r[i] = func(u0[i], u1[i]);
     }
     return r;
@@ -493,14 +493,14 @@ std::unique_ptr<M> CreateMesh(Scal h) {
       InitUniformMesh<M>(dom, MIdx(0), size, 2, true, true, size, 0));
 }
 
-// TODO: rename GetInBlockCells to GetBlockInCells()
+// TODO: rename GetRangeInBlockCells to GetBlockInCells()
 // TODO: rename SuCells to Cells(1)
 // TODO: rename AllCells to Cells(2)
 
 std::unique_ptr<EB> CreateEmbed(M& m) {
   auto peb = std::make_unique<EB>(m, 0);
   FieldNode<Scal> fnl(m);
-  auto block = m.GetInBlockCells().GetSize();
+  auto block = m.GetRangeInBlockCells().GetSize();
   auto h = m.GetCellSize();
   for (auto n : m.AllNodes()) {
     const auto x = m.GetNode(n) / h / Vect(block);
@@ -577,7 +577,7 @@ template <class T, class Idx>
 Scal Norm1(const GField<T, Idx>& u, const M& m) {
   Scal sum = 0;
   Scal sumv = 0;
-  for (auto i : m.GetIn<Idx>()) {
+  for (auto i : m.GetRangeIn<Idx>()) {
     sum += Norm1(u[i]);
     sumv += 1;
   }
@@ -766,7 +766,7 @@ void PrintOrder(
   const Field error = GetErrorField<F, Field, M>(estimator, exact, h0);
   auto pm = CreateMesh(h0);
   auto& m = *pm;
-  PrintOrder(order, error, m.GetIn<Idx>());
+  PrintOrder(order, error, m.GetRangeIn<Idx>());
 }
 
 // F derived from Func
@@ -833,7 +833,7 @@ void PrintOrder(
 }
 
 void DumpField(const FieldCell<Scal>& fc, std::string filename, const M& m) {
-  Dump(fc, m.GetIndexCells(), m.GetInBlockCells(), filename);
+  Dump(fc, m.GetRangeIndexCells(), m.GetRangeInBlockCells(), filename);
 }
 
 void DumpField(const FieldCell<Scal>& fc, std::string filename) {
