@@ -20,6 +20,7 @@
 #include "notation.h"
 #include "range.h"
 #include "rangein.h"
+#include "rangemulti.h"
 #include "transform.h"
 #include "util/suspender.h"
 #include "vect.h"
@@ -277,11 +278,17 @@ class MeshStructured {
         GRange<size_t>(0, kNumStencil),
         [this, c](size_t i) { return IdxCell(size_t(c) + stencil_[i]); });
   }
+  const auto& GetStencilOffsets() const {
+    return stencil_;
+  }
   // Cell indices over 5x5x5 stencil
   auto Stencil5(IdxCell c) const {
     return MakeTransformIterator<IdxCell>(
         GRange<size_t>(0, kNumStencil5),
         [this, c](size_t i) { return IdxCell(size_t(c) + stencil5_[i]); });
+  }
+  const auto& GetStencil5Offsets() const {
+    return stencil5_;
   }
   // Returns id of cell adjacent to c by face f.
   // -1 if f and c are not neighbours
@@ -367,73 +374,83 @@ class MeshStructured {
 
   // Returns range of inner indices
   template <class Idx>
-  GRangeIn<Idx, dim> GetRangeIn() const {
+  auto GetRangeIn() const {
     return GetRangeIn((Idx*)0);
   }
-  GRangeIn<IdxCell, dim> GetRangeIn(IdxCell*) const {
+  auto GetRangeIn(IdxCell*) const {
     return GRangeIn<IdxCell, dim>(GetIndexCells(), GetInBlockCells());
   }
-  GRangeIn<IdxFace, dim> GetRangeIn(IdxFace*) const {
+  auto GetRangeIn(IdxFace*) const {
     return GRangeIn<IdxFace, dim>(GetIndexFaces(), GetInBlockFaces());
   }
-  GRangeIn<IdxNode, dim> GetRangeIn(IdxNode*) const {
+  auto GetRangeIn(IdxNode*) const {
     return GRangeIn<IdxNode, dim>(GetIndexNodes(), GetInBlockNodes());
   }
-  GRangeIn<IdxCell, dim> Cells() const {
+  auto Cells() const {
     return GetRangeIn<IdxCell>();
   }
-  GRangeIn<IdxFace, dim> Faces() const {
+  auto Cells4() const {
+    return generic::RangeMulti<IdxCell, dim, 4>(
+        indexc_.GetIdx(blockci_.GetBegin()), blockci_.GetSize(),
+        indexc_.GetSize());
+  }
+  auto Faces() const {
     return GetRangeIn<IdxFace>();
   }
-  GRangeIn<IdxNode, dim> Nodes() const {
+  auto Nodes() const {
     return GetRangeIn<IdxNode>();
   }
 
   // Returns range of support indices
   template <class Idx>
-  GRangeIn<Idx, dim> GetRangeSu() const {
+  auto GetRangeSu() const {
     return GetRangeSu((Idx*)0);
   }
-  GRangeIn<IdxCell, dim> GetRangeSu(IdxCell*) const {
+  auto GetRangeSu(IdxCell*) const {
     return GRangeIn<IdxCell, dim>(GetIndexCells(), GetSuBlockCells());
   }
-  GRangeIn<IdxFace, dim> GetRangeSu(IdxFace*) const {
+  auto GetRangeSu(IdxFace*) const {
     return GRangeIn<IdxFace, dim>(GetIndexFaces(), GetSuBlockFaces());
   }
-  GRangeIn<IdxNode, dim> GetRangeSu(IdxNode*) const {
+  auto GetRangeSu(IdxNode*) const {
     return GRangeIn<IdxNode, dim>(GetIndexNodes(), GetSuBlockNodes());
   }
-  GRangeIn<IdxCell, dim> SuCells() const {
+  auto SuCells() const {
     return GetRangeSu<IdxCell>();
   }
-  GRangeIn<IdxFace, dim> SuFaces() const {
+  auto SuCells4() const {
+    return generic::RangeMulti<IdxCell, dim, 4>(
+        indexc_.GetIdx(blockcs_.GetBegin()), blockcs_.GetSize(),
+        indexc_.GetSize());
+  }
+  auto SuFaces() const {
     return GetRangeSu<IdxFace>();
   }
-  GRangeIn<IdxNode, dim> SuNodes() const {
+  auto SuNodes() const {
     return GetRangeSu<IdxNode>();
   }
 
   // Returns range of all indices
   template <class Idx>
-  GRangeIn<Idx, dim> GetRangeAll() const {
+  auto GetRangeAll() const {
     return GetRangeAll((Idx*)0);
   }
-  GRangeIn<IdxCell, dim> GetRangeAll(IdxCell*) const {
+  auto GetRangeAll(IdxCell*) const {
     return GRangeIn<IdxCell, dim>(GetIndexCells(), GetAllBlockCells());
   }
-  GRangeIn<IdxFace, dim> GetRangeAll(IdxFace*) const {
+  auto GetRangeAll(IdxFace*) const {
     return GRangeIn<IdxFace, dim>(GetIndexFaces(), GetAllBlockFaces());
   }
-  GRangeIn<IdxNode, dim> GetRangeAll(IdxNode*) const {
+  auto GetRangeAll(IdxNode*) const {
     return GRangeIn<IdxNode, dim>(GetIndexNodes(), GetAllBlockNodes());
   }
-  GRangeIn<IdxCell, dim> AllCells() const {
+  auto AllCells() const {
     return GetRangeAll<IdxCell>();
   }
-  GRangeIn<IdxFace, dim> AllFaces() const {
+  auto AllFaces() const {
     return GetRangeAll<IdxFace>();
   }
-  GRangeIn<IdxNode, dim> AllNodes() const {
+  auto AllNodes() const {
     return GetRangeAll<IdxNode>();
   }
 

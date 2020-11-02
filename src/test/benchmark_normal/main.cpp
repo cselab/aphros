@@ -11,6 +11,7 @@
 #include <string>
 
 #include "geom/mesh.h"
+#include "geom/rangemulti.h"
 #include "solver/normal.h"
 #include "solver/normal.ipp"
 #include "solver/solver.h"
@@ -24,8 +25,8 @@ static typename M::Scal DiffMax(
     const GField<typename M::Vect, Idx>& v, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
-    for (auto i : m.template GetRangeIn<Idx>()) {
-      if (IsNan(u[i] - v[i])) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
+    if (IsNan(u[i] - v[i])) {
       return GetNan<Scal>();
     }
     r = std::max(r, (u[i] - v[i]).norminf());
@@ -89,7 +90,7 @@ void CalcNormalHeight2(
 #include <x86intrin.h>
 
 std::ostream& operator<<(std::ostream& out, const __m256d& d) {
-  constexpr int width = 4;
+  constexpr int width = sizeof(__m256d) / sizeof(double);
   double dd[width];
   _mm256_storeu_pd(dd, d);
   bool first = true;
@@ -103,33 +104,10 @@ std::ostream& operator<<(std::ostream& out, const __m256d& d) {
   return out;
 }
 
-
-template <class M>
-static void CalcNormalYoung2(
-    M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-    FieldCell<Vect>& fcn) {
-  using MIdx = typename M::MIdx;
-  auto ic = m.GetIndexCells();
-  auto bc = m.GetSuBlockCells();
-  const MIdx s = ic.GetSize();
-  const size_t nx = s[0];
-  const size_t ny = s[1];
-  // offset
-  const size_t fx = 1;
-  const size_t fy = nx;
-  const size_t fz = ny * nx;
-
-  fcn.Reinit(m, Vect(0));
-
-  // index range
-  const MIdx wb = bc.GetBegin() - ic.GetBegin();
-  const MIdx we = bc.GetEnd() - ic.GetBegin();
-  const Scal* pu = fcu.data();
-  Vect* pn = fcn.data();
-  const bool* pi = fci.data();
-
-  auto interleave = [](const __m256d& x, const __m256d& y, const __m256d& z,
-                       __m256d& v0, __m256d& v1, __m256d& v2) {
+struct Soa {
+  static void ToAos(
+      const __m256d& x, const __m256d& y, const __m256d& z, __m256d& v0,
+      __m256d& v1, __m256d& v2) {
     // x: x0 x1 x2 x3
     // y: y0 y1 y2 y3
     // z: z0 z1 z2 z3
@@ -144,9 +122,22 @@ static void CalcNormalYoung2(
     v0 = _mm256_blend_pd(xyb, zxb, 0b1100); // x0 y0 z0 x1
     v1 = _mm256_blend_pd(yzb, xyb, 0b1100); // y1 z1 x2 y2
     v2 = _mm256_blend_pd(zxb, yzb, 0b1100); // y2 z3 x3 y3
+  }
+
+  static void StoreAsAos(
+      const __m256d& x, const __m256d& y, const __m256d& z, Scal* mem) {
+    __m256d d0;
+    __m256d d1;
+    __m256d d2;
+
+    ToAos(x, y, z, d0, d1, d2);
+
+    _mm256_storeu_pd(mem + 0, d0);
+    _mm256_storeu_pd(mem + 4, d1);
+    _mm256_storeu_pd(mem + 8, d2);
   };
 
-  auto normalize1 = [](__m256d& x, __m256d& y, __m256d& z) {
+  static void Normalize1(__m256d& x, __m256d& y, __m256d& z) {
     auto xa = _mm256_max_pd(_mm256_sub_pd(_mm256_setzero_pd(), x), x);
     auto ya = _mm256_max_pd(_mm256_sub_pd(_mm256_setzero_pd(), y), y);
     auto za = _mm256_max_pd(_mm256_sub_pd(_mm256_setzero_pd(), z), z);
@@ -157,76 +148,58 @@ static void CalcNormalYoung2(
     y = _mm256_div_pd(y, sum);
     z = _mm256_div_pd(z, sum);
   };
+};
 
-  const __m256d c1 = _mm256_set1_pd(1);
+template <class M>
+static void CalcNormalYoung2(
+    M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
+    FieldCell<Vect>& fcn) {
+  fcn.Reinit(m, Vect(0));
+
   const __m256d c2 = _mm256_set1_pd(2);
   const __m256d c4 = _mm256_set1_pd(4);
-  constexpr int W = 4;
-  for (int z = wb[2]; z < we[2]; ++z) {
-    for (int y = wb[1]; y < we[1]; ++y) {
-      for (int x = wb[0]; x < we[0]; x += W) {
-        int i = (z * ny + y) * nx + x;
-        if (!pi[i]) {
-          continue;
-        }
-        auto q = [i, fy, fz, pu](int dx, int dy, int dz) -> const Scal* {
-          size_t ii = i + dx * fx + dy * fy + dz * fz;
-          return pu + ii;
-        };
-        auto add = [&q](
-                       __m256d& vx, __m256d& vy, __m256d& vz, const __m256d k,
-                       int dx, int dy, int dz) {
-          const __m256d mqx = _mm256_loadu_pd(q(dx, dy, dz));
-          const __m256d mqy = _mm256_loadu_pd(q(dz, dx, dy));
-          const __m256d mqz = _mm256_loadu_pd(q(dy, dz, dx));
-          vx = _mm256_fmadd_pd(k, mqx, vx);
-          vy = _mm256_fmadd_pd(k, mqy, vy);
-          vz = _mm256_fmadd_pd(k, mqz, vz);
-        };
-        auto sub = [&q](
-                       __m256d& vx, __m256d& vy, __m256d& vz, const __m256d k,
-                       int dx, int dy, int dz) {
-          const __m256d mqx = _mm256_loadu_pd(q(dx, dy, dz));
-          const __m256d mqy = _mm256_loadu_pd(q(dz, dx, dy));
-          const __m256d mqz = _mm256_loadu_pd(q(dy, dz, dx));
-          vx = _mm256_fnmadd_pd(k, mqx, vx);
-          vy = _mm256_fnmadd_pd(k, mqy, vy);
-          vz = _mm256_fnmadd_pd(k, mqz, vz);
-        };
-        __m256d vx = _mm256_setzero_pd();
-        __m256d vy = _mm256_setzero_pd();
-        __m256d vz = _mm256_setzero_pd();
-        sub(vx, vy, vz, c1, -1, -1, -1);
-        sub(vx, vy, vz, c2, -1, -1, +0);
-        sub(vx, vy, vz, c1, -1, -1, +1);
-        sub(vx, vy, vz, c2, -1, +0, -1);
-        sub(vx, vy, vz, c4, -1, +0, +0);
-        sub(vx, vy, vz, c2, -1, +0, +1);
-        sub(vx, vy, vz, c1, -1, +1, -1);
-        sub(vx, vy, vz, c2, -1, +1, +0);
-        sub(vx, vy, vz, c1, -1, +1, +1);
-        add(vx, vy, vz, c1, +1, -1, -1);
-        add(vx, vy, vz, c2, +1, -1, +0);
-        add(vx, vy, vz, c1, +1, -1, +1);
-        add(vx, vy, vz, c2, +1, +0, -1);
-        add(vx, vy, vz, c4, +1, +0, +0);
-        add(vx, vy, vz, c2, +1, +0, +1);
-        add(vx, vy, vz, c1, +1, +1, -1);
-        add(vx, vy, vz, c2, +1, +1, +0);
-        add(vx, vy, vz, c1, +1, +1, +1);
+  const auto& stencil = m.GetStencilOffsets();
+  for (auto c : m.SuCells4()) {
+    auto q = [c, &fcu, &stencil](int dx, int dy, int dz) -> const Scal* {
+      return &fcu[c + stencil[(dx + 1) + (dy + 1) * 3 + (dz + 1) * 3 * 3]];
+    };
+    __m256d vx = _mm256_setzero_pd();
+    __m256d vy = _mm256_setzero_pd();
+    __m256d vz = _mm256_setzero_pd();
+    auto add = [&vx, &vy, &vz, &q](const __m256d& k, int dx, int dy, int dz) {
+      vx = _mm256_fmadd_pd(k, _mm256_loadu_pd(q(dx, dy, dz)), vx);
+      vy = _mm256_fmadd_pd(k, _mm256_loadu_pd(q(dz, dx, dy)), vy);
+      vz = _mm256_fmadd_pd(k, _mm256_loadu_pd(q(dy, dz, dx)), vz);
+    };
+    auto sub = [&vx, &vy, &vz, &q](const __m256d& k, int dx, int dy, int dz) {
+      vx = _mm256_fnmadd_pd(k, _mm256_loadu_pd(q(dx, dy, dz)), vx);
+      vy = _mm256_fnmadd_pd(k, _mm256_loadu_pd(q(dz, dx, dy)), vy);
+      vz = _mm256_fnmadd_pd(k, _mm256_loadu_pd(q(dy, dz, dx)), vz);
+    };
+    auto diff = [&add,&sub](const __m256d& k, int dy, int dz) {
+      add(k, +1, dy, dz);
+      sub(k, -1, dy, dz);
+    };
+    auto diff1 = [&vx, &vy, &vz, &q](int dy, int dz) {
+      vx = _mm256_add_pd(vx, _mm256_loadu_pd(q(+1, dy, dz)));
+      vx = _mm256_sub_pd(vx, _mm256_loadu_pd(q(-1, dy, dz)));
+      vy = _mm256_add_pd(vy, _mm256_loadu_pd(q(dz, +1, dy)));
+      vy = _mm256_sub_pd(vy, _mm256_loadu_pd(q(dz, -1, dy)));
+      vz = _mm256_add_pd(vz, _mm256_loadu_pd(q(dy, dz, +1)));
+      vz = _mm256_sub_pd(vz, _mm256_loadu_pd(q(dy, dz, -1)));
+    };
+    diff1(+1, +1);
+    diff1(+1, -1);
+    diff1(-1, +1);
+    diff1(-1, -1);
+    diff(c2, +0, +1);
+    diff(c2, +0, -1);
+    diff(c2, +1, +0);
+    diff(c2, -1, +0);
+    diff(c4, +0, +0);
 
-        normalize1(vx, vy, vz);
-
-        __m256d d0;
-        __m256d d1;
-        __m256d d2;
-
-        interleave(vx, vy, vz, d0, d1, d2);
-        _mm256_storeu_pd((Scal*)(pn + i) + 0, d0);
-        _mm256_storeu_pd((Scal*)(pn + i) + 4, d1);
-        _mm256_storeu_pd((Scal*)(pn + i) + 8, d2);
-      }
-    }
+    Soa::Normalize1(vx, vy, vz);
+    Soa::StoreAsAos(vx, vy, vz, (Scal*)(&fcn[c]));
   }
 }
 

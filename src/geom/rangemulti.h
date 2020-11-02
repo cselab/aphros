@@ -3,16 +3,16 @@
 
 #pragma once
 
-#include "idx.h"
+#include <array>
 
 namespace generic {
 
 template <class Idx_, size_t dim_, size_t step_>
 class RangeMulti {
  public:
-  using Idx = Idx_;
-  using MIdx = GMIdx<dim_>;
   static constexpr size_t dim = dim_;
+  using Idx = Idx_;
+  using MIdx = std::array<int, dim>;
   static constexpr size_t step = step_;
 
   class iterator {
@@ -23,17 +23,23 @@ class RangeMulti {
     // lead: size of whole block
     explicit iterator(
         const MIdx& pos, Idx flat_begin, const MIdx& size, const MIdx& lead)
-        : size_(size)
-        , offset_(Product(lead) - size * ProductOne(lead))
-        , pos_(pos)
-        , flat_(size_t(flat_begin) + (pos * ProductOne(lead)).sum()) {}
+        : size_(size), pos_(pos) {
+      flat_ = Idx(flat_begin);
+      size_t prod = 1;
+      for (size_t i = 0; i < dim; ++i) {
+        flat_ += prod * pos[i];
+        prodone_[i] = prod;
+        prod *= lead[i];
+        prod_[i] = prod;
+      }
+    }
     iterator& operator++() {
       flat_ += step;
       for (size_t d = 0; d < dim; ++d) {
         pos_[d] += (d == 0 ? step : 1);
-        if (pos_[d] == size_[d] && d + 1 < dim) {
+        if (pos_[d] >= size_[d] && d + 1 < dim) {
+          flat_ += prod_[d] - prodone_[d] * pos_[d];
           pos_[d] = 0;
-          flat_ += offset_[d];
         } else {
           break;
         }
@@ -51,40 +57,32 @@ class RangeMulti {
     }
 
    private:
-    // 1, size[0], size[0] * size[1], ...
-    static MIdx ProductOne(MIdx size) {
-      MIdx res(1);
-      for (size_t d = 1; d < dim; ++d) {
-        res[d] = res[d - 1] * size[d - 1];
-      }
-      return res;
-    }
-    // size[0], size[0] * size[1], size[0] * size[1] * size[2]
-    static MIdx Product(MIdx size) {
-      MIdx res(size);
-      for (size_t d = 1; d < dim; ++d) {
-        res[d] = res[d - 1] * size[d];
-      }
-      return res;
-    }
-
     const MIdx size_;
-    const MIdx offset_; // offset in flat index after reaching size
+    MIdx offset_;
+    MIdx prodone_;
+    MIdx prod_;
     MIdx pos_;
     Idx flat_;
   };
 
   RangeMulti(Idx flat_begin, const MIdx& size, const MIdx& lead)
       : flat_begin_(flat_begin), size_(size), lead_(lead) {
+    static_assert(step >= 1, "");
     assert(size <= lead);
-    assert(step >= 1);
     assert(size[0] % step == 0);
   }
   iterator begin() const {
-    return iterator(MIdx(0), flat_begin_, size_, lead_);
+    MIdx first;
+    for (auto& a : first) {
+      a = 0;
+    }
+    return iterator(first, flat_begin_, size_, lead_);
   }
   iterator end() const {
-    MIdx last(0);
+    MIdx last;
+    for (auto& a : last) {
+      a = 0;
+    }
     last[dim - 1] = size_[dim - 1];
     return iterator(last, flat_begin_, size_, lead_);
   }
