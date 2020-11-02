@@ -12,6 +12,7 @@
 #include <type_traits>
 
 #include "geom/mesh.h"
+#include "geom/rangemulti.h"
 #include "solver/approx.h"
 #include "solver/approx_eb.h"
 #include "solver/cond.h"
@@ -119,8 +120,11 @@ class LoopInCellsNew : public TimerMesh {
     size_t a = 0;
     const auto indexc = m.GetIndexCells();
     const auto blockci = m.GetInBlockCells();
-    const auto range = GRangeMulti<IdxCell, dim, 1>(
-        indexc.GetIdx(blockci.GetBegin()), blockci.GetSize(), indexc.GetSize());
+    using RangeMulti = typename generic::RangeMulti<IdxCell, dim, 1>;
+    using MIdxR = typename RangeMulti::MIdx;
+    const MIdxR size(blockci.GetSize());
+    const MIdxR lead(indexc.GetSize());
+    const RangeMulti range(indexc.GetIdx(blockci.GetBegin()), size, lead);
     for (auto i : range) {
       a += i.GetRaw();
     }
