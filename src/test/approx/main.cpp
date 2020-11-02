@@ -493,14 +493,13 @@ std::unique_ptr<M> CreateMesh(Scal h) {
       InitUniformMesh<M>(dom, MIdx(0), size, 2, true, true, size, 0));
 }
 
-// TODO: rename GetRangeInBlockCells to GetBlockInCells()
 // TODO: rename SuCells to Cells(1)
 // TODO: rename AllCells to Cells(2)
 
 std::unique_ptr<EB> CreateEmbed(M& m) {
   auto peb = std::make_unique<EB>(m, 0);
   FieldNode<Scal> fnl(m);
-  auto block = m.GetRangeInBlockCells().GetSize();
+  auto block = m.GetInBlockCells().GetSize();
   auto h = m.GetCellSize();
   for (auto n : m.AllNodes()) {
     const auto x = m.GetNode(n) / h / Vect(block);
