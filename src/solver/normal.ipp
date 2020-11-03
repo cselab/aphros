@@ -12,7 +12,7 @@
 #include "solver.h"
 #include "util/height.h"
 
-#if _USE_AVX_
+#if USEFLAG(AVX)
 #include "util/avx.h"
 #endif
 
@@ -131,7 +131,7 @@ struct UNormal<M_>::Imp {
       }
     }
   }
-#if _USE_AVX_
+#if USEFLAG(AVX)
   static void CalcNormalYoungsAvx(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
       FieldCell<Vect>& fcn) {
@@ -462,8 +462,8 @@ struct UNormal<M_>::Imp {
       FieldCell<Vect>& fcn) {
     fcn.Reinit(m, Vect(GetNan<Scal>()));
     FieldCell<char> fcd(m);
-#if _USE_AVX_
-    #warning Using CalcNormalYoungsAvx
+#if USEFLAG(AVX)
+    #pragma message "Using CalcNormalYoungsAvx"
     CalcNormalYoungsAvx(m, fcu, fci, fcn);
 #else
     CalcNormalYoungs1(m, fcu, fci, fcn);

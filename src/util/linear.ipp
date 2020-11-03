@@ -4,12 +4,16 @@
 #pragma once
 
 #include "linear.h"
-#include "util/logger.h"
+#include "logger.h"
 
 template <class M_>
 auto ULinear<M_>::MakeLinearSolver(const Vars& var, std::string prefix)
     -> std::unique_ptr<linear::Solver<M>> {
+#if USEFLAG(HYPRE)
   FORCE_LINK(linear_hypre);
+#endif
+  FORCE_LINK(linear_conjugate);
+  FORCE_LINK(linear_jacobi);
 
   auto addprefix = [prefix](std::string name) {
     return "hypre_" + prefix + "_" + name;

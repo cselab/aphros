@@ -120,7 +120,9 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
+#if USEFLAG(HYPRE)
   FORCE_LINK(linear_hypre);
+#endif
   FORCE_LINK(linear_conjugate);
   FORCE_LINK(linear_jacobi);
 

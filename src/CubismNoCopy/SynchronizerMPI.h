@@ -21,14 +21,15 @@
 #include "StencilInfo.h"
 #include "util/compressor.h"
 #include "util/histogram.h"
+#include "util/macros.h"
 
 using namespace std;
 
-#ifdef _USE_FPZIP_
+#if USEFLAG(FPZIP)
 using Compressor = compression::FPZIP<Real>;
 #else
 using Compressor = compression::PassThrough<Real>;
-#endif /* _USE_FPZIP_ */
+#endif
 using Envelope = compression::Envelope;
 
 template <typename TView>

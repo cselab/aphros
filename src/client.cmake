@@ -62,5 +62,6 @@ if (USE_OPENMP)
       INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
 endif()
 
-# Optional packages
-find_package(FPZIP QUIET) # floating point compressor
+if (USE_FPZIP)
+  find_package(FPZIP REQUIRED) # floating point compressor
+endif()

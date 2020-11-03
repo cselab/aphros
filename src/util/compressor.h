@@ -6,9 +6,10 @@
 #include <limits.h>
 #include <cassert>
 
-#ifdef _USE_FPZIP_
+#include "macros.h"
+#if USEFLAG(FPZIP)
 #include "fpzip.h"
-#endif /* _USE_FPZIP_ */
+#endif
 
 namespace compression {
 // Envelope with compression meta data
@@ -65,7 +66,7 @@ class PassThrough : public FPCompressor {
   Envelope env_; // compression meta data
 };
 
-#ifdef _USE_FPZIP_
+#if USEFLAG(FPZIP)
 // Floating point compressor based on the FPZIP library
 template <typename Scal>
 class FPZIP : public FPCompressor {
@@ -140,5 +141,5 @@ class FPZIP : public FPCompressor {
   int type_, prec_;
   FPZ* fpz_; // meta data for compression stream
 };
-#endif /* _USE_FPZIP_ */
+#endif
 } // namespace compression

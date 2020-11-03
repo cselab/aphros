@@ -8,10 +8,10 @@ target_link_libraries(${T} hdf distr)
 target_compile_definitions(${T} PUBLIC _ALIGNBYTES_=16)
 target_compile_definitions(${T} PUBLIC _USE_HDF_)
 target_compile_options(${T} PRIVATE -Wall -Wextra -pedantic -Wno-shadow)
-if (FPZIP_FOUND)
-    target_link_libraries(${T} fpzip)
-    target_compile_definitions(${T} PUBLIC _USE_FPZIP_)
+if (USE_FPZIP)
+  target_link_libraries(${T} fpzip)
 endif ()
+target_compile_definitions(${T} PUBLIC _USE_FPZIP_=$<BOOL:${USE_FPZIP$}>)
 
 set(T "report")
 add_library(${T} report.cpp)
@@ -20,8 +20,7 @@ target_link_libraries(${T})
 set(T "distr")
 add_library(${T} distr.cpp)
 target_link_libraries(${T}
-    sysinfo report hypre parser suspender vars histogram
-    dumper git subcomm openmp)
+    sysinfo report parser suspender vars histogram dumper git subcomm openmp)
 
 set(T "distrsolver")
 add_library(${T} distrsolver.cpp)

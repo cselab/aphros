@@ -130,7 +130,7 @@ class Youngs : public TimerMesh {
       Normal::CalcNormalYoungs(m, fcu, fcmask, fcn);
     } else if (id == 1) {
       Normal::CalcNormalYoungs1(m, fcu, fcmask, fcn);
-#if _USE_AVX_
+#if USEFLAG(AVX)
     } else if (id == 2) {
       Normal::CalcNormalYoungsAvx(m, fcu, fcmask, fcn);
 #endif
@@ -216,7 +216,7 @@ static int Verify() {
     Normal::CalcNormalYoungs(m, fcu, fcmask, fcn);
     Normal::CalcNormalYoungs1(m, fcu, fcmask, fcn1);
     CMP(fcn, fcn1);
-#if _USE_AVX_
+#if USEFLAG(AVX)
     Normal::CalcNormalYoungsAvx(m, fcu, fcmask, fcn2);
     CMP(fcn, fcn2);
 #endif
@@ -265,7 +265,7 @@ static bool Run(
 
   create((Youngs<0>*)0);
   create((Youngs<1>*)0);
-#if _USE_AVX_
+#if USEFLAG(AVX)
   create((Youngs<2>*)0);
 #endif
   create((Height<0>*)0);
