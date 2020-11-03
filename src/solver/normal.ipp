@@ -12,6 +12,10 @@
 #include "solver.h"
 #include "util/height.h"
 
+#if _USE_AVX_
+#include "util/avx.h"
+#endif
+
 template <class M_>
 struct UNormal<M_>::Imp {
   static constexpr size_t dim = M::dim;
@@ -40,7 +44,7 @@ struct UNormal<M_>::Imp {
   // fcn: normal with norm1()=1, antigradient of fcu [s]
   // XXX: uses static variables, not suspendable
   // TODO: check non-uniform mesh
-  static void CalcNormalYoung(
+  static void CalcNormalYoungs(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
       FieldCell<Vect>& fcn) {
     FieldNode<Vect> fng(m, Vect(0));
@@ -63,8 +67,8 @@ struct UNormal<M_>::Imp {
       }
     }
   }
-  // CalcNormalYoung: optimized implementation
-  static void CalcNormalYoung1(
+  // CalcNormalYoungs: optimized implementation
+  static void CalcNormalYoungs1(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
       FieldCell<Vect>& fcn) {
     using MIdx = typename M::MIdx;
@@ -127,6 +131,59 @@ struct UNormal<M_>::Imp {
       }
     }
   }
+#if _USE_AVX_
+  static void CalcNormalYoungsAvx(
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
+      FieldCell<Vect>& fcn) {
+    fcn.Reinit(m, Vect(0));
+
+    const __m256d c2 = _mm256_set1_pd(2);
+    const __m256d c4 = _mm256_set1_pd(4);
+    const auto& stencil = m.GetStencilOffsets();
+    for (auto c : m.SuCells4()) {
+      auto q = [c, &fcu, &stencil](int dx, int dy, int dz) -> const Scal* {
+        return &fcu[c + stencil[(dx + 1) + (dy + 1) * 3 + (dz + 1) * 3 * 3]];
+      };
+      __m256d vx = _mm256_setzero_pd();
+      __m256d vy = _mm256_setzero_pd();
+      __m256d vz = _mm256_setzero_pd();
+      auto add = [&vx, &vy, &vz, &q](const __m256d& k, int dx, int dy, int dz) {
+        vx = _mm256_fmadd_pd(k, _mm256_loadu_pd(q(dx, dy, dz)), vx);
+        vy = _mm256_fmadd_pd(k, _mm256_loadu_pd(q(dz, dx, dy)), vy);
+        vz = _mm256_fmadd_pd(k, _mm256_loadu_pd(q(dy, dz, dx)), vz);
+      };
+      auto sub = [&vx, &vy, &vz, &q](const __m256d& k, int dx, int dy, int dz) {
+        vx = _mm256_fnmadd_pd(k, _mm256_loadu_pd(q(dx, dy, dz)), vx);
+        vy = _mm256_fnmadd_pd(k, _mm256_loadu_pd(q(dz, dx, dy)), vy);
+        vz = _mm256_fnmadd_pd(k, _mm256_loadu_pd(q(dy, dz, dx)), vz);
+      };
+      auto diff = [&add, &sub](const __m256d& k, int dy, int dz) {
+        add(k, +1, dy, dz);
+        sub(k, -1, dy, dz);
+      };
+      auto diff1 = [&vx, &vy, &vz, &q](int dy, int dz) {
+        vx = _mm256_add_pd(vx, _mm256_loadu_pd(q(+1, dy, dz)));
+        vx = _mm256_sub_pd(vx, _mm256_loadu_pd(q(-1, dy, dz)));
+        vy = _mm256_add_pd(vy, _mm256_loadu_pd(q(dz, +1, dy)));
+        vy = _mm256_sub_pd(vy, _mm256_loadu_pd(q(dz, -1, dy)));
+        vz = _mm256_add_pd(vz, _mm256_loadu_pd(q(dy, dz, +1)));
+        vz = _mm256_sub_pd(vz, _mm256_loadu_pd(q(dy, dz, -1)));
+      };
+      diff1(+1, +1);
+      diff1(+1, -1);
+      diff1(-1, +1);
+      diff1(-1, -1);
+      diff(c2, +0, +1);
+      diff(c2, +0, -1);
+      diff(c2, +1, +0);
+      diff(c2, -1, +0);
+      diff(c4, +0, +0);
+
+      util::Soa::Normalize1(vx, vy, vz);
+      util::Soa::StoreAsAos(vx, vy, vz, (Scal*)(&fcn[c]));
+    }
+  }
+#endif
   // Computes normal and curvature from height functions.
   // fcu: volume fraction
   // fci: interface mask (1: contains interface)
@@ -405,7 +462,12 @@ struct UNormal<M_>::Imp {
       FieldCell<Vect>& fcn) {
     fcn.Reinit(m, Vect(GetNan<Scal>()));
     FieldCell<char> fcd(m);
-    CalcNormalYoung1(m, fcu, fci, fcn);
+#if _USE_AVX_
+    #warning Using CalcNormalYoungsAvx
+    CalcNormalYoungsAvx(m, fcu, fci, fcn);
+#else
+    CalcNormalYoungs1(m, fcu, fci, fcn);
+#endif
     CalcNormalHeight1(m, fcu, fci, edim, false, fcn);
   }
 
@@ -490,10 +552,10 @@ void UNormal<M_>::CalcCurvHeight(
 }
 
 template <class M_>
-void UNormal<M_>::CalcNormalYoung(
+void UNormal<M_>::CalcNormalYoungs(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
     FieldCell<Vect>& fcn) {
-  Imp::CalcNormalYoung1(m, fcu, fci, fcn);
+  Imp::CalcNormalYoungs1(m, fcu, fci, fcn);
 }
 
 template <class M_>

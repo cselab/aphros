@@ -9,6 +9,7 @@ if (CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif ()
 
 option(USE_OPENMP "Build with OpenMP support." ON)
+option(USE_AVX "Build with AVX vectorized kernels. Requires a CPU with AVX2 and FMA support." ON)
 
 set(CMAKE_MACOSX_RPATH OFF)
 set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")

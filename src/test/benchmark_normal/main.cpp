@@ -45,7 +45,7 @@ using Mesh = MeshStructured<Scal, dim>;
 using Normal = typename UNormal<Mesh>::Imp;
 
 template <class M>
-void CalcNormalHeight2(
+void CalcNormalHeightRange(
     M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci, size_t edim,
     bool force_overwrite, FieldCell<Vect>& fcn) {
   fcn.Reinit(m);
@@ -87,122 +87,6 @@ void CalcNormalHeight2(
   }
 }
 
-#include <x86intrin.h>
-
-std::ostream& operator<<(std::ostream& out, const __m256d& d) {
-  constexpr int width = sizeof(__m256d) / sizeof(double);
-  double dd[width];
-  _mm256_storeu_pd(dd, d);
-  bool first = true;
-  for (size_t i = 0; i < width; ++i) {
-    if (!first) {
-      out << " ";
-    }
-    first = false;
-    out << dd[i];
-  }
-  return out;
-}
-
-struct Soa {
-  static void ToAos(
-      const __m256d& x, const __m256d& y, const __m256d& z, __m256d& v0,
-      __m256d& v1, __m256d& v2) {
-    // x: x0 x1 x2 x3
-    // y: y0 y1 y2 y3
-    // z: z0 z1 z2 z3
-    auto xp = _mm256_permute2f128_pd(x, x, 0b00000001); // x2 x3 x0 x1
-    auto zp = _mm256_permute2f128_pd(z, z, 0b00000001); // z2 z3 z0 z1
-    auto xs = _mm256_blend_pd(x, xp, 0b1010); /// x0 x3 x2 x1
-    auto ys = _mm256_shuffle_pd(y, y, 0b0101); // y1 y0 y3 y2
-    auto zs = _mm256_blend_pd(z, zp, 0b0101); /// z2 z1 z0 z3
-    auto xyb = _mm256_blend_pd(xs, ys, 0b1010); // x0 y0 x2 y2
-    auto yzb = _mm256_blend_pd(ys, zs, 0b1010); // y1 z1 y3 z3
-    auto zxb = _mm256_blend_pd(zs, xs, 0b1010); // z2 x3 z0 x1
-    v0 = _mm256_blend_pd(xyb, zxb, 0b1100); // x0 y0 z0 x1
-    v1 = _mm256_blend_pd(yzb, xyb, 0b1100); // y1 z1 x2 y2
-    v2 = _mm256_blend_pd(zxb, yzb, 0b1100); // y2 z3 x3 y3
-  }
-
-  static void StoreAsAos(
-      const __m256d& x, const __m256d& y, const __m256d& z, Scal* mem) {
-    __m256d d0;
-    __m256d d1;
-    __m256d d2;
-
-    ToAos(x, y, z, d0, d1, d2);
-
-    _mm256_storeu_pd(mem + 0, d0);
-    _mm256_storeu_pd(mem + 4, d1);
-    _mm256_storeu_pd(mem + 8, d2);
-  };
-
-  static void Normalize1(__m256d& x, __m256d& y, __m256d& z) {
-    auto xa = _mm256_max_pd(_mm256_sub_pd(_mm256_setzero_pd(), x), x);
-    auto ya = _mm256_max_pd(_mm256_sub_pd(_mm256_setzero_pd(), y), y);
-    auto za = _mm256_max_pd(_mm256_sub_pd(_mm256_setzero_pd(), z), z);
-    auto sum = _mm256_add_pd(xa, ya);
-    sum = _mm256_add_pd(sum, za);
-    sum = _mm256_sub_pd(_mm256_setzero_pd(), sum);
-    x = _mm256_div_pd(x, sum);
-    y = _mm256_div_pd(y, sum);
-    z = _mm256_div_pd(z, sum);
-  };
-};
-
-template <class M>
-static void CalcNormalYoung2(
-    M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-    FieldCell<Vect>& fcn) {
-  fcn.Reinit(m, Vect(0));
-
-  const __m256d c2 = _mm256_set1_pd(2);
-  const __m256d c4 = _mm256_set1_pd(4);
-  const auto& stencil = m.GetStencilOffsets();
-  for (auto c : m.SuCells4()) {
-    auto q = [c, &fcu, &stencil](int dx, int dy, int dz) -> const Scal* {
-      return &fcu[c + stencil[(dx + 1) + (dy + 1) * 3 + (dz + 1) * 3 * 3]];
-    };
-    __m256d vx = _mm256_setzero_pd();
-    __m256d vy = _mm256_setzero_pd();
-    __m256d vz = _mm256_setzero_pd();
-    auto add = [&vx, &vy, &vz, &q](const __m256d& k, int dx, int dy, int dz) {
-      vx = _mm256_fmadd_pd(k, _mm256_loadu_pd(q(dx, dy, dz)), vx);
-      vy = _mm256_fmadd_pd(k, _mm256_loadu_pd(q(dz, dx, dy)), vy);
-      vz = _mm256_fmadd_pd(k, _mm256_loadu_pd(q(dy, dz, dx)), vz);
-    };
-    auto sub = [&vx, &vy, &vz, &q](const __m256d& k, int dx, int dy, int dz) {
-      vx = _mm256_fnmadd_pd(k, _mm256_loadu_pd(q(dx, dy, dz)), vx);
-      vy = _mm256_fnmadd_pd(k, _mm256_loadu_pd(q(dz, dx, dy)), vy);
-      vz = _mm256_fnmadd_pd(k, _mm256_loadu_pd(q(dy, dz, dx)), vz);
-    };
-    auto diff = [&add,&sub](const __m256d& k, int dy, int dz) {
-      add(k, +1, dy, dz);
-      sub(k, -1, dy, dz);
-    };
-    auto diff1 = [&vx, &vy, &vz, &q](int dy, int dz) {
-      vx = _mm256_add_pd(vx, _mm256_loadu_pd(q(+1, dy, dz)));
-      vx = _mm256_sub_pd(vx, _mm256_loadu_pd(q(-1, dy, dz)));
-      vy = _mm256_add_pd(vy, _mm256_loadu_pd(q(dz, +1, dy)));
-      vy = _mm256_sub_pd(vy, _mm256_loadu_pd(q(dz, -1, dy)));
-      vz = _mm256_add_pd(vz, _mm256_loadu_pd(q(dy, dz, +1)));
-      vz = _mm256_sub_pd(vz, _mm256_loadu_pd(q(dy, dz, -1)));
-    };
-    diff1(+1, +1);
-    diff1(+1, -1);
-    diff1(-1, +1);
-    diff1(-1, -1);
-    diff(c2, +0, +1);
-    diff(c2, +0, -1);
-    diff(c2, +1, +0);
-    diff(c2, -1, +0);
-    diff(c4, +0, +0);
-
-    Soa::Normalize1(vx, vy, vz);
-    Soa::StoreAsAos(vx, vy, vz, (Scal*)(&fcn[c]));
-  }
-}
-
 Scal Random(Scal q) {
   return std::sin(std::sin(q * 123.456) * 654.321);
 }
@@ -227,11 +111,14 @@ class TimerMesh : public ExecutionTimer {
   Mesh& m;
 };
 
+static const char* kYoungsNames[3] = {
+    "youngs-range", "youngs-nested", "youngs-avx"};
+
 template <int id>
 class Youngs : public TimerMesh {
  public:
   Youngs(Mesh& m_)
-      : TimerMesh("young" + std::to_string(id), m_), fcu(m), fcmask(m, true) {
+      : TimerMesh(kYoungsNames[id], m_), fcu(m), fcmask(m, true) {
     for (auto i : m.AllCells()) {
       fcu[i] = Random(i.GetRaw());
     }
@@ -240,11 +127,13 @@ class Youngs : public TimerMesh {
     volatile size_t ii = 0;
 
     if (id == 0) {
-      Normal::CalcNormalYoung(m, fcu, fcmask, fcn);
+      Normal::CalcNormalYoungs(m, fcu, fcmask, fcn);
     } else if (id == 1) {
-      Normal::CalcNormalYoung1(m, fcu, fcmask, fcn);
+      Normal::CalcNormalYoungs1(m, fcu, fcmask, fcn);
+#if _USE_AVX_
     } else if (id == 2) {
-      CalcNormalYoung2(m, fcu, fcmask, fcn);
+      Normal::CalcNormalYoungsAvx(m, fcu, fcmask, fcn);
+#endif
     } else {
       fassert(false);
     }
@@ -258,11 +147,14 @@ class Youngs : public TimerMesh {
   FieldCell<Vect> fcn;
 };
 
+static const char* kHeightNames[3] = {
+    "height-range", "height-nested", "height2-range"};
+
 template <int id>
 class Height : public TimerMesh {
  public:
   Height(Mesh& m_)
-      : TimerMesh("height" + std::to_string(id), m_), fcu(m), fcmask(m, true) {
+      : TimerMesh(kHeightNames[id], m_), fcu(m), fcmask(m, true) {
     for (auto i : m.AllCells()) {
       fcu[i] = Random(i.GetRaw());
     }
@@ -276,7 +168,7 @@ class Height : public TimerMesh {
     } else if (id == 1) {
       Normal::CalcNormalHeight1(m, fcu, fcmask, edim, true, fcn);
     } else if (id == 2) {
-      CalcNormalHeight2(m, fcu, fcmask, edim, true, fcn);
+      CalcNormalHeightRange(m, fcu, fcmask, edim, true, fcn);
     } else {
       fassert(false);
     }
@@ -321,17 +213,19 @@ static int Verify() {
 
   if (test == 0) {
     name = "NormalYoung";
-    Normal::CalcNormalYoung(m, fcu, fcmask, fcn);
-    Normal::CalcNormalYoung1(m, fcu, fcmask, fcn1);
-    CalcNormalYoung2(m, fcu, fcmask, fcn2);
+    Normal::CalcNormalYoungs(m, fcu, fcmask, fcn);
+    Normal::CalcNormalYoungs1(m, fcu, fcmask, fcn1);
     CMP(fcn, fcn1);
+#if _USE_AVX_
+    Normal::CalcNormalYoungsAvx(m, fcu, fcmask, fcn2);
     CMP(fcn, fcn2);
+#endif
   } else if (test == 1) {
     name = "NormalHeight,edim=3";
     size_t edim = 3;
     Normal::CalcNormalHeight(m, fcu, fcmask, edim, true, fcn);
     Normal::CalcNormalHeight1(m, fcu, fcmask, edim, true, fcn1);
-    CalcNormalHeight2(m, fcu, fcmask, edim, true, fcn2);
+    CalcNormalHeightRange(m, fcu, fcmask, edim, true, fcn2);
     CMP(fcn, fcn1);
     CMP(fcn, fcn2);
   } else if (test == 2) {
@@ -339,7 +233,7 @@ static int Verify() {
     size_t edim = 2;
     Normal::CalcNormalHeight(m, fcu, fcmask, edim, true, fcn);
     Normal::CalcNormalHeight1(m, fcu, fcmask, edim, true, fcn1);
-    CalcNormalHeight2(m, fcu, fcmask, edim, true, fcn2);
+    CalcNormalHeightRange(m, fcu, fcmask, edim, true, fcn2);
     CMP(fcn, fcn1);
     CMP(fcn, fcn2);
   } else {
@@ -371,7 +265,9 @@ static bool Run(
 
   create((Youngs<0>*)0);
   create((Youngs<1>*)0);
+#if _USE_AVX_
   create((Youngs<2>*)0);
+#endif
   create((Height<0>*)0);
   create((Height<1>*)0);
   create((Height<2>*)0);
@@ -400,7 +296,7 @@ int main() {
     sizes.emplace_back(n, n, n);
   }
 
-  const std::string fmt = "{:10} {:16.2f} {:16}\n";
+  const std::string fmt = "{:16} {:10.2f} {:10}\n";
 
   for (auto size : sizes) {
     auto m = GetMesh(size);

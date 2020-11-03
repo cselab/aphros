@@ -65,7 +65,7 @@ class UNormal {
   // fci: interface mask (1: contains interface)
   // Output: set to NaN if fci=0
   // fcn: normal with norm1()=1, antigradient of fcu [s]
-  static void CalcNormalYoung(
+  static void CalcNormalYoungs(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
       FieldCell<Vect>& fcn);
 

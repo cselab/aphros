@@ -104,6 +104,7 @@ install(FILES solver/tracker.h DESTINATION ${APHROS_PREFIX}/include/aphros/solve
 install(FILES solver/trackerm.h DESTINATION ${APHROS_PREFIX}/include/aphros/solver)
 install(FILES solver/vof.h DESTINATION ${APHROS_PREFIX}/include/aphros/solver)
 install(FILES solver/vofm.h DESTINATION ${APHROS_PREFIX}/include/aphros/solver)
+install(FILES util/avx.h DESTINATION ${APHROS_PREFIX}/include/aphros/util)
 install(FILES util/compressor.h DESTINATION ${APHROS_PREFIX}/include/aphros/util)
 install(FILES util/convdiff.h DESTINATION ${APHROS_PREFIX}/include/aphros/util)
 install(FILES util/distr.h DESTINATION ${APHROS_PREFIX}/include/aphros/util)
