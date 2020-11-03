@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.12.0)
 project("aphros-deploy")
 
-option(USE_FPZIP "Build with FPZIP support." OFF)
+option(USE_FPZIP "Install fpzip. Used compression of communication buffers (experimental)" OFF)
+option(USE_AMGX "Install AMGX, linear solver on GPUs. Requires CUDA Toolkit" OFF)
 
 set(NAMEPREFIX ap.)
 
@@ -253,9 +254,8 @@ ExternalProject_Add(eigen
 
 # fpzip
 if (USE_FPZIP)
-    set(fpzip_url "https://github.com/LLNL/fpzip/releases/download/1.3.0/fpzip-1.3.0.tar.gz")
     ExternalProject_Add(fpzip
-        URL ${fpzip_url}
+        URL "https://github.com/LLNL/fpzip/releases/download/1.3.0/fpzip-1.3.0.tar.gz"
         CMAKE_ARGS
         -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
         -DCMAKE_INSTALL_CMAKEDIR:STRING=cmake/fpzip
@@ -263,6 +263,17 @@ if (USE_FPZIP)
         -DBUILD_TESTING=OFF
         -DBUILD_UTILITIES=OFF
         -DFPZIP_ENABLE_PIC=ON
+        INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
+        )
+endif ()
+
+# AMGX
+if (USE_AMGX)
+    ExternalProject_Add(amgx
+        URL "https://github.com/NVIDIA/AMGX/archive/v2.1.0.tar.gz"
+        CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
         )
 endif ()
