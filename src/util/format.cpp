@@ -122,13 +122,13 @@ std::string ParseFormat(std::string fmt, const std::vector<Printer>& printers) {
         }
         break;
       case S::colon:
-        fassert_match(c, "}.efgdx" + digits);
+        fassert_match(c, "}.eEfgdxX" + digits);
         if (c == '}') {
           state = S::write;
           --i;
         } else if (c == '.') {
           state = S::precision;
-        } else if (match(c, "efgdx")) {
+        } else if (match(c, "eEfgdxX")) {
           state = S::type;
           --i;
         } else { // digit
@@ -138,13 +138,13 @@ std::string ParseFormat(std::string fmt, const std::vector<Printer>& printers) {
         }
         break;
       case S::width:
-        fassert_match(c, "}.efgdx" + digits);
+        fassert_match(c, "}.eEfgdxX" + digits);
         if (c == '}') {
           state = S::write;
           --i;
         } else if (c == '.') {
           state = S::precision;
-        } else if (match(c, "efgdx")) {
+        } else if (match(c, "eEfgdxX")) {
           state = S::type;
           --i;
         } else { // digit
@@ -152,7 +152,7 @@ std::string ParseFormat(std::string fmt, const std::vector<Printer>& printers) {
         }
         break;
       case S::precision:
-        fassert_match(c, digits + "efg");
+        fassert_match(c, digits + "eEfg");
         if (match(c, digits)) {
           mod.precision += c;
         } else {
@@ -161,7 +161,7 @@ std::string ParseFormat(std::string fmt, const std::vector<Printer>& printers) {
         }
         break;
       case S::type:
-        fassert_match(c, "efgdx");
+        fassert_match(c, "eEfgdxX");
         mod.type = c;
         state = S::write;
         break;
@@ -194,11 +194,17 @@ std::string ParseFormat(std::string fmt, const std::vector<Printer>& printers) {
           ss << std::setfill('0') << std::internal;
         }
         switch (mod.type) {
+          case 'E':
+            ss << std::uppercase << std::scientific;
+            break;
           case 'e':
             ss << std::scientific;
             break;
           case 'f':
             ss << std::fixed;
+            break;
+          case 'X':
+            ss << std::uppercase << std::hex;
             break;
           case 'x':
             ss << std::hex;
