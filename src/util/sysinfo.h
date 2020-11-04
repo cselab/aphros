@@ -2,6 +2,7 @@
 // Copyright 2018 ETH Zurich
 
 #include <cstddef>
+#include <string>
 
 namespace sysinfo {
 
@@ -9,5 +10,7 @@ namespace sysinfo {
 size_t GetMem();
 // Returns true if Intel Hyperthreads are enabled
 bool HasHyperthreads();
+
+std::string GetHostname();
 
 } // namespace sysinfo
