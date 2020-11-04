@@ -122,13 +122,13 @@ std::string ParseFormat(std::string fmt, const std::vector<Printer>& printers) {
         }
         break;
       case S::colon:
-        fassert_match(c, "}.efgd" + digits);
+        fassert_match(c, "}.efgdx" + digits);
         if (c == '}') {
           state = S::write;
           --i;
         } else if (c == '.') {
           state = S::precision;
-        } else if (match(c, "efgd")) {
+        } else if (match(c, "efgdx")) {
           state = S::type;
           --i;
         } else { // digit
@@ -138,13 +138,13 @@ std::string ParseFormat(std::string fmt, const std::vector<Printer>& printers) {
         }
         break;
       case S::width:
-        fassert_match(c, "}.efgd" + digits);
+        fassert_match(c, "}.efgdx" + digits);
         if (c == '}') {
           state = S::write;
           --i;
         } else if (c == '.') {
           state = S::precision;
-        } else if (match(c, "efgd")) {
+        } else if (match(c, "efgdx")) {
           state = S::type;
           --i;
         } else { // digit
@@ -161,7 +161,7 @@ std::string ParseFormat(std::string fmt, const std::vector<Printer>& printers) {
         }
         break;
       case S::type:
-        fassert_match(c, "efgd");
+        fassert_match(c, "efgdx");
         mod.type = c;
         state = S::write;
         break;
@@ -199,6 +199,9 @@ std::string ParseFormat(std::string fmt, const std::vector<Printer>& printers) {
             break;
           case 'f':
             ss << std::fixed;
+            break;
+          case 'x':
+            ss << std::hex;
             break;
           case 'g':
           case 'd':
