@@ -8,6 +8,7 @@ set(NAMEPREFIX ap.)
 
 set(CMAKE_MACOSX_RPATH OFF)
 set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)
 
 # Disallow in-source build
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -268,12 +269,17 @@ if (USE_FPZIP)
 endif ()
 
 # AMGX
+set(CUDA_ARCH 60 CACHE STRING "Cuda architecture version to be passed to AMGX")
+set_property(CACHE CUDA_ARCH PROPERTY STRINGS 60 70)
 if (USE_AMGX)
     ExternalProject_Add(amgx
-        URL "https://github.com/NVIDIA/AMGX/archive/v2.1.0.tar.gz"
+        GIT_REPOSITORY "https://github.com/NVIDIA/AMGX"
+        GIT_TAG 919fb92a2c0
+        GIT_SHALLOW ON
         CMAKE_ARGS
         -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        -DCUDA_ARCH=${CUDA_ARCH}
         INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
         )
 endif ()
