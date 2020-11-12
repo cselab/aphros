@@ -93,56 +93,98 @@ std::vector<std::string> FieldToStrings(
   return res;
 }
 
-void Run(M& m, Vars& var) {
+void PrintField(
+    std::ostream& out, const FieldCell<Scal>& fcu, M& m,
+    std::string fmt = "{:4.1f}") {
   auto sem = m.GetSem(__func__);
   struct {
-    FieldCell<Scal> fc;
     std::vector<std::string> res;
     std::vector<std::vector<char>> resbuf;
+    std::vector<int> meshid;
   } * ctx(sem);
-  static std::unique_ptr<StreamMpi> print;
   auto& t = *ctx;
   if (sem()) {
-    print = std::make_unique<StreamMpi>(std::cout, m.GetMpiComm());
-
-    t.fc.Reinit(m, 0);
-    for (auto c : m.SuCells()) {
-      t.fc[c] = MpiWrapper::GetCommRank(m.GetMpiComm());
-    }
-    m.Comm(&t.fc);
-  }
-  if (sem()) {
-    t.res = FieldToStrings(t.fc, m, "{:2g}");
+    t.res = FieldToStrings(fcu, m, fmt);
     for (auto s : t.res) {
       t.resbuf.emplace_back(s.begin(), s.end());
     }
+    t.meshid.push_back(m.GetId());
     m.Reduce(&t.resbuf, Reduction::concat);
+    m.Reduce(&t.meshid, Reduction::concat);
   }
   if (sem()) {
-    /*
-    (*print) << util::Format("\nrank={}\n", m.GetInBlockCells().GetBegin());
-    for (auto s : t.res) {
-      (*print) << s << '\n';
-    }
-    (*print).Flush();
-    */
     if (m.IsRoot()) {
-      const size_t nlines = t.res.size();
+      const int nlines = t.res.size();
+      std::map<int, size_t> meshid_to_offset;
+      for (size_t i = 0; i < t.meshid.size(); ++i) {
+        meshid_to_offset[t.meshid[i]] = i;
+      }
       const MIdx blocks = m.flags.global_blocks;
-      for (size_t y = blocks[1]; y-- > 0;) {
-        for (size_t i =0 ; i < nlines; ++i) {
-          for (size_t x = 0; x < blocks[0]; ++x) {
-            auto& sbuf = t.resbuf[nlines * (blocks[0] * y + x) + i];
-            std::cout << std::string(sbuf.begin(), sbuf.end()) << "  ";
+      for (int y = blocks[1]; y-- > 0;) {
+        for (int i = 0; i < nlines; ++i) {
+          for (int x = 0; x < blocks[0]; ++x) {
+            auto offset = meshid_to_offset[blocks[0] * y + x];
+            auto& sbuf = t.resbuf[nlines * offset + i];
+            out << std::string(sbuf.begin(), sbuf.end()) << "  ";
           }
-          std::cout << "\n";
+          out << "\n";
         }
-        std::cout << "\n";
+        out << "\n";
+      }
+    }
+  }
+}
+
+void Run(M& m, Vars&) {
+  auto sem = m.GetSem(__func__);
+  struct {
+    FieldCell<Scal> fc_rank;
+    FieldCell<Scal> fc_idx;
+    FieldCell<Scal> fc_num_neighbors;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem()) {
+    t.fc_rank.Reinit(m, 0);
+    for (auto c : m.SuCells()) {
+      t.fc_rank[c] = MpiWrapper::GetCommRank(m.GetMpiComm());
+    }
+    m.Comm(&t.fc_rank);
+  }
+  if (sem()) {
+    t.fc_num_neighbors.Reinit(m, 0);
+    for (auto c : m.Cells()) {
+      for (auto q : m.Nci(c)) {
+        const auto cn = m.GetCell(c, q);
+        if (t.fc_rank[c] != t.fc_rank[cn]) {
+          ++t.fc_num_neighbors[c];
+        }
+      }
+    }
+  }
+  static int colidx = 0;
+  if (sem()) {
+    t.fc_idx.Reinit(m, 0);
+    for (auto c : m.Cells()) {
+      if (t.fc_num_neighbors[c] == 0) {
+        t.fc_idx[c] = colidx++;
       }
     }
   }
   if (sem()) {
-    print.release();
+    for (auto c : m.Cells()) {
+      if (t.fc_num_neighbors[c]) {
+        t.fc_idx[c] = colidx++;
+      }
+    }
+  }
+  if (sem.Nested()) {
+    PrintField(std::cout, t.fc_rank, m, "{:2g}");
+  }
+  if (sem.Nested()) {
+    PrintField(std::cout, t.fc_idx, m, "{:3g}");
+  }
+  if (sem.Nested()) {
+    //PrintField(std::cout, t.fc_num_neighbors, m, "{:2g}");
   }
 }
 
@@ -150,9 +192,10 @@ int main(int argc, const char** argv) {
   MpiWrapper mpi(&argc, &argv);
 
   ArgumentParser parser("Test for communication maps.", mpi.IsRoot());
-  parser.AddVariable<int>("--mesh", 16).Help("Mesh size in all directions");
+  parser.AddVariable<int>("--nx", 16).Help("Mesh size in x-direction");
+  parser.AddVariable<int>("--ny", 16).Help("Mesh size in y-direction");
   parser.AddVariable<int>("--block", 8)
-      .Help("Block size in all directions")
+      .Help("Block size in x- and y-directions")
       .Options({8, 16, 32});
   parser.AddVariable<std::string>("--extra", "")
       .Help("Extra configuration (commands 'set ... ')");
@@ -161,10 +204,11 @@ int main(int argc, const char** argv) {
     return *p;
   }
 
-  const int nx = args.Int["mesh"];
+  const int nx = args.Int["nx"];
+  const int ny = args.Int["ny"];
   const int block = args.Int["block"];
   Subdomains<MIdx> sub(
-      MIdx(nx, nx, 1), MIdx(block, block, 1), mpi.GetCommSize());
+      MIdx(nx, ny, 1), MIdx(block, block, 1), mpi.GetCommSize());
   std::string conf = "";
   conf += sub.GetConfig();
   conf += "\n" + args.String["extra"];

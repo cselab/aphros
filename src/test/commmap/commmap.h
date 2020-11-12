@@ -5,6 +5,39 @@
 #include <numeric>
 #include <vector>
 
+/*
+
+Things AMGX needs:
+
+* indices of inner cells that do not refer to neighboring ranks
+* indices of inner cells that refer to neighboring ranks
+* indices of halo cells and the corresponding ranks to receive
+* indices of inner cells and the corresponding ranks to send
+* coefficients from inner cells that do not refer to neighboring ranks
+* coefficients from inner cells that refer to neighboring ranks
+
+Having the ordering of neighbors Nci() depend on the cell (to position the halo
+cells after the inner cells as required by AMGX) is not feasible.
+So the reordering of coefficients must be done as a post-processing step.
+Can be done separately for each equation, say the array is appended by 7
+elements at once and filled in correct ordering.
+
+Another option is to store a sequence of elements from `Nci()` for each cell
+(`char` to save memory) in correct ordering.
+
+One way to obtain the correct ordering is to form the system in any order
+and then sort it with a stable sort by:
+number of neighbors, cell index, neighbor rank.
+Needs to be done only once to obtain the indexing.
+
+Mappings needed:
+* from IdxCell to row index
+* from <IdxCell,nci> to column index
+* row_to_cell from row index to IdxCell
+
+
+*/
+
 template <class It>
 std::vector<size_t> ArgSort(It begin, It end) {
   std::vector<size_t> res(end - begin);
