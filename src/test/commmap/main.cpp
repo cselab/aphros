@@ -1,7 +1,9 @@
 // Created by Petr Karnakov on 11.11.2020
 // Copyright 2020 ETH Zurich
 
+#include <algorithm>
 #include <iostream>
+#include <map>
 
 #include "distr/distrbasic.h"
 #include "parse/argparse.h"
@@ -122,10 +124,16 @@ void PrintField(
       const MIdx blocks = m.flags.global_blocks;
       for (int y = blocks[1]; y-- > 0;) {
         for (int i = 0; i < nlines; ++i) {
+          bool first = true;
           for (int x = 0; x < blocks[0]; ++x) {
             auto offset = meshid_to_offset[blocks[0] * y + x];
             auto& sbuf = t.resbuf[nlines * offset + i];
-            out << std::string(sbuf.begin(), sbuf.end()) << "  ";
+            if (!first) {
+              out << "  ";
+            } else {
+              first = false;
+            }
+            out << std::string(sbuf.begin(), sbuf.end());
           }
           out << "\n";
         }
@@ -139,41 +147,193 @@ void Run(M& m, Vars&) {
   auto sem = m.GetSem(__func__);
   struct {
     FieldCell<Scal> fc_rank;
-    FieldCell<Scal> fc_idx;
-    FieldCell<Scal> fc_num_neighbors;
+    FieldCell<Scal> fc_flat;
+    FieldCell<Scal> fc_nci;
+    FieldCell<bool> fc_has_neighbors;
+    std::vector<IdxCell> flat_to_cell;
+    std::vector<std::array<char, 6>> flat_to_nci_inner;
+    using Expr = typename M::Expr;
+    FieldCell<Expr> fc_system;
   } * ctx(sem);
+
+  static int flat_current = 0;
+  static std::unique_ptr<StreamMpi> stream_mpi;
+  static std::vector<Scal> amgx_data;
+  static std::vector<int> amgx_cols;
+  static std::vector<int> amgx_row_ptrs;
+  static std::map<int, std::vector<int>> amgx_recv;
+  static std::map<int, std::vector<int>> amgx_send;
+
   auto& t = *ctx;
+
+  auto next_inner = [&t, &m](IdxCell c) {
+    t.fc_flat[c] = flat_current++;
+    t.flat_to_cell.push_back(c);
+    t.flat_to_nci_inner.emplace_back();
+    auto& nci = t.flat_to_nci_inner.back();
+    size_t j = 0;
+    for (auto q : m.Nci(c)) {
+      const auto cn = m.GetCell(c, q);
+      if (t.fc_has_neighbors[cn] == 0) {
+        nci[j++] = q;
+      }
+    }
+    for (auto q : m.Nci(c)) {
+      const auto cn = m.GetCell(c, q);
+      if (t.fc_has_neighbors[cn]) {
+        nci[j++] = q;
+      }
+    }
+    fassert_equal(j, nci.size());
+  };
+
+  const auto comm = m.GetMpiComm();
+  const int rank = MpiWrapper::GetCommRank(comm);
   if (sem()) {
+    if (m.IsLead()) {
+      stream_mpi = std::make_unique<StreamMpi>(std::cout, comm);
+    }
     t.fc_rank.Reinit(m, 0);
-    for (auto c : m.SuCells()) {
-      t.fc_rank[c] = MpiWrapper::GetCommRank(m.GetMpiComm());
+    for (auto c : m.Cells()) {
+      t.fc_rank[c] = rank;
     }
     m.Comm(&t.fc_rank);
   }
   if (sem()) {
-    t.fc_num_neighbors.Reinit(m, 0);
+    t.fc_has_neighbors.Reinit(m, false);
     for (auto c : m.Cells()) {
       for (auto q : m.Nci(c)) {
         const auto cn = m.GetCell(c, q);
-        if (t.fc_rank[c] != t.fc_rank[cn]) {
-          ++t.fc_num_neighbors[c];
+        if (t.fc_rank[cn] != rank) {
+          t.fc_has_neighbors[c] = true;
         }
       }
     }
   }
-  static int colidx = 0;
-  if (sem()) {
-    t.fc_idx.Reinit(m, 0);
+  if (sem("flat-inner-no-neghbors")) {
+    if (m.IsLead()) {
+      // XXX must be initialized so the function is re-entrant
+      flat_current = 0;
+    }
+    t.fc_flat.Reinit(m, -1);
     for (auto c : m.Cells()) {
-      if (t.fc_num_neighbors[c] == 0) {
-        t.fc_idx[c] = colidx++;
+      // cells that do not have neighbors from remote ranks
+      if (!t.fc_has_neighbors[c]) {
+        next_inner(c);
+      }
+    }
+  }
+  if (sem("flat-inner-other")) {
+    for (auto c : m.Cells()) {
+      // cells that have a neighbor from remote rank
+      if (t.fc_has_neighbors[c]) {
+        next_inner(c);
+      }
+    }
+    // fill halo cells with already computed indices
+    m.Comm(&t.fc_flat);
+  }
+  if (sem("flat-halo")) {
+    for (auto c : m.Cells()) {
+      // halo cells from remote ranks
+      // -1 to prevent traversing the same cell twice
+      for (auto q : m.Nci(c)) {
+        const auto cn = m.GetCell(c, q);
+        if (t.fc_rank[cn] != rank) {
+          t.fc_flat[cn] = -1;
+        }
+      }
+    }
+    for (auto c : m.Cells()) {
+      // halo cells from remote ranks
+      for (auto q : m.Nci(c)) {
+        const auto cn = m.GetCell(c, q);
+        if (t.fc_rank[cn] != rank) {
+          if (t.fc_flat[cn] == -1) {
+            t.fc_flat[cn] = flat_current++;
+            t.flat_to_cell.push_back(cn);
+          }
+        }
       }
     }
   }
   if (sem()) {
-    for (auto c : m.Cells()) {
-      if (t.fc_num_neighbors[c]) {
-        t.fc_idx[c] = colidx++;
+    t.fc_nci.Reinit(m, 0);
+    for (size_t i = 0; i < t.flat_to_cell.size(); ++i) {
+      const auto c = t.flat_to_cell[i];
+      Scal w = 0;
+      for (auto q : t.flat_to_nci_inner[i]) {
+        w = w * 10 + q;
+      }
+      t.fc_nci[c] = w;
+    }
+
+    if (m.IsLead()) {
+      amgx_data.clear();
+      amgx_cols.clear();
+      amgx_row_ptrs = {0};
+      amgx_recv.clear();
+      amgx_send.clear();
+    }
+
+    /*
+    t.fc_system.Reinit(m);
+    for (size_t i = 0; i < t.flat_to_nci_inner.size(); ++i) {
+      const auto c = t.flat_to_cell[i];
+      amgx_cols.push_back(t.fc_flat[c]);
+      amgx_data.push_back(t.fc_system[c][0]);
+      for (auto q : t.flat_to_nci_inner[i]) {
+        const auto cn = m.GetCell(c, q);
+        amgx_cols.push_back(t.fc_flat[cn]);
+        amgx_data.push_back(t.fc_system[c][1 + q]);
+      }
+      amgx_row_ptrs.push_back(amgx_cols.size());
+    }
+    */
+
+    // collect halo cells to receive and inner cells to send
+    for (size_t i = t.flat_to_nci_inner.size(); i < t.flat_to_cell.size();
+         ++i) {
+      const auto c = t.flat_to_cell[i];
+      fassert(t.fc_rank[c] != rank);
+      amgx_recv[t.fc_rank[c]].push_back(i);
+      int cnt = 0;
+      for (auto q : m.Nci(c)) {
+        const auto cn = m.GetCell(c, q);
+        if (t.fc_rank[cn] == rank) {
+          amgx_send[t.fc_rank[c]].push_back(i);
+          ++cnt;
+        }
+      }
+      fassert_equal(cnt, 1);
+    }
+  }
+  if (sem()) {
+    if (m.IsLead()) {
+      std::vector<int> amgx_neighbors;
+      std::vector<int> amgx_recv_sizes;
+      std::vector<const int*> amgx_recv_maps;
+      for (const auto& p : amgx_recv) {
+        amgx_neighbors.push_back(p.first);
+        amgx_recv_sizes.push_back(p.second.size());
+        amgx_recv_maps.push_back(p.second.data());
+      }
+      auto& out = *stream_mpi;
+      out << "\nrank=" << rank << '\n';
+      out << "size=" << t.flat_to_nci_inner.size() << '\n';
+      for (const auto& p : amgx_recv) {
+        out << "recv from rank " << p.first << '\n';
+        for (auto i : p.second) {
+          out << i << " ";
+        }
+        out << '\n';
+      }
+      for (const auto& p : amgx_send) {
+        out << "send to rank " << p.first << '\n';
+        for (auto i : p.second) {
+          out << i << " ";
+        }
+        out << '\n';
       }
     }
   }
@@ -181,10 +341,18 @@ void Run(M& m, Vars&) {
     PrintField(std::cout, t.fc_rank, m, "{:2g}");
   }
   if (sem.Nested()) {
-    PrintField(std::cout, t.fc_idx, m, "{:3g}");
+    PrintField(std::cout, t.fc_flat, m, "{:3g}");
   }
   if (sem.Nested()) {
-    //PrintField(std::cout, t.fc_num_neighbors, m, "{:2g}");
+    // PrintField(std::cout, t.fc_nci, m, " {:06d}");
+  }
+  if (sem.Nested()) {
+    // PrintField(std::cout, t.fc_has_neighbors, m, "{:2g}");
+  }
+  if (sem()) {
+    if (m.IsLead()) {
+      stream_mpi.reset();
+    }
   }
 }
 
