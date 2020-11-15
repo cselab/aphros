@@ -8,6 +8,7 @@
 #include <numeric>
 #include <vector>
 
+#include "distr/distrsolver.h"
 #include "geom/mesh.h"
 #include "util/format.h"
 
@@ -122,7 +123,7 @@ class StreamMpi {
     if (MpiWrapper::IsRoot(comm_)) {
       out_ << str;
     }
-    buf_ = {};
+    buf_ = std::stringstream();
   }
   template <class T>
   StreamMpi& operator<<(const T& value) {
