@@ -116,14 +116,15 @@ class StreamMpi {
  public:
   StreamMpi(std::ostream& out, MPI_Comm comm) : out_(out), comm_(comm) {}
   ~StreamMpi() {
-    Flush();
+    flush();
   }
-  void Flush() {
+  void flush() {
     auto str = Gather(buf_.str(), comm_);
     if (MpiWrapper::IsRoot(comm_)) {
       out_ << str;
+      out_.flush();
     }
-    buf_ = std::stringstream();
+    buf_.str({});
   }
   template <class T>
   StreamMpi& operator<<(const T& value) {
@@ -233,6 +234,8 @@ class CommMap {
   };
 
   struct System {
+    int n; // number of rows
+    int nnz; // number of non-zero elements
     std::vector<Scal> data;
     std::vector<int> cols;
     std::vector<int> row_ptrs;
@@ -398,25 +401,23 @@ class CommMap {
         }
       }
     }
-    if (sem()) {
-      if (m.IsLead()) {
-        std::vector<int> send_neighbors;
-        for (const auto& p : system.send) {
-          send_neighbors.push_back(p.first);
-          system.send_sizes.push_back(p.second.size());
-          system.send_maps.push_back(p.second.data());
-        }
-
-        std::vector<int> recv_neighbors;
-        for (const auto& p : system.recv) {
-          recv_neighbors.push_back(p.first);
-          system.recv_sizes.push_back(p.second.size());
-          system.recv_maps.push_back(p.second.data());
-        }
-
-        fassert_equal(send_neighbors, recv_neighbors);
-        system.neighbors = send_neighbors;
+    if (sem() && m.IsLead()) {
+      std::vector<int> send_neighbors;
+      for (const auto& p : system.send) {
+        send_neighbors.push_back(p.first);
+        system.send_sizes.push_back(p.second.size());
+        system.send_maps.push_back(p.second.data());
       }
+
+      std::vector<int> recv_neighbors;
+      for (const auto& p : system.recv) {
+        recv_neighbors.push_back(p.first);
+        system.recv_sizes.push_back(p.second.size());
+        system.recv_maps.push_back(p.second.data());
+      }
+
+      fassert_equal(send_neighbors, recv_neighbors);
+      system.neighbors = send_neighbors;
     }
   }
   void ConvertSystem(const FieldCell<Expr>& fc_system, M& m) {
@@ -424,11 +425,9 @@ class CommMap {
     auto& system = GetSystemMutable();
     auto& s = state_;
 
-    if (sem()) {
-      if (m.IsLead()) {
-        system.cols.clear();
-        system.data.clear();
-      }
+    if (sem() && m.IsLead()) {
+      system.cols.clear();
+      system.data.clear();
     }
     for (auto range : {s.range_inner0, s.range_inner1}) {
       if (sem()) {
@@ -453,10 +452,14 @@ class CommMap {
         }
       }
     }
+    if (sem() && m.IsLead()) {
+      fassert(system.row_ptrs.size() >= 1);
+      system.n = system.row_ptrs.size() - 1;
+      system.nnz = system.data.size();
+    }
   }
   void PrintStat(M& m) const {
     auto sem = m.GetSem(__func__);
-    static std::unique_ptr<StreamMpi> stream_mpi;
     const auto comm = m.GetMpiComm();
     const int rank = MpiWrapper::GetCommRank(comm);
     auto& system = GetSystem();
@@ -472,52 +475,50 @@ class CommMap {
     if (sem.Nested()) {
       // PrintField(std::cout, state_.fc_has_neighbors, m, "{:2g}");
     }
-    if (sem()) {
-      if (m.IsLead()) {
-        stream_mpi = std::make_unique<StreamMpi>(std::cout, comm);
-        auto& out = *stream_mpi;
-        out << "\nrank=" << rank << '\n';
-        for (const auto& p : system.send) {
-          out << "send to rank " << p.first << '\n';
-          for (auto i : p.second) {
-            out << i << " ";
-          }
-          out << '\n';
-        }
-        for (const auto& p : system.recv) {
-          out << "recv from rank " << p.first << '\n';
-          for (auto i : p.second) {
-            out << i << " ";
-          }
-          out << '\n';
-        }
-        out << "\nsystem.data" << '\n';
-        for (auto a : system.data) {
-          out << a << " ";
-        }
-        out << "\nsystem.cols" << '\n';
-        for (auto i : system.cols) {
-          out << i << " ";
-        }
-        out << "\nsystem.row_ptrs" << '\n';
-        for (auto p : system.row_ptrs) {
-          out << p << " ";
-        }
-        out << '\n';
-
-        stream_mpi.reset();
+    if (sem() && m.IsLead()) {
+      StreamMpi out(std::cout, comm);
+      out << "\nrank=" << rank;
+      for (const auto& p : system.send) {
+        out << "\nsend to rank " << p.first;
+        out << "\n" << p.second;
       }
+      for (const auto& p : system.recv) {
+        out << "\nrecv from rank " << p.first;
+        out << "\n" << p.second;
+      }
+      out << "\nsystem.data";
+      out << "\n" << system.data;
+
+      out << "\nsystem.cols";
+      out << "\n" << system.cols;
+
+      out << "\nsystem.row_ptrs";
+      out << "\n" << system.row_ptrs;
+
+      out << "\nsystem.neighbors";
+      out << "\n" << system.neighbors;
+
+      out << "\nsystem.send_sizes";
+      out << "\n" << system.send_sizes;
+
+      out << "\nsystem.recv_sizes";
+      out << "\n" << system.recv_sizes;
     }
   }
   // Copies field to a flat array.
-  void FieldToArray(const FieldCell<Scal>& fcu, Scal* buf, const M& m) const {
+  void FieldToArray(const FieldCell<Scal>& fcu, Scal* buf) const {
     const auto& s = state_;
     for (auto range : {s.range_inner0, s.range_inner1}) {
       for (size_t i : range) {
         const auto c = s.flat_cells[i];
-        buf[i] = push_back(fcu[c]);
+        buf[i] = fcu[c];
       }
     }
+  }
+  // Copies field to a flat array.
+  void FieldToArray(const FieldCell<Scal>& fcu, std::vector<Scal>& buf) const {
+    buf.resize(GetSystem().n);
+    FieldToArray(fcu, buf.data());
   }
   // Copied flat array to fields.
   // flat: pointer to array, significant only on lead block.
@@ -531,6 +532,10 @@ class CommMap {
         fcu[c] = buf[i];
       }
     }
+  }
+  void ArrayToField(
+      const std::vector<Scal>& buf, FieldCell<Scal>& fcu, const M& m) const {
+    ArrayToField(buf.data(), fcu, m);
   }
 
  private:
