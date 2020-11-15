@@ -68,6 +68,7 @@ void Run(M& m, Vars& var) {
         m.AppendExpr(sum, flux * m.GetOutwardFactor(c, q), q);
       });
       t.fc_system[c] = sum;
+      //t.fc_system[c] = Expr(1, 0, 0, 0, 0, 0, 0, 0);
     }
 
     // constant term from exact solution
@@ -122,6 +123,9 @@ void Run(M& m, Vars& var) {
 int main(int argc, const char** argv) {
 #if USEFLAG(HYPRE)
   FORCE_LINK(linear_hypre);
+#endif
+#if USEFLAG(AMGX)
+  FORCE_LINK(linear_amgx);
 #endif
   FORCE_LINK(linear_conjugate);
   FORCE_LINK(linear_jacobi);

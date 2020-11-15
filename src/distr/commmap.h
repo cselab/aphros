@@ -510,8 +510,7 @@ class CommMap {
     const auto& s = state_;
     for (auto range : {s.range_inner0, s.range_inner1}) {
       for (size_t i : range) {
-        const auto c = s.flat_cells[i];
-        buf[i] = fcu[c];
+        buf[s.flat_cols[i]] = fcu[s.flat_cells[i]];
       }
     }
   }
@@ -528,8 +527,7 @@ class CommMap {
     fcu.Reinit(m);
     for (auto range : {s.range_inner0, s.range_inner1}) {
       for (size_t i : range) {
-        const auto c = s.flat_cells[i];
-        fcu[c] = buf[i];
+        fcu[s.flat_cells[i]] = buf[s.flat_cols[i]];
       }
     }
   }

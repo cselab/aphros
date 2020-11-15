@@ -11,6 +11,7 @@ endif ()
 option(USE_OPENMP "OpenMP support" ON)
 option(USE_AVX "AVX vectorized kernels. Requires a CPU with AVX2 and FMA support" ON)
 option(USE_HYPRE "Hypre for linear systems" ON)
+option(USE_AMGX "AMGX for linear systems, requires GPU with CUDA" OFF)
 option(USE_FPZIP "fpzip compression for communication (experimental)" OFF)
 
 set(CMAKE_MACOSX_RPATH OFF)
@@ -130,11 +131,11 @@ set(ObjLibs
 )
 
 if (USE_HYPRE)
-  set(ObjLibs ${ObjLibs}
-    hypre
-    hypresub
-    linear_hypre
-  )
+  set(ObjLibs ${ObjLibs} hypre hypresub linear_hypre)
+endif()
+
+if (USE_AMGX)
+  set(ObjLibs ${ObjLibs} linear_amgx)
 endif()
 
 foreach(name ${ObjLibs})

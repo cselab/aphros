@@ -3,19 +3,27 @@
 
 #pragma once
 
-#define AMGXCALL(amgxcall_expr)                                               \
-  do {                                                                        \
-    AMGX_RC err = amgxcall_expr;                                              \
-    if (err != AMGX_RC_OK) {                                                  \
-      const int kMaxLength = 4096;                                            \
-      char buf[kMaxLength];                                                   \
-      int buf_len = kMaxLength;                                               \
-      AMGX_get_error_string(err, buf, buf_len);                               \
-      throw std::runtime_error(                                               \
-          FILELINE + ": AMGX failed with error code " + std::to_string(err) + \
-          "\nError string: " + buf + "\nKnown error codes: " +             \
-          Amgx::GetErrorCodes());                                             \
-    }                                                                         \
+#include <amgx_c.h>
+#include <cuda_runtime.h>
+#include <mpi.h>
+
+#include "distr/distrsolver.h"
+#include "util/logger.h"
+#include "util/format.h"
+
+#define AMGXCALL(amgxcall_expr)                                              \
+  do {                                                                       \
+    AMGX_RC amgxcall_err = amgxcall_expr;                                    \
+    if (amgxcall_err != AMGX_RC_OK) {                                        \
+      const int amgxcall_kMaxLength = 4096;                                  \
+      char amgxcall_buf[amgxcall_kMaxLength];                                \
+      int amgxcall_buf_len = amgxcall_kMaxLength;                            \
+      AMGX_get_error_string(amgxcall_err, amgxcall_buf, amgxcall_buf_len);   \
+      throw std::runtime_error(                                              \
+          FILELINE + ": AMGX failed with error code " +                      \
+          std::to_string(amgxcall_err) + "\nError string: " + amgxcall_buf + \
+          "\nKnown error codes: " + Amgx::GetErrorCodes());                  \
+    }                                                                        \
   } while (0)
 
 #define CUDACALL(cudacall_expr)                                    \
@@ -73,6 +81,7 @@ class Library {
  private:
   static std::ostream* log_;
   static void print_callback(const char* msg, int length) {
+    (void) length;
     static int cnt = 0;
     if (log_) {
       (*log_) << util::Format("==== {:} ====\n{}\n", cnt++, msg);
@@ -122,6 +131,7 @@ class Mode {
     if (s == "dDFI") return AMGX_mode_dDFI;
     if (s == "dFFI") return AMGX_mode_dFFI;
     fassert(false, "Unknown mode='" + s + "'");
+    return AMGX_mode_dDDI;
   };
   bool IsVectorDouble() const {
     switch (mode_) {
@@ -188,7 +198,7 @@ class Vector {
     AMGXCALL(AMGX_vector_upload(handle_, size.n, size.block, (const void*)buf));
   }
   void Upload(const std::vector<double>& buf, Size size) {
-    fassert_equal(size.n * size.block, buf.size());
+    fassert_equal(size.n * size.block, (int)buf.size());
     Upload(buf.data(), size);
   }
   void Bind(AMGX_matrix_handle matrix) {
