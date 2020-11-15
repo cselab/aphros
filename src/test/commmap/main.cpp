@@ -5,13 +5,11 @@
 #include <iostream>
 #include <map>
 
+#include "distr/commmap.h"
 #include "distr/distrbasic.h"
 #include "parse/argparse.h"
 #include "util/distr.h"
-#include "util/format.h"
 #include "util/timer.h"
-
-#include "commmap.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;

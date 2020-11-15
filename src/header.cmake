@@ -15,6 +15,7 @@ install(FILES CubismNoCopy/SynchronizerMPI.h DESTINATION ${APHROS_PREFIX}/includ
 install(FILES debug/cond.h DESTINATION ${APHROS_PREFIX}/include/aphros/debug)
 install(FILES debug/isnan.h DESTINATION ${APHROS_PREFIX}/include/aphros/debug)
 install(FILES debug/linear.h DESTINATION ${APHROS_PREFIX}/include/aphros/debug)
+install(FILES distr/commmap.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES distr/cubismnc.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES distr/distrbasic.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES distr/distr.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
