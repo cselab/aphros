@@ -220,7 +220,16 @@ class CommMap {
   using Expr = typename M::Expr;
 
   struct State {
-    FieldCell<Scal> fc_rank;
+    FieldCell<Scal> fc_rank; // rank owning a cell:
+    // inner cell: current rank
+    // halo cell:
+    // * inside the domain: rank of intermediate neighbor
+    // * outside the domain:
+    //   * lower: rank of neighbor through periodic boundary
+    //            minus the number of ranks
+    //   * upper: rank of neighbor through periodic boundary
+    //            plus the number of ranks
+
     FieldCell<Scal> fc_col;
     FieldCell<bool> fc_has_neighbors;
     FieldCell<int> fc_nci;
@@ -267,6 +276,7 @@ class CommMap {
   }
   void Init(M& m) {
     auto sem = m.GetSem(__func__);
+    // XXX must be initialized by lead block to make the function re-entrant
     static int col_current = 0;
 
     auto& s = state_;
@@ -297,6 +307,7 @@ class CommMap {
 
     const auto comm = m.GetMpiComm();
     const int rank = MpiWrapper::GetCommRank(comm);
+    const int commsize = MpiWrapper::GetCommSize(comm);
     if (sem()) {
       s.fc_rank.Reinit(m, 0);
       for (auto c : m.Cells()) {
@@ -305,6 +316,21 @@ class CommMap {
       m.Comm(&s.fc_rank);
     }
     if (sem()) {
+      // Mark ranks through periodic boundaries
+      const auto globalsize = m.GetGlobalSize();
+      for (auto c : m.SuCellsM()) {
+        for (auto d : GRange<size_t>(M::dim)) {
+          if (s.fc_rank[c] != rank) {
+            if (c[d] < 0) {
+              s.fc_rank[c] -= commsize;
+            }
+            if (c[d] >= globalsize[d]) {
+              s.fc_rank[c] += commsize;
+            }
+          }
+        }
+      }
+
       s.fc_has_neighbors.Reinit(m, false);
       for (auto c : m.Cells()) {
         for (auto q : m.Nci(c)) {
@@ -317,7 +343,7 @@ class CommMap {
     }
     if (sem("col-inner-no-neghbors")) {
       if (m.IsLead()) {
-        // XXX must be initialized so the function is re-entrant
+        // XXX to make the function is re-entrant
         col_current = 0;
       }
       s.fc_col.Reinit(m, -1);
@@ -372,7 +398,7 @@ class CommMap {
     }
     if (sem("post")) {
       s.fc_nci.Reinit(m, 0);
-      for (size_t i = 0; i < s.flat_cells.size(); ++i) {
+      for (size_t i = 0; i < s.flat_nci.size(); ++i) {
         const auto c = s.flat_cells[i];
         Scal w = 0;
         for (auto q : s.flat_nci[i]) {
@@ -402,6 +428,46 @@ class CommMap {
       }
     }
     if (sem() && m.IsLead()) {
+      auto realrank = [commsize](int r) {
+        while (r < 0) {
+          r += commsize;
+        }
+        while (r >= commsize) {
+          r -= commsize;
+        }
+        return r;
+      };
+
+      for (auto it = system.send.begin(); it != system.send.end();) {
+        const int r = it->first;
+        auto& vreal = system.send[realrank(r)];
+        auto& v = system.send[r];
+        if (r < 0) {
+          vreal.insert(vreal.begin(), v.begin(), v.end());
+          it = system.send.erase(it);
+        } else if (r >= commsize) {
+          vreal.insert(vreal.end(), v.begin(), v.end());
+          it = system.send.erase(it);
+        } else {
+          ++it;
+        }
+      }
+
+      for (auto it = system.recv.begin(); it != system.recv.end();) {
+        const int r = it->first;
+        auto& vreal = system.recv[realrank(r)];
+        auto& v = system.recv[r];
+        if (r < 0) {
+          vreal.insert(vreal.end(), v.begin(), v.end());
+          it = system.recv.erase(it);
+        } else if (r >= commsize) {
+          vreal.insert(vreal.begin(), v.begin(), v.end());
+          it = system.recv.erase(it);
+        } else {
+          ++it;
+        }
+      }
+
       std::vector<int> send_neighbors;
       for (const auto& p : system.send) {
         send_neighbors.push_back(p.first);
@@ -538,6 +604,7 @@ class CommMap {
 
  private:
   static System& GetSystemMutable() {
+    // XXX must be cleared by lead block to make the function re-entrant
     static System system;
     return system;
   }

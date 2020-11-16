@@ -42,9 +42,6 @@ void Run(M& m, Vars&) {
   if (sem.Nested()) {
     t.comm_map.PrintStat(m);
   }
-  if (sem()) {
-    auto& system = t.comm_map.GetSystem();
-  }
 }
 
 int main(int argc, const char** argv) {

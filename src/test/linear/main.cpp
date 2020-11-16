@@ -165,6 +165,10 @@ int main(int argc, const char** argv) {
   std::string conf = "";
   conf += sub.GetConfig();
 
+  if (mpi.IsRoot()) {
+    std::cout << conf << std::endl;
+  }
+
   conf += "\nset string linsolver_symm " + args.String["solver"];
   conf += "\nset double hypre_symm_tol " + args.Double.GetStr("tol");
   conf += "\nset int hypre_symm_maxiter " + args.Int.GetStr("maxiter");
