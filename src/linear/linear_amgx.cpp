@@ -20,15 +20,21 @@ template <class M>
 struct SolverAmgx<M>::Imp {
   using Owner = SolverAmgx<M>;
 
-  Imp(Owner* owner, const Extra& extra_)
-      : owner_(owner), conf(owner_->conf), extra(extra_) {}
+  Imp(Owner* owner, const Extra& extra_, const M& m)
+      : owner_(owner), conf(owner_->conf), extra(extra_) {
+    if (m.IsLead()) {
+      if (extra.log_path.length()) {
+        logfile_ = std::make_unique<std::ofstream>(extra.log_path);
+      }
+      amgx_ = std::make_unique<Amgx::Library>(logfile_.get());
+    }
+  }
   Info Solve(
       const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
       FieldCell<Scal>& fc_sol, M& m) {
     auto sem = m.GetSem(__func__);
     struct {
       CommMap<M> comm_map;
-      std::ofstream logfile;
       Info info;
     } * ctx(sem);
     static std::vector<Scal> buf_sol;
@@ -58,9 +64,6 @@ struct SolverAmgx<M>::Imp {
       auto& system = t.comm_map.GetSystem();
 
       const int gpu_id = 0;
-
-      t.logfile.open(extra.log_path);
-      Amgx::Library amgx(&t.logfile);
 
       const Amgx::Mode mode(extra.mode);
       Amgx::Config config(
@@ -121,11 +124,13 @@ struct SolverAmgx<M>::Imp {
   Owner* owner_;
   Conf& conf;
   Extra extra;
+  std::unique_ptr<Amgx::Library> amgx_;
+  std::unique_ptr<std::ofstream> logfile_;
 };
 
 template <class M>
-SolverAmgx<M>::SolverAmgx(const Conf& conf_, const Extra& extra)
-    : Base(conf_), imp(new Imp(this, extra)) {}
+SolverAmgx<M>::SolverAmgx(const Conf& conf_, const Extra& extra, const M& m)
+    : Base(conf_), imp(new Imp(this, extra, m)) {}
 
 template <class M>
 SolverAmgx<M>::~SolverAmgx() = default;
@@ -142,7 +147,7 @@ class ModuleLinearAmgx : public ModuleLinear<M> {
  public:
   ModuleLinearAmgx() : ModuleLinear<M>("amgx") {}
   std::unique_ptr<Solver<M>> Make(
-      const Vars& var, std::string prefix) override {
+      const Vars& var, std::string prefix, const M& m) override {
     auto addprefix = [prefix](std::string name) {
       return "amgx_" + prefix + "_" + name;
     };
@@ -151,7 +156,7 @@ class ModuleLinearAmgx : public ModuleLinear<M> {
     extra.config_extra = var.String[addprefix("config_extra")];
     extra.mode = var.String[addprefix("mode")];
     return std::make_unique<linear::SolverAmgx<M>>(
-        this->GetConf(var, prefix), extra);
+        this->GetConf(var, prefix), extra, m);
   }
 };
 

@@ -24,7 +24,7 @@ class SolverAmgx : public Solver<M> {
     std::string mode = "dDDI";
     std::string log_path = "amgx.log"; // path to log file
   };
-  SolverAmgx(const Conf& conf, const Extra& extra);
+  SolverAmgx(const Conf& conf, const Extra& extra, const M& m);
   ~SolverAmgx();
   Info Solve(
       const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,

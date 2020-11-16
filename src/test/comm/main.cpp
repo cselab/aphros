@@ -472,7 +472,7 @@ void Simple<M>::TestPois() {
     if (m.IsRoot()) {
       std::cout << "\n\n*** TestPois() ***" << std::endl;
     }
-    t.linsolver = ULinear<M>::MakeLinearSolver(var, "vort");
+    t.linsolver = ULinear<M>::MakeLinearSolver(var, "vort", m);
     // exact solution
     t.fc_exsol.Reinit(m);
     for (auto i : m.AllCells()) {

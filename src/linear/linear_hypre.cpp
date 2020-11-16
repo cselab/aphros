@@ -17,7 +17,7 @@ template <class M>
 struct SolverHypre<M>::Imp {
   using Owner = SolverHypre<M>;
 
-  Imp(Owner* owner, const Extra& extra_)
+  Imp(Owner* owner, const Extra& extra_, const M&)
       : owner_(owner), conf(owner_->conf), extra(extra_) {}
   Info Solve(
       const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
@@ -162,8 +162,8 @@ struct SolverHypre<M>::Imp {
 };
 
 template <class M>
-SolverHypre<M>::SolverHypre(const Conf& conf_, const Extra& extra)
-    : Base(conf_), imp(new Imp(this, extra)) {}
+SolverHypre<M>::SolverHypre(const Conf& conf_, const Extra& extra, const M& m)
+    : Base(conf_), imp(new Imp(this, extra, m)) {}
 
 template <class M>
 SolverHypre<M>::~SolverHypre() = default;
@@ -180,7 +180,7 @@ class ModuleLinearHypre : public ModuleLinear<M> {
  public:
   ModuleLinearHypre() : ModuleLinear<M>("hypre") {}
   std::unique_ptr<Solver<M>> Make(
-      const Vars& var, std::string prefix) override {
+      const Vars& var, std::string prefix, const M& m) override {
     auto addprefix = [prefix](std::string name) {
       return "hypre_" + prefix + "_" + name;
     };
@@ -188,7 +188,7 @@ class ModuleLinearHypre : public ModuleLinear<M> {
     extra.solver = var.String[addprefix("solver")];
     extra.print = var.Int["hypre_print"];
     return std::make_unique<linear::SolverHypre<M>>(
-        this->GetConf(var, prefix), extra);
+        this->GetConf(var, prefix), extra, m);
   }
 };
 

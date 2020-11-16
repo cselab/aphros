@@ -374,7 +374,7 @@ void Run(M& m, Vars& var) {
     fcs.Reinit(m, 0);
     fev.Reinit(m, 0);
 
-    t.linsolver = ULinear<M>::MakeLinearSolver(var, "symm");
+    t.linsolver = ULinear<M>::MakeLinearSolver(var, "symm", m);
 
     m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
     m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];

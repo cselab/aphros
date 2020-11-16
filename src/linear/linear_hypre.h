@@ -22,7 +22,7 @@ class SolverHypre : public Solver<M> {
     std::string solver = "pcg"; // name of the solver to use
     int print = 0; // print level, 0 for none
   };
-  SolverHypre(const Conf& conf, const Extra& extra);
+  SolverHypre(const Conf& conf, const Extra& extra, const M&);
   ~SolverHypre();
   Info Solve(
       const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,

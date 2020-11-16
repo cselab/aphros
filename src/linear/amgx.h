@@ -82,9 +82,8 @@ class Library {
   static std::ostream* log_;
   static void print_callback(const char* msg, int length) {
     (void) length;
-    static int cnt = 0;
     if (log_) {
-      (*log_) << util::Format("==== {:} ====\n{}\n", cnt++, msg);
+      (*log_) << msg;
     }
   }
 };

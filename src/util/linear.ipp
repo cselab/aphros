@@ -7,7 +7,8 @@
 #include "logger.h"
 
 template <class M_>
-auto ULinear<M_>::MakeLinearSolver(const Vars& var, std::string prefix)
+auto ULinear<M_>::MakeLinearSolver(
+    const Vars& var, std::string prefix, const M& m)
     -> std::unique_ptr<linear::Solver<M>> {
 #if USEFLAG(HYPRE)
   FORCE_LINK(linear_hypre);
@@ -23,14 +24,8 @@ auto ULinear<M_>::MakeLinearSolver(const Vars& var, std::string prefix)
   typename linear::Solver<M>::Conf conf;
   conf.tol = var.Double[addprefix("tol")];
   conf.maxiter = var.Int[addprefix("maxiter")];
-  if (auto* module = linear::ModuleLinear<M>::GetInstance(name)) {
-    return module->Make(var, prefix);
-  } else if (name == "conjugate") {
-    return std::make_unique<linear::SolverConjugate<M>>(
-        conf, typename linear::SolverConjugate<M>::Extra());
-  } else if (name == "jacobi") {
-    return std::make_unique<linear::SolverJacobi<M>>(
-        conf, typename linear::SolverJacobi<M>::Extra());
+  if (auto* mod = linear::ModuleLinear<M>::GetInstance(name)) {
+    return mod->Make(var, prefix, m);
   }
   fassert(false, "Unknown linsolver_" + prefix + "=" + name);
 }

@@ -136,7 +136,7 @@ void Run(M& m, Vars& var) {
   if (sem("eb_ctor")) {
     eb_.reset(new EB(m));
     t.fnl = UEB::InitEmbed(m, var, m.IsRoot());
-    t.linsolver = ULinear<M>::MakeLinearSolver(var, "symm");
+    t.linsolver = ULinear<M>::MakeLinearSolver(var, "symm", m);
   }
   if (sem.Nested("eb_init")) {
     eb_->Init(t.fnl);

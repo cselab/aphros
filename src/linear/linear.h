@@ -60,7 +60,8 @@ class ModuleLinear : public Module<ModuleLinear<M>> {
  public:
   using Vect = typename M::Vect;
   using Module<ModuleLinear>::Module;
-  virtual std::unique_ptr<Solver<M>> Make(const Vars&, std::string prefix) = 0;
+  virtual std::unique_ptr<Solver<M>> Make(
+      const Vars&, std::string prefix, const M& m) = 0;
   static typename Solver<M>::Conf GetConf(const Vars& var, std::string prefix) {
     auto addprefix = [prefix](std::string name) {
       return "hypre_" + prefix + "_" + name;
@@ -81,7 +82,7 @@ class SolverConjugate : public Solver<M> {
   using Scal = typename M::Scal;
   using Expr = typename M::Expr;
   struct Extra {};
-  SolverConjugate(const Conf& conf, const Extra& extra);
+  SolverConjugate(const Conf& conf, const Extra& extra, const M&);
   ~SolverConjugate();
   Info Solve(
       const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
@@ -101,7 +102,7 @@ class SolverJacobi : public Solver<M> {
   using Scal = typename M::Scal;
   using Expr = typename M::Expr;
   struct Extra {};
-  SolverJacobi(const Conf& conf, const Extra& extra);
+  SolverJacobi(const Conf& conf, const Extra& extra, const M&);
   ~SolverJacobi();
   Info Solve(
       const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,

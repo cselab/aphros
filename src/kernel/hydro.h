@@ -565,7 +565,7 @@ template <class M>
 void Hydro<M>::InitElectro() {
   if (var.Int["enable_electro"]) {
     std::shared_ptr<linear::Solver<M>> linsolver =
-        ULinear<M>::MakeLinearSolver(var, "vort");
+        ULinear<M>::MakeLinearSolver(var, "vort", m);
     typename ElectroInterface<M>::Conf conf{var, linsolver};
     if (eb_) {
       electro_.reset(
@@ -680,9 +680,9 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   if (fs == "simple") {
     auto par = ParsePar<Simple<M>>()(var);
     std::shared_ptr<linear::Solver<M>> linsolver_symm(
-        ULinear<M>::MakeLinearSolver(var, "symm"));
+        ULinear<M>::MakeLinearSolver(var, "symm", m));
     std::shared_ptr<linear::Solver<M>> linsolver_gen(
-        ULinear<M>::MakeLinearSolver(var, "gen"));
+        ULinear<M>::MakeLinearSolver(var, "gen", m));
     const SimpleArgs<M> args{
         fc_vel,     mebc_fluid_,    mc_velcond_,   &fc_rho_,  &fc_mu_,
         &fc_force_, &febp_,         &fc_src_,      &fc_srcm_, 0.,
@@ -695,7 +695,7 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   } else if (fs == "proj") {
     auto par = ParsePar<Proj<M>>()(var);
     std::shared_ptr<linear::Solver<M>> linsolver(
-        ULinear<M>::MakeLinearSolver(var, "symm"));
+        ULinear<M>::MakeLinearSolver(var, "symm", m));
     const ProjArgs<M> args{fc_vel,    mebc_fluid_, mc_velcond_, &fc_rho_,
                            &fc_mu_,   &fc_force_,  &febp_,      &fc_src_,
                            &fc_srcm_, 0.,          st_.dt,      linsolver,
@@ -1339,7 +1339,7 @@ void Hydro<M>::Init() {
 
   if (var.Int["initvort"]) {
     if (sem()) {
-      t.linsolver_vort = ULinear<M>::MakeLinearSolver(var, "vort");
+      t.linsolver_vort = ULinear<M>::MakeLinearSolver(var, "vort", m);
     }
     if (sem.Nested("initvort")) {
       InitVort(fcvel, fcvel, mebc_fluid_, t.linsolver_vort, m);

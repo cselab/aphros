@@ -15,8 +15,8 @@ class ULinear {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  // Constructs hypre solver from configuration (defaults defined in base.conf)
+  // Constructs a linear solver from configuration (defaults defined in base.conf)
   // prefix: prefix for system type (symm, gen, vort)
   static std::unique_ptr<linear::Solver<M>> MakeLinearSolver(
-      const Vars& var, std::string prefix);
+      const Vars& var, std::string prefix, const M&);
 };

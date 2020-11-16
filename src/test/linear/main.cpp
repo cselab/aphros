@@ -86,7 +86,7 @@ void Run(M& m, Vars& var) {
     const auto name = var.String["linsolver_symm"];
     auto factory = linear::ModuleLinear<M>::GetInstance(name);
     fassert(factory, "Solver not found: " + name);
-    t.solver = factory->Make(var, "symm");
+    t.solver = factory->Make(var, "symm", m);
     m.flags.linreport = var.Int["VERBOSE"];
     t.time_start = t.timer.GetSeconds();
   }
