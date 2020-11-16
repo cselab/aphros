@@ -276,6 +276,7 @@ if (USE_AMGX)
         GIT_REPOSITORY "https://github.com/NVIDIA/AMGX"
         GIT_TAG 919fb92a2c0
         GIT_SHALLOW ON
+        PATCH_COMMAND git apply "${CMAKE_CURRENT_SOURCE_DIR}/amgx_no_comm_report.patch"
         CMAKE_ARGS
         -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
