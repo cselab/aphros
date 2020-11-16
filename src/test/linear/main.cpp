@@ -36,6 +36,8 @@ void Run(M& m, Vars& var) {
     SingleTimer timer;
     double time_start;
     double time_stop;
+    Scal mean_diff;
+    Scal sumw;
   } * ctx(sem);
   auto& t = *ctx;
   if (sem()) {
@@ -68,7 +70,6 @@ void Run(M& m, Vars& var) {
         m.AppendExpr(sum, flux * m.GetOutwardFactor(c, q), q);
       });
       t.fc_system[c] = sum;
-      //t.fc_system[c] = Expr(1, 0, 0, 0, 0, 0, 0, 0);
     }
 
     // constant term from exact solution
@@ -95,8 +96,20 @@ void Run(M& m, Vars& var) {
   if (sem("diff")) {
     t.time_stop = t.timer.GetSeconds();
     t.fc_diff.Reinit(m);
+    t.mean_diff = 0;
+    t.sumw = 0;
     for (auto c : m.Cells()) {
       t.fc_diff[c] = t.fc_sol[c] - t.fc_sol_exact[c];
+      t.mean_diff += t.fc_diff[c];
+      t.sumw += 1;
+    }
+    m.Reduce(&t.mean_diff, Reduction::sum);
+    m.Reduce(&t.sumw, Reduction::sum);
+  }
+  if (sem("diff")) {
+    t.mean_diff /= t.sumw;
+    for (auto c : m.Cells()) {
+      t.fc_diff[c] -= t.mean_diff;
     }
   }
   if (sem.Nested("norms")) {
@@ -164,10 +177,6 @@ int main(int argc, const char** argv) {
       MIdx(args.Int["mesh"]), MIdx(args.Int["block"]), mpi.GetCommSize());
   std::string conf = "";
   conf += sub.GetConfig();
-
-  if (mpi.IsRoot()) {
-    std::cout << conf << std::endl;
-  }
 
   conf += "\nset string linsolver_symm " + args.String["solver"];
   conf += "\nset double hypre_symm_tol " + args.Double.GetStr("tol");
