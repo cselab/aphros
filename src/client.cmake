@@ -65,3 +65,7 @@ endif()
 if (USE_FPZIP)
   find_package(FPZIP REQUIRED) # floating point compressor
 endif()
+
+if (USE_AMGX)
+  find_package(CUDAToolkit REQUIRED)
+endif()
