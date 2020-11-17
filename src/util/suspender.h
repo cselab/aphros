@@ -72,7 +72,7 @@ class Suspender {
   Suspender();
   Sem GetSem(const std::string& name = "");
   // Returns name+suff of current stage
-  const std::string& GetCurName() const;
+  std::string GetNameSequence() const;
   // Converts counter list to string
   size_t GetDepth() const {
     return depth_;
@@ -101,14 +101,17 @@ class Suspender {
   struct State { // state of a suspended function
     int current; // current stage index
     int target; // target stage index
+    std::string name; // name of function passed to sem()
+    std::string suff;
+    int suff_id = 0;
     int loop_begin = -1; // index of stage with LoopBegin
     int loop_end = -1; // index of stage with LoopEnd
     std::unique_ptr<BaseHolder> context;
-    State(int current_, int target_) : current(current_), target(target_) {}
+    State(int current_, int target_, const std::string& name_)
+        : current(current_), target(target_), name(name_) {}
   };
   std::list<State> states_; // states of all suspended functions in nested call
   std::list<State>::iterator pos_; // current function
-  bool nest_; // allow nested calls
-  std::string curname_; // name+suff of current stage
+  bool allow_nested_;
   size_t depth_;
 };

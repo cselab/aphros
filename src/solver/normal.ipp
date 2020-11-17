@@ -135,6 +135,7 @@ struct UNormal<M_>::Imp {
   static void CalcNormalYoungsAvx(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
       FieldCell<Vect>& fcn) {
+    (void) fci;
     fcn.Reinit(m, Vect(0));
 
     const __m256d c2 = _mm256_set1_pd(2);
@@ -463,7 +464,6 @@ struct UNormal<M_>::Imp {
     fcn.Reinit(m, Vect(GetNan<Scal>()));
     FieldCell<char> fcd(m);
 #if USEFLAG(AVX)
-    #pragma message "Using CalcNormalYoungsAvx"
     CalcNormalYoungsAvx(m, fcu, fci, fcn);
 #else
     CalcNormalYoungs1(m, fcu, fci, fcn);

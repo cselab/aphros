@@ -8,26 +8,24 @@
 
 #include "suspender.h"
 
-Suspender::Sem::Sem(Suspender& owner, const std::string& name)
-    : owner_(owner), name_(name) {
+Suspender::Sem::Sem(Suspender& owner, const std::string& name) : owner_(owner) {
   auto& states = owner_.states_;
   auto& pos = owner_.pos_;
 
   if (pos == states.begin()) {
-    owner_.nest_ = true; // allow nested calls on first level
-    // owner_.curname_ = "";
+    owner_.allow_nested_ = true; // allow nested calls on first level
     owner_.depth_ = 0;
   }
 
-  if (!owner_.nest_) {
+  if (!owner_.allow_nested_) {
     throw std::runtime_error(
-        owner_.GetCurName() +
-        ": Nested calls not allowed. Use Nested() on upper level");
+        owner_.GetNameSequence() +
+        ": Nested calls not allowed. Use `sem.Nested()` on upper level");
   }
-  owner_.nest_ = false;
+  owner_.allow_nested_ = false;
 
   if (std::next(pos) == states.end()) {
-    states.emplace_back(0, 0);
+    states.emplace_back(0, 0, name);
   }
   ++pos;
 
@@ -59,14 +57,8 @@ Suspender::Sem::~Sem() {
 bool Suspender::Sem::Next(const std::string& suff) {
   auto& pos = owner_.pos_;
   if (pos->current++ == pos->target) {
-    /*
-    if (owner_.curname_ != "") {
-      owner_.curname_ += " --> ";
-    }
-    std::stringstream st;
-    st << std::setfill('0') << std::setw(2) << pos->target;
-    owner_.curname_ += name_ + ":" + st.str() + ":" + suff;
-    */
+    pos->suff = suff;
+    pos->suff_id = pos->target;
     ++owner_.depth_;
     return true;
   }
@@ -74,12 +66,12 @@ bool Suspender::Sem::Next(const std::string& suff) {
 }
 
 bool Suspender::Sem::operator()(const std::string& suff) {
-  owner_.nest_ = false;
+  owner_.allow_nested_ = false;
   return Next(suff);
 }
 
 bool Suspender::Sem::Nested(const std::string& suff) {
-  owner_.nest_ = true;
+  owner_.allow_nested_ = true;
   return Next(suff);
 }
 
@@ -113,8 +105,8 @@ void Suspender::Sem::LoopEnd() {
   ++s.current;
 }
 
-Suspender::Suspender() : nest_(false) {
-  states_.emplace_back(-1, -1);
+Suspender::Suspender() : allow_nested_(false) {
+  states_.emplace_back(-1, -1, "");
   pos_ = states_.begin();
 }
 
@@ -122,8 +114,21 @@ Suspender::Sem Suspender::GetSem(const std::string& name) {
   return Sem(*this, name);
 }
 
-const std::string& Suspender::GetCurName() const {
-  return curname_;
+std::string Suspender::GetNameSequence() const {
+  std::string res;
+  bool first = true;
+  for (const auto& s : states_) {
+    if (!first) {
+      res += " --> ";
+    } else {
+      first = false;
+    }
+    const int cnt = s.suff_id;
+    const char c0 = '0' + cnt % 10;
+    const char c1 = '0' + (cnt / 10) % 10;
+    res += s.name + ":" + c1 + c0 + ":" + s.suff;
+  }
+  return res;
 }
 
 std::string Suspender::Print() const {

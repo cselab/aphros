@@ -67,5 +67,5 @@ if (USE_FPZIP)
 endif()
 
 if (USE_AMGX)
-  find_package(CUDAToolkit REQUIRED)
+  find_package(CUDAToolkit)
 endif()

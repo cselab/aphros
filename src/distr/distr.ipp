@@ -290,9 +290,10 @@ void DistrMesh<M>::Run() {
   if (var.Int["verbose_openmp"]) {
     ReportOpenmp();
   }
-  multitimer_all_.Push();
-  multitimer_report_.Push();
-  do {
+  while (true) {
+    multitimer_all_.Push();
+    multitimer_report_.Push();
+
     std::vector<size_t> bb;
     if (kernels_.front()->GetMesh().GetDump().size() > 0) {
       bb = TransferHalos(); // all blocks, sync communication
@@ -323,22 +324,19 @@ void DistrMesh<M>::Run() {
       const auto& mf = kernels_.front()->GetMesh();
       std::cerr << "*** STAGE"
                 << " #" << stage_ << " depth=" << mf.GetSuspender().GetDepth()
-                << " " << mf.GetSuspender().GetCurName() << " ***" << std::endl;
+                << " " << mf.GetSuspender().GetNameSequence() << " ***"
+                << std::endl;
       // Check stage name is the same for all kernels
       for (auto b : bb) {
         auto& m = kernels_[b]->GetMesh();
         fassert(
-            m.GetSuspender().GetCurName() == mf.GetSuspender().GetCurName(),
+            m.GetSuspender().GetNameSequence() ==
+                mf.GetSuspender().GetNameSequence(),
             util::Format(
                 "Blocks {} and {} diverged to different stages {} and {}",
-                m.GetId(), mf.GetId(), m.GetSuspender().GetCurName(),
-                mf.GetSuspender().GetCurName()));
+                m.GetId(), mf.GetId(), m.GetSuspender().GetNameSequence(),
+                mf.GetSuspender().GetNameSequence()));
       }
-    }
-
-    // Break if no pending stages
-    if (!Pending(bb)) {
-      break;
     }
 
     Reduce(bb);
@@ -346,17 +344,16 @@ void DistrMesh<M>::Run() {
     Scatter(bb);
     Bcast(bb);
 
-    multitimer_all_.Pop(
-        kernels_.front()->GetMesh().GetSuspender().GetCurName());
-    multitimer_all_.Push();
-
-    multitimer_report_.Pop(
-        kernels_.front()->GetMesh().GetSuspender().GetCurName());
+    const std::string nameseq =
+        kernels_.front()->GetMesh().GetSuspender().GetNameSequence();
+    multitimer_all_.Pop(nameseq);
+    multitimer_report_.Pop(nameseq);
     TimerReport(bb);
-    multitimer_report_.Push();
-  } while (true);
-  multitimer_all_.Pop("last");
-  multitimer_report_.Pop("last");
+
+    if (!Pending(bb)) {
+      break;
+    }
+  }
 
   if (var.Int["verbose_time"]) {
     Report();
@@ -366,9 +363,9 @@ void DistrMesh<M>::Run() {
 template <class M>
 void DistrMesh<M>::Report() {
   if (isroot_) {
-    double a = 0.; // total
+    double total = 0.;
     for (auto e : multitimer_all_.GetMap()) {
-      a += e.second;
+      total += e.second;
     }
 
     if (var.Int["verbose_stages"]) {
@@ -396,17 +393,16 @@ void DistrMesh<M>::Report() {
       return r;
     };
 
-    auto h = get_hmsm(a);
-    std::cout << std::setprecision(5) << std::scientific;
-    std::cout << "cells = " << nc << "\n"
-              << "steps = " << nt << "\n"
-              << "iters = " << ni << "\n"
-              << "total = " << int(a) << " s"
-              << " = ";
-    std::cout << std::setfill('0');
-    std::cout << std::setw(2) << h[0] << ":" << std::setw(2) << h[1] << ":"
-              << std::setw(2) << h[2] << "." << std::setw(3) << h[3] << "\n";
-    std::cout << "time/cell/iter = " << a / (nc * ni) << " s" << std::endl;
+    const auto hmsm = get_hmsm(total);
+    std::cout << util::Format(
+                     "cells = {}\n"
+                     "steps = {}\n"
+                     "iters = {}\n"
+                     "total = {:.3f} s = {:02d}:{:02d}:{:02d}.{:03d}\n"
+                     "time/cell/iter = {:e} s\n",
+                     nc, nt, ni, total, hmsm[0], hmsm[1], hmsm[2], hmsm[3],
+                     total / (nc * ni))
+              << std::endl;
   }
 }
 
