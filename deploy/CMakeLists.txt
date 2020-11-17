@@ -3,6 +3,7 @@ project("aphros-deploy")
 
 option(USE_FPZIP "Install fpzip. Used compression of communication buffers (experimental)" OFF)
 option(USE_AMGX "Install AMGX, linear solver on GPUs. Requires CUDA Toolkit" OFF)
+option(USE_GSL "Install GSL, requred by utilities lib/csv,chmath,split" OFF)
 
 set(NAMEPREFIX ap.)
 
