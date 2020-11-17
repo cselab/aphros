@@ -5,6 +5,7 @@
 #include <omp.h>
 #endif
 #include <set>
+#include <sstream>
 
 #include "distrsolver.h"
 #include "parse/argparse.h"
@@ -95,8 +96,10 @@ int RunMpi0(
   const auto args = [&argc, &argv, &isroot]() {
     ArgumentParser parser("Distributed solver", isroot);
     parser.AddSwitch({"--verbose", "-v"}).Help("Print initial configuration");
-    parser.AddSwitch("--confverbose")
-        .Help("Add 'set int verbose 1' to configuration");
+    parser.AddSwitch("--config_verbose")
+        .Help("Append configuration with 'set int verbose 1'");
+    parser.AddVariable<std::string>("--extra", "")
+        .Help("Extra configuration (commands `set ...`)");
     parser.AddSwitch({"--version"}).Help("Print version");
     parser.AddVariable<std::string>("config", "a.conf")
         .Help("Path to configuration file");
@@ -120,8 +123,13 @@ int RunMpi0(
   Vars var; // parameter storage
   Parser ip(var); // parser
   ip.ParseFile(config);
-  if (args.Int["confverbose"]) {
+  if (args.Int["config_verbose"]) {
     var.Int.Set("verbose", 1);
+  }
+  const auto extra = args.String["extra"];
+  if (extra.length()) {
+    std::stringstream buf(extra);
+    ip.ParseStream(buf);
   }
 
   const std::string backend = var.String["backend"];
