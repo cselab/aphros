@@ -275,7 +275,7 @@ set_property(CACHE CUDA_ARCH PROPERTY STRINGS 60 70)
 if (USE_AMGX)
     ExternalProject_Add(amgx
         GIT_REPOSITORY "https://github.com/NVIDIA/AMGX"
-        GIT_TAG 919fb92a2c0
+        GIT_TAG 278865e403c0
         GIT_SHALLOW ON
         PATCH_COMMAND git apply "${CMAKE_CURRENT_SOURCE_DIR}/amgx_no_comm_report.patch"
         CMAKE_ARGS
