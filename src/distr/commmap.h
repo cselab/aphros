@@ -237,8 +237,9 @@ class CommMap {
     std::vector<int> flat_cols;
     std::vector<std::array<char, M::kCellNumNeighbourFaces>> flat_nci;
     // Indices in flat_cells:
-    GRange<size_t> range_inner0; // cells without neighbors
-    GRange<size_t> range_inner1; // cells with neighbors
+    std::array<GRange<size_t>, 2> range_inner; // inner cells
+                                               // 0: without neighbors
+                                               // 1: with neighbors
     GRange<size_t> range_halo; // halo cells
   };
 
@@ -276,39 +277,27 @@ class CommMap {
   }
   void Init(M& m) {
     auto sem = m.GetSem(__func__);
+    struct {
+      std::vector<const M*> meshes;
+      std::vector<State*> states;
+      int col_current = 0;
+    } * ctx(sem);
     // XXX must be initialized by lead block to make the function re-entrant
-    static int col_current = 0;
 
     auto& s = state_;
+    auto& t = *ctx;
     auto& system = GetSystemMutable();
-
-    auto next_inner = [&s, &m](IdxCell c) {
-      s.fc_col[c] = col_current;
-      s.flat_cells.push_back(c);
-      s.flat_cols.push_back(col_current);
-      s.flat_nci.emplace_back();
-      ++col_current;
-      auto& nci = s.flat_nci.back();
-      size_t j = 0;
-      for (auto q : m.Nci(c)) {
-        const auto cn = m.GetCell(c, q);
-        if (!s.fc_has_neighbors[cn]) {
-          nci[j++] = q;
-        }
-      }
-      for (auto q : m.Nci(c)) {
-        const auto cn = m.GetCell(c, q);
-        if (s.fc_has_neighbors[cn]) {
-          nci[j++] = q;
-        }
-      }
-      fassert_equal(j, nci.size());
-    };
 
     const auto comm = m.GetMpiComm();
     const int rank = MpiWrapper::GetCommRank(comm);
     const int commsize = MpiWrapper::GetCommSize(comm);
     if (sem()) {
+      t.meshes.push_back(&m);
+      t.states.push_back(&state_);
+      m.GatherToLead(&t.meshes);
+      m.GatherToLead(&t.states);
+
+      s.fc_col.Reinit(m, -1);
       s.fc_rank.Reinit(m, 0);
       for (auto c : m.Cells()) {
         s.fc_rank[c] = rank;
@@ -343,58 +332,78 @@ class CommMap {
     }
     if (sem("col-inner-no-neghbors")) {
       if (m.IsLead()) {
-        // XXX to make the function is re-entrant
-        col_current = 0;
-      }
-      s.fc_col.Reinit(m, -1);
-      const size_t begin = s.flat_cells.size();
-      for (auto c : m.Cells()) {
-        // cells that do not have neighbors from remote ranks
-        if (!s.fc_has_neighbors[c]) {
-          next_inner(c);
+        t.col_current = 0;
+        for (auto part : {0, 1}) {
+          for (size_t i = 0; i < t.meshes.size(); ++i) {
+            auto& mi = *t.meshes[i];
+            auto& si = *t.states[i];
+            const size_t begin = si.flat_cells.size();
+            for (auto c : mi.Cells()) {
+              // cells that do not have neighbors from remote ranks
+              if (si.fc_has_neighbors[c] == part) {
+                si.fc_col[c] = t.col_current;
+                si.flat_cells.push_back(c);
+                si.flat_cols.push_back(t.col_current);
+                si.flat_nci.emplace_back();
+                ++t.col_current;
+                auto& nci = si.flat_nci.back();
+                size_t j = 0;
+                for (auto q : mi.Nci(c)) {
+                  const auto cn = mi.GetCell(c, q);
+                  if (!si.fc_has_neighbors[cn]) {
+                    nci[j++] = q;
+                  }
+                }
+                for (auto q : mi.Nci(c)) {
+                  const auto cn = mi.GetCell(c, q);
+                  if (si.fc_has_neighbors[cn]) {
+                    nci[j++] = q;
+                  }
+                }
+              }
+            }
+            si.range_inner[part] = {begin, si.flat_cells.size()};
+          }
         }
       }
-      s.range_inner0 = {begin, s.flat_cells.size()};
     }
     if (sem("col-inner-other")) {
-      const size_t begin = s.flat_cells.size();
-      for (auto c : m.Cells()) {
-        // cells that have a neighbor from remote rank
-        if (s.fc_has_neighbors[c]) {
-          next_inner(c);
-        }
-      }
-      s.range_inner1 = {begin, s.flat_cells.size()};
       // fill halo cells with already computed indices
       m.Comm(&s.fc_col);
     }
     if (sem("col-halo")) {
-      for (auto c : m.Cells()) {
-        // halo cells from remote ranks
-        // -1 to prevent traversing the same cell twice
-        for (auto q : m.Nci(c)) {
-          const auto cn = m.GetCell(c, q);
-          if (s.fc_rank[cn] != rank) {
-            s.fc_col[cn] = -1;
-          }
-        }
-      }
-      const size_t begin = s.flat_cells.size();
-      for (auto c : m.Cells()) {
-        // halo cells from remote ranks
-        for (auto q : m.Nci(c)) {
-          const auto cn = m.GetCell(c, q);
-          if (s.fc_rank[cn] != rank) {
-            if (s.fc_col[cn] == -1) {
-              s.fc_col[cn] = col_current;
-              s.flat_cells.push_back(cn);
-              s.flat_cols.push_back(col_current);
-              ++col_current;
+      if (m.IsLead()) {
+        for (size_t i = 0; i < t.meshes.size(); ++i) {
+          auto& mi = *t.meshes[i];
+          auto& si = *t.states[i];
+          for (auto c : mi.Cells()) {
+            // halo cells from remote ranks
+            // -1 to prevent traversing the same cell twice
+            for (auto q : mi.Nci(c)) {
+              const auto cn = mi.GetCell(c, q);
+              if (si.fc_rank[cn] != rank) {
+                si.fc_col[cn] = -1;
+              }
             }
           }
+          const size_t begin = si.flat_cells.size();
+          for (auto c : mi.Cells()) {
+            // halo cells from remote ranks
+            for (auto q : mi.Nci(c)) {
+              const auto cn = mi.GetCell(c, q);
+              if (si.fc_rank[cn] != rank) {
+                if (si.fc_col[cn] == -1) {
+                  si.fc_col[cn] = t.col_current;
+                  si.flat_cells.push_back(cn);
+                  si.flat_cols.push_back(t.col_current);
+                  ++t.col_current;
+                }
+              }
+            }
+          }
+          si.range_halo = {begin, si.flat_cells.size()};
         }
       }
-      s.range_halo = {begin, s.flat_cells.size()};
     }
     if (sem("post")) {
       s.fc_nci.Reinit(m, 0);
@@ -417,7 +426,7 @@ class CommMap {
         system.recv[s.fc_rank[c]].push_back(s.flat_cols[i]);
       }
       // collect inner cells to send
-      for (size_t i : s.range_inner1) {
+      for (size_t i : s.range_inner[1]) {
         const auto c = s.flat_cells[i];
         for (auto q : m.Nci(c)) {
           const auto cn = m.GetCell(c, q);
@@ -495,7 +504,7 @@ class CommMap {
       system.cols.clear();
       system.data.clear();
     }
-    for (auto range : {s.range_inner0, s.range_inner1}) {
+    for (auto range : s.range_inner) {
       if (sem()) {
         for (size_t i : range) {
           const auto c = s.flat_cells[i];
@@ -574,7 +583,7 @@ class CommMap {
   // Copies field to a flat array.
   void FieldToArray(const FieldCell<Scal>& fcu, Scal* buf) const {
     const auto& s = state_;
-    for (auto range : {s.range_inner0, s.range_inner1}) {
+    for (auto range : s.range_inner) {
       for (size_t i : range) {
         buf[s.flat_cols[i]] = fcu[s.flat_cells[i]];
       }
@@ -591,7 +600,7 @@ class CommMap {
   void ArrayToField(const Scal* buf, FieldCell<Scal>& fcu, const M& m) const {
     const auto& s = state_;
     fcu.Reinit(m);
-    for (auto range : {s.range_inner0, s.range_inner1}) {
+    for (auto range : s.range_inner) {
       for (size_t i : range) {
         fcu[s.flat_cells[i]] = buf[s.flat_cols[i]];
       }
