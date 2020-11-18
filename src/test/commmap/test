@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+
+import aphros
+
+
+class Test(aphros.TestBase):
+    def run(self):
+        self.runcmd("echo 2 > np")
+        self.runcmd("ap.mpirun ./t.commmap > out")
+        return ["out"]
+
+
+Test().main()
