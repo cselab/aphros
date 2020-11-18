@@ -27,49 +27,51 @@ std::vector<std::string> SplitBySeparator(
 }
 
 namespace suspender_tree {
-  struct Node {
-    Node(const std::string& name_, double time_) : name(name_), time(time_) {}
-    Node* FindChild(const std::string& name_) {
-      for (auto& node : children) {
-        if (node.name == name_) {
-          return &node;
-        }
-      }
-      return nullptr;
-    }
-    Node* AppendChild(const std::string& name_) {
-      children.emplace_back(name_, 0);
-      return &children.back();
-    }
-    std::vector<Node> children;
-    std::string name;
-    double time;
-  };
 
-  void PrintTree(
-      const Node& root, std::ostream& out, std::string prefix, double timeall) {
-    out << util::Format(
-        "{}{} [{:.3f} s, {:.2f}%]\n", prefix, root.name, root.time,
-        root.time * 100 / timeall);
-    for (const auto& node : root.children) {
-      PrintTree(node, out, prefix + "|     ", timeall);
+struct Node {
+  Node(const std::string& name_, double time_) : name(name_), time(time_) {}
+  Node* FindChild(const std::string& name_) {
+    for (auto& node : children) {
+      if (node.name == name_) {
+        return &node;
+      }
     }
+    return nullptr;
   }
-  void PrintTree(const Node& root, std::ostream& out) {
-    PrintTree(root, out, "", root.time);
+  Node* AppendChild(const std::string& name_) {
+    children.emplace_back(name_, 0);
+    return &children.back();
   }
-  void AccumulateTimeFromLeafs(Node& root) {
-    if (root.children.empty()) {
-      return;
-    }
-    double timesum = 0;
-    for (auto& node : root.children) {
-      AccumulateTimeFromLeafs(node);
-      timesum += node.time;
-    }
-    root.time = timesum;
+  std::vector<Node> children;
+  std::string name;
+  double time;
+};
+
+void PrintTree(
+    const Node& root, std::ostream& out, std::string prefix, double timeall) {
+  out << util::Format(
+      "{}{} [{:.3f} s, {:.2f}%]\n", prefix, root.name, root.time,
+      root.time * 100 / timeall);
+  for (const auto& node : root.children) {
+    PrintTree(node, out, prefix + "|     ", timeall);
   }
 }
+void PrintTree(const Node& root, std::ostream& out) {
+  PrintTree(root, out, "", root.time);
+}
+void AccumulateTimeFromLeaves(Node& root) {
+  if (root.children.empty()) {
+    return;
+  }
+  double timesum = 0;
+  for (auto& node : root.children) {
+    AccumulateTimeFromLeaves(node);
+    timesum += node.time;
+  }
+  root.time = timesum;
+}
+
+} // namespace suspender_tree
 
 void ParseReport(
     const std::map<std::string, double>& timings, std::ostream& out) {
@@ -99,6 +101,6 @@ void ParseReport(
     names_prev.swap(names);
   }
 
-  AccumulateTimeFromLeafs(root);
+  AccumulateTimeFromLeaves(root);
   PrintTree(root, out);
 }
