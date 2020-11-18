@@ -69,7 +69,7 @@ namespace suspender_tree {
     }
     root.time = timesum;
   }
-};
+}
 
 void ParseReport(
     const std::map<std::string, double>& timings, std::ostream& out) {
