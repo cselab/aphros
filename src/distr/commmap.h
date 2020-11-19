@@ -229,18 +229,16 @@ class CommMap {
     //            minus the number of ranks
     //   * upper: rank of neighbor through periodic boundary
     //            plus the number of ranks
-
     FieldCell<Scal> fc_col;
-    FieldCell<bool> fc_has_neighbors;
-    FieldCell<int> fc_nci;
+    FieldCell<bool> fc_has_neighbors; // true if cell has remote neighbors
     std::vector<IdxCell> flat_cells;
     std::vector<int> flat_cols;
     std::vector<std::array<char, M::kCellNumNeighbourFaces>> flat_nci;
-    // Indices in flat_cells:
-    std::array<GRange<size_t>, 2> range_inner; // inner cells
-                                               // 0: without neighbors
-                                               // 1: with neighbors
-    GRange<size_t> range_halo; // halo cells
+    // indices in `flat_cells` corresponding to inner cells
+    // 0: without remote neighbors,  1: with remote neighbors
+    std::array<GRange<size_t>, 2> range_inner;
+    // indices in `flat_cells` corresponding to halo cells
+    GRange<size_t> range_halo;
   };
 
   struct System {
@@ -257,43 +255,30 @@ class CommMap {
     std::vector<const int*> send_maps;
     std::vector<int> recv_sizes;
     std::vector<const int*> recv_maps;
-
-    void Clear() {
-      data.clear();
-      cols.clear();
-      row_ptrs = {0};
-      recv.clear();
-      send.clear();
-      neighbors.clear();
-      send_sizes.clear();
-      send_maps.clear();
-      recv_sizes.clear();
-      recv_maps.clear();
-    }
   };
 
-  static const System& GetSystem() {
-    return GetSystemMutable();
+  const System& GetSystem() const {
+    return system_;
   }
   void Init(M& m) {
     auto sem = m.GetSem(__func__);
     struct {
+      int col_current = 0;
+      // Pointers to objects from other local blocks:
       std::vector<const M*> meshes;
       std::vector<State*> states;
-      int col_current = 0;
     } * ctx(sem);
     // XXX must be initialized by lead block to make the function re-entrant
 
-    auto& s = state_;
     auto& t = *ctx;
-    auto& system = GetSystemMutable();
 
     const auto comm = m.GetMpiComm();
     const int rank = MpiWrapper::GetCommRank(comm);
     const int commsize = MpiWrapper::GetCommSize(comm);
     if (sem()) {
+      auto& s = state_;
       t.meshes.push_back(&m);
-      t.states.push_back(&state_);
+      t.states.push_back(&s);
       m.GatherToLead(&t.meshes);
       m.GatherToLead(&t.states);
 
@@ -305,6 +290,7 @@ class CommMap {
       m.Comm(&s.fc_rank);
     }
     if (sem()) {
+      auto& s = state_;
       // Mark ranks through periodic boundaries
       const auto globalsize = m.GetGlobalSize();
       for (auto c : m.SuCellsM()) {
@@ -369,7 +355,7 @@ class CommMap {
     }
     if (sem("col-inner-other")) {
       // fill halo cells with already computed indices
-      m.Comm(&s.fc_col);
+      m.Comm(&state_.fc_col);
     }
     if (sem("col-halo")) {
       if (m.IsLead()) {
@@ -405,38 +391,27 @@ class CommMap {
         }
       }
     }
-    if (sem("post")) {
-      s.fc_nci.Reinit(m, 0);
-      for (size_t i = 0; i < s.flat_nci.size(); ++i) {
-        const auto c = s.flat_cells[i];
-        Scal w = 0;
-        for (auto q : s.flat_nci[i]) {
-          w = w * 10 + q;
+    if (sem("post") && m.IsLead()) {
+      for (size_t i = 0; i < t.meshes.size(); ++i) {
+        auto& mi = *t.meshes[i];
+        auto& si = *t.states[i];
+        // collect halo cells to receive
+        for (size_t i : si.range_halo) {
+          const auto c = si.flat_cells[i];
+          system_.recv[si.fc_rank[c]].push_back(si.flat_cols[i]);
         }
-        s.fc_nci[c] = w;
-      }
-
-      if (m.IsLead()) {
-        system.Clear(); // XXX to make the function is re-entrant
-      }
-
-      // collect halo cells to receive
-      for (size_t i : s.range_halo) {
-        const auto c = s.flat_cells[i];
-        system.recv[s.fc_rank[c]].push_back(s.flat_cols[i]);
-      }
-      // collect inner cells to send
-      for (size_t i : s.range_inner[1]) {
-        const auto c = s.flat_cells[i];
-        for (auto q : m.Nci(c)) {
-          const auto cn = m.GetCell(c, q);
-          if (s.fc_rank[cn] != rank) {
-            system.send[s.fc_rank[cn]].push_back(s.flat_cols[i]);
+        // collect inner cells to send
+        for (size_t i : si.range_inner[1]) {
+          const auto c = si.flat_cells[i];
+          for (auto q : mi.Nci(c)) {
+            const auto cn = mi.GetCell(c, q);
+            if (si.fc_rank[cn] != rank) {
+              system_.send[si.fc_rank[cn]].push_back(si.flat_cols[i]);
+            }
           }
         }
       }
-    }
-    if (sem() && m.IsLead()) {
+
       auto realrank = [commsize](int r) {
         while (r < 0) {
           r += commsize;
@@ -447,108 +422,143 @@ class CommMap {
         return r;
       };
 
-      for (auto it = system.send.begin(); it != system.send.end();) {
+      // merge indices of inner cells to send
+      // changing the order of neighbors through periodic boundaries
+      for (auto it = system_.send.begin(); it != system_.send.end();) {
         const int r = it->first;
-        auto& vreal = system.send[realrank(r)];
-        auto& v = system.send[r];
+        auto& vreal = system_.send[realrank(r)];
+        auto& v = system_.send[r];
         if (r < 0) {
           vreal.insert(vreal.begin(), v.begin(), v.end());
-          it = system.send.erase(it);
+          it = system_.send.erase(it);
         } else if (r >= commsize) {
           vreal.insert(vreal.end(), v.begin(), v.end());
-          it = system.send.erase(it);
+          it = system_.send.erase(it);
         } else {
           ++it;
         }
       }
 
-      for (auto it = system.recv.begin(); it != system.recv.end();) {
+      // merge indices of halo cells to receive
+      // changing the order of neighbors through periodic boundaries
+      for (auto it = system_.recv.begin(); it != system_.recv.end();) {
         const int r = it->first;
-        auto& vreal = system.recv[realrank(r)];
-        auto& v = system.recv[r];
+        auto& vreal = system_.recv[realrank(r)];
+        auto& v = system_.recv[r];
         if (r < 0) {
           vreal.insert(vreal.end(), v.begin(), v.end());
-          it = system.recv.erase(it);
+          it = system_.recv.erase(it);
         } else if (r >= commsize) {
           vreal.insert(vreal.begin(), v.begin(), v.end());
-          it = system.recv.erase(it);
+          it = system_.recv.erase(it);
         } else {
           ++it;
         }
       }
 
       std::vector<int> send_neighbors;
-      for (const auto& p : system.send) {
+      for (const auto& p : system_.send) {
         send_neighbors.push_back(p.first);
-        system.send_sizes.push_back(p.second.size());
-        system.send_maps.push_back(p.second.data());
+        system_.send_sizes.push_back(p.second.size());
+        system_.send_maps.push_back(p.second.data());
       }
 
       std::vector<int> recv_neighbors;
-      for (const auto& p : system.recv) {
+      for (const auto& p : system_.recv) {
         recv_neighbors.push_back(p.first);
-        system.recv_sizes.push_back(p.second.size());
-        system.recv_maps.push_back(p.second.data());
+        system_.recv_sizes.push_back(p.second.size());
+        system_.recv_maps.push_back(p.second.data());
       }
 
       fassert_equal(send_neighbors, recv_neighbors);
-      system.neighbors = send_neighbors;
+      system_.neighbors = send_neighbors;
     }
   }
   void ConvertSystem(const FieldCell<Expr>& fc_system, M& m) {
     auto sem = m.GetSem(__func__);
-    auto& system = GetSystemMutable();
-    auto& s = state_;
+    struct {
+     // Pointers to objects from other local blocks:
+      std::vector<const M*> meshes;
+      std::vector<State*> states;
+      std::vector<const FieldCell<Expr>*> fields;
+      int col_current = 0;
+    } * ctx(sem);
+    auto& t = *ctx;
 
-    if (sem() && m.IsLead()) {
-      system.cols.clear();
-      system.data.clear();
+    if (sem()) {
+      t.meshes.push_back(&m);
+      t.states.push_back(&state_);
+      t.fields.push_back(&fc_system);
+      m.GatherToLead(&t.meshes);
+      m.GatherToLead(&t.states);
+      m.GatherToLead(&t.fields);
     }
-    for (auto range : s.range_inner) {
-      if (sem()) {
-        for (size_t i : range) {
-          const auto c = s.flat_cells[i];
-          system.cols.push_back(s.fc_col[c]);
-          system.data.push_back(fc_system[c][0]);
-          const int col0 = system.cols.back();
-          auto& data0 = system.data.back();
-          for (auto q : s.flat_nci[i]) {
-            const auto cn = m.GetCell(c, q);
-            const int col = s.fc_col[cn];
-            const auto data = fc_system[c][1 + q];
-            if (col == col0) { // reduce repeting diagonal terms (for 2D)
-              data0 += data;
-            } else {
-              system.cols.push_back(col);
-              system.data.push_back(data);
+    if (sem() && m.IsLead()) {
+      system_.cols.clear();
+      system_.data.clear();
+      system_.row_ptrs = {0};
+
+      for (auto part : {0, 1}) {
+        for (size_t i = 0; i < t.meshes.size(); ++i) {
+          auto& mi = *t.meshes[i];
+          auto& si = *t.states[i];
+          auto& fi = *t.fields[i];
+          for (size_t i : si.range_inner[part]) {
+            const auto c = si.flat_cells[i];
+            system_.cols.push_back(si.fc_col[c]);
+            system_.data.push_back(fi[c][0]);
+            const int col_diag = system_.cols.back();
+            auto& data_diag = system_.data.back();
+            for (auto q : si.flat_nci[i]) {
+              const auto cn = mi.GetCell(c, q);
+              const int col = si.fc_col[cn];
+              const auto data = fi[c][1 + q];
+              if (col == col_diag) { // reduce repeting diagonal terms (for 2D)
+                data_diag += data;
+              } else {
+                system_.cols.push_back(col);
+                system_.data.push_back(data);
+              }
             }
+            system_.row_ptrs.push_back(system_.cols.size());
           }
-          system.row_ptrs.push_back(system.cols.size());
         }
       }
-    }
-    if (sem() && m.IsLead()) {
-      fassert(system.row_ptrs.size() >= 1);
-      system.n = system.row_ptrs.size() - 1;
-      system.nnz = system.data.size();
+
+      fassert(system_.row_ptrs.size() >= 1);
+      system_.n = system_.row_ptrs.size() - 1;
+      system_.nnz = system_.data.size();
     }
   }
   void PrintStat(M& m) const {
     auto sem = m.GetSem(__func__);
+    struct {
+      FieldCell<int> fc_nci;
+    } * ctx(sem);
     const auto comm = m.GetMpiComm();
     const int rank = MpiWrapper::GetCommRank(comm);
+    auto& t = *ctx;
+    auto& s = state_;
     auto& system = GetSystem();
-    if (sem.Nested()) {
-      PrintField(std::cout, state_.fc_rank, m, "{:2g}");
+    if (sem()) {
+      t.fc_nci.Reinit(m, 0);
+      for (size_t i = 0; i < s.flat_nci.size(); ++i) {
+        const auto c = s.flat_cells[i];
+        Scal w = 0;
+        for (auto q : s.flat_nci[i]) {
+          w = w * 10 + q;
+        }
+        t.fc_nci[c] = w;
+      }
     }
     if (sem.Nested()) {
-      PrintField(std::cout, state_.fc_col, m, "{:3g}");
+      PrintField(std::cout, s.fc_rank, m, "{:2g}");
     }
     if (sem.Nested()) {
-      PrintField(std::cout, state_.fc_nci, m, " {:06d}");
+      PrintField(std::cout, s.fc_col, m, "{:3g}");
     }
     if (sem.Nested()) {
-      // PrintField(std::cout, state_.fc_has_neighbors, m, "{:2g}");
+      PrintField(std::cout, t.fc_nci, m, " {:06d}");
     }
     if (sem() && m.IsLead()) {
       StreamMpi out(std::cout, comm);
@@ -612,11 +622,6 @@ class CommMap {
   }
 
  private:
-  static System& GetSystemMutable() {
-    // XXX must be cleared by lead block to make the function re-entrant
-    static System system;
-    return system;
-  }
-
+  System system_; // valid on lead block, empty on others
   State state_;
 };
