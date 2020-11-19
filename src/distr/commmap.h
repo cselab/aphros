@@ -320,35 +320,35 @@ class CommMap {
       if (m.IsLead()) {
         t.col_current = 0;
         for (auto part : {0, 1}) {
-          for (size_t i = 0; i < t.meshes.size(); ++i) {
-            auto& mi = *t.meshes[i];
-            auto& si = *t.states[i];
-            const size_t begin = si.flat_cells.size();
-            for (auto c : mi.Cells()) {
+          for (size_t b = 0; b < t.meshes.size(); ++b) {
+            auto& mb = *t.meshes[b];
+            auto& sb = *t.states[b];
+            const size_t begin = sb.flat_cells.size();
+            for (auto c : mb.Cells()) {
               // cells that do not have neighbors from remote ranks
-              if (si.fc_has_neighbors[c] == part) {
-                si.fc_col[c] = t.col_current;
-                si.flat_cells.push_back(c);
-                si.flat_cols.push_back(t.col_current);
-                si.flat_nci.emplace_back();
+              if (sb.fc_has_neighbors[c] == part) {
+                sb.fc_col[c] = t.col_current;
+                sb.flat_cells.push_back(c);
+                sb.flat_cols.push_back(t.col_current);
+                sb.flat_nci.emplace_back();
                 ++t.col_current;
-                auto& nci = si.flat_nci.back();
+                auto& nci = sb.flat_nci.back();
                 size_t j = 0;
-                for (auto q : mi.Nci(c)) {
-                  const auto cn = mi.GetCell(c, q);
-                  if (!si.fc_has_neighbors[cn]) {
+                for (auto q : mb.Nci(c)) {
+                  const auto cn = mb.GetCell(c, q);
+                  if (!sb.fc_has_neighbors[cn]) {
                     nci[j++] = q;
                   }
                 }
-                for (auto q : mi.Nci(c)) {
-                  const auto cn = mi.GetCell(c, q);
-                  if (si.fc_has_neighbors[cn]) {
+                for (auto q : mb.Nci(c)) {
+                  const auto cn = mb.GetCell(c, q);
+                  if (sb.fc_has_neighbors[cn]) {
                     nci[j++] = q;
                   }
                 }
               }
             }
-            si.range_inner[part] = {begin, si.flat_cells.size()};
+            sb.range_inner[part] = {begin, sb.flat_cells.size()};
           }
         }
       }
@@ -359,54 +359,54 @@ class CommMap {
     }
     if (sem("col-halo")) {
       if (m.IsLead()) {
-        for (size_t i = 0; i < t.meshes.size(); ++i) {
-          auto& mi = *t.meshes[i];
-          auto& si = *t.states[i];
-          for (auto c : mi.Cells()) {
+        for (size_t b = 0; b < t.meshes.size(); ++b) {
+          auto& mb = *t.meshes[b];
+          auto& sb = *t.states[b];
+          for (auto c : mb.Cells()) {
             // halo cells from remote ranks
             // -1 to prevent traversing the same cell twice
-            for (auto q : mi.Nci(c)) {
-              const auto cn = mi.GetCell(c, q);
-              if (si.fc_rank[cn] != rank) {
-                si.fc_col[cn] = -1;
+            for (auto q : mb.Nci(c)) {
+              const auto cn = mb.GetCell(c, q);
+              if (sb.fc_rank[cn] != rank) {
+                sb.fc_col[cn] = -1;
               }
             }
           }
-          const size_t begin = si.flat_cells.size();
-          for (auto c : mi.Cells()) {
+          const size_t begin = sb.flat_cells.size();
+          for (auto c : mb.Cells()) {
             // halo cells from remote ranks
-            for (auto q : mi.Nci(c)) {
-              const auto cn = mi.GetCell(c, q);
-              if (si.fc_rank[cn] != rank) {
-                if (si.fc_col[cn] == -1) {
-                  si.fc_col[cn] = t.col_current;
-                  si.flat_cells.push_back(cn);
-                  si.flat_cols.push_back(t.col_current);
+            for (auto q : mb.Nci(c)) {
+              const auto cn = mb.GetCell(c, q);
+              if (sb.fc_rank[cn] != rank) {
+                if (sb.fc_col[cn] == -1) {
+                  sb.fc_col[cn] = t.col_current;
+                  sb.flat_cells.push_back(cn);
+                  sb.flat_cols.push_back(t.col_current);
                   ++t.col_current;
                 }
               }
             }
           }
-          si.range_halo = {begin, si.flat_cells.size()};
+          sb.range_halo = {begin, sb.flat_cells.size()};
         }
       }
     }
     if (sem("post") && m.IsLead()) {
-      for (size_t i = 0; i < t.meshes.size(); ++i) {
-        auto& mi = *t.meshes[i];
-        auto& si = *t.states[i];
+      for (size_t b = 0; b < t.meshes.size(); ++b) {
+        auto& mb = *t.meshes[b];
+        auto& sb = *t.states[b];
         // collect halo cells to receive
-        for (size_t i : si.range_halo) {
-          const auto c = si.flat_cells[i];
-          system_.recv[si.fc_rank[c]].push_back(si.flat_cols[i]);
+        for (size_t i : sb.range_halo) {
+          const auto c = sb.flat_cells[i];
+          system_.recv[sb.fc_rank[c]].push_back(sb.flat_cols[i]);
         }
         // collect inner cells to send
-        for (size_t i : si.range_inner[1]) {
-          const auto c = si.flat_cells[i];
-          for (auto q : mi.Nci(c)) {
-            const auto cn = mi.GetCell(c, q);
-            if (si.fc_rank[cn] != rank) {
-              system_.send[si.fc_rank[cn]].push_back(si.flat_cols[i]);
+        for (size_t i : sb.range_inner[1]) {
+          const auto c = sb.flat_cells[i];
+          for (auto q : mb.Nci(c)) {
+            const auto cn = mb.GetCell(c, q);
+            if (sb.fc_rank[cn] != rank) {
+              system_.send[sb.fc_rank[cn]].push_back(sb.flat_cols[i]);
             }
           }
         }
@@ -499,29 +499,29 @@ class CommMap {
       system_.row_ptrs = {0};
 
       for (auto part : {0, 1}) {
-        for (size_t i = 0; i < t.meshes.size(); ++i) {
-          auto& mi = *t.meshes[i];
-          auto& si = *t.states[i];
-          auto& fi = *t.fields[i];
-          for (size_t i : si.range_inner[part]) {
-            const auto c = si.flat_cells[i];
-            const int col_diag = si.fc_col[c];
-            Scal data_diag = fi[c][0];
-            for (auto q : si.flat_nci[i]) {
-              const auto cn = mi.GetCell(c, q);
-              const int col = si.fc_col[cn];
+        for (size_t b = 0; b < t.meshes.size(); ++b) {
+          auto& mb = *t.meshes[b];
+          auto& sb = *t.states[b];
+          auto& fb = *t.fields[b];
+          for (size_t i : sb.range_inner[part]) {
+            const auto c = sb.flat_cells[i];
+            const int col_diag = sb.fc_col[c];
+            Scal data_diag = fb[c][0];
+            for (auto q : sb.flat_nci[i]) {
+              const auto cn = mb.GetCell(c, q);
+              const int col = sb.fc_col[cn];
               if (col == col_diag) { // reduce repeting diagonal terms (for 2D)
-                data_diag += fi[c][1 + q];
+                data_diag += fb[c][1 + q];
               }
             }
-            system_.cols.push_back(si.fc_col[c]);
+            system_.cols.push_back(sb.fc_col[c]);
             system_.data.push_back(data_diag);
-            for (auto q : si.flat_nci[i]) {
-              const auto cn = mi.GetCell(c, q);
-              const int col = si.fc_col[cn];
+            for (auto q : sb.flat_nci[i]) {
+              const auto cn = mb.GetCell(c, q);
+              const int col = sb.fc_col[cn];
               if (col != col_diag) {
                 system_.cols.push_back(col);
-                system_.data.push_back(fi[c][1 + q]);
+                system_.data.push_back(fb[c][1 + q]);
               }
             }
             system_.row_ptrs.push_back(system_.cols.size());
