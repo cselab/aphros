@@ -469,7 +469,6 @@ class StencilField : public TimerMesh {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
-    assert(mfc.size() > 0);
   }
   void F() override {
     size_t a = 0;

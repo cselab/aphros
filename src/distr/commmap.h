@@ -505,19 +505,23 @@ class CommMap {
           auto& fi = *t.fields[i];
           for (size_t i : si.range_inner[part]) {
             const auto c = si.flat_cells[i];
-            system_.cols.push_back(si.fc_col[c]);
-            system_.data.push_back(fi[c][0]);
-            const int col_diag = system_.cols.back();
-            auto& data_diag = system_.data.back();
+            const int col_diag = si.fc_col[c];
+            Scal data_diag = fi[c][0];
             for (auto q : si.flat_nci[i]) {
               const auto cn = mi.GetCell(c, q);
               const int col = si.fc_col[cn];
-              const auto data = fi[c][1 + q];
               if (col == col_diag) { // reduce repeting diagonal terms (for 2D)
-                data_diag += data;
-              } else {
+                data_diag += fi[c][1 + q];
+              }
+            }
+            system_.cols.push_back(si.fc_col[c]);
+            system_.data.push_back(data_diag);
+            for (auto q : si.flat_nci[i]) {
+              const auto cn = mi.GetCell(c, q);
+              const int col = si.fc_col[cn];
+              if (col != col_diag) {
                 system_.cols.push_back(col);
-                system_.data.push_back(data);
+                system_.data.push_back(fi[c][1 + q]);
               }
             }
             system_.row_ptrs.push_back(system_.cols.size());
