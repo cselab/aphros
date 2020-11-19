@@ -6,7 +6,7 @@
             "print_grid_stats": 1, 
             "algorithm": "AGGREGATION", 
             "print_vis_data": 0, 
-            "solver": "AMG", 
+            "solver": "NOSOLVER", 
             "smoother": {
                 "relaxation_factor": 0.8, 
                 "scope": "jacobi", 
