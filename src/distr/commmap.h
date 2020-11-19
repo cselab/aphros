@@ -275,6 +275,7 @@ class CommMap {
   // Returns pointers to buffers for RHS and solution
   // shared by all local blocks.
   const Buffers& GetBuffers() const {
+    fassert(init_called_, "Call Init() before calling GetBuffers()");
     return buffers_;
   }
   void Init(M& m) {
@@ -501,9 +502,8 @@ class CommMap {
       std::vector<const M*> meshes;
       std::vector<State*> states;
       std::vector<const FieldCell<Expr>*> fields;
+      std::vector<Buffers*> buffers;
       int col_current = 0;
-      // Pointers to objects on leading block to be shared by all blocks
-      std::vector<System*> lead_system;
     } * ctx(sem);
     auto& t = *ctx;
 
@@ -512,9 +512,11 @@ class CommMap {
       t.meshes.push_back(&m);
       t.states.push_back(&state_);
       t.fields.push_back(&fc_system);
+      t.buffers.push_back(&buffers_);
       m.GatherToLead(&t.meshes);
       m.GatherToLead(&t.states);
       m.GatherToLead(&t.fields);
+      m.GatherToLead(&t.buffers);
     }
     if (sem("data") && m.IsLead()) {
       system_.cols.clear();
@@ -555,20 +557,16 @@ class CommMap {
       fassert(system_.row_ptrs.size() >= 1);
       system_.n = system_.row_ptrs.size() - 1;
       system_.nnz = system_.data.size();
-    }
-    if (sem("bcast")) {
-      if (m.IsLead()) {
-        system_.rhs_data.resize(system_.n);
-        system_.sol_data.resize(system_.n);
-        t.lead_system = {&system_};
+
+      // allocate buffers and copy pointers to all blocks
+      system_.rhs_data.resize(system_.n);
+      system_.sol_data.resize(system_.n);
+      for (size_t b = 0; b < t.meshes.size(); ++b) {
+        auto& bb = *t.buffers[b];
+        bb.rhs = system_.rhs_data.data();
+        bb.sol = system_.sol_data.data();
+        bb.size = system_.n;
       }
-      m.Bcast(&t.lead_system);
-    }
-    if (sem("buf")) {
-      auto& s = *t.lead_system.at(0);
-      buffers_.rhs = s.rhs_data.data();
-      buffers_.sol = s.sol_data.data();
-      buffers_.size = s.n;
     }
   }
   void PrintStat(M& m) const {
@@ -633,6 +631,7 @@ class CommMap {
   }
   // Copies field to a flat array.
   void FieldToArray(const FieldCell<Scal>& fcu, Scal* buf) const {
+    fassert(buf);
     const auto& s = state_;
     for (auto range : s.range_inner) {
       for (size_t i : range) {

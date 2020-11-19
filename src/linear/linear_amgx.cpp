@@ -66,17 +66,12 @@ struct SolverAmgx<M>::Imp {
 
       const Amgx::Mode mode(extra.mode);
       Amgx::Config config(
-          extra.config_path,
-          "communicator=MPI, exception_handling=1" + extra.config_extra);
+          extra.config_path, "communicator=MPI" + extra.config_extra);
       Amgx::Resources resources(config, comm, gpu_id);
 
       Amgx::Matrix matrix(resources, mode);
       Amgx::Vector sol(resources, mode);
       Amgx::Vector rhs(resources, mode);
-
-      const int n = system.row_ptrs.size() - 1;
-      const int nnz = system.cols.size();
-      fassert_equal(system.cols.size(), system.data.size());
 
       auto send_maps = const_cast<const int**>(system.send_maps.data());
       auto recv_maps = const_cast<const int**>(system.recv_maps.data());
@@ -87,8 +82,8 @@ struct SolverAmgx<M>::Imp {
           recv_maps));
 
       AMGXCALL(AMGX_matrix_upload_all(
-          matrix, n, nnz, 1, 1, system.row_ptrs.data(), system.cols.data(),
-          system.data.data(), nullptr));
+          matrix, system.n, system.nnz, 1, 1, system.row_ptrs.data(),
+          system.cols.data(), system.data.data(), nullptr));
 
       sol.Bind(matrix);
       rhs.Bind(matrix);
