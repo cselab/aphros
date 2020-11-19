@@ -242,6 +242,7 @@ class CommMap {
   };
 
   struct System {
+    bool islead = false; // true on leading block
     int n; // number of rows
     int nnz; // number of non-zero elements
     std::vector<Scal> data;
@@ -255,10 +256,26 @@ class CommMap {
     std::vector<const int*> send_maps;
     std::vector<int> recv_sizes;
     std::vector<const int*> recv_maps;
+
+    std::vector<Scal> rhs_data;
+    std::vector<Scal> sol_data;
+  };
+  struct Buffers {
+    Scal* rhs;
+    Scal* sol;
+    size_t size;
   };
 
+  // Returns current System instance valid on leading block.
+  // Initialized by Init() and ConvertSystem()
   const System& GetSystem() const {
+    fassert(system_.islead, "GetSystem() is only valid on a leading block");
     return system_;
+  }
+  // Returns pointers to buffers for RHS and solution
+  // shared by all local blocks.
+  const Buffers& GetBuffers() const {
+    return buffers_;
   }
   void Init(M& m) {
     auto sem = m.GetSem(__func__);
@@ -268,8 +285,6 @@ class CommMap {
       std::vector<const M*> meshes;
       std::vector<State*> states;
     } * ctx(sem);
-    // XXX must be initialized by lead block to make the function re-entrant
-
     auto& t = *ctx;
 
     const auto comm = m.GetMpiComm();
@@ -392,6 +407,7 @@ class CommMap {
       }
     }
     if (sem("post") && m.IsLead()) {
+      system_.islead = true;
       for (size_t b = 0; b < t.meshes.size(); ++b) {
         auto& mb = *t.meshes[b];
         auto& sb = *t.states[b];
@@ -472,20 +488,27 @@ class CommMap {
 
       fassert_equal(send_neighbors, recv_neighbors);
       system_.neighbors = send_neighbors;
+
+    }
+    if (sem()) {
+      init_called_ = true;
     }
   }
   void ConvertSystem(const FieldCell<Expr>& fc_system, M& m) {
     auto sem = m.GetSem(__func__);
     struct {
-     // Pointers to objects from other local blocks:
+      // Pointers to objects from other local blocks:
       std::vector<const M*> meshes;
       std::vector<State*> states;
       std::vector<const FieldCell<Expr>*> fields;
       int col_current = 0;
+      // Pointers to objects on leading block to be shared by all blocks
+      std::vector<System*> lead_system;
     } * ctx(sem);
     auto& t = *ctx;
 
-    if (sem()) {
+    if (sem("gather")) {
+      fassert(init_called_, "Call Init() before calling ConvertSystem()");
       t.meshes.push_back(&m);
       t.states.push_back(&state_);
       t.fields.push_back(&fc_system);
@@ -493,7 +516,7 @@ class CommMap {
       m.GatherToLead(&t.states);
       m.GatherToLead(&t.fields);
     }
-    if (sem() && m.IsLead()) {
+    if (sem("data") && m.IsLead()) {
       system_.cols.clear();
       system_.data.clear();
       system_.row_ptrs = {0};
@@ -533,6 +556,20 @@ class CommMap {
       system_.n = system_.row_ptrs.size() - 1;
       system_.nnz = system_.data.size();
     }
+    if (sem("bcast")) {
+      if (m.IsLead()) {
+        system_.rhs_data.resize(system_.n);
+        system_.sol_data.resize(system_.n);
+        t.lead_system = {&system_};
+      }
+      m.Bcast(&t.lead_system);
+    }
+    if (sem("buf")) {
+      auto& s = *t.lead_system.at(0);
+      buffers_.rhs = s.rhs_data.data();
+      buffers_.sol = s.sol_data.data();
+      buffers_.size = s.n;
+    }
   }
   void PrintStat(M& m) const {
     auto sem = m.GetSem(__func__);
@@ -543,7 +580,6 @@ class CommMap {
     const int rank = MpiWrapper::GetCommRank(comm);
     auto& t = *ctx;
     auto& s = state_;
-    auto& system = GetSystem();
     if (sem()) {
       t.fc_nci.Reinit(m, 0);
       for (size_t i = 0; i < s.flat_nci.size(); ++i) {
@@ -565,6 +601,7 @@ class CommMap {
       PrintField(std::cout, t.fc_nci, m, " {:06d}");
     }
     if (sem() && m.IsLead()) {
+      auto& system = GetSystem();
       StreamMpi out(std::cout, comm);
       out << "\nrank=" << rank;
       for (const auto& p : system.send) {
@@ -603,13 +640,8 @@ class CommMap {
       }
     }
   }
-  // Copies field to a flat array.
-  void FieldToArray(const FieldCell<Scal>& fcu, std::vector<Scal>& buf) const {
-    buf.resize(GetSystem().n);
-    FieldToArray(fcu, buf.data());
-  }
   // Copied flat array to fields.
-  // flat: pointer to array, significant only on lead block.
+  // flat: pointer to array, significant only on leading block.
   // Returns field with filled inner cells.
   void ArrayToField(const Scal* buf, FieldCell<Scal>& fcu, const M& m) const {
     const auto& s = state_;
@@ -626,6 +658,8 @@ class CommMap {
   }
 
  private:
-  System system_; // valid on lead block, empty on others
+  System system_; // valid on leading block, empty on others
   State state_;
+  Buffers buffers_;
+  bool init_called_ = false;
 };

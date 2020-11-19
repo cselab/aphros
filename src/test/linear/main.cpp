@@ -2,6 +2,7 @@
 // Copyright 2020 ETH Zurich
 
 #include <iostream>
+#include <omp.h>
 
 #include "debug/linear.h"
 #include "distr/distrbasic.h"
@@ -174,7 +175,8 @@ int main(int argc, const char** argv) {
   }
 
   Subdomains<MIdx> sub(
-      MIdx(args.Int["mesh"]), MIdx(args.Int["block"]), mpi.GetCommSize());
+      MIdx(args.Int["mesh"]), MIdx(args.Int["block"]),
+      mpi.GetCommSize() / omp_get_max_threads());
   std::string conf = "";
   conf += sub.GetConfig();
 

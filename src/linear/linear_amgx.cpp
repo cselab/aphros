@@ -37,8 +37,6 @@ struct SolverAmgx<M>::Imp {
       CommMap<M> comm_map;
       Info info;
     } * ctx(sem);
-    static std::vector<Scal> buf_sol;
-    static std::vector<Scal> buf_rhs;
     auto& t = *ctx;
     if (sem.Nested()) {
       t.comm_map.Init(m);
@@ -46,7 +44,7 @@ struct SolverAmgx<M>::Imp {
     if (sem.Nested()) {
       t.comm_map.ConvertSystem(fc_system, m);
     }
-    if (sem("solve")) {
+    if (sem("copyrhs")) {
       FieldCell<Scal> fc_rhs(m, 0);
       for (auto c : m.Cells()) {
         fc_rhs[c] = -fc_system[c].back();
@@ -56,10 +54,11 @@ struct SolverAmgx<M>::Imp {
       } else {
         fc_sol.Reinit(m, 0);
       }
-      t.comm_map.FieldToArray(fc_sol, buf_sol);
-      t.comm_map.FieldToArray(fc_rhs, buf_rhs);
+      auto buf = t.comm_map.GetBuffers();
+      t.comm_map.FieldToArray(fc_rhs, buf.rhs);
+      t.comm_map.FieldToArray(fc_sol, buf.sol);
     }
-    if (sem() && m.IsLead()) {
+    if (sem("call") && m.IsLead()) {
       const auto comm = m.GetMpiComm();
       auto& system = t.comm_map.GetSystem();
 
@@ -94,8 +93,9 @@ struct SolverAmgx<M>::Imp {
       sol.Bind(matrix);
       rhs.Bind(matrix);
 
-      sol.Upload(buf_sol.data(), {(int)buf_sol.size(), 1});
-      rhs.Upload(buf_rhs.data(), {(int)buf_rhs.size(), 1});
+      auto buf = t.comm_map.GetBuffers();
+      sol.Upload(buf.sol, {(int)buf.size, 1});
+      rhs.Upload(buf.rhs, {(int)buf.size, 1});
 
       Amgx::Solver solver(resources, mode, config);
       AMGXCALL(AMGX_solver_setup(solver, matrix));
@@ -103,10 +103,11 @@ struct SolverAmgx<M>::Imp {
 
       t.info.residual = solver.GetResidual();
       t.info.iter = solver.GetNumIters();
-      buf_sol = sol.Download<Scal>();
+      sol.Download<Scal>(buf.sol);
     }
-    if (sem()) {
-      t.comm_map.ArrayToField(buf_sol, fc_sol, m);
+    if (sem("copysol")) {
+      auto buf = t.comm_map.GetBuffers();
+      t.comm_map.ArrayToField(buf.sol, fc_sol, m);
       m.Comm(&fc_sol);
       if (m.flags.linreport && m.IsRoot()) {
         std::cout << std::scientific;
@@ -154,6 +155,7 @@ class ModuleLinearAmgx : public ModuleLinear<M> {
     typename SolverAmgx<M>::Extra extra;
     extra.config_path = var.String[addprefix("config_path")];
     extra.config_extra = var.String[addprefix("config_extra")];
+    extra.log_path = var.String[addprefix("log_path")];
     extra.mode = var.String[addprefix("mode")];
     return std::make_unique<linear::SolverAmgx<M>>(
         this->GetConf(var, prefix), extra, m);
