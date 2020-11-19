@@ -34,17 +34,19 @@ struct SolverAmgx<M>::Imp {
       FieldCell<Scal>& fc_sol, M& m) {
     auto sem = m.GetSem(__func__);
     struct {
-      CommMap<M> comm_map;
       Info info;
     } * ctx(sem);
     auto& t = *ctx;
     if (sem.Nested()) {
-      t.comm_map.Init(m);
+      if (!comm_map_init_called_) {
+        comm_map_.Init(m);
+      }
     }
     if (sem.Nested()) {
-      t.comm_map.ConvertSystem(fc_system, m);
+      comm_map_.ConvertSystem(fc_system, m);
     }
     if (sem("copyrhs")) {
+      comm_map_init_called_ = true;
       FieldCell<Scal> fc_rhs(m, 0);
       for (auto c : m.Cells()) {
         fc_rhs[c] = -fc_system[c].back();
@@ -54,13 +56,13 @@ struct SolverAmgx<M>::Imp {
       } else {
         fc_sol.Reinit(m, 0);
       }
-      auto buf = t.comm_map.GetBuffers();
-      t.comm_map.FieldToArray(fc_rhs, buf.rhs);
-      t.comm_map.FieldToArray(fc_sol, buf.sol);
+      auto buf = comm_map_.GetBuffers();
+      comm_map_.FieldToArray(fc_rhs, buf.rhs);
+      comm_map_.FieldToArray(fc_sol, buf.sol);
     }
     if (sem("call") && m.IsLead()) {
       const auto comm = m.GetMpiComm();
-      auto& system = t.comm_map.GetSystem();
+      auto& system = comm_map_.GetSystem();
 
       const int gpu_id = 0;
 
@@ -88,7 +90,7 @@ struct SolverAmgx<M>::Imp {
       sol.Bind(matrix);
       rhs.Bind(matrix);
 
-      auto buf = t.comm_map.GetBuffers();
+      auto buf = comm_map_.GetBuffers();
       sol.Upload(buf.sol, {(int)buf.size, 1});
       rhs.Upload(buf.rhs, {(int)buf.size, 1});
 
@@ -101,8 +103,8 @@ struct SolverAmgx<M>::Imp {
       sol.Download<Scal>(buf.sol);
     }
     if (sem("copysol")) {
-      auto buf = t.comm_map.GetBuffers();
-      t.comm_map.ArrayToField(buf.sol, fc_sol, m);
+      auto buf = comm_map_.GetBuffers();
+      comm_map_.ArrayToField(buf.sol, fc_sol, m);
       m.Comm(&fc_sol);
       if (m.flags.linreport && m.IsRoot()) {
         std::cout << std::scientific;
@@ -120,6 +122,8 @@ struct SolverAmgx<M>::Imp {
   Owner* owner_;
   Conf& conf;
   Extra extra;
+  CommMap<M> comm_map_;
+  bool comm_map_init_called_ = false;
   std::unique_ptr<Amgx::Library> amgx_;
   std::unique_ptr<std::ofstream> logfile_;
 };
