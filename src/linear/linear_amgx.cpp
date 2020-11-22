@@ -78,14 +78,14 @@ struct SolverAmgx<M>::Imp {
       auto send_maps = const_cast<const int**>(system.send_maps.data());
       auto recv_maps = const_cast<const int**>(system.recv_maps.data());
 
-      AMGXCALL(AMGX_matrix_comm_from_maps_one_ring(
+      amgx_->matrix_comm_from_maps_one_ring(
           matrix, 1, system.neighbors.size(), system.neighbors.data(),
           system.send_sizes.data(), send_maps, system.recv_sizes.data(),
-          recv_maps));
+          recv_maps);
 
-      AMGXCALL(AMGX_matrix_upload_all(
+      amgx_->matrix_upload_all(
           matrix, system.n, system.nnz, 1, 1, system.row_ptrs.data(),
-          system.cols.data(), system.data.data(), nullptr));
+          system.cols.data(), system.data.data(), nullptr);
 
       sol.Bind(matrix);
       rhs.Bind(matrix);
@@ -95,8 +95,8 @@ struct SolverAmgx<M>::Imp {
       rhs.Upload(buf.rhs, {(int)buf.size, 1});
 
       Amgx::Solver solver(resources, mode, config);
-      AMGXCALL(AMGX_solver_setup(solver, matrix));
-      AMGXCALL(AMGX_solver_solve(solver, rhs, sol));
+      amgx_->solver_setup(solver, matrix);
+      amgx_->solver_solve(solver, rhs, sol);
 
       t.info.residual = solver.GetResidual();
       t.info.iter = solver.GetNumIters();

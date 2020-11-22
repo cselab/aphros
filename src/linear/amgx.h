@@ -3,13 +3,13 @@
 
 #pragma once
 
+#include <mpi.h>
 #include <amgx_c.h>
 #include <cuda_runtime.h>
-#include <mpi.h>
 
 #include "distr/distrsolver.h"
-#include "util/logger.h"
 #include "util/format.h"
+#include "util/logger.h"
 
 #define AMGXCALL(amgxcall_expr)                                              \
   do {                                                                       \
@@ -77,11 +77,35 @@ class Library {
     res.time = time;
     return res;
   }
+  void matrix_comm_from_maps_one_ring(
+      AMGX_matrix_handle mtx, int allocated_halo_depth, int num_neighbors,
+      const int* neighbors, const int* send_sizes, const int** send_maps,
+      const int* recv_sizes, const int** recv_maps) {
+    AMGXCALL(AMGX_matrix_comm_from_maps_one_ring(
+        mtx, allocated_halo_depth, num_neighbors, neighbors, send_sizes,
+        send_maps, recv_sizes, recv_maps));
+  }
+  void matrix_upload_all(
+      AMGX_matrix_handle mtx, int n, int nnz, int block_dimx, int block_dimy,
+      const int* row_ptrs, const int* col_indices, const void* data,
+      const void* diag_data) {
+    AMGXCALL(AMGX_matrix_upload_all(
+        mtx, n, nnz, block_dimx, block_dimy, row_ptrs, col_indices, data,
+        diag_data));
+  }
+
+  void solver_setup(AMGX_solver_handle slv, AMGX_matrix_handle mtx) {
+    AMGXCALL(AMGX_solver_setup(slv, mtx));
+  }
+  void solver_solve(
+      AMGX_solver_handle slv, AMGX_vector_handle rhs, AMGX_vector_handle sol) {
+    AMGXCALL(AMGX_solver_solve(slv, rhs, sol));
+  }
 
  private:
   static std::ostream* log_;
   static void print_callback(const char* msg, int length) {
-    (void) length;
+    (void)length;
     if (log_) {
       (*log_) << msg;
     }
@@ -287,13 +311,13 @@ class Solver {
     AMGXCALL(AMGX_solver_get_iterations_number(handle_, &n));
     return n;
   }
-  int GetResidual(int iter, int idx_in_block) const {
+  double GetResidual(int iter, int idx_in_block) const {
     double res;
     AMGXCALL(
         AMGX_solver_get_iteration_residual(handle_, iter, idx_in_block, &res));
     return res;
   }
-  int GetResidual() const {
+  double GetResidual() const {
     return GetResidual(GetNumIters() - 1, 0);
   }
 
@@ -324,4 +348,3 @@ class Resources {
 };
 
 } // namespace Amgx
-
