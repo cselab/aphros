@@ -4,6 +4,7 @@
 #pragma once
 
 #include <map>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -15,9 +16,10 @@ class Vars {
   class Map {
    public:
     using Value = T;
-    using M = std::map<Key, Value>;
-    using Iterator = typename M::iterator;
-    using ConstIterator = typename M::const_iterator;
+
+    Map() : hook_([](const Key&) {}) {}
+    Map(std::function<void(const Key&)> hook) : hook_(hook) {}
+
     std::string GetTypeName() const;
     std::string GetStr(Key) const;
     void SetStr(Key, std::string val);
@@ -30,25 +32,28 @@ class Vars {
     bool Contains(Key) const;
     void Del(Key);
     bool DelIfContains(Key);
-    int GetReads(Key) const;
-    Iterator begin() {
+    auto begin() {
       return m_.begin();
     }
-    Iterator end() {
+    auto end() {
       return m_.end();
     }
-    ConstIterator cbegin() const {
+    auto cbegin() const {
       return m_.cbegin();
     }
-    ConstIterator cend() const {
+    auto cend() const {
       return m_.cend();
     }
     static std::string ValueToStr(Value value);
 
    private:
-    M m_;
-    mutable std::map<Key, int> reads_;
+    std::map<Key, Value> m_;
+    std::function<void(const Key&)> hook_;
   };
+
+  Vars() = default;
+  Vars(std::function<void(const Key&)> hook)
+      : String(hook), Int(hook), Double(hook), Vect(hook) {}
 
   // Returns map by type
   template <class Value>

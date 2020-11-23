@@ -76,8 +76,6 @@ set int hypre_gen_maxiter 30
 int RunMpiKernel(
     MpiWrapper& mpi, std::function<void(MPI_Comm, Vars&)> kernel,
     std::istream& conf) {
-  const int rank = mpi.GetCommRank();
-
   Vars var;
   Parser(var).ParseStream(conf);
 

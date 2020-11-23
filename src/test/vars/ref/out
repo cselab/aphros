@@ -1,0 +1,21 @@
+
+test_vars::Test()
+TestParse
+string: 'asdf' == 'asdf'
+int: '123' == '123'
+double: '123.456' == '123.456'
+vect: '1.2 3.4 5.6' == '1.2 3.4 5.6'
+TestTypeName
+string: 'asdf' == 'asdf'
+int: '123' == '123'
+double: '123.456' == '123.456'
+vect: '1.2 3.4 5.6' == '1.2 3.4 5.6'
+TestPtr
+TestDel
+test_vars::Test() done
+
+TestHook
+hook: a
+hook: b
+hook: c
+hook: d

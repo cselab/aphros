@@ -4,6 +4,8 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#include <atomic>
+#include <mutex>
 #include <set>
 #include <sstream>
 
@@ -94,7 +96,18 @@ int RunMpi0(
     std::cerr << "Loading config from '" << config << "'" << std::endl;
   }
 
-  Vars var; // parameter storage
+  std::map<std::string, std::atomic<int>> var_reads;
+  std::mutex var_reads_mutex;
+  auto hook_read = [&var_reads, &var_reads_mutex](const std::string& key) {
+    auto it = var_reads.find(key);
+    if (it == var_reads.end()) {
+      std::lock_guard<std::mutex> guard(var_reads_mutex);
+      it = var_reads.emplace(key, 0).first;
+    }
+    ++it->second;
+  };
+
+  Vars var(hook_read); // parameter storage
   Parser ip(var); // parser
   ip.ParseFile(config);
   if (args.Int["config_verbose"]) {
@@ -121,11 +134,11 @@ int RunMpi0(
 
   if (isroot) {
     if (var.Int("verbose_conf_reads", 0)) {
-      auto print_reads = [&var](const auto& map) {
+      auto print_reads = [&var, &var_reads](const auto& map) {
         for (auto it = map.cbegin(); it != map.cend(); ++it) {
           const auto key = it->first;
-          std::cout << map.GetReads(key) << ' ' << map.GetTypeName() << ' '
-                    << key << '\n';
+          std::cout << (var_reads.count(key) ? var_reads.at(key).load() : 0)
+                    << ' ' << map.GetTypeName() << ' ' << key << '\n';
         }
       };
       std::cout << "Number of accesses to configuration variables\n";
@@ -146,10 +159,10 @@ int RunMpi0(
         });
       }
       std::cout << "Unused configuration variables:\n";
-      var.ForEachMap([&var, &ignore](const auto& map) {
+      var.ForEachMap([&var, &ignore, &var_reads](const auto& map) {
         for (auto it = map.cbegin(); it != map.cend(); ++it) {
           const auto key = it->first;
-          if (map.GetReads(key) == 0 && !ignore.count(key)) {
+          if (!var_reads.count(key) && !ignore.count(key)) {
             std::cout << map.GetTypeName() << ' ' << key << '\n';
           }
         }
