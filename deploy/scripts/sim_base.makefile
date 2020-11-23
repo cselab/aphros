@@ -55,7 +55,7 @@ tl:
 	echo $(tl) > tl
 
 mesh.conf: np
-	ap.part $(m) $(bs) `cat np` $(OMP_NUM_THREADS) > mesh.conf
+	ap.part $(m) $(bs) `cat np` > mesh.conf
 
 clean::
 	rm -vf *.{png}
