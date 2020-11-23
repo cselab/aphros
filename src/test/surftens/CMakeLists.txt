@@ -1,5 +1,5 @@
-add_test_current(NAME loc8 COMMAND run loc 8)
-add_test_current(NAME loc16 COMMAND run loc 16)
+add_test_current(NAME loc8 COMMAND run loc 8 1)
+add_test_current(NAME loc16 COMMAND run loc 16 1)
 add_test_current(NAME loc32 COMMAND run loc 32 1)
 add_test_current(NAME cub8 COMMAND run cub 8)
 add_test_current(NAME cub16 COMMAND run cub 16)

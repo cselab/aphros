@@ -81,7 +81,8 @@ int RunMpiKernel(
 
   const std::string backend = var.String["backend"];
   if (backend == "local") {
-    fassert_equal(mpi.GetCommSize(), 1);
+    fassert_equal(
+        mpi.GetCommSize(), 1, "\nBackend 'local' requires a single rank.\n");
   }
 
   try {

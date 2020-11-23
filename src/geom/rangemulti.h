@@ -69,7 +69,6 @@ class RangeMulti {
       : flat_begin_(flat_begin), size_(size), lead_(lead) {
     static_assert(step >= 1, "");
     assert(size <= lead);
-    assert(size[0] % step == 0);
   }
   iterator begin() const {
     MIdx first;

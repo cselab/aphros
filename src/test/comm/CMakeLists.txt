@@ -4,5 +4,5 @@ include_directories(${S})
 add_executable(${EXE} main.cpp)
 target_link_libraries(${EXE} aphros)
 
-add_test_current(NAME loc COMMAND ap.run ./${EXE} tloc)
-add_test_current(NAME cubnc COMMAND ap.run ./${EXE} tcubnc)
+add_test_current(NAME local COMMAND ap.mpirun -n 1  ./${EXE} --extra "set string backend local")
+add_test_current(NAME cubismnc COMMAND ap.mpirun -n 2  ./${EXE} --extra "set string backend cubismnc")

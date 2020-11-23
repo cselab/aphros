@@ -36,7 +36,7 @@ class Test(aphros.TestBase):
         b = self.args.block
         m = [32, 32, 1] if dim == 2 else [24, 24, 16]
         bs = [b, b, 1] if dim == 2 else [8, 8, 8]
-        nproc = 1 if b == 32 else self.args.nproc
+        nproc = 1 if b == 32 or self.args.comm == "local" else self.args.nproc
 
         with open("a.conf", 'w') as f:
             f.write("include {}.conf\n".format(case))
