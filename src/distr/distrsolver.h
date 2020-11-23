@@ -59,7 +59,7 @@ class DistrSolver {
 
 class MpiWrapper {
  public:
-  MpiWrapper(int* argc, const char*** argv);
+  MpiWrapper(int* argc, const char*** argv, MPI_Comm comm = MPI_COMM_WORLD);
   ~MpiWrapper();
   MPI_Comm GetComm() const;
   static int GetCommSize(MPI_Comm);

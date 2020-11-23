@@ -175,8 +175,7 @@ int main(int argc, const char** argv) {
   }
 
   Subdomains<MIdx> sub(
-      MIdx(args.Int["mesh"]), MIdx(args.Int["block"]),
-      mpi.GetCommSize() / omp_get_max_threads());
+      MIdx(args.Int["mesh"]), MIdx(args.Int["block"]), mpi.GetCommSize());
   std::string conf = "";
   conf += sub.GetConfig();
 
