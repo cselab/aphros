@@ -1,5 +1,7 @@
 set(CSD "${CMAKE_CURRENT_SOURCE_DIR}")
 
+set(CMAKE_LINK_DEPENDS_NO_SHARED TRUE)
+
 # find all directories containing CMakeLists.txt
 set(list "")
 file(GLOB glob ${CSD}/*)
