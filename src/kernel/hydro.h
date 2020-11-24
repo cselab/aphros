@@ -476,7 +476,7 @@ void Hydro<M>::OverwriteBc() {
       st_.meshvel = bodyvel;
       mebc_fluid_.LoopPairs([&](auto cf_bc) {
         auto& curr = mebc_fluid_[cf_bc.first];
-        curr.velocity -= bodyvel;
+        curr.velocity = bodyvel;
       });
     } else {
       st_.meshvel = Vect(0);
