@@ -324,8 +324,8 @@ class BoundaryConditions:
                                                 VectToStr(omega))
         self.__Append(s, geom)
 
-    def SlipWall(self, geom):
-        s = "slipwall"
+    def SlipWall(self, geom, extra=""):
+        s = "slipwall" + extra
         self.__Append(s, geom)
 
     def Inlet(self, geom, velocity, extra=""):
