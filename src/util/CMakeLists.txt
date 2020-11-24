@@ -1,5 +1,8 @@
 add_library(suspender suspender.cpp)
-add_library(sysinfo sysinfo.cpp)
+
+set(T "sysinfo")
+add_library(${T} sysinfo.cpp)
+target_compile_definitions(${T} PRIVATE _USE_AMGX_=$<BOOL:${USE_AMGX}>)
 
 set(T "utilhydro")
 add_library(${T} hydro.cpp)

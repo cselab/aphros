@@ -57,11 +57,13 @@
 #include "util/convdiff.h"
 #include "util/events.h"
 #include "util/filesystem.h"
+#include "util/format.h"
 #include "util/hydro.h"
 #include "util/linear.h"
 #include "util/metrics.h"
 #include "util/posthook.h"
 #include "util/stat.h"
+#include "util/sysinfo.h"
 #include "util/timer.h"
 
 class GPar {};
@@ -185,6 +187,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void ReportStepTracer();
   void ReportStepParticles();
   void ReportStepElectro();
+  void ReportSysinfo(std::ostream& out);
   void ReportIter();
   // Issue sem.LoopBreak if abort conditions met
   void CheckAbort(Sem& sem, Scal& nabort);
@@ -1223,6 +1226,9 @@ void Hydro<M>::Init() {
           module_post_step_,
           "ModulePostStep instance '" + *name + "' not found");
     }
+  }
+  if (sem.Nested("sysinfo")) {
+    ReportSysinfo(std::cout);
   }
   if (sem.Nested("embed")) {
     InitEmbed();
@@ -2696,6 +2702,53 @@ void Hydro<M>::StepEraseVolumeFraction(std::string prefix, Scal& last_t) {
     } else {
       apply_vofm(dynamic_cast<ASVM*>(as_.get()), m);
       apply_vof(dynamic_cast<ASV*>(as_.get()), m);
+    }
+  }
+}
+template <class M>
+void Hydro<M>::ReportSysinfo(std::ostream& out) {
+  auto sem = m.GetSem(__func__);
+  struct {
+    sysinfo::Info info;
+    std::vector<std::vector<char>> hostname;
+    std::vector<size_t> cuda_mem;
+    std::vector<uint16_t> cuda_uuid;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (var.Int("report_sysinfo", 0)) {
+    if (sem()) {
+      if (m.IsLead()) {
+        t.info = sysinfo::GetInfo(sysinfo::InfoSelect());
+        t.hostname.push_back({t.info.hostname.begin(), t.info.hostname.end()});
+        if (t.info.cuda_enabled) {
+          t.cuda_mem.push_back(t.info.cuda_mem);
+          t.cuda_uuid.push_back(t.info.cuda_uuid);
+        }
+      }
+      m.Reduce(&t.hostname, Reduction::concat);
+      m.Reduce(&t.cuda_mem, Reduction::concat);
+      m.Reduce(&t.cuda_uuid, Reduction::concat);
+    }
+    if (sem()) {
+      if (m.IsRoot()) {
+        out << "\nOpenMP max_threads: " << t.info.omp_max_threads;
+        out << "\nHostname\n";
+        for (auto h : t.hostname) {
+          out << std::string(h.begin(), h.end()) << ' ';
+        }
+        if (!t.cuda_uuid.empty()) {
+          out << "\nCUDA GPU UUID\n";
+          for (auto u : t.cuda_uuid) {
+            out << util::Format("{:04X} ", u);
+          }
+          out << "\nCUDA GPU MEM (GiB)\n";
+          for (auto u : t.cuda_mem) {
+            out << util::Format("{:.3f} ", double(u) / (1 << 30));
+          }
+          out << '\n';
+        }
+        out << '\n';
+      }
     }
   }
 }
