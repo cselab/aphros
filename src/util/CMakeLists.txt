@@ -2,6 +2,7 @@ add_library(suspender suspender.cpp)
 
 set(T "sysinfo")
 add_library(${T} sysinfo.cpp)
+target_link_libraries(${T} openmp)
 target_compile_definitions(${T} PRIVATE _USE_AMGX_=$<BOOL:${USE_AMGX}>)
 
 set(T "utilhydro")

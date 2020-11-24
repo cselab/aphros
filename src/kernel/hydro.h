@@ -2731,6 +2731,7 @@ void Hydro<M>::ReportSysinfo(std::ostream& out) {
     }
     if (sem()) {
       if (m.IsRoot()) {
+        out << "\nOpenMP num_threads: " << t.info.omp_num_threads;
         out << "\nOpenMP max_threads: " << t.info.omp_max_threads;
         out << "\nHostname\n";
         for (auto h : t.hostname) {

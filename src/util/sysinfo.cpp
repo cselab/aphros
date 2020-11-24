@@ -82,7 +82,8 @@ Info GetInfo(InfoSelect select) {
 
 #ifdef _OPENMP
   if (select.openmp) {
-    info.max_threads = omp_get_max_threads();
+    info.omp_num_threads = omp_get_num_threads();
+    info.omp_max_threads = omp_get_max_threads();
   }
 #endif
 

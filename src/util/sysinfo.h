@@ -21,6 +21,7 @@ struct Info {
   int comm_rank = 0;
   int comm_size = 1;
 
+  int omp_num_threads = 1;
   int omp_max_threads = 1;
 
   bool cuda_enabled = false;
