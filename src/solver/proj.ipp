@@ -61,12 +61,7 @@ struct Proj<EB_>::Imp {
     const auto ffwe = UEB::Interpolate(fcvel_.time_curr, me_vel_, eb);
     fev_.time_curr.Reinit(m, 0.);
     eb.LoopFaces([&](auto cf) { //
-      fev_.time_curr[cf] = ffwe[cf].dot(eb.GetSurface(cf));
-    });
-    // Apply meshvel
-    const Vect& meshvel = par.meshvel;
-    eb.LoopFaces([&](auto cf) { //
-      fev_.time_curr[cf] -= meshvel.dot(eb.GetSurface(cf));
+      fev_.time_curr[cf] = (ffwe[cf] - par.meshvel).dot(eb.GetSurface(cf));
     });
   }
 
@@ -520,7 +515,7 @@ struct Proj<EB_>::Imp {
           });
         }
         eb.LoopFaces([&](auto cf) { //
-          ffv[cf] = ffvel[cf].dot(eb.GetSurface(cf));
+          ffv[cf] = (ffvel[cf] - par.meshvel).dot(eb.GetSurface(cf));
         });
       }
       if (sem.Nested("project")) {
@@ -565,7 +560,7 @@ struct Proj<EB_>::Imp {
       const FieldFaceb<Vect> ffvel = UEB::Interpolate(fcvel, me_vel_, eb);
       eb.LoopFaces([&](auto cf) { //
         auto& v = ffv[cf];
-        v = ffvel[cf].dot(eb.GetSurface(cf));
+        v = (ffvel[cf] - par.meshvel).dot(eb.GetSurface(cf));
         if (!is_boundary_[cf]) {
           v += (*owner_->febp_)[cf] / ffdens_[cf] * dt * eb.GetArea(cf);
         }

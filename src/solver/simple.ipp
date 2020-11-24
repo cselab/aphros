@@ -75,14 +75,8 @@ struct Simple<EB_>::Imp {
     const auto ffwe = UEB::Interpolate(cd_->GetVelocity(), me_vel_, eb);
     fev_.time_curr.Reinit(m, 0.);
     eb.LoopFaces([&](auto cf) { //
-      fev_.time_curr[cf] = ffwe[cf].dot(eb.GetSurface(cf));
+      fev_.time_curr[cf] = (ffwe[cf] - par.meshvel).dot(eb.GetSurface(cf));
     });
-    // Apply meshvel
-    const Vect& meshvel = par.meshvel;
-    eb.LoopFaces([&](auto cf) { //
-      fev_.time_curr[cf] -= meshvel.dot(eb.GetSurface(cf));
-    });
-
     fev_.time_prev = fev_.time_curr;
   }
 

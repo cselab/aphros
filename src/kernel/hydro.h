@@ -348,6 +348,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     Scal t = 0;
     size_t step = 0;
     size_t iter = 0;
+    Vect meshvel = {};
   };
   StatHydro st_;
   std::ofstream fstat_;
@@ -445,30 +446,55 @@ void Hydro<M>::OverwriteBc() {
       return values.back();
     }
   };
-  const auto factor = piecewise(
-      fs_->GetTime(), var.Vect["overwrite_inlet_times"],
-      var.Vect["overwrite_inlet_factors"]);
-  if (!IsNan(factor)) {
-    mebc_fluid_.LoopPairs([&](auto cf_bc) {
-      auto& curr = mebc_fluid_[cf_bc.first];
-      const auto& orig = mebc_fluid_orig_[cf_bc.first];
-      if (curr.type == BCondFluidType::inlet) {
-        fassert(orig.type == BCondFluidType::inlet);
-        curr.velocity = orig.velocity * factor;
-      }
-    });
+
+  // restore from original
+  mebc_fluid_ = mebc_fluid_orig_;
+
+  { // correct inlet velocity by factor
+    const auto factor = piecewise(
+        fs_->GetTime(), var.Vect["overwrite_inlet_times"],
+        var.Vect["overwrite_inlet_factors"]);
+    if (!IsNan(factor)) {
+      mebc_fluid_.LoopPairs([&](auto cf_bc) {
+        auto& curr = mebc_fluid_[cf_bc.first];
+        if (curr.type == BCondFluidType::inlet) {
+          curr.velocity *= factor;
+        }
+      });
+    }
   }
 
-  const auto p = piecewise(
-      fs_->GetTime(), var.Vect["overwrite_inletpressure_times"],
-      var.Vect["overwrite_inletpressure_pressure"]);
-  if (!IsNan(p)) {
-    mebc_fluid_.LoopPairs([&](auto cf_bc) {
-      auto& curr = mebc_fluid_[cf_bc.first];
-      if (curr.type == BCondFluidType::inletpressure) {
-        curr.pressure = p;
-      }
-    });
+  { // apply body velocity to meshvel and subtract from boundary conditions
+    Vect bodyvel;
+    bodyvel[0] =  piecewise(
+        fs_->GetTime(), var.Vect["bodyvel_times"], var.Vect["bodyvel_x"]);
+    bodyvel[1] =  piecewise(
+        fs_->GetTime(), var.Vect["bodyvel_times"], var.Vect["bodyvel_y"]);
+    bodyvel[2] =  piecewise(
+        fs_->GetTime(), var.Vect["bodyvel_times"], var.Vect["bodyvel_z"]);
+    if (!IsNan(bodyvel)) {
+      st_.meshvel = bodyvel;
+      mebc_fluid_.LoopPairs([&](auto cf_bc) {
+        auto& curr = mebc_fluid_[cf_bc.first];
+        curr.velocity -= bodyvel;
+      });
+    } else {
+      st_.meshvel = Vect(0);
+    }
+  }
+
+  { // overwrite inlet pressure
+    const auto p_new = piecewise(
+        fs_->GetTime(), var.Vect["overwrite_inletpressure_times"],
+        var.Vect["overwrite_inletpressure_pressure"]);
+    if (!IsNan(p_new)) {
+      mebc_fluid_.LoopPairs([&](auto cf_bc) {
+        auto& curr = mebc_fluid_[cf_bc.first];
+        if (curr.type == BCondFluidType::inletpressure) {
+          curr.pressure = p_new;
+        }
+      });
+    }
   }
 
   if (var.Int["enable_inlet_periodic"]) {
@@ -679,6 +705,7 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   std::string fs = var.String["fluid_solver"];
   if (fs == "simple") {
     auto par = ParsePar<Simple<M>>()(var);
+    par.meshvel = st_.meshvel;
     std::shared_ptr<linear::Solver<M>> linsolver_symm(
         ULinear<M>::MakeLinearSolver(var, "symm", m));
     std::shared_ptr<linear::Solver<M>> linsolver_gen(
@@ -694,6 +721,7 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
     }
   } else if (fs == "proj") {
     auto par = ParsePar<Proj<M>>()(var);
+    par.meshvel = st_.meshvel;
     std::shared_ptr<linear::Solver<M>> linsolver(
         ULinear<M>::MakeLinearSolver(var, "symm", m));
     const ProjArgs<M> args{fc_vel,    mebc_fluid_, mc_velcond_, &fc_rho_,
@@ -822,8 +850,14 @@ void Hydro<M>::InitStat() {
   stat.AddNone(
       "wt", "wall-clock time", //
       [&timer_ = timer_]() { return timer_.GetSeconds(); });
-  stat.AddNone("iter", "iteration", [&st_ = st_]() { return st_.iter; });
-  stat.AddNone("step", "step", [&st_ = st_]() { return st_.step; });
+  stat.AddNone("iter", "total fluid iteration number", [& st_ = st_]() {
+    return st_.iter;
+  });
+  stat.AddNone(
+      "step", "fluid step number", [& st_ = st_]() { return st_.step; });
+  stat.AddNone("meshvel", "moving mesh velocity", [& st_ = st_]() {
+    return st_.meshvel;
+  });
   stat.AddNone(
       "diff", "velocity difference between last two iterations", //
       [&fs_ = fs_]() { return fs_->GetError(); });
@@ -2139,10 +2173,14 @@ void Hydro<M>::Run() {
 
   if (sem("updatepar")) {
     if (auto fs = dynamic_cast<Simple<M>*>(fs_.get())) {
-      fs->SetPar(ParsePar<Simple<M>>()(var));
+      auto par = ParsePar<Simple<M>>()(var);
+      par.meshvel = st_.meshvel;
+      fs->SetPar(par);
     }
     if (auto fs = dynamic_cast<Proj<M>*>(fs_.get())) {
-      fs->SetPar(ParsePar<Proj<M>>()(var));
+      auto par = ParsePar<Proj<M>>()(var);
+      par.meshvel = st_.meshvel;
+      fs->SetPar(par);
     }
     UpdateAdvectionPar();
     fcvm_ = fs_->GetVelocity();
