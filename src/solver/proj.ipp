@@ -113,7 +113,7 @@ struct Proj<EB_>::Imp {
       const FieldFaceb<Vect> ffvel = UEB::Interpolate(fcvel, me_vel_, eb);
       eb.LoopFaces([&](auto cf) { //
         auto& v = ffv[cf];
-        v = ffvel[cf].dot(eb.GetSurface(cf));
+        v = (ffvel[cf] - par.meshvel).dot(eb.GetSurface(cf));
         if (!is_boundary_[cf]) {
           v += (*owner_->febp_)[cf] / ffdens_[cf] * dt * eb.GetArea(cf);
         }
