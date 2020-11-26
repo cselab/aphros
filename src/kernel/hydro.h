@@ -362,6 +362,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   Dumper bubgen_;
   std::unique_ptr<Events> events_; // events from var
   SingleTimer timer_;
+  std::shared_ptr<linear::Solver<M>> linsolver_symm_;
 
   std::unique_ptr<TracerInterface<M>> tracer_;
   FieldCell<Scal> fc_src_tracer0_; // source of tracer0
@@ -593,9 +594,10 @@ void Hydro<M>::InitParticles() {
 template <class M>
 void Hydro<M>::InitElectro() {
   if (var.Int["enable_electro"]) {
-    std::shared_ptr<linear::Solver<M>> linsolver =
-        ULinear<M>::MakeLinearSolver(var, "vort", m);
-    typename ElectroInterface<M>::Conf conf{var, linsolver};
+    if (!linsolver_symm_) {
+      linsolver_symm_ = ULinear<M>::MakeLinearSolver(var, "symm", m);
+    }
+    typename ElectroInterface<M>::Conf conf{var, linsolver_symm_};
     if (eb_) {
       electro_.reset(
           new Electro<EB>(m, *eb_, mebc_electro_, fs_->GetTime(), conf));
@@ -727,6 +729,7 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
     par.meshvel = st_.meshvel;
     std::shared_ptr<linear::Solver<M>> linsolver(
         ULinear<M>::MakeLinearSolver(var, "symm", m));
+    linsolver_symm_ = linsolver;
     const ProjArgs<M> args{fc_vel,    mebc_fluid_, mc_velcond_, &fc_rho_,
                            &fc_mu_,   &fc_force_,  &febp_,      &fc_src_,
                            &fc_srcm_, 0.,          st_.dt,      linsolver,

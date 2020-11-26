@@ -52,17 +52,19 @@ struct Electro<EB_>::Imp {
       auto r1 = conf.var.Double["resist1"];
       auto r2 = conf.var.Double["resist2"];
       t.ff_resist.Reinit(m);
-      for (auto f : eb.Faces()) {
-        t.ff_resist[f] = 1 / (1 / r2 * ff_vf[f] + 1 / r1 * (1 - ff_vf[f]));
-      }
-      const auto ffg = UEB::GradientImplicit(fc_pot_, mebc_pot_, m);
+
+      eb.LoopFaces([&](auto cf) { //
+        t.ff_resist[cf] = 1 / (1 / r2 * ff_vf[cf] + 1 / r1 * (1 - ff_vf[cf]));
+      });
+      const auto ffg = UEB::GradientImplicit(fc_pot_, mebc_pot_, eb);
       t.fcl.Reinit(m, Expr::GetUnit(0));
-      for (auto c : m.Cells()) {
+      for (auto c : eb.Cells()) {
         Expr sum(0);
-        m.LoopNci(c, [&](auto q) {
-          const auto cf = m.GetFace(c, q);
-          const ExprFace flux = ffg[cf] / t.ff_resist[cf] * m.GetArea(cf);
-          m.AppendExpr(sum, flux * m.GetOutwardFactor(c, q), q);
+        eb.LoopNci(c, [&](auto q) {
+          const auto cf = eb.GetFace(c, q);
+          //const ExprFace flux = ffg[cf] / t.ff_resist[cf] * eb.GetArea(cf);
+          const ExprFace flux = ffg[cf] * eb.GetArea(cf); // XXX
+          eb.AppendExpr(sum, flux * eb.GetOutwardFactor(c, q), q);
         });
         t.fcl[c] = sum;
       }
@@ -74,11 +76,11 @@ struct Electro<EB_>::Imp {
     if (sem("post")) {
       time_ += dt;
 
-      const auto ffg = UEB::Gradient(fc_pot_, mebc_pot_, m);
+      const auto ffg = UEB::Gradient(fc_pot_, mebc_pot_, eb);
       ff_current_.Reinit(m, 0);
-      for (auto f : eb.Faces()) {
-        ff_current_[f] = ffg[f] / t.ff_resist[f];
-      }
+      eb.LoopFaces([&](auto cf) { //
+        ff_current_[cf] = ffg[cf] / t.ff_resist[cf];
+      });
       fc_current_ = UEB::AverageGradient(ff_current_, eb);
 
       stat_.current = 0;
@@ -87,7 +89,7 @@ struct Electro<EB_>::Imp {
         if (m.IsInner(c)) {
           const Scal cur_in = ff_current_[cf] * (nci == 0 ? -1 : 1);
           if (cur_in > 0) {
-            stat_.current += cur_in * m.GetArea(cf);
+            stat_.current += cur_in * eb.GetArea(cf);
           }
         }
       });

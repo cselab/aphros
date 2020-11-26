@@ -311,8 +311,8 @@ class BoundaryConditions:
         line = "{:} {{\n{:}\n}}".format(line, self.__Indent(geom.Generate()))
         self.lines.append(line)
 
-    def Wall(self, geom, velocity):
-        s = "wall {:}".format(VectToStr(velocity))
+    def Wall(self, geom, velocity, extra=""):
+        s = "wall {:}".format(VectToStr(velocity)) + extra
         self.__Append(s, geom)
 
     def WallRotation(self, geom, center, omega):
@@ -340,8 +340,8 @@ class BoundaryConditions:
         s = "inletpressure {:}{}".format(pressure, extra)
         self.__Append(s, geom)
 
-    def Outlet(self, geom):
-        s = "outlet"
+    def Outlet(self, geom, extra=""):
+        s = "outlet" + extra
         self.__Append(s, geom)
 
     def OutletPressure(self, geom, pressure, extra=""):
