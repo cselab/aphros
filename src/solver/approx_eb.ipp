@@ -165,18 +165,34 @@ FieldNode<typename M::Scal> GetModelLevelSet(
     return inside_inside(inside_state, p);
   };
 
+  const Scal inf = m.GetCellSize()[0] * 10; // large value
   FieldNode<Scal> fnl(m, GetNan<Scal>());
+
+  // test if the whole block does not interect the surface
+  const Vect block_corner = m.GetCenter(*m.AllCells().begin());
+  const Vect block_length =
+      Vect(m.GetAllBlockCells().GetSize()) * m.GetCellSize();
+  const Vect block_center = block_corner + block_length * 0.5;
+
+  FieldNode<bool> fn_inside(m);
+  if (std::abs(distance(block_center)) > block_length.norm() * 0.5) {
+    fnl.Reinit(m, inside(block_center));
+  } else {
+    for (auto n : m.AllNodes()) {
+      fn_inside[n] = inside(m.GetNode(n));
+    }
+  }
+
   for (auto c : m.AllCells()) {
     const size_t num_nodes = m.GetNumNodes(c);
     size_t num_inside = 0;
     for (size_t i = 0; i < num_nodes; ++i) {
       const IdxNode n = m.GetNode(c, i);
-      if (inside(m.GetNode(n))) {
+      if (fn_inside[n]) {
         ++num_inside;
       }
     }
     // levelset > 0 inside body
-    const Scal inf = m.GetCellSize()[0] * 10; // large value
     if (num_inside == 0) { // whole cell outside
       for (size_t i = 0; i < num_nodes; ++i) {
         const IdxNode n = m.GetNode(c, i);
