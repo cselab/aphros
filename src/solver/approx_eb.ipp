@@ -169,6 +169,18 @@ void InitLevelSetFromModel(
       }
 
       inside_ini(t.nt, t.tri, t.ver, &t.inside_state);
+
+      if (m.IsRoot()) {
+        InsideInfo info;
+        inside_info(t.inside_state, &info);
+        fassert(
+            info.size > m.GetCellSize()[0],
+            util::Format(
+                "{}: Required info.size={} > h={} for model '{}'. Use finer "
+                "mesh or coarser model",
+                __func__, info.size, m.GetCellSize()[0], path));
+      }
+
       for (auto* other : t.ctx_all) {
         other->nt = t.nt;
         other->nv = t.nv;
@@ -179,6 +191,7 @@ void InitLevelSetFromModel(
     }
   }
   if (sem("local")) {
+    // only valid if `x` is close to the surface
     auto distance = [&](Vect x) -> Scal {
       double p[3] = {x[0], x[1], x[2]};
       return inside_distance(t.inside_state, p);
@@ -191,19 +204,9 @@ void InitLevelSetFromModel(
     const Scal inf = m.GetCellSize()[0] * 10; // large value
     fnl.Reinit(m, GetNan<Scal>());
 
-    // test if the whole block does not intersect the surface
-    const Vect block_corner = m.GetNode(*m.AllNodes().begin());
-    const Vect block_length =
-        Vect(m.GetAllBlockCells().GetSize()) * m.GetCellSize();
-    const Vect block_center = block_corner + block_length * 0.5;
-
     FieldNode<bool> fn_inside(m);
-    if (std::abs(distance(block_center)) > block_length.norm() * 0.5) {
-      fn_inside.Reinit(m, inside(block_center));
-    } else {
-      for (auto n : m.AllNodes()) {
-        fn_inside[n] = inside(m.GetNode(n));
-      }
+    for (auto n : m.AllNodes()) {
+      fn_inside[n] = inside(m.GetNode(n));
     }
 
     for (auto c : m.AllCells()) {
@@ -233,7 +236,7 @@ void InitLevelSetFromModel(
       } else { // cell crosses surface
         for (size_t i = 0; i < num_nodes; ++i) {
           const IdxNode n = m.GetNode(c, i);
-          fnl[n] = 0; // mark to distance() later
+          fnl[n] = 0; // mark to call distance() later
         }
       }
     }
