@@ -20,13 +20,11 @@ int main(int argc, const char** argv) {
   USED(argc);
   enum { X, Y, Z };
   double* ver;
-  int i;
-  int Invert;
   int nt;
   int nv;
-  int Pflag;
-  int tmp;
   int* tri;
+  double lo[3];
+  double hi[3];
   struct Inside* inside;
   struct InsideInfo info;
   while (*++argv != NULL && argv[0][0] == '-')
@@ -48,6 +46,9 @@ int main(int argc, const char** argv) {
   }
   inside_ini(nt, tri, ver, &inside);
   inside_info(inside, &info);
+  inside_box(inside, lo, hi);
+  printf("box: [%g %g %g] [%g %g %g]\n",
+	 lo[0], lo[1], lo[2], hi[0], hi[1], hi[2]);
   printf("size = %g\n", info.size);
   printf("nx = %d\n", info.nx);
   printf("ny = %d\n", info.ny);  

@@ -17,8 +17,7 @@ int off_read(FILE*, int* status, int*, int**, int*, double**);
 int ply_read(FILE*, int* status, int*, int**, int*, double**);
 int stl_read(FILE*, int* status, int*, int**, int*, double**);
 
-static int circumradius(
-    const double* u, const double* v, const double* w, double* r);
+static double max_edg(const double* u, const double* v, const double* w);
 static double sq(double);
 static double edg(const double*, const double*);
 static double tri_point_distance2(
@@ -63,7 +62,6 @@ int inside_ini(int nt, const int* tri, const double* ver, struct Inside** pq) {
   const double* hi;
   const double* lo;
   double diameter;
-  double radii;
   double size;
   double x;
   double y;
@@ -101,8 +99,7 @@ int inside_ini(int nt, const int* tri, const double* ver, struct Inside** pq) {
     a = &ver[3 * i];
     b = &ver[3 * j];
     c = &ver[3 * k];
-    if (circumradius(a, b, c, &radii) != 0) return 1;
-    diameter = 2 * radii;
+    diameter = max_edg(a, b, c);
     if (diameter > size) size = diameter;
   }
   bbox_lo(bbox, &lo);
@@ -373,8 +370,8 @@ static double edg(const double* a, const double* b) {
   enum { X, Y, Z };
   return sqrt(sq(a[X] - b[X]) + sq(a[Y] - b[Y]) + sq(a[Z] - b[Z]));
 }
-static int circumradius(
-    const double* u, const double* v, const double* w, double* r) {
+double max_edg(
+		const double* u, const double* v, const double* w) {
   double a;
   double b;
   double c;
@@ -384,12 +381,7 @@ static int circumradius(
   a = edg(v, u);
   b = edg(w, u);
   c = edg(v, w);
-  s = (a + b + c) / 2;
-  num = a * b * c;
-  den = s * (s - a) * (s - b) * (s - c);
-  if (den <= 0) return 1;
-  *r = num / (4 * sqrt(den));
-  return 0;
+  return max(c, max(a, b));
 }
 
 static int vec_minus(const double a[3], const double b[3], /**/ double c[3]) {
