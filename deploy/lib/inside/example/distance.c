@@ -1,3 +1,6 @@
+/*
+c99 distance.c -I.. -L.. -linside -lm
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <inside.h>
@@ -5,25 +8,32 @@
 const char* me = "distance";
 
 static void usg(void) {
-  fprintf(stderr, "%s -p float float float < off\n", me);
+  fprintf(stderr, "%s [-i] -p float float float < off\n", me);
   exit(1);
 }
 
 int main(int argc, const char** argv) {
   enum { X, Y, Z };
+  double p[3];
+  double* ver;
+  int i;
+  int Invert;
   int nt;
   int nv;
-  int* tri;
-  double* ver;
-  double p[3];
   int Pflag;
+  int tmp;
+  int* tri;
   struct Inside* inside;
 
   Pflag = 0;
+  Invert = 0;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
       case 'h':
         usg();
+        break;
+      case 'i':
+        Invert = 1;
         break;
       case 'p':
         argv++;
@@ -52,6 +62,12 @@ int main(int argc, const char** argv) {
     fprintf(stderr, "%s: fail to read mesh '%s'\n", me, argv[0]);
     exit(2);
   }
+  if (Invert)
+    for (i = 0; i < nt; i++) {
+      tmp = tri[3 * i];
+      tri[3 * i] = tri[3 * i + 1];
+      tri[3 * i + 1] = tmp;
+    }
   inside_ini(nt, tri, ver, &inside);
   printf("%.16g\n", inside_distance(inside, p));
   inside_fin(inside);
