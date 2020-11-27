@@ -260,6 +260,13 @@ int inside_inside(struct Inside* q, const double r[3]) {
   return intersect % 2;
 }
 
+int inside_info(struct Inside *q, struct InsideInfo* info) {
+  info->nx = q->list.nx;
+  info->ny = q->list.ny;
+  info->size = q->list.size;
+  return 0;
+}
+
 double inside_distance(struct Inside* q, const double r[3]) {
   const double* a;
   const double* b;
