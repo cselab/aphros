@@ -264,33 +264,45 @@ double inside_distance(struct Inside* q, const double r[3]) {
   const double* a;
   const double* b;
   const double* c;
+  const double* lo;
   const double* ver;
   const int* tri;
-  const double* lo;
   double d;
   double mi;
   double size;
+  int** data;
+  int i;
+  int idx;
+  int item;
   int ix;
   int iy;
-  int i;
   int j;
   int k;
-  int nt;
+  int* n;
+  int nx;
+  int ny;
   int t;
 
   ver = q->ver;
-  nt = q->nt;
   tri = q->tri;
+  nx = q->list.nx;
+  ny = q->list.ny;
+  data = q->list.data;
   size = q->list.size;
+  n = q->list.n;
   lo = q->list.lo;
   ix = (r[X] - lo[X]) / size;
   iy = (r[Y] - lo[Y]) / size;
+  idx = ix + iy * nx;
+  if (idx < 0) idx = 0;
+  if (idx >= nx * ny) idx = nx * ny - 1;
 
   mi = DBL_MAX;
-  for (t = 0; t < nt; t++) {
-    i = *tri++;
-    j = *tri++;
-    k = *tri++;
+  for (item = 0; item < n[idx]; item++) {
+    t = data[idx][item];
+    i = tri[3 * t];
+    j = tri[3 * t + 1];
+    k = tri[3 * t + 2];
     a = &ver[3 * i];
     b = &ver[3 * j];
     c = &ver[3 * k];

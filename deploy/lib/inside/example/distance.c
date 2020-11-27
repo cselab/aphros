@@ -6,13 +6,18 @@ c99 distance.c -I.. -L.. -linside -lm
 #include <inside.h>
 
 const char* me = "distance";
-
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 static void usg(void) {
   fprintf(stderr, "%s [-i] -p float float float < off\n", me);
   exit(1);
 }
 
 int main(int argc, const char** argv) {
+  USED(argc);
   enum { X, Y, Z };
   double p[3];
   double* ver;
