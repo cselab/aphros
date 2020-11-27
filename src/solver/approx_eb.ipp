@@ -233,8 +233,13 @@ void InitLevelSetFromModel(
       } else { // cell crosses surface
         for (size_t i = 0; i < num_nodes; ++i) {
           const IdxNode n = m.GetNode(c, i);
-          fnl[n] = -distance(m.GetNode(n));
+          fnl[n] = 0; // mark to distance() later
         }
+      }
+    }
+    for (auto n : m.AllNodes()) {
+      if (fnl[n] == 0) {
+        fnl[n] = -distance(m.GetNode(n));
       }
     }
   }
