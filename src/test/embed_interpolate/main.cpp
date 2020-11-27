@@ -67,7 +67,9 @@ void EmbedInterpolate<M>::Run() {
   auto& pomz_interp = ctx->pomz_interp;
   if (sem("ctor")) {
     eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
-    ctx->fnl = UEmbed<M>::InitEmbed(m, var, m.IsRoot());
+  }
+  if (sem.Nested("levelset")) {
+    UEmbed<M>::InitLevelSet(ctx->fnl, m, var, m.IsRoot());
   }
   if (sem.Nested("smoothen")) {
     SmoothenNode(ctx->fnl, m, var.Int["embed_smoothen_iters"]);

@@ -388,7 +388,11 @@ void Hydro<M>::InitEmbed() {
     } * ctx(sem);
     if (sem("ctor")) {
       eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
-      ctx->fnl = UEB::InitEmbed(m, var, m.IsRoot());
+    }
+    if (sem.Nested("levelset")) {
+      UEB::InitLevelSet(ctx->fnl, m, var, m.IsRoot());
+    }
+    if (sem("hook")) {
       InitEmbedHook(ctx->fnl, var, m);
     }
     if (sem.Nested("smoothen")) {

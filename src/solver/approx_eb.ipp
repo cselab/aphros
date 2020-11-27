@@ -103,232 +103,272 @@ auto ULinearFit<Scal>::FitLinear(
 // rotation: rotation vector
 // path: path to model
 template <class M>
-FieldNode<typename M::Scal> GetModelLevelSet(
-    typename M::Vect center, typename M::Scal extent, typename M::Vect rotation,
-    std::string path, const M& m) {
+void InitLevelSetFromModel(
+    FieldNode<typename M::Scal>& fnl, typename M::Vect center,
+    typename M::Scal extent, typename M::Vect rotation, std::string path,
+    M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  int nt;
-  int nv;
-  int* tri;
-  double* ver;
-  struct Inside* inside_state;
-
-  if (inside_mesh_read(path.c_str(), &nt, &tri, &nv, &ver) != 0) {
-    throw std::runtime_error(FILELINE + ": fail to read mesh '" + path + "'");
+  auto sem = m.GetSem(__func__);
+  struct Context {
+    int nt;
+    int nv;
+    int* tri;
+    double* ver;
+    Inside* inside_state;
+    std::vector<Context*> ctx_all;
+  };
+  Context* ctx(sem);
+  auto& t = *ctx;
+  if (sem("gather")) {
+    t.ctx_all.push_back(ctx);
+    m.GatherToLead(&t.ctx_all);
   }
-
-  // normalize ver to [0,1] and rotate
-  {
-    // rotates x around omega by angle |omega| degrees with origin at 0
-    auto rotate = [](Vect x, Vect omega) {
-      const Scal magn = omega.norm();
-      if (magn == 0) {
-        return x;
+  if (sem("ini")) {
+    if (m.IsLead()) {
+      if (inside_mesh_read(path.c_str(), &t.nt, &t.tri, &t.nv, &t.ver) != 0) {
+        throw std::runtime_error(
+            FILELINE + ": fail to read mesh '" + path + "'");
       }
-      const Vect n = omega / magn;
-      const Vect tu = Vect::GetUnit(omega.abs().argmin()).cross(n);
-      const Vect tv = n.cross(tu);
-      const Scal xu = x.dot(tu);
-      const Scal xv = x.dot(tv);
-      const Scal a = magn / 180 * M_PI;
-      const Scal ru = xu * std::cos(a) - xv * std::sin(a);
-      const Scal rv = xu * std::sin(a) + xv * std::cos(a);
-      return tu * ru + tv * rv + n * x.dot(n);
+
+      // rescale, translate and rotate the vertices
+      {
+        // rotates x around omega by angle |omega| degrees with origin at 0
+        auto rotate = [](Vect x, Vect omega) {
+          const Scal magn = omega.norm();
+          if (magn == 0) {
+            return x;
+          }
+          const Vect n = omega / magn;
+          const Vect tu = Vect::GetUnit(omega.abs().argmin()).cross(n);
+          const Vect tv = n.cross(tu);
+          const Scal xu = x.dot(tu);
+          const Scal xv = x.dot(tv);
+          const Scal a = magn / 180 * M_PI;
+          const Scal ru = xu * std::cos(a) - xv * std::sin(a);
+          const Scal rv = xu * std::sin(a) + xv * std::cos(a);
+          return tu * ru + tv * rv + n * x.dot(n);
+        };
+        // bounding box
+        Vect box0(std::numeric_limits<Scal>::max());
+        Vect box1(-std::numeric_limits<Scal>::max());
+        for (int i = 0; i < t.nv * 3; ++i) {
+          const int d = i % 3;
+          box0[d] = std::min<Scal>(box0[d], t.ver[i]);
+          box1[d] = std::max<Scal>(box1[d], t.ver[i]);
+        }
+        const Scal box_extent = (box1 - box0).abs().max();
+        const Vect box_center = (box0 + box1) * 0.5;
+        for (int i = 0; i < t.nv * 3; i += 3) {
+          Vect x(t.ver[i], t.ver[i + 1], t.ver[i + 2]);
+          x = center + rotate(x - box_center, rotation) / box_extent * extent;
+          t.ver[i] = x[0];
+          t.ver[i + 1] = x[1];
+          t.ver[i + 2] = x[2];
+        }
+      }
+
+      inside_ini(t.nt, t.tri, t.ver, &t.inside_state);
+      for (auto* other : t.ctx_all) {
+        other->nt = t.nt;
+        other->nv = t.nv;
+        other->tri = t.tri;
+        other->ver = t.ver;
+        other->inside_state = t.inside_state;
+      }
+    }
+  }
+  if (sem("local")) {
+    auto distance = [&](Vect x) -> Scal {
+      double p[3] = {x[0], x[1], x[2]};
+      return inside_distance(t.inside_state, p);
     };
-    // bounding box
-    Vect box0(std::numeric_limits<Scal>::max());
-    Vect box1(-std::numeric_limits<Scal>::max());
-    for (int i = 0; i < nv * 3; ++i) {
-      const int d = i % 3;
-      box0[d] = std::min<Scal>(box0[d], ver[i]);
-      box1[d] = std::max<Scal>(box1[d], ver[i]);
-    }
-    const Scal box_extent = (box1 - box0).abs().max();
-    const Vect box_center = (box0 + box1) * 0.5;
-    for (int i = 0; i < nv * 3; i += 3) {
-      Vect x(ver[i], ver[i + 1], ver[i + 2]);
-      x = center + rotate(x - box_center, rotation) / box_extent * extent;
-      ver[i] = x[0];
-      ver[i + 1] = x[1];
-      ver[i + 2] = x[2];
-    }
-  }
+    auto inside = [&](Vect x) -> bool {
+      double p[3] = {x[0], x[1], x[2]};
+      return inside_inside(t.inside_state, p);
+    };
 
-  inside_ini(nt, tri, ver, &inside_state);
-  auto distance = [&](Vect x) -> Scal {
-    double p[3] = {x[0], x[1], x[2]};
-    return inside_distance(inside_state, p);
-  };
-  auto inside = [&](Vect x) -> bool {
-    double p[3] = {x[0], x[1], x[2]};
-    return inside_inside(inside_state, p);
-  };
+    const Scal inf = m.GetCellSize()[0] * 10; // large value
+    fnl.Reinit(m, GetNan<Scal>());
 
-  const Scal inf = m.GetCellSize()[0] * 10; // large value
-  FieldNode<Scal> fnl(m, GetNan<Scal>());
+    // test if the whole block does not intersect the surface
+    const Vect block_corner = m.GetNode(*m.AllNodes().begin());
+    const Vect block_length =
+        Vect(m.GetAllBlockCells().GetSize()) * m.GetCellSize();
+    const Vect block_center = block_corner + block_length * 0.5;
 
-  // test if the whole block does not interect the surface
-  const Vect block_corner = m.GetCenter(*m.AllCells().begin());
-  const Vect block_length =
-      Vect(m.GetAllBlockCells().GetSize()) * m.GetCellSize();
-  const Vect block_center = block_corner + block_length * 0.5;
-
-  FieldNode<bool> fn_inside(m);
-  if (std::abs(distance(block_center)) > block_length.norm() * 0.5) {
-    fnl.Reinit(m, inside(block_center));
-  } else {
-    for (auto n : m.AllNodes()) {
-      fn_inside[n] = inside(m.GetNode(n));
-    }
-  }
-
-  for (auto c : m.AllCells()) {
-    const size_t num_nodes = m.GetNumNodes(c);
-    size_t num_inside = 0;
-    for (size_t i = 0; i < num_nodes; ++i) {
-      const IdxNode n = m.GetNode(c, i);
-      if (fn_inside[n]) {
-        ++num_inside;
+    FieldNode<bool> fn_inside(m);
+    if (std::abs(distance(block_center)) > block_length.norm() * 0.5) {
+      fn_inside.Reinit(m, inside(block_center));
+    } else {
+      for (auto n : m.AllNodes()) {
+        fn_inside[n] = inside(m.GetNode(n));
       }
     }
-    // levelset > 0 inside body
-    if (num_inside == 0) { // whole cell outside
+
+    for (auto c : m.AllCells()) {
+      const size_t num_nodes = m.GetNumNodes(c);
+      size_t num_inside = 0;
       for (size_t i = 0; i < num_nodes; ++i) {
         const IdxNode n = m.GetNode(c, i);
-        if (IsNan(fnl[n])) {
-          fnl[n] = -inf;
+        if (fn_inside[n]) {
+          ++num_inside;
         }
       }
-    } else if (num_inside == num_nodes) { // whole cell inside
-      for (size_t i = 0; i < num_nodes; ++i) {
-        const IdxNode n = m.GetNode(c, i);
-        if (IsNan(fnl[n])) {
-          fnl[n] = inf;
+      // levelset > 0 inside body
+      if (num_inside == 0) { // whole cell outside
+        for (size_t i = 0; i < num_nodes; ++i) {
+          const IdxNode n = m.GetNode(c, i);
+          if (IsNan(fnl[n])) {
+            fnl[n] = -inf;
+          }
         }
-      }
-    } else { // cell crosses surface
-      for (size_t i = 0; i < num_nodes; ++i) {
-        const IdxNode n = m.GetNode(c, i);
-        fnl[n] = -distance(m.GetNode(n));
+      } else if (num_inside == num_nodes) { // whole cell inside
+        for (size_t i = 0; i < num_nodes; ++i) {
+          const IdxNode n = m.GetNode(c, i);
+          if (IsNan(fnl[n])) {
+            fnl[n] = inf;
+          }
+        }
+      } else { // cell crosses surface
+        for (size_t i = 0; i < num_nodes; ++i) {
+          const IdxNode n = m.GetNode(c, i);
+          fnl[n] = -distance(m.GetNode(n));
+        }
       }
     }
   }
-  inside_fin(inside_state);
-  inside_mesh_fin(tri, ver);
-  return fnl;
+  if (sem("fin")) {
+    if (m.IsLead()) {
+      inside_fin(t.inside_state);
+      inside_mesh_fin(t.tri, t.ver);
+    }
+  }
 }
 
 template <class M>
-auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
-    -> FieldNode<Scal> {
-  FieldNode<Scal> fnl(m); // level-set
+void UEmbed<M>::InitLevelSet(
+    FieldNode<Scal>& fnl, M& m, const Vars& var, bool verb) {
+  auto sem = m.GetSem(__func__);
+  if (sem("init")) {
+    fnl.Reinit(m);
+  }
   const auto name = var.String["eb_init"];
   if (name == "none") {
-    fnl.Reinit(m, 1);
+    if (sem()) {
+      fnl.Reinit(m, 1);
+    }
   } else if (name == "box") {
-    const Vect xc(var.Vect["eb_box_c"]);
-    const Vect r(var.Vect["eb_box_r"]);
-    const Scal angle = M_PI * var.Double["eb_box_angle"];
-    auto rotate = [angle](Vect xx) {
-      const Scal sin = std::sin(angle);
-      const Scal cos = std::cos(angle);
-      const Scal x = xx[0];
-      const Scal y = xx[1];
-      const Scal z = xx[2];
-      return Vect(x * cos - y * sin, x * sin + y * cos, z);
-    };
-    for (auto n : m.AllNodes()) {
-      const Vect x = m.GetNode(n);
-      fnl[n] =
-          (1 - (rotate(x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
+    if (sem()) {
+      const Vect xc(var.Vect["eb_box_c"]);
+      const Vect r(var.Vect["eb_box_r"]);
+      const Scal angle = M_PI * var.Double["eb_box_angle"];
+      auto rotate = [angle](Vect xx) {
+        const Scal sin = std::sin(angle);
+        const Scal cos = std::cos(angle);
+        const Scal x = xx[0];
+        const Scal y = xx[1];
+        const Scal z = xx[2];
+        return Vect(x * cos - y * sin, x * sin + y * cos, z);
+      };
+      for (auto n : m.AllNodes()) {
+        const Vect x = m.GetNode(n);
+        fnl[n] =
+            (1 - (rotate(x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
+      }
     }
   } else if (name == "sphere") {
-    const Vect xc(var.Vect["eb_sphere_c"]);
-    const Vect r(var.Vect["eb_sphere_r"]);
-    const Scal angle = M_PI * var.Double["eb_sphere_angle"];
-    auto rotate = [angle](Vect xx) {
-      const Scal sin = std::sin(angle);
-      const Scal cos = std::cos(angle);
-      const Scal x = xx[0];
-      const Scal y = xx[1];
-      const Scal z = xx[2];
-      return Vect(x * cos - y * sin, x * sin + y * cos, z);
-    };
-    for (auto n : m.AllNodes()) {
-      const Vect x = m.GetNode(n);
-      fnl[n] = (rotate(x - xc) / r).norm() - 1;
+    if (sem()) {
+      const Vect xc(var.Vect["eb_sphere_c"]);
+      const Vect r(var.Vect["eb_sphere_r"]);
+      const Scal angle = M_PI * var.Double["eb_sphere_angle"];
+      auto rotate = [angle](Vect xx) {
+        const Scal sin = std::sin(angle);
+        const Scal cos = std::cos(angle);
+        const Scal x = xx[0];
+        const Scal y = xx[1];
+        const Scal z = xx[2];
+        return Vect(x * cos - y * sin, x * sin + y * cos, z);
+      };
+      for (auto n : m.AllNodes()) {
+        const Vect x = m.GetNode(n);
+        fnl[n] = (rotate(x - xc) / r).norm() - 1;
+      }
     }
   } else if (name == "model") {
-    const std::string path = var.String["eb_model_path"];
-    const Vect center(var.Vect["eb_model_center"]);
-    const Scal extent = var.Double["eb_model_extent"];
-    const Vect rotation(var.Vect["eb_model_rotation"]);
-    fnl = GetModelLevelSet(center, extent, rotation, path, m);
-  } else if (name == "list") {
-    // TODO revise with bcast
-    std::stringstream in;
-    {
-      std::stringstream path(var.String["eb_list_path"]);
-      std::string filename;
-      path >> filename;
-      if (filename == "inline") {
-        if (verb) {
-          std::cout
-              << "InitEmbed: Reading inline list of primitives from list_path"
-              << std::endl;
-        }
-        in << path.rdbuf();
-      } else {
-        filename = path.str();
-        std::ifstream fin(filename);
-        if (verb) {
-          std::cout << "InitEmbed: Open list of primitives '" << filename
-                    << std::endl;
-        }
-        if (!fin.good()) {
-          throw std::runtime_error(
-              FILELINE + ": Can't open list of primitives");
-        }
-        in << fin.rdbuf();
-      }
+    if (sem.Nested()) {
+      const std::string path = var.String["eb_model_path"];
+      const Vect center(var.Vect["eb_model_center"]);
+      const Scal extent = var.Double["eb_model_extent"];
+      const Vect rotation(var.Vect["eb_model_rotation"]);
+      InitLevelSetFromModel(fnl, center, extent, rotation, path, m);
     }
-
-    const size_t edim = var.Int["dim"];
-    auto pp = UPrimList<Scal>::Parse(in, verb, edim);
-
-    auto lsmax = [&pp](Vect x) {
-      Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
-      for (size_t i = 0; i < pp.size(); ++i) {
-        const auto& p = pp[i];
-        Scal li = p.ls(x);
-        if (p.mod_minus) {
-          li = -li;
-        }
-        if (p.mod_and) {
-          lmax = std::min(lmax, li);
+  } else if (name == "list") {
+    if (sem()) {
+      // TODO revise with bcast
+      std::stringstream in;
+      {
+        std::stringstream path(var.String["eb_list_path"]);
+        std::string filename;
+        path >> filename;
+        if (filename == "inline") {
+          if (verb) {
+            std::cout << "InitLevelSet: Reading inline list of primitives from "
+                         "list_path"
+                      << std::endl;
+          }
+          in << path.rdbuf();
         } else {
-          if (li > lmax) {
-            lmax = li;
+          filename = path.str();
+          std::ifstream fin(filename);
+          if (verb) {
+            std::cout << "InitLevelSet: Open list of primitives '" << filename
+                      << std::endl;
+          }
+          if (!fin.good()) {
+            throw std::runtime_error(
+                FILELINE + ": Can't open list of primitives");
+          }
+          in << fin.rdbuf();
+        }
+      }
+
+      const size_t edim = var.Int["dim"];
+      auto pp = UPrimList<Scal>::Parse(in, verb, edim);
+
+      auto lsmax = [&pp](Vect x) {
+        Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
+        for (size_t i = 0; i < pp.size(); ++i) {
+          const auto& p = pp[i];
+          Scal li = p.ls(x);
+          if (p.mod_minus) {
+            li = -li;
+          }
+          if (p.mod_and) {
+            lmax = std::min(lmax, li);
+          } else {
+            if (li > lmax) {
+              lmax = li;
+            }
           }
         }
+        return lmax;
+      };
+      for (auto n : m.AllNodes()) {
+        fnl[n] = lsmax(m.GetNode(n));
       }
-      return lmax;
-    };
-    for (auto n : m.AllNodes()) {
-      fnl[n] = lsmax(m.GetNode(n));
     }
   } else {
     throw std::runtime_error(FILELINE + ": Unknown eb_init=" + name);
   }
-
-  if (var.Int["eb_init_inverse"]) {
-    for (auto n : m.AllNodes()) {
-      fnl[n] = -fnl[n];
+  if (sem()) {
+    if (var.Int["eb_init_inverse"]) {
+      for (auto n : m.AllNodes()) {
+        fnl[n] = -fnl[n];
+      }
     }
+    fnl.SetHalo(2);
   }
-  fnl.SetHalo(2);
-  return fnl;
 }
 
 // Computes gradient at embeded face with Dirichlet conditions

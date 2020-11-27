@@ -107,7 +107,9 @@ void Run(M& m, Vars& var) {
 
   if (sem("ctor")) {
     ctx->eb.reset(new EB(m));
-    ctx->fnl = UEB::InitEmbed(m, var, m.IsRoot());
+  }
+  if (sem.Nested("levelset")) {
+     UEB::InitLevelSet(ctx->fnl, m, var, m.IsRoot());
   }
   if (sem.Nested("init")) {
     ctx->eb->Init(ctx->fnl);

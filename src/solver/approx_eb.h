@@ -143,7 +143,7 @@ struct UEmbed {
     Scal u; // value or normal gradient
   };
 
-  static FieldNode<Scal> InitEmbed(const M& m, const Vars& var, bool verb);
+  static void InitLevelSet(FieldNode<Scal>&, M& m, const Vars& var, bool verb);
 
   // feu: field on embedded boundaries [a]
   // Returns:

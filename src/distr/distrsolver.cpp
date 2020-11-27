@@ -131,6 +131,9 @@ int RunMpi0(
     std::cerr << FILELINE + "\nabort after throwing exception\n"
               << e.what() << '\n';
     std::terminate();
+  } catch (...) {
+    std::cerr << FILELINE + "\nabort after unknown exception\n";
+    std::terminate();
   }
 
   if (isroot) {

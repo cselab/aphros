@@ -31,7 +31,9 @@ void Main(M& m, Vars& var) {
   auto& vf = ctx->vf;
   if (sem()) {
     eb_.reset(new Embed<M>(m, 0));
-    ctx->fnl = UEmbed<M>::InitEmbed(m, var, false);
+  }
+  if (sem.Nested("levelset")) {
+    UEmbed<M>::InitLevelSet(ctx->fnl, m, var, false);
   }
   if (sem.Nested()) {
     eb_->Init(ctx->fnl);
