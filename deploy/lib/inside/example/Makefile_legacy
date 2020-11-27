@@ -1,0 +1,18 @@
+.POSIX:
+.SUFFIXES:
+.SUFFIXES: .c
+
+CFLAGS = -O2 -g
+
+M = \
+box\
+circumradius\
+distance2\
+distance\
+point2\
+point\
+read\
+
+all: $M
+.c:; $(CC) $< $(CFLAGS) $(LDFLAGS) -I.. -L.. -linside -lm -o $@
+clean:; rm -f $M
