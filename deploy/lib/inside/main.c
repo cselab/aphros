@@ -125,16 +125,16 @@ int inside_ini(int nt, const int* tri, const double* ver, struct Inside** pq) {
 
     for (dx = -1; dx < 2; dx++)
       for (dy = -1; dy < 2; dy++) {
-        jx = ix + dx;
-        jy = iy + dy;
-        if (jx < 0 || jy < 0) continue;
-        if (jx >= nx || jy >= ny) continue;
-        j = jx + jy * nx;
-        if (n[j] >= cap[j]) {
-          cap[j] *= 2;
-          REALLOC(cap[j], &data[j]);
-        }
-        data[j][n[j]++] = t;
+	jx = ix + dx;
+	jy = iy + dy;
+	j = jx + jy * nx;
+	if (j < 0) j = 0;
+	if (j >= nx * ny) j = nx * ny - 1;
+	if (n[j] >= cap[j]) {
+	  cap[j] *= 2;
+	  REALLOC(cap[j], &data[j]);
+	}
+	data[j][n[j]++] = t;
       }
   }
   q->nt = nt;
