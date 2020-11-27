@@ -266,8 +266,12 @@ double inside_distance(struct Inside* q, const double r[3]) {
   const double* c;
   const double* ver;
   const int* tri;
+  const double* lo;
   double d;
   double mi;
+  double size;
+  int ix;
+  int iy;
   int i;
   int j;
   int k;
@@ -277,6 +281,11 @@ double inside_distance(struct Inside* q, const double r[3]) {
   ver = q->ver;
   nt = q->nt;
   tri = q->tri;
+  size = q->list.size;
+  lo = q->list.lo;
+  ix = (r[X] - lo[X]) / size;
+  iy = (r[Y] - lo[Y]) / size;
+
   mi = DBL_MAX;
   for (t = 0; t < nt; t++) {
     i = *tri++;
