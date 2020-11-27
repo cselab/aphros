@@ -13,23 +13,20 @@ install: $L $H
 	cp -- $L "$(PREFIX)/lib/"
 	cp -- $H "$(PREFIX)/include/"
 clean:; rm -f -- $O $L
-main.o: bbox.h
-main.o: err.h
-main.o: memory.h
 bbox.o: bbox.h
 bbox.o: err.h
 bbox.o: memory.h
 err.o: err.h
+main.o: bbox.h
+main.o: err.h
+main.o: memory.h
 memory.o: memory.h
-off.o: inside.h
 off.o: err.h
-plo.o: ply.h
-ply.o: inside.h
 plo.o: memory.h
-predicate.o: predicate.h
+plo.o: ply.h
+predicate/main.o: predicate/main.inc
 predicate.o: err.h
+predicate.o: predicate.h
 predicate.o: predicate/main.inc
 stl.o: err.h
-stl.o: inside.h
 stl.o: memory.h
-predicate/main.o: predicate/main.inc
