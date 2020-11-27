@@ -6,8 +6,6 @@ struct InsideInfo {
   double size;
   int nx;
   int ny;
-  int max_n;
-  int min_n;
 };
 int inside_ini(int, const int* tri, const double* ver, struct Inside**);
 int inside_fin(struct Inside*);
