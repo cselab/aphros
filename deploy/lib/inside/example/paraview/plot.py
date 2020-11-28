@@ -19,6 +19,7 @@ renderView1.Background = [1.0, 1.0, 1.0]
 surf = LegacyVTKReader(FileNames=['bc.vtk'])
 
 surfDisplay = Show(surf, renderView1)
+surfDisplay.Representation = "Surface With Edges"
 surfDisplay.ColorArrayName = [None, '']
 surfDisplay.DiffuseColor = [1.0, 1.0, 1.0]
 
