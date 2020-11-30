@@ -66,6 +66,7 @@ int main(int argc, const char** argv) {
     cnt = plain_tri(n, alpha, a, b, c, p);
     for (k = 0; k < cnt; k++)
       printf("%g %g %g\n", p[3 * k], p[3 * k + 1], p[3 * k + 2]);
+    printf("\n\n");
   }
   inside_mesh_fin(tri, ver);
 }
