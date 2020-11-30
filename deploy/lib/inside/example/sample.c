@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <inside.h>
 
-const char* me = "naive";
+const char* me = "sample";
 #define USED(x) \
   if (x)        \
     ;           \
