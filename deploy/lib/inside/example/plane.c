@@ -14,7 +14,7 @@ static double eps = 1e-10;
   }
 
 static void usg(void) {
-  fprintf(stderr, "%s mesh > off\n", me);
+  fprintf(stderr, "%s -a alpha -n x y z mesh > off\n", me);
   exit(1);
 }
 static int plain_tri(
@@ -22,15 +22,50 @@ static int plain_tri(
     double*);
 int main(int argc, const char** argv) {
   USED(argc);
+  enum { X, Y, Z };
+  const double* a;
+  const double* b;
+  const double* c;
+  double alpha;
+  double n[3];
+  double p[9];
+  double* ver;
+  int cnt;
+  int i;
+  int j;
+  int k;
   int nt;
   int nv;
+  int t;
+  int Aflag;
+  int Nflag;
   int* tri;
-  double* ver;
 
+  Aflag = Nflag = 0;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
       case 'h':
         usg();
+        break;
+      case 'a':
+        argv++;
+        if (*argv == NULL) {
+          fprintf(stderr, "%s: -a needs an argument\n", me);
+          return 2;
+        }
+        alpha = atof(*argv);
+        Aflag = 1;
+        break;
+      case 'n':
+        argv++;
+        if (argv[0] == NULL || argv[1] == NULL || argv[2] == NULL) {
+          fprintf(stderr, "%s: -n needs three arguments\n", me);
+          return 2;
+        }
+        n[X] = atof(*argv++);
+        n[Y] = atof(*argv++);
+        n[Z] = atof(*argv);
+        Nflag = 1;
         break;
       default:
         fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
@@ -40,22 +75,20 @@ int main(int argc, const char** argv) {
     fprintf(stderr, "%s: mesh file is missing\n", me);
     exit(2);
   }
+  if (Nflag == 0) {
+    fprintf(stderr, "%s: -n is not set\n", me);
+    exit(2);
+  }
+  if (Aflag == 0) {
+    fprintf(stderr, "%s: -a is not set\n", me);
+    exit(2);
+  }
+
   if (inside_mesh_read(argv[0], &nt, &tri, &nv, &ver) != 0) {
     fprintf(stderr, "%s: fail to read mesh '%s'\n", me, argv[0]);
     exit(2);
   }
 
-  int t;
-  int i;
-  int j;
-  int k;
-  int cnt;
-  double p[9];
-  const double* a;
-  const double* b;
-  const double* c;
-  double alpha = 0.0;
-  double n[3] = {0, 1, 0};
   for (t = 0; t < nt; t++) {
     i = tri[3 * t];
     j = tri[3 * t + 1];
@@ -64,9 +97,11 @@ int main(int argc, const char** argv) {
     b = &ver[3 * j];
     c = &ver[3 * k];
     cnt = plain_tri(n, alpha, a, b, c, p);
-    for (k = 0; k < cnt; k++)
-      printf("%g %g %g\n", p[3 * k], p[3 * k + 1], p[3 * k + 2]);
-    printf("\n\n");
+    if (cnt) {
+      for (k = 0; k < cnt; k++)
+        printf("%g %g %g\n", p[3 * k], p[3 * k + 1], p[3 * k + 2]);
+      printf("\n\n");
+    }
   }
   inside_mesh_fin(tri, ver);
 }
