@@ -2,14 +2,19 @@
 #include <stdlib.h>
 #include <inside.h>
 
-const char* me = "point2";
-
+static const char* me = "point2";
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 static void usg(void) {
   fprintf(stderr, "%s -p float float float < off\n", me);
   exit(1);
 }
 
 int main(int argc, const char** argv) {
+  USED(argc);
   enum { X, Y, Z };
   int nt;
   int nv;

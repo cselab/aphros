@@ -1,10 +1,17 @@
 #include <ctype.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <inside.h>
 
-const char* me = "plane";
+static const char* me = "plane";
+static double eps = 1e-10;
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 
 static void usg(void) {
   fprintf(stderr, "%s mesh > off\n", me);
@@ -12,6 +19,7 @@ static void usg(void) {
 }
 
 int main(int argc, const char** argv) {
+  USED(argc);
   int nt;
   int nv;
   int* tri;
@@ -35,4 +43,57 @@ int main(int argc, const char** argv) {
     exit(2);
   }
   inside_mesh_fin(tri, ver);
+}
+
+static double plane_point(const double n[3], double alpha, const double p[3])
+{
+  enum {X, Y, Z};
+  return n[X]*p[X] + n[Y]*p[Y] + n[Z]*p[Z] + alpha;
+}
+
+static int plain_edg(const double n[3], double alpha, const double a[3], const double b[3], /**/ double p[3])
+{
+  enum {X, Y, Z};  
+  double x;
+  double y;
+  double t;
+  x = plane_point(n, alpha, a);
+  if (fabs(x) < eps) {
+    p[X] = a[X];
+    p[Y] = a[Y];
+    p[Z] = a[Z];
+    return 1;
+  }
+  y = plane_point(n, alpha, b);
+  if (fabs(y) < eps) {
+    p[X] = b[X];
+    p[Y] = b[Y];
+    p[Z] = b[Z];
+    return 1;
+  }  
+  if (x * y > 0)
+    return 0;
+  t = x / (x - y);
+  p[X] = a[X] + t * (b[X] - a[X]);
+  p[Y] = a[Y] + t * (b[Y] - a[Y]);
+  p[Y] = a[Z] + t * (b[Z] - a[Z]);
+  return 1;
+}
+
+static int plain_tri(const double n[3], double alpha, const double a[3], const double b[3], const double c[3], double *ver) {
+  int cnt;
+  cnt = 0;
+  if (plain_edg(n, alpha, a, b, ver)) {
+    cnt ++;
+    ver += 3;
+  }
+  if (plain_edg(n, alpha, b, c, ver)) {
+    cnt ++;
+    ver += 3;
+  }
+  if (plain_edg(n, alpha, c, a, ver)) {
+    cnt ++;
+    ver += 3;
+  }  
+  return cnt;
 }

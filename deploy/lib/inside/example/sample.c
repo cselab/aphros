@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <inside.h>
 
-const char* me = "sample";
+static const char* me = "sample";
 enum { seed = 12345 };
 #define USED(x) \
   if (x)        \
@@ -22,7 +22,6 @@ int main(int argc, const char** argv) {
   double b;
   double hi[3];
   double lo[3];
-  double p[3];
   double r[3];
   double size;
   double* ver;

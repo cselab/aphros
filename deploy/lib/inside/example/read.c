@@ -4,14 +4,19 @@
 #include <string.h>
 #include <inside.h>
 
-const char* me = "read";
-
+static const char* me = "read";
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 static void usg(void) {
   fprintf(stderr, "%s mesh > off\n", me);
   exit(1);
 }
 
 int main(int argc, const char** argv) {
+  USED(argc);
   int nt;
   int nv;
   int* tri;

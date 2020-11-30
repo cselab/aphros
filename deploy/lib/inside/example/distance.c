@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <inside.h>
 
-const char* me = "distance";
+static const char* me = "distance";
 #define USED(x) \
   if (x)        \
     ;           \
