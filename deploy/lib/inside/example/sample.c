@@ -3,6 +3,7 @@
 #include <inside.h>
 
 const char* me = "sample";
+enum {seed = 12345};
 #define USED(x) \
   if (x)        \
     ;           \
@@ -27,6 +28,7 @@ int main(int argc, const char** argv) {
   double* ver;
   int i;
   int Invert;
+  int Nflag;
   int n;
   int nt;
   int nv;
@@ -36,25 +38,39 @@ int main(int argc, const char** argv) {
   struct Inside* inside;
 
   Invert = 0;
+  Nflag = 0;
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
       case 'h':
-        usg();
-        break;
+	usg();
+	break;
       case 'i':
-        Invert = 1;
-        break;
+	Invert = 1;
+	break;
+      case 'n':
+	Nflag = 1;
+	argv++;
+	if (*argv == NULL) {
+	  fprintf(stderr, "%s: -n needs an argument\n", me);
+	  return 2;
+	}
+	n = atoi(*argv);
+	break;
       default:
-        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-        exit(2);
+	fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+	return 2;
     }
+  if (Nflag == 0) {
+    fprintf(stderr, "%s: -n is not set\n", me);
+    return 2;
+  }
   if (argv[0] == NULL) {
     fprintf(stderr, "%s: mesh file is missing\n", me);
-    exit(2);
+    return 2;
   }
   if (inside_mesh_read(argv[0], &nt, &tri, &nv, &ver) != 0) {
     fprintf(stderr, "%s: fail to read mesh '%s'\n", me, argv[0]);
-    exit(2);
+    return 2;
   }
   if (Invert)
     for (i = 0; i < nt; i++) {
@@ -67,7 +83,7 @@ int main(int argc, const char** argv) {
   inside_info(inside, &info);
   size = info.size;
   fprintf(stderr, "size: %g\n", size);
-  n = 10000;
+  srand(seed);
   for (i = 0; i < n; i++) {
     r[X] = rnd(lo[X], hi[X]);
     r[Y] = rnd(lo[Y], hi[Y]);
