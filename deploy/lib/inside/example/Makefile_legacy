@@ -13,6 +13,7 @@ naive\
 point\
 point2\
 read\
+sample\
 
 all: $M
 .c:; $(CC) $< $(CFLAGS) $(LDFLAGS) -I.. -L.. -linside -lm -o $@
