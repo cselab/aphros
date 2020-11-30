@@ -2719,9 +2719,15 @@ void Hydro<M>::ReportSysinfo(std::ostream& out) {
       if (m.IsRoot()) {
         out << "\nOpenMP num_threads: " << t.info.omp_num_threads;
         out << "\nOpenMP max_threads: " << t.info.omp_max_threads;
-        out << "\nHostname\n";
-        for (auto h : t.hostname) {
-          out << std::string(h.begin(), h.end()) << ' ';
+        {
+          std::map<std::string, int> map;
+          for (auto h : t.hostname) {
+            ++map[std::string(h.begin(), h.end())];
+          }
+          out << "\nHostname\n";
+          for (auto p : map) {
+            out << p.first << ' ' << p.second << '\n';
+          }
         }
         if (!t.cuda_uuid.empty()) {
           out << "\nCUDA GPU UUID\n";
