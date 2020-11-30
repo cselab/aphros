@@ -44,11 +44,13 @@ int main(int argc, const char** argv) {
   inside_ini(nt, tri, ver, &inside);
   inside_info(inside, &info);
   inside_box(inside, lo, hi);
-  printf("box: [%g %g %g] [%g %g %g]\n",
-	 lo[0], lo[1], lo[2], hi[0], hi[1], hi[2]);
+  printf("%+-.16e %+-.16e %+-.16e\n", lo[X], lo[Y], lo[Z]);
+  printf("%+-.16e %+-.16e %+-.16e\n", hi[X], hi[Y], hi[Z]);
   printf("size = %g\n", info.size);
   printf("nx = %d\n", info.nx);
-  printf("ny = %d\n", info.ny);  
+  printf("ny = %d\n", info.ny);
+  printf("min_tri = %d\n", info.min_tri);
+  printf("max_tri = %d\n", info.max_tri);
   inside_fin(inside);
   inside_mesh_fin(tri, ver);
 }

@@ -1,4 +1,5 @@
 #include <float.h>
+#include <limits.h>
 #include <math.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -122,16 +123,16 @@ int inside_ini(int nt, const int* tri, const double* ver, struct Inside** pq) {
 
     for (dx = -1; dx < 2; dx++)
       for (dy = -1; dy < 2; dy++) {
-	jx = ix + dx;
-	jy = iy + dy;
-	j = jx + jy * nx;
-	if (j < 0) j = 0;
-	if (j >= nx * ny) j = nx * ny - 1;
-	if (n[j] >= cap[j]) {
-	  cap[j] *= 2;
-	  REALLOC(cap[j], &data[j]);
-	}
-	data[j][n[j]++] = t;
+        jx = ix + dx;
+        jy = iy + dy;
+        j = jx + jy * nx;
+        if (j < 0) j = 0;
+        if (j >= nx * ny) j = nx * ny - 1;
+        if (n[j] >= cap[j]) {
+          cap[j] *= 2;
+          REALLOC(cap[j], &data[j]);
+        }
+        data[j][n[j]++] = t;
       }
   }
   q->nt = nt;
@@ -254,10 +255,35 @@ int inside_inside(struct Inside* q, const double r[3]) {
   return intersect % 2;
 }
 
-int inside_info(struct Inside *q, struct InsideInfo* info) {
-  info->nx = q->list.nx;
-  info->ny = q->list.ny;
+int inside_info(struct Inside* q, struct InsideInfo* info) {
+  int nx;
+  int ny;
+  int ix;
+  int iy;
+  int idx;
+  int tri;
+  int max_tri;
+  int min_tri;
+  const int* n;
+  nx = info->nx = q->list.nx;
+  ny = info->ny = q->list.ny;
   info->size = q->list.size;
+  n = q->list.n;
+  max_tri = 0;
+  min_tri = INT_MAX;
+  for (ix = 0; ix < nx; ix++)
+    for (iy = 0; iy < ny; iy++) {
+      idx = ix + iy * nx;
+      if (idx < 0) idx = 0;
+      if (idx >= nx * ny) idx = nx * ny - 1;
+      tri = n[idx];
+      if (tri > max_tri) max_tri = tri;
+      if (tri < min_tri) min_tri = tri;
+    }
+
+  info->min_tri = min_tri;
+  info->max_tri = max_tri;
+
   return 0;
 }
 
@@ -367,8 +393,7 @@ static double edg(const double* a, const double* b) {
   enum { X, Y, Z };
   return sqrt(sq(a[X] - b[X]) + sq(a[Y] - b[Y]) + sq(a[Z] - b[Z]));
 }
-double max_edg(
-		const double* u, const double* v, const double* w) {
+double max_edg(const double* u, const double* v, const double* w) {
   double a;
   double b;
   double c;

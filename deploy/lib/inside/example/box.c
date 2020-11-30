@@ -44,8 +44,8 @@ int main(int argc, const char** argv) {
   }
 
   inside_box(inside, lo, hi);
-  printf("%.16e %.16e %.16e\n", lo[X], lo[Y], lo[Z]);
-  printf("%.16e %.16e %.16e\n", hi[X], hi[Y], hi[Z]);
+  printf("%+-.16e %+-.16e %+-.16e\n", lo[X], lo[Y], lo[Z]);
+  printf("%+-.16e %+-.16e %+-.16e\n", hi[X], hi[Y], hi[Z]);
 
   inside_fin(inside);
   inside_mesh_fin(tri, ver);
