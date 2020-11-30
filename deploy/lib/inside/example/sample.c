@@ -3,7 +3,7 @@
 #include <inside.h>
 
 const char* me = "sample";
-enum {seed = 12345};
+enum { seed = 12345 };
 #define USED(x) \
   if (x)        \
     ;           \
@@ -42,23 +42,23 @@ int main(int argc, const char** argv) {
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
       case 'h':
-	usg();
-	break;
+        usg();
+        break;
       case 'i':
-	Invert = 1;
-	break;
+        Invert = 1;
+        break;
       case 'n':
-	Nflag = 1;
-	argv++;
-	if (*argv == NULL) {
-	  fprintf(stderr, "%s: -n needs an argument\n", me);
-	  return 2;
-	}
-	n = atoi(*argv);
-	break;
+        Nflag = 1;
+        argv++;
+        if (*argv == NULL) {
+          fprintf(stderr, "%s: -n needs an argument\n", me);
+          return 2;
+        }
+        n = atoi(*argv);
+        break;
       default:
-	fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-	return 2;
+        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+        return 2;
     }
   if (Nflag == 0) {
     fprintf(stderr, "%s: -n is not set\n", me);

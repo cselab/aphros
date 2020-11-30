@@ -6,6 +6,7 @@ CFLAGS = -O2 -g
 
 M = \
 box\
+convert\
 distance\
 distance2\
 info\
