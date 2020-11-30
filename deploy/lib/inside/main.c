@@ -343,6 +343,41 @@ double inside_distance(struct Inside* q, const double r[3]) {
     return d;
 }
 
+double inside_distance_naive(struct Inside* q, const double r[3]) {
+  const double* a;
+  const double* b;
+  const double* c;
+  const double* ver;
+  const int* tri;
+  double d;
+  double mi;
+  int i;
+  int j;
+  int k;
+  int t;
+  int nt;
+
+  ver = q->ver;
+  tri = q->tri;
+  nt = q->nt;
+  mi = DBL_MAX;
+  for (t = 0; t < nt; t++) {
+    i = tri[3 * t];
+    j = tri[3 * t + 1];
+    k = tri[3 * t + 2];
+    a = &ver[3 * i];
+    b = &ver[3 * j];
+    c = &ver[3 * k];
+    d = tri_point_distance2(a, b, c, r);
+    if (d < mi) mi = d;
+  }
+  d = sqrt(mi);
+  if (inside_inside(q, r))
+    return -d;
+  else
+    return d;
+}
+
 typedef int (*const ReadType)(
     FILE*, int* status, int* nt, int** tri, int* nv, double** ver);
 static const ReadType Read[] = {off_read, ply_read, stl_read};

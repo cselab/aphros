@@ -6,11 +6,12 @@ CFLAGS = -O2 -g
 
 M = \
 box\
-distance2\
 distance\
+distance2\
 info\
-point2\
+naive\
 point\
+point2\
 read\
 
 all: $M
