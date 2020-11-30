@@ -36,6 +36,8 @@ target_link_libraries(${T} approx_eb)
 if (USE_AVX)
   target_compile_definitions(${T} PRIVATE _USE_AVX_=1)
   target_compile_options(${T} PRIVATE -march=native)
+else ()
+  target_compile_definitions(${T} PRIVATE _USE_AVX_=0)
 endif ()
 
 set(T "curv")
