@@ -2,7 +2,7 @@
 .SUFFIXES:
 .SUFFIXES: .c
 
-CFLAGS = -O2 -g
+CFLAGS = -O0 -g
 
 M = \
 box\

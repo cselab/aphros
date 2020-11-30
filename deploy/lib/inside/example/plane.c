@@ -1,3 +1,11 @@
+/*
+
+$ ./plane -a -0 -n 0 1 0 ~/g.off > q
+$ gnuplot
+$ plot [-30:30][-30:30] "q" u 1:3 w lp lw 2
+
+ */
+
 #include <ctype.h>
 #include <math.h>
 #include <stdio.h>
@@ -6,7 +14,7 @@
 #include <inside.h>
 
 static const char* me = "plane";
-static double eps = 1e-10;
+static double eps = 1e-6;
 #define USED(x) \
   if (x)        \
     ;           \
@@ -20,6 +28,7 @@ static void usg(void) {
 static int plain_tri(
     const double[3], double, const double[3], const double[3], const double[3],
     double*);
+static double dist2(const double[3], const double[3]);
 int main(int argc, const char** argv) {
   USED(argc);
   enum { X, Y, Z };
@@ -45,31 +54,31 @@ int main(int argc, const char** argv) {
   while (*++argv != NULL && argv[0][0] == '-')
     switch (argv[0][1]) {
       case 'h':
-        usg();
-        break;
+	usg();
+	break;
       case 'a':
-        argv++;
-        if (*argv == NULL) {
-          fprintf(stderr, "%s: -a needs an argument\n", me);
-          return 2;
-        }
-        alpha = atof(*argv);
-        Aflag = 1;
-        break;
+	argv++;
+	if (*argv == NULL) {
+	  fprintf(stderr, "%s: -a needs an argument\n", me);
+	  return 2;
+	}
+	alpha = atof(*argv);
+	Aflag = 1;
+	break;
       case 'n':
-        argv++;
-        if (argv[0] == NULL || argv[1] == NULL || argv[2] == NULL) {
-          fprintf(stderr, "%s: -n needs three arguments\n", me);
-          return 2;
-        }
-        n[X] = atof(*argv++);
-        n[Y] = atof(*argv++);
-        n[Z] = atof(*argv);
-        Nflag = 1;
-        break;
+	argv++;
+	if (argv[0] == NULL || argv[1] == NULL || argv[2] == NULL) {
+	  fprintf(stderr, "%s: -n needs three arguments\n", me);
+	  return 2;
+	}
+	n[X] = atof(*argv++);
+	n[Y] = atof(*argv++);
+	n[Z] = atof(*argv);
+	Nflag = 1;
+	break;
       default:
-        fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
-        exit(2);
+	fprintf(stderr, "%s: unknown option '%s'\n", me, argv[0]);
+	exit(2);
     }
   if (argv[0] == NULL) {
     fprintf(stderr, "%s: mesh file is missing\n", me);
@@ -89,6 +98,14 @@ int main(int argc, const char** argv) {
     exit(2);
   }
 
+  double *pp;
+  int cap;
+  int np;
+  int l;
+  int Found;
+
+  np = cap = 0;
+  pp = NULL;
   for (t = 0; t < nt; t++) {
     i = tri[3 * t];
     j = tri[3 * t + 1];
@@ -98,11 +115,34 @@ int main(int argc, const char** argv) {
     c = &ver[3 * k];
     cnt = plain_tri(n, alpha, a, b, c, p);
     if (cnt) {
-      for (k = 0; k < cnt; k++)
-        printf("%g %g %g\n", p[3 * k], p[3 * k + 1], p[3 * k + 2]);
+      for (k = 0; k < cnt; k++) {
+	Found = 0;
+	for (l = 0; l < np; l++)
+	  if (dist2(&p[3*k], &pp[3*l]) < eps*eps) {
+	    Found = 1;
+	    break;
+	  }
+	if (Found) {
+	  fprintf(stderr, "l: %d %d\n", l, np);
+	} else {
+	  if (np >= cap) {
+	    cap = 2*cap + 1;
+	    if ((pp = realloc(pp, 3 * cap * sizeof *pp)) == NULL) {
+	      fprintf(stderr, "%s: realloc failed\n", me);
+	      return 2;
+	    }
+	  }
+	  pp[3*np] = p[3*k];
+	  pp[3*np + 1] = p[3*k + 1];
+	  pp[3*np + 2] = p[3*k + 2];
+	  np++;
+	}
+	printf("%+-.16e %+-.16e %+-.16e %d\n", p[3 * k], p[3 * k + 1], p[3 * k + 2], l);
+      }
       printf("\n\n");
     }
   }
+  free(pp);
   inside_mesh_fin(tri, ver);
 }
 
@@ -158,4 +198,12 @@ static int plain_tri(
     ver += 3;
   }
   return cnt;
+}
+
+static double sq(double x) {
+  return x * x;
+}
+static double dist2(const double a[3], const double b[3]) {
+  enum {X, Y, Z};
+  return sq(a[X] - b[X]) + sq(a[Y] - b[Y]) + sq(a[Z] - b[Z]);
 }
