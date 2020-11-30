@@ -67,7 +67,7 @@ int main(int argc, const char** argv) {
   inside_info(inside, &info);
   size = info.size;
   fprintf(stderr, "size: %g\n", size);
-  n = 100;
+  n = 10000;
   for (i = 0; i < n; i++) {
     r[X] = rnd(lo[X], hi[X]);
     r[Y] = rnd(lo[Y], hi[Y]);
