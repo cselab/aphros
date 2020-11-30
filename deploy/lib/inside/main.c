@@ -255,6 +255,26 @@ int inside_inside(struct Inside* q, const double r[3]) {
   return intersect % 2;
 }
 
+int inside_fwrite(struct Inside* q, FILE* file) {
+  int nx;
+  int ny;
+  int ix;
+  int iy;
+  int idx;
+  const int* n;
+  nx = q->list.nx;
+  ny = q->list.ny;
+  n = q->list.n;
+  for (ix = 0; ix < nx; ix++)
+    for (iy = 0; iy < ny; iy++) {
+      idx = ix + iy * nx;
+      if (idx < 0) idx = 0;
+      if (idx >= nx * ny) idx = nx * ny - 1;
+      if (fprintf(file, "%d %d %d\n", ix, iy, n[idx]) < 0) return 1;
+    }
+  return 0;
+}
+
 int inside_info(struct Inside* q, struct InsideInfo* info) {
   int nx;
   int ny;

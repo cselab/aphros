@@ -17,6 +17,7 @@ double inside_distance(struct Inside*, const double[3]);
 double inside_distance_naive(struct Inside*, const double[3]);
 int inside_box(struct Inside*, double[3], double[3]);
 int inside_info(struct Inside*, struct InsideInfo*);
+int inside_fwrite(struct Inside*, FILE*);
 int inside_mesh_read(const char*, int* nt, int** tri, int* nv, double** ver);
 int inside_mesh_fin(int* tri, double* ver);
 int off_write(int nt, const int*, int nv, const double*, FILE*);

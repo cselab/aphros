@@ -51,6 +51,7 @@ int main(int argc, const char** argv) {
   printf("ny = %d\n", info.ny);
   printf("min_tri = %d\n", info.min_tri);
   printf("max_tri = %d\n", info.max_tri);
+  inside_fwrite(inside, stdout);
   inside_fin(inside);
   inside_mesh_fin(tri, ver);
 }

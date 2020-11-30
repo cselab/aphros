@@ -17,16 +17,22 @@ static double rnd(double, double);
 int main(int argc, const char** argv) {
   USED(argc);
   enum { X, Y, Z };
+  double a;
+  double b;
   double hi[3];
   double lo[3];
   double p[3];
+  double r[3];
+  double size;
   double* ver;
   int i;
   int Invert;
+  int n;
   int nt;
   int nv;
   int tmp;
   int* tri;
+  struct InsideInfo info;
   struct Inside* inside;
 
   Invert = 0;
@@ -58,36 +64,26 @@ int main(int argc, const char** argv) {
     }
   inside_ini(nt, tri, ver, &inside);
   inside_box(inside, lo, hi);
-
-  int n;
-  double a;
-  double b;
-  double r[3];
-  double size;
-  struct InsideInfo info;
-
   inside_info(inside, &info);
   size = info.size;
   fprintf(stderr, "size: %g\n", size);
   n = 100;
-  for (i = 0; i < n; i++)
-  {
-      r[X] = rnd(lo[X], hi[X]);
-      r[Y] = rnd(lo[Y], hi[Y]);
-      r[Z] = rnd(lo[Z], hi[Z]);
-      a = inside_distance(inside, r);
-      b = inside_distance_naive(inside, r);
-      if ((-size < b || b < size) && a != b)
-          printf("%g %g %g %g %g\n", r[X], r[Y], r[Z], a, b);
+  for (i = 0; i < n; i++) {
+    r[X] = rnd(lo[X], hi[X]);
+    r[Y] = rnd(lo[Y], hi[Y]);
+    r[Z] = rnd(lo[Z], hi[Z]);
+    a = inside_distance(inside, r);
+    b = inside_distance_naive(inside, r);
+    if (-size < b && b < size && a != b)
+      printf("%g %g %g %g %g\n", r[X], r[Y], r[Z], a, b);
   }
 
-  
   inside_fin(inside);
   inside_mesh_fin(tri, ver);
 }
 
 static double rnd(double a, double b) {
-    double s;
-    s  = (double)rand() / (RAND_MAX + 1.0);
-    return s * (b - a) + a;
+  double s;
+  s = (double)rand() / (RAND_MAX + 1.0);
+  return s * (b - a) + a;
 }
