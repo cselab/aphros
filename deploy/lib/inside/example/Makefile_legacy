@@ -6,7 +6,6 @@ CFLAGS = -O2 -g
 
 M = \
 box\
-circumradius\
 distance2\
 distance\
 info\
