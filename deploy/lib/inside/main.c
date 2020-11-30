@@ -61,10 +61,9 @@ int inside_ini(int nt, const int* tri, const double* ver, struct Inside** pq) {
   const double* c;
   const double* hi;
   const double* lo;
+  const double* r;
   double diameter;
   double size;
-  double x;
-  double y;
   int* cap;
   int** data;
   int dx;
@@ -117,11 +116,9 @@ int inside_ini(int nt, const int* tri, const double* ver, struct Inside** pq) {
 
   for (t = 0; t < nt; t++) {
     i = tri[3 * t];
-    a = &ver[3 * i];
-    x = a[X] - lo[X];
-    y = a[Y] - lo[Y];
-    ix = x / size;
-    iy = y / size;
+    r = &ver[3 * i];
+    ix = (r[X] - lo[X]) / size;
+    iy = (r[Y] - lo[Y]) / size;
 
     for (dx = -1; dx < 2; dx++)
       for (dy = -1; dy < 2; dy++) {
@@ -375,9 +372,6 @@ double max_edg(
   double a;
   double b;
   double c;
-  double s;
-  double num;
-  double den;
   a = edg(v, u);
   b = edg(w, u);
   c = edg(v, w);
