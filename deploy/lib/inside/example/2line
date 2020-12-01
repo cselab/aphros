@@ -30,8 +30,12 @@ def many(p, line):
     for i, l in enumerate(line):
         x = [xx[e] for e in l]
         y = [yy[e] for e in l]
+        if y[0] > 0:
+            x.reverse()
+            y.reverse()
+            y = [-e for e in y]
         m = x.index(max(x))
-        sys.stderr.write("%-.16e %-.16e\n" % (x[m], y[m]))
+        # sys.stderr.write("%-.16e %-.16e\n" % (x[m], y[m]))
         with open("%02d.line" % i, 'w') as f:
             for u, v in zip(x, y):
                 f.write("%-.16e %-.16e\n" % (u - x[m], v - y[m]))
