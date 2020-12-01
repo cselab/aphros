@@ -20,8 +20,16 @@ def gnuplot(p, line):
         print(p[l[0]])
         print("\n")
 
+def one(p, line):
+    l = line[1]
+    for e in l:
+        print(p[e])
+    print(p[l[0]])
+
 #output = off
 output = gnuplot
+#output = one
+
 p = [ ]
 adj = { }
 for l in sys.stdin:
