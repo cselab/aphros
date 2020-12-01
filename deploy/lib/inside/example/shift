@@ -2,6 +2,7 @@
 
 awk '
 BEGIN {
+    eps = 1e-3
     me = "shift"
     n = read(ARGV[1], x, y)
     m = read(ARGV[2], u, v)
@@ -10,12 +11,25 @@ BEGIN {
         exit(2)
     }
     shift_max(x, y)
-    #shift_max(u, v)
+    shift_max(u, v)
     for (i in x) {
-        dx = x[i] - u[i]
-        dy = y[i] - v[i]
-        print x[i], y[i]
+        dx[i] = x[i] - u[i]
+        dy[i] = y[i] - v[i]
     }
+    for (i = 1; i <= n; i++) {
+	for (j = 1; j < i; j++) {
+	    d = (dx[i] - dx[j])^2 + (dy[i] - dy[j])^2
+	    if (d < eps*eps)
+		break
+	}
+	if (j == i) {
+	    set[i] = ++cnt
+	    #print dx[i], dy[i]
+	} else
+	    set[i] = set[j]
+    }
+    for (i = 1; i <= n; i++)
+	print i, set[i]
 }
 
 function read(f, x, y,   i) {
@@ -28,11 +42,13 @@ function read(f, x, y,   i) {
     return i
 }
 
-function shift_max(x, y,   i, j) {
+function shift_max(x, y,   i, j, xj, yj) {
     j = max_arg(x)
+    xj = x[j]
+    yj = y[j]
     for (i in x) {
-        x[i] -= x[j]
-        y[i] -= y[j]
+        x[i] -= xj
+        y[i] -= yj
     }
 }
 
@@ -42,8 +58,10 @@ function max_arg(x,   i, m, im) {
         break
     }
     for (i in x)
-        if (x[i] >= m)
+        if (x[i] >= m) {
+	    m = x[i]
             im = i
+	}
     return im
 }
 
