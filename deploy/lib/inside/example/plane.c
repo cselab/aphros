@@ -1,8 +1,6 @@
 /*
 
-$ ./plane -a -0 -n 0 1 0 ~/g.off > q
-$ gnuplot
-$ plot [-30:30][-30:30] "q" u 1:3 w lp lw 2
+$ ./plane -a 0 -n 0 1 0 ~/g.off | ./2off > q.off
 
  */
 
@@ -130,12 +128,12 @@ int main(int argc, const char** argv) {
               return 2;
             }
           }
+          l = np;
           pp[3 * np] = p[3 * k];
           pp[3 * np + 1] = p[3 * k + 1];
           pp[3 * np + 2] = p[3 * k + 2];
           np++;
         }
-        printf("p %+-.16e %+-.16e %+-.16e\n", p[3 * k], p[3 * k + 1], p[3 * k + 2]);
         face[k] = l;
       }
       printf("f");
@@ -145,6 +143,10 @@ int main(int argc, const char** argv) {
       printf("\n");
     }
   }
+
+  for (i = 0; i < np; i++)
+    printf("p %-.16e %-.16e %-.16e\n", pp[3 * i], pp[3 * i + 1], pp[3 * i + 2]);
+
   free(pp);
   inside_mesh_fin(tri, ver);
 }
