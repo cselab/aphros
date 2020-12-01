@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+
+import sys
+
+def off(p, line):
+    print("OFF")
+    print(len(p), len(line), 0)
+    for e in p:
+        print(e)
+    for l in line:
+        print(len(l) + 1, end = ' ')
+        for e in l:
+            print(e, end = ' ')
+        print(l[0])
+
+def gnuplot(p, line):
+    for l in line:
+        for e in l:
+            print(p[e])
+        print(p[l[0]])
+        print("\n")
+
+#output = off
+output = gnuplot
+p = [ ]
+adj = { }
+for l in sys.stdin:
+    l = l.split()
+    c, l = l[0], l[1:]
+    if c == 'p':
+        p.append(" ".join(l))
+    elif c == 'f':
+        l = [int(e) for e in l]
+        l = set(l)
+        for i in l:
+            for j in l:
+                if i != j:
+                    if not i in adj:
+                        adj[i] = set()
+                    adj[i].add(j)
+nv = len(p)
+seen = set()
+line = [ ]
+for i in range(nv):
+    if not i in seen:
+        l = [ ]
+        j = i
+        while True:
+            seen.add(j)
+            l.append(j)
+            for k in adj[j]:
+                if not k in seen:
+                    break
+            else:
+                break
+            j = k
+        line.append(l)
+output(p, line)
