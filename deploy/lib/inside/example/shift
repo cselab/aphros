@@ -9,7 +9,7 @@ BEGIN {
         printf "%s: wrong number of vertices (n=%d, m=%d)\n", me, n, m | "cat >&2"
         exit(2)
     }
-    #shift_max(x, y)
+    shift_max(x, y)
     #shift_max(u, v)
     for (i in x) {
         dx = x[i] - u[i]
@@ -36,7 +36,7 @@ function shift_max(x, y,   i, j) {
     }
 }
 
-function max_arg(x,   m, im) {
+function max_arg(x,   i, m, im) {
     for (i in x) {
         m = x[i]
         break
