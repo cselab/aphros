@@ -40,16 +40,25 @@ def many(p, line):
             for u, v in zip(x, y):
                 f.write("%-.16e %-.16e\n" % (u - x[m], v - y[m]))
 
+def split(p, line):
+    for i, l in enumerate(line):
+        with open("%02d.line" % i, 'w') as f:
+            for e in l:
+                f.write(p[e])
+                f.write("\n")
+
 def one(p, line):
     l = line[1]
     for e in l:
         print(p[e])
     print(p[l[0]])
 
+
 #output = off
 #output = gnuplot
 #output = one
-output = many
+#output = many
+output = split
 
 p = [ ]
 adj = { }
