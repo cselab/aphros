@@ -31,6 +31,7 @@ def many(p, line):
         x = [xx[e] for e in l]
         y = [yy[e] for e in l]
         m = x.index(max(x))
+        sys.stderr.write("%-.16e %-.16e\n" % (x[m], y[m]))
         with open("%02d.line" % i, 'w') as f:
             for u, v in zip(x, y):
                 f.write("%-.16e %-.16e\n" % (u - x[m], v - y[m]))
