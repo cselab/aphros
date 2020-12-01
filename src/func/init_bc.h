@@ -7,6 +7,8 @@
 #include <functional>
 #include <iterator>
 #include <limits>
+#include <map>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <tuple>
@@ -17,6 +19,7 @@
 #include "geom/field.h"
 #include "geom/vect.h"
 #include "parse/codeblocks.h"
+#include "parse/util.h"
 #include "parse/vars.h"
 #include "primlist.h"
 #include "solver/embed.h"
@@ -170,5 +173,85 @@ struct UInitEmbedBc {
       });
     }
     return mebc;
+  }
+
+  struct PlainBc {
+    MapEmbed<BCond<Scal>> mebc;
+    MapEmbed<size_t> me_group;
+    std::vector<std::map<std::string, Scal>> vextra;
+  };
+
+  template <class MEB>
+  static PlainBc GetPlainBc(
+      const std::string& bc_path, const MEB& eb,
+      const std::set<std::string>& extra_keys) {
+    using UI = UInitEmbedBc<M>;
+
+    auto get_key_value = [&](std::string s) {
+      std::stringstream buf(s);
+      std::string key;
+      Scal value;
+      buf >> key;
+      buf >> value;
+      return std::pair<std::string, Scal>({key, value});
+    };
+
+    std::set<std::string> known_keys = {"dirichlet", "neumann"};
+
+    std::stringstream buf;
+    {
+      std::stringstream path(bc_path);
+      std::string filename;
+      path >> filename;
+      if (filename == "inline") {
+        buf << path.rdbuf();
+      } else {
+        filename = path.str();
+        std::ifstream fin(filename);
+        if (!fin.good()) {
+          throw std::runtime_error(
+              FILELINE + ": Can't open boundary conditions '" + filename + "'");
+        }
+        buf << fin.rdbuf();
+      }
+    }
+
+    PlainBc res;
+
+    std::vector<std::string> vdesc;
+    MapEmbed<size_t> me_nci;
+    std::tie(res.me_group, me_nci, vdesc) = UI::ParseGroups(buf, eb);
+    for (auto desc : vdesc) {
+      std::map<std::string, Scal> map;
+      for (std::string s : Split(desc, ',')) {
+        auto p = get_key_value(s);
+        if (extra_keys.count(p.first)) {
+          map[p.first] = p.second;
+        } else {
+          fassert(known_keys.count(p.first), "Unknown bc key: " + p.first);
+        }
+      }
+      res.vextra.push_back(map);
+    }
+
+    res.me_group.LoopPairs([&](const auto& cfbc) {
+      const auto cf = cfbc.first;
+      const auto group = cfbc.second;
+      auto& bc = res.mebc[cf];
+      bc.nci = me_nci[cf];
+      for (std::string s : Split(vdesc[group], ',')) {
+        auto p = get_key_value(s);
+        const std::string key = p.first;
+        const Scal value = p.second;
+        if (key == "dirichlet") {
+          bc.type = BCondType::dirichlet;
+          bc.val = value;
+        } else if (key == "neumann") {
+          bc.type = BCondType::neumann;
+          bc.val = value;
+        }
+      }
+    });
+    return res;
   }
 };

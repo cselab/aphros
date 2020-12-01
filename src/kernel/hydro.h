@@ -39,6 +39,7 @@
 #include "parse/vof.h"
 #include "solver/advection.h"
 #include "solver/approx.h"
+#include "solver/approx2.h"
 #include "solver/approx_eb.h"
 #include "solver/curv.h"
 #include "solver/electro.h"
@@ -79,21 +80,6 @@ class ModulePostStep : public Module<ModulePostStep<M>> {
   virtual ~ModulePostStep() = default;
   virtual void operator()(Hydro<M>*, M& m) = 0;
 };
-
-template <class M>
-FieldCell<typename M::Scal> GetDivergence(
-    const FieldFace<typename M::Scal>& ffv, const M& m, const Embed<M>& eb) {
-  using Scal = typename M::Scal;
-  FieldCell<Scal> fcdiv(m, 0);
-  for (auto c : eb.Cells()) {
-    Scal div = 0;
-    for (auto q : eb.Nci(c)) {
-      div += ffv[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
-    }
-    fcdiv[c] = div / eb.GetVolume(c);
-  }
-  return fcdiv;
-}
 
 template <class M>
 FieldCell<typename M::Vect> GetVort(
@@ -284,19 +270,12 @@ class Hydro : public KernelMeshPar<M_, GPar> {
     return fcs;
   }
   FieldCell<Scal> GetDiv() {
-    auto& ffv = fs_->GetVolumeFlux().GetFieldFace();
     if (eb_) {
-      return GetDivergence(ffv, m, *eb_);
+      return Approx2<EB>::GetRegularDivergence(fs_->GetVolumeFlux(), *eb_);
+    } else {
+      return Approx2<M>::GetRegularDivergence(
+          fs_->GetVolumeFlux().GetFieldFace(), m);
     }
-    FieldCell<Scal> fc(m, 0); // result
-    for (auto c : m.Cells()) {
-      for (auto q : m.Nci(c)) {
-        IdxFace f = m.GetFace(c, q);
-        fc[c] += ffv[f] * m.GetOutwardFactor(c, q);
-      }
-      fc[c] /= m.GetVolume(c);
-    }
-    return fc;
   }
 
   GRange<size_t> layers;
@@ -474,11 +453,11 @@ void Hydro<M>::OverwriteBc() {
 
   { // apply body velocity to meshvel and subtract from boundary conditions
     Vect bodyvel;
-    bodyvel[0] =  piecewise(
+    bodyvel[0] = piecewise(
         fs_->GetTime(), var.Vect["bodyvel_times"], var.Vect["bodyvel_x"]);
-    bodyvel[1] =  piecewise(
+    bodyvel[1] = piecewise(
         fs_->GetTime(), var.Vect["bodyvel_times"], var.Vect["bodyvel_y"]);
-    bodyvel[2] =  piecewise(
+    bodyvel[2] = piecewise(
         fs_->GetTime(), var.Vect["bodyvel_times"], var.Vect["bodyvel_z"]);
     if (!IsNan(bodyvel)) {
       st_.meshvel = bodyvel;
@@ -860,12 +839,12 @@ void Hydro<M>::InitStat() {
   stat.AddNone(
       "wt", "wall-clock time", //
       [&timer_ = timer_]() { return timer_.GetSeconds(); });
-  stat.AddNone("iter", "total fluid iteration number", [& st_ = st_]() {
+  stat.AddNone("iter", "total fluid iteration number", [&st_ = st_]() {
     return st_.iter;
   });
   stat.AddNone(
-      "step", "fluid step number", [& st_ = st_]() { return st_.step; });
-  stat.AddNone("meshvel", "moving mesh velocity", [& st_ = st_]() {
+      "step", "fluid step number", [&st_ = st_]() { return st_.step; });
+  stat.AddNone("meshvel", "moving mesh velocity", [&st_ = st_]() {
     return st_.meshvel;
   });
   stat.AddNone(

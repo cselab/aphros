@@ -12,41 +12,12 @@
 #include "distr/distrbasic.h"
 #include "linear/linear.h"
 #include "solver/approx_eb.h"
+#include "solver/approx2.h"
 #include "solver/convdiffe.h"
 #include "solver/convdiffvg.h"
 #include "solver/embed.h"
 #include "solver/fluid.h"
 #include "solver/reconst.h"
-
-template <class M>
-FieldCell<typename M::Scal> GetDivergence(
-    FieldEmbed<typename M::Scal>& fev, const M& m, const Embed<M>& eb) {
-  using Scal = typename M::Scal;
-  FieldCell<Scal> fcdiv(m, 0);
-  for (auto c : eb.Cells()) {
-    Scal div = fev[c];
-    for (auto q : m.Nci(c)) {
-      div += fev[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
-    }
-    fcdiv[c] = div / eb.GetVolume(c);
-  }
-  return fcdiv;
-}
-
-template <class M>
-FieldCell<typename M::Scal> GetDivergence(
-    FieldFace<typename M::Scal>& fev, const M& m, const Embed<M>& eb) {
-  using Scal = typename M::Scal;
-  FieldCell<Scal> fcdiv(m, 0);
-  for (auto c : eb.Cells()) {
-    Scal div = 0;
-    for (auto q : eb.Nci(c)) {
-      div += fev[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
-    }
-    fcdiv[c] = div / eb.GetVolume(c);
-  }
-  return fcdiv;
-}
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -130,7 +101,7 @@ void Run(M& m, Vars& var) {
     }
     if (sem("div")) {
       auto& eb = *ctx->eb;
-      fcdiv = GetDivergence(fev, m, eb);
+      fcdiv = Approx2<EB>::GetRegularDivergence(fev, eb);
     }
     if (sem.Nested("convdiff-start")) {
       cd->StartStep();

@@ -11,7 +11,9 @@
 #include <utility>
 
 #include "distr/distrbasic.h"
+#include "func/init_bc.h"
 #include "linear/linear.h"
+#include "solver/approx2.h"
 #include "solver/approx_eb.h"
 #include "solver/convdiffv_eb.h"
 #include "solver/embed.h"
@@ -20,25 +22,9 @@
 #include "util/linear.h"
 
 template <class M>
-FieldCell<typename M::Scal> GetDivergence(
-    FieldFace<typename M::Scal>& ffv, const Embed<M>& eb) {
-  auto& m = eb.GetMesh();
-  using Scal = typename M::Scal;
-  FieldCell<Scal> fcdiv(m, 0);
-  for (auto c : eb.Cells()) {
-    Scal div = 0;
-    for (auto q : eb.Nci(c)) {
-      div += ffv[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
-    }
-    fcdiv[c] = div / eb.GetVolume(c);
-  }
-  return fcdiv;
-}
-
-template <class M>
 void CalcPotential(
-    const MapEmbed<BCond<typename M::Scal>>& mfc, M& m, const Embed<M>& eb,
-    FieldCell<typename M::Scal>& fcp, FieldFace<typename M::Scal>& ffv,
+    const MapEmbed<BCond<typename M::Scal>>& mebc, M& m, const Embed<M>& eb,
+    FieldCell<typename M::Scal>& fcp, FieldEmbed<typename M::Scal>& ffv,
     std::shared_ptr<linear::Solver<M>> linsolver) {
   using Scal = typename M::Scal;
   using ExprFace = generic::Vect<Scal, 3>;
@@ -67,7 +53,7 @@ void CalcPotential(
       ffe[f] = e;
     }
     // overwrite boundary conditions
-    for (auto& it : mfc.GetMapFace()) {
+    for (auto& it : mebc.GetMapFace()) {
       const IdxFace f = it.first;
       const auto& bc = it.second;
       if (bc.type == BCondType::neumann) {
@@ -119,58 +105,39 @@ void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
   struct {
     std::unique_ptr<EB> eb;
-    MapEmbed<BCond<Scal>> mfc;
+    MapEmbed<BCond<Scal>> mebc;
     FieldCell<Scal> fcp;
-    FieldFace<Scal> ffv;
+    FieldEmbed<Scal> ffv;
     FieldCell<Scal> fcdiv;
     FieldNode<Scal> fnl;
     std::shared_ptr<linear::Solver<M>> linsolver;
   } * ctx(sem);
-  auto& fcdiv = ctx->fcdiv;
-  auto& mfc = ctx->mfc;
-  auto& fcp = ctx->fcp;
-  auto& ffv = ctx->ffv;
-  auto& eb_ = ctx->eb;
   auto& t = *ctx;
 
   if (sem("eb_ctor")) {
-    eb_.reset(new EB(m));
+    t.eb.reset(new EB(m));
     t.linsolver = ULinear<M>::MakeLinearSolver(var, "symm", m);
   }
   if (sem.Nested("levelset")) {
     UEB::InitLevelSet(t.fnl, m, var, m.IsRoot());
   }
   if (sem.Nested("eb_init")) {
-    eb_->Init(t.fnl);
+    t.eb->Init(t.fnl);
   }
   if (sem("eb_ctor")) {
-    auto& eb = *eb_;
-    auto isclose = [](Scal a, Scal b) { return std::abs(a - b) < 1e-6; };
-    for (auto f : eb.Faces()) {
-      const Vect x = eb.GetFaceCenter(f);
-      if (isclose(x[0], 0.)) {
-        mfc[f] = BCond<Scal>(BCondType::neumann, 1, 1.);
-      }
-      if (isclose(x[0], 1.)) {
-        mfc[f] = BCond<Scal>(BCondType::neumann, 0, 1.);
-      }
-      if (isclose(x[1], 0.)) {
-        mfc[f] = BCond<Scal>(BCondType::neumann, 1, 0.);
-      }
-      if (isclose(x[1], 1.)) {
-        mfc[f] = BCond<Scal>(BCondType::neumann, 0, 0.);
-      }
-    }
+    auto& eb = *t.eb;
+    auto res = UInitEmbedBc<M>::GetPlainBc(var.String["bc_path"], eb, {});
+    t.mebc = res.mebc;
   }
   if (sem.Nested("eb_dumppoly")) {
-    eb_->DumpPoly();
+    t.eb->DumpPoly();
   }
   if (sem.Nested("flux-proj")) {
-    CalcPotential(mfc, m, *eb_, fcp, ffv, t.linsolver);
+    CalcPotential(t.mebc, m, *t.eb, t.fcp, t.ffv, t.linsolver);
   }
   if (sem("dump")) {
-    fcdiv = GetDivergence(ffv, *eb_);
-    m.Dump(&fcdiv, "div");
+    t.fcdiv = Approx2<EB>::GetRegularDivergence(t.ffv, *t.eb);
+    m.Dump(&t.fcdiv, "div");
     m.Dump(&t.fcp, "p");
   }
   if (sem()) {
