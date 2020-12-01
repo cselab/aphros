@@ -20,6 +20,21 @@ def gnuplot(p, line):
         print(p[l[0]])
         print("\n")
 
+def many(p, line):
+    xx = [ ]
+    yy = [ ]
+    for e in p:
+        e = e.split()
+        xx.append(float(e[0]))
+        yy.append(float(e[2]))
+    for i, l in enumerate(line):
+        x = [xx[e] for e in l]
+        y = [yy[e] for e in l]
+        m = x.index(max(x))
+        with open("%02d.line" % i, 'w') as f:
+            for u, v in zip(x, y):
+                f.write("%-.16e %-.16e\n" % (u - x[m], v - y[m]))
+
 def one(p, line):
     l = line[1]
     for e in l:
@@ -27,8 +42,9 @@ def one(p, line):
     print(p[l[0]])
 
 #output = off
-output = gnuplot
+#output = gnuplot
 #output = one
+output = many
 
 p = [ ]
 adj = { }
