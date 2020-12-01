@@ -13,23 +13,26 @@ BEGIN {
     shift_max(x, y)
     shift_max(u, v)
     for (i in x) {
-        dx[i] = x[i] - u[i]
-        dy[i] = y[i] - v[i]
+        a[i] = x[i] - u[i]
+        b[i] = y[i] - v[i]
     }
     for (i = 1; i <= n; i++) {
 	for (j = 1; j < i; j++) {
-	    d = (dx[i] - dx[j])^2 + (dy[i] - dy[j])^2
+	    d = (a[i] - a[j])^2 + (b[i] - b[j])^2
 	    if (d < eps*eps)
 		break
 	}
 	if (j == i) {
 	    set[i] = ++cnt
-	    #print dx[i], dy[i]
+	    dx[set[i]] = a[i]
+	    dy[set[i]] = b[i]
 	} else
 	    set[i] = set[j]
     }
-    for (i = 1; i <= n; i++)
-	print i, set[i]
+    for (i = 3; i <= cnt; i++)
+	printf "%-.16e %-.16e\n", dx[i], dy[i]
+    #for (i = 1; i <= n; i++)
+	#print set[i] - 1
 }
 
 function read(f, x, y,   i) {
@@ -46,6 +49,7 @@ function shift_max(x, y,   i, j, xj, yj) {
     j = max_arg(x)
     xj = x[j]
     yj = y[j]
+    print xj, yj | "cat >&2"
     for (i in x) {
         x[i] -= xj
         y[i] -= yj
