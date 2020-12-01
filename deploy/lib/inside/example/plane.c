@@ -38,16 +38,24 @@ int main(int argc, const char** argv) {
   double alpha;
   double n[3];
   double p[9];
+  double* pp;
   double* ver;
+  int Aflag;
+  int cap;
   int cnt;
+  int Found;
   int i;
   int j;
   int k;
+  int l;
+  int Nflag;
+  int np;
   int nt;
   int nv;
+  int *nxt;
+  int connect[2];
+  int *prv;
   int t;
-  int Aflag;
-  int Nflag;
   int* tri;
 
   Aflag = Nflag = 0;
@@ -97,15 +105,10 @@ int main(int argc, const char** argv) {
     fprintf(stderr, "%s: fail to read mesh '%s'\n", me, argv[0]);
     exit(2);
   }
-
-  double* pp;
-  int cap;
-  int np;
-  int l;
-  int Found;
-
   np = cap = 0;
   pp = NULL;
+  nxt = NULL;
+  prv = NULL;
   for (t = 0; t < nt; t++) {
     i = tri[3 * t];
     j = tri[3 * t + 1];
@@ -115,6 +118,10 @@ int main(int argc, const char** argv) {
     c = &ver[3 * k];
     cnt = plain_tri(n, alpha, a, b, c, p);
     if (cnt) {
+      if (cnt != 2) {
+        fprintf(stderr, "%s: cnt=%d != 2\n", me, cnt);
+        return 2;
+      }
       for (k = 0; k < cnt; k++) {
         Found = 0;
         for (l = 0; l < np; l++)
@@ -130,6 +137,14 @@ int main(int argc, const char** argv) {
               fprintf(stderr, "%s: realloc failed\n", me);
               return 2;
             }
+            if ((nxt = realloc(pp, cap * sizeof *nxt)) == NULL) {
+              fprintf(stderr, "%s: realloc failed\n", me);
+              return 2;
+            }
+            if ((prv = realloc(pp, cap * sizeof *prv)) == NULL) {
+              fprintf(stderr, "%s: realloc failed\n", me);
+              return 2;
+            }
           }
           pp[3 * np] = p[3 * k];
           pp[3 * np + 1] = p[3 * k + 1];
@@ -139,11 +154,14 @@ int main(int argc, const char** argv) {
         printf(
             "%+-.16e %+-.16e %+-.16e %d\n", p[3 * k], p[3 * k + 1],
             p[3 * k + 2], l);
+        connect[k] = l;
       }
       printf("\n\n");
     }
   }
   free(pp);
+  free(nxt);
+  free(prv);
   inside_mesh_fin(tri, ver);
 }
 
