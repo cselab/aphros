@@ -174,9 +174,10 @@ int main(int argc, const char** argv) {
     return *p;
   }
 
+  std::string conf;
+
   Subdomains<MIdx> sub(
       MIdx(args.Int["mesh"]), MIdx(args.Int["block"]), mpi.GetCommSize());
-  std::string conf = "";
   conf += sub.GetConfig();
 
   conf += "\nset string linsolver_symm " + args.String["solver"];

@@ -178,6 +178,7 @@ struct UInitEmbedBc {
   struct PlainBc {
     MapEmbed<BCond<Scal>> mebc;
     MapEmbed<size_t> me_group;
+    std::vector<std::string> vdesc;
     std::vector<std::map<std::string, Scal>> vextra;
   };
 
@@ -218,10 +219,9 @@ struct UInitEmbedBc {
 
     PlainBc res;
 
-    std::vector<std::string> vdesc;
     MapEmbed<size_t> me_nci;
-    std::tie(res.me_group, me_nci, vdesc) = UI::ParseGroups(buf, eb);
-    for (auto desc : vdesc) {
+    std::tie(res.me_group, me_nci, res.vdesc) = UI::ParseGroups(buf, eb);
+    for (auto desc : res.vdesc) {
       std::map<std::string, Scal> map;
       for (std::string s : Split(desc, ',')) {
         auto p = get_key_value(s);
@@ -239,7 +239,7 @@ struct UInitEmbedBc {
       const auto group = cfbc.second;
       auto& bc = res.mebc[cf];
       bc.nci = me_nci[cf];
-      for (std::string s : Split(vdesc[group], ',')) {
+      for (std::string s : Split(res.vdesc[group], ',')) {
         auto p = get_key_value(s);
         const std::string key = p.first;
         const Scal value = p.second;
