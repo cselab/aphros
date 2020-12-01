@@ -1,0 +1,50 @@
+#!/bin/sh
+
+awk '
+BEGIN {
+    me = "shift"
+    n = read(ARGV[1], x, y)
+    m = read(ARGV[2], u, v)
+    if (n != m) {
+        printf "%s: wrong number of vertices (n=%d, m=%d)\n", me, n, m | "cat >&2"
+        exit(2)
+    }
+    #shift_max(x, y)
+    #shift_max(u, v)
+    for (i in x) {
+        dx = x[i] - u[i]
+        dy = y[i] - v[i]
+        print x[i], y[i]
+    }
+}
+
+function read(f, x, y,   i) {
+    while (getline < f) {
+        i++
+        x[i] = $1
+        y[i] = $3
+    }
+    close(f)
+    return i
+}
+
+function shift_max(x, y,   i, j) {
+    j = max_arg(x)
+    for (i in x) {
+        x[i] -= x[j]
+        y[i] -= y[j]
+    }
+}
+
+function max_arg(x,   m, im) {
+    for (i in x) {
+        m = x[i]
+        break
+    }
+    for (i in x)
+        if (x[i] >= m)
+            im = i
+    return im
+}
+
+' "$@"
