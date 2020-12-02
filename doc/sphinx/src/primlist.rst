@@ -19,27 +19,47 @@ Function ``GetPrimitives()`` parses a stream with a list of primitives.
 Available primitives and their parameters:
 
 ``sphere``
+  Ellipsoid with principal axes aligned with the coordinate axes.
+  Parameters:
   ``cx cy cz`` (center), ``rx ry rz`` (half-size);
 ``box``
+  Rectangular box with sides aligned with the coordinate planes.
+  Parameters:
   ``cx cy cz`` (center), ``rx ry rz`` (half-size);
 ``ring``
+  Torus.
+  Parameters:
   ``cx cy cz`` (center), ``nx ny nz`` (normal), ``r`` (radius), ``th`` (thickness);
 ``smooth_step``
+  Smooth step [almgren1997]_.
+  Parameters:
   ``cx cy cz`` (center), ``nx ny nz`` (normal), ``tx ty tz`` (tangent),
   ``ln`` (size along normal), ``lt`` (size along tangent);
 ``cylinder``
+  Right circular cylinder.
+  Parameters:
   ``cx cy cz`` (center), ``nx ny nz`` (normal), ``r`` (radius),
-  ``n0 n1`` (range along normal);
+  ``n0 n1`` (range along normal relative to center);
 ``polygon``
-  ``ox oy oz`` (origin), ``nx ny nz`` (normal), ``ux uy uz`` (direction right),
-  ``n0 n1`` (range along normal), ``scale`` (factor applied to 2D vertices),
-  ``x_0 y_0 x_1 y_1 ...`` (2D vertices for each polygon, loops with first and last
-  vertex repeated);
+  Cylinder bounded by parallel planes with the plane section specified as a
+  sequence of non-intersecting polygons.
+  Parameters:
+  ``ox oy oz`` (origin), ``nx ny nz`` (normal), ``ux uy uz``
+  (direction of 2D x-axis), ``n0 n1`` (range along normal relative to origin),
+  ``scale`` (factor applied to 2D vertices), ``x y ...``
+  (2D vertices of all polygons, first and last vertices of each polygon must
+  coincide);
+
 ``ruled``
-  ``ox oy oz`` (origin), ``nx ny nz`` (normal), ``ux uy uz`` (direction right),
-  ``n0 n1`` (range along normal), ``scale0 scale1`` (factor applied to 2D
-  vertices on the opposite sides), ``x0_0 y0_0 x0_1 y0_1 ... x1_0 y1_0 ...``
-  (2D vertices for each polygon, loops with first and last vertex repeated).
+  Ruled surface bounded by parallel planes with two plane sections
+  on the opposite sides specified as two sequences of non-intersecting polygons.
+  Parameters:
+  ``ox oy oz`` (origin), ``nx ny nz`` (normal), ``ux uy uz`` (direction of 2D
+  x-axis), ``n0 n1`` (range along normal relative to origin, sides 0 and 1),
+  ``scale0 scale1``
+  (factors applied to 2D vertices on sides 0 and 1), ``x y ...``
+  (2D vertices of all polygons on side 0, first and last vertices of
+  each polygon must coincide), ``x y ...`` (same but on side 1).
 
 Each primitive defines a level-set function which is positive inside the body.
 By default, the resulting level-set function is composed from the list of
@@ -48,7 +68,7 @@ To change the default operation, modifiers can be added
 before the name of the primitive:
 
 * ``-``: minus, multiply level-set by -1;
-* ``&``: intersection, take minimum with level-set from all entries above.
+* ``&``: intersection, take the minimum with the current level-set.
 
 Example of a list of primitives
 
@@ -76,3 +96,9 @@ method of computing the volume fraction field from the level-set functions
 ``set int list_ls 3``
   linear approximation with normal and plane constant
   computed from the level-set on mesh nodes, supports modifiers.
+
+
+
+.. [almgren1997] Almgren et al. A Cartesian Grid Projection Method for the
+   Incompressible Euler Equations in Complex Geometries (1997)
+   `10.1137/S1064827594273730 <https://doi.org/10.1137/S1064827594273730>`_
