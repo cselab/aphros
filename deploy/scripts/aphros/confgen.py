@@ -295,7 +295,7 @@ class Geometry:
     def Polygon(self, origin, normal, right, normalrange, scale, polygons,
                 **kwargs):
         '''
-        poly: `list(list(list(float)))`, polygons as lists of 2D vertices
+        polygons: `list(list(list(float)))`, polygons as lists of 2D vertices
         '''
         assert all(len(p) == 2 for poly in polygons for p in poly), \
                 "expected 2D points, got '{:}'".format(poly)
@@ -309,6 +309,30 @@ class Geometry:
         s += "polygon {:}   {:}   {:}   {:}   {:}   {:}".format(
             VectToStr(origin), VectToStr(normal), VectToStr(right),
             VectToStr(normalrange), scale, VectToStr(coords))
+        self.__Append(s)
+        return self
+
+    def Ruled(self, origin, normal, right, normalrange, scale0, scale1,
+              polygons0, polygons1, **kwargs):
+        '''
+        polygons0,polygons1: `list(list(list(float)))`
+            Polygons as lists of 2D vertices used on the opposite
+            sides of the ruled surface scaled by `scale0` and `scale1`
+            respectively.
+        '''
+        for polygons in [polygons0, polygons1]:
+            assert all(len(p) == 2 for poly in polygons for p in poly), \
+                    "expected 2D points, got '{:}'".format(poly)
+            for poly in polygons:
+                assert len(poly) >= 3, \
+                        "expected polygons of at least 3 vertices, got '{:}'".format(poly)
+                if poly[0] != poly[-1]:
+                    poly.append(poly[0])
+        coords = [x for poly in polygons0 + polygons1 for p in poly for x in p]
+        s = self.__Prefix(**kwargs)
+        s += "ruled {:}   {:}   {:}   {:}   {:} {:}   {:}".format(
+            VectToStr(origin), VectToStr(normal), VectToStr(right),
+            VectToStr(normalrange), scale0, scale1, VectToStr(coords))
         self.__Append(s)
         return self
 

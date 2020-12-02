@@ -75,6 +75,7 @@ struct Imp {
   using Primitive = generic::Primitive<Scal>;
   using VelocityPrimitive = generic::VelocityPrimitive<Scal>;
   using Vect = generic::Vect<Scal, dim>;
+  using Vect2 = generic::Vect<Scal, 2>;
 
   static void SetDefault(
       std::map<std::string, Scal>& d, std::string key, Scal value) {
@@ -311,16 +312,61 @@ struct Imp {
     return true;
   }
 
+  template <class F>
+  static Scal GetPolygonSdf(const Vect2& p, size_t npoints, F get_point) {
+    // http://geomalgorithms.com/a03-_inclusion.html
+    int wn = 0; // winding number
+    Scal sqdist = std::numeric_limits<Scal>::max();
+    size_t ibegin = 0;
+    for (size_t i = 0; i + 1 < npoints; ++i) {
+      const auto e = get_point(i + 1) - get_point(i);
+      const auto w = p - get_point(i);
+      const auto b = w - e * Clamp(w.dot(e) / e.dot(e), 0, 1);
+      sqdist = std::min(sqdist, b.dot(b));
+      if (get_point(i)[1] <= p[1]) {
+        if (get_point(i + 1)[1] > p[1]) {
+          if (e.cross_third(w) > 0) {
+            ++wn;
+          }
+        }
+      } else { // get_point(i)[1] > p[1]
+        if (get_point(i + 1)[1] <= p[1]) {
+          if (e.cross_third(w) < 0) {
+            --wn;
+          }
+        }
+      }
+      if (get_point(i + 1) == get_point(ibegin)) { // reached end of a polygon
+        ibegin = i + 2;
+        ++i;
+      }
+    }
+    return (wn == 0 ? -1 : 1) * std::sqrt(sqdist);
+  }
+
+  static void AssertPolygonPoints(const std::vector<Vect2>& points) {
+    size_t ibegin = 0;
+    for (size_t i = 0; i + 1 < points.size(); ++i) {
+      if (points[i + 1] == points[ibegin]) { // reached end of a polygon
+        ibegin = i + 2;
+        ++i;
+      }
+    }
+    fassert_equal(
+        ibegin, points.size(),
+        "First and last vertex of a polygon must coincide");
+  }
+
   static bool ParsePolygon(std::string s, size_t edim, Primitive& res) {
     res.name = "polygon";
     std::vector<Scal> coords;
     auto d = GetMap(
-        res.name, s, "ox oy oz   nx ny nz   ux uy uz   n0 n1   scale", 10,
+        res.name, s, "ox oy oz   nx ny nz   ux uy uz   n0 n1   scale", 12,
         &coords);
     if (d.empty()) {
       return false;
     }
-    // coords: vortices of nonintersecting polygons stored as loops
+    // coords: vertices of nonintersecting polygons stored as loops
     //         that start and end with the same point.
 
     fassert(
@@ -334,18 +380,18 @@ struct Imp {
             "got {} two-dimensional points, at least 4 points required",
             npoints));
 
-    using Vect2 = generic::Vect<Scal, 2>;
     std::vector<Vect2> points(npoints);
     const Scal scale = d["scale"];
     for (size_t i = 0; i < npoints; ++i) {
       points[i][0] = coords[2 * i] * scale;
       points[i][1] = coords[2 * i + 1] * scale;
     }
+    AssertPolygonPoints(points);
 
     const Vect o(d["ox"], d["oy"], d["oz"]); // origin
     Vect n(d["nx"], d["ny"], d["nz"]); // normal
     n /= n.norm();
-    Vect u(d["ux"], d["uy"], d["uz"]); // direction right
+    Vect u(d["ux"], d["uy"], d["uz"]); // direction of two-dimensional x-axis
     u -= n.dot(u) * n;
     u /= u.norm();
     const Vect v = n.cross(u);
@@ -363,40 +409,93 @@ struct Imp {
       const Scal du = u.dot(dx);
       const Scal dv = v.dot(dx);
       const Vect2 p(du, dv);
-      int wn = 0; // winding number
-      Scal sqdist = std::numeric_limits<Scal>::max();
-      size_t ibegin = 0;
-      for (size_t i = 0; i + 1 < points.size(); ++i) {
-        const auto e = points[i + 1] - points[i];
-        const auto w = p - points[i];
-        const auto b = w - e * Clamp(w.dot(e) / e.dot(e), 0, 1);
-        sqdist = std::min(sqdist, b.dot(b));
-        if (points[i][1] <= p[1]) {
-          if (points[i + 1][1] > p[1]) {
-            if (e.cross_third(w) > 0) {
-              ++wn;
-            }
-          }
-        } else { // points[i][1] > p[1]
-          if (points[i + 1][1] <= p[1]) {
-            if (e.cross_third(w) < 0) {
-              --wn;
-            }
-          }
-        }
-        if (points[i + 1] == points[ibegin]) { // reached end of a polygon
-          ibegin = i + 2;
-          ++i;
-        }
-      }
-      Scal q = (wn == 0 ? -1 : 1) * std::sqrt(sqdist);
+      Scal q = GetPolygonSdf(
+          p, points.size(), [&points](size_t i) { return points[i]; });
       if (dn < n0) q = std::min(q, dn - n0);
       if (dn > n1) q = std::min(q, n1 - dn);
       return q;
     };
-    res.inter = [](const Rect<Vect>& rect) -> bool { return true; };
+    res.inter = [](const Rect<Vect>&) -> bool { return true; };
     return true;
   }
+
+  static bool ParseRuled(std::string s, size_t edim, Primitive& res) {
+    res.name = "ruled";
+    std::vector<Scal> coords;
+    auto d = GetMap(
+        res.name, s, "ox oy oz   nx ny nz   ux uy uz   n0 n1   scale0 scale1",
+        13, &coords);
+    if (d.empty()) {
+      return false;
+    }
+    // coords: Vertices of nonintersecting polygons stored as loops
+    //         that start and end with the same point.
+    //         Must be an even number of polygons,
+    //         two halves used on the opposite sides of the ruled surface.
+
+    fassert(
+        coords.size() % 2 == 0,
+        util::Format(
+            "got {} coordinates, required an even number", coords.size()));
+    const size_t npoints = coords.size() / 2;
+    fassert(
+        npoints >= 4,
+        util::Format(
+            "got {} two-dimensional points, at least 8 points required",
+            npoints));
+    fassert(
+        npoints % 2 == 0,
+        util::Format(
+            "got {} two-dimensional points, required an even number", npoints));
+
+    std::vector<Vect2> points0(npoints / 2);
+    std::vector<Vect2> points1(npoints / 2);
+    const Scal scale0 = d["scale0"];
+    const Scal scale1 = d["scale1"];
+    for (size_t i = 0; i < npoints / 2; ++i) {
+      points0[i][0] = coords[2 * i] * scale0;
+      points0[i][1] = coords[2 * i + 1] * scale0;
+      points1[i][0] = coords[2 * (i + npoints / 2)] * scale1;
+      points1[i][1] = coords[2 * (i + npoints / 2) + 1] * scale1;
+    }
+    for (size_t i = npoints / 2; i < npoints; ++i) {
+    }
+    AssertPolygonPoints(points0);
+    AssertPolygonPoints(points1);
+
+    const Vect o(d["ox"], d["oy"], d["oz"]); // origin
+    Vect n(d["nx"], d["ny"], d["nz"]); // normal
+    n /= n.norm();
+    Vect u(d["ux"], d["uy"], d["uz"]); // direction of two-dimensional x-axis
+    u -= n.dot(u) * n;
+    u /= u.norm();
+    const Vect v = n.cross(u);
+    const Scal n0 = d["n0"];
+    const Scal n1 = d["n1"];
+
+    // TODO: add bounding box heuristic
+    res.ls = [edim, o, n, u, v, n0, n1, points0, points1](const Vect& x) {
+      Vect dx = x - o;
+      if (edim == 2) {
+        dx[2] = 0;
+      }
+      const Scal dn = n.dot(dx);
+      const Scal du = u.dot(dx);
+      const Scal dv = v.dot(dx);
+      const Vect2 p(du, dv);
+      const Scal alpha = Clamp((n1 - dn) / (n1 - n0), 0, 1);
+      Scal q = GetPolygonSdf(
+          p, points0.size(), [&points0, &points1, alpha](size_t i) {
+            return alpha * points0[i] + (1 - alpha) * points1[i];
+          });
+      if (dn < n0) q = std::min(q, dn - n0);
+      if (dn > n1) q = std::min(q, n1 - dn);
+      return q;
+    };
+    res.inter = [](const Rect<Vect>&) -> bool { return true; };
+    return true;
+  }
+
 
   // Parses a list of primitives in stream buf.
   // edim: effective dimension, 2 or 3 (ignores z-component if edim=2)
@@ -447,6 +546,7 @@ struct Imp {
       if (!r) r = ParseSmoothStep(s, p);
       if (!r) r = ParseCylinder(s, edim, p);
       if (!r) r = ParsePolygon(s, edim, p);
+      if (!r) r = ParseRuled(s, edim, p);
 
       if (p.mod_minus) {
         p.inter = [](const Rect<Vect>&) -> bool { return true; };

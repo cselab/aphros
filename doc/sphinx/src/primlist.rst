@@ -33,8 +33,13 @@ Available primitives and their parameters:
 ``polygon``
   ``ox oy oz`` (origin), ``nx ny nz`` (normal), ``ux uy uz`` (direction right),
   ``n0 n1`` (range along normal), ``scale`` (factor applied to 2D vertices),
-  ``x0 y0 x1 y1 ...`` (2D vertices for each polygon, loops with first and last
-  vertex repeated)
+  ``x_0 y_0 x_1 y_1 ...`` (2D vertices for each polygon, loops with first and last
+  vertex repeated);
+``ruled``
+  ``ox oy oz`` (origin), ``nx ny nz`` (normal), ``ux uy uz`` (direction right),
+  ``n0 n1`` (range along normal), ``scale0 scale1`` (factor applied to 2D
+  vertices on the opposite sides), ``x0_0 y0_0 x0_1 y0_1 ... x1_0 y1_0 ...``
+  (2D vertices for each polygon, loops with first and last vertex repeated).
 
 Each primitive defines a level-set function which is positive inside the body.
 By default, the resulting level-set function is composed from the list of
