@@ -13,3 +13,8 @@ Big side tubes
 ```
 ./plane -a 0 -n 1 0 0 ~/g.off | ./2off > c.off
 ```
+
+Generate cross-section of the bonds
+```
+./gen data/01.line data/01.idx
+```
