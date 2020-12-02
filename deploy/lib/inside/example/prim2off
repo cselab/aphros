@@ -1,0 +1,103 @@
+#!/usr/bin/awk -f
+
+BEGIN {
+    nv = 0
+    nf = 0
+    me = "prim2off"
+    pi = 3.141592653589793
+    
+    n_cyl = 20 # resolution for cylinder
+}
+
+{
+    sub(/#.*/, "")
+}
+
+!NF {
+    next
+}
+
+sub(/[ \t]*cylinder[ \t]+/, "") {
+    if (NF != 9) {
+	printf "%s: NF != 9 for cylinder\n", me | "cat >&2"
+	exit(err = 2)
+    }
+    i = 1
+    cx = $(i++)
+    cy = $(i++)
+    cz = $(i++)
+    tx = $(i++)
+    ty = $(i++)
+    tz = $(i++)
+    r = $(i++)
+    t0 = $(i++)
+    t1 = $(i++)
+    if (tx == 0 && ty == 0 && tz == 0) {
+	printf "%s: axis is zero for cylinder\n", me | "cat >&2"
+	exit(err = 2)
+    }
+
+    if (tx != 0 && ty == 0 && tz == 0) {
+	Dir = "X"
+    } else if (tx == 0 && ty != 0 && tz == 0) {
+	Dir = "Y"
+    } else if (tx == 0 && ty == 0 && tz != 0) {
+	Dir = "Z"
+    } else {
+	printf "%s: only cilinders with axis along of the coordinates axis are implimented\n", me | "cat >&2"
+	exit(err = 2)
+    }
+    n = n_cyl
+    for (i = 0; i < n; i++) {
+	j = nv + 2*i
+	face4(j, j + 1, j + 3, j + 2)
+    }
+    for (i = 1; i < n; i++) {
+	j = nv + 2*i
+	face3(nv, j, j + 2)
+	face3(nv + 1, j + 1, j + 3)
+    }
+    for (i = 0; i <= n; i++) {
+	u = r * cos(2*pi/n*i)
+	v = r * sin(2*pi/n*i)
+	if (Dir == "X") {
+	    ver(cx + t0 * tx, cy + u, cz + v)
+	    ver(cx + t1 * tx, cy + u, cz + v)
+	} else if (Dir == "Y") {
+	    ver(cx + u, cy + t0 * ty, cz + v)
+	    ver(cx + u, cy + t1 * ty, cz + v)
+	} else if (Dir == "Z") {
+	    ver(cx + u, cy + v, cz + t0 * tz)
+	    ver(cx + u, cy + v, cz + t1 * tz)
+	}
+    }
+}
+
+function ver(x, y, z)
+{
+    vv[nv] = x " " y " " z
+    nv++
+}
+
+function face4(a, b, c, d)
+{
+    ff[nf] = 4 " " a " " b " " c " " d
+    nf++
+}
+
+function face3(a, b, c, d)
+{
+    ff[nf] = 3 " " a " " b " " c " " d
+    nf++
+}
+
+END {
+    if (err != 0)
+	exit(err)
+    print "OFF"
+    print nv, nf, 0
+    for (i = 0; i < nv; i++)
+	print vv[i]
+    for (i = 0; i < nf; i++)
+	print ff[i]
+}

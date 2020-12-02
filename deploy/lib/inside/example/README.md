@@ -20,4 +20,6 @@ Generate XZ cross-section of the bonds
 ```
 
 Generate big side tubes
-y = 0, z = 4, R = 2.5, lo = -7.03178e+00, hi = 2.334422e+01
+```
+./prim2off < data/big.dat > q.off
+```
