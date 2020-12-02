@@ -17,6 +17,29 @@ BEGIN {
     next
 }
 
+sub(/[ \t]*cone[ \t]+/, "") {
+    if (NF != 10) {
+	printf "%s: NF != 9 for cone\n", me | "cat >&2"
+	exit(err = 2)
+    }
+    i = 1
+    cx = $(i++)
+    cy = $(i++)
+    cz = $(i++)
+    tx = $(i++)
+    ty = $(i++)
+    tz = $(i++)
+    r0 = $(i++)
+    r1 = $(i++)
+    t0 = $(i++)
+    t1 = $(i++)
+    if (tx == 0 && ty == 0 && tz == 0) {
+	printf "%s: axis is zero for cone\n", me | "cat >&2"
+	exit(err = 2)
+    }
+    cone(cx, cy, cz, tx, ty, tz, r0, r1, t0, t1)    
+}
+
 sub(/[ \t]*cylinder[ \t]+/, "") {
     if (NF != 9) {
 	printf "%s: NF != 9 for cylinder\n", me | "cat >&2"
@@ -36,7 +59,10 @@ sub(/[ \t]*cylinder[ \t]+/, "") {
 	printf "%s: axis is zero for cylinder\n", me | "cat >&2"
 	exit(err = 2)
     }
+    cone(cx, cy, cz, tx, ty, tz, r, r, t0, t1)
+}
 
+function cone(cx, cy, cz, tx, ty, tz, r0, r1, t0, t1,   Dir, n, i, j, u0, v0, u1, v1) {
     if (tx != 0 && ty == 0 && tz == 0) {
 	Dir = "X"
     } else if (tx == 0 && ty != 0 && tz == 0) {
@@ -44,7 +70,7 @@ sub(/[ \t]*cylinder[ \t]+/, "") {
     } else if (tx == 0 && ty == 0 && tz != 0) {
 	Dir = "Z"
     } else {
-	printf "%s: only cilinders with axis along of the coordinates axis are implimented\n", me | "cat >&2"
+	printf "%s: only cylinder/cones with axis along of the coordinates axis are implimented\n", me | "cat >&2"
 	exit(err = 2)
     }
     n = n_cyl
@@ -58,17 +84,19 @@ sub(/[ \t]*cylinder[ \t]+/, "") {
 	face3(nv + 1, j + 1, j + 3)
     }
     for (i = 0; i <= n; i++) {
-	u = r * cos(2*pi/n*i)
-	v = r * sin(2*pi/n*i)
+	u0 = r0 * cos(2*pi/n*i)
+	v0 = r0 * sin(2*pi/n*i)
+	u1 = r1 * cos(2*pi/n*i)
+	v1 = r1 * sin(2*pi/n*i)	
 	if (Dir == "X") {
-	    ver(cx + t0 * tx, cy + u, cz + v)
-	    ver(cx + t1 * tx, cy + u, cz + v)
+	    ver(cx + t0 * tx, cy + u0, cz + v0)
+	    ver(cx + t1 * tx, cy + u1, cz + v1)
 	} else if (Dir == "Y") {
-	    ver(cx + u, cy + t0 * ty, cz + v)
-	    ver(cx + u, cy + t1 * ty, cz + v)
+	    ver(cx + u0, cy + t0 * ty, cz + v0)
+	    ver(cx + u1, cy + t1 * ty, cz + v1)
 	} else if (Dir == "Z") {
-	    ver(cx + u, cy + v, cz + t0 * tz)
-	    ver(cx + u, cy + v, cz + t1 * tz)
+	    ver(cx + u0, cy + v0, cz + t0 * tz)
+	    ver(cx + u1, cy + v1, cz + t1 * tz)
 	}
     }
 }
