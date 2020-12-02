@@ -4,10 +4,12 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <sstream>
 #include <stdexcept>
+#include <vector>
 
 #include "util/format.h"
 #include "util/logger.h"
@@ -81,57 +83,64 @@ struct Imp {
     }
   }
 
-  // Parses string describing a primitive.
-  //   target: target name
-  //   str: string to parse
-  //   keys: string with keys "k0 k1 k2 ..."
-  //   nreq: number of required fields
-  // Format of string:
+  // Parses a primitive descriptor.
+  // Format of the descriptor:
   //   name v0 v1 ...
-  // where v0, v1 ... are floating point numbers,
-  // If target matches `name`, returns map r={k0:v0, k1:v1, ...}
-  // Otherwise, returns empty map.
+  // where v0, v1 ... are floats.
+  // Parameters:
+  //   target_name: target name
+  //   desc: primitive descriptor
+  //   skeys: string with keys "k0 k1 k2 ..."
+  //   nreq: number of required fields
+  //   rest: buffer for values without keys
+  // If target matches `name`, returns map r={k0:v0, k1:v1, ...}.
+  // Fails if `keys` or `desc` contains less than `nreq` fields.
+  // If target does not match `name`, returns empty map.
+  // Sets `rest` to values left after parsing `keys`.
   static std::map<std::string, Scal> GetMap(
-      std::string target, std::string str, std::string keys, size_t nreq) {
-    std::stringstream vv(str);
-    vv >> std::skipws;
+      std::string target_name, std::string desc, std::string skeys, size_t nreq,
+      std::vector<Scal>* rest = nullptr) {
+    std::stringstream buf_keys(skeys);
+    std::stringstream buf_desc(desc);
+    buf_keys >> std::skipws;
+    buf_desc >> std::skipws;
     std::string name;
-    vv >> name;
-    if (target != name) {
-      return std::map<std::string, Scal>();
+    buf_desc >> name;
+    if (target_name != name) {
+      return {};
     }
-    std::stringstream kk(keys);
-    std::map<std::string, Scal> d;
-    std::string k;
-    Scal v;
-    while (true) {
-      vv >> v;
-      kk >> k;
-      if (vv && kk) {
-        d[k] = v;
-      } else {
-        break;
-      }
+
+    std::vector<std::string> keys(
+        std::istream_iterator<std::string>(buf_keys), {});
+    std::vector<Scal> values(std::istream_iterator<Scal>(buf_desc), {});
+
+    fassert(
+        nreq <= keys.size(), //
+        util::Format(
+            "required {} values but only {} keys provided while parsing keys "
+            "'{}'",
+            nreq, keys.size(), skeys));
+    fassert(
+        nreq <= values.size(), //
+        util::Format(
+            "required {} values but only {} values provided, missing value for "
+            "key '{}' in '{}' while parsing keys '{}'",
+            nreq, values.size(), keys[values.size()], desc, skeys));
+
+    std::map<std::string, Scal> res;
+    size_t i;
+    for (i = 0; i < std::min(keys.size(), values.size()); ++i) {
+      res[keys[i]] = values[i];
     }
-    if (d.size() < nreq && kk) {
-      throw std::runtime_error(util::Format(
-          "PrimList: missing field '{}' in '{}' while parsing keys '{}'", k,
-          str, keys));
+    if (rest) {
+      (*rest) = std::vector<Scal>(values.begin() + i, values.end());
     }
-    if (d.size() < nreq && !kk) {
-      throw std::runtime_error(util::Format(
-          "PrimList: no keys for {} required fields in '{}'", nreq, keys));
-    }
-    if (vv && !kk) {
-      throw std::runtime_error(util::Format(
-          "PrimList: no key for '{}' in '{}' while parsing keys '{}'", v, str,
-          keys));
-    }
-    return d;
+    return res;
   }
 
   static bool ParseSphere(std::string s, size_t edim, Primitive& p) {
-    auto d = GetMap("sphere", s, "cx cy cz rx ry rz", 4);
+    p.name = "sphere";
+    auto d = GetMap(p.name, s, "cx cy cz rx ry rz", 4);
     if (d.empty()) {
       d = GetMap("s", s, "cx cy cz rx ry rz", 4);
     }
@@ -158,12 +167,12 @@ struct Imp {
       const Rect<Vect> rectbig(rect.low - r, rect.high + r);
       return rectbig.IsInside(xc);
     };
-    p.name = "sphere";
     return true;
   }
 
   static bool ParseRing(std::string s, Primitive& p) {
-    auto d = GetMap("ring", s, "cx cy cz nx ny nz r th", 8);
+    p.name = "ring";
+    auto d = GetMap(p.name, s, "cx cy cz nx ny nz r th", 8);
     if (d.empty()) {
       return false;
     }
@@ -179,12 +188,12 @@ struct Imp {
       const Scal xt = (dx - n * xn).norm();
       return sqr(th) - (sqr(xn) + sqr(xt - r));
     };
-    p.name = "ring";
     return true;
   }
 
   static bool ParseBox(std::string s, size_t edim, Primitive& p) {
-    auto d = GetMap("box", s, "cx cy cz rx ry rz rotz", 4);
+    p.name = "box";
+    auto d = GetMap(p.name, s, "cx cy cz rx ry rz rotz", 4);
     if (d.empty()) {
       return false;
     }
@@ -208,12 +217,12 @@ struct Imp {
       }
       return (r - dx.abs()).min();
     };
-    p.name = "box";
     return true;
   }
 
   static bool ParseRoundBox(std::string s, size_t edim, Primitive& p) {
-    auto d = GetMap("roundbox", s, "cx cy cz rx ry rz round", 7);
+    p.name = "roundbox";
+    auto d = GetMap(p.name, s, "cx cy cz rx ry rz round", 7);
     if (d.empty()) {
       return false;
     }
@@ -230,18 +239,18 @@ struct Imp {
       const Vect q = (dx - r + Vect(round)).max(Vect(0));
       return round - q.norm();
     };
-    p.name = "roundbox";
     return true;
   }
 
   static bool ParseSmoothStep(std::string s, Primitive& p) {
+    p.name = "smooth_step";
     // smooth step (half of diverging channel from almgren1997)
     //  +   +   +   +   +   +  +
     //              -------------       ____t
     //  +   +   +  /c   -   -  -       |
     // ------------                    |n
     //  -   -   -   -   -   -  -
-    auto d = GetMap("smooth_step", s, "cx cy cz nx ny nz tx ty tz ln lt", 4);
+    auto d = GetMap(p.name, s, "cx cy cz nx ny nz tx ty tz ln lt", 4);
     if (d.empty()) {
       return false;
     }
@@ -262,16 +271,16 @@ struct Imp {
       const Scal q = dt < -1 ? 1 : dt > 1 ? -1 : -std::sin(M_PI * 0.5 * dt);
       return (q - dn) * lt;
     };
-    p.name = "smooth_step";
     return true;
   }
 
   static bool ParseCylinder(std::string s, size_t edim, Primitive& p) {
+    p.name = "cylinder";
     // c: center
     // t: axis
     // r: radius
     // t0,t1: length between center
-    auto d = GetMap("cylinder", s, "cx cy cz tx ty tz r t0 t1 ", 4);
+    auto d = GetMap(p.name, s, "cx cy cz tx ty tz r t0 t1 ", 4);
     if (d.empty()) {
       return false;
     }
@@ -295,7 +304,72 @@ struct Imp {
       if (dt > t1) q = std::min(q, t1 - dt);
       return q;
     };
-    p.name = "cylinder";
+    return true;
+  }
+
+  static bool ParsePolygon(std::string s, size_t edim, Primitive& p) {
+    p.name = "polygon";
+    std::vector<Scal> coords;
+    auto d = GetMap(p.name, s, "ox oy oz   nx ny nz   ux uy uz", 9, &coords);
+    if (d.empty()) {
+      return false;
+    }
+    // coords: vortices of nonintersecting polygons stored as loops
+    //         that start and end with the same point.
+
+    std::ostream_iterator<int> oit(std::cout, " ");
+    std::copy(coords.begin(), coords.end(), oit);
+    std::cout << std::endl;
+
+    fassert(
+        coords.size() % 2 == 0,
+        util::Format(
+            "got {} coordinates, required an even number", coords.size()));
+    const size_t npoints = coords.size() / 2;
+    fassert(
+        npoints >= 3,
+        util::Format(
+            "got {} two-dimensional points, at least 3 points required",
+            npoints));
+
+    using Vect2 = generic::Vect<Scal, 2>;
+    std::vector<Vect2> points(npoints);
+    for (size_t i = 0; i < npoints; ++i) {
+      points[i][0] = coords[2 * i];
+      points[i][1] = coords[2 * i + 1];
+    }
+
+    const Vect o(d["ox"], d["oy"], d["oz"]); // origin
+    Vect n(d["nx"], d["ny"], d["nz"]); // normal
+    n /= n.norm();
+    Vect u(d["ux"], d["uy"], d["uz"]); // direction up
+    u -= n.dot(u) * n;
+    u /= u.norm();
+    const Vect v = u.cross(n);
+
+    // http://geomalgorithms.com/a03-_inclusion.html
+    p.ls = [edim, o, n, u, v, points](const Vect& x) -> Scal {
+      /*
+      Vect dx = x - o;
+      if (edim == 2) {
+        dx[2] = 0;
+      }
+      const Scal dn = n.dot(dx);
+      const Scal du = u.dot(dx);
+      const Scal dv = v.dot(dx);
+      const Vect2 p(du, dv);
+      int wn = 0; // winding number
+      for (size_t i = 0; i + 1 < points.size(); ++i) {
+        if (points[i][1] <= p[1]) {
+          if (points[i + 1][1] > p[1]) {
+            if ((points[i + 1] - points[i]))
+          }
+        }
+      }
+      */
+      return 0;
+    };
+    p.inter = [](const Rect<Vect>& rect) -> bool { return true; };
     return true;
   }
 
@@ -347,6 +421,7 @@ struct Imp {
       if (!r) r = ParseRoundBox(s, edim, p);
       if (!r) r = ParseSmoothStep(s, p);
       if (!r) r = ParseCylinder(s, edim, p);
+      if (!r) r = ParsePolygon(s, edim, p);
 
       if (p.mod_minus) {
         p.inter = [](const Rect<Vect>&) -> bool { return true; };

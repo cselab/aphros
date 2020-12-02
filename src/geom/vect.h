@@ -383,7 +383,7 @@ class Vect {
       return a.lexless(b);
     }
   };
-  friend Vect& operator*(Scal k, const Vect& v) {
+  friend Vect operator*(Scal k, const Vect& v) {
     return v * k;
   }
   friend std::ostream& operator<<(std::ostream& out, const Vect& v) {

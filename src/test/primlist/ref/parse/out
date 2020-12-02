@@ -12,17 +12,18 @@ name='sphere' mod=''
 name='sphere' mod=''
 
 ./t.primlist.parse 'sphere 0.3 0.3 0.7'
-PrimList: missing field 'rx' in 'sphere 0.3 0.3 0.7' while parsing keys 'cx cy cz rx ry rz'
+func/primlist.ipp:122: assertion failed 'nreq <= values.size()'
+required 4 values but only 3 values provided, missing value for key 'rx' in 'sphere 0.3 0.3 0.7' while parsing keys 'cx cy cz rx ry rz'
 
 ./t.primlist.parse 'sphere 0.3 0.3 0.7   0.25'
 name='sphere' mod=''
 
 ./t.primlist.parse '+sphere 0.3 0.3 0.7   0.25'
-func/primlist.ipp:355: assertion failed 'r'
+func/primlist.ipp:389: assertion failed 'r'
 PrimList: primitive not recognized in '+sphere 0.3 0.3 0.7   0.25'
 
 ./t.primlist.parse '+ sphere 0.3 0.3 0.7   0.25'
-func/primlist.ipp:355: assertion failed 'r'
+func/primlist.ipp:389: assertion failed 'r'
 PrimList: primitive not recognized in '+ sphere 0.3 0.3 0.7   0.25'
 
 ./t.primlist.parse '-sphere 0.3 0.3 0.7   0.25'
@@ -47,7 +48,7 @@ name='sphere' mod='&'
 name='box' mod=''
 
 ./t.primlist.parse '+box    0.7 0.3 0.4   0.25 0.2 0.15'
-func/primlist.ipp:355: assertion failed 'r'
+func/primlist.ipp:389: assertion failed 'r'
 PrimList: primitive not recognized in '+box    0.7 0.3 0.4   0.25 0.2 0.15'
 
 ./t.primlist.parse '-&-&box    0.7 0.3 0.4   0.25 0.2 0.15'
