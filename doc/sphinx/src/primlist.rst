@@ -10,10 +10,10 @@ A primitive is described by
 .. includecode:: src/func/primlist.h
   :struct: Primitive
 
-Function ``Parse()`` parses a stream with a list of primitives.
+Function ``GetPrimitives()`` parses a stream with a list of primitives.
 
 .. includecode:: src/func/primlist.h
-  :func: Parse
+  :func: GetPrimitives
   :comment:
 
 Available primitives and their parameters:
@@ -28,8 +28,13 @@ Available primitives and their parameters:
   ``cx cy cz`` (center), ``nx ny nz`` (normal), ``tx ty tz`` (tangent),
   ``ln`` (size along normal), ``lt`` (size along tangent);
 ``cylinder``
-  ``cx cy cz`` (center), ``tx ty tz`` (axis), ``r`` (radius),
-  ``t0 t1`` (coordinates relative to center).
+  ``cx cy cz`` (center), ``nx ny nz`` (normal), ``r`` (radius),
+  ``n0 n1`` (range along normal);
+``polygon``
+  ``ox oy oz`` (origin), ``nx ny nz`` (normal), ``ux uy uz`` (direction right),
+  ``n0 n1`` (range along normal), ``scale`` (factor applied to 2D vertices),
+  ``x0 y0 x1 y1 ...`` (2D vertices for each polygon, loops with first and last
+  vertex repeated)
 
 Each primitive defines a level-set function which is positive inside the body.
 By default, the resulting level-set function is composed from the list of

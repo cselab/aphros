@@ -83,6 +83,10 @@ struct Imp {
     }
   }
 
+  static Scal Clamp(Scal a, Scal min, Scal max) {
+    return std::max(min, std::min(max, a));
+  }
+
   // Parses a primitive descriptor.
   // Format of the descriptor:
   //   name v0 v1 ...
@@ -138,9 +142,9 @@ struct Imp {
     return res;
   }
 
-  static bool ParseSphere(std::string s, size_t edim, Primitive& p) {
-    p.name = "sphere";
-    auto d = GetMap(p.name, s, "cx cy cz rx ry rz", 4);
+  static bool ParseSphere(std::string s, size_t edim, Primitive& res) {
+    res.name = "sphere";
+    auto d = GetMap(res.name, s, "cx cy cz rx ry rz", 4);
     if (d.empty()) {
       d = GetMap("s", s, "cx cy cz rx ry rz", 4);
     }
@@ -152,10 +156,10 @@ struct Imp {
 
     const Vect xc(d["cx"], d["cy"], d["cz"]); // center
     const Vect r(d["rx"], d["ry"], d["rz"]); // radius (semi-axes)
-    p.c = xc;
-    p.r = r;
+    res.c = xc;
+    res.r = r;
 
-    p.ls = [edim, xc, r](const Vect& x) -> Scal {
+    res.ls = [edim, xc, r](const Vect& x) -> Scal {
       Vect xd = (x - xc) / r;
       if (edim == 2) {
         xd[2] = 0.;
@@ -163,16 +167,16 @@ struct Imp {
       return (1. - xd.sqrnorm()) * sqr(r.min());
     };
 
-    p.inter = [xc, r](const Rect<Vect>& rect) -> bool {
+    res.inter = [xc, r](const Rect<Vect>& rect) -> bool {
       const Rect<Vect> rectbig(rect.low - r, rect.high + r);
       return rectbig.IsInside(xc);
     };
     return true;
   }
 
-  static bool ParseRing(std::string s, Primitive& p) {
-    p.name = "ring";
-    auto d = GetMap(p.name, s, "cx cy cz nx ny nz r th", 8);
+  static bool ParseRing(std::string s, Primitive& res) {
+    res.name = "ring";
+    auto d = GetMap(res.name, s, "cx cy cz nx ny nz r th", 8);
     if (d.empty()) {
       return false;
     }
@@ -182,7 +186,7 @@ struct Imp {
     const Scal r = d["r"]; // radius
     const Scal th = d["th"]; // thickness
 
-    p.ls = [xc, n, r, th](const Vect& x) -> Scal {
+    res.ls = [xc, n, r, th](const Vect& x) -> Scal {
       const Vect dx = x - xc;
       const Scal xn = dx.dot(n);
       const Scal xt = (dx - n * xn).norm();
@@ -191,9 +195,9 @@ struct Imp {
     return true;
   }
 
-  static bool ParseBox(std::string s, size_t edim, Primitive& p) {
-    p.name = "box";
-    auto d = GetMap(p.name, s, "cx cy cz rx ry rz rotz", 4);
+  static bool ParseBox(std::string s, size_t edim, Primitive& res) {
+    res.name = "box";
+    auto d = GetMap(res.name, s, "cx cy cz rx ry rz rotz", 4);
     if (d.empty()) {
       return false;
     }
@@ -207,7 +211,7 @@ struct Imp {
     const Scal rotz_cos = std::cos(-M_PI * rotz / 180.);
     const Scal rotz_sin = std::sin(-M_PI * rotz / 180.);
 
-    p.ls = [edim, xc, r, rotz_cos, rotz_sin](const Vect& x) -> Scal {
+    res.ls = [edim, xc, r, rotz_cos, rotz_sin](const Vect& x) -> Scal {
       Vect dx = x - xc;
       dx = Vect(
           dx[0] * rotz_cos - dx[1] * rotz_sin,
@@ -220,9 +224,9 @@ struct Imp {
     return true;
   }
 
-  static bool ParseRoundBox(std::string s, size_t edim, Primitive& p) {
-    p.name = "roundbox";
-    auto d = GetMap(p.name, s, "cx cy cz rx ry rz round", 7);
+  static bool ParseRoundBox(std::string s, size_t edim, Primitive& res) {
+    res.name = "roundbox";
+    auto d = GetMap(res.name, s, "cx cy cz rx ry rz round", 7);
     if (d.empty()) {
       return false;
     }
@@ -231,7 +235,7 @@ struct Imp {
     const Vect r(d["rx"], d["ry"], d["rz"]); // radius (semi-axes)
     const Scal round = d["round"]; // radius of rounding
 
-    p.ls = [edim, xc, r, round](const Vect& x) -> Scal {
+    res.ls = [edim, xc, r, round](const Vect& x) -> Scal {
       Vect dx = (x - xc).abs();
       if (edim == 2) {
         dx[2] = 0;
@@ -242,15 +246,15 @@ struct Imp {
     return true;
   }
 
-  static bool ParseSmoothStep(std::string s, Primitive& p) {
-    p.name = "smooth_step";
+  static bool ParseSmoothStep(std::string s, Primitive& res) {
+    res.name = "smooth_step";
     // smooth step (half of diverging channel from almgren1997)
     //  +   +   +   +   +   +  +
     //              -------------       ____t
     //  +   +   +  /c   -   -  -       |
     // ------------                    |n
     //  -   -   -   -   -   -  -
-    auto d = GetMap(p.name, s, "cx cy cz nx ny nz tx ty tz ln lt", 4);
+    auto d = GetMap(res.name, s, "cx cy cz nx ny nz tx ty tz ln lt", 4);
     if (d.empty()) {
       return false;
     }
@@ -264,7 +268,7 @@ struct Imp {
     const Scal ln = d["ln"]; // half-length in normal direction
     const Scal lt = d["lt"]; // half-length in tangential direction
 
-    p.ls = [xc, n, t, ln, lt](const Vect& x) -> Scal {
+    res.ls = [xc, n, t, ln, lt](const Vect& x) -> Scal {
       const Vect dx = x - xc;
       const Scal dn = n.dot(dx) / ln;
       const Scal dt = t.dot(dx) / lt;
@@ -274,13 +278,13 @@ struct Imp {
     return true;
   }
 
-  static bool ParseCylinder(std::string s, size_t edim, Primitive& p) {
-    p.name = "cylinder";
+  static bool ParseCylinder(std::string s, size_t edim, Primitive& res) {
+    res.name = "cylinder";
     // c: center
     // t: axis
     // r: radius
     // t0,t1: length between center
-    auto d = GetMap(p.name, s, "cx cy cz tx ty tz r t0 t1 ", 4);
+    auto d = GetMap(res.name, s, "cx cy cz tx ty tz r t0 t1 ", 4);
     if (d.empty()) {
       return false;
     }
@@ -292,13 +296,13 @@ struct Imp {
     const Scal t0 = d["t0"];
     const Scal t1 = d["t1"];
 
-    p.ls = [xc, t, r, t0, t1, edim](const Vect& x) -> Scal {
+    res.ls = [xc, t, r, t0, t1, edim](const Vect& x) -> Scal {
       Vect dx = x - xc;
       if (edim == 2) {
         dx[2] = 0;
       }
       const Scal dt = t.dot(dx);
-      const Scal dr = (dx - t * dt).norm();
+      const Scal dr = dx.dist(t * dt);
       Scal q = r - dr;
       if (dt < t0) q = std::min(q, dt - t0);
       if (dt > t1) q = std::min(q, t1 - dt);
@@ -307,19 +311,17 @@ struct Imp {
     return true;
   }
 
-  static bool ParsePolygon(std::string s, size_t edim, Primitive& p) {
-    p.name = "polygon";
+  static bool ParsePolygon(std::string s, size_t edim, Primitive& res) {
+    res.name = "polygon";
     std::vector<Scal> coords;
-    auto d = GetMap(p.name, s, "ox oy oz   nx ny nz   ux uy uz", 9, &coords);
+    auto d = GetMap(
+        res.name, s, "ox oy oz   nx ny nz   ux uy uz   n0 n1   scale", 10,
+        &coords);
     if (d.empty()) {
       return false;
     }
     // coords: vortices of nonintersecting polygons stored as loops
     //         that start and end with the same point.
-
-    std::ostream_iterator<int> oit(std::cout, " ");
-    std::copy(coords.begin(), coords.end(), oit);
-    std::cout << std::endl;
 
     fassert(
         coords.size() % 2 == 0,
@@ -327,29 +329,32 @@ struct Imp {
             "got {} coordinates, required an even number", coords.size()));
     const size_t npoints = coords.size() / 2;
     fassert(
-        npoints >= 3,
+        npoints >= 4,
         util::Format(
-            "got {} two-dimensional points, at least 3 points required",
+            "got {} two-dimensional points, at least 4 points required",
             npoints));
 
     using Vect2 = generic::Vect<Scal, 2>;
     std::vector<Vect2> points(npoints);
+    const Scal scale = d["scale"];
     for (size_t i = 0; i < npoints; ++i) {
-      points[i][0] = coords[2 * i];
-      points[i][1] = coords[2 * i + 1];
+      points[i][0] = coords[2 * i] * scale;
+      points[i][1] = coords[2 * i + 1] * scale;
     }
 
     const Vect o(d["ox"], d["oy"], d["oz"]); // origin
     Vect n(d["nx"], d["ny"], d["nz"]); // normal
     n /= n.norm();
-    Vect u(d["ux"], d["uy"], d["uz"]); // direction up
+    Vect u(d["ux"], d["uy"], d["uz"]); // direction right
     u -= n.dot(u) * n;
     u /= u.norm();
-    const Vect v = u.cross(n);
+    const Vect v = n.cross(u);
+    const Scal n0 = d["n0"];
+    const Scal n1 = d["n1"];
 
     // http://geomalgorithms.com/a03-_inclusion.html
-    p.ls = [edim, o, n, u, v, points](const Vect& x) -> Scal {
-      /*
+    // TODO: add bounding box heuristic
+    res.ls = [edim, o, n, u, v, n0, n1, points](const Vect& x) -> Scal {
       Vect dx = x - o;
       if (edim == 2) {
         dx[2] = 0;
@@ -359,17 +364,37 @@ struct Imp {
       const Scal dv = v.dot(dx);
       const Vect2 p(du, dv);
       int wn = 0; // winding number
+      Scal sqdist = std::numeric_limits<Scal>::max();
+      size_t ibegin = 0;
       for (size_t i = 0; i + 1 < points.size(); ++i) {
+        const auto e = points[i + 1] - points[i];
+        const auto w = p - points[i];
+        const auto b = w - e * Clamp(w.dot(e) / e.dot(e), 0, 1);
+        sqdist = std::min(sqdist, b.dot(b));
         if (points[i][1] <= p[1]) {
           if (points[i + 1][1] > p[1]) {
-            if ((points[i + 1] - points[i]))
+            if (e.cross_third(w) > 0) {
+              ++wn;
+            }
+          }
+        } else { // points[i][1] > p[1]
+          if (points[i + 1][1] <= p[1]) {
+            if (e.cross_third(w) < 0) {
+              --wn;
+            }
           }
         }
+        if (points[i + 1] == points[ibegin]) { // reached end of a polygon
+          ibegin = i + 2;
+          ++i;
+        }
       }
-      */
-      return 0;
+      Scal q = (wn == 0 ? -1 : 1) * std::sqrt(sqdist);
+      if (dn < n0) q = std::min(q, dn - n0);
+      if (dn > n1) q = std::min(q, n1 - dn);
+      return q;
     };
-    p.inter = [](const Rect<Vect>& rect) -> bool { return true; };
+    res.inter = [](const Rect<Vect>& rect) -> bool { return true; };
     return true;
   }
 

@@ -272,8 +272,9 @@ class Geometry:
 
     def RoundBox(self, center, halfsize, roundradius=0, **kwargs):
         s = self.__Prefix(**kwargs)
-        s += "roundbox {:}   {:}   {:}".format(
-                VectToStr(center), VectToStr(halfsize), roundradius)
+        s += "roundbox {:}   {:}   {:}".format(VectToStr(center),
+                                               VectToStr(halfsize),
+                                               roundradius)
         self.__Append(s)
         return self
 
@@ -283,11 +284,31 @@ class Geometry:
         self.__Append(s)
         return self
 
-    def Cylinder(self, center, axis, radius, axisrange, **kwargs):
+    def Cylinder(self, center, normal, radius, normalrange, **kwargs):
         s = self.__Prefix(**kwargs)
         s += "cylinder {:}   {:}   {:}   {:}".format(VectToStr(center),
-                                                     VectToStr(axis), radius,
-                                                     VectToStr(axisrange))
+                                                     VectToStr(normal), radius,
+                                                     VectToStr(normalrange))
+        self.__Append(s)
+        return self
+
+    def Polygon(self, origin, normal, right, normalrange, scale, polygons,
+                **kwargs):
+        '''
+        poly: `list(list(list(float)))`, polygons as lists of 2D vertices
+        '''
+        assert all(len(p) == 2 for poly in polygons for p in poly), \
+                "expected 2D points, got '{:}'".format(poly)
+        for poly in polygons:
+            assert len(poly) >= 3, \
+                    "expected polygons of at least 3 vertices, got '{:}'".format(poly)
+            if poly[0] != poly[-1]:
+                poly.append(poly[0])
+        coords = [x for poly in polygons for p in poly for x in p]
+        s = self.__Prefix(**kwargs)
+        s += "polygon {:}   {:}   {:}   {:}   {:}   {:}".format(
+            VectToStr(origin), VectToStr(normal), VectToStr(right),
+            VectToStr(normalrange), scale, VectToStr(coords))
         self.__Append(s)
         return self
 
@@ -362,6 +383,7 @@ class BoundaryConditions:
         with open(path, 'w') as f:
             f.write(self.Generate())
 
+
 class Parameters:
     """
     Base class for parameters of a config generator.
@@ -375,6 +397,7 @@ class Parameters:
                 setattr(self, k, getattr(self, k))
         if path:
             self.execfile(path)
+
     def execfile(self, path):
         """
         Executes a Python script and saves the local variables as attributes.
@@ -387,4 +410,3 @@ class Parameters:
             for k, v in d.items():
                 setattr(self, k, v)
         return self
-

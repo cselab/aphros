@@ -5,7 +5,9 @@ paraview.simple._DisableFirstRenderCameraReset()
 
 renderView1 = CreateView('RenderView')
 renderView1.ViewSize = [1080, 1080]
-renderView1.OrientationAxesVisibility = 0
+renderView1.OrientationAxesVisibility = 1
+renderView1.OrientationAxesLabelColor = [0.0, 0.0, 0.0]
+renderView1.OrientationAxesOutlineColor = [0.0, 0.0, 0.0]
 renderView1.CameraPosition = [2.850257956930087, 1.3875069244683658, 1.2981201068256059]
 renderView1.CameraFocalPoint = [-0.062126483577120056, 0.21088117807884124, 0.14498475209410736]
 renderView1.CameraViewUp = [-0.31233559104266445, -0.14673926220996603, 0.9385702251265509]

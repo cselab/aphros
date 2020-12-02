@@ -24,3 +24,5 @@ tl
 !Makefile
 a.jpg
 add.conf
+b_*.dat
+out.conf
