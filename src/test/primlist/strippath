@@ -1,0 +1,8 @@
+#!/bin/sh
+
+ set -eu
+
+pre=$(realpath $(dirname $(dirname $(pwd))))/
+while read v ; do
+  echo "${v#*$pre}"
+done

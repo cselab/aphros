@@ -11,7 +11,7 @@ class Test(aphros.TestBase):
         super().__init__(cases=["getmap", "parse"])
 
     def run(self, case):
-        self.runcmd("./run_{} > out".format(case))
+        self.runcmd("./run_{} | ./strippath > out".format(case))
         return ["out"]
 
 

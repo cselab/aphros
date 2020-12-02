@@ -18,9 +18,11 @@ PrimList: missing field 'rx' in 'sphere 0.3 0.3 0.7' while parsing keys 'cx cy c
 name='sphere' mod=''
 
 ./t.primlist.parse '+sphere 0.3 0.3 0.7   0.25'
+func/primlist.ipp:355: assertion failed 'r'
 PrimList: primitive not recognized in '+sphere 0.3 0.3 0.7   0.25'
 
 ./t.primlist.parse '+ sphere 0.3 0.3 0.7   0.25'
+func/primlist.ipp:355: assertion failed 'r'
 PrimList: primitive not recognized in '+ sphere 0.3 0.3 0.7   0.25'
 
 ./t.primlist.parse '-sphere 0.3 0.3 0.7   0.25'
@@ -45,6 +47,7 @@ name='sphere' mod='&'
 name='box' mod=''
 
 ./t.primlist.parse '+box    0.7 0.3 0.4   0.25 0.2 0.15'
+func/primlist.ipp:355: assertion failed 'r'
 PrimList: primitive not recognized in '+box    0.7 0.3 0.4   0.25 0.2 0.15'
 
 ./t.primlist.parse '-&-&box    0.7 0.3 0.4   0.25 0.2 0.15'
