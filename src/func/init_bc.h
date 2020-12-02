@@ -254,4 +254,37 @@ struct UInitEmbedBc {
     });
     return res;
   }
+
+  template <class MEB>
+  static void DumpBcPoly(
+      const std::string filename, const MapEmbed<size_t>& me_group,
+      const MEB& meb, M& m) {
+    auto sem = m.GetSem("dumppoly");
+    struct {
+      std::vector<std::vector<Vect>> dpoly;
+      std::vector<Scal> dgroup;
+      std::vector<Scal> dface;
+    } * ctx(sem);
+    auto& dpoly = ctx->dpoly;
+    auto& dgroup = ctx->dgroup;
+    auto& dface = ctx->dface;
+    if (sem("local")) {
+      me_group.LoopPairs([&](auto p) {
+        const auto cf = p.first;
+        dpoly.push_back(meb.GetFacePoly(cf));
+        dgroup.push_back(p.second);
+        dface.push_back(meb.IsCell(cf) ? 0 : 1);
+      });
+      m.Reduce(&dpoly, Reduction::concat);
+      m.Reduce(&dgroup, Reduction::concat);
+      m.Reduce(&dface, Reduction::concat);
+    }
+    if (sem("write")) {
+      if (m.IsRoot()) {
+        WriteVtkPoly<Vect>(
+            filename, dpoly, nullptr, {&dgroup, &dface}, {"group", "face"},
+            "Boundary conditions", true, true, true);
+      }
+    }
+  }
 };

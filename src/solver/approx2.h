@@ -31,7 +31,7 @@ struct Approx2 {
     FieldCell<Scal> fcdiv(m, 0);
     for (auto c : eb.Cells()) {
       Scal div = 0;
-      eb.LoopNci(c, [&](auto q){
+      eb.LoopNci(c, [&](auto q) {
         const auto cf = eb.GetFace(c, q);
         div += fev[cf] * eb.GetOutwardFactor(c, q);
       });

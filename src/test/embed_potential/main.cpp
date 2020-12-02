@@ -27,6 +27,7 @@ template <class M>
 void CalcPotential(
     const MapEmbed<BCond<typename M::Scal>>& mebc, M& m, const Embed<M>& eb,
     FieldCell<typename M::Scal>& fcp, FieldEmbed<typename M::Scal>& fev,
+    FieldCell<typename M::Scal>& fc_residual,
     std::shared_ptr<linear::Solver<M>> linsolver) {
   using Scal = typename M::Scal;
   using ExprFace = generic::Vect<Scal, 3>;
@@ -48,9 +49,9 @@ void CalcPotential(
     t.fc_system.Reinit(m, Expr::GetUnit(0));
     for (auto c : eb.Cells()) {
       Expr sum(0);
-      m.LoopNci(c, [&](auto q) {
-        const auto cf = m.GetFace(c, q);
-        m.AppendExpr(sum, t.fe_flux[cf] * m.GetOutwardFactor(c, q), q);
+      eb.LoopNci(c, [&](auto q) {
+        const auto cf = eb.GetFace(c, q);
+        eb.AppendExpr(sum, t.fe_flux[cf] * eb.GetOutwardFactor(c, q), q);
       });
       t.fc_system[c] = sum;
     }
@@ -59,10 +60,14 @@ void CalcPotential(
     linsolver->Solve(t.fc_system, nullptr, fcp, m);
   }
   if (sem("flux")) {
-    fev.Reinit(m);
+    fev.Reinit(m, 0);
     eb.LoopFaces([&](auto cf) { //
       fev[cf] = UEmbed<M>::Eval(t.fe_flux[cf], cf, fcp, eb);
     });
+    fc_residual.Reinit(m, 0);
+    for (auto c : m.Cells()) {
+      fc_residual[c] = UEmbed<M>::Eval(t.fc_system[c], c, fcp, eb);
+    }
   }
   if (sem()) {}
 }
@@ -75,42 +80,6 @@ using EB = Embed<M>;
 using UEB = UEmbed<M>;
 using Type = typename EB::Type;
 
-template <class MEB>
-void DumpBcPoly(
-    const std::string filename, const MapEmbed<size_t>& me_group,
-    const MEB& meb, typename MEB::M& m) {
-  using M = typename MEB::M;
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  auto sem = m.GetSem("dumppoly");
-  struct {
-    std::vector<std::vector<Vect>> dpoly;
-    std::vector<Scal> dgroup;
-    std::vector<Scal> dface;
-  } * ctx(sem);
-  auto& dpoly = ctx->dpoly;
-  auto& dgroup = ctx->dgroup;
-  auto& dface = ctx->dface;
-  if (sem("local")) {
-    me_group.LoopPairs([&](auto p) {
-      const auto cf = p.first;
-      dpoly.push_back(meb.GetFacePoly(cf));
-      dgroup.push_back(p.second);
-      dface.push_back(meb.IsCell(cf) ? 0 : 1);
-    });
-    m.Reduce(&dpoly, Reduction::concat);
-    m.Reduce(&dgroup, Reduction::concat);
-    m.Reduce(&dface, Reduction::concat);
-  }
-  if (sem("write")) {
-    if (m.IsRoot()) {
-      WriteVtkPoly<Vect>(
-          filename, dpoly, nullptr, {&dgroup, &dface}, {"group", "face"},
-          "Boundary conditions", true, true, true);
-    }
-  }
-}
-
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem(__func__);
   struct {
@@ -121,6 +90,8 @@ void Run(M& m, Vars& var) {
     FieldNode<Scal> fnl;
     std::shared_ptr<linear::Solver<M>> linsolver;
     UInitEmbedBc<M>::PlainBc bc;
+    std::array<FieldCell<Scal>, 7> comps;
+    FieldCell<Scal> fc_residual;
   } * ctx(sem);
   auto& t = *ctx;
 
@@ -148,13 +119,34 @@ void Run(M& m, Vars& var) {
     t.eb->DumpPoly();
   }
   if (sem.Nested("dump-bc")) {
-    DumpBcPoly("bc.vtk", t.bc.me_group, *t.eb, m);
+    UInitEmbedBc<M>::DumpBcPoly("bc.vtk", t.bc.me_group, *t.eb, m);
   }
   if (sem.Nested("potential")) {
-    CalcPotential(t.bc.mebc, m, *t.eb, t.fcp, t.fev, t.linsolver);
+    CalcPotential(
+        t.bc.mebc, m, *t.eb, t.fcp, t.fev, t.fc_residual, t.linsolver);
   }
   if (sem("dump-solution")) {
     t.fcdiv = Approx2<EB>::GetRegularDivergence(t.fev, *t.eb);
+
+    for (size_t q = 0; q < 7; ++q) {
+      t.comps[q].Reinit(m, 0);
+    }
+    for (auto c : m.Cells()) {
+      for (auto q : m.Nci(c)) {
+        t.comps[q][c] = t.fev[m.GetFace(c, q)];
+      }
+      t.comps[6][c] = t.fev[c];
+    }
+    m.Dump(&t.comps[0], "fev.xm");
+    m.Dump(&t.comps[1], "fev.xp");
+    m.Dump(&t.comps[2], "fev.ym");
+    m.Dump(&t.comps[3], "fev.yp");
+    m.Dump(&t.comps[4], "fev.zm");
+    m.Dump(&t.comps[5], "fev.zp");
+    m.Dump(&t.comps[6], "fev.c");
+
+    m.Dump(&t.fc_residual, "residual");
+
     m.Dump(&t.fcdiv, "div");
     m.Dump(&t.fcp, "p");
   }

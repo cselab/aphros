@@ -347,7 +347,9 @@ class Embed {
     for (auto q : Nci(c)) {
       lambda(q);
     }
-    lambda(NciEmbed());
+    if (IsCut(c)) {
+      lambda(NciEmbed());
+    }
   }
   template <class F>
   void LoopNciFaces(IdxCell c, F lambda) const {
