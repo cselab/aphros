@@ -47,7 +47,7 @@ Example of a list of primitives
 
 (see setup in :linkpath:`examples/200_primlist`)
 
-.. image:: ../../../examples/200_primlist/a.jpg
+.. image:: ../../../examples/200_primlist/a_orig.jpg
   :width: 400
   :align: center
 

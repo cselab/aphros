@@ -1,8 +1,0 @@
-set -eu
-
-make cleanrun
-
-if which pvbatch ; then
-  pvbatch ./plot.py
-fi
-
