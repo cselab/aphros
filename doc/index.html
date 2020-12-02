@@ -4,6 +4,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Aphros documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -21,7 +22,8 @@
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
-        <li class="nav-item nav-item-0"><a href="#">Aphros  documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="#">Aphros  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Aphros  documentation</a></li> 
       </ul>
     </div>  
 
@@ -98,30 +100,19 @@ of one call of the function.
 The instance is created before the execution of the first stage
 and destroyed after the last stage.</p>
 <p>Communication requests include:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>  <span class="kt">void</span> <span class="n">Comm</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Co</span><span class="o">&gt;&amp;</span> <span class="n">r</span><span class="p">)</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>  <span class="kt">void</span> <span class="n">Comm</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">CommRequest</span><span class="o">&gt;&amp;&amp;</span> <span class="n">r</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>  <span class="kt">void</span> <span class="n">Reduce</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Op</span><span class="o">&gt;&amp;</span> <span class="n">o</span><span class="p">)</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>  <span class="kt">void</span> <span class="n">Reduce</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Op</span><span class="o">&gt;&amp;&amp;</span> <span class="n">o</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>  <span class="kt">void</span> <span class="n">Solve</span><span class="p">(</span><span class="k">const</span> <span class="n">LS</span><span class="o">&amp;</span> <span class="n">ls</span><span class="p">)</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>      <span class="c1">// Error: function &#39;Solve&#39; not found in &#39;/home/petr/work/ethz/proj/electrochem/ch/src/geom/mesh.h&#39;</span>
 </pre></div>
 </div>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>  <span class="kt">void</span> <span class="n">Dump</span><span class="p">(</span><span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">f</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">n</span><span class="p">)</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>  <span class="kt">void</span> <span class="n">Dump</span><span class="p">(</span><span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">field</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Structure describes a linear system to solve:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>  <span class="k">struct</span> <span class="n">LS</span> <span class="p">{</span> <span class="c1">// linear system ax=r</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">MIdx</span><span class="o">&gt;</span> <span class="n">st</span><span class="p">;</span> <span class="c1">// stencil</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">a</span><span class="p">;</span> <span class="c1">// matrix coeffs of size n * st.size()</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">b</span><span class="p">;</span> <span class="c1">// rhs of size n</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">x</span><span class="p">;</span> <span class="c1">// solution and initial guess of size n</span>
-    <span class="k">enum</span> <span class="k">class</span> <span class="nc">T</span> <span class="p">{</span> <span class="n">gen</span><span class="p">,</span> <span class="n">symm</span> <span class="p">};</span>
-    <span class="n">T</span> <span class="n">t</span> <span class="o">=</span> <span class="n">T</span><span class="o">::</span><span class="n">gen</span><span class="p">;</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">prefix</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="p">;</span> <span class="c1">// custom prefix for config (tol, solver, maxiter)</span>
-  <span class="p">};</span>
-</pre></div>
-</div>
 </div>
 <span id="document-convdiff"></span><div class="section" id="convection-diffusion-equation">
 <span id="s-convdiff"></span><h2><span class="section-number">3. </span>Convection-diffusion equation<a class="headerlink" href="#convection-diffusion-equation" title="Permalink to this headline">¶</a></h2>
@@ -162,7 +153,7 @@ and volume flux <img class="math" src="_images/math/ca0027a941a14f7ca9bceafdb3c5
 <span class="c1">// fcs: source</span>
 <span class="c1">// ffv: volume flux</span>
 <span class="n">ConvDiffVect</span><span class="p">(</span>
-    <span class="kt">double</span> <span class="n">t</span><span class="p">,</span> <span class="kt">double</span> <span class="n">dt</span><span class="p">,</span> <span class="n">M</span><span class="o">&amp;</span> <span class="n">m</span><span class="p">,</span> <span class="k">const</span> <span class="n">EB</span><span class="o">&amp;</span> <span class="n">eb</span><span class="p">,</span> <span class="n">Par</span> <span class="n">par</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">time</span><span class="p">,</span> <span class="kt">double</span> <span class="n">dt</span><span class="p">,</span> <span class="n">M</span><span class="o">&amp;</span> <span class="n">m_</span><span class="p">,</span> <span class="k">const</span> <span class="n">EB</span><span class="o">&amp;</span> <span class="n">eb_</span><span class="p">,</span> <span class="n">Par</span> <span class="n">par_</span><span class="p">,</span>
     <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcr</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldFaceb</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">ffd</span><span class="p">,</span>
     <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;*</span> <span class="n">fcs</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldFaceb</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">ffv</span><span class="p">)</span>
 </pre></div>
@@ -215,7 +206,7 @@ the constructor takes mappings describing the boundary
 conditions and the initial fields:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// ffv: volume flux</span>
 <span class="n">ConvDiffVect</span><span class="p">(</span>
-    <span class="kt">double</span> <span class="n">t</span><span class="p">,</span> <span class="kt">double</span> <span class="n">dt</span><span class="p">,</span> <span class="n">M</span><span class="o">&amp;</span> <span class="n">m</span><span class="p">,</span> <span class="k">const</span> <span class="n">EB</span><span class="o">&amp;</span> <span class="n">eb</span><span class="p">,</span> <span class="n">Par</span> <span class="n">par</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">time</span><span class="p">,</span> <span class="kt">double</span> <span class="n">dt</span><span class="p">,</span> <span class="n">M</span><span class="o">&amp;</span> <span class="n">m_</span><span class="p">,</span> <span class="k">const</span> <span class="n">EB</span><span class="o">&amp;</span> <span class="n">eb_</span><span class="p">,</span> <span class="n">Par</span> <span class="n">par_</span><span class="p">,</span>
     <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcr</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldFaceb</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">ffd</span><span class="p">,</span>
     <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;*</span> <span class="n">fcs</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldFaceb</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">ffv</span><span class="p">)</span>
 </pre></div>
@@ -228,7 +219,7 @@ viscosity <code class="docutils literal notranslate"><span class="pre">fcd</span
 force <code class="docutils literal notranslate"><span class="pre">fcs</span></code>,
 and volume flux <code class="docutils literal notranslate"><span class="pre">ffv</span></code>.
 Parameters of the solver are provided by</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="n">ConvDiffPar</span> <span class="p">{</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">ConvDiffPar</span> <span class="p">{</span>
   <span class="n">Scal</span> <span class="n">relax</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// relaxation factor [0,1] (1 -- no relaxation)</span>
   <span class="kt">bool</span> <span class="n">second</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// second order in time</span>
   <span class="n">ConvSc</span> <span class="n">sc</span> <span class="o">=</span> <span class="n">ConvSc</span><span class="o">::</span><span class="n">quick</span><span class="p">;</span> <span class="c1">// scheme for convective flux (see convdiffi.h)</span>
@@ -312,7 +303,7 @@ and volume source <img class="math" src="_images/math/932fc7f28603339d20b577290d
 <span class="c1">// fcsv: volume source</span>
 <span class="c1">// fcsm: mass source</span>
 <span class="n">FluidSolver</span><span class="p">(</span>
-    <span class="kt">double</span> <span class="n">t</span><span class="p">,</span> <span class="kt">double</span> <span class="n">dt</span><span class="p">,</span> <span class="n">M</span><span class="o">&amp;</span> <span class="n">m</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcr</span><span class="p">,</span>
+    <span class="kt">double</span> <span class="n">t</span><span class="p">,</span> <span class="kt">double</span> <span class="n">dt</span><span class="p">,</span> <span class="n">M</span><span class="o">&amp;</span> <span class="n">m_</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcr</span><span class="p">,</span>
     <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcd</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;*</span> <span class="n">fcf</span><span class="p">,</span>
     <span class="k">const</span> <span class="n">FieldEmbed</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">febp</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcsv</span><span class="p">,</span>
     <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcsm</span><span class="p">)</span>
@@ -339,14 +330,7 @@ and the cell-based velocity satisfies the momentum equation.</p>
 the constructor takes mappings describing the boundary
 conditions and the initial fields.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// par: parameters</span>
-<span class="n">Simple</span><span class="p">(</span>
-    <span class="n">M</span><span class="o">&amp;</span> <span class="n">m</span><span class="p">,</span> <span class="k">const</span> <span class="n">EB</span><span class="o">&amp;</span> <span class="n">eb</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;&amp;</span> <span class="n">fcvel</span><span class="p">,</span>
-    <span class="k">const</span> <span class="n">MapEmbed</span><span class="o">&lt;</span><span class="n">BCondFluid</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;&gt;&amp;</span> <span class="n">mebc</span><span class="p">,</span>
-    <span class="k">const</span> <span class="n">MapCell</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">CondCellFluid</span><span class="o">&gt;&gt;&amp;</span> <span class="n">mcc</span><span class="p">,</span>
-    <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcr</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcd</span><span class="p">,</span>
-    <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;*</span> <span class="n">fcf</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldEmbed</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">febp</span><span class="p">,</span>
-    <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcsv</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcsm</span><span class="p">,</span> <span class="kt">double</span> <span class="n">t</span><span class="p">,</span>
-    <span class="kt">double</span> <span class="n">dt</span><span class="p">,</span> <span class="n">Par</span> <span class="n">par</span><span class="p">)</span>
+<span class="n">Simple</span><span class="p">(</span><span class="n">M</span><span class="o">&amp;</span> <span class="n">m</span><span class="p">,</span> <span class="k">const</span> <span class="n">EB</span><span class="o">&amp;</span> <span class="n">eb</span><span class="p">,</span> <span class="k">const</span> <span class="n">Args</span><span class="o">&amp;</span> <span class="n">args</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>with the initial velocity <code class="docutils literal notranslate"><span class="pre">fcw</span></code>,
@@ -358,7 +342,7 @@ force <code class="docutils literal notranslate"><span class="pre">fcf</span></c
 projections of well-balanced force <code class="docutils literal notranslate"><span class="pre">fcbp</span></code>,
 volume source <code class="docutils literal notranslate"><span class="pre">fcsv</span></code> and mass source <code class="docutils literal notranslate"><span class="pre">fcsm</span></code>.
 Parameters of the solver are provided by</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="n">SimplePar</span> <span class="p">{</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">SimplePar</span> <span class="p">{</span>
   <span class="k">using</span> <span class="n">Vect</span> <span class="o">=</span> <span class="n">generic</span><span class="o">::</span><span class="n">Vect</span><span class="o">&lt;</span><span class="n">Scal</span><span class="p">,</span> <span class="mi">3</span><span class="o">&gt;</span><span class="p">;</span>
   <span class="n">Scal</span> <span class="n">vrelax</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">;</span> <span class="c1">// velocity relaxation factor [0,1]</span>
   <span class="n">Scal</span> <span class="n">prelax</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// pressure relaxation factor [0,1]</span>
@@ -384,14 +368,7 @@ Parameters of the solver are provided by</p>
 the constructor takes mappings describing the boundary
 conditions and the initial fields.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// par: parameters</span>
-<span class="n">Proj</span><span class="p">(</span>
-    <span class="n">M</span><span class="o">&amp;</span> <span class="n">m</span><span class="p">,</span> <span class="k">const</span> <span class="n">EB</span><span class="o">&amp;</span> <span class="n">eb</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;&amp;</span> <span class="n">fcvel</span><span class="p">,</span>
-    <span class="k">const</span> <span class="n">MapEmbed</span><span class="o">&lt;</span><span class="n">BCondFluid</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;&gt;&amp;</span> <span class="n">mebc</span><span class="p">,</span>
-    <span class="k">const</span> <span class="n">MapCell</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">CondCellFluid</span><span class="o">&gt;&gt;&amp;</span> <span class="n">mcc</span><span class="p">,</span>
-    <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcr</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcd</span><span class="p">,</span>
-    <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;*</span> <span class="n">fcf</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldEmbed</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">ffbp</span><span class="p">,</span>
-    <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcsv</span><span class="p">,</span> <span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">fcsm</span><span class="p">,</span> <span class="kt">double</span> <span class="n">t</span><span class="p">,</span>
-    <span class="kt">double</span> <span class="n">dt</span><span class="p">,</span> <span class="n">Par</span> <span class="n">par</span><span class="p">)</span>
+<span class="n">Proj</span><span class="p">(</span><span class="n">M</span><span class="o">&amp;</span> <span class="n">m</span><span class="p">,</span> <span class="k">const</span> <span class="n">EB</span><span class="o">&amp;</span> <span class="n">eb</span><span class="p">,</span> <span class="k">const</span> <span class="n">Args</span><span class="o">&amp;</span> <span class="n">args</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>with the initial velocity <code class="docutils literal notranslate"><span class="pre">fcw</span></code>,
@@ -403,7 +380,7 @@ force <code class="docutils literal notranslate"><span class="pre">fcf</span></c
 projections of well-balanced force <code class="docutils literal notranslate"><span class="pre">fcbp</span></code>,
 volume source <code class="docutils literal notranslate"><span class="pre">fcsv</span></code> and mass source <code class="docutils literal notranslate"><span class="pre">fcsm</span></code>.
 Parameters of the solver are provided by</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="n">ProjPar</span> <span class="p">{</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">ProjPar</span> <span class="p">{</span>
   <span class="k">using</span> <span class="n">Vect</span> <span class="o">=</span> <span class="n">generic</span><span class="o">::</span><span class="n">Vect</span><span class="o">&lt;</span><span class="n">Scal</span><span class="p">,</span> <span class="mi">3</span><span class="o">&gt;</span><span class="p">;</span>
   <span class="n">Scal</span> <span class="n">vrelax</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">// velocity relaxation factor [0,1]</span>
   <span class="n">Scal</span> <span class="n">prelax</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// pressure relaxation factor [0,1]</span>
@@ -413,11 +390,15 @@ Parameters of the solver are provided by</p>
   <span class="n">ConvSc</span> <span class="n">convsc</span> <span class="o">=</span> <span class="n">ConvSc</span><span class="o">::</span><span class="n">quick</span><span class="p">;</span> <span class="c1">// convection scheme</span>
   <span class="n">Scal</span> <span class="n">convdf</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// deferred correction factor</span>
   <span class="kt">bool</span> <span class="n">stokes</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// Stokes flow</span>
-  <span class="kt">bool</span> <span class="n">explconv</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// explicit convectio for Conv::imp</span>
   <span class="kt">bool</span> <span class="n">convsymm</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// symmetric solver for linear system in convdiff</span>
   <span class="n">Conv</span> <span class="n">conv</span> <span class="o">=</span> <span class="n">Conv</span><span class="o">::</span><span class="n">imp</span><span class="p">;</span> <span class="c1">// convection-diffusion solver</span>
   <span class="kt">bool</span> <span class="n">bcg</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// Bell-Colella-Glaz scheme</span>
   <span class="n">Scal</span> <span class="n">outlet_relax</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="n">Scal</span> <span class="n">inletpressure_factor</span> <span class="o">=</span>
+      <span class="mi">0</span><span class="p">;</span> <span class="c1">// correction factor on inlet with given pressure</span>
+  <span class="kt">bool</span> <span class="n">explviscous</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// enable explicit viscous terms</span>
+  <span class="kt">bool</span> <span class="n">redistr_adv</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// use RedistributeCutCellsAdvection()</span>
+                            <span class="c1">// if true else RedistributeCutCells()</span>
 <span class="p">};</span>
 </pre></div>
 </div>
@@ -1139,7 +1120,16 @@ to execute the same lambda-function on indices of two types</span><a class="head
 <p>Header <code class="docutils literal notranslate"><span class="pre">func/primlist.h</span></code> provides routines to define level-set functions
 for a list of geometric primitives such as spheres and boxes.
 A primitive is described by</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="n">Primitive</span> <span class="p">{</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">Primitive</span> <span class="p">{</span>
+  <span class="n">Primitive</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name_</span><span class="p">)</span>
+      <span class="o">:</span> <span class="n">name</span><span class="p">(</span><span class="n">name_</span><span class="p">),</span> <span class="n">inter</span><span class="p">([](</span><span class="k">const</span> <span class="n">Rect</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;&amp;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">bool</span> <span class="p">{</span> <span class="k">return</span> <span class="nb">true</span><span class="p">;</span> <span class="p">})</span> <span class="p">{}</span>
+  <span class="n">Primitive</span><span class="p">()</span> <span class="o">:</span> <span class="n">Primitive</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">)</span> <span class="p">{}</span>
+  <span class="k">friend</span> <span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">&lt;&lt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="n">o</span><span class="p">,</span> <span class="k">const</span> <span class="n">Primitive</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;&amp;</span> <span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">o</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;name=&#39;&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">p</span><span class="p">.</span><span class="n">name</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;&#39;&quot;</span><span class="p">;</span>
+    <span class="n">o</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; mod=&#39;&quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">mod_minus</span> <span class="o">?</span> <span class="s">&quot;-&quot;</span> <span class="o">:</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">mod_and</span> <span class="o">?</span> <span class="s">&quot;&amp;&quot;</span> <span class="o">:</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;&#39;&quot;</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">o</span><span class="p">;</span>
+  <span class="p">}</span>
+
   <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">size_t</span> <span class="n">dim</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
   <span class="k">using</span> <span class="n">Vect</span> <span class="o">=</span> <span class="n">generic</span><span class="o">::</span><span class="n">Vect</span><span class="o">&lt;</span><span class="n">Scal</span><span class="p">,</span> <span class="n">dim</span><span class="o">&gt;</span><span class="p">;</span>
 
@@ -1148,43 +1138,61 @@ A primitive is described by</p>
   <span class="kt">bool</span> <span class="n">mod_and</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
   <span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="n">Scal</span><span class="p">(</span><span class="k">const</span> <span class="n">Vect</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">ls</span><span class="p">;</span> <span class="c1">// level-set</span>
   <span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="k">const</span> <span class="n">Rect</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;&amp;</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">inter</span><span class="p">;</span> <span class="c1">// true if intersects rectangle</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="n">Vect</span><span class="p">(</span><span class="k">const</span> <span class="n">Vect</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">vel</span><span class="p">;</span> <span class="c1">// velocity</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="n">Vect</span><span class="p">(</span><span class="k">const</span> <span class="n">Vect</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span> <span class="n">velocity</span><span class="p">;</span> <span class="c1">// velocity</span>
 
   <span class="n">Vect</span> <span class="n">c</span><span class="p">;</span> <span class="c1">// center XXX adhoc for GetSphereOverlap</span>
   <span class="n">Vect</span> <span class="n">r</span><span class="p">;</span> <span class="c1">// radius XXX adhoc for GetSphereOverlap</span>
-
-  <span class="n">Primitive</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">)</span>
-      <span class="o">:</span> <span class="n">name</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="n">inter</span><span class="p">([](</span><span class="k">const</span> <span class="n">Rect</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;&amp;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">bool</span> <span class="p">{</span> <span class="k">return</span> <span class="nb">true</span><span class="p">;</span> <span class="p">})</span> <span class="p">{}</span>
-  <span class="n">Primitive</span><span class="p">()</span> <span class="o">:</span> <span class="n">Primitive</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">)</span> <span class="p">{}</span>
-
-  <span class="k">friend</span> <span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">&lt;&lt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="n">o</span><span class="p">,</span> <span class="k">const</span> <span class="n">Primitive</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;&amp;</span> <span class="n">p</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">o</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;name=&#39;&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">p</span><span class="p">.</span><span class="n">name</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;&#39;&quot;</span><span class="p">;</span>
-    <span class="n">o</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; mod=&#39;&quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">mod_minus</span> <span class="o">?</span> <span class="s">&quot;-&quot;</span> <span class="o">:</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">mod_and</span> <span class="o">?</span> <span class="s">&quot;&amp;&quot;</span> <span class="o">:</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;&#39;&quot;</span><span class="p">;</span>
-    <span class="k">return</span> <span class="n">o</span><span class="p">;</span>
-  <span class="p">}</span>
 <span class="p">};</span>
 </pre></div>
 </div>
-<p>Function <code class="docutils literal notranslate"><span class="pre">Parse()</span></code> parses a stream with a list of primitives.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>  <span class="c1">// Parses a list of primitives in stream f.</span>
-  <span class="c1">// verb: verbosity (debug messages to std::cout)</span>
+<p>Function <code class="docutils literal notranslate"><span class="pre">GetPrimitives()</span></code> parses a stream with a list of primitives.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>  <span class="c1">// Parses a list of primitives in stream buf.</span>
   <span class="c1">// edim: effective dimension, 2 or 3 (ignores z-component if edim=2)</span>
-  <span class="k">static</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Primitive</span><span class="o">&gt;</span> <span class="n">Parse</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">istream</span><span class="o">&amp;</span> <span class="n">f</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">verb</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">edim</span><span class="p">)</span>
+  <span class="k">static</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Primitive</span><span class="o">&gt;</span> <span class="n">GetPrimitives</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">istream</span><span class="o">&amp;</span> <span class="n">buf</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">edim</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Available primitives and their parameters:</p>
 <dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">sphere</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">cx</span> <span class="pre">cy</span> <span class="pre">cz</span></code> (center), <code class="docutils literal notranslate"><span class="pre">rx</span> <span class="pre">ry</span> <span class="pre">rz</span></code> (half-size);</p>
+<dt><code class="docutils literal notranslate"><span class="pre">sphere</span></code></dt><dd><p>Ellipsoid with principal axes aligned with the coordinate axes.
+Parameters:
+<code class="docutils literal notranslate"><span class="pre">cx</span> <span class="pre">cy</span> <span class="pre">cz</span></code> (center), <code class="docutils literal notranslate"><span class="pre">rx</span> <span class="pre">ry</span> <span class="pre">rz</span></code> (half-size);</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">box</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">cx</span> <span class="pre">cy</span> <span class="pre">cz</span></code> (center), <code class="docutils literal notranslate"><span class="pre">rx</span> <span class="pre">ry</span> <span class="pre">rz</span></code> (half-size);</p>
+<dt><code class="docutils literal notranslate"><span class="pre">box</span></code></dt><dd><p>Rectangular box with sides aligned with the coordinate planes.
+Parameters:
+<code class="docutils literal notranslate"><span class="pre">cx</span> <span class="pre">cy</span> <span class="pre">cz</span></code> (center), <code class="docutils literal notranslate"><span class="pre">rx</span> <span class="pre">ry</span> <span class="pre">rz</span></code> (half-size);</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">ring</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">cx</span> <span class="pre">cy</span> <span class="pre">cz</span></code> (center), <code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">ny</span> <span class="pre">nz</span></code> (normal), <code class="docutils literal notranslate"><span class="pre">r</span></code> (radius), <code class="docutils literal notranslate"><span class="pre">th</span></code> (thickness);</p>
+<dt><code class="docutils literal notranslate"><span class="pre">ring</span></code></dt><dd><p>Torus.
+Parameters:
+<code class="docutils literal notranslate"><span class="pre">cx</span> <span class="pre">cy</span> <span class="pre">cz</span></code> (center), <code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">ny</span> <span class="pre">nz</span></code> (normal), <code class="docutils literal notranslate"><span class="pre">r</span></code> (radius), <code class="docutils literal notranslate"><span class="pre">th</span></code> (thickness);</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">smooth_step</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">cx</span> <span class="pre">cy</span> <span class="pre">cz</span></code> (center), <code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">ny</span> <span class="pre">nz</span></code> (normal), <code class="docutils literal notranslate"><span class="pre">tx</span> <span class="pre">ty</span> <span class="pre">tz</span></code> (tangent),
+<dt><code class="docutils literal notranslate"><span class="pre">smooth_step</span></code></dt><dd><p>Smooth step <a class="reference internal" href="index.html#almgren1997" id="id1"><span>[almgren1997]</span></a>.
+Parameters:
+<code class="docutils literal notranslate"><span class="pre">cx</span> <span class="pre">cy</span> <span class="pre">cz</span></code> (center), <code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">ny</span> <span class="pre">nz</span></code> (normal), <code class="docutils literal notranslate"><span class="pre">tx</span> <span class="pre">ty</span> <span class="pre">tz</span></code> (tangent),
 <code class="docutils literal notranslate"><span class="pre">ln</span></code> (size along normal), <code class="docutils literal notranslate"><span class="pre">lt</span></code> (size along tangent);</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">cylinder</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">cx</span> <span class="pre">cy</span> <span class="pre">cz</span></code> (center), <code class="docutils literal notranslate"><span class="pre">tx</span> <span class="pre">ty</span> <span class="pre">tz</span></code> (axis), <code class="docutils literal notranslate"><span class="pre">r</span></code> (radius),
-<code class="docutils literal notranslate"><span class="pre">t0</span> <span class="pre">t1</span></code> (coordinates relative to center).</p>
+<dt><code class="docutils literal notranslate"><span class="pre">cylinder</span></code></dt><dd><p>Right circular cylinder.
+Parameters:
+<code class="docutils literal notranslate"><span class="pre">cx</span> <span class="pre">cy</span> <span class="pre">cz</span></code> (center), <code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">ny</span> <span class="pre">nz</span></code> (normal), <code class="docutils literal notranslate"><span class="pre">r</span></code> (radius),
+<code class="docutils literal notranslate"><span class="pre">n0</span> <span class="pre">n1</span></code> (range along normal relative to center);</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">polygon</span></code></dt><dd><p>Cylinder bounded by parallel planes with the plane section specified as a
+sequence of non-intersecting polygons.
+Parameters:
+<code class="docutils literal notranslate"><span class="pre">ox</span> <span class="pre">oy</span> <span class="pre">oz</span></code> (origin), <code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">ny</span> <span class="pre">nz</span></code> (normal), <code class="docutils literal notranslate"><span class="pre">ux</span> <span class="pre">uy</span> <span class="pre">uz</span></code>
+(direction of 2D x-axis), <code class="docutils literal notranslate"><span class="pre">n0</span> <span class="pre">n1</span></code> (range along normal relative to origin),
+<code class="docutils literal notranslate"><span class="pre">scale</span></code> (factor applied to 2D vertices), <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">y</span> <span class="pre">...</span></code>
+(2D vertices of all polygons, first and last vertices of each polygon must
+coincide);</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">ruled</span></code></dt><dd><p>Ruled surface bounded by parallel planes with two plane sections
+on the opposite sides specified as two sequences of non-intersecting polygons.
+Parameters:
+<code class="docutils literal notranslate"><span class="pre">ox</span> <span class="pre">oy</span> <span class="pre">oz</span></code> (origin), <code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">ny</span> <span class="pre">nz</span></code> (normal), <code class="docutils literal notranslate"><span class="pre">ux</span> <span class="pre">uy</span> <span class="pre">uz</span></code> (direction of 2D
+x-axis), <code class="docutils literal notranslate"><span class="pre">n0</span> <span class="pre">n1</span></code> (range along normal relative to origin, sides 0 and 1),
+<code class="docutils literal notranslate"><span class="pre">scale0</span> <span class="pre">scale1</span></code>
+(factors applied to 2D vertices on sides 0 and 1), <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">y</span> <span class="pre">...</span></code>
+(2D vertices of all polygons on side 0, first and last vertices of
+each polygon must coincide), <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">y</span> <span class="pre">...</span></code> (same but on side 1).</p>
 </dd>
 </dl>
 <p>Each primitive defines a level-set function which is positive inside the body.
@@ -1194,7 +1202,7 @@ To change the default operation, modifiers can be added
 before the name of the primitive:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">-</span></code>: minus, multiply level-set by -1;</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">&amp;</span></code>: intersection, take minimum with level-set from all entries above.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&amp;</span></code>: intersection, take the minimum with the current level-set.</p></li>
 </ul>
 <p>Example of a list of primitives</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span># cx cy cz   rx ry rz
@@ -1222,7 +1230,7 @@ cylinder 0.75 0.7 0.3   -2 1 0.5   0.1   -0.2 0.2
 </pre></div>
 </div>
 <p>(see setup in <a class="reference external" href="https://github.com/cselab/aphros/blob/master/examples/200_primlist">examples/200_primlist</a>)</p>
-<a class="reference internal image-reference" href="_images/a.jpg"><img alt="_images/a.jpg" class="align-center" src="_images/a.jpg" style="width: 400px;" /></a>
+<a class="reference internal image-reference" href="_images/a_orig.jpg"><img alt="_images/a_orig.jpg" class="align-center" src="_images/a_orig.jpg" style="width: 400px;" /></a>
 <p>Parameter <code class="docutils literal notranslate"><span class="pre">list_ls</span></code> in the configuration defines the
 method of computing the volume fraction field from the level-set functions</p>
 <dl class="simple">
@@ -1239,6 +1247,13 @@ volume fraction cut by an ellipsoid (only valid for primitive <code class="docut
 computed from the level-set on mesh nodes, supports modifiers.</p>
 </dd>
 </dl>
+<dl class="citation">
+<dt class="label" id="almgren1997"><span class="brackets"><a class="fn-backref" href="#id1">almgren1997</a></span></dt>
+<dd><p>Almgren et al. A Cartesian Grid Projection Method for the
+Incompressible Euler Equations in Complex Geometries (1997)
+<a class="reference external" href="https://doi.org/10.1137/S1064827594273730">10.1137/S1064827594273730</a></p>
+</dd>
+</dl>
 </div>
 <span id="document-bclist"></span><div class="section" id="boundary-conditions">
 <span id="s-bclist"></span><h2><span class="section-number">8. </span>Boundary conditions<a class="headerlink" href="#boundary-conditions" title="Permalink to this headline">¶</a></h2>
@@ -1248,7 +1263,7 @@ The list of boundary conditions is a list of code blocks with primitives.</p>
 <div class="section" id="code-blocks">
 <h3><span class="section-number">8.1. </span>Code blocks<a class="headerlink" href="#code-blocks" title="Permalink to this headline">¶</a></h3>
 <p>A code block is described by</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="n">CodeBlock</span> <span class="p">{</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">CodeBlock</span> <span class="p">{</span>
   <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
   <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">content</span><span class="p">;</span>
 <span class="p">};</span>
@@ -1331,9 +1346,7 @@ It contains cell fields
 <code class="docutils literal notranslate"><span class="pre">block</span></code> (block id), <code class="docutils literal notranslate"><span class="pre">cond</span></code> (conditions for advection)
 and <code class="docutils literal notranslate"><span class="pre">condfluid</span></code> (conditions for fluid, see <a class="reference internal" href="index.html#t-fluidcond"><span class="std std-ref">Fluid boundary conditions.</span></a>).</p>
 <p>The output is implemented in function</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="n">DumpBcFaces</span><span class="p">(</span>
-    <span class="k">const</span> <span class="n">MapEmbed</span><span class="o">&lt;</span><span class="n">BCondAdvection</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">M</span><span class="o">::</span><span class="n">Scal</span><span class="o">&gt;&gt;&amp;</span> <span class="n">mfa</span><span class="p">,</span>
-    <span class="k">const</span> <span class="n">MapCondFaceFluid</span><span class="o">&amp;</span> <span class="n">mff</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">fn</span><span class="p">,</span> <span class="n">M</span><span class="o">&amp;</span> <span class="n">m</span><span class="p">)</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>      <span class="c1">// Error: function &#39;DumpBcFaces&#39; not found in &#39;/home/petr/work/ethz/proj/electrochem/ch/src/util/hydro.ipp&#39;</span>
 </pre></div>
 </div>
 </div>
@@ -1437,21 +1450,21 @@ x,y
 </pre></div>
 </div>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">enum</span> <span class="p">{</span> <span class="n">CSV_MAX_NF</span> <span class="o">=</span> <span class="mi">999</span> <span class="p">};</span>
-<span class="k">struct</span> <span class="n">CSV</span> <span class="p">{</span>
+<span class="k">struct</span> <span class="nc">CSV</span> <span class="p">{</span>
   <span class="kt">char</span><span class="o">*</span> <span class="n">name</span><span class="p">[</span><span class="n">CSV_MAX_NF</span><span class="p">];</span>
   <span class="kt">double</span><span class="o">*</span> <span class="n">data</span><span class="p">[</span><span class="n">CSV_MAX_NF</span><span class="p">];</span>
   <span class="kt">int</span> <span class="n">nf</span><span class="p">,</span> <span class="n">nr</span><span class="p">;</span>
 <span class="p">};</span>
 
-<span class="k">struct</span> <span class="n">CSV</span><span class="o">*</span> <span class="nf">csv_ini</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
-<span class="k">struct</span> <span class="n">CSV</span><span class="o">*</span> <span class="nf">csv_read</span><span class="p">(</span><span class="kt">FILE</span><span class="o">*</span><span class="p">);</span>
-<span class="kt">int</span> <span class="nf">csv_fin</span><span class="p">(</span><span class="k">struct</span> <span class="n">CSV</span><span class="o">*</span><span class="p">);</span>
-<span class="kt">double</span><span class="o">*</span> <span class="nf">csv_field</span><span class="p">(</span><span class="k">struct</span> <span class="n">CSV</span><span class="o">*</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">);</span>
-<span class="kt">int</span> <span class="nf">csv_nf</span><span class="p">(</span><span class="k">struct</span> <span class="n">CSV</span><span class="o">*</span><span class="p">);</span>
-<span class="kt">int</span> <span class="nf">csv_nr</span><span class="p">(</span><span class="k">struct</span> <span class="n">CSV</span><span class="o">*</span><span class="p">);</span>
-<span class="kt">int</span> <span class="nf">csv_write</span><span class="p">(</span><span class="k">struct</span> <span class="n">CSV</span><span class="o">*</span><span class="p">,</span> <span class="kt">FILE</span><span class="o">*</span><span class="p">);</span>
-<span class="kt">int</span> <span class="nf">csv_write_space</span><span class="p">(</span><span class="k">struct</span> <span class="n">CSV</span><span class="o">*</span><span class="p">,</span> <span class="kt">FILE</span><span class="o">*</span><span class="p">);</span>
-<span class="kt">int</span> <span class="nf">csv_add</span><span class="p">(</span><span class="k">struct</span> <span class="n">CSV</span><span class="o">*</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">);</span>
+<span class="k">struct</span> <span class="nc">CSV</span><span class="o">*</span> <span class="n">csv_ini</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+<span class="k">struct</span> <span class="nc">CSV</span><span class="o">*</span> <span class="n">csv_read</span><span class="p">(</span><span class="kt">FILE</span><span class="o">*</span><span class="p">);</span>
+<span class="kt">int</span> <span class="nf">csv_fin</span><span class="p">(</span><span class="k">struct</span> <span class="nc">CSV</span><span class="o">*</span><span class="p">);</span>
+<span class="kt">double</span><span class="o">*</span> <span class="nf">csv_field</span><span class="p">(</span><span class="k">struct</span> <span class="nc">CSV</span><span class="o">*</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">);</span>
+<span class="kt">int</span> <span class="nf">csv_nf</span><span class="p">(</span><span class="k">struct</span> <span class="nc">CSV</span><span class="o">*</span><span class="p">);</span>
+<span class="kt">int</span> <span class="nf">csv_nr</span><span class="p">(</span><span class="k">struct</span> <span class="nc">CSV</span><span class="o">*</span><span class="p">);</span>
+<span class="kt">int</span> <span class="nf">csv_write</span><span class="p">(</span><span class="k">struct</span> <span class="nc">CSV</span><span class="o">*</span><span class="p">,</span> <span class="kt">FILE</span><span class="o">*</span><span class="p">);</span>
+<span class="kt">int</span> <span class="nf">csv_write_space</span><span class="p">(</span><span class="k">struct</span> <span class="nc">CSV</span><span class="o">*</span><span class="p">,</span> <span class="kt">FILE</span><span class="o">*</span><span class="p">);</span>
+<span class="kt">int</span> <span class="nf">csv_add</span><span class="p">(</span><span class="k">struct</span> <span class="nc">CSV</span><span class="o">*</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span><span class="o">*</span><span class="p">);</span>
 </pre></div>
 </div>
 </div>
@@ -1590,7 +1603,7 @@ relative distance from the node first[i].</p>
 <span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
   <span class="k">enum</span> <span class="p">{</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span> <span class="p">};</span>
   <span class="k">enum</span> <span class="p">{</span> <span class="n">N</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">MARCH_NTRI</span> <span class="p">};</span>
-  <span class="kt">double</span> <span class="n">u</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">},</span> <span class="n">tri</span><span class="p">[</span><span class="n">N</span><span class="p">],</span> <span class="n">offset</span><span class="p">[</span><span class="n">N</span><span class="p">],</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">;</span>
+  <span class="kt">double</span> <span class="n">u</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span><span class="mi">-1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">-1</span><span class="p">},</span> <span class="n">tri</span><span class="p">[</span><span class="n">N</span><span class="p">],</span> <span class="n">offset</span><span class="p">[</span><span class="n">N</span><span class="p">],</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">;</span>
   <span class="kt">int</span> <span class="n">first</span><span class="p">[</span><span class="n">N</span><span class="p">],</span> <span class="n">second</span><span class="p">[</span><span class="n">N</span><span class="p">],</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">;</span>
 
   <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
@@ -1627,13 +1640,13 @@ relative distance from the node first[i].</p>
 </div>
 <div class="section" id="parameters">
 <h4><span class="section-number">12.4.2. </span>Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline">¶</a></h4>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="n">Par</span> <span class="p">{</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">Par</span> <span class="p">{</span>
   <span class="kt">size_t</span> <span class="n">dim</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span> <span class="c1">// dimension (dim=2 assumes zero velocity in z)</span>
-  <span class="n">Scal</span> <span class="n">clipth</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">;</span> <span class="c1">// vf clipping threshold</span>
+  <span class="n">Scal</span> <span class="n">clipth</span> <span class="o">=</span> <span class="mf">1e-10</span><span class="p">;</span> <span class="c1">// vf clipping threshold</span>
   <span class="kt">bool</span> <span class="n">recolor_unionfind</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
   <span class="kt">bool</span> <span class="n">recolor_reduce</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
   <span class="kt">bool</span> <span class="n">recolor_grid</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
-  <span class="n">Scal</span> <span class="n">clfixed</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// if &gt;= 0, value for color at point clfixed_x</span>
+  <span class="n">Scal</span> <span class="n">clfixed</span> <span class="o">=</span> <span class="mi">-1</span><span class="p">;</span> <span class="c1">// if &gt;= 0, value for color at point clfixed_x</span>
   <span class="n">Vect</span> <span class="n">clfixed_x</span> <span class="o">=</span> <span class="n">Vect</span><span class="p">(</span><span class="mf">1e10</span><span class="p">);</span>
   <span class="kt">bool</span> <span class="n">cloverride</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// XXX adhoc if clear1&lt;1, override color with 0</span>
   <span class="kt">bool</span> <span class="n">sharpen</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
@@ -1644,7 +1657,7 @@ relative distance from the node first[i].</p>
   <span class="n">Scal</span> <span class="n">coalth</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">;</span>
   <span class="kt">int</span> <span class="n">verb</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
   <span class="kt">bool</span> <span class="n">bcc_reflectpoly</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// reflection for DumpPolyMarch</span>
-  <span class="n">Scal</span> <span class="n">dumppolymarch_fill</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span> <span class="c1">// fill cells outside</span>
+  <span class="n">Scal</span> <span class="n">dumppolymarch_fill</span> <span class="o">=</span> <span class="mi">-1</span><span class="p">;</span> <span class="c1">// fill cells outside</span>
   <span class="kt">bool</span> <span class="n">vtkbin</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
   <span class="kt">bool</span> <span class="n">vtkmerge</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
   <span class="n">Scal</span> <span class="n">vtkiso</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">;</span>
@@ -1685,8 +1698,8 @@ relative distance from the node first[i].</p>
 <span class="cp">#include</span> <span class="cpf">&lt;solver/vof.h&gt;</span><span class="cp"></span>
 
 <span class="k">using</span> <span class="n">M</span> <span class="o">=</span> <span class="n">MeshStructured</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span> <span class="mi">3</span><span class="o">&gt;</span><span class="p">;</span>
-<span class="k">using</span> <span class="n">Scal</span> <span class="o">=</span> <span class="k">typename</span> <span class="n">M</span><span class="o">::</span><span class="n">Scal</span><span class="p">;</span>
-<span class="k">using</span> <span class="n">Vect</span> <span class="o">=</span> <span class="k">typename</span> <span class="n">M</span><span class="o">::</span><span class="n">Vect</span><span class="p">;</span>
+<span class="k">using</span> <span class="n">Scal</span> <span class="o">=</span> <span class="k">typename</span> <span class="nc">M</span><span class="o">::</span><span class="n">Scal</span><span class="p">;</span>
+<span class="k">using</span> <span class="n">Vect</span> <span class="o">=</span> <span class="k">typename</span> <span class="nc">M</span><span class="o">::</span><span class="n">Vect</span><span class="p">;</span>
 
 <span class="kt">void</span> <span class="nf">Run</span><span class="p">(</span><span class="n">M</span><span class="o">&amp;</span> <span class="n">m</span><span class="p">,</span> <span class="n">Vars</span><span class="o">&amp;</span><span class="p">)</span> <span class="p">{</span>
   <span class="k">auto</span> <span class="n">sem</span> <span class="o">=</span> <span class="n">m</span><span class="p">.</span><span class="n">GetSem</span><span class="p">();</span>
@@ -1719,7 +1732,7 @@ relative distance from the node first[i].</p>
       <span class="n">fcu</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span><span class="p">.</span><span class="n">GetCenter</span><span class="p">(</span><span class="n">c</span><span class="p">).</span><span class="n">dist</span><span class="p">(</span><span class="n">Vect</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">0.2</span><span class="p">);</span>
     <span class="p">}</span>
     <span class="k">const</span> <span class="n">Scal</span> <span class="n">dt</span> <span class="o">=</span> <span class="n">cfl</span> <span class="o">*</span> <span class="n">m</span><span class="p">.</span><span class="n">GetCellSize</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">vel</span><span class="p">.</span><span class="n">norm</span><span class="p">();</span>
-    <span class="k">typename</span> <span class="n">Vof</span><span class="o">&lt;</span><span class="n">M</span><span class="o">&gt;::</span><span class="n">Par</span> <span class="n">p</span><span class="p">;</span>
+    <span class="k">typename</span> <span class="nc">Vof</span><span class="o">&lt;</span><span class="n">M</span><span class="o">&gt;::</span><span class="n">Par</span> <span class="n">p</span><span class="p">;</span>
     <span class="n">as</span><span class="p">.</span><span class="n">reset</span><span class="p">(</span>
         <span class="k">new</span> <span class="n">Vof</span><span class="o">&lt;</span><span class="n">M</span><span class="o">&gt;</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">fcu</span><span class="p">,</span> <span class="n">fccl</span><span class="p">,</span> <span class="n">mf_cond</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">fe_flux</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">fc_src</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">p</span><span class="p">));</span>
   <span class="p">}</span>
@@ -1761,7 +1774,8 @@ relative distance from the node first[i].</p>
 <span class="s">set int pz 1</span>
 <span class="dl">)EOF</span><span class="s">&quot;</span><span class="p">;</span>
 
-  <span class="k">return</span> <span class="n">RunMpiBasic</span><span class="o">&lt;</span><span class="n">M</span><span class="o">&gt;</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">,</span> <span class="n">Run</span><span class="p">,</span> <span class="n">conf</span><span class="p">);</span>
+  <span class="n">MpiWrapper</span> <span class="n">mpi</span><span class="p">(</span><span class="o">&amp;</span><span class="n">argc</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">argv</span><span class="p">);</span>
+  <span class="k">return</span> <span class="n">RunMpiBasicString</span><span class="o">&lt;</span><span class="n">M</span><span class="o">&gt;</span><span class="p">(</span><span class="n">mpi</span><span class="p">,</span> <span class="n">Run</span><span class="p">,</span> <span class="n">conf</span><span class="p">);</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -2003,14 +2017,8 @@ MIdx <code class="docutils literal notranslate"><span class="pre">d</span></code
 <li><p>Treat pointers same as values</p></li>
 </ul>
 </div>
-<div class="section" id="other">
-<h3><span class="section-number">14.2. </span>Other<a class="headerlink" href="#other" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li><p>use Vect(0) and MIdx(0) instead of Vect::kZero</p></li>
-</ul>
-</div>
 <div class="section" id="toolbox-classes">
-<h3><span class="section-number">14.3. </span>Toolbox classes<a class="headerlink" href="#toolbox-classes" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">14.2. </span>Toolbox classes<a class="headerlink" href="#toolbox-classes" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>combines multiple templated functions to avoid repeating template
 parameters</p></li>
@@ -2019,7 +2027,7 @@ parameters</p></li>
 </ul>
 </div>
 <div class="section" id="comments">
-<h3><span class="section-number">14.4. </span>Comments<a class="headerlink" href="#comments" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">14.3. </span>Comments<a class="headerlink" href="#comments" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><p>capitalized descriptive for a class or function (e.g. Creates
 instance)</p></li>
@@ -2029,7 +2037,7 @@ instance)</p></li>
 </ul>
 </div>
 <div class="section" id="units">
-<h3><span class="section-number">14.5. </span>Units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h3>
+<h3><span class="section-number">14.4. </span>Units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h3>
 <p>Example: <code class="docutils literal notranslate"><span class="pre">Scal</span> <span class="pre">s;</span> <span class="pre">//</span> <span class="pre">source</span> <span class="pre">[density/time]</span></code></p>
 <ul class="simple">
 <li><p>length</p></li>
@@ -2042,7 +2050,7 @@ instance)</p></li>
 <li><p>value (user defined, e.g. 1 for concentration)</p></li>
 </ul>
 <div class="section" id="ordering">
-<h4><span class="section-number">14.5.1. </span>Ordering<a class="headerlink" href="#ordering" title="Permalink to this headline">¶</a></h4>
+<h4><span class="section-number">14.4.1. </span>Ordering<a class="headerlink" href="#ordering" title="Permalink to this headline">¶</a></h4>
 <ul class="simple">
 <li><p>parent <code class="docutils literal notranslate"><span class="pre">P</span></code></p></li>
 <li><p>kernel <code class="docutils literal notranslate"><span class="pre">K</span></code></p></li>
@@ -2063,6 +2071,7 @@ instance)</p></li>
 </div>
 
 
+            <div class="clearer"></div>
           </div>
       </div>
       <div class="clearer"></div>
@@ -2070,12 +2079,13 @@ instance)</p></li>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
-        <li class="nav-item nav-item-0"><a href="#">Aphros  documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="#">Aphros  documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Aphros  documentation</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020 ETH Zurich.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.0.4.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
     </div>
   </body>
 </html>
