@@ -1,10 +1,3 @@
-/*
-
-# ./plane -a 0 -n 0 1 0 ~/g.off | ./2line
-$ ./plane -a 0 -n 0 1 0 ~/g.off | ./2off > q.off
-
- */
-
 #include <ctype.h>
 #include <math.h>
 #include <stdio.h>
