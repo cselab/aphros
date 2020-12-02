@@ -7,7 +7,7 @@ sm_0000.vtk: b.dat Makefile std.conf
 	make cleanrun
 
 a.jpg: sm_0000.vtk
-	which pvbatch && pvbatch ./plot.py
+	which pvba1tch && pvbatch ./plot.py || touch a.jpg
 
 .PHONY: default
 
