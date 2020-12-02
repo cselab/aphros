@@ -2,6 +2,7 @@
 
 import sys
 
+me = "gen"
 dx = -1.4990000000000947e-02
 dy = +1.4477999999999547e-02
 
@@ -12,6 +13,10 @@ sx = 1.2
 x = [ ]
 y = [ ]
 coef = [ ]
+
+if len(sys.argv) < 3:
+    sys.stderr.write("%s: needs two arguments\n" % me)
+    sys.exit(2)
 with open(sys.argv[1], 'r') as f:
     for l in f:
         l = l.split()
