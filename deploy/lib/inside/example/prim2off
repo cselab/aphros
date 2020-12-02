@@ -5,7 +5,7 @@ BEGIN {
     nf = 0
     me = "prim2off"
     pi = 3.141592653589793
-    
+
     n_cyl = 20 # resolution for cylinder
 }
 
@@ -37,7 +37,8 @@ sub(/[ \t]*cone[ \t]+/, "") {
 	printf "%s: axis is zero for cone\n", me | "cat >&2"
 	exit(err = 2)
     }
-    cone(cx, cy, cz, tx, ty, tz, r0, r1, t0, t1)    
+    cone(cx, cy, cz, tx, ty, tz, r0, r1, t0, t1)
+    next
 }
 
 sub(/[ \t]*cylinder[ \t]+/, "") {
@@ -60,6 +61,28 @@ sub(/[ \t]*cylinder[ \t]+/, "") {
 	exit(err = 2)
     }
     cone(cx, cy, cz, tx, ty, tz, r, r, t0, t1)
+    next
+}
+
+sub(/[ \t]*box[ \t]+/, "") {
+    if (NF != 6) {
+	printf "%s: NF != 6 for box\n", me | "cat >&2"
+	exit(err = 2)
+    }
+    i = 1
+    cx = $(i++)
+    cy = $(i++)
+    cz = $(i++)
+    rx = $(i++)
+    ry = $(i++)
+    rz = $(i++)
+    box(cx, cy, cz, rx, ry, rz)
+    next
+}
+
+{
+    printf("%s: unrecognized line '%s'\n", me, $0)
+    exit(err = 2)
 }
 
 function cone(cx, cy, cz, tx, ty, tz, r0, r1, t0, t1,   Dir, n, i, j, u0, v0, u1, v1) {
@@ -87,7 +110,7 @@ function cone(cx, cy, cz, tx, ty, tz, r0, r1, t0, t1,   Dir, n, i, j, u0, v0, u1
 	u0 = r0 * cos(2*pi/n*i)
 	v0 = r0 * sin(2*pi/n*i)
 	u1 = r1 * cos(2*pi/n*i)
-	v1 = r1 * sin(2*pi/n*i)	
+	v1 = r1 * sin(2*pi/n*i)
 	if (Dir == "X") {
 	    ver(cx + t0 * tx, cy + u0, cz + v0)
 	    ver(cx + t1 * tx, cy + u1, cz + v1)
@@ -111,6 +134,28 @@ function face4(a, b, c, d)
 {
     ff[nf] = 4 " " a " " b " " c " " d
     nf++
+}
+
+function box(cx, cy, cz, rx, ry, rz,   t00, t01, t10, t11, b00, b01, b10, b11)
+{
+    t00 = nv; t01 = nv + 1; t10 = nv + 2; t11 = nv + 3
+    b00 = nv + 4; b01 = nv + 5; b10 = nv + 6; b11 = nv + 7
+    face4(t00, t01, t11, t10)
+    face4(b00, b01, b11, b10)
+    face4(t00, t01, b01, b00)
+    face4(t10, t11, b11, b10)
+    face4(b01, t01, t11, b11)
+    face4(b00, t00, t10, b10)
+
+    ver(cx - rx, cy - ry, cz - rz)
+    ver(cx - rx, cy + ry, cz - rz)
+    ver(cx + rx, cy - ry, cz - rz)
+    ver(cx + rx, cy + ry, cz - rz)
+    ver(cx - rx, cy - ry, cz + rz)
+    ver(cx - rx, cy + ry, cz + rz)
+    ver(cx + rx, cy - ry, cz + rz)
+    ver(cx + rx, cy + ry, cz + rz)
+
 }
 
 function face3(a, b, c, d)
