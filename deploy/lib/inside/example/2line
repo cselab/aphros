@@ -2,6 +2,11 @@
 
 import sys
 
+me = "2line"
+def usg():
+    sys.stderr.write("%s -o %s < data/cross \n" % (me, OutputList))
+    sys.exit(2)
+
 def off(p, line):
     print("OFF")
     print(len(p), len(line), 0)
@@ -35,7 +40,6 @@ def many(p, line):
             y.reverse()
             y = [-e for e in y]
         m = x.index(max(x))
-        # sys.stderr.write("%-.16e %-.16e\n" % (x[m], y[m]))
         with open("%02d.line" % i, 'w') as f:
             for u, v in zip(x, y):
                 f.write("%-.16e %-.16e\n" % (u - x[m], v - y[m]))
@@ -52,13 +56,33 @@ def one(p, line):
     for e in l:
         print(p[e])
     print(p[l[0]])
-
-
-#output = off
-#output = gnuplot
-#output = one
-#output = many
-output = split
+Output = {
+           "gnuplot": gnuplot,
+           "many": many,
+           "off": off,
+           "one": one,
+           "split": split,
+}
+OutputList = "|".join(Output.keys())
+while True:
+    sys.argv.pop(0)
+    if len(sys.argv) and len(sys.argv[0]) > 1 and sys.argv[0][0] == '-':
+        if sys.argv[0][1] == 'h':
+            usg()
+        elif sys.argv[0][1] == 'o':
+            sys.argv.pop(0)
+            if not sys.argv:
+                sys.stderr.write("%s: -o needs an argument\n" % me)
+                sys.exit(2)
+            if not sys.argv[0] in Output:
+                sys.stderr.write("%s: '%s' not in %s\n" % (me, sys.argv[0], OutputList))
+                sys.exit(2)
+            output = Output[sys.argv[0]]
+        else:
+            sys.stderr.write("%s: unknown option '%s'\n" % (me, sys.argv[0]))
+            sys.exit(2)
+    else:
+        break
 
 p = [ ]
 adj = { }
