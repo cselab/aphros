@@ -21,7 +21,7 @@ static double eps = 1e-6;
   }
 
 static void usg(void) {
-  fprintf(stderr, "%s -a alpha -n x y z mesh > off\n", me);
+  fprintf(stderr, "%s -a alpha -n x y z mesh | ./2off > off\n", me);
   exit(1);
 }
 static int plain_tri(
@@ -79,6 +79,10 @@ int main(int argc, const char** argv) {
         n[X] = atof(*argv++);
         n[Y] = atof(*argv++);
         n[Z] = atof(*argv);
+	if (n[X] == 0 && n[Y] == 0 && n[Z] == 0) {
+	  fprintf(stderr, "%s: normal cannot be zero\n", me);
+	  return 2;
+	}
         Nflag = 1;
         break;
       default:
