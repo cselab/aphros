@@ -7,7 +7,7 @@
 #include <iostream>
 #include <map>
 
-#include "func/primlist.h"
+#include "func/primlist.ipp"
 
 using Scal = double;
 
@@ -19,7 +19,7 @@ int main(int an, char* av[]) {
   }
   try {
     std::map<std::string, Scal> r =
-        UPrimList<Scal>::GetMap(av[1], av[2], av[3], atoi(av[4]));
+        Imp<Scal>::GetMap(av[1], av[2], av[3], atoi(av[4]));
     for (auto k : r) {
       std::cout << k.first << ":" << k.second << " ";
     }

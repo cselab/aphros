@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cmath>
+#include <fstream>
 #include <functional>
 #include <limits>
 #include <stdexcept>
@@ -47,7 +48,7 @@ CreateInitCl(const Vars& var, bool verb) {
   std::string v = var.String["init_vf"];
   if (v == "list") {
     const size_t edim = var.Int["dim"];
-    std::stringstream in;
+    std::stringstream buf;
     {
       std::stringstream path(var.String["list_path"]);
       std::string filename;
@@ -58,7 +59,7 @@ CreateInitCl(const Vars& var, bool verb) {
               << "InitCl: Reading inline list of primitives from list_path"
               << std::endl;
         }
-        in << path.rdbuf();
+        buf << path.rdbuf();
       } else {
         filename = path.str();
         std::ifstream fin(filename);
@@ -70,13 +71,13 @@ CreateInitCl(const Vars& var, bool verb) {
           throw std::runtime_error(
               FILELINE + ": Can't open list of primitives");
         }
-        in << fin.rdbuf();
+        buf << fin.rdbuf();
       }
     }
 
     // TODO revise with bcast and filter by bounding box,
     // but keep original index for color
-    auto pp = UPrimList<Scal>::Parse(in, verb, edim);
+    auto pp = UPrimList<Scal>::GetPrimitives(buf, edim);
 
     return [pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf, const M& m) {
       cl.Reinit(m, kClNone);

@@ -6,6 +6,7 @@
 #include <inside.h>
 #include "approx.h"
 #include "func/primlist.h"
+#include "util/format.h"
 
 namespace interp {
 
@@ -333,16 +334,17 @@ void UEmbed<M>::InitLevelSet(
             std::cout << "InitLevelSet: Open list of primitives '" << filename
                       << std::endl;
           }
-          if (!fin.good()) {
-            throw std::runtime_error(
-                FILELINE + ": Can't open list of primitives");
-          }
+          fassert(fin.good(), "Can't open list of primitives");
           in << fin.rdbuf();
         }
       }
 
       const size_t edim = var.Int["dim"];
-      auto pp = UPrimList<Scal>::Parse(in, verb, edim);
+      auto pp = UPrimList<Scal>::GetPrimitives(in, edim);
+
+      if (verb) {
+        std::cout << "Read " << pp.size() << " primitives." << std::endl;
+      }
 
       auto lsmax = [&pp](Vect x) {
         Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set

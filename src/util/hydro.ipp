@@ -589,19 +589,28 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       }
     }
   } else if (vi == "list") {
-    auto pp = UPrimList<Scal>::ParseVel(
-        var.String["vellist_path"], m.IsRoot(), var.Int["dim"]);
+    const std::string fpath = var.String["vellist_path"];
+    if (m.IsRoot()) {
+      std::cout << __func__ << ": Open list of velocity primitives '" << fpath
+                << std::endl;
+    }
+    std::ifstream buf(fpath);
+    fassert(buf.good(), "Can't open list of primitives");
+    auto pp = UPrimList<Scal>::GetVelocityPrimitives(buf, var.Int["dim"]);
+    if (m.IsRoot()) {
+      std::cout << "Read " << pp.size() << " primitives" << std::endl;
+    }
     fcv.Reinit(m, Vect(0));
     for (auto c : m.AllCells()) {
       Vect x = m.GetCenter(c);
       for (auto& p : pp) {
-        fcv[c] += p.vel(x);
+        fcv[c] += p.velocity(x);
       }
     }
   } else if (vi == "zero") {
     // nop
   } else {
-    throw std::runtime_error("Init(): unknown vel_init=" + vi);
+    fassert(false, "Init(): unknown vel_init=" + vi);
   }
 }
 
@@ -741,14 +750,12 @@ InitBc(const Vars& var, const MEB& eb, std::set<std::string> known_keys) {
         ss_adv.push_back(s);
       }
     }
-    if (!found_fluid) {
-      throw std::runtime_error("No fluid condition found in '" + list + "'");
-    }
+    fassert(found_fluid, "No fluid condition found in '" + list + "'");
     auto bc_adv = default_adv(bc_fluid);
     for (std::string s : ss_adv) {
-      if (!ParseAdvectionFaceCond(s, bc_adv)) {
-        throw std::runtime_error("No advection condition found in '" + s + "'");
-      }
+      fassert(
+          ParseAdvectionFaceCond(s, bc_adv),
+          "No advection condition found in '" + s + "'");
     }
     return std::make_tuple(bc_fluid, bc_adv, custom);
   };
@@ -756,27 +763,24 @@ InitBc(const Vars& var, const MEB& eb, std::set<std::string> known_keys) {
   MapEmbed<BCondFluid<Vect>> me_fluid;
   MapEmbed<BCondAdvection<Scal>> me_adv;
 
-  std::stringstream in;
+  std::stringstream buf;
   {
     std::stringstream path(var.String["bc_path"]);
     std::string filename;
     path >> filename;
     if (filename == "inline") {
-      in << path.rdbuf();
+      buf << path.rdbuf();
     } else {
       filename = path.str();
       std::ifstream fin(filename);
-      if (!fin.good()) {
-        throw std::runtime_error(
-            FILELINE + ": Can't open boundary conditions '" + filename + "'");
-      }
-      in << fin.rdbuf();
+      fassert(fin.good(), "Can't open boundary conditions '" + filename + "'");
+      buf << fin.rdbuf();
     }
   }
   std::vector<std::string> vdesc;
   MapEmbed<size_t> me_group;
   MapEmbed<size_t> me_nci;
-  std::tie(me_group, me_nci, vdesc) = UI::ParseGroups(in, eb);
+  std::tie(me_group, me_nci, vdesc) = UI::ParseGroups(buf, eb);
   std::vector<std::map<std::string, Scal>> vcustom(vdesc.size());
 
   me_group.LoopPairs([&](const auto& p) {

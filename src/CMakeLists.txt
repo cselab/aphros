@@ -108,6 +108,7 @@ set(ObjLibs
   particles
   partstrmeshm
   posthook_default
+  primlist
   proj
   proj_eb
   report

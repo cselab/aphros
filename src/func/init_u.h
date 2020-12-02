@@ -25,7 +25,7 @@
 // xc: cell center
 // h: cell size
 template <class Scal, size_t dim = 3>
-Scal GetLevelSetVolume(
+static Scal GetLevelSetVolume(
     std::function<Scal(const generic::Vect<Scal, 3>&)> ls,
     const generic::Vect<Scal, 3>& xc, const generic::Vect<Scal, 3>& h) {
   using Vect = generic::Vect<Scal, dim>;
@@ -206,8 +206,10 @@ void InitVfList(
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using Primitive = typename UPrimList<Scal>::Primitive;
-  const std::vector<Primitive> ppa =
-      UPrimList<Scal>::Parse(list, verbose && m.IsRoot(), edim);
+  const std::vector<Primitive> ppa = UPrimList<Scal>::GetPrimitives(list, edim);
+  if (verbose && m.IsRoot()) {
+    std::cout << "Read " << ppa.size() << " primitives" << std::endl;
+  }
 
   const Vect h = m.GetCellSize();
   // filter to bounding box

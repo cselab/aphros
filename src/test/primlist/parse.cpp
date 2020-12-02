@@ -20,7 +20,7 @@ int main(int an, char* av[]) {
   using U = UPrimList<Scal>;
   try {
     std::stringstream ss(av[1]);
-    auto pp = U::Parse(ss, false, 3);
+    auto pp = U::GetPrimitives(ss, 3);
     if (pp.size() == 1) {
       std::cout << pp[0] << std::endl;
     } else {
