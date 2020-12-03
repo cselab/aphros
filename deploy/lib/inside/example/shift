@@ -29,10 +29,10 @@ BEGIN {
 	} else
 	    set[i] = set[j]
     }
-    for (i = 3; i <= cnt; i++)
-	printf "%-.16e %-.16e\n", dx[i], dy[i]
-    #for (i = 1; i <= n; i++)
-	#print set[i] - 1
+    #for (i = 3; i <= cnt; i++)
+    #	printf "%-.16e %-.16e\n", dx[i], dy[i]
+    for (i = 1; i <= n; i++)
+	   print set[i] - 1
 }
 
 function read(f, x, y,   i) {
