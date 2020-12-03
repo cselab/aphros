@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+
+import sys
+import math
+import pyclipper
+me = "offset"
+def usg():
+    sys.stderr.write("%s -e eps file.xy\n" % me)
+    sys.exit(2)
+
+eps = None
+while True:
+    sys.argv.pop(0)
+    if len(sys.argv) and len(sys.argv[0]) > 1 and sys.argv[0][0] == '-':
+        if sys.argv[0][1] == 'h':
+            usg()
+        elif sys.argv[0][1] == 'e':
+            sys.argv.pop(0)
+            if not sys.argv:
+                sys.stderr.write("%s: -e needs an argument\n" % me)
+                sys.exit(2)
+            eps = float(sys.argv[0])
+        else:
+            sys.stderr.write("%s: unknown option '%s'\n" % (me, sys.argv[0]))
+            sys.exit(2)
+    else:
+        break
+
+if eps == None:
+    sys.stderr.write("%s: -e is not set\n" % me)
+    sys.exit(2)
+if not sys.argv:
+    sys.stderr.write("%s: file.xy file is not set" % me)
+    sys.exit(2)
+path = [ ]
+with open(sys.argv[0], 'r') as f:
+    for l in f:
+        l = l.split()
+        x = float(l[0])
+        y = float(l[1])
+        path.append((x, y))
+path = pyclipper.scale_to_clipper(path)
+pco = pyclipper.PyclipperOffset()
+pco.AddPath(path, pyclipper.JT_ROUND, pyclipper.ET_CLOSEDPOLYGON)
+solution = pco.Execute(pyclipper.scale_to_clipper(eps))
+for x, y in pyclipper.scale_from_clipper(solution[0]):
+    print("%-.16e %-.16e" % (x, y))
