@@ -2,6 +2,7 @@ Bonds
 ```
 ./plane -a 0 -n 0 1 0 ~/g.off | ./2line -o gnuplot > q
 ./plane -a 0 -n 0 1 0 ~/g.off | ./2off > q.off
+gnuplot> plot "<./plane -a 0 -n 0 1 0 ~/g.off | ./2line -o gnuplot" u 1:3 w l
 ```
 
 Cones

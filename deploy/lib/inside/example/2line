@@ -64,6 +64,7 @@ Output = {
            "split": split,
 }
 OutputList = "|".join(Output.keys())
+output = None
 while True:
     sys.argv.pop(0)
     if len(sys.argv) and len(sys.argv[0]) > 1 and sys.argv[0][0] == '-':
@@ -83,6 +84,10 @@ while True:
             sys.exit(2)
     else:
         break
+
+if output == None:
+    sys.stderr.write("%s: -o is not set\n" % me)
+    sys.exit(2)
 
 p = [ ]
 adj = { }
