@@ -13,18 +13,18 @@ def rot(p, phi):
     ]
 
 
-polygons0 = [[
+polygon0 = [
     rot([1, 0], phi) for phi in np.linspace(0, 2 * np.pi, 5, endpoint=False)
-]]
-polygons1 = [list(map(lambda xy: rot(xy, 0.9), polygons0[0]))]
+]
+polygon1 = list(map(lambda xy: rot(xy, 0.9), polygon0))
 geom.Ruled(origin=[0.5, 0.5, 0.5],
              normal=[1, 0, 0],
              right=[0, 1, 0],
              normalrange=[-0.4, 0.4],
              scale0=0.4,
              scale1=0.2,
-             polygons0=polygons0,
-             polygons1=polygons1)
+             polygon0=polygon0,
+             polygon1=polygon1)
 
 bpath = "b_ruled.dat"
 print(bpath)
