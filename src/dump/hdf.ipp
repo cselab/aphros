@@ -8,6 +8,37 @@
 #include "hdf.h"
 #include "util/logger.h"
 
+template <class Scal>
+generic::Vect<Scal, 1>& GetVect(Scal& src) {
+  return reinterpret_cast<generic::Vect<Scal, 1>&>(src);
+}
+
+template <class Scal, size_t dim>
+generic::Vect<Scal, dim>& GetVect(generic::Vect<Scal, dim>& src) {
+  return src;
+}
+
+template <class Scal>
+const generic::Vect<Scal, 1>& GetConstVect(const Scal& src) {
+  return reinterpret_cast<const generic::Vect<Scal, 1>&>(src);
+}
+
+template <class Scal, size_t dim>
+const generic::Vect<Scal, dim>& GetConstVect(
+    const generic::Vect<Scal, dim>& src) {
+  return src;
+}
+
+template <class Scal>
+constexpr size_t GetDim(Scal*) {
+  return 1;
+}
+
+template <class Scal, size_t dim>
+constexpr size_t GetDim(generic::Vect<Scal, dim>*) {
+  return dim;
+}
+
 class Fapl {
  public:
   Fapl(hid_t cls_id) : fapl_(H5Pcreate(cls_id)) {}
@@ -23,10 +54,10 @@ class Fapl {
 };
 
 template <class M>
-void Hdf<M>::Write(
-    const FieldCell<typename M::Scal>& fc, std::string path, M& m,
-    std::string dname) {
+template <class Field>
+void Hdf<M>::Write(const Field& fc, std::string path, M& m, std::string dname) {
   auto sem = m.GetSem();
+  const size_t dim = GetDim((typename Field::Value*)nullptr);
   struct {
     std::vector<MIdx> origin;
     std::vector<MIdx> size;
@@ -40,8 +71,11 @@ void Hdf<M>::Write(
 
     ctx->data.emplace_back();
     auto& data = ctx->data.back();
+    data.reserve(bc.size() * dim);
     for (auto c : m.Cells()) {
-      data.push_back(fc[c]);
+      for (size_t d = 0; d < dim; ++d) {
+        data.push_back(GetConstVect(fc[c])[d]);
+      }
     }
 
     m.GatherToLead(&ctx->origin);
@@ -62,7 +96,6 @@ void Hdf<M>::Write(
       return H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
     }();
 
-    const size_t kComps = 1;
     const size_t nblocks = ctx->data.size();
     fassert_equal(ctx->data.size(), nblocks);
     fassert_equal(ctx->size.size(), nblocks);
@@ -76,13 +109,13 @@ void Hdf<M>::Write(
           static_cast<hsize_t>(w[0]), s};
     };
 
-    const auto gsize = harray(m.GetGlobalSize(), kComps);
+    const auto gsize = harray(m.GetGlobalSize(), dim);
     const hid_t fspace = H5Screate_simple(kDim, gsize.data(), NULL);
     const hid_t dataset = H5Dcreate(
         file, dname.c_str(), hdf_type, fspace, H5P_DEFAULT, H5P_DEFAULT,
         H5P_DEFAULT);
     for (size_t i = 0; i < nblocks; ++i) {
-      const auto count = harray(ctx->size[i], kComps);
+      const auto count = harray(ctx->size[i], dim);
       const auto offset = harray(ctx->origin[i], 0);
 
       H5Sselect_hyperslab(
@@ -106,10 +139,10 @@ void Hdf<M>::Write(
 }
 
 template <class M>
-void Hdf<M>::Read(
-    FieldCell<typename M::Scal>& fc, std::string path, M& m,
-    std::string dname) {
+template <class Field>
+void Hdf<M>::Read(Field& fc, std::string path, M& m, std::string dname) {
   auto sem = m.GetSem();
+  const size_t dim = GetDim((typename Field::Value*)nullptr);
   struct {
     std::vector<MIdx> origin;
     std::vector<MIdx> size;
@@ -121,7 +154,7 @@ void Hdf<M>::Read(
     const auto bc = m.GetInBlockCells();
     ctx->origin.push_back(bc.GetBegin());
     ctx->size.push_back(bc.GetSize());
-    ctx->data.resize(bc.size());
+    ctx->data.resize(bc.size() * dim);
     ctx->dataptr.push_back(&ctx->data);
 
     m.GatherToLead(&ctx->origin);
@@ -145,7 +178,6 @@ void Hdf<M>::Read(
       throw std::runtime_error(FILELINE + ": cannot open file '" + path + "'");
     }
 
-    const size_t kComps = 1;
     const size_t nblocks = ctx->dataptr.size();
     fassert_equal(ctx->dataptr.size(), nblocks);
     fassert_equal(ctx->size.size(), nblocks);
@@ -168,10 +200,10 @@ void Hdf<M>::Read(
     hsize_t dims[kDim];
     H5Sget_simple_extent_dims(fspace, dims, NULL);
     using V = generic::Vect<size_t, 4>;
-    fassert_equal(V(dims), V(harray(m.GetGlobalSize(), kComps)));
+    fassert_equal(V(dims), V(harray(m.GetGlobalSize(), dim)));
 
     for (size_t i = 0; i < nblocks; ++i) {
-      const auto count = harray(ctx->size[i], kComps);
+      const auto count = harray(ctx->size[i], dim);
       const auto offset = harray(ctx->origin[i], 0);
       const hid_t mspace = H5Screate_simple(kDim, count.data(), NULL);
 
@@ -181,7 +213,7 @@ void Hdf<M>::Read(
       const hid_t fapl = H5Pcreate(H5P_DATASET_XFER);
       H5Pset_dxpl_mpio(fapl, H5FD_MPIO_COLLECTIVE);
 
-      fassert_equal(ctx->dataptr[i]->size(), size_t(ctx->size[i].prod()));
+      fassert_equal(ctx->dataptr[i]->size(), size_t(ctx->size[i].prod() * dim));
       H5Dread(dataset, hdf_type, mspace, fspace, fapl, ctx->dataptr[i]->data());
 
       H5Pclose(fapl);
@@ -195,9 +227,11 @@ void Hdf<M>::Read(
     size_t i = 0;
     fc.Reinit(m);
     for (auto c : m.Cells()) {
-      fc[c] = ctx->data[i++];
+      auto& vect = GetVect(fc[c]);
+      for (size_t d = 0; d < dim; ++d) {
+        vect[d] = ctx->data[i++];
+      }
     }
-    m.Comm(&fc);
   }
   if (sem()) { // XXX empty stage
   }

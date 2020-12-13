@@ -16,8 +16,9 @@ class Hdf {
   // fc: input field
   // path: output path
   // dname: dataset name
+  template <class Field>
   static void Write(
-      const FieldCell<typename M::Scal>& fc, std::string path, M& m,
+      const Field& fc, std::string path, M& m,
       const std::string dname = kDefaultName);
   // Reads HDF file with one scalar field. Dimensions of the dataset
   // must match the global mesh size: (nz, ny, nx, 1).
@@ -25,8 +26,9 @@ class Hdf {
   // fc: output field
   // path: input path
   // dname: dataset name
+  template <class Field>
   static void Read(
-      FieldCell<typename M::Scal>& fc, std::string path, M& m,
+      Field& fc, std::string path, M& m,
       const std::string dname = kDefaultName);
   // Returns shape of a dataset in HDF file.
   // path: input path

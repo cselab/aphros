@@ -1,11 +1,12 @@
 // Created by Petr Karnakov on 01.10.2020
 // Copyright 2020 ETH Zurich
 
-#include <iostream>
 #include <omp.h>
+#include <iostream>
 
 #include "debug/linear.h"
 #include "distr/distrbasic.h"
+#include "dump/hdf.h"
 #include "linear/hypre.h"
 #include "linear/linear.h"
 #include "parse/argparse.h"
@@ -52,32 +53,46 @@ void Run(M& m, Vars& var) {
     }
     m.Comm(&t.fc_sol_exact);
   }
-  if (sem()) {
-    // resistivity
-    t.ff_rho.Reinit(m);
-    for (auto f : m.FacesM()) {
-      t.ff_rho[f] = (f.center().dist(m.GetGlobalLength() * 0.5) < 0.2 ? 10 : 1);
-    }
+  if (sem.Nested("init_system")) {
+    const auto system_in = var.String["system_in"];
+    if (system_in.length()) {
+      Hdf<M>::Read(t.fc_system, system_in, m);
+    } else {
+      // resistivity
+      t.ff_rho.Reinit(m);
+      for (auto f : m.FacesM()) {
+        t.ff_rho[f] =
+            (f.center().dist(m.GetGlobalLength() * 0.5) < 0.2 ? 10 : 1);
+      }
 
-    // system, only coefficients, zero constant term
-    FieldCell<Scal> fc_zero(m, 0);
-    const auto ffg = UEmbed<M>::GradientImplicit(fc_zero, t.mebc, m);
-    t.fc_system.Reinit(m, Expr::GetUnit(0));
-    for (auto c : m.Cells()) {
-      Expr sum(0);
-      m.LoopNci(c, [&](auto q) {
-        const auto cf = m.GetFace(c, q);
-        const ExprFace flux = ffg[cf] / t.ff_rho[cf] * m.GetArea(cf);
-        m.AppendExpr(sum, flux * m.GetOutwardFactor(c, q), q);
-      });
-      t.fc_system[c] = sum;
-    }
+      // system, only coefficients, zero constant term
+      FieldCell<Scal> fc_zero(m, 0);
+      const auto ffg = UEmbed<M>::GradientImplicit(fc_zero, t.mebc, m);
+      t.fc_system.Reinit(m, Expr::GetUnit(0));
+      for (auto c : m.Cells()) {
+        Expr sum(0);
+        m.LoopNci(c, [&](auto q) {
+          const auto cf = m.GetFace(c, q);
+          const ExprFace flux = ffg[cf] / t.ff_rho[cf] * m.GetArea(cf);
+          m.AppendExpr(sum, flux * m.GetOutwardFactor(c, q), q);
+        });
+        t.fc_system[c] = sum;
+      }
 
-    // constant term from exact solution
-    for (auto c : m.Cells()) {
-      t.fc_system[c].back() = -UEB::Eval(t.fc_system[c], c, t.fc_sol_exact, m);
+      // constant term from exact solution
+      for (auto c : m.Cells()) {
+        t.fc_system[c].back() =
+            -UEB::Eval(t.fc_system[c], c, t.fc_sol_exact, m);
+      }
     }
-
+  }
+  if (sem.Nested("dump_system")) {
+    const auto system_out = var.String["system_out"];
+    if (system_out.length()) {
+      Hdf<M>::Write(t.fc_system, system_out, m);
+    }
+  }
+  if (sem.Nested("init_rhs")) {
     // initial guess
     t.fc_sol.Reinit(m, 0);
     for (auto c : m.SuCellsM()) {
@@ -167,6 +182,14 @@ int main(int argc, const char** argv) {
       .Options({8, 16, 32});
   parser.AddSwitch("--dump").Help(
       "Dump solution, exact solution, and difference");
+  parser.AddVariable<std::string>("--system_in", "")
+      .Help(
+          "Path to linear system in HDF5 file with one field 'data' of size "
+          "(nz,ny,nx,8)");
+  parser.AddVariable<std::string>("--system_out", "")
+      .Help(
+          "Output path for linear system as HDF5 file with one field 'data' of "
+          "size (nz,ny,nx,8)");
   parser.AddVariable<std::string>("--extra", "")
       .Help("Extra configuration (commands 'set ... ')");
   auto args = parser.ParseArgs(argc, argv);
@@ -188,6 +211,8 @@ int main(int argc, const char** argv) {
   conf += "\nset double tol " + args.Double.GetStr("tol");
   conf += "\nset int maxiter " + args.Int.GetStr("maxiter");
   conf += "\nset int dump " + args.Int.GetStr("dump");
+  conf += "\nset string system_in " + args.String.GetStr("system_in");
+  conf += "\nset string system_out " + args.String.GetStr("system_out");
   conf += "\nset int VERBOSE " + args.Int.GetStr("verbose");
 
   conf += "\n" + args.String["extra"];
