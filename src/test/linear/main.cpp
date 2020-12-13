@@ -95,9 +95,6 @@ void Run(M& m, Vars& var) {
   if (sem.Nested("init_rhs")) {
     // initial guess
     t.fc_sol.Reinit(m, 0);
-    for (auto c : m.SuCellsM()) {
-      t.fc_sol[c] = t.fc_sol_exact[c] * (t.fc_sol_exact[c] * 0.1 + 1);
-    }
 
     const auto name = var.String["linsolver_symm"];
     auto factory = linear::ModuleLinear<M>::GetInstance(name);
@@ -199,8 +196,22 @@ int main(int argc, const char** argv) {
 
   std::string conf;
 
-  Subdomains<MIdx> sub(
-      MIdx(args.Int["mesh"]), MIdx(args.Int["block"]), mpi.GetCommSize());
+  MIdx mesh_size(args.Int["mesh"]);
+
+  const std::string system_in = args.String["system_in"];
+  if (system_in.length()) {
+    const auto shape = Hdf<M>::GetShape(system_in);
+    mesh_size[0] = shape[2];
+    mesh_size[1] = shape[1];
+    mesh_size[2] = shape[0];
+  }
+
+  MIdx block_size(args.Int["block"]);
+  if (mesh_size[2] == 1) {
+    block_size[2] = 1;
+  }
+
+  Subdomains<MIdx> sub(mesh_size, block_size, mpi.GetCommSize());
   conf += sub.GetConfig();
 
   conf += "\nset string linsolver_symm " + args.String["solver"];
