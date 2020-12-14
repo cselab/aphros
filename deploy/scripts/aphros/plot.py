@@ -119,12 +119,7 @@ def AddColorBar(fig, vmin, vmax, cmap):
     vv = [vmin, (vmin + vmax) * 0.5, vmax]
     if abs(vv[1]) < 1e-14:
         vv[1] = 0
-    cbar = fig.colorbar(sm,
-                        cax=cbar_ax,
-                        cmap=cmap,
-                        norm=norm,
-                        orientation='horizontal',
-                        ticks=vv)
+    cbar = fig.colorbar(sm, cax=cbar_ax, orientation='horizontal', ticks=vv)
     cbar.ax.set_xticklabels(["{:.4g}".format(v) for v in vv])
     return cbar
 
