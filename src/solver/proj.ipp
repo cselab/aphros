@@ -321,8 +321,7 @@ struct Proj<EB_>::Imp {
   // ffv: flux
   FieldFaceb<ExprFace> GetFlux(const FieldFaceb<Scal>& ffv, Scal dt) {
     // implicit pressure gradient
-    FieldFaceb<ExprFace> ffe =
-        UEB::GradientImplicit(FieldCell<Scal>(eb, 0), {}, eb);
+    FieldFaceb<ExprFace> ffe = UEB::GradientImplicit({}, eb);
     mebc_.LoopBCond(eb, [&](auto cf, IdxCell, auto& bc) {
       if ((bc.type == BCondFluidType::inletpressure ||
            bc.type == BCondFluidType::outletpressure)) {

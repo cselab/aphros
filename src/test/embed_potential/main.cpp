@@ -25,66 +25,9 @@
 #include "util/linear.h"
 
 template <class M>
-auto GradientImplicit(
-    const MapEmbed<BCond<typename M::Scal>>& mebc, const M& eb)
-    -> FieldEmbed<typename M::ExprFace> {
-  using Scal = typename M::Scal;
-  using ExprFace = typename M::ExprFace;
-  FieldEmbed<ExprFace> feg(eb, ExprFace(0));
-  const Scal h = eb.GetCellSize()[0];
-
-  for (auto f : eb.FacesM()) {
-    const Scal a = 1 / h;
-    feg[f] = ExprFace(-a, a, 0);
-  }
-
-  for (auto& p : mebc.GetMapFace()) {
-    const auto f = p.first;
-    const auto& bc = p.second;
-    ExprFace e(0);
-    switch (bc.type) {
-      case BCondType::dirichlet: {
-        const Scal a = 2 * (bc.nci == 0 ? 1 : -1) / h;
-        e[bc.nci] = -a;
-        e[2] = bc.val * a;
-        break;
-      }
-      case BCondType::neumann: {
-        e[2] = (bc.nci == 0 ? 1 : -1) * bc.val;
-        break;
-      }
-      default:
-        throw std::runtime_error(FILELINE + ": unknown");
-    }
-    feg[f] = e;
-  }
-  for (auto& p : mebc.GetMapCell()) {
-    const auto c = p.first;
-    const auto& bc = p.second;
-    ExprFace e(0);
-    switch (bc.type) {
-      case BCondType::dirichlet: {
-        const Scal a = 1 / h;
-        e[0] = -a;
-        e[2] = bc.val * a;
-        break;
-      }
-      case BCondType::neumann: {
-        e[2] = bc.val;
-        break;
-      }
-      default:
-        throw std::runtime_error(FILELINE + ": unknown");
-    }
-    feg[c] = e;
-  }
-  return feg;
-}
-
-template <class M>
 void CalcPotential(
     const MapEmbed<BCond<typename M::Scal>>& mebc, M& m, const Embed<M>& eb,
-    FieldCell<typename M::Scal>& fcp, FieldEmbed<typename M::Scal>& fev,
+    FieldCell<typename M::Scal>& fcp, FieldEmbed<typename M::Scal>& feg,
     FieldCell<typename M::Scal>& fc_residual,
     std::shared_ptr<linear::Solver<M>> linsolver, std::string system_out) {
   using Scal = typename M::Scal;
@@ -93,23 +36,20 @@ void CalcPotential(
 
   auto sem = m.GetSem();
   struct {
-    FieldEmbed<ExprFace> fe_flux;
+    FieldEmbed<ExprFace> feg;
     FieldCell<Expr> fc_system;
   } * ctx(sem);
   auto& t = *ctx;
 
   if (sem("init")) {
-    //t.fe_flux = GradientImplicit(mebc, eb);
-    t.fe_flux = UEmbed<M>::GradientImplicit(fcp, mebc, eb);
-    eb.LoopFaces([&](auto cf) { //
-      t.fe_flux[cf] *= eb.GetArea(cf);
-    });
+    t.feg = UEmbed<M>::GradientImplicit(fcp, mebc, eb);
     t.fc_system.Reinit(m, Expr::GetUnit(0));
     for (auto c : eb.Cells()) {
       Expr sum(0);
       eb.LoopNci(c, [&](auto q) {
         const auto cf = eb.GetFace(c, q);
-        eb.AppendExpr(sum, t.fe_flux[cf] * eb.GetOutwardFactor(c, q), q);
+        eb.AppendExpr(
+            sum, t.feg[cf] * eb.GetArea(cf) * eb.GetOutwardFactor(c, q), q);
       });
       t.fc_system[c] = sum;
     }
@@ -123,9 +63,9 @@ void CalcPotential(
     linsolver->Solve(t.fc_system, &fcp, fcp, m);
   }
   if (sem("flux")) {
-    fev.Reinit(m, 0);
+    feg.Reinit(m, 0);
     eb.LoopFaces([&](auto cf) { //
-      fev[cf] = UEmbed<M>::Eval(t.fe_flux[cf], cf, fcp, eb);
+      feg[cf] = UEmbed<M>::Eval(t.feg[cf], cf, fcp, eb);
     });
     fc_residual.Reinit(m, 0);
     for (auto c : m.Cells()) {
@@ -149,7 +89,7 @@ void Run(M& m, Vars& var) {
   struct {
     std::unique_ptr<EB> eb;
     FieldCell<Scal> fcp;
-    FieldEmbed<Scal> fev;
+    FieldEmbed<Scal> feg;
     FieldCell<Scal> fcdiv;
     FieldNode<Scal> fnl;
     std::shared_ptr<linear::Solver<M>> linsolver;
@@ -195,12 +135,12 @@ void Run(M& m, Vars& var) {
   for (size_t i = 0; i < t.nsteps; ++i) {
     if (sem.Nested("potential")) {
       CalcPotential(
-          t.bc.mebc, m, *t.eb, t.fcp, t.fev, t.fc_residual, t.linsolver,
+          t.bc.mebc, m, *t.eb, t.fcp, t.feg, t.fc_residual, t.linsolver,
           t.system_out);
     }
     if (sem("dump-solution")) {
       auto& eb = *t.eb;
-      t.fcdiv = Approx2<EB>::GetRegularDivergence(t.fev, *t.eb);
+      t.fcdiv = Approx2<EB>::GetRegularDivergence(t.feg, *t.eb);
 
       if (var.Int["dump_fluxes"]) {
         for (size_t q = 0; q < 7; ++q) {
@@ -208,19 +148,18 @@ void Run(M& m, Vars& var) {
         }
         for (auto c : m.Cells()) {
           for (auto q : m.Nci(c)) {
-            t.comps[q][c] = t.fev[m.GetFace(c, q)];
+            t.comps[q][c] = t.feg[m.GetFace(c, q)];
           }
-          t.comps[6][c] = t.fev[c];
+          t.comps[6][c] = t.feg[c];
         }
-        m.Dump(&t.comps[0], "fev.xm");
-        m.Dump(&t.comps[1], "fev.xp");
-        m.Dump(&t.comps[2], "fev.ym");
-        m.Dump(&t.comps[3], "fev.yp");
-        m.Dump(&t.comps[4], "fev.zm");
-        m.Dump(&t.comps[5], "fev.zp");
-        m.Dump(&t.comps[6], "fev.c");
+        m.Dump(&t.comps[0], "feg.xm");
+        m.Dump(&t.comps[1], "feg.xp");
+        m.Dump(&t.comps[2], "feg.ym");
+        m.Dump(&t.comps[3], "feg.yp");
+        m.Dump(&t.comps[4], "feg.zm");
+        m.Dump(&t.comps[5], "feg.zp");
+        m.Dump(&t.comps[6], "feg.c");
       }
-
 
       t.fc_gradexp.Reinit(m, 0);
       auto feg = UEmbed<M>::Gradient(t.fcp, t.bc.mebc, eb);

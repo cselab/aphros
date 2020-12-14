@@ -213,8 +213,7 @@ struct Simple<EB_>::Imp {
   // fev: addition to flux [i]
   FieldFaceb<ExprFace> GetFlux(
       const FieldFaceb<Scal>& ffk, const FieldFaceb<Scal>& ffv) {
-    FieldFaceb<ExprFace> ffe =
-        UEB::GradientImplicit(FieldCell<Scal>(eb, 0), {}, eb);
+    FieldFaceb<ExprFace> ffe = UEB::GradientImplicit({}, eb);
     eb.LoopFaces([&](auto cf) { //
       if (!is_boundary_[cf]) {
         ffe[cf] *= -eb.GetArea(cf) / ffk[cf];

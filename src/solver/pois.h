@@ -45,8 +45,7 @@ void SolvePoisson(
   }
   if (sem("assemble")) {
     t.avg_rhs /= t.sum_vol;
-    const FieldCell<Scal> fczero(m, 0);
-    const auto ffg = UEmbed<M>::GradientImplicit(fczero, mebc, m);
+    const auto ffg = UEmbed<M>::GradientImplicit(mebc, m);
     t.fcl.Reinit(m, Expr::GetUnit(0));
     for (auto c : m.Cells()) {
       Expr sum(0);

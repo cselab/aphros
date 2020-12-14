@@ -66,8 +66,7 @@ void Run(M& m, Vars& var) {
       }
 
       // system, only coefficients, zero constant term
-      FieldCell<Scal> fc_zero(m, 0);
-      const auto ffg = UEmbed<M>::GradientImplicit(fc_zero, t.mebc, m);
+      const auto ffg = UEmbed<M>::GradientImplicit(t.mebc, m);
       t.fc_system.Reinit(m, Expr::GetUnit(0));
       for (auto c : m.Cells()) {
         Expr sum(0);

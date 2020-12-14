@@ -1464,104 +1464,96 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
 
 template <class M>
 auto UEmbed<M>::GradientImplicit(
-    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, const EB& eb)
-    -> FieldEmbed<ExprFace> {
-  FieldEmbed<ExprFace> fee(eb, ExprFace(0));
+    const MapEmbed<BCond<Scal>>& mebc, const EB& eb) -> FieldEmbed<ExprFace> {
+  FieldEmbed<ExprFace> feg(eb, ExprFace(0));
   const Scal h = eb.GetCellSize()[0];
 
-  // explicit gradient
-  const FieldEmbed<Scal> feg = Gradient(fcu, mebc, eb);
-
-  // implicit gradient with deferred correction
   for (auto f : eb.Faces()) {
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
     const Scal a = 1 / h;
-    ExprFace e(0);
-    e[0] = -a;
-    e[1] = a;
-    e[2] = feg[f];
-    e[2] -= fcu[cm] * e[0] + fcu[cp] * e[1];
-    fee[f] = e;
+    feg[f] = ExprFace(-a, a, 0);
   }
 
-  auto calc = [&](auto cf, IdxCell c, const BCond<Scal>& bc) {
+  mebc.LoopBCond(eb, [&](auto cf, IdxCell, const auto& bc) {
     ExprFace e(0);
     switch (bc.type) {
       case BCondType::dirichlet: {
         const Scal a = 2 * (bc.nci == 0 ? 1 : -1) / h;
         e[bc.nci] = -a;
-        e[2] = feg[cf];
+        e[2] = bc.val * a;
         break;
       }
       case BCondType::neumann: {
-        e[2] = feg[cf];
+        e[2] = bc.val * (bc.nci == 0 ? 1 : -1);
         break;
       }
       default:
         throw std::runtime_error(FILELINE + ": unknown");
     }
-    e[2] -= fcu[c] * e[bc.nci]; // subtract explicit part
-    return e;
-  };
-  mebc.LoopBCond(eb, [&](auto cf, IdxCell c, const auto& bc) {
-    fee[cf] = calc(cf, c, bc);
+    feg[cf] = e;
   });
-  return fee;
+  return feg;
 }
 
 template <class M>
-auto UEmbed<M>::GradientImplicit(
-    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, const M& m)
+auto UEmbed<M>::GradientImplicit(const MapEmbed<BCond<Scal>>& mebc, const M& m)
     -> FieldFace<ExprFace> {
-  (void)fcu;
   FieldFace<ExprFace> ffe(m, ExprFace(0));
   const Scal h = m.GetCellSize()[0];
 
   for (auto f : m.Faces()) {
     ExprFace e(0);
     const Scal a = 1 / h;
-    e[0] = -a;
-    e[1] = a;
-    ffe[f] = e;
+    ffe[f] = ExprFace(-a, a, 0);
   }
 
-  auto calc = [&](IdxFace f, IdxCell c, const BCond<Scal>& bc) {
+  // boundary conditions
+  for (auto& p : mebc.GetMapFace()) {
+    const auto f = p.first;
+    const auto& bc = p.second;
     ExprFace e(0);
     switch (bc.type) {
       case BCondType::dirichlet: {
-        const Scal sgn = (bc.nci == 0 ? 1 : -1);
-        const Scal a = 2 * sgn / h;
+        const Scal a = 2 * (bc.nci == 0 ? 1 : -1) / h;
         e[bc.nci] = -a;
         e[2] = bc.val * a;
-
-        const Scal uf = bc.val;
-        const size_t cnci = m.GetNci(c, f); // f=m.GetFace(c1, c1nci)
-        const IdxCell c2 = m.GetCell(c, m.GetOpposite(cnci));
-        const Scal u1 = fcu[c];
-        const Scal u2 = fcu[c2];
-        const Scal high = (uf * 8 - u1 * 9 + u2) / (3 * h) * sgn;
-        const Scal low = (uf - u1) * a;
-        e[2] += high - low;
         break;
       }
       case BCondType::neumann: {
-        e[2] = bc.val;
+        e[2] = bc.val * (bc.nci == 0 ? 1 : -1);
         break;
       }
       default:
         throw std::runtime_error(FILELINE + ": unknown");
     }
-    return e;
-  };
-  // faces with boundary conditions
-  for (auto& p : mebc.GetMapFace()) {
-    const IdxFace f = p.first;
-    const auto& bc = p.second;
-    ffe[f] = calc(f, m.GetCell(f, bc.nci), bc);
+    ffe[f] = e;
   }
   return ffe;
 }
+
+template <class M>
+auto UEmbed<M>::GradientImplicit(
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, const EB& eb)
+    -> FieldEmbed<ExprFace> {
+  const auto fee = Gradient(fcu, mebc, eb);
+  auto feg = GradientImplicit(mebc, eb);
+  eb.LoopFaces([&](auto cf) {
+    feg[cf].back() += fee[cf] - Eval(feg[cf], cf, fcu, eb);
+  });
+  return feg;
+}
+
+template <class M>
+auto UEmbed<M>::GradientImplicit(
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, const M& m)
+    -> FieldFace<ExprFace> {
+  const auto ffe = Gradient(fcu, mebc, m);
+  auto ffg = GradientImplicit(mebc, m);
+  for (auto f : m.Faces()) {
+    ffg[f].back() += ffe[f] - Eval(ffg[f], f, fcu, m);
+  }
+  return ffg;
+}
+
 
 template <class M>
 auto UEmbed<M>::Gradient(const FieldFace<Scal>& ffu, const M& m)

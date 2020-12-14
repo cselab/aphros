@@ -251,6 +251,15 @@ struct UEmbed {
       Scal deferred, const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv,
       const M& m);
 
+  // Implicit gradient.
+  // mebc: boundary conditions
+  // Returns:
+  // ffe: interpolation expressions [i]
+  static FieldEmbed<ExprFace> GradientImplicit(
+      const MapEmbed<BCond<Scal>>& mebc, const EB& eb);
+  static FieldFace<ExprFace> GradientImplicit(
+      const MapEmbed<BCond<Scal>>& mebc, const M& m);
+
   // Implicit gradient with deferred correction.
   // fcu: field cell from previous iteration [s]
   // mebc: boundary conditions
