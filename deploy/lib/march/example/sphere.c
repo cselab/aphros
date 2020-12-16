@@ -62,14 +62,14 @@ int main(int argc, char** argv) {
   double* o;
   int stat[MARCH_NTRI] = {0};
 
-  while (argv[1] != NULL && argv++ [1][0] == '-')
+  while (argv[1] != NULL && argv++[1][0] == '-')
     switch (argv[0][1]) {
       case 'n':
         if (argv[1] == NULL) {
           fprintf(stderr, "%s: -n needs an argument\n", argv[0]);
           exit(2);
         }
-        m = atoi(argv++ [1]);
+        m = atoi(argv++[1]);
         break;
       default:
         fprintf(stderr, "%s: unknow option\n", argv[0]);
