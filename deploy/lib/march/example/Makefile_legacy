@@ -1,0 +1,13 @@
+.POSIX:
+.SUFFIXES:
+.SUFFIXES: .c
+
+CFLAGS = -O2 -g
+
+M = \
+main\
+sphere\
+
+all: $M
+.c:; $(CC) $< $(CFLAGS) $(LDFLAGS) -I.. -L.. -lmarch -o $@
+clean:; rm -f $M
