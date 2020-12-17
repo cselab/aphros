@@ -262,7 +262,8 @@ struct ArgumentParser::Imp {
     return name.length() && name[0] == '-';
   }
   static bool IsOptional(std::string name) {
-    return StartsWithDash(name) && !IsNumber(name);
+    return StartsWithDash(name) && !IsNumber(name) && name != "-" &&
+           name != "--";
   }
   static void CheckNameConsistency(std::vector<std::string> names) {
     if (names.empty()) {

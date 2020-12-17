@@ -8,11 +8,11 @@
 
 int main(int argc, const char** argv) {
   ArgumentParser argparser("Converts configuration to Python");
-  argparser.AddVariable<std::string>({"--input", "-i"}, "-")
+  argparser.AddVariable<std::string>("input", "-")
       .Help(
           "Path to configuration file with commands 'set ...'. If set to '-', "
           "read from stdin");
-  argparser.AddVariable<std::string>({"--output", "-o"}, "-")
+  argparser.AddVariable<std::string>("output", "-")
       .Help("Path to python output. If set to '-', write to stdout");
 
   auto args = argparser.ParseArgs(argc, argv);
