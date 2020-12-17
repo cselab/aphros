@@ -8,6 +8,9 @@ ReadPlain = aphros.io.ReadPlain
 InitBasicFigure = aphros.plot.InitBasicFigure
 SaveBasicFigure = aphros.plot.SaveBasicFigure
 PlotFieldCoolwarm = aphros.plot.PlotFieldCoolwarm
+ReplaceFilename = aphros.plot.ReplaceFilename
+GetStep = aphros.plot.GetStep
+GetSteps = aphros.plot.GetSteps
 stream = aphros.stream.stream
 
 import aphros.confgen

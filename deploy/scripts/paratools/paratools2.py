@@ -3,7 +3,11 @@ import re
 import math
 import os
 import numpy as np
-import paraview.simple as para
+
+try:
+    import paraview.simple as para
+except ImportError:
+    para = None
 
 def Log(s):
     sys.stderr.write(str(s) + '\n')

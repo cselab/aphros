@@ -1478,3 +1478,32 @@ def Curv():
     # curvature histogram
     po = 'hist.pdf'
     FigHistK(vf, kk, ll, po, title=title)
+
+def GetStep(path):
+    return re.findall('[^_]*_([0-9]*)\.*.', os.path.basename(path))[0]
+
+def GetSteps(paths):
+    return list(map(GetStep, paths))
+
+def ReplaceFilename(paths, pattern, keep_dir=True):
+    """
+    Replaces filename by pattern with step index substitution.
+    paths: `list(str)`
+        Paths.
+    pattern: `str`
+        Pattern containing a single `{}` to be replaced by step index.
+
+    Example:
+    >>> ReplaceFilename(["dir/vf_0001.xmf"], "sm_{}.vtk")
+    >>> ["dir/sm_0001.vtk"]
+    """
+    r = []
+    for f in paths:
+        dirname = os.path.dirname(f)
+        basename = os.path.basename(f)
+        step = GetStep(f)
+        if keep_dir:
+            r.append(os.path.join(dirname, pattern.format(step)))
+        else:
+            r.append(pattern.format(step))
+    return r
