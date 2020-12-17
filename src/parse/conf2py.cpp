@@ -35,18 +35,18 @@ int main(int argc, const char** argv) {
     fout.open(opath);
   }
   auto& out = (opath != "-" ? fout : std::cout);
-  for (auto a : var.Int) {
-    out << util::Format("{} = {:}\n", a.first, a.second);
-  }
-  for (auto a : var.Double) {
-    out << util::Format("{} = {:.20f}\n", a.first, a.second);
-  }
   for (auto a : var.String) {
     if (a.second.find('\n') != std::string::npos) {
       out << util::Format("{} = \"\"\"{}\"\"\"\n", a.first, a.second);
     } else {
       out << util::Format("{} = \"{}\"\n", a.first, a.second);
     }
+  }
+  for (auto a : var.Int) {
+    out << util::Format("{} = {:}\n", a.first, a.second);
+  }
+  for (auto a : var.Double) {
+    out << util::Format("{} = {:.20f}\n", a.first, a.second);
   }
   for (auto a : var.Vect) {
     std::string val;

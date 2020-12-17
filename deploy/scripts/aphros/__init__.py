@@ -15,6 +15,7 @@ Geometry = aphros.confgen.Geometry
 BoundaryConditions = aphros.confgen.BoundaryConditions
 Bc = aphros.confgen.BoundaryConditions
 Config = aphros.confgen.Config
+ReadConfig = aphros.confgen.ReadConfig
 Var = aphros.confgen.Config
 Domain = aphros.confgen.Domain
 AdjustedDomain = aphros.confgen.AdjustedDomain

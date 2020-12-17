@@ -6,6 +6,7 @@ import os
 import sys
 import numpy as np
 import copy
+import subprocess
 
 
 def NormalizeType(v):
@@ -23,25 +24,26 @@ def NormalizeType(v):
 
 
 class Config:
-    def __init__(self):
-        self.var = dict()
+    def __init__(self, var=dict()):
+        for k,v in var.items():
+            self[k] = v
 
     def __getitem__(self, key):
-        return self.var[key]
+        return getattr(self, key)
 
     def __setitem__(self, key, value):
-        self.var[key] = value
+        setattr(self, key, value)
 
     def Generate(self):
         t = []
-        for k, v in self.var.items():
+        for k, v in vars(self).items():
             v = NormalizeType(v)
             if isinstance(v, float):
-                t.append("set double {:} {:}".format(k, v))
+                t.append("set double {:} {:.20g}".format(k, v))
             elif isinstance(v, int):
                 t.append("set int {:} {:}".format(k, v))
             elif isinstance(v, list):
-                v = ' '.join(map(str, v))
+                v = ' '.join(["{:.20g}".format(a) for a in v])
                 t.append("set vect {:} {:}".format(k, v))
             elif isinstance(v, str):
                 if '\n' in v:
@@ -434,3 +436,14 @@ class Parameters:
             for k, v in d.items():
                 setattr(self, k, v)
         return self
+
+def ReadConfig(fpath):
+    """
+    Returns Config from configuration file (commands "set ...").
+    fpath: path to configuration file
+    """
+    code = subprocess.check_output(['ap.conf2py', fpath])
+    d = dict()
+    exec(code, None, d)
+    return Config(d)
+
