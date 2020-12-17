@@ -2746,6 +2746,8 @@ void Hydro<M>::ReportSysinfo(std::ostream& out) {
   }
 }
 
+// Finds the minimal color in rectangle [x0,x1]
+// and clears the volume fraction in all cells with that color.
 template <class M>
 void Hydro<M>::StepEraseColor(std::string prefix) {
   if (!var.Vect.Contains(prefix + "_rect_x0")) {
@@ -2760,12 +2762,13 @@ void Hydro<M>::StepEraseColor(std::string prefix) {
     Scal cl = std::numeric_limits<Scal>::max();
   } * ctx(sem);
   auto& t = *ctx;
-  auto apply_vofm = [this, &rect, &t, &sem](auto* as, const auto& eb) {
+  auto apply = [this, &rect, &t, &sem](auto* as, const auto& eb) {
     if (as) {
       if (sem()) {
+        auto plic = as->GetPlic();
         for (auto l : layers) {
-          auto& u = const_cast<FieldCell<Scal>&>(*as->GetFieldM()[l]);
-          auto& cl = const_cast<FieldCell<Scal>&>(*as->GetColor()[l]);
+          const auto& u = *plic.vfcu[l];
+          const auto& cl = *plic.vfccl_stat[l];
           for (auto c : eb.AllCells()) {
             const auto x = m.GetCenter(c);
             if (rect.IsInside(x) && u[c] > 0 && cl[c] != kClNone) {
@@ -2776,9 +2779,10 @@ void Hydro<M>::StepEraseColor(std::string prefix) {
         m.Reduce(&t.cl, Reduction::min);
       }
       if (sem()) {
+        auto plic = as->GetPlic();
         for (auto l : layers) {
-          auto& u = const_cast<FieldCell<Scal>&>(*as->GetFieldM()[l]);
-          auto& cl = const_cast<FieldCell<Scal>&>(*as->GetColor()[l]);
+          auto& u = const_cast<FieldCell<Scal>&>(*plic.vfcu[l]);
+          auto& cl = const_cast<FieldCell<Scal>&>(*plic.vfccl_stat[l]);
           for (auto c : eb.AllCells()) {
             if (cl[c] == t.cl) {
               u[c] = 0;
@@ -2790,8 +2794,8 @@ void Hydro<M>::StepEraseColor(std::string prefix) {
     }
   };
   if (eb_) {
-    apply_vofm(dynamic_cast<ASVMEB*>(as_.get()), *eb_);
+    apply(as_.get(), *eb_);
   } else {
-    apply_vofm(dynamic_cast<ASVM*>(as_.get()), m);
+    apply(as_.get(), m);
   }
 }
