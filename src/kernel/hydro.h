@@ -1844,7 +1844,9 @@ void Hydro<M>::DumpFields() {
     FieldCell<Scal> fcdis; // energy dissipation
     FieldCell<Scal> fc_ebvf; // embedded boundaries volume fraction
     FieldCell<Scal> fc_tracer_sum; // sum of tracer_ fields starting from 1
+    FieldCell<Vect> fc_flux; // mixture flux
   } * ctx(sem);
+  auto& t = *ctx;
   if (sem("dump")) {
     if (m.IsRoot()) {
       dumper_.Report(std::cout);
@@ -1889,6 +1891,18 @@ void Hydro<M>::DumpFields() {
       dumpv(fcom_, 1, "omy");
       dumpv(fcom_, 2, "omz");
       dump(fcomm_, "omm");
+    }
+    if (dl.count("fluxx") || dl.count("fluxy") || dl.count("fluxz")) {
+      t.fc_flux.Reinit(m, Vect(0));
+      auto& ffv = fs_->GetVolumeFlux();
+      for (auto c : m.Cells()) {
+        for (size_t d = 0; d < dim; ++d) {
+          t.fc_flux[c][d] = ffv[m.GetFace(c, d * 2)];
+        }
+      }
+      dumpv(t.fc_flux, 0, "fluxx");
+      dumpv(t.fc_flux, 1, "fluxy");
+      dumpv(t.fc_flux, 2, "fluxz");
     }
     if (dl.count("dis") || dl.count("strain")) {
       fc_strain_ = CalcStrain(fs_->GetVelocity());
