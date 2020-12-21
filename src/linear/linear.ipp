@@ -34,8 +34,8 @@ struct SolverConjugate<M>::Imp {
       Scal dot_p_opp;
       Scal dot_r;
       Scal dot_r_prev;
+      Scal max_r;
 
-      Scal maxdiff;
       int iter = 0;
       Info info;
     } * ctx(sem);
@@ -82,17 +82,17 @@ struct SolverConjugate<M>::Imp {
       m.Reduce(&t.dot_p_opp, Reduction::sum);
     }
     if (sem("iter2")) {
-      t.maxdiff = 0;
       const Scal alpha = t.dot_r_prev / (t.dot_p_opp + 1e-100);
       t.dot_r = 0;
+      t.max_r = 0;
       for (auto c : m.Cells()) {
         t.fcu[c] += alpha * t.fcp[c];
         t.fcr[c] -= alpha * t.fc_opp[c];
         t.dot_r += sqr(t.fcr[c]);
-        t.maxdiff = std::max(t.maxdiff, std::abs(t.fcp[c] * alpha));
+        t.max_r = std::max(t.max_r, std::abs(t.fcr[c]));
       }
       m.Reduce(&t.dot_r, Reduction::sum);
-      m.Reduce(&t.maxdiff, Reduction::max);
+      m.Reduce(&t.max_r, Reduction::max);
     }
     if (sem("iter3")) {
       for (auto c : m.Cells()) {
@@ -101,9 +101,15 @@ struct SolverConjugate<M>::Imp {
       m.Comm(&t.fcp);
     }
     if (sem("check")) {
-      t.info.residual = t.maxdiff;
+      if (extra.residual_max) {
+        t.info.residual = t.max_r / m.GetCellSize().prod();
+      } else { // L2-norm
+        t.info.residual = std::sqrt(t.dot_r / m.GetCellSize().prod());
+      }
+      ++t.iter;
       t.info.iter = t.iter;
-      if (t.iter++ > conf.maxiter || t.maxdiff < conf.tol) {
+      if (t.iter >= conf.miniter &&
+          (t.iter > conf.maxiter || t.info.residual < conf.tol)) {
         sem.LoopBreak();
       }
     }
@@ -188,8 +194,10 @@ struct SolverJacobi<M>::Imp {
     }
     if (sem("check")) {
       t.info.residual = t.maxdiff;
+      ++t.iter;
       t.info.iter = t.iter;
-      if (t.iter++ > conf.maxiter || t.maxdiff < conf.tol) {
+      if (t.iter >= conf.miniter &&
+          (t.iter > conf.maxiter || t.info.residual < conf.tol)) {
         sem.LoopBreak();
       }
     }
@@ -204,7 +212,7 @@ struct SolverJacobi<M>::Imp {
                   << std::endl;
       }
     }
-    if (sem("")) {
+    if (sem()) {
     }
     return t.info;
   }

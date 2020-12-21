@@ -21,9 +21,6 @@ auto ULinear<M_>::MakeLinearSolver(
   };
 
   const std::string name = var.String("linsolver_" + prefix, "hypre");
-  typename linear::Solver<M>::Conf conf;
-  conf.tol = var.Double[addprefix("tol")];
-  conf.maxiter = var.Int[addprefix("maxiter")];
   if (auto* mod = linear::ModuleLinear<M>::GetInstance(name)) {
     return mod->Make(var, prefix, m);
   }

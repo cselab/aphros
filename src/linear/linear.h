@@ -20,6 +20,7 @@ class Solver {
 
   struct Conf {
     Scal tol = 0;
+    int miniter = 1;
     int maxiter = 100;
   };
 
@@ -69,6 +70,7 @@ class ModuleLinear : public Module<ModuleLinear<M>> {
     typename linear::Solver<M>::Conf conf;
     conf.tol = var.Double[addprefix("tol")];
     conf.maxiter = var.Int[addprefix("maxiter")];
+    conf.miniter = var.Int(addprefix("miniter"), 0);
     return conf;
   }
 };
@@ -81,7 +83,9 @@ class SolverConjugate : public Solver<M> {
   using Info = typename Base::Info;
   using Scal = typename M::Scal;
   using Expr = typename M::Expr;
-  struct Extra {};
+  struct Extra {
+    bool residual_max = false; // if true, use max-norm of residual, else L2
+  };
   SolverConjugate(const Conf& conf, const Extra& extra, const M&);
   ~SolverConjugate();
   Info Solve(

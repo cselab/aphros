@@ -2188,6 +2188,9 @@ void Hydro<M>::Run() {
       par.meshvel = st_.meshvel;
       fs->SetPar(par);
     }
+    if (linsolver_symm_) {
+      linsolver_symm_->SetConf(linear::ModuleLinear<M>::GetConf(var, "symm"));
+    }
     UpdateAdvectionPar();
     fcvm_ = fs_->GetVelocity();
   }
