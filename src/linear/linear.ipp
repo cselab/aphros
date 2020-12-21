@@ -83,7 +83,7 @@ struct SolverConjugate<M>::Imp {
     }
     if (sem("iter2")) {
       t.maxdiff = 0;
-      const Scal alpha = t.dot_r_prev / t.dot_p_opp;
+      const Scal alpha = t.dot_r_prev / (t.dot_p_opp + 1e-100);
       t.dot_r = 0;
       for (auto c : m.Cells()) {
         t.fcu[c] += alpha * t.fcp[c];
@@ -96,7 +96,7 @@ struct SolverConjugate<M>::Imp {
     }
     if (sem("iter3")) {
       for (auto c : m.Cells()) {
-        t.fcp[c] = t.fcr[c] + (t.dot_r / t.dot_r_prev) * t.fcp[c];
+        t.fcp[c] = t.fcr[c] + (t.dot_r / (t.dot_r_prev + 1e-100)) * t.fcp[c];
       }
       m.Comm(&t.fcp);
     }
