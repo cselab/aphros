@@ -1,23 +1,33 @@
-#!/bin/bash
+#!/bin/sh
 
 set -eu
 
-if [ "$#" -lt "1" ] || [ "$1" == "-h" ] ; then
+if [ "$#" -lt "1" ] || [ "$1" = "-h" ] ; then
     cat << EOF
-usage: `basename $0` [-h] ARGS
+usage: `basename $0` [--silent] [-h] ARGS
 Reads the number of cores NP from file 'np' and executes
-mpirun -n NP ARGS
+  mpirun -n NP ARGS
 If file 'np' does not exist, executes
-mpirun ARGS
+  mpirun ARGS
+Prints the command to be executed to STDERR if --silent is not provided.
 EOF
     exit 1
 fi
 
-if [ -f 'np' ] ; then
-  c="mpirun -n $(cat np) $@"
-else
-  c="mpirun $@"
+silent=0
+if [ "$1" == "--silent" ] ; then
+  silent=1
+  shift 1
 fi
 
-echo "$c"
+if [ -f 'np' ] ; then
+  c='mpirun -n $(cat np) "$@"'
+else
+  c='mpirun "$@"'
+fi
+
+if [ "$silent" == "0" ] ; then
+  eval echo "$c" >&2
+fi
+
 eval "$c"
