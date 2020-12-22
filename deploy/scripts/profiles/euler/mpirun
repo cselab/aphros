@@ -14,7 +14,14 @@ EOF
 fi
 
 if [ -f 'np' ] ; then
-  mpirun --oversubscribe -n "$(cat np)" "$@"
+  if [ "$OMP_NUM_THREADS" != "1" ] ; then
+    c="mpirun --oversubscribe --map-by node:PE=$OMP_NUM_THREADS -n $(cat np) $@"
+  else
+    c="mpirun --oversubscribe -n $(cat np) $@"
+  fi
 else
-  mpirun "$@"
+  c="mpirun $@"
 fi
+
+echo "$c"
+eval "$c"

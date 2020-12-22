@@ -14,7 +14,10 @@ EOF
 fi
 
 if [ -f 'np' ] ; then
-  srun -n "$(cat np)" "$@"
+  c="srun -n $(cat np) $@"
 else
-  srun "$@"
+  c="srun $@"
 fi
+
+echo "$c"
+eval "$c"

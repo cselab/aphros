@@ -14,7 +14,10 @@ EOF
 fi
 
 if [ -f 'np' ] ; then
-  mpirun -n "$(cat np)" "$@"
+  c="mpirun -n $(cat np) $@"
 else
-  mpirun "$@"
+  c="mpirun $@"
 fi
+
+echo "$c"
+eval "$c"
