@@ -1753,7 +1753,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     if (var.Int["dim"] <= 2) {
       for (auto f : m.Faces()) {
         using Dir = typename M::Dir;
-        if (m.GetIndexFaces().GetDir(f) == Dir(0)) {
+        if (m.GetIndexFaces().GetDir(f) == Dir(2)) {
           febp_[f] = 0;
         }
       }
