@@ -11,43 +11,26 @@ class GDir {
   using MIdx = GMIdx<dim_>;
   static constexpr size_t dim = dim_;
 
-  GDir() {}
-  explicit GDir(size_t d) : d_(d) {}
-  char GetLetter() const {
-    return "xyz"[d_];
+  constexpr GDir() {}
+  constexpr explicit GDir(size_t dir) : dir_(dir) {}
+  constexpr char GetLetter() const {
+    return "xyzw"[dir_];
   }
   explicit operator size_t() const {
-    return d_;
+    return dir_;
   }
   explicit operator MIdx() const {
-    MIdx r(0);
-    ++r[d_];
-    return r;
+    return MIdx::GetUnit(dir_);
   }
-  bool operator==(const GDir& o) const {
-    return d_ == o.d_;
+  bool operator==(const GDir& other) const {
+    return dir_ == other.dir_;
   }
-  bool operator!=(const GDir& o) const {
-    return !((*this) == o);
+  bool operator!=(const GDir& other) const {
+    return !((*this) == other);
   }
-  bool operator<(const GDir& o) const {
-    return d_ < o.d_;
+  bool operator<(const GDir& other) const {
+    return dir_ < other.dir_;
   }
-  static const GDir i;
-  static const GDir j;
-  static const GDir k;
-  // TODO: switch to x,y,z
-  // static const GDir x;
-  // static const GDir y;
-  // static const GDir z;
-
  private:
-  size_t d_;
+  size_t dir_;
 };
-
-template <size_t dim>
-const GDir<dim> GDir<dim>::i(0);
-template <size_t dim>
-const GDir<dim> GDir<dim>::j(1);
-template <size_t dim>
-const GDir<dim> GDir<dim>::k(2);

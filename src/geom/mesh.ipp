@@ -119,28 +119,28 @@ MeshStructured<_Scal, _dim>::MeshStructured(
       switch (q) {
         case 0:
           wo = MIdx(0, 0, 0);
-          d = Dir::i;
+          d = Dir(0);
           break;
         case 1:
           wo = MIdx(1, 0, 0);
-          d = Dir::i;
+          d = Dir(0);
           break;
         case 2:
           wo = MIdx(0, 0, 0);
-          d = Dir::j;
+          d = Dir(1);
           break;
         case 3:
           wo = MIdx(0, 1, 0);
-          d = Dir::j;
+          d = Dir(1);
           break;
         case 4:
           wo = MIdx(0, 0, 0);
-          d = Dir::k;
+          d = Dir(2);
           break;
         default:
         case 5:
           wo = MIdx(0, 0, 1);
-          d = Dir::k;
+          d = Dir(2);
           break;
       };
       IdxFace fn = indexf_.GetIdx(std::make_pair(w + wo, d));

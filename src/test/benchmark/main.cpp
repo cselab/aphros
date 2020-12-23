@@ -371,7 +371,7 @@ class Interp : public TimerMesh {
     }
     auto& bf = m.GetIndexFaces();
     for (auto f : m.Faces()) {
-      if (bf.GetMIdx(f)[0] == 0 && bf.GetDir(f) == Dir::i) {
+      if (bf.GetMIdx(f)[0] == 0 && bf.GetDir(f) == Dir(0)) {
         mfc[f].type = BCondType::neumann;
       }
     }

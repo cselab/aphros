@@ -370,7 +370,7 @@ int main() {
 
     {
       using I = typename GBlock<IdxFace, 3>::iterator;
-      I i(&sb, MIdx(0, 0, 0), Dir::i);
+      I i(&sb, MIdx(0, 0, 0), Dir(0));
       auto l = [&]() {
         std::cout << (*i).first << " " << (*i).second.GetLetter() << std::endl;
       };
