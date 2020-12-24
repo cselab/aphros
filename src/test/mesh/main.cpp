@@ -199,6 +199,39 @@ void TestMesh() {
   }
 
   {
+    std::cout << "\nFace neighbor nodes\n";
+    const auto& indexn = m.GetIndexNodes();
+    const auto& indexf = m.GetIndexFaces();
+    auto str = [&](IdxFace f) {
+      std::stringstream s;
+      s << indexf.GetMIdx(f) << indexf.GetDir(f).GetLetter();
+      return s.str();
+    };
+    for (auto d : m.dirs) {
+      const MIdx w = m.GetInBlockCells().GetBegin();
+      const IdxFace f = indexf.GetIdx(w, Dir(d));
+      std::cout << "f=" << str(f) << ":";
+      for (size_t q = 0; q < m.kFaceNumNeighborNodes; ++q) {
+        std::cout << " " << indexn.GetMIdx(m.GetNode(f, q));
+      }
+      std::cout << std::endl;
+    }
+  }
+
+  {
+    std::cout << "\nCell neighbor nodes\n";
+    const auto& indexc = m.GetIndexCells();
+    const auto& indexn = m.GetIndexNodes();
+    const MIdx w = m.GetInBlockCells().GetBegin();
+    const IdxCell c = indexc.GetIdx(w);
+    std::cout << "c=" << indexc.GetMIdx(c) << ":";
+    for (size_t q = 0; q < m.kCellNumNeighborNodes; ++q) {
+      std::cout << " " << indexn.GetMIdx(m.GetNode(c, q));
+    }
+    std::cout << std::endl;
+  }
+
+  {
     std::cout << "\nCell neighbor cells\n";
     IdxCell c(0);
     for (auto q : m.Nci(c)) {
