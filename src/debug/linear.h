@@ -68,7 +68,7 @@ struct UDebug {
   static FieldCell<typename M::Scal> GetAsymmetryField(
       const FieldCell<typename M::Expr>& fce, M& m) {
     constexpr size_t vdim = Expr::dim - 2;
-    static_assert(vdim == M::kCellNumNeighbourFaces, "");
+    static_assert(vdim == M::kCellNumNeighborFaces, "");
     auto sem = m.GetSem(__func__);
     struct {
       std::array<FieldCell<Scal>, vdim> vfck; // coefficient of neighbors

@@ -38,13 +38,12 @@ inline void GetCellColumn(
   cmm = m.GetCell(cm, d * 2 + 1 - nci);
 }
 
-// TODO: Neighbour faces iterator introducing (cell, face) pairs
-// TODO: consider computing some on-the-fly to reduce memory access
 template <class Scal_, size_t dim_>
-class MeshStructured {
+class MeshCartesian {
  public:
   using Scal = Scal_;
   static constexpr size_t dim = dim_;
+  static constexpr generic::Range<size_t> dirs{dim};
   using Vect = generic::Vect<Scal, dim>;
   using Dir = GDir<dim>;
   using Direction = generic::Direction<Scal, dim>;
@@ -55,13 +54,13 @@ class MeshStructured {
   using IndexCells = GIndex<IdxCell, dim>;
   using IndexFaces = GIndex<IdxFace, dim>;
   using IndexNodes = GIndex<IdxNode, dim>;
-  using M = MeshStructured;
+  using M = MeshCartesian;
   enum class Type { regular, cut, excluded };
 
-  static constexpr size_t kCellNumNeighbourFaces = 6;
-  static constexpr size_t kCellNumNeighbourNodes = 8;
-  static constexpr size_t kFaceNumNeighbourNodes = 4;
-  static constexpr size_t kFaceNumNeighbourCells = 2;
+  static constexpr size_t kCellNumNeighborFaces = dim * 2;
+  static constexpr size_t kCellNumNeighborNodes = std::pow<size_t>(2, dim);
+  static constexpr size_t kFaceNumNeighborNodes = std::pow<size_t>(2, dim - 1);
+  static constexpr size_t kFaceNumNeighborCells = 2;
   static constexpr size_t kNumStencil = std::pow<size_t>(3, dim);
   static constexpr size_t kNumStencil5 = std::pow<size_t>(5, dim);
   static constexpr bool kIsEmbed = false;
@@ -73,7 +72,7 @@ class MeshStructured {
     bool check_symmetry = false;
     Scal check_symmetry_dump_threshold = 1e-5;
     Scal nan_faces_value = 1e100;
-    std::array<bool, dim> is_periodic = {false, false, false};
+    std::array<bool, dim> is_periodic = {};
     Vect global_origin = Vect(0); // origin of global mesh
     MIdx global_blocks = MIdx(0); // number of blocks in global mesh
     Vect block_length = Vect(0); // length of one block (local mesh)
@@ -102,14 +101,14 @@ class MeshStructured {
   // isroot: root block
   // gs: global mesh size
   // id: unique id
-  MeshStructured(
+  MeshCartesian(
       MIdx b, MIdx cs, Rect<Vect> domain, int halos, bool isroot, bool islead,
       MIdx gs, int id);
-  MeshStructured(const MeshStructured&) = delete;
-  MeshStructured(MeshStructured&&);
-  MeshStructured& operator=(const MeshStructured&) = delete;
-  MeshStructured& operator=(MeshStructured&&) = delete;
-  ~MeshStructured();
+  MeshCartesian(const MeshCartesian&) = delete;
+  MeshCartesian(MeshCartesian&&);
+  MeshCartesian& operator=(const MeshCartesian&) = delete;
+  MeshCartesian& operator=(MeshCartesian&&) = delete;
+  ~MeshCartesian();
   MIdx GetGlobalSize() const {
     return global_size_;
   }
@@ -214,52 +213,52 @@ class MeshStructured {
     return 1;
   }
   IdxCell GetCell(IdxCell c, size_t q) const {
-    assert(q < kCellNumNeighbourFaces);
+    assert(q < kCellNumNeighborFaces);
     return IdxCell(size_t(c) + cell_cell_[q]);
   }
   IdxFace GetFace(IdxCell c, size_t q) const {
-    assert(q < kCellNumNeighbourFaces);
+    assert(q < kCellNumNeighborFaces);
     return IdxFace(size_t(c) + cell_face_[q]);
   }
   IdxFace GetFace(IdxFace f, size_t q) const {
-    const auto qm = kCellNumNeighbourFaces;
+    const auto qm = kCellNumNeighborFaces;
     assert(q < qm);
     return IdxFace(size_t(f) + face_face_[size_t(indexf_.GetDir(f)) * qm + q]);
   }
   Scal GetOutwardFactor(IdxCell, size_t q) const {
-    assert(q < kCellNumNeighbourFaces);
+    assert(q < kCellNumNeighborFaces);
     return cell_outward_[q];
   }
   Vect GetOutwardSurface(IdxCell c, size_t n) const {
-    assert(n < kCellNumNeighbourFaces);
+    assert(n < kCellNumNeighborFaces);
     return GetSurface(GetFace(c, n)) * GetOutwardFactor(c, n);
   }
   IdxNode GetNode(IdxCell c, size_t q) const {
-    assert(q < kCellNumNeighbourNodes);
+    assert(q < kCellNumNeighborNodes);
     return IdxNode(size_t(c) + cell_node_[q]);
   }
   Dir GetDir(IdxFace f) const {
     return indexf_.GetDir(f);
   }
   IdxCell GetCell(IdxFace f, size_t q) const {
-    auto qm = kFaceNumNeighbourCells;
+    auto qm = kFaceNumNeighborCells;
     assert(q < qm);
     return IdxCell(size_t(f) + face_cell_[size_t(indexf_.GetDir(f)) * qm + q]);
   }
   Vect GetVectToCell(IdxFace f, size_t n) const {
-    assert(n < kFaceNumNeighbourCells);
+    assert(n < kFaceNumNeighborCells);
     return GetCenter(GetCell(f, n)) - GetCenter(f);
   }
   IdxNode GetNode(IdxFace f, size_t q) const {
-    auto qm = kFaceNumNeighbourNodes;
+    auto qm = kFaceNumNeighborNodes;
     assert(q < qm);
     size_t d(indexf_.GetDir(f));
     return IdxNode(size_t(f) + face_node_[d * qm + q]);
   }
   size_t GetNumFaces(IdxCell) const {
-    return kCellNumNeighbourFaces;
+    return kCellNumNeighborFaces;
   }
-  // Neighbour cell indices
+  // Neighbor cell indices
   GRange<size_t> Nci(IdxCell c) const {
     return GRange<size_t>(0, GetNumFaces(c));
   }
@@ -291,35 +290,30 @@ class MeshStructured {
     return stencil5_;
   }
   // Returns id of cell adjacent to c by face f.
-  // -1 if f and c are not neighbours
+  // -1 if f and c are not neighbors
   size_t GetNci(IdxCell c, IdxFace f) const {
     for (size_t q : Nci(c)) {
       if (GetFace(c, q) == f) {
         return q;
       }
     }
-    return size_t(-1);
+    return -1;
   }
   // Returns id of face opposite to q.
-  // XXX: assumes indices of neighbours are -x,+x,-y,+y,-z,+z
   size_t GetOpposite(size_t q) const {
     if (q == size_t(-1)) {
-      return q;
+      return -1;
     }
-
-    if (q % 2 == 0) {
-      return ++q;
-    }
-    return --q;
+    return q ^ 1;
   }
   size_t GetNumNodes(IdxCell) const {
-    return kCellNumNeighbourNodes;
+    return kCellNumNeighborNodes;
   }
   size_t GetNumCells(IdxFace) const {
-    return kFaceNumNeighbourCells;
+    return kFaceNumNeighborCells;
   }
   size_t GetNumNodes(IdxFace) const {
-    return kFaceNumNeighbourNodes;
+    return kFaceNumNeighborNodes;
   }
   // Returns column of cells cmm,cm,cp,cpp.
   // nci: 0 or 1 such that m.GetCell(f, nci) == cp
@@ -594,10 +588,10 @@ class MeshStructured {
   size_t GetEdim() const {
     return flags.edim;
   }
-  MeshStructured& GetMesh() {
+  MeshCartesian& GetMesh() {
     return *this;
   }
-  const MeshStructured& GetMesh() const {
+  const MeshCartesian& GetMesh() const {
     return *this;
   }
 
@@ -816,13 +810,13 @@ class MeshStructured {
   std::array<Vect, dim> face_surface_; // surface vectors
   Vect face_area_;
   // offsets
-  std::array<size_t, kCellNumNeighbourFaces> cell_cell_;
-  std::array<size_t, kCellNumNeighbourFaces> cell_face_;
-  std::array<Scal, kCellNumNeighbourFaces> cell_outward_;
-  std::array<size_t, kCellNumNeighbourNodes> cell_node_;
-  std::array<size_t, kFaceNumNeighbourCells * dim> face_cell_;
-  std::array<size_t, kCellNumNeighbourFaces * dim> face_face_;
-  std::array<size_t, kFaceNumNeighbourNodes * dim> face_node_;
+  std::array<size_t, kCellNumNeighborFaces> cell_cell_;
+  std::array<size_t, kCellNumNeighborFaces> cell_face_;
+  std::array<Scal, kCellNumNeighborFaces> cell_outward_;
+  std::array<size_t, kCellNumNeighborNodes> cell_node_;
+  std::array<size_t, kFaceNumNeighborCells * dim> face_cell_;
+  std::array<size_t, kCellNumNeighborFaces * dim> face_face_;
+  std::array<size_t, kFaceNumNeighborNodes * dim> face_node_;
   std::array<size_t, kNumStencil> stencil_; // 3x3x3 stencil
   std::array<size_t, kNumStencil5> stencil5_; // 5x5x5 stencil
 
@@ -833,6 +827,10 @@ class MeshStructured {
   struct Imp;
   std::unique_ptr<Imp> imp;
 };
+
+// FIXME: Legacy alias, remove
+template <class Scal, size_t dim>
+using MeshStructured = MeshCartesian<Scal, dim>;
 
 // Create uniform mesh
 // domain: rectangle covering inner cells

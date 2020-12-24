@@ -107,6 +107,13 @@ class GBlock {
   const MIdx end_; // end
 };
 
+namespace generic {
+
+template <class Idx, size_t dim>
+using Block = GBlock<Idx, dim>;
+
+} // namespace generic
+
 // Flat index for multi-index.
 template <class Idx_, size_t dim_>
 class GIndex {

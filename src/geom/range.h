@@ -3,61 +3,69 @@
 
 #pragma once
 
+namespace generic {
+
 template <class T>
-class GRange {
+class Range {
  public:
   using Value = T;
 
   class iterator {
    public:
-    explicit iterator(Value i) : i_(i) {}
+    explicit iterator(Value pos) : pos_(pos) {}
     iterator() = default;
     iterator(const iterator&) = default;
     iterator(iterator&&) = default;
     iterator& operator=(const iterator&) = default;
     iterator& operator=(iterator&&) = default;
     iterator& operator++() {
-      ++i_;
+      ++pos_;
       return *this;
     }
-    bool operator==(const iterator& o) const {
-      return i_ == o.i_;
+    bool operator==(const iterator& other) const {
+      return pos_ == other.pos_;
     }
-    bool operator!=(const iterator& o) const {
-      return i_ != o.i_;
+    bool operator!=(const iterator& other) const {
+      return pos_ != other.pos_;
     }
     Value operator*() const {
-      return i_;
+      return pos_;
     }
 
    private:
-    Value i_;
+    Value pos_;
   };
 
-  GRange() : b_(0), e_(0) {}
-  explicit GRange(Value e) : b_(0), e_(e) {}
-  GRange(Value b, Value e) : b_(b), e_(e) {}
+  constexpr Range() : begin_(0), end_(0) {}
+  constexpr explicit Range(Value end) : begin_(0), end_(end) {}
+  constexpr Range(Value begin, Value end) : begin_(begin), end_(end) {}
 
   iterator begin() const {
-    return iterator(b_);
+    return iterator(begin_);
   }
   iterator end() const {
-    return iterator(e_);
+    return iterator(end_);
   }
-  size_t size() const {
-    return static_cast<size_t>(e_ - b_);
+  constexpr size_t size() const {
+    return static_cast<size_t>(end_ - begin_);
   }
   void clear() {
-    (*this) = GRange();
+    (*this) = Range();
   }
-  bool operator==(const GRange& o) const {
-    return b_ == o.b_ && e_ == o.e_;
+  constexpr bool operator==(const Range& other) const {
+    return begin_ == other.begin_ && end_ == other.end_;
   }
-  bool operator!=(const GRange& o) const {
-    return !(*this == o);
+  constexpr bool operator!=(const Range& other) const {
+    return !(*this == other);
   }
 
  private:
-  Value b_;
-  Value e_;
+  Value begin_;
+  Value end_;
 };
+
+} // namespace generic
+
+
+template <class T>
+using GRange = generic::Range<T>;

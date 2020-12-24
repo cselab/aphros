@@ -428,11 +428,11 @@ struct Proj<EB_>::Imp {
   static void CommFaces(FieldFace<Scal>& ff, M& m) {
     auto sem = m.GetSem("commface");
     struct {
-      std::array<FieldCell<Scal>, M::kCellNumNeighbourFaces> vfc;
+      std::array<FieldCell<Scal>, M::kCellNumNeighborFaces> vfc;
     } * ctx(sem);
     auto& vfc = ctx->vfc;
     if (sem("comm")) {
-      for (size_t q = 0; q < M::kCellNumNeighbourFaces; ++q) {
+      for (size_t q = 0; q < M::kCellNumNeighborFaces; ++q) {
         vfc[q].Reinit(m);
       }
       for (auto c : m.Cells()) {
@@ -440,7 +440,7 @@ struct Proj<EB_>::Imp {
           vfc[q][c] = ff[m.GetFace(c, q)];
         }
       }
-      for (size_t q = 0; q < M::kCellNumNeighbourFaces; ++q) {
+      for (size_t q = 0; q < M::kCellNumNeighborFaces; ++q) {
         m.Comm(&vfc[q]);
       }
     }

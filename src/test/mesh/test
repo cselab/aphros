@@ -4,8 +4,11 @@ import aphros
 
 
 class Test(aphros.TestBase):
-    def run(self):
-        self.runcmd("./t.mesh > out")
+    def __init__(self):
+        super().__init__(cases=["2d", "3d", "4d"])
+
+    def run(self, case):
+        self.runcmd("./t.mesh_{} > out".format(case))
         return ["out"]
 
 

@@ -3,11 +3,11 @@
 
 #include "mesh.ipp"
 
-using M = MeshStructured<double, 3>;
+using M = MeshCartesian<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 
-template class MeshStructured<double, 3>;
+template class MeshCartesian<double, 3>;
 
 template M InitUniformMesh(
     Rect<typename M::Vect> domain, typename M::MIdx begin, typename M::MIdx s,

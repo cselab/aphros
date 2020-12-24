@@ -293,10 +293,10 @@ template <class T, class M>
 void CommNodes(FieldNode<T>& fn, M& m) {
   auto sem = m.GetSem("commface");
   struct {
-    std::array<FieldCell<T>, M::kCellNumNeighbourNodes> vfc;
+    std::array<FieldCell<T>, M::kCellNumNeighborNodes> vfc;
   } * ctx(sem);
   auto& vfc = ctx->vfc;
-  const auto range = GRange<size_t>(M::kCellNumNeighbourNodes);
+  const auto range = GRange<size_t>(M::kCellNumNeighborNodes);
   if (sem("comm")) {
     for (auto q : range) {
       vfc[q].Reinit(m);

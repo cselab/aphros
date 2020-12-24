@@ -233,7 +233,7 @@ class CommMap {
     FieldCell<bool> fc_has_neighbors; // true if cell has remote neighbors
     std::vector<IdxCell> flat_cells;
     std::vector<int> flat_cols;
-    std::vector<std::array<char, M::kCellNumNeighbourFaces>> flat_nci;
+    std::vector<std::array<char, M::kCellNumNeighborFaces>> flat_nci;
     // indices in `flat_cells` corresponding to inner cells
     // 0: without remote neighbors,  1: with remote neighbors
     std::array<GRange<size_t>, 2> range_inner;
