@@ -59,5 +59,6 @@ f.cm()=(0,0,1) f.cp()=(0,1,1)
 c.center()=(0.25,0.25,0.75) 0.25
 c.volume=0.125
 f.center()=(0.25,0.5,0.75) 0.25
+center=(0.25,0.25,0.75) 0.25
 
 TestNotation: IdxCellMesh gradient
