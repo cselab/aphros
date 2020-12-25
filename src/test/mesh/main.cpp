@@ -8,9 +8,10 @@
 #include <iostream>
 #include <sstream>
 
-#include "geom/mesh.h"
 #include "geom/block.h"
+#include "geom/mesh.h"
 #include "geom/mesh.ipp"
+#include "util/format.h"
 #include "util/suspender.h"
 
 // Returns true if a < b (lex starting from end)
@@ -321,36 +322,28 @@ void TestNotation() {
   const Rect<Vect> dom(Vect(0), Vect(1));
   using M = MeshStructured<Scal, dim>;
   const MIdx begin(0);
-  const MIdx size(1, 2, 3);
-  const size_t halos = 2;
+  const MIdx size(2);
+  const size_t halos = 1;
   const M m = InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);
 
   {
     std::cout << "\nTestNotation: IdxCellMesh\n";
     for (auto c : m.CellsM()) {
-      auto dx = m.direction(0);
-      auto dxb = m.direction(0, 0);
-      auto dy = dx >> 1;
-      auto dyb = -dy;
-      auto dz = dx >> 2;
-      fassert_equal(dy, m.direction(1));
-      fassert_equal(dz, m.direction(2));
-      auto dzb = dz.orient(Vect(-1));
       std::cout << NAMEVALUE(c) << " ";
-      std::cout << c + dx << " ";
-      std::cout << c + dy << " ";
-      std::cout << c + dz << " ";
-      std::cout << c + dxb << " ";
-      std::cout << c + dyb << " ";
-      std::cout << c + dzb << " ";
-      std::cout << c - dzb << " ";
+      auto dx = m.direction(0);
+      for (auto d : m.dirs) {
+        (void)d;
+        dx = dx.next();
+        std::cout << c + dx << " ";
+        std::cout << c - dx << " ";
+      }
       std::cout << std::endl;
     }
     for (auto c : m.SuCellsM()) {
       std::cout << MIdx(c).sum() << ' ';
     }
     std::cout << std::endl;
-    auto c = m.cell();
+    auto c = m(IdxCell());
     std::stringstream("0 0 1") >> c;
     std::cout << NAMEVALUE(c) << ' ' << NAMEVALUE(size_t(IdxCell(c))) << ' '
               << NAMEVALUE(m.GetCenter(c)) << ' ' << ' ' << NAMEVALUE(MIdx(c));
@@ -360,41 +353,36 @@ void TestNotation() {
   {
     std::cout << "\nTestNotation: IdxFaceMesh\n";
     for (auto f : m.FacesM()) {
-      auto dx = m.direction(0);
-      auto dy = dx >> 1;
-      auto dz = dx >> 2;
-      auto dxb = dx.orient(Vect(-1));
-      auto dyb = dy.orient(Vect(-1));
-      auto dzb = dz.orient(Vect(-1));
       std::cout << NAMEVALUE(f) << " ";
-      std::cout << f + dx << " ";
-      std::cout << f + dy << " ";
-      std::cout << f + dz << " ";
-      std::cout << f + dxb << " ";
-      std::cout << f + dyb << " ";
-      std::cout << f + dzb << " ";
-      std::cout << f - dzb << " ";
+      auto dx = m.direction(0);
+      for (auto d : m.dirs) {
+        (void)d;
+        dx = dx.next();
+        std::cout << f + dx << ' ';
+        std::cout << f - dx << ' ';
+      }
       std::cout << std::endl;
     }
     for (auto f : m.SuFacesM()) {
       std::cout << MIdx(f).sum() << ' ';
     }
     std::cout << std::endl;
-    auto f = m.face();
+    auto f = m(IdxFace());
     std::stringstream("0 1 1 y") >> f;
-    auto c = m.cell();
+    auto c = m(IdxCell());
     std::stringstream("0 0 1") >> c;
-    std::cout << NAMEVALUE(f) << ' ' << NAMEVALUE(size_t(IdxFace(f))) << ' '
-              << NAMEVALUE(f.direction()) << ' ' << NAMEVALUE(m.GetCenter(f))
-              << ' ' << NAMEVALUE(c) << ' ' << NAMEVALUE((c + f)) << ' '
-              << NAMEVALUE((c - f));
-    std::cout << std::endl;
-    std::cout << NAMEVALUE(f.cm()) << ' ' << NAMEVALUE(f.cp()) << ' '
-              << NAMEVALUE(m(f.cm)) << ' ' << NAMEVALUE(m(f.cp));
-    std::cout << std::endl;
-    std::cout << NAMEVALUE(c.center[0]) << ' ' << NAMEVALUE(c.center()) << ' '
-              << NAMEVALUE(f.center[0]) << ' ' << NAMEVALUE(f.center());
-    std::cout << std::endl;
+    std::cout << NAMEVALUE(f) << '\n';
+    std::cout << NAMEVALUE(size_t(IdxFace(f))) << '\n';
+    std::cout << NAMEVALUE(f.direction()) << '\n';
+    std::cout << NAMEVALUE(m.GetCenter(f)) << '\n';
+    std::cout << NAMEVALUE(c) << '\n';
+    std::cout << NAMEVALUE(f.cm()) << ' ' << NAMEVALUE(f.cp());
+    std::cout << '\n';
+    std::cout << NAMEVALUE(c.center()) << ' ' << c.center[0] << '\n';
+    std::cout << NAMEVALUE(c.volume) << '\n';
+    std::cout << NAMEVALUE(f.center()) << ' ' << f.center[0] << '\n';
+    auto center = c.center();
+    std::cout << NAMEVALUE(center) << ' ' << center[0] << '\n';
   }
 
   {
@@ -422,8 +410,8 @@ void TestNotation() {}
 #endif
 
 int main() {
-  TestBlock();
-  TestMesh();
+  // TestBlock();
+  // TestMesh();
   TestNotation();
-  TestMeshIndices();
+  // TestMeshIndices();
 }

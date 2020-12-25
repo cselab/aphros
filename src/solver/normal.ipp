@@ -209,8 +209,8 @@ struct UNormal<M_>::Imp {
           continue;
         }
         const Direction dz(ddz);
-        const auto dx = dz >> 1;
-        const auto dy = dz >> 2;
+        const auto dx = dz.next(1);
+        const auto dy = dz.next(2);
 
         auto hh = [&](Direction d) {
           return fcu[c + d - dz] + fcu[c + d] + fcu[c + d + dz];

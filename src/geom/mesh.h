@@ -608,12 +608,6 @@ class MeshCartesian {
   IdxFaceMesh<M> operator()(IdxFace f) const {
     return IdxFaceMesh<M>(f, *this);
   }
-  IdxCellMesh<M> cell() const {
-    return IdxCellMesh<M>(*this);
-  }
-  IdxFaceMesh<M> face() const {
-    return IdxFaceMesh<M>(*this);
-  }
   auto CellsM() const {
     return MakeTransformIterator<IdxCellMesh<M>>(
         Cells(), [this](IdxCell c) { return IdxCellMesh<M>(c, *this); });
@@ -622,6 +616,10 @@ class MeshCartesian {
     return MakeTransformIterator<IdxCellMesh<M>>(
         SuCells(), [this](IdxCell c) { return IdxCellMesh<M>(c, *this); });
   }
+  auto AllCellsM() const {
+    return MakeTransformIterator<IdxCellMesh<M>>(
+        AllCells(), [this](IdxCell c) { return IdxCellMesh<M>(c, *this); });
+  }
   auto FacesM() const {
     return MakeTransformIterator<IdxFaceMesh<M>>(
         Faces(), [this](IdxFace f) { return IdxFaceMesh<M>(f, *this); });
@@ -629,6 +627,10 @@ class MeshCartesian {
   auto SuFacesM() const {
     return MakeTransformIterator<IdxFaceMesh<M>>(
         SuFaces(), [this](IdxFace f) { return IdxFaceMesh<M>(f, *this); });
+  }
+  auto AllFacesM() const {
+    return MakeTransformIterator<IdxFaceMesh<M>>(
+        AllFaces(), [this](IdxFace f) { return IdxFaceMesh<M>(f, *this); });
   }
 
  public:

@@ -8,6 +8,16 @@
 
 #include "vect.h"
 
+template <class U, class T>
+constexpr ptrdiff_t GetOffset(T U::*member) {
+  return (char*)&((U*)nullptr->*member) - (char*)nullptr;
+}
+
+template <class U, class T>
+constexpr U* GetOwner(T* ptr, T U::*member) {
+  return (U*)((char*)ptr - GetOffset(member));
+}
+
 namespace generic {
 
 template <class Scal, size_t dim_>
@@ -28,7 +38,7 @@ class Direction {
   Scal sign() const {
     return forward_ == 1 ? 1 : -1;
   }
-  Direction operator>>(int shift) const {
+  Direction next(int shift = 1) const {
     return Direction((index_ + shift) % dim, forward_);
   }
   Direction operator-() const {
@@ -55,8 +65,8 @@ class Direction {
   }
 
  private:
-  const size_t index_; // direction, [0, dim - 1]
-  const size_t forward_; // 0: backward, 1: forward
+  size_t index_; // direction, [0, dim - 1]
+  size_t forward_; // 0: backward, 1: forward
 };
 
 } // namespace generic
@@ -70,42 +80,41 @@ class IdxCellMesh {
   using MIdx = typename M::MIdx;
   using Direction = generic::Direction<Scal, dim>;
 
-  IdxCellMesh(IdxCell c, const M& m_) : center(*this), c_(c), m(m_) {}
-  IdxCellMesh(const M& m_) : IdxCellMesh(IdxCell(0), m_) {}
+  IdxCellMesh(IdxCell c, const M& m_) : idxcell_(c), m(m_) {}
   IdxCellMesh operator+(Direction d) const {
-    return m(m.GetCell(c_, d.nci()));
+    return m(m.GetCell(idxcell_, d.nci()));
   }
   IdxCellMesh operator-(Direction d) const {
-    return m(m.GetCell(c_, (-d).nci()));
+    return m(m.GetCell(idxcell_, (-d).nci()));
   }
   friend std::ostream& operator<<(std::ostream& out, const IdxCellMesh& c) {
-    out << c.m.GetIndexCells().GetMIdx(c.c_);
+    out << c.m.GetIndexCells().GetMIdx(c.idxcell_);
     return out;
   }
   friend std::istream& operator>>(std::istream& in, IdxCellMesh& c) {
     MIdx w;
     in >> w;
-    c.c_ = c.m.GetIndexCells().GetIdx(w);
+    c.idxcell_ = c.m.GetIndexCells().GetIdx(w);
     return in;
   }
   operator IdxCell() const {
-    return c_;
+    return idxcell_;
   }
   explicit operator MIdx() const {
-    return m.GetIndexCells().GetMIdx(c_);
+    return m.GetIndexCells().GetMIdx(idxcell_);
   }
   IntIdx operator[](size_t i) const {
     return MIdx(*this)[i];
   }
   auto face(Direction d) const {
-    return m(m.GetFace(c_, d.nci()));
+    return m(m.GetFace(idxcell_, d.nci()));
   }
 
   class LazyCenter {
    public:
-    LazyCenter(const IdxCellMesh& owner) : owner_(owner) {}
     operator Vect() const {
-      return owner_.m.GetCenter(owner_.c_);
+      auto owner = GetOwner(this, &IdxCellMesh::center);
+      return owner->m.GetCenter(owner->idxcell_);
     }
     Vect operator()() const {
       return Vect(*this);
@@ -115,12 +124,31 @@ class IdxCellMesh {
     }
 
    private:
-    const IdxCellMesh& owner_;
+    friend IdxCellMesh;
+    LazyCenter(const LazyCenter&) = default;
+    LazyCenter& operator=(const LazyCenter&) = default;
   };
-  LazyCenter center;
+  const LazyCenter center{};
+
+  class LazyVolume {
+   public:
+    operator Scal() const {
+      auto owner = GetOwner(this, &IdxCellMesh::volume);
+      return owner->m.GetVolume(owner->idxcell_);
+    }
+    Scal operator()() const {
+      return Scal(*this);
+    }
+
+   private:
+    friend IdxCellMesh;
+    LazyVolume(const LazyVolume&) = default;
+    LazyVolume& operator=(const LazyVolume&) = default;
+  };
+  const LazyVolume volume{};
 
  private:
-  IdxCell c_;
+  IdxCell idxcell_;
   const M& m;
 };
 
@@ -133,18 +161,16 @@ class IdxFaceMesh {
   using MIdx = typename M::MIdx;
   using Direction = generic::Direction<Scal, dim>;
 
-  IdxFaceMesh(IdxFace f, const M& m_)
-      : center(*this), cm(*this), cp(*this), f_(f), m(m_) {}
-  IdxFaceMesh(const M& m_) : IdxFaceMesh(IdxFace(0), m_) {}
+  IdxFaceMesh(IdxFace f, const M& m_) : idxface_(f), m(m_) {}
   IdxFaceMesh operator+(Direction d) const {
-    return m(m.GetFace(f_, d.GetIndex() * 2 + d.GetForward()));
+    return m(m.GetFace(idxface_, d.GetIndex() * 2 + d.GetForward()));
   }
   IdxFaceMesh operator-(Direction d) const {
-    return m(m.GetFace(f_, d.GetIndex() * 2 + 1 - d.GetForward()));
+    return m(m.GetFace(idxface_, d.GetIndex() * 2 + 1 - d.GetForward()));
   }
   friend std::ostream& operator<<(std::ostream& out, const IdxFaceMesh& f) {
     auto& index = f.m.GetIndexFaces();
-    out << index.GetMIdx(f.f_) << index.GetDir(f.f_).GetLetter();
+    out << index.GetMIdx(f.idxface_) << index.GetDir(f.idxface_).GetLetter();
     return out;
   }
   friend std::istream& operator>>(std::istream& in, IdxFaceMesh& f) {
@@ -159,34 +185,33 @@ class IdxFaceMesh {
       dir = Dir(1);
     } else if (sdir == "z") {
       dir = Dir(2);
+    } else if (sdir == "w") {
+      dir = Dir(3);
     } else {
       in.setstate(std::ios_base::failbit);
       return in;
     }
-    f.f_ = f.m.GetIndexFaces().GetIdx(w, dir);
+    f.idxface_ = f.m.GetIndexFaces().GetIdx(w, dir);
     return in;
   }
   operator IdxFace() const {
-    return f_;
+    return idxface_;
   }
   explicit operator MIdx() const {
-    return m.GetIndexFaces().GetMIdx(f_);
+    return m.GetIndexFaces().GetMIdx(idxface_);
   }
   IntIdx operator[](size_t i) const {
     return MIdx(*this)[i];
   }
-  operator Direction() const {
-    return Direction(size_t(m.GetIndexFaces().GetDir(f_)));
-  }
   Direction direction() const {
-    return Direction(*this);
+    return Direction(size_t(m.GetIndexFaces().GetDir(idxface_)));
   }
 
   class LazyCenter {
    public:
-    LazyCenter(const IdxFaceMesh& owner) : owner_(owner) {}
     operator Vect() const {
-      return owner_.m.GetCenter(owner_.f_);
+      auto owner = GetOwner(this, &IdxFaceMesh::center);
+      return owner->m.GetCenter(owner->idxface_);
     }
     Vect operator()() const {
       return Vect(*this);
@@ -196,31 +221,55 @@ class IdxFaceMesh {
     }
 
    private:
-    const IdxFaceMesh& owner_;
+    friend IdxFaceMesh;
+    LazyCenter(const LazyCenter&) = default;
+    LazyCenter& operator=(const LazyCenter&) = default;
   };
-  LazyCenter center;
+  const LazyCenter center{};
 
-  template <size_t id>
-  class LazyCell {
+  class LazyCellCm {
    public:
-    LazyCell(const IdxFaceMesh& owner) : owner_(owner) {}
-    operator IdxCellMesh<M>() const {
-      return owner_.m(owner_.m.GetCell(owner_.f_, id));
-    }
     operator IdxCell() const {
-      return owner_.m.GetCell(owner_.f_, id);
+      auto owner = GetOwner(this, &IdxFaceMesh::cm);
+      return owner->m.GetCell(owner->idxface_, 0);
+    }
+    operator IdxCellMesh<M>() const {
+      auto owner = GetOwner(this, &IdxFaceMesh::cm);
+      return owner->m(owner->m.GetCell(owner->idxface_, 0));
     }
     IdxCellMesh<M> operator()() const {
       return IdxCellMesh<M>(*this);
     }
 
    private:
-    const IdxFaceMesh& owner_;
+    friend IdxFaceMesh;
+    LazyCellCm(const LazyCellCm&) = default;
+    LazyCellCm& operator=(const LazyCellCm&) = default;
   };
-  const LazyCell<0> cm;
-  const LazyCell<1> cp;
+  const LazyCellCm cm{};
+
+  class LazyCellCp {
+   public:
+    operator IdxCell() const {
+      auto owner = GetOwner(this, &IdxFaceMesh::cp);
+      return owner->m.GetCell(owner->idxface_, 1);
+    }
+    operator IdxCellMesh<M>() const {
+      auto owner = GetOwner(this, &IdxFaceMesh::cp);
+      return owner->m(owner->m.GetCell(owner->idxface_, 1));
+    }
+    IdxCellMesh<M> operator()() const {
+      return IdxCellMesh<M>(*this);
+    }
+
+   private:
+    friend IdxFaceMesh;
+    LazyCellCp(const LazyCellCp&) = default;
+    LazyCellCp& operator=(const LazyCellCp&) = default;
+  };
+  const LazyCellCp cp{};
 
  private:
-  IdxFace f_;
+  IdxFace idxface_;
   const M& m;
 };

@@ -1339,8 +1339,8 @@ auto UEmbed<M>::InterpolateBilinearFaces(const FieldFace<T>& ffu, const EB& eb)
       //   -----\---------------  //
       auto n = eb.GetNormal(f.cm);
       auto dz = f.direction();
-      auto dx = (dz >> 1).orient(-n);
-      auto dy = (dz >> 2).orient(-n);
+      auto dx = (dz.next(1)).orient(-n);
+      auto dy = (dz.next(2)).orient(-n);
       auto r = (eb.GetFaceCenter(f) - f.center).abs();
       ffb[f] = interp::Bilinear(
           r[dx] / h, r[dy] / h, //

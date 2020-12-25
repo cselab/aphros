@@ -46,7 +46,7 @@ void Run(M& m, Vars& var) {
     // exact solution
     t.fc_sol_exact.Reinit(m);
     for (auto c : m.CellsM()) {
-      auto x = c.center;
+      Vect x = c.center;
       t.fc_sol_exact[c] = std::sin(2 * M_PI * std::pow(x[0], 1)) *
                           std::sin(2 * M_PI * std::pow(x[1], 2)) *
                           std::sin(2 * M_PI * std::pow(x[2], 3));
