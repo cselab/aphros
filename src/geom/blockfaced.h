@@ -15,7 +15,7 @@ class GBlock<IdxFace, dim_> { // [s]andbox
  public:
   static constexpr size_t dim = dim_;
   using Idx = IdxFace;
-  using MIdx = GMIdx<dim>;
+  using MIdx = generic::MIdx<dim>;
   using Dir = GDir<dim>;
 
   static_assert(dim == 3, "GBlock<IdxFace,...> implemented only for dim=3");

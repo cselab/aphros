@@ -289,7 +289,7 @@ struct UEmbed {
     Scal r = e.back();
     r += fcu[c] * e[0];
     for (auto q : meb.Nci(c)) {
-      r += fcu[meb.GetCell(c, q)] * e[1 + q];
+      r += fcu[meb.GetCell(c, q)] * e[1 + q.raw()];
     }
     return r;
   }

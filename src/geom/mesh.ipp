@@ -89,10 +89,6 @@ MeshCartesian<_Scal, _dim>::MeshCartesian(
       cell_face_[2 * d] = size_t(indexf_.GetIdx(w, Dir(d))) - size_t(c);
       cell_face_[2 * d + 1] =
           size_t(indexf_.GetIdx(w + wd, Dir(d))) - size_t(c);
-
-      // cell outward factor
-      cell_outward_[2 * d] = -1;
-      cell_outward_[2 * d + 1] = 1;
     }
   }
 
@@ -132,7 +128,7 @@ MeshCartesian<_Scal, _dim>::MeshCartesian(
   }
 
   { // face neighbor node offset
-    using HyperMIdx = GMIdx<dim - 1>;
+    using HyperMIdx = generic::MIdx<dim - 1>;
     std::array<HyperMIdx, kFaceNumNeighborNodes> hyper_offsets{};
     // hyper_block:
     // 2D: (0) (1)

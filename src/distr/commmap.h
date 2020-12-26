@@ -233,7 +233,7 @@ class CommMap {
     FieldCell<bool> fc_has_neighbors; // true if cell has remote neighbors
     std::vector<IdxCell> flat_cells;
     std::vector<int> flat_cols;
-    std::vector<std::array<char, M::kCellNumNeighborFaces>> flat_nci;
+    std::vector<std::array<IdxNci, M::kCellNumNeighborFaces>> flat_nci;
     // indices in `flat_cells` corresponding to inner cells
     // 0: without remote neighbors,  1: with remote neighbors
     std::array<GRange<size_t>, 2> range_inner;
@@ -536,7 +536,7 @@ class CommMap {
               const auto cn = mb.GetCell(c, q);
               const int col = sb.fc_col[cn];
               if (col == col_diag) { // reduce repeting diagonal terms (for 2D)
-                data_diag += fb[c][1 + q];
+                data_diag += fb[c][1 + q.raw()];
               }
             }
             system_.cols.push_back(sb.fc_col[c]);
@@ -546,7 +546,7 @@ class CommMap {
               const int col = sb.fc_col[cn];
               if (col != col_diag) {
                 system_.cols.push_back(col);
-                system_.data.push_back(fb[c][1 + q]);
+                system_.data.push_back(fb[c][1 + q.raw()]);
               }
             }
             system_.row_ptrs.push_back(system_.cols.size());
@@ -584,7 +584,7 @@ class CommMap {
         const auto c = s.flat_cells[i];
         Scal w = 0;
         for (auto q : s.flat_nci[i]) {
-          w = w * 10 + q;
+          w = w * 10 + q.raw();
         }
         t.fc_nci[c] = w;
       }

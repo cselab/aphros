@@ -423,7 +423,7 @@ struct Vofm<EB_>::Imp {
   // dt: time step
   // clipth: threshold for clipping, values outside [th,1-th] are clipped
   static void Sweep(
-      const Multi<FieldCell<Scal>*>& mfcu, size_t d,
+      const Multi<FieldCell<Scal>*>& mfcu, size_t dir,
       const GRange<size_t>& layers, const FieldFace<Scal>& ffv,
       const Multi<FieldCell<Scal>*>& mfccl,
       const Multi<FieldCell<Scal>*>& mfcim,
@@ -433,15 +433,13 @@ struct Vofm<EB_>::Imp {
       const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
       const Multi<const FieldCell<Scal>*>& mfcuu, Scal dt, Scal clipth,
       const EB& eb) {
-    using Dir = typename M::Dir;
     using MIdx = typename M::MIdx;
-    const Dir md(d); // direction as Dir
-    const MIdx wd(md); // offset in direction d
     const auto& m = eb.GetMesh();
     const auto& indexc = m.GetIndexCells();
     const auto& indexf = m.GetIndexFaces();
-    const MIdx gs = m.GetGlobalSize();
+    const MIdx globalsize = m.GetGlobalSize();
     const auto h = m.GetCellSize();
+    const auto d = m.direction(dir);
 
     Multi<FieldFace<Scal>> mffvu(layers); // phase 2 flux
     Multi<FieldFace<Scal>> mffcl(layers); // face color
@@ -459,9 +457,7 @@ struct Vofm<EB_>::Imp {
       ffcl.Reinit(m, kClNone);
       for (auto f : eb.Faces()) {
         auto p = indexf.GetMIdxDir(f);
-        Dir df = p.second;
-
-        if (df != md) {
+        if (p.second.raw() != d) {
           continue;
         }
 
@@ -507,10 +503,10 @@ struct Vofm<EB_>::Imp {
             for (auto j : layers) {
               if ((*mfccl[j])[cd] == kClNone) {
                 (*mfccl[j])[cd] = fccl[c];
-                MIdx w = indexc.GetMIdx(c);
+                const MIdx w = indexc.GetMIdx(c);
                 MIdx im = TRM::Unpack((*mfcim[i])[c]);
                 if (w[d] < 0) im[d] += 1;
-                if (w[d] >= gs[d]) im[d] -= 1;
+                if (w[d] >= globalsize[d]) im[d] -= 1;
                 (*mfcim[j])[cd] = TRM::Pack(im);
                 break;
               }
@@ -538,14 +534,12 @@ struct Vofm<EB_>::Imp {
       auto& fcu = *mfcu[i];
       auto& fcuu = *mfcuu[i];
       auto& fccl = *mfccl[i];
-      for (auto c : eb.Cells()) {
+      for (auto c : eb.CellsM()) {
         if (fccl[c] != kClNone) {
-          auto w = indexc.GetMIdx(c);
-          const Scal vol = m.GetVolume(c);
-          IdxFace fm = indexf.GetIdx(w, md);
-          IdxFace fp = indexf.GetIdx(w + wd, md);
+          const auto fm = c.face(-d);
+          const auto fp = c.face(d);
           // mixture cfl
-          const Scal ds = (ffv[fp] - ffv[fm]) * dt / vol;
+          const Scal ds = (ffv[fp] - ffv[fm]) * dt / c.volume;
           // phase 2 cfl
           Scal vm = 0;
           Scal vp = 0;
@@ -561,7 +555,7 @@ struct Vofm<EB_>::Imp {
               break;
             }
           }
-          const Scal dl = (vp - vm) * dt / vol;
+          const Scal dl = (vp - vm) * dt / c.volume;
           auto& u = fcu[c];
           switch (type) {
             case SweepType::plain: {
@@ -644,16 +638,16 @@ struct Vofm<EB_>::Imp {
       vsc = 1.0;
     }
     for (size_t id = 0; id < dd.size(); ++id) {
-      size_t d = dd[id]; // direction as index
+      const auto d = m.direction(dd[id]);
       if (sem("copyface")) {
         if (id % 2 == 1) { // copy fluxes for Lagrange Explicit step
           auto& ffv =
               owner_->fev_->GetFieldFace(); // [f]ield [f]ace [v]olume flux
           fcfm_.Reinit(m);
           fcfp_.Reinit(m);
-          for (auto c : eb.Cells()) {
-            fcfm_[c] = ffv[eb.GetFace(c, 2 * d)];
-            fcfp_[c] = ffv[eb.GetFace(c, 2 * d + 1)];
+          for (auto c : eb.CellsM()) {
+            fcfm_[c] = ffv[c.face(-d)];
+            fcfp_[c] = ffv[c.face(d)];
           }
           m.Comm(&fcfm_);
           m.Comm(&fcfp_);

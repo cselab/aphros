@@ -10,7 +10,7 @@
 #include "solver/solver.h"
 
 const int dim = 3;
-using MIdx = GMIdx<dim>;
+using MIdx = generic::MIdx<dim>;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = generic::Vect<Scal, dim>;

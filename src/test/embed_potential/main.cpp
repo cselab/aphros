@@ -148,7 +148,7 @@ void Run(M& m, Vars& var) {
         }
         for (auto c : m.Cells()) {
           for (auto q : m.Nci(c)) {
-            t.comps[q][c] = t.feg[m.GetFace(c, q)];
+            t.comps[q.raw()][c] = t.feg[m.GetFace(c, q)];
           }
           t.comps[6][c] = t.feg[c];
         }

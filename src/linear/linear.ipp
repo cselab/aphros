@@ -51,7 +51,7 @@ struct SolverConjugate<M>::Imp {
         const auto& e = fc_system[c];
         Scal u = t.fcu[c] * e[0] + e.back();
         for (auto q : m.Nci(c)) {
-          u += t.fcu[m.GetCell(c, q)] * e[1 + q];
+          u += t.fcu[m.GetCell(c, q)] * e[1 + q.raw()];
         }
         t.fcr[c] = -u;
       }
@@ -67,7 +67,7 @@ struct SolverConjugate<M>::Imp {
         const auto& e = fc_system[c];
         Scal p = t.fcp[c] * e[0];
         for (auto q : m.Nci(c)) {
-          p += t.fcp[m.GetCell(c, q)] * e[1 + q];
+          p += t.fcp[m.GetCell(c, q)] * e[1 + q.raw()];
         }
         t.fc_opp[c] = p;
       }
@@ -183,7 +183,7 @@ struct SolverJacobi<M>::Imp {
         const auto& e = fc_system[c];
         Scal nondiag = e.back();
         for (auto q : m.Nci(c)) {
-          nondiag += t.fcu[m.GetCell(c, q)] * e[1 + q];
+          nondiag += t.fcu[m.GetCell(c, q)] * e[1 + q.raw()];
         }
         t.fcu_new[c] = -nondiag / e[0];
         t.maxdiff = std::max(t.maxdiff, std::abs(t.fcu_new[c] - t.fcu[c]));

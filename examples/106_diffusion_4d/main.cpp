@@ -28,32 +28,32 @@ void Run(M& m, Vars& var) {
 
   // initial
   fcu.Reinit(m, 0);
-  for (auto c : m.AllCells()) {
+  for (auto c : m.AllCellsM()) {
     const Vect xc = m.GetGlobalLength() * 0.5;
-    fcu[c] = xc.sqrdist(m.GetCenter(c)) < 0.2 ? 1 : 0;
+    fcu[c] = xc.sqrdist(c.center) < 0.2 ? 1 : 0;
   }
 
   for (int step = 0; step < var.Int["nsteps"]; ++step) {
     const auto ffg = UEmbed<M>::Gradient(fcu, mebc, m);
     FieldFace<Scal> ff_flux(m);
-    for (auto f : m.Faces()) {
-      ff_flux[f] = ffg[f] * m.GetArea(f);
+    for (auto f : m.FacesM()) {
+      ff_flux[f] = ffg[f] * f.area;
     }
 
-    for (auto c : m.Cells()) {
+    for (auto c : m.CellsM()) {
       Scal sum = 0;
       for (auto q : m.Nci(c)) {
-        sum += ff_flux[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
+        sum += ff_flux[c.face(q)] * c.outward_factor(q);
       }
-      fcu[c] += sum * dt / m.GetVolume(c);
+      fcu[c] += sum * dt / c.volume;
     }
 
     Scal sum0 = 0;
     Scal sum2 = 0;
     for (auto c : m.Cells()) {
       const Vect xc = m.GetGlobalLength() * 0.5;
-      sum0 += fcu[c] * m.GetVolume(c);
-      sum2 += fcu[c] * xc.sqrdist(m.GetCenter(c)) * m.GetVolume(c);
+      sum0 += fcu[c] * c.volume;
+      sum2 += fcu[c] * xc.sqrdist(c.center) * c.volume;
     }
     std::cout << util::Format("{}) sum0={:.3f} sum2={:.3f}\n", step, sum0, sum2)
               << std::endl;
@@ -61,8 +61,8 @@ void Run(M& m, Vars& var) {
     std::vector<std::pair<std::string, std::vector<Scal>>> data;
     for (auto d : m.dirs) {
       std::vector<Scal> field;
-      for (auto c : m.Cells()) {
-        field.push_back(m.GetCenter(c)[d]);
+      for (auto c : m.CellsM()) {
+        field.push_back(c.center[d]);
       }
       const std::string name = std::string() + M::Dir(d).GetLetter();
       data.emplace_back(name, field);

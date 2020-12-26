@@ -441,7 +441,7 @@ struct UVof<M_>::Imp {
       for (auto l : layers) {
         if ((*fccl[l])[c] != kClNone) {
           for (size_t q : {0, 1, 2}) {
-            IdxCell cm = m.GetCell(c, q);
+            IdxCell cm = m.GetCell(c, IdxNci(q));
             for (auto lm : layers) {
               if ((*fccl[l])[c] == (*fccl[lm])[cm]) {
                 Scal cl = (*fcclt[l])[c];

@@ -28,7 +28,7 @@
 #define PF std::cout << std::endl << __func__ << std::endl;
 
 const int dim = 3;
-using MIdx = GMIdx<dim>;
+using MIdx = generic::MIdx<dim>;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = generic::Vect<Scal, dim>;

@@ -5,6 +5,6 @@
 
 #include "distr.ipp"
 
-using MIdx = GMIdx<3>;
+using MIdx = generic::MIdx<3>;
 
 template class Subdomains<MIdx>;

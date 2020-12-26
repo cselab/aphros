@@ -34,7 +34,7 @@ namespace generic {
 template <class Scal>
 struct Plic {
   using Vect = generic::Vect<Scal, 3>;
-  using MIdx = GMIdx<3>;
+  using MIdx = generic::MIdx<3>;
   GRange<size_t> layers;
   Multi<const FieldCell<Scal>*> vfcu; // volume fraction
   Multi<const FieldCell<Scal>*> vfca; // plane constant

@@ -89,7 +89,7 @@ struct UDebug {
         Scal sum = 0;
         for (auto q : m.Nci(c)) {
           auto cn = m.GetCell(c, q);
-          sum += std::abs(vfck[q][c] - vfck[m.GetOpposite(q)][cn]);
+          sum += std::abs(vfck[q.raw()][c] - vfck[m.GetOpposite(q).raw()][cn]);
         }
         fcr[c] = sum;
       }
@@ -125,7 +125,7 @@ struct UDebug {
         fc_diag[c] = std::abs(fce[c][0]);
         fc_const[c] = std::abs(fce[c].back());
         for (auto q : m.Nci(c)) {
-          fc_nondiag[c] += std::abs(fce[c][q + 1]);
+          fc_nondiag[c] += std::abs(fce[c][1 + q.raw()]);
         }
       }
     }

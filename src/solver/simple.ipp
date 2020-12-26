@@ -158,31 +158,31 @@ struct Simple<EB_>::Imp {
     auto& febp = *owner_->febp_;
     auto& fcbp = fc_bforce_;
 
-    eb.LoopFaces([&](auto cf) { //
+    for (auto f : eb.Faces()) {
       // mean flux
-      auto& v = fev[cf];
-      v = fftv[cf].dot(eb.GetSurface(cf));
-      if (!is_boundary_[cf]) {
-        const IdxCell cm = eb.GetCell(cf, 0);
-        const IdxCell cp = eb.GetCell(cf, 1);
+      auto& v = fev[f];
+      v = fftv[f].dot(eb.GetSurface(f));
+      if (!is_boundary_[f]) {
+        const IdxCell cm = eb.GetCell(f, 0);
+        const IdxCell cp = eb.GetCell(f, 1);
 
         // compact pressure gradient
         const Scal gp = (fcp[cp] - fcp[cm]) / eb.GetCellSize()[0];
 
         // compact
-        const Scal o = (febp[cf] - gp) * eb.GetArea(cf) / fek[cf];
+        const Scal o = (febp[f] - gp) * eb.GetArea(f) / fek[f];
 
         // wide
         const Vect wm = (fcbp[cm] - fcgp[cm]) / fck[cm];
         const Vect wp = (fcbp[cp] - fcgp[cp]) / fck[cp];
-        const Scal w = (wm + wp).dot(eb.GetSurface(cf)) * 0.5;
+        const Scal w = (wm + wp).dot(eb.GetSurface(f)) * 0.5;
 
         // apply
         v += rh * (o - w);
       } else { // boundary
         // nop, keep mean flux
       }
-    });
+    }
 
     // Apply meshvel
     eb.LoopFaces([&](auto cf) { //

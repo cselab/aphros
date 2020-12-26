@@ -48,14 +48,6 @@ struct ConvDiffScalImp<EB_>::Imp {
 
     error_ = 0.;
   }
-  Scal Eval(const Expr& e, IdxCell c, const FieldCell<Scal>& fcu) {
-    Scal r = e.back();
-    r += fcu[c] * e[0];
-    for (auto q : eb.Nci(c)) {
-      r += fcu[eb.GetCell(c, q)] * e[1 + q];
-    }
-    return r;
-  }
   // Assembles linear system
   // fcu: field from previous iteration [a]
   // ffv: volume flux
@@ -141,7 +133,7 @@ struct ConvDiffScalImp<EB_>::Imp {
         // source
         e.back() -= (*owner_->fcs_)[c] * eb.GetVolume(c);
         // delta-form
-        e.back() = Eval(e, c, fcu);
+        e.back() = UEB::Eval(e, c, fcu, m);
         // under-relaxation
         e[0] /= par.relax;
       }

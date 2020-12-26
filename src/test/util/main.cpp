@@ -111,7 +111,7 @@ std::string SkipLine(std::string s) {
 
 void TestDistr() {
   std::cout << "\n" << __func__ << std::endl;
-  using MIdx = GMIdx<3>;
+  using MIdx = generic::MIdx<3>;
   SUB((MIdx(192), MIdx(8), 96));
   SUB((MIdx(32, 32, 0), MIdx(8, 8, 8), 16));
   SUB((MIdx(32, 32, 1), MIdx(8, 8, 1), 16));

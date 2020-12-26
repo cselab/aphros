@@ -14,7 +14,7 @@ template <class Idx_, size_t dim_>
 class GBlock {
  public:
   using Idx = Idx_;
-  using MIdx = GMIdx<dim_>;
+  using MIdx = generic::MIdx<dim_>;
 
   static constexpr size_t dim = dim_;
 
@@ -119,7 +119,7 @@ template <class Idx_, size_t dim_>
 class GIndex {
  public:
   using Idx = Idx_;
-  using MIdx = GMIdx<dim_>;
+  using MIdx = generic::MIdx<dim_>;
 
   static constexpr size_t dim = dim_;
 

@@ -437,7 +437,7 @@ struct Proj<EB_>::Imp {
       }
       for (auto c : m.Cells()) {
         for (auto q : m.Nci(c)) {
-          vfc[q][c] = ff[m.GetFace(c, q)];
+          vfc[q.raw()][c] = ff[m.GetFace(c, q)];
         }
       }
       for (size_t q = 0; q < M::kCellNumNeighborFaces; ++q) {
@@ -448,7 +448,7 @@ struct Proj<EB_>::Imp {
       auto fft = ff;
       for (auto c : m.AllCells()) {
         for (auto q : m.Nci(c)) {
-          ff[m.GetFace(c, q)] = vfc[q][c];
+          ff[m.GetFace(c, q)] = vfc[q.raw()][c];
         }
       }
       for (auto f : m.Faces()) {

@@ -1448,10 +1448,7 @@ void ProjectVolumeFlux(
       auto& e = fc_system[c];
       for (auto q : m.Nci(c)) {
         const IdxFace f = m.GetFace(c, q);
-        const ExprFace v = ffe[f] * m.GetOutwardFactor(c, q);
-        e[0] += v[1 - q % 2];
-        e[1 + q] += v[q % 2];
-        e.back() += v[2];
+        m.AppendExpr(e, ffe[f] * m.GetOutwardFactor(c, q), q);
       }
     }
   }

@@ -27,7 +27,7 @@ bool Less(const generic::Vect<T, d>& a, const generic::Vect<T, d>& b) {
 }
 
 const int dim = DIM;
-using MIdx = GMIdx<dim>;
+using MIdx = generic::MIdx<dim>;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = generic::Vect<Scal, dim>;
@@ -151,21 +151,20 @@ void TestMesh() {
   // Distance between centers
   for (auto i : m.Cells()) {
     Vect xi = m.GetCenter(i);
-    for (auto n : m.Nci(i)) {
-      Dir d(n / 2);
-      Scal k = (n % 2 == 0 ? -1. : 1.);
-      auto j = m.GetCell(i, n);
+    for (auto q : m.Nci(i)) {
+      Dir d(q.raw() / 2);
+      Scal k = (q.raw() % 2 == 0 ? -1. : 1.);
+      auto j = m.GetCell(i, q);
       Vect xj = m.GetCenter(j);
-      CMP((xj - xi)[size_t(d)], h[size_t(d)] * k);
+      CMP((xj - xi)[d.raw()], h[d.raw()] * k);
     }
   }
 
   // Index of opposite face
   for (auto d : m.dirs) {
-    PCMP(m.GetOpposite(2 * d), 2 * d + 1);
-    PCMP(m.GetOpposite(2 * d + 1), 2 * d);
+    PCMP(m.GetOpposite(IdxNci(2 * d)).raw(), 2 * d + 1);
+    PCMP(m.GetOpposite(IdxNci(2 * d + 1)).raw(), 2 * d);
   }
-  PCMP(m.GetOpposite(-1), size_t(-1));
 
   {
     std::cout << "Cell neighbor cells\n";
@@ -237,7 +236,7 @@ void TestMesh() {
     IdxCell c(0);
     for (auto q : m.Nci(c)) {
       IdxFace f = m.GetFace(c, q);
-      PCMP(m.GetNci(c, f), q);
+      PCMP(m.GetNci(c, f).raw(), q.raw());
     }
   }
 
@@ -410,8 +409,8 @@ void TestNotation() {}
 #endif
 
 int main() {
-  // TestBlock();
-  // TestMesh();
+  TestBlock();
+  TestMesh();
   TestNotation();
-  // TestMeshIndices();
+  TestMeshIndices();
 }

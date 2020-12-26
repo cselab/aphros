@@ -15,7 +15,7 @@ class GBlock<IdxFace, dim_> {
  public:
   static constexpr size_t dim = dim_;
   using Idx = IdxFace;
-  using MIdx = GMIdx<dim>;
+  using MIdx = generic::MIdx<dim>;
   using Dir = GDir<dim>;
 
   class iterator {
@@ -144,7 +144,7 @@ class GIndex<IdxFace, dim_> {
  public:
   static constexpr size_t dim = dim_;
   using Idx = IdxFace;
-  using MIdx = GMIdx<dim>;
+  using MIdx = generic::MIdx<dim>;
   using Dir = GDir<dim>;
 
   // b: begin, lower corner

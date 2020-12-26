@@ -9,50 +9,55 @@
 
 using IntIdx = std::ptrdiff_t;
 
-// Integer multi-index
+namespace generic {
+
 template <size_t dim>
-using GMIdx = generic::Vect<IntIdx, dim>;
+using MIdx = generic::Vect<IntIdx, dim>;
 
-// Typed index, instances distinct by id_.
+
 template <int id_>
-class GIdx {
+class Idx {
  public:
-  GIdx() : i_(0) {}
-
-  explicit GIdx(size_t i) : i_(i) {}
-
+  Idx() : value_(0) {}
+  explicit Idx(size_t value) : value_(value) {}
   explicit operator size_t() const {
-    return i_;
+    return value_;
   }
   size_t GetRaw() const {
-    return i_;
+    return value_;
   }
-  IntIdx operator-(GIdx o) const {
-    return i_ - o.i_;
+  size_t raw() const {
+    return value_;
   }
-  GIdx& operator++() {
-    ++i_;
+  IntIdx operator-(Idx o) const {
+    return value_ - o.value_;
+  }
+  Idx& operator++() {
+    ++value_;
     return *this;
   }
-  GIdx& operator+=(size_t add) {
-    i_ += add;
+  Idx& operator+=(size_t add) {
+    value_ += add;
     return *this;
   }
-  GIdx operator+(size_t add) const {
-    return GIdx(i_ + add);
+  Idx operator+(size_t add) const {
+    return Idx(value_ + add);
   }
-  bool operator==(GIdx o) const {
-    return i_ == o.i_;
+  bool operator==(Idx o) const {
+    return value_ == o.value_;
   }
-  bool operator!=(GIdx o) const {
+  bool operator!=(Idx o) const {
     return !(*this == o);
   }
 
  public:
   static constexpr int id = id_;
-  size_t i_;
+  size_t value_;
 };
 
-using IdxCell = GIdx<0>;
-using IdxFace = GIdx<1>;
-using IdxNode = GIdx<2>;
+} // namespace generic
+
+using IdxCell = generic::Idx<0>;
+using IdxFace = generic::Idx<1>;
+using IdxNode = generic::Idx<2>;
+using IdxNci = generic::Idx<3>; // neighbor cell or face index

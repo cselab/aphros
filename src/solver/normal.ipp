@@ -135,7 +135,7 @@ struct UNormal<M_>::Imp {
   static void CalcNormalYoungsAvx(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
       FieldCell<Vect>& fcn) {
-    (void) fci;
+    (void)fci;
     fcn.Reinit(m, Vect(0));
 
     const __m256d c2 = _mm256_set1_pd(2);
@@ -256,10 +256,10 @@ struct UNormal<M_>::Imp {
         continue;
       }
       for (size_t d = 0; d < edim; ++d) {
-        IdxCell cm = m.GetCell(c, 2 * d);
-        IdxCell cmm = m.GetCell(cm, 2 * d);
-        IdxCell cp = m.GetCell(c, 2 * d + 1);
-        IdxCell cpp = m.GetCell(cp, 2 * d + 1);
+        const IdxCell cm = m.GetCell(c, IdxNci(2 * d));
+        const IdxCell cmm = m.GetCell(cm, IdxNci(2 * d));
+        const IdxCell cp = m.GetCell(c, IdxNci(2 * d + 1));
+        const IdxCell cpp = m.GetCell(cp, IdxNci(2 * d + 1));
 
         const size_t si = (S + 1) * 4 + 1;
         const size_t sih = (S + 1) * 2;

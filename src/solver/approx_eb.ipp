@@ -737,12 +737,12 @@ auto UEmbed<M>::InterpolateBcg(
     const IdxCell cm = eb.GetCell(f, 0);
     const IdxCell cp = eb.GetCell(f, 1);
     const IdxCell c = (sgn > 0 ? cm : cp); // upwind cell
-    const size_t nci = eb.GetNci(c, f);
+    const auto q = eb.GetNci(c, f);
     auto Fm = [&](size_t d) { //
-      return eb.GetFace(c, ((nci / 2 + d) % 3) * 2);
+      return eb.GetFace(c, IdxNci(((q.raw() / 2 + d) % 3) * 2));
     };
     auto Fp = [&](size_t d) { //
-      return eb.GetFace(c, ((nci / 2 + d) % 3) * 2 + 1);
+      return eb.GetFace(c, IdxNci(((q.raw() / 2 + d) % 3) * 2 + 1));
     };
 
     // temporal derivative, initial from acceleration
@@ -818,12 +818,12 @@ auto UEmbed<M>::InterpolateBcg(
     const IdxCell cm = m.GetCell(f, 0);
     const IdxCell cp = m.GetCell(f, 1);
     const IdxCell c = (sgn > 0 ? cm : cp); // upwind cell
-    const size_t nci = m.GetNci(c, f);
+    const auto q = m.GetNci(c, f);
     auto Fm = [&](size_t d) { //
-      return m.GetFace(c, ((nci / 2 + d) % 3) * 2);
+      return m.GetFace(c, IdxNci(((q.raw() / 2 + d) % 3) * 2));
     };
     auto Fp = [&](size_t d) { //
-      return m.GetFace(c, ((nci / 2 + d) % 3) * 2 + 1);
+      return m.GetFace(c, IdxNci(((q.raw() / 2 + d) % 3) * 2 + 1));
     };
 
     // temporal derivative, initial from acceleration
@@ -910,8 +910,8 @@ auto UEmbed<M>::Interpolate(
             bc.val, fcu[c] + bc.val * a, m.GetNormal(f));
       }
       case BCondType::extrap: {
-        const size_t q = m.GetNci(c, f);
-        const size_t qo = m.GetOpposite(q);
+        const auto q = m.GetNci(c, f);
+        const auto qo = m.GetOpposite(q);
         const IdxFace fo = m.GetFace(c, qo);
         const Vect n = m.GetNormal(f);
         // cell
@@ -958,7 +958,7 @@ auto UEmbed<M>::Gradient(
         const Scal sgn = (bc.nci == 0 ? 1 : -1);
         const T uf = bc.val;
         const T u1 = fcu[c];
-        const size_t cnci = m.GetNci(c, f); // f=m.GetFace(c, cnci)
+        const auto cnci = m.GetNci(c, f); // f=m.GetFace(c, cnci)
         const T u2 = fcu[m.GetCell(c, m.GetOpposite(cnci))];
         //    |      |      |
         //  uf|  u1  |  u2  |
@@ -971,7 +971,7 @@ auto UEmbed<M>::Gradient(
       case BCondType::extrap: {
         const Scal sgn = (bc.nci == 0 ? 1 : -1);
         const T u1 = fcu[c];
-        const size_t cnci = m.GetNci(c, f); // f=m.GetFace(c, cnci)
+        const auto cnci = m.GetNci(c, f); // f=m.GetFace(c, cnci)
         const T u2 = fcu[m.GetCell(c, m.GetOpposite(cnci))];
         return (u1 - u2) / h * sgn;
       }

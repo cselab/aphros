@@ -28,7 +28,7 @@
   } while (0);
 
 const int dim = 3;
-using MIdx = GMIdx<dim>;
+using MIdx = generic::MIdx<dim>;
 using IdxCell = IdxCell;
 using IdxFace = IdxFace;
 using Dir = GDir<dim>;
@@ -428,15 +428,14 @@ class ExplVisc : public TimerMesh {
       FieldCell<Scal> fc = GetComponent(fcv, n);
       auto ff = UEmbed<M>::Interpolate(fc, {}, m);
       auto gc = UEmbed<M>::Gradient(ff, m);
-      auto gf = UEmbed<M>::Interpolate(gc, {}, m); // adhoc: zero-der cond
-      for (auto idxcell : m.SuCells()) {
+      auto gf = UEmbed<M>::Interpolate(gc, {}, m);
+      for (auto c : m.SuCells()) {
         Vect sum(0);
-        for (size_t i = 0; i < m.GetNumFaces(idxcell); ++i) {
-          IdxFace idxface = m.GetFace(idxcell, i);
-          sum += gf[idxface] *
-                 (ffmu[idxface] * m.GetOutwardSurface(idxcell, i)[n]);
+        for (auto q : m.Nci(c)) {
+          const IdxFace f = m.GetFace(c, q);
+          sum += gf[f] * (ffmu[f] * m.GetOutwardSurface(c, q)[n]);
         }
-        fcf[idxcell] += sum / m.GetVolume(idxcell);
+        fcf[c] += sum / m.GetVolume(c);
       }
     }
     a += fcf[IdxCell(0)][0];
@@ -581,10 +580,13 @@ int main() {
     while (RunTest(test++, m, time, iters, mem, cover, name)) {
       size_t dmem = mem - mem0;
       const auto covcells =
-          (cover == Cover::all ? allcells
-                               : cover == Cover::in ? incells : sucells);
+          (cover == Cover::all  ? allcells
+           : cover == Cover::in ? incells
+                                : sucells);
       const auto covname =
-          (cover == Cover::all ? "all" : cover == Cover::in ? "in" : "su");
+          (cover == Cover::all  ? "all"
+           : cover == Cover::in ? "in"
+                                : "su");
       std::cout << util::Format(
           fmt, //
           name, time * 1e9 / covcells, covname, iters, (dmem / double(1 << 20)),

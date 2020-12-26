@@ -36,9 +36,9 @@ class Range {
     Value pos_;
   };
 
-  constexpr Range() : begin_(0), end_(0) {}
-  constexpr explicit Range(Value end) : begin_(0), end_(end) {}
-  constexpr Range(Value begin, Value end) : begin_(begin), end_(end) {}
+  constexpr Range() {}
+  constexpr explicit Range(Value end) : end_{end} {}
+  constexpr Range(Value begin, Value end) : begin_{begin}, end_{end} {}
 
   iterator begin() const {
     return iterator(begin_);
@@ -60,8 +60,8 @@ class Range {
   }
 
  private:
-  Value begin_;
-  Value end_;
+  Value begin_{0};
+  Value end_{0};
 };
 
 } // namespace generic

@@ -18,55 +18,74 @@ constexpr U* GetOwner(T* ptr, T U::*member) {
   return (U*)((char*)ptr - GetOffset(member));
 }
 
+class Side {
+ public:
+  Side(size_t value) : value_(value) {}
+  size_t raw() const {
+    return value_;
+  }
+  bool operator==(const Side& other) const {
+    return value_ == other.value_;
+  }
+  bool operator!=(const Side& other) const {
+    return !((*this) == other);
+  }
+  Side opposite() const {
+    return Side(1 - value_);
+  }
+
+ private:
+  size_t value_; // 0: backward, 1: forward
+};
+
 namespace generic {
 
-template <class Scal, size_t dim_>
+template <size_t dim_>
 class Direction {
  public:
   static constexpr size_t dim = dim_;
-  using Vect = generic::Vect<Scal, dim>;
 
   explicit Direction(size_t index) : Direction(index, 1) {}
-  Direction(size_t index, size_t forward)
-      : index_(index % dim), forward_(forward) {}
+  Direction(size_t index, Side side) : index_(index % dim), side_(side) {}
   operator size_t() const {
     return index_;
   }
-  Direction orient(const Vect& v) const {
+  template <class T>
+  Direction orient(const generic::Vect<T, dim>& v) const {
     return Direction(index_, v[index_] > 0 ? 1 : 0);
   }
-  Scal sign() const {
-    return forward_ == 1 ? 1 : -1;
+  int sign() const {
+    return -1 + side_.raw() * 2;
   }
   Direction next(int shift = 1) const {
-    return Direction((index_ + shift) % dim, forward_);
+    return Direction(index_ + shift, side_);
   }
   Direction operator-() const {
-    return Direction(index_, 1 - forward_);
+    return Direction(index_, 1 - side_.raw());
   }
-  size_t GetIndex() const {
+  size_t index() const {
     return index_;
   }
-  size_t GetForward() const {
-    return forward_;
+  Side side() const {
+    return side_;
   }
   bool operator==(const Direction& other) const {
-    return other.index_ == index_ && other.forward_ == forward_;
+    return other.index_ == index_ && other.side_ == side_;
   }
   bool operator!=(const Direction& other) const {
     return !(*this == other);
   }
   friend std::ostream& operator<<(std::ostream& out, const Direction& d) {
-    out << d.index_ << ' ' << d.forward_;
+    out << d.index_ << ' ' << d.side_.raw();
     return out;
   }
-  size_t nci() const {
-    return index_ * 2 + forward_;
+  IdxNci nci() const {
+    return IdxNci(index_ * 2 + side_.raw());
   }
 
  private:
   size_t index_; // direction, [0, dim - 1]
-  size_t forward_; // 0: backward, 1: forward
+  Side side_; // 0: backward, 1: forward
 };
 
 } // namespace generic
@@ -78,7 +97,7 @@ class IdxCellMesh {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
-  using Direction = generic::Direction<Scal, dim>;
+  using Direction = generic::Direction<dim>;
 
   IdxCellMesh(IdxCell c, const M& m_) : idxcell_(c), m(m_) {}
   IdxCellMesh operator+(Direction d) const {
@@ -159,14 +178,14 @@ class IdxFaceMesh {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
-  using Direction = generic::Direction<Scal, dim>;
+  using Direction = generic::Direction<dim>;
 
   IdxFaceMesh(IdxFace f, const M& m_) : idxface_(f), m(m_) {}
   IdxFaceMesh operator+(Direction d) const {
-    return m(m.GetFace(idxface_, d.GetIndex() * 2 + d.GetForward()));
+    return m(m.GetFace(idxface_, d.nci()));
   }
   IdxFaceMesh operator-(Direction d) const {
-    return m(m.GetFace(idxface_, d.GetIndex() * 2 + 1 - d.GetForward()));
+    return m(m.GetFace(idxface_, (-d).nci()));
   }
   friend std::ostream& operator<<(std::ostream& out, const IdxFaceMesh& f) {
     auto& index = f.m.GetIndexFaces();

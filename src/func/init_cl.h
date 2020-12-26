@@ -22,7 +22,7 @@
 // u: field
 // size: mesh size
 template <class Scal>
-void ReadPlain(std::istream& dat, FieldCell<Scal>& u, GMIdx<3>& size) {
+void ReadPlain(std::istream& dat, FieldCell<Scal>& u, generic::MIdx<3>& size) {
   dat >> size[0] >> size[1] >> size[2];
   GIndex<IdxCell, 3> bc(size);
   u.Reinit(bc, 0);

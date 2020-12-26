@@ -26,16 +26,16 @@
 #include "vect.h"
 
 // Returns column of cells cmm,cm,cp,cpp.
-// nci: 0 or 1 such that m.GetCell(f, nci) == cp
+// nfi: 0 or 1 such that m.GetCell(f, nfi) == cp
 template <class M>
 inline void GetCellColumn(
-    const M& m, IdxFace f, size_t nci, IdxCell& cmm, IdxCell& cm, IdxCell& cp,
+    const M& m, IdxFace f, Side s, IdxCell& cmm, IdxCell& cm, IdxCell& cp,
     IdxCell& cpp) {
-  const size_t d{m.GetIndexFaces().GetDir(f)};
-  cp = m.GetCell(f, nci);
-  cm = m.GetCell(f, 1 - nci);
-  cpp = m.GetCell(cp, d * 2 + nci);
-  cmm = m.GetCell(cm, d * 2 + 1 - nci);
+  const size_t d = m.GetIndexFaces().GetDir(f).raw();
+  cp = m.GetCell(f, s);
+  cm = m.GetCell(f, s.opposite());
+  cpp = m.GetCell(cp, IdxNci(2 * d + s.raw()));
+  cmm = m.GetCell(cm, IdxNci(2 * d + 1 - s.raw()));
 }
 
 template <class Scal_, size_t dim_>
@@ -46,8 +46,8 @@ class MeshCartesian {
   static constexpr generic::Range<size_t> dirs{dim};
   using Vect = generic::Vect<Scal, dim>;
   using Dir = GDir<dim>;
-  using Direction = generic::Direction<Scal, dim>;
-  using MIdx = GMIdx<dim>;
+  using Direction = generic::Direction<dim>;
+  using MIdx = generic::MIdx<dim>;
   using BlockCells = GBlockCells<dim>;
   using BlockFaces = GBlockFaces<dim>;
   using BlockNodes = GBlockNodes<dim>;
@@ -195,7 +195,7 @@ class MeshCartesian {
     return r;
   }
   const Vect& GetSurface(IdxFace f) const {
-    return face_surface_[size_t(indexf_.GetDir(f))];
+    return face_surface_[indexf_.GetDir(f).raw()];
   }
   Vect GetNode(IdxNode n) const {
     return domain_.low + Vect(indexn_.GetMIdx(n) - incells_begin_) * cell_size_;
@@ -204,7 +204,7 @@ class MeshCartesian {
     return cell_volume_;
   }
   Scal GetArea(IdxFace f) const {
-    return face_area_[size_t(indexf_.GetDir(f))];
+    return face_area_[indexf_.GetDir(f).raw()];
   }
   Scal GetAreaFraction(IdxFace) const {
     return 1;
@@ -212,55 +212,49 @@ class MeshCartesian {
   Scal GetVolumeFraction(IdxCell) const {
     return 1;
   }
-  IdxCell GetCell(IdxCell c, size_t q) const {
-    assert(q < kCellNumNeighborFaces);
-    return IdxCell(size_t(c) + cell_cell_[q]);
+  IdxCell GetCell(IdxCell c, IdxNci q) const {
+    return IdxCell(c.raw() + cell_cell_[q.raw()]);
   }
-  IdxFace GetFace(IdxCell c, size_t q) const {
-    assert(q < kCellNumNeighborFaces);
-    return IdxFace(size_t(c) + cell_face_[q]);
+  IdxFace GetFace(IdxCell c, IdxNci q) const {
+    return IdxFace(c.raw() + cell_face_[q.raw()]);
   }
-  IdxFace GetFace(IdxFace f, size_t q) const {
+  IdxFace GetFace(IdxFace f, IdxNci q) const {
     const auto qm = kCellNumNeighborFaces;
-    assert(q < qm);
-    return IdxFace(size_t(f) + face_face_[size_t(indexf_.GetDir(f)) * qm + q]);
+    return IdxFace(
+        f.raw() + face_face_[indexf_.GetDir(f).raw() * qm + q.raw()]);
   }
-  Scal GetOutwardFactor(IdxCell, size_t q) const {
-    assert(q < kCellNumNeighborFaces);
-    return cell_outward_[q];
+  int GetOutwardFactor(IdxCell, IdxNci q) const {
+    return -1 + (q.raw() % 2) * 2;
   }
-  Vect GetOutwardSurface(IdxCell c, size_t n) const {
-    assert(n < kCellNumNeighborFaces);
-    return GetSurface(GetFace(c, n)) * GetOutwardFactor(c, n);
+  Vect GetOutwardSurface(IdxCell c, IdxNci q) const {
+    return GetSurface(GetFace(c, q)) * GetOutwardFactor(c, q);
   }
   IdxNode GetNode(IdxCell c, size_t q) const {
     assert(q < kCellNumNeighborNodes);
-    return IdxNode(size_t(c) + cell_node_[q]);
+    return IdxNode(c.raw() + cell_node_[q]);
   }
   Dir GetDir(IdxFace f) const {
     return indexf_.GetDir(f);
   }
-  IdxCell GetCell(IdxFace f, size_t q) const {
-    auto qm = kFaceNumNeighborCells;
-    assert(q < qm);
-    return IdxCell(size_t(f) + face_cell_[size_t(indexf_.GetDir(f)) * qm + q]);
+  IdxCell GetCell(IdxFace f, Side s) const {
+    const auto qm = kFaceNumNeighborCells;
+    return IdxCell(
+        f.raw() + face_cell_[indexf_.GetDir(f).raw() * qm + s.raw()]);
   }
-  Vect GetVectToCell(IdxFace f, size_t n) const {
-    assert(n < kFaceNumNeighborCells);
-    return GetCenter(GetCell(f, n)) - GetCenter(f);
+  Vect GetVectToCell(IdxFace f, Side s) const {
+    return GetCenter(GetCell(f, s)) - GetCenter(f);
   }
   IdxNode GetNode(IdxFace f, size_t q) const {
     auto qm = kFaceNumNeighborNodes;
     assert(q < qm);
-    size_t d(indexf_.GetDir(f));
-    return IdxNode(size_t(f) + face_node_[d * qm + q]);
+    return IdxNode(f.raw() + face_node_[indexf_.GetDir(f).raw() * qm + q]);
   }
   size_t GetNumFaces(IdxCell) const {
     return kCellNumNeighborFaces;
   }
   // Neighbor cell indices
-  GRange<size_t> Nci(IdxCell c) const {
-    return GRange<size_t>(0, GetNumFaces(c));
+  generic::Range<IdxNci> Nci(IdxCell c) const {
+    return generic::Range<IdxNci>(IdxNci(GetNumFaces(c)));
   }
   IdxCell GetCellFromPoint(Vect x) const {
     auto& ic = GetIndexCells();
@@ -274,8 +268,8 @@ class MeshCartesian {
   // Cell indices over 3x3x3 stencil
   auto Stencil(IdxCell c) const {
     return MakeTransformIterator<IdxCell>(
-        GRange<size_t>(0, kNumStencil),
-        [this, c](size_t i) { return IdxCell(size_t(c) + stencil_[i]); });
+        generic::Range<size_t>(kNumStencil),
+        [this, c](size_t i) { return IdxCell(c.raw() + stencil_[i]); });
   }
   const auto& GetStencilOffsets() const {
     return stencil_;
@@ -283,28 +277,24 @@ class MeshCartesian {
   // Cell indices over 5x5x5 stencil
   auto Stencil5(IdxCell c) const {
     return MakeTransformIterator<IdxCell>(
-        GRange<size_t>(0, kNumStencil5),
-        [this, c](size_t i) { return IdxCell(size_t(c) + stencil5_[i]); });
+        generic::Range<size_t>(kNumStencil5),
+        [this, c](size_t i) { return IdxCell(c.raw() + stencil5_[i]); });
   }
   const auto& GetStencil5Offsets() const {
     return stencil5_;
   }
-  // Returns id of cell adjacent to c by face f.
+  // Returns index `q` such that `m.GetFace(c, q) == f`.
   // -1 if f and c are not neighbors
-  size_t GetNci(IdxCell c, IdxFace f) const {
-    for (size_t q : Nci(c)) {
+  IdxNci GetNci(IdxCell c, IdxFace f) const {
+    for (auto q : Nci(c)) {
       if (GetFace(c, q) == f) {
         return q;
       }
     }
-    return -1;
+    return IdxNci(-1);
   }
-  // Returns id of face opposite to q.
-  size_t GetOpposite(size_t q) const {
-    if (q == size_t(-1)) {
-      return -1;
-    }
-    return q ^ 1;
+  IdxNci GetOpposite(IdxNci q) const {
+    return IdxNci(q.raw() ^ 1);
   }
   size_t GetNumNodes(IdxCell) const {
     return kCellNumNeighborNodes;
@@ -317,12 +307,12 @@ class MeshCartesian {
   }
   // Returns column of cells cmm,cm,cp,cpp.
   // nci: 0 or 1 such that m.GetCell(f, nci) == cp
-  std::array<IdxCell, 4> GetCellColumn(IdxFace f, size_t nci) const {
-    const size_t d{GetIndexFaces().GetDir(f)};
-    const IdxCell cm = GetCell(f, 1 - nci);
-    const IdxCell cp = GetCell(f, nci);
-    const IdxCell cmm = GetCell(cm, d * 2 + 1 - nci);
-    const IdxCell cpp = GetCell(cp, d * 2 + nci);
+  std::array<IdxCell, 4> GetCellColumn(IdxFace f, size_t nfi) const {
+    const auto d = GetIndexFaces().GetDir(f);
+    const IdxCell cm = GetCell(f, 1 - nfi);
+    const IdxCell cp = GetCell(f, nfi);
+    const IdxCell cmm = GetCell(cm, IdxNci(2 * d.raw() + 1 - nfi));
+    const IdxCell cpp = GetCell(cp, IdxNci(2 * d.raw() + nfi));
     return {cmm, cm, cp, cpp};
   }
   // Returns true if cell is not a halo cell.
@@ -330,9 +320,9 @@ class MeshCartesian {
     MIdx w = indexc_.GetMIdx(c);
     return blockci_.GetBegin() <= w && w < blockci_.GetEnd();
   }
-  bool IsBoundary(IdxFace f, size_t& nci) const {
+  bool IsBoundary(IdxFace f, /*out*/ size_t& nci) const {
     auto p = GetIndexFaces().GetMIdxDir(f);
-    const size_t d(p.second);
+    const size_t d = p.second.raw();
     if (flags.is_periodic[d] || d > GetEdim()) {
       return false;
     }
@@ -538,18 +528,18 @@ class MeshCartesian {
   void LoopNciEmbed(IdxCell, F) const {
     return;
   }
-  void AppendExpr(Expr& sum, const ExprFace& v, size_t q) const {
-    sum[0] += v[1 - q % 2];
-    sum[1 + q] += v[q % 2];
+  void AppendExpr(Expr& sum, const ExprFace& v, IdxNci q) const {
+    sum[0] += v[1 - q.raw() % 2];
+    sum[1 + q.raw()] += v[q.raw() % 2];
     sum.back() += v.back();
   }
-  void AppendExpr(Expr& sum, const ExprFace& v, size_t q, IdxCell) const {
+  void AppendExpr(Expr& sum, const ExprFace& v, IdxNci q, IdxCell) const {
     AppendExpr(sum, v, q);
   }
-  bool IsInside(IdxCell c, Vect vect) const {
+  bool IsInside(IdxCell c, Vect x) const {
     for (auto q : Nci(c)) {
-      IdxFace f = GetFace(c, q);
-      if (GetOutwardSurface(c, q).dot(vect - GetCenter(f)) > 0) {
+      const IdxFace f = GetFace(c, q);
+      if (GetOutwardSurface(c, q).dot(x - GetCenter(f)) > 0) {
         return false;
       }
     }
@@ -559,7 +549,7 @@ class MeshCartesian {
     Scal dn = std::numeric_limits<Scal>::max(); // sqrdist to nearest
     IdxCell cn(0); // cell nearest
     for (auto c : Cells()) {
-      Scal d = x.sqrdist(GetCenter(c));
+      const Scal d = x.sqrdist(GetCenter(c));
       if (d < dn) {
         dn = d;
         cn = c;
@@ -814,7 +804,6 @@ class MeshCartesian {
   // offsets
   std::array<size_t, kCellNumNeighborFaces> cell_cell_;
   std::array<size_t, kCellNumNeighborFaces> cell_face_;
-  std::array<Scal, kCellNumNeighborFaces> cell_outward_;
   std::array<size_t, kCellNumNeighborNodes> cell_node_;
   std::array<size_t, kFaceNumNeighborCells * dim> face_cell_;
   std::array<size_t, kCellNumNeighborFaces * dim> face_face_;

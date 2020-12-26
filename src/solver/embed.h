@@ -361,12 +361,10 @@ class Embed {
   void LoopNciEmbed(IdxCell, F lambda) const {
     lambda(NciEmbed());
   }
-  void AppendExpr(Expr& sum, const ExprFace& v, size_t q) const {
-    sum[0] += v[1 - q % 2];
-    sum[1 + q] += v[q % 2];
-    sum.back() += v.back();
+  void AppendExpr(Expr& sum, const ExprFace& v, IdxNci q) const {
+    m.AppendExpr(sum, v, q);
   }
-  void AppendExpr(Expr& sum, const ExprFace& v, size_t q, IdxCell) const {
+  void AppendExpr(Expr& sum, const ExprFace& v, IdxNci q, IdxCell) const {
     AppendExpr(sum, v, q);
   }
   void AppendExpr(Expr& sum, const ExprFace& v, NciEmbed) const {
@@ -375,7 +373,7 @@ class Embed {
   }
   void AppendExpr(Expr& sum, const ExprFace& v, NciEmbed, IdxCell c) const {
     sum[0] += v[0];
-    sum[1 + GetRegularNeighborNci(c)] += v[1];
+    sum[1 + GetRegularNeighborNci(c).raw()] += v[1];
     sum.back() += v.back();
   }
   auto Faces() const {
@@ -387,32 +385,24 @@ class Embed {
       return GetType(f) != Type::excluded;
     });
   }
-  IdxCell GetCell(IdxFace f, size_t q) const {
-    return m.GetCell(f, q);
+  IdxCell GetCell(IdxFace f, Side s) const {
+    return m.GetCell(f, s);
   }
-  IdxFace GetFace(IdxCell c, size_t q) const {
+  IdxFace GetFace(IdxCell c, IdxNci q) const {
     return m.GetFace(c, q);
   }
   IdxCell GetFace(IdxCell c, NciEmbed) const {
     return c;
   }
-  IdxCell GetCell(IdxCell c, size_t q) const {
+  IdxCell GetCell(IdxCell c, IdxNci q) const {
     return m.GetCell(c, q);
   }
-  // Returns adjacent cell to regular or cut face.
-  IdxCell GetAdjacentCell(IdxFace f, size_t nci) const {
-    return GetCell(f, nci);
-  }
-  // Returns adjacent cell to embedded face.
-  IdxCell GetAdjacentCell(IdxCell c, size_t nci) const {
-    return nci == 0 ? c : GetRegularNeighbor(c);
-  }
   auto Nci(IdxCell c) const {
-    return MakeFilterIterator(m.Nci(c), [this, c](size_t q) {
+    return MakeFilterIterator(m.Nci(c), [this, c](IdxNci q) {
       return GetType(m.GetFace(c, q)) != Type::excluded;
     });
   }
-  size_t GetNci(IdxCell c, IdxFace f) const {
+  IdxNci GetNci(IdxCell c, IdxFace f) const {
     return m.GetNci(c, f);
   }
   // Cell indices of non-excluded cells.
@@ -461,20 +451,16 @@ class Embed {
   Vect GetNormal(IdxFace f) const {
     return m.GetNormal(f);
   }
-  size_t GetRegularNeighborNci(IdxCell c) const {
+  IdxNci GetRegularNeighborNci(IdxCell c) const {
     // FIXME: may not return a regular cell for non-convex shapes
     const auto n = GetNormal(c);
     const size_t d = n.abs().argmax();
     const size_t s = (n[d] > 0 ? 0 : 1);
-    return 2 * d + s;
+    return IdxNci(2 * d + s);
   }
   IdxCell GetRegularNeighbor(IdxCell c) const {
     if (IsCut(c)) {
-      // FIXME: may not return a regular cell for non-convex shapes
-      const auto n = GetNormal(c);
-      const size_t d = n.abs().argmax();
-      const size_t s = (n[d] > 0 ? 0 : 1);
-      return GetCell(c, 2 * d + s);
+      return GetCell(c, GetRegularNeighborNci(c));
     }
     return c;
   }
@@ -496,17 +482,17 @@ class Embed {
   Vect GetSurface(IdxCell c) const {
     return GetNormal(c) * GetArea(c);
   }
-  Vect GetOutwardSurface(IdxCell c, size_t q) const {
+  Vect GetOutwardSurface(IdxCell c, IdxNci q) const {
     return GetSurface(m.GetFace(c, q)) * m.GetOutwardFactor(c, q);
   }
-  Scal GetOutwardFactor(IdxCell c, size_t q) const {
+  Scal GetOutwardFactor(IdxCell c, IdxNci q) const {
     return m.GetOutwardFactor(c, q);
   }
   Scal GetOutwardFactor(IdxCell, NciEmbed) const {
     return 1;
   }
-  Scal GetFaceOffset(IdxCell c, size_t nci) const {
-    IdxFace f = m.GetFace(c, nci);
+  Scal GetFaceOffset(IdxCell c, IdxNci q) const {
+    IdxFace f = m.GetFace(c, q);
     return (GetFaceCenter(f) - GetCellCenter(c)).dot(m.GetNormal(f));
   }
   Scal GetFaceOffset(IdxCell c) const {

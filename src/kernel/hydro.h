@@ -1896,8 +1896,8 @@ void Hydro<M>::DumpFields() {
       t.fc_flux.Reinit(m, Vect(0));
       auto& ffv = fs_->GetVolumeFlux();
       for (auto c : m.Cells()) {
-        for (size_t d = 0; d < dim; ++d) {
-          t.fc_flux[c][d] = ffv[m.GetFace(c, d * 2)];
+        for (auto d : m.dirs) {
+          t.fc_flux[c][d] = ffv[m.GetFace(c, IdxNci(d * 2))];
         }
       }
       dumpv(t.fc_flux, 0, "fluxx");

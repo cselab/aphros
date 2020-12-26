@@ -8,15 +8,21 @@
 template <size_t dim_>
 class GDir {
  public:
-  using MIdx = GMIdx<dim_>;
+  using MIdx = generic::MIdx<dim_>;
   static constexpr size_t dim = dim_;
 
   constexpr GDir() {}
   constexpr explicit GDir(size_t dir) : dir_(dir) {}
-  constexpr char GetLetter() const {
+  constexpr char letter() const {
     return "xyzw"[dir_];
   }
+  constexpr char GetLetter() const {
+    return letter();
+  }
   explicit operator size_t() const {
+    return dir_;
+  }
+  size_t raw() const {
     return dir_;
   }
   explicit operator MIdx() const {

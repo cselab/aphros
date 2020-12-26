@@ -39,7 +39,7 @@ typename M::Scal DiffMax(
 }
 
 const int dim = 3;
-using MIdx = GMIdx<dim>;
+using MIdx = generic::MIdx<dim>;
 using IdxCell = IdxCell;
 using IdxFace = IdxFace;
 using Dir = GDir<dim>;
