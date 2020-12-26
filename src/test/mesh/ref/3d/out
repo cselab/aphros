@@ -122,11 +122,18 @@ f=(1,1,2)z (1,2,2)z (1,0,2)z (1,1,3)z (1,1,1)z (2,1,2)z (0,1,2)z
 f=(0,1,1)y
 size_t(IdxFace(f))=186
 f.direction()=1 1
+f.area=0.25
+f.surface()=(0,0.25,0)
+f.cell(0)=(0,0,1) f.cell(1)=(0,1,1)
 m.GetCenter(f)=(0.25,0.5,0.75)
 c=(0,0,1)
 f.cm()=(0,0,1) f.cp()=(0,1,1)
 c.center()=(0.25,0.25,0.75) 0.25
 c.volume=0.125
+c.outward_factor(IdxNci(0))=-1
+c.outward_surface(IdxNci(0))=(-0.25,-0,-0)
+c.face(IdxNci(0))=(0,0,1)x
+c.face(-m.direction(0))=(0,0,1)x
 f.center()=(0.25,0.5,0.75) 0.25
 center=(0.25,0.25,0.75) 0.25
 

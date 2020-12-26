@@ -50,7 +50,7 @@ void Run(M& m, Vars& var) {
 
     Scal sum0 = 0;
     Scal sum2 = 0;
-    for (auto c : m.Cells()) {
+    for (auto c : m.CellsM()) {
       const Vect xc = m.GetGlobalLength() * 0.5;
       sum0 += fcu[c] * c.volume;
       sum2 += fcu[c] * xc.sqrdist(c.center) * c.volume;
@@ -64,7 +64,7 @@ void Run(M& m, Vars& var) {
       for (auto c : m.CellsM()) {
         field.push_back(c.center[d]);
       }
-      const std::string name = std::string() + M::Dir(d).GetLetter();
+      const std::string name = std::string() + M::Dir(d).letter();
       data.emplace_back(name, field);
     }
 

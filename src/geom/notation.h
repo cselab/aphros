@@ -128,6 +128,15 @@ class IdxCellMesh {
   auto face(Direction d) const {
     return m(m.GetFace(idxcell_, d.nci()));
   }
+  auto face(IdxNci q) const {
+    return m(m.GetFace(idxcell_, q));
+  }
+  int outward_factor(IdxNci q) const {
+    return m.GetOutwardFactor(idxcell_, q);
+  }
+  Vect outward_surface(IdxNci q) const {
+    return m.GetOutwardSurface(idxcell_, q);
+  }
 
   class LazyCenter {
    public:
@@ -144,6 +153,8 @@ class IdxCellMesh {
 
    private:
     friend IdxCellMesh;
+    // After construction of IdxCellMesh, LazyCenter cannot be
+    // copied or moved since GetOwner() relies on the relative address.
     LazyCenter(const LazyCenter&) = default;
     LazyCenter& operator=(const LazyCenter&) = default;
   };
@@ -225,6 +236,9 @@ class IdxFaceMesh {
   Direction direction() const {
     return Direction(size_t(m.GetIndexFaces().GetDir(idxface_)));
   }
+  auto cell(Side s) const {
+    return m(m.GetCell(idxface_, s));
+  }
 
   class LazyCenter {
    public:
@@ -287,6 +301,43 @@ class IdxFaceMesh {
     LazyCellCp& operator=(const LazyCellCp&) = default;
   };
   const LazyCellCp cp{};
+
+  class LazyArea {
+   public:
+    operator Scal() const {
+      auto owner = GetOwner(this, &IdxFaceMesh::area);
+      return owner->m.GetArea(owner->idxface_);
+    }
+    Scal operator()() const {
+      return ;
+    }
+
+   private:
+    friend IdxFaceMesh;
+    LazyArea(const LazyArea&) = default;
+    LazyArea& operator=(const LazyArea&) = default;
+  };
+  const LazyArea area{};
+
+  class LazySurface {
+   public:
+    operator Vect() const {
+      auto owner = GetOwner(this, &IdxFaceMesh::surface);
+      return owner->m.GetSurface(owner->idxface_);
+    }
+    Vect operator()() const {
+      return Vect(*this);
+    }
+    Scal operator[](size_t i) const {
+      return Vect(*this)[i];
+    }
+
+   private:
+    friend IdxFaceMesh;
+    LazySurface(const LazySurface&) = default;
+    LazySurface& operator=(const LazySurface&) = default;
+  };
+  const LazySurface surface{};
 
  private:
   IdxFace idxface_;

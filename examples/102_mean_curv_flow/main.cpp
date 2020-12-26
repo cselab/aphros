@@ -40,7 +40,7 @@ constexpr Scal kClNone = -1;
 // <Nx> <Ny> <Nz>
 // <data:x=0,y=0,z=0> <data:x=1,y=0,z=0> ...
 template <class Scal>
-void ReadPlain(std::string path, FieldCell<Scal>& u, GMIdx<3>& size) {
+void ReadPlain(std::string path, FieldCell<Scal>& u, generic::MIdx<3>& size) {
   std::ifstream dat(path);
   if (!dat.good()) {
     throw std::runtime_error("ReadPlain: Can't open data file '" + path + "'");
@@ -317,7 +317,6 @@ void InitColorJunctionTSymm(
   InitColorFromNodes(fncl, layers, fcu, fccl, m);
 }
 
-
 template <class M>
 void SetZeroBoundaryFlux(FieldFace<Scal>& fcu, const M& m) {
   for (auto fb : m.Faces()) {
@@ -331,7 +330,6 @@ void SetZeroBoundaryFlux(FieldFace<Scal>& fcu, const M& m) {
     }
   }
 }
-
 
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
