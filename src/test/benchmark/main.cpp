@@ -55,7 +55,7 @@ enum class Cover { all, su, in };
 class TimerMesh : public ExecutionTimer {
  public:
   TimerMesh(const std::string& name, M& m_, Cover cover = Cover::in)
-      : ExecutionTimer(name, 0.01, 1), m(m_), cover_(cover) {}
+      : ExecutionTimer(name, 0.05, 10), m(m_), cover_(cover) {}
   Cover GetCover() const {
     return cover_;
   }
@@ -448,6 +448,46 @@ class ExplVisc : public TimerMesh {
   FieldFace<Scal> ffmu;
 };
 
+
+class ExplViscNotation : public TimerMesh {
+ public:
+  ExplViscNotation(M& m_)
+      : TimerMesh("explvisc-notation", m_, Cover::su), fcv(m), fcf(m), ffmu(m) {
+    for (auto i : m.AllCells()) {
+      auto a = i.GetRaw();
+      fcv[i] = Vect(std::sin(a), std::sin(a + 1), std::sin(a + 2));
+    }
+    for (auto i : m.AllFaces()) {
+      auto a = i.GetRaw();
+      ffmu[i] = std::sin(a);
+    }
+  }
+  void F() override {
+    static size_t a = 0;
+    for (size_t n = 0; n < dim; ++n) {
+      FieldCell<Scal> fc = GetComponent(fcv, n);
+      auto ff = UEmbed<M>::Interpolate(fc, {}, m);
+      auto gc = UEmbed<M>::Gradient(ff, m);
+      auto gf = UEmbed<M>::Interpolate(gc, {}, m);
+      for (auto c : m.SuCellsM()) {
+        Vect sum(0);
+        for (auto q : m.Nci(c)) {
+          const auto f = c.face(q);
+          sum += gf[f] * (ffmu[f] * c.outward_surface(q)[n]);
+        }
+        fcf[c] += sum / c.volume;
+      }
+    }
+    a += fcf[IdxCell(0)][0];
+    EXPOSE(a);
+  }
+
+ private:
+  FieldCell<Vect> fcv;
+  FieldCell<Vect> fcf;
+  FieldFace<Scal> ffmu;
+};
+
 class Stencil : public TimerMesh {
  public:
   Stencil(M& m_) : TimerMesh("stencil", m_) {}
@@ -519,6 +559,7 @@ bool RunTest(
   create((Interp*)0);
   create((Grad*)0);
   create((ExplVisc*)0);
+  create((ExplViscNotation*)0);
 
   create((CellVolume*)0);
   create((CellCenter*)0);

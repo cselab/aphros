@@ -186,13 +186,7 @@ class MeshCartesian {
     return Rect<Vect>(Vect(0), GetGlobalLength());
   }
   Vect GetCenter(IdxFace f) const {
-    auto p = indexf_.GetMIdxDir(f);
-    const MIdx& w = p.first;
-    size_t d(p.second);
-    Vect r =
-        (domain_.low + half_cell_size_) + Vect(w - incells_begin_) * cell_size_;
-    r[d] -= half_cell_size_[d];
-    return r;
+    return ff_center_[f];
   }
   const Vect& GetSurface(IdxFace f) const {
     return face_surface_[indexf_.GetDir(f).raw()];
@@ -812,6 +806,7 @@ class MeshCartesian {
   std::array<size_t, kNumStencil5> stencil5_; // 5x5x5 stencil
 
   FieldCell<Vect> fc_center_;
+  FieldFace<Vect> ff_center_;
 
   Suspender susp_;
   std::string timer_report_path_;

@@ -186,6 +186,19 @@ MeshCartesian<_Scal, _dim>::MeshCartesian(
                       Vect(indexc_.GetMIdx(c) - incells_begin_) * cell_size_;
     }
   }
+
+  { // face centers
+    ff_center_.Reinit(*this);
+    for (auto f : AllFaces()) {
+      auto p = indexf_.GetMIdxDir(f);
+      const MIdx& w = p.first;
+      size_t d(p.second);
+      Vect r = (domain_.low + half_cell_size_) +
+               Vect(w - incells_begin_) * cell_size_;
+      r[d] -= half_cell_size_[d];
+      ff_center_[f] = r;
+    }
+  }
 }
 
 template <class Scal, size_t dim>

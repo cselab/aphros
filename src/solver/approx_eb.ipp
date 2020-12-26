@@ -891,9 +891,7 @@ auto UEmbed<M>::Interpolate(
             bc.val, fcu[c] + bc.val * a, m.GetNormal(f));
       }
       case BCondType::extrap: {
-        const auto q = m.GetNci(c, f);
-        const auto qo = m.GetOpposite(q);
-        const IdxFace fo = m.GetFace(c, qo);
+        const IdxFace fo = m.GetFace(c, m.GetOpposite(m.GetNci(c, f)));
         const Vect n = m.GetNormal(f);
         // cell
         const T& v0 = fcu[c];
@@ -927,10 +925,8 @@ auto UEmbed<M>::Gradient(
   FieldFace<T> ffu(m, T(0));
   const Scal h = m.GetCellSize()[0];
 
-  for (auto f : m.SuFaces()) {
-    const IdxCell cm = m.GetCell(f, 0);
-    const IdxCell cp = m.GetCell(f, 1);
-    ffu[f] = (fcu[cp] - fcu[cm]) / h;
+  for (auto f : m.SuFacesM()) {
+    ffu[f] = (fcu[f.cp] - fcu[f.cm]) / h;
   }
 
   auto calc = [&](IdxFace f, IdxCell c, const BCond<T>& bc) {
@@ -1343,10 +1339,8 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
   FieldEmbed<Scal> feu = InterpolateUpwind(fcu, mebc, scheme, fcg, fev, eb);
 
   // implicit interpolation with deferred correction
-  for (auto f : eb.Faces()) {
+  for (auto f : eb.FacesM()) {
     ExprFace e(0);
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
     if (fev[f] > 0) {
       e[0] = 1;
       e[2] = feu[f];
@@ -1358,7 +1352,7 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
       e[1] = 0.5;
       e[2] = feu[f];
     }
-    e[2] -= fcu[cm] * e[0] + fcu[cp] * e[1];
+    e[2] -= fcu[f.cm] * e[0] + fcu[f.cp] * e[1];
     fee[f] = e;
   }
 
