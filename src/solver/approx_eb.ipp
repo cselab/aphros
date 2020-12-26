@@ -742,7 +742,9 @@ auto UEmbed<M>::InterpolateBcg(
     {
       const IdxFace fm = c.face(-d);
       const IdxFace fp = c.face(d);
-      ux += (feg[fm] + feg[fp]) * 0.5;
+      // TODO: check why boundary faces treated differently in regular version
+      ux += (is_boundary[fm] || is_boundary[fp]) ? feg[f]
+                                                 : (feg[fm] + feg[fp]) * 0.5;
       const Scal w = fev[f] / eb.GetArea(f); // velocity
       ut -= ux * w;
     }
@@ -869,10 +871,8 @@ auto UEmbed<M>::Interpolate(
   FieldFace<T> ffu(m, T(0));
   const Scal h = m.GetCellSize()[0];
 
-  for (auto f : m.SuFaces()) {
-    const IdxCell cm = m.GetCell(f, 0);
-    const IdxCell cp = m.GetCell(f, 1);
-    ffu[f] = (fcu[cp] + fcu[cm]) * 0.5;
+  for (auto f : m.SuFacesM()) {
+    ffu[f] = (fcu[f.cp] + fcu[f.cm]) * 0.5;
   }
 
   auto calc = [&](IdxFace f, IdxCell c, const BCond<T>& bc) {
