@@ -548,10 +548,8 @@ auto UEmbed<M>::Interpolate(
     -> FieldEmbed<T> {
   FieldEmbed<T> feu(eb, T(0));
 
-  for (auto f : eb.SuFaces()) {
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
-    feu[f] = (fcu[cp] + fcu[cm]) * 0.5;
+  for (auto f : eb.SuFacesM()) {
+    feu[f] = (fcu[f.cp] + fcu[f.cm]) * 0.5;
   }
   feu.GetFieldFace() = InterpolateBilinearFaces(feu.GetFieldFace(), eb);
 
@@ -592,10 +590,8 @@ auto UEmbed<M>::Gradient(
   FieldEmbed<T> feg(eb, T(0));
   const Scal h = eb.GetCellSize()[0];
 
-  for (auto f : eb.SuFaces()) {
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
-    feg[f] = (fcu[cp] - fcu[cm]) / h;
+  for (auto f : eb.SuFacesM()) {
+    feg[f] = (fcu[f.cp] - fcu[f.cm]) / h;
   }
   feg.GetFieldFace() = InterpolateBilinearFaces(feg.GetFieldFace(), eb);
 
@@ -732,37 +728,29 @@ auto UEmbed<M>::InterpolateBcg(
 
   const FieldEmbed<Scal> feg = Gradient(fcu, mebc, eb);
   FieldEmbed<Scal> feu(eb, 0);
-  for (auto f : eb.Faces()) {
+  for (auto f : eb.FacesM()) {
     const Scal sgn = (fev[f] > 0 ? 1 : -1);
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
-    const IdxCell c = (sgn > 0 ? cm : cp); // upwind cell
-    const auto q = eb.GetNci(c, f);
-    auto Fm = [&](size_t d) { //
-      return eb.GetFace(c, IdxNci(((q.raw() / 2 + d) % 3) * 2));
-    };
-    auto Fp = [&](size_t d) { //
-      return eb.GetFace(c, IdxNci(((q.raw() / 2 + d) % 3) * 2 + 1));
-    };
+    const auto c = (sgn > 0 ? f.cm() : f.cp()); // upwind cell
+    auto d = f.direction();
 
     // temporal derivative, initial from acceleration
-    Scal ut = (fc_src[cm] + fc_src[cp]) * 0.5;
+    Scal ut = (fc_src[f.cm] + fc_src[f.cp]) * 0.5;
     // normal derivative
     Scal ux = 0;
     // convective terms
     // normal direction
     {
-      const IdxFace fm = Fm(0);
-      const IdxFace fp = Fp(0);
-      ux += (is_boundary[fm] || is_boundary[fp]) ? feg[f]
-                                                 : (feg[fm] + feg[fp]) * 0.5;
+      const IdxFace fm = c.face(-d);
+      const IdxFace fp = c.face(d);
+      ux += (feg[fm] + feg[fp]) * 0.5;
       const Scal w = fev[f] / eb.GetArea(f); // velocity
       ut -= ux * w;
     }
     // tangential directions
-    for (auto d : {1, 2}) {
-      const IdxFace fm = Fm(d);
-      const IdxFace fp = Fp(d);
+    for (int i = 0; i < 2; ++i) {
+      d = d.next();
+      const IdxFace fm = c.face(-d);
+      const IdxFace fp = c.face(d);
       if (is_boundary[fm] || is_boundary[fp]) {
         // exclude faces that depend on boundary conditions
         // as they cause instability in case of non-zero Dirichlet conditions
@@ -813,36 +801,29 @@ auto UEmbed<M>::InterpolateBcg(
 
   const FieldFace<Scal> ffg = Gradient(fcu, mebc, m);
   FieldFace<Scal> ffu(m, 0);
-  for (auto f : m.Faces()) {
+  for (auto f : m.FacesM()) {
     const Scal sgn = (ffv[f] > 0 ? 1 : -1);
-    const IdxCell cm = m.GetCell(f, 0);
-    const IdxCell cp = m.GetCell(f, 1);
-    const IdxCell c = (sgn > 0 ? cm : cp); // upwind cell
-    const auto q = m.GetNci(c, f);
-    auto Fm = [&](size_t d) { //
-      return m.GetFace(c, IdxNci(((q.raw() / 2 + d) % 3) * 2));
-    };
-    auto Fp = [&](size_t d) { //
-      return m.GetFace(c, IdxNci(((q.raw() / 2 + d) % 3) * 2 + 1));
-    };
+    const auto c = (sgn > 0 ? f.cm() : f.cp()); // upwind cell
+    auto d = f.direction();
 
     // temporal derivative, initial from acceleration
-    Scal ut = (fc_src[cm] + fc_src[cp]) * 0.5;
+    Scal ut = (fc_src[f.cm] + fc_src[f.cp]) * 0.5;
     // normal derivative
     Scal ux = 0;
     // convective terms
     // normal direction
     {
-      const IdxFace fm = Fm(0);
-      const IdxFace fp = Fp(0);
+      const IdxFace fm = c.face(-d);
+      const IdxFace fp = c.face(d);
       ux += (ffg[fm] + ffg[fp]) * 0.5;
       const Scal w = ffv[f] / m.GetArea(f); // velocity
       ut -= ux * w;
     }
     // tangential directions
-    for (auto d : {1, 2}) {
-      const IdxFace fm = Fm(d);
-      const IdxFace fp = Fp(d);
+    for (int i = 0; i < 2; ++i) {
+      d = d.next();
+      const IdxFace fm = c.face(-d);
+      const IdxFace fp = c.face(d);
       if (is_boundary[fm] || is_boundary[fp]) {
         // exclude faces that depend on boundary conditions
         // as they cause instability in case of non-zero Dirichlet conditions
@@ -1538,9 +1519,8 @@ auto UEmbed<M>::GradientImplicit(
     -> FieldEmbed<ExprFace> {
   const auto fee = Gradient(fcu, mebc, eb);
   auto feg = GradientImplicit(mebc, eb);
-  eb.LoopFaces([&](auto cf) {
-    feg[cf].back() += fee[cf] - Eval(feg[cf], cf, fcu, eb);
-  });
+  eb.LoopFaces(
+      [&](auto cf) { feg[cf].back() += fee[cf] - Eval(feg[cf], cf, fcu, eb); });
   return feg;
 }
 
@@ -1555,7 +1535,6 @@ auto UEmbed<M>::GradientImplicit(
   }
   return ffg;
 }
-
 
 template <class M>
 auto UEmbed<M>::Gradient(const FieldFace<Scal>& ffu, const M& m)
