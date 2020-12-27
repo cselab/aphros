@@ -1,8 +1,10 @@
-CH ?= "../../ch/doc/sphinx/build/singlehtml/"
+REPO ?= "../../ch/"
+RSYNC = rsync -a -i
 
 copy:
-	(cd "$(CH)" && git rev-parse --short HEAD > revision)
-	rsync -Pa "$(CH)" .
+	(cd "$(REPO)" && git rev-parse --short HEAD > revision)
+	$(RSYNC) "$(REPO)/doc/sphinx/build/singlehtml/" .
+	$(RSYNC) -R $(REPO)/doc/./dashboard/*.{js,html,css} .
 
 commit:
 	git commit -m "update from devel `cat revision`"
