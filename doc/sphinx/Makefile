@@ -17,6 +17,7 @@ man1 man3 man7: man
 
 singlehtml_data:
 	cp -r src/log/log??_* build/singlehtml/
+	rsync -iaR .././dashboard/*.{js,html,css} build/singlehtml/
 
 install: man1 man3 man7
 	mandb -q --user-db
