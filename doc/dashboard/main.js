@@ -1,7 +1,7 @@
 var chart = document.getElementById("chart");
 var margin = {
   bottom: 80,
-  top: 10,
+  top: 20,
   left: 50,
   right: 30,
 };
