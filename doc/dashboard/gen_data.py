@@ -43,7 +43,8 @@ def gen(wildcard, outpath, urlbase):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--history',
         type=str,
@@ -57,7 +58,7 @@ def main():
         '--url',
         type=str,
         default="https://github.com/cselab/aphros-dev/commits/",
-        help='Prefix for url, appended by commit hash')
+        help='Prefix for url, to be appended by commit hash')
     args = parser.parse_args()
     gen(args.history, args.out, args.url)
 
