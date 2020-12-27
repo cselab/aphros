@@ -25,9 +25,3 @@ surface tension. Key features:
   which has the computational cost that does not depend on the number
   of bubbles in the simulation and therefore
   can describe processes such as generation of foam
-
-.. raw:: html
-
-    <iframe src="dashboard/index.html" frameborder="0"
-       style="overflow: hidden; height: 500px; width: 100%;">
-    </iframe>
