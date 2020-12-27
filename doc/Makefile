@@ -2,7 +2,7 @@ REPO ?= "../../ch/"
 RSYNC = rsync -a -i --update
 
 copy:
-	(cd "$(REPO)" && git rev-parse --short HEAD > revision)
+	(cd "$(REPO)" && git rev-parse --short HEAD) > revision
 	$(RSYNC) "$(REPO)/doc/sphinx/build/singlehtml/" .
 
 commit:
