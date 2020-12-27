@@ -10,3 +10,5 @@ main
 stat.dat
 stat_summary
 testcase
+cmake*.o
+a.out
