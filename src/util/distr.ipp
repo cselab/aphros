@@ -13,6 +13,7 @@
 template <class MIdx>
 std::vector<MIdx> Subdomains<MIdx>::GetValidProcs(
     MIdx mesh_size, MIdx block_size, size_t nproc) {
+  const size_t dim = MIdx::dim;
   const auto ms = mesh_size;
   const auto bs = block_size;
 
@@ -30,19 +31,33 @@ std::vector<MIdx> Subdomains<MIdx>::GetValidProcs(
     return true;
   };
 
-  std::vector<size_t> divisors; // divisors of nproc
-  for (size_t px = 1; px <= nproc; ++px) {
-    if (nproc % px == 0) {
-      divisors.push_back(px);
+  auto divisors = [](size_t n) {
+    std::vector<size_t> res;
+    for (size_t d = 1; d * d <= n; ++d) {
+      if (n % d == 0) {
+        res.push_back(d);
+        const size_t r = n / d;
+        if (r != d) {
+          res.push_back(r);
+        }
+      }
     }
-  }
+    return res;
+  };
   std::vector<MIdx> res;
-  for (auto px : divisors) {
-    for (auto py : divisors) {
-      auto pz = nproc / (px * py);
-      const MIdx procs(px, py, pz);
-      if (is_valid(procs)) {
-        res.push_back(procs);
+  for (auto px : divisors(nproc)) {
+    for (auto py : divisors(dim > 1 ? nproc / px : 1)) {
+      for (auto pz : divisors(dim > 2 ? nproc / (px * py) : 1)) {
+        for (auto pw : divisors(dim > 3 ? nproc / (px * py * pz) : 1)) {
+          MIdx procs;
+          if (dim > 0) procs[0] = px;
+          if (dim > 1) procs[1] = py;
+          if (dim > 2) procs[2] = pz;
+          if (dim > 3) procs[3] = pw;
+          if (is_valid(procs)) {
+            res.push_back(procs);
+          }
+        }
       }
     }
   }
