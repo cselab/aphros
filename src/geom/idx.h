@@ -49,6 +49,9 @@ class Idx {
   bool operator!=(Idx o) const {
     return !(*this == o);
   }
+  bool operator<(Idx o) const {
+    return value_ < o.value_;
+  }
 
  public:
   static constexpr int id = id_;

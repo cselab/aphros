@@ -1,3 +1,0 @@
-set -eu
-make > /dev/null
-mpirun --oversubscribe -n 3 ./t.commmap --nx 24

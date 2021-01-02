@@ -76,6 +76,7 @@ set(ObjLibs
   approx_eb
   argparse
   color
+  comm_manager
   convdiffe
   convdiffi
   convdiffvg

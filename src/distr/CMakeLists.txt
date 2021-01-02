@@ -30,4 +30,6 @@ set(T "distrbasic")
 add_library(${T} distrbasic.cpp)
 target_link_libraries(${T} distrsolver)
 
-
+set(T "comm_manager")
+add_library(${T} comm_manager.cpp)
+target_link_libraries(${T} distr)
