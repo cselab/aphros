@@ -13,6 +13,10 @@ if (USE_FPZIP)
 endif ()
 target_compile_definitions(${T} PUBLIC _USE_FPZIP_=$<BOOL:${USE_FPZIP$}>)
 
+set(T "native")
+add_library(${T} native.cpp)
+target_link_libraries(${T} hdf distr)
+
 set(T "report")
 add_library(${T} report.cpp)
 target_link_libraries(${T})
@@ -24,11 +28,11 @@ target_link_libraries(${T}
 
 set(T "distrsolver")
 add_library(${T} distrsolver.cpp)
-target_link_libraries(${T} distr local cubismnc)
+target_link_libraries(${T} distr local cubismnc native utildistr)
 
 set(T "distrbasic")
 add_library(${T} distrbasic.cpp)
-target_link_libraries(${T} distrsolver)
+target_link_libraries(${T} distrsolver utildistr)
 
 set(T "comm_manager")
 add_library(${T} comm_manager.cpp)

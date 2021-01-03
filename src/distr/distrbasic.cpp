@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "distrsolver.h"
+#include "util/distr.h"
 #include "util/git.h"
 #include "util/subcomm.h"
 

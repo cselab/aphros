@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <mpi.h>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -14,6 +13,7 @@
 #include "geom/vect.h"
 #include "kernel/kernelmeshpar.h"
 #include "local.h"
+#include "native.h"
 #include "parse/parser.h"
 #include "parse/vars.h"
 
@@ -39,6 +39,8 @@ class DistrSolver {
       d_ = CreateLocal<M>(comm, kernelfactory_, var_mutable);
     } else if (be == "cubismnc") {
       d_ = CreateCubismnc<M>(comm, kernelfactory_, var_mutable);
+    } else if (be == "native") {
+      d_ = CreateNative<M>(comm, kernelfactory_, var_mutable);
     } else {
       throw std::runtime_error("DistrSolver: unknown backend='" + be + "'");
     }
@@ -56,34 +58,6 @@ class DistrSolver {
   std::unique_ptr<DistrMesh<M>> d_;
   KF kernelfactory_;
 };
-
-class MpiWrapper {
- public:
-  MpiWrapper(int* argc, const char*** argv, MPI_Comm comm = MPI_COMM_WORLD);
-  ~MpiWrapper();
-  MPI_Comm GetComm() const;
-  static int GetCommSize(MPI_Comm);
-  static int GetCommRank(MPI_Comm);
-  static bool IsRoot(MPI_Comm);
-  int GetCommSize() const;
-  int GetCommRank() const;
-  bool IsRoot() const;
-
- private:
-  MPI_Comm comm_;
-};
-
-#define MPICALL(x)                                                    \
-  do {                                                                \
-    int errorcode;                                                    \
-    errorcode = x;                                                    \
-    if (errorcode != MPI_SUCCESS) {                                   \
-      char string[MPI_MAX_ERROR_STRING];                              \
-      int resultlen;                                                  \
-      MPI_Error_string(errorcode, string, &resultlen);                \
-      throw std::runtime_error(FILELINE + ": mpi failed: " + string); \
-    }                                                                 \
-  } while (0)
 
 int RunMpi(
     int argc, const char** argv, const std::function<void(MPI_Comm, Vars&)>&);

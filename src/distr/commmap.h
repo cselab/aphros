@@ -8,8 +8,8 @@
 #include <numeric>
 #include <vector>
 
-#include "distr/distrsolver.h"
 #include "geom/mesh.h"
+#include "util/distr.h"
 #include "util/format.h"
 
 /*

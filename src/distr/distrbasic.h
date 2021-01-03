@@ -19,6 +19,7 @@
 #include "local.h"
 #include "parse/parser.h"
 #include "parse/vars.h"
+#include "util/distr.h"
 
 std::string GetDefaultConf();
 

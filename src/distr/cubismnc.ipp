@@ -210,7 +210,7 @@ class Cubismnc : public DistrMesh<M_> {
     }
   };
 
-  CheckProcs checkprocs_;
+  CheckProcs checkprocs_; // Enforces the check before construction of grid_
   Grid grid_;
   std::vector<std::vector<FieldView>> fviews_; // fields from last communication
   Synch* sync_;

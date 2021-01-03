@@ -103,6 +103,7 @@ set(ObjLibs
   linear
   local
   mesh
+  native
   normal
   overlap
   parser
