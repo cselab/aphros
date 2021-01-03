@@ -22,6 +22,7 @@ install(FILES distr/distrbasic.h DESTINATION ${APHROS_PREFIX}/include/aphros/dis
 install(FILES distr/distr.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES distr/distrsolver.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES distr/local.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
+install(FILES distr/native.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES distr/reduce.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES distr/report.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES dump/dumper.h DESTINATION ${APHROS_PREFIX}/include/aphros/dump)
