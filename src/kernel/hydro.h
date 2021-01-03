@@ -124,6 +124,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   using UEB = UEmbed<M>;
   using ParticlesView = typename ParticlesInterface<M>::ParticlesView;
   static constexpr size_t dim = M::dim;
+  using BlockInfoProxy = generic::BlockInfoProxy<dim>;
   friend void StepHook<>(Hydro*);
 
   // TODO: issue warning if variable in Vars was not used

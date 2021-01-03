@@ -34,6 +34,7 @@ class EmbedInterpolate : public KernelMeshPar<M_, GPar<M_>> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using Sem = typename Mesh::Sem;
+  using BlockInfoProxy = generic::BlockInfoProxy<dim>;
 
   EmbedInterpolate(Vars& var, const BlockInfoProxy& block, Par& par);
   void Run() override;

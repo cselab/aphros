@@ -31,6 +31,7 @@ class DistrMesh {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using RedOp = typename M::Op;
+  using BlockInfoProxy = generic::BlockInfoProxy<dim>;
 
   virtual void Run();
   virtual void Report();

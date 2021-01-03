@@ -77,6 +77,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   using Sem = typename Mesh::Sem;
   using ASV = Vof<M>; // advection VOF
   using ASVM = Vofm<M>; // advection VOF
+  using BlockInfoProxy = generic::BlockInfoProxy<dim>;
 
   // using P::P; // inherit constructor
   Advection(Vars& var, const BlockInfoProxy& bi, Par& par);

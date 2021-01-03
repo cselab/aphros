@@ -6,44 +6,41 @@
 #include "geom/mesh.h"
 #include "parse/vars.h"
 
-// TODO: remove h_gridpoint from BlockInfoProxy
+namespace generic {
+
+template <size_t dim_ = 3>
 struct BlockInfoProxy {
-  using Idx = std::array<int, 3>;
-  Idx index;
-  void* ptrBlock;
-  double h_gridpoint;
-  double origin[3];
-  Idx bs;
-  int hl; // number of halo cells
-  bool isroot; // root block (one among blocks on all PEs)
-  bool islead; // lead block (one per each PE)
-  Idx gs; // global size
-  size_t maxcomm; // maximum number of communication requests
+  static constexpr size_t dim = dim_;
+  using Vect = generic::Vect<double, dim>;
+  using MIdx = generic::MIdx<dim>;
+
+  MIdx index;
+  Vect cellsize;
+  MIdx blocksize;
+  int halos;
+  bool isroot; // root block, one block over all processors
+  bool islead; // lead block, one block in each processor
+  MIdx globalsize; // global mesh size
 };
 
+} // namespace generic
+
 template <class M>
-M CreateMesh(const BlockInfoProxy& bi) {
+M CreateMesh(const generic::BlockInfoProxy<M::dim>& p) {
   using MIdx = typename M::MIdx;
-  using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  int hl = bi.hl;
+  const MIdx bs = p.blocksize;
+  const MIdx worigin = p.index * bs;
+  const Vect h = p.cellsize;
+  const Rect<Vect> domain(Vect(worigin) * h, Vect(worigin + bs) * h);
 
-  const MIdx bs(bi.bs); // block size inner
-  const Scal h = bi.h_gridpoint;
-  const MIdx w(bi.index); // block index
-  const Vect d0(bi.origin); // origin coord
-  const Vect d1 = d0 + Vect(bs) * h; // end coord
-  const Rect<Vect> d(d0, d1); // domain box
-  const MIdx gs(bi.gs); // global size
-  const MIdx o = w * bs; // origin index
-
-  const MIdx wmax = gs / bs; // maximum block index
-
-  const int id = M::Flags::GetIdFromBlock(w, wmax);
-  M m = InitUniformMesh<M>(d, o, bs, hl, bi.isroot, bi.islead, gs, id);
+  const MIdx global_blocks = p.globalsize / bs;
+  const int id = M::Flags::GetIdFromBlock(p.index, global_blocks);
+  M m = InitUniformMesh<M>(
+      domain, worigin, bs, p.halos, p.isroot, p.islead, p.globalsize, id);
   m.flags.global_origin = Vect(0);
-  m.flags.global_blocks = wmax;
-  m.flags.block_length = Vect(bs) * h;
+  m.flags.global_blocks = global_blocks;
+  m.flags.block_length = h * Vect(bs);
   return m;
 }
 
@@ -57,7 +54,7 @@ class KernelMesh {
   using MIdx = typename M::MIdx;
   static constexpr size_t dim = M::dim;
 
-  KernelMesh(Vars& var_, const BlockInfoProxy& bi)
+  KernelMesh(Vars& var_, const generic::BlockInfoProxy<dim>& bi)
       : var(var_), var_mutable(var_), bi_(bi), m(CreateMesh<M>(bi)) {
     m.flags.check_nan = var.Int["CHECKNAN"];
     m.flags.edim = var.Int["dim"];
@@ -77,7 +74,7 @@ class KernelMesh {
  protected:
   const Vars& var; // shared among all blocks on each PEs
   Vars& var_mutable; // shared among all blocks on each PEs
-  BlockInfoProxy bi_;
+  generic::BlockInfoProxy<dim> bi_;
   M m;
 };
 
@@ -87,5 +84,5 @@ class KernelMeshFactory {
  public:
   using M = M_;
   using K = KernelMesh<M>;
-  virtual K* Make(Vars&, const BlockInfoProxy&) const = 0;
+  virtual K* Make(Vars&, const generic::BlockInfoProxy<M::dim>&) const = 0;
 };

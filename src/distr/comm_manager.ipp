@@ -5,7 +5,7 @@
 
 #include "comm_manager.h"
 
-// Communication mapper.
+// Communication manager.
 // Assigns blocks to processors and enumerates halo cells.
 // No dependency on MPI.
 // Valid only on root.

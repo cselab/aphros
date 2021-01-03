@@ -28,6 +28,7 @@ class Local : public DistrMesh<M_> {
   using MIdx = typename M::MIdx;
   using P = DistrMesh<M>;
   using RedOp = typename M::Op;
+  using BlockInfoProxy = generic::BlockInfoProxy<3>;
 
   using P::blocksize_;
   using P::comm_;
@@ -44,7 +45,7 @@ class Local : public DistrMesh<M_> {
   using P::var;
 
   std::vector<FieldCell<Scal>> buf_; // buffer on mesh
-  M gm; // global mesh
+  M globalmesh; // global mesh
   std::unique_ptr<output::Ser> oser_; // output series
   std::vector<BlockInfoProxy> proxies_;
   generic::Vect<bool, 3> per_; // periodic in direction
@@ -88,47 +89,25 @@ template <class M>
 Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
     : DistrMesh<M>(comm, kf, var_)
     , buf_(var.Int["loc_maxcomm"])
-    , gm(CreateGlobalMesh(blocksize_, nblocks_, nprocs_, extent_)) {
+    , globalmesh(CreateGlobalMesh(blocksize_, nblocks_, nprocs_, extent_)) {
   // Resize buffer for mesh
   for (auto& u : buf_) {
-    u.Reinit(gm);
+    u.Reinit(globalmesh);
   }
 
-  // Fill block info
   GBlock<size_t, dim> procs(nprocs_);
   GBlock<size_t, dim> blocks(nblocks_);
-  const Scal cellsize = (gm.GetNode(IdxNode(1)) - gm.GetNode(IdxNode(0)))[0];
-  assert(cellsize > 0);
-  if (var.Int["verbose"]) {
-    std::cerr << "global mesh cellsize = " << cellsize << std::endl;
-  }
-  bool islead = true;
-  for (auto wp : procs) { // same ordering as in Cubism
-    for (auto wb : blocks) {
-      auto midx = nblocks_ * wp + wb;
-      BlockInfoProxy proxy;
-      const IdxNode node = gm.GetIndexNodes().GetIdx(midx * blocksize_);
-      const Vect origin = gm.GetNode(node);
-      if (var.Int["verbose"]) {
-        std::cerr << "origin=" << origin << " node=" << node.GetRaw()
-                  << " midx=" << midx << std::endl;
-      }
-      for (int q = 0; q < 3; ++q) {
-        proxy.index[q] = midx[q];
-        proxy.origin[q] = origin[q];
-        proxy.bs[q] = blocksize_[q];
-      }
-      proxy.h_gridpoint = cellsize;
-      proxy.hl = halos_;
-      proxy.maxcomm = buf_.size();
-      const MIdx globalsize = nprocs_ * nblocks_ * blocksize_;
-      for (int j = 0; j < 3; ++j) {
-        proxy.gs[j] = globalsize[j];
-      }
-      proxy.isroot = (midx == MIdx(0));
-      proxy.islead = islead;
-      islead = false;
-      proxies_.push_back(proxy);
+  for (auto wproc : procs) { // same ordering as in Cubism
+    for (auto wblock : blocks) {
+      BlockInfoProxy p;
+      p.index = nblocks_ * wproc + wblock;
+      p.cellsize = globalmesh.GetCellSize();
+      p.blocksize = blocksize_;
+      p.halos = halos_;
+      p.isroot = (p.index == MIdx(0));
+      p.islead = (p.index == MIdx(0));
+      p.globalsize = nprocs_ * nblocks_ * blocksize_;
+      proxies_.push_back(p);
     }
   }
 
@@ -300,14 +279,15 @@ void Local<M>::DumpWrite(const std::vector<size_t>& bb) {
         // Write dump
         for (auto& on : m.GetDump()) {
           v.emplace_back(new output::OutFldFunc<Scal, IdxCell, M>(
-              on.second, gm, [this, k](IdxCell i) { return buf_[k][i]; }));
+              on.second, globalmesh,
+              [this, k](IdxCell i) { return buf_[k][i]; }));
           k += on.first->GetSize();
           if (on.first->GetSize() != 1) {
             throw std::runtime_error("DumpWrite(): Support only size 1");
           }
         }
 
-        oser_.reset(new output::SerVtkStruct<M>(v, "title", "p", gm));
+        oser_.reset(new output::SerVtkStruct<M>(v, "title", "p", globalmesh));
       }
 
       // TODO: Check no change in comm list between time steps
@@ -334,8 +314,8 @@ size_t Local<M>::ReadBuffer(FieldCell<Scal>& fc, size_t e, M& m) {
     throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
   }
   auto& ndc = m.GetIndexCells();
-  auto& gndc = gm.GetIndexCells();
-  MIdx gs = gm.GetInBlockCells().GetSize();
+  auto& gndc = globalmesh.GetIndexCells();
+  MIdx gs = globalmesh.GetInBlockCells().GetSize();
   for (auto c : m.AllCells()) {
     auto w = ndc.GetMIdx(c);
     // periodic
@@ -367,8 +347,8 @@ size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t comp, size_t e, M& m) {
     throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
   }
   auto& indexc = m.GetIndexCells();
-  auto& indexc_global = gm.GetIndexCells();
-  MIdx gs = gm.GetInBlockCells().GetSize();
+  auto& indexc_global = globalmesh.GetIndexCells();
+  MIdx gs = globalmesh.GetInBlockCells().GetSize();
   for (auto c : m.AllCells()) {
     auto w = indexc.GetMIdx(c);
     // periodic
@@ -438,7 +418,7 @@ size_t Local<M>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
     throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
   }
   auto& indexc = m.GetIndexCells();
-  auto& indexc_global = gm.GetIndexCells();
+  auto& indexc_global = globalmesh.GetIndexCells();
   for (auto c : m.Cells()) {
     auto w = indexc.GetMIdx(c);
     auto gc = indexc_global.GetIdx(w);
@@ -459,7 +439,7 @@ size_t Local<M>::WriteBuffer(
     throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
   }
   auto& indexc = m.GetIndexCells();
-  auto& indexc_global = gm.GetIndexCells();
+  auto& indexc_global = globalmesh.GetIndexCells();
   for (auto c : m.Cells()) {
     auto w = indexc.GetMIdx(c);
     auto gc = indexc_global.GetIdx(w);

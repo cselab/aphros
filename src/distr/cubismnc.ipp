@@ -171,8 +171,9 @@ class Cubismnc : public DistrMesh<M_> {
 
   using P = DistrMesh<M>; // parent
   using MIdx = typename M::MIdx;
+  using BlockInfoProxy = generic::BlockInfoProxy<M::dim>;
 
-  // Convert Cubism BlockInfo to BlockInfoProxy
+  // Converts Cubism BlockInfo to BlockInfoProxy
   static std::vector<BlockInfoProxy> Convert(
       const std::vector<BlockInfo>&, MIdx bs, size_t hl);
 
@@ -201,11 +202,10 @@ class Cubismnc : public DistrMesh<M_> {
     CheckProcs(MPI_Comm comm, MIdx nprocs) {
       int commsize;
       MPI_Comm_size(comm, &commsize);
-      if (commsize != nprocs[0] * nprocs[1] * nprocs[2]) {
+      if (commsize != nprocs.prod()) {
         throw std::runtime_error(util::Format(
-            "Number of MPI tasks ({}) does not match the number of subdomains "
-            "px={} py={} pz={}",
-            commsize, nprocs[0], nprocs[1], nprocs[2]));
+            "Number of MPI tasks {} does not match the number of subdomains {}",
+            commsize, nprocs));
       }
     }
   };
@@ -295,21 +295,18 @@ struct StreamHdfVect {
 };
 
 template <class Par, class M>
-std::vector<BlockInfoProxy> Cubismnc<Par, M>::Convert(
-    const std::vector<BlockInfo>& infos, MIdx bs, size_t halos) {
+auto Cubismnc<Par, M>::Convert(
+    const std::vector<BlockInfo>& infos, MIdx blocksize, size_t halos)
+    -> std::vector<BlockInfoProxy> {
   std::vector<BlockInfoProxy> proxies;
   for (size_t i = 0; i < infos.size(); i++) {
     const BlockInfo& info = infos[i];
-    BlockInfoProxy proxy;
-    for (int j = 0; j < 3; ++j) {
-      proxy.index[j] = info.index[j];
-      proxy.origin[j] = info.origin[j];
-      proxy.bs[j] = bs[j];
-    }
-    proxy.h_gridpoint = info.h_gridpoint;
-    proxy.hl = halos;
-    proxy.maxcomm = 65536;
-    proxies.push_back(proxy);
+    BlockInfoProxy p;
+    p.index = MIdx(info.index);
+    p.cellsize = Vect(info.h_gridpoint);
+    p.blocksize = blocksize;
+    p.halos = halos;
+    proxies.push_back(p);
   }
   return proxies;
 }
@@ -335,24 +332,16 @@ Cubismnc<Par, M>::Cubismnc(
 
   // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Get rid of BlockInfo type
   const std::vector<BlockInfo> infos = grid_.getBlocksInfo();
-  std::vector<BlockInfoProxy> proxies = Convert(infos, blocksize_, halos_);
 
-  bool islead = true;
+  std::vector<BlockInfoProxy> proxies = Convert(infos, blocksize_, halos_);
   for (size_t i = 0; i < proxies.size(); ++i) {
-    auto& proxy = proxies[i];
-    const MIdx midx(proxy.index);
-    proxy.isroot = (midx == MIdx(0));
-    if (proxy.isroot) {
-      fassert_equal(i, 0, "Root block must be first");
-    }
-    proxy.islead = islead;
-    const MIdx globalsize = nprocs_ * nblocks_ * blocksize_;
-    for (int j = 0; j < 3; ++j) {
-      proxy.gs[j] = globalsize[j];
-    }
-    islead = false;
-    midx_to_kernel_[midx] = i;
+    auto& p = proxies[i];
+    p.isroot = (p.index == MIdx(0));
+    p.islead = (i == 0);
+    p.globalsize = nprocs_ * nblocks_ * blocksize_;
+    midx_to_kernel_[p.index] = i;
   }
+
   comm_ = grid_.getCartComm(); // XXX: overwrite comm_
   this->MakeKernels(proxies);
 }
