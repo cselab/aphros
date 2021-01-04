@@ -1,6 +1,8 @@
 // Created by Petr Karnakov on 02.01.2021
 // Copyright 2021 ETH Zurich
 
+#include <set>
+
 #include "util/format.h"
 
 #include "comm_manager.h"
@@ -61,18 +63,22 @@ struct CommManager<dim_>::Imp {
 
     for (size_t ib = 0; ib < blocks.size(); ++ib) {
       auto& b = blocks[ib];
+      std::set<IdxCell> set; // set to keep only unique indices
       for (auto wc : *b.incells) {
         GBlock<size_t, dim> offsets(MIdx(-halos), MIdx(2 * halos + 1));
         for (auto dw : offsets) {
           if (full || nnz(dw) == 1) {
             const auto w = wc + dw;
-            const auto wp = GetPeriodic(w, globalsize);
             if (IsValid(w, globalsize, is_periodic) &&
                 !b.incells->IsInside(w)) {
-              res[cell_to_rank(wp)].push_back({ib, b.indexc->GetIdx(w)});
+              set.insert(b.indexc->GetIdx(w));
             }
           }
         }
+      }
+      for (auto c : set) {
+        const auto wp = GetPeriodic(b.indexc->GetMIdx(c), globalsize);
+        res[cell_to_rank(wp)].push_back({ib, c});
       }
     }
     return res;
