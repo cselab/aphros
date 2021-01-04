@@ -206,7 +206,6 @@ void Simple<M>::TestReduce() {
   };
   if (sem("sum")) {
     r_ = func(MIdx(bi_.index));
-    std::cout << NAMEVALUE(bi_.index) << ' ' << NAMEVALUE(r_) << std::endl;
     m.Reduce(&r_, Reduction::sum);
   }
   if (sem("sum-check")) {
@@ -298,7 +297,6 @@ void Simple<M>::TestReduce() {
       }
     }
     if (m.IsRoot()) {
-      std::cout << "****" << NAMEVALUE(m.GetId()) << std::endl;
       std::sort(rvs_.begin(), rvs_.end());
       std::sort(exact.begin(), exact.end());
       PCMPF(rvs_, exact);

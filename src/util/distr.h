@@ -11,7 +11,12 @@
 class MpiWrapper {
  public:
   MpiWrapper(int* argc, const char*** argv, MPI_Comm comm = MPI_COMM_WORLD);
+  MpiWrapper(MPI_Comm comm = MPI_COMM_WORLD);
+  MpiWrapper(const MpiWrapper&) = delete;
+  MpiWrapper(MpiWrapper&&) = delete;
   ~MpiWrapper();
+  MpiWrapper& operator=(const MpiWrapper&) = delete;
+  MpiWrapper& operator=(MpiWrapper&&) = delete;
   MPI_Comm GetComm() const;
   static int GetCommSize(MPI_Comm);
   static int GetCommRank(MPI_Comm);
@@ -21,6 +26,7 @@ class MpiWrapper {
   bool IsRoot() const;
 
  private:
+  bool finalize_;
   MPI_Comm comm_;
 };
 

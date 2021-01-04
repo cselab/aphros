@@ -5,7 +5,7 @@ install(TARGETS ${EXE} DESTINATION "${APHROS_PREFIX}/bin")
 target_link_libraries(${EXE} aphros)
 
 
-foreach(comm local cubismnc)
+foreach(comm local cubismnc native)
   foreach(block 8 16 32)
     add_test_current(
         NAME 2d-${comm}${block}

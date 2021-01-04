@@ -9,7 +9,7 @@
 #include "distr.ipp"
 
 MpiWrapper::MpiWrapper(int* argc, const char*** argv, MPI_Comm comm)
-    : comm_(comm) {
+    : finalize_(true), comm_(comm) {
 #ifdef _OPENMP
   omp_set_dynamic(0);
 #endif
@@ -19,8 +19,12 @@ MpiWrapper::MpiWrapper(int* argc, const char*** argv, MPI_Comm comm)
   fassert_equal(required, provided, ", mismatch in thread support level");
 }
 
+MpiWrapper::MpiWrapper(MPI_Comm comm) : finalize_(false), comm_(comm) {}
+
 MpiWrapper::~MpiWrapper() {
-  MPI_Finalize();
+  if (finalize_) {
+    MPI_Finalize();
+  }
 }
 
 MPI_Comm MpiWrapper::GetComm() const {

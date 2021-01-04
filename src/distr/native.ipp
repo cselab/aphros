@@ -10,6 +10,7 @@
 #include <numeric>
 #include <stdexcept>
 
+#include "comm_manager.h"
 #include "distr.h"
 #include "dump/dumper.h"
 #include "util/format.h"
@@ -52,17 +53,25 @@ class Native : public DistrMesh<M_> {
   using P::stage_;
   using P::var;
 
-  std::map<MIdx, size_t> midx_to_kernel_;
   int commsize_;
+  int commrank_;
+  typename CommManager<dim>::Tasks tasks_;
+  struct HaloTmp {
+    MPI_Request req;
+    size_t cnt = 0;
+    std::vector<Scal> buf;
+  };
+  std::map<int, HaloTmp> tmp_send_;
+  std::map<int, HaloTmp> tmp_recv_;
 };
 
 template <class M>
 Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
     : DistrMesh<M>(comm, kf, var_) {
-  MPI_Comm_size(comm, &commsize_);
-  int rank;
-  MPI_Comm_rank(comm, &rank);
-  isroot_ = (0 == rank); // XXX: overwrite isroot_
+  MpiWrapper mpi(comm_);
+  commsize_ = mpi.GetCommSize();
+  commrank_ = mpi.GetCommRank();
+  isroot_ = (0 == commrank_); // XXX: overwrite isroot_
 
   if (commsize_ != nprocs_.prod()) {
     throw std::runtime_error(util::Format(
@@ -70,14 +79,14 @@ Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
         commsize_, nprocs_));
   }
 
+  const MIdx globalsize = nprocs_ * nblocks_ * blocksize_;
   std::vector<BlockInfoProxy> proxies;
   GIndex<size_t, dim> procs(nprocs_);
   GIndex<size_t, dim> blocks(nblocks_);
-  const MIdx wproc = procs.GetMIdx(rank);
   for (auto ib : blocks.Range()) {
     BlockInfoProxy p;
-    p.index = nblocks_ * wproc + blocks.GetMIdx(ib);
-    p.globalsize = nprocs_ * nblocks_ * blocksize_;
+    p.index = nblocks_ * procs.GetMIdx(commrank_) + blocks.GetMIdx(ib);
+    p.globalsize = globalsize;
     p.cellsize = Vect(extent_ / p.globalsize.max());
     p.blocksize = blocksize_;
     p.halos = halos_;
@@ -85,8 +94,22 @@ Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
     p.islead = (p.index == MIdx(0));
     proxies.push_back(p);
   }
-  comm_ = comm; // XXX: overwrite comm_
+
   this->MakeKernels(proxies);
+
+  {
+    std::vector<typename CommManager<dim>::Block> cm_blocks;
+    for (auto& k : kernels_) {
+      auto& m = k->GetMesh();
+      cm_blocks.push_back({&m.GetInBlockCells(), &m.GetIndexCells()});
+    }
+    auto cell_to_rank = [&procs, this](MIdx w) -> int {
+      return procs.GetIdx(w / blocksize_ / nblocks_);
+    };
+    const std::array<bool, dim> is_periodic{true, true, true};
+    tasks_ = CommManager<dim>::GetTasks(
+        cm_blocks, cell_to_rank, globalsize, is_periodic, mpi);
+  }
 }
 
 template <class M>
@@ -94,8 +117,168 @@ Native<M>::~Native() = default;
 
 template <class M>
 auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
-  std::vector<size_t> bb;
+  if (!inner) {
+    return {};
+  }
+  std::vector<size_t> bb(kernels_.size());
   std::iota(bb.begin(), bb.end(), 0);
+  auto& vcr = kernels_.front()->GetMesh().GetComm();
+  if (vcr.empty()) {
+    return bb;
+  }
+
+  auto& task = tasks_.full_two;
+
+  size_t nscal = 0; // number of scalar fields to transfer
+  for (size_t i = 0; i < vcr.size(); ++i) {
+    if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
+      nscal += 1;
+    }
+    if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
+      nscal += (crd->d == -1 ? dim : 1);
+    }
+  }
+
+  // Clear buffers
+  for (auto& p : tmp_recv_) {
+    auto& tmp = p.second;
+    tmp.buf.resize(0);
+    tmp.cnt = 0;
+  }
+  for (auto& p : tmp_send_) {
+    auto& tmp = p.second;
+    tmp.buf.resize(0);
+    tmp.cnt = 0;
+  }
+
+  // Determine the size of receive buffer
+  for (auto& p : task.recv) {
+    auto& rank = p.first;
+    auto& cells = p.second;
+    tmp_recv_[rank].cnt += cells.size() * nscal;
+  }
+
+  auto type = sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT;
+  const int tag = 0;
+
+  // Receive
+  for (auto& p : tmp_recv_) {
+    auto& rank = p.first;
+    auto& tmp = p.second;
+    tmp.buf.resize(tmp.cnt);
+    MPI_Irecv(tmp.buf.data(), tmp.cnt, type, rank, tag, comm_, &tmp.req);
+  }
+  // Determine the size of send buffer
+  for (auto& p : task.send) {
+    auto& rank = p.first;
+    auto& cells = p.second;
+    tmp_send_[rank].cnt += cells.size() * nscal;
+  }
+  // Reserve send buffer
+  for (auto& p : tmp_send_) {
+    auto& tmp = p.second;
+    tmp.buf.reserve(tmp.cnt);
+  }
+  // Collect data to send
+  for (size_t i = 0; i < vcr.size(); ++i) {
+    if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
+      std::vector<FieldCell<Scal>*> fields;
+      for (auto& k : kernels_) {
+        const auto* cr = static_cast<typename M::CommRequestScal*>(
+            k->GetMesh().GetComm()[i].get());
+        fields.push_back(cr->field);
+      }
+      for (auto& p : task.send) {
+        auto& rank = p.first;
+        auto& cells = p.second;
+        auto& tmp = tmp_send_[rank];
+        for (auto bc : cells) {
+          tmp.buf.push_back((*fields[bc.block])[bc.cell]);
+        }
+      }
+    }
+    if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
+      std::vector<FieldCell<Vect>*> fields;
+      for (auto& k : kernels_) {
+        const auto* cr = static_cast<typename M::CommRequestVect*>(
+            k->GetMesh().GetComm()[i].get());
+        fields.push_back(cr->field);
+      }
+      for (auto& p : task.send) {
+        auto& rank = p.first;
+        auto& cells = p.second;
+        auto& tmp = tmp_send_[rank];
+        for (auto bc : cells) {
+          if (crd->d == -1) {
+            for (size_t d = 0; d < dim; ++d) {
+              tmp.buf.push_back((*fields[bc.block])[bc.cell][d]);
+            }
+          } else {
+            tmp.buf.push_back((*fields[bc.block])[bc.cell][crd->d]);
+          }
+        }
+      }
+    }
+  }
+  // Send
+  for (auto& p : tmp_send_) {
+    auto& rank = p.first;
+    auto& tmp = p.second;
+    tmp.buf.resize(tmp.cnt);
+    MPI_Isend(tmp.buf.data(), tmp.cnt, type, rank, tag, comm_, &tmp.req);
+  }
+  // Wait for send and receive
+  for (auto& p : tmp_send_) {
+    MPI_Wait(&p.second.req, MPI_STATUS_IGNORE);
+  }
+  for (auto& p : tmp_recv_) {
+    MPI_Wait(&p.second.req, MPI_STATUS_IGNORE);
+  }
+  // Copy received data to fields, use `cnt` for position
+  for (auto& p : tmp_recv_) {
+    p.second.cnt = 0;
+  }
+  for (size_t i = 0; i < vcr.size(); ++i) {
+    if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
+      std::vector<FieldCell<Scal>*> fields;
+      for (auto& k : kernels_) {
+        const auto* cr = static_cast<typename M::CommRequestScal*>(
+            k->GetMesh().GetComm()[i].get());
+        fields.push_back(cr->field);
+      }
+      for (auto& p : task.recv) {
+        auto& rank = p.first;
+        auto& cells = p.second;
+        auto& tmp = tmp_recv_[rank];
+        for (auto bc : cells) {
+          (*fields[bc.block])[bc.cell] = tmp.buf[tmp.cnt++];
+        }
+      }
+    }
+    if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
+      std::vector<FieldCell<Vect>*> fields;
+      for (auto& k : kernels_) {
+        const auto* cr = static_cast<typename M::CommRequestVect*>(
+            k->GetMesh().GetComm()[i].get());
+        fields.push_back(cr->field);
+      }
+      for (auto& p : task.recv) {
+        auto& rank = p.first;
+        auto& cells = p.second;
+        auto& tmp = tmp_recv_[rank];
+        for (auto bc : cells) {
+          if (crd->d == -1) {
+            for (size_t d = 0; d < dim; ++d) {
+              (*fields[bc.block])[bc.cell][d] = tmp.buf[tmp.cnt++];
+            }
+          } else {
+            (*fields[bc.block])[bc.cell][crd->d] = tmp.buf[tmp.cnt++];
+          }
+        }
+      }
+    }
+  }
+
   return bb;
 }
 
@@ -371,7 +554,19 @@ void Native<M>::ReduceSingleRequest(const std::vector<RedOp*>& blocks) {
 
 template <class M>
 void Native<M>::DumpWrite(const std::vector<size_t>& bb) {
-  // nop
+  auto& mfirst = kernels_.front()->GetMesh();
+  if (mfirst.GetDump().size()) {
+    std::string dumpformat = var.String["dumpformat"];
+    if (dumpformat == "default") {
+      dumpformat = "hdf";
+    }
+
+    if (dumpformat == "hdf") {
+      // nop
+    } else {
+      P::DumpWrite(bb);
+    }
+  }
 }
 
 template <class M>
