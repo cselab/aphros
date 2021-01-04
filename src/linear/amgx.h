@@ -7,7 +7,7 @@
 #include <amgx_c.h>
 #include <cuda_runtime.h>
 
-#include "distr/distrsolver.h"
+#include "util/distr.h"
 #include "util/format.h"
 #include "util/logger.h"
 
