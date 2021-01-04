@@ -136,21 +136,19 @@ void InitLevelSetFromModel(
 
       // rescale, translate and rotate the vertices
       {
-        // rotates x around omega by angle |omega| degrees with origin at 0
-        auto rotate = [](Vect x, Vect omega) {
-          const Scal magn = omega.norm();
-          if (magn == 0) {
-            return x;
+        // rotates x around axes 0,1,2
+        // by angles omega[0], omega[1], omega[2] degrees with origin at 0
+        auto rotate = [&m](Vect x, Vect omega) {
+          for (auto d : m.dirs) {
+            const Scal a = omega[d] / 180 * M_PI;
+            const size_t du = (d + 1) % m.dim;
+            const size_t dv = (d + 2) % m.dim;
+            const Scal u = x[du] * std::cos(a) - x[dv] * std::sin(a);
+            const Scal v = x[du] * std::sin(a) + x[dv] * std::cos(a);
+            x[du] = u;
+            x[dv] = v;
           }
-          const Vect n = omega / magn;
-          const Vect tu = Vect::GetUnit(omega.abs().argmin()).cross(n);
-          const Vect tv = n.cross(tu);
-          const Scal xu = x.dot(tu);
-          const Scal xv = x.dot(tv);
-          const Scal a = magn / 180 * M_PI;
-          const Scal ru = xu * std::cos(a) - xv * std::sin(a);
-          const Scal rv = xu * std::sin(a) + xv * std::cos(a);
-          return tu * ru + tv * rv + n * x.dot(n);
+          return x;
         };
         // bounding box
         Vect box0(std::numeric_limits<Scal>::max());
