@@ -29,6 +29,8 @@ struct ProjPar {
   bool explviscous = true; // enable explicit viscous terms
   bool redistr_adv = false; // use RedistributeCutCellsAdvection()
                             // if true else RedistributeCutCells()
+  size_t diffusion_iters = 1; // number of iterations in implicit diffusion
+  bool diffusion_consistent_guess = false;
 };
 
 template <class M>

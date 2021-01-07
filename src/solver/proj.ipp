@@ -54,6 +54,8 @@ struct Proj<EB_>::Imp {
     fc_accel_.Reinit(m, Vect(0));
     fcvel_.time_curr = args.fcvel;
 
+    fcvel_diffusion_guess_ = fcvel_.time_curr;
+
     fcp_.time_curr.Reinit(m, 0.);
     fcp_predict_ = fcp_.time_curr;
 
@@ -235,42 +237,56 @@ struct Proj<EB_>::Imp {
   }
   void DiffusionImplicit(
       FieldCell<Vect>& fcvel, const FieldCell<Vect>& fcvel_time_prev,
-      const FieldCell<Scal>& fc_dens, const Scal dt) {
+      const FieldCell<Vect>& fcvel_guess, const FieldCell<Scal>& fc_dens,
+      const Scal dt) {
     auto sem = m.GetSem("diffusion");
     struct {
       FieldCell<Scal> fcu;
+      FieldCell<Scal> fcu_guess;
       FieldCell<Expr> fcl;
     } * ctx(sem);
     auto& fcu = ctx->fcu;
+    auto& fcu_guess = ctx->fcu_guess;
     auto& fcl = ctx->fcl;
     for (size_t d = 0; d < dim; ++d) {
       if (sem("local" + std::to_string(d))) {
-        const auto mebc = GetScalarCond(me_vel_, d, m);
         fcu = GetComponent(fcvel, d);
-        const FieldFaceb<ExprFace> ffg = UEB::GradientImplicit(fcu, mebc, eb);
-        fcl.Reinit(eb, Expr::GetUnit(0));
-        ffg.CheckHalo(0);
-        for (auto c : eb.Cells()) {
-          Expr sum(0);
-          eb.LoopNci(c, [&](auto q) {
-            const auto cf = eb.GetFace(c, q);
-            const ExprFace flux = ffg[cf] * ffvisc_[cf] * eb.GetArea(cf);
-            eb.AppendExpr(sum, flux * eb.GetOutwardFactor(c, q), q);
-          });
-          fcl[c] = -sum;
-        }
-        fcl.SetName("velocity" + std::to_string(d));
+        fcu_guess = GetComponent(fcvel_guess, d);
       }
-      if (sem("time")) {
-        for (auto c : eb.Cells()) {
-          Expr td(0); // time derivative
-          td[0] = 1 / dt;
-          td.back() = -fcvel_time_prev[c][d] / dt;
-          fcl[c] += td * eb.GetVolume(c) * fc_dens[c];
+      for (size_t iter = 0; iter < par.diffusion_iters; ++iter) {
+        if (sem("local" + std::to_string(d))) {
+          const auto mebc = GetScalarCond(me_vel_, d, m);
+          const FieldFaceb<ExprFace> ffg =
+              UEB::GradientImplicit(fcu_guess, mebc, eb);
+          fcl.Reinit(eb, Expr::GetUnit(0));
+          ffg.CheckHalo(0);
+          for (auto c : eb.Cells()) {
+            Expr sum(0);
+            eb.LoopNci(c, [&](auto q) {
+              const auto cf = eb.GetFace(c, q);
+              const ExprFace flux = ffg[cf] * ffvisc_[cf] * eb.GetArea(cf);
+              eb.AppendExpr(sum, flux * eb.GetOutwardFactor(c, q), q);
+            });
+            fcl[c] = -sum;
+          }
+          fcl.SetName("velocity" + std::to_string(d));
         }
-      }
-      if (sem.Nested("solve")) {
-        linsolver_->Solve(fcl, &fcu, fcu, m);
+        if (sem("time")) {
+          for (auto c : eb.Cells()) {
+            Expr td(0); // time derivative
+            td[0] = 1 / dt;
+            td.back() = -fcvel_time_prev[c][d] / dt;
+            fcl[c] += td * eb.GetVolume(c) * fc_dens[c];
+          }
+        }
+        if (sem.Nested("solve")) {
+          linsolver_->Solve(fcl, &fcu_guess, fcu, m);
+        }
+        if (par.diffusion_iters > 1) {
+          if (sem("updguess")) {
+            fcu_guess = fcu;
+          }
+        }
       }
       if (sem("copy")) {
         SetComponent(fcvel, d, fcu);
@@ -538,17 +554,31 @@ struct Proj<EB_>::Imp {
         fcvel.SetHalo(2);
       }
     }
+    if (!par.diffusion_consistent_guess) {
+      if (sem("diffusion-update-guess")) {
+        fcvel_diffusion_guess_ = fcvel;
+      }
+    }
     if (sem.Nested("diffusion")) {
       switch (par.conv) {
         case Conv::exp:
           DiffusionExplicit(fcvel, fcvel, *owner_->fcr_, dt);
           break;
         case Conv::imp:
-          DiffusionImplicit(fcvel, fcvel, *owner_->fcr_, dt);
+          DiffusionImplicit(
+              fcvel, fcvel, fcvel_diffusion_guess_, *owner_->fcr_, dt);
           break;
       }
     }
+    if (par.diffusion_consistent_guess) {
+      if (sem("diffusion-update-guess")) {
+        fcvel_diffusion_guess_ = fcvel;
+      }
+    }
     if (sem("face-acceleration")) {
+      if (par.diffusion_consistent_guess) {
+        fcvel_diffusion_guess_ = fcvel;
+      }
       // subtract old acceleration from cell velocity
       for (auto c : eb.AllCells()) {
         fcvel[c] -= fc_accel_[c] * dt;
@@ -635,6 +665,9 @@ struct Proj<EB_>::Imp {
   FieldCell<Scal> fcp_predict_; // pressure at prediction step,
                                 // used as initial guess
   StepData<FieldCell<Vect>> fcvel_; // velocity
+
+  FieldCell<Vect> fcvel_diffusion_guess_; // velocity after diffusion step,
+                                          // used as initial guess
 
   FieldEmbed<bool> is_boundary_; // true on faces with boundary conditions
 

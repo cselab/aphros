@@ -36,6 +36,8 @@ struct ParsePar<Proj<M>> {
     p.outlet_relax = var.Double["outlet_relax"];
     p.redistr_adv = var.Int["proj_redistr_adv"];
     p.inletpressure_factor = var.Double["inletpressure_factor"];
+    p.diffusion_iters = var.Int["proj_diffusion_iters"];
+    p.diffusion_consistent_guess = var.Int["proj_diffusion_consistent_guess"];
     return p;
   }
 };
