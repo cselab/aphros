@@ -74,6 +74,19 @@ std::pair<bool, BCondFluid<Vect>> ParseBCondFluid(
   } else if (name == "inletpressure") {
     bc.type = BCondFluidType::inletpressure;
     arg >> bc.pressure;
+  } else if (name == "inlet_rotation") {
+    // inlet with normal velocity `veln`, and tangential velocity
+    // of maginutude |omega|
+    // and direction from rotation around `center` with angular velocity `omega`
+    bc.type = BCondFluidType::inlet;
+    Scal veln;
+    Vect center, omega;
+    arg >> veln >> center >> omega;
+    Vect vt = omega.cross(face_center - center);
+    if (vt.norm() != 0) {
+      vt *= omega.norm() / vt.norm();
+    }
+    bc.velocity = -veln * face_normal + vt;
   } else if (name == "outlet") {
     bc.type = BCondFluidType::outlet;
   } else if (name == "outletpressure") {

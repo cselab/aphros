@@ -387,6 +387,11 @@ class BoundaryConditions:
         s = "inletpressure {:}{}".format(pressure, extra)
         self.__Append(s, geom)
 
+    def InletRotation(self, geom, veln, center, omega, extra=""):
+        s = "inlet_rotation {:}   {:}   {:}{}".format(veln, VectToStr(center),
+                                                      VectToStr(omega), extra)
+        self.__Append(s, geom)
+
     def Outlet(self, geom, extra=""):
         s = "outlet" + extra
         self.__Append(s, geom)
