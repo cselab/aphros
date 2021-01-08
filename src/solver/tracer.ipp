@@ -137,10 +137,10 @@ for (auto c : m.AllCells()) {
         FieldCell<Scal> fct(eb, 0); // change of conserved quantity
         for (auto c : eb.Cells()) {
           Scal sum = 0.;
-          for (auto q : eb.Nci(c)) {
-            const auto f = eb.GetFace(c, q);
-            sum += fe_flux[f] * eb.GetOutwardFactor(c, q);
-          }
+          eb.LoopNci(c, [&](auto q) {
+            const auto cf = eb.GetFace(c, q);
+            sum += fe_flux[cf] * eb.GetOutwardFactor(c, q);
+          });
           fct[c] = dt * sum;
         }
         if (l == 0 && conf.fc_src) {
