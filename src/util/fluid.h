@@ -49,12 +49,18 @@ class UFluid {
           case BCondFluidType::slipwall:
           case BCondFluidType::inlet:
           case BCondFluidType::inletflux:
-          case BCondFluidType::inletpressure:
           case BCondFluidType::outletpressure:
           case BCondFluidType::symm: {
             const Scal q = (nci == 0 ? -1 : 1);
             if (m.IsInner(c)) {
               fluxin += mebc_vel.at(cf).val.dot(eb.GetSurface(cf)) * q;
+            }
+            break;
+          }
+          case BCondFluidType::inletpressure: {
+            const Scal q = (nci == 0 ? -1 : 1);
+            if (m.IsInner(c)) {
+              fluxin += std::max(0., fcvel[c].dot(eb.GetSurface(cf)) * q);
             }
             break;
           }
