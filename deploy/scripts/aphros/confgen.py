@@ -436,7 +436,7 @@ class Parameters:
             Path to script.
         """
         with open(path) as f:
-            d = dict()
+            d = vars(self)
             exec(f.read(), None, d)
             for k, v in d.items():
                 setattr(self, k, v)
