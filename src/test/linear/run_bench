@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -eu
+
+common="--maxiter 100 --tol 0"
+meshes="192 384 576 768"
+
+for mesh in $meshes ; do
+  echo mesh=$mesh
+  OMP_NUM_THREADS=12 srun -N 8 ./t.linear --solver amgx --mesh $mesh \
+    --verbose $common --extra 'include b.conf'
+done
+
+for mesh in $meshes ; do
+  echo mesh=$mesh
+  srun -n 96 ./t.linear --mesh $mesh --verbose $common
+done
+
+for mesh in $meshes ; do
+  echo mesh=$mesh
+  srun -n 96 ./t.linear --mesh $mesh --solver conjugate --verbose $common
+done
