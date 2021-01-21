@@ -4,14 +4,19 @@
 #include <string.h>
 #include <inside.h>
 
-const char* me = "box";
-
+static const char* me = "box";
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 static void usg(void) {
   fprintf(stderr, "%s mesh\n", me);
   exit(1);
 }
 
 int main(int argc, const char** argv) {
+  USED(argc);
   enum { X, Y, Z };
   int nt;
   int nv;
@@ -44,8 +49,8 @@ int main(int argc, const char** argv) {
   }
 
   inside_box(inside, lo, hi);
-  printf("%.16e %.16e %.16e\n", lo[X], lo[Y], lo[Z]);
-  printf("%.16e %.16e %.16e\n", hi[X], hi[Y], hi[Z]);
+  printf("%+-.16e %+-.16e %+-.16e\n", lo[X], lo[Y], lo[Z]);
+  printf("%+-.16e %+-.16e %+-.16e\n", hi[X], hi[Y], hi[Z]);
 
   inside_fin(inside);
   inside_mesh_fin(tri, ver);

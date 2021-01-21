@@ -12,114 +12,55 @@
 #include "cond.h"
 #include "geom/mesh.h"
 #include "linear/linear.h"
-#include "solver/approx.h"
+#include "solver/approx_eb.h"
 
-// Solves Poisson equation: \nabla \nabla u = r.
-// fcr: rhs [i]
-// fce: buffer for system
-// mf: boundary conditions, replaced with zero-gradient
+// Solves Poisson equation: laplace u = rhs.
+// fc_rhs: rhs [i]
+// mebc: boundary conditions
 // Output:
-// fcu: solution [a]
+// fc_sol: solution [a]
 template <class M>
-class PoisSolver {
- public:
+void SolvePoisson(
+    FieldCell<typename M::Scal>& fcu, const FieldCell<typename M::Scal>& fc_rhs,
+    const MapEmbed<BCond<typename M::Scal>>& mebc,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m) {
   using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  static constexpr size_t dim = M::dim;
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
-
-  PoisSolver(const MapCondFace& mf, M& m) : m(m), mf_(mf) {}
-  // Solve linear system fce = 0
-  // fce: expressions [i]
-  // Output:
-  // fc: solution [a]
-  // m.GetSolveTmp(): modified temporary fields
-  void LinSolve(const FieldCell<Expr>& fce, FieldCell<Scal>& fc, M& m) {
-    auto sem = m.GetSem("solve");
-    if (sem("solve")) {
-      std::vector<Scal>* lsa;
-      std::vector<Scal>* lsb;
-      std::vector<Scal>* lsx;
-      m.GetSolveTmp(lsa, lsb, lsx);
-      auto l = ConvertLs(fce, *lsa, *lsb, *lsx, m);
-      using T = typename M::LS::T;
-      l.t = T::symm; // solver type
-      l.prefix = "vort"; // XXX: adhoc for vorticity
-      m.Solve(l);
+  using Expr = typename M::Expr;
+  using ExprFace = typename M::ExprFace;
+  auto sem = m.GetSem("pois");
+  struct {
+    Scal avg_rhs = 0;
+    Scal sum_vol = 0;
+    FieldCell<Expr> fcl;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem("reduce")) {
+    for (auto c : m.Cells()) {
+      auto v = m.GetVolume(c);
+      t.avg_rhs += fc_rhs[c] * v;
+      t.sum_vol += v;
     }
-    if (sem("copy")) {
-      std::vector<Scal>* lsa;
-      std::vector<Scal>* lsb;
-      std::vector<Scal>* lsx;
-      m.GetSolveTmp(lsa, lsb, lsx);
-
-      fc.Reinit(m);
-      size_t i = 0;
-      for (auto c : m.Cells()) {
-        fc[c] = (*lsx)[i++];
-      }
-      CHECKNAN(fc, m.CN());
-      m.Comm(&fc);
+    m.Reduce(&t.avg_rhs, "sum");
+    m.Reduce(&t.sum_vol, "sum");
+  }
+  if (sem("assemble")) {
+    t.avg_rhs /= t.sum_vol;
+    const auto ffg = UEmbed<M>::GradientImplicit(mebc, m);
+    t.fcl.Reinit(m, Expr::GetUnit(0));
+    for (auto c : m.Cells()) {
+      Expr sum(0);
+      m.LoopNci(c, [&](auto q) {
+        const auto cf = m.GetFace(c, q);
+        const ExprFace flux = ffg[cf] * m.GetArea(cf);
+        m.AppendExpr(sum, flux * m.GetOutwardFactor(c, q), q);
+      });
+      sum.back() = -(fc_rhs[c] - t.avg_rhs) * m.GetVolume(c);
+      t.fcl[c] = sum;
     }
   }
-  void Solve(const FieldCell<Scal>& fcr) {
-    auto sem = m.GetSem("pois");
-    auto& fcrt = fcu_; // temporary rhs
-    if (sem("reduce")) {
-      fcrt = fcr;
-      sumr_ = 0.;
-      sumv_ = 0.;
-      for (auto c : m.Cells()) {
-        auto v = m.GetVolume(c);
-        sumr_ += fcrt[c] * v;
-        sumv_ += v;
-      }
-      m.Reduce(&sumr_, "sum");
-      m.Reduce(&sumv_, "sum");
-    }
-    if (sem("assemble")) {
-      // compute average rhs
-      sumr_ /= sumv_;
-
-      FieldFace<Expr> ffe(m); // normal derivative
-      GradientI(ffe, m);
-      // overwrite boundaries
-      FaceGradB<M, Expr> gb(m, mf_);
-      for (auto& it : mf_) {
-        const IdxFace f = it.first;
-        Expr& e = ffe[f];
-        e = e * 0. + gb.GetExpr(f); // keep stencil
-        e.SortTerms();
-      }
-
-      fce_.Reinit(m); // equations in cells
-      for (auto c : m.Cells()) {
-        auto& e = fce_[c];
-        e.Clear();
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetFace(c, q);
-          e += ffe[f] * (m.GetOutwardFactor(c, q) * m.GetArea(f));
-        }
-        e += Expr(-(fcr[c] - sumr_) * m.GetVolume(c));
-      }
-    }
-    if (sem.Nested("solve")) {
-      LinSolve(fce_, fcu_, m);
-    }
-    if (sem("comm")) {
-      m.Comm(&fcu_);
-      fce_.Free();
-    }
+  if (sem.Nested("solve")) {
+    linsolver->Solve(t.fcl, nullptr, fcu, m);
   }
-  const FieldCell<Scal>& GetField() const {
-    return fcu_;
+  if (sem()) {
   }
-
- private:
-  M& m;
-  FieldCell<Expr> fce_;
-  FieldCell<Scal> fcu_;
-  const MapCondFace& mf_;
-  Scal sumr_; // sum of rhs * volume
-  Scal sumv_; // sum of volume
-};
+}

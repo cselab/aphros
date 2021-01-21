@@ -410,5 +410,6 @@ set int hypre_periodic_y 0
   conf += "set int px " + std::to_string(px) + "\n";
   conf += "set int py " + std::to_string(px) + "\n";
 
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

@@ -16,7 +16,7 @@
 #include "solver.h"
 
 template <class Scal_>
-struct ULinear {
+struct ULinearFit {
   static constexpr size_t dim = 3;
   using Scal = Scal_;
   using Vect = generic::Vect<Scal, dim>;
@@ -68,6 +68,9 @@ struct ULinear {
     for (Int j = 0; j < N; ++j) {
       const Int ip = ipivot(j);
       swaprows(ip, j);
+      if (aa(j, j) == 0) { // case of degenerate system
+        aa(j, j) = 1;
+      }
       for (Int i = j + 1; i < N; ++i) {
         addrow(i, j, -aa(i, j) / aa(j, j));
       }
@@ -116,14 +119,14 @@ auto FitLinear(IdxCell c, const FieldCell<T>& fcu, const EB& eb) {
     xx.push_back(m.GetCenter(cn));
     uu.push_back(fcu[cn]);
   }
-  return ULinear<Scal>::FitLinear(xx, uu);
+  return ULinearFit<Scal>::FitLinear(xx, uu);
 }
 
 template <class EB, class T>
 T EvalLinearFit(
     typename EB::Vect x, IdxCell c, const FieldCell<T>& fcu, const EB& eb) {
   auto p = FitLinear(c, fcu, eb);
-  return ULinear<typename EB::Scal>::EvalLinear(p, x);
+  return ULinearFit<typename EB::Scal>::EvalLinear(p, x);
 }
 
 template <class M_>
@@ -140,13 +143,15 @@ struct UEmbed {
     Scal u; // value or normal gradient
   };
 
-  static FieldNode<Scal> InitEmbed(const M& m, const Vars& var, bool verb);
+  static void InitLevelSet(FieldNode<Scal>&, M& m, const Vars& var, bool verb);
 
   // feu: field on embedded boundaries [a]
   // Returns:
   // field on cells [a]
   template <class T>
   static FieldCell<T> Interpolate(const FieldEmbed<T>& feu, const EB& eb);
+  template <class T>
+  static FieldCell<T> Interpolate(const FieldFace<T>& feu, const M& m);
 
   // feu: field on embedded boundaries [a]
   // Returns:
@@ -167,18 +172,20 @@ struct UEmbed {
   template <class T>
   static FieldCell<T> RedistributeCutCells(
       const FieldCell<T>& fcu, const EB& eb);
-
   template <class T>
-  static FieldCell<T> RedistributeCutCells(
-      const FieldCell<T>& fcu, const M& m);
+  static FieldCell<T> RedistributeCutCells(const FieldCell<T>& fcu, const M& m);
 
   static FieldCell<Scal> RedistributeCutCellsAdvection(
       const FieldCell<Scal>& fcs, const FieldFace<Scal>& ffv, Scal cfl, Scal dt,
       const M& m);
-
   static FieldCell<Scal> RedistributeCutCellsAdvection(
       const FieldCell<Scal>& fcs, const FieldEmbed<Scal>& ffv, Scal cfl,
       Scal dt, const EB& eb);
+
+  static void RedistributeConstTerms(
+      FieldCell<typename M::Expr>& fce, const Embed<M>& eb, M& m);
+  static void RedistributeConstTerms(
+      FieldCell<typename M::Expr>& fce, const M& eb, M& m);
 
   // Updates flux in cut faces using bilinear interpolation from regular faces
   // (Schwartz,2006).
@@ -244,6 +251,15 @@ struct UEmbed {
       Scal deferred, const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv,
       const M& m);
 
+  // Implicit gradient.
+  // mebc: boundary conditions
+  // Returns:
+  // ffe: interpolation expressions [i]
+  static FieldEmbed<ExprFace> GradientImplicit(
+      const MapEmbed<BCond<Scal>>& mebc, const EB& eb);
+  static FieldFace<ExprFace> GradientImplicit(
+      const MapEmbed<BCond<Scal>>& mebc, const M& m);
+
   // Implicit gradient with deferred correction.
   // fcu: field cell from previous iteration [s]
   // mebc: boundary conditions
@@ -270,10 +286,10 @@ struct UEmbed {
   template <class MEB>
   static Scal Eval(
       const Expr& e, IdxCell c, const FieldCell<Scal>& fcu, const MEB& meb) {
-    Scal r = e[Expr::dim - 1];
+    Scal r = e.back();
     r += fcu[c] * e[0];
     for (auto q : meb.Nci(c)) {
-      r += fcu[meb.GetCell(c, q)] * e[1 + q];
+      r += fcu[meb.GetCell(c, q)] * e[1 + q.raw()];
     }
     return r;
   }
@@ -305,3 +321,24 @@ struct UEmbed {
     return ff;
   }
 };
+
+template <class T, class B>
+MapEmbed<BCond<T>> GetBCondZeroGrad(const MapEmbed<B>& mebc) {
+  MapEmbed<BCond<T>> r;
+  mebc.LoopPairs([&](auto p) {
+    auto& bc = r[p.first];
+    bc.nci = p.second.nci;
+    bc.type = BCondType::neumann;
+  });
+  return r;
+}
+
+// Smoothens a cell field.
+// fc: fieldcell [s]
+// mfc: boundary conditions
+// rep: number of iterations
+// Output:
+// fc: smooth field [s]
+template <class T, class MEB>
+void Smoothen(
+    FieldCell<T>& fc, const MapEmbed<BCond<T>>& mfc, MEB& eb, size_t iters);

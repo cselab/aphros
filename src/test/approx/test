@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+
+import os
+import aphros
+
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__(cases=["main", "linear"])
+
+    def run(self, case):
+        if case == "main":
+            self.runcmd("./t.approx > out")
+        elif case == "linear":
+            self.runcmd("./t.approx.linear > out")
+        else:
+            raise NotImplementedError()
+        return ["out"]
+
+    def check(self, outdir, refdir, output_files):
+        r = True
+        for f in output_files:
+            out = os.path.join(outdir, f)
+            ref = os.path.join(refdir, f)
+            self.runcmd("ap.diffnum '{}' '{}'".format(out, ref))
+        return r
+
+
+Test().main()

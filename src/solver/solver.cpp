@@ -5,6 +5,7 @@
 #include <string>
 
 #include "solver.h"
+#include "util/logger.h"
 
 std::string GetName(Step l) {
   switch (l) {
@@ -27,13 +28,14 @@ std::string GetName(Step l) {
 }
 
 ConvSc GetConvSc(std::string s) {
-  auto l = {ConvSc::fou, ConvSc::cd, ConvSc::sou, ConvSc::quick};
+  auto l = {
+      ConvSc::fou, ConvSc::cd, ConvSc::sou, ConvSc::quick, ConvSc::superbee};
   for (ConvSc sc : l) {
     if (GetName(sc) == s) {
       return sc;
     }
   }
-  throw std::runtime_error("ConvSc: invalid name=" + s);
+  throw std::runtime_error(FILELINE + ": ConvSc: invalid name=" + s);
 }
 
 std::string GetName(ConvSc sc) {
@@ -46,8 +48,10 @@ std::string GetName(ConvSc sc) {
       return "sou";
     case ConvSc::quick:
       return "quick";
+    case ConvSc::superbee:
+      return "superbee";
     default:
-      throw std::runtime_error("GetName: invalid ConvSc");
+      throw std::runtime_error(FILELINE + ": GetName: invalid ConvSc");
   }
   return "";
 }

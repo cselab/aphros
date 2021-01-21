@@ -22,3 +22,5 @@ a.conf
 add.conf
 tl
 !Makefile
+out.conf
+stat_summary

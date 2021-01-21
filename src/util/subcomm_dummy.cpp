@@ -3,8 +3,8 @@
 
 #include <stdexcept>
 
-#include "util/logger.h"
 #include "subcomm.h"
+#include "util/logger.h"
 
 void SetAffinity(int) {
   throw std::runtime_error(FILELINE + ": not implemented");

@@ -1,0 +1,5 @@
+module load cmake
+module load gnu/8.2.0
+module load openmpi
+module load hdf5
+module load python

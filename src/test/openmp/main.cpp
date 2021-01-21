@@ -67,5 +67,6 @@ set int loc_maxcomm 16
 set int verbose_openmp 1
 )EOF";
 
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

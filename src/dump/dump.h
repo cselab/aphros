@@ -36,3 +36,20 @@ void Dump(
 
   o << std::endl;
 }
+
+// Creates csv file with scalar fields gathered from all blocks.
+// data: pairs {name, values}
+// path: output path
+template <class Scal>
+void DumpCsv(
+    const std::vector<std::pair<std::string, std::vector<Scal>>>& data,
+    std::string path);
+
+// Creates csv file with scalar fields gathered from all blocks.
+// data: pairs {name, values}
+// path: output path
+template <class M>
+void DumpCsv(
+    const std::vector<std::pair<std::string, std::vector<typename M::Scal>>>&
+        data,
+    std::string path, M& m);

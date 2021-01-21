@@ -26,6 +26,6 @@ set(T distance2)
 add_executable(${T} ${T}.c)
 target_link_libraries(${T} inside)
 
-set(T circumradius)
+set(T plane)
 add_executable(${T} ${T}.c)
 target_link_libraries(${T} inside)

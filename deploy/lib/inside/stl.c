@@ -3,8 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include "err.h"
-#include "inside.h"
 #include "memory.h"
+
+#define USED(x) \
+  if (x)        \
+    ;           \
+  else {        \
+  }
 
 enum { SIZE = 999 };
 int stl_read(
@@ -16,16 +21,11 @@ int stl_read(
   double x;
   double y;
   double z;
-  int cnt;
   int i;
   int j;
-  int npt;
   int nt;
   int nv;
   int state;
-  int t0;
-  int t1;
-  int t2;
   int* tri;
   int v;
   int cap;
@@ -161,7 +161,7 @@ int stl_write(int nt, const int* tri, int nv, const double* ver, FILE* f) {
   int j;
   int k;
   int t;
-
+  USED(nv);
   if (fprintf(f, "solid stl\n") < 0) {
     fprintf(stderr, "%s:%d: fail to write\n", __FILE__, __LINE__);
     goto err;

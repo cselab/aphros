@@ -1,12 +1,18 @@
-cmake_minimum_required(VERSION 3.3.0)
+cmake_minimum_required(VERSION 3.12.0)
 
 project("mfer")
 
-set(EXE "mfer")
+#Require out - of - source build
+if (CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
+  message(FATAL_ERROR
+    "Aphros requires an out-of-source build. Run CMake from a separate build directory.")
+endif ()
 
-set(CHPREFIX $ENV{CHPREFIX})
-
-option(USE_OPENMP "Build with OpenMP support." ON)
+option(USE_OPENMP "OpenMP support" ON)
+option(USE_AVX "AVX vectorized kernels. Requires a CPU with AVX2 and FMA support" ON)
+option(USE_HYPRE "Hypre for linear systems" ON)
+option(USE_AMGX "AMGX for linear systems, requires GPU with CUDA" OFF)
+option(USE_FPZIP "fpzip compression for communication (experimental)" OFF)
 
 set(CMAKE_MACOSX_RPATH OFF)
 set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
@@ -35,48 +41,127 @@ set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)
 
 include_directories(.)
 
+# Override add_library().
+# By default, creates OBJECT libraries.
 function(add_library name)
-  if ("${ARGN}" MATCHES "INTERFACE")
+  if ("${ARGN}" MATCHES "SHARED|STATIC|INTERFACE") # normal library
     _add_library(${name} ${ARGN})
-  else()
-    _add_library(${name} SHARED ${ARGN})
-    set_target_properties(${name} PROPERTIES PREFIX "aphros_")
+    install(TARGETS ${name} EXPORT export DESTINATION lib)
+  else() # object library
+    _add_library(${name} OBJECT ${ARGN})
+    install(TARGETS ${name} EXPORT export)
   endif()
-  install(TARGETS ${name} EXPORT export DESTINATION ${CHPREFIX}/lib)
-  target_include_directories(${name} INTERFACE "${CHPREFIX}/include/hydro")
+  if (NOT "${ARGN}" MATCHES "INTERFACE")
+    target_compile_options(${name} PRIVATE -Wall -Wextra -pedantic -Wshadow)
+  endif()
+  target_include_directories(${name} INTERFACE "${APHROS_PREFIX}/include/aphros")
 endfunction(add_library)
 
-add_subdirectory(linear)
-add_subdirectory(distr)
-add_subdirectory(util)
-add_subdirectory(func)
-add_subdirectory(solver)
-add_subdirectory(parse)
-add_subdirectory(dump)
-add_subdirectory(overlap)
-add_subdirectory(young)
 add_subdirectory(color)
+add_subdirectory(distr)
+add_subdirectory(dump)
+add_subdirectory(func)
+add_subdirectory(geom)
+add_subdirectory(linear)
+add_subdirectory(overlap)
+add_subdirectory(parse)
+add_subdirectory(solver)
+add_subdirectory(util)
+add_subdirectory(young)
 
-# hydro
-set(T "hydro")
-add_library(${T} INTERFACE)
+
+set(ObjLibs
+  allocator
+  approx
+  approx_eb
+  argparse
+  color
+  comm_manager
+  convdiffe
+  convdiffi
+  convdiffvg
+  cubismnc
+  curv
+  distr
+  distrbasic
+  distrsolver
+  dump
+  dump_hdf
+  dumper
+  electro
+  embed
+  events
+  filesystem
+  fluid_dummy
+  format
+  git
+  gitgen
+  histogram
+  init
+  init_contang
+  init_vel
+  linear
+  local
+  mesh
+  native
+  normal
+  overlap
+  parser
+  particles
+  partstrmeshm
+  posthook_default
+  primlist
+  proj
+  proj_eb
+  report
+  simple
+  solver
+  subcomm
+  suspender
+  sysinfo
+  timer
+  tracer
+  utilconvdiff
+  utildistr
+  utilfluid
+  utilhydro
+  utillinear
+  utilvof
+  vars
+  vof
+  vofm
+  young
+)
+
+if (USE_HYPRE)
+  set(ObjLibs ${ObjLibs} hypre hypresub linear_hypre)
+endif()
+
+if (USE_AMGX)
+  set(ObjLibs ${ObjLibs} linear_amgx)
+endif()
+
+foreach(name ${ObjLibs})
+  list(APPEND ObjLibsTarget "$<TARGET_OBJECTS:${name}>")
+endforeach()
+
+set(T "aphros")
+add_library(${T} SHARED ${ObjLibsTarget})
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
-    "${CHPREFIX}/include/hydro")
-set_property(TARGET ${T} APPEND PROPERTY INTERFACE_LINK_LIBRARIES
-    distrsolver solver vof vofm normal tvd convdiffvg simple proj proj_eb
-    fluid_dummy init init_vel init_contang
-    young utilhydro events curv approx posthook_default)
+    "${APHROS_PREFIX}/include/aphros")
+target_link_libraries(${T} ${ObjLibs})
 
 # binary
+set(EXE "mfer")
 add_executable(${EXE} main.cpp)
-install(TARGETS ${EXE} DESTINATION "${CHPREFIX}/bin")
+install(TARGETS ${EXE} DESTINATION bin)
 set_target_properties(${EXE} PROPERTIES PREFIX "ap.")
-target_link_libraries(${EXE} hydro)
+target_link_libraries(${EXE} aphros)
 
 # test
 add_subdirectory(test)
 enable_testing()
 
-install(EXPORT export FILE export.cmake DESTINATION ${CHPREFIX}/cmake/aphros)
-install(FILES client.cmake hydroConfig.cmake DESTINATION ${CHPREFIX}/cmake/aphros)
+install(EXPORT export FILE export.cmake DESTINATION cmake)
+install(FILES client.cmake aphrosConfig.cmake DESTINATION cmake)
 include(header.cmake)

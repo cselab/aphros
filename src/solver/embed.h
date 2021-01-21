@@ -75,6 +75,12 @@ class FieldEmbed {
   const FieldFace<Value>& GetFieldFace() const {
     return df_;
   }
+  operator FieldFace<Value>&() {
+    return df_;
+  }
+  operator const FieldFace<Value>&() const {
+    return df_;
+  }
   template <class Field>
   Field& Get() {
     return Get((Field*)(nullptr));
@@ -129,6 +135,9 @@ const FieldEmbed<typename Vect::value_type> GetComponent(
   return FieldEmbed<typename Vect::value_type>(
       GetComponent(fev.GetFieldCell(), d), GetComponent(fev.GetFieldFace(), d));
 }
+
+template <class M>
+class Embed;
 
 template <class T>
 class MapEmbed {
@@ -208,9 +217,9 @@ class MapEmbed {
   }
   // Iterates over faces and passes the index of neighbor cell.
   // Value should have member variable `nci`.
-  // F: function void(IdxFace or IdxCell, IdxCell, BC)
-  template <class EB, class F>
-  void LoopBCond(const EB& eb, F lambda) {
+  // lambda: function void(IdxFace or IdxCell, IdxCell, BC)
+  template <class M, class F>
+  void LoopBCond(const Embed<M>& eb, F lambda) {
     for (auto& p : df_) {
       const IdxFace f = p.first;
       const auto& bc = p.second;
@@ -222,8 +231,8 @@ class MapEmbed {
       lambda(c, c, bc);
     }
   }
-  template <class EB, class F>
-  void LoopBCond(const EB& eb, F lambda) const {
+  template <class M, class F>
+  void LoopBCond(const Embed<M>& eb, F lambda) const {
     for (auto& p : df_) {
       const IdxFace f = p.first;
       const auto& bc = p.second;
@@ -233,6 +242,22 @@ class MapEmbed {
       const IdxCell c = p.first;
       const auto& bc = p.second;
       lambda(c, c, bc);
+    }
+  }
+  template <class M, class F>
+  void LoopBCond(const M& m, F lambda) {
+    for (auto& p : df_) {
+      const IdxFace f = p.first;
+      const auto& bc = p.second;
+      lambda(f, m.GetCell(f, bc.nci), bc);
+    }
+  }
+  template <class M, class F>
+  void LoopBCond(const M& m, F lambda) const {
+    for (auto& p : df_) {
+      const IdxFace f = p.first;
+      const auto& bc = p.second;
+      lambda(f, m.GetCell(f, bc.nci), bc);
     }
   }
 
@@ -248,6 +273,7 @@ class Embed {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using MIdx = typename M::MIdx;
   using Expr = typename M::Expr;
   using ExprFace = typename M::ExprFace;
   static constexpr size_t dim = M::dim;
@@ -261,8 +287,8 @@ class Embed {
   class NciEmbed {};
   // Constructor
   // fnl: level-set function on nodes, interface at fnl=0
-  Embed(M& m, Scal gradlim) : m(m), eb(*this), gradlim_(gradlim) {}
-  explicit Embed(M& m) : Embed(m, 0.5) {}
+  Embed(M& m_, Scal gradlim) : m(m_), eb(*this), gradlim_(gradlim) {}
+  explicit Embed(M& m_) : Embed(m_, 0.5) {}
   // Initializes embedded boundaries with level-set function.
   // Suspendable, requires communication.
   // fnl: level-set function [a]
@@ -321,7 +347,9 @@ class Embed {
     for (auto q : Nci(c)) {
       lambda(q);
     }
-    lambda(NciEmbed());
+    if (IsCut(c)) {
+      lambda(NciEmbed());
+    }
   }
   template <class F>
   void LoopNciFaces(IdxCell c, F lambda) const {
@@ -333,14 +361,20 @@ class Embed {
   void LoopNciEmbed(IdxCell, F lambda) const {
     lambda(NciEmbed());
   }
-  void AppendExpr(Expr& sum, const ExprFace& v, size_t q) const {
-    sum[0] += v[1 - q % 2];
-    sum[1 + q] += v[q % 2];
-    sum[Expr::dim - 1] += v[2];
+  void AppendExpr(Expr& sum, const ExprFace& v, IdxNci q) const {
+    m.AppendExpr(sum, v, q);
+  }
+  void AppendExpr(Expr& sum, const ExprFace& v, IdxNci q, IdxCell) const {
+    AppendExpr(sum, v, q);
   }
   void AppendExpr(Expr& sum, const ExprFace& v, NciEmbed) const {
     sum[0] += v[0];
-    sum[Expr::dim - 1] += v[2];
+    sum.back() += v.back();
+  }
+  void AppendExpr(Expr& sum, const ExprFace& v, NciEmbed, IdxCell c) const {
+    sum[0] += v[0];
+    sum[1 + GetRegularNeighborNci(c).raw()] += v[1];
+    sum.back() += v.back();
   }
   auto Faces() const {
     return MakeFilterIterator(
@@ -351,24 +385,24 @@ class Embed {
       return GetType(f) != Type::excluded;
     });
   }
-  IdxCell GetCell(IdxFace f, size_t q) const {
-    return m.GetCell(f, q);
+  IdxCell GetCell(IdxFace f, Side s) const {
+    return m.GetCell(f, s);
   }
-  IdxFace GetFace(IdxCell c, size_t q) const {
+  IdxFace GetFace(IdxCell c, IdxNci q) const {
     return m.GetFace(c, q);
   }
   IdxCell GetFace(IdxCell c, NciEmbed) const {
     return c;
   }
-  IdxCell GetCell(IdxCell c, size_t q) const {
+  IdxCell GetCell(IdxCell c, IdxNci q) const {
     return m.GetCell(c, q);
   }
   auto Nci(IdxCell c) const {
-    return MakeFilterIterator(m.Nci(c), [this, c](size_t q) {
+    return MakeFilterIterator(m.Nci(c), [this, c](IdxNci q) {
       return GetType(m.GetFace(c, q)) != Type::excluded;
     });
   }
-  size_t GetNci(IdxCell c, IdxFace f) const {
+  IdxNci GetNci(IdxCell c, IdxFace f) const {
     return m.GetNci(c, f);
   }
   // Cell indices of non-excluded cells.
@@ -417,12 +451,18 @@ class Embed {
   Vect GetNormal(IdxFace f) const {
     return m.GetNormal(f);
   }
-  IdxCell GetRegularNeighbor(IdxCell c) const {
+  IdxNci GetRegularNeighborNci(IdxCell c) const {
     // FIXME: may not return a regular cell for non-convex shapes
     const auto n = GetNormal(c);
     const size_t d = n.abs().argmax();
     const size_t s = (n[d] > 0 ? 0 : 1);
-    return GetCell(c, 2 * d + s);
+    return IdxNci(2 * d + s);
+  }
+  IdxCell GetRegularNeighbor(IdxCell c) const {
+    if (IsCut(c)) {
+      return GetCell(c, GetRegularNeighborNci(c));
+    }
+    return c;
   }
   Scal GetAlpha(IdxCell c) const {
     return fca_[c];
@@ -442,17 +482,17 @@ class Embed {
   Vect GetSurface(IdxCell c) const {
     return GetNormal(c) * GetArea(c);
   }
-  Vect GetOutwardSurface(IdxCell c, size_t q) const {
+  Vect GetOutwardSurface(IdxCell c, IdxNci q) const {
     return GetSurface(m.GetFace(c, q)) * m.GetOutwardFactor(c, q);
   }
-  Scal GetOutwardFactor(IdxCell c, size_t q) const {
+  Scal GetOutwardFactor(IdxCell c, IdxNci q) const {
     return m.GetOutwardFactor(c, q);
   }
   Scal GetOutwardFactor(IdxCell, NciEmbed) const {
     return 1;
   }
-  Scal GetFaceOffset(IdxCell c, size_t nci) const {
-    IdxFace f = m.GetFace(c, nci);
+  Scal GetFaceOffset(IdxCell c, IdxNci q) const {
+    IdxFace f = m.GetFace(c, q);
     return (GetFaceCenter(f) - GetCellCenter(c)).dot(m.GetNormal(f));
   }
   Scal GetFaceOffset(IdxCell c) const {
@@ -533,6 +573,24 @@ class Embed {
     DumpPlaneSection("eb.dat", xc, n);
   }
 
+  // Notation
+  auto CellsM() const {
+    return MakeTransformIterator<IdxCellMesh<M>>(
+        Cells(), [this](IdxCell c) { return IdxCellMesh<M>(c, m); });
+  }
+  auto SuCellsM() const {
+    return MakeTransformIterator<IdxCellMesh<M>>(
+        SuCells(), [this](IdxCell c) { return IdxCellMesh<M>(c, m); });
+  }
+  auto FacesM() const {
+    return MakeTransformIterator<IdxFaceMesh<M>>(
+        Faces(), [this](IdxFace f) { return IdxFaceMesh<M>(f, m); });
+  }
+  auto SuFacesM() const {
+    return MakeTransformIterator<IdxFaceMesh<M>>(
+        SuFaces(), [this](IdxFace f) { return IdxFaceMesh<M>(f, m); });
+  }
+
  private:
   Vect GetFaceCenter0(IdxCell c) const {
     if (fct_[c] == Type::cut) {
@@ -556,14 +614,14 @@ class Embed {
       case Type::regular:
         return m.GetCenter(c);
       case Type::cut: {
-        const Scal w = GetArea(c);
-        Vect sum = GetFaceCenter0(c) * w;
-        Scal sumw = w;
+        const Scal wc = GetArea(c);
+        Vect sum = GetFaceCenter0(c) * wc;
+        Scal sumw = wc;
         for (auto q : this->Nci(c)) {
           auto f = m.GetFace(c, q);
-          const Scal w = GetArea(f);
-          sum += GetFaceCenter0(f) * w;
-          sumw += w;
+          const Scal wf = GetArea(f);
+          sum += GetFaceCenter0(f) * wf;
+          sumw += wf;
         }
         return sum / sumw;
       }
@@ -614,6 +672,7 @@ class Embed {
     }
     return a;
   }
+
   // Determines the face types, constructs polygons and computes fractions.
   // fnl: level-set on nodes, fnl > 0 inside regular cells [a]
   // Output:

@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "fluid.h"
+#include "linear/linear.h"
 #include "util/convdiff.h"
 
 template <class Scal>
@@ -19,11 +20,36 @@ struct ProjPar {
   ConvSc convsc = ConvSc::quick; // convection scheme
   Scal convdf = 1.; // deferred correction factor
   bool stokes = false; // Stokes flow
-  bool explconv = false; // explicit convectio for Conv::imp
   bool convsymm = false; // symmetric solver for linear system in convdiff
   Conv conv = Conv::imp; // convection-diffusion solver
   bool bcg = false; // Bell-Colella-Glaz scheme
   Scal outlet_relax = 1;
+  Scal inletpressure_factor =
+      0; // correction factor on inlet with given pressure
+  bool explviscous = true; // enable explicit viscous terms
+  bool redistr_adv = false; // use RedistributeCutCellsAdvection()
+                            // if true else RedistributeCutCells()
+  size_t diffusion_iters = 1; // number of iterations in implicit diffusion
+  bool diffusion_consistent_guess = false;
+};
+
+template <class M>
+struct ProjArgs {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  const FieldCell<Vect>& fcvel;
+  MapEmbed<BCondFluid<Vect>>& mebc;
+  const MapCell<std::shared_ptr<CondCellFluid>>& mcc;
+  const FieldCell<Scal>* fcr;
+  const FieldCell<Scal>* fcd;
+  const FieldCell<Vect>* fcf;
+  const FieldEmbed<Scal>* ffbp;
+  const FieldCell<Scal>* fcsv;
+  const FieldCell<Scal>* fcsm;
+  double t;
+  double dt;
+  std::shared_ptr<linear::Solver<M>> linsolver;
+  ProjPar<Scal> par;
 };
 
 template <class EB_>
@@ -38,6 +64,7 @@ class Proj final : public FluidSolver<typename EB_::M> {
   template <class T>
   using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
   using Par = ProjPar<Scal>;
+  using Args = ProjArgs<M>;
 
   // Constructor.
   // fcvel: initial velocity
@@ -52,14 +79,7 @@ class Proj final : public FluidSolver<typename EB_::M> {
   // t: initial time
   // dt: time step
   // par: parameters
-  Proj(
-      M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-      const MapEmbed<BCondFluid<Vect>>& mebc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-      const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
-      const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* ffbp,
-      const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
-      double dt, Par par);
+  Proj(M& m, const EB& eb, const Args& args);
   ~Proj();
   const Par& GetPar() const;
   void SetPar(Par);

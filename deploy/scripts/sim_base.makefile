@@ -12,23 +12,27 @@ OMP_NUM_THREADS ?= 1
 hook ?=
 
 error:
-	@echo Error: no target specified. Available targets:
+	@echo Error: no target specified.
+	make help
+	@exit 2
+
+help:
+	@echo Available targets:
 	@echo - cleanrun: cleanall, run
 	@echo - run: start in foreground
 	@echo - submit: submit job or start in background
 	@echo - clean: remove logs, generated conf
 	@echo - cleandat: remove output data
 	@echo - cleanall: clean, cleandat
-	@exit 2
 
 
 cleanrun: cleanall run
 
 run: conf
-	LD_PRELOAD="$(hook):$${LD_PRELOAD}" ap.run ap.mfer
+	LD_PRELOAD="$(hook):$${LD_PRELOAD}" ap.run ap.mfer --version --verbose
 
 submit: conf
-	LD_PRELOAD="$(hook):$${LD_PRELOAD}" ap.submit ap.mfer
+	LD_PRELOAD="$(hook):$${LD_PRELOAD}" ap.submit ap.mfer --version --verbose
 
 kill:
 	ap.kill
@@ -51,7 +55,7 @@ tl:
 	echo $(tl) > tl
 
 mesh.conf: np
-	ap.part $(m) $(bs) `cat np` $(OMP_NUM_THREADS) > mesh.conf
+	ap.part $(m) $(bs) `cat np` > mesh.conf
 
 clean::
 	rm -vf *.{png}
@@ -64,15 +68,16 @@ cleandat::
 	rm -vf *_*.{xmf,h5}
 	rm -vf *_*.vts
 	rm -vf p.pvd
-	rm -vf stat.dat
+	rm -vf stat.dat stat_summary
 	rm -vf partit_*.csv
+	rm -vf part_*.csv
 	rm -vf traj_*.csv
 	rm -vf trajsh_*.csv
 	rm -vf s_*.vtk
 	rm -vf sp_*.vtk
 	rm -vf sm_*.vtk
 	rm -vf bc.vtk
-	rm -vf out
+	rm -vf out out.conf
 	rm -vf lsf.o*
 	rm -vf slurm*.out
 	rm -vf {vx,vy,vz,p,vf,cl,cls,div,omm}_*.dat
@@ -81,4 +86,4 @@ cleandat::
 
 cleanall: clean cleandat
 
-.PHONY: error cleanrun run submit clean cleandat base conf np tl kill
+.PHONY: error cleanrun run submit clean cleandat base conf np tl kill help

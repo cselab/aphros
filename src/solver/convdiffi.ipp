@@ -21,23 +21,24 @@ struct ConvDiffScalImp<EB_>::Imp {
   using Expr = typename M::Expr;
   using UEB = UEmbed<M>;
 
-  Imp(Owner* owner, const FieldCell<Scal>& fcu,
-      const MapEmbed<BCond<Scal>>& mebc)
+  Imp(Owner* owner, const Args& args)
       : owner_(owner)
       , par(owner_->GetPar())
       , m(owner_->m)
       , eb(owner_->eb)
-      , mebc_(mebc)
+      , linsolver_(args.linsolver)
+      , mebc_(args.mebc)
       , dtprev_(-1.)
       , error_(0) {
-    fcu_.time_curr = fcu;
-    fcu_.time_prev = fcu;
-    fcu_.iter_curr = fcu;
+    fassert(linsolver_);
+    fcu_.time_curr = args.fcu;
+    fcu_.time_prev = args.fcu;
+    fcu_.iter_curr = args.fcu;
   }
   // Fields:
   void StartStep() {
     owner_->ClearIter();
-    CHECKNAN(fcu_.time_curr, m.CN())
+    CHECKNAN(fcu_.time_curr, m.flags.check_nan)
 
     fcu_.iter_curr = fcu_.time_curr;
 
@@ -46,61 +47,6 @@ struct ConvDiffScalImp<EB_>::Imp {
     }
 
     error_ = 0.;
-  }
-  Scal Eval(const Expr& e, IdxCell c, const FieldCell<Scal>& fcu) {
-    Scal r = e[Expr::dim - 1];
-    r += fcu[c] * e[0];
-    for (auto q : eb.Nci(c)) {
-      r += fcu[eb.GetCell(c, q)] * e[1 + q];
-    }
-    return r;
-  }
-  void RedistributeConstTerms(FieldCell<Expr>& fce, const Embed<M>& eb) {
-    auto sem = m.GetSem("redistr");
-    struct {
-      FieldCell<Scal> fcu;
-    } * ctx(sem);
-    auto& fcu = ctx->fcu;
-    auto get = [&fce](IdxCell c) -> Scal& { //
-      return fce[c][Expr::dim - 1];
-    };
-    if (sem("comm")) {
-      fcu.Reinit(eb, 0);
-      for (auto c : eb.Cells()) {
-        fcu[c] = get(c);
-      }
-      m.Comm(&fcu);
-    }
-    if (sem("local")) {
-      FieldCell<Scal> fcr(eb);
-      for (auto c : eb.Cells()) {
-        fcr[c] = fce[c][Expr::dim - 1];
-        const Scal v0 = m.GetVolume(c);
-        const Scal v = eb.GetVolume(c);
-        // excess quantity
-        const Scal du = fcu[c] * (1 - v / v0);
-        // subtract from current cell
-        fcr[c] -= du;
-        // add from neighbor cells proportional to their volume
-        for (auto cn : eb.Stencil(c)) {
-          if (c != cn) {
-            const Scal vn = eb.GetVolume(cn);
-            // excess quantity in cell cn
-            const Scal dun = fcu[cn] * (1 - vn / v0);
-            fcr[c] += dun * (v / (eb.GetVolumeStencilSum(cn) - vn));
-          }
-        }
-      }
-      for (auto c : eb.Cells()) {
-        get(c) = fcr[c];
-      }
-    }
-    if (sem()) {
-      // FIXME: empty stage to finish communication and keep ctx
-    }
-  }
-  auto RedistributeConstTerms(FieldCell<Expr>&, const M&) {
-    return;
   }
   // Assembles linear system
   // fcu: field from previous iteration [a]
@@ -166,7 +112,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       }
     }
     if (sem.Nested()) {
-      RedistributeConstTerms(fcl, eb);
+      UEB::RedistributeConstTerms(fcl, eb, m);
     }
     if (sem("redistr")) {
       // time derivative
@@ -177,8 +123,7 @@ struct ConvDiffScalImp<EB_>::Imp {
         for (auto c : eb.Cells()) {
           Expr td(0);
           td[0] = tt[2];
-          td[Expr::dim - 1] =
-              tt[0] * fcu_.time_prev[c] + tt[1] * fcu_.time_curr[c];
+          td.back() = tt[0] * fcu_.time_prev[c] + tt[1] * fcu_.time_curr[c];
           fcl[c] += td * eb.GetVolume(c) * (*owner_->fcr_)[c];
         }
       }
@@ -186,9 +131,9 @@ struct ConvDiffScalImp<EB_>::Imp {
       for (auto c : eb.Cells()) {
         Expr& e = fcl[c];
         // source
-        e[Expr::dim - 1] -= (*owner_->fcs_)[c] * eb.GetVolume(c);
+        e.back() -= (*owner_->fcs_)[c] * eb.GetVolume(c);
         // delta-form
-        e[Expr::dim - 1] = Eval(e, c, fcu);
+        e.back() = UEB::Eval(e, c, fcu, m);
         // under-relaxation
         e[0] /= par.relax;
       }
@@ -216,8 +161,7 @@ struct ConvDiffScalImp<EB_>::Imp {
       Assemble(prev, *owner_->ffv_, fcucs_);
     }
     if (sem.Nested("solve")) {
-      using Type = typename M::LS::T;
-      Solve(fcucs_, nullptr, curr, par.symm ? Type::symm : Type::gen, m);
+      linsolver_->Solve(fcucs_, nullptr, curr, m);
     }
     if (sem("apply")) {
       // apply, store result in curr
@@ -234,7 +178,7 @@ struct ConvDiffScalImp<EB_>::Imp {
   void FinishStep() {
     fcu_.time_prev.swap(fcu_.time_curr);
     fcu_.time_curr = fcu_.iter_curr;
-    CHECKNAN(fcu_.time_curr, m.CN())
+    CHECKNAN(fcu_.time_curr, m.flags.check_nan)
     owner_->IncTime();
     dtprev_ = owner_->GetTimeStep();
   }
@@ -278,7 +222,7 @@ struct ConvDiffScalImp<EB_>::Imp {
   FieldCell<Scal> GetConst() const {
     FieldCell<Scal> fc(eb, 0);
     for (auto c : eb.Cells()) {
-      fc[c] = fcucs_[c][Expr::dim - 1] / eb.GetVolume(c);
+      fc[c] = fcucs_[c].back() / eb.GetVolume(c);
     }
     return fc;
   }
@@ -287,6 +231,7 @@ struct ConvDiffScalImp<EB_>::Imp {
   Par par;
   M& m;
   const EB& eb;
+  std::shared_ptr<linear::Solver<M>> linsolver_;
 
   StepData<FieldCell<Scal>> fcu_; // field
   const MapEmbed<BCond<Scal>>& mebc_; // boundary conditions
@@ -298,13 +243,11 @@ struct ConvDiffScalImp<EB_>::Imp {
 };
 
 template <class EB_>
-ConvDiffScalImp<EB_>::ConvDiffScalImp(
-    M& m, const EB& eb, const FieldCell<Scal>& fcu,
-    const MapEmbed<BCond<Scal>>& mebc, const FieldCell<Scal>* fcr,
-    const FieldFaceb<Scal>* ffd, const FieldCell<Scal>* fcs,
-    const FieldFaceb<Scal>* ffv, double t, double dt, Par par)
-    : Base(t, dt, m, eb, par, fcr, ffd, fcs, ffv)
-    , imp(new Imp(this, fcu, mebc)) {}
+ConvDiffScalImp<EB_>::ConvDiffScalImp(M& m_, const EB& eb_, const Args& args)
+    : Base(
+          args.t, args.dt, m_, eb_, args.par, args.fcr, args.ffd, args.fcs,
+          args.ffv)
+    , imp(new Imp(this, args)) {}
 
 template <class EB_>
 ConvDiffScalImp<EB_>::~ConvDiffScalImp() = default;

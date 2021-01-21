@@ -5,6 +5,14 @@ import os
 import re
 import sys
 import numpy as np
+from argparse import Namespace
+
+# https://github.com/OrdnanceSurvey/GeoDataViz-Toolkit/tree/master/Colours
+g_geodata_qualitative = [
+    "#FF1F5B", "#00CD6C", "#009ADE", "#AF58BA", "#FFC61E", "#F28522",
+    "#A0B1BA", "#A6761D", "#E9002D", "#FFAA00", "#00B000"
+]
+g_colorscheme = g_geodata_qualitative
 
 try:
     import matplotlib
@@ -21,6 +29,26 @@ except ImportError:
     pass
 
 kThin = False
+
+def GetParams():
+    import cycler
+    params = {
+        'font.size': 8,
+        'figure.figsize': (3.2, 2.4),
+        #'figure.autolayout': True,
+        'axes.autolimit_mode': 'round_numbers',
+        'axes.xmargin': 0,
+        'axes.ymargin': 0,
+        'axes.spines.top': False,
+        'axes.spines.right': False,
+        'axes.prop_cycle': cycler.cycler(color=g_colorscheme),
+        'lines.markersize': 3,
+        'lines.linewidth': 1.5,
+    }
+    return params
+
+def ApplyParams(plt):
+    plt.rcParams.update(GetParams())
 
 
 # natural sort
@@ -58,13 +86,17 @@ def HideAxis(ax):
     ax.tick_params(axis='both', which='both', length=0)
 
 
-def PlotGrid(ax, x1node, y1node):
-    ax.set_xticks(x1)
-    ax.set_yticks(y1)
-    ax.grid(True, lw=0.5, c='0.', alpha=0.2)
+def PlotGrid(ax, x1n, y1n, c='0', alpha=0.2):
+    ax.set_xticks(x1n)
+    ax.set_yticks(y1n)
+    plt.setp(ax.get_xticklabels(), visible=False)
+    plt.setp(ax.get_yticklabels(), visible=False)
+    ax.tick_params(axis='both', which='both', length=0)
+    ax.grid(True, lw=0.5, c=c, alpha=alpha)
 
 
 def InitBasicFigure(field, grid=False):
+    print("InitBasicFigure is deprecated. Use InitFigure")
     figsize = 3.2
     resx = 640
     dpi = resx / figsize
@@ -90,6 +122,70 @@ def InitBasicFigure(field, grid=False):
     return fig, ax, meta
 
 
+def InitFigure(nx, ny, grid=False, resx=640, figsizex=3.2):
+    dpi = resx / figsizex
+    resy = resx * ny / nx
+    lx, ly = 1., ny / nx
+    fig = plt.figure(figsize=(resx / dpi, resy / dpi), dpi=dpi)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    fig.add_axes(ax)
+    ax.set_xlim(0, lx)
+    ax.set_ylim(0, ly)
+    hx, hy = lx / nx, ly / ny
+    x1c = (0.5 + np.arange(nx)) * hx
+    y1c = (0.5 + np.arange(ny)) * hy
+    x1n = np.arange(nx + 1) * hx
+    y1n = np.arange(ny + 1) * hy
+    HideAxis(ax)
+    if grid:
+        PlotGrid(ax, x1n, y1n)
+    meta = Namespace
+    meta.lx = lx
+    meta.ly = ly
+    meta.hx = hx
+    meta.hy = hy
+    meta.x1c = x1c
+    meta.y1c = y1c
+    meta.x1n = x1n
+    meta.y1n = y1n
+    meta.fig = fig
+    return fig, ax, meta
+
+
+def GetSquareFigure(grid=False, field=None, aspect=1, colorbar=False):
+    assert aspect == 1 or not colorbar, "conflicting options"
+    if colorbar:
+        aspect = 0.88
+    figsize = 3.2
+    resx = 640
+    resy = 640 / aspect
+    dpi = resx / figsize
+    fig = plt.figure(figsize=(resx / dpi, resy / dpi), dpi=dpi)
+    ax = plt.Axes(fig, [0., 0., 1.,  resy / resx])
+    fig.add_axes(ax)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    HideAxis(ax)
+    if grid:
+        x1 = np.linspace(0, 1, field.shape[1] + 1, endpoint=True)
+        y1 = np.linspace(0, 1, field.shape[0] + 1, endpoint=True)
+        PlotGrid(ax, x1, y1)
+    matplotlib.rcParams['svg.hashsalt'] = 123  # for reproducible svg
+    return fig, ax
+
+def AddColorBar(fig, vmin, vmax, cmap):
+    cbar_ax = fig.add_axes([0.15, 0.07, 0.7, 0.05])
+    norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    vv = [vmin, (vmin + vmax) * 0.5, vmax]
+    if abs(vv[1]) < 1e-14:
+        vv[1] = 0
+    cbar = fig.colorbar(sm, cax=cbar_ax, orientation='horizontal', ticks=vv)
+    cbar.ax.set_xticklabels(["{:.4g}".format(v) for v in vv])
+    return cbar
+
+
 def PlotFieldCoolwarm(ax, u, vmin=None, vmax=None):
     ax.imshow(np.flipud(u),
               vmin=vmin,
@@ -99,9 +195,22 @@ def PlotFieldCoolwarm(ax, u, vmin=None, vmax=None):
               cmap=plt.get_cmap("coolwarm"))
 
 
-def SaveBasicFigure(fig, filename):
+def PlotSquareField(ax, u, vmin=None, vmax=None, cmap="viridis"):
+    ax.imshow(np.flipud(u),
+              vmin=vmin,
+              vmax=vmax,
+              extent=(0, 1, 0, 1),
+              interpolation='nearest',
+              cmap=cmap)
+
+def SaveFigure(fig, filename):
     matplotlib.rcParams['svg.hashsalt'] = 123  # for reproducible svg
     fig.savefig(filename)
+
+def SaveBasicFigure(fig, filename):
+    print("SaveBasicFigure is deprecated. Use SaveFigure")
+    SaveFigure(fig, filename)
+
 
 
 # Read uniform grid data
@@ -176,14 +285,27 @@ def PlotFieldGray(ax, u, vmin=None, vmax=None):
               cmap=cmap)
 
 
-# u: 2d numpy array
-# po: output path
-def PlotField(ax, u, vmin=None, vmax=None):
-    ax.imshow(GetImg(u),
-              extent=(0, 1, 0, 1),
+def PlotField(ax, field, meta, alpha=1, vmin=None, vmax=None, cmap=None):
+    ax.imshow(np.flipud(field.T),
+              extent=(0, meta.lx, 0, meta.ly),
               interpolation='nearest',
+              alpha=alpha,
               vmin=vmin,
-              vmax=vmax)
+              vmax=vmax,
+              cmap=None)
+
+def PlotFieldText(ax, field, meta, skip_values=[], fmt="{:.2g}"):
+    for ix, iy in np.ndindex(field.shape):
+        value = field[ix, iy]
+        if value in skip_values:
+            continue
+        ax.text(
+            meta.x1c[ix],
+            meta.y1c[iy],
+            fmt.format(value),
+            horizontalalignment='center',
+            verticalalignment='center',
+        )
 
 
 # u: 2d numpy array
@@ -196,15 +318,6 @@ def PlotFieldBwr(ax, u, vmin=None, vmax=None):
               vmax=vmax,
               cmap=plt.get_cmap("bwr"))
 
-
-# sx, sy: number of cells
-def PlotGrid(ax, x1, y1):
-    ax.set_xticks(x1)
-    ax.set_yticks(y1)
-    plt.setp(ax.get_xticklabels(), visible=False)
-    plt.setp(ax.get_yticklabels(), visible=False)
-    ax.tick_params(axis='both', which='both', length=0)
-    ax.grid(True, lw=0.5, c='0.', alpha=0.08)
 
 
 def PlotLines(ax, xa, ya, xb, yb):
@@ -1435,3 +1548,32 @@ def Curv():
     # curvature histogram
     po = 'hist.pdf'
     FigHistK(vf, kk, ll, po, title=title)
+
+def GetStep(path):
+    return re.findall('[^_]*_([0-9]*)\.*.', os.path.basename(path))[0]
+
+def GetSteps(paths):
+    return list(map(GetStep, paths))
+
+def ReplaceFilename(paths, pattern, keep_dir=True):
+    """
+    Replaces filename by pattern with step index substitution.
+    paths: `list(str)`
+        Paths.
+    pattern: `str`
+        Pattern containing a single `{}` to be replaced by step index.
+
+    Example:
+    >>> ReplaceFilename(["dir/vf_0001.xmf"], "sm_{}.vtk")
+    >>> ["dir/sm_0001.vtk"]
+    """
+    r = []
+    for f in paths:
+        dirname = os.path.dirname(f)
+        basename = os.path.basename(f)
+        step = GetStep(f)
+        if keep_dir:
+            r.append(os.path.join(dirname, pattern.format(step)))
+        else:
+            r.append(pattern.format(step))
+    return r

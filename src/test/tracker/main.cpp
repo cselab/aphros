@@ -29,7 +29,7 @@
 #define PF std::cout << std::endl << __func__ << std::endl;
 
 const int dim = 3;
-using MIdx = GMIdx<dim>;
+using MIdx = generic::MIdx<dim>;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = generic::Vect<Scal, dim>;
@@ -37,7 +37,6 @@ using M = MeshStructured<Scal, dim>;
 
 M GetMesh() {
   Rect<Vect> dom(Vect(0., 0., 0.), Vect(1., 1., 1.));
-  using M = MeshStructured<Scal, dim>;
   MIdx b(0, 0, 0); // lower index
   MIdx s(10, 10, 10); // size in cells
   int hl = 2; // halos

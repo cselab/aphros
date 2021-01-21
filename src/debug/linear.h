@@ -4,6 +4,7 @@
 #pragma once
 
 #include <array>
+#include <iostream>
 #include <tuple>
 #include <vector>
 
@@ -67,7 +68,7 @@ struct UDebug {
   static FieldCell<typename M::Scal> GetAsymmetryField(
       const FieldCell<typename M::Expr>& fce, M& m) {
     constexpr size_t vdim = Expr::dim - 2;
-    static_assert(vdim == M::kCellNumNeighbourFaces, "");
+    static_assert(vdim == M::kCellNumNeighborFaces, "");
     auto sem = m.GetSem(__func__);
     struct {
       std::array<FieldCell<Scal>, vdim> vfck; // coefficient of neighbors
@@ -88,7 +89,7 @@ struct UDebug {
         Scal sum = 0;
         for (auto q : m.Nci(c)) {
           auto cn = m.GetCell(c, q);
-          sum += std::abs(vfck[q][c] - vfck[m.GetOpposite(q)][cn]);
+          sum += std::abs(vfck[q.raw()][c] - vfck[m.GetOpposite(q).raw()][cn]);
         }
         fcr[c] = sum;
       }
@@ -122,9 +123,9 @@ struct UDebug {
       fc_const.Reinit(m, 0);
       for (auto c : m.Cells()) {
         fc_diag[c] = std::abs(fce[c][0]);
-        fc_const[c] = std::abs(fce[c][Expr::dim - 1]);
+        fc_const[c] = std::abs(fce[c].back());
         for (auto q : m.Nci(c)) {
-          fc_nondiag[c] += std::abs(fce[c][q + 1]);
+          fc_nondiag[c] += std::abs(fce[c][1 + q.raw()]);
         }
       }
     }
@@ -135,7 +136,7 @@ struct UDebug {
     if (sem("sum_const")) {
       sum_const = 0;
       for (auto c : m.Cells()) {
-        sum_const += fce[c][Expr::dim - 1];
+        sum_const += fce[c].back();
       }
       m.Reduce(&sum_const, "sum");
     }
@@ -157,6 +158,7 @@ struct UDebug {
         m.Dump(&fc_asymm, "asymm_" + fce.GetName());
       }
     }
-    if (sem()) {}
+    if (sem()) {
+    }
   }
 };

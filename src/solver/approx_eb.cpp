@@ -14,10 +14,11 @@ using TV = Vect;
 using Expr = typename M::Expr;
 constexpr size_t dim = M::dim;
 
-template struct ULinear<Scal>;
+template struct ULinearFit<Scal>;
 template struct UEmbed<M>;
 
 template FieldCell<T> UEB::Interpolate(const FieldEmbed<T>& feu, const EB& eb);
+template FieldCell<T> UEB::Interpolate(const FieldFace<T>& feu, const M&);
 
 template FieldCell<T> UEB::AverageCutCells(
     const FieldCell<T>& fcu, const EB& eb);
@@ -28,10 +29,6 @@ template FieldCell<T> UEB::RedistributeCutCells(
     const FieldCell<T>& fcu, const EB& eb);
 template FieldCell<T> UEB::RedistributeCutCells(
     const FieldCell<T>& fcu, const M& m);
-template FieldCell<Expr> UEB::RedistributeCutCells(
-    const FieldCell<Expr>& fcu, const EB& eb);
-template FieldCell<Expr> UEB::RedistributeCutCells(
-    const FieldCell<Expr>& fcu, const M& m);
 
 template FieldFace<T> UEB::InterpolateBilinearFaces(
     const FieldFace<T>& ffu, const EB& eb);
@@ -55,3 +52,13 @@ template FieldFace<T> UEB::Gradient(
     const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const M& m);
 template FieldFace<TV> UEB::Gradient(
     const FieldCell<TV>& fcu, const MapEmbed<BCond<TV>>& mebc, const M& m);
+
+template void Smoothen(
+    FieldCell<T>& fc, const MapEmbed<BCond<T>>& mfc, EB& eb, size_t iters);
+template void Smoothen(
+    FieldCell<T>& fc, const MapEmbed<BCond<T>>& mfc, M& eb, size_t iters);
+
+
+using M4 = MeshStructured<double, 4>;
+template FieldFace<T> UEmbed<M4>::Gradient(
+    const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const M4& m);

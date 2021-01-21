@@ -7,12 +7,13 @@
 #include <cassert>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <stdexcept>
 
 #include "cubismnc.h"
 #include "distr.h"
 #include "dump/dumper.h"
-#include "util/histogram.h"
+#include "util/format.h"
 
 #include "CubismNoCopy/BlockInfo.h"
 #include "CubismNoCopy/BlockLab.h"
@@ -21,6 +22,16 @@
 #include "CubismNoCopy/GridMPI.h"
 #include "CubismNoCopy/HDF5Dumper_MPI.h"
 #include "CubismNoCopy/StencilInfo.h"
+
+template <class T>
+std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
+  std::string p = "";
+  for (auto a : v) {
+    o << p << a;
+    p = " ";
+  }
+  return o;
+}
 
 // Hide implementation and avoid collision with GBlk
 // TODO: rename cubism_impl::GBlk
@@ -96,9 +107,9 @@ struct GFieldViewRaw {
   inline Elem& operator()(
       unsigned int x, unsigned int y = 0, unsigned int z = 0) {
     assert(data != nullptr);
-    assert(0 <= x && x < (int)bx);
-    assert(0 <= y && y < (int)by);
-    assert(0 <= z && z < (int)bz);
+    assert(x < (int)bx);
+    assert(y < (int)by);
+    assert(z < (int)bz);
     return data[n_comp * (x + stridex * (y + stridey * z))];
   }
 
@@ -146,12 +157,10 @@ class Cubismnc : public DistrMesh<M_> {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using RedOp = typename M::Op;
 
   Cubismnc(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   ~Cubismnc();
-  typename M::BlockCells GetGlobalBlock() const override;
-  typename M::IndexCells GetGlobalIndex() const override;
-  FieldCell<Scal> GetGlobalField(size_t i) override;
 
  private:
   using FieldView = GFieldViewRaw<Par>;
@@ -162,52 +171,58 @@ class Cubismnc : public DistrMesh<M_> {
 
   using P = DistrMesh<M>; // parent
   using MIdx = typename M::MIdx;
+  using BlockInfoProxy = generic::BlockInfoProxy<M::dim>;
 
-  using P::b_;
-  using P::bs_;
+  // Converts Cubism BlockInfo to BlockInfoProxy
+  static std::vector<BlockInfoProxy> Convert(
+      const std::vector<BlockInfo>&, MIdx bs, size_t hl);
+
+  std::vector<size_t> TransferHalos() override;
+  std::vector<size_t> TransferHalos(bool inner) override;
+  void ReduceSingleRequest(const std::vector<RedOp*>& blocks) override;
+  void Bcast(const std::vector<size_t>& bb) override;
+  void Scatter(const std::vector<size_t>& bb) override;
+  void DumpWrite(const std::vector<size_t>& bb) override;
+
+  using P::blocksize_;
   using P::comm_;
   using P::dim;
-  using P::ext_;
+  using P::extent_;
   using P::frame_;
-  using P::hl_;
+  using P::halos_;
   using P::isroot_;
-  using P::kf_;
-  using P::mk;
-  using P::p_;
-  using P::samp_;
+  using P::kernelfactory_;
+  using P::kernels_;
+  using P::nblocks_;
+  using P::nprocs_;
   using P::stage_;
   using P::var;
 
-  Grid g_;
-  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] The map is not really needed
-  struct S { // cubism [s]tate
-    std::map<MIdx, BlockInfo, typename MIdx::LexLess> mb;
+  struct CheckProcs {
+    CheckProcs(MPI_Comm comm, MIdx nprocs) {
+      int commsize;
+      MPI_Comm_size(comm, &commsize);
+      if (commsize != nprocs.prod()) {
+        throw std::runtime_error(util::Format(
+            "Number of MPI tasks {} does not match the number of subdomains {}",
+            commsize, nprocs));
+      }
+    }
   };
-  S s_;
+
+  CheckProcs checkprocs_; // Enforces the check before construction of grid_
+  Grid grid_;
   std::vector<std::vector<FieldView>> fviews_; // fields from last communication
   Synch* sync_;
   size_t n_fields_;
-
-  // Convert Cubism BlockInfo to MyBlockInfo
-  static std::vector<MyBlockInfo> Convert(
-      const std::vector<BlockInfo>&, MIdx bs, size_t hl);
-
-  std::vector<MIdx> GetBlocks() override;
-  std::vector<MIdx> GetBlocks(bool inner) override;
-  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
-  void ReadBuffer(const std::vector<MIdx>& bb) override;
-  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
-  void WriteBuffer(const std::vector<MIdx>& bb) override;
-  void Reduce(const std::vector<MIdx>& bb) override;
-  void Bcast(const std::vector<MIdx>& bb) override;
-  void Scatter(const std::vector<MIdx>& bb) override;
-  void DumpWrite(const std::vector<MIdx>& bb) override;
+  std::map<MIdx, size_t> midx_to_kernel_;
+  int commsize_;
 };
 
-// B_ - instance of GFieldViewRaw
-template <class B_>
+// nblocks_ - instance of GFieldViewRaw
+template <class nblocks_>
 struct StreamHdfScal {
-  using B = B_;
+  using B = nblocks_;
   using Scal = typename B::Scal;
 
   // Required by Cubism
@@ -238,10 +253,10 @@ struct StreamHdfScal {
   }
 };
 
-// B_ - instance of GFieldViewRaw
-template <class B_>
+// nblocks_ - instance of GFieldViewRaw
+template <class nblocks_>
 struct StreamHdfVect {
-  using B = B_;
+  using B = nblocks_;
   using Scal = typename B::Scal;
 
   // Required by Cubism
@@ -280,111 +295,95 @@ struct StreamHdfVect {
 };
 
 template <class Par, class M>
-std::vector<MyBlockInfo> Cubismnc<Par, M>::Convert(
-    const std::vector<BlockInfo>& cc, MIdx bs, size_t hl) {
-  std::vector<MyBlockInfo> bb;
-  for (size_t i = 0; i < cc.size(); i++) {
-    const BlockInfo& c = cc[i];
-    MyBlockInfo b;
-    for (int j = 0; j < 3; ++j) {
-      b.index[j] = c.index[j];
-      b.origin[j] = c.origin[j];
-      b.bs[j] = bs[j];
-    }
-    b.h_gridpoint = c.h_gridpoint;
-    b.hl = hl;
-    b.maxcomm = 65536;
-    bb.push_back(b);
+auto Cubismnc<Par, M>::Convert(
+    const std::vector<BlockInfo>& infos, MIdx blocksize, size_t halos)
+    -> std::vector<BlockInfoProxy> {
+  std::vector<BlockInfoProxy> proxies;
+  for (size_t i = 0; i < infos.size(); i++) {
+    const BlockInfo& info = infos[i];
+    BlockInfoProxy p;
+    p.index = MIdx(info.index);
+    p.cellsize = Vect(info.h_gridpoint);
+    p.blocksize = blocksize;
+    p.halos = halos;
+    proxies.push_back(p);
   }
-  return bb;
+  return proxies;
 }
 
 template <class Par, class M>
 Cubismnc<Par, M>::Cubismnc(
     MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var)
     : DistrMesh<M>(comm, kf, var)
-    , g_(p_[0], p_[1], p_[2], b_[0], b_[1], b_[2], ext_, comm) {
-  assert(
-      bs_[0] == FieldView::bx && bs_[1] == FieldView::by &&
-      bs_[2] == FieldView::bz);
+    , checkprocs_(comm, nprocs_)
+    , grid_(
+          nprocs_[0], nprocs_[1], nprocs_[2], nblocks_[0], nblocks_[1],
+          nblocks_[2], extent_, comm) {
+  fassert_equal(blocksize_[0], FieldView::bx);
+  fassert_equal(blocksize_[1], FieldView::by);
+  fassert_equal(blocksize_[2], FieldView::bz);
 
-  int r;
-  MPI_Comm_rank(comm, &r);
-  isroot_ = (0 == r); // XXX: overwrite isroot_
+  {
+    MPI_Comm_size(comm, &commsize_);
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    isroot_ = (0 == rank); // XXX: overwrite isroot_
+  }
 
   // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Get rid of BlockInfo type
-  std::vector<BlockInfo> cc = g_.getBlocksInfo();
-  std::vector<MyBlockInfo> ee = Convert(cc, bs_, hl_);
+  const std::vector<BlockInfo> infos = grid_.getBlocksInfo();
 
-  bool islead = true;
-  for (auto& e : ee) {
-    MIdx d(e.index);
-    e.isroot = (d == MIdx(0));
-    e.islead = islead;
-    MIdx gs = p_ * b_ * bs_; // global size
-    for (int j = 0; j < 3; ++j) {
-      e.gs[j] = gs[j];
-    }
-    islead = false;
+  std::vector<BlockInfoProxy> proxies = Convert(infos, blocksize_, halos_);
+  for (size_t i = 0; i < proxies.size(); ++i) {
+    auto& p = proxies[i];
+    p.isroot = (p.index == MIdx(0));
+    p.islead = (i == 0);
+    p.globalsize = nprocs_ * nblocks_ * blocksize_;
+    midx_to_kernel_[p.index] = i;
   }
 
-  this->MakeKernels(ee);
-
-  comm_ = g_.getCartComm(); // XXX: overwrite comm_
+  comm_ = grid_.getCartComm(); // XXX: overwrite comm_
+  this->MakeKernels(proxies);
 }
 
 template <class Par, class M>
-Cubismnc<Par, M>::~Cubismnc() {
-  for (const auto& sm : g_.getSynchronizerMPI()) {
-    samp_.Append(sm.second->getSampler());
-  }
-}
+Cubismnc<Par, M>::~Cubismnc() {}
 
 template <class Par, class M>
-auto Cubismnc<Par, M>::GetBlocks() -> std::vector<MIdx> {
-  // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] not needed
-  samp_.SeedSample();
-  MPI_Barrier(comm_);
-  samp_.CollectSample("MPI_Barrier");
-
-  // Get all blocks
-  std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
-  auto& m = mk.at(MIdx(cc[0].index))->GetMesh();
-  std::vector<BlockInfo> aa;
+auto Cubismnc<Par, M>::TransferHalos() -> std::vector<size_t> {
+  const std::vector<BlockInfo> infos = grid_.getBlocksInfo(); // all blocks
+  fassert_equal(infos.size(), kernels_.size());
+  auto& m = kernels_.front()->GetMesh();
   // Perform communication if necessary
   if (m.GetComm().size() > 0) {
     // 0. Construct vector of fields to communicate for all blocks on this rank
     std::vector<std::vector<FieldView>> fviews;
     const size_t n_fields = m.GetComm().size();
     fviews.resize(n_fields);
-    for (const auto& b : cc) {
-      auto& bm = mk.at(MIdx(b.index))->GetMesh();
-      auto& bf = bm.GetComm();
-      assert(n_fields == bf.size());
+    for (size_t i = 0; i < infos.size(); ++i) {
+      auto& reqs = kernels_[i]->GetMesh().GetComm();
+      assert(n_fields == fviews.size());
       for (size_t fi = 0; fi < n_fields; ++fi) {
-        auto& o = bf[fi];
-        fviews[fi].push_back(FieldView(o->GetBasePtr(), b.index, o->GetSize()));
+        auto& req = reqs[fi];
+        fviews[fi].push_back(
+            FieldView(req->GetBasePtr(), infos[i].index, req->GetSize()));
       }
     }
 
     // 1. Exchange halos in buffer mesh.
     // stencil type
     const bool is_tensorial = true;
-    const int nhalo_start[3] = {hl_, hl_, hl_};
-    const int nhalo_end[3] = {hl_, hl_, hl_};
+    const int nhalo_start[3] = {halos_, halos_, halos_};
+    const int nhalo_end[3] = {halos_, halos_, halos_};
 
     // schedule asynchronous communication
-    Synch& s = g_.sync(
+    Synch& s = grid_.sync(
         fviews, nhalo_start, nhalo_end, is_tensorial,
         var.Int["mpi_compress_msg"], var.Int["histogram"]);
 
-    // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] not needed
-    samp_.SeedSample();
-    MPI_Barrier(comm_);
-    samp_.CollectSample("MPI_Barrier");
-
     // Get all blocks synchronized
-    aa = s.avail_halo();
+    const std::vector<BlockInfo> avail = s.avail_halo();
+    fassert_equal(avail.size(), infos.size());
 
     // 2. Load exchanged halos into the local fields
     // FIXME: [fabianw@mavt.ethz.ch; 2019-12-07] This parallel structure is
@@ -392,81 +391,65 @@ auto Cubismnc<Par, M>::GetBlocks() -> std::vector<MIdx> {
 #pragma omp parallel
     {
       Lab l;
-      l.prepare(g_, s);
+      l.prepare(grid_, s);
 #pragma omp for schedule(dynamic, 1)
-      for (size_t i = 0; i < cc.size(); ++i) {
-        for (auto& field : fviews_) {
+      for (size_t i = 0; i < infos.size(); ++i) {
+        for (auto& field : fviews) {
           FieldView& block = field[i];
           l.load(block, field);
         }
       }
     }
-  } else {
-    aa = cc;
   }
 
-  if (aa.size() != cc.size()) {
-    std::cerr << "aa.size()=" << aa.size() << " != "
-              << "cc.size()=" << cc.size() << std::endl;
-    assert(false);
-  }
-
-  // Create vector of indices and save block info to map
-  std::vector<MIdx> bb;
-  s_.mb.clear();
-  for (auto a : aa) {
-    MIdx b(a.index);
-    s_.mb.emplace(b, a);
-    bb.push_back(b);
-  }
-
+  std::vector<size_t> bb(infos.size());
+  std::iota(bb.begin(), bb.end(), 0);
   return bb;
 }
 
 template <class Par, class M>
-auto Cubismnc<Par, M>::GetBlocks(bool inner) -> std::vector<MIdx> {
-  const std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
+auto Cubismnc<Par, M>::TransferHalos(bool inner) -> std::vector<size_t> {
+  const std::vector<BlockInfo> infos = grid_.getBlocksInfo(); // all blocks
+  fassert_equal(infos.size(), kernels_.size());
+
+  std::vector<size_t> bb;
   if (inner) {
-    n_fields_ = mk.at(MIdx(cc[0].index))->GetMesh().GetComm().size();
-    std::vector<MIdx> bb;
+    n_fields_ = kernels_.front()->GetMesh().GetComm().size();
     // Perform communication if necessary
     if (n_fields_ > 0) {
       // 0. Construct vector of fields to communicate for all blocks on this
       // rank
       fviews_.clear();
       fviews_.resize(n_fields_);
-      for (const auto& b : cc) {
-        auto& bm = mk.at(MIdx(b.index))->GetMesh();
-        auto& bf = bm.GetComm();
-        assert(n_fields_ == bf.size());
+      for (size_t i = 0; i < infos.size(); ++i) {
+        auto& reqs = kernels_[i]->GetMesh().GetComm();
+        assert(n_fields_ == reqs.size());
         for (size_t fi = 0; fi < n_fields_; ++fi) {
-          auto& o = bf[fi];
+          auto& req = reqs[fi];
           fviews_[fi].push_back(
-              FieldView(o->GetBasePtr(), b.index, o->GetSize()));
+              FieldView(req->GetBasePtr(), infos[i].index, req->GetSize()));
         }
       }
 
       // 1. Exchange halos in buffer mesh.
       // stencil type
       const bool is_tensorial = true;
-      const int nhalo_start[3] = {hl_, hl_, hl_};
-      const int nhalo_end[3] = {hl_, hl_, hl_};
+      const int nhalo_start[3] = {halos_, halos_, halos_};
+      const int nhalo_end[3] = {halos_, halos_, halos_};
 
       // schedule asynchronous communication
-      sync_ = &g_.sync(
+      sync_ = &grid_.sync(
           fviews_, nhalo_start, nhalo_end, is_tensorial,
           var.Int["mpi_compress_msg"], var.Int["histogram"]);
-      std::vector<BlockInfo> aa = sync_->avail_inner();
+      const std::vector<BlockInfo> avail = sync_->avail_inner();
 
       // Create vector of indices and save block info to map
-      s_.mb.clear();
-      for (auto a : aa) {
-        MIdx b(a.index);
-        s_.mb.emplace(b, a);
-        bb.push_back(b);
+      std::set<size_t> availset;
+      for (const auto& info : avail) {
+        const size_t i = midx_to_kernel_.at(MIdx(info.index));
+        bb.push_back(i);
+        availset.insert(i);
       }
-
-      std::set<MIdx> set(bb.begin(), bb.end());
 
       // 2. Load exchanged halos into the local fields
       // FIXME: [fabianw@mavt.ethz.ch; 2019-12-07] This parallel structure is
@@ -477,39 +460,31 @@ auto Cubismnc<Par, M>::GetBlocks(bool inner) -> std::vector<MIdx> {
 #pragma omp parallel
       {
         Lab l;
-        l.prepare(g_, *sync_);
+        l.prepare(grid_, *sync_);
 #pragma omp for schedule(dynamic, 1)
-        for (size_t i = 0; i < cc.size(); ++i) {
+        for (size_t i = 0; i < infos.size(); ++i) {
           for (auto& field : fviews_) {
             FieldView& block = field[i];
-            if (set.count(MIdx(block.index))) {
+            if (availset.count(i)) {
               l.load(block, field);
             }
           }
         }
       }
-    } else {
-      s_.mb.clear();
-      for (auto a : cc) {
-        MIdx b(a.index);
-        s_.mb.emplace(b, a);
-        bb.push_back(b);
-      }
+    } else { // no communication, return all blocks
+      bb.resize(infos.size());
+      std::iota(bb.begin(), bb.end(), 0);
     }
-    return bb;
-  } else {
-    std::vector<MIdx> bb;
+  } else { // not inner
     // Perform communication if necessary
     if (n_fields_ > 0) {
-      std::vector<BlockInfo> aa = sync_->avail_halo();
-
-      for (auto a : aa) {
-        MIdx b(a.index);
-        s_.mb.emplace(b, a);
-        bb.push_back(b);
+      const std::vector<BlockInfo> avail = sync_->avail_halo();
+      std::set<size_t> availset;
+      for (auto info : avail) {
+        const size_t i = midx_to_kernel_.at(MIdx(info.index));
+        bb.push_back(i);
+        availset.insert(i);
       }
-
-      std::set<MIdx> set(bb.begin(), bb.end());
 
       // Load exchanged halos into the local fields
       // FIXME: [fabianw@mavt.ethz.ch; 2019-12-07] This parallel structure is
@@ -520,54 +495,48 @@ auto Cubismnc<Par, M>::GetBlocks(bool inner) -> std::vector<MIdx> {
 #pragma omp parallel
       {
         Lab l;
-        l.prepare(g_, *sync_);
+        l.prepare(grid_, *sync_);
 #pragma omp for schedule(dynamic, 1)
-        for (size_t i = 0; i < cc.size(); ++i) {
+        for (size_t i = 0; i < infos.size(); ++i) {
           for (auto& field : fviews_) {
             FieldView& block = field[i];
-            if (set.count(MIdx(block.index))) {
+            if (availset.count(i)) {
               l.load(block, field);
             }
           }
         }
       }
+    } else { // no communication, return no blocks
     }
-    return bb;
   }
+
+  return bb;
 }
 
-// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
 template <class Par, class M>
-void Cubismnc<Par, M>::ReadBuffer(const std::vector<MIdx>&) {}
+void Cubismnc<Par, M>::Bcast(const std::vector<size_t>& bb) {
+  using OpConcat = typename UReduce<Scal>::OpCat;
+  auto& vfirst = kernels_.front()->GetMesh().GetBcast();
 
-// FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Not needed
-template <class Par, class M>
-void Cubismnc<Par, M>::WriteBuffer(const std::vector<MIdx>&) {}
-
-template <class Par, class M>
-void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
-  using OpCat = typename M::OpCat;
-  auto& vf = mk.at(bb[0])->GetMesh().GetBcast(); // pointers to broadcast
-
-  // Check size is the same for all kernels
-  for (auto& b : bb) {
-    auto& v = mk.at(b)->GetMesh().GetBcast(); // pointers to broadcast
-    if (v.size() != vf.size()) {
-      throw std::runtime_error("Bcast: v.size() != vf.size()");
-    }
+  if (!vfirst.size()) {
+    return;
   }
 
-  for (size_t i = 0; i < vf.size(); ++i) {
-    if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
-      std::vector<char> r = o->Neut(); // buffer
+  for (auto b : bb) {
+    fassert_equal(kernels_[b]->GetMesh().GetBcast().size(), vfirst.size());
+  }
+
+  for (size_t i = 0; i < vfirst.size(); ++i) {
+    if (OpConcat* o = dynamic_cast<OpConcat*>(vfirst[i].get())) {
+      std::vector<char> r = o->Neutral(); // buffer
 
       if (isroot_) {
         // read from root block
-        for (auto& b : bb) {
-          auto& m = mk.at(b)->GetMesh();
+        for (auto b : bb) {
+          auto& m = kernels_[b]->GetMesh();
           if (m.IsRoot()) {
             auto& v = m.GetBcast();
-            OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+            OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
             ob->Append(r);
           }
         }
@@ -582,15 +551,13 @@ void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
       r.resize(s);
 
       // broadcast data
-      samp_.SeedSample();
       MPI_Bcast(r.data(), r.size(), MPI_CHAR, 0, comm_);
-      samp_.CollectSample("MPI_Bcast");
 
       // write to all blocks
-      for (auto& b : bb) {
-        auto& m = mk.at(b)->GetMesh();
+      for (auto b : bb) {
+        auto& m = kernels_[b]->GetMesh();
         auto& v = m.GetBcast();
-        OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
+        OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
         ob->Set(r);
       }
     } else {
@@ -598,26 +565,23 @@ void Cubismnc<Par, M>::Bcast(const std::vector<MIdx>& bb) {
     }
   }
 
-  // Clear bcast requests
-  for (auto& b : bb) {
-    auto& k = *mk.at(b);
-    auto& m = k.GetMesh();
-    m.ClearBcast();
+  for (auto b : bb) {
+    kernels_[b]->GetMesh().ClearBcast();
   }
 }
 template <class Par, class M>
-void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
-  auto& vreq0 = mk.at(bb[0])->GetMesh().GetScatter(); // requests on first block
+void Cubismnc<Par, M>::Scatter(const std::vector<size_t>& bb) {
+  auto& vfirst = kernels_.front()->GetMesh().GetScatter();
 
-  // Check size is the same for all blocks
-  for (auto& b : bb) {
-    auto& vreq = mk.at(b)->GetMesh().GetScatter();
-    if (vreq.size() != vreq0.size()) {
-      throw std::runtime_error("Scatter: vreq.size() != vreq0.size()");
-    }
+  if (!vfirst.size()) {
+    return;
   }
 
-  for (size_t q = 0; q < vreq0.size(); ++q) {
+  for (auto b : bb) {
+    fassert_equal(kernels_[b]->GetMesh().GetScatter().size(), vfirst.size());
+  }
+
+  for (size_t q = 0; q < vfirst.size(); ++q) {
     int recvcount;
     int sizes_recvcount;
     std::vector<Scal> rbuf;
@@ -626,22 +590,20 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
     MPI_Datatype mscal = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
 
     if (isroot_) {
-      int sc; // size of communicator
-      MPI_Comm_size(comm_, &sc);
       std::vector<Scal> buf;
-      std::vector<int> dis(sc, 0);
-      std::vector<int> cnt(sc, 0);
+      std::vector<int> dis(commsize_, 0);
+      std::vector<int> cnt(commsize_, 0);
       std::vector<int> sizes_buf;
-      std::vector<int> sizes_dis(sc, 0);
-      std::vector<int> sizes_cnt(sc, 0);
+      std::vector<int> sizes_dis(commsize_, 0);
+      std::vector<int> sizes_cnt(commsize_, 0);
       // find root block
-      for (auto& b : bb) {
-        auto& m = mk.at(b)->GetMesh();
+      for (auto b : bb) {
+        auto& m = kernels_[b]->GetMesh();
         if (m.IsRoot()) {
           auto& req = m.GetScatter()[q];
           size_t i = 0;
           // concatenate data for all blocks in buf
-          for (int rank = 0; rank < sc; ++rank) {
+          for (int rank = 0; rank < commsize_; ++rank) {
             dis[rank] = buf.size();
             sizes_dis[rank] = sizes_buf.size();
             // XXX assuming the same number of blocks on all ranks
@@ -660,11 +622,9 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
       MPI_Scatter(cnt.data(), 1, MPI_INT, &recvcount, 1, MPI_INT, 0, comm_);
       rbuf.resize(recvcount);
       // data
-      samp_.SeedSample();
       MPI_Scatterv(
           buf.data(), cnt.data(), dis.data(), mscal, rbuf.data(), recvcount,
           mscal, 0, comm_);
-      samp_.CollectSample("MPI_Scatterv");
       // sizes recvcount
       MPI_Scatter(
           sizes_cnt.data(), 1, MPI_INT, &sizes_recvcount, 1, MPI_INT, 0, comm_);
@@ -678,11 +638,9 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
       MPI_Scatter(nullptr, 0, MPI_INT, &recvcount, 1, MPI_INT, 0, comm_);
       rbuf.resize(recvcount);
       // data
-      samp_.SeedSample();
       MPI_Scatterv(
           nullptr, nullptr, nullptr, mscal, rbuf.data(), recvcount, mscal, 0,
           comm_);
-      samp_.CollectSample("MPI_Scatterv");
       // sizes recvcount
       MPI_Scatter(nullptr, 0, MPI_INT, &sizes_recvcount, 1, MPI_INT, 0, comm_);
       sizes_rbuf.resize(sizes_recvcount);
@@ -695,7 +653,7 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
     // write to blocks on current rank
     size_t off = 0;
     for (size_t k = 0; k < bb.size(); ++k) {
-      auto& v = *mk.at(bb[k])->GetMesh().GetScatter()[q].second;
+      auto& v = *kernels_[bb[k]]->GetMesh().GetScatter()[q].second;
       v = std::vector<Scal>(
           rbuf.data() + off, rbuf.data() + off + sizes_rbuf[k]);
       off += sizes_rbuf[k];
@@ -703,356 +661,181 @@ void Cubismnc<Par, M>::Scatter(const std::vector<MIdx>& bb) {
   }
 
   // Clear requests
-  for (auto& b : bb) {
-    mk.at(b)->GetMesh().ClearScatter();
+  for (auto b : bb) {
+    kernels_[b]->GetMesh().ClearScatter();
   }
 }
+
 template <class Par, class M>
-void Cubismnc<Par, M>::Reduce(const std::vector<MIdx>& bb) {
-  using OpS = typename M::OpS;
-  using OpSI = typename M::OpSI;
-  using OpCat = typename M::OpCat;
-  auto& vf = mk.at(bb[0])->GetMesh().GetReduce(); // pointers to reduce
+void Cubismnc<Par, M>::ReduceSingleRequest(const std::vector<RedOp*>& blocks) {
+  using OpScal = typename UReduce<Scal>::OpS;
+  using OpScalInt = typename UReduce<Scal>::OpSI;
+  using OpConcat = typename UReduce<Scal>::OpCat;
 
-  // Check size is the same for all kernels
-  for (auto& b : bb) {
-    auto& v = mk.at(b)->GetMesh().GetReduce(); // pointers to reduce
-    if (v.size() != vf.size()) {
-      throw std::runtime_error("Reduce: v.size() != vf.size()");
+  auto* firstbase = blocks.front();
+
+  if (auto* first = dynamic_cast<OpScal*>(firstbase)) {
+    auto buf = first->Neutral(); // result
+
+    // Reduce over blocks on current rank
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpScal*>(otherbase);
+      other->Append(buf);
     }
-  }
 
-  // TODO: Check operation is the same for all kernels
-  // TODO: avoid code duplication
-
-  for (size_t i = 0; i < vf.size(); ++i) {
-    if (OpS* o = dynamic_cast<OpS*>(vf[i].get())) {
-      auto r = o->Neut(); // result
-
-      // Reduce over all blocks on current rank
-      for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
-        OpS* ob = dynamic_cast<OpS*>(v[i].get());
-        ob->Append(r);
-      }
-
-      MPI_Op mo;
-      if (dynamic_cast<typename M::OpSum*>(o)) {
-        mo = MPI_SUM;
-      } else if (dynamic_cast<typename M::OpProd*>(o)) {
-        mo = MPI_PROD;
-      } else if (dynamic_cast<typename M::OpMax*>(o)) {
-        mo = MPI_MAX;
-      } else if (dynamic_cast<typename M::OpMin*>(o)) {
-        mo = MPI_MIN;
-      } else {
-        throw std::runtime_error("Reduce(): Can't find MPI_Op");
-      }
-      MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
-
-      // Reduce over all ranks
-      samp_.SeedSample();
-      MPI_Allreduce(MPI_IN_PLACE, &r, 1, mt, mo, comm_);
-      samp_.CollectSample("MPI_Allreduce");
-
-      // Write results to all blocks on current rank
-      for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
-        OpS* ob = dynamic_cast<OpS*>(v[i].get());
-        ob->Set(r);
-      }
-    } else if (OpSI* o = dynamic_cast<OpSI*>(vf[i].get())) {
-      auto r = o->Neut(); // result
-
-      // Reduce over all blocks on current rank
-      for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
-        OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
-        ob->Append(r);
-      }
-
-      MPI_Op mo;
-      if (dynamic_cast<typename M::OpMinloc*>(o)) {
-        mo = MPI_MINLOC;
-      } else if (dynamic_cast<typename M::OpMaxloc*>(o)) {
-        mo = MPI_MAXLOC;
-      } else {
-        throw std::runtime_error("Reduce(): Can't find MPI_Op");
-      }
-
-      MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE_INT : MPI_FLOAT_INT);
-
-      // Reduce over all ranks
-      samp_.SeedSample();
-      MPI_Allreduce(MPI_IN_PLACE, &r, 1, mt, mo, comm_);
-      samp_.CollectSample("MPI_Allreduce");
-
-      // Write results to all blocks on current rank
-      for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
-        OpSI* ob = dynamic_cast<OpSI*>(v[i].get());
-        ob->Set(r);
-      }
-    } else if (OpCat* o = dynamic_cast<OpCat*>(vf[i].get())) {
-      std::vector<char> r = o->Neut(); // result local
-
-      // Reduce over all local blocks
-      for (auto& b : bb) {
-        auto& v = mk.at(b)->GetMesh().GetReduce();
-        OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-        ob->Append(r);
-      }
-
-      int s = r.size(); // size local
-
-      if (isroot_) {
-        int sc; // size of communicator
-        MPI_Comm_size(comm_, &sc);
-
-        std::vector<int> ss(sc); // size of r on all ranks
-
-        // Gather ss
-        MPI_Gather(&s, 1, MPI_INT, ss.data(), 1, MPI_INT, 0, comm_);
-
-        int sa = 0; // size all
-        std::vector<int> oo = {0}; // offsets
-        for (auto& q : ss) {
-          sa += q;
-          oo.push_back(oo.back() + q);
-        }
-        oo.pop_back();
-        assert(ss.size() == oo.size());
-
-        std::vector<char> ra(sa); // result all
-
-        // Gather ra
-        samp_.SeedSample();
-        MPI_Gatherv(
-            r.data(), r.size(), MPI_CHAR, ra.data(), ss.data(), oo.data(),
-            MPI_CHAR, 0, comm_);
-        samp_.CollectSample("MPI_Gatherv");
-
-        // Write results to root block
-        size_t cnt = 0;
-        for (auto& b : bb) {
-          auto& m = mk.at(b)->GetMesh();
-          if (m.IsRoot()) {
-            auto& v = m.GetReduce();
-            OpCat* ob = dynamic_cast<OpCat*>(v[i].get());
-            ob->Set(ra);
-            ++cnt;
-          }
-        }
-        assert(cnt == 1);
-      } else {
-        // Send s to root
-        MPI_Gather(&s, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm_);
-
-        // Send r to root
-        samp_.SeedSample();
-        MPI_Gatherv(
-            r.data(), r.size(), MPI_CHAR, nullptr, nullptr, nullptr, MPI_CHAR,
-            0, comm_);
-        samp_.CollectSample("MPI_Gatherv");
-      }
-
+    MPI_Op mpiop;
+    if (dynamic_cast<typename UReduce<Scal>::OpSum*>(first)) {
+      mpiop = MPI_SUM;
+    } else if (dynamic_cast<typename UReduce<Scal>::OpProd*>(first)) {
+      mpiop = MPI_PROD;
+    } else if (dynamic_cast<typename UReduce<Scal>::OpMax*>(first)) {
+      mpiop = MPI_MAX;
+    } else if (dynamic_cast<typename UReduce<Scal>::OpMin*>(first)) {
+      mpiop = MPI_MIN;
     } else {
-      throw std::runtime_error("Reduce: Unknown M::Op implementation");
+      fassert(false, "Unknown reduction");
     }
-  }
+    MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
 
-  // Clear reduce requests
-  for (auto& b : bb) {
-    auto& k = *mk.at(b);
-    auto& m = k.GetMesh();
-    m.ClearReduce();
+    // Reduce over ranks
+    MPI_Allreduce(MPI_IN_PLACE, &buf, 1, mt, mpiop, comm_);
+
+    // Write results to all blocks on current rank
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpScal*>(otherbase);
+      other->Set(buf);
+    }
+    return;
   }
+  if (auto* first = dynamic_cast<OpScalInt*>(firstbase)) {
+    auto buf = first->Neutral(); // result
+
+    // Reduce over blocks on current rank
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpScalInt*>(otherbase);
+      other->Append(buf);
+    }
+
+    MPI_Op mpiop;
+    if (dynamic_cast<typename UReduce<Scal>::OpMinloc*>(first)) {
+      mpiop = MPI_MINLOC;
+    } else if (dynamic_cast<typename UReduce<Scal>::OpMaxloc*>(first)) {
+      mpiop = MPI_MAXLOC;
+    } else {
+      fassert(false, "Unknown reduction");
+    }
+
+    MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE_INT : MPI_FLOAT_INT);
+
+    // Reduce over all ranks
+    MPI_Allreduce(MPI_IN_PLACE, &buf, 1, mt, mpiop, comm_);
+
+    // Write results to all blocks on current rank
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpScalInt*>(otherbase);
+      other->Set(buf);
+    }
+    return;
+  }
+  if (auto* first = dynamic_cast<OpConcat*>(firstbase)) {
+    auto buf = first->Neutral();
+
+    // Reduce over local blocks
+    for (auto otherbase : blocks) {
+      auto* other = dynamic_cast<OpConcat*>(otherbase);
+      other->Append(buf);
+    }
+
+    int bufsize = buf.size();
+
+    if (isroot_) {
+      std::vector<int> sizes(commsize_);
+
+      MPI_Gather(&bufsize, 1, MPI_INT, sizes.data(), 1, MPI_INT, 0, comm_);
+
+      int size_all = 0;
+      std::vector<int> offsets = {0};
+      for (auto& q : sizes) {
+        size_all += q;
+        offsets.push_back(offsets.back() + q);
+      }
+      offsets.pop_back();
+      assert(sizes.size() == offsets.size());
+
+      std::vector<char> buf_all(size_all);
+
+      MPI_Gatherv(
+          buf.data(), buf.size(), MPI_CHAR, buf_all.data(), sizes.data(),
+          offsets.data(), MPI_CHAR, 0, comm_);
+
+      // Write results to root block only (assume first)
+      // FIXME get IsRoot() from kernel_ after using std::vector for kernels
+      first->Set(buf_all);
+    } else {
+      MPI_Gather(&bufsize, 1, MPI_INT, nullptr, 0, MPI_INT, 0, comm_);
+
+      MPI_Gatherv(
+          buf.data(), buf.size(), MPI_CHAR, nullptr, nullptr, nullptr, MPI_CHAR,
+          0, comm_);
+    }
+    return;
+  }
+  fassert(false, "Unknown M::Op implementation");
 }
 
 template <class Par, class M>
-void Cubismnc<Par, M>::DumpWrite(const std::vector<MIdx>& bb) {
-  auto& m = mk.at(bb[0])->GetMesh();
-  if (m.GetDump().size()) {
-    std::string df = var.String["dumpformat"];
-    if (df == "default") {
-      df = "hdf";
+void Cubismnc<Par, M>::DumpWrite(const std::vector<size_t>& bb) {
+  auto& mfirst = kernels_.front()->GetMesh();
+  if (mfirst.GetDump().size()) {
+    std::string dumpformat = var.String["dumpformat"];
+    if (dumpformat == "default") {
+      dumpformat = "hdf";
     }
 
-    if (df == "hdf") {
+    if (dumpformat == "hdf") {
       // Create FieldView's for dump
-      const size_t n_fields = m.GetDump().size();
-      std::vector<BlockInfo> cc = g_.getBlocksInfo(); // all blocks
+      const size_t n_fields = mfirst.GetDump().size();
+      std::vector<BlockInfo> infos = grid_.getBlocksInfo(); // all blocks
       std::vector<std::vector<FieldView>> fviews(n_fields);
-      for (const auto& b : cc) {
-        auto& bm = mk.at(MIdx(b.index))->GetMesh();
-        auto& bf = bm.GetDump();
-        assert(n_fields == bf.size());
+      for (size_t i = 0; i < infos.size(); ++i) {
+        auto& reqs = kernels_[i]->GetMesh().GetDump();
+        assert(n_fields == reqs.size());
         for (size_t fi = 0; fi < n_fields; ++fi) {
-          auto& o = bf[fi].first;
+          auto& req = reqs[fi].first;
           fviews[fi].push_back(
-              FieldView(o->GetBasePtr(), b.index, o->GetStride()));
+              FieldView(req->GetBasePtr(), infos[i].index, req->GetStride()));
         }
       }
 
       // Write dump
-      auto& bf = m.GetDump();
-      assert(bf.size() == fviews.size());
+      auto& reqs = mfirst.GetDump();
+      fassert_equal(reqs.size(), fviews.size());
       for (size_t fi = 0; fi < fviews.size(); ++fi) {
-        auto fn = GetDumpName(bf[fi].second, "", frame_);
-        const int aos_idx = (bf[fi].first)->GetIndex();
+        const auto name = GetDumpName(reqs[fi].second, "", frame_);
+        const int aos_idx = (reqs[fi].first)->GetIndex();
         auto& blocks = fviews[fi];
         if (0 <= aos_idx) {
-          StreamHdfScal<FieldView>::NAME = bf[fi].second;
+          StreamHdfScal<FieldView>::NAME = reqs[fi].second;
           DumpHDF5_MPI<StreamHdfScal<FieldView>>(
-              blocks, aos_idx, g_, frame_, frame_, fn, ".", Vect(0),
-              m.GetCellSize(), true);
+              blocks, aos_idx, grid_, frame_, frame_, name, ".", Vect(0),
+              mfirst.GetCellSize(), true);
         } else if (3 == blocks[0].n_comp) {
-          StreamHdfVect<FieldView>::NAME = bf[fi].second;
+          StreamHdfVect<FieldView>::NAME = reqs[fi].second;
           DumpHDF5_MPI<StreamHdfVect<FieldView>>(
-              blocks, aos_idx, g_, frame_, frame_, fn, ".", Vect(0),
-              m.GetCellSize(), true);
+              blocks, aos_idx, grid_, frame_, frame_, name, ".", Vect(0),
+              mfirst.GetCellSize(), true);
         } else {
           throw std::runtime_error("DumpWrite(): Support only size 1 and 3");
         }
       }
       if (isroot_) {
-        std::cerr << "Dump " << frame_ << ": format=" << df << std::endl;
+        std::cout << "Dump " << frame_ << ": format=" << dumpformat
+                  << std::endl;
       }
       ++frame_;
     } else {
       P::DumpWrite(bb);
     }
-  }
-}
-
-template <class Par, class M>
-auto Cubismnc<Par, M>::GetGlobalBlock() const -> typename M::BlockCells {
-  return typename M::BlockCells(p_ * b_ * bs_);
-}
-
-template <class Par, class M>
-auto Cubismnc<Par, M>::GetGlobalIndex() const -> typename M::IndexCells {
-  // TODO: revise, relies on lightweight mesh,
-  //       may cause allocation of data fields otherwise
-  Rect<Vect> dom(Vect(0), Vect(1));
-  MIdx s = GetGlobalBlock().GetSize();
-  auto m = InitUniformMesh<M>(dom, MIdx(0), s, 0, true, true, s, 0);
-  return m.GetIndexCells();
-}
-
-template <class Par, class M>
-auto Cubismnc<Par, M>::GetGlobalField(size_t e) -> FieldCell<Scal> {
-  using BC = typename M::BlockCells;
-  using PF = const typename M::Co*;
-  auto gbc = GetGlobalIndex();
-  // collective, does actual communication
-  auto bb = GetBlocks();
-  std::vector<Scal> v(bs_.prod()); // tmp
-  MPI_Datatype mt = (sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT);
-  BC bc(bs_); // cells of one block
-  GBlock<size_t, dim> bq(p_ * b_); // indices of block
-  GIndex<size_t, dim> ndq(p_ * b_); // flat
-  auto GetField = [e](const M& m) -> PF {
-    int k = static_cast<int>(e);
-    for (auto& c : m.GetComm()) { // must be first
-      k -= c->GetSize();
-      if (k < 0) {
-        return c.get();
-      }
-    }
-    for (auto& co : m.GetDump()) { // followed by this
-      k -= co.first->GetSize();
-      if (k < 0) {
-        return co.first.get();
-      }
-    }
-    return nullptr;
-  };
-  if (isroot_) {
-    FieldCell<Scal> gfc(gbc); // result
-    // Copy from blocks on root
-    for (auto& b : bb) {
-      // block mesh
-      auto& m = mk.at(b)->GetMesh();
-      // index cells
-      auto& mbc = m.GetIndexCells();
-      // get corner of inner cells block
-      MIdx wb = m.GetInBlockCells().GetBegin();
-      // get field fc associated to index e
-      const PF bf = GetField(m);
-      if (const auto fcptr = dynamic_cast<const typename M::CoFcs*>(bf)) {
-        const FieldCell<Scal>& fc = *(fcptr->f);
-        // copy from inner cells to global field
-        for (auto w : bc) {
-          gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)];
-        }
-      } else if (
-          const auto fcptr = dynamic_cast<const typename M::CoFcv*>(bf)) {
-        const FieldCell<Vect>& fc = *(fcptr->f);
-        // copy from inner cells to global field
-        for (auto w : bc) {
-          gfc[gbc.GetIdx(wb + w)] = fc[mbc.GetIdx(wb + w)][fcptr->d];
-        }
-      } else {
-        throw std::runtime_error(
-            "GetGlobalField: resolving field pointer failed");
-      }
-    }
-    // recv from other ranks
-    for (auto b : bq) {
-      if (!s_.mb.count(b)) { // not local block
-        MPI_Status st;
-        MPI_Recv(
-            v.data(), v.size(), mt, MPI_ANY_SOURCE, MPI_ANY_TAG, comm_, &st);
-
-        size_t i = 0;
-        MIdx wb = ndq.GetMIdx(size_t(st.MPI_TAG)) * bs_;
-        for (auto w : bc) {
-          gfc[gbc.GetIdx(wb + w)] = v[i++];
-        }
-      }
-    }
-
-    samp_.SeedSample();
-    MPI_Barrier(comm_);
-    samp_.CollectSample("MPI_Barrier");
-    return gfc;
-  } else {
-    // send to root
-    for (auto b : bb) {
-      // block mesh
-      auto& m = mk.at(b)->GetMesh();
-      // block cells
-      auto& mbc = m.GetIndexCells();
-      // get corner of inner cells block
-      MIdx wb = m.GetInBlockCells().GetBegin();
-      // get field fc associated to index e
-      const PF bf = GetField(m);
-      if (const auto fcptr = dynamic_cast<const typename M::CoFcs*>(bf)) {
-        const FieldCell<Scal>& fc = *(fcptr->f);
-        size_t i = 0;
-        // copy from inner cells to global field
-        for (auto w : bc) {
-          v[i++] = fc[mbc.GetIdx(wb + w)];
-        }
-      } else if (
-          const auto fcptr = dynamic_cast<const typename M::CoFcv*>(bf)) {
-        const FieldCell<Vect>& fc = *(fcptr->f);
-        size_t i = 0;
-        // copy from inner cells to global field
-        for (auto w : bc) {
-          v[i++] = fc[mbc.GetIdx(wb + w)][fcptr->d];
-        }
-      } else {
-        throw std::runtime_error("GetGlobalField: failed dynamic cast");
-      }
-      // XXX: assume same order of Recv on root
-      MPI_Send(v.data(), v.size(), mt, 0, ndq.GetIdx(b), comm_);
-    }
-    samp_.SeedSample();
-    MPI_Barrier(comm_);
-    samp_.CollectSample("MPI_Barrier");
-    return FieldCell<Scal>();
   }
 }
 

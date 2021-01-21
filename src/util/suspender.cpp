@@ -8,136 +8,137 @@
 
 #include "suspender.h"
 
-Suspender::Sem::Sem(Suspender& p, std::string name) : p(p), name_(name) {
-  auto& l = p.lu_;
-  auto& i = p.lui_;
+Suspender::Sem::Sem(Suspender& owner, const std::string& name) : owner_(owner) {
+  auto& states = owner_.states_;
+  auto& pos = owner_.pos_;
 
-  if (i == l.begin()) {
-    // Allow nested calls on first level
-    p.nest_ = true;
-    // Clear curname_
-    p.curname_ = "";
-    p.depth_ = 0;
+  if (pos == states.begin()) {
+    owner_.allow_nested_ = true; // allow nested calls on first level
+    owner_.depth_ = 0;
   }
 
-  if (!p.nest_) {
+  if (!owner_.allow_nested_) {
     throw std::runtime_error(
-        p.GetCurName() +
-        ": Nested calls not allowed. Use Nested() on upper level");
+        owner_.GetNameSequence() +
+        ": Nested calls not allowed. Use `sem.Nested()` on upper level");
   }
-  p.nest_ = false;
+  owner_.allow_nested_ = false;
 
-  if (std::next(i) == l.end()) {
-    l.emplace_back(0, 0);
+  if (std::next(pos) == states.end()) {
+    states.emplace_back(0, 0, name);
   }
-  ++i;
+  ++pos;
 
-  i->c = 0;
+  pos->current = 0;
 }
 
 Suspender::Sem::~Sem() {
-  auto& l = p.lu_;
-  auto& i = p.lui_;
+  auto& states = owner_.states_;
+  auto& pos = owner_.pos_;
 
-  assert(!l.empty());
-  assert(i != l.end());
-  assert(i != l.begin());
+  assert(!states.empty());
+  assert(pos != states.end());
+  assert(pos != states.begin());
 
-  auto ip = std::prev(i);
+  auto ip = std::prev(pos);
 
-  if (std::next(i) == l.end()) {
+  if (std::next(pos) == states.end()) {
     // all lower levels done, next stage
-    ++i->t;
-    // i->c keeps total number of stages
-    if (i->c == i->t || i->c == 0) {
+    ++pos->target;
+    // pos->current keeps total number of stages
+    if (pos->current == pos->target || pos->current == 0) {
       // all stages done or no stages, remove current level
-      l.pop_back();
+      states.pop_back();
     }
   }
-  i = ip;
+  pos = ip;
 }
 
-bool Suspender::Sem::Next(std::string suff) {
-  auto& i = p.lui_;
-  if (i->c++ == i->t) {
-    if (p.curname_ != "") {
-      p.curname_ += " --> ";
-    }
-    std::stringstream st;
-    st << std::setfill('0') << std::setw(2) << i->t;
-    p.curname_ += name_ + ":" + st.str() + ":" + suff;
-    ++p.depth_;
+bool Suspender::Sem::Next(const std::string& suff) {
+  auto& pos = owner_.pos_;
+  if (pos->current++ == pos->target) {
+    pos->suff = suff;
+    pos->suff_id = pos->target;
+    ++owner_.depth_;
     return true;
   }
   return false;
 }
 
-bool Suspender::Sem::operator()(std::string suff) {
-  p.nest_ = false;
+bool Suspender::Sem::operator()(const std::string& suff) {
+  owner_.allow_nested_ = false;
   return Next(suff);
 }
 
-bool Suspender::Sem::Nested(std::string suff) {
-  p.nest_ = true;
+bool Suspender::Sem::Nested(const std::string& suff) {
+  owner_.allow_nested_ = true;
   return Next(suff);
 }
-
-// The index of each stage is given by c.
-// LoopBegin and LoopEnd are also stages.
-// lb -- index of LoopBegin
-// le -- index of LoopEnd
 
 void Suspender::Sem::LoopBegin() {
-  U& u = *p.lui_;
-  if (u.c == u.t) {
-    if (u.lb < u.c) {
-      u.lb = u.c;
+  State& s = *owner_.pos_;
+  if (s.current == s.target) {
+    if (s.loop_begin < s.current) {
+      s.loop_begin = s.current;
     }
-    ++u.t;
+    ++s.target;
   }
-  ++u.c;
+  ++s.current;
 }
 
 void Suspender::Sem::LoopBreak() {
-  U& u = *p.lui_;
-  u.t = u.le; // set target beyond loop end
+  State& s = *owner_.pos_;
+  s.target = s.loop_end; // set target beyond loop end
 }
 
-// Important to initialize le even before t reaches LoopEnd
+// Important to initialize loop_end even before target reaches LoopEnd
 // to be able to break on first iteration
 void Suspender::Sem::LoopEnd() {
-  U& u = *p.lui_;
-  if (u.le < u.lb && // le not initialized for current loop
-      u.lb <= u.t) { // target is within the loop
-    u.le = u.c;
+  State& s = *owner_.pos_;
+  if (s.loop_end < s.loop_begin && // loop_end not initialized for current loop
+      s.loop_begin <= s.target) { // target is within the loop
+    s.loop_end = s.current;
   }
-  if (u.c == u.t + 1) { // passed loop end
-    u.t = u.lb; // reset target to loop begin
+  if (s.current == s.target + 1) { // passed loop end
+    s.target = s.loop_begin; // reset target to loop begin
   }
-  ++u.c;
+  ++s.current;
 }
 
-Suspender::Suspender() : nest_(false) {
-  lu_.emplace_back(-1, -1);
-  lui_ = lu_.begin();
+Suspender::Suspender() : allow_nested_(false) {
+  states_.emplace_back(-1, -1, "");
+  pos_ = states_.begin();
 }
 
-Suspender::Sem Suspender::GetSem(std::string name) {
+Suspender::Sem Suspender::GetSem(const std::string& name) {
   return Sem(*this, name);
 }
 
-std::string Suspender::GetCurName() const {
-  return curname_;
+std::string Suspender::GetNameSequence() const {
+  std::string res;
+  bool first = true;
+  for (const auto& s : states_) {
+    if (!first) {
+      res += " --> ";
+    } else {
+      first = false;
+    }
+    const int cnt = s.suff_id;
+    const char c0 = '0' + cnt % 10;
+    const char c1 = '0' + (cnt / 10) % 10;
+    res += s.name + ":" + c1 + c0 + ":" + s.suff;
+  }
+  return res;
 }
 
 std::string Suspender::Print() const {
   std::stringstream b;
-  for (auto& e : lu_) {
-    b << "(" << e.c << " " << e.t << ") ";
+  for (auto& e : states_) {
+    b << "(" << e.current << " " << e.target << ") ";
   }
   return b.str();
 }
 
 bool Suspender::Pending() const {
-  return lu_.size() != 1;
+  return states_.size() != 1;
 }

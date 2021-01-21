@@ -10,11 +10,11 @@ import os
 def printerr(m):
     sys.stderr.write(str(m) + "\n")
 
-def ReadVtkPoly(path, verbose=False):
+def ReadVtkPoly(f, verbose=False):
     """
     Reads vtk points, polygons and fields from legacy VTK file.
-    path: `str`
-        Path to legacy VTK file.
+    f: `str` or file-like
+        Path to legacy VTK file or file-like object.
     Returns:
     points: `numpy.ndarray`, (num_points, 3)
         Points (vertices).
@@ -50,8 +50,15 @@ def ReadVtkPoly(path, verbose=False):
     cell_field_name = None
     binary = False
 
+    path = None
+    if type(f) is str:
+        path = f
+        f = open(path, 'rb')
+    else:
+        pass # expect file-like
+
     s = S.header
-    with open(path, 'rb') as f:
+    if f:
         for lnum, l in enumerate(f):
             l = str(l)
             if not l.strip():
@@ -74,7 +81,9 @@ def ReadVtkPoly(path, verbose=False):
                 num_points = int(re.findall("\D*(\d*)\D*", l)[0])
                 points = np.empty((num_points, dim))
                 if binary:
-                    points = np.fromfile(f, dtype='>f4', count=num_points * 3)
+                    dt = np.dtype('>f4')
+                    bytes = f.read(3 * num_points * dt.itemsize)
+                    points = np.frombuffer(bytes, dtype=dt)
                     points = points.astype(np.float)
                     f.readline()
                 else:
@@ -93,7 +102,9 @@ def ReadVtkPoly(path, verbose=False):
                 num_poly = int(m[0])
                 num_ints = int(m[1])
                 if binary:
-                    ints = np.fromfile(f, dtype='>i', count=num_ints)
+                    dt = np.dtype('>i')
+                    bytes = f.read(num_ints * dt.itemsize)
+                    ints = np.frombuffer(bytes, dtype=dt)
                     ints = ints.astype(np.int)
                     f.readline()
                 else:
@@ -128,7 +139,9 @@ def ReadVtkPoly(path, verbose=False):
             elif s == S.cell_field:
                 Assert("LOOKUP_TABLE" in l)
                 if binary:
-                    u = np.fromfile(f, dtype='>f4', count=num_poly)
+                    dt = np.dtype('>f4')
+                    bytes = f.read(num_poly * dt.itemsize)
+                    u = np.frombuffer(bytes, dtype=dt)
                     u = u.astype(np.float)
                     f.readline()
                 else:
@@ -139,4 +152,8 @@ def ReadVtkPoly(path, verbose=False):
                     printerr("Read cell field '{:}'".format(cell_field_name))
                 cell_fields[cell_field_name] = u
                 s = S.cell_scalars
+
+    if path:
+        f.close()
+
     return points, poly, cell_fields

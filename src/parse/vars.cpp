@@ -85,10 +85,30 @@ std::string Vars::GetTypeName(Key k) const {
 }
 
 template <class T>
+std::string Vars::Map<T>::ValueToStr(Value value) {
+  std::stringstream buf;
+  buf << value;
+  return buf.str();
+}
+
+template <>
+std::string Vars::Map<std::vector<double>>::ValueToStr(Value value) {
+  std::stringstream buf;
+  bool first = true;
+  for (auto a : value) {
+    if (!first) {
+      buf << ' ';
+    } else {
+      first = false;
+    }
+    buf << a;
+  }
+  return buf.str();
+}
+
+template <class T>
 std::string Vars::Map<T>::GetStr(Key k) const {
-  std::stringstream b;
-  b << m_.at(k);
-  return b.str();
+  return ValueToStr(m_.at(k));
 }
 
 template <class T>
@@ -113,15 +133,6 @@ void Vars::Map<T>::SetStr(Key k, std::string v) {
         FILELINE + ": trailing characters '" + v + "' as '" + GetTypeName() +
         "' for variable named '" + k + "'");
   }
-}
-
-template <>
-std::string Vars::Map<std::vector<double>>::GetStr(Key k) const {
-  std::stringstream b;
-  for (auto a : m_.at(k)) {
-    b << a << " ";
-  }
-  return b.str();
 }
 
 template <>
@@ -155,7 +166,7 @@ const T& Vars::Map<T>::operator[](Key k) const {
         FILELINE + ": variable '" + k + "' of type '" + GetTypeName() +
         "' not found");
   }
-  ++reads_[k];
+  hook_(k);
   return it->second;
 }
 
@@ -167,7 +178,7 @@ T& Vars::Map<T>::operator[](Key k) {
         FILELINE + ": variable '" + k + "' of type '" + GetTypeName() +
         "' not found");
   }
-  ++reads_[k];
+  hook_(k);
   return it->second;
 }
 
@@ -177,7 +188,7 @@ auto Vars::Map<T>::Find(Key k) -> Value* {
   if (it == m_.end()) {
     return nullptr;
   }
-  ++reads_[k];
+  hook_(k);
   return &it->second;
 }
 
@@ -187,7 +198,7 @@ auto Vars::Map<T>::Find(Key k) const -> const Value* {
   if (it == m_.end()) {
     return nullptr;
   }
-  ++reads_[k];
+  hook_(k);
   return &it->second;
 }
 
@@ -197,16 +208,7 @@ auto Vars::Map<T>::operator()(Key k, Value def) const -> Value {
   if (it == m_.end()) {
     return def;
   }
-  ++reads_[k];
-  return it->second;
-}
-
-template <class T>
-int Vars::Map<T>::GetReads(Key k) const {
-  auto it = reads_.find(k);
-  if (it == reads_.end()) {
-    return 0;
-  }
+  hook_(k);
   return it->second;
 }
 

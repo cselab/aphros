@@ -14,7 +14,7 @@ install: $(MAKEFILE)
 	+make -C $(BUILD) install
 
 test:
-	(cd $(BUILD) && ctest -j`nproc --all`)
+	cd $(BUILD) && ctest -j`nproc --all`
 
 clean:
 	rm -rf $(BUILD)

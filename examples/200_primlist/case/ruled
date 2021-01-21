@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+
+import aphros
+import numpy as np
+
+geom = aphros.Geometry()
+polygons = []
+
+def rot(p, phi):
+    return [
+        np.cos(phi) * p[0] - np.sin(phi) * p[1],
+        np.sin(phi) * p[0] + np.cos(phi) * p[1]
+    ]
+
+
+polygon0 = [
+    rot([1, 0], phi) for phi in np.linspace(0, 2 * np.pi, 5, endpoint=False)
+]
+polygon1 = list(map(lambda xy: rot(xy, 0.9), polygon0))
+geom.Ruled(origin=[0.5, 0.5, 0.5],
+             normal=[1, 0, 0],
+             right=[0, 1, 0],
+             normalrange=[-0.4, 0.4],
+             scale0=0.4,
+             scale1=0.2,
+             polygon0=polygon0,
+             polygon1=polygon1)
+
+bpath = "b_ruled.dat"
+print(bpath)
+s = geom.GenerateFile(bpath)
+
+apath = "add.conf"
+print(apath)
+with open(apath, 'w') as f:
+    f.write("set string list_path b_ruled.dat")

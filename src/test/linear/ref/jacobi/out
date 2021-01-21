@@ -1,0 +1,6 @@
+linear(jacobi) '': res=9.961869e-06 iter=346
+
+max_diff_exact=8.284385e-03
+residual=9.961869e-06
+iter=346
+time=0.140748

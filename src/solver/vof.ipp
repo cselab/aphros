@@ -33,21 +33,21 @@ struct Vof<EB_>::Imp {
   using UEB = UEmbed<M>;
 
   Imp(Owner* owner, const EB& eb0, const FieldCell<Scal>& fcu,
-      const FieldCell<Scal>& fccl, const MapEmbed<BCondAdvection<Scal>>& mfc,
-      Par par0)
+      const FieldCell<Scal>& fccl, Par par0)
       : owner_(owner)
       , par(par0)
       , m(owner_->m)
       , eb(eb0)
       , layers(1)
-      , mfc_(mfc)
+      , mebc_(owner->mebc_)
       , fccl_(fccl)
       , fcim_(m, TRM::Pack(MIdx(0)))
+      , fcim_unpack_(m, MIdx(0))
       , fca_(m, GetNan<Scal>())
       , fcn_(m, GetNan<Vect>()) {
     fcu_.time_curr = fcu;
 
-    UpdateBc(mfc_);
+    UpdateBc(mebc_);
 
     for (auto c : m.AllCells()) {
       if (fcu[c] == 0) {
@@ -55,10 +55,9 @@ struct Vof<EB_>::Imp {
       }
     }
   }
-  void UpdateBc(const MapEmbed<BCondAdvection<Scal>>& mfc) {
+  void UpdateBc(const MapEmbed<BCondAdvection<Scal>>& mebc) {
     std::tie(me_vf_, me_cl_, me_im_, me_n_, me_a_) =
-        UVof<M>::GetAdvectionBc(m, mfc);
-    mfc_cl_ = GetCond<Scal>(me_cl_);
+        UVof<M>::GetAdvectionBc(m, mebc);
   }
   // Computes normal and plane constant in interfacial cells.
   // uc: volume fraction to compute plane constant [a]
@@ -95,9 +94,9 @@ struct Vof<EB_>::Imp {
   void ExtrapolateLinear(Sem& sem, FieldCell<Scal>& fcu) {
     if (sem("extrap-linear")) {
       // Fill volume fraction in halo cells from quadratic extrapolation
-      for (auto p : mfc_.GetMapFace()) {
+      for (auto p : mebc_.GetMapFace()) {
         const IdxFace f = p.first;
-        auto& bc = mfc_.at(f);
+        auto& bc = mebc_.at(f);
         auto cc = m.GetCellColumn(f, bc.nci);
         const IdxCell cm = cc[1];
         const IdxCell cp = cc[2];
@@ -116,9 +115,9 @@ struct Vof<EB_>::Imp {
               }
             }
             if (xx.size()) {
-              const auto p = ULinear<Scal>::FitLinear(xx, uu);
+              const auto p = ULinearFit<Scal>::FitLinear(xx, uu);
               fcu[c] =
-                  ULinear<typename EB::Scal>::EvalLinear(p, m.GetCenter(c));
+                  ULinearFit<typename EB::Scal>::EvalLinear(p, m.GetCenter(c));
             }
           }
         }
@@ -131,9 +130,9 @@ struct Vof<EB_>::Imp {
   void ExtrapolatePlic(Sem& sem, FieldCell<Scal>& uc) {
     if (sem("extrap-plic")) {
       // Fill halo cells from PLIC extrapolation.
-      for (auto p : mfc_.GetMapFace()) {
+      for (auto p : mebc_.GetMapFace()) {
         const IdxFace f = p.first;
-        auto& bc = mfc_.at(f);
+        auto& bc = mebc_.at(f);
         auto cc = m.GetCellColumn(f, bc.nci);
         const IdxCell cm = cc[1];
         const IdxCell cp = cc[2];
@@ -180,7 +179,7 @@ struct Vof<EB_>::Imp {
       owner_->ClearIter();
       fcu_.time_prev = fcu_.time_curr;
       fcu_.iter_curr = fcu_.time_prev;
-      UpdateBc(mfc_);
+      UpdateBc(mebc_);
     }
 
     if (owner_->GetTime() == 0.) {
@@ -201,38 +200,33 @@ struct Vof<EB_>::Imp {
   };
   // Makes advection sweep in one direction, updates uc [i]
   // uc: volume fraction [s]
-  // d: direction
+  // dir: direction
   // ffv: mixture flux [i]
   // fcn,fca: normal and plane constant [s]
-  // mfc: face conditions, nullptr to keep boundary fluxes
+  // mebc: face conditions, nullptr to keep boundary fluxes
   // fcfm,fcfp: upwind mixture flux, required if type=LE [s]
   // fcuu: volume fraction for Weymouth div term
   // dt: time step
   // clipth: threshold for clipping, values outside [th,1-th] are clipped
   static void Sweep(
-      FieldCell<Scal>& uc, size_t d, const FieldFace<Scal>& ffv,
+      FieldCell<Scal>& uc, size_t dir, const FieldFace<Scal>& ffv,
       FieldCell<Scal>& fccl, FieldCell<Scal>& fcim, const FieldCell<Vect>& fcn,
       const FieldCell<Scal>& fca, const MapEmbed<BCond<Scal>>* mebc,
       SweepType type, const FieldCell<Scal>* fcfm, const FieldCell<Scal>* fcfp,
       const FieldCell<Scal>* fcuu, Scal dt, Scal clipth, const EB& eb) {
-    using Dir = typename M::Dir;
-    using MIdx = typename M::MIdx;
-    const Dir md(d); // direction as Dir
-    const MIdx wd(md); // offset in direction d
     const auto& m = eb.GetMesh();
-    const auto& bc = m.GetIndexCells();
-    const auto& bf = m.GetIndexFaces();
-    const MIdx gs = m.GetGlobalSize();
+    const auto& indexc = m.GetIndexCells();
+    const auto& indexf = m.GetIndexFaces();
+    const MIdx globalsize = m.GetGlobalSize();
     const auto h = m.GetCellSize();
+    const auto d = m.direction(dir);
 
     FieldFace<Scal> ffvu(m, 0); // phase 2 flux
 
     // compute fluxes [i] and propagate color to downwind cells
     for (auto f : eb.Faces()) {
-      const auto p = bf.GetMIdxDir(f);
-      const Dir df = p.second;
-
-      if (df != md) {
+      const auto p = indexf.GetMIdxDir(f);
+      if (p.second.raw() != d) {
         continue;
       }
 
@@ -265,10 +259,10 @@ struct Vof<EB_>::Imp {
         const IdxCell cd = m.GetCell(f, v > 0. ? 1 : 0); // downwind cell
         if (fccl[cd] == kClNone) {
           fccl[cd] = fccl[c];
-          const MIdx w = bc.GetMIdx(c);
+          const MIdx w = indexc.GetMIdx(c);
           MIdx im = TRM::Unpack(fcim[c]);
           if (w[d] < 0) im[d] += 1;
-          if (w[d] >= gs[d]) im[d] -= 1;
+          if (w[d] >= globalsize[d]) im[d] -= 1;
           fcim[cd] = TRM::Pack(im);
         }
       }
@@ -288,17 +282,16 @@ struct Vof<EB_>::Imp {
     }
 
     // update volume fraction [i]
-    for (auto c : eb.Cells()) {
-      const Scal vol = m.GetVolume(c);
-      const IdxFace fm = m.GetFace(c, d * 2);
-      const IdxFace fp = m.GetFace(c, d * 2 + 1);
+    for (auto c : eb.CellsM()) {
+      const auto fm = c.face(-d);
+      const auto fp = c.face(d);
       // mixture cfl
       // add 1e-16 to avoid zero denominator for excluded faces
       const Scal ds = (ffv[fp] / (eb.GetAreaFraction(fp) + 1e-16) -
                        ffv[fm] / (eb.GetAreaFraction(fm) + 1e-16)) *
-                      dt / vol;
+                      dt / c.volume;
       // phase 2 cfl
-      const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / vol;
+      const Scal dl = (ffvu[fp] - ffvu[fm]) * dt / c.volume;
       auto& u = uc[c];
       switch (type) {
         case SweepType::plain: {
@@ -373,16 +366,16 @@ struct Vof<EB_>::Imp {
       vsc = 1.0;
     }
     for (size_t id = 0; id < dd.size(); ++id) {
-      size_t d = dd[id]; // direction as index
+      const auto d = m.direction(dd[id]);
       if (sem("copyface")) {
         if (id % 2 == 1) { // copy fluxes for Lagrange Explicit step
           auto& ffv =
               owner_->fev_->GetFieldFace(); // [f]ield [f]ace [v]olume flux
           fcfm_.Reinit(m);
           fcfp_.Reinit(m);
-          for (auto c : eb.Cells()) {
-            fcfm_[c] = ffv[m.GetFace(c, 2 * d)];
-            fcfp_[c] = ffv[m.GetFace(c, 2 * d + 1)];
+          for (auto c : eb.CellsM()) {
+            fcfm_[c] = ffv[c.face(-d)];
+            fcfp_[c] = ffv[c.face(d)];
           }
           m.Comm(&fcfm_);
           m.Comm(&fcfp_);
@@ -490,7 +483,8 @@ struct Vof<EB_>::Imp {
       auto& fcs = *owner_->fcs_;
       fcuu_.Reinit(m);
       for (auto c : eb.Cells()) {
-        uc[c] = fcu_.time_prev[c] + dt * fcs[c];
+        auto um = fcu_.time_prev[c];
+        uc[c] = um + dt * fcs[c] * (1 - um);
         fcuu_[c] = (uc[c] < 0.5 ? 0 : 1);
       }
     }
@@ -510,8 +504,14 @@ struct Vof<EB_>::Imp {
     if (par.sharpen && sem.Nested("sharpen")) {
       Sharpen();
     }
+    if (modifier_) {
+      if (sem("modify")) {
+        modifier_(fcu_.iter_curr, fccl_, eb);
+      }
+      CommRec(sem, fcu_.iter_curr, fccl_, fcim_);
+    }
     if (sem("bcc_clear")) {
-      UVof<M>::BcClear(fcu_.iter_curr, mfc_, m);
+      UVof<M>::BcClear(fcu_.iter_curr, mebc_, m);
     }
     if (sem("resetcolor")) {
       auto& fcu = fcu_.iter_curr;
@@ -524,7 +524,7 @@ struct Vof<EB_>::Imp {
     if (sem.Nested()) {
       uvof_.Recolor(
           layers, &fcu_.iter_curr, &fccl_, &fcclm, par.clfixed, par.clfixed_x,
-          par.coalth, mfc_cl_, par.verb, par.recolor_unionfind,
+          par.coalth, me_cl_, par.verb, par.recolor_unionfind,
           par.recolor_reduce, par.recolor_grid, m);
     }
     if (sem("propagate")) {
@@ -550,6 +550,7 @@ struct Vof<EB_>::Imp {
   void FinishStep() {
     fcu_.time_curr = fcu_.iter_curr;
     owner_->IncTime();
+    modifier_ = nullptr;
   }
   void PostStep() {
     auto sem = m.GetSem("iter");
@@ -559,11 +560,16 @@ struct Vof<EB_>::Imp {
       m.Comm(&fca_);
       m.Comm(&fcn_);
     }
-    if (sem("reflect")) {
+    if (sem("local")) {
       // --> fca [a], fcn [a]
       BcApply(fca_, me_a_, m);
       BcApply(fcn_, me_n_, m);
       // --> reflected fca [a], fcn [a]
+
+      // unpack image vector
+      for (auto c : m.AllCells()) {
+        fcim_unpack_[c] = TRM::Unpack(fcim_[c]);
+      }
     }
   }
   void DumpInterface(std::string filename) {
@@ -608,16 +614,16 @@ struct Vof<EB_>::Imp {
   FieldCell<Scal> fcuu_; // volume fraction for Weymouth div term
 
   // boundary conditions
-  const MapEmbed<BCondAdvection<Scal>>& mfc_; // advection
+  const MapEmbed<BCondAdvection<Scal>>& mebc_; // advection
   MapEmbed<BCond<Scal>> me_vf_; // volume fraction
   MapEmbed<BCond<Scal>> me_cl_; // color
   MapEmbed<BCond<Scal>> me_im_; // image
   MapEmbed<BCond<Vect>> me_n_; // normal
   MapEmbed<BCond<Scal>> me_a_; // plane constant
-  MapCondFace mfc_cl_; // color
 
   FieldCell<Scal> fccl_; // color
   FieldCell<Scal> fcim_; // image
+  FieldCell<MIdx> fcim_unpack_; // image unpacked
   FieldCell<Scal> fca_; // alpha (plane constant)
   FieldCell<Vect> fcn_; // n (normal to plane)
   FieldCell<bool> fci_; // interface mask (1: contains interface)
@@ -626,15 +632,18 @@ struct Vof<EB_>::Imp {
   // tmp for MakeIteration, volume flux copied to cells
   FieldCell<Scal> fcfm_, fcfp_;
   UVof<M> uvof_;
+  std::function<void(FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const EB&)>
+      modifier_;
 };
 
 template <class EB_>
 Vof<EB_>::Vof(
-    M& m, const EB& eb, const FieldCell<Scal>& fcu, const FieldCell<Scal>& fccl,
-    const MapEmbed<BCondAdvection<Scal>>& mfc, const FieldEmbed<Scal>* fev,
-    const FieldCell<Scal>* fcs, double t, double dt, Par par)
-    : AdvectionSolver<M>(t, dt, m, fev, fcs)
-    , imp(new Imp(this, eb, fcu, fccl, mfc, par)) {}
+    M& m_, const EB& eb, const FieldCell<Scal>& fcu,
+    const FieldCell<Scal>& fccl, const MapEmbed<BCondAdvection<Scal>>& mebc,
+    const FieldEmbed<Scal>* fev, const FieldCell<Scal>* fcs, double t,
+    double dt, Par par)
+    : AdvectionSolver<M>(t, dt, m_, fev, fcs, mebc)
+    , imp(new Imp(this, eb, fcu, fccl, par)) {}
 
 template <class EB_>
 Vof<EB_>::~Vof() = default;
@@ -660,6 +669,11 @@ void Vof<EB_>::StartStep() {
 }
 
 template <class EB_>
+void Vof<EB_>::Sharpen() {
+  imp->Sharpen();
+}
+
+template <class EB_>
 void Vof<EB_>::MakeIteration() {
   imp->MakeIteration();
 }
@@ -681,13 +695,8 @@ auto Vof<EB_>::GetColor() const -> const FieldCell<Scal>& {
 
 template <class EB_>
 auto Vof<EB_>::GetPlic() const -> Plic {
-  return {imp->layers, &GetField(), &GetAlpha(), &GetNormal(),
-          &GetMask(),  nullptr,     imp->mfc_};
-}
-
-template <class EB_>
-auto Vof<EB_>::GetImage(IdxCell c) const -> MIdx {
-  return Trackerm<M>::Unpack(imp->fcim_[c]);
+  return {imp->layers, &GetField(), &GetAlpha(), &GetNormal(), &GetMask(),
+          nullptr,     &GetColor(), &GetImage(), imp->mebc_};
 }
 
 template <class EB_>
@@ -706,6 +715,11 @@ auto Vof<EB_>::GetNormal() const -> const FieldCell<Vect>& {
 }
 
 template <class EB_>
+auto Vof<EB_>::GetImage() const -> const FieldCell<MIdx>& {
+  return imp->fcim_unpack_;
+}
+
+template <class EB_>
 void Vof<EB_>::PostStep() {
   return imp->PostStep();
 }
@@ -718,4 +732,11 @@ void Vof<EB_>::DumpInterface(std::string fn) const {
 template <class EB_>
 void Vof<EB_>::DumpInterfaceMarch(std::string fn) const {
   return imp->DumpInterfaceMarch(fn);
+}
+
+template <class EB_>
+void Vof<EB_>::AddModifier(
+    std::function<void(FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const EB&)>
+        func) {
+  imp->modifier_ = func;
 }

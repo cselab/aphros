@@ -12,8 +12,8 @@
 #include <utility>
 
 #include "distr/distrbasic.h"
-#include "solver/embed.h"
 #include "solver/approx_eb.h"
+#include "solver/embed.h"
 #include "solver/reconst.h"
 
 using M = MeshStructured<double, 3>;
@@ -107,7 +107,9 @@ void Run(M& m, Vars& var) {
 
   if (sem("ctor")) {
     ctx->eb.reset(new EB(m));
-    ctx->fnl = UEB::InitEmbed(m, var, m.IsRoot());
+  }
+  if (sem.Nested("levelset")) {
+     UEB::InitLevelSet(ctx->fnl, m, var, m.IsRoot());
   }
   if (sem.Nested("init")) {
     ctx->eb->Init(ctx->fnl);
@@ -169,5 +171,7 @@ set double eb_sphere_angle 0
 
 set int eb_init_inverse 1
 )EOF";
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

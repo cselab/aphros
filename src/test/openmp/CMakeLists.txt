@@ -1,12 +1,5 @@
-set(CSD "${CMAKE_CURRENT_SOURCE_DIR}")
-get_filename_component(p ${CSD} NAME)
-
-set(EXE t.${p})
-
-include_directories(${S})
-
+get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+set(EXE t.${name})
 add_executable(${EXE} main.cpp)
-
-target_link_libraries(${EXE} distrbasic subcomm)
-
-add_test(NAME openmp COMMAND run)
+target_link_libraries(${EXE} aphros)
+add_test_current(COMMAND run)

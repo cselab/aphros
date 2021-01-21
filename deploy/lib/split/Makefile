@@ -3,8 +3,8 @@ PRE = ap.
 LINK = $(CC)
 CFLAGS = -g -Og
 GSL_LDFLAGS = `gsl-config --libs`
-M_LDFLAGS = -L$(CHPREFIX)/lib -lvtk -lcsv -ltable -lchmath
-M_CFLAGS = -I$(CHPREFIX)/include
+M_LDFLAGS = -L$(APHROS_PREFIX)/lib -lvtk -lcsv -ltable -lchmath
+M_CFLAGS = -I$(APHROS_PREFIX)/include
 
 M = \
 color\
@@ -22,7 +22,7 @@ split.o: util.h
 
 install: all
 	@for i in $M; \
-	do cp -v -- $$i $(CHPREFIX)/bin/$(PRE)$$i; \
+	do cp -v -- $$i $(APHROS_PREFIX)/bin/$(PRE)$$i; \
         done
 
 .c:

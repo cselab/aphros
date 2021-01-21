@@ -19,7 +19,7 @@ geom.Box([0,3,0], [4,1,1], intersect=1, invert=0)
 geom.Box([0,3,0], [4,1,1], intersect=0, invert=1)
 geom.Box([0,3,0], [4,1,1], intersect=1, invert=1)
 geom.Sphere([0,3,0], [4,1,1], intersect=1, invert=1)
-geom.Cylinder(center=[0,3,0], axis=[4,1,1], radius=4, axisrange=[-1,1])
+geom.Cylinder(center=[0,3,0], normal=[4,1,1], radius=4, normalrange=[-1,1])
 print(geom.Generate())
 print()
 

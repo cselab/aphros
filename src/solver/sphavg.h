@@ -20,24 +20,24 @@ class Sphavg {
  public:
   struct Sph {
     Vect x = Vect(0); // center
-    Scal r = 1.; // radius
-    Scal h = 1.; // kernel width
+    Scal r = 1; // radius
+    Scal h = 1; // kernel width
     Sph() = default;
-    Sph(const Vect& x, Scal r, Scal h) : x(x), r(r), h(h) {}
+    Sph(const Vect& x_, Scal r_, Scal h_) : x(x_), r(r_), h(h_) {}
   };
   struct Avg {
-    Scal b = 0.; // total weight
+    Scal b = 0; // total weight
     Vect x = Vect(0); // average of position
     Vect v = Vect(0); // velocity
     Vect dvt = Vect(0); // dv/dt
     Vect dvx = Vect(0); // dv/dx * v
     Vect dvmat = Vect(0); // dv/dt + dv/dx * v
     Vect gp = Vect(0); // gp/dx
-    Scal vm = 0.; // velocity magnitude
-    Scal p = 0.; // pressure
-    Scal r = 1.; // equivalent radius
-    Scal rhm = 1.; // shell inner
-    Scal rhp = 1.; // shell outer
+    Scal vm = 0; // velocity magnitude
+    Scal p = 0; // pressure
+    Scal r = 1; // equivalent radius
+    Scal rhm = 1; // shell inner
+    Scal rhp = 1; // shell outer
     Vect gvx = Vect(0); // dv/dx
     Vect gvy = Vect(0); // dv/dy
     Vect gvz = Vect(0); // dv/dz
@@ -136,7 +136,7 @@ class Sphavg {
   };
   // Constructor.
   // edim: effective dimension, 2 or 3
-  Sphavg(M& m, size_t edim) : m(m), edim_(edim) {}
+  Sphavg(M& m_, size_t edim) : m(m_), edim_(edim) {}
   // Computes averages over spheres.
   // fcu: volume fraction [a]
   // fcv: velocity [a]
@@ -223,10 +223,10 @@ class Sphavg {
   // r: must lie in standard domain
   // ro: periodic conditions applied
   bool Inter(const Rect<MIdx>& r, const Rect<MIdx>& ro) const {
-    MIdx b = r.lb;
-    MIdx e = r.rt;
-    MIdx bo = ro.lb;
-    MIdx eo = ro.rt;
+    MIdx b = r.low;
+    MIdx e = r.high;
+    MIdx bo = ro.low;
+    MIdx eo = ro.high;
     auto gs = m.GetGlobalSize();
     // equivalent to intersection of projections in all directions
     for (size_t d = 0; d < dim; ++d) {
@@ -303,7 +303,7 @@ void Sphavg<M_>::Update(
       auto rs = GetBox(s);
       if (Inter(rm, rs)) {
         // traverse bounding box
-        typename M::BlockCells bs(rs.lb, rs.GetDimensions() + MIdx(1));
+        typename M::BlockCells bs(rs.low, rs.GetDimensions() + MIdx(1));
         for (auto w : bs) {
           MIdx wt = GetStd(w);
           Sph st = s;
@@ -348,8 +348,7 @@ void Sphavg<M_>::Update(
       vv_.push_back(aa_[i].Ser());
     }
 
-    using TVS = typename M::template OpCatVT<Scal>;
-    m.Reduce(std::make_shared<TVS>(&vv_));
+    m.Reduce(&vv_, Reduction::concat);
   }
   if (sem("reduce")) {
     // root has concatenation of all vv_
@@ -375,8 +374,7 @@ void Sphavg<M_>::Update(
         }
       }
     }
-    using TVS = typename M::template OpCatVT<Scal>;
-    m.Bcast(std::make_shared<TVS>(&vv_));
+    m.Bcast(&vv_);
   }
   if (sem("bcast")) {
     if (vv_.size() != ss_.size()) {

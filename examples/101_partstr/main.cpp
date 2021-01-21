@@ -25,9 +25,11 @@ void Run(M& m, Vars&) {
     FieldCell<Vect> fcn; // normal
     FieldCell<bool> fci; // interface mask
     FieldCell<Scal> fck; // curvature
+    MapEmbed<BCondAdvection<Scal>> mebc;
     typename PSM::Par par;
     std::unique_ptr<PSM> psm;
   } * ctx(sem);
+  auto& t = *ctx;
   auto& fcu = ctx->fcu;
   auto& fca = ctx->fca;
   auto& fcn = ctx->fcn;
@@ -43,7 +45,8 @@ void Run(M& m, Vars&) {
     fci.Reinit(m, true);
   }
   if (sem.Nested()) {
-    Plic plic{GRange<size_t>(1), &fcu, &fca, &fcn, &fci, nullptr, {}};
+    Plic plic{GRange<size_t>(1), &fcu,    &fca,    &fcn,  &fci,
+              nullptr,           nullptr, nullptr, t.mebc};
     psm = UCurv<M>::CalcCurvPart(plic, par, &fck, m, m);
   }
   if (sem.Nested()) {
@@ -71,5 +74,6 @@ set int py 1
 set int pz 1
 )EOF";
 
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

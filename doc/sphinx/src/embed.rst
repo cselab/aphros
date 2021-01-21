@@ -274,3 +274,69 @@ See full example in :linkpath:`examples/104_embed_diffusion/main.cpp`.
   +--------------+-------------+
   | |ex104_1_1|  | |ex104_2_1| |
   +--------------+-------------+
+
+Taylor-Couette flow
+-------------------
+
+See full example in :linkpath:`examples/201_taylor_couette`.
+
+.. |ex201_error| image:: ../../../examples/201_taylor_couette/ref/convergence/error.svg
+
+.. |ex201_field| image:: ../../../examples/201_taylor_couette/ref/single/field.svg
+
+.. table:: Error norms with grid refinement (left) and error field at :math:`R/h=25.6` (right).
+  :align: center
+
+  +---------------+---------------+
+  | |ex201_error| | |ex201_field| |
+  +---------------+---------------+
+
+Hydrostatic
+-----------
+
+Single-phase
+^^^^^^^^^^^^
+
+See full example in :linkpath:`examples/203_hydrostatic`.
+
+.. |ex203_pressure| image:: ../../../examples/203_hydrostatic/ref/single/pressure.svg
+
+.. |ex203_velocity| image:: ../../../examples/203_hydrostatic/ref/single/velocity.svg
+
+.. table:: Pressure (left) and velocity (right).
+  :align: center
+
+  +------------------+------------------+
+  | |ex203_pressure| | |ex203_velocity| |
+  +------------------+------------------+
+
+Multiphase
+^^^^^^^^^^
+
+See full example in :linkpath:`examples/203_hydrostatic`.
+
+.. |ex203m_density_init| image:: ../../../examples/203_hydrostatic/ref/multi/density_init.svg
+
+.. |ex203m_density| image:: ../../../examples/203_hydrostatic/ref/multi/density.svg
+
+.. |ex203m_pressure| image:: ../../../examples/203_hydrostatic/ref/multi/pressure.svg
+
+.. |ex203m_velocity| image:: ../../../examples/203_hydrostatic/ref/multi/velocity.svg
+
+.. table:: Initial density (top left), final density (top right), pressure (bottom left) and velocity (bottom right).
+  :align: center
+
+  +------------------------+-------------------+
+  | |ex203m_density_init|  | |ex203m_density|  |
+  |                        |                   |
+  | |ex203m_pressure|      | |ex203m_velocity| |
+  +------------------------+-------------------+
+
+.. |ex203m_history| image:: ../../../examples/203_hydrostatic/ref/multi/history.svg
+
+.. table:: Evolution of velocity norms.
+  :align: center
+
+  +-------------------+
+  | |ex203m_history|  |
+  +-------------------+

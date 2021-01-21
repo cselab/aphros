@@ -1,9 +1,0 @@
-#!/bin/bash
-
-set -eu
-
-ref=$(cat refpath)
-
-mkdir -p "$ref"
-
-mv -v vx p $ref/

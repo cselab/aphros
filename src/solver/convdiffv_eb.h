@@ -36,13 +36,12 @@ class ConvDiffVectEmbed final : public ConvDiffVect<MEB_> {
   // par: parameters
   ConvDiffVectEmbed(
       M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-      const MapCondFace& mfc, const FieldCell<Scal>* fcr,
+      const MapEmbed<BCond<Vect>>& mfc, const FieldCell<Scal>* fcr,
       const FieldFaceb<Scal>* fed, const FieldCell<Vect>* fcs,
       const FieldFaceb<Scal>* ffv, double t, double dt, Par par);
   ~ConvDiffVectEmbed();
   // ...
-  void Assemble(
-      const FieldCell<Vect>& fcw, const FieldFaceb<Scal>& ffv);
+  void Assemble(const FieldCell<Vect>& fcw, const FieldFaceb<Scal>& ffv);
   // Corrects field and comm.
   // fc: correction [i]
   // Output:
@@ -54,7 +53,7 @@ class ConvDiffVectEmbed final : public ConvDiffVect<MEB_> {
   FieldCell<Scal> GetConst(size_t d) const override;
   // Velocity conditions.
   // d: component
-  MapCondFace& GetVelocityCond(size_t d);
+  MapEmbed<BCond<Vect>>& GetVelocityCond(size_t d);
   // ...
   void StartStep() override;
   // ...

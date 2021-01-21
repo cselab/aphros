@@ -80,7 +80,7 @@ void Test() {
   do {
     A(s);
     b += "|";
-    std::cerr << s.Print() << " " << s.GetCurName() << std::endl;
+    std::cerr << s.Print() << " " << s.GetNameSequence() << std::endl;
   } while (s.Pending());
 
   std::cerr << "'" << b << "' == '" << p << "'" << std::endl;

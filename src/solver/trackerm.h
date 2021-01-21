@@ -18,8 +18,8 @@ class Trackerm {
   using MIdx = typename M::MIdx;
   static const size_t dim = M::dim;
 
-  Trackerm(M& m, const GRange<size_t>& layers)
-      : m(m), layers(layers), fcim_(layers) {
+  Trackerm(M& m_, const GRange<size_t>& layers_)
+      : m(m_), layers(layers_), fcim_(layers_) {
     fcim_.InitAll(FieldCell<Scal>(m, Pack(MIdx(0))));
   }
   // fccl: current color

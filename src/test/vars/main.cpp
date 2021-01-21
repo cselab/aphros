@@ -33,7 +33,7 @@ void TestParse(std::string s) {
   auto& m = vars.Get<T>();
   m.SetStr(k, s);
   auto p = m.GetStr(k);
-  std::cerr << m.GetTypeName() << ": "
+  std::cout << m.GetTypeName() << ": "
             << "'" << s << "' == '" << p << "'" << std::endl;
   assert(s == p);
 }
@@ -43,7 +43,7 @@ void TestTypeName(std::string s, std::string type) {
   std::string k = "key";
   vars.SetStr(type, k, s);
   std::string p = vars.GetStr(type, k);
-  std::cerr << type << ": "
+  std::cout << type << ": "
             << "'" << s << "' == '" << p << "'" << std::endl;
   assert(s == p);
 }
@@ -79,37 +79,53 @@ void TestDel(std::string s) {
 }
 
 void Test() {
-  std::cerr << "\ntest_vars::Test()" << std::endl;
+  std::cout << "\ntest_vars::Test()" << std::endl;
 
-  std::cerr << "TestParse" << std::endl;
+  std::cout << "TestParse" << std::endl;
   TestParse<std::string>("asdf");
   TestParse<int>("123");
   TestParse<double>("123.456");
-  TestParse<std::vector<double>>("1.2 3.4 5.6 ");
+  TestParse<std::vector<double>>("1.2 3.4 5.6");
 
-  std::cerr << "TestTypeName" << std::endl;
+  std::cout << "TestTypeName" << std::endl;
   TestTypeName("asdf", "string");
   TestTypeName("123", "int");
   TestTypeName("123.456", "double");
-  TestTypeName("1.2 3.4 5.6 ", "vect");
+  TestTypeName("1.2 3.4 5.6", "vect");
 
-  std::cerr << "TestPtr" << std::endl;
+  std::cout << "TestPtr" << std::endl;
   TestPtr<std::string>("asdf", "qwer");
   TestPtr<int>(123, 456);
   TestPtr<double>(123.456, 456.123);
   TestPtr<std::vector<double>>({1.2, 3.4, 5.6}, {5.6, 3.4});
 
-  std::cerr << "TestDel" << std::endl;
+  std::cout << "TestDel" << std::endl;
   TestDel<std::string>("asdf");
   TestDel<int>("123");
   TestDel<double>("123.456");
-  TestDel<std::vector<double>>("1.2 3.4 5.6 ");
+  TestDel<std::vector<double>>("1.2 3.4 5.6");
 
-  std::cerr << "test_vars::Test() done\n" << std::endl;
+  std::cout << "test_vars::Test() done\n" << std::endl;
+}
+
+void TestHook() {
+  std::cout << __func__ << std::endl;
+  Vars v(
+      [](const std::string key) { std::cout << "hook: " << key << std::endl; });
+  v.SetStr("string", "a", "asdf");
+  v.SetStr("int", "b", "5");
+  v.SetStr("double", "c", "5.5");
+  v.SetStr("vect", "d", "1 2 3 4");
+
+  v.String["a"];
+  v.Int["b"];
+  v.Double["c"];
+  v.Vect["d"];
 }
 
 int main() {
   simple::Simple();
 
   Test();
+  TestHook();
 }

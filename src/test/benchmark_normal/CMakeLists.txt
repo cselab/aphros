@@ -1,11 +1,12 @@
-set(CSD "${CMAKE_CURRENT_SOURCE_DIR}")
-get_filename_component(p ${CSD} NAME)
-
-set(EXE t.${p})
-
-add_executable(${EXE} main.cpp)
-
-target_link_libraries(${EXE} suspender sysinfo timer normal)
-
-add_test(NAME ${p} COMMAND ${EXE})
+get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+set(T t.${name})
+add_executable(${T} main.cpp)
+target_link_libraries(${T} suspender format timer sysinfo mesh allocator)
+if (USE_AVX)
+  target_compile_definitions(${T} PRIVATE _USE_AVX_=1)
+  target_compile_options(${T} PRIVATE -march=native)
+else ()
+  target_compile_definitions(${T} PRIVATE _USE_AVX_=0)
+endif ()
+add_test_current(COMMAND ${T})
 

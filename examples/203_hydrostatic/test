@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+
+import os
+import re
+from glob import glob
+import numpy as np
+
+import aphros
+
+class Case:
+    single = "single"
+    multi = "multi"
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__(cases=[Case.single, Case.multi])
+        self.parser.add_argument(
+            "--maxnx",
+            default=256,
+            type=int,
+            help="Maximum mesh size for convergence test.")
+
+    def copy_last(self, fields):
+        last = sorted(glob("{}_*.h5".format(fields[0])))[-1]
+        last = re.findall(".*_(\d*)", last)[0]
+        slast = "last"
+        ff = [f + "_{}.h5" for f in fields]
+        for f in ff:
+            self.rename_file(f.format(last), f.format(slast))
+        return [f.format(slast) for f in ff]
+
+    def select_stat(self, fields):
+        s = np.genfromtxt("stat.dat", names=True)
+        uu = [s[h] for h in fields]
+        fname = "statsel"
+        with open(fname, 'w') as f:
+            f.write(' '.join(fields) + '\n')
+            np.savetxt(f, np.transpose(uu))
+        return fname
+
+    def run(self, case):
+        self.runcmd("make {}".format(case))
+        o = []
+        o += self.copy_last(['p', 'vy', 'rho'])
+        if case == Case.multi:
+            o.append("rho_0000.h5")
+            o.append(self.select_stat(['t', 'dvel_l2y', 'dvel_maxy']))
+        return o
+
+    def check(self, outdir, refdir, output_files):
+        return True
+
+    def update(self, outdir, refdir, output_files):
+        for f in [
+                "velocity.svg", "pressure.svg", "density.svg",
+                "density_init.svg", "statsel", "history.svg",
+        ]:
+            fo = os.path.join(outdir, f)
+            if os.path.isfile(fo):
+                self.copy_file(fo, os.path.join(refdir, f))
+
+    def plot_error_field(self, datadir, refdir, files):
+        import matplotlib
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as mcolors
+        import aphros.plot
+        import numpy as np
+        import h5py
+
+        def plotfield(path, name, std=False):
+            f = os.path.join(datadir, path)
+            if not os.path.isfile(f):
+                return
+            with h5py.File(f, 'r') as h:
+                u = h['data']
+                u = np.array(u)
+                u = u[0, :, :, 0]
+
+            fig, ax = aphros.plot.GetSquareFigure(colorbar=True)
+
+            u[u == 0] = np.nan
+            if std:
+                std = np.nanquantile(abs(u), 0.9)
+                vmin = -std
+                vmax = std
+                cmap = "coolwarm"
+            else:
+                vmin = np.nanmin(u)
+                vmax = np.nanmax(u)
+                cmap = "viridis"
+            print("range {:} {:}".format(vmin, vmax))
+            aphros.plot.PlotSquareField(ax, u, vmin=vmin, vmax=vmax, cmap=cmap)
+            aphros.plot.AddColorBar(fig, vmin, vmax, cmap)
+
+            fpath = os.path.join(datadir, name + ".svg")
+            self.printlog(fpath)
+            fig.savefig(fpath)
+
+        plotfield("vy_last.h5", "velocity", True)
+        plotfield("p_last.h5", "pressure", False)
+        if self.case == Case.multi:
+            plotfield("rho_0000.h5", "density_init", False)
+            plotfield("rho_last.h5", "density", False)
+
+    def plot_history(self, datadir, refdir, files):
+        fname = "statsel"
+        if fname in files:
+            import matplotlib.pyplot as plt
+            import numpy as np
+            from matplotlib.ticker import ScalarFormatter, NullFormatter
+            fdat = os.path.join(datadir, fname)
+            fref = os.path.join(refdir, fname)
+            fig, ax = plt.subplots(figsize=(5, 4))
+            ax.set_yscale("log")
+            udat = np.genfromtxt(fdat, names=True)
+            uref = np.genfromtxt(fref, names=True)
+            labels = ["L2", "max"]
+            indices = ['vl2y', 'vlmy']
+            colors = ['C0', 'C1']
+            for l, i, c in zip(labels, indices, colors):
+                ax.plot(uref['t'], uref[i], label=l + '-ref', c=c, ls='--')
+                ax.plot(udat['t'], udat[i], label=l, c=c)
+            ax.set_xlabel(r't')
+            ax.set_ylabel(r'velocity')
+            ax.set_ylim(1e-4, None)
+            ax.legend(loc='upper center',
+                      bbox_to_anchor=(0.5, 1.2),
+                      ncol=4,
+                      fontsize=8,
+                      handlelength=3.5)
+            fig.tight_layout()
+            fpath = os.path.join(datadir, "history.svg")
+            self.printlog(fpath)
+            fig.savefig(fpath)
+
+
+    def plot(self, datadir, output_files):
+        self.plot_error_field(datadir, self.refdir, output_files)
+        if self.case == Case.multi:
+            self.plot_history(datadir, self.refdir, output_files)
+
+
+Test().main()

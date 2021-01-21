@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -eu
+
+
+e () {
+  mpirun --oversubscribe -n 1 ./t.linear --verbose --tol 0 --maxiter 10 \
+    --mesh 64 --solver $1 --block $2 --extra "
+set string backend cubismnc
+set int loc_maxcomm 16
+" |
+    grep -E "linear|time"
+}
+
+e hypre 8
+e hypre 16
+e hypre 32
+e conjugate 8
+e conjugate 16
+e conjugate 32
+
+#e conjugate 8
+#e conjugate 8
+#e conjugate 8
+#e conjugate 8
+#e conjugate 8

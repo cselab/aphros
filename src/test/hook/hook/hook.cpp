@@ -1,8 +1,10 @@
+// Created by Petr Karnakov on 03.05.2020
+// Copyright 2020 ETH Zurich
+
 #include <iostream>
 
-#include <util/posthook.h>
 #include <parse/config.h>
-
+#include <util/posthook.h>
 
 template <class M>
 void InitVelHook(FieldCell<typename M::Vect>&, const Vars& var, const M&) {

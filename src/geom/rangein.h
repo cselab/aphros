@@ -7,20 +7,12 @@
 
 template <class Idx_, int dim_>
 class GRangeIn {
+ public:
   using Idx = Idx_;
   using Block = GBlock<Idx, dim_>;
   using Indexer = GIndex<Idx, dim_>;
-  const Indexer& indexer_;
-  const Block& block_;
 
- public:
   class iterator {
-    const Indexer& indexer_;
-    const Block& block_;
-    typename Block::iterator block_iter_;
-    size_t nlite_; // number of calls to operator++ equivalent to ++idx_
-    Idx idx_;
-
    public:
     explicit iterator(
         const Indexer& indexer, const Block& block,
@@ -51,6 +43,13 @@ class GRangeIn {
     Idx operator*() const {
       return idx_;
     }
+
+   private:
+    const Indexer& indexer_;
+    const Block& block_;
+    typename Block::iterator block_iter_;
+    size_t nlite_; // number of calls of operator++ equivalent to ++idx_
+    Idx idx_;
   };
 
   GRangeIn(const Indexer& indexer, const Block& block)
@@ -61,4 +60,8 @@ class GRangeIn {
   iterator end() const {
     return iterator(indexer_, block_, block_.end());
   }
+
+ private:
+  const Indexer& indexer_;
+  const Block& block_;
 };

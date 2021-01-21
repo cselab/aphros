@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+
+import aphros
+
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__(cases=["2d", "3d", "4d"])
+
+    def run(self, case):
+        self.runcmd("./t.mesh_{} > out".format(case))
+        return ["out"]
+
+
+Test().main()

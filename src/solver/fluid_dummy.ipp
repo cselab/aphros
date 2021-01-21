@@ -14,8 +14,8 @@
 #include "debug/isnan.h"
 #include "debug/linear.h"
 #include "fluid.h"
-#include "linear/linear.h"
 #include "fluid_dummy.h"
+#include "linear/linear.h"
 #include "util/posthook.h"
 
 // ranges (cells/faces)
@@ -83,12 +83,12 @@ struct FluidDummy<EB_>::Imp {
 
 template <class EB_>
 FluidDummy<EB_>::FluidDummy(
-    M& m, const EB& eb, const FieldCell<Vect>& fcvel,
+    M& m_, const EB& eb, const FieldCell<Vect>& fcvel,
     const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
     const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* febp,
     const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
     double dt, const Vars& var)
-    : Base(t, dt, m, fcr, fcd, fcf, febp, fcsv, fcsm)
+    : Base(t, dt, m_, fcr, fcd, fcf, febp, fcsv, fcsm)
     , imp(new Imp(this, eb, fcvel, var)) {}
 
 template <class EB_>

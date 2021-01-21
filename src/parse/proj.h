@@ -23,7 +23,7 @@ struct ParsePar<Proj<M>> {
     p.convdf = var.Double["convdf"];
     p.stokes = var.Int["stokes"];
     p.convsymm = var.Int["convsymm"];
-    p.explconv = var.Int["explconv"];
+    p.explviscous = var.Int["explviscous"];
     p.bcg = var.Int["proj_bcg"];
     std::string conv = var.String["conv"];
     if (conv == "imp") {
@@ -34,6 +34,10 @@ struct ParsePar<Proj<M>> {
       throw std::runtime_error("Parse: unknown conv=" + conv);
     }
     p.outlet_relax = var.Double["outlet_relax"];
+    p.redistr_adv = var.Int["proj_redistr_adv"];
+    p.inletpressure_factor = var.Double["inletpressure_factor"];
+    p.diffusion_iters = var.Int["proj_diffusion_iters"];
+    p.diffusion_consistent_guess = var.Int["proj_diffusion_consistent_guess"];
     return p;
   }
 };

@@ -1,25 +1,29 @@
 # Deploy
 
-*   Select profile and create `ap.setenv`
+* Select profile and create `ap.setenv`
 
-     ```
-     ./install_setenv PREFIX
-     (daint) ./install_setenv PREFIX --profile daint
-     ```
-*   Set environment
+```
+./install_setenv PREFIX
+(daint) ./install_setenv --profile daint PREFIX
+(euler) ./install_setenv --profile euler PREFIX
+```
 
-     ```
-     . ap.setenv
-     ```
+where `PREFIX` is the installation prefix (e.g. `$(HOME)/aphros`)
 
-*   Install libraries and tools
+* Setup environment
 
-     ```
-     mkdir build
-     cd build
-     cmake ..
-     make -j4
-     make install
-     ```
+```
+. ap.setenv
+```
 
-     Alternatively, use `ccmake ..` to configure with a dialog.
+* Install libraries and tools
+
+```
+mkdir build
+cd build
+cmake ..
+make -j4
+make install
+```
+
+  Alternatively, use `ccmake ..` to configure with a dialog.

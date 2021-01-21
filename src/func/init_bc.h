@@ -7,6 +7,8 @@
 #include <functional>
 #include <iterator>
 #include <limits>
+#include <map>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <tuple>
@@ -17,6 +19,7 @@
 #include "geom/field.h"
 #include "geom/vect.h"
 #include "parse/codeblocks.h"
+#include "parse/util.h"
 #include "parse/vars.h"
 #include "primlist.h"
 #include "solver/embed.h"
@@ -66,11 +69,29 @@ std::pair<bool, BCondFluid<Vect>> ParseBCondFluid(
     bc.type = BCondFluidType::inlet;
     arg >> bc.velocity;
   } else if (name == "inletflux") {
-    // inletflux <velocity> <id>
     bc.type = BCondFluidType::inletflux;
     arg >> bc.velocity >> bc.inletflux_id;
+  } else if (name == "inletpressure") {
+    bc.type = BCondFluidType::inletpressure;
+    arg >> bc.pressure;
+  } else if (name == "inlet_rotation") {
+    // inlet with normal velocity `veln`, and tangential velocity
+    // of maginutude |omega|
+    // and direction from rotation around `center` with angular velocity `omega`
+    bc.type = BCondFluidType::inlet;
+    Scal veln;
+    Vect center, omega;
+    arg >> veln >> center >> omega;
+    Vect vt = omega.cross(face_center - center);
+    if (vt.norm() != 0) {
+      vt *= omega.norm() / vt.norm();
+    }
+    bc.velocity = -veln * face_normal + vt;
   } else if (name == "outlet") {
     bc.type = BCondFluidType::outlet;
+  } else if (name == "outletpressure") {
+    bc.type = BCondFluidType::outletpressure;
+    arg >> bc.pressure;
   } else if (name == "symm") {
     bc.type = BCondFluidType::symm;
   } else {
@@ -107,7 +128,7 @@ struct UInitEmbedBc {
       // b.name: descriptor of boundary condition
       // b.content: list of primitives
       std::stringstream s(b.content);
-      auto pp = UPrimList<Scal>::Parse(s, false, m.GetEdim());
+      auto pp = UPrimList<Scal>::GetPrimitives(s, m.GetEdim());
       auto lsmax = [&pp](Vect x) {
         Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
         for (size_t i = 0; i < pp.size(); ++i) {
@@ -167,42 +188,115 @@ struct UInitEmbedBc {
     return mebc;
   }
 
+  struct PlainBc {
+    MapEmbed<BCond<Scal>> mebc;
+    MapEmbed<size_t> me_group;
+    std::vector<std::string> vdesc;
+    std::vector<std::map<std::string, Scal>> vextra;
+  };
+
   template <class MEB>
-  static void DumpPoly(
+  static PlainBc GetPlainBc(
+      const std::string& bc_path, const MEB& eb,
+      const std::set<std::string>& extra_keys) {
+    using UI = UInitEmbedBc<M>;
+
+    auto get_key_value = [&](std::string s) {
+      std::stringstream buf(s);
+      std::string key;
+      Scal value;
+      buf >> key;
+      buf >> value;
+      return std::pair<std::string, Scal>({key, value});
+    };
+
+    std::set<std::string> known_keys = {"dirichlet", "neumann"};
+
+    std::stringstream buf;
+    {
+      std::stringstream path(bc_path);
+      std::string filename;
+      path >> filename;
+      if (filename == "inline") {
+        buf << path.rdbuf();
+      } else {
+        filename = path.str();
+        std::ifstream fin(filename);
+        if (!fin.good()) {
+          throw std::runtime_error(
+              FILELINE + ": Can't open boundary conditions '" + filename + "'");
+        }
+        buf << fin.rdbuf();
+      }
+    }
+
+    PlainBc res;
+
+    MapEmbed<size_t> me_nci;
+    std::tie(res.me_group, me_nci, res.vdesc) = UI::ParseGroups(buf, eb);
+    for (auto desc : res.vdesc) {
+      std::map<std::string, Scal> map;
+      for (std::string s : Split(desc, ',')) {
+        auto p = get_key_value(s);
+        if (extra_keys.count(p.first)) {
+          map[p.first] = p.second;
+        } else {
+          fassert(known_keys.count(p.first), "Unknown bc key: " + p.first);
+        }
+      }
+      res.vextra.push_back(map);
+    }
+
+    res.me_group.LoopPairs([&](const auto& cfbc) {
+      const auto cf = cfbc.first;
+      const auto group = cfbc.second;
+      auto& bc = res.mebc[cf];
+      bc.nci = me_nci[cf];
+      for (std::string s : Split(res.vdesc[group], ',')) {
+        auto p = get_key_value(s);
+        const std::string key = p.first;
+        const Scal value = p.second;
+        if (key == "dirichlet") {
+          bc.type = BCondType::dirichlet;
+          bc.val = value;
+        } else if (key == "neumann") {
+          bc.type = BCondType::neumann;
+          bc.val = value;
+        }
+      }
+    });
+    return res;
+  }
+
+  template <class MEB>
+  static void DumpBcPoly(
       const std::string filename, const MapEmbed<size_t>& me_group,
-      const MapEmbed<Scal>& me_contang, const MEB& meb, M& m) {
+      const MEB& meb, M& m) {
     auto sem = m.GetSem("dumppoly");
     struct {
       std::vector<std::vector<Vect>> dpoly;
       std::vector<Scal> dgroup;
-      std::vector<Scal> dcontang;
       std::vector<Scal> dface;
     } * ctx(sem);
     auto& dpoly = ctx->dpoly;
     auto& dgroup = ctx->dgroup;
-    auto& dcontang = ctx->dcontang;
     auto& dface = ctx->dface;
     if (sem("local")) {
       me_group.LoopPairs([&](auto p) {
         const auto cf = p.first;
         dpoly.push_back(meb.GetFacePoly(cf));
         dgroup.push_back(p.second);
-        dcontang.push_back(me_contang.at(cf));
         dface.push_back(meb.IsCell(cf) ? 0 : 1);
       });
-      using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dpoly));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dgroup));
-      m.Reduce(std::make_shared<TS>(&dcontang));
-      m.Reduce(std::make_shared<TS>(&dface));
+      m.Reduce(&dpoly, Reduction::concat);
+      m.Reduce(&dgroup, Reduction::concat);
+      m.Reduce(&dface, Reduction::concat);
     }
     if (sem("write")) {
       if (m.IsRoot()) {
         WriteVtkPoly<Vect>(
-            filename, dpoly, nullptr, {&dgroup, &dcontang, &dface},
-            {"group", "contang", "face"}, "Boundary conditions", true, true,
-            true);
+            filename, dpoly, nullptr, {&dgroup, &dface}, {"group", "face"},
+            "Boundary conditions", true, true, true);
       }
     }
   }

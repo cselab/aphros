@@ -6,25 +6,6 @@
 #include <memory>
 
 #include "advection.h"
-#include "multi.h"
-
-namespace generic {
-
-// Piecewise Linear Interface Characterization.
-// Describes the multilayer interface.
-template <class Scal>
-struct Plic {
-  using Vect = generic::Vect<Scal, 3>;
-  GRange<size_t> layers;
-  Multi<const FieldCell<Scal>*> vfcu; // volume fraction
-  Multi<const FieldCell<Scal>*> vfca; // plane constant
-  Multi<const FieldCell<Vect>*> vfcn; // normal
-  Multi<const FieldCell<bool>*> vfci; // interface mask
-  Multi<const FieldCell<Scal>*> vfccl; // color
-  const MapEmbed<BCondAdvection<Scal>>& me_adv; // boundary conditions
-};
-
-} // namespace generic
 
 template <class EB_>
 class Vof final : public AdvectionSolver<typename EB_::M> {
@@ -39,7 +20,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
 
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
-    Scal clipth = 1e-6; // vf clipping threshold
+    Scal clipth = 1e-10; // vf clipping threshold
     bool recolor_unionfind = true;
     bool recolor_reduce = true;
     bool recolor_grid = true;
@@ -94,12 +75,18 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   // Color
   const FieldCell<Scal>& GetColor() const;
   // Volume fraction, plane constant, normal, color.
-  Plic GetPlic() const;
+  Plic GetPlic() const override;
   static constexpr Scal kClNone = -1; // no color
   // Image vector, number of passes through periodic boundaries
-  MIdx GetImage(IdxCell c) const;
+  const FieldCell<MIdx>& GetImage() const;
   void DumpInterface(std::string filename) const override;
   void DumpInterfaceMarch(std::string filename) const override;
+  // Adds a function that modifies the fields at the next iteration
+  // and after which is removed.
+  void AddModifier(
+      std::function<
+          void(FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const EB&)>);
+  void Sharpen();
 
  private:
   struct Imp;

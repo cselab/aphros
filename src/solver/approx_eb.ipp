@@ -3,12 +3,54 @@
 
 #include "approx_eb.h"
 
+#include <inside.h>
+#include <iostream>
+
 #include "approx.h"
 #include "func/primlist.h"
-#include <inside.h>
+#include "util/format.h"
+
+namespace interp {
+
+// Evaluates quadratic interpolant on points -1, 0, 1.
+// x: target point
+// um,u,up: values of function for x=-1, 0, 1.
+template <class Scal, class T>
+T Quad(Scal x, T um, T u, T up) {
+  return (um * (x - 1) + up * (x + 1)) * x * 0.5 - u * (x - 1) * (x + 1);
+}
+
+// Evaluates linear interpolant on points 0, 1.
+// x: target point
+// u,up: values of function for x=0, 1.
+template <class Scal, class T>
+T Linear(Scal x, T u, T up) {
+  return u * (1 - x) + up * x;
+}
+
+// Evaluates bilinear interpolant on points (0,0), (1,0), (0,1) and (1,1).
+// x,y: target point
+// u,ux,uy,uyx:  values of function for (x,y) = (0,0), (1,0), (0,1), (1,1)
+template <class T, class Scal>
+T Bilinear(Scal x, Scal y, T u, T ux, T uy, T uyx) {
+  //                      //
+  //   y                  //
+  //   |                  //
+  //   |*uy    *uyx       //
+  //   |                  //
+  //   |                  //
+  //   |*u     *ux        //
+  //   |-------------x    //
+  //                      //
+  const auto v = u * (1 - x) + ux * x;
+  const auto vy = uy * (1 - x) + uyx * x;
+  return v * (1 - y) + vy * y;
+}
+
+} // namespace interp
 
 template <class Scal>
-auto ULinear<Scal>::FitLinear(
+auto ULinearFit<Scal>::FitLinear(
     const std::vector<Vect>& xx, const std::vector<Scal>& uu)
     -> std::pair<Vect, Scal> {
   assert(xx.size() == uu.size());
@@ -40,7 +82,7 @@ auto ULinear<Scal>::FitLinear(
 }
 
 template <class Scal>
-auto ULinear<Scal>::FitLinear(
+auto ULinearFit<Scal>::FitLinear(
     const std::vector<Vect>& xx, const std::vector<Vect>& uu)
     -> std::pair<generic::Vect<Vect, dim>, Vect> {
   std::pair<generic::Vect<Vect, dim>, Vect> p;
@@ -64,120 +106,173 @@ auto ULinear<Scal>::FitLinear(
 // rotation: rotation vector
 // path: path to model
 template <class M>
-FieldNode<typename M::Scal> GetModelLevelSet(
-    typename M::Vect center, typename M::Scal extent, typename M::Vect rotation,
-    std::string path, const M& m) {
+void InitLevelSetFromModel(
+    FieldNode<typename M::Scal>& fnl, typename M::Vect center,
+    typename M::Scal extent, typename M::Vect rotation, std::string path,
+    M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  int nt;
-  int nv;
-  int* tri;
-  double* ver;
-  struct Inside* inside_state;
-
-  if (inside_mesh_read(path.c_str(), &nt, &tri, &nv, &ver) != 0) {
-    throw std::runtime_error(FILELINE + ": fail to read mesh '" + path + "'");
+  auto sem = m.GetSem(__func__);
+  struct Context {
+    int nt;
+    int nv;
+    int* tri;
+    double* ver;
+    Inside* inside_state;
+    std::vector<Context*> ctx_all;
+  };
+  Context* ctx(sem);
+  auto& t = *ctx;
+  if (sem("gather")) {
+    t.ctx_all.push_back(ctx);
+    m.GatherToLead(&t.ctx_all);
   }
-
-  // normalize ver to [0,1] and rotate
-  {
-    // rotates x around omega by angle |omega| degrees with origin at 0
-    auto rotate = [](Vect x, Vect omega) {
-      const Scal magn = omega.norm();
-      if (magn == 0) {
-        return x;
+  if (sem("ini")) {
+    if (m.IsLead()) {
+      if (inside_mesh_read(path.c_str(), &t.nt, &t.tri, &t.nv, &t.ver) != 0) {
+        throw std::runtime_error(
+            FILELINE + ": fail to read mesh '" + path + "'");
       }
-      const Vect n = omega / magn;
-      const Vect tu = Vect::GetUnit(omega.abs().argmin()).cross(n);
-      const Vect tv = n.cross(tu);
-      const Scal xu = x.dot(tu);
-      const Scal xv = x.dot(tv);
-      const Scal a = magn / 180 * M_PI;
-      const Scal ru = xu * std::cos(a) - xv * std::sin(a);
-      const Scal rv = xu * std::sin(a) + xv * std::cos(a);
-      return tu * ru + tv * rv + n * x.dot(n);
+
+      // rescale, translate and rotate the vertices
+      {
+        // rotates x around axes 0,1,2
+        // by angles omega[0], omega[1], omega[2] degrees with origin at 0
+        auto rotate = [&m](Vect x, Vect omega) {
+          for (auto d : m.dirs) {
+            const Scal a = omega[d] / 180 * M_PI;
+            const size_t du = (d + 1) % m.dim;
+            const size_t dv = (d + 2) % m.dim;
+            const Scal u = x[du] * std::cos(a) - x[dv] * std::sin(a);
+            const Scal v = x[du] * std::sin(a) + x[dv] * std::cos(a);
+            x[du] = u;
+            x[dv] = v;
+          }
+          return x;
+        };
+        // bounding box
+        Vect box0(std::numeric_limits<Scal>::max());
+        Vect box1(-std::numeric_limits<Scal>::max());
+        for (int i = 0; i < t.nv * 3; ++i) {
+          const int d = i % 3;
+          box0[d] = std::min<Scal>(box0[d], t.ver[i]);
+          box1[d] = std::max<Scal>(box1[d], t.ver[i]);
+        }
+        const Scal box_extent = (box1 - box0).abs().max();
+        const Vect box_center = (box0 + box1) * 0.5;
+        for (int i = 0; i < t.nv * 3; i += 3) {
+          Vect x(t.ver[i], t.ver[i + 1], t.ver[i + 2]);
+          x = center + rotate(x - box_center, rotation) / box_extent * extent;
+          t.ver[i] = x[0];
+          t.ver[i + 1] = x[1];
+          t.ver[i + 2] = x[2];
+        }
+      }
+
+      inside_ini(t.nt, t.tri, t.ver, &t.inside_state);
+
+      if (m.IsRoot()) {
+        InsideInfo info;
+        inside_info(t.inside_state, &info);
+        fassert(
+            info.size > m.GetCellSize()[0],
+            util::Format(
+                "{}: Required info.size={} > h={} for model '{}'. Use finer "
+                "mesh or coarser model",
+                __func__, info.size, m.GetCellSize()[0], path));
+      }
+
+      for (auto* other : t.ctx_all) {
+        other->nt = t.nt;
+        other->nv = t.nv;
+        other->tri = t.tri;
+        other->ver = t.ver;
+        other->inside_state = t.inside_state;
+      }
+    }
+  }
+  if (sem("local")) {
+    // only valid if `x` is close to the surface
+    auto distance = [&](Vect x) -> Scal {
+      double p[3] = {x[0], x[1], x[2]};
+      return inside_distance(t.inside_state, p);
     };
-    // bounding box
-    Vect box0(std::numeric_limits<Scal>::max());
-    Vect box1(-std::numeric_limits<Scal>::max());
-    for (int i = 0; i < nv * 3; ++i) {
-      const int d = i % 3;
-      box0[d] = std::min<Scal>(box0[d], ver[i]);
-      box1[d] = std::max<Scal>(box1[d], ver[i]);
-    }
-    const Scal box_extent = (box1 - box0).abs().max();
-    const Vect box_center = (box0 + box1) * 0.5;
-    for (int i = 0; i < nv * 3; i += 3) {
-      Vect x(ver[i], ver[i + 1], ver[i + 2]);
-      x = center + rotate(x - box_center, rotation) / box_extent * extent;
-      ver[i] = x[0];
-      ver[i + 1] = x[1];
-      ver[i + 2] = x[2];
-    }
-  }
+    auto inside = [&](Vect x) -> bool {
+      double p[3] = {x[0], x[1], x[2]};
+      return inside_inside(t.inside_state, p);
+    };
 
-  inside_ini(nt, tri, ver, &inside_state);
-  auto distance = [&](Vect x) -> Scal {
-    double p[3] = {x[0], x[1], x[2]};
-    return inside_distance(inside_state, p);
-  };
-  auto inside = [&](Vect x) -> bool {
-    double p[3] = {x[0], x[1], x[2]};
-    return inside_inside(inside_state, p);
-  };
-
-  FieldNode<Scal> fnl(m, GetNan<Scal>());
-  for (auto c : m.AllCells()) {
-    const size_t num_nodes = m.GetNumNodes(c);
-    size_t num_inside = 0;
-    for (size_t i = 0; i < num_nodes; ++i) {
-      const IdxNode n = m.GetNode(c, i);
-      if (inside(m.GetNode(n))) {
-        ++num_inside;
-      }
-    }
-    // levelset > 0 inside body
     const Scal inf = m.GetCellSize()[0] * 10; // large value
-    if (num_inside == 0) { // whole cell outside
+    fnl.Reinit(m, GetNan<Scal>());
+
+    FieldNode<bool> fn_inside(m);
+    for (auto n : m.AllNodes()) {
+      fn_inside[n] = inside(m.GetNode(n));
+    }
+
+    for (auto c : m.AllCells()) {
+      const size_t num_nodes = m.GetNumNodes(c);
+      size_t num_inside = 0;
       for (size_t i = 0; i < num_nodes; ++i) {
         const IdxNode n = m.GetNode(c, i);
-        if (IsNan(fnl[n])) {
-          fnl[n] = -inf;
+        if (fn_inside[n]) {
+          ++num_inside;
         }
       }
-    } else if (num_inside == num_nodes) { // whole cell inside
-      for (size_t i = 0; i < num_nodes; ++i) {
-        const IdxNode n = m.GetNode(c, i);
-        if (IsNan(fnl[n])) {
-          fnl[n] = inf;
+      // levelset > 0 inside body
+      if (num_inside == 0) { // whole cell outside
+        for (size_t i = 0; i < num_nodes; ++i) {
+          const IdxNode n = m.GetNode(c, i);
+          if (IsNan(fnl[n])) {
+            fnl[n] = -inf;
+          }
+        }
+      } else if (num_inside == num_nodes) { // whole cell inside
+        for (size_t i = 0; i < num_nodes; ++i) {
+          const IdxNode n = m.GetNode(c, i);
+          if (IsNan(fnl[n])) {
+            fnl[n] = inf;
+          }
+        }
+      } else { // cell crosses surface
+        for (size_t i = 0; i < num_nodes; ++i) {
+          const IdxNode n = m.GetNode(c, i);
+          fnl[n] = 0; // mark to call distance() later
         }
       }
-    } else { // cell crosses surface
-      for (size_t i = 0; i < num_nodes; ++i) {
-        const IdxNode n = m.GetNode(c, i);
+    }
+    for (auto n : m.AllNodes()) {
+      if (fnl[n] == 0) {
         fnl[n] = -distance(m.GetNode(n));
       }
     }
   }
-  inside_fin(inside_state);
-  inside_mesh_fin(tri, ver);
-  return fnl;
+  if (sem("fin")) {
+    if (m.IsLead()) {
+      inside_fin(t.inside_state);
+      inside_mesh_fin(t.tri, t.ver);
+    }
+  }
 }
 
 template <class M>
-auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
-    -> FieldNode<Scal> {
-  FieldNode<Scal> fnl(m); // level-set
+void UEmbed<M>::InitLevelSet(
+    FieldNode<Scal>& fnl, M& m, const Vars& var, bool verb) {
+  auto sem = m.GetSem(__func__);
+  if (sem("init")) {
+    fnl.Reinit(m);
+  }
   const auto name = var.String["eb_init"];
   if (name == "none") {
-    fnl.Reinit(m, 1);
+    if (sem()) {
+      fnl.Reinit(m, 1);
+    }
   } else if (name == "box") {
-    const Vect xc(var.Vect["eb_box_c"]);
-    const Vect r(var.Vect["eb_box_r"]);
-    const Scal angle = M_PI * var.Double["eb_box_angle"];
-    for (auto n : m.AllNodes()) {
-      const Vect x = m.GetNode(n);
-      auto rot = [angle](Vect xx) {
+    if (sem()) {
+      const Vect xc(var.Vect["eb_box_c"]);
+      const Vect r(var.Vect["eb_box_r"]);
+      const Scal angle = M_PI * var.Double["eb_box_angle"];
+      auto rotate = [angle](Vect xx) {
         const Scal sin = std::sin(angle);
         const Scal cos = std::cos(angle);
         const Scal x = xx[0];
@@ -185,15 +280,18 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
         const Scal z = xx[2];
         return Vect(x * cos - y * sin, x * sin + y * cos, z);
       };
-      fnl[n] = (1 - (rot(x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
+      for (auto n : m.AllNodes()) {
+        const Vect x = m.GetNode(n);
+        fnl[n] =
+            (1 - (rotate(x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
+      }
     }
   } else if (name == "sphere") {
-    const Vect xc(var.Vect["eb_sphere_c"]);
-    const Vect r(var.Vect["eb_sphere_r"]);
-    const Scal angle = M_PI * var.Double["eb_sphere_angle"];
-    for (auto n : m.AllNodes()) {
-      const Vect x = m.GetNode(n);
-      auto rot = [angle](Vect xx) {
+    if (sem()) {
+      const Vect xc(var.Vect["eb_sphere_c"]);
+      const Vect r(var.Vect["eb_sphere_r"]);
+      const Scal angle = M_PI * var.Double["eb_sphere_angle"];
+      auto rotate = [angle](Vect xx) {
         const Scal sin = std::sin(angle);
         const Scal cos = std::cos(angle);
         const Scal x = xx[0];
@@ -201,149 +299,230 @@ auto UEmbed<M>::InitEmbed(const M& m, const Vars& var, bool verb)
         const Scal z = xx[2];
         return Vect(x * cos - y * sin, x * sin + y * cos, z);
       };
-      fnl[n] = (rot(x - xc) / r).norm() - 1;
+      for (auto n : m.AllNodes()) {
+        const Vect x = m.GetNode(n);
+        fnl[n] = (rotate(x - xc) / r).norm() - 1;
+      }
     }
   } else if (name == "model") {
-    const std::string path = var.String["eb_model_path"];
-    const Vect center(var.Vect["eb_model_center"]);
-    const Scal extent  = var.Double["eb_model_extent"];
-    const Vect rotation(var.Vect["eb_model_rotation"]);
-    fnl = GetModelLevelSet(center, extent, rotation, path, m);
-  } else if (name == "list") {
-    // TODO revise with bcast
-    std::stringstream in;
-    {
-      std::stringstream path(var.String["eb_list_path"]);
-      std::string filename;
-      path >> filename;
-      if (filename == "inline") {
-        if (verb) {
-          std::cout
-              << "InitEmbed: Reading inline list of primitives from list_path"
-              << std::endl;
-        }
-        in << path.rdbuf();
-      } else {
-        filename = path.str();
-        std::ifstream fin(filename);
-        if (verb) {
-          std::cout << "InitEmbed: Open list of primitives '" << filename
-                    << std::endl;
-        }
-        if (!fin.good()) {
-          throw std::runtime_error(
-              FILELINE + ": Can't open list of primitives");
-        }
-        in << fin.rdbuf();
-      }
+    if (sem.Nested()) {
+      const std::string path = var.String["eb_model_path"];
+      const Vect center(var.Vect["eb_model_center"]);
+      const Scal extent = var.Double["eb_model_extent"];
+      const Vect rotation(var.Vect["eb_model_rotation"]);
+      InitLevelSetFromModel(fnl, center, extent, rotation, path, m);
     }
-
-    const size_t edim = var.Int["dim"];
-    auto pp = UPrimList<Scal>::Parse(in, verb, edim);
-
-    auto lsmax = [&pp](Vect x) {
-      Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
-      for (size_t i = 0; i < pp.size(); ++i) {
-        const auto& p = pp[i];
-        Scal li = p.ls(x);
-        if (p.mod_minus) {
-          li = -li;
-        }
-        if (p.mod_and) {
-          lmax = std::min(lmax, li);
+  } else if (name == "list") {
+    if (sem()) {
+      // TODO revise with bcast
+      std::stringstream in;
+      {
+        std::stringstream path(var.String["eb_list_path"]);
+        std::string filename;
+        path >> filename;
+        if (filename == "inline") {
+          if (verb) {
+            std::cout << "InitLevelSet: Reading inline list of primitives from "
+                         "list_path"
+                      << std::endl;
+          }
+          in << path.rdbuf();
         } else {
-          if (li > lmax) {
-            lmax = li;
+          filename = path.str();
+          std::ifstream fin(filename);
+          if (verb) {
+            std::cout << "InitLevelSet: Open list of primitives '" << filename
+                      << std::endl;
+          }
+          fassert(fin.good(), "Can't open list of primitives");
+          in << fin.rdbuf();
+        }
+      }
+
+      const size_t edim = var.Int["dim"];
+      auto pp = UPrimList<Scal>::GetPrimitives(in, edim);
+
+      if (verb) {
+        std::cout << "Read " << pp.size() << " primitives." << std::endl;
+      }
+
+      auto lsmax = [&pp](Vect x) {
+        Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
+        for (size_t i = 0; i < pp.size(); ++i) {
+          const auto& p = pp[i];
+          Scal li = p.ls(x);
+          if (p.mod_minus) {
+            li = -li;
+          }
+          if (p.mod_and) {
+            lmax = std::min(lmax, li);
+          } else {
+            if (li > lmax) {
+              lmax = li;
+            }
           }
         }
+        return lmax;
+      };
+      for (auto n : m.AllNodes()) {
+        fnl[n] = lsmax(m.GetNode(n));
       }
-      return lmax;
-    };
-    for (auto n : m.AllNodes()) {
-      fnl[n] = lsmax(m.GetNode(n));
     }
   } else {
     throw std::runtime_error(FILELINE + ": Unknown eb_init=" + name);
   }
-
-  if (var.Int["eb_init_inverse"]) {
-    for (auto n : m.AllNodes()) {
-      fnl[n] = -fnl[n];
+  if (sem()) {
+    if (var.Int["eb_init_inverse"]) {
+      for (auto n : m.AllNodes()) {
+        fnl[n] = -fnl[n];
+      }
     }
+    fnl.SetHalo(2);
   }
-  fnl.SetHalo(2);
-  return fnl;
 }
 
-//                                             //
-//            ---------------------            //
-//            |         |         |            //
-//            |   c0p   |   c1p   |            //
-//            |         |         |            //
-//            |\--------|---------|            //
-//            | \       |         |            //
-//            |  \ c0   |   c1    |            //
-//            |   \     |         |            //
-//            |----\----|---------|            //
-//            |         |         |            //
-//            |   c0m   |   c1m   |            //
-//            |         |         |            //
-//            |\--------|---------|            //
-//                                             //
+// Computes gradient at embeded face with Dirichlet conditions
+// with second order using quadratic interpolation.
+// rf: face center
+// uf: given field value from boundary conditions
+// nf: normal to face, towards excluded domain
+// c: cell containign embedded face
+// fcu: input field
+template <class M, class T>
+T GradDirichletQuadSecond(
+    typename M::Vect rf, T uf, typename M::Vect nf, IdxCell c,
+    const FieldCell<T>& fcu, const Embed<M>& eb) {
+  //            ---------------------            //
+  //            |         |         |            //
+  //            |         |  cw+dy  |            //
+  //            |         |         |            //
+  //            |\--------|---------|            //
+  //            | \       |         |            //
+  //            |  f  c   | cw=c+dx |            //
+  //            |   \     |         |            //
+  //            |----\----|---------|            //
+  //            |     \   |         |            //
+  //            |      \  |  cw-dy  |            //
+  //            |       \ |         |            //
+  //            |---------|---------|            //
+  //                                             //
+  auto& m = eb.GetMesh();
+  auto h = m.GetCellSize()[0];
+  auto dx = m.direction(nf.abs().argmax()).orient(-nf);
+  auto dy = m.direction(1 - nf.abs().argmax());
+
+  auto cw = m(c) + dx;
+  auto dw = (rf[dx] - cw.center[dx]) / nf[dx];
+  auto yw = rf[dy] - dw * nf[dy];
+
+  auto cq = cw + dx;
+  auto dq = (rf[dx] - cq.center[dx]) / nf[dx];
+  auto yq = rf[dy] - dq * nf[dy];
+
+  if (eb.IsExcluded(cw - dy) || eb.IsExcluded(cw) || eb.IsExcluded(cw + dy) ||
+      eb.IsExcluded(cq - dy) || eb.IsExcluded(cq) || eb.IsExcluded(cq + dy)) {
+    return GetNan<T>();
+  }
+  auto uw = interp::Quad(
+      (yw - cw.center[dy]) / h, fcu[cw - dy], fcu[cw], fcu[cw + dy]);
+  auto uq = interp::Quad(
+      (yq - cq.center[dy]) / h, fcu[cq - dy], fcu[cq], fcu[cq + dy]);
+
+  // XXX generated by src/gen/interp.py
+  return (uf * sqr(dq) - uf * sqr(dw) + uq * sqr(dw) - uw * sqr(dq)) /
+         (dq * dw * (dq - dw));
+}
+
+// Computes gradient at embeded face with Dirichlet conditions
+// with first order using quadratic interpolation.
+// rf: face center
+// uf: given field value from boundary conditions
+// nf: normal to face, towards excluded domain
+// c: cell containign embedded face
+// fcu: input field
 template <class M, class T>
 T GradDirichletQuad(
-    typename M::Vect rf, typename M::Scal uf, typename M::Vect nf, IdxCell c,
+    typename M::Vect rf, T uf, typename M::Vect nf, IdxCell c,
     const FieldCell<T>& fcu, const Embed<M>& eb) {
-  using Scal = typename M::Scal;
-  auto quad = [](Scal x, Scal am, Scal a, Scal ap) {
-    return (am * (x - 1) + ap * (x + 1)) * x * 0.5 - a * (x - 1) * (x + 1);
-  };
-
+  //            ---------------------            //
+  //            |         |         |            //
+  //            |         |  cw+dy  |            //
+  //            |         |         |            //
+  //            |\--------|---------|            //
+  //            | \       |         |            //
+  //            |  f  c   | cw=c+dx |            //
+  //            |   \     |         |            //
+  //            |----\----|---------|            //
+  //            |     \   |         |            //
+  //            |      \  |  cw-dy  |            //
+  //            |       \ |         |            //
+  //            |---------|---------|            //
+  //                                             //
   auto& m = eb.GetMesh();
-  const auto h = eb.GetCellSize()[0];
-
-  const size_t dx = nf.abs().argmax();
-  const size_t dy = (dx == 0 ? 1 : 0);
-  const size_t sx = (nf[dx] > 0 ? 0 : 1); // step against normal
-  const IdxCell c0 = c;
-  const IdxCell c1 = eb.GetCell(c0, 2 * dx + sx);
-  const IdxCell c1p = eb.GetCell(c1, 2 * dy + 1);
-  const IdxCell c1m = eb.GetCell(c1, 2 * dy);
-  const Scal y1 = m.GetCenter(c1)[dy];
-  const Scal x1 = m.GetCenter(c1)[dx];
-  const Scal xf = rf[dx];
-  const Scal yf = rf[dy];
-  const Scal xf1 = x1;
-  const Scal yf1 = yf + (xf1 - xf) / nf[dx] * nf[dy];
-  const Scal u1 = quad((yf1 - y1) / h, fcu[c1m], fcu[c1], fcu[c1p]);
-  return (uf - u1) / ((xf - x1) / nf[dx]);
+  auto h = m.GetCellSize()[0];
+  auto dx = m.direction(nf.abs().argmax()).orient(-nf);
+  auto dy = m.direction(1 - nf.abs().argmax());
+  auto cw = m(c) + dx;
+  auto dist = (rf[dx] - cw.center[dx]) / nf[dx];
+  auto yi = rf[dy] - dist * nf[dy];
+  if (eb.IsExcluded(cw - dy) || eb.IsExcluded(cw) || eb.IsExcluded(cw + dy)) {
+    return GetNan<T>();
+  }
+  auto ui = interp::Quad(
+      (yi - cw.center[dy]) / h, fcu[cw - dy], fcu[cw], fcu[cw + dy]);
+  return (uf - ui) / dist;
 }
 
+// Computes gradient at embeded face with Dirichlet conditions
+// with first order using linear interpolation.
+// rf: face center
+// uf: given field value from boundary conditions
+// nf: normal to face, towards excluded domain
+// c: cell containign embedded face
+// fcu: input field
 template <class M, class T>
 T GradDirichletLinear(
-    typename M::Vect rf, typename M::Scal uf, typename M::Vect nf, IdxCell c,
+    typename M::Vect rf, T uf, typename M::Vect nf, IdxCell c,
     const FieldCell<T>& fcu, const Embed<M>& eb) {
-  using Scal = typename M::Scal;
-  auto linear = [](Scal x, Scal a0, Scal a1) { return x * a1 + (1 - x) * a0; };
-
+  //            ---------------------            //
+  //            |         |         |            //
+  //            |         |  cw+dy  |            //
+  //            |         |         |            //
+  //            |\--------|---------|            //
+  //            | \       |         |            //
+  //            |  f  c   | cw=c+dx |            //
+  //            |   \     |         |            //
+  //            |----\----|---------|            //
+  //                                             //
   auto& m = eb.GetMesh();
-  const auto h = eb.GetCellSize()[0];
+  auto h = m.GetCellSize()[0];
+  auto dx = m.direction(nf.abs().argmax()).orient(-nf);
+  auto dy = m.direction(1 - nf.abs().argmax()).orient(-nf);
+  auto cw = m(c) + dx;
+  auto dist = (rf[dx] - cw.center[dx]) / nf[dx];
+  auto yi = rf[dy] - dist * nf[dy];
+  if (eb.IsExcluded(cw) || eb.IsExcluded(cw + dy)) {
+    return GetNan<T>();
+  }
+  auto ui = interp::Linear(
+      dy.sign() * (yi - cw.center[dy]) / h, fcu[cw], fcu[cw + dy]);
+  return (uf - ui) / dist;
+}
 
-  const size_t dx = nf.abs().argmax();
-  const size_t dy = (dx == 0 ? 1 : 0);
-  const size_t sx = (nf[dx] > 0 ? 0 : 1); // step against normal
-  const size_t sy = (nf[dy] > 0 ? 0 : 1);
-  const IdxCell c0 = c;
-  const IdxCell c1 = eb.GetCell(c0, 2 * dx + sx);
-  const IdxCell c1p = eb.GetCell(c1, 2 * dy + sy);
-  const Scal y1 = m.GetCenter(c1)[dy];
-  const Scal x1 = m.GetCenter(c1)[dx];
-  const Scal xf = rf[dx];
-  const Scal yf = rf[dy];
-  const Scal xf1 = x1;
-  const Scal yf1 = yf + (xf1 - xf) / nf[dx] * abs(nf[dy]);
-  const Scal u1 = linear(-(yf1 - y1) / h, fcu[c1], fcu[c1p]);
-  return (uf - u1) / ((xf - x1) / nf[dx]);
+// Computes gradient at embeded face with Dirichlet conditions
+// with first order using linear fit.
+// rf: face center
+// uf: given field value from boundary conditions
+// nf: normal to face, towards excluded domain
+// c: cell containign embedded face
+// fcu: input field
+template <class M, class T>
+T GradDirichletLinearFit(
+    typename M::Vect rf, T uf, typename M::Vect nf, IdxCell c,
+    const FieldCell<T>& fcu, const Embed<M>& eb) {
+  auto h = eb.GetCellSize()[0];
+  const T u = EvalLinearFit(rf - nf * h, c, fcu, eb);
+  return (uf - u) / h;
 }
 
 template <class Scal>
@@ -367,30 +546,27 @@ auto UEmbed<M>::Interpolate(
     -> FieldEmbed<T> {
   FieldEmbed<T> feu(eb, T(0));
 
-  for (auto f : eb.SuFaces()) {
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
-    feu[f] = (fcu[cp] + fcu[cm]) * 0.5;
+  for (auto f : eb.SuFacesM()) {
+    feu[f] = (fcu[f.cp] + fcu[f.cm]) * 0.5;
   }
   feu.GetFieldFace() = InterpolateBilinearFaces(feu.GetFieldFace(), eb);
 
   auto calc = [&](auto cf, IdxCell c, const BCond<T>& bc) {
     const Scal h = eb.GetCellSize()[0];
-    const T& val = bc.val;
     switch (bc.type) {
       case BCondType::dirichlet: {
-        return val;
+        return bc.val;
       }
       case BCondType::neumann: {
         const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
-        return u + val * h;
+        return u + bc.val * (bc.nci == 0 ? 1 : -1) * h;
       }
       case BCondType::mixed:
       case BCondType::reflect: {
         const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
-        return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(cf));
+        return CombineMixed<Scal>()(bc.val, u + bc.val * h, eb.GetNormal(cf));
       }
       case BCondType::extrap: {
         return EvalLinearFit(eb.GetFaceCenter(cf), c, fcu, eb);
@@ -412,48 +588,47 @@ auto UEmbed<M>::Gradient(
   FieldEmbed<T> feg(eb, T(0));
   const Scal h = eb.GetCellSize()[0];
 
-  for (auto f : eb.SuFaces()) {
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
-    feg[f] = (fcu[cp] - fcu[cm]) / h;
+  for (auto f : eb.SuFacesM()) {
+    feg[f] = (fcu[f.cp] - fcu[f.cm]) / h;
   }
   feg.GetFieldFace() = InterpolateBilinearFaces(feg.GetFieldFace(), eb);
 
   auto calc = [&](auto cf, IdxCell c, const BCond<T>& bc) {
-    const T& val = bc.val;
     switch (bc.type) {
       case BCondType::dirichlet: {
-        const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
-        const T u = EvalLinearFit(x, c, fcu, eb);
-        return (val - u) / h;
-        /*
-        return GradDirichletQuad(
-            eb.GetFaceCenter(cf), val, eb.GetNormal(cf), c, fcu, eb);
-            */
+        return GradDirichletLinearFit(
+            eb.GetFaceCenter(cf), bc.val, eb.GetNormal(cf), c, fcu, eb);
+        // return GradDirichletQuadSecond(
+        //    eb.GetFaceCenter(cf), bc.val, eb.GetNormal(cf), c, fcu, eb);
+        // return GradDirichletQuad(
+        //    eb.GetFaceCenter(cf), bc.val, eb.GetNormal(cf), c, fcu, eb);
+        // return GradDirichletLinear(
+        //    eb.GetFaceCenter(cf), bc.val, eb.GetNormal(cf), c, fcu, eb);
       }
       case BCondType::neumann: {
-        return val;
+        return bc.val * (bc.nci == 0 ? 1 : -1);
       }
       case BCondType::mixed:
       case BCondType::reflect: {
         const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
-        return CombineMixed<Scal>()((val - u) / h, val, eb.GetNormal(cf));
+        return CombineMixed<Scal>()((bc.val - u) / h, bc.val, eb.GetNormal(cf));
       }
       case BCondType::extrap: {
         // TODO replace with dot-product of gradient and normal
         auto p = FitLinear(c, fcu, eb);
         const Vect x1 = eb.GetFaceCenter(cf);
         const Vect x0 = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
-        const T u1 = ULinear<typename M::Scal>::EvalLinear(p, x1);
-        const T u0 = ULinear<typename M::Scal>::EvalLinear(p, x0);
+        const T u1 = ULinearFit<typename M::Scal>::EvalLinear(p, x1);
+        const T u0 = ULinearFit<typename M::Scal>::EvalLinear(p, x0);
         return (u1 - u0) / h;
       }
     }
     return GetNan<T>();
   };
-  mebc.LoopBCond(
-      eb, [&](auto cf, IdxCell c, auto bc) { feg[cf] = calc(cf, c, bc); });
+  mebc.LoopBCond(eb, [&](auto cf, IdxCell c, auto bc) { //
+    feg[cf] = calc(cf, c, bc);
+  });
   feg.LimitHalo(1);
   feg.LimitHalo(fcu.GetHalo() - 1);
   return feg;
@@ -461,24 +636,43 @@ auto UEmbed<M>::Gradient(
 
 template <class M>
 auto UEmbed<M>::InterpolateUpwind(
-    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
-    const FieldCell<Vect>& fcg, const FieldEmbed<Scal>& fev, const EB& eb)
-    -> FieldEmbed<Scal> {
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+    ConvSc scheme, const FieldCell<Vect>& fcg, const FieldEmbed<Scal>& fev,
+    const EB& eb) -> FieldEmbed<Scal> {
   auto& m = eb.GetMesh();
   FieldEmbed<Scal> feu(eb, 0);
-  // f = fmm*a[0] + fm*a[1] + fp*a[2]
-  const std::array<Scal, 3> a = GetCoeff<Scal>(sc);
-  for (auto f : eb.SuFaces()) {
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
-    if (fev[f] > 0) {
-      feu[f] = 4. * a[0] * fcg[cm].dot(m.GetVectToCell(f, 0)) + a[1] * fcu[cm] +
-               (a[2] + a[0]) * fcu[cp];
-    } else if (fev[f] < 0) {
-      feu[f] = 4. * a[0] * fcg[cp].dot(m.GetVectToCell(f, 1)) + a[1] * fcu[cp] +
-               (a[2] + a[0]) * fcu[cm];
-    } else {
-      feu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+  if (scheme == ConvSc::superbee) {
+    for (auto f : eb.SuFaces()) {
+      const IdxCell cm = eb.GetCell(f, 0);
+      const IdxCell cp = eb.GetCell(f, 1);
+      const Scal du = fcu[cp] - fcu[cm];
+      if (fev[f] > 0) {
+        const auto rm = m.GetVectToCell(f, 0);
+        feu[f] = fcu[cm] + 0.5 * Superbee(du, -4. * fcg[cm].dot(rm) - du);
+      } else if (fev[f] < 0) {
+        const auto rp = m.GetVectToCell(f, 1);
+        feu[f] = fcu[cp] - 0.5 * Superbee(du, 4. * fcg[cp].dot(rp) - du);
+      } else {
+        feu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+      }
+    }
+  } else {
+    const std::array<Scal, 3> a = GetCoeff<Scal>(scheme);
+    // f = fmm*a[0] + fm*a[1] + fp*a[2]
+    for (auto f : eb.SuFaces()) {
+      const IdxCell cm = eb.GetCell(f, 0);
+      const IdxCell cp = eb.GetCell(f, 1);
+      if (fev[f] > 0) {
+        const auto rm = m.GetVectToCell(f, 0);
+        feu[f] = 4. * a[0] * fcg[cm].dot(rm) //
+                 + a[1] * fcu[cm] + (a[2] + a[0]) * fcu[cp];
+      } else if (fev[f] < 0) {
+        const auto rp = m.GetVectToCell(f, 1);
+        feu[f] = 4. * a[0] * fcg[cp].dot(rp) //
+                 + a[1] * fcu[cp] + (a[2] + a[0]) * fcu[cm];
+      } else {
+        feu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+      }
     }
   }
   feu.GetFieldFace() = InterpolateBilinearFaces(feu.GetFieldFace(), eb);
@@ -486,21 +680,20 @@ auto UEmbed<M>::InterpolateUpwind(
   auto calc = [&](auto cf, IdxCell c, const BCond<Scal>& bc) {
     // TODO reuse code from Interpolate()
     const Scal h = eb.GetCellSize()[0];
-    const Scal& val = bc.val;
     switch (bc.type) {
       case BCondType::dirichlet: {
-        return val;
+        return bc.val;
       }
       case BCondType::neumann: {
         const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const Scal u = EvalLinearFit(x, c, fcu, eb);
-        return u + val * h;
+        return u + bc.val * (bc.nci == 0 ? 1 : -1) * h;
       }
       case BCondType::mixed:
       case BCondType::reflect: {
         const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const Scal u = EvalLinearFit(x, c, fcu, eb);
-        return CombineMixed<Scal>()(val, u + val * h, eb.GetNormal(cf));
+        return CombineMixed<Scal>()(bc.val, u + bc.val * h, eb.GetNormal(cf));
       }
       case BCondType::extrap: {
         return EvalLinearFit(eb.GetFaceCenter(cf), c, fcu, eb);
@@ -533,34 +726,31 @@ auto UEmbed<M>::InterpolateBcg(
 
   const FieldEmbed<Scal> feg = Gradient(fcu, mebc, eb);
   FieldEmbed<Scal> feu(eb, 0);
-  for (auto f : eb.Faces()) {
+  for (auto f : eb.FacesM()) {
     const Scal sgn = (fev[f] > 0 ? 1 : -1);
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
-    const IdxCell c = (sgn > 0 ? cm : cp); // upwind cell
-    const size_t nci = eb.GetNci(c, f);
-    auto Fm = [&](size_t d) { //
-      return eb.GetFace(c, ((nci / 2 + d) % 3) * 2);
-    };
-    auto Fp = [&](size_t d) { //
-      return eb.GetFace(c, ((nci / 2 + d) % 3) * 2 + 1);
-    };
+    const auto c = (sgn > 0 ? f.cm() : f.cp()); // upwind cell
+    auto d = f.direction();
 
     // temporal derivative, initial from acceleration
-    Scal ut = (fc_src[cm] + fc_src[cp]) * 0.5;
+    Scal ut = (fc_src[f.cm] + fc_src[f.cp]) * 0.5;
+    // normal derivative
+    Scal ux = 0;
     // convective terms
     // normal direction
-    const IdxFace fm = Fm(0);
-    const IdxFace fp = Fp(0);
-    const Scal ux = (is_boundary[fm] || is_boundary[fp])
-                        ? feg[f]
-                        : (feg[fm] + feg[fp]) * 0.5; // normal derivative
-    const Scal w = fev[f] / eb.GetArea(f); // velocity
-    ut -= ux * w;
+    {
+      const IdxFace fm = c.face(-d);
+      const IdxFace fp = c.face(d);
+      // TODO: check why boundary faces treated differently in regular version
+      ux += (is_boundary[fm] || is_boundary[fp]) ? feg[f]
+                                                 : (feg[fm] + feg[fp]) * 0.5;
+      const Scal w = fev[f] / eb.GetArea(f); // velocity
+      ut -= ux * w;
+    }
     // tangential directions
-    for (auto d : {1, 2}) {
-      const IdxFace fm = Fm(d);
-      const IdxFace fp = Fp(d);
+    for (int i = 0; i < 2; ++i) {
+      d = d.next();
+      const IdxFace fm = c.face(-d);
+      const IdxFace fp = c.face(d);
       if (is_boundary[fm] || is_boundary[fp]) {
         // exclude faces that depend on boundary conditions
         // as they cause instability in case of non-zero Dirichlet conditions
@@ -573,15 +763,14 @@ auto UEmbed<M>::InterpolateBcg(
     feu[f] = fcu[c] + ux * (sgn * 0.5 * h) + ut * (0.5 * dt);
   }
   auto calc = [&](auto cf, IdxCell c, const BCond<Scal>& bc) {
-    const Scal& val = bc.val;
     switch (bc.type) {
       case BCondType::dirichlet: {
-        return val;
+        return bc.val;
       }
       case BCondType::neumann: {
         const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const Scal u = EvalLinearFit(x, c, fcu, eb);
-        return u + val * h;
+        return u + bc.val * (bc.nci == 0 ? 1 : -1) * h;
       }
       default:
         throw std::runtime_error(FILELINE + ": unknown");
@@ -612,32 +801,29 @@ auto UEmbed<M>::InterpolateBcg(
 
   const FieldFace<Scal> ffg = Gradient(fcu, mebc, m);
   FieldFace<Scal> ffu(m, 0);
-  for (auto f : m.Faces()) {
+  for (auto f : m.FacesM()) {
     const Scal sgn = (ffv[f] > 0 ? 1 : -1);
-    const IdxCell cm = m.GetCell(f, 0);
-    const IdxCell cp = m.GetCell(f, 1);
-    const IdxCell c = (sgn > 0 ? cm : cp); // upwind cell
-    const size_t nci = m.GetNci(c, f);
-    auto Fm = [&](size_t d) { //
-      return m.GetFace(c, ((nci / 2 + d) % 3) * 2);
-    };
-    auto Fp = [&](size_t d) { //
-      return m.GetFace(c, ((nci / 2 + d) % 3) * 2 + 1);
-    };
+    const auto c = (sgn > 0 ? f.cm() : f.cp()); // upwind cell
+    auto d = f.direction();
 
     // temporal derivative, initial from acceleration
-    Scal ut = (fc_src[cm] + fc_src[cp]) * 0.5;
+    Scal ut = (fc_src[f.cm] + fc_src[f.cp]) * 0.5;
+    // normal derivative
+    Scal ux = 0;
     // convective terms
     // normal direction
-    const IdxFace fm = Fm(0);
-    const IdxFace fp = Fp(0);
-    const Scal ux = (ffg[fm] + ffg[fp]) * 0.5; // normal derivative
-    const Scal w = ffv[f] / m.GetArea(f); // velocity
-    ut -= ux * w;
+    {
+      const IdxFace fm = c.face(-d);
+      const IdxFace fp = c.face(d);
+      ux += (ffg[fm] + ffg[fp]) * 0.5;
+      const Scal w = ffv[f] / m.GetArea(f); // velocity
+      ut -= ux * w;
+    }
     // tangential directions
-    for (auto d : {1, 2}) {
-      const IdxFace fm = Fm(d);
-      const IdxFace fp = Fp(d);
+    for (int i = 0; i < 2; ++i) {
+      d = d.next();
+      const IdxFace fm = c.face(-d);
+      const IdxFace fp = c.face(d);
       if (is_boundary[fm] || is_boundary[fp]) {
         // exclude faces that depend on boundary conditions
         // as they cause instability in case of non-zero Dirichlet conditions
@@ -649,17 +835,13 @@ auto UEmbed<M>::InterpolateBcg(
 
     ffu[f] = fcu[c] + ux * (sgn * 0.5 * h) + ut * (0.5 * dt);
   }
-  auto calc = [&](IdxFace f, IdxCell c, const BCond<Scal>& bc) {
-    const Scal& val = bc.val;
-    const auto nci = bc.nci;
+  auto calc = [&](IdxFace, IdxCell c, const BCond<Scal>& bc) {
     switch (bc.type) {
       case BCondType::dirichlet: {
-        return val;
+        return bc.val;
       }
       case BCondType::neumann: {
-        const Scal q = (nci == 0 ? 1. : -1.);
-        const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * q;
-        return fcu[c] + bc.val * a;
+        return fcu[c] + bc.val * (h * 0.5);
       }
       default:
         throw std::runtime_error(FILELINE + ": unknown");
@@ -685,36 +867,29 @@ auto UEmbed<M>::Interpolate(
     const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const M& m)
     -> FieldFace<T> {
   FieldFace<T> ffu(m, T(0));
+  const Scal h = m.GetCellSize()[0];
 
-  for (auto f : m.SuFaces()) {
-    const IdxCell cm = m.GetCell(f, 0);
-    const IdxCell cp = m.GetCell(f, 1);
-    ffu[f] = (fcu[cp] + fcu[cm]) * 0.5;
+  for (auto f : m.SuFacesM()) {
+    ffu[f] = (fcu[f.cp] + fcu[f.cm]) * 0.5;
   }
 
   auto calc = [&](IdxFace f, IdxCell c, const BCond<T>& bc) {
-    const T& val = bc.val;
-    const auto nci = bc.nci;
     switch (bc.type) {
       case BCondType::dirichlet: {
-        return val;
+        return bc.val;
       }
       case BCondType::neumann: {
-        const Scal q = (nci == 0 ? 1. : -1.);
-        const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * q;
-        return fcu[c] + val * a;
+        return fcu[c] + bc.val * (h * 0.5);
       }
       case BCondType::mixed:
       case BCondType::reflect: {
-        const Scal q = (nci == 0 ? 1. : -1.);
+        const Scal q = (bc.nci == 0 ? 1. : -1.);
         const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * q;
-        return CombineMixed<Scal>()(val, fcu[c] + val * a, m.GetNormal(f));
+        return CombineMixed<Scal>()(
+            bc.val, fcu[c] + bc.val * a, m.GetNormal(f));
       }
       case BCondType::extrap: {
-        const IdxCell c = m.GetCell(f, nci);
-        const size_t q = m.GetNci(c, f);
-        const size_t qo = m.GetOpposite(q);
-        const IdxFace fo = m.GetFace(c, qo);
+        const IdxFace fo = m.GetFace(c, m.GetOpposite(m.GetNci(c, f)));
         const Vect n = m.GetNormal(f);
         // cell
         const T& v0 = fcu[c];
@@ -748,21 +923,17 @@ auto UEmbed<M>::Gradient(
   FieldFace<T> ffu(m, T(0));
   const Scal h = m.GetCellSize()[0];
 
-  for (auto f : m.SuFaces()) {
-    const IdxCell cm = m.GetCell(f, 0);
-    const IdxCell cp = m.GetCell(f, 1);
-    ffu[f] = (fcu[cp] - fcu[cm]) / h;
+  for (auto f : m.SuFacesM()) {
+    ffu[f] = (fcu[f.cp] - fcu[f.cm]) / h;
   }
 
   auto calc = [&](IdxFace f, IdxCell c, const BCond<T>& bc) {
-    const T& val = bc.val;
-    const auto nci = bc.nci;
     switch (bc.type) {
       case BCondType::dirichlet: {
-        const Scal sgn = (nci == 0 ? 1 : -1);
-        const T uf = val;
+        const Scal sgn = (bc.nci == 0 ? 1 : -1);
+        const T uf = bc.val;
         const T u1 = fcu[c];
-        const size_t cnci = m.GetNci(c, f); // f=m.GetFace(c, cnci)
+        const auto cnci = m.GetNci(c, f); // f=m.GetFace(c, cnci)
         const T u2 = fcu[m.GetCell(c, m.GetOpposite(cnci))];
         //    |      |      |
         //  uf|  u1  |  u2  |
@@ -770,12 +941,12 @@ auto UEmbed<M>::Gradient(
         return (uf * 8 - u1 * 9 + u2) / (3 * h) * sgn;
       }
       case BCondType::neumann: {
-        return val;
+        return bc.val * (bc.nci == 0 ? 1 : -1);
       }
       case BCondType::extrap: {
-        const Scal sgn = (nci == 0 ? 1 : -1);
+        const Scal sgn = (bc.nci == 0 ? 1 : -1);
         const T u1 = fcu[c];
-        const size_t cnci = m.GetNci(c, f); // f=m.GetFace(c, cnci)
+        const auto cnci = m.GetNci(c, f); // f=m.GetFace(c, cnci)
         const T u2 = fcu[m.GetCell(c, m.GetOpposite(cnci))];
         return (u1 - u2) / h * sgn;
       }
@@ -797,39 +968,55 @@ auto UEmbed<M>::Gradient(
 
 template <class M>
 auto UEmbed<M>::InterpolateUpwind(
-    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
-    const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv, const M& m)
-    -> FieldFace<Scal> {
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+    ConvSc scheme, const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv,
+    const M& m) -> FieldFace<Scal> {
   FieldFace<Scal> ffu(m, 0);
+  const Scal h = m.GetCellSize()[0];
 
-  // f = fmm*a[0] + fm*a[1] + fp*a[2]
-  std::array<Scal, 3> a = GetCoeff<Scal>(sc);
-  ffu.Reinit(m);
-  for (auto f : m.Faces()) {
-    IdxCell cm = m.GetCell(f, 0);
-    IdxCell cp = m.GetCell(f, 1);
-    if (ffv[f] > 0) {
-      ffu[f] = 4. * a[0] * fcg[cm].dot(m.GetVectToCell(f, 0)) + a[1] * fcu[cm] +
-               (a[2] + a[0]) * fcu[cp];
-    } else if (ffv[f] < 0) {
-      ffu[f] = 4. * a[0] * fcg[cp].dot(m.GetVectToCell(f, 1)) + a[1] * fcu[cp] +
-               (a[2] + a[0]) * fcu[cm];
-    } else {
-      ffu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+  if (scheme == ConvSc::superbee) {
+    for (auto f : m.SuFaces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      const Scal du = fcu[cp] - fcu[cm];
+      if (ffv[f] > 0) {
+        const auto rm = m.GetVectToCell(f, 0);
+        ffu[f] = fcu[cm] + 0.5 * Superbee(du, -4. * fcg[cm].dot(rm) - du);
+      } else if (ffv[f] < 0) {
+        const auto rp = m.GetVectToCell(f, 1);
+        ffu[f] = fcu[cp] - 0.5 * Superbee(du, 4. * fcg[cp].dot(rp) - du);
+      } else {
+        ffu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+      }
+    }
+  } else {
+    // f = fmm*a[0] + fm*a[1] + fp*a[2]
+    std::array<Scal, 3> a = GetCoeff<Scal>(scheme);
+    ffu.Reinit(m);
+    for (auto f : m.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      if (ffv[f] > 0) {
+        const auto rm = m.GetVectToCell(f, 0);
+        ffu[f] = 4. * a[0] * fcg[cm].dot(rm) //
+                 + a[1] * fcu[cm] + (a[2] + a[0]) * fcu[cp];
+      } else if (ffv[f] < 0) {
+        const auto rp = m.GetVectToCell(f, 1);
+        ffu[f] = 4. * a[0] * fcg[cp].dot(rp) //
+                 + a[1] * fcu[cp] + (a[2] + a[0]) * fcu[cm];
+      } else {
+        ffu[f] = (fcu[cm] + fcu[cp]) * 0.5;
+      }
     }
   }
 
-  auto calc = [&](IdxFace f, IdxCell c, const BCond<Scal>& bc) {
-    const Scal& val = bc.val;
-    const auto nci = bc.nci;
+  auto calc = [&](IdxFace, IdxCell c, const BCond<Scal>& bc) {
     switch (bc.type) {
       case BCondType::dirichlet: {
-        return val;
+        return bc.val;
       }
       case BCondType::neumann: {
-        const Scal q = (nci == 0 ? 1. : -1.);
-        const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * q;
-        return fcu[c] + bc.val * a;
+        return fcu[c] + bc.val * (h * 0.5);
       }
       default:
         throw std::runtime_error(FILELINE + ": unknown");
@@ -862,17 +1049,33 @@ auto UEmbed<M>::Interpolate(const FieldEmbed<T>& feu, const EB& eb)
       }
       fcu[c] = sum / sumw;
     } else { // Type::cut
-      const Scal w = 1 / std::abs(eb.GetFaceOffset(c));
-      T sum = feu[c] * w;
-      Scal sumw = w;
+      const Scal wc = 1 / std::abs(eb.GetFaceOffset(c));
+      T sum = feu[c] * wc;
+      Scal sumw = wc;
       for (auto q : eb.Nci(c)) {
         IdxFace f = eb.GetFace(c, q);
-        const Scal w = 1 / std::abs(eb.GetFaceOffset(c, q));
-        sum += feu[f] * w;
-        sumw += w;
+        const Scal wf = 1 / std::abs(eb.GetFaceOffset(c, q));
+        sum += feu[f] * wf;
+        sumw += wf;
       }
       fcu[c] = sum / sumw;
     }
+  }
+  return fcu;
+}
+
+template <class M>
+template <class T>
+FieldCell<T> UEmbed<M>::Interpolate(const FieldFace<T>& feu, const M& m) {
+  FieldCell<T> fcu(m, T(0));
+  for (auto c : m.AllCells()) {
+    T sum(0);
+    Scal sumw = 0;
+    for (auto q : m.Nci(c)) {
+      sum += feu[m.GetFace(c, q)];
+      sumw += 1;
+    }
+    fcu[c] = sum / sumw;
   }
   return fcu;
 }
@@ -925,7 +1128,7 @@ auto UEmbed<M>::GradientLinearFit(const FieldEmbed<Scal>& feu, const EB& eb)
         xx.push_back(eb.GetFaceCenter(f));
         uu.push_back(feu[f]);
       }
-      auto p = ULinear<Scal>::FitLinear(xx, uu);
+      auto p = ULinearFit<Scal>::FitLinear(xx, uu);
       fcg[c] = p.first;
     }
   }
@@ -1046,6 +1249,44 @@ auto UEmbed<M>::RedistributeCutCellsAdvection(
 }
 
 template <class M>
+void UEmbed<M>::RedistributeConstTerms(
+    FieldCell<typename M::Expr>& fce, const Embed<M>& eb, M& m) {
+  auto sem = m.GetSem("redistr");
+  struct {
+    FieldCell<Scal> fcu;
+  } * ctx(sem);
+  auto& fcu = ctx->fcu;
+  auto get = [&fce](IdxCell c) -> Scal& { //
+    return fce[c].back();
+  };
+  if (sem("comm")) {
+    fcu.Reinit(eb, 0);
+    for (auto c : eb.Cells()) {
+      fcu[c] = get(c);
+    }
+    m.Comm(&fcu);
+  }
+  if (sem()) {
+    // FIXME: empty stage to finish communication in halo cells
+    // fcu gets different buffer in the next stage
+  }
+  if (sem("local")) {
+    fcu = RedistributeCutCells(fcu, eb);
+    for (auto c : eb.Cells()) {
+      get(c) = fcu[c];
+    }
+  }
+  if (sem()) {
+    // FIXME: empty stage to finish communication and keep ctx
+  }
+}
+template <class M>
+void UEmbed<M>::RedistributeConstTerms(
+    FieldCell<typename M::Expr>&, const M&, M&) {
+  return;
+}
+
+template <class M>
 template <class T>
 auto UEmbed<M>::InterpolateBilinearFaces(const FieldFace<T>& ffu, const M&)
     -> FieldFace<T> {
@@ -1056,50 +1297,29 @@ template <class M>
 template <class T>
 auto UEmbed<M>::InterpolateBilinearFaces(const FieldFace<T>& ffu, const EB& eb)
     -> FieldFace<T> {
-  auto& m = eb.GetMesh();
   FieldFace<T> ffb(eb, T(0));
-  for (auto f : eb.SuFaces()) {
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
+  for (auto f : eb.SuFacesM()) {
     const Scal h = eb.GetCellSize()[0];
-    if (eb.GetType(cm) == Type::regular && eb.GetType(cp) == Type::regular) {
+    if (eb.GetType(f) == EB::Type::regular) {
       ffb[f] = ffu[f];
     } else {
-      const size_t qz = eb.GetNci(cm, f); // f == GetFace(c, qz)
-      //                                             //
-      //            ---------------------            //
-      //            |         |         |            //
-      //            |   c01   |   c11   |            //
-      //            |         |         |            //
-      //            |\--------|---------|            //
-      //            | \       |         |            //
-      //            |  \ c00  |   c10   |            //
-      //            |   \     |         |            //
-      //            -----\---------------            //
-      //                                             //
-      const size_t dz = qz / 2; // face direction
-      const size_t dx = (dz + 1) % dim; // other directions
-      const size_t dy = (dz + 2) % dim; // other directions
-      const Vect n = eb.GetNormal(cm);
-      const size_t qx = dx * 2 + (n[dx] < 0 ? 1 : 0);
-      const size_t qy = dy * 2 + (n[dy] < 0 ? 1 : 0);
-      const IdxCell c00 = cm;
-      const IdxCell c10 = eb.GetCell(c00, qx);
-      const IdxCell c01 = eb.GetCell(c00, qy);
-      const IdxCell c11 = eb.GetCell(c10, qy);
-      const IdxFace f00 = eb.GetFace(c00, qz);
-      const IdxFace f10 = eb.GetFace(c10, qz);
-      const IdxFace f01 = eb.GetFace(c01, qz);
-      const IdxFace f11 = eb.GetFace(c11, qz);
-
-      assert(f == f00);
-      const Scal tx =
-          1 - std::abs(eb.GetFaceCenter(f)[dx] - m.GetCenter(f)[dx]) / h;
-      const Scal ty =
-          1 - std::abs(eb.GetFaceCenter(f)[dy] - m.GetCenter(f)[dy]) / h;
-      const T fy0 = ffu[f00] * tx + ffu[f10] * (1 - tx);
-      const T fy1 = ffu[f01] * tx + ffu[f11] * (1 - tx);
-      ffb[f] = fy0 * ty + fy1 * (1 - ty);
+      //   ---------------------  //
+      //   |         |         |  //
+      //   |    fy   |   fyx   |  //
+      //   |         |         |  //
+      //   |\--------|---------|  //
+      //   | \       |         |  //
+      //   |  r  f   |   fx    |  //
+      //   |   \     |         |  //
+      //   -----\---------------  //
+      auto n = eb.GetNormal(f.cm);
+      auto dz = f.direction();
+      auto dx = (dz.next(1)).orient(-n);
+      auto dy = (dz.next(2)).orient(-n);
+      auto r = (eb.GetFaceCenter(f) - f.center).abs();
+      ffb[f] = interp::Bilinear(
+          r[dx] / h, r[dy] / h, //
+          ffu[f], ffu[f + dx], ffu[f + dy], ffu[f + dy + dx]);
     }
   }
   return ffb;
@@ -1107,20 +1327,18 @@ auto UEmbed<M>::InterpolateBilinearFaces(const FieldFace<T>& ffu, const EB& eb)
 
 template <class M>
 auto UEmbed<M>::InterpolateUpwindImplicit(
-    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
-    Scal deferred, const FieldCell<Vect>& fcg, const FieldEmbed<Scal>& fev,
-    const EB& eb) -> FieldEmbed<ExprFace> {
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+    ConvSc scheme, Scal deferred, const FieldCell<Vect>& fcg,
+    const FieldEmbed<Scal>& fev, const EB& eb) -> FieldEmbed<ExprFace> {
   (void)deferred;
   FieldEmbed<ExprFace> fee(eb, ExprFace(0));
 
   // explicit interpolation
-  FieldEmbed<Scal> feu = InterpolateUpwind(fcu, mebc, sc, fcg, fev, eb);
+  FieldEmbed<Scal> feu = InterpolateUpwind(fcu, mebc, scheme, fcg, fev, eb);
 
   // implicit interpolation with deferred correction
-  for (auto f : eb.Faces()) {
+  for (auto f : eb.FacesM()) {
     ExprFace e(0);
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
     if (fev[f] > 0) {
       e[0] = 1;
       e[2] = feu[f];
@@ -1132,27 +1350,26 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
       e[1] = 0.5;
       e[2] = feu[f];
     }
-    e[2] -= fcu[cm] * e[0] + fcu[cp] * e[1];
+    e[2] -= fcu[f.cm] * e[0] + fcu[f.cp] * e[1];
     fee[f] = e;
   }
 
   auto calc = [&](auto cf, IdxCell c, const BCond<Scal>& bc) {
     ExprFace e(0);
-    const auto nci = bc.nci;
     switch (bc.type) {
       case BCondType::dirichlet: {
         e[2] = feu[cf];
         break;
       }
       case BCondType::neumann: {
-        e[nci] = 1;
+        e[bc.nci] = 1;
         e[2] = feu[cf];
         break;
       }
       default:
         throw std::runtime_error(FILELINE + ": unknown");
     }
-    e[2] -= fcu[c] * e[nci];
+    e[2] -= fcu[c] * e[bc.nci];
     return e;
   };
   mebc.LoopBCond(eb, [&](auto cf, IdxCell c, const auto& bc) {
@@ -1163,13 +1380,14 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
 
 template <class M>
 auto UEmbed<M>::InterpolateUpwindImplicit(
-    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, ConvSc sc,
-    Scal deferred, const FieldCell<Vect>& fcg, const FieldFace<Scal>& ffv,
-    const M& m) -> FieldFace<ExprFace> {
+    const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc,
+    ConvSc scheme, Scal deferred, const FieldCell<Vect>& fcg,
+    const FieldFace<Scal>& ffv, const M& m) -> FieldFace<ExprFace> {
   FieldFace<ExprFace> ffe(m, ExprFace(0));
+  const Scal h = m.GetCellSize()[0];
 
   // f = fmm*a[0] + fm*a[1] + fp*a[2]
-  std::array<Scal, 3> a = GetCoeff<Scal>(sc);
+  std::array<Scal, 3> a = GetCoeff<Scal>(scheme);
   const Scal df = deferred;
   const Scal dfm = 1 - df;
   for (auto f : m.Faces()) {
@@ -1193,19 +1411,16 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
     ffe[f] = e;
   }
 
-  auto calc = [&](IdxFace f, IdxCell c, const BCond<Scal>& bc) {
+  auto calc = [&](IdxFace, IdxCell, const BCond<Scal>& bc) {
     ExprFace e(0);
-    const auto nci = bc.nci;
     switch (bc.type) {
       case BCondType::dirichlet: {
         e[2] = bc.val;
         break;
       }
       case BCondType::neumann: {
-        const Scal g = (nci == 0 ? 1 : -1);
-        const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * g;
-        e[nci] = 1;
-        e[2] = a * bc.val;
+        e[bc.nci] = 1;
+        e[2] = bc.val * (h * 0.5);
         break;
       }
       default:
@@ -1218,6 +1433,74 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
     const IdxFace f = p.first;
     const auto& bc = p.second;
     ffe[f] = calc(f, m.GetCell(f, bc.nci), bc);
+  }
+  return ffe;
+}
+
+template <class M>
+auto UEmbed<M>::GradientImplicit(
+    const MapEmbed<BCond<Scal>>& mebc, const EB& eb) -> FieldEmbed<ExprFace> {
+  FieldEmbed<ExprFace> feg(eb, ExprFace(0));
+  const Scal h = eb.GetCellSize()[0];
+
+  for (auto f : eb.Faces()) {
+    const Scal a = 1 / h;
+    feg[f] = ExprFace(-a, a, 0);
+  }
+
+  mebc.LoopBCond(eb, [&](auto cf, IdxCell, const auto& bc) {
+    ExprFace e(0);
+    switch (bc.type) {
+      case BCondType::dirichlet: {
+        const Scal a = 2 * (bc.nci == 0 ? 1 : -1) / h;
+        e[bc.nci] = -a;
+        e[2] = bc.val * a;
+        break;
+      }
+      case BCondType::neumann: {
+        e[2] = bc.val * (bc.nci == 0 ? 1 : -1);
+        break;
+      }
+      default:
+        throw std::runtime_error(FILELINE + ": unknown");
+    }
+    feg[cf] = e;
+  });
+  return feg;
+}
+
+template <class M>
+auto UEmbed<M>::GradientImplicit(const MapEmbed<BCond<Scal>>& mebc, const M& m)
+    -> FieldFace<ExprFace> {
+  FieldFace<ExprFace> ffe(m, ExprFace(0));
+  const Scal h = m.GetCellSize()[0];
+
+  for (auto f : m.Faces()) {
+    ExprFace e(0);
+    const Scal a = 1 / h;
+    ffe[f] = ExprFace(-a, a, 0);
+  }
+
+  // boundary conditions
+  for (auto& p : mebc.GetMapFace()) {
+    const auto f = p.first;
+    const auto& bc = p.second;
+    ExprFace e(0);
+    switch (bc.type) {
+      case BCondType::dirichlet: {
+        const Scal a = 2 * (bc.nci == 0 ? 1 : -1) / h;
+        e[bc.nci] = -a;
+        e[2] = bc.val * a;
+        break;
+      }
+      case BCondType::neumann: {
+        e[2] = bc.val * (bc.nci == 0 ? 1 : -1);
+        break;
+      }
+      default:
+        throw std::runtime_error(FILELINE + ": unknown");
+    }
+    ffe[f] = e;
   }
   return ffe;
 }
@@ -1226,103 +1509,23 @@ template <class M>
 auto UEmbed<M>::GradientImplicit(
     const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, const EB& eb)
     -> FieldEmbed<ExprFace> {
-  FieldEmbed<ExprFace> fee(eb, ExprFace(0));
-  const Scal h = eb.GetCellSize()[0];
-
-  // explicit gradient
-  FieldEmbed<Scal> feg = Gradient(fcu, mebc, eb);
-
-  // implicit gradient with deferred correction
-  for (auto f : eb.Faces()) {
-    const IdxCell cm = eb.GetCell(f, 0);
-    const IdxCell cp = eb.GetCell(f, 1);
-    const Scal a = 1 / h;
-    ExprFace e(0);
-    e[0] = -a;
-    e[1] = a;
-    e[2] = feg[f];
-    e[2] -= fcu[cm] * e[0] + fcu[cp] * e[1];
-    fee[f] = e;
-  }
-
-  auto calc = [&](auto cf, IdxCell c, const BCond<Scal>& bc) {
-    ExprFace e(0);
-    const auto nci = bc.nci;
-    switch (bc.type) {
-      case BCondType::dirichlet: {
-        const Scal a = 2 * (nci == 0 ? 1 : -1) / h;
-        e[nci] = -a;
-        e[2] = feg[cf];
-        break;
-      }
-      case BCondType::neumann: {
-        e[2] = feg[cf];
-        break;
-      }
-      default:
-        throw std::runtime_error(FILELINE + ": unknown");
-    }
-    e[2] -= fcu[c] * e[nci];
-    return e;
-  };
-  mebc.LoopBCond(eb, [&](auto cf, IdxCell c, const auto& bc) {
-    fee[cf] = calc(cf, c, bc);
-  });
-  return fee;
+  const auto fee = Gradient(fcu, mebc, eb);
+  auto feg = GradientImplicit(mebc, eb);
+  eb.LoopFaces(
+      [&](auto cf) { feg[cf].back() += fee[cf] - Eval(feg[cf], cf, fcu, eb); });
+  return feg;
 }
 
 template <class M>
 auto UEmbed<M>::GradientImplicit(
     const FieldCell<Scal>& fcu, const MapEmbed<BCond<Scal>>& mebc, const M& m)
     -> FieldFace<ExprFace> {
-  (void)fcu;
-  FieldFace<ExprFace> ffe(m, ExprFace(0));
-  const Scal h = m.GetCellSize()[0];
-
+  const auto ffe = Gradient(fcu, mebc, m);
+  auto ffg = GradientImplicit(mebc, m);
   for (auto f : m.Faces()) {
-    ExprFace e(0);
-    const Scal a = 1 / h;
-    e[0] = -a;
-    e[1] = a;
-    ffe[f] = e;
+    ffg[f].back() += ffe[f] - Eval(ffg[f], f, fcu, m);
   }
-
-  auto calc = [&](IdxFace f, IdxCell c, const BCond<Scal>& bc) {
-    ExprFace e(0);
-    const auto nci = bc.nci;
-    switch (bc.type) {
-      case BCondType::dirichlet: {
-        const Scal sgn = (nci == 0 ? 1 : -1);
-        const Scal a = 2 * sgn / h;
-        e[nci] = -a;
-        e[2] = bc.val * a;
-
-        const Scal uf = bc.val;
-        const size_t cnci = m.GetNci(c, f); // f=m.GetFace(c1, c1nci)
-        const IdxCell c2 = m.GetCell(c, m.GetOpposite(cnci));
-        const Scal u1 = fcu[c];
-        const Scal u2 = fcu[c2];
-        const Scal high = (uf * 8 - u1 * 9 + u2) / (3 * h) * sgn;
-        const Scal low = (uf - u1) * a;
-        e[2] += high - low;
-        break;
-      }
-      case BCondType::neumann: {
-        e[2] = bc.val;
-        break;
-      }
-      default:
-        throw std::runtime_error(FILELINE + ": unknown");
-    }
-    return e;
-  };
-  // faces with boundary conditions
-  for (auto& p : mebc.GetMapFace()) {
-    const IdxFace f = p.first;
-    const auto& bc = p.second;
-    ffe[f] = calc(f, m.GetCell(f, bc.nci), bc);
-  }
-  return ffe;
+  return ffg;
 }
 
 template <class M>
@@ -1340,6 +1543,7 @@ auto UEmbed<M>::Gradient(const FieldFace<Scal>& ffu, const M& m)
   return fcg;
 }
 
+// FIXME: rename to AverageVect
 template <class M>
 auto UEmbed<M>::AverageGradient(const FieldEmbed<Scal>& feg, const EB& eb)
     -> FieldCell<Vect> {
@@ -1375,4 +1579,21 @@ auto UEmbed<M>::AverageGradient(const FieldFace<Scal>& ffg, const M& m)
   fcg.LimitHalo(2);
   fcg.LimitHalo(ffg.GetHalo() - 1);
   return fcg;
+}
+
+template <class T, class MEB>
+void Smoothen(
+    FieldCell<T>& fc, const MapEmbed<BCond<T>>& mfc, MEB& eb, size_t iters) {
+  auto& m = eb.GetMesh();
+  auto sem = m.GetSem("smoothen");
+  using UEB = UEmbed<typename MEB::M>;
+  for (size_t i = 0; i < iters; ++i) {
+    if (sem()) {
+      fc = UEB::Interpolate(UEB::Interpolate(fc, mfc, eb), eb);
+      m.Comm(&fc);
+    }
+    if (sem()) {
+      // FIXME empty stage to finish communication in outer blocks
+    }
+  }
 }

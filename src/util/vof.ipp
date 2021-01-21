@@ -87,12 +87,10 @@ struct UVof<M_>::Imp {
           }
         }
       }
-      using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dl));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dlc));
-      m.Reduce(std::make_shared<TS>(&dll));
-      m.Reduce(std::make_shared<TS>(&dlcl));
+      m.Reduce(&dl, Reduction::concat);
+      m.Reduce(&dlc, Reduction::concat);
+      m.Reduce(&dll, Reduction::concat);
+      m.Reduce(&dlcl, Reduction::concat);
     }
     if (sem("write")) {
       if (m.IsRoot()) {
@@ -364,13 +362,11 @@ struct UVof<M_>::Imp {
           }
         }
       }
-      using TV = typename M::template OpCatVT<Vect>;
-      m.Reduce(std::make_shared<TV>(&dl));
-      m.Reduce(std::make_shared<TV>(&dln));
-      using TS = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<TS>(&dlc));
-      m.Reduce(std::make_shared<TS>(&dll));
-      m.Reduce(std::make_shared<TS>(&dlcl));
+      m.Reduce(&dl, Reduction::concat);
+      m.Reduce(&dln, Reduction::concat);
+      m.Reduce(&dlc, Reduction::concat);
+      m.Reduce(&dll, Reduction::concat);
+      m.Reduce(&dlcl, Reduction::concat);
     }
     if (sem("write")) {
       if (m.IsRoot()) {
@@ -415,9 +411,8 @@ struct UVof<M_>::Imp {
         vcl.push_back(p.first);
         vcln.push_back(p.second);
       }
-      using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&vcl));
-      m.Reduce(std::make_shared<T>(&vcln));
+      m.Reduce(&vcl, Reduction::concat);
+      m.Reduce(&vcln, Reduction::concat);
     }
     if (sem("gather")) {
       usermap.clear();
@@ -446,7 +441,7 @@ struct UVof<M_>::Imp {
       for (auto l : layers) {
         if ((*fccl[l])[c] != kClNone) {
           for (size_t q : {0, 1, 2}) {
-            IdxCell cm = m.GetCell(c, q);
+            IdxCell cm = m.GetCell(c, IdxNci(q));
             for (auto lm : layers) {
               if ((*fccl[l])[c] == (*fccl[lm])[cm]) {
                 Scal cl = (*fcclt[l])[c];
@@ -460,9 +455,8 @@ struct UVof<M_>::Imp {
           }
         }
       }
-      using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&merge0));
-      m.Reduce(std::make_shared<T>(&merge1));
+      m.Reduce(&merge0, Reduction::concat);
+      m.Reduce(&merge1, Reduction::concat);
     }
     if (sem("reduce")) {
       if (m.IsRoot()) {
@@ -493,9 +487,8 @@ struct UVof<M_>::Imp {
           merge1.push_back(p.second);
         }
       }
-      using T = typename M::template OpCatT<Scal>;
-      m.Bcast(std::make_shared<T>(&merge0));
-      m.Bcast(std::make_shared<T>(&merge1));
+      m.Bcast(&merge0);
+      m.Bcast(&merge1);
     }
     if (sem("apply")) {
       std::map<Scal, Scal> map;
@@ -543,8 +536,7 @@ struct UVof<M_>::Imp {
       }
       vcl = std::vector<Scal>(s.begin(), s.end());
       vvcl = {vcl};
-      using T = typename M::template OpCatVT<Scal>;
-      m.Reduce(std::make_shared<T>(&vvcl));
+      m.Reduce(&vvcl, Reduction::concat);
     }
     // replace with reduced set, applying usermap if possible
     auto& vcln = ctx->vcln;
@@ -618,7 +610,7 @@ struct UVof<M_>::Imp {
         IdxCell c = m.FindNearestCell(clfixed_x);
         cldist.first = m.GetCenter(c).dist(clfixed_x);
         cldist.second = m.GetId();
-        m.Reduce(std::make_shared<typename M::OpMinloc>(&cldist));
+        m.Reduce(&cldist, Reduction::minloc);
       } else {
         cldist.second = -1;
       }
@@ -666,8 +658,8 @@ struct UVof<M_>::Imp {
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
-      Scal coalth, const MapCondFace& mfc_cl, bool verb, bool reduce, bool grid,
-      M& m) {
+      Scal coalth, const MapEmbed<BCond<Scal>>& mfc_cl, bool verb, bool reduce,
+      bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
       std::map<Scal, Scal> usermap;
@@ -726,7 +718,7 @@ struct UVof<M_>::Imp {
         m.Comm(&fcclt[i]);
       }
       ctx->tries = tries;
-      m.Reduce(&ctx->tries, "max");
+      m.Reduce(&ctx->tries, Reduction::max);
     }
     if (sem("reflect")) {
       for (auto i : layers) {
@@ -762,8 +754,8 @@ struct UVof<M_>::Imp {
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
-      Scal coalth, const MapCondFace& mfc_cl, bool verb, bool reduce, bool grid,
-      M& m) {
+      Scal coalth, const MapEmbed<BCond<Scal>>& mfc_cl, bool verb, bool reduce,
+      bool grid, M& m) {
     auto sem = m.GetSem("recolor");
     struct {
       std::map<Scal, Scal> usermap;
@@ -895,7 +887,7 @@ struct UVof<M_>::Imp {
         m.Comm(&fcclt[l]);
       }
       ctx->tries = tries;
-      m.Reduce(&ctx->tries, "max");
+      m.Reduce(&ctx->tries, Reduction::max);
     }
     if (sem("reflect")) {
       for (auto i : layers) {
@@ -931,7 +923,7 @@ struct UVof<M_>::Imp {
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
-      Scal coalth, const MapCondFace& mfc, bool verb, bool unionfind,
+      Scal coalth, const MapEmbed<BCond<Scal>>& mfc, bool verb, bool unionfind,
       bool reduce, bool grid, M& m) {
     if (unionfind) {
       return RecolorUnionFind(
@@ -988,49 +980,11 @@ void UVof<M_>::Recolor(
     const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
     const Multi<FieldCell<Scal>*>& fccl,
     const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
-    Scal coalth, const MapCondFace& mfcu, bool verb, bool unionfind,
+    Scal coalth, const MapEmbed<BCond<Scal>>& mfcu, bool verb, bool unionfind,
     bool reduce, bool grid, M& m) {
   Imp::Recolor(
       layers, fcu, fccl, fccl0, clfixed, clfixed_x, coalth, mfcu, verb,
       unionfind, reduce, grid, m);
-}
-
-template <class M_>
-void UVof<M_>::GetAdvectionFaceCond(
-    const M& m, const MapEmbed<BCondAdvection<Scal>>& mfc, MapCondFace& mfc_vf,
-    MapCondFace& mfc_cl, MapCondFace& mfc_im, MapCondFace& mfc_n,
-    MapCondFace& mfc_a) {
-  using MIdx = typename M::MIdx;
-  using TRM = Trackerm<M>;
-  mfc_vf.clear();
-  mfc_cl.clear();
-  mfc_im.clear();
-  mfc_n.clear();
-  mfc_a.clear();
-  using Halo = typename BCondAdvection<Scal>::Halo;
-  for (auto& it : mfc.GetMapFace()) {
-    IdxFace f = it.first;
-    const auto& cb = it.second;
-    size_t nci = cb.GetNci();
-    switch (cb.halo) {
-      case Halo::reflect:
-        mfc_vf[f].Set<CondFaceReflect>(nci);
-        mfc_cl[f].Set<CondFaceReflect>(nci);
-        mfc_im[f].Set<CondFaceReflect>(nci);
-        mfc_n[f].Set<CondFaceReflect>(nci);
-        mfc_a[f].Set<CondFaceReflect>(nci);
-        break;
-      case Halo::fill:
-        mfc_vf[f].Set<CondFaceValFixed<Scal>>(cb.fill_vf, nci);
-        mfc_cl[f].Set<CondFaceValFixed<Scal>>(cb.fill_cl, nci);
-        MIdx wim(0);
-        wim[size_t(m.GetDir(f))] = (nci == 1 ? -1 : 1);
-        mfc_im[f].Set<CondFaceValFixed<Scal>>(TRM::Pack(wim), nci);
-        mfc_n[f].Set<CondFaceValFixed<Vect>>(Vect(0), nci);
-        mfc_a[f].Set<CondFaceValFixed<Scal>>(Scal(0), nci);
-        break;
-    }
-  }
 }
 
 template <class M_>

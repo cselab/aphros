@@ -14,23 +14,23 @@ template <class Idx_, size_t dim_>
 class GBlock {
  public:
   using Idx = Idx_;
-  using MIdx = GMIdx<dim_>;
+  using MIdx = generic::MIdx<dim_>;
 
   static constexpr size_t dim = dim_;
 
   class iterator {
-    const GBlock* p_; // parent
-    MIdx w_;
+    const GBlock* owner_; // parent
+    MIdx pos_;
 
    public:
     // p: parent
     // w: current position
-    iterator(const GBlock* p, MIdx w) : p_(p), w_(w) {}
+    iterator(const GBlock* p, MIdx w) : owner_(p), pos_(w) {}
     iterator& operator++() {
       for (size_t d = 0; d < dim; ++d) {
-        ++w_[d];
-        if (w_[d] == p_->e_[d] && d < dim - 1) {
-          w_[d] = p_->b_[d];
+        ++pos_[d];
+        if (pos_[d] == owner_->end_[d] && d < dim - 1) {
+          pos_[d] = owner_->begin_[d];
         } else {
           break;
         }
@@ -39,99 +39,106 @@ class GBlock {
     }
     iterator& operator--() {
       for (size_t n = 0; n < dim; ++n) {
-        if (w_[n] == p_->b_[n]) {
-          w_[n] = p_->e_[n] - 1;
+        if (pos_[n] == owner_->begin_[n]) {
+          pos_[n] = owner_->end_[n] - 1;
         } else {
-          --w_[n];
+          --pos_[n];
           break;
         }
       }
       return *this;
     }
     bool operator==(const iterator& o) const {
-      return w_ == o.w_;
+      return pos_ == o.pos_;
     }
     bool operator!=(const iterator& o) const {
       return !(*this == o);
     }
     MIdx operator*() const {
-      return w_;
+      return pos_;
     }
-    // Returns the number of calls to ++ which are equivalent to ++w_[0]
+    // Returns the number of calls to ++ which are equivalent to ++pos_[0]
     size_t GetNumLite() const {
-      assert(w_[0] + 1 <= p_->GetEnd()[0]);
-      return p_->GetEnd()[0] - w_[0] - 1;
+      assert(pos_[0] + 1 <= owner_->GetEnd()[0]);
+      return owner_->GetEnd()[0] - pos_[0] - 1;
     }
     // Increments iterator by `a` assuming `a <= GetLite()`
     void LiteInc(size_t a) {
       assert(a <= GetNumLite());
-      w_[0] += a;
+      pos_[0] += a;
     }
   };
 
-  GBlock(MIdx b, MIdx s) : b_(b), s_(s), e_(b_ + s_) {}
+  GBlock(MIdx b, MIdx s) : begin_(b), size_(s), end_(begin_ + size_) {}
   GBlock() : GBlock(MIdx(0), MIdx(0)) {}
   GBlock(MIdx s) : GBlock(MIdx(0), s) {}
   MIdx GetBegin() const {
-    return b_;
+    return begin_;
   }
   MIdx GetEnd() const {
-    return e_;
+    return end_;
   }
   MIdx GetSize() const {
-    return s_;
+    return size_;
   }
   size_t size() const {
-    return s_.prod();
+    return size_.prod();
   }
   bool IsInside(MIdx w) const {
-    return b_ <= w && w < e_;
+    return begin_ <= w && w < end_;
   }
   void Clip(MIdx& w) const {
-    for (size_t d = 0; d < b_.size(); ++d) {
-      w[d] = std::max(b_[d], std::min(e_[d] - 1, w[d]));
+    for (size_t d = 0; d < begin_.size(); ++d) {
+      w[d] = std::max(begin_[d], std::min(end_[d] - 1, w[d]));
     }
   }
   iterator begin() const {
-    return iterator(this, b_);
+    return iterator(this, begin_);
   }
   iterator end() const {
-    MIdx w = b_;
-    w[dim - 1] = e_[dim - 1];
+    MIdx w = begin_;
+    w[dim - 1] = end_[dim - 1];
     return iterator(this, w);
   }
 
  private:
-  const MIdx b_; // begin
-  const MIdx s_; // size
-  const MIdx e_; // end
+  const MIdx begin_; // begin
+  const MIdx size_; // size
+  const MIdx end_; // end
 };
+
+namespace generic {
+
+template <class Idx, size_t dim>
+using Block = GBlock<Idx, dim>;
+
+} // namespace generic
 
 // Flat index for multi-index.
 template <class Idx_, size_t dim_>
 class GIndex {
  public:
   using Idx = Idx_;
-  using MIdx = GMIdx<dim_>;
+  using MIdx = generic::MIdx<dim_>;
 
   static constexpr size_t dim = dim_;
 
   // b: begin
   // s: size
-  GIndex(MIdx b, MIdx s) : b_(b), s_(s), e_(b_ + s_) {}
+  GIndex(MIdx b, MIdx s) : begin_(b), size_(s), end_(begin_ + size_) {}
   GIndex() : GIndex(MIdx(0), MIdx(0)) {}
   GIndex(MIdx s) : GIndex(MIdx(0), s) {}
   MIdx GetBegin() const {
-    return b_;
+    return begin_;
   }
   MIdx GetEnd() const {
-    return e_;
+    return end_;
   }
   MIdx GetSize() const {
-    return s_;
+    return size_;
   }
   size_t size() const {
-    return s_.prod();
+    return size_.prod();
   }
   GRange<Idx> Range() const {
     return GRange<Idx>(Idx(size()));
@@ -140,11 +147,11 @@ class GIndex {
     return Range();
   }
   Idx GetIdx(MIdx w) const {
-    w -= b_;
+    w -= begin_;
     size_t r = 0;
     for (size_t d = dim; d != 0;) {
       --d;
-      r *= s_[d];
+      r *= size_[d];
       r += w[d];
     }
     return Idx(r);
@@ -153,24 +160,24 @@ class GIndex {
     MIdx w;
     size_t a(i);
     for (size_t d = 0; d < dim; ++d) {
-      w[d] = a % s_[d];
-      a /= s_[d];
+      w[d] = a % size_[d];
+      a /= size_[d];
     }
-    return b_ + w;
+    return begin_ + w;
   }
   bool IsInside(MIdx w) const {
-    return b_ <= w && w < e_;
+    return begin_ <= w && w < end_;
   }
   void Clip(MIdx& w) const {
-    for (size_t d = 0; d < b_.size(); ++d) {
-      w[d] = std::max(b_[d], std::min(e_[d] - 1, w[d]));
+    for (size_t d = 0; d < begin_.size(); ++d) {
+      w[d] = std::max(begin_[d], std::min(end_[d] - 1, w[d]));
     }
   }
 
  private:
-  const MIdx b_; // begin
-  const MIdx s_; // size
-  const MIdx e_; // end
+  const MIdx begin_;
+  const MIdx size_;
+  const MIdx end_;
 };
 
 template <size_t dim>

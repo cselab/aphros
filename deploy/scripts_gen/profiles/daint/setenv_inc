@@ -6,6 +6,8 @@ module swap PrgEnv-cray PrgEnv-gnu
 module load GSL
 module load cray-hdf5-parallel
 module load cray-python
+module load CMake
+module load cudatoolkit
 
 export CC=cc
 export CXX=CC

@@ -7,16 +7,19 @@
 #include <iostream>
 #include <sstream>
 
+#include "parse/argparse.h"
+#include "parse/config.h"
 #include "parse/parser.h"
 #include "parse/vars.h"
-#include "parse/config.h"
+#include "util/format.h"
+#include "util/logger.h"
 
 namespace simple {
 
 void Simple() {
   std::cout << "\n" << __func__ << std::endl;
   Vars par;
-  Parser ip(par);
+  Parser parser(par);
 
   std::stringstream s;
   s << "set string a 1" << std::endl;
@@ -24,8 +27,8 @@ void Simple() {
   s << "set double c 1" << std::endl;
   s << "set vect d 1" << std::endl;
 
-  ip.RunAll(s);
-  ip.PrintAll(std::cout);
+  parser.ParseStream(s);
+  parser.PrintVars(std::cout);
 
   assert(par.String["a"] == "1");
   assert(par.Int["b"] == 1);
@@ -37,17 +40,11 @@ void Simple() {
 
 void TestFile() {
   std::cout << "\n" << __func__ << std::endl;
-  // open script
-  std::string ni = "a.conf";
-  std::ifstream fi(ni);
-
-  // run all commands
   Vars par;
-  Parser ip(par);
-  ip.RunAll(fi);
+  Parser parser(par);
+  parser.ParseFile("a.conf");
 
-  // print variables to cout
-  ip.PrintAll(std::cout);
+  parser.PrintVars(std::cout);
 }
 
 struct Config : public ConfigBase {
@@ -58,7 +55,6 @@ struct Config : public ConfigBase {
   VAR_STRING(name);
   VAR_BOOL(enable_fluid);
 };
-
 
 void TestConfig() {
   std::cout << "\n" << __func__ << std::endl;
@@ -77,7 +73,7 @@ void TestConfig() {
   set string name name
   set int enable_fluid 3
   )EOF");
-    parser.RunAll(s);
+    parser.ParseStream(s);
   }
 
   Config config;
@@ -90,9 +86,93 @@ void TestConfig() {
   std::cout << config.enable_fluid << std::endl;
 }
 
+void TestArgumentParser() {
+  std::cout << "\n" << __func__ << std::endl;
+
+  ArgumentParser parser("Description");
+  parser.AddVariable<int>({"--int", "-i"}, 3).Options({3, 4});
+  parser.AddVariable<double>("--double", 3).Help("Type double").Options({3, 4});
+  parser.AddVariable<std::string>("--string", "a");
+  parser.AddVariable<std::vector<double>>("--vect", {0});
+  parser.AddVariable<int>({"--int0", "-i0"});
+  parser.AddVariable<double>("--double0");
+  parser.AddVariable<std::string>("--string0");
+  parser.AddVariable<std::vector<double>>({"--vect0", "-v0"})
+      .Help("List of doubles");
+  parser.AddVariable<int>("nx").Help("Size in x-direction");
+  parser.AddVariable<int>("ny").Help("Size in y-direction");
+  parser.AddVariable<int>("nz", 1).Help("Size in z-direction");
+  parser.AddVariable<int>("bs", 32).Help("Block size").Options({8, 16, 32});
+  parser.AddVariable<int>("bsy").Help("Block size in y").Options({8, 16, 32});
+
+  std::cout << '\n';
+  parser.PrintHelp(std::cout, true, "program");
+  std::cout << '\n';
+
+  std::cout << "\nKnown args:\n";
+  parser.GetKnownArgs().ForEachMap([](const auto& map) {
+    for (auto it = map.cbegin(); it != map.cend(); ++it) {
+      std::cout << map.GetTypeName() << ' ' << it->first << ' '
+                << map.GetStr(it->first) << '\n';
+    }
+  });
+
+  std::cout << "\nParsed args:\n";
+  auto args = parser.ParseArgs({
+      "--double0", "5.4", "--double", "3.4", "--int", "4", "-i", "7",
+      "16", // nx
+      "8", // ny
+      "8", // nz
+      "9", // bs
+      "8", // bsy
+  });
+  args.ForEachMap([](const auto& map) {
+    for (auto it = map.cbegin(); it != map.cend(); ++it) {
+      std::cout << map.GetTypeName() << ' ' << it->first << ' '
+                << map.GetStr(it->first) << '\n';
+    }
+  });
+}
+
+void TestFormat() {
+  std::cout << "\n" << __func__ << std::endl;
+
+  int i = 5;
+  std::string s = "abcdefgh";
+  std::cout << util::Format(
+      "Char '{0}' at position {1} in string '{2}'\n", s[i], i, s);
+  std::cout << util::Format(
+      "scientific {0:.3e}, fixed {0:.3f}, default {0:.3g}\n", M_PI);
+  std::cout << util::Format(
+      "scientific {:.3e}, fixed {:.3f}, default {:.3g}\n", M_PI, M_PI, M_PI);
+  std::cout << util::Format(
+      "scientific {:.3e}, fixed {:.3f}, default {:.3g}\n", 0.0, 1.1, 2.2);
+  std::cout << util::Format(
+      "scientific {0:.3e}, fixed {1:.3f}, default {2:.3g}\n", 0.0, 1.1, 2.2);
+  std::cout << util::Format(
+      "width scientific {0:10.3e}, fixed {0:10.3f}, default {0:10.3g}\n", M_PI);
+  std::cout << util::Format(
+      "width leadzero scientific {0:010.e}, fixed {0:010.3f}, default "
+      "{0:010.3g}\n",
+      M_PI);
+  std::cout << util::Format(
+      "leadzero scientific {0:010.e}, fixed {0:010.3f}, default {0:010.3g}\n",
+      -M_PI);
+  std::cout << util::Format(
+      "width leadzero {:03d} {:05} {:08d}\n", 1, 123, 123456);
+  using Vect = generic::Vect<double, 3>;
+  std::cout << util::Format("Vect {} {0:.10f}\n", Vect(0., 1., 2.));
+  std::cout << //
+      util::Format(
+          "a={0} b={0:} c={1:7} d={0:7.3f} e={0:07.3f} f={0:07.3g} g={0:.3e}\n",
+          M_PI, 3.14);
+}
+
 int main() {
   simple::Simple();
 
   TestFile();
   TestConfig();
+  TestArgumentParser();
+  TestFormat();
 }

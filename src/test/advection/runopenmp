@@ -5,7 +5,7 @@ set -eu
 ./clean
 
 # config file
-: ${c=topenmp}
+: ${c=openmp.conf}
 # block size
 : ${bs="8 8 1"}
 # number of processors

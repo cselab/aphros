@@ -3,9 +3,12 @@
 
 #pragma once
 
-#include <iostream>
+#include <iosfwd>
+#include <map>
 #include <memory>
+#include <set>
 #include <string>
+#include <vector>
 
 #include "vars.h"
 
@@ -22,14 +25,20 @@ class Parser {
   // Executes single line from stream
   void RunNext(std::istream&);
   // Executes all lines from stream
-  void RunAll(std::istream&);
-  // Prints content of Map
+  void ParseStream(std::istream&);
+  // Executes all lines from file.
+  // If `path` is a relative path, looks for the file relative to:
+  // - current directory
+  // - directory `dir` (if `dir != ""`)
+  // Reports file path and line number in case of error.
+  void ParseFile(std::string path, std::string dir = "");
+  // Prints commands "set" for variables in `map`.
   template <class T>
-  static void Print(const Vars::Map<T>& m, std::ostream& out);
-  // Prints content of v_
-  void PrintAll(std::ostream& out) const;
-  // Prints content of v_ to std::cout
-  void PrintAll() const;
+  static void PrintMap(const Vars::Map<T>& map, std::ostream& out);
+  // Prints commands "set" for variables in `var`.
+  static void PrintVars(const Vars& var, std::ostream& out);
+  // Prints commands "set" for variables in all maps.
+  void PrintVars(std::ostream& out) const;
 
  private:
   struct Imp;

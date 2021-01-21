@@ -11,14 +11,31 @@
 #include <string>
 
 #include "geom/mesh.h"
+#include "geom/rangemulti.h"
 #include "solver/normal.h"
 #include "solver/normal.ipp"
 #include "solver/solver.h"
+#include "util/format.h"
 #include "util/sysinfo.h"
 #include "util/timer.h"
 
+template <class Idx, class M>
+static typename M::Scal DiffMax(
+    const GField<typename M::Vect, Idx>& u,
+    const GField<typename M::Vect, Idx>& v, const M& m) {
+  using Scal = typename M::Scal;
+  Scal r = 0;
+  for (auto i : m.template GetRangeIn<Idx>()) {
+    if (IsNan(u[i] - v[i])) {
+      return GetNan<Scal>();
+    }
+    r = std::max(r, (u[i] - v[i]).norminf());
+  }
+  return r;
+}
+
 const int dim = 3;
-using MIdx = GMIdx<dim>;
+using MIdx = generic::MIdx<dim>;
 using IdxCell = IdxCell;
 using IdxFace = IdxFace;
 using Dir = GDir<dim>;
@@ -27,77 +44,119 @@ using Vect = generic::Vect<Scal, dim>;
 using Mesh = MeshStructured<Scal, dim>;
 using Normal = typename UNormal<Mesh>::Imp;
 
-Scal Rnd(Scal q) {
-  return std::sin(std::sin(q * 123.456) * 654.321);
-}
+template <class M>
+void CalcNormalHeightRange(
+    M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci, size_t edim,
+    bool force_overwrite, FieldCell<Vect>& fcn) {
+  fcn.Reinit(m);
 
-// rnd next
-Scal Rndn(Scal& q) {
-  q += 0.1;
-  return std::sin(std::sin(q * 123.456) * 654.321);
-}
+  using Direction = typename M::Direction;
+  for (auto c : m.SuCellsM()) {
+    if (!fci[c]) {
+      continue;
+    }
+    Vect best_n(0);
+    size_t best_dz(0);
+    for (size_t ddz : {0, 1, 2}) {
+      if (ddz >= edim) {
+        continue;
+      }
+      const Direction dz(ddz);
+      const auto dx = dz.next(1);
+      const auto dy = dz.next(2);
 
-template <class Idx, class M>
-typename M::Scal DiffMax(
-    const GField<typename M::Vect, Idx>& u,
-    const GField<typename M::Vect, Idx>& v, const M& m) {
-  using Scal = typename M::Scal;
-  Scal r = 0;
-  for (auto i : m.template GetIn<Idx>()) {
-    r = std::max(r, (u[i] - v[i]).norminf());
+      auto hh = [&](Direction d) {
+        return fcu[c + d - dz] + fcu[c + d] + fcu[c + d + dz];
+      };
+
+      Vect n;
+      n[dx] = hh(dx) - hh(-dx);
+      n[dy] = hh(dy) - hh(-dy);
+      n[dz] = (fcu[c + dz] - fcu[c - dz] > 0 ? 2 : -2);
+      n /= -n.norm1();
+      if (std::abs(best_n[best_dz]) < std::abs(n[dz])) {
+        best_n = n;
+        best_dz = dz;
+      }
+    }
+
+    if (force_overwrite ||
+        std::abs(best_n[best_dz]) < std::abs(fcn[c][best_dz])) {
+      fcn[c] = best_n;
+    }
   }
-  return r;
 }
 
-Mesh GetMesh(MIdx s /*size in cells*/) {
-  Rect<Vect> dom(Vect(0), Vect(1));
-  MIdx b(0, 0, 0); // lower index
-  int hl = 2; // halos
-  return InitUniformMesh<Mesh>(dom, b, s, hl, true, true, s, 0);
+Scal Random(Scal q) {
+  return std::sin(std::sin(q * 123.456) * 654.321);
 }
 
-class TimerMesh : public Timer {
+Scal RandomNext(Scal& q) {
+  return Random(q += 0.1);
+}
+
+Mesh GetMesh(MIdx size) {
+  const Rect<Vect> dom(Vect(0), Vect(size) / Vect(size.max()));
+  const MIdx begin(0, 0, 0);
+  const int halos = 2;
+  return InitUniformMesh<Mesh>(dom, begin, size, halos, true, true, size, 0);
+}
+
+class TimerMesh : public ExecutionTimer {
  public:
-  TimerMesh(const std::string& name, Mesh& m) : Timer(name, 0.1, 3), m(m) {}
+  TimerMesh(const std::string& name, Mesh& m_)
+      : ExecutionTimer(name, 0.1, 3), m(m_) {}
 
  protected:
   Mesh& m;
 };
 
+static const char* kYoungsNames[3] = {
+    "youngs-range", "youngs-nested", "youngs-avx"};
+
 template <int id>
-class Young : public TimerMesh {
+class Youngs : public TimerMesh {
  public:
-  Young(Mesh& m)
-      : TimerMesh("young" + std::to_string(id), m), fc(m), fci(m, true) {
+  Youngs(Mesh& m_)
+      : TimerMesh(kYoungsNames[id], m_), fcu(m), fcmask(m, true) {
     for (auto i : m.AllCells()) {
-      fc[i] = Rnd(i.GetRaw());
+      fcu[i] = Random(i.GetRaw());
     }
   }
   void F() override {
     volatile size_t ii = 0;
 
     if (id == 0) {
-      Normal::CalcNormalYoung(m, fc, fci, fcn);
+      Normal::CalcNormalYoungs(m, fcu, fcmask, fcn);
+    } else if (id == 1) {
+      Normal::CalcNormalYoungs1(m, fcu, fcmask, fcn);
+#if USEFLAG(AVX)
+    } else if (id == 2) {
+      Normal::CalcNormalYoungsAvx(m, fcu, fcmask, fcn);
+#endif
     } else {
-      Normal::CalcNormalYoung1(m, fc, fci, fcn);
+      fassert(false);
     }
 
     ii = fcn[IdxCell(ii)][0];
   }
 
  private:
-  FieldCell<Scal> fc;
-  FieldCell<bool> fci;
+  FieldCell<Scal> fcu;
+  FieldCell<bool> fcmask;
   FieldCell<Vect> fcn;
 };
+
+static const char* kHeightNames[3] = {
+    "height-range", "height-nested", "height2-range"};
 
 template <int id>
 class Height : public TimerMesh {
  public:
-  Height(Mesh& m)
-      : TimerMesh("height" + std::to_string(id), m), fc(m), fci(m, true) {
+  Height(Mesh& m_)
+      : TimerMesh(kHeightNames[id], m_), fcu(m), fcmask(m, true) {
     for (auto i : m.AllCells()) {
-      fc[i] = Rnd(i.GetRaw());
+      fcu[i] = Random(i.GetRaw());
     }
   }
   void F() override {
@@ -105,161 +164,160 @@ class Height : public TimerMesh {
     size_t edim = 3;
 
     if (id == 0) {
-      Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn);
+      Normal::CalcNormalHeight(m, fcu, fcmask, edim, true, fcn);
+    } else if (id == 1) {
+      Normal::CalcNormalHeight1(m, fcu, fcmask, edim, true, fcn);
+    } else if (id == 2) {
+      CalcNormalHeightRange(m, fcu, fcmask, edim, true, fcn);
     } else {
-      Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn);
+      fassert(false);
     }
 
     ii = fcn[IdxCell(ii)][0];
   }
 
  private:
-  FieldCell<Scal> fc;
-  FieldCell<bool> fci;
+  FieldCell<Scal> fcu;
+  FieldCell<bool> fcmask;
   FieldCell<Vect> fcn;
   FieldCell<char> fcd;
 };
 
-class Partstr : public TimerMesh {
- public:
-  Partstr(Mesh& m)
-      : TimerMesh("partstr", m), fc(m), fci(m, true), fcn(m), fca(m) {
-    for (auto c : m.AllCells()) {
-      Scal q = c.GetRaw();
-      fc[c] = Rndn(q);
-      fcn[c] = Vect(Rndn(q), Rndn(q), Rndn(q));
-      fca[c] = Rndn(q);
-    }
-  }
-  void F() override {
-    volatile size_t ii = 0;
+#define CMP(fca, fcb)                                                      \
+  do {                                                                     \
+    const Scal diff = DiffMax(fca, fcb, m);                                \
+    if (!(diff <= eps)) {                                                  \
+      std::cerr << util::Format(                                           \
+          "Verify {}: max difference ({},{}) exceeded: {:.4e} > {:.4e}\n", \
+          name, #fca, #fcb, diff, eps);                                    \
+      ++failed;                                                            \
+    }                                                                      \
+  } while (0);
 
-    ii = fcn[IdxCell(ii)][0];
-  }
-
- private:
-  FieldCell<Scal> fc;
-  FieldCell<bool> fci;
-  FieldCell<Vect> fcn;
-  FieldCell<Scal> fca;
-  FieldCell<Scal> fck;
-};
-
-// f=0: youngs
-// f=1: height edim=3
-// f=2: height edim=2
-void Cmp(int f) {
-  auto m = GetMesh(MIdx(8));
-  FieldCell<Scal> fc(m);
-  FieldCell<bool> fci(m, true);
+// Returns the number of failed tests
+template <int test>
+static int Verify() {
+  int failed = 0;
+  auto m = GetMesh(MIdx(32, 16, 8));
+  FieldCell<Scal> fcu(m);
+  FieldCell<bool> fcmask(m, true);
   FieldCell<Vect> fcn(m);
+  FieldCell<Vect> fcn1(m);
   FieldCell<Vect> fcn2(m);
   for (auto c : m.AllCells()) {
-    fc[c] = Rnd(c.GetRaw());
+    fcu[c] = Random(c.GetRaw());
   }
-  if (f == 0) {
-    Normal::CalcNormalYoung(m, fc, fci, fcn);
-    Normal::CalcNormalYoung1(m, fc, fci, fcn2);
-  } else if (f == 1) {
+
+  std::string name;
+  const Scal eps = 1e-14;
+
+  if (test == 0) {
+    name = "NormalYoung";
+    Normal::CalcNormalYoungs(m, fcu, fcmask, fcn);
+    Normal::CalcNormalYoungs1(m, fcu, fcmask, fcn1);
+    CMP(fcn, fcn1);
+#if USEFLAG(AVX)
+    Normal::CalcNormalYoungsAvx(m, fcu, fcmask, fcn2);
+    CMP(fcn, fcn2);
+#endif
+  } else if (test == 1) {
+    name = "NormalHeight,edim=3";
     size_t edim = 3;
-    Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn);
-    Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn2);
-  } else {
+    Normal::CalcNormalHeight(m, fcu, fcmask, edim, true, fcn);
+    Normal::CalcNormalHeight1(m, fcu, fcmask, edim, true, fcn1);
+    CalcNormalHeightRange(m, fcu, fcmask, edim, true, fcn2);
+    CMP(fcn, fcn1);
+    CMP(fcn, fcn2);
+  } else if (test == 2) {
+    name = "NormalHeight,edim=2";
     size_t edim = 2;
-    Normal::CalcNormalHeight(m, fc, fci, edim, true, fcn);
-    Normal::CalcNormalHeight1(m, fc, fci, edim, true, fcn2);
+    Normal::CalcNormalHeight(m, fcu, fcmask, edim, true, fcn);
+    Normal::CalcNormalHeight1(m, fcu, fcmask, edim, true, fcn1);
+    CalcNormalHeightRange(m, fcu, fcmask, edim, true, fcn2);
+    CMP(fcn, fcn1);
+    CMP(fcn, fcn2);
+  } else {
+    fassert(false, util::Format("Unknown test={}", test));
   }
 
-  Scal r = DiffMax(fcn, fcn2, m);
-  Scal eps = 1e-15;
-  if (r > eps) {
-    std::vector<std::string> nn = {"NormalYoung", "NormalHeight,edim=3",
-                                   "NormalHeight,edim=2"};
-    std::cerr << "Cmp " + nn[f] + ": max difference excceded "
-              << std::scientific << std::setprecision(16) << r << " > " << eps
-              << std::endl;
-    std::terminate();
-  }
+  return failed;
 }
 
-// i: target index
-// k: current index
+// test: test index
 // Output:
-// create if k == i
-// ++k
-// p: pointer to new instance
-template <class T>
-void Try(Mesh& m, size_t i, size_t& k, Timer*& p) {
-  if (k++ == i) {
-    p = new T(m);
-  }
-}
-
-// i: test index
-// m: mesh
-// Output:
-// t: total per one call [sec]
-// n: number of calls
+// time: total per one call [sec]
+// niters: number of calls
 // mem: memory usage in bytes
 // name: test name
 // Returns 1 if test with index i found
-bool Run(
-    const size_t i, Mesh& m, double& t, size_t& n, size_t& mem,
-    std::string& name) {
-  size_t k = 0;
-  Timer* p = nullptr;
+static bool Run(
+    const size_t test, Mesh& m, /*out*/ double& time, size_t& niters,
+    size_t& mem, std::string& name) {
+  size_t current = 0;
+  std::unique_ptr<ExecutionTimer> ptr;
 
-  Try<Young<0>>(m, i, k, p);
-  Try<Young<1>>(m, i, k, p);
-  Try<Height<0>>(m, i, k, p);
-  Try<Height<1>>(m, i, k, p);
-  Try<Partstr>(m, i, k, p);
+  auto create = [&](auto* kernel) {
+    if (current++ == test) {
+      using T = typename std::remove_pointer<decltype(kernel)>::type;
+      ptr = std::make_unique<T>(m);
+    }
+  };
 
-  if (!p) {
+  create((Youngs<0>*)0);
+  create((Youngs<1>*)0);
+#if USEFLAG(AVX)
+  create((Youngs<2>*)0);
+#endif
+  create((Height<0>*)0);
+  create((Height<1>*)0);
+  create((Height<2>*)0);
+
+  if (!ptr) {
     return false;
   }
 
-  std::pair<double, size_t> e = p->Run();
-  t = e.first;
-  n = e.second;
+  auto e = ptr->Run();
+  time = e.min_call_time;
+  niters = e.iters;
   mem = sysinfo::GetMem();
-  name = p->GetName();
-  delete p;
+  name = ptr->GetName();
 
   return true;
 }
 
 int main() {
-  Cmp(0);
-  Cmp(1);
-  Cmp(2);
+  int failed = 0;
+  failed += Verify<0>();
+  failed += Verify<1>();
+  failed += Verify<2>();
 
-  // mesh size
-  std::vector<MIdx> ss;
+  std::vector<MIdx> sizes;
   for (int n : {8, 16, 32, 64}) {
-    ss.emplace_back(n, n, 8);
+    sizes.emplace_back(n, n, n);
   }
 
-  const size_t ww = 16;
+  const std::string fmt = "{:16} {:10.2f} {:10}\n";
 
-  using std::setw;
-
-  for (auto s : ss) {
-    auto m = GetMesh(s);
-    const size_t nci = m.GetInBlockCells().size();
+  for (auto size : sizes) {
+    auto m = GetMesh(size);
+    const size_t sucells = m.GetSuBlockCells().size();
     std::cout << "Mesh"
-              << " size=" << s << " incells=" << nci << std::endl;
+              << " size=" << size << " sucells=" << sucells << std::endl;
 
-    int i = 0;
-    double t;
-    size_t n;
+    int test = 0;
+    double time;
+    size_t niters;
     size_t mem;
     std::string name;
-    while (Run(i++, m, t, n, mem, name)) {
-      std::cout << setw(ww) << name << setw(ww) << t * 1e9 / nci << setw(ww)
-                << n << std::endl;
+    std::cout << util::Format(fmt, "name", "ns/cell", "niters");
+    while (Run(test++, m, time, niters, mem, name)) {
+      std::cout << util::Format(fmt, name, time * 1e9 / sucells, niters);
     }
     std::cout << std::endl;
     std::cout << std::endl;
   }
+  if (failed) {
+    std::cerr << util::Format("{} tests failed", failed) << std::endl;
+  }
+  return failed;
 }

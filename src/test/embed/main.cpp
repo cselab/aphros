@@ -14,6 +14,7 @@
 #include "solver/approx_eb.h"
 #include "solver/embed.h"
 #include "solver/reconst.h"
+#include "util/hydro.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -41,9 +42,11 @@ void Run(M& m, Vars& var) {
 
   if (sem("ctor")) {
     ctx->eb.reset(new EB(m));
-    ctx->fnl = UEB::InitEmbed(m, var, m.IsRoot());
     fcu.Reinit(m, 0);
     feu.Reinit(m, 0);
+  }
+  if (sem.Nested("levelset")) {
+    UEB::InitLevelSet(ctx->fnl, m, var, m.IsRoot());
   }
   if (sem.Nested("init")) {
     ctx->eb->Init(ctx->fnl);
@@ -93,8 +96,7 @@ void Run(M& m, Vars& var) {
     }
   }
   if (sem.Nested("bcdump")) {
-    UInitEmbedBc<M>::DumpPoly(
-        "bc.vtk", ctx->me_group, ctx->me_contang, *ctx->eb, m);
+    DumpBcPoly("bc.vtk", ctx->me_group, ctx->me_contang, *ctx->eb, m);
   }
   const size_t maxt = 10;
   for (size_t t = 0; t < maxt; ++t) {
@@ -159,5 +161,7 @@ set vect eb_sphere_r 0.5 0.349 0.249
 set double eb_sphere_angle 0
 set int eb_init_inverse 1
 )EOF";
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

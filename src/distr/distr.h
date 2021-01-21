@@ -16,11 +16,7 @@
 #include "dump/dumper.h"
 #include "geom/mesh.h"
 #include "kernel/kernelmesh.h"
-#include "linear/hypre.h"
-#include "linear/hypresub.h"
 #include "parse/vars.h"
-#include "report.h"
-#include "util/histogram.h"
 #include "util/metrics.h"
 #include "util/suspender.h"
 #include "util/sysinfo.h"
@@ -34,75 +30,78 @@ class DistrMesh {
   using MIdx = typename M::MIdx;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using RedOp = typename M::Op;
+  using BlockInfoProxy = generic::BlockInfoProxy<dim>;
 
   virtual void Run();
   virtual void Report();
   virtual void ReportOpenmp();
   virtual ~DistrMesh();
-  virtual typename M::BlockCells GetGlobalBlock() const;
-  virtual typename M::IndexCells GetGlobalIndex() const;
-  // Returns data field i from buffer defined on global mesh
-  virtual FieldCell<Scal> GetGlobalField(size_t i);
 
  protected:
   // TODO: remove comm, needed only by Hypre
   MPI_Comm comm_; // XXX: overwritten by Cubism<M>
   const Vars& var;
   Vars& var_mutable;
-  const KernelMeshFactory<M>& kf_; // kernel factory
-  Sampler samp_; // sampler accessible to derived classes
+  const KernelMeshFactory<M>& kernelfactory_; // kernel factory
 
-  int hl_; // number of halo cells (same in all directions)
-  MIdx bs_; // block size
-  MIdx p_; // number of ranks
-  MIdx b_; // number of blocks
-  Scal ext_; // extent (maximum over all directions)
+  int halos_; // number of halo cells (same in all directions)
+  MIdx blocksize_; // block size
+  MIdx nprocs_; // number of ranks
+  MIdx nblocks_; // number of blocks
+  Scal extent_; // extent (maximum over all directions)
 
   int stage_ = 0;
   size_t frame_ = 0; // current dump frame
 
   bool isroot_; // XXX: overwritten by Local<M> and Cubism<M>
 
-  std::map<MIdx, std::unique_ptr<KernelMesh<M>>, typename MIdx::LexLess> mk;
+  struct Hash {
+    size_t operator()(const MIdx& x) const noexcept {
+      const size_t h0 = std::hash<IntIdx>{}(x[0]);
+      const size_t h1 = std::hash<IntIdx>{}(x[1]);
+      const size_t h2 = std::hash<IntIdx>{}(x[2]);
+      return h0 ^ (h1 << 1) ^ (h2 << 2);
+    }
+  };
+
+  std::vector<std::unique_ptr<KernelMesh<M>>> kernels_;
 
   DistrMesh(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   // Performs communication and returns indices of blocks with updated halos.
-  virtual std::vector<MIdx> GetBlocks(bool inner) = 0;
-  virtual std::vector<MIdx> GetBlocks() {
-    auto bbi = GetBlocks(true);
-    auto bbh = GetBlocks(false);
+  virtual std::vector<size_t> TransferHalos(bool inner) = 0;
+  virtual std::vector<size_t> TransferHalos() {
+    auto bbi = TransferHalos(true);
+    auto bbh = TransferHalos(false);
     bbi.insert(bbi.end(), bbh.begin(), bbh.end());
     return bbi;
   }
   // Fill selected halo cells with garbage
-  void ApplyNanFaces(const std::vector<MIdx>& bb);
-  // Copy from communication buffer to fields
-  virtual void ReadBuffer(const std::vector<MIdx>& bb) = 0;
+  void ApplyNanFaces(const std::vector<size_t>& bb);
   // Call kernels for current stage
-  virtual void RunKernels(const std::vector<MIdx>& bb);
-  // Copy from fields to communication buffer
-  virtual void WriteBuffer(const std::vector<MIdx>& bb) = 0;
-  // Reduce TODO: extend doc
-  virtual void Reduce(const std::vector<MIdx>& bb) = 0;
-  virtual void Scatter(const std::vector<MIdx>& bb) = 0;
-  virtual void Bcast(const std::vector<MIdx>& bb) = 0;
-  virtual void Solve(const std::vector<MIdx>& bb);
-  // Writes dumps.
-  virtual void DumpWrite(const std::vector<MIdx>& bb);
-  virtual void ClearComm(const std::vector<MIdx>& bb);
-  virtual void ClearDump(const std::vector<MIdx>& bb);
+  virtual void RunKernels(const std::vector<size_t>& bb);
+  // Performs reduction with a single request over all blocks.
+  // block_request: request for each block, same dimension as `kernels_`
+  virtual void ReduceSingleRequest(const std::vector<RedOp*>& blocks) = 0;
+  void ReduceSingleRequest(const std::vector<std::unique_ptr<RedOp>>& blocks);
+  // Performs reduction with all requests collected in m.GetReduce()
+  // for all elements in `kernels_`
+  virtual void Reduce(const std::vector<size_t>& bb);
+  virtual void ReduceToLead(const std::vector<size_t>& bb);
+  virtual void Scatter(const std::vector<size_t>& bb) = 0;
+  virtual void Bcast(const std::vector<size_t>& bb) = 0;
+  virtual void DumpWrite(const std::vector<size_t>& bb);
+  virtual void ClearComm(const std::vector<size_t>& bb);
+  virtual void ClearDump(const std::vector<size_t>& bb);
   // TODO: make Pending const
-  virtual bool Pending(const std::vector<MIdx>& bb);
-  // Create a kernel for each block and put into mk
+  virtual bool Pending(const std::vector<size_t>& bb);
+  // Create a kernel for each block and put into kernels_
   // Requires initialized isroot_;
-  virtual void MakeKernels(const std::vector<MyBlockInfo>&);
-  virtual void TimerReport(const std::vector<MIdx>& bb);
-  virtual void ClearTimerReport(const std::vector<MIdx>& bb);
+  virtual void MakeKernels(const std::vector<BlockInfoProxy>&);
+  virtual void TimerReport(const std::vector<size_t>& bb);
+  virtual void ClearTimerReport(const std::vector<size_t>& bb);
 
  private:
-  Histogram hist_; // histogram sample collector
-  MultiTimer<std::string> mt_; // timer all
-  MultiTimer<std::string> mtp_; // timer partial
-  using LS = typename M::LS;
-  std::map<typename LS::T, std::unique_ptr<HypreSub>> mhp_; // hypre instances
+  MultiTimer<std::string> multitimer_all_;
+  MultiTimer<std::string> multitimer_report_;
 };

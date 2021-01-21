@@ -1,7 +1,6 @@
 void* memory_malloc(int);
 void* memory_realloc(void*, int);
 void memory_free(void*);
-char* memory_strndup(const char*, int);
 void* memory_memcpy(void*, const void*, int);
 
 #define MALLOC(n, p)                                    \

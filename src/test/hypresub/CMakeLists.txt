@@ -1,11 +1,7 @@
-set(CSD "${CMAKE_CURRENT_SOURCE_DIR}")
-get_filename_component(p ${CSD} NAME)
-
-set(EXE t.${p})
-
-add_executable(${EXE} main.cpp)
-
-target_link_libraries(${EXE} hypresub)
-
-add_test(NAME ${p} COMMAND ap.run ./${EXE})
-
+if (USE_HYPRE)
+  get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+  set(EXE t.${name})
+  add_executable(${EXE} main.cpp)
+  target_link_libraries(${EXE} aphros)
+  add_test_current(COMMAND ap.run ./${EXE})
+endif()

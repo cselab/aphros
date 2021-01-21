@@ -14,7 +14,6 @@
 #include "normal.h"
 #include "reconst.h"
 #include "trackerm.h"
-#include "tvd.h"
 #include "util/vof.h"
 #include "vof.h"
 #include "vofm.h"
@@ -30,12 +29,11 @@ struct UCurv<M_>::Imp {
   static void CalcDiff2(
       const FieldCell<Scal>& fcu, FieldCell<Vect>& fcud2, const M& m) {
     fcud2.Reinit(m);
-    for (auto c : m.Cells()) {
-      for (size_t d = 0; d < dim; ++d) {
-        auto cm = m.GetCell(c, 2 * d);
-        auto cmm = m.GetCell(cm, 2 * d);
-        auto cp = m.GetCell(c, 2 * d + 1);
-        auto cpp = m.GetCell(cp, 2 * d + 1);
+    for (auto c : m.CellsM()) {
+      for (auto dr : m.dirs) {
+        const auto d = m.direction(dr);
+        const auto cmm = c - d - d;
+        const auto cpp = c + d + d;
         fcud2[c][d] = fcu[cpp] - fcu[cmm];
       }
     }
@@ -48,14 +46,13 @@ struct UCurv<M_>::Imp {
       const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcud2,
       FieldCell<Vect>& fcud4, const M& m) {
     fcud4.Reinit(m);
-    for (auto c : m.Cells()) {
-      for (size_t d = 0; d < dim; ++d) {
-        auto cm = m.GetCell(c, 2 * d);
-        auto cmm = m.GetCell(cm, 2 * d);
-        auto cp = m.GetCell(c, 2 * d + 1);
-        auto cpp = m.GetCell(cp, 2 * d + 1);
-        Scal um4 = fcu[c] - fcud2[cmm][d];
-        Scal up4 = fcud2[cpp][d] + fcu[c];
+    for (auto c : m.CellsM()) {
+      for (auto dr : m.dirs) {
+        const auto d = m.direction(dr);
+        const auto cmm = c - d - d;
+        const auto cpp = c + d + d;
+        const Scal um4 = fcu[c] - fcud2[cmm][d];
+        const Scal up4 = fcud2[cpp][d] + fcu[c];
         fcud4[c][d] = up4 - um4;
       }
     }
@@ -68,14 +65,13 @@ struct UCurv<M_>::Imp {
       const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcud4,
       FieldCell<Vect>& fcud6, const M& m) {
     fcud6.Reinit(m);
-    for (auto c : m.Cells()) {
-      for (size_t d = 0; d < dim; ++d) {
-        auto cm = m.GetCell(c, 2 * d);
-        auto cmm = m.GetCell(cm, 2 * d);
-        auto cp = m.GetCell(c, 2 * d + 1);
-        auto cpp = m.GetCell(cp, 2 * d + 1);
-        Scal um6 = fcu[cpp] - fcud4[cmm][d];
-        Scal up6 = fcud4[cpp][d] + fcu[cmm];
+    for (auto c : m.CellsM()) {
+      for (auto dr : m.dirs) {
+        const auto d = m.direction(dr);
+        const auto cmm = c - d - d;
+        const auto cpp = c + d + d;
+        const Scal um6 = fcu[cpp] - fcud4[cmm][d];
+        const Scal up6 = fcud4[cpp][d] + fcu[cmm];
         fcud6[c][d] = up6 - um6;
       }
     }
@@ -150,11 +146,14 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
     const Multi<FieldCell<Scal>*>& fck, M& m) {
   if (auto as = dynamic_cast<const Vof<M>*>(asbase)) {
     return CalcCurvPart(as->GetPlic(), par, fck, m, m);
-  } else if (auto as = dynamic_cast<const Vofm<M>*>(asbase)) {
+  }
+  if (auto as = dynamic_cast<const Vofm<M>*>(asbase)) {
     return CalcCurvPart(as->GetPlic(), par, fck, m, m);
-  } else if (auto as = dynamic_cast<const Vof<Embed<M>>*>(asbase)) {
+  }
+  if (auto as = dynamic_cast<const Vof<Embed<M>>*>(asbase)) {
     return CalcCurvPart(as->GetPlic(), par, fck, m, as->GetEmbed());
-  } else if (auto as = dynamic_cast<const Vofm<Embed<M>>*>(asbase)) {
+  }
+  if (auto as = dynamic_cast<const Vofm<Embed<M>>*>(asbase)) {
     return CalcCurvPart(as->GetPlic(), par, fck, m, as->GetEmbed());
   }
   throw std::runtime_error("CalcCurvPart: unknown advection solver");

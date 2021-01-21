@@ -9,10 +9,12 @@
 
 template <class Scal>
 struct UHeight {
-  // checks that the heiht in column is well-defined
+  // Computes the height if well-defined in a cell close to the interface.
   // V: vector type with size() and operator[]
   // uu: column of volume fractions
   // n: component of normal in the direction of column
+  // Returns:
+  // offset from cell center to the interface, and NaN if not well-defined.
   template <class V>
   static Scal Good(const V& uu, Scal n) {
     auto I = [](Scal a) { return a > 0 && a < 1; }; // true if interface
@@ -21,19 +23,19 @@ struct UHeight {
 
     const size_t si = uu.size();
     const size_t sih = si / 2;
-    size_t i = sih; // closest interface to center
-    while (i < si && !I(uu[i])) {
-      if (i > sih) {
-        i = si - i - 1;
+    size_t icenter = sih; // closest interface to center
+    while (icenter < si && !I(uu[icenter])) {
+      if (icenter > sih) {
+        icenter = si - icenter - 1;
       } else {
-        i = si - i;
+        icenter = si - icenter;
       }
     }
-    if (i >= si) {
+    if (icenter >= si) {
       return nan;
     }
 
-    size_t im = i; // closest pure cell below
+    size_t im = icenter; // closest pure cell below
     while (im < si && I(uu[im])) {
       --im;
     }
@@ -41,7 +43,7 @@ struct UHeight {
       return nan;
     }
 
-    size_t ip = i; // closest pure cell above
+    size_t ip = icenter; // closest pure cell above
     while (ip < si && I(uu[ip])) {
       ++ip;
     }
@@ -59,11 +61,11 @@ struct UHeight {
     return nan;
   }
 
-  // checks that the heiht in column is well-defined
+  // Computes the height if well-defined in an interfacial cell.
   // V: vector type with size() and operator[]
   // uu: column of volume fractions
   // Returns:
-  // offset from cell center to the interface
+  // offset from cell center to the interface, and NaN if not well-defined.
   template <class V>
   static Scal Good(const V& uu) {
     auto I = [](Scal a) { return a > 0 && a < 1; }; // true if interface
@@ -73,12 +75,12 @@ struct UHeight {
     const size_t si = uu.size();
     const size_t sih = si / 2;
 
-    size_t i = sih; // center
-    if (!I(uu[i])) { // check center is interface
+    const size_t icenter = sih; // center
+    if (!I(uu[icenter])) { // check center is interface
       return nan;
     }
 
-    size_t im = i; // closest pure cell below
+    size_t im = icenter; // closest pure cell below
     while (im < si && I(uu[im])) {
       --im;
     }
@@ -86,7 +88,7 @@ struct UHeight {
       return nan;
     }
 
-    size_t ip = i; // closest pure cell above
+    size_t ip = icenter; // closest pure cell above
     while (ip < si && I(uu[ip])) {
       ++ip;
     }

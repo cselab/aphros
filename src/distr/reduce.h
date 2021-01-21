@@ -1,11 +1,31 @@
 // Created by Petr Karnakov on 20.07.2018
 // Copyright 2018 ETH Zurich
 
+#pragma once
+
 #include <memory>
 #include <utility>
 #include <vector>
 
-// U: utility class
+namespace ReductionType {
+struct Sum {};
+struct Prod {};
+struct Max {};
+struct Min {};
+struct MaxLoc {};
+struct MinLoc {};
+struct Concat {};
+} // namespace ReductionType
+
+namespace Reduction {
+constexpr ReductionType::Sum sum;
+constexpr ReductionType::Prod prod;
+constexpr ReductionType::Max max;
+constexpr ReductionType::Min min;
+constexpr ReductionType::MaxLoc maxloc;
+constexpr ReductionType::MinLoc minloc;
+constexpr ReductionType::Concat concat;
+} // namespace Reduction
 
 template <class Scal>
 class UReduce {
@@ -26,7 +46,7 @@ class UReduce {
       Append(a, *v_);
     }
     // Returns neutral value a such that Append(a, v) would set a=v
-    virtual T Neut() const = 0;
+    virtual T Neutral() const = 0;
     virtual void Set(const T& v) {
       *v_ = v;
     }
@@ -43,7 +63,7 @@ class UReduce {
   class OpSum : public OpS {
    public:
     using OpS::OpS;
-    Scal Neut() const override {
+    Scal Neutral() const override {
       return 0.;
     }
 
@@ -55,8 +75,8 @@ class UReduce {
   class OpProd : public OpS {
    public:
     using OpS::OpS;
-    Scal Neut() const override {
-      return 1.;
+    Scal Neutral() const override {
+      return 1;
     }
 
    protected:
@@ -67,7 +87,7 @@ class UReduce {
   class OpMax : public OpS {
    public:
     using OpS::OpS;
-    Scal Neut() const override {
+    Scal Neutral() const override {
       return -std::numeric_limits<Scal>::max();
     }
 
@@ -79,7 +99,7 @@ class UReduce {
   class OpMin : public OpS {
    public:
     using OpS::OpS;
-    Scal Neut() const override {
+    Scal Neutral() const override {
       return std::numeric_limits<Scal>::max();
     }
 
@@ -95,7 +115,7 @@ class UReduce {
    public:
     using T = std::pair<Scal, int>;
     using OpSI::OpSI;
-    T Neut() const override {
+    T Neutral() const override {
       return std::make_pair(std::numeric_limits<Scal>::max(), int());
     }
 
@@ -110,7 +130,7 @@ class UReduce {
    public:
     using T = std::pair<Scal, int>;
     using OpSI::OpSI;
-    T Neut() const override {
+    T Neutral() const override {
       return std::make_pair(-std::numeric_limits<Scal>::max(), int());
     }
 
@@ -131,18 +151,18 @@ class UReduce {
   class OpCat : public OpVT<char> {
    public:
     using P = OpVT<char>;
-    using V = std::vector<char>;
+    using Bytes = std::vector<char>;
 
     using OpVT<char>::OpVT;
     using P::Append;
     using P::Set;
     using P::v_;
-    V Neut() const override {
-      return V();
+    Bytes Neutral() const override {
+      return {};
     }
 
    protected:
-    void Append(V& a, const V& v) const override {
+    void Append(Bytes& a, const Bytes& v) const override {
       a.insert(a.end(), v.begin(), v.end());
     }
   };
@@ -153,29 +173,27 @@ class UReduce {
   class OpCatT : public OpCat {
    public:
     using P = OpCat; // parent
-    using V = std::vector<char>;
-    using VT = std::vector<T>;
+    using Bytes = std::vector<char>;
     // vt: buffer containing current value and used for result
     // OpCat::v_ initialized with nullptr // TODO: revise
-    OpCatT(VT* vt) : OpCat(nullptr), vt_(vt) {}
+    OpCatT(std::vector<T>* vt) : OpCat(nullptr), vt_(vt) {}
     // Serializes vt_ and appends to a
-    void Append(V& a) override {
-      V v = Ser(*vt_);
+    void Append(Bytes& a) override {
+      Bytes v = Serialize(*vt_);
       a.insert(a.end(), v.begin(), v.end());
     }
     // Deserializes v to vt_
-    void Set(const V& v) override {
-      *vt_ = Des(v);
+    void Set(const Bytes& v) override {
+      *vt_ = Deserialize(v);
     }
 
    protected:
     using P::Append;
-    VT* vt_;
+    std::vector<T>* vt_;
 
    private:
-    // Serialize vt
-    static V Ser(const VT& vt) {
-      V r; // result
+    static Bytes Serialize(const std::vector<T>& vt) {
+      Bytes r; // result
       for (const T& x : vt) {
         const char* c = (const char*)(const void*)&x;
         for (size_t i = 0; i < sizeof(T); ++i) {
@@ -184,9 +202,8 @@ class UReduce {
       }
       return r;
     }
-    // Deserialize v
-    static VT Des(const V& v) {
-      VT r; // result
+    static std::vector<T> Deserialize(const Bytes& v) {
+      std::vector<T> r; // result
       assert(v.size() % sizeof(T) == 0);
       size_t k = 0;
       while (k < v.size()) {
@@ -207,36 +224,32 @@ class UReduce {
   class OpCatVT : public OpCat {
    public:
     using P = OpCat; // parent
-    using V = std::vector<char>;
-    using VT = std::vector<std::vector<T>>;
+    using Bytes = std::vector<char>;
     // vt: buffer containing current value and used for result
     // OpCat::v_ initialized with nullptr // TODO: revise
-    OpCatVT(VT* vt) : OpCat(nullptr), vt_(vt) {}
-    // Serializes vt_ and appends to a
-    void Append(V& a) override {
-      V v = Ser(*vt_);
+    OpCatVT(std::vector<std::vector<T>>* vt) : OpCat(nullptr), vt_(vt) {}
+    void Append(Bytes& a) override {
+      Bytes v = Serialize(*vt_);
       a.insert(a.end(), v.begin(), v.end());
     }
-    // Deserializes v to vt_
-    void Set(const V& v) override {
-      *vt_ = Des(v);
+    void Set(const Bytes& v) override {
+      *vt_ = Deserialize(v);
     }
 
    protected:
     using P::Append;
-    VT* vt_;
+    std::vector<std::vector<T>>* vt_;
 
    private:
-    // Serialize vt
-    static V Ser(const VT& vt) {
-      V r; // result
+    static Bytes Serialize(const std::vector<std::vector<T>>& vt) {
+      Bytes res;
       for (auto& xx : vt) {
         // write size
         {
           size_t s = xx.size();
           const char* c = (const char*)(const void*)&s;
           for (size_t i = 0; i < sizeof(size_t); ++i) {
-            r.push_back(c[i]);
+            res.push_back(c[i]);
           }
         }
 
@@ -244,68 +257,72 @@ class UReduce {
         for (auto& x : xx) {
           const char* c = (const char*)(const void*)&x;
           for (size_t i = 0; i < sizeof(T); ++i) {
-            r.push_back(c[i]);
+            res.push_back(c[i]);
           }
         }
       }
-      return r;
+      return res;
     }
-    // Deserialize v
-    static VT Des(const V& v) {
-      VT r; // result
-      // assert(v.size() % sizeof(T) == 0); // TODO: add assert
-      size_t k = 0;
-      while (k < v.size()) {
-        r.emplace_back();
-        size_t s;
+    static std::vector<std::vector<T>> Deserialize(const Bytes& buf) {
+      std::vector<std::vector<T>> res;
+      size_t k = 0; // index in buf
+      while (k < buf.size()) {
+        res.emplace_back();
+        size_t size = 0;
         // read size
         {
-          char* c = (char*)(void*)&s;
+          auto* bytes = reinterpret_cast<unsigned char*>(&size);
           for (size_t i = 0; i < sizeof(size_t); ++i) {
-            c[i] = v[k++];
+            bytes[i] = buf[k++];
           }
         }
         // read elems
-        for (size_t i = 0; i < s; ++i) {
-          assert(k < v.size());
+        for (size_t i = 0; i < size; ++i) {
+          assert(k < buf.size());
           T x;
-          char* c = (char*)(void*)&x;
-          for (size_t i = 0; i < sizeof(T); ++i) {
-            c[i] = v[k++];
+          auto* bytes = reinterpret_cast<unsigned char*>(&x);
+          for (size_t j = 0; j < sizeof(T); ++j) {
+            bytes[j] = buf[k++];
           }
-          r.back().push_back(x);
+          res.back().push_back(x);
         }
       }
-      return r;
+      return res;
     }
   };
 
-  void Add(const std::shared_ptr<Op>& o) {
-    vrd_.push_back(o);
+  void Add(std::unique_ptr<Op>&& o) {
+    reqs_.emplace_back(std::move(o));
   }
   // u: src and dst buffer
   // o: operation
   void Add(Scal* u, std::string o) {
     if (o == "sum") {
-      vrd_.push_back(std::make_shared<OpSum>(u));
+      reqs_.push_back(std::make_unique<OpSum>(u));
     } else if (o == "prod") {
-      vrd_.push_back(std::make_shared<OpProd>(u));
+      reqs_.push_back(std::make_unique<OpProd>(u));
     } else if (o == "max") {
-      vrd_.push_back(std::make_shared<OpMax>(u));
+      reqs_.push_back(std::make_unique<OpMax>(u));
     } else if (o == "min") {
-      vrd_.push_back(std::make_shared<OpMin>(u));
+      reqs_.push_back(std::make_unique<OpMin>(u));
     } else {
       throw std::runtime_error("Reduce: unknown operation: '" + o);
     }
   }
 
-  const std::vector<std::shared_ptr<Op>>& Get() const {
-    return vrd_;
+  const std::vector<std::unique_ptr<Op>>& Get() const {
+    return reqs_;
   }
   void Clear() {
-    vrd_.clear();
+    reqs_.clear();
+  }
+
+  template <class T>
+  static std::unique_ptr<OpCatT<T>> Make(
+      std::vector<T>* buf, ReductionType::Concat) {
+    return std::make_unique<OpCatT<T>>(buf);
   }
 
  private:
-  std::vector<std::shared_ptr<Op>> vrd_; // list of requests
+  std::vector<std::unique_ptr<Op>> reqs_; // list of requests
 };

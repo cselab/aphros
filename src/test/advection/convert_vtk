@@ -1,7 +1,0 @@
-#!/bin/bash
-
-set -eu
-
-for f in u_*.dat ; do
-  ap.plain2vtk "$f"
-done

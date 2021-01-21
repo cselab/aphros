@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+
+import aphros
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        self.runcmd("./t.condface > out")
+        return ["out"]
+
+
+Test().main()

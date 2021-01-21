@@ -28,19 +28,18 @@
 #define PF std::cout << std::endl << __func__ << std::endl;
 
 const int dim = 3;
-using MIdx = GMIdx<dim>;
+using MIdx = generic::MIdx<dim>;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = generic::Vect<Scal, dim>;
 using M = MeshStructured<Scal, dim>;
 
 M GetMesh() {
-  Rect<Vect> dom(Vect(0., 0., 0.), Vect(1., 1., 1.));
-  using M = MeshStructured<Scal, dim>;
-  MIdx b(0, 0, 0); // lower index
-  MIdx s(2, 2, 1); // size in cells
-  int hl = 0; // halos
-  return InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
+  const Rect<Vect> dom(Vect(0), Vect(1));
+  const MIdx begin(0, 0, 0);
+  const MIdx size(2, 2, 1);
+  const int halos = 0;
+  return InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);
 }
 
 void TestRange() {
@@ -56,14 +55,28 @@ void TestMesh() {
   PF;
 
   M m = GetMesh();
-  m.SetCN(true);
+  m.flags.check_nan = true;
   FieldCell<Scal> f(m);
   f[IdxCell(0)] = GetNan<Scal>();
   TR(CheckNan(f, "f", m);)
-  TR(CHECKNAN(f, m.CN());)
+  TR(CHECKNAN(f, m.flags.check_nan);)
+}
+
+void TestAssert() {
+  TR(fassert(1);)
+  TR(fassert(1, "message");)
+  TR(fassert(0);)
+  TR(fassert(0, "message");)
+  TR(fassert_equal(0, 0);)
+  TR(fassert_equal(0, 1);)
+  const std::string a = "a";
+  const std::string b = "b";
+  TR(fassert_equal(a, a);)
+  TR(fassert_equal(a, b);)
 }
 
 int main() {
   TestRange();
   TestMesh();
+  TestAssert();
 }

@@ -8,6 +8,7 @@
 #include <string>
 
 #include <distr/distrbasic.h>
+#include <parse/argparse.h>
 #include <solver/approx_eb.h>
 #include <solver/embed.h>
 
@@ -221,14 +222,17 @@ set string dumpformat plain
 set double tmax 0.1
 set vect vel 2 1 0
 set double cfl 0.25
-
-set int case 0
 )EOF";
 
-  if (argc > 1) {
-    const int case_ = atoi(argv[1]);
-    conf += "\nset int case " + std::to_string(case_);
+  ArgumentParser parser("Advection example with embedded boundaries");
+  parser.AddVariable<int>("case", 0).Help("Case to run, choices: 0, 1, 2");
+  auto args = parser.ParseArgs(argc, argv);
+  if (const int* p = args.Int.Find("EXIT")) {
+    return *p;
   }
 
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+  conf += "\nset int case " + args.Int.GetStr("case");
+
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

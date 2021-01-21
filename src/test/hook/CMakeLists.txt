@@ -1,1 +1,1 @@
-add_test(NAME hook COMMAND make -f sim.makefile run)
+add_test_current(COMMAND make -f sim.makefile run)

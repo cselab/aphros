@@ -4,7 +4,9 @@
 #pragma once
 
 #include <cmath>
+#include <fstream>
 #include <functional>
+#include <iostream>
 #include <limits>
 #include <stdexcept>
 
@@ -20,7 +22,7 @@
 // u: field
 // size: mesh size
 template <class Scal>
-void ReadPlain(std::istream& dat, FieldCell<Scal>& u, GMIdx<3>& size) {
+void ReadPlain(std::istream& dat, FieldCell<Scal>& u, generic::MIdx<3>& size) {
   dat >> size[0] >> size[1] >> size[2];
   GIndex<IdxCell, 3> bc(size);
   u.Reinit(bc, 0);
@@ -47,7 +49,7 @@ CreateInitCl(const Vars& var, bool verb) {
   std::string v = var.String["init_vf"];
   if (v == "list") {
     const size_t edim = var.Int["dim"];
-    std::stringstream in;
+    std::stringstream buf;
     {
       std::stringstream path(var.String["list_path"]);
       std::string filename;
@@ -58,7 +60,7 @@ CreateInitCl(const Vars& var, bool verb) {
               << "InitCl: Reading inline list of primitives from list_path"
               << std::endl;
         }
-        in << path.rdbuf();
+        buf << path.rdbuf();
       } else {
         filename = path.str();
         std::ifstream fin(filename);
@@ -70,13 +72,13 @@ CreateInitCl(const Vars& var, bool verb) {
           throw std::runtime_error(
               FILELINE + ": Can't open list of primitives");
         }
-        in << fin.rdbuf();
+        buf << fin.rdbuf();
       }
     }
 
     // TODO revise with bcast and filter by bounding box,
     // but keep original index for color
-    auto pp = UPrimList<Scal>::Parse(in, verb, edim);
+    auto pp = UPrimList<Scal>::GetPrimitives(buf, edim);
 
     return [pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf, const M& m) {
       cl.Reinit(m, kClNone);
@@ -163,6 +165,10 @@ CreateInitCl(const Vars& var, bool verb) {
         const IdxCell qc = qbc.GetIdx(qw);
         fc[c] = qfccl[qc];
       }
+    };
+  } else if (v == "hdf") {
+    return [](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {
+      fc.Reinit(m, 0);
     };
   } else if (v == "zero") {
     return [](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {

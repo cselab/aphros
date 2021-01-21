@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import os
+
+import aphros
+
+
+class Test(aphros.TestBase):
+    def run(self):
+        self.runcmd("make -f sim.makefile cleanrun")
+        return ["rho_0002.dat"]
+
+    def check(self, outdir, refdir, output_files):
+        for f in [f for f in output_files if f.endswith(".dat")]:
+            self.runcmd("ap.diffnum '{}' '{}' 1e-3".format(
+                os.path.join(refdir, f), os.path.join(outdir, f)))
+        return True
+
+    def plot(self, datadir, output_files):
+        f = os.path.join(datadir, "rho_0002.dat")
+        u = aphros.ReadPlain(f)[0, :, :]
+
+        fig, ax = aphros.plot.GetSquareFigure()
+        aphros.plot.PlotSquareField(ax, u, vmin=0, vmax=1)
+
+        fpath = os.path.join(datadir, "density.pdf")
+        self.printlog(fpath)
+        fig.savefig(fpath)
+
+
+Test().main()

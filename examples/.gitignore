@@ -7,3 +7,8 @@ main
 *.vtk
 *.h5
 *.csv
+stat.dat
+stat_summary
+testcase
+cmake*.o
+a.out

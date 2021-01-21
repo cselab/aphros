@@ -20,8 +20,7 @@ void Run(M& m, Vars&) {
   for (auto i = 0; i < 10; ++i) {
     if (sem("std")) {
       v = {Scal(m.GetId())};
-      using T = typename M::template OpCatT<Scal>;
-      m.Reduce(std::make_shared<T>(&v));
+      m.Reduce(&v, Reduction::concat);
     }
   }
 
@@ -86,5 +85,6 @@ set int py 4
 set int pz 8
 )EOF";
 
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

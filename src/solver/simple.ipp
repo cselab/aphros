@@ -40,27 +40,33 @@ struct Simple<EB_>::Imp {
   using Expr = typename M::Expr;
   using UEB = UEmbed<M>;
 
-  Imp(Owner* owner, const EB& eb0, const FieldCell<Vect>& fcvel,
-      const MapEmbed<BCondFluid<Vect>>& mebc,
-      const MapCell<std::shared_ptr<CondCellFluid>>& mcc, Par par)
+  Imp(Owner* owner, const EB& eb_, const Args& args)
       : owner_(owner)
-      , par(par)
+      , par(args.par)
       , m(owner_->m)
-      , eb(eb0)
+      , eb(eb_)
       , edim_range_(0, m.GetEdim())
       , drr_(m.GetEdim(), dim)
-      , mebc_(mebc)
-      , mcc_(mcc) {
-    using namespace fluid_condition;
-
+      , linsolver_symm_(args.linsolver_symm)
+      , linsolver_gen_(args.linsolver_gen)
+      , mebc_(args.mebc)
+      , mcc_(args.mcc) {
     UpdateDerivedConditions();
 
     fcfcd_.Reinit(m, Vect(0));
     typename CD::Par p;
     SetConvDiffPar(p, par);
-    cd_ = GetConvDiff<EB>()(
-        par.conv, m, eb, fcvel, me_vel_, owner_->fcr_, &ffvisc_, &fcfcd_,
-        &fev_.iter_prev, owner_->GetTime(), owner_->GetTimeStep(), p);
+
+    fassert(linsolver_symm_);
+    fassert(linsolver_gen_);
+
+    const auto& ffv = fev_.iter_prev.template Get<FieldFaceb<Scal>>();
+    const ConvDiffVectArgs<EB> cdargs{
+        args.fcvel,     me_vel_, owner_->fcr_,      &ffvisc_,
+        &fcfcd_,        &ffv,    owner_->GetTime(), owner_->GetTimeStep(),
+        linsolver_gen_, p};
+
+    cd_ = GetConvDiff<EB>()(par.conv, m, eb, cdargs);
 
     fcp_.time_curr.Reinit(m, 0.);
     fcp_.time_prev = fcp_.time_curr;
@@ -69,20 +75,12 @@ struct Simple<EB_>::Imp {
     const auto ffwe = UEB::Interpolate(cd_->GetVelocity(), me_vel_, eb);
     fev_.time_curr.Reinit(m, 0.);
     eb.LoopFaces([&](auto cf) { //
-      fev_.time_curr[cf] = ffwe[cf].dot(eb.GetSurface(cf));
+      fev_.time_curr[cf] = (ffwe[cf] - par.meshvel).dot(eb.GetSurface(cf));
     });
-    // Apply meshvel
-    const Vect& meshvel = par.meshvel;
-    eb.LoopFaces([&](auto cf) { //
-      fev_.time_curr[cf] -= meshvel.dot(eb.GetSurface(cf));
-    });
-
     fev_.time_prev = fev_.time_curr;
   }
 
   void UpdateDerivedConditions() {
-    using namespace fluid_condition;
-
     me_vel_ = GetVelCond<M>(mebc_);
     mebc_.LoopPairs([&](auto p) {
       const auto cf = p.first;
@@ -107,6 +105,7 @@ struct Simple<EB_>::Imp {
       const IdxCell c = it.first;
       const CondCellFluid* cb = it.second.get();
 
+      using namespace fluid_condition;
       if (auto cd = dynamic_cast<const GivenPressure<M>*>(cb)) {
         mc_pressure_[c] =
             std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
@@ -126,7 +125,7 @@ struct Simple<EB_>::Imp {
     auto sem = m.GetSem("fluid-start");
     if (sem("convdiff-init")) {
       owner_->ClearIter();
-      CHECKNAN(fcp_.time_curr, m.CN())
+      CHECKNAN(fcp_.time_curr, m.flags.check_nan)
       cd_->SetTimeStep(owner_->GetTimeStep());
     }
 
@@ -159,31 +158,31 @@ struct Simple<EB_>::Imp {
     auto& febp = *owner_->febp_;
     auto& fcbp = fc_bforce_;
 
-    eb.LoopFaces([&](auto cf) { //
+    for (auto f : eb.Faces()) {
       // mean flux
-      auto& v = fev[cf];
-      v = fftv[cf].dot(eb.GetSurface(cf));
-      if (!is_boundary_[cf]) {
-        const IdxCell cm = eb.GetCell(cf, 0);
-        const IdxCell cp = eb.GetCell(cf, 1);
+      auto& v = fev[f];
+      v = fftv[f].dot(eb.GetSurface(f));
+      if (!is_boundary_[f]) {
+        const IdxCell cm = eb.GetCell(f, 0);
+        const IdxCell cp = eb.GetCell(f, 1);
 
         // compact pressure gradient
         const Scal gp = (fcp[cp] - fcp[cm]) / eb.GetCellSize()[0];
 
         // compact
-        const Scal o = (febp[cf] - gp) * eb.GetArea(cf) / fek[cf];
+        const Scal o = (febp[f] - gp) * eb.GetArea(f) / fek[f];
 
         // wide
         const Vect wm = (fcbp[cm] - fcgp[cm]) / fck[cm];
         const Vect wp = (fcbp[cp] - fcgp[cp]) / fck[cp];
-        const Scal w = (wm + wp).dot(eb.GetSurface(cf)) * 0.5;
+        const Scal w = (wm + wp).dot(eb.GetSurface(f)) * 0.5;
 
         // apply
         v += rh * (o - w);
       } else { // boundary
         // nop, keep mean flux
       }
-    });
+    }
 
     // Apply meshvel
     eb.LoopFaces([&](auto cf) { //
@@ -202,7 +201,7 @@ struct Simple<EB_>::Imp {
         auto& e = fcs[c];
         const Scal pc = cd->second() - fcpb[c]; // new value for p[c]
         e[0] += 1;
-        e[Expr::dim - 1] -= pc;
+        e.back() -= pc;
       }
     }
   }
@@ -214,8 +213,7 @@ struct Simple<EB_>::Imp {
   // fev: addition to flux [i]
   FieldFaceb<ExprFace> GetFlux(
       const FieldFaceb<Scal>& ffk, const FieldFaceb<Scal>& ffv) {
-    FieldFaceb<ExprFace> ffe =
-        UEB::GradientImplicit(FieldCell<Scal>(eb, 0), {}, eb);
+    FieldFaceb<ExprFace> ffe = UEB::GradientImplicit({}, eb);
     eb.LoopFaces([&](auto cf) { //
       if (!is_boundary_[cf]) {
         ffe[cf] *= -eb.GetArea(cf) / ffk[cf];
@@ -243,7 +241,7 @@ struct Simple<EB_>::Imp {
         const ExprFace v = ffv[cf] * eb.GetOutwardFactor(c, q);
         eb.AppendExpr(sum, v, q);
       });
-      sum[Expr::dim - 1] -= fcsv[c] * eb.GetVolume(c);
+      sum.back() -= fcsv[c] * eb.GetVolume(c);
       fce[c] = sum;
     }
     return fce;
@@ -263,7 +261,7 @@ struct Simple<EB_>::Imp {
         fck[c] /= edim_range_.size();
       }
 
-      CHECKNAN(fck, m.CN())
+      CHECKNAN(fck, m.flags.check_nan)
 
       m.Comm(&fck);
     }
@@ -276,7 +274,7 @@ struct Simple<EB_>::Imp {
   // Output:
   // fcf += viscous term [i]
   void AppendExplViscous(
-      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const M& m) {
+      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const M&) {
     const auto wf = UEB::Interpolate(fcvel, me_vel_, m);
     for (auto d : edim_range_) {
       const auto wfo = GetComponent(wf, d);
@@ -293,7 +291,7 @@ struct Simple<EB_>::Imp {
     }
   }
   void AppendExplViscous(
-      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const Embed<M>& eb) {
+      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const Embed<M>&) {
     // FIXME: not implemented
     (void)fcvel;
     (void)fcf;
@@ -390,23 +388,23 @@ struct Simple<EB_>::Imp {
     if (sem("pcorr-assemble")) {
       const auto fev_rhie =
           RhieChow(cd_->GetVelocity(Step::iter_curr), fcp_curr, fcgp, fck, ffk);
-      CHECKNAN(fev_rhie, m.CN())
+      CHECKNAN(fev_rhie, m.flags.check_nan)
 
       ffvc = GetFlux(ffk, fev_rhie);
-      CHECKNAN(ffvc, m.CN())
+      CHECKNAN(ffvc, m.flags.check_nan)
 
       fcpcs = GetFluxSum(ffvc, *owner_->fcsv_);
-      CHECKNAN(fcpcs, m.CN())
+      CHECKNAN(fcpcs, m.flags.check_nan)
 
       ApplyCellCond(fcp_curr, fcpcs);
       fcpcs.SetName("pressure");
     }
 
     if (sem.Nested("pcorr-solve")) {
-      Solve(fcpcs, nullptr, fcpc, M::LS::T::symm, m);
+      linsolver_symm_->Solve(fcpcs, nullptr, fcpc, m);
     }
     if (sem("pcorr-apply")) {
-      CHECKNAN(fcpc, m.CN())
+      CHECKNAN(fcpc, m.flags.check_nan)
 
       // Correct pressure
       Scal pr = par.prelax; // pressure relaxation
@@ -418,7 +416,7 @@ struct Simple<EB_>::Imp {
       eb.LoopFaces([&](auto cf) {
         fev_.iter_curr[cf] = UEB::Eval(ffvc[cf], cf, fcpc, eb);
       });
-      CHECKNAN(fev_.iter_curr, m.CN())
+      CHECKNAN(fev_.iter_curr, m.flags.check_nan)
 
       const auto fcgpc =
           UEB::AverageGradient(UEB::Gradient(fcpc, me_pcorr_, eb), eb);
@@ -428,7 +426,7 @@ struct Simple<EB_>::Imp {
       for (auto c : eb.Cells()) {
         fcvel_corr[c] = -fcgpc[c] / fck[c];
       }
-      CHECKNAN(fcvel_corr, m.CN())
+      CHECKNAN(fcvel_corr, m.flags.check_nan)
     }
     if (sem.Nested("convdiff-corr")) {
       cd_->CorrectVelocity(Step::iter_curr, fcvel_corr);
@@ -444,7 +442,7 @@ struct Simple<EB_>::Imp {
       fev_.time_prev = fev_.time_curr;
       fcp_.time_curr = fcp_.iter_curr;
       fev_.time_curr = fev_.iter_curr;
-      CHECKNAN(fcp_.time_curr, m.CN())
+      CHECKNAN(fcp_.time_curr, m.flags.check_nan)
       owner_->IncTime();
     }
     if (sem.Nested("convdiff-finish")) {
@@ -471,6 +469,8 @@ struct Simple<EB_>::Imp {
   const EB& eb;
   const GRange<size_t> edim_range_; // effective dimension range
   const GRange<size_t> drr_; // remaining dimensions
+  std::shared_ptr<linear::Solver<M>> linsolver_symm_;
+  std::shared_ptr<linear::Solver<M>> linsolver_gen_;
 
   // Boundary conditions
   const MapEmbed<BCondFluid<Vect>>& mebc_;
@@ -500,16 +500,11 @@ struct Simple<EB_>::Imp {
 };
 
 template <class EB_>
-Simple<EB_>::Simple(
-    M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-    const MapEmbed<BCondFluid<Vect>>& mebc,
-    const MapCell<std::shared_ptr<CondCellFluid>>& mcc,
-    const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
-    const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* febp,
-    const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
-    double dt, Par par)
-    : Base(t, dt, m, fcr, fcd, fcf, febp, fcsv, fcsm)
-    , imp(new Imp(this, eb, fcvel, mebc, mcc, par)) {}
+Simple<EB_>::Simple(M& m_, const EB& eb, const Args& args)
+    : Base(
+          args.t, args.dt, m_, args.fcr, args.fcd, args.fcf, args.febp,
+          args.fcsv, args.fcsm)
+    , imp(new Imp(this, eb, args)) {}
 
 template <class EB_>
 Simple<EB_>::~Simple() = default;

@@ -4,8 +4,10 @@
 #pragma once
 
 #include <mpi.h>
+#include <fstream>
 #include <functional>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 
 #include "cubismnc.h"
@@ -17,17 +19,21 @@
 #include "local.h"
 #include "parse/parser.h"
 #include "parse/vars.h"
+#include "util/distr.h"
 
 std::string GetDefaultConf();
 
-int RunMpi0(
-    int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> r,
+int RunMpiKernel(
+    MpiWrapper& mpi, std::function<void(MPI_Comm, Vars&)> r,
     std::istream& conf);
 
-template <class M, class Func>
-int RunMpiBasic(int argc, const char** argv, Func func, std::string addconf) {
+template <class M>
+int RunMpiBasicString(
+    MpiWrapper& mpi, std::function<void(M& m, Vars&)> kernel,
+    std::string addconf) {
+  using Kernel = std::function<void(M & m, Vars&)>;
   struct Par {
-    Func func;
+    Kernel kernel;
   };
   class Basic : public KernelMeshPar<M, Par> {
    public:
@@ -37,23 +43,37 @@ int RunMpiBasic(int argc, const char** argv, Func func, std::string addconf) {
     using P::par_;
 
     void Run() {
-      par_.func(m, this->var_mutable);
+      par_.kernel(m, this->var_mutable);
     }
   };
 
   struct Main {
-    Main(Func func) : func(func) {}
+    Main(Kernel kernel_) : kernel(kernel_) {}
     void operator()(MPI_Comm comm, Vars& var) {
-      Par par{func};
+      Par par{kernel};
       DistrSolver<M, Basic> ds(comm, var, par);
       ds.Run();
     }
-    Func func;
+    Kernel kernel;
   };
 
   std::stringstream conf;
   conf << GetDefaultConf();
   conf << "\n" << addconf;
-  Main main(func);
-  return RunMpi0(argc, argv, main, conf);
+  Main main(kernel);
+  return RunMpiKernel(mpi, main, conf);
+}
+
+template <class M>
+int RunMpiBasicFile(
+    MpiWrapper& mpi, std::function<void(M& m, Vars&)> kernel,
+    std::string confpath = "a.conf") {
+  std::ifstream file(confpath);
+  if (!file.good()) {
+    throw std::runtime_error(
+        FILELINE + ": Can't open config file '" + confpath + "'");
+  }
+  std::stringstream buf;
+  buf << file.rdbuf();
+  return RunMpiBasicString<M>(mpi, kernel, buf.str());
 }

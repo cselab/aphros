@@ -16,19 +16,29 @@ target_link_libraries(${T} approx embed vars inside)
 
 set(T "vofm")
 add_library(${T} vofm.cpp)
-target_link_libraries(${T} solver normal utilvof approx_eb)
+target_link_libraries(${T} solver normal utilvof approx_eb dump_hdf)
 
 set(T "vof")
 add_library(${T} vof.cpp)
 target_link_libraries(${T} solver normal utilvof approx_eb)
 
-set(T "tvd")
-add_library(${T} tvd.cpp)
-target_link_libraries(${T} solver approx utilvof)
+set(T "tracer")
+add_library(${T} tracer.cpp)
+target_link_libraries(${T} approx_eb)
+
+set(T "particles")
+add_library(${T} particles.cpp)
+target_link_libraries(${T})
 
 set(T "normal")
 add_library(${T} normal.cpp)
-target_link_libraries(${T} approx)
+target_link_libraries(${T} approx_eb)
+if (USE_AVX)
+  target_compile_definitions(${T} PRIVATE _USE_AVX_=1)
+  target_compile_options(${T} PRIVATE -march=native)
+else ()
+  target_compile_definitions(${T} PRIVATE _USE_AVX_=0)
+endif ()
 
 set(T "curv")
 add_library(${T} curv.cpp)
@@ -65,3 +75,8 @@ target_link_libraries(${T} utilconvdiff)
 set(T "fluid_dummy")
 add_library(${T} fluid_dummy.cpp)
 target_link_libraries(${T} vars suspender posthook_default approx_eb)
+
+set(T "electro")
+add_library(${T} electro.cpp)
+target_link_libraries(${T} approx_eb)
+

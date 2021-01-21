@@ -13,7 +13,7 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
  public:
   using EB = EB_;
   using M = typename EB::M;
-  using P = AdvectionSolver<M>;
+  using Base = AdvectionSolver<M>;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
@@ -53,7 +53,8 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
   const FieldCell<Scal>& GetField(Step l, size_t i) const;
   Multi<const FieldCell<Scal>*> GetFieldM() const;
   // ...
-  using P::GetField;
+  using Base::GetField;
+  using Base::m;
   // Plane constant
   Multi<const FieldCell<Scal>*> GetAlpha() const;
   // Normal to interface
@@ -66,12 +67,22 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
   Multi<const FieldCell<Scal>*> GetColor() const;
   // Colors combined
   const FieldCell<Scal>& GetColorSum() const;
-  // Volume fraction, plane constant, normal, color.
-  Plic GetPlic() const;
   // Image vector, number of passes through periodic boundaries
-  MIdx GetImage(size_t l, IdxCell c) const;
+  Multi<const FieldCell<MIdx>*> GetImage() const;
+  // Volume fraction, plane constant, normal, color.
+  Plic GetPlic() const override;
   void DumpInterface(std::string filename) const override;
   void DumpInterfaceMarch(std::string filename) const override;
+  // Saves current state to directory, created if needed.
+  void SaveState(std::string dirpath) const;
+  // Loads current state from directory.
+  void LoadState(std::string dirpath);
+  // Adds a function that modifies the fields at the next iteration
+  // and after which is removed.
+  void AddModifier(std::function<void(
+                       const Multi<FieldCell<Scal>*>& fcu,
+                       const Multi<FieldCell<Scal>*>& fccl,
+                       GRange<size_t> layers, const EB&)>);
 
  private:
   struct Imp;

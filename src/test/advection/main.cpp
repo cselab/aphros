@@ -24,13 +24,11 @@
 #include "geom/mesh.h"
 #include "geom/vect.h"
 #include "parse/curv.h"
-#include "parse/tvd.h"
 #include "parse/vof.h"
 #include "solver/advection.h"
 #include "solver/curv.h"
 #include "solver/multi.h"
 #include "solver/solver.h"
-#include "solver/tvd.h"
 #include "solver/vof.h"
 #include "solver/vofm.h"
 #include "util/suspender.h"
@@ -77,12 +75,12 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using Sem = typename Mesh::Sem;
-  using AST = Tvd<M>; // advection TVD
   using ASV = Vof<M>; // advection VOF
   using ASVM = Vofm<M>; // advection VOF
+  using BlockInfoProxy = generic::BlockInfoProxy<dim>;
 
   // using P::P; // inherit constructor
-  Advection(Vars& var, const MyBlockInfo& bi, Par& par);
+  Advection(Vars& var, const BlockInfoProxy& bi, Par& par);
   void Run() override;
   void Init(Sem& sem);
   void Dump(Sem& sem);
@@ -116,16 +114,16 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
 };
 
 template <class M>
-Advection<M>::Advection(Vars& v, const MyBlockInfo& b, Par& p)
-    : KernelMeshPar<M, Par>(v, b, p)
+Advection<M>::Advection(Vars& var_, const BlockInfoProxy& b, Par& p)
+    : KernelMeshPar<M, Par>(var_, b, p)
     , layers(1)
-    , dmf_(v, "dump_field_")
-    , dms_(v, "dump_stat_") {}
+    , dmf_(var, "dump_field_")
+    , dms_(var, "dump_stat_") {}
 
 template <class M>
 void Advection<M>::Init(Sem& sem) {
   if (sem.Nested("init-field")) {
-    InitVf(fcu_, var, m);
+    InitVf(fcu_, var, m, true);
   }
 
   if (sem("init-create")) {
@@ -147,11 +145,7 @@ void Advection<M>::Init(Sem& sem) {
     fc_src_.Reinit(m, 0.);
 
     std::string as = var.String["advection_solver"];
-    if (as == "tvd") {
-      auto p = ParsePar<AST>()(var);
-      as_.reset(
-          new AST(m, fcu_, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
-    } else if (as == "vof") {
+    if (as == "vof") {
       auto p = ParsePar<ASV>()(var);
       const FieldCell<Scal> fccl(m, 0);
       as_.reset(new ASV(
@@ -204,7 +198,7 @@ void Advection<M>::Dump(Sem& sem) {
       }
 
       if (IsRoot()) {
-        dmf_.Report();
+        dmf_.Report(std::cout);
       }
     }
   }

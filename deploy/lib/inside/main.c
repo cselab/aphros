@@ -1,4 +1,5 @@
 #include <float.h>
+#include <limits.h>
 #include <math.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -17,8 +18,7 @@ int off_read(FILE*, int* status, int*, int**, int*, double**);
 int ply_read(FILE*, int* status, int*, int**, int*, double**);
 int stl_read(FILE*, int* status, int*, int**, int*, double**);
 
-static int circumradius(
-    const double* u, const double* v, const double* w, double* r);
+static double max_edg(const double* u, const double* v, const double* w);
 static double sq(double);
 static double edg(const double*, const double*);
 static double tri_point_distance2(
@@ -62,11 +62,9 @@ int inside_ini(int nt, const int* tri, const double* ver, struct Inside** pq) {
   const double* c;
   const double* hi;
   const double* lo;
+  const double* r;
   double diameter;
-  double radii;
   double size;
-  double x;
-  double y;
   int* cap;
   int** data;
   int dx;
@@ -101,8 +99,7 @@ int inside_ini(int nt, const int* tri, const double* ver, struct Inside** pq) {
     a = &ver[3 * i];
     b = &ver[3 * j];
     c = &ver[3 * k];
-    if (circumradius(a, b, c, &radii) != 0) return 1;
-    diameter = 2 * radii;
+    diameter = max_edg(a, b, c);
     if (diameter > size) size = diameter;
   }
   bbox_lo(bbox, &lo);
@@ -120,19 +117,18 @@ int inside_ini(int nt, const int* tri, const double* ver, struct Inside** pq) {
 
   for (t = 0; t < nt; t++) {
     i = tri[3 * t];
-    a = &ver[3 * i];
-    x = a[X] - lo[X];
-    y = a[Y] - lo[Y];
-    ix = x / size;
-    iy = y / size;
-
+    r = &ver[3 * i];
+    ix = (r[X] - lo[X]) / size;
+    iy = (r[Y] - lo[Y]) / size;
     for (dx = -1; dx < 2; dx++)
       for (dy = -1; dy < 2; dy++) {
         jx = ix + dx;
         jy = iy + dy;
-        if (jx < 0 || jy < 0) continue;
-        if (jx >= nx || jy >= ny) continue;
         j = jx + jy * nx;
+        if (j < 0)
+	  continue;
+        if (j >= nx * ny)
+	  continue;
         if (n[j] >= cap[j]) {
           cap[j] *= 2;
           REALLOC(cap[j], &data[j]);
@@ -260,7 +256,115 @@ int inside_inside(struct Inside* q, const double r[3]) {
   return intersect % 2;
 }
 
+int inside_fwrite(struct Inside* q, FILE* file) {
+  int nx;
+  int ny;
+  int ix;
+  int iy;
+  int idx;
+  const int* n;
+  nx = q->list.nx;
+  ny = q->list.ny;
+  n = q->list.n;
+  for (ix = 0; ix < nx; ix++)
+    for (iy = 0; iy < ny; iy++) {
+      idx = ix + iy * nx;
+      if (idx < 0) idx = 0;
+      if (idx >= nx * ny) idx = nx * ny - 1;
+      if (fprintf(file, "%d %d %d\n", ix, iy, n[idx]) < 0) return 1;
+    }
+  return 0;
+}
+
+int inside_info(struct Inside* q, struct InsideInfo* info) {
+  int nx;
+  int ny;
+  int ix;
+  int iy;
+  int idx;
+  int tri;
+  int max_tri;
+  int min_tri;
+  const int* n;
+  nx = info->nx = q->list.nx;
+  ny = info->ny = q->list.ny;
+  info->size = q->list.size;
+  n = q->list.n;
+  max_tri = 0;
+  min_tri = INT_MAX;
+  for (ix = 0; ix < nx; ix++)
+    for (iy = 0; iy < ny; iy++) {
+      idx = ix + iy * nx;
+      if (idx < 0) idx = 0;
+      if (idx >= nx * ny) idx = nx * ny - 1;
+      tri = n[idx];
+      if (tri > max_tri) max_tri = tri;
+      if (tri < min_tri) min_tri = tri;
+    }
+
+  info->min_tri = min_tri;
+  info->max_tri = max_tri;
+
+  return 0;
+}
+
 double inside_distance(struct Inside* q, const double r[3]) {
+  const double* a;
+  const double* b;
+  const double* c;
+  const double* lo;
+  const double* ver;
+  const int* tri;
+  double d;
+  double mi;
+  double size;
+  int** data;
+  int i;
+  int idx;
+  int item;
+  int ix;
+  int iy;
+  int j;
+  int k;
+  int* n;
+  int nx;
+  int ny;
+  int t;
+
+  ver = q->ver;
+  tri = q->tri;
+  nx = q->list.nx;
+  ny = q->list.ny;
+  data = q->list.data;
+  size = q->list.size;
+  n = q->list.n;
+  lo = q->list.lo;
+  ix = (r[X] - lo[X]) / size;
+  iy = (r[Y] - lo[Y]) / size;
+  idx = ix + iy * nx;
+  if (idx < 0) idx = 0;
+  if (idx >= nx * ny) idx = nx * ny - 1;
+
+  mi = DBL_MAX;
+  for (item = 0; item < n[idx]; item++) {
+    t = data[idx][item];
+    i = tri[3 * t];
+    j = tri[3 * t + 1];
+    k = tri[3 * t + 2];
+    a = &ver[3 * i];
+    b = &ver[3 * j];
+    c = &ver[3 * k];
+    d = tri_point_distance2(a, b, c, r);
+    if (d < mi) mi = d;
+  }
+  d = sqrt(mi);
+  if (inside_inside(q, r))
+    return -d;
+  else
+    return d;
+}
+
+double inside_distance_naive(struct Inside* q, const double r[3]) {
   const double* a;
   const double* b;
   const double* c;
@@ -271,17 +375,17 @@ double inside_distance(struct Inside* q, const double r[3]) {
   int i;
   int j;
   int k;
-  int nt;
   int t;
+  int nt;
 
   ver = q->ver;
-  nt = q->nt;
   tri = q->tri;
+  nt = q->nt;
   mi = DBL_MAX;
   for (t = 0; t < nt; t++) {
-    i = *tri++;
-    j = *tri++;
-    k = *tri++;
+    i = tri[3 * t];
+    j = tri[3 * t + 1];
+    k = tri[3 * t + 2];
     a = &ver[3 * i];
     b = &ver[3 * j];
     c = &ver[3 * k];
@@ -345,23 +449,14 @@ static double edg(const double* a, const double* b) {
   enum { X, Y, Z };
   return sqrt(sq(a[X] - b[X]) + sq(a[Y] - b[Y]) + sq(a[Z] - b[Z]));
 }
-static int circumradius(
-    const double* u, const double* v, const double* w, double* r) {
+double max_edg(const double* u, const double* v, const double* w) {
   double a;
   double b;
   double c;
-  double s;
-  double num;
-  double den;
   a = edg(v, u);
   b = edg(w, u);
   c = edg(v, w);
-  s = (a + b + c) / 2;
-  num = a * b * c;
-  den = s * (s - a) * (s - b) * (s - c);
-  if (den <= 0) return 1;
-  *r = num / (4 * sqrt(den));
-  return 0;
+  return max(c, max(a, b));
 }
 
 static int vec_minus(const double a[3], const double b[3], /**/ double c[3]) {

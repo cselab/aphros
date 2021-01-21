@@ -1,11 +1,10 @@
-set(CSD "${CMAKE_CURRENT_SOURCE_DIR}")
-get_filename_component(p ${CSD} NAME)
+get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+set(T t.${name})
+add_executable(${T} main.cpp)
 
-set(EXE t.${p})
+target_link_libraries(${T} mesh suspender timer sysinfo approx_eb vars parser
+  format filesystem approx_eb approx primlist)
+target_compile_options(${T} PRIVATE -O3 -march=native)
 
-add_executable(${EXE} main.cpp)
-
-target_link_libraries(${EXE} suspender sysinfo timer approx)
-     
-add_test(NAME ${p} COMMAND ${EXE})
+add_test_current(COMMAND ${T})
 

@@ -1,1 +1,0 @@
-(cd ../ ; ap.gettraj $1) | cut -d' ' -f$2

@@ -10,7 +10,6 @@
 
 #include "cubismnc.ipp"
 
-// XXX: removing 'static' leads to symbol collision with cubism.cpp
 template <size_t bx, size_t by, size_t bz, class M>
 static void Try(
     MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var,

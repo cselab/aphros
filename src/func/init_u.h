@@ -5,12 +5,14 @@
 
 #include <cmath>
 #include <functional>
+#include <iostream>
 #include <iterator>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
 
 #include "debug/isnan.h"
+#include "dump/hdf.h"
 #include "geom/block.h"
 #include "geom/field.h"
 #include "geom/vect.h"
@@ -24,7 +26,7 @@
 // xc: cell center
 // h: cell size
 template <class Scal, size_t dim = 3>
-Scal GetLevelSetVolume(
+static Scal GetLevelSetVolume(
     std::function<Scal(const generic::Vect<Scal, 3>&)> ls,
     const generic::Vect<Scal, 3>& xc, const generic::Vect<Scal, 3>& h) {
   using Vect = generic::Vect<Scal, dim>;
@@ -201,12 +203,14 @@ FieldCell<typename M::Scal> GetPositiveVolumeFraction(
 template <class M>
 void InitVfList(
     FieldCell<typename M::Scal>& fc, std::istream& list, int approx,
-    size_t edim, const M& m) {
+    size_t edim, const M& m, bool verbose) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using Primitive = typename UPrimList<Scal>::Primitive;
-  const std::vector<Primitive> ppa =
-      UPrimList<Scal>::Parse(list, m.IsRoot(), edim);
+  const std::vector<Primitive> ppa = UPrimList<Scal>::GetPrimitives(list, edim);
+  if (verbose && m.IsRoot()) {
+    std::cout << "Read " << ppa.size() << " primitives" << std::endl;
+  }
 
   const Vect h = m.GetCellSize();
   // filter to bounding box
@@ -544,7 +548,8 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
 }
 
 template <class M>
-void InitVf(FieldCell<typename M::Scal>& fcu, const Vars& var, M& m) {
+void InitVf(
+    FieldCell<typename M::Scal>& fcu, const Vars& var, M& m, bool verbose) {
   auto sem = m.GetSem("initvf");
   struct {
     std::vector<char> buf;
@@ -558,36 +563,43 @@ void InitVf(FieldCell<typename M::Scal>& fcu, const Vars& var, M& m) {
     if (sem("list-bcast")) {
       if (m.IsRoot()) {
         std::stringstream path(var.String["list_path"]);
-        std::string filename;
-        path >> filename;
-        if (filename == "inline") {
-          std::cout
-              << "InitVf: Reading inline list of primitives from list_path"
-              << std::endl;
+        std::string fname;
+        path >> fname;
+        if (fname == "inline") {
+          if (verbose) {
+            std::cout
+                << "InitVf: Reading inline list of primitives from list_path"
+                << std::endl;
+          }
           ctx->buf = std::vector<char>(
               std::istreambuf_iterator<char>(path),
               std::istreambuf_iterator<char>());
         } else {
-          std::ifstream fin(filename);
-          std::cout << "InitVf: Open list of primitives '" << filename << "'"
-                    << std::endl;
+          std::ifstream fin(fname);
+          if (verbose) {
+            std::cout << "InitVf: Open list of primitives '" << fname << "'"
+                      << std::endl;
+          }
           if (!fin.good()) {
             throw std::runtime_error(
-                FILELINE + ": Can't open list of primitives");
+                FILELINE + ": Can't open list of primitives '" + fname + "'");
           }
           ctx->buf = std::vector<char>(
               std::istreambuf_iterator<char>(fin),
               std::istreambuf_iterator<char>());
         }
       }
-      using T = typename M::template OpCatT<char>;
-      m.Bcast(std::make_shared<T>(&ctx->buf));
+      m.Bcast(&ctx->buf);
     }
     if (sem("list-local")) {
       std::stringstream list;
       std::copy(
           ctx->buf.begin(), ctx->buf.end(), std::ostream_iterator<char>(list));
-      InitVfList(fcu, list, var.Int["list_ls"], var.Int["dim"], m);
+      InitVfList(fcu, list, var.Int["list_ls"], var.Int["dim"], m, verbose);
+    }
+  } else if (v == "hdf") {
+    if (sem.Nested()) {
+      Hdf<M>::Read(fcu, var.String["init_vf_hdf_path"], m);
     }
   } else {
     if (sem("local")) {

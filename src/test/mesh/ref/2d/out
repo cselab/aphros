@@ -1,0 +1,94 @@
+TestBlock
+TestMesh
+v=1, doms.prod()=1
+m.GetVolume(c)=0.25, h.prod()=0.25
+m.GetArea(f)=0.5, h.prod() / h[q]=0.5
+m.GetArea(f)=0.5, h.prod() / h[q]=0.5
+m.GetAllBlockCells().size()=36, sh.prod()=36
+m.GetAllBlockFaces().size()=84, nf=84
+m.GetAllBlockNodes().size()=49, (sh + MIdx(1)).prod()=49
+m.GetOpposite(IdxNci(2 * d)).raw()=1, 2 * d + 1=1
+m.GetOpposite(IdxNci(2 * d + 1)).raw()=0, 2 * d=0
+m.GetOpposite(IdxNci(2 * d)).raw()=3, 2 * d + 1=3
+m.GetOpposite(IdxNci(2 * d + 1)).raw()=2, 2 * d=2
+Cell neighbor cells
+c=(0,0): (-1,0) (1,0) (0,-1) (0,1)
+
+Face neighbor faces
+f=(0,0)x: (-1,0)x (1,0)x (0,-1)x (0,1)x
+f=(0,0)y: (-1,0)y (1,0)y (0,-1)y (0,1)y
+
+Face neighbor nodes
+f=(0,0)x: (0,0) (0,1)
+f=(0,0)y: (0,0) (1,0)
+
+Cell neighbor nodes
+c=(0,0): (0,0) (1,0) (0,1) (1,1)
+
+Cell neighbor cells
+m.GetNci(c, f).raw()=0, q.raw()=0
+m.GetNci(c, f).raw()=1, q.raw()=1
+m.GetNci(c, f).raw()=2, q.raw()=2
+m.GetNci(c, f).raw()=3, q.raw()=3
+
+StencilIndices
+c: 24 (1,1)
+16 (0,0)
+17 (1,0)
+18 (2,0)
+23 (0,1)
+24 (1,1)
+25 (2,1)
+30 (0,2)
+31 (1,2)
+32 (2,2)
+TestMeshIndices
+
+m.GetAllBlockCells()
+(0,0) 0
+(1,0) 1
+(0,1) 3
+(1,1) 4
+
+
+m.GetAllBlockFaces()
+(0,0) x,0
+(1,0) x,1
+(2,0) x,2
+(0,1) x,3
+(1,1) x,4
+(2,1) x,5
+(0,0) y,9
+(1,0) y,10
+(0,1) y,12
+(1,1) y,13
+(0,2) y,15
+(1,2) y,16
+
+
+(MIdx,Dir) <-> IdxFace
+(0,0),x 0 | (0,0),x 0
+(1,0),x 1 | (1,0),x 1
+(2,0),x 2 | (2,0),x 2
+(0,1),x 3 | (0,1),x 3
+(1,1),x 4 | (1,1),x 4
+(2,1),x 5 | (2,1),x 5
+(0,0),y 9 | (0,0),y 9
+(1,0),y 10 | (1,0),y 10
+(0,1),y 12 | (0,1),y 12
+(1,1),y 13 | (1,1),y 13
+(0,2),y 15 | (0,2),y 15
+(1,2),y 16 | (1,2),y 16
+
+(0,0) x
+(1,0) x
+(2,0) x
+(0,1) x
+(1,1) x
+(2,1) x
+(0,0) y
+(1,0) y
+(0,1) y
+(1,1) y
+(0,2) y
+(1,2) y

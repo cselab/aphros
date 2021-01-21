@@ -1,18 +1,9 @@
-set(CSD "${CMAKE_CURRENT_SOURCE_DIR}")
-get_filename_component(p ${CSD} NAME)
-
-set(EXE t.${p})
-
+get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+set(EXE t.${name})
 include_directories(${S})
-
 add_executable(${EXE} main.cpp)
+target_link_libraries(${EXE} aphros)
 
-target_link_libraries(${EXE} distrsolver approx)
-
-add_test(NAME ${p}-loc COMMAND ap.run ./${EXE} tloc)
-add_test(NAME ${p}-cub COMMAND ap.run ./${EXE} tcub)
-add_test(NAME ${p}-cubnc COMMAND ap.run ./${EXE} tcubnc)
-
-set_tests_properties(
-  ${p}-loc ${p}-cub ${p}-cubnc
-  PROPERTIES RESOURCE_LOCK ${p})
+add_test_current(NAME local COMMAND ap.mpirun -n 1  ./${EXE} --extra "set string backend local")
+add_test_current(NAME cubismnc COMMAND ap.mpirun -n 2  ./${EXE} --extra "set string backend cubismnc")
+add_test_current(NAME native COMMAND ap.mpirun -n 2  ./${EXE} --extra "set string backend native")

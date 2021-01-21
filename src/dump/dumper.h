@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <iosfwd>
 #include <limits>
 #include <string>
 
@@ -14,28 +15,30 @@ class Dumper {
  public:
   // var: config
   // pre: prefix for variables
-  Dumper(const Vars& var, std::string pre) : var(var), pre_(pre) {}
-  bool Try(double t /*current time*/, double dt /*simulation time step*/);
+  Dumper(const Vars& var, std::string pre);
+  // t: current time
+  // dt: simulation time step (to select dump time closest to the target)
+  bool Try(double t, double dt);
   // Prints stats to cout
-  void Report();
+  void Report(std::ostream& out);
   // Returns current dump index
   size_t GetN() {
-    return pn_;
+    return frame_;
   }
 
  private:
   const Vars& var;
-  std::string pre_;
-  int pn_ = -1; // dum[p] index
-  double pt_ = -std::numeric_limits<double>::max(); // last dum[p] time
-  double ptt_; // dum[p] target time
+  std::string prefix_;
+  int frame_ = -1;
+  double time_ = -std::numeric_limits<double>::max(); // last dump time
+  double target_ = 0; // last dump target time
 };
 
 // fld: field name
 // ext: extension
 // t: time step
-// it: iteration, skip if -1
-std::string GetDumpName(std::string fld, std::string ext, int t, int it);
+// iter: iteration, ignore if -1
+std::string GetDumpName(std::string fld, std::string ext, int t, int iter);
 
 // fld: field name
 // ext: extension

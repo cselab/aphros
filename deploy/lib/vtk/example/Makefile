@@ -1,8 +1,8 @@
 .POSIX:
 LINK = $(CC)
 CFLAGS = -g -Og
-M_LDFLAGS = -L$(CHPREFIX)/lib -lvtk -lcsv -ltable -lm
-M_CFLAGS = -I$(CHPREFIX)/include
+M_LDFLAGS = -L$(APHROS_PREFIX)/lib -lvtk -lcsv -ltable -lm
+M_CFLAGS = -I$(APHROS_PREFIX)/include
 
 M = \
 add\

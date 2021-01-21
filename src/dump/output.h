@@ -52,12 +52,12 @@ class OutFldFunc : public OutFld<GField<V, I>> {
   // n: name
   // m: mesh
   // f: function returning output value
-  OutFldFunc(std::string n, const M& m, const std::function<V(I)>& u)
-      : OutFld<F>(n), m(m), f_(m), u_(u) {}
+  OutFldFunc(std::string n, const M& m_, const std::function<V(I)>& u)
+      : OutFld<F>(n), m(m_), f_(m), u_(u) {}
 
   // Updates field from function.
   void Prepare() override {
-    for (auto i : m.template GetIn<I>()) {
+    for (auto i : m.template GetRangeIn<I>()) {
       f_[i] = u_(i);
     }
   }
@@ -124,10 +124,10 @@ class SerScalPlain : public Ser {
   void Write(double /*time*/, std::string /*title*/) override {
     for (auto& og : vo_) { // out generic
       og->Prepare();
-      if (auto o = dynamic_cast<OutScal<Scal>*>(og.get())) {
-        out_ << o->second() << " ";
-      } else if (auto o = dynamic_cast<OutScal<int>*>(og.get())) {
-        out_ << o->second() << " ";
+      if (auto oscal = dynamic_cast<OutScal<Scal>*>(og.get())) {
+        out_ << oscal->second() << " ";
+      } else if (auto oint = dynamic_cast<OutScal<int>*>(og.get())) {
+        out_ << oint->second() << " ";
       } else {
         throw std::runtime_error("SerScalPlain: Unknown entry type");
       }

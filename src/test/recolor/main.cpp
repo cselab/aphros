@@ -8,7 +8,7 @@
 #include "distr/distrbasic.h"
 #include "dump/dump.h"
 #include "func/init_u.h"
-#include "solver/approx.h"
+#include "solver/approx_eb.h"
 #include "solver/solver.h"
 #include "solver/trackerm.h"
 #include "util/vof.h"
@@ -33,7 +33,7 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fccl;
     FieldCell<Scal> fcclm;
     UVof<M> uvof;
-    MapCondFace mfc;
+    MapEmbed<BCond<Scal>> mfc;
     std::unique_ptr<TRM> trm;
     FieldCell<Scal> fcim;
   } * ctx(sem);
@@ -62,7 +62,7 @@ void Run(M& m, Vars& var) {
   };
 
   if (sem.Nested()) {
-    InitVf(fcu, var, m);
+    InitVf(fcu, var, m, true);
   }
   if (sem()) {
     fccl.Reinit(m);
@@ -89,7 +89,7 @@ void Run(M& m, Vars& var) {
       Smoothen(fcu, mfc, m, 1);
     }
     if (sem()) {
-      auto fcclm = fccl;
+      fcclm = fccl;
       for (auto c : m.Cells()) {
         if (fcu[c] == 0) {
           fccl[c] = kClNone;
@@ -132,5 +132,6 @@ set int list_ls 1
 set string list_path b.dat
   )EOF";
 
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

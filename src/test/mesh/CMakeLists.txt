@@ -1,10 +1,9 @@
-set(CSD "${CMAKE_CURRENT_SOURCE_DIR}")
-get_filename_component(p ${CSD} NAME)
+get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 
-set(EXE t.${p})
-
-add_executable(${EXE} main.cpp)
-
-target_link_libraries(${EXE} suspender timer)
-
-add_test(NAME ${p} COMMAND ./run )
+foreach(DIM RANGE 2 4)
+  set(T t.${name}_${DIM}d)
+  add_executable(${T} main.cpp)
+  target_compile_options(${T} PRIVATE -DDIM=${DIM})
+  target_link_libraries(${T} mesh suspender format)
+  add_test_current(NAME ${DIM}d COMMAND ./test ${DIM}d)
+endforeach()

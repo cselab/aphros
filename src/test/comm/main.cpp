@@ -15,7 +15,6 @@
 #include "distr/distrsolver.h"
 #include "geom/mesh.h"
 #include "kernel/kernelmeshpar.h"
-#include "linear/linear.h"
 #include "solver/pois.h"
 #include "solver/solver.h"
 #include "util/suspender.h"
@@ -53,7 +52,6 @@ class Simple : public KernelMeshPar<M_, GPar> {
 
  private:
   void TestComm();
-  void TestSolve();
   void TestReduce();
   void TestScatter();
   void TestPois();
@@ -75,22 +73,12 @@ class Simple : public KernelMeshPar<M_, GPar> {
 
   FieldCell<Scal> fc_;
   FieldCell<Vect> fcv_;
-  // LS
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
-  FieldCell<Expr> fc_system_;
-  std::vector<Scal> lsa_;
-  std::vector<Scal> lsb_;
-  std::vector<Scal> lsx_;
-  FieldCell<Scal> fc_sol_;
-  FieldCell<Scal> fc_exsol_;
-  FieldCell<Scal> fcr_; // rhs
   Scal r_; // test Reduce
   std::pair<Scal, int> rsi_; // test Reduce minloc
   std::vector<Scal> rvs_; // reduction vector<Scal> (concatenation)
   std::vector<int> rvi_; // reduction vector<int> (concatenation)
   std::vector<std::vector<int>> rvvi_; // reduction vector<vector<int>>
   std::vector<std::vector<Scal>> rvvs_; // reduction vector<vector<int>>
-  std::shared_ptr<PoisSolver<M>> ps_;
 };
 
 template <class Idx, class M>
@@ -99,7 +87,7 @@ typename M::Scal DiffMax(
     const GField<typename M::Scal, Idx>& v, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
     r = std::max(r, std::abs(u[i] - v[i]));
   }
   return r;
@@ -112,7 +100,7 @@ typename M::Scal DiffMean(
   using Scal = typename M::Scal;
   Scal r = 0;
   Scal w = 0;
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
     r += std::abs(u[i] - v[i]);
     w += 1.;
   }
@@ -123,7 +111,7 @@ template <class Idx, class M>
 typename M::Scal Max(const GField<typename M::Scal, Idx>& u, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
     r = std::max(r, u[i]);
   }
   return r;
@@ -134,7 +122,7 @@ typename M::Scal Mean(const GField<typename M::Scal, Idx>& u, const M& m) {
   using Scal = typename M::Scal;
   Scal r = 0;
   Scal w = 0.;
-  for (auto i : m.template GetIn<Idx>()) {
+  for (auto i : m.template GetRangeIn<Idx>()) {
     r += u[i];
     w += 1.;
   }
@@ -166,26 +154,23 @@ typename M::Scal Mean(const GField<typename M::Scal, Idx>& u, const M& m) {
 template <class M>
 void Simple<M>::TestComm() {
   auto sem = m.GetSem("Comm");
-  auto f = [](Vect v) {
-    for (size_t i = 0; i < dim; ++i) {
-      while (v[i] < 0.) {
-        v[i] += 1.;
-      }
-      while (v[i] > 1.) {
-        v[i] -= 1.;
-      }
-    }
-    return std::sin(v[0]) * std::cos(v[1]) * std::exp(v[2]);
+  auto func = [&](Vect x) {
+    auto gl = m.GetGlobalLength();
+    x = (x + 16 * gl) / gl;
+    x = (x - Vect(MIdx(x))) * gl;
+    return std::sin(x[0]) * std::cos(x[1]) * std::exp(x[2]);
   };
-  auto fv = [=](Vect v) { return Vect(f(v), f(v * 2.), f(v * 3.)); };
+  auto funcv = [=](Vect v) {
+    return Vect(func(v), func(v * 2.), func(v * 3.));
+  };
   auto& bc = m.GetIndexCells();
   if (sem("init")) {
     fc_.Reinit(m);
     fcv_.Reinit(m);
     for (auto c : m.Cells()) {
       auto x = m.GetCenter(c);
-      fc_[c] = f(x);
-      fcv_[c] = fv(x);
+      fc_[c] = func(x);
+      fcv_[c] = funcv(x);
     }
     m.Comm(&fc_);
     m.Comm(&fcv_);
@@ -193,15 +178,15 @@ void Simple<M>::TestComm() {
   if (sem("check")) {
     for (auto c : m.AllCells()) {
       auto x = m.GetCenter(c);
-      if (!Cmp(fc_[c], f(x))) {
-        std::cerr << bc.GetMIdx(c) << " " << fc_[c] << " != " << f(x) << " "
+      if (!Cmp(fc_[c], func(x))) {
+        std::cerr << bc.GetMIdx(c) << " " << fc_[c] << " != " << func(x) << " "
                   << std::endl;
-        throw std::runtime_error("");
+        fassert(false);
       }
-      if (!Cmp(fcv_[c], fv(x))) {
-        std::cerr << bc.GetMIdx(c) << " " << fcv_[c] << " != " << fv(x) << " "
-                  << std::endl;
-        throw std::runtime_error("");
+      if (!Cmp(fcv_[c], funcv(x))) {
+        std::cerr << bc.GetMIdx(c) << " " << fcv_[c] << " != " << funcv(x)
+                  << " " << std::endl;
+        fassert(false);
       }
     }
   }
@@ -210,131 +195,129 @@ void Simple<M>::TestComm() {
 template <class M>
 void Simple<M>::TestReduce() {
   auto sem = m.GetSem("Reduce");
-  MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
-  MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
-  GBlock<IdxCell, dim> bq(p * b);
-  GIndex<size_t, dim> ndq(p * b);
-  GBlock<IdxCell, dim> qp(p);
-  GBlock<IdxCell, dim> qb(b);
-  auto f = [](MIdx w) {
+  MIdx nprocs(var.Int["px"], var.Int["py"], var.Int["pz"]);
+  MIdx nblocks(var.Int["bx"], var.Int["by"], var.Int["bz"]);
+  GBlock<IdxCell, dim> blocks_all(nprocs * nblocks);
+  GIndex<size_t, dim> indexc(nprocs * nblocks);
+  GBlock<IdxCell, dim> procs(nprocs);
+  GBlock<IdxCell, dim> blocks(nblocks);
+  auto func = [](MIdx w) {
     return std::sin(w[0] + 1.7) * std::cos(w[1]) * std::exp(w[2] * 0.1);
   };
   if (sem("sum")) {
-    r_ = f(MIdx(bi_.index));
-    m.Reduce(&r_, "sum");
+    r_ = func(MIdx(bi_.index));
+    m.Reduce(&r_, Reduction::sum);
   }
   if (sem("sum-check")) {
-    Scal s = 0.;
-    for (auto b : bq) {
-      s += f(b);
+    Scal exact = 0.;
+    for (auto b : blocks_all) {
+      exact += func(b);
     }
-    PCMP(r_, s);
+    PCMP(r_, exact);
   }
   if (sem("prod")) {
-    r_ = f(MIdx(bi_.index));
-    m.Reduce(&r_, "prod");
+    r_ = func(MIdx(bi_.index));
+    m.Reduce(&r_, Reduction::prod);
   }
   if (sem("prod-check")) {
-    Scal s = 1.;
-    for (auto b : bq) {
-      s *= f(b);
+    Scal exact = 1.;
+    for (auto b : blocks_all) {
+      exact *= func(b);
     }
-    PCMP(r_, s);
+    PCMP(r_, exact);
   }
   if (sem("max")) {
-    r_ = f(MIdx(bi_.index));
-    m.Reduce(&r_, "max");
+    r_ = func(MIdx(bi_.index));
+    m.Reduce(&r_, Reduction::max);
   }
   if (sem("max-check")) {
     Scal s = -std::numeric_limits<Scal>::max();
-    for (auto b : bq) {
-      s = std::max(s, f(b));
+    for (auto b : blocks_all) {
+      s = std::max(s, func(b));
     }
     PCMP(r_, s);
   }
   if (sem("min")) {
-    r_ = f(MIdx(bi_.index));
-    m.Reduce(&r_, "min");
+    r_ = func(MIdx(bi_.index));
+    m.Reduce(&r_, Reduction::min);
   }
   if (sem("min-check")) {
     Scal s = std::numeric_limits<Scal>::max();
-    for (auto b : bq) {
-      s = std::min(s, f(b));
+    for (auto b : blocks_all) {
+      s = std::min(s, func(b));
     }
     PCMP(r_, s);
   }
   if (sem("minloc")) {
     MIdx w(bi_.index);
-    rsi_ = std::make_pair(f(w), ndq.GetIdx(w));
-    m.Reduce(std::make_shared<typename M::OpMinloc>(&rsi_));
+    rsi_ = std::make_pair(func(w), indexc.GetIdx(w));
+    m.Reduce(&rsi_, Reduction::minloc);
   }
   if (sem("minloc-check")) {
     Scal s = std::numeric_limits<Scal>::max();
     MIdx ws;
-    for (auto w : bq) {
-      if (f(w) < s) {
+    for (auto w : blocks_all) {
+      if (func(w) < s) {
         ws = w;
-        s = f(w);
+        s = func(w);
       }
     }
     PCMP(rsi_.first, s);
-    PCMP(ndq.GetMIdx(rsi_.second), ws);
+    PCMP(indexc.GetMIdx(rsi_.second), ws);
   }
   if (sem("maxloc")) {
     MIdx w(bi_.index);
-    rsi_ = std::make_pair(f(w), ndq.GetIdx(w));
-    m.Reduce(std::make_shared<typename M::OpMaxloc>(&rsi_));
+    rsi_ = std::make_pair(func(w), indexc.GetIdx(w));
+    m.Reduce(&rsi_, Reduction::maxloc);
   }
   if (sem("maxloc-check")) {
     Scal s = -std::numeric_limits<Scal>::max();
     MIdx ws;
-    for (auto w : bq) {
-      if (f(w) > s) {
+    for (auto w : blocks_all) {
+      if (func(w) > s) {
         ws = w;
-        s = f(w);
+        s = func(w);
       }
     }
     PCMP(rsi_.first, s);
-    PCMP(ndq.GetMIdx(rsi_.second), ws);
+    PCMP(indexc.GetMIdx(rsi_.second), ws);
   }
   if (sem("cat")) {
     MIdx w(bi_.index);
     rvs_.resize(0);
-    rvs_.push_back(ndq.GetIdx(w));
-    using T = typename M::template OpCatT<Scal>;
-    m.Reduce(std::make_shared<T>(&rvs_));
+    rvs_.push_back(indexc.GetIdx(w));
+    m.Reduce(&rvs_, Reduction::concat);
   }
   if (sem("cat-check")) {
-    std::vector<Scal> rvs;
-    for (auto wp : qp) {
-      for (auto wb : qb) {
-        auto w = b * wp + wb;
-        rvs.push_back(ndq.GetIdx(w));
+    std::vector<Scal> exact;
+    for (auto wp : procs) {
+      for (auto wb : blocks) {
+        auto w = nblocks * wp + wb;
+        exact.push_back(indexc.GetIdx(w));
       }
     }
     if (m.IsRoot()) {
       std::sort(rvs_.begin(), rvs_.end());
-      std::sort(rvs.begin(), rvs.end());
-      PCMPF(rvs_, rvs);
+      std::sort(exact.begin(), exact.end());
+      PCMPF(rvs_, exact);
     }
   }
   const size_t q = 10;
   if (sem("cati")) {
     MIdx w(bi_.index);
     rvi_.resize(0);
-    size_t i = ndq.GetIdx(w);
+    size_t i = indexc.GetIdx(w);
     for (size_t j = 0; j < i % q; ++j) {
       rvi_.push_back(q * i + j);
     }
-    using T = typename M::template OpCatT<int>;
-    m.Reduce(std::make_shared<T>(&rvi_));
+    m.Reduce(&rvi_, Reduction::concat);
   }
   if (sem("cati-check")) {
     std::vector<int> rvi;
-    for (auto wp : qp) {
-      for (auto wb : qb) {
-        auto w = b * wp + wb;
-        size_t i = ndq.GetIdx(w);
+    for (auto wp : procs) {
+      for (auto wb : blocks) {
+        auto w = nblocks * wp + wb;
+        size_t i = indexc.GetIdx(w);
         for (size_t j = 0; j < i % q; ++j) {
           rvi.push_back(q * i + j);
         }
@@ -349,19 +332,18 @@ void Simple<M>::TestReduce() {
   if (sem("catvi")) {
     MIdx w(bi_.index);
     rvvi_.resize(0);
-    size_t i = ndq.GetIdx(w);
+    size_t i = indexc.GetIdx(w);
     for (size_t j = 0; j < i % q; ++j) {
       rvvi_.push_back(std::vector<int>({int(q * i + j)}));
     }
-    using T = typename M::template OpCatVT<int>;
-    m.Reduce(std::make_shared<T>(&rvvi_));
+    m.Reduce(&rvvi_, Reduction::concat);
   }
   if (sem("catvi-check")) {
     std::vector<std::vector<int>> rvvi;
-    for (auto wp : qp) {
-      for (auto wb : qb) {
-        auto w = b * wp + wb;
-        size_t i = ndq.GetIdx(w);
+    for (auto wp : procs) {
+      for (auto wb : blocks) {
+        auto w = nblocks * wp + wb;
+        size_t i = indexc.GetIdx(w);
         for (size_t j = 0; j < i % q; ++j) {
           rvvi.push_back(std::vector<int>({int(q * i + j)}));
         }
@@ -376,17 +358,16 @@ void Simple<M>::TestReduce() {
   if (sem("bcast-catvi")) {
     MIdx w(bi_.index);
     rvvi_.resize(0);
-    size_t i = ndq.GetIdx(w);
+    size_t i = indexc.GetIdx(w);
     for (size_t j = 0; j < (i + 5) % q; ++j) {
       rvvi_.push_back(std::vector<int>({int(100 * i + j)}));
     }
-    using T = typename M::template OpCatVT<int>;
-    m.Bcast(std::make_shared<T>(&rvvi_));
+    m.Bcast(&rvvi_);
   }
   if (sem("bcast-catvi-check")) {
-    // init for root block
+    // init for root nblocks
     std::vector<std::vector<int>> rvvi;
-    size_t i = ndq.GetIdx(MIdx(0));
+    size_t i = indexc.GetIdx(MIdx(0));
     for (size_t j = 0; j < (i + 5) % q; ++j) {
       rvvi.push_back(std::vector<int>({int(100 * i + j)}));
     }
@@ -397,12 +378,12 @@ void Simple<M>::TestReduce() {
 template <class M>
 void Simple<M>::TestScatter() {
   auto sem = m.GetSem("scatter");
-  MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
-  MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
-  GBlock<IdxCell, dim> bq(p * b);
-  GIndex<size_t, dim> ndq(p * b);
-  GBlock<IdxCell, dim> qp(p);
-  GBlock<IdxCell, dim> qb(b);
+  MIdx nprocs(var.Int["px"], var.Int["py"], var.Int["pz"]);
+  MIdx nblocks(var.Int["bx"], var.Int["by"], var.Int["bz"]);
+  GBlock<IdxCell, dim> blocks_all(nprocs * nblocks);
+  GIndex<size_t, dim> indexc(nprocs * nblocks);
+  GBlock<IdxCell, dim> procs(nprocs);
+  GBlock<IdxCell, dim> blocks(nblocks);
   auto GetBlockData = [](size_t i) {
     std::vector<Scal> r;
     r.push_back(Scal(i));
@@ -412,12 +393,11 @@ void Simple<M>::TestScatter() {
     return r;
   };
   if (sem("vector<Scal>")) {
-    MIdx w(bi_.index);
     rvvs_.clear();
-    for (auto wp : qp) {
-      for (auto wb : qb) {
-        auto w = b * wp + wb;
-        size_t i = ndq.GetIdx(w);
+    for (auto wp : procs) {
+      for (auto wb : blocks) {
+        auto w = nblocks * wp + wb;
+        size_t i = indexc.GetIdx(w);
         rvvs_.push_back(GetBlockData(i));
       }
     }
@@ -429,19 +409,16 @@ void Simple<M>::TestScatter() {
     }
   }
   if (sem("check")) {
-    MIdx w(bi_.index);
     assert(rvs_.size() > 0);
     PCMPF(rvs_, GetBlockData(std::lround(rvs_[0])));
   }
   if (sem("gather")) {
     MIdx w(bi_.index);
-    size_t i = ndq.GetIdx(w);
-    using T = typename M::template OpCatVT<Scal>;
+    size_t i = indexc.GetIdx(w);
     rvvs_ = {GetBlockData(i)};
-    m.Reduce(std::make_shared<T>(&rvvs_));
+    m.Reduce(&rvvs_, Reduction::concat);
   }
   if (sem("scatter")) {
-    MIdx w(bi_.index);
     if (m.IsRoot()) {
       std::cerr << "rvvs=" << rvvs_ << std::endl;
       m.Scatter({&rvvs_, &rvs_});
@@ -451,152 +428,8 @@ void Simple<M>::TestScatter() {
   }
   if (sem("check")) {
     MIdx w(bi_.index);
-    size_t i = ndq.GetIdx(w);
+    size_t i = indexc.GetIdx(w);
     PCMPF(rvs_, GetBlockData(i));
-  }
-}
-
-template <class M>
-void Simple<M>::TestSolve() {
-  auto sem = m.GetSem("Solve");
-  auto& bc = m.GetIndexCells();
-  auto f = [](Vect v) {
-    for (size_t i = 0; i < dim; ++i) {
-      while (v[i] < 0.) {
-        v[i] += 1.;
-      }
-      while (v[i] > 1.) {
-        v[i] -= 1.;
-      }
-    }
-    return std::sin(v[0] * v[1]) * std::cos(v[1] * v[2]) *
-           std::exp(v[2] + v[0]);
-  };
-
-  // global mesh size
-  MIdx gs;
-  MIdx bs(var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]);
-  {
-    MIdx p(var.Int["px"], var.Int["py"], var.Int["pz"]);
-    MIdx b(var.Int["bx"], var.Int["by"], var.Int["bz"]);
-    gs = p * b * bs;
-  }
-
-  if (sem("init")) {
-    if (m.IsRoot()) {
-      std::cout << "\n\n*** TestSolve() ***" << std::endl;
-    }
-    // exact solution
-    fc_exsol_.Reinit(m);
-    for (auto i : m.AllCells()) {
-      Vect x = m.GetCenter(i);
-      fc_exsol_[i] = f(x);
-    }
-    // init hydro system
-    fc_system_.Reinit(m);
-    for (auto i : m.Cells()) {
-      MIdx mi = bc.GetMIdx(i);
-      IdxCell ipx = bc.GetIdx(mi + MIdx(1, 0, 0));
-      IdxCell imx = bc.GetIdx(mi + MIdx(-1, 0, 0));
-      IdxCell ipy = bc.GetIdx(mi + MIdx(0, 1, 0));
-      IdxCell imy = bc.GetIdx(mi + MIdx(0, -1, 0));
-      IdxCell ipz = bc.GetIdx(mi + MIdx(0, 0, 1));
-      IdxCell imz = bc.GetIdx(mi + MIdx(0, 0, -1));
-
-      MIdx mpx = bc.GetMIdx(ipx);
-      MIdx mmx = bc.GetMIdx(imx);
-      MIdx mpy = bc.GetMIdx(ipy);
-      MIdx mmy = bc.GetMIdx(imy);
-      MIdx mpz = bc.GetMIdx(ipz);
-      MIdx mmz = bc.GetMIdx(imz);
-
-      auto& e = fc_system_[i];
-      e.Clear();
-
-      bool per = var.Int["periodic"];
-
-      e.InsertTerm(mpx < gs || per ? -0.0 : 0., ipx);
-      e.InsertTerm(MIdx(0) <= mmx || per ? -0.0 : 0., imx);
-      e.InsertTerm(mpy < gs || per ? -1.0 : 0., ipy);
-      e.InsertTerm(MIdx(0) <= mmy || per ? -1.0 : 0., imy);
-      e.InsertTerm(mpz < gs || per ? -1.0 : 0., ipz);
-      e.InsertTerm(MIdx(0) <= mmz || per ? -1.0 : 0., imz);
-
-      e.InsertTerm(6., i);
-
-      Scal r = e.Evaluate(fc_exsol_);
-      e.SetConstant(-r);
-    }
-
-    using LS = typename M::LS;
-    LS l = ConvertLs(fc_system_, lsa_, lsb_, lsx_, m);
-    m.Solve(l);
-  }
-  if (sem("check")) {
-    // Copy solution to field
-    fc_sol_.Reinit(m);
-    size_t i = 0;
-    for (auto c : m.Cells()) {
-      fc_sol_[c] = lsx_[i++];
-    }
-    // Check
-    PCMP(Mean(fc_exsol_, m), Mean(fc_sol_, m));
-    PCMP(DiffMax(fc_exsol_, fc_sol_, m), 0.);
-  }
-}
-
-template <class M>
-void Simple<M>::TestPois() {
-  auto sem = m.GetSem("pois");
-  struct {
-    MapCondFace mf;
-  } * ctx(sem);
-  // exact solution
-  auto fe = [](Vect x) {
-    Scal pi = M_PI;
-    Scal k = 2 * pi;
-    return std::sin(x[0] * k) * std::sin(x[1] * k) * std::sin(x[2] * k);
-  };
-  // rhs
-  auto fr = [=](Vect x, Vect h) {
-    auto f = fe;
-    Vect h0(h[0], 0., 0.);
-    Vect h1(0., h[1], 0.);
-    Vect h2(0., 0., h[2]);
-    Scal d0 = (f(x - h0) - 2. * f(x) + f(x + h0)) / sqr(h[0]);
-    Scal d1 = (f(x - h1) - 2. * f(x) + f(x + h1)) / sqr(h[1]);
-    Scal d2 = (f(x - h2) - 2. * f(x) + f(x + h2)) / sqr(h[2]);
-    return d0 + d1 + d2;
-  };
-
-  if (sem("init")) {
-    if (m.IsRoot()) {
-      std::cout << "\n\n*** TestPois() ***" << std::endl;
-    }
-    // solver
-    ps_ = std::make_shared<PoisSolver<M>>(ctx->mf, m);
-    // exact solution
-    fc_exsol_.Reinit(m);
-    for (auto i : m.AllCells()) {
-      Vect x = m.GetCenter(i);
-      fc_exsol_[i] = fe(x);
-    }
-    // rhs
-    fcr_.Reinit(m);
-    for (auto i : m.AllCells()) {
-      Vect x = m.GetCenter(i);
-      fcr_[i] = fr(x, m.GetCellSize());
-    }
-  }
-  if (sem.Nested("solve")) {
-    ps_->Solve(fcr_);
-  }
-  if (sem("check")) {
-    fc_sol_ = ps_->GetField();
-    // Check
-    PCMP(Mean(fc_exsol_, m), Mean(fc_sol_, m));
-    PCMP(DiffMean(fc_exsol_, fc_sol_, m), 0.);
-    PCMP(DiffMax(fc_exsol_, fc_sol_, m), 0.);
   }
 }
 
@@ -607,16 +440,10 @@ void Simple<M>::Run() {
     TestComm();
   }
   if (sem.Nested()) {
-    TestSolve();
-  }
-  if (sem.Nested()) {
     TestReduce();
   }
   if (sem.Nested()) {
     TestScatter();
-  }
-  if (sem.Nested()) {
-    TestPois();
   }
 }
 

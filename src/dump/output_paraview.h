@@ -39,8 +39,8 @@ class SerVtkStruct : public SerVtk {
   // vo: instances of Out
   // tl: title
   // fn: filename
-  SerVtkStruct(const VOut& vo, std::string tl, std::string fn, const M& m)
-      : SerVtk(vo, tl, fn), m(m), fr_(0) {
+  SerVtkStruct(const VOut& vo, std::string tl, std::string fn, const M& m_)
+      : SerVtk(vo, tl, fn), m(m_), fr_(0) {
     ColHead(oc_);
   }
   ~SerVtkStruct() {

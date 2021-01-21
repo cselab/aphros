@@ -3,10 +3,10 @@
 
 #undef NDEBUG
 
+#include <util/logger.h>
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
-#include <util/logger.h>
 #include "HYPRE_struct_ls.h"
 
 #include "hypre.h"

@@ -5,26 +5,12 @@
 #include <omp.h>
 #endif
 
+#include <iostream>
+
 #include "distrsolver.h"
-#include "linear/hypresub.h"
+#include "util/distr.h"
 #include "util/git.h"
 #include "util/subcomm.h"
-
-static void RunKernelOpenMP(
-    MPI_Comm comm_world, MPI_Comm comm_omp, MPI_Comm comm_master,
-    std::function<void(MPI_Comm, Vars&)> kernel, Vars& var) {
-  int rank_omp;
-  MPI_Comm_rank(comm_omp, &rank_omp);
-
-  Histogram hist(comm_world, "runkernelOMP", var.Int["histogram"]);
-  HypreSub::InitServer(comm_world, comm_omp);
-  if (rank_omp == 0) {
-    kernel(comm_master, var);
-    HypreSub::StopServer();
-  } else {
-    HypreSub::RunServer(hist);
-  }
-}
 
 std::string GetDefaultConf() {
   return R"foo(
@@ -88,46 +74,25 @@ set int hypre_gen_maxiter 30
 )foo";
 }
 
-int RunMpi0(
-    int argc, const char** argv, std::function<void(MPI_Comm, Vars&)> kernel,
+int RunMpiKernel(
+    MpiWrapper& mpi, std::function<void(MPI_Comm, Vars&)> kernel,
     std::istream& conf) {
-  int prov;
-  MPI_Init_thread(&argc, (char***)&argv, MPI_THREAD_MULTIPLE, &prov);
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  Vars var;
+  Parser(var).ParseStream(conf);
 
-  Vars var; // parameter storage
-  Parser ip(var); // parser
-
-  ip.RunAll(conf);
-
-  std::string be = var.String["backend"];
-
-  if (be == "local") {
-    MPI_Comm comm;
-    MPI_Comm_split(MPI_COMM_WORLD, rank, rank, &comm);
-    if (rank == 0) {
-      RunKernelOpenMP(comm, comm, comm, kernel, var);
-    }
-  } else {
-    bool openmp = var.Int["openmp"];
-    if (openmp) {
-      MPI_Comm comm_world;
-      MPI_Comm comm_omp;
-      MPI_Comm comm_master;
-      SubComm(comm_world, comm_omp, comm_master);
-      if (var.Int["verbose_openmp"]) {
-        PrintStats(comm_world, comm_omp, comm_master);
-      }
-      RunKernelOpenMP(comm_world, comm_omp, comm_master, kernel, var);
-    } else {
-      MPI_Comm comm = MPI_COMM_WORLD;
-      MPI_Comm comm_omp;
-      MPI_Comm_split(comm, rank, rank, &comm_omp);
-      RunKernelOpenMP(comm, comm_omp, comm, kernel, var);
-    }
+  const std::string backend = var.String["backend"];
+  if (backend == "local") {
+    fassert_equal(
+        mpi.GetCommSize(), 1, "\nBackend 'local' requires a single rank.\n");
   }
 
-  MPI_Finalize();
+  try {
+    kernel(mpi.GetComm(), var);
+  } catch (const std::exception& e) {
+    std::cerr << FILELINE + "\nabort after throwing exception\n"
+              << e.what() << '\n';
+    std::terminate();
+  }
+
   return 0;
 }

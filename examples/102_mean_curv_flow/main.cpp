@@ -12,13 +12,17 @@
 
 #include <debug/isnan.h>
 #include <distr/distrbasic.h>
-#include <dump/vtk.h>
 #include <dump/dumper.h>
+#include <dump/vtk.h>
 #include <func/init.h>
+#include <linear/linear.h>
+#include <parse/argparse.h>
 #include <solver/curv.h>
 #include <solver/reconst.h>
 #include <solver/vofm.h>
 #include <util/hydro.h>
+#include <util/linear.h>
+#include "func/init_bc.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -36,7 +40,7 @@ constexpr Scal kClNone = -1;
 // <Nx> <Ny> <Nz>
 // <data:x=0,y=0,z=0> <data:x=1,y=0,z=0> ...
 template <class Scal>
-void ReadPlain(std::string path, FieldCell<Scal>& u, GMIdx<3>& size) {
+void ReadPlain(std::string path, FieldCell<Scal>& u, generic::MIdx<3>& size) {
   std::ifstream dat(path);
   if (!dat.good()) {
     throw std::runtime_error("ReadPlain: Can't open data file '" + path + "'");
@@ -56,8 +60,9 @@ void CalcMeanCurvatureFlowFlux(
     const Multi<const FieldCell<Scal>*> fccl,
     const Multi<const FieldCell<Vect>*> fcn,
     const Multi<const FieldCell<Scal>*> fca,
-    const Multi<const FieldCell<Scal>*> fck, const MapCondFaceFluid& mff,
-    bool divfree, Scal* voidpenal, M& m) {
+    const Multi<const FieldCell<Scal>*> fck,
+    const MapEmbed<BCondFluid<Vect>>& mff, bool divfree, Scal* voidpenal,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m) {
   (void)fcn;
   (void)fca;
   auto sem = m.GetSem();
@@ -97,7 +102,7 @@ void CalcMeanCurvatureFlowFlux(
     }
   }
   if (divfree && sem.Nested("proj")) {
-    ProjectVolumeFlux(ffv, mff, m);
+    ProjectVolumeFlux(ffv, mff, linsolver, m);
   }
   if (voidpenal && sem("void-penal")) {
     for (auto f : m.Faces()) {
@@ -312,7 +317,6 @@ void InitColorJunctionTSymm(
   InitColorFromNodes(fncl, layers, fcu, fccl, m);
 }
 
-
 template <class M>
 void SetZeroBoundaryFlux(FieldFace<Scal>& fcu, const M& m) {
   for (auto fb : m.Faces()) {
@@ -327,7 +331,6 @@ void SetZeroBoundaryFlux(FieldFace<Scal>& fcu, const M& m) {
   }
 }
 
-
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
 
@@ -336,7 +339,7 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fcs; // volume source
     FieldEmbed<Scal> fev; // volume flux
     Multi<FieldCell<Scal>> fck; // curvature
-    MapCondFaceFluid mebc_fluid; // face conditions
+    MapEmbed<BCondFluid<Vect>> mebc_fluid; // face conditions
     MapEmbed<BCondAdvection<Scal>> mebc_adv; // face conditions
     GRange<size_t> layers;
     typename PartStrMeshM<M>::Par psm_par;
@@ -345,6 +348,7 @@ void Run(M& m, Vars& var) {
     size_t step = 0;
     size_t frame = 0;
     std::unique_ptr<Dumper> dumper;
+    std::shared_ptr<linear::Solver<M>> linsolver;
   } * ctx(sem);
   auto& fcs = ctx->fcs;
   auto& fev = ctx->fev;
@@ -356,6 +360,7 @@ void Run(M& m, Vars& var) {
   auto& step = ctx->step;
   auto& frame = ctx->frame;
   auto& dumper = ctx->dumper;
+  auto& t = *ctx;
 
   auto& as = ctx->as;
   const Scal tmax = var.Double["tmax"];
@@ -367,11 +372,17 @@ void Run(M& m, Vars& var) {
     fcs.Reinit(m, 0);
     fev.Reinit(m, 0);
 
+    t.linsolver = ULinear<M>::MakeLinearSolver(var, "symm", m);
+
     m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
     m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
     m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
 
-    GetFluidFaceCond(var, m, ctx->mebc_fluid, ctx->mebc_adv);
+    {
+      auto p = InitBc(var, m, {});
+      ctx->mebc_fluid = std::get<0>(p);
+      ctx->mebc_adv = std::get<1>(p);
+    }
 
     typename Vofm<M>::Par p;
     p.sharpen = var.Int["sharpen"];
@@ -418,7 +429,7 @@ void Run(M& m, Vars& var) {
     CalcMeanCurvatureFlowFlux(
         fev.GetFieldFace(), layers, as->GetFieldM(), as->GetColor(),
         as->GetNormal(), as->GetAlpha(), fck, ctx->mebc_fluid,
-        var.Int["divfree"], var.Double.Find("voidpenal"), m);
+        var.Int["divfree"], var.Double.Find("voidpenal"), t.linsolver, m);
   }
   if (sem("dt")) {
     if (var.Int["zero_boundary_flux"]) {
@@ -462,14 +473,14 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-  std::string path;
-  if (argc == 2) {
-    path = argv[1];
-  } else {
-    std::cerr << "usage: " << argv[0] << " [a.conf]" << std::endl;
-    return 1;
+  ArgumentParser parser("Constrained mean curvature flow");
+  parser.AddVariable<std::string>("path", "a.conf").Help("Path to config file");
+  auto args = parser.ParseArgs(argc, argv);
+  if (const int* p = args.Int.Find("EXIT")) {
+    return *p;
   }
 
+  auto path = args.String["path"];
   std::ifstream fconf(path);
 
   if (!fconf.good()) {
@@ -479,5 +490,6 @@ int main(int argc, const char** argv) {
   std::stringstream conf;
   conf << fconf.rdbuf();
 
-  return RunMpiBasic<M>(argc, argv, Run, conf.str());
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf.str());
 }

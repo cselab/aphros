@@ -25,3 +25,6 @@ a.conf
 add.conf
 tl
 *.so
+output
+!Makefile
+hook/build

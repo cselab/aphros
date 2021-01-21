@@ -6,89 +6,101 @@
 #include <vector>
 
 #include "report.h"
+#include "util/format.h"
 
 // Splits string by whitespace, skips every second.
-std::vector<std::string> Split(const std::string& str) {
-  std::vector<std::string> ss; // result
-  std::stringstream st(str);
-  st >> std::skipws;
-  while (st) {
-    std::string s;
-    st >> s;
-    ss.push_back(s);
-    st >> s; // skip
+std::vector<std::string> SplitBySeparator(
+    const std::string& str, const std::string& sep) {
+  std::vector<std::string> res;
+  size_t i = 0;
+  while (true) {
+    const size_t imatch = str.find(sep, i);
+    if (imatch != std::string::npos) {
+      res.push_back(str.substr(i, imatch - i));
+      i = imatch + sep.length();
+    } else {
+      res.push_back(str.substr(i));
+      break;
+    }
   }
-  return ss;
+  return res;
 }
 
-// Node
-struct N {
-  const double kNone = -1.; // empty time
-  std::vector<N> nn; // children
-  std::string s; // stage name
-  double t; // time
-  N(const std::string& s, double t) : s(s), t(t) {}
-  N(const std::string& s) : s(s), t(kNone) {}
-  N* Find(const std::string& s) {
-    for (auto& n : nn) {
-      if (n.s == s) {
-        return &n;
+namespace suspender_tree {
+
+struct Node {
+  Node(const std::string& name_, double time_) : name(name_), time(time_) {}
+  Node* FindChild(const std::string& name_) {
+    for (auto& node : children) {
+      if (node.name == name_) {
+        return &node;
       }
     }
     return nullptr;
   }
-  N* Add(const std::string& s) {
-    nn.emplace_back(s, kNone);
-    return &nn.back();
+  Node* AppendChild(const std::string& name_) {
+    children.emplace_back(name_, 0);
+    return &children.back();
   }
-  void Print(std::ostream& out, std::string pre, double ta) const {
-    auto fl = out.flags();
-    out << pre << s << " [" << std::setprecision(5) << t << " s, "
-        << std::setprecision(3) << 100. * t / ta << "%]" << std::endl;
-    for (auto& n : nn) {
-      n.Print(out, pre + "|     ", ta);
-    }
-    out.flags(fl);
-  }
-  void FillTime() {
-    double ts = 0.; // sum
-    if (t == kNone) {
-      for (auto& n : nn) {
-        if (n.t == kNone) {
-          n.FillTime();
-        }
-        ts += n.t;
-      }
-      t = ts;
-    }
-  }
+  std::vector<Node> children;
+  std::string name;
+  double time;
 };
 
-void ParseReport(const std::map<std::string, double>& mp, std::ostream& out) {
-  std::vector<std::string> ss0; // list of strings previous
-  N r("all"); // root
-  // split strings, mp stores graph traversal in depth-first order
-  for (auto& it : mp) {
-    std::vector<std::string> ss = Split(it.first);
-    if (ss.empty() || (ss.size() == 1 && ss[0] == "")) {
-      ss = {"other"};
+void PrintTree(
+    const Node& root, std::ostream& out, std::string prefix, double timeall) {
+  out << util::Format(
+      "{}{} [{:.3f} s, {:.2f}%]\n", prefix, root.name, root.time,
+      root.time * 100 / timeall);
+  for (const auto& node : root.children) {
+    PrintTree(node, out, prefix + "|     ", timeall);
+  }
+}
+void PrintTree(const Node& root, std::ostream& out) {
+  PrintTree(root, out, "", root.time);
+}
+void AccumulateTimeFromLeaves(Node& root) {
+  if (root.children.empty()) {
+    return;
+  }
+  double timesum = 0;
+  for (auto& node : root.children) {
+    AccumulateTimeFromLeaves(node);
+    timesum += node.time;
+  }
+  root.time = timesum;
+}
+
+} // namespace suspender_tree
+
+void ParseReport(
+    const std::map<std::string, double>& timings, std::ostream& out) {
+  using namespace suspender_tree;
+
+  std::vector<std::string> names_prev; // list of strings previous
+  Node root("all", 0);
+  for (auto& pair : timings) {
+    std::vector<std::string> names = SplitBySeparator(pair.first, " --> ");
+    if (names.empty() || (names.size() == 1 && names[0] == "")) {
+      names = {"other"};
     }
 
-    // from root to last common node with ss0
+    // collect names from root to last common node with names_prev
     size_t i = 0;
-    N* p = &r; // position
-    while (i < ss.size() && i < ss0.size() && ss[i] == ss0[i]) {
-      p = p->Find(ss[i]);
+    Node* pos = &root;
+    while (i < names.size() && i < names_prev.size() &&
+           names[i] == names_prev[i]) {
+      pos = pos->FindChild(names[i]);
       ++i;
     }
-    while (i < ss.size()) {
-      p = p->Add(ss[i]);
+    while (i < names.size()) {
+      pos = pos->AppendChild(names[i]);
       ++i;
     }
-    p->t = it.second;
-    ss0 = ss;
+    pos->time = pair.second;
+    names_prev.swap(names);
   }
 
-  r.FillTime();
-  r.Print(out, "", r.t);
+  AccumulateTimeFromLeaves(root);
+  PrintTree(root, out);
 }

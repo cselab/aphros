@@ -1,12 +1,15 @@
-cmake_minimum_required(VERSION 3.3.0)
+cmake_minimum_required(VERSION 3.12.0)
 project("aphros-deploy")
 
-option(USE_FPZIP "Build with FPZIP support." OFF)
+option(USE_FPZIP "Install fpzip. Used compression of communication buffers (experimental)" OFF)
+option(USE_AMGX "Install AMGX, linear solver on GPUs. Requires CUDA Toolkit" OFF)
+option(USE_GSL "Install GSL, requred by utilities lib/csv,chmath,split" OFF)
 
 set(NAMEPREFIX ap.)
 
 set(CMAKE_MACOSX_RPATH OFF)
 set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)
 
 # Disallow in-source build
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -190,6 +193,12 @@ foreach(name ${GenList})
     set(inc)
   endif()
   set(deps "${gen}" "${inc}")
+  if ("${name}" STREQUAL create_a_conf)
+    set(deps ${deps} "${ScriptsDir}/sim_a.conf")
+  endif()
+  if ("${name}" STREQUAL create_base_conf)
+    set(deps ${deps} "${ScriptsDir}/sim_base.conf")
+  endif()
   set(output "${GenOutputDir}/${name}")
   list(APPEND GenOutputList "${output}")
   add_custom_command(
@@ -247,9 +256,8 @@ ExternalProject_Add(eigen
 
 # fpzip
 if (USE_FPZIP)
-    set(fpzip_url "https://github.com/LLNL/fpzip/releases/download/1.3.0/fpzip-1.3.0.tar.gz")
     ExternalProject_Add(fpzip
-        URL ${fpzip_url}
+        URL "https://github.com/LLNL/fpzip/releases/download/1.3.0/fpzip-1.3.0.tar.gz"
         CMAKE_ARGS
         -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
         -DCMAKE_INSTALL_CMAKEDIR:STRING=cmake/fpzip
@@ -257,6 +265,23 @@ if (USE_FPZIP)
         -DBUILD_TESTING=OFF
         -DBUILD_UTILITIES=OFF
         -DFPZIP_ENABLE_PIC=ON
+        INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
+        )
+endif ()
+
+# AMGX
+set(CUDA_ARCH 60 CACHE STRING "Cuda architecture version to be passed to AMGX")
+set_property(CACHE CUDA_ARCH PROPERTY STRINGS 60 70)
+if (USE_AMGX)
+    ExternalProject_Add(amgx
+        GIT_REPOSITORY "https://github.com/NVIDIA/AMGX"
+        GIT_TAG 278865e403c0
+        GIT_SHALLOW ON
+        PATCH_COMMAND git apply "${CMAKE_CURRENT_SOURCE_DIR}/amgx_no_comm_report.patch"
+        CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        -DCUDA_ARCH=${CUDA_ARCH}
         INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
         )
 endif ()

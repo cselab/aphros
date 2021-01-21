@@ -12,6 +12,7 @@
 #include "distr/distrbasic.h"
 #include "linear/linear.h"
 #include "solver/approx_eb.h"
+#include "solver/approx2.h"
 #include "solver/convdiffe.h"
 #include "solver/convdiffvg.h"
 #include "solver/embed.h"
@@ -24,36 +25,6 @@ using Vect = typename M::Vect;
 using EB = Embed<M>;
 using Type = typename EB::Type;
 using CD = ConvDiffVectGeneric<EB, ConvDiffScalExp<EB>>;
-
-template <class M>
-FieldCell<typename M::Scal> GetDivergence(
-    FieldEmbed<typename M::Scal>& fev, const M& m, const Embed<M>& eb) {
-  using Scal = typename M::Scal;
-  FieldCell<Scal> fcdiv(m, 0);
-  for (auto c : eb.Cells()) {
-    Scal div = fev[c];
-    for (auto q : m.Nci(c)) {
-      div += fev[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
-    }
-    fcdiv[c] = div / eb.GetVolume(c);
-  }
-  return fcdiv;
-}
-
-template <class M>
-FieldCell<typename M::Scal> GetDivergence(
-    FieldFace<typename M::Scal>& fev, const M& m, const Embed<M>& eb) {
-  using Scal = typename M::Scal;
-  FieldCell<Scal> fcdiv(m, 0);
-  for (auto c : eb.Cells()) {
-    Scal div = 0;
-    for (auto q : eb.Nci(c)) {
-      div += fev[m.GetFace(c, q)] * m.GetOutwardFactor(c, q);
-    }
-    fcdiv[c] = div / eb.GetVolume(c);
-  }
-  return fcdiv;
-}
 
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
@@ -80,7 +51,9 @@ void Run(M& m, Vars& var) {
 
   if (sem("ctor")) {
     ctx->eb.reset(new EB(m));
-    ctx->fnl = UEmbed<M>::InitEmbed(m, var, m.IsRoot());
+  }
+  if (sem.Nested("levelset")) {
+    UEmbed<M>::InitLevelSet(ctx->fnl, m, var, m.IsRoot());
   }
   if (sem.Nested("init")) {
     ctx->eb->Init(ctx->fnl);
@@ -108,8 +81,9 @@ void Run(M& m, Vars& var) {
               << "dt/dt0=" << dt / dt0 << "dt/dt0a=" << dt / dt0a << " "
               << std::endl;
     typename CD::Par par;
-    cd.reset(new CD(
-        m, eb, fcvel, mebc, &ctx->fcr, &ctx->fed, &ctx->fcs, &fev, 0, dt, par));
+    typename CD::Args args{fcvel, mebc, &ctx->fcr, &ctx->fed, &ctx->fcs,
+                           &fev,  0,    dt,        nullptr,   par};
+    cd.reset(new CD(m, eb, args));
   }
   if (sem.Nested("dumppoly")) {
     ctx->eb->DumpPoly();
@@ -127,7 +101,7 @@ void Run(M& m, Vars& var) {
     }
     if (sem("div")) {
       auto& eb = *ctx->eb;
-      fcdiv = GetDivergence(fev, m, eb);
+      fcdiv = Approx2<EB>::GetRegularDivergence(fev, eb);
     }
     if (sem.Nested("convdiff-start")) {
       cd->StartStep();
@@ -181,5 +155,7 @@ set double cflvis 0.5
 
 set int eb_init_inverse 0
 )EOF";
-  return RunMpiBasic<M>(argc, argv, Run, conf);
+
+  MpiWrapper mpi(&argc, &argv);
+  return RunMpiBasicString<M>(mpi, Run, conf);
 }

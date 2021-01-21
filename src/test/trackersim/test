@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+
+import shutil
+import numpy as np
+import os
+
+import aphros
+
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__(cases=["grad", "gravity", "uniform", "zero"])
+
+    def run(self, case):
+        shutil.copyfile("_{}.conf".format(case), "add.conf")
+        self.runcmd("make -f sim.makefile cleanrun")
+
+        if case == "grad":
+            return [
+                "traj_0000.csv",
+                "trajsh_0000.csv",
+            ]
+        return [
+            "traj_0000.csv",
+            "traj_0001.csv",
+            "traj_0002.csv",
+            "traj_0003.csv",
+            "traj_0004.csv",
+            "trajsh_0000.csv",
+            "trajsh_0001.csv",
+            "trajsh_0002.csv",
+            "trajsh_0003.csv",
+            "trajsh_0004.csv",
+        ]
+
+    def check(self, outdir, refdir, output_files):
+        r = True
+        for f in output_files:
+
+            def cmp(fa, fb):
+                ua = np.genfromtxt(fa, delimiter=',', names=True)
+                ub = np.genfromtxt(fb, delimiter=',', names=True)
+                # exclude pressure
+                ua['p'] = 0
+                ub['p'] = 0
+                error = 0
+                for name in ua.dtype.names:
+                    error = max(error, abs(ua[name] - ub[name]).max())
+                return error
+
+            out = os.path.join(outdir, f)
+            ref = os.path.join(refdir, f)
+            eps = 0.0005 if self.case == "gravity" in out else 1e-6
+            error = cmp(out, ref)
+            if error > eps:
+                self.printlog("error exceeded for '{}', {:} >= {:}".format(
+                    out, error, eps))
+                r = False
+            self.printlog("pass for '{}', {:} < {:}".format(f, error, eps))
+        return r
+
+    def plot(self, datadir, output_files):
+        gnu = "a.gnu"
+        assert os.path.isfile(gnu), "{} not found".format(gnu)
+        gnurel = os.path.relpath(gnu, datadir)
+        refrel = os.path.relpath(self.refdir, datadir)
+        self.runcmd("cd '{}' && gnuplot -c '{}' '{}'".format(
+            datadir, gnurel, refrel))
+
+
+Test().main()

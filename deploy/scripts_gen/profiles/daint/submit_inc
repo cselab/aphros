@@ -5,9 +5,9 @@ extra=
 if [[ "$nth" == 1 ]] ; then
   :
 elif [[ "$nth" == 12 ]] ; then
-  extra="--ntasks-per-node '$nth'"
+  extra="-N '$np'"
 elif [[ "$nth" == 24 ]] ; then
-  extra="--ntasks-per-node '$nth' --ntasks-per-core 2"
+  extra="-N '$np'"
 else
   echo "Abort, got OMP_NUM_THREADS=$nth, expected 1, 12 or 24"
   exit 1

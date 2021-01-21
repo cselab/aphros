@@ -6,7 +6,24 @@
 #include <memory>
 
 #include "convdiffv.h"
-#include "linear/linear.h"
+
+template <class EB>
+struct ConvDiffVectArgs {
+  using Scal = typename EB::Scal;
+  using Vect = typename EB::Vect;
+  template <class T>
+  using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
+  const FieldCell<Vect>& fcvel;
+  const MapEmbed<BCond<Vect>>& mebc;
+  const FieldCell<Scal>* fcr;
+  const FieldFaceb<Scal>* ffd;
+  const FieldCell<Vect>* fcs;
+  const FieldFaceb<Scal>* ffv;
+  double t;
+  double dt;
+  std::shared_ptr<linear::Solver<typename EB::M>> linsolver;
+  ConvDiffPar<Scal> par;
+};
 
 template <class EB_, class CD_>
 class ConvDiffVectGeneric final : public ConvDiffVect<EB_> {
@@ -17,9 +34,9 @@ class ConvDiffVectGeneric final : public ConvDiffVect<EB_> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   static constexpr size_t dim = M::dim;
-  using Expr = Expression<Scal, IdxCell, 1 + dim * 2>;
   using CD = CD_;
   using Par = typename CD::Par;
+  using Args = ConvDiffVectArgs<EB>;
   template <class T>
   using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
 
@@ -33,11 +50,7 @@ class ConvDiffVectGeneric final : public ConvDiffVect<EB_> {
   // t: initial time
   // dt: time step
   // par: parameters
-  ConvDiffVectGeneric(
-      M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-      const MapEmbed<BCond<Vect>>& mebc, const FieldCell<Scal>* fcr,
-      const FieldFaceb<Scal>* ffd, const FieldCell<Vect>* fcs,
-      const FieldFaceb<Scal>* ffv, double t, double dt, Par par);
+  ConvDiffVectGeneric(M& m, const EB& eb, const Args& args);
   ~ConvDiffVectGeneric();
   // ...
   void Assemble(

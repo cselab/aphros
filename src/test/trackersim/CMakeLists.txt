@@ -1,8 +1,4 @@
-add_test(NAME tracker-zero COMMAND run zero)
-add_test(NAME tracker-uniform COMMAND run uniform)
-add_test(NAME tracker-gravity COMMAND run gravity)
-add_test(NAME tracker-grad COMMAND run grad)
-
-set_tests_properties(
-  tracker-zero tracker-uniform tracker-gravity tracker-grad
-  PROPERTIES RESOURCE_LOCK tracker)
+add_test_current(NAME zero COMMAND ./test zero)
+add_test_current(NAME uniform COMMAND ./test uniform)
+add_test_current(NAME gravity COMMAND ./test gravity)
+add_test_current(NAME grad COMMAND ./test grad)
