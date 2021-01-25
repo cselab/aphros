@@ -1,6 +1,0 @@
-Log
-===
-
-.. toctree::
-
-   log

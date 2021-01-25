@@ -1,7 +1,0 @@
-Library
-=======
-
-.. toctree::
-   :glob:
-
-   *

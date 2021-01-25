@@ -1,6 +1,0 @@
-linear(hypre) '': res=9.118344e-06 iter=93
-
-max_diff_exact=6.919527e-03
-residual=9.118344e-06
-iter=93
-time=0.031114
