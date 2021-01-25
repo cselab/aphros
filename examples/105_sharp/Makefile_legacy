@@ -5,5 +5,9 @@ APHROSFLAGS = -I$(APHROS_PREFIX)/include/ -I$(APHROS_PREFIX)/include/aphros -L$(
 0 = main.cpp
 main: $0
 	$(MPICXX) $0 $(CXXFLAGS) -fopenmp $(APHROSFLAGS) -o $@
+install: main
+	mkdir -p $(APHROS_PREFIX)/bin
+	cp main $(APHROS_PREFIX)/bin/ap.sharpen
+
 clean:; -rm main
 .PHONY: clean
