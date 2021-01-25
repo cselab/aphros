@@ -18,6 +18,7 @@
 #include "parse/vars.h"
 #include "parse/vof.h"
 #include "solver/vof.h"
+#include "util/distr.h"
 #include "util/hydro.h"
 #include "util/vof.h"
 
@@ -150,9 +151,10 @@ void Run(M& m, Vars& var) {
 }
 
 int main(int argc, const char** argv) {
-  const bool isroot = true;
+  MpiWrapper mpi(&argc, &argv);
 
-  ArgumentParser parser("Sharpens the image using PLIC advection", isroot);
+  ArgumentParser parser(
+      "Sharpens the image using PLIC advection", mpi.IsRoot());
   parser.AddSwitch({"--verbose", "-v"}).Help("Report steps");
   parser.AddVariable<double>("--cfl", 0.1)
       .Help("CFL number for advection, valid values between 0 and 1");
@@ -202,7 +204,7 @@ int main(int argc, const char** argv) {
     checkdiv(nx, bs, "NX");
     checkdiv(ny, bs, "NY");
     checkdiv(nz, bsz, "NZ");
-    while (nx % bs == 0 && ny % bs == 0 && bs <= 32) {
+    while (nx % bs == 0 && ny % bs == 0 && nz % bs == 0 && bs <= 32) {
       bs *= 2;
     }
     bs /= 2;
@@ -211,27 +213,8 @@ int main(int argc, const char** argv) {
   int bsy = bs;
 
   std::stringstream conf;
-  conf << R"EOF(
-# ranks
-set int px 1
-set int py 1
-set int pz 1
-
-set int hl 2
-
-set int verbose_time 0
-set int verbose_stages 0
-set string backend cubismnc
-set int loc_maxcomm 16
-)EOF";
-
-  conf << "set int bx " << nx / bs << '\n';
-  conf << "set int by " << ny / bsy << '\n';
-  conf << "set int bz " << nz / bsz << '\n';
-
-  conf << "set int bsx " << bs << '\n';
-  conf << "set int bsy " << bsy << '\n';
-  conf << "set int bsz " << bsz << '\n';
+  Subdomains<MIdx> sub(MIdx(nx, ny, nz), MIdx(bs, bsy, bsz), mpi.GetCommSize());
+  conf << sub.GetConfig() << '\n';
 
   conf << "set int dim " << (nz == 1 ? 2 : 3) << '\n';
 
@@ -251,6 +234,5 @@ set int loc_maxcomm 16
   conf << "set double cfl " << args.Double["cfl"] << '\n';
   conf << "set int VERBOSE " << args.Int["verbose"] << '\n';
 
-  MpiWrapper mpi(&argc, &argv);
   return RunMpiBasicString<M>(mpi, Run, conf.str());
 }

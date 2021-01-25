@@ -5,6 +5,7 @@ set -eu
 base=$(dirname $(readlink -f $0))
 : ${cfl=0.5}
 : ${steps=5}
+: ${np=5}
 
 i=$1
 o=$2
@@ -14,7 +15,7 @@ hdf=_$$.h5
 trap 'rm $hdf; exit 1' 1 2 3 4 15
 
 $base/img2hdf -i $i -o $hdf
-(. ap.setenv &> /dev/null && ap.sharpen "$@" -v --cfl $cfl --steps $steps $hdf $hdf)
+(. ap.setenv &> /dev/null && ap.mpirun -n $np ap.sharpen "$@" -v --cfl $cfl --steps $steps $hdf $hdf)
 $base/hdf2img -i $hdf -o $o
 
 rm "$hdf"
