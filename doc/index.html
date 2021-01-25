@@ -6,15 +6,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Aphros documentation</title>
-    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/center.css" type="text/css" />
     
     <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" /> 
@@ -106,7 +105,7 @@ and destroyed after the last stage.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>  <span class="kt">void</span> <span class="n">Reduce</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">Op</span><span class="o">&gt;&amp;&amp;</span> <span class="n">o</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>      <span class="c1">// Error: function &#39;Solve&#39; not found in &#39;/home/petr/work/ethz/proj/electrochem/ch/src/geom/mesh.h&#39;</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>      <span class="c1">// Error: function &#39;Solve&#39; not found in &#39;/home/petr/work/ethz/proj/electrochem/aphros/src/geom/mesh.h&#39;</span>
 </pre></div>
 </div>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>  <span class="kt">void</span> <span class="n">Dump</span><span class="p">(</span><span class="k">const</span> <span class="n">FieldCell</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;*</span> <span class="n">field</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">)</span>
@@ -399,6 +398,8 @@ Parameters of the solver are provided by</p>
   <span class="kt">bool</span> <span class="n">explviscous</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// enable explicit viscous terms</span>
   <span class="kt">bool</span> <span class="n">redistr_adv</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// use RedistributeCutCellsAdvection()</span>
                             <span class="c1">// if true else RedistributeCutCells()</span>
+  <span class="kt">size_t</span> <span class="n">diffusion_iters</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">// number of iterations in implicit diffusion</span>
+  <span class="kt">bool</span> <span class="n">diffusion_consistent_guess</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
 </div>
@@ -1346,7 +1347,7 @@ It contains cell fields
 <code class="docutils literal notranslate"><span class="pre">block</span></code> (block id), <code class="docutils literal notranslate"><span class="pre">cond</span></code> (conditions for advection)
 and <code class="docutils literal notranslate"><span class="pre">condfluid</span></code> (conditions for fluid, see <a class="reference internal" href="index.html#t-fluidcond"><span class="std std-ref">Fluid boundary conditions.</span></a>).</p>
 <p>The output is implemented in function</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>      <span class="c1">// Error: function &#39;DumpBcFaces&#39; not found in &#39;/home/petr/work/ethz/proj/electrochem/ch/src/util/hydro.ipp&#39;</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span>      <span class="c1">// Error: function &#39;DumpBcFaces&#39; not found in &#39;/home/petr/work/ethz/proj/electrochem/aphros/src/util/hydro.ipp&#39;</span>
 </pre></div>
 </div>
 </div>
@@ -2085,7 +2086,7 @@ instance)</p></li>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020 ETH Zurich.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.4.3.
     </div>
   </body>
 </html>

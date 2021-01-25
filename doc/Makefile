@@ -1,4 +1,4 @@
-REPO ?= "../../ch/"
+REPO ?= "../../aphros/"
 RSYNC = rsync -a -i --update
 
 copy:
