@@ -1,0 +1,11 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: gcc:latest
+
+    steps:
+      - checkout
+      - run:
+          command: |
+            true
