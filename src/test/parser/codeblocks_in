@@ -1,0 +1,10 @@
+name {
+  content
+}
+
+name { content }
+
+name with spaces {
+  content { inside {inside} braces }
+}
+

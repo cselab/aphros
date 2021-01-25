@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+
+import os
+
+PREFIX = os.environ["PREFIX"]
+PROFILE = os.environ["PROFILE"]
+EXTRA = ""
+FLAGVAR = "APHROS_SETENV"
+PREFIXVAR = "APHROS_PREFIX"
+PROFILEVAR = "APHROS_PROFILE"
+
+inc = "setenv_inc"
+if os.path.isfile(inc):
+    with open(inc) as f:
+        EXTRA = "  ".join(f.readlines())
+
+
+o = """#!/bin/sh
+
+# Source this file to append environment variables.
+
+if [ "${[[FLAGVAR]]:-x}" != "1" ] ; then
+  : ${LD_LIBRARY_PATH=}
+  : ${PYTHONPATH=}
+  : ${CMAKE_PREFIX_PATH=}
+
+  export [[PREFIXVAR]]="[[PREFIX]]"
+  export [[PROFILEVAR]]="[[PROFILE]]"
+  export PATH="${[[PREFIXVAR]]}/bin:$PATH"
+  export LD_LIBRARY_PATH="${[[PREFIXVAR]]}/lib:${LD_LIBRARY_PATH}"
+  export PYTHONPATH="${[[PREFIXVAR]]}/bin:$PYTHONPATH"
+  export EIGEN3_INCLUDE_DIR="${[[PREFIXVAR]]}/include"
+  export CMAKE_PREFIX_PATH="${[[PREFIXVAR]]}/cmake:${CMAKE_PREFIX_PATH}"
+  export MANPATH="$(MANPATH= manpath -g):${[[PREFIXVAR]]}/man"
+
+  export OMP_NUM_THREADS=1
+
+  [[EXTRA]]
+  export [[FLAGVAR]]=1
+  echo "[[FLAGVAR]]=$[[FLAGVAR]]" 1>&2
+  echo "[[PREFIXVAR]]=$[[PREFIXVAR]]" 1>&2
+  echo "[[PROFILEVAR]]=$[[PROFILEVAR]]" 1>&2
+fi
+"""
+
+for name in [
+        "PREFIX",
+        "EXTRA",
+        "PROFILE",
+        "FLAGVAR",
+        "PREFIXVAR",
+        "PROFILEVAR",
+]:
+    o = o.replace('[[' + name + ']]', locals()[name])
+
+print(o)

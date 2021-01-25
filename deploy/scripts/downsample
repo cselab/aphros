@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+
+import h5py
+import numpy as np
+import sys
+import os
+
+av = sys.argv
+
+if len(av) < 4 or av[1] == '-h':
+  print("""usage: ./{:} in divisor out
+Downsample hdf array.
+in,out: hdf files
+divisor: integer
+""".format(os.path.basename(av[0])))
+  exit(1)
+
+
+fi = av[1]
+div = int(av[2])
+fo = av[3]
+
+h = h5py.File(fi, 'r')
+u = h['data']
+u = np.array(u)
+u = u[::div,::div,::div]
+h.close()
+
+o = h5py.File(fo, 'w')
+o.create_dataset('data', data=u)
+o.close()

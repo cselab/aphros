@@ -1,0 +1,77 @@
+#!/bin/bash
+
+set -eu
+
+e () {
+  echo "$@"
+  eval "$@"
+}
+
+if [ "${1:-x}" = "-h" ] || [ "${1:-x}" = "--help" ] ; then
+  echo >&2 "usage: $0 [--help] [-y] [FILE=\`ap.findsource\`] ...
+Run clang-format for C/C++ files found recursively from current directory or specified in arguments.
+Options:
+  -y
+      Proceed without confirmation.
+"
+  exit 1
+fi
+
+force=0
+if [ "${1:-x}" = "-y" ] ; then
+  force=1
+  shift
+fi
+
+list=/tmp/clang-format-list.$$
+tmp=/tmp/tmp.$$
+trap 'rm -f $list $tmp; exit 2' 1 2 3 4 15
+
+if [ "$#" -gt "0" ] ; then
+  rm -f "$list"
+  for arg in "$@" ; do
+    echo "$arg" >> "$list"
+  done
+else
+  ap.findsource > "$list"
+fi
+
+# exclude symlinks, 'clang-format -i' replaces symlinks with regular files
+echo "Excluded symlinks:"
+rm -f "$tmp"
+while read line ; do
+  if [ -L "$line" ] ; then
+    echo "$line"
+  else
+    echo "$line" >> "$tmp"
+  fi
+done < "$list"
+mv "$tmp" "$list"
+
+echo "Remaining files:"
+cat $list
+
+cmd="clang-format -i"
+echo >&2 "Running '$cmd' for these files."
+
+re=
+if [ "$force" == "1" ] ; then
+  re='y'
+else
+  read -r -p "Proceed? [y/N] " re
+fi
+
+if [ "$re" = "y" ] ; then
+    cat "$list" | xargs $cmd
+    rm -v "$list"
+    echo >&2 Done
+    exit 0
+else
+    rm -v "$list"
+    echo >&2 Abort
+    exit -1
+fi
+
+status=$?
+rm -f $list
+exit $status

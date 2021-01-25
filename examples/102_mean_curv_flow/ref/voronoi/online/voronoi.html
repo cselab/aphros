@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+		<title>Interactive Voronoi Diagram Generator with WebGL - Alex Beutel</title>
+		<style type='text/css'>
+			.inputField { width: 100px; float: left; }
+			.inputLabel { width: 175px; float: left;}
+			.someInput { width: 100%; height: 30px; }
+			#mainBody {width: 100%-20px; margin-top: 15px; padding-left: 10px; padding-right: 10px;}
+			h4 {width: 100%; border-bottom: 1px solid #bebebe; margin-bottom: 4px;}
+			.pm {height: 12px; padding-right: 5px;}
+			.pm:hover {cursor: pointer;}
+		</style>
+		<script type="text/javascript" src="sylvester.js"></script>
+		<script type="text/javascript" src="glUtils.js"></script>
+		
+		<script id="shader-fs" type="x-shader/x-fragment">
+		  #ifdef GL_ES
+			precision highp float;
+		  #endif
+		  
+		  varying vec4 vColor;
+
+		  void main(void) {
+		    gl_FragColor = vColor;
+		  }
+		</script>
+
+		<script id="shader-vs" type="x-shader/x-vertex">
+		  attribute vec3 aVertexPosition;
+		  attribute vec4 aVertexColor;
+
+		  uniform mat4 uMVMatrix;
+		  uniform mat4 uPMatrix;
+
+		  varying vec4 vColor;
+
+		  void main(void) {
+		    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+		    vColor = aVertexColor;
+		  }
+		</script>
+
+		<script type="text/javascript" src="tutorial.js"></script>
+		
+		<script type='text/javascript'>
+		
+			/**************************
+			Code samples used from:
+				http://sylvester.jcoglan.com/
+				http://learningwebgl.com/blog/ 
+				http://diveintohtml5.org/
+				
+			(c) Alex Beutel - 2010
+			**************************/
+		
+			document.onkeypress = keyClick;
+			document.onkeyup = keyUpDown;
+			document.onkeydown = keyUpDown;
+		
+			var coneRadius = 1000;
+			var fragments = 50;
+			var cone_angle = 45;
+			var queryPoint = false;
+			
+			var continueRandom = false;
+			// var randomSpeed = false;
+			var pixelMult = 50;
+			// var moveSinusoidal = false;
+			var userDefined = false;
+			var dataStack = new Array();
+		
+			var gl;
+			var gl2d;
+			function initGL(canvas) {
+				try {
+					gl = canvas.getContext("experimental-webgl");
+					gl.viewportWidth = canvas.width;
+					gl.viewportHeight = canvas.height;
+				} catch(e) { }
+				if (!gl) { alert("Could not initialize WebGL, sorry :-("); }
+			}
+			
+			
+			var shaderProgram;
+			function initShaders() {
+				var fragmentShader = getShader(gl, "shader-fs");
+				var vertexShader = getShader(gl, "shader-vs");
+
+				shaderProgram = gl.createProgram();
+				gl.attachShader(shaderProgram, vertexShader);
+				gl.attachShader(shaderProgram, fragmentShader);
+				gl.linkProgram(shaderProgram);
+
+				if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+					alert("Could not initialize shaders");
+				}
+
+				gl.useProgram(shaderProgram);
+
+				shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+				gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+				shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+				gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+
+				shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+				shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+			}
+			
+			
+			var points = [];
+			var selected_point_id = -1;
+			var shift_pressed = false
+			var colorTable = new Array();
+			
+		  	var coneVertexPositionBuffer;
+			var pointVertexPositionBuffer;
+			function genCone() {
+				coneVertexPositionBuffer = gl.createBuffer();
+				gl.bindBuffer(gl.ARRAY_BUFFER, coneVertexPositionBuffer);
+				
+				var degInc = 360.0/fragments;
+				var height = coneRadius / Math.tan(45 * Math.PI / 180.0);
+
+				var vertices = [];
+
+				var curDeg = 0;
+				for(var i = 0; i < fragments; i++) { 
+					
+					vertices = vertices.concat([0,0,0]);
+
+					for(var j = 0; j < 2; j++){
+						var x1 = coneRadius * Math.cos((curDeg + j*degInc) * Math.PI / 180.0);
+						var y1 = coneRadius * Math.sin((curDeg + j*degInc) * Math.PI / 180.0);
+						
+						vertices = vertices.concat([x1,y1,-1.0 * height]);
+					}
+					curDeg += degInc;
+				}
+				gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+				
+				coneVertexPositionBuffer.itemSize = 3;
+				coneVertexPositionBuffer.numItems = fragments * 3;
+			}
+			
+			function genPointCone() {
+				pointVertexPositionBuffer = gl.createBuffer();
+				gl.bindBuffer(gl.ARRAY_BUFFER, pointVertexPositionBuffer);
+				
+				var degInc = 360.0/20;
+
+				var vertices = [];
+
+				var curDeg = 0;
+				for(var i = 0; i < 20; i++) { 
+					
+					vertices = vertices.concat([0,0,0.1]);
+
+					for(var j = 0; j < 2; j++){
+						var x1 = 3 * Math.cos((curDeg + j*degInc) * Math.PI / 180.0);
+						var y1 = 3 * Math.sin((curDeg + j*degInc) * Math.PI / 180.0);
+						
+						vertices = vertices.concat([x1,y1,0]);
+					}
+					curDeg += degInc;
+				}
+				gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+				
+				pointVertexPositionBuffer.itemSize = 3;
+				pointVertexPositionBuffer.numItems = 20 * 3;
+			}
+			
+			var pointVertexColorBuffer;
+			function pointColor() {
+				var size = 20*3;
+				pointVertexColorBuffer = gl.createBuffer();
+				gl.bindBuffer(gl.ARRAY_BUFFER, pointVertexColorBuffer);
+				
+				var color = [];
+				for(var i = 0; i < size; i++)
+					color = color.concat([0.0, 0.0, 0.0, 1.0]);
+					
+				gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(color), gl.STATIC_DRAW);
+				pointVertexColorBuffer.itemSize = 4;
+				pointVertexColorBuffer.numItems = size;
+			}
+			
+			function colorString(i1,i2,i3) {
+				return Math.floor((i1*256))+"-"+Math.floor(i2*256)+"-"+Math.floor(i3*256);
+			}
+			
+			function randColor(size, isQP) {
+				var i1 = Math.random();
+				var i2 = Math.random();
+				var i3 = Math.random();
+				
+				// while(colorTable[colorString(i1,i2,i3)]){
+				// 					i1 = Math.random();
+				// 					i2 = Math.random();
+				// 					i3 = Math.random();
+				// 				}
+				
+				
+				var color = [];
+				for(var i = 0; i < size; i++){
+					if(isQP)
+						color = color.concat([1.0, 1.0, 1.0, 0.2]);
+					else
+						color = color.concat([i1, i2, i3, 1.0]);
+				}
+				
+				return color;
+			}
+			
+			function getColorBuffer(color, size) {
+				var tempVertexColorBuffer = gl.createBuffer();
+				gl.bindBuffer(gl.ARRAY_BUFFER, tempVertexColorBuffer);
+				
+				gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(color), gl.STATIC_DRAW);
+				tempVertexColorBuffer.itemSize = 4;
+				tempVertexColorBuffer.numItems = size;
+				return tempVertexColorBuffer;
+			}
+			
+			function drawCircle2D(ctx, x, y, radius) {
+			    ctx.beginPath();
+			    ctx.arc(x, y, radius, 0, Math.PI*2, false);
+			    ctx.closePath();
+			    ctx.strokeStyle = "#000";
+			    ctx.stroke();
+				ctx.fillStyle = "#000";
+				ctx.fill();
+			}
+			function drawLine2D(ctx,x1,y1,x2,y2) {
+				ctx.moveTo(x1,y1);
+				ctx.lineTo(x2,y2);
+				ctx.strokeStyle = "#eee";
+				ctx.stroke();
+			}
+			
+			function Point() {
+				var colorBuffer;
+				var colorArray;
+				var colorSize;
+				var strColor;
+				var x, y;
+				var vx, vy;
+				var qp;
+				
+				var angle;
+				var vfunc;
+			}
+			
+			function addCone(cx,cy, isQuery, cb) {
+				var c = new Point();
+				if(!cb) cb = randColor(fragments*3,isQuery);
+				c.x = cx;
+				c.y = cy;
+				c.colorArray = cb;
+				c.colorSize = fragments*3;
+				c.qp = isQuery;
+				c.strColor = colorString(cb[0], cb[1], cb[2]); //Math.floor(cb[0]*256) + "-" + Math.floor(cb[1]*256) + "-" + Math.floor(256*cb[2]);
+				colorTable[c.strColor] = c;
+				points = points.concat(c);
+				$('data').value = getJSONstring();
+				return c;
+			}
+			
+			function drawCone(p) {
+				
+				if(p.x > ($('main-canvas').width + coneRadius) || p.x < (-1 * coneRadius) || p.y > ($('main-canvas').height + coneRadius) || p.y < (-1 * coneRadius)) {
+					//cone will not influence anything and is just slow, dont plot it
+					return;
+				}
+				
+				
+				if(p.qp) {
+					gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+					gl.enable(gl.BLEND);
+				}
+				
+				loadIdentity();
+				mvTranslate([p.x, p.y, 0.0]);
+				
+				gl.bindBuffer(gl.ARRAY_BUFFER, coneVertexPositionBuffer);
+				gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, coneVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+				
+				gl.bindBuffer(gl.ARRAY_BUFFER, getColorBuffer(p.colorArray,p.colorSize));
+				gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+				
+				setMatrixUniforms();
+				gl.drawArrays(gl.TRIANGLES, 0, coneVertexPositionBuffer.numItems);
+				
+				drawCircle2D(gl2d, p.x,p.y, 2.5);
+				
+				gl.disable(gl.BLEND);
+				// mvTranslate([0, 0, 4.0]);
+				// 
+				// gl.bindBuffer(gl.ARRAY_BUFFER, pointVertexPositionBuffer);
+				// gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, pointVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+				// 
+				// gl.bindBuffer(gl.ARRAY_BUFFER, pointVertexColorBuffer);
+				// gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, pointVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+				// 
+				// setMatrixUniforms();
+				// gl.drawArrays(gl.TRIANGLES, 0, pointVertexPositionBuffer.numItems);
+				
+			}
+			function startScene() {
+				gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+			    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+				ortho(0, gl.viewportWidth, gl.viewportHeight, 0, -5, 5000);
+			    loadIdentity();
+			}
+			
+			var mouseIsDown = false;
+			var curColor = null;
+			
+			function canvasClick(e) {
+				pushStack();
+				mouseIsDown = false;
+				var p = getCursorPosition(e);
+				if (selected_point_id >= 0) {
+					var c = points[selected_point_id];
+					c.x = p[0];
+					c.y = p[1];
+					selected_point_id = -1;
+				} else {
+					addCone(p[0],p[1],queryPoint,curColor);
+				}
+				curColor = null;
+				redraw();
+			}
+			
+			function getCursorPosition(e) {
+				var x,y;
+				if (e.pageX || e.pageY) {
+					x = e.pageX;
+					y = e.pageY;
+			    } else {
+					x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+					y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+			    }
+				x -= document.getElementById("main-canvas").offsetLeft;
+			    y -= document.getElementById("main-canvas").offsetTop;
+
+				return [x,y]; 
+			}
+
+			function sqr(a) {
+				return Math.pow(a, 2)
+			}
+			
+			function startDown(e) {
+				if (shift_pressed) {
+					var p = getCursorPosition(e);
+					var imin = -1;
+					for (var i = 0; i < points.length; i++) {
+						if (imin == -1 ||
+							sqr(p[0]-points[i].x) + sqr(p[1]-points[i].y) <
+							sqr(p[0]-points[imin].x) + sqr(p[1]-points[imin].y)) {
+							imin = i;
+						}
+					}
+					if (imin >= 0) {
+						var c = points[imin];
+						curColor = c.colorArray;
+						c.x += 100;
+						selected_point_id = imin;
+					}
+				} else  {
+					curColor = randColor(fragments*3,queryPoint);
+					selected_point_id = -1;
+				}
+				mouseIsDown = true;
+				canvasMouseMove(e);
+			}
+			function canvasMouseMove(e) {
+				if(!mouseIsDown) return;
+				
+				var p = getCursorPosition(e);
+				var c;
+				if (selected_point_id >= 0) {
+					c = points[selected_point_id]
+				} else {
+					c = new Point()
+					c.colorArray = curColor;
+					c.colorSize = fragments*3;
+					c.qp = queryPoint;
+				}
+				c.x = p[0];
+				c.y = p[1];
+				redraw(c);
+			}
+			
+			function webGLStart() {
+				var canvas = document.getElementById("main-canvas");
+				canvas.addEventListener("mousedown", startDown, false);
+				canvas.addEventListener("mousemove", canvasMouseMove, false);
+				canvas.addEventListener("mouseup", canvasClick, false);
+				initGL(canvas);
+				
+				canvas = document.getElementById("2d-canvas");
+				canvas.addEventListener("mousedown", startDown, false);
+				canvas.addEventListener("mousemove", canvasMouseMove, false);
+				canvas.addEventListener("mouseup", canvasClick, false);
+
+
+				canvas.addEventListener('keydown', function(event) {
+					if (lastDownTarget == canvas) {
+							alert('keydown');
+					}
+				}, false);
+				
+				plain();
+				
+				initShaders();
+
+				initiate();
+
+				redraw();
+			  }
+			function initiate() {
+				genCone();
+				genPointCone();
+				pointColor();
+			}
+			function $(id) { return document.getElementById(id); }
+			
+			function reset() { 
+				$('main-canvas').width = $('width').value;
+				$('main-canvas').height = $('height').value;
+				$('2d-canvas').width = $('width').value;
+				$('2d-canvas').height = $('height').value;
+				fragments = $('frags').value;
+				coneRadius = $('cone-radius').value;
+				queryPoint = $('query').checked;
+				// randomSpeed = $('random-speed').checked;
+				pixelMult = $('pixel-mult').value;
+				// moveSinusoidal = $('sinusoidal').checked;
+				userDefined = $('user-defined').checked;
+				webGLStart();
+			}
+			
+			function getJSONstring() {
+				var data = {};
+				var sites = [];
+				var queries = [];
+				for(var i = 0; i < points.length; i++) {
+					var ar = [points[i].x, points[i].y];
+					if(!points[i].qp) {
+						sites = sites.concat(ar);
+					} else {
+						queries = queries.concat(ar);
+					}
+				}
+				data['sites'] = sites;
+				data['queries'] = queries;
+				return JSON.stringify(data);
+			}
+			
+			function takeNewData() {
+				pushStack();
+				var input = $('data').value;
+				addNewData(input);
+			}
+			
+			function addNewData(input) {
+				var data = JSON.parse(input);
+				var sites = data['sites'];
+				var queries = data['queries'];
+				points = [];
+				for(var i = 0; i < sites.length; i += 2) {
+					addCone(sites[i], sites[i+1],false);
+				}
+				for(var i = 0; i < queries.length; i += 2) {
+					addCone(queries[i], queries[i+1],true);
+				}
+				redraw();
+			}
+			
+			function pixelColor(arr,i,j, w,h) {
+				if(i < 0 || j < 0 || i >= h || j >= w) return false;
+				var i0 = arr[(i*w+j)];
+				var i1 = arr[(i*w+j)+1];
+				var i2 = arr[(i*w+j)+2];
+				return i0 + "-" + i1 + "-" + i2;
+			}
+			
+			var colorPairs;
+			function triangulate() {
+				var w = $('main-canvas').width;
+				var h = $('main-canvas').height;
+				var arr = gl.readPixels(0, 0, w, h, gl.RGB, gl.UNSIGNED_BYTE);
+				if(!arr){
+					arr = new WebGLUnsignedByteArray(w * h * 4);
+					gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, arr);
+				}
+				
+				colorPairs = new Array();
+				// var test = 0;
+				for(var i = 0; i < h; i++ ) {
+					for(var j = 0; j < w; j++) {
+						var c;
+						if(i < 0 || j < 0 || i >= h || j >= w) {
+							c = -1;
+						} else {
+							var i0 = arr[(i*w+j)];
+							var i1 = arr[(i*w+j)+1];
+							var i2 = arr[(i*w+j)+2];
+ 							c = i0 + "-" + i1 + "-" + i2;
+						}
+
+						for(var k = -1; k <=1; k += 2) {
+							for(var l = -1; l <= 1; l+=2) {
+								var c1;// = pixelColor(arr, i+k, j+l, w,h);
+								if(i+k < 0 || j+l < 0 || i+k >= h || j+l >= w) {
+									c1 = -1;
+								} else {
+									var j0 = arr[((i+k)*w+(j+l))];
+									var j1 = arr[((i+k)*w+(j+l))+1];
+									var j2 = arr[((i+k)*w+(j+l))+2];
+		 							c1 = j0 + "-" + j1 + "-" + j2;
+								}
+								// document.title = c + ", " + c1;
+								if(c1 != -1 && c != c1){//found a neighbor
+									//document.title = "found a neighbor";
+									if(!colorPairs[c]) colorPairs[c] = new Array();
+									if(!colorPairs[c1]) colorPairs[c1] = new Array();
+									colorPairs[c][c1] = true;
+									colorPairs[c1][c] = true;
+								}
+							}
+						}
+						
+					}
+				}
+				
+				for(var i in colorPairs) {
+					
+					for(var j in colorPairs[i]) {
+						for(var k in colorPairs[j]) {
+							if(j == k) {
+								var p1 = colorTable[j];
+								var p2 = colorTable[k];
+								drawLine2D(gl2d, p1.x,p1.y,p2.x,p2.y);
+							}
+						}
+					}
+					
+				}
+			}
+			
+			function redraw(p) {
+				gl2d.clearRect(0,0,$('2d-canvas').width, $('2d-canvas').height);
+				
+				gl.clearColor(0.0, 0.0, 0.0, 1.0);
+				gl.clearDepth(1.0);
+				gl.enable(gl.DEPTH_TEST);
+				gl.depthMask(true);
+				gl.depthFunc(gl.LEQUAL);
+				
+				startScene();
+				for(var i = 0; i < points.length; i++) {
+					if(!points[i].qp) drawCone(points[i]);
+				}
+				
+				if(p) {
+					if(p.qp) gl.depthMask(false);
+					drawCone(p);
+				}
+				gl.depthMask(false);
+				for(var i = 0; i < points.length; i++) {
+					if(points[i].qp) drawCone(points[i]);
+				}
+				triangulate();
+			}
+			function pageStart() {
+				$('width').value = $('main-canvas').width;
+				$('height').value = $('main-canvas').height;
+				$('cone-radius').value = coneRadius;
+				$('frags').value = fragments;
+				$('query').checked = false;
+				// $('random-speed').checked = false;
+				// $('sinusoidal').checked = false;
+				$('pixel-mult').value = pixelMult;
+				$('user-defined').checked = false;
+				$('data').value = '';
+				webGLStart();
+				
+			}
+			function plain() {
+				var b_canvas = document.getElementById("2d-canvas");
+				b_canvas.style.zIndex="100";
+				gl2d = b_canvas.getContext("2d");
+			}
+			function loadRandomPoints() {
+				pushStack();
+				var num = prompt("How many points would you like to add randomly?", "25");
+				for(var i = 0; i < num; i++) {
+					var x = Math.random() * $('main-canvas').width;
+					var y = Math.random() * $('main-canvas').height;
+					addCone(x,y,queryPoint,curColor);
+					curColor = null;
+				}
+				redraw();
+			}
+			
+			function getVFunc(coef) {
+				return function(t) {
+					var r = 0;
+					for(var i = 0; i < coef.length; i++) {
+						r += Math.pow(t,i) * coef[i];
+					}
+					return r;
+				}
+			}
+			
+			function getSinusoidalV(coef, offset) {
+				return function(t) {
+					return coef * Math.sin(t) + offset;
+				}
+			}
+			
+			function getUserVFunc(rand) {
+				return function(t) {
+					return eval($('user-math').value);
+				}
+			}
+			
+			function getRand(min, max, integer) {
+				var x = (Math.random() * (max-min)) + min;
+				if(integer) 
+					return Math.round(x);
+				return x;
+			}
+			
+			function pushStack() {
+				dataStack.push(getJSONstring());
+				if(dataStack.length > 0) $('btnUndo').disabled = false;
+			}
+			function undo() {
+				var prev = dataStack.pop();
+				addNewData(prev);
+				$('data').value = prev;
+				if(dataStack.length == 0) $('btnUndo').disabled = true;
+			}
+			
+			var moveTime = 0;
+			function moveRandomly() {
+				pushStack();
+				moveTime = 0;
+				for(var i = 0; i < points.length; i++) {
+					var rad = (Math.random() * 360.0) * (Math.PI/180.0);
+					points[i].angle = rad;
+					var mx = pixelMult/10;
+					// if(randomSpeed) mx = getRand(0,15);
+					points[i].vfunc = getVFunc([mx]);
+					if(userDefined)
+						points[i].vfunc = getUserVFunc([Math.random(), Math.random(), Math.random(), Math.random()]); //getSinusoidalV(mx, 0);
+				}
+				continueRandom = true;
+				move();
+			}
+			function stopMotion() {
+				continueRandom = false;
+			}
+			
+			function move() {
+				for(var i = 0; i < points.length; i++) {
+					var vr = points[i].vfunc(moveTime);
+					points[i].x += Math.cos(points[i].angle) * vr; //points[i].vx;
+					points[i].y += Math.sin(points[i].angle) * vr; //points[i].vy;
+				}
+				$('data').value = getJSONstring();
+				redraw();
+				moveTime += 0.1;
+				if(continueRandom) setTimeout("move();", 100);
+			}
+			function compress(id) {
+				if($(id).style.display && $(id).style.display == 'none') $(id).style.display='';
+				else $(id).style.display='none';
+			}
+			var isTyping = false;
+			
+			function keyClick(e) {
+				if(isTyping) return;
+				var code;
+				if (!e) var e = window.event;
+				if (e.keyCode) code = e.keyCode;
+				else if (e.which) code = e.which;
+				if(code == 108) loadRandomPoints();
+				else if (code == 109) moveRandomly();
+				else if (code == 115) stopMotion();
+				else if (code == 114) takeNewData();
+			}
+			function keyUpDown(e) {
+				shift_pressed = e.shiftKey
+			}
+			function typing() {
+				isTyping = true;
+			}
+			function doneTyping() {
+				isTyping = false;
+			}
+			
+		</script>
+		<script type="text/javascript">
+		  var _gaq = _gaq || [];
+		  _gaq.push(['_setAccount', 'UA-3316326-10']);
+		  _gaq.push(['_trackPageview']);
+
+		  (function() {
+		    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+		    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+		    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+		  })();
+		</script>
+	</head>
+	<body onload="pageStart();">
+		<script type='text/javascript' src='http://alexbeutel.com/header.js'></script>
+		<div id='mainBody'>
+		<div style='float: right; width: 300px;'>
+			<div style='padding-top: 0px; '>
+				<h4><img src='pm.png' class='pm' onclick='compress("instructions");'/>Instructions</h4>
+				<div id='instructions' style='padding-bottom: 15px;'>
+					<ol>
+						<li>Make sure you are running a browser <a href='http://learningwebgl.com/blog/?p=11' target='_blank'>with WebGL enabled</a>.</li>
+						<li>Click in black box to add another point to the set of input points.</li>
+						<li>Click and keep mouse down to temporarily add a point.  Drag your mouse around to watch how the new input point influences the Voronoi diagram.  On release, the new point will be added.</li>
+						<li>To make a query point, such that the Voronoi diagram will display the stolen area from the nearest neighbors, check the NNI query point box before adding the point.</li>
+						<li>If you would like to save a diagram for reuse later, copy the data from the data field and simply reload it in later.</li>
+					</ol>
+					<div style='padding-top: 8px;'>For more info read <a href='http://blog.alexbeutel.com/?p=332' target='_blank'>my blog post</a> on the app.</div>
+				</div>
+			</div>
+			<h4><img src='pm.png' class='pm' onclick='compress("settings");'/>Settings</h4>
+			<div style='padding-bottom: 15px;' id='settings'>
+				<div class='someInput'>
+					<span class='inputLabel'>Width:</span>
+					<input type='text' class='inputField' id='width' value='900' onchange='reset();'/><br />
+				</div>
+				<div class='someInput'>
+					<span class='inputLabel'>Height:</span>
+					<input type='text' class='inputField' id='height' value='700' onchange='reset();' />
+				</div>
+				<div class='someInput'>
+					<span class='inputLabel'>Cone Radius:</span>
+					<input type='text' class='inputField' id='cone-radius' value='1000' onchange='reset();' />
+				</div>
+				<div class='someInput'>
+					<span class='inputLabel'>Triangles/cone:</span>
+					<input type='text' class='inputField' id='frags' value='50' onchange='reset();' />
+				</div>
+				<div class='someInput'>
+					<span class='inputLabel'>NNI Query point?</span>
+					<input type='checkbox' class='inputField' id='query' onchange='reset();' />
+				</div>
+				<!--<div sytle='height: 50px;'><input type='button' onclick='reset()' value='Update' /></div>-->
+			</div>
+			<h4><img src='pm.png' class='pm' onclick='compress("inputData");'/>Input data</h4>
+			<div style='padding-bottom: 15px;' id='inputData' >
+				<div sytle='height: 50px;'><input type='button' onclick='loadRandomPoints()' value='Load random points' /></div>
+				<div style='height: 30px; padding-top:10px;'>
+					<input type='text' id='data' style='width: 90%;' />
+				</div>
+				<div sytle='height: 50px;'><input type='button' onclick='takeNewData()' value='Reload data' /></div>
+				<div sytle='height: 50px;'><input type='button' onclick='undo()' value='Undo Previous Change' id='btnUndo' disabled /></div>
+			</div>
+			<h4><img src='pm.png' class='pm' onclick='compress("motion");'/>Motion</h4>
+			<div style='padding-bottom: 15px;' id='motion'>
+				<div class='someInput'>
+					<span class='inputLabel'>Speed (Pixels/sec):</span>
+					<input type='text' class='inputField' id='pixel-mult' value='50' onchange='reset();' />
+				</div>
+				<div style='height: 230px;'>
+					<div class='someInput'>
+						<span class='inputLabel'>User defined:</span>
+						<input type='checkbox' class='inputField' id='user-defined' onchange='reset();' />
+					</div>
+					<div class='someInput'>
+						<div>Define your own speed function below with Javascript in terms of time <i>t</i> (optional array, length 4, of random variables <i>rand</i>):</div>
+						<div><input type='text' style='width: 90%; margin: auto;' id='user-math' value='5 * Math.sin(t)' onfocus='typing()' onblur='doneTyping()' /></div>
+						<div style='font-size: 0.825em; padding-top: 5px;'>
+							Examples:
+							<ul>
+								<li>Sinusoidal: <i>5 * Math.sin(t)</i></li>
+								<li>Random linear speed: <i>rand[0]* 15</i></li>
+								<li>Random quadratic speed: <i>2 * rand[1] * t + rand[0] * 10</i></li>
+								<li>Possibly cubic: <i>Math.round(rand[1]) * Math.pow(t,2) + rand[0] * 10</i></li>
+							<ul>
+						</div>
+					</div>				
+				</div>
+				<!--
+				<div class='someInput'>
+					<span class='inputLabel'>Random speed</span>
+					<input type='checkbox' class='inputField' id='random-speed' onchange='reset();' />
+				</div>
+				<div class='someInput'>
+					<span class='inputLabel'>Sinusoidal oscillation</span>
+					<input type='checkbox' class='inputField' id='sinusoidal' onchange='reset();' />
+				</div>
+				-->
+				<div sytle='height: 50px;'><input type='button' onclick='moveRandomly()' value='Start random motion' style='margin-right: 15px;' /><input type='button' onclick='stopMotion()' value='Stop motion' /></div>
+			</div>
+		</div>
+		<h2>Interactive Voronoi Diagram Generator with WebGL</h2>
+		<div>
+			<canvas id="2d-canvas" style="border: none; position: absolute;" width="800" height="800" ></canvas>
+			<canvas id="main-canvas" style="border: none; position: absolute;" width="800" height="800" ></canvas>
+		</div>
+		</div>
+	</body>
+</html>

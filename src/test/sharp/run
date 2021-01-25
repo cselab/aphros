@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -eu
+
+# config file
+c=${1:-cub}
+c=a${c}.conf
+# block size
+b=${2:-8}
+# number of cores
+n=${3:-2}
+
+# mesh size
+m="32 32 1"
+
+# block size
+bs="$b $b 1"
+
+./clean
+ap.base
+ap.aconf
+
+# write np
+echo $n > np
+
+# partition mesh
+ap.part $m $bs `cat np` > mesh.conf
+
+# run in foreground
+ap.run ap.mfer "$c"
+
+a=0
+for f in ref/vf*.dat ; do
+  echo $f
+  if ! ap.diffnum "${f#ref/}" "$f" "1e-8"; then
+    a=1
+  fi
+done
+
+exit $a

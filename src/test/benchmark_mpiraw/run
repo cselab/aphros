@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -eu
+
+e=t.benchmark_mpiraw
+
+echo 192 > np
+echo 10 > tl
+make
+ap.run ./$e

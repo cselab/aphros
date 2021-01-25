@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+
+import os
+
+DEFINE_SUBMIT_CMD = \
+"""
+cmd="sh $job & ; echo $! > job_pid"
+"""
+
+DEFINE_JOB_ID = \
+"""
+id=`cat job_pid`
+"""
+
+inc = "submit_inc"
+if os.path.isfile(inc):
+    with open(inc) as f:
+        exec(f.read())
+
+o = """#!/bin/bash
+
+# Submit job found as ap.job in PATH,
+# read number of tasts from np
+# read time limit in minutes from tl
+
+set -eu
+
+if [ -f job.id ]; then
+  echo "Abort, job.id exists"
+  exit 1
+fi
+
+ap.writearg "$@"
+
+: ${JOB=ap.job}
+job="`type -p $JOB`"
+
+np=`cat np`
+tl=`cat tl`
+nth=${OMP_NUM_THREADS:-1}
+
+name="$(basename $(pwd))"
+
+DEFINE_SUBMIT_CMD
+echo $cmd
+
+msg=`eval $cmd`
+echo "$msg"
+
+DEFINE_JOB_ID
+echo "Write $id to job.id"
+echo $id > job.id
+
+echo "pending" > job.status
+"""
+
+for name in [
+        "DEFINE_SUBMIT_CMD",
+        "DEFINE_JOB_ID",
+]:
+    o = o.replace(name, locals()[name])
+
+print(o)

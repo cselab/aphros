@@ -1,0 +1,4 @@
+# from almgren1997
+sphere .75 .75  0   0.1
+sphere .25 .625 0   0.15 0.1
+sphere .5  .25  0   0.2 0.1

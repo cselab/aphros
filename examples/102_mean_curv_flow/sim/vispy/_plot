@@ -1,0 +1,2 @@
+./plot.py sm_0000.vtk ../../ref/colors1
+./plot.py sm_0300.vtk ../../ref/colors1

@@ -1,0 +1,13 @@
+diff --git a/base/src/distributed/distributed_manager.cu b/base/src/distributed/distributed_manager.cu
+index 444e0b6..e27e319 100644
+--- a/base/src/distributed/distributed_manager.cu
++++ b/base/src/distributed/distributed_manager.cu
+@@ -2281,7 +2281,7 @@ void DistributedManagerBase<TConfig>::createComms(Resources *rsrc)
+         CommsMPIHostBufferStream<TConfig> *ptr_comm = new CommsMPIHostBufferStream<TConfig>(*cfg, comm_scope, mpi_comm);
+         _comms =  ptr_comm;
+ 
+-        if ( rank == 0 )
++        if ( 0 && rank == 0 )
+         {
+             std::cout << "Using Normal MPI (Hostbuffer) communicator..." << std::endl;
+         }

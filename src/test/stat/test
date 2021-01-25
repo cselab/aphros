@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+
+import aphros
+import os
+
+class Test(aphros.TestBase):
+    def run(self):
+        self.runcmd("ap.mpirun ./t.stat > out")
+        return ["out", "stat.dat"]
+
+    def check(self, outdir, refdir, output_files):
+        r = True
+        for f in output_files:
+            out = os.path.join(outdir, f)
+            ref = os.path.join(refdir, f)
+            self.runcmd("ap.diffnum '{}' '{}' 2e-5".format(out, ref))
+        return r
+
+
+Test().main()

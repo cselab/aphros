@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+
+import aphros
+
+class Test(aphros.TestBase):
+    def run(self):
+        self.runcmd("./gen > conf")
+        return ["conf"]
+
+Test().main()

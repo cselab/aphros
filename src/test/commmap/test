@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+
+import aphros
+
+
+class Test(aphros.TestBase):
+    def run(self):
+        self.runcmd("echo 2 > np")
+        self.runcmd("ap.mpirun ./t.commmap > out")
+        return ["out"]
+
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__(cases=["main", "manager"])
+
+    def run(self, case):
+        if case == "main":
+            self.runcmd("./t.commmap > out")
+            return ["out"]
+        elif case == "manager":
+            np = 2
+            self.runcmd("ap.mpirun -n {} ./t.commmap.manager".format(np))
+            return ["out_{}".format(i) for i in range(np)]
+        else:
+            raise NotImplementedError()
+
+
+Test().main()

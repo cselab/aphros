@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+
+# Generates xmf for dataset 'data' in hdf.
+# $1: name of base.h5 file
+# $2: field name (defaults to 'data')
+# STDOUT:
+# base.xmf
+
+import h5py
+import os
+import re
+import sys
+
+av = sys.argv
+
+if len(av) < 2:
+ print('''usage: {:} data.h5 [extent]
+Generate data.xmf with uniform mesh.
+'''.format(av[0]))
+ exit(1)
+
+hfn = av[1]
+hfs = "data"
+m = re.findall("(.*?)_.*?.h5", os.path.basename(hfn))
+field = m[0] if len(m) else "data"
+extent = float(av[2]) if len(av) > 2 else 1.
+
+h = h5py.File(hfn, 'r')
+u = h[hfs]
+
+ncz,ncy,ncx,ncc = u.shape
+
+nx = ncx + 1
+ny = ncy + 1
+nz = ncz + 1
+bx = 0. 
+by = 0. 
+bz = 0. 
+dx = extent / max(ncx, ncy, ncz)
+dy = dx
+dz = dx
+prec = "float"
+
+t = '''<?xml version='1.0' ?>
+<!DOCTYPE Xdmf SYSTEM 'Xdmf.dtd' []>
+<Xdmf Version='2.0'>
+ <Domain>
+   <Grid GridType='Uniform'>
+     <Topology TopologyType='3DCORECTMesh' Dimensions='{nz} {ny} {nx}'/>
+     <Geometry GeometryType='ORIGIN_DXDYDZ'>
+       <DataItem Name='Origin' Dimensions='3' NumberType='Float' Precision='8' Format='XML'>
+        {bz} {by} {bx}
+       </DataItem>
+       <DataItem Name='Spacing' Dimensions='3' NumberType='Float' Precision='8' Format='XML'>
+        {dz} {dy} {dx}
+       </DataItem>
+     </Geometry>
+     <Attribute Name='{field}' AttributeType='Scalar' Center='Cell'>
+       <DataItem Dimensions='{ncz} {ncy} {ncx} {ncc}' NumberType='Float' Precision='{prec}' Format='HDF'>
+        ./{hfn}:/{hfs}
+       </DataItem>
+     </Attribute>
+   </Grid>
+ </Domain>
+</Xdmf>
+'''.format(**locals())
+
+fn = os.path.splitext(hfn)[0] + ".xmf"
+if os.path.isfile(fn):
+  fn = os.path.splitext(hfn)[0] + ".uni.xmf"
+print(fn)
+open(fn, 'w').write(t)

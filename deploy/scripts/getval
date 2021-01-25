@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import sys
+
+
+s = "stat.dat"
+av = sys.argv
+
+if len(av) < 3:
+  print("usage: {:} columnname t".format(av[0]))
+  print("Print value of column at time t".format(s))
+  exit(1)
+
+
+c = av[1]
+t0 = float(av[2])
+
+res = 0.
+
+# best
+tb = None
+vb = None
+
+with open(s) as f:
+  head = f.readline().split()
+  it = head.index('t')
+  iv = head.index(c)
+  for l in f:
+    t = float(l.split()[it])
+    v = l.split()[iv]
+    if tb is None or abs(t - t0) < abs(t - tb):
+      tb = t
+      vb = v
+
+print(vb)
+

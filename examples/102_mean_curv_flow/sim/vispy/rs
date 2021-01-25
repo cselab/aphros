@@ -1,0 +1,4 @@
+#!/bin/bash
+
+r=euler
+rsync -zaPL "$r:s/scratch/ch/meancurvflow/./ex102_points1/sm_0{000,300}.vtk" .

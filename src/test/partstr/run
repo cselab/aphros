@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -eu
+
+# reference
+r=ref
+
+# run 
+make -f sim.makefile cleanrun
+
+a=0
+for f in $r/* ; do
+  echo $f
+  eps=1e-11
+  if ! ap.diffnum "${f#$r/}" "$f" $eps; then a=1; fi
+done
+
+exit $a

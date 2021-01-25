@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -eu
+
+e=t.benchmark_mpi
+
+make
+echo 192 > np
+echo 10 > tl
+ap.run ./$e
+
+cat timer.log

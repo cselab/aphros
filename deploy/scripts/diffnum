@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import sys
+import os
+import re
+
+v = sys.argv
+
+if len(v) < 3:
+  sys.stderr.write(
+"""usage: {:} A B [EPS=1e-8] [sort] [rel]
+Compares words from A and B allowing tolerance EPS for numbers.
+Returns: 1 if different.
+STDOUT: first failed pair
+""".format(sys.argv[0]))
+  exit(1)
+
+fa = v[1]
+fb = v[2]
+eps = float(v[3]) if len(v) > 3 else 1e-8
+
+# text
+ua = open(fa).readlines()
+ub = open(fb).readlines()
+
+ua = ' '.join(ua)
+ub = ' '.join(ub)
+
+# words
+pt='[ ,\t()=]'
+wa = re.split(pt, ua)
+wb = re.split(pt, ub)
+
+if "sort" in v:
+  wa = sorted(wa)
+  wb = sorted(wb)
+
+def E(a, b, e):
+  global eps
+  a = str(a).strip()
+  b = str(b).strip()
+  print("error exceeded: {:} > {:}\na='{:}' b='{:}', ".format(e, eps, a, b))
+  exit(1)
+
+def E2(a, b):
+  global eps
+  a = str(a).strip()
+  b = str(b).strip()
+  print("error: a='{:}' b='{:}', ".format(a, b))
+  exit(1)
+
+la = len(wa)
+lb = len(wb)
+
+em = 0 # max diff
+
+for i in range(max(la,lb)):
+  i < la or E2('', wb[i])
+  i < lb or E2(wa[i], '')
+
+  a = wa[i]
+  b = wb[i]
+  if a == b:
+    continue
+
+  try:
+    na = float(a)
+    nb = float(b)
+  except:
+    E2(a, b)
+
+  if "rel" in v:
+    e = (abs(na) + abs(nb)) * 0.5
+    e = abs(na - nb) / e if e != 0 else 0
+  else:
+    e = abs(na - nb)
+
+  em = max(em, e)
+
+  e <= eps or all(np.isnan([na,nb])) or E(a, b, e)
+
+print("max error: {:}".format(em))

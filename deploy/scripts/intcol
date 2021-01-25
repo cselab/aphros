@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import sys
+
+
+s = "stat.dat"
+av = sys.argv
+
+if len(av) < 4:
+  print("usage: {:} columnname t0 t1".format(av[0]))
+  print("Integrate column for t in [t0,t1]".format(s))
+  exit(1)
+
+
+c = av[1]
+t0 = float(av[2])
+t1 = float(av[3])
+
+res = 0.
+
+with open(s) as f:
+  head = f.readline().split()
+  it = head.index('t')
+  iv = head.index(c)
+  tprev = None
+  for l in f:
+    t = float(l.split()[it])
+    if tprev is not None and t >= t0 and t <= t1:
+      v = float(l.split()[iv])
+      res += (t - tprev) * v
+    tprev = t
+
+print(res)
+

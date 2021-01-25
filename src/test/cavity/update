@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -eu
+
+r=ref
+ff="out
+p_0000.dat
+vf_0000.dat
+vx_0000.dat
+vy_0000.dat
+vz_0000.dat
+p_0000.pdf
+"
+
+mkdir -p $r
+
+./plot.py || true
+
+for f in $ff ; do
+  echo $f
+  cp -v $f $r/$f
+done
+

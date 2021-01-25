@@ -1,0 +1,29 @@
+#!/bin/bash
+
+make levelset
+
+o=levelset_out
+
+> $o
+
+R () {
+  c="./levelset $@"
+  echo "$c" >> $o
+  eval "$c 2>&1" >> $o
+}
+
+R area 0 0 0 0
+R area 1 1 1 1
+R area 0 0 1 1
+R area 1 0.5 0 0
+R area 0.5 0.5 0 0
+R area 0.5 0.5 0.5 0.5
+R area 0.1 0.2 0.3 0.4
+R area 0.2 0.3 0.4 0.1
+R area 0.3 0.4 0.1 0.2
+R area 0.4 0.1 0.2 0.3
+R area 0.1 0.2 0.3 0.4
+
+if ! diff -q $o levelset_ref ; then
+  exit 1
+fi

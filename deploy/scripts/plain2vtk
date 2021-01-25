@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import re
+import numpy as np
+
+# Read uniform grid data
+# p: path
+# Format:
+# <nx> <ny> <nz>
+# <u[0,0,0]> <u[0,0,1]> ...
+# Return:
+# array of shape (nx, ny, nz)
+# None if file not found
+def ReadPlain(fn):
+  if not os.path.isfile(fn):
+    return None
+  with open(fn) as f:
+    ll = f.readlines()
+    # shape x,y,z
+    s = np.array(ll[0].split(), dtype=int)
+    # shape z,y,x
+    ss = tuple(reversed(s))
+    # data flat
+    u = np.array(ll[1].split(), dtype=float)
+    # data z,y,x
+    u = u.reshape(ss)
+    return u
+
+def WriteVtk(fn, u, name, report=True):
+  with open(fn, 'w') as f:
+    nz, ny, nx = u.shape
+
+    nxp = nx + 1
+    nyp = ny + 1
+    nzp = nz + 1
+
+    hx = 1. / max(nx, ny, nz)
+    hy = hx
+    hz = hx
+
+    nc = nx * ny * nz
+
+    f.write('''# vtk DataFile Version 2.0
+converted by ap.plain2vtk
+ASCII
+DATASET STRUCTURED_POINTS
+DIMENSIONS {nxp} {nyp} {nzp}
+ORIGIN 0 0 0
+SPACING {hx} {hy} {hz}
+CELL_DATA {nc}
+SCALARS {name} float
+LOOKUP_TABLE default
+'''.format(**locals()))
+    for a in u.flatten():
+      if not np.isfinite(a):
+        a = 0
+      f.write("{:}\n".format(a))
+    if report:
+      print("{fn} {name} {nx} {ny} {nz}".format(**locals()))
+
+
+av = sys.argv
+
+if len(av) < 2 or '-h' in av:
+    print("usage: ./{:} DAT".format(os.path.basename(av[0])))
+
+fn = av[1]
+fno = os.path.splitext(fn)[0] + ".vtk"
+name = re.findall("([^_.]*)", os.path.basename(fn))[0]
+
+u = ReadPlain(fn)
+WriteVtk(fno, u, name)

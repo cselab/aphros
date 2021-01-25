@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+
+import numpy as np
+
+np.random.seed(0)
+
+def GetRandomCluster(xlim, ylim, zlim, rrsmp, gap, num_tries=1000):
+  xx = np.array([])
+  yy = np.array([])
+  zz = np.array([])
+  rr = np.array([])
+
+  def U(u0, u1):
+    if u0 > u1:
+      return (u0 + u1) * 0.5
+    return np.random.uniform(u0, u1)
+
+
+  c = 0 # number of tries
+  while True:
+    r = np.random.choice(rrsmp)
+    x = U(xlim[0] + r, xlim[1] - r)
+    y = U(ylim[0] + r, ylim[1] - r)
+    z = U(zlim[0] + r, zlim[1] - r)
+    dm = None  # minimal square distance to other bubbles
+    if len(xx):
+      dm = ((xx - x)**2 + (yy - y)**2 + (zz - z)**2 - (rr + r + gap)**2).min()
+    if dm is None or dm >= 0:
+      xx = np.append(xx, x)
+      yy = np.append(yy, y)
+      zz = np.append(zz, z)
+      rr = np.append(rr, r)
+      c = 0
+    else:
+      c += 1
+      if c > num_tries:
+        break
+
+  return xx, yy, zz, rr
+
+def GetVolumeSum(b):
+  r = b[3]
+  return np.sum(4. / 3. * np.pi * r ** 3)
+
+# vd: domain volume
+def GetVF(b, vd):
+  return GetVolumeSum(b) / vd
+
+
+# w: domain width (cube domain)
+# r: bubble radius
+# beta: volume fraction
+# rnd: random if True, else regular
+def GetCluster(w, rrsmp, beta, xlim, ylim, zlim):
+  lx = 4.
+  r = np.mean(rrsmp)
+  vd = w ** 3  # domain volume
+  vb = 4. / 3. * np.pi * r ** 3 # single bubble volume
+  nb = beta * vd / vb   # target number of bubbles
+  g = 0.1 * w  # gap
+
+  print("w={:} r={:} rrsmp={:} beta={:}".format(w, r, rrsmp, beta))
+
+  b = None # cluster
+  if nb == 0:
+    b = GetEmptyCluster()
+  else:
+    vdb = vd / nb # domain volume per bubble
+    gap = max(0., vdb ** (1. / 3.) - 2 * r)
+    gap *= 0.65 # empirical correction
+    b = GetRandomCluster(xlim, ylim, zlim, rrsmp, gap)
+
+  print("nb={:}".format(len(b[0])))
+  print("beta={:}".format(GetVF(b, vd)))
+  return np.vstack(b)
+
+
+w = 1.  # domain width
+beta = 0.1   # volume fraction
+
+lim=[0,1]
+nx = 16
+h = 1. / nx
+rr = np.linspace(h, h * 2, 10)
+b = GetCluster(w, rr, beta, lim, lim, lim)
+
+fn = "b.dat"
+np.savetxt(fn, b.T)

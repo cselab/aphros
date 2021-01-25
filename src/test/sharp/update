@@ -1,0 +1,12 @@
+#!/bin/bash
+
+r=ref
+ff="out
+vf_0000.dat
+vf_0000.pdf
+"
+
+for f in $ff ; do
+  echo $f
+  cp -v $f $r/$f
+done

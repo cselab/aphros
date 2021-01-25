@@ -1,0 +1,256 @@
+#!/usr/bin/env python3
+import os
+import argparse
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+matplotlib.rc('text', usetex=False)
+import matplotlib.pyplot as plt
+
+def parseArgs():
+    parser = argparse.ArgumentParser(description='Convert Histogram.h binary output to histogram plot')
+    parser.add_argument('-f', '--files', nargs='+', type=str, help='Histogram data file', required=True)
+    parser.add_argument('-r', '--ranks', nargs='+', type=int, help='Include only specified ranks')
+    parser.add_argument('-s', '--stats', nargs='+', type=int, help='Include only specified stats IDs')
+    parser.add_argument('-sn', '--stats_name', nargs='+', type=str, help='Same as -s but use stats name instead')
+    parser.add_argument('-n', '--numbers', action='store_true', help='Print all data for available statistics')
+    parser.add_argument('-rs', '--rankstats', action='store_true', help='Compute the statistics over ranks for the data collected on each rank')
+    parser.add_argument('-a', '--ascii', action='store_true', help='Dump data to ASCII and exit')
+    parser.add_argument('-p', '--plot', action='store_true', help='Plot the histogram to file and exit')
+    parser.add_argument('--format', default='pdf', type=str, help='Output file format (only with --plot)')
+    parser.add_argument('--sdev', action='store_true', help='Indicate standard deviation (only with --plot)')
+    parser.add_argument('--minmax', action='store_true', help='Indicate min/max values (only with --plot)')
+    parser.add_argument('--nosamples', action='store_true', help='Hide number of samples in statistic (only with --plot)')
+    parser.add_argument('--nolog', action='store_true', help='Do not use logarithmic y-scale (only with --plot)')
+    parser.add_argument('--item_width', default=10, type=int, help='Number of characters in field names for stdout')
+    return parser.parse_known_args()
+
+def readData(name):
+    data = {}
+    with open(name, 'rb') as f:
+        nranks, nstats, nfloats = np.fromfile(f, dtype=np.int32, count=3)
+        for i in range(nstats):
+            size, = np.fromfile(f, dtype=np.int32, count=1)
+            bs = np.fromfile(f, dtype=np.int8, count=size)
+            key = ''.join([chr(c) for c in bs])
+            data[key] = {'stats': {}, 'mask': []}
+        keys_data = list(data.keys())
+        keys_stat = [
+                'nsamples',
+                'mean',
+                'sdev',
+                'sum',
+                'vmin',
+                'vmax'
+                ]
+        for r in range(nranks):
+            for k,d in data.items():
+                v = d['stats']
+                stats = np.fromfile(f, dtype=np.float64, count=nfloats)
+                for j,ks in enumerate(keys_stat):
+                    if ks not in v:
+                        v[ks] = []
+                    v[ks].append(stats[j])
+                if int(v['nsamples'][-1]) == 0:
+                    d['mask'].append(False)
+                else:
+                    d['mask'].append(True)
+    return data, nranks
+
+def getSubspace(data, nranks, args):
+    nstats = len(data)
+    if args.ranks:
+        ridx = np.array(args.ranks, dtype=np.int)
+    else:
+        ridx = np.arange(nranks, dtype=np.int)
+    if args.stats_name and not args.stats:
+        keys = list(data.keys())
+        sidx = []
+        for key in args.stats_name:
+            if key in keys:
+                sidx.append(keys.index(key))
+        sidx = np.array(sidx, dtype=np.int)
+    elif args.stats:
+        sidx = np.array(args.stats, dtype=np.int)
+    else:
+        sidx = np.arange(nstats, dtype=np.int)
+    nstats = len(sidx)
+    return nstats, ridx, sidx
+
+def anno(ax, patches, values):
+    for h,v in zip(patches, values):
+        ax.annotate(
+                '{:d}'.format(int(v)),
+            xy=(h.get_x() + h.get_width() / 2, h.get_height()),
+            xytext=(0, 3),  # 3 points vertical offset
+            textcoords="offset points",
+            ha='center',
+            va='bottom', fontsize=4, rotation=90)
+
+def plot(args):
+    for f in args.files:
+        data, nranks = readData(f)
+        nstats, ridx, sidx = getSubspace(data, nranks, args)
+        ranks = ['rank{:d}'.format(r) for r in ridx]
+        x = np.arange(len(ranks))
+        width = 1 / (nstats + 1)
+        rwidth = 1
+        pad = 0.5 * (rwidth - nstats * width)
+        fig, ax = plt.subplots(2, 1, sharex=True)
+        dl = list(data.items())
+        items = [dl[i] for i in sidx]
+        for i, (k, d) in enumerate(items):
+            v = d['stats']
+            nsamples = np.array(v['nsamples'])[ridx]
+            mean = np.array(v['mean'])[ridx]
+            sdev = np.array(v['sdev'])[ridx]
+            accu = np.array(v['sum'])[ridx]
+            vmin = np.array(v['vmin'])[ridx]
+            vmax = np.array(v['vmax'])[ridx]
+            yerr = None
+            ylog = True
+            if args.nolog:
+                ylog = False
+            if args.sdev:
+                sdev = np.array([len(sdev)*[0], sdev]) # + only
+                yerr = sdev
+            elif args.minmax:
+                yerr = np.array([vmin, vmax])
+            x0 = x - 0.5 * rwidth + pad + (i + 0.5) * width
+            h = ax[0].bar(x0, mean, width, yerr=yerr, capsize=1, ecolor='gray',
+                    label=k, log=ylog)
+            if not args.nosamples:
+                anno(ax[0], h.patches, nsamples)
+            h = ax[1].bar(x0, accu, width, label=k, log=ylog)
+            if not args.nosamples:
+                anno(ax[1], h.patches, nsamples)
+
+        ylab = [
+                'Average time [s]',
+                'Accumulated time [s]'
+                ]
+        ax[0].set_title(f)
+        ax[0].legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+        ax[1].set_xticklabels(ranks, rotation=35)
+        for i,l in enumerate(ylab):
+            ax[i].set_xticks(x)
+            ax[i].set_ylabel(l)
+            ylim = ax[i].get_ylim()
+            ax[i].set_ylim((1.0e-7, ylim[-1])) # lowest resolution 0.1 musec
+            # ax[i].grid(which='both')
+
+        fig.tight_layout()
+        plt.savefig(os.path.splitext(f)[0] + '.' + args.format, dpi=200,
+                bbox_inches='tight')
+
+def show(args):
+    for f in args.files:
+        data, nranks = readData(f)
+        nstats, ridx, sidx = getSubspace(data, nranks, args)
+        info = "File: {:s}\n".format(f)
+        info += "\tRanks: {:d}\n".format(len(ridx))
+        info += "\tAvailable Statistics: {:d} (select a subset using --stats)\n".format(nstats)
+        dl = list(data.items())
+        items = [dl[i] for i in sidx]
+        for i,(k,d) in zip(sidx, items):
+            v = d['stats']
+            m = d['mask']
+            info += "\t\t[{:d}]: {:s}\n".format(i, k)
+            if args.numbers:
+                for kv, vv in v.items():
+                    va = np.array(vv)
+                    info += "\t\t{:<{width}s}:".format(kv, width=args.item_width)
+                    info += "".join([' {:.4e}'.format(x) for x in va[ridx]]) + "\n"
+            if args.rankstats:
+                rank_id = np.arange(nranks)
+                info += "\t\t{:<{width}s}   Rank-mean   Rank-sdev    Rank-min             Rank-max\n".format("", width=args.item_width)
+                for kv, vv in v.items():
+                    info += "\t\t{:<{width}s}:".format(kv, width=args.item_width)
+                    va = np.array(vv)[m] # zero-sample ranks are masked out
+                    mean = va.mean()
+                    sdev = va.std()
+                    vmin = va.min()
+                    rmin = np.argmin(va)
+                    vmax = va.max()
+                    rmax = np.argmax(va)
+                    info += " {:.4e}  {:.4e}  {:.4e} [rank {:d}]  {:.4e} [rank {:d}]\n".format(
+                                mean, sdev,
+                                vmin, rank_id[m][rmin],
+                                vmax, rank_id[m][rmax])
+        print(info)
+
+def ascii(args):
+    assert args.ascii is not None
+    if not args.numbers and not args.rankstats:
+        args.numbers = True # default if none given
+    if args.numbers and args.rankstats:
+        args.rankstats = False # only either per file for column consistency
+    for f in args.files:
+        fname = os.path.splitext(f)[0]
+        if args.numbers:
+            fname += '_numbers'
+        elif args.rankstats:
+            fname += '_rankstats'
+        fname += '.dat'
+        with open(fname, 'w') as out:
+            data, nranks = readData(f)
+            nstats, ridx, sidx = getSubspace(data, nranks, args)
+            out.write("# File: {:s}\n".format(f))
+            out.write("#\tRanks: {:d}\n".format(len(ridx)))
+            out.write("#\tAvailable Statistics: {:d}\n".format(nstats))
+            line = 4 # at line 4 now
+            dl = list(data.items())
+            items = [dl[i] for i in sidx]
+            line += len(items)
+            line += len(items) * len(items[0][1].items())
+            line += 2 # column declaration + 1 empty '#'
+            # header
+            for i,(k,d) in zip(sidx, items):
+                v = d['stats']
+                out.write("#\t\t[{:d}]: {:s}\n".format(i, k))
+                for kv,vv in v.items():
+                    out.write("#\t\t{:<{width}s}: line {:d}\n".format(kv, line, width=args.item_width))
+                    line += 1
+            out.write("# Columns:\n")
+            out.write("#")
+            if args.numbers:
+                for r in ridx:
+                    out.write("\tRank{:d}".format(r))
+            elif args.rankstats:
+                out.write("\tRank-mean\tRank-sdev\tRank-min\tRank-min-val\tRank-max\tRank-max-val")
+            out.write("\n")
+            # data
+            for i,(k,d) in zip(sidx, items):
+                v = d['stats']
+                m = d['mask']
+                if args.numbers:
+                    for kv, vv in v.items():
+                        va = np.array(vv)
+                        out.write("".join(['{:.6e}\t'.format(x) for x in va[ridx]]).strip() + '\n')
+                if args.rankstats:
+                    rank_id = np.arange(nranks)
+                    for kv, vv in v.items():
+                        va = np.array(vv)[m] # zero-sample ranks are masked out
+                        mean = va.mean()
+                        sdev = va.std()
+                        vmin = va.min()
+                        rmin = np.argmin(va)
+                        vmax = va.max()
+                        rmax = np.argmax(va)
+                        out.write("{:.6e}\t{:.6e}\t{:d}\t{:.6e}\t{:d}\t{:.6e}\n".format(
+                                mean, sdev,
+                                rank_id[m][rmin], vmin,
+                                rank_id[m][rmax], vmax))
+
+def main():
+    args, _ = parseArgs()
+    if args.plot:
+        plot(args)
+        return
+    if args.ascii:
+        ascii(args)
+        return
+    show(args)
+
+if __name__ == "__main__":
+    main()

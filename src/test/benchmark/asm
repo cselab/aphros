@@ -1,0 +1,1 @@
+g++ -std=c++14 -O2 -DNDEBUG -I../../ -S -masm=intel -fverbose-asm main.cpp -o main.asm

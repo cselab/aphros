@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -eu
+
+e () {
+  echo "$@" 1>&2
+  eval "$@"
+}
+
+if [ "${1:-x}" = "-h" ] || [ "${1:-x}" = "--help" ] || [ "$#" != "0" ] ; then
+  echo "usage: $0
+Finds C/C++ source files recursively from current directory exluding symlinks and files containing 'CMake'
+"
+  exit 1
+fi
+
+list=/tmp/findsource.$$
+tmp=/tmp/tmp.$$
+trap 'rm -f $list $tmp; exit 2' 1 2 3 4 15
+
+eval "find . -type f \
+-name '*.h' -or \
+-name '*.hpp' -or \
+-name '*.ipp' -or \
+-name '*.cpp' -or \
+-name '*.c' | grep -v CMake > $list"
+
+# exclude symlinks
+rm -f "$tmp"
+while read line ; do
+  if ! [ -L "$line" ] ; then
+    echo "$line" >> "$tmp"
+  fi
+done < "$list"
+mv "$tmp" "$list"
+
+cat $list
+
+rm -f $list

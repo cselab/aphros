@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+
+import h5py
+import numpy as np
+import sys
+import os
+
+av = sys.argv
+
+if len(av) < 2 or av[1] == '-h':
+  print("""usage: ./{:} DAT.h5 [EXTENT=1]
+Prints coordinates of argmax over field DAT.
+""".format(os.path.basename(av[0])))
+  exit(1)
+
+
+fi = av[1]
+ext = float(av[2]) if len(av) > 2 else 1.
+
+h = h5py.File(fi, 'r')
+u = h['data']
+u = np.array(u)
+
+h = ext / max(u.shape)
+
+xx = np.unravel_index(u.argmax(), u.shape)[:3]
+
+xx = np.array(xx)
+xx = xx.astype(float) * h
+print("{:} {:} {:}".format(*xx))

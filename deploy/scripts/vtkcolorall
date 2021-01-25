@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -eu
+
+for i
+do
+  b=`basename "$i"`
+  if [ -f "$b" ] ; then
+    echo >&2 "skip existing '$b'"
+    continue
+  fi
+  echo "$i"
+  ap.vtkcolor < "$i" > "$b"
+done

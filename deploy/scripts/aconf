@@ -1,0 +1,2 @@
+echo "Warning: ap.aconf is DEPRECATED, use ap.create_a_conf" 1>&2
+ap.create_a_conf

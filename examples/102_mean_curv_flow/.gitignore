@@ -1,0 +1,12 @@
+*.h5
+*.xmf
+*.vtk
+*.vts
+*.pvd
+arg
+job.id
+job.status
+np
+out
+job.id.last
+add.conf

@@ -1,0 +1,5 @@
+
+Test Parse
+nci=1 clear0=1 clear1=2 halo=fill fill_vf=0.4 fill_cl=0.6
+nci=1 clear0=1 clear1=2 halo=reflect fill_vf=0.4 fill_cl=0.6
+nci=1 clear0=2 clear1=3 halo=reflect fill_vf=0.3 fill_cl=0.7

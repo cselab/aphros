@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+
+# Returns args for sim/base.makefile from par.conf
+# $1: directory containing par.conf (defaults to '.')
+
+import aphros
+import sys
+
+v = sys.argv
+
+b = '.' if len(v) < 2 else v[1]
+c = aphros.ReadPar(b)
+
+print(aphros.GetMakeArg(c))
