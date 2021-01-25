@@ -1,7 +1,0 @@
-Tools
-=====
-
-.. toctree::
-   :glob:
-
-   *

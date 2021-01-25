@@ -1,6 +1,0 @@
-put 1 10
-length
-put 2 20
-length
-remove 2
-length

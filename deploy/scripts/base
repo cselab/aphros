@@ -1,2 +1,0 @@
-echo "Warning: ap.base is DEPRECATED, use ap.create_base_conf" 1>&2
-ap.create_base_conf

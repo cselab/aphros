@@ -1,8 +1,0 @@
-#!/bin/bash
-
-set -eu
-
-ap.writearg "$@"
-
-echo "foreground" > job.id
-. ap.job0
