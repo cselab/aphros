@@ -18,6 +18,8 @@
 #include "parse/vars.h"
 #include "parse/vof.h"
 #include "solver/vof.h"
+#include "util/hydro.h"
+#include "util/vof.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
@@ -30,13 +32,23 @@ void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
   struct {
     std::unique_ptr<Vof<M>> solver;
+    Vof<M>::Par par;
 
     FieldCell<Scal> fcu;
     FieldEmbed<Scal> fe_flux;
     FieldCell<Scal> fc_src;
+    FieldCell<Scal> fc_zero;
+    FieldCell<Vect> fc_zerov;
 
     // boundary conditions for advection (empty)
     MapEmbed<BCondAdvection<Scal>> bc;
+
+    // for csv dump
+    UVof<M> uvof;
+    FieldCell<Scal> fccl;
+    std::vector<std::string> column_names;
+    std::vector<Scal> row_colors;
+    std::vector<std::vector<Scal>> table;
   } * ctx(sem);
   auto& t = *ctx;
   if (sem.Nested()) {
@@ -45,15 +57,16 @@ void Run(M& m, Vars& var) {
   if (sem("ctor")) {
     t.fe_flux.Reinit(m, 0);
     t.fc_src.Reinit(m, 0);
+    t.fc_zero.Reinit(m, 0);
+    t.fc_zerov.Reinit(m, Vect(0));
 
-    Vof<M>::Par par;
-    par.clipth = 1e-10;
-    par.sharpen = true;
-    par.sharpen_cfl = var.Double["cfl"];
-    par.dim = var.Int["dim"];
+    t.par.clipth = 1e-10;
+    t.par.sharpen = true;
+    t.par.sharpen_cfl = var.Double["cfl"];
+    t.par.dim = var.Int["dim"];
     const FieldCell<Scal> fccl(m, 0);
     t.solver.reset(new Vof<M>(
-        m, m, t.fcu, fccl, t.bc, &t.fe_flux, &t.fc_src, 0., 1., par));
+        m, m, t.fcu, fccl, t.bc, &t.fe_flux, &t.fc_src, 0., 1., t.par));
   }
   if (sem.Nested("start")) {
     t.solver->StartStep();
@@ -89,6 +102,49 @@ void Run(M& m, Vars& var) {
   if (vtk_out_march && sem.Nested()) {
     t.solver->DumpInterfaceMarch(*vtk_out_march);
   }
+  const std::string* csv_out = var.String.Find("csv_out");
+  if (csv_out && sem()) {
+    t.fccl.Reinit(m, 0);
+    for (auto c : m.SuCells()) {
+      t.fccl[c] = t.solver->GetField()[c] > 0 ? 0 : Vof<M>::kClNone;
+    }
+  }
+  if (csv_out && sem.Nested()) {
+    auto plic = t.solver->GetPlic();
+    t.uvof.Recolor(
+        plic.layers, plic.vfcu, &t.fccl, &t.fccl, t.par.clfixed,
+        t.par.clfixed_x, t.par.coalth, {}, t.par.verb,
+        t.par.recolor_unionfind, t.par.recolor_reduce, t.par.recolor_grid, m);
+  }
+  if (csv_out && sem.Nested()) {
+    auto plic = t.solver->GetPlic();
+    CalcTraj<M>(
+        m, plic.layers, plic.vfcu, &t.fccl, plic.vfcim, t.fc_zero,
+        t.fc_zerov, t.column_names, t.row_colors, t.table);
+  }
+  if (csv_out && sem()) {
+    if (m.IsRoot()) {
+      std::ofstream o;
+      o.open(*csv_out);
+      o.precision(16);
+      // header
+      {
+        o << "cl";
+        for (size_t i = 0; i < t.column_names.size(); ++i) {
+          o << "," << t.column_names[i];
+        }
+        o << std::endl;
+      }
+      // content
+      for (size_t i = 0; i < t.row_colors.size(); ++i) {
+        o << t.row_colors[i];
+        for (auto v : t.table[i]) {
+          o << "," << v;
+        }
+        o << "\n";
+      }
+    }
+  }
   if (sem()) { // XXX empty stage
   }
 }
@@ -104,6 +160,8 @@ int main(int argc, const char** argv) {
       .Help("Path to output VTK with surface from marching cubes");
   parser.AddVariable<std::string>("--vtk_out").Help(
       "Path to output VTK with piecewise linear surface");
+  parser.AddVariable<std::string>("--csv_out").Help(
+      "Path to output CSV with centroids of connected components");
   parser.AddVariable<int>("--steps", 5).Help("Number of sharpening steps");
 
   parser.AddVariable<std::string>("hdf_in").Help(
@@ -186,6 +244,9 @@ set int loc_maxcomm 16
   }
   if (auto* p = args.String.Find("vtk_out_march")) {
     conf << "set string vtk_out_march " << *p << '\n';
+  }
+  if (auto* p = args.String.Find("csv_out")) {
+    conf << "set string csv_out " << *p << '\n';
   }
   conf << "set double cfl " << args.Double["cfl"] << '\n';
   conf << "set int VERBOSE " << args.Int["verbose"] << '\n';

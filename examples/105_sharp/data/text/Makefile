@@ -8,7 +8,7 @@ default: blur.png
 	convert -density 300 $< -crop 256x256+0+0 -alpha remove $@
 
 blur.png: main.png
-	convert main.png -blur 4x2 blur.png
+	convert main.png -blur 8x2 blur.png
 
 clean:
 	$(RM) *.aux *.log *.pdf *.png
