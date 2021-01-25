@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+
+import os
+import re
+
+import aphros
+
+
+class Cases:
+    single = "single"
+    convergence = "convergence"
+
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__(cases=[Cases.single, Cases.convergence])
+        self.parser.add_argument("--nproc",
+                                 default=2,
+                                 help="Maximum number of processors.")
+        self.parser.add_argument(
+            "--maxnx",
+            default=256,
+            type=int,
+            help="Maximum mesh size for convergence test.")
+
+    def run_nx(self, nx):
+        nproc = self.args.nproc
+        bs = 32
+        nblocks = (nx // bs)**2
+        nproc = nblocks // max(1, nblocks // nproc)
+        self.runcmd("make m='{0} {0} 1' np='{1}' cleanrun".format(nx, nproc))
+        er = 'error_{:03d}'.format(nx)
+        os.rename('error', er)
+        return [er]
+
+    def run(self, case):
+        ret = []
+        if case == Cases.single:
+            ret += self.run_nx(64)
+            ret.append("theta_error_0001.h5")
+        elif case == Cases.convergence:
+            nx = 32
+            while nx <= self.args.maxnx:
+                ret += self.run_nx(nx)
+                nx *= 2
+        return ret
+
+    def check(self, outdir, refdir, output_files):
+        return True
+
+    def update(self, outdir, refdir, output_files):
+        super().update(outdir, refdir, output_files)
+        if self.case == Cases.single:
+            f = "field.svg"
+            self.copy_file(os.path.join(outdir, f), os.path.join(refdir, f))
+        elif self.case == Cases.convergence:
+            f = "error.svg"
+            self.copy_file(os.path.join(outdir, f), os.path.join(refdir, f))
+
+    def plot_error(self, datadir, refdir, output_files):
+        import matplotlib.pyplot as plt
+        import numpy as np
+        from matplotlib.ticker import ScalarFormatter, NullFormatter
+        ref = datadir.startswith("ref")
+        vnx = []
+        vref = []
+        vdat = []
+        for f in [f for f in output_files if f.startswith("error_")]:
+            vnx.append(int(re.findall(".*_(\d*)", f)[0]))
+            vref.append(np.loadtxt(os.path.join(refdir, f)))
+            vdat.append(np.loadtxt(os.path.join(datadir, f)))
+        vnx = np.array(vnx)
+        vref = np.array(vref)
+        vdat = np.array(vdat)
+        radius = 0.4
+        vcpr = radius * vnx
+        fig, ax = plt.subplots(figsize=(5, 4))
+        ax.loglog()
+        labels = ["L1", "L2", "max"]
+        indices = [1, 2, 3]
+        colors = ['C0', 'C1', 'C2']
+        for l, i, c in zip(labels, indices, colors):
+            ax.plot(vcpr,
+                    vref[:, i],
+                    marker='s',
+                    label=l + "-ref",
+                    c=c,
+                    ls='-' if ref else '--')
+            if not ref:
+                ax.plot(vcpr, vdat[:, i], marker='o', label=l, c=c)
+        ax.plot(vcpr, 2.5 / vcpr**2, 'k--', label=r'$h^2$')
+        ax.set_xlabel(r'R / h')
+        ax.set_ylabel(r'error')
+        formatter = ScalarFormatter()
+        formatter.set_scientific(False)
+        ax.xaxis.set_major_formatter(formatter)
+        ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.set_xticks(vcpr, minor=[])
+        ax.set_yticks(10.**np.arange(-4, 0), minor=[])
+        ax.minorticks_off()
+        ax.legend(loc='upper center',
+                  bbox_to_anchor=(0.5, 1.2),
+                  ncol=4,
+                  fontsize=8,
+                  handlelength=3.5)
+        fig.tight_layout()
+        fpath = os.path.join(datadir, "error.svg")
+        self.printlog(fpath)
+        fig.savefig(fpath)
+
+    def plot_error_field(self, datadir, refdir, files):
+        import aphros.plot
+        import numpy as np
+        import h5py
+
+        f = os.path.join(datadir, "theta_error_0001.h5")
+        if not os.path.isfile(f):
+            return
+        with h5py.File(f, 'r') as h:
+            u = h['data']
+            u = np.array(u)
+            u = u[0, :, :, 0]
+
+        fig, ax = aphros.plot.GetSquareFigure(aspect=0.885)
+
+        u = abs(u)
+        u[u == 0] = np.nan
+        vmin = 0
+        vmax = np.nanstd(u) * 1.5
+        cmap = "viridis"
+        aphros.plot.PlotSquareField(ax, u, vmin=vmin, vmax=vmax, cmap=cmap)
+        aphros.plot.AddColorBar(fig, vmin, vmax, cmap=cmap)
+
+        fpath = os.path.join(datadir, "field.svg")
+        self.printlog(fpath)
+        fig.savefig(fpath)
+
+    def plot(self, datadir, output_files):
+        self.plot_error(datadir, self.refdir, output_files)
+        self.plot_error_field(datadir, self.refdir, output_files)
+
+
+Test().main()

@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+
+import aphros
+import os
+import numpy
+import itertools
+import sys
+
+
+def Abort(msg):
+    sys.stderr.write(str(msg) + '\n')
+    exit(1)
+
+
+def ExpPar():
+    # SI units
+    # Vecchiolla2018, Figure 1
+    mu = 1.25e-3
+    sigma = 35.2e-3
+    volrate_lh = 12e-3  # litre/hour
+    volrate = volrate_lh / 3600. / 1e3
+    thickness = 60e-6
+    height_narrow = 75e-6
+    gasfraction = 0.645  # found to match inlet_vel=2.08
+    inlet_area = height_narrow * thickness
+    inlet_vel = volrate / inlet_area / (1 - gasfraction)
+    Ca = mu * inlet_vel / sigma
+    rho_glycerol = 1260
+    rho_water = 1000
+    cw_glycerol = 0.1
+    cv_glycerol = 1 / (1 + rho_glycerol / rho_water * (1 / cw_glycerol - 1))
+    rho = rho_glycerol * cv_glycerol + rho_water * (1 - cv_glycerol)
+    Re = height_narrow * inlet_vel * rho / mu
+    print(
+        "ExpPar\nCa={:.5g}, Re={:.5g}, inlet_vel={:.5g}, cv_glycerol={:.5g}, rho={:.5g}"
+        .format(Ca, Re, inlet_vel, cv_glycerol, rho))
+    # Ca=0.074098, Re=157.75, inlet_vel=2.086
+    return locals()
+
+
+# default
+par = {
+    "dim": 3,
+    "nx": 16 * 40 * 2,
+    "Lnarrow": 0.51,
+    "Lwide": 1.,
+    "Hwide": 1.,
+    "Hnarrow": 75. / 1600.,
+    "thickness": 60. / 1600.,
+    "Re": 128,
+    "Ca": 0.074,
+    "rho": 0.01,
+    "gasfrac": 0.75,
+    "np": 1640,
+    "tl": 1440,
+    "bs": 16,
+    "bublength": 2.,
+    "bubgen_gap": 0.,
+    "gapy": 0.,
+    "inlet_periodic": False,
+}
+
+exec(open("par.py").read(), None, par)
+
+Lwide = float(par["Lwide"])
+Lnarrow = float(par["Lnarrow"])
+H = float(par['Hwide'])
+Hnarrow = float(par['Hnarrow'])
+thickness = float(par['thickness'])
+Re = par["Re"]
+Ca = par["Ca"]
+nx = par['nx']
+
+extent = Lwide + Lnarrow + H * 0.5
+inf = extent * 10.
+lx = extent
+hx = lx / nx
+eps = hx * 0.01
+
+bsx = par['bs']
+bsy = bsx
+bsz = bsx
+
+ly = H + hx * 4 + par['gapy']
+lz = thickness + hx * 4
+assert ly <= extent
+assert lz <= extent
+
+if par['dim'] == 2:
+    bsz = 1
+    lz = 0
+
+
+def Up(n, b):
+    return max(1, n + b - 1) // b * b
+
+
+ny = Up(int(nx * ly / lx + 0.5), bsy)
+nz = Up(int(nx * lz / lx + 0.5), bsz)
+ly = ny * hx
+lz = nz * hx
+
+# geometry
+geom = aphros.Geometry()
+geom.Box([lx / 2, ly / 2, 0], [inf, H / 2, inf], invert=1)
+diag = (extent - Lwide) / (2.**0.5)
+geom.Box([0, ly / 2 - H / 2, 0], [inf, diag, inf], -45)
+geom.Box([0, ly / 2 + H / 2, 0], [inf, diag, inf], 45)
+geom.Box([lx / 2, ly / 2, 0], [inf, Hnarrow / 2, inf], invert=1, intersect=1)
+geom.Box([0, 0, lz / 2], [inf, inf, thickness / 2], invert=1)
+
+with open("body.dat", 'w') as f:
+    f.write(geom.Generate())
+
+# boundary conditions
+bc = aphros.Bc()
+
+g = aphros.Geometry()
+g.Box([0, 0, 0], [inf, inf, inf])
+bc.Wall(g, velocity=[0, 0, 0])
+
+g = aphros.Geometry()
+g.Box([lx / 2, ly / 2, lz / 2 + thickness / 2], [inf, inf, hx * 2])
+bc.Wall(g, velocity=[0, 0, 0])
+
+g = aphros.Geometry()
+g.Box([0, 0, 0], [eps, inf, inf])
+bc.Inlet(g, velocity=[1, 0, 0], extra=" , fill_vf 0 , halo fill")
+
+g = aphros.Geometry()
+g.Box([lx, 0, 0], [eps, inf, inf])
+bc.Outlet(g)
+
+with open("bc.dat", 'w') as f:
+    f.write(bc.Generate())
+
+# volume fraction bubgen
+vf = aphros.Geometry()
+R = Hnarrow * par["bublength"] * 0.5
+box_c = [R + thickness + R * 2 * par['bubgen_gap'], ly / 2, lz / 2]
+box_r = [R, Hnarrow / 2, thickness / 2]
+vf.Box(box_c, box_r)
+
+# configuration
+var = aphros.Config()
+
+for k in par:
+    var[k] = par[k]
+
+var['extent'] = float(extent)
+rho = float(var['rho'])
+var['mu1'] = Hnarrow / Re
+var['mu2'] = var['mu1'] * rho
+var['rho1'] = 1.
+var['rho2'] = rho
+var['sigma'] = var['mu1'] / Ca
+var['bubgen_dt'] = Hnarrow * par['bublength'] / par['gasfrac']
+var['bubgen_path'] = '"inline ' + vf.Generate() + '"'
+var['bubgen_box_c'] = box_c
+var['bubgen_box_r'] = box_r
+
+if par['inlet_periodic']:
+    var['enable_bubgen'] = 0
+    var['enable_inlet_periodic'] = 1
+    var['inlet_periodic_t0'] = 0.
+    bl = Hnarrow * par['bublength']
+    var['inlet_periodic_dur0'] = bl * (1 / par['gasfrac'] - 1)
+    var['inlet_periodic_dur1'] = bl
+    var['inlet_periodic_vf0'] = 0.
+    var['inlet_periodic_vf1'] = 1.
+
+if par['dim'] == 2:
+    var['dumplist'] = par.get('dumplist', "vx vy omz p")
+    var['hypre_periodic_z'] = 1
+
+np = par['np']
+nb = (nx / bsx) * (ny / bsy) * (nz / bsz)
+if nb % np != 0:
+    np0 = np
+    for np in reversed(range(1, np + 1)):
+        if nb % np == 0:
+            break
+    print("Warning: number of blocks nb={:} not divisible by np={:}. \
+Setting np={:}.".format(nb, np0, np))
+    if np <= np0 * 0.75:
+        Abort("Error: np reduced by more than 25%.")
+
+tl = par['tl']
+var['np'] = np
+
+
+def DumpVars(d, f):
+    for k, v in d.items():
+        if type(v) in [int, float, bool]:
+            f.write('{} = {:}\n'.format(k, v))
+        elif type(v) == str:
+            f.write('{} = "{}"\n'.format(k, v))
+        elif type(v) in [list, numpy.array]:
+            f.write('{} = {:}\n'.format(k, list(v)))
+
+
+with open("gen_par.py", 'w') as f:
+    DumpVars(par, f)
+
+with open("gen_var.py", 'w') as f:
+    DumpVars(vars(var), f)
+
+with open("gen_exp.py", 'w') as f:
+    DumpVars(ExpPar(), f)
+
+with open("par.conf", 'w') as f:
+    f.write(var.Generate())
+
+with open("par.make", 'w') as f:
+    f.write('''m = {nx} {ny} {nz}
+bs = {bsx} {bsy} {bsz}
+np = {np}
+tl = {tl}
+'''.format(**locals()))

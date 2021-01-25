@@ -1,0 +1,29 @@
+#!/bin/bash -l
+
+# Run with arguments from arg on number of tasks from np
+
+set -eu
+
+# run command with time and append to out
+rt () {
+  set -o pipefail 
+  echo "$@"
+  time eval "$@" 2>&1 | tee -a out
+}
+
+js="job.status"
+
+echo running > $js
+
+[[ -f pre ]] && rt ./pre
+
+rt "ap.mpirun $(cat arg)"
+
+[[ -f post ]] && rt ./post
+
+mv -vf job.id{,.last}
+
+echo "done" > $js
+
+cat $js
+

@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -eu
+
+#./_r > /dev/null
+ea=`./diff p_128.dat p_256.dat`
+eb=`./diff p_256.dat p_512.dat`
+
+echo $ea
+echo $eb
+
+echo -e "$ea\n$eb" | python -c "
+import sys
+import numpy as np
+fin = sys.stdin
+va = np.array(fin.readline().split()).astype(float)
+vb = np.array(fin.readline().split()).astype(float)
+print(np.log2(va / vb))
+"
+
+

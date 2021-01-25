@@ -1,0 +1,38 @@
+set int key0 0
+set int key5 2
+set double key1 0
+set string key2 str
+set vect key3 0 1 2
+
+box 0 0 0   1 1 1   5
+box 0 2 2   1 1 1   5
+&box 0 3 0   4 1 1   0
+-box 0 3 0   4 1 1   0
+&-box 0 3 0   4 1 1   0
+&-sphere 0 3 0   4 1 1
+cylinder 0 3 0   4 1 1   4   -1 1
+
+wall 1 0 0 {
+  box 0 0 0   1 1 1   0
+  sphere 0 0 0   1 1 1
+}
+slipwall {
+  box 0 0 0   1 1 1   0
+  sphere 0 0 0   1 1 1
+}
+inlet 1 0 0 {
+  box 0 0 0   1 1 1   0
+  sphere 0 0 0   1 1 1
+}
+inletflux 1 0 0 0 {
+  box 0 0 0   1 1 1   0
+  sphere 0 0 0   1 1 1
+}
+outlet {
+  box 0 0 0   1 1 1   0
+  sphere 0 0 0   1 1 1
+}
+symm {
+  box 0 0 0   1 1 1   0
+  sphere 0 0 0   1 1 1
+}

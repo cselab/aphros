@@ -1,0 +1,9 @@
+#!/bin/bash
+
+d=sc
+mkdir -p $d
+
+ap.getcol t > $d/t
+ap.getcol ekin > $d/k
+ap.kedr > $d/dk
+

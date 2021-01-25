@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -eu
+
+dim=`cat dim`
+nxexp=`cat nxexp`
+nx=$((2 ** $nxexp))
+
+make clean
+
+echo "set int dim $dim" > par.conf
+
+if [ "$dim" == 2 ] ; then
+  make run m="$nx $nx 1" bs="$nx $nx 1"
+else
+  make run m="$nx $nx $nx" bs="$nx $nx $nx"
+fi
+
+
+./curv > ok
+ap.getcol vol2 | head -n 1 > ovf

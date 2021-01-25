@@ -1,0 +1,15 @@
+for (auto i : GRange<size_t>(10, 20)) { std::cout << i << " "; }
+10 11 12 13 14 15 16 17 18 19 
+
+for (auto i : MakeFilterIterator(GRange<size_t>(10, 20), [](size_t a) { return a % 2 == 0; })) { std::cout << i << " "; }
+10 12 14 16 18 
+
+for (auto i : MakeFilterIterator( MakeFilterIterator( GRange<size_t>(10, 20), [](size_t a) { return a % 2 == 0; }), [](size_t a) { return a % 3 == 0; })) { std::cout << i << " "; }
+12 18 
+
+for (auto i : MakeTransformIterator<size_t>(GRange<size_t>(10, 20), [](size_t a) { return a; })) { std::cout << i << " "; }
+10 11 12 13 14 15 16 17 18 19 
+
+for (auto i : MakeTransformIterator<double>(GRange<size_t>(10, 20), [](size_t a) { return a + 0.5; })) { std::cout << i << " "; }
+10.5 11.5 12.5 13.5 14.5 15.5 16.5 17.5 18.5 19.5 
+

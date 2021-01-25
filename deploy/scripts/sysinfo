@@ -1,0 +1,35 @@
+#!/bin/bash
+
+m0 () {
+  echo "$@"
+}
+
+m () {
+  echo
+  echo "$@"
+}
+
+m0 "Compute nodes:"
+ap.mpirun hostname | sort | uniq
+
+m "CPU models:"
+ap.mpirun sh -c 'grep "model name" /proc/cpuinfo | head -n 1' | sort | uniq
+
+m "Compiler version:"
+if command -v CC > /dev/null ; then
+  CC --version | head -n 1
+else
+  g++ --version | head -n 1
+fi
+
+if command -v mpirun > /dev/null ; then
+  m "MPI version:"
+  mpirun --version | head -n 1
+fi
+
+if command -v module > /dev/null ; then
+  m "Modules:"
+  module -t list 2>&1
+fi
+
+m0

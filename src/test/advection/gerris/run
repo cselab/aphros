@@ -1,0 +1,6 @@
+#!/bin/bash 
+
+set -ue
+
+ge.run2d -m main.gfs
+

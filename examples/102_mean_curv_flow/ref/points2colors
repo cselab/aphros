@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import sys
+from matplotlib.image import imread
+
+av = sys.argv
+
+if len(av) < 3:
+    sys.stderr.write('''./points2colors POINTS IMG [MAXPOOL=0]
+Reads colors at given points from reference image.
+IMG: path to image
+POINTS: path to coordinates of points in range [0,1]x[0,1], table with two columns
+MAXPOOL: width of stencil to select brightest color over
+Output: prints table with columns RGB
+''')
+    exit(1)
+
+points_path = av[1]
+img_path = av[2]
+maxpool = int(av[3]) if len(av) > 3 else 1
+
+points = np.loadtxt(points_path)
+img = imread(img_path)
+
+imy,imx = img.shape[:2]
+ppx = (points[:,0] * imx).astype(int)
+ppy = (points[:,1] * imy).astype(int)
+
+st = np.arange(maxpool) - maxpool // 2
+#pointscolor = img[imy-ppy,ppx,:]
+
+# rgb
+pointscolor = np.zeros((len(points), 3))
+for i in range(len(points)):
+    for dx in st:
+        for dy in st:
+            x = ppx[i] + dx
+            y = ppy[i] + dy
+            if x < 0 or x >= imx or y < 0 or y >= imy:
+                continue
+            c = img[imy - y - 1, x]
+            if sum(c) > sum(pointscolor[i]):
+                pointscolor[i] = c
+
+np.savetxt(sys.stdout.buffer, pointscolor)
+
+#import matplotlib.pyplot as plt
+#plt.imshow(img*0.5, extent=(0,1,0,1))
+#plt.scatter(*points.T, s=0.8, c=pointscolor)
+#plt.savefig("a.pdf")
+

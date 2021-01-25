@@ -1,0 +1,23 @@
+#!/bin/bash -l
+
+set -eu
+
+# divisor
+d=${1:-1}
+
+module load cray-python
+module load cray-hdf5-parallel/1.8.16
+
+. ~/python/bin/activate
+
+while read f ; do
+  fo=`basename $f`
+  fo=${fo%.h5}.low.h5
+  if [ -f $fo ] ; then
+    echo "skip existing $fo"
+    continue
+  fi
+  c="ap.downsample $f $d $fo"
+  echo "$c"
+  eval "$c"
+done

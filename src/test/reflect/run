@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -eu
+
+a=a.out
+b=b.out
+./t.* > "$b"
+
+if ! diff -u "$a" "$b" ; then
+  exit 1
+fi
+
+rm "$b"

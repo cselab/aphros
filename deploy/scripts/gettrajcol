@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+
+
+v = sys.argv
+
+if len(v) != 3:
+  print("usage: {:} columnname CSV".format(os.path.basename(v[0])))
+  print("print column of comma- or space-separated CSV")
+  exit(1)
+
+col = v[1]
+src = v[2]
+
+with open(src) as f:
+  h = f.readline()
+  sep = ',' if len(h.split(' ')) >= len(h.split(',')) else ','
+  i = h.split(sep).index(col)
+  for l in f:
+    print(l.split(sep)[i])
+

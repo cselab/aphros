@@ -1,0 +1,6 @@
+#!/bin/bash
+
+for d in ref/* ; do
+  echo $d
+  ./update $d
+done

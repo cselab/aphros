@@ -1,0 +1,22 @@
+#!/bin/bash -l
+
+set -eu
+
+# extent
+e=${1:-1}
+
+module load cray-python
+module load cray-hdf5-parallel/1.8.16
+
+. ~/python/bin/activate
+
+while read f ; do
+  fo=${f%.h5}.uni.xmf
+  if [ -f $fo ] ; then
+    echo "skip existing $fo"
+    continue
+  fi
+  c="ap.genxmf $f $e"
+  echo "$c"
+  eval "$c"
+done

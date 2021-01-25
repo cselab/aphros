@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -eu
+
+vcase=(0 1 2)
+vgradlim=(0 0 0)
+
+for i in "${!vcase[@]}" ; do
+  case=${vcase[$i]}
+  gradlim=${vgradlim[$i]}
+  d="case${case}_gradlim${gradlim}"
+  echo $d
+  ./main $case $gradlim
+  mkdir -p $d
+  [ "$i" = "0" ] && ./plot u_0000.dat && mv u_0000.svg $d
+  ./plot u_0001.dat && mv u_0001.svg $d
+done

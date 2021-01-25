@@ -1,0 +1,49 @@
+load("cgrind") $
+load("scifac")$
+
+v: [x = 0.25, y = -0.25, ak = a*k, k = 2*%pi, h = 0.5, g = 1, a = 1/10];
+
+eta:
+a*cos(k*x) + e*a/4*c*(3*c^2 - 1)*cos(2*k*x) +
+e^2*a*(-3/8*(c^4 - 3*c^2 + 3)*cos(k*x) + 3/64*(8*c^6 + (c^2-1)^2)*cos(3*k*x)) ;
+
+phi:
+a*g/o*cosh(k*(y+h))/cosh(k*h)*sin(k*x) +
+e*(3*a*g)/o*(c^2 - 1)^2/(8*c)*cosh(2*k*(y+h))/cosh(2*k*h)*sin(2*k*x) +
+e^2*a*g/(64*o)*(c^2-1)*(c^2+3)*(9*c^2-13)*cosh(3*k*(y+h))/cosh(3*k*h)*sin(3*k*x);
+
+vx: diff(phi, x);
+vy: diff(phi, y);
+
+e: a*k;
+c: 1/tanh(h*k);
+
+matchdeclare(a, true);
+defrule(r_sq, a*a, sq(a));
+s(e):=apply1(e, r_sq);
+
+o: g*k*tanh(k*h)*(1+e^2*((9/8)*(c^2-1)^2 + c^2));
+o: sqrt(o);
+
+
+(
+  cgrind('e = e),
+  cgrind('c = c),
+  cgrind('eta = s(eta)),
+  cgrind('o = s(o)),
+  cgrind('vx = s(vx)),
+  cgrind('vy = s(vy))
+);
+
+
+sq(x):=x*x;
+sgma: sqrt(g*k*tanh(k*h)*
+			   (1. + k*k*a*a*(9./8.*(sq(c) - 1.)*
+					      (sq(c) - 1.) + sq(c))));
+A: a*g/sgma;
+phi1: A*cosh(k*(y + h))/cosh(k*h)*sin(k*x);
+phi2: 3*a*k*A*(c^2 - 1)^2/(8*c)*cosh(2*k*(y+h))/cosh(2*k*h)*sin(2*k*x);
+phi3: 1/64*(c^2-1)*(c^2 + 3)*(9*sq(c)-13)*cosh(3*k*(y+h))/cosh(3*k*h)*sin(3*k*x)*A;
+Phi: phi1 + a*k*phi2 + a*k*a*k*phi3;
+
+ev(Phi/phi, v, infeval, numer), v;

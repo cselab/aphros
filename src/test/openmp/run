@@ -1,0 +1,2 @@
+echo 2 > np
+OMP_NUM_THREADS=2 ap.run ./t.openmp

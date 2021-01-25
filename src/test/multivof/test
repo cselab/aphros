@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import os
+
+import aphros
+
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__()
+        self.parser.add_argument('--block',
+                                 '-b',
+                                 type=int,
+                                 default=16,
+                                 choices=[8, 16],
+                                 help="Block size.")
+
+    def run(self):
+        self.runcmd("make -f sim.makefile bs='{0} {0} 1' cleanrun".format(
+            self.args.block))
+        return [
+            "out", "p_0000.dat", "vf_0000.dat", "vx_0000.dat", "vy_0000.dat"
+        ]
+
+    def check(self, outdir, refdir, output_files):
+        for f in [f for f in output_files if f.endswith(".dat")]:
+            self.runcmd("ap.diffnum '{}' '{}' 1e-10".format(
+                os.path.join(refdir, f), os.path.join(outdir, f)))
+        return True
+
+    def plot(self, datadir, output_files):
+        f = os.path.join(datadir, "vf_0000.dat")
+        u = aphros.ReadPlain(f)[0, :, :]
+
+        fig, ax = aphros.plot.GetSquareFigure()
+        aphros.plot.PlotSquareField(ax, u, vmin=0, vmax=1)
+
+        fpath = os.path.join(datadir, "vf.pdf")
+        self.printlog(fpath)
+        fig.savefig(fpath)
+
+
+Test().main()

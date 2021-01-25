@@ -1,0 +1,6 @@
+set -eu
+
+if which pvbatch ; then
+  pvbatch ./plot.py
+fi
+

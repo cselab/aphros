@@ -1,0 +1,13 @@
+dirichlet 1 {
+  box 0 0 0 10
+}
+neumann -1 {
+  box 0 0 0 1e-6 10 10
+}
+neumann 1 {
+  box 1 0 0 1e-6 10 10
+}
+neumann 0 {
+  box 0 0 0 10 1e-6 10
+  box 0 1 0 10 1e-6 10
+}

@@ -1,0 +1,11 @@
+*.log
+*.status
+alpha
+pressure
+*.h5
+*.xmf
+*.vts
+*.pvd
+arg
+job.id*
+out

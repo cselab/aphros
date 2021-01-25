@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+
+import subprocess
+import numpy as np
+import sys
+import os
+
+av = sys.argv
+if len(av) == 2 and av[1] == '-h':
+  sys.stderr.write(
+"""usage: ./{:}
+Compute semi-axes of fitted ellipsoid.
+STDIN: output of ap.gettraj
+STDOUT: columns <n r0 r1 r2> with semi-axes in ascending order
+""".format(os.path.basename(av[0])))
+  exit(1)
+
+
+def sh(c):
+    subprocess.check_call(c, shell=True)
+
+d = np.genfromtxt(sys.stdin, names=True)
+
+x = d['x']
+y = d['y']
+z = d['z']
+
+xx = d['xx']
+xy = d['xy']
+xz = d['xz']
+yy = d['yy']
+yz = d['yz']
+zz = d['zz']
+
+mx = np.array([x, y, z])
+mx2 = mx[np.newaxis,:,:] * mx[:,np.newaxis,:] 
+mxx = np.array([[xx, xy, xz], [xy, yy, yz], [xz, yz, zz]])
+
+mxx = mxx - mx2
+
+e = np.linalg.eigvalsh(np.transpose(mxx))
+
+# elliposid semi-axes
+r = np.sqrt(np.maximum(5 * e, 0))
+
+n = d['n']
+n = n[:,np.newaxis]
+
+nr = np.hstack([n, r])
+h = "n r0 r1 r2"
+
+if 't' in d.dtype.names:
+    h = "t " + h
+    nr = np.hstack([d['t'][:,np.newaxis], nr])
+
+np.savetxt(sys.stdout, nr, header=h, comments='')
+

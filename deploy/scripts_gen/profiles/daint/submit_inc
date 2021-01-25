@@ -1,0 +1,23 @@
+DEFINE_SUBMIT_CMD = \
+"""
+extra=
+
+if [[ "$nth" == 1 ]] ; then
+  :
+elif [[ "$nth" == 12 ]] ; then
+  extra="-N '$np'"
+elif [[ "$nth" == 24 ]] ; then
+  extra="-N '$np'"
+else
+  echo "Abort, got OMP_NUM_THREADS=$nth, expected 1, 12 or 24"
+  exit 1
+fi
+
+: ${A=s931}
+cmd="sbatch -J '$name' -C gpu -A '$A' -n '$np' -t '$tl' $extra $job"
+"""
+
+DEFINE_JOB_ID = \
+r"""
+id=`echo "$msg" | sed -e "s/[^0-9]*\([0-9]*\)[^0-9]*/\1/"`
+"""

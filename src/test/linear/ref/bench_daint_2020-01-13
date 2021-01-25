@@ -1,0 +1,84 @@
+mesh=192
+linear(amgx) '': res=8.976174e-03 iter=101
+
+max_diff_exact=4.675133e-01
+residual=8.976174e-03
+iter=101
+time=1.242478
+mesh=384
+linear(amgx) '': res=1.421022e-02 iter=101
+
+max_diff_exact=6.942161e-01
+residual=1.421022e-02
+iter=101
+time=2.971715
+mesh=576
+linear(amgx) '': res=1.467325e-02 iter=101
+
+max_diff_exact=7.771174e-01
+residual=1.467325e-02
+iter=101
+time=8.207197
+mesh=768
+linear(amgx) '': res=1.422650e-02 iter=101
+
+max_diff_exact=8.179704e-01
+residual=1.422650e-02
+iter=101
+time=16.986626
+mesh=192
+linear(hypre) '': res=2.073227e-01 iter=100
+
+max_diff_exact=4.675133e-01
+residual=2.073227e-01
+iter=100
+time=0.393076
+mesh=384
+linear(hypre) '': res=7.037706e-01 iter=100
+
+max_diff_exact=6.942161e-01
+residual=7.037706e-01
+iter=100
+time=4.512545
+mesh=576
+linear(hypre) '': res=1.118955e+00 iter=100
+
+max_diff_exact=7.771174e-01
+residual=1.118955e+00
+iter=100
+time=15.371097
+mesh=768
+linear(hypre) '': res=1.466512e+00 iter=100
+
+max_diff_exact=8.179704e-01
+residual=1.466512e+00
+iter=100
+time=36.592604
+mesh=192
+linear(conjugate) '': res=2.328021e+01 iter=101
+
+max_diff_exact=4.632950e-01
+residual=2.328021e+01
+iter=101
+time=0.517247
+mesh=384
+linear(conjugate) '': res=1.052521e+02 iter=101
+
+max_diff_exact=6.918933e-01
+residual=1.052521e+02
+iter=101
+time=3.977103
+mesh=576
+linear(conjugate) '': res=2.001458e+02 iter=101
+
+max_diff_exact=7.755003e-01
+residual=2.001458e+02
+iter=101
+time=13.081908
+mesh=768
+linear(conjugate) '': res=2.991452e+02 iter=101
+
+max_diff_exact=8.167722e-01
+residual=2.991452e+02
+iter=101
+time=30.739557

@@ -1,0 +1,17 @@
+error*.vtk
+error*.dat
+out
+out_linear
+eb.vtk
+a.pvsm
+a.py
+eb_faces.csv
+estimator.dat
+estimator.vtk
+evf.csv
+exact.dat
+exact.vtk
+order.dat
+order.vtk
+order_laplace.dat
+order_laplace.vtk

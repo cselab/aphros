@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -eu
+
+eval $@
+
+: ${dim=2}
+: ${overlap=1}
+: ${d=sim}
+: ${r=9}
+
+o=dim${dim}_overlap${overlap}
+
+echo "Output to $o"
+rm -rf $o
+mkdir $o
+
+rsync -La $d/ $o
+
+(cd $o && ./_vary --dim ${dim} --overlap ${overlap} --ri ${r} --bi 0 --solver ch)
+
+a=0
+rp=ref
+for f in `find $rp/$o -type f` ; do
+  s=${f#$rp/}
+  echo $f , $s
+  if ! ap.diffnum "$f" "$s" 1e-9; then
+    a=1
+  fi
+done
+
+exit $a

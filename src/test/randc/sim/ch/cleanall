@@ -1,0 +1,5 @@
+#!/bin/bash -l
+
+make cleanall
+rm -vf k*.dat vf*.dat kerr log dim kerravg nxexp b.dat
+

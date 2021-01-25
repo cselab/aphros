@@ -1,0 +1,83 @@
+#!/bin/sh
+
+me=line
+: ${SEP=,}
+
+usg () {
+    cat >&2 <<!
+$me csv > vtk
+!
+exit 2
+}
+
+
+for i
+do case "$i" in
+       -h) usg
+           ;;
+       -*) echo >&2 "$me: unknonw option '$i'"
+           exit 2
+           ;;
+   esac
+done
+
+"${AWK-awk}" -v FS="$SEP" -v me="$me" '
+NR == 1 {
+    split($0, key)
+    for (i = 1; i in key; i++)
+        id[$i] = i
+    if (!(ix = id["x"]))
+        err("no field x")
+    if (!(iy = id["y"]))
+        err("no field y")
+    if (!(iz = id["z"]))
+        err("no field z")
+    next
+}
+
+/./ {
+    n++
+    x[n] = $(ix)
+    y[n] = $(iy)
+    z[n] = $(iz)
+    for (i = 1; i <= NF; i++)
+        data[i, n] = $i
+}
+
+END {
+    if (ERR)
+        exit(ERR)
+
+    print  "# vtk DataFile Version 2.0"
+    printf "%s\n", me
+    print "ASCII"
+    print  "DATASET POLYDATA"
+    printf "POINTS %d double\n", n
+    for (i = 1; i <= n; i++)
+        printf "%.16g %.16g %.16g\n", x[i], y[i], z[i]
+    printf "LINES %d %d\n", n - 1, 3 * (n - 1)
+    for (i = 1; i <= n - 1; i++)
+        printf "2 %d %d\n", i - 1, i
+    printf "POINT_DATA %d\n", n
+    for (i = 1; (i, 1) in data; i++)
+        if (i != ix && i != iy && i != iz) {
+            printf "SCALARS %s double 1\n", key[i]
+            print "LOOKUP_TABLE default"
+            for (j = 1; j <= n; j++)
+                printf "%.16g\n", data[i, j]
+        }
+}
+
+function eq(a, b)
+{
+    return "" a == "" b
+}
+
+function err(a, b, c, d)
+{
+    ERR = 2
+    printf me ": " a "\n", b, c, d | "cat >&2"
+    exit 2
+}
+
+' "$@"

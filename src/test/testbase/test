@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+import os
+import filecmp
+
+import aphros
+
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__(cases=["case0", "case1"])
+
+    def run(self, case):
+        ff = ["0.dat", "1.dat"]
+        with open(ff[0], 'w') as f:
+            f.write(case + '_0')
+        with open(ff[1], 'w') as f:
+            f.write(case + '_1')
+        return ff
+
+
+Test().main()

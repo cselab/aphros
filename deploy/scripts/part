@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -eu
+
+if [ "$#" != 7 ] && [ "$#" != 8 ]; then
+  echo "usage: $0 nx ny nz bsx bsy bsz np
+Partition mesh.
+ARGS:
+nx,ny,nz: mesh size
+bsx,bsy,bsz: block size
+np: number of processors
+STDOUT:
+commands to set px,bx,bsx etc " >&2
+  exit 1
+fi
+
+IFS=' ' read nx ny nz bsx bsy bsz np omp <<< "$@"
+if [ "${omp:-1}" != 1 ] ; then
+  if (( $np % $omp != 0 )) ; then
+    echo "Abort, np=$np must be divisible by omp=$omp" >&2
+    exit 1
+  fi
+  np=$(($np / $omp))
+fi
+
+r="`ap.part0 $nx $ny $nz $bsx $bsy $bsz $np`"
+IFS=' ' read px py pz bx by bz <<< "$r"
+
+echo "set int px $px
+set int py $py
+set int pz $pz
+
+set int bx $bx
+set int by $by
+set int bz $bz
+
+set int bsx $bsx
+set int bsy $bsy
+set int bsz $bsz
+"
+
+if [ "${omp:-1}" != 1 ] ; then
+  echo "set int openmp 1"
+fi

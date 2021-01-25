@@ -1,0 +1,22 @@
+./levelset area 0 0 0 0
+0
+./levelset area 1 1 1 1
+1
+./levelset area 0 0 1 1
+0.5
+./levelset area 1 0.5 0 0
+0.25
+./levelset area 0.5 0.5 0 0
+0.125
+./levelset area 0.5 0.5 0.5 0.5
+0.5
+./levelset area 0.1 0.2 0.3 0.4
+0.28125
+./levelset area 0.2 0.3 0.4 0.1
+0.28125
+./levelset area 0.3 0.4 0.1 0.2
+0.28125
+./levelset area 0.4 0.1 0.2 0.3
+0.28125
+./levelset area 0.1 0.2 0.3 0.4
+0.28125

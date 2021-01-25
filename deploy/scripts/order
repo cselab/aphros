@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+
+import sys
+import numpy as np
+import os
+
+fin = sys.stdin
+av = sys.argv
+
+if len(av) > 1 and av[1] == '-h':
+  print('''Prints convergence order from accuracy estimates on consequtive meshes.
+STDIN: 
+  nx_A  error1_A error2_A
+  nx_B  error2_B error2_B
+  ...
+''')
+  exit(1)
+
+vb = None
+
+for line in fin.readlines():
+    line = line.strip()
+    if not line:
+        continue
+    va = vb
+    vb = np.array(line.split()).astype(float)
+    if va is None:
+        continue
+    order = -np.log(va[1:] / vb[1:]) / np.log(va[0] / vb[0])
+    print(" ".join(map(str, order)))

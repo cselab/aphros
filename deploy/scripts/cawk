@@ -1,0 +1,135 @@
+#!/bin/sh
+
+: ${AWK=awk}
+me=ap.cawk
+sep=,
+
+usg () {
+cat <<!
+cawk [-v var=value] 'prog' file
+!
+exit 1
+}
+
+err () {
+    echo >&2 "$me: $@"
+    exit 2
+}
+
+isclvar () {
+    "$AWK" -v v="$1" '
+     BEGIN {
+         sub(/=.*/, "", v)
+         r = (v ~ /^[a-zA-Z_][0-9a-zA-Z_]*$/) ? 0 : 1
+         exit(r)
+     }
+     ' "$1"
+}
+
+arg=
+while :
+do case "$1" in
+       -h) usg
+           ;;
+       -v) shift
+           if test $# -eq 0; then err 'no variable name'; fi
+           a=$1
+           if ! isclvar "$a"; then err "invald -v argument '$a'"; fi
+           shift
+           arg="$arg -v $a"
+           ;;
+       -*) err "unknown option: $1"
+           ;;
+       *) break
+          ;;
+   esac
+done
+
+prg=/tmp/prog.$$.awk
+tmp=/tmp/cawk.$$.awk
+if test $# -eq 0; then err 'needs prog'; fi
+printf '%s\n' "$1"  > $prg
+shift
+if test $# -eq 0; then err 'needs file'; fi
+trap 'rm $tmp $prg; exit 2' 1 2 3 4 15
+"$AWK" \
+-v me="$me" \
+-v sep="$sep" \
+-v tmp=$tmp \
+-v awk="$AWK" \
+-v arg="$arg" \
+-v prg="$prg" \
+-v Q=\' '
+BEGIN {
+      file = ARGV[1]
+      rc = getline < file
+      if (rc != 1)
+          err("fail to read %s", quote(file))
+      close(file)
+      rsplit($0, key, sep)
+      for ( ; getline c < prg == 1; s = c "\n");
+      prog = ""
+      for (;;) {
+          if (match(s, /^\$[a-zA-Z_][0-9a-zA-Z_]*/)) {
+              t = substr(s, RSTART + 1, RLENGTH - 1)
+              if (t in key)
+                  t = "$" key[t]
+              else {
+                  msg("unknown field: %s", quote(t))
+                  t = "$" t
+              }
+          } else if (match(s, /^\$/) || match(s, /^[^$]+/))
+              t = substr(s, RSTART, RLENGTH)
+          else
+              break
+          s = substr(s, RSTART + RLENGTH)
+          prog = prog t
+      }
+      for (i = 1; i in key; i++)
+          gsub("\\$" key[i], "$" i, prog)
+      pre  = "FNR == 1 { TIME = FILENAME; sub(/.*_/, \"\", TIME); sub(/\\..*/, \"\", TIME); HEADER = $0; next }"
+      print pre "\n" prog > tmp
+      cmd = sprintf("%s %s -F %s -f %s %s", quote(awk), arg, quote(sep), tmp, Quote(ARGV))
+      rc = system(cmd)
+      exit(rc)
+}
+
+function rsplit(s, b, sep,   a, i)
+{
+    delete b
+    split(s, a, sep)
+    for (i in a)
+        b[a[i]] = i
+}
+
+function msg(a, b, c, d, e)
+{
+    printf me ": "  a "\n", b, c, d, e | "cat >&2"
+}
+
+function err(a, b, c, d, e)
+{
+    msg(a, b, c, d, e)
+    exit(2)
+}
+
+function quote(s)
+{
+    return Q s Q
+}
+
+function Quote(a,   i, ans)
+{
+    for (i = 1; i in a; i++) {
+        if (i > 1)
+            ans = ans " "
+        ans = ans quote(a[i])
+    }
+    return ans
+}
+
+' "$@"
+
+status=$?
+rm -f $tmp $prg
+exit $status

@@ -1,0 +1,15 @@
+#!/bin/bash -l
+
+set -eu
+
+# extent
+e=${1:-1}
+
+while read f ; do
+  echo $f 1>&2
+  fo=`basename $f`
+  i=${fo#*_}
+  i=${i%.*}
+  c=`ap.argmax $f $e`
+  echo $i $c
+done

@@ -1,0 +1,38 @@
+#!/bin/sh
+
+set -eu
+
+if [ "$#" -lt "1" ] || [ "$1" = "-h" ] ; then
+    cat << EOF
+usage: `basename $0` [--silent] [-h] ARGS
+Reads the number of cores NP from file 'np' and executes
+  mpirun -n NP ARGS
+If file 'np' does not exist, executes
+  mpirun ARGS
+Prints the command to be executed to STDERR if --silent is not provided.
+EOF
+    exit 1
+fi
+
+silent=0
+if [ "$1" == "--silent" ] ; then
+  silent=1
+  shift 1
+fi
+
+if [ -f 'np' ] ; then
+  if [ "$OMP_NUM_THREADS" != "1" ] ; then
+    c='mpirun --oversubscribe --map-by node:PE=$OMP_NUM_THREADS -n $(cat np) "$@"'
+  else
+    c='mpirun --oversubscribe -n $(cat np) "$@"'
+  fi
+else
+  c='mpirun --oversubscribe "$@"'
+fi
+
+if [ "$silent" == "0" ] ; then
+  eval echo "$c" >&2
+fi
+
+eval "$c"
+
