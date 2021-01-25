@@ -1,0 +1,9 @@
+.SUFFIXES:
+MPICXX = mpicxx
+CXXFLAGS = -O2 -g
+APHROSFLAGS = -I$(APHROS_PREFIX)/include/ -I$(APHROS_PREFIX)/include/aphros -L$(APHROS_PREFIX)/lib -laphros
+0 = main.cpp
+main: $0
+	$(MPICXX) $0 $(CXXFLAGS) -fopenmp $(APHROSFLAGS) -o $@
+clean:; -rm main
+.PHONY: clean
