@@ -1,0 +1,10 @@
+.SUFFIXES:
+.SUFFIXES: .cpp
+MPICXX = mpicxx
+CXXFLAGS = -O2 -g
+APHROSFLAGS = -I$(APHROS_PREFIX)/include/ -I$(APHROS_PREFIX)/include/aphros -L$(APHROS_PREFIX)/lib -laphros
+0 = dump_diff dump_gen dump_util
+all: $0
+.cpp:
+	$(MPICXX) $< $(CXXFLAGS) $(APHROSFLAGS) -o $@
+clean:; -rm $O
