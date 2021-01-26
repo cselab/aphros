@@ -34,7 +34,8 @@ add_compile_options(-Wall -pedantic -Wextra)
 
 # hdf5
 set(T "hdf")
-set(HDF5_PREFER_PARALLEL on)
+set(HDF5_PREFER_PARALLEL ON)
+set(HDF5_NO_FIND_PACKAGE_CONFIG_FILE ON)
 find_package(HDF5 REQUIRED COMPONENTS C HL)
 if(NOT HDF5_IS_PARALLEL)
   message(FATAL_ERROR "no parallel HDF5")
