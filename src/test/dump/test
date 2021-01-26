@@ -14,9 +14,9 @@ class Test(aphros.TestBase):
             self.runcmd("./t.dump_util > out")
             return ["out"]
         elif case == "h5":
-            self.runcmd("ap.mpirun ./t.dump_gen o1.h5")
-            self.runcmd("ap.mpirun ./t.dump_gen o2.h5")
-            self.runcmd("ap.mpirun ./t.dump_diff o1.h5 o2.h5 > out")
+            self.runcmd("ap.mpirun -n 2 ./t.dump_gen o1.h5")
+            self.runcmd("ap.mpirun -n 2 ./t.dump_gen o2.h5")
+            self.runcmd("ap.mpirun -n 2 ./t.dump_diff o1.h5 o2.h5 > out")
             return ["out"]
 
 

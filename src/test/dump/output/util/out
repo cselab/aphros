@@ -1,0 +1,2 @@
+GetDumpName("vf", ".h5", 8, 100)=vf_0008_0100.h5
+GetDumpName("vf", ".h5", 8)=vf_0008.h5
