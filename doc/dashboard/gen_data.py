@@ -57,7 +57,7 @@ def main():
     parser.add_argument(
         '--url',
         type=str,
-        default="https://github.com/cselab/aphros-dev/commits/",
+        default="https://github.com/cselab/aphros/commits/",
         help='Prefix for url, to be appended by commit hash')
     args = parser.parse_args()
     gen(args.history, args.out, args.url)

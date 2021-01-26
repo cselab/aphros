@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+import os
+import aphros
+
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        cases = ["util", "h5"]
+        super().__init__(cases=cases)
+
+    def run(self, case):
+        if case == "util":
+            self.runcmd("./t.dump_util > out")
+            return ["out"]
+        elif case == "h5":
+            self.runcmd("ap.mpirun ./t.dump_gen o1.h5")
+            self.runcmd("ap.mpirun ./t.dump_gen o2.h5")
+            self.runcmd("ap.mpirun ./t.dump_diff o1.h5 o2.h5 > out")
+            return ["out"]
+
+
+Test().main()

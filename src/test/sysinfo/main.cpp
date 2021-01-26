@@ -2,6 +2,7 @@
 // Copyright 2018 ETH Zurich
 
 #undef NDEBUG
+#include <array>
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -20,7 +21,7 @@ void F(size_t s) {
   static std::vector<char> v(s, 0);
 }
 
-double MB(size_t s) {
+double MiB(size_t s) {
   return s / (double(1 << 20));
 }
 
@@ -33,8 +34,14 @@ void Test() {
   F(s);
 
   b = GetMem();
-  std::cerr << MB(a) << " " << MB(b) << std::endl;
+  std::cerr << MiB(a) << " " << MiB(b) << std::endl;
   assert(b >= a + s);
+}
+
+std::ostream& operator<<(
+    std::ostream& out, const std::array<std::string, 2>& v) {
+  out << "(" << v[0] << ", " << v[1] << ")";
+  return out;
 }
 
 void TestFilesystem() {
@@ -59,6 +66,12 @@ void TestFilesystem() {
   std::cout << NAMEVALUE(Join("a/", "b")) << std::endl;
   std::cout << NAMEVALUE(Join("a", "/b")) << std::endl;
   std::cout << NAMEVALUE(IsDir(".")) << std::endl;
+  std::cout << NAMEVALUE(SplitExt(".a")) << std::endl;
+  std::cout << NAMEVALUE(SplitExt("a.b")) << std::endl;
+  std::cout << NAMEVALUE(SplitExt("a/.b")) << std::endl;
+  std::cout << NAMEVALUE(SplitExt("a/b.c")) << std::endl;
+  std::cout << NAMEVALUE(SplitExt("a/b.c.d")) << std::endl;
+  std::cout << NAMEVALUE(SplitExt("a")) << std::endl;
 }
 
 int main() {
