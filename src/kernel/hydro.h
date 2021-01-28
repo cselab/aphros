@@ -1158,21 +1158,24 @@ void Hydro<M>::InitStat(const MEB& eb) {
         [&electro_ = electro_]() { return electro_->GetStat().current; });
   }
   if (tracer_) {
-    stat.AddSum(
-        "tu0_vol", "volume of tracer 0", //
-        [&tr = tracer_](IdxCell c, const MEB& eb) {
-          return tr->GetVolumeFraction()[0][c] * eb.GetVolume(c);
-        });
-    stat.AddMax(
-        "tu0_max", "maximum of tracer 0", //
-        [&tr = tracer_](IdxCell c, const MEB&) {
-          return tr->GetVolumeFraction()[0][c];
-        });
-    stat.AddMin(
-        "tu0_min", "minimum of tracer 0", //
-        [&tr = tracer_](IdxCell c, const MEB&) {
-          return tr->GetVolumeFraction()[0][c];
-        });
+    for (auto l : GRange<size_t>(tracer_->GetConf().layers)) {
+      const auto sl = std::to_string(l);
+      stat.AddSum(
+          "tu" + sl + "_vol", "volume of tracer " + sl, //
+          [&tr = tracer_, l](IdxCell c, const MEB& eb) {
+            return tr->GetVolumeFraction()[l][c] * eb.GetVolume(c);
+          });
+      stat.AddMax(
+          "tu" + sl + "_max", "maximum of tracer " + sl, //
+          [&tr = tracer_, l](IdxCell c, const MEB&) {
+            return tr->GetVolumeFraction()[l][c];
+          });
+      stat.AddMin(
+          "tu" + sl + "_min", "minimum of tracer " + sl, //
+          [&tr = tracer_, l](IdxCell c, const MEB&) {
+            return tr->GetVolumeFraction()[l][c];
+          });
+    }
   }
 
   stat_->SortNames();
