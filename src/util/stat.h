@@ -180,7 +180,7 @@ class Stat {
   template <class Func>
   void AddMin(std::string name, std::string desc, Func func) {
     using Result = typename ResultOfMesh<Func>::type;
-    Add<Result>(name, desc, Reduction::min, func, true);
+    Add<Result>(name, desc, Reduction::min, func);
   }
   template <class Func>
   void AddSumHidden(std::string name, std::string desc, Func func) {
