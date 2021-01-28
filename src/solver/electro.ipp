@@ -52,18 +52,17 @@ struct Electro<EB_>::Imp {
       auto r1 = conf.var.Double["resist1"];
       auto r2 = conf.var.Double["resist2"];
       t.ff_resist.Reinit(m);
-
       eb.LoopFaces([&](auto cf) { //
         t.ff_resist[cf] = 1 / (1 / r2 * ff_vf[cf] + 1 / r1 * (1 - ff_vf[cf]));
       });
+
       const auto ffg = UEB::GradientImplicit(fc_pot_, mebc_pot_, eb);
       t.fcl.Reinit(m, Expr::GetUnit(0));
       for (auto c : eb.Cells()) {
         Expr sum(0);
         eb.LoopNci(c, [&](auto q) {
           const auto cf = eb.GetFace(c, q);
-          //const ExprFace flux = ffg[cf] / t.ff_resist[cf] * eb.GetArea(cf);
-          const ExprFace flux = ffg[cf] * eb.GetArea(cf); // XXX
+          const ExprFace flux = ffg[cf] / t.ff_resist[cf] * eb.GetArea(cf);
           eb.AppendExpr(sum, flux * eb.GetOutwardFactor(c, q), q);
         });
         t.fcl[c] = sum;
