@@ -2,7 +2,7 @@
 
 set -eu
 
-if [ "${1:-}" == "-h" ] ; then
+if [ "${1:-}" = "-h" ] ; then
   cat << EOF
 usage: `basename $0` [-h] ARGS
 Writes arguments to file 'arg'.
@@ -11,7 +11,7 @@ EOF
   exit 1
 fi
 
-if [ "$#" -lt "1" ] || [ "$1" == "-" ] ; then
+if [ "$#" -lt "1" ] || [ "$1" = "-" ] ; then
   cat - > arg
 else
   echo "$@" > arg

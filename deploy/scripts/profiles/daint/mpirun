@@ -15,7 +15,7 @@ EOF
 fi
 
 silent=0
-if [ "$1" == "--silent" ] ; then
+if [ "$1" = "--silent" ] ; then
   silent=1
   shift 1
 fi
@@ -26,7 +26,7 @@ else
   c='srun "$@"'
 fi
 
-if [ "$silent" == "0" ] ; then
+if [ "$silent" = "0" ] ; then
   eval echo "$c" >&2
 fi
 
