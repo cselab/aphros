@@ -76,7 +76,12 @@ struct Tracer<EB_>::Imp {
   }
   void Step(Scal dt, const FieldEmbed<Scal>& fev) {
     auto sem = m.GetSem("step");
+    struct {
+      Multi<FieldCell<Scal>> vfct; // change of conserved quantity
+    } * ctx(sem);
+    auto& t = *ctx;
     if (sem("local")) {
+      t.vfct.Reinit(layers, m, 0);
       for (auto c : eb.AllCells()) {
         fc_rho_[c] = GetMixtureDensity(c);
         fc_mu_[c] = GetMixtureViscosity(c);
@@ -125,23 +130,25 @@ struct Tracer<EB_>::Imp {
           // diffusion
           fe_flux[cf] += conf.diffusion[l] * ffg[cf] * eb.GetArea(cf);
         });
-        FieldCell<Scal> fct(eb, 0); // change of conserved quantity
         for (auto c : eb.Cells()) {
-          Scal sum = 0.;
+          Scal sum = 0;
           eb.LoopNci(c, [&](auto q) {
             const auto cf = eb.GetFace(c, q);
             sum += fe_flux[cf] * eb.GetOutwardFactor(c, q);
           });
-          fct[c] = dt * sum;
+          t.vfct[l][c] = dt * sum;
         }
-        if (l == 0 && conf.fc_src) {
-          for (auto c : eb.Cells()) {
-            fct[c] += dt * (*conf.fc_src)[c] * eb.GetVolume(c);
-          }
-        }
-        fct = UEmbed<M>::RedistributeCutCells(fct, eb);
+        m.Comm(&t.vfct[l]);
+      }
+    }
+    if (sem("local-redistr")) {
+      for (auto l : layers) {
+        t.vfct[l] = UEmbed<M>::RedistributeCutCells(t.vfct[l], eb);
+        //t.vfct[l] =
+        //    UEmbed<M>::RedistributeCutCellsAdvection(t.vfct[l], fev, 1, dt, eb);
         for (auto c : eb.Cells()) {
-          fcu[c] += fct[c] / eb.GetVolume(c);
+          vfcu_[l][c] +=
+              t.vfct[l][c] / eb.GetVolume(c) + dt * (*conf.fc_src)[c];
         }
       }
       for (auto c : eb.Cells()) {
