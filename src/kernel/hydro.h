@@ -1159,6 +1159,21 @@ void Hydro<M>::InitStat() {
         "el_current", "electro total current", //
         [&electro_ = electro_]() { return electro_->GetStat().current; });
   }
+  if (tracer_) {
+    if (eb_) {
+      stat.AddSum(
+          "vol_t0", "volume of tracer 0", //
+          [&tr = tracer_](IdxCell c, const Embed<M>& eb) {
+            return tr->GetVolumeFraction()[0][c] * eb.GetVolume(c);
+          });
+    } else {
+      stat.AddSum(
+          "vol_t0", "volume of tracer 0", //
+          [&tr = tracer_](IdxCell c, const M& mm) {
+            return tr->GetVolumeFraction()[0][c] * mm.GetVolume(c);
+          });
+    }
+  }
 
   stat_->SortNames();
 
@@ -1679,22 +1694,19 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     if (tracer_ && var.Int["tracer_override_mixture"]) {
       const auto& fc_rho_mix = tracer_->GetMixtureDensity();
       const auto& fc_mu_mix = tracer_->GetMixtureViscosity();
+      const auto& fc_vf_mix = tracer_->GetMixtureVolumeFraction();
       for (auto c : m.AllCells()) {
+        const Scal rho1m = fc_rho_mix[c] + (1 - fc_vf_mix[c]) * rho1;
+        const Scal mu1m = fc_mu_mix[c] + (1 - fc_vf_mix[c]) * mu1;
         const Scal a2 = fcvfsm[c];
-        const Scal a1 = 1. - a2;
-        fc_rho_[c] = fc_rho_mix[c] * a1 + rho2 * a2;
-        fc_mu_[c] = fc_mu_mix[c] * a1 + mu2 * a2;
+        const Scal a1 = 1 - a2;
+        fc_rho_[c] = rho1m * a1 + rho2 * a2;
+        fc_mu_[c] = mu1m * a1 + mu2 * a2;
       }
-      FieldFace<Scal> ff_rho_mix(m);
       if (eb_) {
-        ff_rho_mix = UEB::Interpolate(fc_rho_mix, {}, *eb_).GetFieldFace();
+        ff_rho = UEB::Interpolate(fc_rho_, mebc_vfsm_, *eb_).GetFieldFace();
       } else {
-        ff_rho_mix = UEB::Interpolate(fc_rho_mix, mebc_vfsm_, m);
-      }
-      for (auto f : m.AllFaces()) {
-        const Scal a2 = ffvf[f];
-        const Scal a1 = 1. - a2;
-        ff_rho[f] = ff_rho_mix[f] * a1 + rho2 * a2;
+        ff_rho = UEB::Interpolate(fc_rho_, mebc_vfsm_, m);
       }
     }
 

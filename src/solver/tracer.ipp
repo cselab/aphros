@@ -23,9 +23,6 @@ struct Tracer<EB_>::Imp {
   static Scal Clip(Scal a, Scal low, Scal high) {
     return a < low ? low : a > high ? high : a;
   }
-  static Scal Clip(Scal a) {
-    return Clip(a, 0, 1);
-  }
   Imp(Owner* owner, M& m_, const EB& eb_,
       const Multi<const FieldCell<Scal>*>& vfcu,
       const Multi<const MapEmbed<BCond<Scal>>*>& vmebc, Scal time, Conf conf_)
@@ -37,21 +34,9 @@ struct Tracer<EB_>::Imp {
       , layers(conf.layers)
       , vmebc_(vmebc)
       , vfcu_(vfcu)
-      , fc_density_(m, conf.density[0])
-      , fc_viscosity_(m, conf.viscosity[0]) {
-    /*
-for (auto c : m.AllCells()) {
-  Scal sum = 0;
-  for (auto l : layers) {
-    if (l > 0) {
-      sum += vfcu_[l][c];
-    }
-  }
-  sum = Clip(sum);
-  vfcu_[0][c] = 1 - sum;
-}
-*/
-  }
+      , fc_rho_(m, 0)
+      , fc_mu_(m, 0)
+      , fc_vf_(m, 0) {}
   Scal GetMixtureViscosity(IdxCell c) const {
     Scal sum = 0;
     for (auto l : layers) {
@@ -63,6 +48,13 @@ for (auto c : m.AllCells()) {
     Scal sum = 0;
     for (auto l : layers) {
       sum += vfcu_[l][c] * conf.density[l];
+    }
+    return sum;
+  }
+  Scal GetMixtureVolumeFraction(IdxCell c) const {
+    Scal sum = 0;
+    for (auto l : layers) {
+      sum += vfcu_[l][c];
     }
     return sum;
   }
@@ -85,18 +77,17 @@ for (auto c : m.AllCells()) {
   void Step(Scal dt, const FieldEmbed<Scal>& fev) {
     auto sem = m.GetSem("step");
     if (sem("local")) {
-      auto& fc_rho = fc_density_;
-      auto& fc_mu = fc_viscosity_;
       for (auto c : eb.AllCells()) {
-        fc_rho[c] = GetMixtureDensity(c);
-        fc_mu[c] = GetMixtureViscosity(c);
+        fc_rho_[c] = GetMixtureDensity(c);
+        fc_mu_[c] = GetMixtureViscosity(c);
+        fc_vf_[c] = GetMixtureVolumeFraction(c);
       }
       MapEmbed<BCond<Scal>> me_neumann;
       vmebc_[0].LoopBCond(eb, [&](auto cf, IdxCell, auto bc) { //
         me_neumann[cf] = BCond<Scal>(BCondType::neumann, bc.nci);
       });
-      const auto fe_rho = UEmbed<M>::Interpolate(fc_rho, me_neumann, eb);
-      const auto fe_mu = UEmbed<M>::Interpolate(fc_mu, me_neumann, eb);
+      const auto fe_rho = UEmbed<M>::Interpolate(fc_rho_, me_neumann, eb);
+      const auto fe_mu = UEmbed<M>::Interpolate(fc_mu_, me_neumann, eb);
       FieldFaceb<Scal> fev_carrier(m, 0);
       eb.LoopFaces([&](auto cf) { //
         fev_carrier[cf] = fev[cf];
@@ -153,40 +144,12 @@ for (auto c : m.AllCells()) {
           fcu[c] += fct[c] / eb.GetVolume(c);
         }
       }
-      // clip to [0, 1]
       for (auto c : eb.Cells()) {
         for (auto l : layers) {
           auto& u = vfcu_[l][c];
-          u = Clip(u);
+          u = Clip(u, 0, 1);
         }
       }
-      /*
-      // clip to [0, 1] and normalize to sum 1
-      for (auto c : eb.Cells()) {
-        Scal sum = 0;
-        for (auto l : layers) {
-          auto& u = vfcu_[l][c];
-          u = Clip(u);
-          sum += u;
-        }
-        if (sum > 1) {
-          for (auto l : layers) {
-            auto& u = vfcu_[l][c];
-            u /= sum;
-          }
-        }
-      }
-      // set phase 0 to sum of other phases
-      for (auto c : eb.Cells()) {
-        Scal sum = 0;
-        for (auto l : layers) {
-          if (l > 0) {
-            sum += vfcu_[l][c];
-          }
-        }
-        vfcu_[0][c] = 1 - sum;
-      }
-      */
       for (auto l : layers) {
         m.Comm(&vfcu_[l]);
       }
@@ -204,8 +167,9 @@ for (auto c : m.AllCells()) {
   GRange<size_t> layers;
   Multi<MapEmbed<BCond<Scal>>> vmebc_;
   Multi<FieldCell<Scal>> vfcu_;
-  FieldCell<Scal> fc_density_;
-  FieldCell<Scal> fc_viscosity_;
+  FieldCell<Scal> fc_rho_;
+  FieldCell<Scal> fc_mu_;
+  FieldCell<Scal> fc_vf_;
 };
 
 template <class EB_>
@@ -244,12 +208,17 @@ void Tracer<EB_>::SetVolumeFraction(const Multi<FieldCell<Scal>>& vfcu) {
 
 template <class EB_>
 auto Tracer<EB_>::GetMixtureDensity() const -> const FieldCell<Scal>& {
-  return imp->fc_density_;
+  return imp->fc_rho_;
 }
 
 template <class EB_>
 auto Tracer<EB_>::GetMixtureViscosity() const -> const FieldCell<Scal>& {
-  return imp->fc_viscosity_;
+  return imp->fc_mu_;
+}
+
+template <class EB_>
+auto Tracer<EB_>::GetMixtureVolumeFraction() const -> const FieldCell<Scal>& {
+  return imp->fc_vf_;
 }
 
 template <class EB_>

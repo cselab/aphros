@@ -61,6 +61,7 @@ class TracerInterface {
   virtual void SetVolumeFraction(const Multi<FieldCell<Scal>>&) = 0;
   virtual const FieldCell<Scal>& GetMixtureDensity() const = 0;
   virtual const FieldCell<Scal>& GetMixtureViscosity() const = 0;
+  virtual const FieldCell<Scal>& GetMixtureVolumeFraction() const = 0;
   // Returns view with pointers to fields.
   virtual TracerView GetView() const = 0;
   virtual Scal GetTime() const = 0;
@@ -98,6 +99,7 @@ class Tracer : public TracerInterface<typename EB_::M> {
   void SetVolumeFraction(const Multi<FieldCell<Scal>>&) override;
   const FieldCell<Scal>& GetMixtureDensity() const override;
   const FieldCell<Scal>& GetMixtureViscosity() const override;
+  const FieldCell<Scal>& GetMixtureVolumeFraction() const override;
   // Returns view with pointers to fields.
   TracerView GetView() const override;
   Scal GetTime() const;
