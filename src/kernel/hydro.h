@@ -156,7 +156,8 @@ class Hydro : public KernelMeshPar<M_, GPar> {
   void OverwriteBc();
   void InitFluid(const FieldCell<Vect>& fc_vel);
   void InitAdvection(const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl);
-  void InitStat();
+  template <class MEB>
+  void InitStat(const MEB& eb);
   Vect CalcPressureDrag(const FieldCell<Scal>& fcp, const Embed<M>& eb);
   Vect CalcViscousDrag(
       const FieldCell<Vect>& fcvel, const FieldCell<Scal>& fcmu,
@@ -782,7 +783,8 @@ void Hydro<M>::InitAdvection(
 }
 
 template <class M>
-void Hydro<M>::InitStat() {
+template <class MEB>
+void Hydro<M>::InitStat(const MEB& eb) {
   stat_.reset(new Stat<M>(m, eb_.get()));
   auto& stat = *stat_;
   auto& vf = as_->GetField();
@@ -799,11 +801,11 @@ void Hydro<M>::InitStat() {
   if (eb_) {
     stat.AddSum(
         "vol_eb", "volume of domain with embed", //
-        [](IdxCell c, const EB& eb) { return eb.GetVolume(c); });
+        [](IdxCell c, const EB& eeb) { return eeb.GetVolume(c); });
     stat.AddSum(
         "vol1_eb", "volume of phase 1 with embed", //
-        [&vf](IdxCell c, const EB& eb) {
-          return eb.GetVolume(c) - vf[c] * eb.GetMesh().GetVolume(c);
+        [&vf](IdxCell c, const EB& eeb) {
+          return eeb.GetVolume(c) - vf[c] * eeb.GetMesh().GetVolume(c);
         });
   }
   stat.AddSum(
@@ -811,18 +813,18 @@ void Hydro<M>::InitStat() {
       [&vf](IdxCell c, const M& mm) { return vf[c] * mm.GetVolume(c); });
   stat.AddSum(
       "ekin", "kinetic energy of mixture", //
-      [&vel, &rho](IdxCell c, const M& mm) {
-        return 0.5 * rho[c] * vel[c].sqrnorm() * mm.GetVolume(c);
+      [&vel, &rho](IdxCell c, const MEB& meb) {
+        return 0.5 * rho[c] * vel[c].sqrnorm() * meb.GetVolume(c);
       });
   stat.AddSum(
       "ekin1", "kinetic energy of phase 1", //
-      [&vf, &vel, &rho](IdxCell c, const M& mm) {
-        return 0.5 * rho[c] * vel[c].sqrnorm() * mm.GetVolume(c) * (1 - vf[c]);
+      [&vf, &vel, &rho](IdxCell c, const MEB& meb) {
+        return 0.5 * rho[c] * vel[c].sqrnorm() * meb.GetVolume(c) * (1 - vf[c]);
       });
   stat.AddSum(
       "ekin2", "kinetic energy of phase 2", //
-      [&vf, &vel, &rho](IdxCell c, const M& mm) {
-        return 0.5 * rho[c] * vel[c].sqrnorm() * mm.GetVolume(c) * vf[c];
+      [&vf, &vel, &rho](IdxCell c, const MEB& meb) {
+        return 0.5 * rho[c] * vel[c].sqrnorm() * meb.GetVolume(c) * vf[c];
       });
   stat.AddMax(
       "pmax", "maximum pressure", //
@@ -879,82 +881,78 @@ void Hydro<M>::InitStat() {
   };
 
   auto& ffv = fs_->GetVolumeFlux();
-  if (eb_) {
-    stat.AddSum(
-        "q_inlet", "inlet volume rate", //
-        [&ffv, this, &mm = m]() {
-          Scal sum = 0;
-          mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
-            if (mm.IsInner(c)) {
-              if (bc.type == BCondFluidType::inlet ||
-                  bc.type == BCondFluidType::inletflux) {
-                sum += ffv[cf] * (bc.nci == 0 ? -1 : 1);
-              }
+  stat.AddSum(
+      "q_inlet", "inlet volume rate", //
+      [&ffv, this, &mm = m, &meb = eb]() {
+        Scal sum = 0;
+        mebc_fluid_.LoopBCond(meb, [&](auto cf, IdxCell c, auto bc) { //
+          if (mm.IsInner(c)) {
+            if (bc.type == BCondFluidType::inlet ||
+                bc.type == BCondFluidType::inletflux) {
+              sum += ffv[cf] * (bc.nci == 0 ? -1 : 1);
             }
-          });
-          return sum;
+          }
         });
-    stat.AddSum(
-        "q_inletpressure", "inletpressure volume rate", //
-        [&ffv, this, &mm = m]() {
-          Scal sum = 0;
-          mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
-            if (mm.IsInner(c)) {
-              if (bc.type == BCondFluidType::inletpressure) {
-                sum += ffv[cf] * (bc.nci == 0 ? -1 : 1);
-              }
+        return sum;
+      });
+  stat.AddSum(
+      "q_inletpressure", "inletpressure volume rate", //
+      [&ffv, this, &mm = m, &meb = eb]() {
+        Scal sum = 0;
+        mebc_fluid_.LoopBCond(meb, [&](auto cf, IdxCell c, auto bc) { //
+          if (mm.IsInner(c)) {
+            if (bc.type == BCondFluidType::inletpressure) {
+              sum += ffv[cf] * (bc.nci == 0 ? -1 : 1);
             }
-          });
-          return sum;
+          }
         });
-    stat.AddSum(
-        "q_outlet", "outlet volume rate", //
-        [&ffv, this, &mm = m]() {
-          Scal sum = 0;
-          mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
-            if (mm.IsInner(c)) {
-              if (bc.type == BCondFluidType::outlet ||
-                  bc.type == BCondFluidType::outletpressure) {
-                sum += ffv[cf] * (bc.nci == 0 ? 1 : -1);
-              }
+        return sum;
+      });
+  stat.AddSum(
+      "q_outlet", "outlet volume rate", //
+      [&ffv, this, &mm = m, &meb = eb]() {
+        Scal sum = 0;
+        mebc_fluid_.LoopBCond(meb, [&](auto cf, IdxCell c, auto bc) { //
+          if (mm.IsInner(c)) {
+            if (bc.type == BCondFluidType::outlet ||
+                bc.type == BCondFluidType::outletpressure) {
+              sum += ffv[cf] * (bc.nci == 0 ? 1 : -1);
             }
-          });
-          return sum;
+          }
         });
-    stat.AddSum(
-        "area_inletpressure", "inletpressure area", //
-        [this, &mm = m]() {
-          Scal sum = 0;
-          auto& eb = *eb_;
-          mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
-            if (mm.IsInner(c)) {
-              if (bc.type == BCondFluidType::inletpressure) {
-                sum += eb.GetArea(cf);
-              }
+        return sum;
+      });
+  stat.AddSum(
+      "area_inletpressure", "inletpressure area", //
+      [this, &mm = m, &meb = eb]() {
+        Scal sum = 0;
+        mebc_fluid_.LoopBCond(meb, [&](auto cf, IdxCell c, auto bc) { //
+          if (mm.IsInner(c)) {
+            if (bc.type == BCondFluidType::inletpressure) {
+              sum += meb.GetArea(cf);
             }
-          });
-          return sum;
+          }
         });
-    stat.AddSumHidden(
-        "p*area_inletpressure", "inletpressure pressure * area", //
-        [&p, this, &mm = m]() {
-          Scal sum = 0;
-          auto& eb = *eb_;
-          mebc_fluid_.LoopBCond(*eb_, [&](auto cf, IdxCell c, auto bc) { //
-            if (mm.IsInner(c)) {
-              if (bc.type == BCondFluidType::inletpressure) {
-                sum += p[c] * eb.GetArea(cf);
-              }
+        return sum;
+      });
+  stat.AddSumHidden(
+      "p*area_inletpressure", "inletpressure pressure * area", //
+      [&p, this, &mm = m, &meb = eb]() {
+        Scal sum = 0;
+        mebc_fluid_.LoopBCond(meb, [&](auto cf, IdxCell c, auto bc) { //
+          if (mm.IsInner(c)) {
+            if (bc.type == BCondFluidType::inletpressure) {
+              sum += p[c] * meb.GetArea(cf);
             }
-          });
-          return sum;
+          }
         });
-    stat.AddDerived(
-        "p_inletpressure", "inletpressure average pressure", //
-        [div](const Stat<M>& s) {
-          return div(s["p*area_inletpressure"], s["area_inletpressure"]);
-        });
-  }
+        return sum;
+      });
+  stat.AddDerived(
+      "p_inletpressure", "inletpressure average pressure", //
+      [div](const Stat<M>& s) {
+        return div(s["p*area_inletpressure"], s["area_inletpressure"]);
+      });
 
   stat.AddDerived(
       "c1", "centeroid of phase 1", //
@@ -1160,19 +1158,21 @@ void Hydro<M>::InitStat() {
         [&electro_ = electro_]() { return electro_->GetStat().current; });
   }
   if (tracer_) {
-    if (eb_) {
-      stat.AddSum(
-          "vol_t0", "volume of tracer 0", //
-          [&tr = tracer_](IdxCell c, const Embed<M>& eb) {
-            return tr->GetVolumeFraction()[0][c] * eb.GetVolume(c);
-          });
-    } else {
-      stat.AddSum(
-          "vol_t0", "volume of tracer 0", //
-          [&tr = tracer_](IdxCell c, const M& mm) {
-            return tr->GetVolumeFraction()[0][c] * mm.GetVolume(c);
-          });
-    }
+    stat.AddSum(
+        "tu0_vol", "volume of tracer 0", //
+        [&tr = tracer_](IdxCell c, const MEB& eb) {
+          return tr->GetVolumeFraction()[0][c] * eb.GetVolume(c);
+        });
+    stat.AddMax(
+        "tu0_max", "maximum of tracer 0", //
+        [&tr = tracer_](IdxCell c, const MEB&) {
+          return tr->GetVolumeFraction()[0][c];
+        });
+    stat.AddMin(
+        "tu0_min", "minimum of tracer 0", //
+        [&tr = tracer_](IdxCell c, const MEB&) {
+          return tr->GetVolumeFraction()[0][c];
+        });
   }
 
   stat_->SortNames();
@@ -1487,7 +1487,11 @@ void Hydro<M>::Init() {
       this->var_mutable.Int.Set("iter", st_.iter);
     }
 
-    InitStat();
+    if (eb_) {
+      InitStat(*eb_);
+    } else {
+      InitStat(m);
+    }
 
     if (var.Int["fill_halo_nan"]) {
       std::vector<std::pair<IdxFace, size_t>> vf;
