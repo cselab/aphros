@@ -14,6 +14,7 @@ stat.dat
 pid
 arg
 out
+out.conf
 job.id.last
 job.id
 base.conf
