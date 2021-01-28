@@ -56,7 +56,7 @@ struct Tracer<EB_>::Imp {
     for (auto l : layers) {
       sum += vfcu_[l][c];
     }
-    return sum;
+    return Clip(sum, 0, 1);
   }
   // rho: mixture density
   // mu: mixture viscosity

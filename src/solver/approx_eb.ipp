@@ -596,14 +596,12 @@ auto UEmbed<M>::Gradient(
   auto calc = [&](auto cf, IdxCell c, const BCond<T>& bc) {
     switch (bc.type) {
       case BCondType::dirichlet: {
-        return GradDirichletLinearFit(
-            eb.GetFaceCenter(cf), bc.val, eb.GetNormal(cf), c, fcu, eb);
-        // return GradDirichletQuadSecond(
-        //    eb.GetFaceCenter(cf), bc.val, eb.GetNormal(cf), c, fcu, eb);
-        // return GradDirichletQuad(
-        //    eb.GetFaceCenter(cf), bc.val, eb.GetNormal(cf), c, fcu, eb);
-        // return GradDirichletLinear(
-        //    eb.GetFaceCenter(cf), bc.val, eb.GetNormal(cf), c, fcu, eb);
+        return (bc.nci == 0 ? 1 : -1) *
+               GradDirichletLinearFit(
+                   eb.GetFaceCenter(cf), bc.val, eb.GetNormal(cf), c, fcu, eb);
+        //       GradDirichletQuadSecond(
+        //       GradDirichletQuad(
+        //       GradDirichletLinear(
       }
       case BCondType::neumann: {
         return bc.val * (bc.nci == 0 ? 1 : -1);
