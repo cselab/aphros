@@ -1698,44 +1698,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
     }
 
-    if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
-      FieldEmbed<Scal> ffvisc(m, 0);
-      auto& eb = *eb_;
-      auto fccl = as->GetColor();
-      auto fcu = as->GetFieldM();
-      const Scal musurf(var.Double["musurf"]);
-      if (musurf) {
-        for (auto f : eb.SuFaces()) {
-          const IdxCell cm = eb.GetCell(f, 0);
-          const IdxCell cp = eb.GetCell(f, 1);
-          std::set<Scal> s;
-          for (auto i : layers) {
-            const Scal clm = (*fccl[i])[cm];
-            const Scal clp = (*fccl[i])[cp];
-            if (clm != kClNone) s.insert(clm);
-            if (clp != kClNone) s.insert(clp);
-          }
-          for (auto cl : s) {
-            Scal um = 0;
-            Scal up = 0;
-            for (auto i : layers) {
-              if ((*fccl[i])[cm] == cl) {
-                um = (*fcu[i])[cm];
-              }
-              if ((*fccl[i])[cp] == cl) {
-                up = (*fcu[i])[cp];
-              }
-            }
-            ffvisc[f] = std::abs(up - um) * musurf;
-          }
-        }
-      }
-      auto fcadd = UEB::Interpolate(ffvisc, eb);
-      for (auto c : eb.Cells()) {
-        fc_mu_[c] += fcadd[c];
-      }
-    }
-
     // Append gravity to force
     for (auto f : m.AllFaces()) {
       const Vect n = m.GetNormal(f);
