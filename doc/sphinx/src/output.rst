@@ -19,5 +19,5 @@ and ``condfluid`` (conditions for fluid, see :ref:`t:fluidcond`).
 The output is implemented in function
 
 .. includecode:: src/util/hydro.ipp
-  :func: DumpBcFaces
+  :func: DumpBcPoly
 

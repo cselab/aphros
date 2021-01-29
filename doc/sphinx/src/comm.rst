@@ -51,12 +51,7 @@ Communication requests include:
   :func: Reduce
 
 .. includecode:: src/geom/mesh.h
-  :func: Solve
+  :func: GatherToLead
 
 .. includecode:: src/geom/mesh.h
   :func: Dump
-
-Structure describes a linear system to solve:
-
-.. includecode:: src/geom/mesh.h
-  :struct: LS
