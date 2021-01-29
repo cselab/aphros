@@ -1795,14 +1795,15 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             return nullptr;
           };
 
-          const size_t l = 0;
-          auto sl = std::to_string(l);
-          auto k = (*coeff) * ff_current[cf];
-          if (auto* ptr = getptr("tracer" + sl + "_dirichlet")) {
-            vmebc[l][cf] = BCond<Scal>(BCondType::dirichlet, nci, (*ptr) * k);
-          }
-          if (auto* ptr = getptr("tracer" + sl + "_neumann")) {
-            vmebc[l][cf] = BCond<Scal>(BCondType::neumann, nci, (*ptr) * k);
+          for (auto l : GRange<size_t>(tracer_->GetConf().layers)) {
+            auto sl = std::to_string(l);
+            auto k = (*coeff) * ff_current[cf];
+            if (auto* ptr = getptr("tracer" + sl + "_dirichlet")) {
+              vmebc[l][cf] = BCond<Scal>(BCondType::dirichlet, nci, (*ptr) * k);
+            }
+            if (auto* ptr = getptr("tracer" + sl + "_neumann")) {
+              vmebc[l][cf] = BCond<Scal>(BCondType::neumann, nci, (*ptr) * k);
+            }
           }
         });
       }
