@@ -42,20 +42,22 @@ add_custom_target(gitrev
 )
 
 set(T "use_avx")
-add_library(${T} INTERFACE IMPORTED)
+add_library(${T} INTERFACE)
 if (USE_AVX)
   target_compile_definitions(${T} INTERFACE _USE_AVX_=1)
   target_compile_options(${T} INTERFACE -march=native)
 else ()
   target_compile_definitions(${T} INTERFACE _USE_AVX_=0)
 endif ()
+install(TARGETS ${T} EXPORT export)
 
 set(T "use_dims")
-add_library(${T} INTERFACE IMPORTED)
+add_library(${T} INTERFACE)
 target_compile_definitions(${T} INTERFACE _USE_DIM1_=$<BOOL:${USE_DIM1}>)
 target_compile_definitions(${T} INTERFACE _USE_DIM2_=$<BOOL:${USE_DIM2}>)
 target_compile_definitions(${T} INTERFACE _USE_DIM3_=$<BOOL:${USE_DIM3}>)
 target_compile_definitions(${T} INTERFACE _USE_DIM4_=$<BOOL:${USE_DIM4}>)
+install(TARGETS ${T} EXPORT export)
 
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)
 
