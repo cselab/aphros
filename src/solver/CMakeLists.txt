@@ -32,7 +32,7 @@ target_link_libraries(${T})
 
 set(T "normal")
 add_library(${T} normal.cpp)
-target_link_libraries(${T} approx_eb use_avx)
+target_link_libraries(${T} PUBLIC approx_eb PRIVATE use_avx)
 
 set(T "curv")
 add_library(${T} curv.cpp)
