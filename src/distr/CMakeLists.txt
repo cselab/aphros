@@ -11,7 +11,7 @@ target_compile_options(${T} PRIVATE -Wall -Wextra -pedantic -Wno-shadow)
 if (USE_FPZIP)
   target_link_libraries(${T} fpzip)
 endif ()
-target_compile_definitions(${T} PUBLIC _USE_FPZIP_=$<BOOL:${USE_FPZIP$}>)
+target_compile_definitions(${T} PUBLIC _USE_FPZIP_=$<BOOL:${USE_FPZIP}>)
 
 set(T "native")
 add_library(${T} native.cpp)
