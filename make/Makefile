@@ -2,7 +2,7 @@
 .SUFFIXES:
 .SUFFIXES: .o .cpp .c
 
-L = libaphros.a
+L = libaphros_static.a
 all: $L
 include ../make/obj.mk
 
@@ -16,5 +16,8 @@ HDF_CFLAGS = `pkg-config --cflags hdf5-openmpi`
 $L: $O; ar rv $@ $O && ranlib $@
 .cpp.o:; $(MPICXX) $< -c $(CXXFLAGS) -I$(APHROS_PREFIX)/include $(HDF_CFLAGS) -I. $1 -o $@
 .c.o:; $(MPICC) $< -c $(CFLAGS) -o $@
+
+install: $L
+	mkdir -p $(APHROS_PREFIX)/lib && cp $L $(APHROS_PREFIX)/lib/
 
 include ../make/dep.mk
