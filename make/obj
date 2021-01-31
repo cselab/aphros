@@ -6,7 +6,6 @@ BEGIN {
     skip["main.cpp"]
     skip["linear/hypre.cpp"]
     skip["linear/linear_amgx.cpp"]
-    skip["solver/convdiffv_eb.cpp"]
 }
 { sub(/^\.\//, "") }
 ($0 in skip) || /^test\// { next }
