@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# cd src
+# ../make/bootstrap
+
+../make/obj > ../make/obj.mk &&
+    ../make/list | ../make/dep  > ../make/dep.mk
