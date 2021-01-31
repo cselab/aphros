@@ -4,4 +4,5 @@
 # ../make/bootstrap
 
 ../make/obj > ../make/obj.mk &&
+../make/dir > ../make/dir.mk &&
     ../make/list | ../make/dep  > ../make/dep.mk

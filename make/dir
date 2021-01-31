@@ -2,7 +2,7 @@
 
 find . -name '*.cpp' -or -name '*.c' | awk '
 BEGIN {
-    print "O = \\"
+    print "D = \\"
     skip["main.cpp"]
     skip["linear/hypre.cpp"]
     skip["linear/linear_amgx.cpp"]
@@ -10,13 +10,12 @@ BEGIN {
 { sub(/^\.\//, "") }
 ($0 in skip) || /^test\// { next }
 {
-    sub(/\.cpp$/, ".o")
-    sub(/\.c$/, ".o")
-    print $0 "\\" | "sort"
+    sub(/\/.*/, "")
+    print $0 "\\" | "sort | uniq"
 }
 
 END {
-    close("sort")
+    close("sort | uniq")
     printf "\n"
 }
 
