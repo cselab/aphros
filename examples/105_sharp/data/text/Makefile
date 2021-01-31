@@ -1,17 +1,17 @@
-default: blur.png
+default: blur.pgm
 .PHONY: default
 
 .tex.pdf:
 	xelatex $<
 
-.pdf.png:
+.pdf.pgm:
 	convert -density 300 $< -crop 256x256+0+0 -alpha remove $@
 
-blur.png: main.png
-	convert main.png -blur 8x2 blur.png
+blur.pgm: main.pgm
+	convert main.pgm -blur 8x2 blur.pgm
 
 clean:
-	$(RM) *.aux *.log *.pdf *.png
+	$(RM) *.aux *.log *.pdf *.pgm
 
 
-.SUFFIXES: .tex .pdf .png
+.SUFFIXES: .tex .pdf .pgm
