@@ -6,6 +6,7 @@ distr\
 dump\
 func\
 geom\
+inside\
 kernel\
 linear\
 march\

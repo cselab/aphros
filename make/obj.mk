@@ -17,6 +17,15 @@ func/init_vel.o\
 func/primlist.o\
 gen/wave_lamb.o\
 geom/mesh.o\
+inside/bbox.o\
+inside/err.o\
+inside/main.o\
+inside/memory.o\
+inside/off.o\
+inside/ply.o\
+inside/predicate/main.o\
+inside/predicate.o\
+inside/stl.o\
 linear/hypresub.o\
 linear/linear_hypre.o\
 linear/linear.o\

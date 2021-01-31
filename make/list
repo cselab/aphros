@@ -24,7 +24,7 @@ function filep(path) {
 }
 
 function dir(path) {
-    sub(/\/.*/, "", path)
+    sub(/\/[^/]*$/, "", path)
     return path
 }
 '
