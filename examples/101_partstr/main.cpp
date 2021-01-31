@@ -16,7 +16,7 @@ using Vect = typename M::Vect;
 
 void Run(M& m, Vars&) {
   using PSM = PartStrMeshM<M>;
-  using Plic = generic::Plic<Scal>;
+  using Plic = generic::Plic<Vect>;
   auto sem = m.GetSem();
 
   struct {
