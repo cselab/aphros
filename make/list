@@ -1,0 +1,30 @@
+#!/bin/sh
+
+find . -name '*.cpp' -or -name '*.c' -or -name '*.h' -or -name '*.ipp' | awk -v me=list '
+{ sub(/^\.\//, "") }
+/^test\// || /^main[.]cpp$/ { next }
+{
+    f = $0
+    while (getline < f)
+        if (sub(/^[ \t]*#[ \t]*include[ \t]*"/, "")) {
+            sub(/".*/, "")
+            if (filep($0))
+                print f, $0
+            else if (filep($0 = dir(f) "/" $0))
+                print f, $0
+            else {
+                printf("%s: cannot find \"%s\" included in \"%s\"\n", me, $0, f) | "cat >&2"
+                exit(2)
+            }
+        }
+}
+
+function filep(path) {
+    return system(sprintf("test -f \"%s\"", path)) == 0
+}
+
+function dir(path) {
+    sub(/\/.*/, "", path)
+    return path
+}
+'

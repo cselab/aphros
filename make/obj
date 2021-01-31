@@ -1,0 +1,19 @@
+#!/bin/sh
+
+find . -name '*.cpp' -or -name '*.c' | awk '
+BEGIN {
+    print "O = \\"
+}
+{ sub(/^\.\//, "") }
+/^test\// || /^main[.]cpp$/ || /^linear\/linear_amgx[.]cpp$/ { next }
+{
+    sub(/\.cpp$/, ".o")
+    sub(/\.c$/, ".o")
+    print $0 "\\"
+}
+
+END {
+    printf "\n"
+}
+
+'

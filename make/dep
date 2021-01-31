@@ -1,0 +1,33 @@
+#!/bin/sh
+
+awk '
+{
+    adj[$1, ++n[$1]] = $2
+}
+END {
+    for (s in n)
+	if (s ~ /\.cpp$/ || s ~ /\.c$/)
+	    dfs(s)
+}
+
+function dfs(s,   q, i, j, k, seen, nxt, c) {
+    q[++j] = s
+    while (++i in q) {
+	seen[c = q[i]]
+	for (k = 1; (c, k) in adj; k++) {
+	    nxt = adj[c, k]
+	    if (!(nxt in seen)) {
+		q[++j] = nxt
+		print f2obj(s) " : " nxt
+	    }
+	}
+    }
+}
+
+function f2obj(s) {
+    sub(/\.cpp$/, ".o", s)
+    sub(/\.c/, ".o", s)
+    return s
+}
+
+' | sort | uniq
