@@ -8,7 +8,7 @@
 
 #include "macros.h"
 #if USEFLAG(FPZIP)
-#include "fpzip.h"
+#include <fpzip.h>
 #endif
 
 namespace compression {

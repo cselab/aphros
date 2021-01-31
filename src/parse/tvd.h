@@ -6,7 +6,7 @@
 #include <string>
 
 #include "parse/solver.h"
-#include "solver/tvd.h"
+#include <solver/tvd.h>
 
 template <class M>
 struct ParsePar<Tvd<M>> {
