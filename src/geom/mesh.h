@@ -77,10 +77,7 @@ class MeshCartesian {
     MIdx global_blocks = MIdx(0); // number of blocks in global mesh
     Vect block_length = Vect(0); // length of one block (local mesh)
     static int GetIdFromBlock(MIdx block, MIdx global_blocks) {
-      const auto& w = block;
-      const auto& wmax = global_blocks;
-      const int id = w[0] + w[1] * wmax[0] + w[2] * wmax[0] * wmax[1];
-      return id;
+      return GIndex<int, dim>(global_blocks).GetIdx(block);
     };
     int GetIdFromBlock(MIdx block) const {
       return GetIdFromBlock(block, global_blocks);
@@ -126,9 +123,7 @@ class MeshCartesian {
     return cell_size_;
   }
   IntIdx GetHash(MIdx w) {
-    // XXX: adhoc, hash for cell index, assume mesh size <= mn
-    const size_t mn = 1000;
-    return (w[2] * mn + w[1]) * mn + w[0];
+    return GIndex<size_t, dim>(global_size_).GetIdx(w);
   }
   IntIdx GetHash(IdxCell c) {
     return GetHash(GetIndexCells().GetMIdx(c));
