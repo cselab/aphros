@@ -37,10 +37,11 @@ bool IsNan(Scal a) {
 
 namespace generic {
 
-template <class Scal, size_t dim_>
+template <class Scal_, size_t dim_>
 class Vect {
  public:
   static constexpr size_t dim = dim_;
+  using Scal = Scal_;
   using value_type = Scal;
 
  public:
@@ -84,6 +85,15 @@ class Vect {
   explicit Vect(const T* v) {
     for (size_t i = 0; i < dim; ++i) {
       data_[i] = static_cast<Scal>(v[i]);
+    }
+  }
+  template <size_t dimv>
+  explicit Vect(const Vect<Scal, dimv>& v) {
+    for (size_t i = 0; i < std::min(dim, dimv); ++i) {
+      data_[i] = v[i];
+    }
+    for (size_t i = std::min(dim, dimv); i < dim; ++i) {
+      data_[i] = 0;
     }
   }
   Vect& operator=(const Vect&) = default;
@@ -266,11 +276,12 @@ class Vect {
     return data_[0] * other.data_[1] - data_[1] * other.data_[0];
   }
   Vect cross(const Vect& other) const {
-    const Vect& a = *this;
-    const Vect& b = other;
-    return Vect(
+    using Vect3 = Vect<Scal, 3>;
+    const Vect3 a(*this);
+    const Vect3 b(other);
+    return Vect(Vect3(
         a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0]);
+        a[0] * b[1] - a[1] * b[0]));
   }
   Scal dist(Vect other) const {
     other -= *this;

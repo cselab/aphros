@@ -28,17 +28,17 @@ void TestSolveLinear() {
       2,
       8,
   };
-  auto x = ULinearFit<Scal>::SolveLinear(a, b);
+  auto x = ULinearFit<Vect>::SolveLinear(a, b);
   using V = generic::Vect<Scal, N>;
   std::cout << "x=" << V(x) << std::endl;
   std::cout << "b=" << V(b) << std::endl;
-  std::cout << "a*x=" << V(ULinearFit<Scal>::Mul(a, x)) << std::endl;
+  std::cout << "a*x=" << V(ULinearFit<Vect>::Mul(a, x)) << std::endl;
 }
 
 template <class T>
 void TestFitLinear(const std::vector<Vect>& xx, const std::vector<T>& uu) {
   std::cout << '\n' << __func__ << std::endl;
-  auto p = ULinearFit<Scal>::FitLinear(xx, uu);
+  auto p = ULinearFit<Vect>::FitLinear(xx, uu);
   std::cout << "xx[uu]: ";
   for (size_t i = 0; i < xx.size(); ++i) {
     std::cout << xx[i] << "[" << uu[i] << "]   ";

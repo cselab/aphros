@@ -10,14 +10,14 @@
 
 #include "func/primlist.h"
 
-using Scal = double;
+using Vect = generic::Vect<double, 3>;
 
 int main(int an, char* av[]) {
   if (an < 2) {
     std::cerr << "usage: " << av[0] << " primitive" << std::endl;
     return 1;
   }
-  using U = UPrimList<Scal>;
+  using U = UPrimList<Vect>;
   try {
     std::stringstream ss(av[1]);
     auto pp = U::GetPrimitives(ss, 3);

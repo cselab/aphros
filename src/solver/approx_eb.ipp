@@ -49,8 +49,8 @@ T Bilinear(Scal x, Scal y, T u, T ux, T uy, T uyx) {
 
 } // namespace interp
 
-template <class Scal>
-auto ULinearFit<Scal>::FitLinear(
+template <class Vect_>
+auto ULinearFit<Vect_>::FitLinear(
     const std::vector<Vect>& xx, const std::vector<Scal>& uu)
     -> std::pair<Vect, Scal> {
   assert(xx.size() == uu.size());
@@ -78,11 +78,11 @@ auto ULinearFit<Scal>::FitLinear(
   }
 
   auto v = SolveLinear(a, b);
-  return {Vect(v[0], v[1], v[2]), v[3]};
+  return {Vect(&v[0]), v[dim]};
 }
 
-template <class Scal>
-auto ULinearFit<Scal>::FitLinear(
+template <class Vect_>
+auto ULinearFit<Vect_>::FitLinear(
     const std::vector<Vect>& xx, const std::vector<Vect>& uu)
     -> std::pair<generic::Vect<Vect, dim>, Vect> {
   std::pair<generic::Vect<Vect, dim>, Vect> p;
@@ -93,9 +93,9 @@ auto ULinearFit<Scal>::FitLinear(
     }
     auto pd = FitLinear(xx, uud);
     p.second[d] = pd.second;
-    p.first[0][d] = pd.first[0];
-    p.first[1][d] = pd.first[1];
-    p.first[2][d] = pd.first[2];
+    for (size_t i = 0; i < dim; ++i) {
+      p.first[i][d] = pd.first[i];
+    }
   }
   return p;
 }
@@ -112,6 +112,7 @@ void InitLevelSetFromModel(
     M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using Vect3 = generic::Vect<Scal, 3>;
   auto sem = m.GetSem(__func__);
   struct Context {
     int nt;
@@ -161,8 +162,10 @@ void InitLevelSetFromModel(
         const Scal box_extent = (box1 - box0).abs().max();
         const Vect box_center = (box0 + box1) * 0.5;
         for (int i = 0; i < t.nv * 3; i += 3) {
-          Vect x(t.ver[i], t.ver[i + 1], t.ver[i + 2]);
-          x = center + rotate(x - box_center, rotation) / box_extent * extent;
+          Vect3 x(t.ver[i], t.ver[i + 1], t.ver[i + 2]);
+          x = Vect3(
+              center +
+              rotate(Vect(x) - box_center, rotation) / box_extent * extent);
           t.ver[i] = x[0];
           t.ver[i + 1] = x[1];
           t.ver[i + 2] = x[2];
@@ -258,6 +261,7 @@ void InitLevelSetFromModel(
 template <class M>
 void UEmbed<M>::InitLevelSet(
     FieldNode<Scal>& fnl, M& m, const Vars& var, bool verb) {
+  using Vect3 = generic::Vect<Scal, 3>;
   auto sem = m.GetSem(__func__);
   if (sem("init")) {
     fnl.Reinit(m);
@@ -278,7 +282,7 @@ void UEmbed<M>::InitLevelSet(
         const Scal x = xx[0];
         const Scal y = xx[1];
         const Scal z = xx[2];
-        return Vect(x * cos - y * sin, x * sin + y * cos, z);
+        return Vect(Vect3(x * cos - y * sin, x * sin + y * cos, z));
       };
       for (auto n : m.AllNodes()) {
         const Vect x = m.GetNode(n);
@@ -297,7 +301,7 @@ void UEmbed<M>::InitLevelSet(
         const Scal x = xx[0];
         const Scal y = xx[1];
         const Scal z = xx[2];
-        return Vect(x * cos - y * sin, x * sin + y * cos, z);
+        return Vect(Vect3(x * cos - y * sin, x * sin + y * cos, z));
       };
       for (auto n : m.AllNodes()) {
         const Vect x = m.GetNode(n);
@@ -340,7 +344,7 @@ void UEmbed<M>::InitLevelSet(
       }
 
       const size_t edim = var.Int["dim"];
-      auto pp = UPrimList<Scal>::GetPrimitives(in, edim);
+      auto pp = UPrimList<Vect>::GetPrimitives(in, edim);
 
       if (verb) {
         std::cout << "Read " << pp.size() << " primitives." << std::endl;
@@ -525,9 +529,10 @@ T GradDirichletLinearFit(
   return (uf - u) / h;
 }
 
-template <class Scal>
+template <class Vect_>
 struct CombineMixed {
-  using Vect = generic::Vect<Scal, 3>;
+  using Vect = Vect_;
+  using Scal = typename Vect::Scal;
   Scal operator()(Scal un, Scal, Vect) {
     return un;
   }
@@ -566,7 +571,7 @@ auto UEmbed<M>::Interpolate(
       case BCondType::reflect: {
         const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
-        return CombineMixed<Scal>()(bc.val, u + bc.val * h, eb.GetNormal(cf));
+        return CombineMixed<Vect>()(bc.val, u + bc.val * h, eb.GetNormal(cf));
       }
       case BCondType::extrap: {
         return EvalLinearFit(eb.GetFaceCenter(cf), c, fcu, eb);
@@ -610,15 +615,15 @@ auto UEmbed<M>::Gradient(
       case BCondType::reflect: {
         const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const T u = EvalLinearFit(x, c, fcu, eb);
-        return CombineMixed<Scal>()((bc.val - u) / h, bc.val, eb.GetNormal(cf));
+        return CombineMixed<Vect>()((bc.val - u) / h, bc.val, eb.GetNormal(cf));
       }
       case BCondType::extrap: {
         // TODO replace with dot-product of gradient and normal
         auto p = FitLinear(c, fcu, eb);
         const Vect x1 = eb.GetFaceCenter(cf);
         const Vect x0 = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
-        const T u1 = ULinearFit<typename M::Scal>::EvalLinear(p, x1);
-        const T u0 = ULinearFit<typename M::Scal>::EvalLinear(p, x0);
+        const T u1 = ULinearFit<typename M::Vect>::EvalLinear(p, x1);
+        const T u0 = ULinearFit<typename M::Vect>::EvalLinear(p, x0);
         return (u1 - u0) / h;
       }
     }
@@ -691,7 +696,7 @@ auto UEmbed<M>::InterpolateUpwind(
       case BCondType::reflect: {
         const Vect x = eb.GetFaceCenter(cf) - eb.GetNormal(cf) * h;
         const Scal u = EvalLinearFit(x, c, fcu, eb);
-        return CombineMixed<Scal>()(bc.val, u + bc.val * h, eb.GetNormal(cf));
+        return CombineMixed<Vect>()(bc.val, u + bc.val * h, eb.GetNormal(cf));
       }
       case BCondType::extrap: {
         return EvalLinearFit(eb.GetFaceCenter(cf), c, fcu, eb);
@@ -883,7 +888,7 @@ auto UEmbed<M>::Interpolate(
       case BCondType::reflect: {
         const Scal q = (bc.nci == 0 ? 1. : -1.);
         const Scal a = m.GetVolume(c) / m.GetArea(f) * 0.5 * q;
-        return CombineMixed<Scal>()(
+        return CombineMixed<Vect>()(
             bc.val, fcu[c] + bc.val * a, m.GetNormal(f));
       }
       case BCondType::extrap: {
@@ -1126,7 +1131,7 @@ auto UEmbed<M>::GradientLinearFit(const FieldEmbed<Scal>& feu, const EB& eb)
         xx.push_back(eb.GetFaceCenter(f));
         uu.push_back(feu[f]);
       }
-      auto p = ULinearFit<Scal>::FitLinear(xx, uu);
+      auto p = ULinearFit<Vect>::FitLinear(xx, uu);
       fcg[c] = p.first;
     }
   }

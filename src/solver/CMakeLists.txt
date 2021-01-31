@@ -4,7 +4,7 @@ target_link_libraries(${T} timer)
 
 set(T "approx")
 add_library(${T} approx.cpp)
-target_link_libraries(${T} solver suspender)
+target_link_libraries(${T} solver suspender use_dims)
 
 set(T "embed")
 add_library(${T} embed.cpp)
@@ -12,7 +12,7 @@ target_link_libraries(${T} suspender)
 
 set(T "approx_eb")
 add_library(${T} approx_eb.cpp)
-target_link_libraries(${T} approx embed vars inside)
+target_link_libraries(${T} approx embed vars inside use_dims)
 
 set(T "vofm")
 add_library(${T} vofm.cpp)
@@ -60,11 +60,11 @@ target_link_libraries(${T} convdiffvg utilconvdiff)
 
 set(T "proj")
 add_library(${T} proj.cpp)
-target_link_libraries(${T} utilconvdiff)
+target_link_libraries(${T} utilconvdiff use_dims)
 
 set(T "proj_eb")
 add_library(${T} proj_eb.cpp)
-target_link_libraries(${T} utilconvdiff)
+target_link_libraries(${T} utilconvdiff use_dims)
 
 set(T "fluid_dummy")
 add_library(${T} fluid_dummy.cpp)

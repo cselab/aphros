@@ -4,5 +4,5 @@
 #include "proj.ipp"
 #include "embed.h"
 
-using M = MeshStructured<double, 3>;
-template class Proj<M>;
+#define X(dim) template class Proj<MeshStructured<double, dim>>;
+MULTIDIMX

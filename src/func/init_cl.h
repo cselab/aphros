@@ -78,7 +78,7 @@ CreateInitCl(const Vars& var, bool verb) {
 
     // TODO revise with bcast and filter by bounding box,
     // but keep original index for color
-    auto pp = UPrimList<Scal>::GetPrimitives(buf, edim);
+    auto pp = UPrimList<Vect>::GetPrimitives(buf, edim);
 
     return [pp](FieldCell<Scal>& cl, const FieldCell<Scal>& vf, const M& m) {
       cl.Reinit(m, kClNone);

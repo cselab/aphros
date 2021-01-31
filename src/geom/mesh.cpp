@@ -13,7 +13,5 @@
   template void M::ApplyNanFaces(FieldCell<typename M::Vect>& fc);
 
 #define COMMA ,
-
 #define X(dim) XX(MeshCartesian<double COMMA dim>)
-
 MULTIDIMX

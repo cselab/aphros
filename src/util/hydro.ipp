@@ -596,7 +596,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     }
     std::ifstream buf(fpath);
     fassert(buf.good(), "Can't open list of primitives");
-    auto pp = UPrimList<Scal>::GetVelocityPrimitives(buf, var.Int["dim"]);
+    auto pp = UPrimList<Vect>::GetVelocityPrimitives(buf, var.Int["dim"]);
     if (m.IsRoot()) {
       std::cout << "Read " << pp.size() << " primitives" << std::endl;
     }

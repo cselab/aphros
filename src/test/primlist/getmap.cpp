@@ -10,6 +10,7 @@
 #include "func/primlist.ipp"
 
 using Scal = double;
+using Vect = generic::Vect<Scal, 3>;
 
 int main(int an, char* av[]) {
   if (an < 5) {
@@ -19,7 +20,7 @@ int main(int an, char* av[]) {
   }
   try {
     std::map<std::string, Scal> r =
-        Imp<Scal>::GetMap(av[1], av[2], av[3], atoi(av[4]));
+        Imp<Vect>::GetMap(av[1], av[2], av[3], atoi(av[4]));
     for (auto k : r) {
       std::cout << k.first << ":" << k.second << " ";
     }

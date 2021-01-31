@@ -14,19 +14,20 @@
 
 namespace generic {
 
-template <class Scal>
+template <class Vect_>
 struct Primitive {
+  using Vect = Vect_;
+  using Scal = typename Vect::Scal;
+  static constexpr size_t dim = Vect::dim;
+
   Primitive(std::string name_)
       : name(name_), inter([](const Rect<Vect>&) -> bool { return true; }) {}
   Primitive() : Primitive("") {}
-  friend std::ostream& operator<<(std::ostream& o, const Primitive<Scal>& p) {
+  friend std::ostream& operator<<(std::ostream& o, const Primitive<Vect>& p) {
     o << "name='" << p.name << "'";
     o << " mod='" << (p.mod_minus ? "-" : "") << (p.mod_and ? "&" : "") << "'";
     return o;
   }
-
-  static constexpr size_t dim = 3;
-  using Vect = generic::Vect<Scal, dim>;
 
   std::string name;
   bool mod_minus = false;
@@ -39,18 +40,19 @@ struct Primitive {
   Vect r; // radius XXX adhoc for GetSphereOverlap
 };
 
-template <class Scal>
+template <class Vect_>
 struct VelocityPrimitive {
+  using Vect = Vect_;
+  using Scal = typename Vect::Scal;
+  static constexpr size_t dim = Vect::dim;
+
   VelocityPrimitive() : inter([](const Rect<Vect>&) { return true; }) {}
   friend std::ostream& operator<<(
-      std::ostream& o, const VelocityPrimitive<Scal>& p) {
+      std::ostream& o, const VelocityPrimitive<Vect>& p) {
     o << "name='" << p.name << "'";
     o << " mod='" << (p.mod_minus ? "-" : "") << (p.mod_and ? "&" : "") << "'";
     return o;
   }
-
-  static constexpr size_t dim = 3;
-  using Vect = generic::Vect<Scal, dim>;
 
   std::function<Vect(const Vect&)> velocity; // velocity
   // true if rectangle contains points with non-zero velocity
@@ -59,12 +61,14 @@ struct VelocityPrimitive {
 
 } // namespace generic
 
-template <class Scal>
+template <class Vect_>
 struct UPrimList {
-  static constexpr size_t dim = 3;
-  using Vect = generic::Vect<Scal, dim>;
-  using Primitive = generic::Primitive<Scal>;
-  using VelocityPrimitive = generic::VelocityPrimitive<Scal>;
+  using Vect = Vect_;
+  using Scal = typename Vect::Scal;
+  static constexpr size_t dim = Vect::dim;
+
+  using Primitive = generic::Primitive<Vect>;
+  using VelocityPrimitive = generic::VelocityPrimitive<Vect>;
 
   // Parses a list of primitives in stream buf.
   // edim: effective dimension, 2 or 3 (ignores z-component if edim=2)

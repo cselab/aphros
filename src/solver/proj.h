@@ -9,9 +9,9 @@
 #include "linear/linear.h"
 #include "util/convdiff.h"
 
-template <class Scal>
+template <class Vect>
 struct ProjPar {
-  using Vect = generic::Vect<Scal, 3>;
+  using Scal = typename Vect::value_type;
   Scal vrelax = 1; // velocity relaxation factor [0,1]
   Scal prelax = 1.; // pressure relaxation factor [0,1]
   bool second = true; // second order in time
@@ -49,7 +49,7 @@ struct ProjArgs {
   double t;
   double dt;
   std::shared_ptr<linear::Solver<M>> linsolver;
-  ProjPar<Scal> par;
+  ProjPar<Vect> par;
 };
 
 template <class EB_>
@@ -63,7 +63,7 @@ class Proj final : public FluidSolver<typename EB_::M> {
   static constexpr size_t dim = M::dim;
   template <class T>
   using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
-  using Par = ProjPar<Scal>;
+  using Par = ProjPar<Vect>;
   using Args = ProjArgs<M>;
 
   // Constructor.

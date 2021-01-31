@@ -15,11 +15,11 @@
 #include "parse/vars.h"
 #include "solver.h"
 
-template <class Scal_>
+template <class Vect_>
 struct ULinearFit {
-  static constexpr size_t dim = 3;
-  using Scal = Scal_;
-  using Vect = generic::Vect<Scal, dim>;
+  using Scal = typename Vect_::Scal;
+  using Vect = Vect_;
+  static constexpr size_t dim = Vect_::dim;
 
   template <size_t N>
   static std::array<Scal, N> Mul(
@@ -103,14 +103,16 @@ struct ULinearFit {
   static T EvalLinear(
       const std::pair<generic::Vect<T, dim>, T>& p, const Vect& x) {
     auto& g = p.first;
-    auto& u0 = p.second;
-    return g[0] * x[0] + g[1] * x[1] + g[2] * x[2] + u0;
+    T res = p.second;
+    for (size_t d = 0; d < dim; ++d) {
+      res += g[d] * x[d];
+    }
+    return res;
   }
 };
 
 template <class EB, class T>
 auto FitLinear(IdxCell c, const FieldCell<T>& fcu, const EB& eb) {
-  using Scal = typename EB::Scal;
   using Vect = typename EB::Vect;
   auto& m = eb.GetMesh();
   std::vector<Vect> xx;
@@ -119,14 +121,14 @@ auto FitLinear(IdxCell c, const FieldCell<T>& fcu, const EB& eb) {
     xx.push_back(m.GetCenter(cn));
     uu.push_back(fcu[cn]);
   }
-  return ULinearFit<Scal>::FitLinear(xx, uu);
+  return ULinearFit<Vect>::FitLinear(xx, uu);
 }
 
 template <class EB, class T>
 T EvalLinearFit(
     typename EB::Vect x, IdxCell c, const FieldCell<T>& fcu, const EB& eb) {
   auto p = FitLinear(c, fcu, eb);
-  return ULinearFit<typename EB::Scal>::EvalLinear(p, x);
+  return ULinearFit<typename EB::Vect>::EvalLinear(p, x);
 }
 
 template <class M_>

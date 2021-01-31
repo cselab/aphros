@@ -4,61 +4,64 @@
 #include "approx_eb.ipp"
 #include "linear/linear.h"
 
-using M = MeshStructured<double, 3>;
-using EB = Embed<M>;
-using UEB = UEmbed<M>;
-using Scal = typename M::Scal;
-using Vect = typename M::Vect;
-using T = Scal;
-using TV = Vect;
-using Expr = typename M::Expr;
-constexpr size_t dim = M::dim;
+#define XX(M)                                                               \
+  template struct UEmbed<M>;                                                \
+  template struct ULinearFit<typename M::Vect>;                             \
+                                                                            \
+  template FieldCell<typename M::Scal> UEmbed<M>::Interpolate(              \
+      const FieldEmbed<typename M::Scal>& feu, const Embed<M>& eb);         \
+  template FieldCell<typename M::Scal> UEmbed<M>::Interpolate(              \
+      const FieldFace<typename M::Scal>& feu, const M&);                    \
+                                                                            \
+  template FieldCell<typename M::Scal> UEmbed<M>::AverageCutCells(          \
+      const FieldCell<typename M::Scal>& fcu, const Embed<M>& eb);          \
+  template FieldCell<typename M::Vect> UEmbed<M>::AverageCutCells(          \
+      const FieldCell<typename M::Vect>& fcu, const Embed<M>& eb);          \
+                                                                            \
+  template FieldCell<typename M::Scal> UEmbed<M>::RedistributeCutCells(     \
+      const FieldCell<typename M::Scal>& fcu, const Embed<M>& eb);          \
+  template FieldCell<typename M::Scal> UEmbed<M>::RedistributeCutCells(     \
+      const FieldCell<typename M::Scal>& fcu, const M& m);                  \
+                                                                            \
+  template FieldFace<typename M::Scal> UEmbed<M>::InterpolateBilinearFaces( \
+      const FieldFace<typename M::Scal>& ffu, const Embed<M>& eb);          \
+  template FieldFace<typename M::Scal> UEmbed<M>::InterpolateBilinearFaces( \
+      const FieldFace<typename M::Scal>& ffu, const M& m);                  \
+                                                                            \
+  template FieldEmbed<typename M::Scal> UEmbed<M>::Interpolate(             \
+      const FieldCell<typename M::Scal>& fcu,                               \
+      const MapEmbed<BCond<typename M::Scal>>& mebc, const Embed<M>& eb);   \
+  template FieldEmbed<typename M::Vect> UEmbed<M>::Interpolate(             \
+      const FieldCell<typename M::Vect>& fcu,                               \
+      const MapEmbed<BCond<typename M::Vect>>& mebc, const Embed<M>& eb);   \
+  template FieldEmbed<typename M::Scal> UEmbed<M>::Gradient(                \
+      const FieldCell<typename M::Scal>& fcu,                               \
+      const MapEmbed<BCond<typename M::Scal>>& mebc, const Embed<M>& eb);   \
+  template FieldEmbed<typename M::Vect> UEmbed<M>::Gradient(                \
+      const FieldCell<typename M::Vect>& fcu,                               \
+      const MapEmbed<BCond<typename M::Vect>>& mebc, const Embed<M>& eb);   \
+                                                                            \
+  template FieldFace<typename M::Scal> UEmbed<M>::Interpolate(              \
+      const FieldCell<typename M::Scal>& fcu,                               \
+      const MapEmbed<BCond<typename M::Scal>>& mebc, const M& m);           \
+  template FieldFace<typename M::Vect> UEmbed<M>::Interpolate(              \
+      const FieldCell<typename M::Vect>& fcu,                               \
+      const MapEmbed<BCond<typename M::Vect>>& mebc, const M& m);           \
+  template FieldFace<typename M::Scal> UEmbed<M>::Gradient(                 \
+      const FieldCell<typename M::Scal>& fcu,                               \
+      const MapEmbed<BCond<typename M::Scal>>& mebc, const M& m);           \
+  template FieldFace<typename M::Vect> UEmbed<M>::Gradient(                 \
+      const FieldCell<typename M::Vect>& fcu,                               \
+      const MapEmbed<BCond<typename M::Vect>>& mebc, const M& m);           \
+                                                                            \
+  template void Smoothen(                                                   \
+      FieldCell<typename M::Scal>& fc,                                      \
+      const MapEmbed<BCond<typename M::Scal>>& mfc, Embed<M>& eb,           \
+      size_t iters);                                                        \
+  template void Smoothen(                                                   \
+      FieldCell<typename M::Scal>& fc,                                      \
+      const MapEmbed<BCond<typename M::Scal>>& mfc, M& eb, size_t iters);
 
-template struct ULinearFit<Scal>;
-template struct UEmbed<M>;
-
-template FieldCell<T> UEB::Interpolate(const FieldEmbed<T>& feu, const EB& eb);
-template FieldCell<T> UEB::Interpolate(const FieldFace<T>& feu, const M&);
-
-template FieldCell<T> UEB::AverageCutCells(
-    const FieldCell<T>& fcu, const EB& eb);
-template FieldCell<TV> UEB::AverageCutCells(
-    const FieldCell<TV>& fcu, const EB& eb);
-
-template FieldCell<T> UEB::RedistributeCutCells(
-    const FieldCell<T>& fcu, const EB& eb);
-template FieldCell<T> UEB::RedistributeCutCells(
-    const FieldCell<T>& fcu, const M& m);
-
-template FieldFace<T> UEB::InterpolateBilinearFaces(
-    const FieldFace<T>& ffu, const EB& eb);
-template FieldFace<T> UEB::InterpolateBilinearFaces(
-    const FieldFace<T>& ffu, const M& m);
-
-template FieldEmbed<T> UEB::Interpolate(
-    const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const EB& eb);
-template FieldEmbed<TV> UEB::Interpolate(
-    const FieldCell<TV>& fcu, const MapEmbed<BCond<TV>>& mebc, const EB& eb);
-template FieldEmbed<T> UEB::Gradient(
-    const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const EB& eb);
-template FieldEmbed<TV> UEB::Gradient(
-    const FieldCell<TV>& fcu, const MapEmbed<BCond<TV>>& mebc, const EB& eb);
-
-template FieldFace<T> UEB::Interpolate(
-    const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const M& m);
-template FieldFace<TV> UEB::Interpolate(
-    const FieldCell<TV>& fcu, const MapEmbed<BCond<TV>>& mebc, const M& m);
-template FieldFace<T> UEB::Gradient(
-    const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const M& m);
-template FieldFace<TV> UEB::Gradient(
-    const FieldCell<TV>& fcu, const MapEmbed<BCond<TV>>& mebc, const M& m);
-
-template void Smoothen(
-    FieldCell<T>& fc, const MapEmbed<BCond<T>>& mfc, EB& eb, size_t iters);
-template void Smoothen(
-    FieldCell<T>& fc, const MapEmbed<BCond<T>>& mfc, M& eb, size_t iters);
-
-
-using M4 = MeshStructured<double, 4>;
-template FieldFace<T> UEmbed<M4>::Gradient(
-    const FieldCell<T>& fcu, const MapEmbed<BCond<T>>& mebc, const M4& m);
+#define COMMA ,
+#define X(dim) XX(MeshCartesian<double COMMA dim>)
+MULTIDIMX

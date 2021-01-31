@@ -128,7 +128,7 @@ struct UInitEmbedBc {
       // b.name: descriptor of boundary condition
       // b.content: list of primitives
       std::stringstream s(b.content);
-      auto pp = UPrimList<Scal>::GetPrimitives(s, m.GetEdim());
+      auto pp = UPrimList<Vect>::GetPrimitives(s, m.GetEdim());
       auto lsmax = [&pp](Vect x) {
         Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
         for (size_t i = 0; i < pp.size(); ++i) {

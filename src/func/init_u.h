@@ -206,8 +206,8 @@ void InitVfList(
     size_t edim, const M& m, bool verbose) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using Primitive = typename UPrimList<Scal>::Primitive;
-  const std::vector<Primitive> ppa = UPrimList<Scal>::GetPrimitives(list, edim);
+  using Primitive = typename UPrimList<Vect>::Primitive;
+  const std::vector<Primitive> ppa = UPrimList<Vect>::GetPrimitives(list, edim);
   if (verbose && m.IsRoot()) {
     std::cout << "Read " << ppa.size() << " primitives" << std::endl;
   }

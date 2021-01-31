@@ -69,13 +69,16 @@ static bool IsNumber(std::string s) {
   return !ss.fail();
 }
 
-template <class Scal>
+template <class Vect_>
 struct Imp {
-  static constexpr size_t dim = 3;
-  using Primitive = generic::Primitive<Scal>;
-  using VelocityPrimitive = generic::VelocityPrimitive<Scal>;
-  using Vect = generic::Vect<Scal, dim>;
+  using Vect = Vect_;
+  using Scal = typename Vect::Scal;
+  static constexpr size_t dim = Vect::dim;
   using Vect2 = generic::Vect<Scal, 2>;
+  using Vect3 = generic::Vect<Scal, 3>;
+
+  using Primitive = generic::Primitive<Vect>;
+  using VelocityPrimitive = generic::VelocityPrimitive<Vect>;
 
   static void SetDefault(
       std::map<std::string, Scal>& d, std::string key, Scal value) {
@@ -155,8 +158,8 @@ struct Imp {
     SetDefault(d, "ry", d["rx"]);
     SetDefault(d, "rz", d["ry"]);
 
-    const Vect xc(d["cx"], d["cy"], d["cz"]); // center
-    const Vect r(d["rx"], d["ry"], d["rz"]); // radius (semi-axes)
+    const Vect xc(Vect3(d["cx"], d["cy"], d["cz"])); // center
+    const Vect r(Vect3(d["rx"], d["ry"], d["rz"])); // radius (semi-axes)
     res.c = xc;
     res.r = r;
 
@@ -181,8 +184,8 @@ struct Imp {
     if (d.empty()) {
       return false;
     }
-    const Vect xc(d["cx"], d["cy"], d["cz"]); // center
-    Vect n(d["nx"], d["ny"], d["nz"]); // normal
+    const Vect xc(Vect3(d["cx"], d["cy"], d["cz"])); // center
+    Vect n(Vect3(d["nx"], d["ny"], d["nz"])); // normal
     n /= n.norm();
     const Scal r = d["r"]; // radius
     const Scal th = d["th"]; // thickness
@@ -206,19 +209,20 @@ struct Imp {
     SetDefault(d, "rz", d["ry"]);
     SetDefault(d, "rotz", 0);
 
-    const Vect xc(d["cx"], d["cy"], d["cz"]); // center
-    const Vect r(d["rx"], d["ry"], d["rz"]); // radius (semi-axes)
+    const Vect xc(Vect3(d["cx"], d["cy"], d["cz"])); // center
+    const Vect r(Vect3(d["rx"], d["ry"], d["rz"])); // radius (semi-axes)
     const Scal rotz = d["rotz"]; // rotation angle around z in degrees
     const Scal rotz_cos = std::cos(-M_PI * rotz / 180.);
     const Scal rotz_sin = std::sin(-M_PI * rotz / 180.);
 
     res.ls = [edim, xc, r, rotz_cos, rotz_sin](const Vect& x) -> Scal {
       Vect dx = x - xc;
-      dx = Vect(
-          dx[0] * rotz_cos - dx[1] * rotz_sin,
-          dx[0] * rotz_sin + dx[1] * rotz_cos, dx[2]);
-      if (edim == 2) {
-        dx[2] = 0;
+      const Scal x0 = dx[0] * rotz_cos - dx[1] * rotz_sin;
+      const Scal x1 = dx[0] * rotz_sin + dx[1] * rotz_cos;
+      dx[0] = x0;
+      dx[1] = x1;
+      for (size_t i = edim; i < dim; ++i) {
+        dx[i] = 0;
       }
       return (r - dx.abs()).min();
     };
@@ -232,14 +236,14 @@ struct Imp {
       return false;
     }
 
-    const Vect xc(d["cx"], d["cy"], d["cz"]); // center
-    const Vect r(d["rx"], d["ry"], d["rz"]); // radius (semi-axes)
+    const Vect xc(Vect3(d["cx"], d["cy"], d["cz"])); // center
+    const Vect r(Vect3(d["rx"], d["ry"], d["rz"])); // radius (semi-axes)
     const Scal round = d["round"]; // radius of rounding
 
     res.ls = [edim, xc, r, round](const Vect& x) -> Scal {
       Vect dx = (x - xc).abs();
-      if (edim == 2) {
-        dx[2] = 0;
+      for (size_t i = edim; i < dim; ++i) {
+        dx[i] = 0;
       }
       const Vect q = (dx - r + Vect(round)).max(Vect(0));
       return round - q.norm();
@@ -260,10 +264,10 @@ struct Imp {
       return false;
     }
 
-    const Vect xc(d["cx"], d["cy"], d["cz"]); // center
-    Vect n(d["nx"], d["ny"], d["nz"]); // normal
+    const Vect xc(Vect3(d["cx"], d["cy"], d["cz"])); // center
+    Vect n(Vect3(d["nx"], d["ny"], d["nz"])); // normal
     n /= n.norm();
-    Vect t(d["tx"], d["ty"], d["tz"]); // tangent
+    Vect t(Vect3(d["tx"], d["ty"], d["tz"])); // tangent
     t -= n * n.dot(t);
     t /= t.norm();
     const Scal ln = d["ln"]; // half-length in normal direction
@@ -290,8 +294,8 @@ struct Imp {
       return false;
     }
 
-    const Vect xc(d["cx"], d["cy"], d["cz"]);
-    Vect t(d["tx"], d["ty"], d["tz"]);
+    const Vect xc(Vect3(d["cx"], d["cy"], d["cz"]));
+    Vect t(Vect3(d["tx"], d["ty"], d["tz"]));
     t /= t.norm();
     const Scal r = d["r"];
     const Scal t0 = d["t0"];
@@ -299,8 +303,8 @@ struct Imp {
 
     res.ls = [xc, t, r, t0, t1, edim](const Vect& x) -> Scal {
       Vect dx = x - xc;
-      if (edim == 2) {
-        dx[2] = 0;
+      for (size_t i = edim; i < dim; ++i) {
+        dx[i] = 0;
       }
       const Scal dt = t.dot(dx);
       const Scal dr = dx.dist(t * dt);
@@ -388,10 +392,11 @@ struct Imp {
     }
     AssertPolygonPoints(points);
 
-    const Vect o(d["ox"], d["oy"], d["oz"]); // origin
-    Vect n(d["nx"], d["ny"], d["nz"]); // normal
+    const Vect o(Vect3(d["ox"], d["oy"], d["oz"])); // origin
+    Vect n(Vect3(d["nx"], d["ny"], d["nz"])); // normal
     n /= n.norm();
-    Vect u(d["ux"], d["uy"], d["uz"]); // direction of two-dimensional x-axis
+    // direction of two-dimensional x-axis
+    Vect u(Vect3(d["ux"], d["uy"], d["uz"]));
     u -= n.dot(u) * n;
     u /= u.norm();
     const Vect v = n.cross(u);
@@ -402,8 +407,8 @@ struct Imp {
     // TODO: add bounding box heuristic
     res.ls = [edim, o, n, u, v, n0, n1, points](const Vect& x) -> Scal {
       Vect dx = x - o;
-      if (edim == 2) {
-        dx[2] = 0;
+      for (size_t i = edim; i < dim; ++i) {
+        dx[i] = 0;
       }
       const Scal dn = n.dot(dx);
       const Scal du = u.dot(dx);
@@ -463,10 +468,11 @@ struct Imp {
     AssertPolygonPoints(points0);
     AssertPolygonPoints(points1);
 
-    const Vect o(d["ox"], d["oy"], d["oz"]); // origin
-    Vect n(d["nx"], d["ny"], d["nz"]); // normal
+    const Vect o(Vect3(d["ox"], d["oy"], d["oz"])); // origin
+    Vect n(Vect3(d["nx"], d["ny"], d["nz"])); // normal
     n /= n.norm();
-    Vect u(d["ux"], d["uy"], d["uz"]); // direction of two-dimensional x-axis
+    Vect u(Vect3(
+        d["ux"], d["uy"], d["uz"])); // direction of two-dimensional x-axis
     u -= n.dot(u) * n;
     u /= u.norm();
     const Vect v = n.cross(u);
@@ -476,8 +482,8 @@ struct Imp {
     // TODO: add bounding box heuristic
     res.ls = [edim, o, n, u, v, n0, n1, points0, points1](const Vect& x) {
       Vect dx = x - o;
-      if (edim == 2) {
-        dx[2] = 0;
+      for (size_t i = edim; i < dim; ++i) {
+        dx[i] = 0;
       }
       const Scal dn = n.dot(dx);
       const Scal du = u.dot(dx);
@@ -495,7 +501,6 @@ struct Imp {
     res.inter = [](const Rect<Vect>&) -> bool { return true; };
     return true;
   }
-
 
   // Parses a list of primitives in stream buf.
   // edim: effective dimension, 2 or 3 (ignores z-component if edim=2)
@@ -577,8 +582,8 @@ struct Imp {
       d = GetMap("ring", s, "cx cy cz nx ny nz r th magn", 9);
       if (!d.empty()) {
         VelocityPrimitive p;
-        const Vect xc(d["cx"], d["cy"], d["cz"]); // center
-        Vect n(d["nx"], d["ny"], d["nz"]); // normal
+        const Vect xc(Vect3(d["cx"], d["cy"], d["cz"])); // center
+        Vect n(Vect3(d["nx"], d["ny"], d["nz"])); // normal
         n /= n.norm();
         const Scal r = d["r"]; // radius
         const Scal th = d["th"]; // thickness
@@ -605,7 +610,7 @@ struct Imp {
       d = GetMap("gauss2d", s, "cx cy sig magn", 4);
       if (!d.empty()) {
         VelocityPrimitive p;
-        const Vect xc(d["cx"], d["cy"], 0.); // center
+        const Vect xc(Vect2(d["cx"], d["cy"])); // center
         const Scal sig = d["sig"]; // sigma
         const Scal magn = d["magn"]; // magnitude
 
@@ -615,7 +620,7 @@ struct Imp {
           const Scal sig2 = sqr(sig);
           const Scal omz =
               magn / (2 * M_PI * sig2) * std::exp(-dx.sqrnorm() / sig2);
-          return Vect(0., 0., omz);
+          return Vect(Vect3(0., 0., omz));
         };
         pp.push_back(p);
       }
@@ -625,14 +630,14 @@ struct Imp {
   }
 };
 
-template <class Scal>
-std::vector<generic::Primitive<Scal>> UPrimList<Scal>::GetPrimitives(
+template <class Vect>
+std::vector<generic::Primitive<Vect>> UPrimList<Vect>::GetPrimitives(
     std::istream& buf, size_t edim) {
-  return Imp<Scal>::GetPrimitives(buf, edim);
+  return Imp<Vect>::GetPrimitives(buf, edim);
 }
 
-template <class Scal>
-std::vector<generic::VelocityPrimitive<Scal>>
-UPrimList<Scal>::GetVelocityPrimitives(std::istream& buf, size_t edim) {
-  return Imp<Scal>::GetVelocityPrimitives(buf, edim);
+template <class Vect>
+std::vector<generic::VelocityPrimitive<Vect>>
+UPrimList<Vect>::GetVelocityPrimitives(std::istream& buf, size_t edim) {
+  return Imp<Vect>::GetVelocityPrimitives(buf, edim);
 }
