@@ -29,21 +29,27 @@
 
 template <class M>
 FieldCell<typename M::Vect> GetVort(
-    const FieldCell<typename M::Vect>& fcv,
-    const MapEmbed<BCond<typename M::Vect>>& mebc, M& m) {
-  auto ffv = UEmbed<M>::Interpolate(fcv, mebc, m);
+    const FieldCell<typename M::Vect>& fcvel,
+    const MapEmbed<BCond<typename M::Vect>>& me_vel, M& m) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  using UEB = UEmbed<M>;
 
-  auto d0 = Gradient(GetComponent(ffv, 0), m);
-  auto d1 = Gradient(GetComponent(ffv, 1), m);
-  auto d2 = Gradient(GetComponent(ffv, 2), m);
-
-  FieldCell<typename M::Vect> r(m);
-  for (auto c : m.Cells()) {
-    r[c][0] = d2[c][1] - d1[c][2];
-    r[c][1] = d0[c][2] - d2[c][0];
-    r[c][2] = d1[c][0] - d0[c][1];
+  std::array<FieldCell<Vect>, 3> grad;
+  for (size_t d = 0; d < 3; ++d) {
+    grad[d].Reinit(m, Vect(0));
+    const auto mebc = GetScalarCond(me_vel, d, m);
+    const FieldCell<Scal> fcu = GetComponent(fcvel, d);
+    const FieldFace<Scal> ffg = UEB::Gradient(fcu, mebc, m);
+    grad[d] = UEB::AverageGradient(ffg, m);
   }
 
+  FieldCell<Vect> r(m, Vect(0));
+  for (auto c : m.Cells()) {
+    r[c][0] = grad[2][c][1] - grad[1][c][2];
+    r[c][1] = grad[0][c][2] - grad[2][c][0];
+    r[c][2] = grad[1][c][0] - grad[0][c][1];
+  }
   return r;
 }
 
@@ -1305,7 +1311,7 @@ void CalcSurfaceTension(
   auto st = var.String["surftens"];
   if (st == "div") { // divergence of tensor (Hu,Adam 2001)
     // volume fration gradient on cells
-    const FieldCell<Vect> gc = Gradient(ffvfsm, m); // [s]
+    const FieldCell<Vect> gc = UEmbed<M>::AverageGradient(ffvfsm, m); // [s]
     // volume fration gradient on faces
     const FieldFace<Vect> gf =
         UEmbed<M>::Interpolate(gc, GetBCondZeroGrad<Vect>(mf_sig), m);
@@ -1379,7 +1385,7 @@ void CalcSurfaceTension(
     if (var.Int["marangoni"]) {
       if (auto as = dynamic_cast<const Vofm<M>*>(asb)) {
         using R = Reconst<Scal>;
-        const auto fc_gsig = Gradient(ff_sig, m);
+        const auto fc_gsig = UEmbed<M>::AverageGradient(ff_sig, m);
         const auto& fcn = *as->GetNormal()[0];
         const auto& fca = *as->GetAlpha()[0];
         const Vect h = m.GetCellSize();

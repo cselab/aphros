@@ -6,3 +6,4 @@
 
 #define X(dim) template class Proj<MeshStructured<double, dim>>;
 MULTIDIMX
+#undef X

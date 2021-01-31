@@ -269,35 +269,6 @@ struct Simple<EB_>::Imp {
       ffk = UEB::InterpolateHarmonic(fck, me_visc_, eb);
     }
   }
-  // Append explicit part of viscous force.
-  // fcvel: velocity [a]
-  // Output:
-  // fcf += viscous term [i]
-  void AppendExplViscous(
-      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const M&) {
-    const auto wf = UEB::Interpolate(fcvel, me_vel_, m);
-    for (auto d : edim_range_) {
-      const auto wfo = GetComponent(wf, d);
-      const auto gc = Gradient(wfo, m);
-      const auto gf = UEB::Interpolate(gc, me_force_, m);
-      for (auto c : m.Cells()) {
-        Vect s(0);
-        for (auto q : m.Nci(c)) {
-          IdxFace f = m.GetFace(c, q);
-          s += gf[f] * (ffvisc_[f] * m.GetOutwardSurface(c, q)[d]);
-        }
-        fcf[c] += s / m.GetVolume(c);
-      }
-    }
-  }
-  void AppendExplViscous(
-      const FieldCell<Vect>& fcvel, FieldCell<Vect>& fcf, const Embed<M>&) {
-    // FIXME: not implemented
-    (void)fcvel;
-    (void)fcf;
-    (void)eb;
-    return;
-  }
   void UpdateBc(typename M::Sem& sem) {
     if (sem("bc-derived")) {
       UpdateDerivedConditions();
@@ -331,7 +302,8 @@ struct Simple<EB_>::Imp {
     }
 
     if (sem("explvisc")) {
-      AppendExplViscous(cd_->GetVelocity(Step::iter_curr), fcfcd_, eb);
+      UFluid<M>::AppendExplViscous(
+          fcfcd_, cd_->GetVelocity(Step::iter_curr), me_vel_, ffvisc_, eb);
     }
   }
   // TODO: rewrite norm() using dist() where needed

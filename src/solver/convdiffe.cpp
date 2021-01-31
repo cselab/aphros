@@ -3,6 +3,10 @@
 
 #include "convdiffe.ipp"
 
-using M = MeshStructured<double, 3>;
-template class ConvDiffScalExp<M>;
-template class ConvDiffScalExp<Embed<M>>;
+#define X(dim) template class ConvDiffScalExp<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X
+
+#define X(dim) template class ConvDiffScalExp<Embed<MeshStructured<double, dim>>>;
+MULTIDIMX
+#undef X

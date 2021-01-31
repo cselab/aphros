@@ -5,10 +5,30 @@
 #include "convdiffe.h"
 #include "convdiffi.h"
 
-using M = MeshStructured<double, 3>;
-using EB = Embed<M>;
+#define X(dim)                        \
+  template class ConvDiffVectGeneric< \
+      MeshStructured<double, dim>,    \
+      ConvDiffScalImp<MeshStructured<double, dim>>>;
+MULTIDIMX
+#undef X
 
-template class ConvDiffVectGeneric<M, ConvDiffScalImp<M>>;
-template class ConvDiffVectGeneric<M, ConvDiffScalExp<M>>;
-template class ConvDiffVectGeneric<EB, ConvDiffScalImp<EB>>;
-template class ConvDiffVectGeneric<EB, ConvDiffScalExp<EB>>;
+#define X(dim)                        \
+  template class ConvDiffVectGeneric< \
+      MeshStructured<double, dim>,    \
+      ConvDiffScalExp<MeshStructured<double, dim>>>;
+MULTIDIMX
+#undef X
+
+#define X(dim)                            \
+  template class ConvDiffVectGeneric<     \
+      Embed<MeshStructured<double, dim>>, \
+      ConvDiffScalImp<Embed<MeshStructured<double, dim>>>>;
+MULTIDIMX
+#undef X
+
+#define X(dim)                            \
+  template class ConvDiffVectGeneric<     \
+      Embed<MeshStructured<double, dim>>, \
+      ConvDiffScalExp<Embed<MeshStructured<double, dim>>>>;
+MULTIDIMX
+#undef X

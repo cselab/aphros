@@ -256,7 +256,7 @@ class Hydro : public KernelMeshPar<M_, GPar> {
 
     std::array<FieldCell<Vect>, dim> g; // g[i][c][j] is derivative du_i/dx_j
     for (size_t i = 0; i < dim; ++i) {
-      g[i] = Gradient(GetComponent(ffv, i), m);
+      g[i] = UEB::AverageGradient(GetComponent(ffv, i), m);
     }
 
     FieldCell<Scal> fcs(m, 0);

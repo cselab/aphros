@@ -3,6 +3,10 @@
 
 #include "simple.ipp"
 
-using M = MeshStructured<double, 3>;
-template class Simple<M>;
-template class Simple<Embed<M>>;
+#define X(dim) template class Simple<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X
+
+#define X(dim) template class Simple<Embed<MeshStructured<double, dim>>>;
+MULTIDIMX
+#undef X

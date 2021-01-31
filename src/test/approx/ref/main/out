@@ -1,48 +1,5 @@
 
 TestMesh
-
-GradientI() returning FieldFace<Scal>
-> func=Linear
-order [error]: min=-1.919 [ 1.996e-13]   max=-0.223 [ 3.993e-13]   mean=-0.998 [ 2.874e-13]
-> func=Trilinear
-order [error]: min=-3.017 [ 4.636e-14]   max= 1.224 [ 1.807e-13]   mean=-0.899 [ 1.339e-13]
-> func=QuadraticBilinear
-order [error]: min=-3.348 [ 1.749e-13]   max= 1.726 [ 8.577e-13]   mean=-0.838 [ 5.090e-13]
-> func=Sine
-order [error]: min= 1.910 [ 1.276e-05]   max= 2.082 [ 1.543e-05]   mean= 2.000 [ 1.245e-05]
-
-Average() returning FieldCell<Scal> 
-> func=Linear
-order [error]: min=-2.170 [ 8.882e-17]   max= 2.807 [ 3.109e-16]   mean=-0.025 [ 2.870e-16]
-> func=Trilinear
-order [error]: min=  -inf [ 0.000e+00]   max= 3.170 [ 1.998e-16]   mean=  -inf [ 8.908e-17]
-> func=QuadraticBilinear
-order [error]: min= 1.978 [ 2.673e-07]   max= 1.999 [ 2.751e-07]   mean= 1.989 [ 2.712e-07]
-> func=Sine
-order [error]: min= 1.996 [ 3.570e-06]   max= 2.066 [ 3.924e-06]   mean= 2.034 [ 3.767e-06]
-
-Laplace returning FieldCell<Scal> 
-> func=Linear
-order [error]: min=-3.402 [ 6.217e-10]   max=-0.531 [ 1.599e-09]   mean=-1.818 [ 1.228e-09]
-> func=Trilinear
-order [error]: min=-4.414 [ 1.333e-10]   max= 0.478 [ 8.660e-10]   mean=-1.877 [ 5.154e-10]
-> func=QuadraticBilinear
-order [error]: min=-4.007 [ 6.817e-10]   max= 1.159 [ 3.662e-09]   mean=-1.842 [ 1.896e-09]
-> func=Sine
-order [error]: min= 1.996 [ 7.896e-04]   max= 2.063 [ 8.658e-04]   mean= 2.033 [ 8.325e-04]
-
-Average() returning FieldCell<Vect> 
-> func=VectQuadraticBilinear
-order [error]: min= 1.979 [ 2.711e-07]   max= 1.999 [ 2.789e-07]   mean= 1.989 [ 2.750e-07]
-> func=VectSine
-order [error]: min= 1.991 [ 4.405e-06]   max= 2.058 [ 4.808e-06]   mean= 2.032 [ 4.625e-06]
-
-Laplace returning FieldCell<Vect> 
-> func=VectQuadraticBilinear
-order [error]: min=-3.330 [ 8.176e-10]   max= 0.198 [ 3.661e-09]   mean=-1.851 [ 1.941e-09]
-> func=VectSine
-order [error]: min= 1.990 [ 9.831e-04]   max= 2.059 [ 1.076e-03]   mean= 2.032 [ 1.034e-03]
-
 ExplViscous returning FieldCell<Vect> 
 > func=VectQuadraticBilinear
 order [error]: min=-3.302 [ 2.375e-10]   max=-1.084 [ 6.136e-10]   mean=-2.256 [ 3.584e-10]

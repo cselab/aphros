@@ -24,8 +24,10 @@ std::unique_ptr<ConvDiffVect<MEB>> GetConvDiff<MEB>::operator()(
   fassert(false);
 }
 
-using M = MeshStructured<double, 3>;
-using EB = Embed<M>;
+#define X(dim) template struct GetConvDiff<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X
 
-template struct GetConvDiff<M>;
-template struct GetConvDiff<EB>;
+#define X(dim) template struct GetConvDiff<Embed<MeshStructured<double, dim>>>;
+MULTIDIMX
+#undef X

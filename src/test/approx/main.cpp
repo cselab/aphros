@@ -860,181 +860,39 @@ void VaryFuncVect(
 template <int dummy_ = 0>
 void TestMesh() {
   std::cout << "\n" << __func__ << std::endl;
-  {
-    std::cout << "\n"
-              << "GradientI() returning FieldFace<Scal>" << std::endl;
-    auto estimator = [](const Func<Scal>& func, const M& m) {
-      const auto fcu = Eval<FieldCell<Scal>>(func(), m);
-      FieldFace<Scal> ffg(m);
-      GradientI(fcu, m, ffg);
-      return ffg;
-    };
-    auto exact = [](const Func<Scal>& func, const M& m) {
-      FieldFace<Scal> ffg(m, 0);
-      for (auto f : m.AllFaces()) {
-        const auto x = m.GetCenter(f);
-        ffg[f] = Gradient(func)(x).dot(m.GetNormal(f));
-      }
-      return ffg;
-    };
-    VaryFunc<FieldFace<Scal>, M>(estimator, exact);
-  }
-
-  std::cout << "\n"
-            << "Average() returning FieldCell<Scal> " << std::endl;
-  VaryFunc<FieldCell<Scal>, M>(
-      [](const Func<Scal>& func, const M& m) {
-        const auto ffu = Eval<FieldFace<Scal>>(func(), m);
-        const auto fcu = Average(ffu, m);
-        return fcu;
-      },
-      [](const Func<Scal>& func, const M& m) {
-        return Eval<FieldCell<Scal>>(func(), m);
-      });
-
-  {
-    std::cout << "\n"
-              << "Laplace returning FieldCell<Scal> " << std::endl;
-    auto estimator = [](const Func<Scal>& func, const M& m) {
-      const auto fcu = Eval<FieldCell<Scal>>(func(), m);
-      FieldFace<Scal> ffg(m);
-      GradientI(fcu, m, ffg);
-      FieldCell<Scal> fcl(m);
+  std::cout << "\nExplViscous returning FieldCell<Vect> " << std::endl;
+  auto estimator = [](const Func<Vect>& func, const M& m) {
+    FieldCell<Vect> fcr(m, Vect(0));
+    const auto fcu = Eval<FieldCell<Vect>>(func(), m);
+    auto ffu = UEB::Interpolate(fcu, {}, m);
+    for (auto d : GRange<size_t>(Vect::dim)) {
+      auto fcg = UEB::Gradient(GetComponent(ffu, d), m);
+      auto ffg = UEB::Interpolate(fcg, {}, m);
       for (auto c : m.Cells()) {
-        Scal sum = 0;
-        for (auto nci : m.Nci(c)) {
-          const IdxFace f = m.GetFace(c, nci);
-          sum += ffg[f] * m.GetArea(f) * m.GetOutwardFactor(c, nci);
+        Vect s(0);
+        for (auto q : m.Nci(c)) {
+          const IdxFace f = m.GetFace(c, q);
+          s += ffg[f] * m.GetOutwardSurface(c, q)[d];
         }
-        fcl[c] = sum / m.GetVolume(c);
+        fcr[c] += s / m.GetVolume(c);
       }
-      return fcl;
-    };
-    auto exact = [](const Func<Scal>& func, const M& m) {
-      FieldCell<Scal> r(m, 0);
-      for (auto c : m.AllCells()) {
-        const auto x = m.GetCenter(c);
-        const Scal uxx = func.Dxx(0, 0)(x);
-        const Scal uyy = func.Dxx(1, 1)(x);
-        const Scal uzz = func.Dxx(2, 2)(x);
-        r[c] = uxx + uyy + uzz;
-      }
-      return r;
-    };
-    VaryFunc<FieldCell<Scal>, M>(estimator, exact);
-  }
+    }
 
-  std::cout << "\n"
-            << "Average() returning FieldCell<Vect> " << std::endl;
-  VaryFuncVect<FieldCell<Vect>, M>(
-      [](const Func<Vect>& func, const M& m) {
-        const auto ffu = Eval<FieldFace<Vect>>(func(), m);
-        const auto fcu = Average(ffu, m);
-        return fcu;
-      },
-      [](const Func<Vect>& func, const M& m) {
-        return Eval<FieldCell<Vect>>(func(), m);
-      });
-
-  std::cout << "\n"
-            << "Laplace returning FieldCell<Vect> " << std::endl;
-  VaryFuncVect<FieldCell<Vect>, M>(
-      [](const Func<Vect>& func, const M& m) {
-        const auto fcu = Eval<FieldCell<Vect>>(func(), m);
-        FieldFace<Vect> ffg(m);
-        GradientI(fcu, m, ffg);
-        FieldCell<Vect> fcl(m);
-        for (auto c : m.Cells()) {
-          Vect sum(0);
-          for (auto nci : m.Nci(c)) {
-            const IdxFace f = m.GetFace(c, nci);
-            sum += ffg[f] * m.GetArea(f) * m.GetOutwardFactor(c, nci);
-          }
-          fcl[c] = sum / m.GetVolume(c);
-        }
-        return fcl;
-      },
-      [](const Func<Vect>& func, const M& m) {
-        FieldCell<Vect> r(m, Vect(0));
-        for (auto c : m.AllCells()) {
-          const auto x = m.GetCenter(c);
-          const Vect uxx = func.Dxx(0, 0)(x);
-          const Vect uyy = func.Dxx(1, 1)(x);
-          const Vect uzz = func.Dxx(2, 2)(x);
-          r[c] = uxx + uyy + uzz;
-        }
-        return r;
-      });
-
-  {
-    std::cout << "\n"
-              << "ExplViscous returning FieldCell<Vect> " << std::endl;
-    auto estimator = [](const Func<Vect>& func, const M& m) {
-      FieldCell<Vect> fcr(m, Vect(0));
-      const auto fcu = Eval<FieldCell<Vect>>(func(), m);
-      auto ffu = UEB::Interpolate(fcu, {}, m);
-      for (auto d : GRange<size_t>(Vect::dim)) {
-        auto fcg = UEB::Gradient(GetComponent(ffu, d), m);
-        auto ffg = UEB::Interpolate(fcg, {}, m);
-        for (auto c : m.Cells()) {
-          Vect s(0);
-          for (auto q : m.Nci(c)) {
-            const IdxFace f = m.GetFace(c, q);
-            s += ffg[f] * m.GetOutwardSurface(c, q)[d];
-          }
-          fcr[c] += s / m.GetVolume(c);
-        }
-      }
-
-      return fcr;
-    };
-    auto exact = [](const Func<Vect>& u, const M& m) {
-      FieldCell<Vect> fcr(m, Vect(0));
-      for (auto c : m.AllCells()) {
-        const auto x = m.GetCenter(c);
-        Vect r;
-        r[0] = u.Dxx(0, 0)(x)[0] + u.Dxx(0, 1)(x)[1] + u.Dxx(0, 2)(x)[2];
-        r[1] = u.Dxx(1, 0)(x)[0] + u.Dxx(1, 1)(x)[1] + u.Dxx(1, 2)(x)[2];
-        r[2] = u.Dxx(2, 0)(x)[0] + u.Dxx(2, 1)(x)[1] + u.Dxx(2, 2)(x)[2];
-        fcr[c] = r;
-      }
-      return fcr;
-    };
-    VaryFuncVect<FieldCell<Vect>, M>(estimator, exact);
-  }
-
-  std::cout << "\n"
-            << "Laplace dump error field FieldScal<Scal>" << std::endl;
-  DumpField(
-      GetErrorField<Sine, FieldCell<Scal>, M>(
-          [](const Func<Scal>& func, const M& m) {
-            const auto fcu = Eval<FieldCell<Scal>>(func(), m);
-            FieldFace<Scal> ffg(m);
-            GradientI(fcu, m, ffg);
-            FieldCell<Scal> fcl(m);
-            for (auto c : m.Cells()) {
-              Scal sum = 0;
-              for (auto nci : m.Nci(c)) {
-                const IdxFace f = m.GetFace(c, nci);
-                sum += ffg[f] * m.GetArea(f) * m.GetOutwardFactor(c, nci);
-              }
-              fcl[c] = sum / m.GetVolume(c);
-            }
-            return fcl;
-          },
-          [](const Func<Scal>& func, const M& m) {
-            FieldCell<Scal> r(m, 0);
-            for (auto c : m.AllCells()) {
-              const auto x = m.GetCenter(c);
-              const Scal uxx = func.Dxx(0, 0)(x);
-              const Scal uyy = func.Dxx(1, 1)(x);
-              const Scal uzz = func.Dxx(2, 2)(x);
-              r[c] = uxx + uyy + uzz;
-            }
-            return r;
-          },
-          1e-3),
-      "error.dat");
+    return fcr;
+  };
+  auto exact = [](const Func<Vect>& u, const M& m) {
+    FieldCell<Vect> fcr(m, Vect(0));
+    for (auto c : m.AllCells()) {
+      const auto x = m.GetCenter(c);
+      Vect r;
+      r[0] = u.Dxx(0, 0)(x)[0] + u.Dxx(0, 1)(x)[1] + u.Dxx(0, 2)(x)[2];
+      r[1] = u.Dxx(1, 0)(x)[0] + u.Dxx(1, 1)(x)[1] + u.Dxx(1, 2)(x)[2];
+      r[2] = u.Dxx(2, 0)(x)[0] + u.Dxx(2, 1)(x)[1] + u.Dxx(2, 2)(x)[2];
+      fcr[c] = r;
+    }
+    return fcr;
+  };
+  VaryFuncVect<FieldCell<Vect>, M>(estimator, exact);
 }
 
 template <int dummy_ = 0>

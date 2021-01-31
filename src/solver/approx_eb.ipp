@@ -196,11 +196,11 @@ void InitLevelSetFromModel(
   }
   if (sem("local")) {
     // only valid if `x` is close to the surface
-    auto distance = [&](Vect x) -> Scal {
+    auto distance = [&](Vect3 x) -> Scal {
       double p[3] = {x[0], x[1], x[2]};
       return inside_distance(t.inside_state, p);
     };
-    auto inside = [&](Vect x) -> bool {
+    auto inside = [&](Vect3 x) -> bool {
       double p[3] = {x[0], x[1], x[2]};
       return inside_inside(t.inside_state, p);
     };
@@ -210,7 +210,7 @@ void InitLevelSetFromModel(
 
     FieldNode<bool> fn_inside(m);
     for (auto n : m.AllNodes()) {
-      fn_inside[n] = inside(m.GetNode(n));
+      fn_inside[n] = inside(Vect3(m.GetNode(n)));
     }
 
     for (auto c : m.AllCells()) {
@@ -246,7 +246,7 @@ void InitLevelSetFromModel(
     }
     for (auto n : m.AllNodes()) {
       if (fnl[n] == 0) {
-        fnl[n] = -distance(m.GetNode(n));
+        fnl[n] = -distance(Vect3(m.GetNode(n)));
       }
     }
   }

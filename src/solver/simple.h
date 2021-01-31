@@ -8,9 +8,9 @@
 #include "fluid.h"
 #include "util/convdiff.h"
 
-template <class Scal>
+template <class Vect>
 struct SimplePar {
-  using Vect = generic::Vect<Scal, 3>;
+  using Scal = typename Vect::Scal;
   Scal vrelax = 0.8; // velocity relaxation factor [0,1]
   Scal prelax = 1.; // pressure relaxation factor [0,1]
   Scal rhie = 1.; // Rhie-Chow factor [0,1] (0 disable, 1 full)
@@ -43,7 +43,7 @@ struct SimpleArgs {
   double dt;
   std::shared_ptr<linear::Solver<M>> linsolver_symm;
   std::shared_ptr<linear::Solver<M>> linsolver_gen;
-  SimplePar<Scal> par;
+  SimplePar<Vect> par;
 };
 
 template <class EB_>
@@ -57,7 +57,7 @@ class Simple final : public FluidSolver<typename EB_::M> {
   static constexpr size_t dim = M::dim;
   template <class T>
   using FieldFaceb = typename EmbedTraits<EB>::template FieldFaceb<T>;
-  using Par = SimplePar<Scal>;
+  using Par = SimplePar<Vect>;
   using Args = SimpleArgs<M>;
 
   // Constructor.
