@@ -20,7 +20,7 @@ class PartStrMeshM {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using PS = PartStr<Scal>;
-  using Plic = generic::Plic<Scal>;
+  using Plic = generic::Plic<Vect>;
 
   struct Par {
     typename PartStr<Scal>::Par ps;

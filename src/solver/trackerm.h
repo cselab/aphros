@@ -36,6 +36,7 @@ class Trackerm {
     int w0 : 16;
     int w1 : 16;
     int w2 : 16;
+    int w3 : 16;
   };
 
   union Union {
@@ -46,15 +47,21 @@ class Trackerm {
   static Scal Pack(MIdx w) {
     Union u;
     u.b.w0 = w[0];
-    u.b.w1 = w[1];
-    u.b.w2 = w[2];
+    if (dim > 1) u.b.w1 = w[1];
+    if (dim > 2) u.b.w2 = w[2];
+    if (dim > 3) u.b.w2 = w[3];
     return u.a;
   }
 
   static MIdx Unpack(Scal a) {
     Union u;
     u.a = a;
-    return MIdx(u.b.w0, u.b.w1, u.b.w2);
+    MIdx res;
+    res[0] = u.b.w0;
+    if (dim > 1) res[1] = u.b.w1;
+    if (dim > 2) res[2] = u.b.w2;
+    if (dim > 3) res[3] = u.b.w3;
+    return res;
   }
 
  private:

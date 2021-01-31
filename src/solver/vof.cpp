@@ -4,6 +4,10 @@
 #include "vof.ipp"
 #include "embed.h"
 
-using M = MeshStructured<double, 3>;
-template class Vof<M>;
-template class Vof<Embed<M>>;
+#define X(dim) template class Vof<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X
+
+#define X(dim) template class Vof<Embed<MeshStructured<double, dim>>>;
+MULTIDIMX
+#undef X

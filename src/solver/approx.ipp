@@ -38,10 +38,11 @@ std::array<Scal, 3> GetCoeff(ConvSc sc) {
   return a;
 }
 
-template <class Scal>
+template <class Vect_>
 class UReflectFace {
  public:
-  using Vect = generic::Vect<Scal, 3>;
+  using Vect = Vect_;
+  using Scal = typename Vect::Scal;
   // v: value
   // n: normal to face
   static Scal Get(Scal v, const Vect& /*n*/) {
@@ -52,10 +53,11 @@ class UReflectFace {
   }
 };
 
-template <class Scal>
+template <class Vect_>
 class UReflectCell {
  public:
-  using Vect = generic::Vect<Scal, 3>;
+  using Vect = Vect_;
+  using Scal = typename Vect::Scal;
   // v: value
   // n: normal to face
   static Scal Get(Scal v, const Vect& /*n*/) {
@@ -230,7 +232,6 @@ std::vector<Scal> GetGradCoeffs(Scal x, const std::vector<Scal>& z, size_t b) {
 // Apply boudnary conditions to halo cells
 template <class T, class M>
 void BcApply(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
-  using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   for (const auto& p : me.GetMapFace()) {
     const IdxFace f = p.first;
@@ -239,8 +240,8 @@ void BcApply(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
     IdxCell cmm, cm, cp, cpp;
     GetCellColumn(m, f, bc.nci, cmm, cm, cp, cpp);
     if (bc.type == BCondType::reflect) {
-      uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
-      uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
+      uc[cm] = UReflectCell<Vect>::Get(uc[cp], n);
+      uc[cmm] = UReflectCell<Vect>::Get(uc[cpp], n);
     } else if (bc.type == BCondType::dirichlet) {
       uc[cm] = bc.val;
       uc[cmm] = bc.val;
@@ -253,7 +254,6 @@ void BcApply(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
 // fill: value for other types that CondFaceReflect
 template <class T, class M>
 void BcReflectAll(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
-  using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
   for (const auto& p : me.GetMapFace()) {
@@ -262,7 +262,7 @@ void BcReflectAll(FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m) {
     const Vect n = m.GetNormal(f);
     IdxCell cmm, cm, cp, cpp;
     GetCellColumn(m, f, bc.nci, cmm, cm, cp, cpp);
-    uc[cm] = UReflectCell<Scal>::Get(uc[cp], n);
-    uc[cmm] = UReflectCell<Scal>::Get(uc[cpp], n);
+    uc[cm] = UReflectCell<Vect>::Get(uc[cp], n);
+    uc[cmm] = UReflectCell<Vect>::Get(uc[cpp], n);
   }
 }

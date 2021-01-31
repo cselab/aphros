@@ -3,4 +3,5 @@
 
 #include "normal.ipp"
 
-template class UNormal<MeshStructured<double, 3>>;
+#define X(dim) template class UNormal<MeshStructured<double, dim>>;
+MULTIDIMX

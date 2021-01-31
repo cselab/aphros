@@ -3,4 +3,5 @@
 
 #include "vof.ipp"
 
-template class UVof<MeshStructured<double, 3>>;
+#define X(dim) template class UVof<MeshStructured<double, dim>>;
+MULTIDIMX

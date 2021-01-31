@@ -214,36 +214,42 @@ void ConvertMerge(
     const std::vector<std::vector<Vect>>& vv,
     const std::vector<std::vector<Vect>>* vvn, Scal tol, std::vector<Vect>& xx,
     std::vector<Vect>& nn, std::vector<std::vector<size_t>>& pp) {
+  constexpr auto dim = Vect::dim;
   struct Hash {
     size_t operator()(const Vect& x) const noexcept {
-      const size_t h0 = std::hash<Scal>{}(x[0]);
-      const size_t h1 = std::hash<Scal>{}(x[1]);
-      const size_t h2 = std::hash<Scal>{}(x[2]);
-      return h0 ^ (h1 << 1) ^ (h2 << 2);
+      size_t res = 0;
+      for (size_t d = 0; d < dim; ++d) {
+        res ^= (std::hash<Scal>{}(x[d]) << d);
+      }
+      return res;
     }
   };
 
   std::unordered_map<Vect, size_t, Hash> index; // point to index in `xx`
 
+  auto floor = [](Vect x) {
+    for (size_t i = 0; i < dim; ++i) {
+      x[i] = std::floor(x[i]);
+    }
+    return x;
+  };
+
   // Returns a canonical representative of one cell of size `tol`.
-  auto canonical = [tol](const Vect& x) -> Vect {
-    return Vect(
-        std::floor(x[0] / tol) * tol, //
-        std::floor(x[1] / tol) * tol, //
-        std::floor(x[2] / tol) * tol);
+  auto canonical = [tol,&floor](const Vect& x) -> Vect {
+    return floor(x / tol) * tol;
   };
 
   // Returns pointer to element found by point up to tolerance `tol`.
   auto findtol = [&canonical, tol, &index](const Vect& x) -> size_t* {
-    for (Scal d0 : {-1, 1}) {
-      for (Scal d1 : {-1, 1}) {
-        for (Scal d2 : {-1, 1}) {
-          const Vect d(d0, d1, d2);
-          auto it = index.find(canonical(x + d * (tol * 0.25)));
-          if (it != index.end()) {
-            return &it->second;
-          }
-        }
+    // iterate over {-1,1}^4
+    for (unsigned i = 0; i < (1 << dim); ++i) {
+      Vect dx;
+      for (unsigned j = 0; j < dim; ++j) {
+        dx[j] = (i & (1 << j)) ? -1 : 1;
+      }
+      auto it = index.find(canonical(x + dx * (tol * 0.25)));
+      if (it != index.end()) {
+        return &it->second;
       }
     }
     return nullptr;

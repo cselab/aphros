@@ -14,7 +14,7 @@ struct UCurv {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using Plic = generic::Plic<Scal>;
+  using Plic = generic::Plic<Vect>;
 
   // Computes curvature with height functions.
   // fcu: volume fraction [a]

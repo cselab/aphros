@@ -31,10 +31,12 @@ namespace generic {
 
 // Piecewise Linear Interface Characterization.
 // Describes the multilayer interface.
-template <class Scal>
+template <class Vect_>
 struct Plic {
-  using Vect = generic::Vect<Scal, 3>;
-  using MIdx = generic::MIdx<3>;
+  using Vect = Vect_;
+  using Scal = typename Vect::Scal;
+  static constexpr size_t dim = Vect::dim;
+  using MIdx = generic::MIdx<dim>;
   GRange<size_t> layers;
   Multi<const FieldCell<Scal>*> vfcu; // volume fraction
   Multi<const FieldCell<Scal>*> vfca; // plane constant
@@ -58,7 +60,8 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
  public:
   using M = M_;
   using Scal = typename M::Scal;
-  using Plic = generic::Plic<Scal>;
+  using Vect = typename M::Vect;
+  using Plic = generic::Plic<Vect>;
   // fev: volume flux
   // fcs: source
   // mebc: boundary conditions

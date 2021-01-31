@@ -327,91 +327,6 @@ void TestVolStr() {
   ny = ny0;
 }
 
-// center of line test
-void TestCenter() {
-  // nx, ny: normal
-  // u: volume fraction
-  // hx, hy: cell size
-  // ce: center exact
-  auto f = [](Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Vect ce) {
-    Vect n(nx, ny, 0.);
-    Vect h(hx, hy, 1.);
-    n /= n.norm();
-    Scal a = R::GetLineA(n, u, h);
-    std::array<Vect, 2> xx = R::GetLineEnds(n, a, h);
-    Vect c = R::GetLineC(n, a, h);
-    std::cerr << "n=" << n << " u=" << u << " h=" << h << " a=" << a
-              << " x0=" << xx[0] << " x1=" << xx[1] << " c=" << c
-              << " ce=" << ce << std::endl;
-    assert((c - ce).norm() < 1e-8);
-  };
-
-  Scal nx, ny, u, hx, hy;
-  Scal nx0, ny0, u0, hx0, hy0;
-
-  std::cerr << "check line center" << std::endl;
-  nx0 = 1.;
-  ny0 = 0.;
-  u0 = 0.5;
-  hx0 = 1.;
-  hy0 = 1.;
-  nx = nx0;
-  ny = ny0;
-  u = u0;
-  hx = hx0;
-  hy = hy0;
-
-  std::cerr << "base" << std::endl;
-  f(nx, ny, u, hx, hy, Vect(0., 0., 0.));
-  f(ny, nx, u, hx, hy, Vect(0., 0., 0.));
-  f(nx, ny, u = 0.25, hx, hy, Vect(-0.25, 0., 0.));
-  f(ny, nx, u = 0.25, hx, hy, Vect(0., -0.25, 0.));
-  f(nx, nx, u = u0, hx, hy, Vect(0., 0., 0.));
-}
-
-// nearest point to line
-void TestLineNearest() {
-  // x: target point
-  // nx, ny: normal
-  // u: volume fraction
-  // hx, hy: cell size
-  // ce: center exact
-  auto f = [](Vect x, Scal nx, Scal ny, Scal u, Scal hx, Scal hy, Vect pe) {
-    Vect n(nx, ny, 0.);
-    Vect h(hx, hy, 1.);
-    n /= n.norm();
-    Scal a = R::GetLineA(n, u, h);
-    std::array<Vect, 2> xx = R::GetLineEnds(n, a, h);
-    Vect p = R::GetLineNearest(x, n, a, h);
-    std::cerr << "n=" << n << " u=" << u << " h=" << h << " a=" << a
-              << " x0=" << xx[0] << " x1=" << xx[1] << " p=" << p
-              << " pe=" << pe << std::endl;
-    assert((p - pe).norm() < 1e-8);
-  };
-
-  Scal nx, ny, u, hx, hy;
-  Scal nx0, ny0, u0, hx0, hy0;
-
-  std::cerr << "check nearest point to line" << std::endl;
-  nx0 = 1.;
-  ny0 = 0.;
-  u0 = 0.5;
-  hx0 = 1.;
-  hy0 = 1.;
-  nx = nx0;
-  ny = ny0;
-  u = u0;
-  hx = hx0;
-  hy = hy0;
-
-  std::cerr << "base" << std::endl;
-  f(Vect(0., 0., 0.), nx, ny, u, hx, hy, Vect(0., 0., 0.));
-  f(Vect(1., 0., 0.), nx, ny, u, hx, hy, Vect(0., 0., 0.));
-  f(Vect(1., 0., 0.), nx, ny, 0.75, hx, hy, Vect(0.25, 0., 0.));
-  f(Vect(1., 1., 0.), nx, ny, u, hx, hy, Vect(0., 0.5, 0.));
-  f(Vect(1.1, 0.9, 0.), 1., 1., u, hx, hy, Vect(0.1, -0.1, 0.));
-}
-
 void Plot() {
   Vect n(0.1, 0.2, 0.29);
   {
@@ -460,24 +375,7 @@ void TestFit() {
 void TestNearest() {
   std::cerr << "check nearest to polygon" << std::endl;
   using V = Vect;
-
-  auto f1 = [](V x, V x0, V x1, V n, V xne) {
-    auto xn = R::GetNearestHalf(x, x0, x1, n);
-    std::cout << "x0x1:"
-              << " x=" << x << " x0=" << x0 << " x1=" << x1 << " n=" << n
-              << " xn=" << xn << " xne=" << xne << std::endl;
-    assert(xne.dist(xn) < 1e-12);
-  };
-
-  auto f2 = [](V x, V x0, V x1, V xh, V n, V xne) {
-    auto xn = R::GetNearestHalf(x, x0, x1, xh, n);
-    std::cout << "xh:"
-              << " x=" << x << " x0=" << x0 << " x1=" << x1 << " xh=" << xh
-              << " n=" << n << " xn=" << xn << " xne=" << xne << std::endl;
-    assert(xne.dist(xn) < 1e-12);
-  };
-
-  auto f3 = [](V x, const std::vector<V>& xx, V n, V xne) {
+  auto f = [](V x, const std::vector<V>& xx, V n, V xne) {
     auto xn = R::GetNearest(x, xx, n);
     std::cout << "tri:"
               << " x=" << x << " xx=" << xx << " n=" << n << " xn=" << xn
@@ -485,30 +383,12 @@ void TestNearest() {
     assert(xne.dist(xn) < 1e-12);
   };
 
-  f1(V(1., 1., 7.), V(-8., 0., 0.), V(7., 0., 0.), V(0., 0., 3.),
-     V(1., 1., 0.));
-  f1(V(1., 1., 9.), V(12., 0., 0.), V(-3., 0., 0.), V(0., 0., 7.),
-     V(1., 0., 0.));
-  f1(V(1., 1., 7.), V(0., 0., 0.), V(0.5, 0., 0.), V(0., 0., 3.),
-     V(0.5, 1., 0.));
-  f1(V(-1., 1., 7.), V(0., 0., 0.), V(0.5, 0., 0.), V(0., 0., 3.),
-     V(0., 1., 0.));
-  f1(V(1., 1., 7.), V(0.5, 0., 0.), V(0., 0., 0.), V(0., 0., 3.),
-     V(0.5, 0., 0.));
-
-  f2(V(1., 1., 7.), V(-1., 0., 0.), V(11., 0., 0.), V(0., 1., 0.),
-     V(0., 0., 3.), V(1., 1., 0.));
-  f2(V(1., 1., 7.), V(-2., 0., 0.), V(11., 0., 0.), V(0., -1., 0.),
-     V(0., 0., 3.), V(1., 0., 0.));
-
-  {
-    std::vector<V> xx = {V(0., 0., 0.), V(2., 0., 0.), V(0., 2., 0.)};
-    V n(0., 0., 6.);
-    f3(V(10., 10., 1.), xx, n, V(1., 1., 0.));
-    f3(V(10., 0., 1.), xx, n, V(2., 0., 0.));
-    f3(V(0., 10., 1.), xx, n, V(0., 2., 0.));
-    f3(V(0.1, 0.2, 1.), xx, n, V(0.1, 0.2, 0.));
-  }
+  std::vector<V> xx = {V(0., 0., 0.), V(2., 0., 0.), V(0., 2., 0.)};
+  V n(0., 0., 6.);
+  f(V(10., 10., 1.), xx, n, V(1., 1., 0.));
+  f(V(10., 0., 1.), xx, n, V(2., 0., 0.));
+  f(V(0., 10., 1.), xx, n, V(0., 2., 0.));
+  f(V(0.1, 0.2, 1.), xx, n, V(0.1, 0.2, 0.));
 }
 
 // test init from level-set
@@ -636,6 +516,4 @@ int main() {
   TestRandom();
   TestVol();
   TestVolStr();
-  TestCenter();
-  TestLineNearest();
 }

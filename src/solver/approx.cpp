@@ -4,27 +4,30 @@
 #include "approx.ipp"
 #include "linear/linear.h"
 
-using M = MeshStructured<double, 3>;
-using Scal = typename M::Scal;
-using Vect = typename M::Vect;
-using T = Scal;
-using TV = Vect;
-constexpr size_t dim = 3;
-
-template std::array<Scal, 3> GetCoeff(ConvSc);
-
-template void SmoothenNode(FieldCell<T>& fc, M& m, size_t rep);
-template void SmoothenNode(FieldNode<T>& fn, M& m, size_t iters);
+using Scal = double;
 
 template std::vector<Scal> GetGradCoeffs(Scal x, const std::vector<Scal>& z);
-
 template std::vector<Scal> GetGradCoeffs(
     Scal x, const std::vector<Scal>& z, size_t b);
+template std::array<Scal, 3> GetCoeff(ConvSc);
 
-template void BcApply(
-    FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m);
-template void BcApply(
-    FieldCell<TV>& uc, const MapEmbed<BCond<TV>>& me, const M& m);
+#define XX(M)                                                   \
+  template void SmoothenNode(                                   \
+      FieldCell<typename M::Scal>& fc, M& m, size_t rep);       \
+  template void SmoothenNode(                                   \
+      FieldNode<typename M::Scal>& fn, M& m, size_t iters);     \
+                                                                \
+  template void BcApply(                                        \
+      FieldCell<typename M::Scal>& uc,                          \
+      const MapEmbed<BCond<typename M::Scal>>& me, const M& m); \
+  template void BcApply(                                        \
+      FieldCell<typename M::Vect>& uc,                          \
+      const MapEmbed<BCond<typename M::Vect>>& me, const M& m); \
+                                                                \
+  template void BcReflectAll(                                   \
+      FieldCell<typename M::Scal>& uc,                          \
+      const MapEmbed<BCond<typename M::Scal>>& me, const M& m);
 
-template void BcReflectAll(
-    FieldCell<T>& uc, const MapEmbed<BCond<T>>& me, const M& m);
+#define COMMA ,
+#define X(dim) XX(MeshCartesian<double COMMA dim>)
+MULTIDIMX

@@ -18,7 +18,7 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
   using Par = typename Vof<M>::Par;
-  using Plic = generic::Plic<Scal>;
+  using Plic = generic::Plic<Vect>;
 
   static constexpr Scal kClNone = -1.; // no color
 

@@ -16,7 +16,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
-  using Plic = generic::Plic<Scal>;
+  using Plic = generic::Plic<Vect>;
 
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)

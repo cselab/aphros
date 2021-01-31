@@ -20,7 +20,7 @@ target_link_libraries(${T} solver normal utilvof approx_eb dump_hdf)
 
 set(T "vof")
 add_library(${T} vof.cpp)
-target_link_libraries(${T} solver normal utilvof approx_eb)
+target_link_libraries(${T} solver normal utilvof approx_eb use_dims)
 
 set(T "tracer")
 add_library(${T} tracer.cpp)
@@ -32,7 +32,7 @@ target_link_libraries(${T})
 
 set(T "normal")
 add_library(${T} normal.cpp)
-target_link_libraries(${T} PUBLIC approx_eb PRIVATE use_avx)
+target_link_libraries(${T} PUBLIC approx_eb use_dims PRIVATE use_avx)
 
 set(T "curv")
 add_library(${T} curv.cpp)

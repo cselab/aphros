@@ -12,7 +12,7 @@
 using Scal = double;
 using Vect = generic::Vect<Scal, 3>;
 using Vect2 = generic::Vect<Scal, 2>;
-using R = Reconst<Scal, false>;
+using R = Reconst<Scal>;
 
 int main(int, char** argc) {
   std::string f = argc[1];
@@ -24,12 +24,8 @@ int main(int, char** argc) {
   v = atof(argc[5]);
 
   Scal r = 0;
-  if (f == "alpha_ba") {
-    r = R::plane_alpha(v, nx, ny, nz);
-  } else if (f == "alpha_ch") {
+  if (f == "alpha_ch") {
     r = R::GetLineA1(Vect(nx, ny, nz), v);
-  } else if (f == "volume_ba") {
-    r = R::plane_volume(nx, ny, nz, v);
   } else if (f == "volume_ch") {
     r = R::GetLineU1(Vect(nx, ny, nz), v);
   }
