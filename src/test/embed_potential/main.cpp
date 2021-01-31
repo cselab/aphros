@@ -17,7 +17,6 @@
 #include "parse/argparse.h"
 #include "solver/approx2.h"
 #include "solver/approx_eb.h"
-#include "solver/convdiffv_eb.h"
 #include "solver/embed.h"
 #include "solver/fluid.h"
 #include "solver/reconst.h"
