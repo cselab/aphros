@@ -122,7 +122,6 @@ set(ObjLibs
   init
   init_contang
   init_vel
-  inside
   linear
   local
   march
@@ -156,6 +155,9 @@ set(ObjLibs
   vofm
   young
 )
+set(BinLibs
+  inside
+)
 
 if (USE_HYPRE)
   set(ObjLibs ${ObjLibs} hypre hypresub linear_hypre)
@@ -173,7 +175,7 @@ set(T "aphros")
 add_library(${T} SHARED ${ObjLibsTarget})
 set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
     "${APHROS_PREFIX}/include/aphros")
-target_link_libraries(${T} ${ObjLibs})
+target_link_libraries(${T} ${ObjLibs} ${BinLibs})
 
 # binary
 set(EXE "mfer")
