@@ -1,10 +1,12 @@
 D = \
 color\
+CubismNoCopy\
+debug\
 distr\
 dump\
 func\
-gen\
 geom\
+kernel\
 linear\
 march\
 overlap\

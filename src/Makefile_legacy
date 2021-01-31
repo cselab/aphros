@@ -11,9 +11,19 @@ EIGEN_CFLAGS = `pkg-config --cflags eigen3`
 1 = -D_USE_AVX_=0 -D_USE_FPZIP_=0 -D_USE_AMGX_=0 -D_USE_HYPRE_=0 -D_USE_DIM1_=0 -D_USE_DIM2_=0 -D_USE_DIM3_=1 -D_USE_DIM4_=0
 all: $L
 include ../make/obj.mk
+include ../make/dir.mk
+include ../make/hdr.mk
 $L: $O; ar rv $@ $O && ranlib $@
 .cpp.o:; $(MPICXX) $< -c $(CXXFLAGS) -I$(APHROS_PREFIX)/include $(HDF_CFLAGS) $(EIGEN_CFLAGS) -I. $1 -o $@
 .c.o:; $(MPICC) $< -c $(CFLAGS) -o $@
 install: $L
-	mkdir -p $(APHROS_PREFIX)/lib && cp $L $(APHROS_PREFIX)/lib/
+	mkdir -p "$(APHROS_PREFIX)"/lib; \
+	mkdir -p "$(APHROS_PREFIX)"/include/aphros; \
+	for i in $D; \
+	do mkdir -p "$(APHROS_PREFIX)"/include/aphros/$$i; \
+	done; \
+	for i in $H; \
+	do cp $$i "$(APHROS_PREFIX)"/include/aphros/$$i; \
+	done; \
+	cp $L "$(APHROS_PREFIX)"/lib/
 include ../make/dep.mk

@@ -2,17 +2,16 @@
 
 find . -name '*.h' | awk '
 BEGIN {
-    print "D = \\"
+    print "H = \\"
 }
 { sub(/^\.\//, "") }
 /^test\// { next }
 {
-    sub(/\/.*/, "")
-    print $0 "\\" | "sort | uniq"
+    print $0 "\\" | "sort"
 }
 
 END {
-    close("sort | uniq")
+    close("sort")
     printf "\n"
 }
 
