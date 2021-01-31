@@ -3,12 +3,12 @@
 
 #include "approx_eb.h"
 
-#include <inside.h>
 #include <iostream>
 
 #include "approx.h"
 #include "func/primlist.h"
 #include "util/format.h"
+#include "inside/inside.h"
 
 namespace interp {
 

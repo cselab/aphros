@@ -22,7 +22,6 @@ set(CMAKE_MACOSX_RPATH OFF)
 set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 
 include(client.cmake)
-find_package(aphros/inside)
 
 # git revision
 set(P "${PROJECT_SOURCE_DIR}/..")
@@ -83,6 +82,7 @@ add_subdirectory(distr)
 add_subdirectory(dump)
 add_subdirectory(func)
 add_subdirectory(geom)
+add_subdirectory(inside)
 add_subdirectory(linear)
 add_subdirectory(march)
 add_subdirectory(overlap)
@@ -122,6 +122,7 @@ set(ObjLibs
   init
   init_contang
   init_vel
+  inside
   linear
   local
   march

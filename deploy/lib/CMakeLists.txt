@@ -1,5 +1,4 @@
 add_subdirectory(h5)
-add_subdirectory(inside)
 add_subdirectory(overlap)
 add_subdirectory(table)
 add_subdirectory(vof)
