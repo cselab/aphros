@@ -22,7 +22,6 @@ set(CMAKE_MACOSX_RPATH OFF)
 set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 
 include(client.cmake)
-find_package(aphros/march)
 find_package(aphros/inside)
 
 # git revision
@@ -85,6 +84,7 @@ add_subdirectory(dump)
 add_subdirectory(func)
 add_subdirectory(geom)
 add_subdirectory(linear)
+add_subdirectory(march)
 add_subdirectory(overlap)
 add_subdirectory(parse)
 add_subdirectory(solver)
@@ -124,6 +124,7 @@ set(ObjLibs
   init_vel
   linear
   local
+  march
   mesh
   native
   normal
