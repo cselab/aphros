@@ -66,25 +66,6 @@ class UReflectCell {
   }
 };
 
-// Returns average of fieldface.
-// ff: fieldface [a]
-// Output:
-// fieldcell [a]
-template <class T, class M>
-FieldCell<T> Average(const FieldFace<T>& ff, const M& m) {
-  using Scal = typename M::Scal;
-  FieldCell<T> fc(m);
-  for (IdxCell c : m.AllCells()) {
-    T s(0);
-    for (auto q : m.Nci(c)) {
-      IdxFace f = m.GetFace(c, q);
-      s += ff[f];
-    }
-    fc[c] = s / Scal(m.GetNumFaces(c));
-  }
-  return fc;
-}
-
 // Smoothens fieldcell with node-based averaging.
 // fc: fieldcell [s]
 // rep: number of iterations
@@ -238,7 +219,7 @@ std::vector<Scal> GetGradCoeffs(Scal x, const std::vector<Scal>& z, size_t b) {
   std::vector<Scal> kk = GetGradCoeffs(x, zz);
   std::vector<Scal> k(s);
   for (size_t i = 0; i < b; ++i) {
-    k[i] = 0.;
+    k[i] = 0;
   }
   for (size_t i = 0; i < ss; ++i) {
     k[b + i] = kk[i];
