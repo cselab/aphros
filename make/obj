@@ -5,7 +5,7 @@ BEGIN {
     print "O = \\"
 }
 { sub(/^\.\//, "") }
-/^test\// || /^main[.]cpp$/ || /^linear\/linear_amgx[.]cpp$/ { next }
+/^test\// || /^main[.]cpp$/ || /^linear\/linear_amgx[.]cpp$/ || /^solver\/convdiffv_eb[.]cpp$/ { next }
 {
     sub(/\.cpp$/, ".o")
     sub(/\.c$/, ".o")

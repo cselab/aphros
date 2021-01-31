@@ -46,7 +46,6 @@ solver/simple.o\
 solver/proj_eb.o\
 solver/particles.o\
 solver/fluid_dummy.o\
-solver/convdiffv_eb.o\
 solver/convdiffvg.o\
 solver/tracer.o\
 solver/electro.o\
