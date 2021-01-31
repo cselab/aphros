@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tgmath.h>
-#include <march.h>
+#include <aphros/march/march.h>
 
 enum { X, Y, Z };
 static double r = 1.0;

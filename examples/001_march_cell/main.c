@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <march.h>
+#include <aphros/march/march.h>
 
 int main(int argc, char** argv) {
   double u[8];

@@ -4,7 +4,7 @@
 #undef NDEBUG
 #include <assert.h>
 #include <math.h>
-#include <march.h>
+#include <aphros/march/march.h>
 
 int main() {
   enum { X, Y, Z };
@@ -17,5 +17,5 @@ int main() {
   a = MARCH_O[first[i]][X];
   b = MARCH_O[second[i]][X];
   x = a + (b - a) * offset[i];
-  assert(fabs(x - tri[3 * i + X] < 1e-12));
+  assert(fabs(x - tri[3 * i + X]) < 1e-12);
 }
