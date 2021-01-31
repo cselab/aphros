@@ -461,6 +461,8 @@ linear/linear.o : util/logger.h
 linear/linear.o : util/macros.h
 linear/linear.o : util/module.h
 linear/linear.o : util/suspender.h
+march/main.o : march/march.h
+march/main.o : march/table.h
 overlap/overlap0.o : geom/vect.h
 overlap/overlap0.o : overlap/overlap.h
 overlap/overlap.o : geom/vect.h
@@ -1301,6 +1303,7 @@ util/vof.o : geom/rangemulti.h
 util/vof.o : geom/transform.h
 util/vof.o : geom/unique.h
 util/vof.o : geom/vect.h
+util/vof.o : march/march.h
 util/vof.o : solver/advection.h
 util/vof.o : solver/approx.h
 util/vof.o : solver/cond.h

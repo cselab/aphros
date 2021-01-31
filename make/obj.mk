@@ -20,6 +20,10 @@ geom/mesh.o\
 linear/hypresub.o\
 linear/linear_hypre.o\
 linear/linear.o\
+march/example/254.o\
+march/example/main.o\
+march/example/sphere.o\
+march/main.o\
 overlap/overlap0.o\
 overlap/overlap.o\
 parse/argparse.o\
