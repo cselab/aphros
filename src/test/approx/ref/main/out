@@ -1,12 +1,11 @@
 
 TestMesh
+
 ExplViscous returning FieldCell<Vect> 
 > func=VectQuadraticBilinear
 order [error]: min=-3.302 [ 2.375e-10]   max=-1.084 [ 6.136e-10]   mean=-2.256 [ 3.584e-10]
 > func=VectSine
 order [error]: min= 1.984 [ 2.087e-03]   max= 2.058 [ 2.202e-03]   mean= 2.025 [ 2.133e-03]
-
-Laplace dump error field FieldScal<Scal>
 
 TestEmbed
 

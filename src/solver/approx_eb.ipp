@@ -261,7 +261,6 @@ void InitLevelSetFromModel(
 template <class M>
 void UEmbed<M>::InitLevelSet(
     FieldNode<Scal>& fnl, M& m, const Vars& var, bool verb) {
-  using Vect3 = generic::Vect<Scal, 3>;
   auto sem = m.GetSem(__func__);
   if (sem("init")) {
     fnl.Reinit(m);
@@ -276,18 +275,17 @@ void UEmbed<M>::InitLevelSet(
       const Vect xc(var.Vect["eb_box_c"]);
       const Vect r(var.Vect["eb_box_r"]);
       const Scal angle = M_PI * var.Double["eb_box_angle"];
-      auto rotate = [angle](Vect xx) {
+      auto rotate = [angle](Vect x) {
         const Scal sin = std::sin(angle);
         const Scal cos = std::cos(angle);
-        const Scal x = xx[0];
-        const Scal y = xx[1];
-        const Scal z = xx[2];
-        return Vect(Vect3(x * cos - y * sin, x * sin + y * cos, z));
+        Vect res(x);
+        res[0] = x[0] * cos - x[1] * sin;
+        res[1] = x[0] * sin + x[1] * cos;
+        return res;
       };
       for (auto n : m.AllNodes()) {
-        const Vect x = m.GetNode(n);
-        fnl[n] =
-            (1 - (rotate(x - xc) / r).norminf()) * (r / m.GetCellSize()).min();
+        fnl[n] = (1 - (rotate(m.GetNode(n) - xc) / r).norminf()) *
+                 (r / m.GetCellSize()).min();
       }
     }
   } else if (name == "sphere") {
@@ -295,17 +293,16 @@ void UEmbed<M>::InitLevelSet(
       const Vect xc(var.Vect["eb_sphere_c"]);
       const Vect r(var.Vect["eb_sphere_r"]);
       const Scal angle = M_PI * var.Double["eb_sphere_angle"];
-      auto rotate = [angle](Vect xx) {
+      auto rotate = [angle](Vect x) {
         const Scal sin = std::sin(angle);
         const Scal cos = std::cos(angle);
-        const Scal x = xx[0];
-        const Scal y = xx[1];
-        const Scal z = xx[2];
-        return Vect(Vect3(x * cos - y * sin, x * sin + y * cos, z));
+        Vect res(x);
+        res[0] = x[0] * cos - x[1] * sin;
+        res[1] = x[0] * sin + x[1] * cos;
+        return res;
       };
       for (auto n : m.AllNodes()) {
-        const Vect x = m.GetNode(n);
-        fnl[n] = (rotate(x - xc) / r).norm() - 1;
+        fnl[n] = (rotate(m.GetNode(n) - xc) / r).norm() - 1;
       }
     }
   } else if (name == "model") {
