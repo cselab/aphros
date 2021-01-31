@@ -123,7 +123,7 @@ class MeshCartesian {
     return cell_size_;
   }
   IntIdx GetHash(MIdx w) {
-    return GIndex<size_t, dim>(global_size_).GetIdx(w);
+    return GIndex<size_t, dim>(global_size_.max(MIdx(1000))).GetIdx(w);
   }
   IntIdx GetHash(IdxCell c) {
     return GetHash(GetIndexCells().GetMIdx(c));
