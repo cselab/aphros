@@ -1,6 +1,6 @@
 #!/bin/sh
 
-find . -name '*.cpp' -or -name '*.c' -or -name '*.h' -or -name '*.ipp' | awk -v me=list '
+find . -name '*.cpp' -or -name '*.c' -or -name '*.h' -or -name '*.ipp' -or -name '*.inc' | awk -v me=list '
 { sub(/^\.\//, "") }
 /^test\// || /^main[.]cpp$/ { next }
 {
