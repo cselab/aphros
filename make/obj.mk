@@ -16,7 +16,6 @@ parse/argparse.o\
 linear/hypresub.o\
 linear/linear.o\
 linear/linear_hypre.o\
-linear/hypre.o\
 util/distr.o\
 util/fluid.o\
 util/sysinfo.o\
