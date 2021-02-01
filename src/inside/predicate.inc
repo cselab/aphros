@@ -599,6 +599,7 @@ float floatrand() {
 /*                                                                           */
 /*****************************************************************************/
 
+static
 float narrowfloatrand() {
   float result;
   float expo;
@@ -622,6 +623,7 @@ float narrowfloatrand() {
 /*                                                                           */
 /*****************************************************************************/
 
+static
 float uniformfloatrand() {
   float result;
   long a;
@@ -650,6 +652,7 @@ float uniformfloatrand() {
 /*                                                                           */
 /*****************************************************************************/
 
+static
 void exactinit() {
   REAL half;
   REAL check, lastcheck;
