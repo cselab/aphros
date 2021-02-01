@@ -30,7 +30,6 @@ linear/hypresub.o\
 linear/linear_hypre.o\
 linear/linear.o\
 march/main.o\
-overlap/overlap.o\
 parse/argparse.o\
 parse/conf2py.o\
 parse/parser.o\

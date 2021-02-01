@@ -3,9 +3,10 @@
 find . -name '*.cpp' -or -name '*.c' | awk '
 BEGIN {
     print "O = \\"
-    skip["main.cpp"]
     skip["linear/hypre.cpp"]
     skip["linear/linear_amgx.cpp"]
+    skip["main.cpp"]
+    skip["overlap/overlap.cpp"]
 }
 { sub(/^\.\//, "") }
 ($0 in skip) || /^test\// { next }
