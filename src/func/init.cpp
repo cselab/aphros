@@ -76,7 +76,7 @@ void InitVfList(
           qx[2] = 0.;
           qh[2] *= 1e-3; // XXX: adhoc, thin cell for 2d
         }
-        fc[c] = overlap->GetSphereOverlap(qx, qh, Vect(0), 1.);
+        fc[c] = GetSphereOverlap(qx, qh, Vect(0), 1.);
       }
 #else
       fassert(false, "overlap is disabled");
