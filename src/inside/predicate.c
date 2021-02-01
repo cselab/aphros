@@ -25,7 +25,7 @@ int predicate_ini(void) {
   return 0;
 }
 
-double predicate_orient2d(
+static double predicate_orient2d(
     const double a[2], const double b[2], const double c[2]) {
   REAL A[2], B[2], C[2];
 
@@ -35,7 +35,7 @@ double predicate_orient2d(
   return orient2d(A, B, C);
 }
 
-double predicate_orient3d(
+static double predicate_orient3d(
     const double a[3], const double b[3], const double c[3],
     const double d[3]) {
   REAL A[3], B[3], C[3], D[3];
@@ -47,7 +47,7 @@ double predicate_orient3d(
   return orient3d(A, B, C, D);
 }
 
-int predicate_orient3d_sas(
+static int predicate_orient3d_sas(
     const double a[3], const double b[3], const double c[3],
     const double d[3]) {
   /* TODO: points should be sorted */
