@@ -68,12 +68,13 @@ void InitVfList(
     } else if (approx == 2) { // overlap
 #if USEFLAG(OVERLAP)
       for (auto c : m.Cells()) {
+        const auto x = m.GetCenter(c);
         const auto& p = pp[lsmax(m.GetCenter(c)).second];
         Vect qx = (x - p.c) / p.r;
         Vect qh = h / p.r;
         if (edim == 2) {
-          qh[2] *= 1e-3; // XXX: adhoc, thin cell in 2d
           qx[2] = 0.;
+          qh[2] *= 1e-3; // XXX: adhoc, thin cell for 2d
         }
         fc[c] = overlap->GetSphereOverlap(qx, qh, Vect(0), 1.);
       }
