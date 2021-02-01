@@ -385,6 +385,7 @@ REAL isperrboundA, isperrboundB, isperrboundC;
 /*****************************************************************************/
 
 /*
+static
 void doubleprint(number)
 double number;
 {
@@ -432,6 +433,7 @@ double number;
 /*****************************************************************************/
 
 /*
+static
 void floatprint(number)
 float number;
 {
@@ -478,6 +480,7 @@ float number;
 /*****************************************************************************/
 
 /*
+static
 void expansion_print(elen, e)
 int elen;
 REAL *e;
@@ -502,6 +505,7 @@ REAL *e;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 double doublerand() {
   double result;
   double expo;
@@ -527,6 +531,7 @@ double doublerand() {
 /*                                                                           */
 /*****************************************************************************/
 
+static
 double narrowdoublerand() {
   double result;
   double expo;
@@ -551,6 +556,7 @@ double narrowdoublerand() {
 /*                                                                           */
 /*****************************************************************************/
 
+static
 double uniformdoublerand() {
   double result;
   long a, b;
@@ -568,6 +574,7 @@ double uniformdoublerand() {
 /*                                                                           */
 /*****************************************************************************/
 
+static
 float floatrand() {
   float result;
   float expo;
@@ -697,6 +704,7 @@ void exactinit() {
 /*                                                                           */
 /*****************************************************************************/
 
+static
 int grow_expansion(elen, e, b, h) /* e and h can be the same. */
     int elen;
 REAL* e;
@@ -734,6 +742,7 @@ REAL* h;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 int grow_expansion_zeroelim(elen, e, b, h) /* e and h can be the same. */
     int elen;
 REAL* e;
@@ -776,6 +785,7 @@ REAL* h;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 int expansion_sum(elen, e, flen, f, h)
     /* e and h can be the same, but f and h cannot. */
     int elen;
@@ -825,6 +835,7 @@ REAL* h;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 int expansion_sum_zeroelim1(elen, e, flen, f, h)
     /* e and h can be the same, but f and h cannot. */
     int elen;
@@ -885,6 +896,7 @@ REAL* h;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 int expansion_sum_zeroelim2(elen, e, flen, f, h)
     /* e and h can be the same, but f and h cannot. */
     int elen;
@@ -942,6 +954,7 @@ REAL* h;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 int fast_expansion_sum(elen, e, flen, f, h) /* h cannot be e or f. */
     int elen;
 REAL* e;
@@ -1019,6 +1032,7 @@ REAL* h;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 int fast_expansion_sum_zeroelim(elen, e, flen, f, h) /* h cannot be e or f. */
     int elen;
 REAL* e;
@@ -1104,6 +1118,7 @@ REAL* h;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 int linear_expansion_sum(elen, e, flen, f, h) /* h cannot be e or f. */
     int elen;
 REAL* e;
@@ -1168,6 +1183,7 @@ REAL* h;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 int linear_expansion_sum_zeroelim(elen, e, flen, f, h) /* h cannot be e or f. */
     int elen;
 REAL* e;
@@ -1242,6 +1258,7 @@ REAL* h;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 int scale_expansion(elen, e, b, h) /* e and h cannot be the same. */
     int elen;
 REAL* e;
@@ -1291,6 +1308,7 @@ REAL* h;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 int scale_expansion_zeroelim(elen, e, b, h) /* e and h cannot be the same. */
     int elen;
 REAL* e;
@@ -1346,6 +1364,7 @@ REAL* h;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 int compress(elen, e, h) /* e and h may be the same. */
     int elen;
 REAL* e;
@@ -1391,6 +1410,7 @@ REAL* h;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 REAL estimate(elen, e) int elen;
 REAL* e;
 {
@@ -1430,6 +1450,7 @@ REAL* e;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 REAL orient2dfast(pa, pb, pc) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -1443,6 +1464,7 @@ REAL* pc;
   return acx * bcy - acy * bcx;
 }
 
+static
 REAL orient2dexact(pa, pb, pc) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -1487,6 +1509,7 @@ REAL* pc;
   return w[wlength - 1];
 }
 
+static
 REAL orient2dslow(pa, pb, pc) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -1530,6 +1553,7 @@ REAL* pc;
   return deter[deterlen - 1];
 }
 
+static
 REAL orient2dadapt(pa, pb, pc, detsum) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -1612,6 +1636,7 @@ REAL detsum;
   return (D[Dlength - 1]);
 }
 
+static
 REAL orient2d(pa, pb, pc) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -1676,6 +1701,7 @@ REAL* pc;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 REAL orient3dfast(pa, pb, pc, pd) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -1699,6 +1725,7 @@ REAL* pd;
          cdx * (ady * bdz - adz * bdy);
 }
 
+static
 REAL orient3dexact(pa, pb, pc, pd) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -1779,6 +1806,7 @@ REAL* pd;
   return deter[deterlen - 1];
 }
 
+static
 REAL orient3dslow(pa, pb, pc, pd) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -1874,6 +1902,7 @@ REAL* pd;
   return deter[deterlen - 1];
 }
 
+static
 REAL orient3dadapt(pa, pb, pc, pd, permanent) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -2327,6 +2356,7 @@ REAL permanent;
   return finnow[finlength - 1];
 }
 
+static
 REAL orient3d(pa, pb, pc, pd) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -2396,6 +2426,7 @@ REAL* pd;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 REAL incirclefast(pa, pb, pc, pd) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -2422,6 +2453,7 @@ REAL* pd;
   return alift * bcdet + blift * cadet + clift * abdet;
 }
 
+static
 REAL incircleexact(pa, pb, pc, pd) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -2523,6 +2555,7 @@ REAL* pd;
   return deter[deterlen - 1];
 }
 
+static
 REAL incircleslow(pa, pb, pc, pd) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -2679,6 +2712,7 @@ REAL* pd;
   return deter[deterlen - 1];
 }
 
+static
 REAL incircleadapt(pa, pb, pc, pd, permanent) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -3292,6 +3326,7 @@ REAL permanent;
   return finnow[finlength - 1];
 }
 
+static
 REAL incircle(pa, pb, pc, pd) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -3363,6 +3398,7 @@ REAL* pd;
 /*                                                                           */
 /*****************************************************************************/
 
+static
 REAL inspherefast(pa, pb, pc, pd, pe) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -3410,6 +3446,7 @@ REAL* pe;
   return (dlift * abc - clift * dab) + (blift * cda - alift * bcd);
 }
 
+static
 REAL insphereexact(pa, pb, pc, pd, pe) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -3666,6 +3703,7 @@ REAL* pe;
   return deter[deterlen - 1];
 }
 
+static
 REAL insphereslow(pa, pb, pc, pd, pe) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -3999,6 +4037,7 @@ REAL* pe;
   return deter[deterlen - 1];
 }
 
+static
 REAL insphereadapt(pa, pb, pc, pd, pe, permanent) REAL* pa;
 REAL* pb;
 REAL* pc;
@@ -4212,6 +4251,7 @@ REAL permanent;
   return insphereexact(pa, pb, pc, pd, pe);
 }
 
+static
 REAL insphere(pa, pb, pc, pd, pe) REAL* pa;
 REAL* pb;
 REAL* pc;
