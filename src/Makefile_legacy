@@ -25,4 +25,6 @@ install: $L
 	do cp $$i "$(APHROS_PREFIX)"/include/aphros/$$i; \
 	done; \
 	cp $L "$(APHROS_PREFIX)"/lib/
+clean:
+	-rm $O $L
 include ../make/dep.mk
