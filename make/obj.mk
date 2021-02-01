@@ -15,7 +15,6 @@ func/init_contang.o\
 func/init.o\
 func/init_vel.o\
 func/primlist.o\
-gen/wave_lamb.o\
 geom/mesh.o\
 inside/bbox.o\
 inside/err.o\

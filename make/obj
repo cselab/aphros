@@ -7,6 +7,7 @@ BEGIN {
     skip["linear/linear_amgx.cpp"]
     skip["main.cpp"]
     skip["overlap/overlap.cpp"]
+    skip["gen/wave_lamb.c"]
 }
 { sub(/^\.\//, "") }
 ($0 in skip) || /^test\// { next }
