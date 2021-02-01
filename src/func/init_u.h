@@ -16,7 +16,6 @@
 #include "geom/block.h"
 #include "geom/field.h"
 #include "geom/vect.h"
-#include "overlap/overlap.h"
 #include "parse/vars.h"
 #include "primlist.h"
 #include "solver/reconst.h"
@@ -203,84 +202,7 @@ FieldCell<typename M::Scal> GetPositiveVolumeFraction(
 template <class M>
 void InitVfList(
     FieldCell<typename M::Scal>& fc, std::istream& list, int approx,
-    size_t edim, const M& m, bool verbose) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  using Primitive = typename UPrimList<Vect>::Primitive;
-  const std::vector<Primitive> ppa = UPrimList<Vect>::GetPrimitives(list, edim);
-  if (verbose && m.IsRoot()) {
-    std::cout << "Read " << ppa.size() << " primitives" << std::endl;
-  }
-
-  const Vect h = m.GetCellSize();
-  // filter to bounding box
-  auto& bc = m.GetSuBlockCells();
-  Rect<Vect> rect(Vect(bc.GetBegin()) * h, Vect(bc.GetEnd()) * h);
-
-  std::vector<Primitive> pp;
-  for (auto& p : ppa) {
-    if (p.inter(rect)) {
-      pp.push_back(p);
-    }
-  }
-
-  if (pp.empty()) {
-    fc.Reinit(m, 0.);
-  } else {
-    auto lsmax = [&pp](Vect x) -> std::pair<Scal, size_t> {
-      Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
-      size_t imax = 0; // index of maximum
-      for (size_t i = 0; i < pp.size(); ++i) {
-        auto& p = pp[i];
-        Scal li = p.ls(x);
-        if (p.mod_minus) {
-          li = -li;
-        }
-        if (p.mod_and) {
-          lmax = std::min(lmax, li);
-        } else {
-          if (li > lmax) {
-            lmax = li;
-            imax = i;
-          }
-        }
-      }
-      return {lmax, imax};
-    };
-    if (approx == 3) { // level-set on nodes
-      FieldNode<Scal> fnl(m);
-      for (auto n : m.Nodes()) {
-        fnl[n] = lsmax(m.GetNode(n)).first;
-      }
-      fc = GetPositiveVolumeFraction(fnl, m);
-    } else {
-      for (auto c : m.Cells()) {
-        auto x = m.GetCenter(c);
-        auto pair = lsmax(x);
-        Scal lmax = pair.first;
-        size_t imax = pair.second;
-        auto& p = pp[imax];
-        if (approx == 0) { // stepwise
-          fc[c] = (lmax >= 0. ? 1. : 0.);
-        } else if (approx == 1) { // level set
-          fc[c] = GetLevelSetVolume<Scal>(p.ls, x, h);
-        } else if (approx == 2) { // overlap
-          Vect qx = (x - p.c) / p.r;
-          Vect qh = h / p.r;
-          if (edim == 2) {
-            qh[2] *= 1e-3; // XXX: adhoc, thin cell in 2d
-            qx[2] = 0.;
-          }
-          fc[c] = GetSphereOverlap(qx, qh, Vect(0), 1.);
-        } else {
-          throw std::runtime_error(
-              std::string(__func__) +
-              " unknown approx=" + std::to_string(approx));
-        }
-      }
-    }
-  }
-}
+    size_t edim, const M& m, bool verbose);
 
 // Volume fraction field.
 // par: parameters

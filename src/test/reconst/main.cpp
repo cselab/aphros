@@ -440,6 +440,7 @@ void TestInter() {
 }
 
 void TestOverlap() {
+#if USEFLAG(OVERLAP)
   Vect h(0.1);
   Vect c(0.);
   Scal r = 1.;
@@ -447,6 +448,7 @@ void TestOverlap() {
   std::cout << GetSphereOverlap(Vect(1), h, c, r) << std::endl;
   std::cout << GetSphereOverlap(Vect(1., 0., 0.), h, c, r) << std::endl;
   std::cout << GetSphereOverlap(Vect(0.7, 0.7, 0.), h, c, r) << std::endl;
+#endif
 }
 
 void TestArea() {
