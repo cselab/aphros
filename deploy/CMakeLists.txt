@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.12.0)
 project("aphros-deploy")
 
-option(USE_FPZIP "Install fpzip. Used compression of communication buffers (experimental)" OFF)
+option(USE_FPZIP "Install fpzip. Used for compression of communication buffers (experimental)" OFF)
+option(USE_HYPRE "Install Hypre library providing linear solvers" ON)
+option(USE_EIGEN "Install Eigen. Used by Overlap library for exact initialization of ellipsoids" ON)
 option(USE_AMGX "Install AMGX, linear solver on GPUs. Requires CUDA Toolkit" OFF)
-option(USE_GSL "Install GSL, requred by utilities lib/csv,chmath,split" OFF)
+option(USE_GSL "Install utilities that require GSL: chmath, csv, split" OFF)
 
 set(NAMEPREFIX ap.)
 
@@ -227,34 +229,35 @@ add_custom_target(scripts_gen ALL DEPENDS "${GenOutputList}")
 
 include(ExternalProject)
 
-# Hypre
-ExternalProject_Add(hypre
-    URL "https://github.com/hypre-space/hypre/archive/v2.18.2.tar.gz"
-    CMAKE_ARGS
-      -DHYPRE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-      -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-      -DHYPRE_SHARED=ON
-      -DCMAKE_MACOSX_RPATH=OFF
-      -DCMAKE_INSTALL_NAME_DIR=${CMAKE_INSTALL_PREFIX}/lib
-    INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
-    SOURCE_SUBDIR src
-  )
+if (USE_HYPRE)
+  ExternalProject_Add(hypre
+      URL "https://github.com/hypre-space/hypre/archive/v2.18.2.tar.gz"
+      CMAKE_ARGS
+        -DHYPRE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        -DHYPRE_SHARED=ON
+        -DCMAKE_MACOSX_RPATH=OFF
+        -DCMAKE_INSTALL_NAME_DIR=${CMAKE_INSTALL_PREFIX}/lib
+      INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
+      SOURCE_SUBDIR src
+    )
+endif()
 
-# Eigen
-set(eigen_tar "${CMAKE_CURRENT_SOURCE_DIR}/extern/eigen.tar.bz2")
-set(eigen_url "http://bitbucket.org/eigen/eigen/get/3.3.7.tar.bz2")
-ExternalProject_Add(eigen
-    URL ${eigen_tar}
-    CMAKE_ARGS
-      -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
-      -DINCLUDE_INSTALL_DIR:STRING=include
-      -DCMAKEPACKAGE_INSTALL_DIR:STRING=cmake
-      -DBUILD_TESTING=OFF
-      -DEIGEN_BUILD_PKGCONFIG=OFF
-    INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
-  )
+if (USE_EIGEN)
+  set(eigen_tar "${CMAKE_CURRENT_SOURCE_DIR}/extern/eigen.tar.bz2")
+  set(eigen_url "")
+  ExternalProject_Add(eigen
+      URL ${eigen_tar}
+      CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
+        -DINCLUDE_INSTALL_DIR:STRING=include
+        -DCMAKEPACKAGE_INSTALL_DIR:STRING=cmake
+        -DBUILD_TESTING=OFF
+        -DEIGEN_BUILD_PKGCONFIG=OFF
+      INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
+    )
+endif()
 
-# fpzip
 if (USE_FPZIP)
     ExternalProject_Add(fpzip
         URL "https://github.com/LLNL/fpzip/releases/download/1.3.0/fpzip-1.3.0.tar.gz"
