@@ -483,8 +483,6 @@ linear/linear.o : util/module.h
 linear/linear.o : util/suspender.h
 march/main.o : march/march.h
 march/main.o : march/table.h
-overlap/overlap0.o : geom/vect.h
-overlap/overlap0.o : overlap/overlap.h
 overlap/overlap.o : geom/vect.h
 overlap/overlap.o : overlap/overlap.h
 overlap/overlap.o : overlap/overlap.hpp
@@ -769,7 +767,6 @@ solver/embed.o : geom/rangein.h
 solver/embed.o : geom/rangemulti.h
 solver/embed.o : geom/transform.h
 solver/embed.o : geom/vect.h
-solver/embed.o : overlap/overlap.h
 solver/embed.o : parse/vars.h
 solver/embed.o : solver/embed.h
 solver/embed.o : solver/embed.ipp
@@ -1224,7 +1221,6 @@ util/hydro.o : geom/transform.h
 util/hydro.o : geom/unique.h
 util/hydro.o : geom/vect.h
 util/hydro.o : linear/linear.h
-util/hydro.o : overlap/overlap.h
 util/hydro.o : parse/codeblocks.h
 util/hydro.o : parse/util.h
 util/hydro.o : parse/vars.h
