@@ -1,3 +1,19 @@
+#define REAL double				/* float or double */
+#define REALPRINT doubleprint
+#define REALRAND doublerand
+#define NARROWRAND narrowdoublerand
+#define UNIFORMRAND uniformdoublerand
+
+static void exactinit(void);
+static REAL orient2d(REAL *, REAL *, REAL *);
+static REAL orient2dfast(REAL *, REAL *, REAL *);
+static REAL orient3d(REAL *, REAL *, REAL *, REAL *);
+static REAL orient3dfast(REAL *, REAL *, REAL *, REAL *);
+static REAL incircle(REAL *, REAL *, REAL *, REAL *);
+static REAL incirclefast(REAL *, REAL *, REAL *, REAL *);
+static REAL insphere(REAL *, REAL *, REAL *, REAL *, REAL *);
+static REAL inspherefast(REAL *, REAL *, REAL *, REAL *, REAL *);
+
 /*****************************************************************************/
 /*                                                                           */
 /*  Routines for Arbitrary Precision Floating-point Arithmetic               */
@@ -112,13 +128,6 @@
 /*    have questions.                                                        */
 /*                                                                           */
 /*****************************************************************************/
-
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#include "main.inc"
-
 /* On some machines, the exact arithmetic routines might be defeated by the  */
 /*   use of internal extended precision floating-point registers.  Sometimes */
 /*   this problem can be fixed by defining certain values to be volatile,    */

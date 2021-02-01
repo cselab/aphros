@@ -11,6 +11,5 @@ add_library(${T} STATIC
     off.c
     ply.c
     predicate.c
-    predicate/main.c
     stl.c
   )

@@ -22,7 +22,6 @@ inside/main.o\
 inside/memory.o\
 inside/off.o\
 inside/ply.o\
-inside/predicate/main.o\
 inside/predicate.o\
 inside/stl.o\
 linear/hypresub.o\

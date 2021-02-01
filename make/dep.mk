@@ -385,10 +385,9 @@ inside/off.o : inside/err.h
 inside/off.o : inside/memory.h
 inside/ply.o : inside/err.h
 inside/ply.o : inside/memory.h
-inside/predicate/main.o : inside/predicate/main.inc
 inside/predicate.o : inside/err.h
 inside/predicate.o : inside/predicate.h
-inside/predicate.o : inside/predicate/main.inc
+inside/predicate.o : inside/predicate.inc
 inside/stl.o : inside/err.h
 inside/stl.o : inside/memory.h
 linear/hypre.o : linear/hypre.h

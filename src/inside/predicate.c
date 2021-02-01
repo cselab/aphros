@@ -1,6 +1,8 @@
+#include <math.h>
+#include <stdlib.h>
 #include "predicate.h"
 #include "err.h"
-#include "predicate/main.inc"
+#include "predicate.inc"
 
 enum { X, Y, Z };
 
