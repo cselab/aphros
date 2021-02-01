@@ -13,7 +13,7 @@ option(USE_AVX "Enable AVX vectorized kernels. Requires a CPU with AVX2 and FMA 
 option(USE_HYPRE "Enable Hypre for linear systems" ON)
 option(USE_AMGX "Enable AMGX for linear systems, requires GPU with CUDA" OFF)
 option(USE_FPZIP "Enable fpzip compression for communication (experimental)" OFF)
-option(USE_OVERLAP "Enable Overlap library for exact initialization of ellipsoids. Requires Eigen3" OFF)
+option(USE_OVERLAP "Enable Overlap library for exact initialization of ellipsoids. Requires Eigen3" ON)
 option(USE_DIM1 "Enable 1D geometry" OFF)
 option(USE_DIM2 "Enable 2D geometry" OFF)
 option(USE_DIM3 "Enable 3D geometry" ON)
