@@ -7,14 +7,13 @@ MPICC = mpicc
 CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g
 HDF_CFLAGS = `pkg-config --cflags hdf5-openmpi`
-EIGEN_CFLAGS = `pkg-config --cflags eigen3`
-1 = -D_USE_AVX_=0 -D_USE_FPZIP_=0 -D_USE_AMGX_=0 -D_USE_HYPRE_=0 -D_USE_DIM1_=0 -D_USE_DIM2_=0 -D_USE_DIM3_=1 -D_USE_DIM4_=0 -D_ALIGNBYTES_=16 -D_USE_HDF_
+1 = -D_USE_AVX_=0 -D_USE_FPZIP_=0 -D_USE_AMGX_=0 -D_USE_HYPRE_=0 -D_USE_DIM1_=0 -D_USE_DIM2_=0 -D_USE_DIM3_=1 -D_USE_DIM4_=0 -D_ALIGNBYTES_=16 -D_USE_HDF_ -D_USE_OVERLAP_=0
 all: $L
 include ../make/obj.mk
 include ../make/dir.mk
 include ../make/hdr.mk
 $L: $O; ar rv $@ $O && ranlib $@
-.cpp.o:; $(MPICXX) $< -c $(CXXFLAGS) $(HDF_CFLAGS) $(EIGEN_CFLAGS) -I. $1 -o $@
+.cpp.o:; $(MPICXX) $< -c $(CXXFLAGS) $(HDF_CFLAGS) -I. $1 -o $@
 .c.o:; $(MPICC) $< -c $(CFLAGS) -o $@
 install: $L
 	mkdir -p "$(APHROS_PREFIX)"/lib; \
