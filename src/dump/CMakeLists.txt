@@ -6,5 +6,9 @@ set(T "dump_hdf")
 add_library(${T} hdf.cpp)
 target_link_libraries(${T} hdf)
 
+set(T "dump_raw")
+add_library(${T} raw.cpp)
+target_link_libraries(${T} raw)
+
 set(T "dump")
 add_library(${T} dump.cpp)

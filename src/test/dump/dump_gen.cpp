@@ -7,6 +7,7 @@
 #include "debug/linear.h"
 #include "distr/distrbasic.h"
 #include "dump/hdf.h"
+#include "dump/raw.h"
 #include "parse/argparse.h"
 #include "util/distr.h"
 #include "util/filesystem.h"
@@ -49,6 +50,8 @@ void Run(M& m, Vars& var) {
       }
     } else if (content == "zero") {
       // nop
+    } else if (content == "one") {
+      t.fc_write.Reinit(m, 1);
     } else {
       fassert(false, "Unknown content=" + content);
     }
@@ -61,6 +64,19 @@ void Run(M& m, Vars& var) {
     }
     if (sem("writexmf")) {
       Hdf<M>::WriteXmf(util::SplitExt(output)[0] + ".xmf", "u", output, m);
+    }
+  } else if (format == "raw") {
+    dump::Raw<M>::Meta meta;
+    meta.size = m.GetGlobalSize();
+    meta.count = m.GetGlobalSize();
+    using Raw = dump::Raw<M>;
+    if (sem.Nested("write")) {
+      Raw::Write(t.fc_write, meta, output, m);
+    }
+    if (sem("writexmf")) {
+      Raw::WriteXmf(
+          util::SplitExt(output)[0] + ".xmf", "u", Raw::Type::Float64, output,
+          m);
     }
   } else {
     fassert(false, "Unkown format=" + format);
@@ -84,7 +100,7 @@ int main(int argc, const char** argv) {
       .Options({"auto", "h5", "raw", "dat"});
   parser.AddVariable<std::string>({"--content", "-c"}, "norm")
       .Help("Field to write")
-      .Options({"norm", "zero"});
+      .Options({"norm", "zero", "one"});
   parser.AddVariable<std::string>("output", "o.h5").Help("Path to output file");
   auto args = parser.ParseArgs(argc, argv);
   if (const int* p = args.Int.Find("EXIT")) {

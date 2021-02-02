@@ -110,6 +110,7 @@ set(ObjLibs
   distrsolver
   dump
   dump_hdf
+  dump_raw
   dumper
   electro
   embed
