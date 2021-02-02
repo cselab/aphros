@@ -6,7 +6,7 @@ import aphros
 
 class Test(aphros.TestBase):
     def __init__(self):
-        cases = ["util", "h5"]
+        cases = ["util", "h5", "raw"]
         super().__init__(cases=cases)
 
     def run(self, case):
@@ -14,9 +14,18 @@ class Test(aphros.TestBase):
             self.runcmd("./t.dump_util > out")
             return ["out"]
         elif case == "h5":
-            self.runcmd("ap.mpirun -n 2 ./t.dump_gen o1.h5")
-            self.runcmd("ap.mpirun -n 2 ./t.dump_gen o2.h5")
-            self.runcmd("ap.mpirun -n 2 ./t.dump_diff o1.h5 o2.h5 > out")
+            self.runcmd("ap.mpirun -n 2 ./t.dump_gen o.h5 --content norm")
+            self.runcmd("ap.mpirun -n 2 ./t.dump_gen o0.h5 --content zero")
+            self.runcmd("ap.mpirun -n 2 ./t.dump_gen o1.h5 --content one")
+            self.runcmd("ap.mpirun -n 2 ./t.dump_diff o0.h5 o.h5 > out")
+            self.runcmd("ap.mpirun -n 2 ./t.dump_diff o0.h5 o1.h5 >> out")
+            return ["out"]
+        elif case == "raw":
+            self.runcmd("ap.mpirun -n 2 ./t.dump_gen o.raw --content norm")
+            self.runcmd("ap.mpirun -n 2 ./t.dump_gen o0.raw --content zero")
+            self.runcmd("ap.mpirun -n 2 ./t.dump_gen o1.raw --content one")
+            self.runcmd("ap.mpirun -n 2 ./t.dump_diff o0.raw o.raw > out")
+            self.runcmd("ap.mpirun -n 2 ./t.dump_diff o0.raw o1.raw >> out")
             return ["out"]
 
 
