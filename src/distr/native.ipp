@@ -15,8 +15,6 @@
 #include "dump/dumper.h"
 #include "util/format.h"
 
-#include "native.h"
-
 template <class M_>
 class Native : public DistrMesh<M_> {
  public:

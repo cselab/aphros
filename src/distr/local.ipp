@@ -13,7 +13,6 @@
 #include "distr.h"
 #include "dump/output.h"
 #include "dump/output_paraview.h"
-#include "local.h"
 
 template <class M_>
 class Local : public DistrMesh<M_> {

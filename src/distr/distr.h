@@ -18,6 +18,7 @@
 #include "kernel/kernelmesh.h"
 #include "parse/vars.h"
 #include "util/metrics.h"
+#include "util/module.h"
 #include "util/suspender.h"
 #include "util/sysinfo.h"
 
@@ -105,3 +106,13 @@ class DistrMesh {
   MultiTimer<std::string> multitimer_all_;
   MultiTimer<std::string> multitimer_report_;
 };
+
+template <class M>
+class ModuleDistr : public Module<ModuleDistr<M>> {
+ public:
+  using Module<ModuleDistr>::Module;
+  virtual ~ModuleDistr() = default;
+  virtual std::unique_ptr<DistrMesh<M>> Make(
+      MPI_Comm, const KernelMeshFactory<M>&, Vars&) = 0;
+};
+

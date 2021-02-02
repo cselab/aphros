@@ -7,15 +7,14 @@
 #include <memory>
 #include <stdexcept>
 
-#include "cubismnc.h"
 #include "distr.h"
 #include "geom/block.h"
 #include "geom/vect.h"
 #include "kernel/kernelmeshpar.h"
-#include "local.h"
-#include "native.h"
 #include "parse/parser.h"
 #include "parse/vars.h"
+#include "util/distr.h"
+#include "util/logger.h"
 
 // Client for DistrMesh
 // M_: mesh
@@ -34,15 +33,19 @@ class DistrSolver {
 
   DistrSolver(MPI_Comm comm, Vars& var0, Par& par)
       : var(var0), var_mutable(var0), kernelfactory_(par) {
-    const std::string be = var.String["backend"];
-    if (be == "local") {
-      d_ = CreateLocal<M>(comm, kernelfactory_, var_mutable);
-    } else if (be == "cubismnc") {
-      d_ = CreateCubismnc<M>(comm, kernelfactory_, var_mutable);
-    } else if (be == "native") {
-      d_ = CreateNative<M>(comm, kernelfactory_, var_mutable);
+    const std::string backend = var.String["backend"];
+    if (auto ptr = ModuleDistr<M>::GetInstance(backend)) {
+      d_ = ptr->Make(comm, kernelfactory_, var_mutable);
     } else {
-      throw std::runtime_error("DistrSolver: unknown backend='" + be + "'");
+      if (MpiWrapper(comm).IsRoot()) {
+        std::string backends;
+        for (auto& p : ModuleDistr<M>::GetInstances()) {
+          backends += p.first + ' ';
+        }
+        fassert(
+            false,
+            "Unknown backend=" + backend + "\nKnown backends: " + backends);
+      }
     }
   }
   void Run() {

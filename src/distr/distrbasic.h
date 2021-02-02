@@ -10,13 +10,11 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "cubismnc.h"
 #include "distr.h"
 #include "distr/distrsolver.h"
 #include "geom/block.h"
 #include "geom/vect.h"
 #include "kernel/kernelmeshpar.h"
-#include "local.h"
 #include "parse/parser.h"
 #include "parse/vars.h"
 #include "util/distr.h"

@@ -11,5 +11,18 @@
 
 using M = MeshStructured<double, 3>;
 
-template std::unique_ptr<DistrMesh<M>> CreateNative<M>(
-    MPI_Comm, const KernelMeshFactory<M>&, Vars&);
+template <class M>
+class ModuleDistrNative : public ModuleDistr<M> {
+ public:
+  ModuleDistrNative() : ModuleDistr<M>("native") {}
+  std::unique_ptr<DistrMesh<M>> Make(
+      MPI_Comm comm, const KernelMeshFactory<M>& factory, Vars& var) override {
+    return std::unique_ptr<DistrMesh<M>>(new Native<M>(comm, factory, var));
+  }
+};
+
+using M = MeshStructured<double, 3>;
+
+bool kRegDistrNative[] = {
+    RegisterModule<ModuleDistrNative<M>>(),
+};

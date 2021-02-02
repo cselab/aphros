@@ -10,6 +10,8 @@
 
 #include "cubismnc.ipp"
 
+DECLARE_FORCE_LINK_TARGET(distr_cubismnc);
+
 template <size_t bx, size_t by, size_t bz, class M>
 static void Try(
     MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var,
@@ -38,28 +40,33 @@ static void Try(
 }
 
 template <class M>
-std::unique_ptr<DistrMesh<M>> CreateCubismnc(
-    MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var) {
-  std::unique_ptr<DistrMesh<M>> r;
-  // 3D
-  Try<32, 32, 32>(comm, kf, var, r);
-  Try<16, 16, 16>(comm, kf, var, r);
-  Try<8, 8, 8>(comm, kf, var, r);
-  // 2D
-  Try<32, 32, 1>(comm, kf, var, r);
-  Try<16, 16, 1>(comm, kf, var, r);
-  Try<8, 8, 1>(comm, kf, var, r);
-  if (!r) {
-    std::stringstream ss;
-    ss << __func__ << ": no instance with "
-       << "bs=" << var.Int["bsx"] << " " << var.Int["bsy"] << " "
-       << var.Int["bsz"] << " hl=" << var.Int["hl"];
-    throw std::runtime_error(ss.str());
+class ModuleDistrCubismnc : public ModuleDistr<M> {
+ public:
+  ModuleDistrCubismnc() : ModuleDistr<M>("cubismnc") {}
+  std::unique_ptr<DistrMesh<M>> Make(
+      MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var) override {
+    std::unique_ptr<DistrMesh<M>> r;
+    // 3D
+    Try<32, 32, 32>(comm, kf, var, r);
+    Try<16, 16, 16>(comm, kf, var, r);
+    Try<8, 8, 8>(comm, kf, var, r);
+    // 2D
+    Try<32, 32, 1>(comm, kf, var, r);
+    Try<16, 16, 1>(comm, kf, var, r);
+    Try<8, 8, 1>(comm, kf, var, r);
+    if (!r) {
+      std::stringstream ss;
+      ss << __func__ << ": no instance with "
+         << "bs=" << var.Int["bsx"] << " " << var.Int["bsy"] << " "
+         << var.Int["bsz"] << " hl=" << var.Int["hl"];
+      throw std::runtime_error(ss.str());
+    }
+    return r;
   }
-  return r;
-}
+};
 
 using M = MeshStructured<double, 3>;
 
-template std::unique_ptr<DistrMesh<M>> CreateCubismnc<M>(
-    MPI_Comm, const KernelMeshFactory<M>&, Vars&);
+bool kRegDistrCubismnc[] = {
+    RegisterModule<ModuleDistrCubismnc<M>>(),
+};

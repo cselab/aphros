@@ -10,13 +10,20 @@
 
 #include "local.ipp"
 
+DECLARE_FORCE_LINK_TARGET(distr_local);
+
 template <class M>
-std::unique_ptr<DistrMesh<M>> CreateLocal(
-    MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var) {
-  return std::unique_ptr<DistrMesh<M>>(new Local<M>(comm, kf, var));
-}
+class ModuleDistrLocal : public ModuleDistr<M> {
+ public:
+  ModuleDistrLocal() : ModuleDistr<M>("local") {}
+  std::unique_ptr<DistrMesh<M>> Make(
+      MPI_Comm comm, const KernelMeshFactory<M>& factory, Vars& var) override {
+    return std::unique_ptr<DistrMesh<M>>(new Local<M>(comm, factory, var));
+  }
+};
 
 using M = MeshStructured<double, 3>;
 
-template std::unique_ptr<DistrMesh<M>> CreateLocal<M>(
-    MPI_Comm, const KernelMeshFactory<M>&, Vars&);
+bool kRegDistrLocal[] = {
+    RegisterModule<ModuleDistrLocal<M>>(),
+};

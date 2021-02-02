@@ -55,6 +55,7 @@ set string hypre_gen_solver gmres
 set int loc_periodic_x 1
 set int loc_periodic_y 1
 set int loc_periodic_z 1
+set int loc_maxcomm 16
 
 set int verbose 0
 set int output 0
