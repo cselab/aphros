@@ -30,6 +30,7 @@ dump/dump.h\
 dump/hdf.h\
 dump/output.h\
 dump/output_paraview.h\
+dump/raw.h\
 dump/vtk.h\
 func/init_bc.h\
 func/init_cl.h\

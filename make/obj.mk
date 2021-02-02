@@ -11,6 +11,7 @@ distr/report.o\
 dump/dumper.o\
 dump/dump.o\
 dump/hdf.o\
+dump/raw.o\
 func/init_contang.o\
 func/init.o\
 func/init_vel.o\
