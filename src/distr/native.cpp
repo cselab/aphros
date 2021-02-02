@@ -9,7 +9,7 @@
 
 #include "native.ipp"
 
-using M = MeshStructured<double, 3>;
+DECLARE_FORCE_LINK_TARGET(distr_native);
 
 template <class M>
 class ModuleDistrNative : public ModuleDistr<M> {

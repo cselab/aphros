@@ -11,7 +11,7 @@ target_compile_options(${T} PRIVATE -Wall -Wextra -pedantic -Wno-shadow)
 if (USE_FPZIP)
   target_link_libraries(${T} fpzip)
 endif ()
-target_compile_definitions(${T} PUBLIC _USE_FPZIP_=$<BOOL:${USE_FPZIP}>)
+target_compile_definitions(${T} PRIVATE _USE_FPZIP_=$<BOOL:${USE_FPZIP}>)
 
 set(T "native")
 add_library(${T} native.cpp)
@@ -29,6 +29,12 @@ target_link_libraries(${T}
 set(T "distrsolver")
 add_library(${T} distrsolver.cpp)
 target_link_libraries(${T} distr local cubismnc native utildistr)
+target_compile_definitions(
+  ${T} PRIVATE _USE_BACKEND_CUBISM_=$<BOOL:${USE_BACKEND_CUBISM}>)
+target_compile_definitions(
+  ${T} PRIVATE _USE_BACKEND_LOCAL_=$<BOOL:${USE_BACKEND_LOCAL}>)
+target_compile_definitions(
+  ${T} PRIVATE _USE_BACKEND_NATIVE_=$<BOOL:${USE_BACKEND_NATIVE}>)
 
 set(T "distrbasic")
 add_library(${T} distrbasic.cpp)

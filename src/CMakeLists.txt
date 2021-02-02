@@ -18,6 +18,9 @@ option(USE_DIM1 "Enable 1D geometry" OFF)
 option(USE_DIM2 "Enable 2D geometry" OFF)
 option(USE_DIM3 "Enable 3D geometry" ON)
 option(USE_DIM4 "Enable 4D geometry" OFF)
+option(USE_BACKEND_CUBISM "Enable Cubism backend for distributed computation. Requires MPI" ON)
+option(USE_BACKEND_LOCAL "Enable local backend for shared-memory computation." ON)
+option(USE_BACKEND_NATIVE "Enable native backend for distributed computation. Requires MPI" ON)
 
 set(CMAKE_MACOSX_RPATH OFF)
 set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
@@ -103,7 +106,6 @@ set(ObjLibs
   convdiffe
   convdiffi
   convdiffvg
-  cubismnc
   curv
   distr
   distrbasic
@@ -125,10 +127,8 @@ set(ObjLibs
   init_contang
   init_vel
   linear
-  local
   march
   mesh
-  native
   normal
   parser
   particles
@@ -170,6 +170,18 @@ endif()
 
 if (USE_OVERLAP)
   set(ObjLibs ${ObjLibs} overlap)
+endif()
+
+if (USE_BACKEND_CUBISM)
+  set(ObjLibs ${ObjLibs} cubismnc)
+endif()
+
+if (USE_BACKEND_LOCAL)
+  set(ObjLibs ${ObjLibs} local)
+endif()
+
+if (USE_BACKEND_NATIVE)
+  set(ObjLibs ${ObjLibs} native)
 endif()
 
 foreach(name ${ObjLibs})

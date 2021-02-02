@@ -16,6 +16,16 @@
 int RunMpi0(
     int argc, const char** argv,
     const std::function<void(MPI_Comm, Vars&)>& kernel) {
+#if USEFLAG(BACKEND_CUBISM)
+  FORCE_LINK(distr_cubismnc);
+#endif
+#if USEFLAG(BACKEND_LOCAL)
+  FORCE_LINK(distr_local);
+#endif
+#if USEFLAG(BACKEND_NATIVE)
+  FORCE_LINK(distr_native);
+#endif
+
   MpiWrapper mpi(&argc, &argv);
   const int rank = mpi.GetCommRank();
   bool isroot = (!rank);
