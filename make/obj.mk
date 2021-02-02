@@ -59,6 +59,7 @@ util/filesystem.o\
 util/fixed_allocator.o\
 util/fluid.o\
 util/format.o\
+util/gitgen.o\
 util/git.o\
 util/histogram.o\
 util/hydro.o\

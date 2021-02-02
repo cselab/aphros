@@ -15,6 +15,7 @@ include ../make/hdr.mk
 $L: $O; ar rv $@ $O && ranlib $@
 .cpp.o:; $(MPICXX) $< -c $(CXXFLAGS) $(HDF_CFLAGS) -I. $1 -o $@
 .c.o:; $(MPICC) $< -c $(CFLAGS) -o $@
+util/gitgen.cpp:; ./gitrev $@
 install: $L
 	mkdir -p "$(APHROS_PREFIX)"/lib; \
 	mkdir -p "$(APHROS_PREFIX)"/include/aphros; \

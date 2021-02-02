@@ -18,6 +18,7 @@ BEGIN {
 }
 
 END {
+    print "util/gitgen.o" "\\" | "sort"
     close("sort")
     printf "\n"
 }
