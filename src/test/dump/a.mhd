@@ -1,0 +1,5 @@
+ObjectType = Image
+NDims = 3
+DimSize = 16 32 64
+ElementType = MET_DOUBLE
+ElementDataFile = a.raw
