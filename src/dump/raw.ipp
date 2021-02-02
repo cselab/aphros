@@ -6,10 +6,28 @@
 #include <sstream>
 
 #include "raw.h"
+#include "util/distr.h"
 #include "util/format.h"
 #include "util/logger.h"
 
 namespace dump {
+
+template <class MIdx>
+void CreateSubarray(
+    MIdx wsize, MIdx wsubsize, MIdx wstart, MPI_Datatype* filetype) {
+  const auto dim = MIdx::dim;
+  int size[dim];
+  int subsize[dim];
+  int start[dim];
+  for (size_t d = 0; d < dim; ++d) {
+    size[d] = wsize[dim - d - 1];
+    subsize[d] = wsubsize[dim - d - 1];
+    start[d] = wstart[dim - d - 1];
+  }
+  MPI_Type_create_subarray(
+      dim, size, subsize, start, MPI_ORDER_C, MPI_DOUBLE, filetype);
+  MPI_Type_commit(filetype);
+}
 
 template <class M>
 template <class T>
@@ -17,9 +35,9 @@ void Raw<M>::Write(
     const FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
   auto sem = m.GetSem();
   struct {
-    std::vector<std::vector<T>> data;
     std::vector<MIdx> starts;
     std::vector<MIdx> sizes;
+    std::vector<std::vector<T>> data;
   } * ctx(sem);
   auto& t = *ctx;
 
@@ -45,9 +63,9 @@ void Raw<M>::Write(
     fassert(nblocks > 0);
     MIdx comb_start(std::numeric_limits<IntIdx>::max());
     MIdx comb_end(std::numeric_limits<IntIdx>::min());
-    for (size_t i = 0; i < nblocks; ++i) {
-      comb_start = comb_start.min(t.starts[i]);
-      comb_end = comb_start.max(t.starts[i] + t.sizes[i]);
+    for (size_t b = 0; b < nblocks; ++b) {
+      comb_start = comb_start.min(t.starts[b]);
+      comb_end = comb_start.max(t.starts[b] + t.sizes[b]);
     }
     const MIdx comb_size = comb_end - comb_start;
 
@@ -57,50 +75,37 @@ void Raw<M>::Write(
 
     typename M::IndexCells comb_indexer(comb_start, comb_size);
     FieldCell<T> comb_field(comb_indexer);
-    for (size_t i = 0; i < nblocks; ++i) {
-      const typename M::BlockCells block(t.starts[i], t.sizes[i]);
-      size_t k = 0;
+    for (size_t b = 0; b < nblocks; ++b) {
+      const typename M::BlockCells block(t.starts[b], t.sizes[b]);
+      size_t i = 0;
       for (auto c : GRangeIn<IdxCell, dim>(comb_indexer, block)) {
-        comb_field[c] = t.data[i][k++];
+        comb_field[c] = t.data[b][i++];
       }
     }
 
     MPI_Datatype filetype;
-    {
-      int size[dim];
-      int subsize[dim];
-      int start[dim];
-      for (auto d : m.dirs) {
-        size[d] = m.GetGlobalSize()[dim - d - 1];
-        subsize[d] = comb_size[dim - d - 1];
-        start[d] = comb_start[dim - d - 1];
-      }
-      MPI_Type_create_subarray(
-          dim, size, subsize, start, MPI_ORDER_C, MPI_DOUBLE, &filetype);
-      MPI_Type_commit(&filetype);
-    }
+    CreateSubarray(m.GetGlobalSize(), comb_size, comb_start, &filetype);
 
     MPI_Datatype memtype;
-    {
-      int size[dim];
-      int start[dim];
-      for (auto d : m.dirs) {
-        size[d] = comb_size[dim - d - 1];
-        start[d] = 0;
-      }
-      MPI_Type_create_subarray(
-          dim, size, size, start, MPI_ORDER_C, MPI_DOUBLE, &memtype);
-      MPI_Type_commit(&memtype);
-    }
+    CreateSubarray(comb_size, comb_size, MIdx(0), &memtype);
 
     const MPI_Comm comm = m.GetMpiComm();
     MPI_File fh;
-    MPI_File_open(
-        comm, path.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL,
-        &fh);
-    MPI_File_set_view(fh, 0, MPI_DOUBLE, filetype, "native", MPI_INFO_NULL);
-    MPI_File_write_all(fh, comb_field.data(), 1, memtype, MPI_STATUS_IGNORE);
+    try {
+      MPICALL(MPI_File_open(
+          comm, path.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL,
+          &fh));
+    } catch (const std::exception& e) {
+      throw std::runtime_error(
+          std::string() + e.what() + ", while opening file '" + path + "'");
+    }
+    // fassert(error == MPI_SUCCESS, "Can't open file '" + path + "'");
+    MPICALL(MPI_File_set_view(
+        fh, 0, MPI_DOUBLE, filetype, "native", MPI_INFO_NULL));
+    MPICALL(MPI_File_write_all(
+        fh, comb_field.data(), 1, memtype, MPI_STATUS_IGNORE));
     MPI_File_close(&fh);
+    MPI_Type_free(&memtype);
     MPI_Type_free(&filetype);
   }
   if (sem()) { // XXX empty stage
@@ -110,10 +115,86 @@ void Raw<M>::Write(
 template <class M>
 template <class T>
 void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
-  (void)fc;
-  (void)meta;
-  (void)path;
-  (void)m;
+  auto sem = m.GetSem();
+  struct {
+    std::vector<MIdx> starts;
+    std::vector<MIdx> sizes;
+    std::vector<T> data;
+    std::vector<std::vector<T>*> dataptr;
+  } * ctx(sem);
+  auto& t = *ctx;
+
+  if (sem("gather")) {
+    const auto bc = m.GetInBlockCells();
+    t.starts.push_back(bc.GetBegin());
+    t.sizes.push_back(bc.GetSize());
+    t.data.resize(bc.size());
+    t.dataptr.push_back(&t.data);
+
+    m.GatherToLead(&t.starts);
+    m.GatherToLead(&t.sizes);
+    m.GatherToLead(&t.dataptr);
+  }
+  if (sem("read") && m.IsLead()) {
+    const auto dim = M::dim;
+    const auto nblocks = t.dataptr.size();
+    fassert(nblocks > 0);
+    MIdx comb_start(std::numeric_limits<IntIdx>::max());
+    MIdx comb_end(std::numeric_limits<IntIdx>::min());
+    for (size_t b = 0; b < nblocks; ++b) {
+      comb_start = comb_start.min(t.starts[b]);
+      comb_end = comb_start.max(t.starts[b] + t.sizes[b]);
+    }
+    const MIdx comb_size = comb_end - comb_start;
+
+    // XXX check the blocks on current rank constitute a rectangular subarray
+    fassert_equal(comb_size % t.sizes[0], MIdx(0));
+    fassert_equal((comb_size / t.sizes[0]).prod(), (int)nblocks);
+
+    typename M::IndexCells comb_indexer(comb_start, comb_size);
+    FieldCell<T> comb_field(comb_indexer);
+
+    MPI_Datatype filetype;
+    CreateSubarray(m.GetGlobalSize(), comb_size, comb_start, &filetype);
+
+    MPI_Datatype memtype;
+    CreateSubarray(comb_size, comb_size, MIdx(0), &memtype);
+
+    const MPI_Comm comm = m.GetMpiComm();
+    MPI_File fh;
+    try {
+      MPICALL(MPI_File_open(
+          comm, path.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &fh));
+    } catch (const std::exception& e) {
+      throw std::runtime_error(
+          std::string() + e.what() + ", while opening file '" + path + "'");
+    }
+    // fassert(error == MPI_SUCCESS, "Can't open file '" + path + "'");
+    MPICALL(MPI_File_set_view(
+        fh, 0, MPI_DOUBLE, filetype, "native", MPI_INFO_NULL));
+    MPICALL(MPI_File_read_all(
+        fh, comb_field.data(), 1, memtype, MPI_STATUS_IGNORE));
+    MPI_File_close(&fh);
+    MPI_Type_free(&memtype);
+    MPI_Type_free(&filetype);
+
+    for (size_t b = 0; b < nblocks; ++b) {
+      const typename M::BlockCells block(t.starts[b], t.sizes[b]);
+      size_t i = 0;
+      for (auto c : GRangeIn<IdxCell, dim>(comb_indexer, block)) {
+        (*t.dataptr[b])[i++] = comb_field[c];
+      }
+    }
+  }
+  if (sem("copy")) {
+    size_t i = 0;
+    fc.Reinit(m);
+    for (auto c : m.Cells()) {
+      fc[c] = t.data[i++];
+    }
+  }
+  if (sem()) { // XXX empty stage
+  }
 }
 
 template <class M>

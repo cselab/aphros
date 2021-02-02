@@ -7,6 +7,7 @@
 #include "debug/linear.h"
 #include "distr/distrbasic.h"
 #include "dump/hdf.h"
+#include "dump/raw.h"
 #include "parse/argparse.h"
 #include "util/distr.h"
 #include "util/filesystem.h"
@@ -53,6 +54,12 @@ void Run(M& m, Vars& var) {
       auto format = get_format(input);
       if (format == "h5") {
         Hdf<M>::Read(fc_buf, input, m);
+      } else if (format == "raw") {
+        dump::Raw<M>::Meta meta;
+        meta.size = m.GetGlobalSize();
+        meta.count = m.GetGlobalSize();
+        using Raw = dump::Raw<M>;
+        Raw::Read(fc_buf, meta, input, m);
       } else {
         fassert(false, "Unkown format=" + format);
       }
