@@ -55,6 +55,7 @@ util/fixed_allocator.o\
 util/fluid.o\
 util/format.o\
 util/gitgen.o\
+util/gitgen.o\
 util/git.o\
 util/histogram.o\
 util/hydro.o\
@@ -62,7 +63,6 @@ util/linear.o\
 util/mpi.o\
 util/posthook_default.o\
 util/subcomm_dummy.o\
-util/subcomm.o\
 util/suspender.o\
 util/sysinfo.o\
 util/timer.o\

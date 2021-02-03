@@ -13,6 +13,7 @@ BEGIN {
     skip["linear/linear_hypre.cpp"]
     skip["main.cpp"]
     skip["overlap/overlap.cpp"]
+    skip["util/subcomm.cpp"]
 }
 { sub(/^\.\//, "") }
 ($0 in skip) || /^test\// { next }
