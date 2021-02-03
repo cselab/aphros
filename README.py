@@ -36,15 +36,21 @@ Generated in [doc/sphinx](doc/sphinx).
 
 ### Requirements
 
-C++14, cmake, MPI, hdf5 (parallel), python3, python3-numpy.
+C++14, CMake
 
-Bundled dependencies:
+Optional dependencies:
+
+* MPI
+* parallel HDF5
+* python3, python3-numpy
+
+Bundled optional dependencies:
 
 * [hypre](https://github.com/hypre-space/hypre)
-* [eigen](https://gitlab.com/libeigen/eigen) (optional)
-* [overlap](https://github.com/severinstrobl/overlap) (optional)
-* [vofi](https://github.com/VOFTracking/Vofi) (optional)
-* [fpzip](https://github.com/LLNL/fpzip) (optional)
+* [eigen](https://gitlab.com/libeigen/eigen)
+* [overlap](https://github.com/severinstrobl/overlap)
+* [vofi](https://github.com/VOFTracking/Vofi)
+* [fpzip](https://github.com/LLNL/fpzip)
 
 ### Build and install
 
@@ -53,17 +59,31 @@ prepare environment and install dependencies.
 
 Configure, build, install and run tests:
 
-    cd src
-    make -j4
-    make test
+```
+cd src
+make -j4
+make test
+```
 
 ### Docker
 
 Instead of building the code in your system, you can build and run a Docker
 container
 
-    docker build github.com/cselab/aphros --tag aphros
-    docker run -i aphros
+```
+docker build github.com/cselab/aphros --tag aphros
+docker run -i aphros
+```
+
+# Minimal build without CMake
+
+This is a minimal build without dependencies and tests.
+
+```
+cd src
+APHROS_PREFIX=PREFIX make -f Makefile_legacy install
+```
+where `PREFIX` is the installation location (e.g. `~/.local`).
 
 ## Videos
 
