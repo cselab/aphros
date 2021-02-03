@@ -1,4 +1,5 @@
 *.aux
 *.log
 *.pdf
+*.pgm
 *.png

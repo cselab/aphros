@@ -1,4 +1,5 @@
 *.h5
+*.raw
 *.xmf
 *.vtk
 *.vts
