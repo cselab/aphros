@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <mpi.h>
+#include "util/mpi.h"
 
 // Returns communicator for hybrid shared-memory kernels.
 // comm_world: copy of MPI_COMM_WORLD

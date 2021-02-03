@@ -2,7 +2,6 @@
 // Copyright 2019 ETH Zurich
 
 #include <errno.h>
-#include <mpi.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif

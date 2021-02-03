@@ -1,12 +1,10 @@
 // Created by Petr Karnakov on 02.01.2021
 // Copyright 2021 ETH Zurich
 
-#include <mpi.h>
 #include <sstream>
 
 #include "geom/mesh.h"
 #include "kernel/kernelmesh.h"
-
 #include "native.ipp"
 
 DECLARE_FORCE_LINK_TARGET(distr_native);

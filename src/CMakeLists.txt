@@ -12,6 +12,7 @@ option(USE_OPENMP "OpenMP support" ON)
 option(USE_AVX "Enable AVX vectorized kernels. Requires a CPU with AVX2 and FMA support" ON)
 option(USE_HYPRE "Enable Hypre for linear systems" ON)
 option(USE_AMGX "Enable AMGX for linear systems, requires GPU with CUDA" OFF)
+option(USE_MPI "Enable MPI support" ON)
 option(USE_FPZIP "Enable fpzip compression for communication (experimental)" OFF)
 option(USE_OVERLAP "Enable Overlap library for exact initialization of ellipsoids. Requires Eigen3" ON)
 option(USE_DIM1 "Enable 1D geometry" OFF)
@@ -46,11 +47,9 @@ add_custom_target(gitrev
 set(T "use_avx")
 add_library(${T} INTERFACE)
 if (USE_AVX)
-  target_compile_definitions(${T} INTERFACE _USE_AVX_=1)
   target_compile_options(${T} INTERFACE -march=native)
-else ()
-  target_compile_definitions(${T} INTERFACE _USE_AVX_=0)
 endif ()
+target_compile_definitions(${T} INTERFACE _USE_AVX_=$<BOOL:${USE_AVX}>)
 install(TARGETS ${T} EXPORT export)
 
 set(T "use_dims")
@@ -59,6 +58,11 @@ target_compile_definitions(${T} INTERFACE _USE_DIM1_=$<BOOL:${USE_DIM1}>)
 target_compile_definitions(${T} INTERFACE _USE_DIM2_=$<BOOL:${USE_DIM2}>)
 target_compile_definitions(${T} INTERFACE _USE_DIM3_=$<BOOL:${USE_DIM3}>)
 target_compile_definitions(${T} INTERFACE _USE_DIM4_=$<BOOL:${USE_DIM4}>)
+install(TARGETS ${T} EXPORT export)
+
+set(T "use_mpi")
+add_library(${T} INTERFACE)
+target_compile_definitions(${T} INTERFACE _USE_MPI_=$<BOOL:${USE_MPI}>)
 install(TARGETS ${T} EXPORT export)
 
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)
@@ -150,6 +154,7 @@ set(ObjLibs
   utilfluid
   utilhydro
   utillinear
+  utilmpi
   utilvof
   vars
   vof

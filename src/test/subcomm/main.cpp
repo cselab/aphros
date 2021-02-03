@@ -2,11 +2,11 @@
 // Copyright 2019 ETH Zurich
 
 #undef NDEBUG
-#include <mpi.h>
 #include <cassert>
 #include <iostream>
 #include <vector>
 
+#include "util/mpi.h"
 #include "util/subcomm.h"
 
 #define EV(x) (#x) << "=" << (x) << " "

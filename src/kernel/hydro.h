@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <mpi.h>
 #include <array>
 #include <cassert>
 #include <chrono>

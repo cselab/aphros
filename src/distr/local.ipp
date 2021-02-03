@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <mpi.h>
 #include <limits>
 #include <map>
 #include <numeric>
@@ -13,6 +12,7 @@
 #include "distr.h"
 #include "dump/output.h"
 #include "dump/output_paraview.h"
+#include "util/mpi.h"
 
 template <class M_>
 class Local : public DistrMesh<M_> {

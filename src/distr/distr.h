@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <mpi.h>
 #include <array>
 #include <iomanip>
 #include <map>
@@ -19,6 +18,7 @@
 #include "parse/vars.h"
 #include "util/metrics.h"
 #include "util/module.h"
+#include "util/mpi.h"
 #include "util/suspender.h"
 #include "util/sysinfo.h"
 

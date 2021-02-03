@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <mpi.h>
 #include <map>
 #include <stack>
 #include <stdexcept>
@@ -11,6 +10,7 @@
 #include <vector>
 
 #include "timer.h"
+#include "util/mpi.h"
 
 class Sampler {
  public:

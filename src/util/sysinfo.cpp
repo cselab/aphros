@@ -1,13 +1,13 @@
 // Created by Petr Karnakov on 20.07.2018
 // Copyright 2018 ETH Zurich
 
-#include <mpi.h>
 #include <unistd.h>
 #include <fstream>
 #include <sstream>
 
 #include "sysinfo.h"
 #include "util/logger.h"
+#include "util/mpi.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -75,10 +75,12 @@ std::string GetHostname() {
 
 Info GetInfo(InfoSelect select) {
   Info info;
+#if USEFLAG(MPI)
   if (select.mpi) {
     MPI_Comm_size(MPI_COMM_WORLD, &info.comm_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &info.comm_rank);
   }
+#endif
 
 #ifdef _OPENMP
   if (select.openmp) {

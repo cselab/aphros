@@ -2,12 +2,12 @@
 // Copyright 2019 ETH Zurich
 
 #undef NDEBUG
-#include <mpi.h>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <vector>
 
+#include "util/mpi.h"
 #include "util/timer.h"
 
 auto comm = MPI_COMM_WORLD;

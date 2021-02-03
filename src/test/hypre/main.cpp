@@ -2,7 +2,6 @@
 // Copyright 2018 ETH Zurich
 
 #undef NDEBUG
-#include <mpi.h>
 #include <cassert>
 #include <cmath>
 #include <iomanip>
@@ -10,6 +9,7 @@
 #include <vector>
 
 #include "linear/hypre.h"
+#include "util/mpi.h"
 
 using MIdx = typename Hypre::MIdx;
 using Scal = typename Hypre::Scal;

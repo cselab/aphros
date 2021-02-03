@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <mpi.h>
 #include <cassert>
 #include <map>
 #include <memory>
@@ -14,6 +13,7 @@
 #include "distr.h"
 #include "dump/dumper.h"
 #include "util/format.h"
+#include "util/mpi.h"
 
 template <class M_>
 class Native : public DistrMesh<M_> {

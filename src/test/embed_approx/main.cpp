@@ -2,7 +2,6 @@
 // Copyright 2020 ETH Zurich
 
 #undef NDEBUG
-#include <mpi.h>
 #include <cassert>
 #include <fstream>
 #include <functional>

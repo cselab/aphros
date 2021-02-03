@@ -1,12 +1,12 @@
 // Created by Petr Karnakov on 25.04.2018
 // Copyright 2018 ETH Zurich
 
-#include <mpi.h>
 #include <sstream>
 
 #include "geom/mesh.h"
 #include "kernel/kernelmesh.h"
 #include "parse/vars.h"
+#include "util/mpi.h"
 
 #include "local.ipp"
 

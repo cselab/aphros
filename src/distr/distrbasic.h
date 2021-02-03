@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <mpi.h>
 #include <fstream>
 #include <functional>
 #include <memory>

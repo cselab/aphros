@@ -2,7 +2,7 @@ add_library(suspender suspender.cpp)
 
 set(T "sysinfo")
 add_library(${T} sysinfo.cpp)
-target_link_libraries(${T} openmp)
+target_link_libraries(${T} openmp utilmpi)
 target_compile_definitions(${T} PRIVATE _USE_AMGX_=$<BOOL:${USE_AMGX}>)
 
 set(T "utilhydro")
@@ -27,6 +27,11 @@ target_link_libraries(${T} march approx)
 
 set(T "utildistr")
 add_library(${T} distr.cpp)
+target_link_libraries(${T} use_mpi)
+
+set(T "utilmpi")
+add_library(${T} mpi.cpp)
+target_link_libraries(${T} use_mpi)
 
 set(T "events")
 add_library(${T} events.cpp)
@@ -47,7 +52,7 @@ target_link_libraries(${T} gitgen)
 
 set(T "posthook_default")
 add_library(${T} posthook_default.cpp)
-target_link_libraries(${T} suspender vars)
+target_link_libraries(${T} suspender vars use_mpi)
 
 set(T "subcomm")
 if (USE_OPENMP)
@@ -59,7 +64,7 @@ target_link_libraries(${T} sysinfo openmp)
 
 set(T "histogram")
 add_library(${T} histogram.cpp)
-target_link_libraries(${T} timer)
+target_link_libraries(${T} timer use_mpi)
 
 set(T "format")
 add_library(${T} format.cpp)

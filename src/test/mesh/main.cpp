@@ -2,7 +2,6 @@
 // Copyright 2018 ETH Zurich
 
 #undef NDEBUG
-#include <mpi.h>
 #include <array>
 #include <cassert>
 #include <iostream>

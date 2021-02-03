@@ -1,7 +1,13 @@
 // Created by Petr Karnakov on 04.07.2020
 // Copyright 2020 ETH Zurich
 
+#include "util/macros.h"
+
+#if USEFLAG(MPI)
 #include "hdf.ipp"
+#else
+#include "hdf_nompi.ipp"
+#endif
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;

@@ -4,11 +4,11 @@ target_link_libraries(${T} timer)
 
 set(T "approx")
 add_library(${T} approx.cpp)
-target_link_libraries(${T} solver suspender use_dims)
+target_link_libraries(${T} solver suspender use_dims use_mpi)
 
 set(T "embed")
 add_library(${T} embed.cpp)
-target_link_libraries(${T} suspender)
+target_link_libraries(${T} suspender mesh)
 
 set(T "approx_eb")
 add_library(${T} approx_eb.cpp)
@@ -28,7 +28,7 @@ target_link_libraries(${T} approx_eb)
 
 set(T "particles")
 add_library(${T} particles.cpp)
-target_link_libraries(${T})
+target_link_libraries(${T} mesh)
 
 set(T "normal")
 add_library(${T} normal.cpp)
@@ -40,7 +40,7 @@ target_link_libraries(${T} partstrmeshm normal vof vofm)
 
 set(T "partstrmeshm")
 add_library(${T} partstrmeshm.cpp)
-target_link_libraries(${T} dumper suspender)
+target_link_libraries(${T} dumper suspender use_mpi)
 
 set(T "convdiffi")
 add_library(${T} convdiffi.cpp)

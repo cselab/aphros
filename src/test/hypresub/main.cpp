@@ -2,7 +2,6 @@
 // Copyright 2019 ETH Zurich
 
 #undef NDEBUG
-#include <mpi.h>
 #include <cassert>
 #include <cmath>
 #include <iomanip>

@@ -28,7 +28,7 @@ target_link_libraries(${T}
 
 set(T "distrsolver")
 add_library(${T} distrsolver.cpp)
-target_link_libraries(${T} distr local cubismnc native utildistr)
+target_link_libraries(${T} distr local cubismnc native utildistr utilmpi)
 target_compile_definitions(
   ${T} PRIVATE _USE_BACKEND_CUBISM_=$<BOOL:${USE_BACKEND_CUBISM}>)
 target_compile_definitions(

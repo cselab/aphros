@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <mpi.h>
 #include <array>
 #include <cassert>
 #include <limits>
@@ -22,6 +21,7 @@
 #include "rangein.h"
 #include "rangemulti.h"
 #include "transform.h"
+#include "util/mpi.h"
 #include "util/suspender.h"
 #include "vect.h"
 
