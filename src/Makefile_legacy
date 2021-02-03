@@ -2,8 +2,8 @@
 .SUFFIXES:
 .SUFFIXES: .o .cpp .c
 L = libaphros_static.a
-CXX = mpicxx
-CC = mpicc
+CXX = g++
+CC = c99
 CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g
 HDF_CFLAGS = `pkg-config --cflags hdf5-openmpi`
