@@ -34,8 +34,9 @@ ap.mfer: main.o $L; $(CXX) $< $(CXXFLAGS) $(CXXFLAGS_STD) -I. $1 -L. -laphros_st
 .cpp.o:; $(CXX) $< -c $(CXXFLAGS) $(CXXFLAGS_STD) -I. $1 -o $@
 .c.o:; $(CC) $< -c $(CFLAGS) -o $@
 util/gitgen.cpp:; ./gitrev $@
-install: $L
+install: $L ap.mfer
 	mkdir -p "$(APHROS_PREFIX)"/lib; \
+	mkdir -p "$(APHROS_PREFIX)"/bin; \
 	mkdir -p "$(APHROS_PREFIX)"/include/aphros; \
 	for i in $D; \
 	do mkdir -p "$(APHROS_PREFIX)"/include/aphros/$$i; \
@@ -43,7 +44,8 @@ install: $L
 	for i in $H; \
 	do cp $$i "$(APHROS_PREFIX)"/include/aphros/$$i; \
 	done; \
-	cp $L "$(APHROS_PREFIX)"/lib/
+	cp $L "$(APHROS_PREFIX)"/lib/; \
+	cp ap.mfer "$(APHROS_PREFIX)"/bin"
 clean:
-	-rm $O $L
+	-rm $O $L ap.mfer
 include ../make/dep.mk
