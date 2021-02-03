@@ -70,7 +70,7 @@ docker build github.com/cselab/aphros --tag aphros
 docker run -i aphros
 ```
 
-# Minimal build without CMake
+### Minimal build without CMake
 
 This is a minimal build without dependencies and tests.
 
