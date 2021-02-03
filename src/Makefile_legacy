@@ -45,7 +45,7 @@ install: $L ap.mfer
 	do cp $$i "$(APHROS_PREFIX)"/include/aphros/$$i; \
 	done; \
 	cp $L "$(APHROS_PREFIX)"/lib/; \
-	cp ap.mfer "$(APHROS_PREFIX)"/bin"
+	cp ap.mfer "$(APHROS_PREFIX)"/bin
 clean:
 	-rm $O $L ap.mfer
 include ../make/dep.mk
