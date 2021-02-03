@@ -1,7 +1,6 @@
 // Created by Petr Karnakov on 25.09.2020
 // Copyright 2020 ETH Zurich
 
-#include <mpi.h>
 #include <cassert>
 #include <fstream>
 #include <functional>
@@ -165,6 +164,8 @@ int main(int argc, const char** argv) {
   parser.AddVariable<std::string>("--csv_out").Help(
       "Path to output CSV with centroids of connected components");
   parser.AddVariable<int>("--steps", 5).Help("Number of sharpening steps");
+  parser.AddVariable<std::string>("--extra", "")
+      .Help("Extra configuration (commands 'set ... ')");
 
   parser.AddVariable<std::string>("hdf_in").Help(
       "Path to input image as HDF5 array of floats between 0 and 1");
@@ -233,6 +234,8 @@ int main(int argc, const char** argv) {
   }
   conf << "set double cfl " << args.Double["cfl"] << '\n';
   conf << "set int VERBOSE " << args.Int["verbose"] << '\n';
+
+  conf << args.String["extra"] << '\n';
 
   return RunMpiBasicString<M>(mpi, Run, conf.str());
 }

@@ -3,7 +3,7 @@
 
 #include "util/macros.h"
 
-#if USEFLAG(MPI)
+#if USEFLAG(MPI) && USEFLAG(HDF)
 #include "hdf.ipp"
 #else
 #include "hdf_nompi.ipp"

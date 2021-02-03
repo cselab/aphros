@@ -7,7 +7,6 @@
 #include "debug/linear.h"
 #include "distr/distrbasic.h"
 #include "dump/hdf.h"
-#include "linear/hypre.h"
 #include "linear/linear.h"
 #include "parse/argparse.h"
 #include "solver/approx_eb.h"

@@ -9,11 +9,18 @@
 
 #include "distrsolver.h"
 #include "util/distr.h"
+#include "util/format.h"
 #include "util/git.h"
+#include "util/macros.h"
 #include "util/subcomm.h"
 
 std::string GetDefaultConf() {
-  return R"foo(
+#if USEFLAG(BACKEND_CUBISM)
+  const std::string backend = "cubismnc";
+#else
+  const std::string backend = "local";
+#endif
+  return util::Format(R"EOF(
 set int px 1
 set int py 1
 set int pz 1
@@ -33,7 +40,7 @@ set string dumpformat default
 
 set int comm_size 8
 
-set string backend cubismnc
+set string backend {}
 set int histogram 0
 set int openmp 0
 set int mpi_compress_msg 0
@@ -72,7 +79,7 @@ set string hypre_vort_solver pcg
 set int hypre_symm_maxiter 100
 set int hypre_vort_maxiter 100
 set int hypre_gen_maxiter 30
-)foo";
+)EOF", backend);
 }
 
 int RunMpiKernel(

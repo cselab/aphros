@@ -21,6 +21,7 @@ struct Stats {
   double vmax; // maximum value
 };
 
+#if USEFLAG(MPI)
 static std::map<std::string, Stats> ComputeStats(
     const typename Sampler::SampleMap& samples) {
   std::map<std::string, Stats> stats;
@@ -58,8 +59,10 @@ static std::map<std::string, Stats> ComputeStats(
   }
   return stats;
 }
+#endif
 
 void Histogram::Consolidate_() {
+#if USEFLAG(MPI)
   int rank, size;
   MPI_Comm_rank(comm_, &rank);
   MPI_Comm_size(comm_, &size);
@@ -116,9 +119,11 @@ void Histogram::Consolidate_() {
     MPI_File_write(fh, &s.second, sizeof(Stats), MPI_BYTE, &st);
   }
   MPI_File_close(&fh);
+#endif
 }
 
 void Histogram::HomogenizeCollection_() {
+#if USEFLAG(MPI)
   // if sample collection differs among participating ranks, homogenize missing
   // samples in current collection
   int rank, size;
@@ -160,4 +165,5 @@ void Histogram::HomogenizeCollection_() {
     c += (n.length() + 1);
     sum_sizes -= (n.length() + 1);
   }
+#endif
 }

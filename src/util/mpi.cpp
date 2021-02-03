@@ -40,15 +40,11 @@ MpiWrapper::MpiWrapper(int* argc, const char*** argv, MPI_Comm comm)
 MpiWrapper::~MpiWrapper() {}
 
 int MpiWrapper::GetCommSize(MPI_Comm comm) {
-  int size;
-  MPICALL(MPI_Comm_size(comm, &size));
-  return size;
+  return 1;
 }
 
 int MpiWrapper::GetCommRank(MPI_Comm comm) {
-  int rank;
-  MPICALL(MPI_Comm_rank(comm, &rank));
-  return rank;
+  return 0;
 }
 
 #endif // USEFLAG(MPI)

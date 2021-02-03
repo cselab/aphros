@@ -5,7 +5,7 @@ set -eu
 base=$(dirname $(readlink -f $0))
 : ${cfl=0.5}
 : ${steps=5}
-: ${np=5}
+: ${np=1}
 
 i=$1
 o=$2

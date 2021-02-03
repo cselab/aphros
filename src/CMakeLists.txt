@@ -11,6 +11,7 @@ endif ()
 option(USE_OPENMP "OpenMP support" ON)
 option(USE_AVX "Enable AVX vectorized kernels. Requires a CPU with AVX2 and FMA support" ON)
 option(USE_HYPRE "Enable Hypre for linear systems" ON)
+option(USE_HDF "Enable HDF5 for output. Requres parallel HDF5 and MPI." ON)
 option(USE_AMGX "Enable AMGX for linear systems, requires GPU with CUDA" OFF)
 option(USE_MPI "Enable MPI support" ON)
 option(USE_FPZIP "Enable fpzip compression for communication (experimental)" OFF)
@@ -65,6 +66,24 @@ add_library(${T} INTERFACE)
 target_compile_definitions(${T} INTERFACE _USE_MPI_=$<BOOL:${USE_MPI}>)
 install(TARGETS ${T} EXPORT export)
 
+if (USE_HDF AND NOT USE_MPI)
+  message(FATAL_ERROR "USE_HDF5 requires USE_MPI")
+endif()
+set(T "use_hdf")
+add_library(${T} INTERFACE)
+target_compile_definitions(${T} INTERFACE _USE_HDF_=$<BOOL:${USE_HDF}>)
+install(TARGETS ${T} EXPORT export)
+
+set(T "use_backend")
+add_library(${T} INTERFACE)
+target_compile_definitions(
+  ${T} INTERFACE _USE_BACKEND_CUBISM_=$<BOOL:${USE_BACKEND_CUBISM}>)
+target_compile_definitions(
+  ${T} INTERFACE _USE_BACKEND_LOCAL_=$<BOOL:${USE_BACKEND_LOCAL}>)
+target_compile_definitions(
+  ${T} INTERFACE _USE_BACKEND_NATIVE_=$<BOOL:${USE_BACKEND_NATIVE}>)
+install(TARGETS ${T} EXPORT export)
+
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)
 
 include_directories(.)
@@ -106,7 +125,6 @@ set(ObjLibs
   approx_eb
   argparse
   color
-  comm_manager
   convdiffe
   convdiffi
   convdiffvg
@@ -186,7 +204,7 @@ if (USE_BACKEND_LOCAL)
 endif()
 
 if (USE_BACKEND_NATIVE)
-  set(ObjLibs ${ObjLibs} native)
+  set(ObjLibs ${ObjLibs} native comm_manager)
 endif()
 
 foreach(name ${ObjLibs})

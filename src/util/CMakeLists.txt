@@ -55,7 +55,7 @@ add_library(${T} posthook_default.cpp)
 target_link_libraries(${T} suspender vars use_mpi)
 
 set(T "subcomm")
-if (USE_OPENMP)
+if (USE_OPENMP AND USE_MPI)
   add_library(${T} subcomm.cpp)
 else()
   add_library(${T} subcomm_dummy.cpp)
