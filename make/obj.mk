@@ -22,8 +22,6 @@ inside/off.o\
 inside/ply.o\
 inside/predicate.o\
 inside/stl.o\
-linear/hypresub.o\
-linear/linear_hypre.o\
 linear/linear.o\
 march/main.o\
 parse/argparse.o\

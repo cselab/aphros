@@ -8,7 +8,9 @@ BEGIN {
     skip["distr/native.cpp"]
     skip["gen/wave_lamb.c"]
     skip["linear/hypre.cpp"]
+    skip["linear/hypresub.cpp"]
     skip["linear/linear_amgx.cpp"]
+    skip["linear/linear_hypre.cpp"]
     skip["main.cpp"]
     skip["overlap/overlap.cpp"]
 }
