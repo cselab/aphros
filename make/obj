@@ -3,13 +3,14 @@
 find . -name '*.cpp' -or -name '*.c' | awk '
 BEGIN {
     print "O = \\"
+    skip["distr/comm_manager.cpp"]
+    skip["distr/cubismnc.cpp"]
+    skip["distr/native.cpp"]
+    skip["gen/wave_lamb.c"]
     skip["linear/hypre.cpp"]
     skip["linear/linear_amgx.cpp"]
     skip["main.cpp"]
     skip["overlap/overlap.cpp"]
-    skip["gen/wave_lamb.c"]
-    skip["distr/comm_manager.cpp"]
-    skip["distr/cubismnc.cpp"]
 }
 { sub(/^\.\//, "") }
 ($0 in skip) || /^test\// { next }
