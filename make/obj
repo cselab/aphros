@@ -20,11 +20,11 @@ BEGIN {
 {
     sub(/\.cpp$/, ".o")
     sub(/\.c$/, ".o")
-    print $0 "\\" | "sort"
+    print $0 "\\" | "sort | uniq"
 }
 
 END {
-    print "util/gitgen.o" "\\" | "sort"
+    print "util/gitgen.o" "\\" | "sort | uniq"
     close("sort")
     printf "\n"
 }

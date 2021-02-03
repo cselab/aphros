@@ -2,6 +2,7 @@
 .SUFFIXES:
 .SUFFIXES: .o .cpp .c
 L = libaphros_static.a
+J = libaphros_js.a
 CXX = g++
 CC = c99
 CXXFLAGS = -O2 -g
@@ -30,6 +31,7 @@ include ../make/obj.mk
 include ../make/dir.mk
 include ../make/hdr.mk
 $L: $O; ar rv $@ $O && ranlib $@
+$J: $O; emar rv $@ $O
 ap.mfer: main.o $L; $(CXX) $< $(CXXFLAGS) $(CXXFLAGS_STD) -I. $1 -L. -laphros_static -o $@
 .cpp.o:; $(CXX) $< -c $(CXXFLAGS) $(CXXFLAGS_STD) -I. $1 -o $@
 .c.o:; $(CC) $< -c $(CFLAGS) -o $@
@@ -46,6 +48,9 @@ install: $L ap.mfer
 	done; \
 	cp $L "$(APHROS_PREFIX)"/lib/; \
 	cp ap.mfer "$(APHROS_PREFIX)"/bin
+install_js: $J
+	mkdir -p "$(APHROS_PREFIX)"/lib; \
+	cp $J "$(APHROS_PREFIX)"/lib/
 clean:
-	-rm $O $L ap.mfer
+	-rm $O $L $J ap.mfer
 include ../make/dep.mk
