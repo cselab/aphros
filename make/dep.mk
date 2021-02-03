@@ -1,11 +1,8 @@
 color/color.o : color/color.h
 distr/comm_manager.o : distr/comm_manager.h
 distr/comm_manager.o : distr/comm_manager.ipp
-distr/comm_manager.o : distr/cubismnc.h
 distr/comm_manager.o : distr/distr.h
 distr/comm_manager.o : distr/distrsolver.h
-distr/comm_manager.o : distr/local.h
-distr/comm_manager.o : distr/native.h
 distr/comm_manager.o : distr/reduce.h
 distr/comm_manager.o : dump/dumper.h
 distr/comm_manager.o : dump/dump.h
@@ -31,6 +28,8 @@ distr/comm_manager.o : util/format.h
 distr/comm_manager.o : util/logger.h
 distr/comm_manager.o : util/macros.h
 distr/comm_manager.o : util/metrics.h
+distr/comm_manager.o : util/module.h
+distr/comm_manager.o : util/mpi.h
 distr/comm_manager.o : util/suspender.h
 distr/comm_manager.o : util/sysinfo.h
 distr/comm_manager.o : util/timer.h
@@ -45,7 +44,6 @@ distr/cubismnc.o : CubismNoCopy/PUPkernelsMPI.h
 distr/cubismnc.o : CubismNoCopy/QPXEMU.h
 distr/cubismnc.o : CubismNoCopy/StencilInfo.h
 distr/cubismnc.o : CubismNoCopy/SynchronizerMPI.h
-distr/cubismnc.o : distr/cubismnc.h
 distr/cubismnc.o : distr/cubismnc.ipp
 distr/cubismnc.o : distr/distr.h
 distr/cubismnc.o : distr/reduce.h
@@ -72,14 +70,13 @@ distr/cubismnc.o : util/histogram.h
 distr/cubismnc.o : util/logger.h
 distr/cubismnc.o : util/macros.h
 distr/cubismnc.o : util/metrics.h
+distr/cubismnc.o : util/module.h
+distr/cubismnc.o : util/mpi.h
 distr/cubismnc.o : util/suspender.h
 distr/cubismnc.o : util/sysinfo.h
 distr/cubismnc.o : util/timer.h
-distr/distrbasic.o : distr/cubismnc.h
 distr/distrbasic.o : distr/distr.h
 distr/distrbasic.o : distr/distrsolver.h
-distr/distrbasic.o : distr/local.h
-distr/distrbasic.o : distr/native.h
 distr/distrbasic.o : distr/reduce.h
 distr/distrbasic.o : dump/dumper.h
 distr/distrbasic.o : dump/dump.h
@@ -101,10 +98,13 @@ distr/distrbasic.o : kernel/kernelmeshpar.h
 distr/distrbasic.o : parse/parser.h
 distr/distrbasic.o : parse/vars.h
 distr/distrbasic.o : util/distr.h
+distr/distrbasic.o : util/format.h
 distr/distrbasic.o : util/git.h
 distr/distrbasic.o : util/logger.h
 distr/distrbasic.o : util/macros.h
 distr/distrbasic.o : util/metrics.h
+distr/distrbasic.o : util/module.h
+distr/distrbasic.o : util/mpi.h
 distr/distrbasic.o : util/subcomm.h
 distr/distrbasic.o : util/suspender.h
 distr/distrbasic.o : util/sysinfo.h
@@ -134,14 +134,13 @@ distr/distr.o : util/format.h
 distr/distr.o : util/logger.h
 distr/distr.o : util/macros.h
 distr/distr.o : util/metrics.h
+distr/distr.o : util/module.h
+distr/distr.o : util/mpi.h
 distr/distr.o : util/suspender.h
 distr/distr.o : util/sysinfo.h
 distr/distr.o : util/timer.h
-distr/distrsolver.o : distr/cubismnc.h
 distr/distrsolver.o : distr/distr.h
 distr/distrsolver.o : distr/distrsolver.h
-distr/distrsolver.o : distr/local.h
-distr/distrsolver.o : distr/native.h
 distr/distrsolver.o : distr/reduce.h
 distr/distrsolver.o : dump/dumper.h
 distr/distrsolver.o : dump/dump.h
@@ -169,12 +168,13 @@ distr/distrsolver.o : util/git.h
 distr/distrsolver.o : util/logger.h
 distr/distrsolver.o : util/macros.h
 distr/distrsolver.o : util/metrics.h
+distr/distrsolver.o : util/module.h
+distr/distrsolver.o : util/mpi.h
 distr/distrsolver.o : util/subcomm.h
 distr/distrsolver.o : util/suspender.h
 distr/distrsolver.o : util/sysinfo.h
 distr/distrsolver.o : util/timer.h
 distr/local.o : distr/distr.h
-distr/local.o : distr/local.h
 distr/local.o : distr/local.ipp
 distr/local.o : distr/reduce.h
 distr/local.o : dump/dumper.h
@@ -199,15 +199,14 @@ distr/local.o : parse/vars.h
 distr/local.o : util/logger.h
 distr/local.o : util/macros.h
 distr/local.o : util/metrics.h
+distr/local.o : util/module.h
+distr/local.o : util/mpi.h
 distr/local.o : util/suspender.h
 distr/local.o : util/sysinfo.h
 distr/local.o : util/timer.h
 distr/native.o : distr/comm_manager.h
-distr/native.o : distr/cubismnc.h
 distr/native.o : distr/distr.h
 distr/native.o : distr/distrsolver.h
-distr/native.o : distr/local.h
-distr/native.o : distr/native.h
 distr/native.o : distr/native.ipp
 distr/native.o : distr/reduce.h
 distr/native.o : dump/dumper.h
@@ -234,6 +233,8 @@ distr/native.o : util/format.h
 distr/native.o : util/logger.h
 distr/native.o : util/macros.h
 distr/native.o : util/metrics.h
+distr/native.o : util/module.h
+distr/native.o : util/mpi.h
 distr/native.o : util/suspender.h
 distr/native.o : util/sysinfo.h
 distr/native.o : util/timer.h
@@ -257,10 +258,12 @@ dump/dump.o : geom/transform.h
 dump/dump.o : geom/vect.h
 dump/dump.o : util/logger.h
 dump/dump.o : util/macros.h
+dump/dump.o : util/mpi.h
 dump/dump.o : util/suspender.h
 dump/hdf.o : distr/reduce.h
 dump/hdf.o : dump/hdf.h
 dump/hdf.o : dump/hdf.ipp
+dump/hdf.o : dump/hdf_nompi.ipp
 dump/hdf.o : geom/blockface.h
 dump/hdf.o : geom/block.h
 dump/hdf.o : geom/dir.h
@@ -276,10 +279,12 @@ dump/hdf.o : geom/transform.h
 dump/hdf.o : geom/vect.h
 dump/hdf.o : util/logger.h
 dump/hdf.o : util/macros.h
+dump/hdf.o : util/mpi.h
 dump/hdf.o : util/suspender.h
 dump/raw.o : distr/reduce.h
 dump/raw.o : dump/raw.h
 dump/raw.o : dump/raw.ipp
+dump/raw.o : dump/raw_nompi.ipp
 dump/raw.o : geom/blockface.h
 dump/raw.o : geom/block.h
 dump/raw.o : geom/dir.h
@@ -297,6 +302,7 @@ dump/raw.o : util/distr.h
 dump/raw.o : util/format.h
 dump/raw.o : util/logger.h
 dump/raw.o : util/macros.h
+dump/raw.o : util/mpi.h
 dump/raw.o : util/suspender.h
 func/init_contang.o : distr/reduce.h
 func/init_contang.o : func/init_contang.h
@@ -318,6 +324,7 @@ func/init_contang.o : parse/vars.h
 func/init_contang.o : util/logger.h
 func/init_contang.o : util/macros.h
 func/init_contang.o : util/module.h
+func/init_contang.o : util/mpi.h
 func/init_contang.o : util/suspender.h
 func/init.o : debug/isnan.h
 func/init.o : distr/reduce.h
@@ -347,6 +354,7 @@ func/init.o : solver/embed.h
 func/init.o : solver/reconst.h
 func/init.o : util/logger.h
 func/init.o : util/macros.h
+func/init.o : util/mpi.h
 func/init.o : util/suspender.h
 func/init_vel.o : distr/reduce.h
 func/init_vel.o : func/init_vel.h
@@ -367,6 +375,7 @@ func/init_vel.o : parse/vars.h
 func/init_vel.o : util/logger.h
 func/init_vel.o : util/macros.h
 func/init_vel.o : util/module.h
+func/init_vel.o : util/mpi.h
 func/init_vel.o : util/suspender.h
 func/primlist.o : func/primlist.h
 func/primlist.o : func/primlist.ipp
@@ -391,6 +400,7 @@ geom/mesh.o : geom/transform.h
 geom/mesh.o : geom/vect.h
 geom/mesh.o : util/logger.h
 geom/mesh.o : util/macros.h
+geom/mesh.o : util/mpi.h
 geom/mesh.o : util/suspender.h
 inside/bbox.o : inside/bbox.h
 inside/bbox.o : inside/err.h
@@ -415,15 +425,14 @@ linear/hypre.o : linear/hypre.h
 linear/hypresub.o : linear/hypre.h
 linear/hypresub.o : linear/hypresub.h
 linear/hypresub.o : util/histogram.h
+linear/hypresub.o : util/macros.h
+linear/hypresub.o : util/mpi.h
 linear/hypresub.o : util/subcomm.h
 linear/hypresub.o : util/timer.h
 linear/linear_amgx.o : debug/linear.h
 linear/linear_amgx.o : distr/commmap.h
-linear/linear_amgx.o : distr/cubismnc.h
 linear/linear_amgx.o : distr/distr.h
 linear/linear_amgx.o : distr/distrsolver.h
-linear/linear_amgx.o : distr/local.h
-linear/linear_amgx.o : distr/native.h
 linear/linear_amgx.o : distr/reduce.h
 linear/linear_amgx.o : dump/dumper.h
 linear/linear_amgx.o : dump/dump.h
@@ -453,6 +462,7 @@ linear/linear_amgx.o : util/logger.h
 linear/linear_amgx.o : util/macros.h
 linear/linear_amgx.o : util/metrics.h
 linear/linear_amgx.o : util/module.h
+linear/linear_amgx.o : util/mpi.h
 linear/linear_amgx.o : util/suspender.h
 linear/linear_amgx.o : util/sysinfo.h
 linear/linear_amgx.o : util/timer.h
@@ -478,6 +488,7 @@ linear/linear_hypre.o : parse/vars.h
 linear/linear_hypre.o : util/logger.h
 linear/linear_hypre.o : util/macros.h
 linear/linear_hypre.o : util/module.h
+linear/linear_hypre.o : util/mpi.h
 linear/linear_hypre.o : util/suspender.h
 linear/linear.o : debug/linear.h
 linear/linear.o : distr/reduce.h
@@ -500,6 +511,7 @@ linear/linear.o : parse/vars.h
 linear/linear.o : util/logger.h
 linear/linear.o : util/macros.h
 linear/linear.o : util/module.h
+linear/linear.o : util/mpi.h
 linear/linear.o : util/suspender.h
 march/main.o : march/march.h
 march/main.o : march/table.h
@@ -558,6 +570,7 @@ solver/approx_eb.o : util/format.h
 solver/approx_eb.o : util/logger.h
 solver/approx_eb.o : util/macros.h
 solver/approx_eb.o : util/module.h
+solver/approx_eb.o : util/mpi.h
 solver/approx_eb.o : util/suspender.h
 solver/approx.o : debug/linear.h
 solver/approx.o : distr/reduce.h
@@ -587,6 +600,7 @@ solver/approx.o : solver/solver.h
 solver/approx.o : util/logger.h
 solver/approx.o : util/macros.h
 solver/approx.o : util/module.h
+solver/approx.o : util/mpi.h
 solver/approx.o : util/suspender.h
 solver/convdiffe.o : debug/isnan.h
 solver/convdiffe.o : debug/linear.h
@@ -620,6 +634,7 @@ solver/convdiffe.o : solver/solver.h
 solver/convdiffe.o : util/logger.h
 solver/convdiffe.o : util/macros.h
 solver/convdiffe.o : util/module.h
+solver/convdiffe.o : util/mpi.h
 solver/convdiffe.o : util/suspender.h
 solver/convdiffi.o : debug/isnan.h
 solver/convdiffi.o : debug/linear.h
@@ -656,6 +671,7 @@ solver/convdiffi.o : util/convdiff.h
 solver/convdiffi.o : util/logger.h
 solver/convdiffi.o : util/macros.h
 solver/convdiffi.o : util/module.h
+solver/convdiffi.o : util/mpi.h
 solver/convdiffi.o : util/suspender.h
 solver/convdiffvg.o : debug/linear.h
 solver/convdiffvg.o : distr/reduce.h
@@ -691,6 +707,7 @@ solver/convdiffvg.o : util/logger.h
 solver/convdiffvg.o : util/macros.h
 solver/convdiffvg.o : util/metrics.h
 solver/convdiffvg.o : util/module.h
+solver/convdiffvg.o : util/mpi.h
 solver/convdiffvg.o : util/suspender.h
 solver/convdiffvg.o : util/timer.h
 solver/curv.o : debug/isnan.h
@@ -729,6 +746,7 @@ solver/curv.o : solver/vof.h
 solver/curv.o : solver/vofm.h
 solver/curv.o : util/logger.h
 solver/curv.o : util/macros.h
+solver/curv.o : util/mpi.h
 solver/curv.o : util/suspender.h
 solver/curv.o : util/vof.h
 solver/electro.o : debug/linear.h
@@ -764,6 +782,7 @@ solver/electro.o : solver/solver.h
 solver/electro.o : util/logger.h
 solver/electro.o : util/macros.h
 solver/electro.o : util/module.h
+solver/electro.o : util/mpi.h
 solver/electro.o : util/suspender.h
 solver/electro.o : util/vof.h
 solver/embed.o : debug/isnan.h
@@ -793,6 +812,7 @@ solver/embed.o : solver/embed.ipp
 solver/embed.o : solver/reconst.h
 solver/embed.o : util/logger.h
 solver/embed.o : util/macros.h
+solver/embed.o : util/mpi.h
 solver/embed.o : util/suspender.h
 solver/fluid_dummy.o : debug/isnan.h
 solver/fluid_dummy.o : debug/linear.h
@@ -826,6 +846,7 @@ solver/fluid_dummy.o : solver/solver.h
 solver/fluid_dummy.o : util/logger.h
 solver/fluid_dummy.o : util/macros.h
 solver/fluid_dummy.o : util/module.h
+solver/fluid_dummy.o : util/mpi.h
 solver/fluid_dummy.o : util/posthook.h
 solver/fluid_dummy.o : util/suspender.h
 solver/normal.o : debug/isnan.h
@@ -858,6 +879,7 @@ solver/normal.o : util/avx.h
 solver/normal.o : util/height.h
 solver/normal.o : util/logger.h
 solver/normal.o : util/macros.h
+solver/normal.o : util/mpi.h
 solver/normal.o : util/suspender.h
 solver/particles.o : distr/reduce.h
 solver/particles.o : geom/blockface.h
@@ -888,6 +910,7 @@ solver/particles.o : solver/reconst.h
 solver/particles.o : solver/solver.h
 solver/particles.o : util/logger.h
 solver/particles.o : util/macros.h
+solver/particles.o : util/mpi.h
 solver/particles.o : util/suspender.h
 solver/particles.o : util/vof.h
 solver/partstrmeshm.o : debug/isnan.h
@@ -922,6 +945,7 @@ solver/partstrmeshm.o : solver/solver.h
 solver/partstrmeshm.o : solver/vof.h
 solver/partstrmeshm.o : util/logger.h
 solver/partstrmeshm.o : util/macros.h
+solver/partstrmeshm.o : util/mpi.h
 solver/partstrmeshm.o : util/suspender.h
 solver/proj_eb.o : debug/isnan.h
 solver/proj_eb.o : debug/linear.h
@@ -961,6 +985,7 @@ solver/proj_eb.o : util/logger.h
 solver/proj_eb.o : util/macros.h
 solver/proj_eb.o : util/metrics.h
 solver/proj_eb.o : util/module.h
+solver/proj_eb.o : util/mpi.h
 solver/proj_eb.o : util/suspender.h
 solver/proj_eb.o : util/timer.h
 solver/proj.o : debug/isnan.h
@@ -1001,6 +1026,7 @@ solver/proj.o : util/logger.h
 solver/proj.o : util/macros.h
 solver/proj.o : util/metrics.h
 solver/proj.o : util/module.h
+solver/proj.o : util/mpi.h
 solver/proj.o : util/suspender.h
 solver/proj.o : util/timer.h
 solver/simple.o : debug/isnan.h
@@ -1041,6 +1067,7 @@ solver/simple.o : util/logger.h
 solver/simple.o : util/macros.h
 solver/simple.o : util/metrics.h
 solver/simple.o : util/module.h
+solver/simple.o : util/mpi.h
 solver/simple.o : util/suspender.h
 solver/simple.o : util/timer.h
 solver/solver.o : solver/solver.h
@@ -1075,6 +1102,7 @@ solver/tracer.o : solver/tracer.h
 solver/tracer.o : solver/tracer.ipp
 solver/tracer.o : util/logger.h
 solver/tracer.o : util/macros.h
+solver/tracer.o : util/mpi.h
 solver/tracer.o : util/suspender.h
 solver/tracer.o : util/vof.h
 solver/vofm.o : debug/isnan.h
@@ -1119,6 +1147,7 @@ solver/vofm.o : util/filesystem.h
 solver/vofm.o : util/logger.h
 solver/vofm.o : util/macros.h
 solver/vofm.o : util/module.h
+solver/vofm.o : util/mpi.h
 solver/vofm.o : util/suspender.h
 solver/vofm.o : util/vof.h
 solver/vof.o : debug/isnan.h
@@ -1160,6 +1189,7 @@ solver/vof.o : util/convdiff.h
 solver/vof.o : util/logger.h
 solver/vof.o : util/macros.h
 solver/vof.o : util/module.h
+solver/vof.o : util/mpi.h
 solver/vof.o : util/suspender.h
 solver/vof.o : util/vof.h
 util/convdiff.o : debug/linear.h
@@ -1194,6 +1224,7 @@ util/convdiff.o : util/convdiff.h
 util/convdiff.o : util/logger.h
 util/convdiff.o : util/macros.h
 util/convdiff.o : util/module.h
+util/convdiff.o : util/mpi.h
 util/convdiff.o : util/suspender.h
 util/distr.o : geom/idx.h
 util/distr.o : geom/vect.h
@@ -1214,6 +1245,8 @@ util/format.o : util/logger.h
 util/format.o : util/macros.h
 util/git.o : util/git.h
 util/histogram.o : util/histogram.h
+util/histogram.o : util/macros.h
+util/histogram.o : util/mpi.h
 util/histogram.o : util/timer.h
 util/hydro.o : debug/isnan.h
 util/hydro.o : debug/linear.h
@@ -1266,6 +1299,7 @@ util/hydro.o : util/hydro.ipp
 util/hydro.o : util/logger.h
 util/hydro.o : util/macros.h
 util/hydro.o : util/module.h
+util/hydro.o : util/mpi.h
 util/hydro.o : util/suspender.h
 util/linear.o : debug/linear.h
 util/linear.o : distr/reduce.h
@@ -1289,7 +1323,11 @@ util/linear.o : util/linear.ipp
 util/linear.o : util/logger.h
 util/linear.o : util/macros.h
 util/linear.o : util/module.h
+util/linear.o : util/mpi.h
 util/linear.o : util/suspender.h
+util/mpi.o : util/logger.h
+util/mpi.o : util/macros.h
+util/mpi.o : util/mpi.h
 util/posthook_default.o : distr/reduce.h
 util/posthook_default.o : geom/blockface.h
 util/posthook_default.o : geom/block.h
@@ -1310,16 +1348,21 @@ util/posthook_default.o : solver/embed.h
 util/posthook_default.o : solver/reconst.h
 util/posthook_default.o : util/logger.h
 util/posthook_default.o : util/macros.h
+util/posthook_default.o : util/mpi.h
 util/posthook_default.o : util/posthook.h
 util/posthook_default.o : util/suspender.h
 util/subcomm_dummy.o : util/logger.h
 util/subcomm_dummy.o : util/macros.h
+util/subcomm_dummy.o : util/mpi.h
 util/subcomm_dummy.o : util/subcomm.h
+util/subcomm.o : util/macros.h
+util/subcomm.o : util/mpi.h
 util/subcomm.o : util/subcomm.h
 util/subcomm.o : util/sysinfo.h
 util/suspender.o : util/suspender.h
 util/sysinfo.o : util/logger.h
 util/sysinfo.o : util/macros.h
+util/sysinfo.o : util/mpi.h
 util/sysinfo.o : util/sysinfo.h
 util/timer.o : util/timer.h
 util/vof.o : debug/isnan.h
@@ -1351,6 +1394,7 @@ util/vof.o : solver/solver.h
 util/vof.o : solver/trackerm.h
 util/vof.o : util/logger.h
 util/vof.o : util/macros.h
+util/vof.o : util/mpi.h
 util/vof.o : util/suspender.h
 util/vof.o : util/vof.h
 util/vof.o : util/vof.ipp

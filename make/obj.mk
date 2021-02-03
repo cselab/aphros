@@ -64,6 +64,7 @@ util/git.o\
 util/histogram.o\
 util/hydro.o\
 util/linear.o\
+util/mpi.o\
 util/posthook_default.o\
 util/subcomm_dummy.o\
 util/subcomm.o\

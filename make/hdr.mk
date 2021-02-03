@@ -17,12 +17,9 @@ debug/isnan.h\
 debug/linear.h\
 distr/comm_manager.h\
 distr/commmap.h\
-distr/cubismnc.h\
 distr/distrbasic.h\
 distr/distr.h\
 distr/distrsolver.h\
-distr/local.h\
-distr/native.h\
 distr/reduce.h\
 distr/report.h\
 dump/dumper.h\
@@ -135,6 +132,7 @@ util/logger.h\
 util/macros.h\
 util/metrics.h\
 util/module.h\
+util/mpi.h\
 util/posthook.h\
 util/stat.h\
 util/subcomm.h\
