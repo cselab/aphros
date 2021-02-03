@@ -57,12 +57,17 @@ class MeshCartesian {
   using M = MeshCartesian;
   enum class Type { regular, cut, excluded };
 
+  template <class T>
+  static constexpr T Pow(T base, size_t pow) {
+    return pow == 0 ? 1 : base * Pow(base, pow - 1);
+  }
+
   static constexpr size_t kCellNumNeighborFaces = dim * 2;
-  static constexpr size_t kCellNumNeighborNodes = std::pow<size_t>(2, dim);
-  static constexpr size_t kFaceNumNeighborNodes = std::pow<size_t>(2, dim - 1);
+  static constexpr size_t kCellNumNeighborNodes = Pow(2, dim);
+  static constexpr size_t kFaceNumNeighborNodes = Pow(2, dim - 1);
   static constexpr size_t kFaceNumNeighborCells = 2;
-  static constexpr size_t kNumStencil = std::pow<size_t>(3, dim);
-  static constexpr size_t kNumStencil5 = std::pow<size_t>(5, dim);
+  static constexpr size_t kNumStencil = Pow(3, dim);
+  static constexpr size_t kNumStencil5 = Pow(5, dim);
   static constexpr bool kIsEmbed = false;
 
   struct Flags {

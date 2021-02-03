@@ -56,12 +56,12 @@ template void DumpTraj(
 template void DumpTraj(
     EB& m, bool dm, const Vars& var, size_t frame, typename M::Scal t,
     const GRange<size_t>& layers,
-    const Multi<const FieldCell<typename M::Scal>*>& fcvf,
-    const Multi<const FieldCell<typename M::Scal>*>& fccl,
-    const Multi<const FieldCell<typename M::MIdx>*>& fcim,
-    const FieldCell<typename M::Scal>& fcp,
-    const FieldCell<typename M::Vect>& fcvel,
-    const FieldCell<typename M::Vect>& fcvelm, typename M::Scal dt);
+    const Multi<const FieldCell<typename EB::Scal>*>& fcvf,
+    const Multi<const FieldCell<typename EB::Scal>*>& fccl,
+    const Multi<const FieldCell<typename EB::MIdx>*>& fcim,
+    const FieldCell<typename EB::Scal>& fcp,
+    const FieldCell<typename EB::Vect>& fcvel,
+    const FieldCell<typename EB::Vect>& fcvelm, typename EB::Scal dt);
 
 template void CalcTraj(
     M& m, const GRange<size_t>& layers,

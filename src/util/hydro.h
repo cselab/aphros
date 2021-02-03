@@ -89,15 +89,16 @@ void InitVort(
     const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid,
     std::shared_ptr<linear::Solver<M>> linsolver, M& m);
 
-template <
-    class EB, class Scal = typename EB::Scal, class Vect = typename EB::Vect>
+template <class EB>
 void DumpTraj(
-    EB& m, bool dm, const Vars& var, size_t frame, Scal t,
-    const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcvf,
-    const Multi<const FieldCell<Scal>*>& fccl,
+    EB& m, bool dm, const Vars& var, size_t frame, typename EB::Scal t,
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename EB::Scal>*>& fcvf,
+    const Multi<const FieldCell<typename EB::Scal>*>& fccl,
     const Multi<const FieldCell<typename EB::MIdx>*>& fcim,
-    const FieldCell<Scal>& fcp, const FieldCell<Vect>& fcvel,
-    const FieldCell<Vect>& fcvelm, Scal dt);
+    const FieldCell<typename EB::Scal>& fcp,
+    const FieldCell<typename EB::Vect>& fcvel,
+    const FieldCell<typename EB::Vect>& fcvelm, typename EB::Scal dt);
 
 template <class EB>
 void CalcTraj(

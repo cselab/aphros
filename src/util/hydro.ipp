@@ -1110,16 +1110,19 @@ void CalcTraj(
   }
 }
 
-template <
-    class EB, class Scal = typename EB::Scal, class Vect = typename EB::Vect>
+template <class EB>
 void DumpTraj(
-    EB& eb, bool dm, const Vars& var, size_t frame, Scal time,
-    const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcvf,
-    const Multi<const FieldCell<Scal>*>& fccl,
+    EB& eb, bool dm, const Vars& var, size_t frame, typename EB::Scal time,
+    const GRange<size_t>& layers,
+    const Multi<const FieldCell<typename EB::Scal>*>& fcvf,
+    const Multi<const FieldCell<typename EB::Scal>*>& fccl,
     const Multi<const FieldCell<typename EB::MIdx>*>& fcim,
-    const FieldCell<Scal>& fcp, const FieldCell<Vect>& fcvel,
-    const FieldCell<Vect>& fcvelm, Scal dt) {
+    const FieldCell<typename EB::Scal>& fcp,
+    const FieldCell<typename EB::Vect>& fcvel,
+    const FieldCell<typename EB::Vect>& fcvelm, typename EB::Scal dt) {
   using M = typename EB::M;
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
   using SA = Sphavg<M>; // spherical averages
   auto& m = eb.GetMesh();
 
