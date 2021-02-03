@@ -8,12 +8,12 @@ if (CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     "Aphros requires an out-of-source build. Run CMake from a separate build directory.")
 endif ()
 
-option(USE_OPENMP "OpenMP support" ON)
+option(USE_OPENMP "Enable OpenMP" ON)
 option(USE_AVX "Enable AVX vectorized kernels. Requires a CPU with AVX2 and FMA support" ON)
 option(USE_HYPRE "Enable Hypre for linear systems" ON)
 option(USE_HDF "Enable HDF5 for output. Requres parallel HDF5 and MPI." ON)
 option(USE_AMGX "Enable AMGX for linear systems, requires GPU with CUDA" OFF)
-option(USE_MPI "Enable MPI support" ON)
+option(USE_MPI "Enable MPI for distributed computation" ON)
 option(USE_FPZIP "Enable fpzip compression for communication (experimental)" OFF)
 option(USE_OVERLAP "Enable Overlap library for exact initialization of ellipsoids. Requires Eigen3" ON)
 option(USE_DIM1 "Enable 1D geometry" OFF)
@@ -27,6 +27,8 @@ option(USE_BACKEND_NATIVE "Enable native backend for distributed computation. Re
 set(CMAKE_MACOSX_RPATH OFF)
 set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 
+set(APHROS_USE_MPI ${USE_MPI})
+set(APHROS_USE_OPENMP ${USE_OPENMP})
 include(client.cmake)
 
 # git revision
@@ -44,6 +46,46 @@ add_custom_target(gitrev
   COMMAND "${P}/src/gitrev" "${C}"
   WORKING_DIRECTORY "${P}"
 )
+
+if (USE_FPZIP)
+  find_package(FPZIP REQUIRED)
+endif()
+
+if (USE_AMGX)
+  find_package(CUDAToolkit)
+endif()
+
+set(T "openmp")
+add_library(${T} INTERFACE)
+if (USE_OPENMP)
+  target_link_libraries(${T} INTERFACE OpenMP::OpenMP_CXX)
+endif()
+install(TARGETS ${T} EXPORT export)
+
+if (USE_HYPRE)
+  set(T "hypreext")
+  set(HYPRE_DIR ${APHROS_PREFIX})
+  add_library(${T} INTERFACE)
+  target_include_directories(${T} INTERFACE ${HYPRE_DIR}/include)
+  target_link_libraries(${T} INTERFACE -L${HYPRE_DIR}/lib -lHYPRE -lm)
+  install(TARGETS ${T} EXPORT export)
+endif()
+
+if (USE_HDF)
+  set(T "hdf")
+  if (USE_MPI)
+    set(HDF5_PREFER_PARALLEL ON)
+  endif()
+  set(HDF5_NO_FIND_PACKAGE_CONFIG_FILE ON)
+  find_package(HDF5 REQUIRED COMPONENTS C HL)
+  if (USE_MPI AND NOT HDF5_IS_PARALLEL)
+    message(FATAL_ERROR "No parallel HDF5")
+  endif()
+  add_library(${T} INTERFACE)
+  target_include_directories(${T} INTERFACE ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(${T} INTERFACE ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})
+  install(TARGETS ${T} EXPORT export)
+endif()
 
 set(T "use_avx")
 add_library(${T} INTERFACE)
