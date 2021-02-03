@@ -211,7 +211,7 @@ void Raw<M>::WriteXmf(
     std::stringstream s;
     s.precision(20);
     bool first = true;
-    for (size_t d = v.dim; d > 0;) {
+    for (size_t d = v.size(); d > 0;) {
       --d;
       if (!first) {
         s << ' ';

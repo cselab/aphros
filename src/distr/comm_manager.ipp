@@ -55,7 +55,7 @@ struct CommManager<dim_>::Imp {
 
     auto nnz = [](MIdx dw) {
       int cnt = 0;
-      for (size_t i = 0; i < dw.dim; ++i) {
+      for (size_t i = 0; i < MIdx::dim; ++i) {
         cnt += (dw[i] != 0);
       }
       return cnt;

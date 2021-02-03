@@ -59,13 +59,13 @@ class Electro : public ElectroInterface<typename EB_::M> {
       M& m, const EB& eb, const MapEmbed<BCond<Scal>>& mebc_pot, Scal time,
       const Conf& conf);
   ~Electro();
-  Conf& GetConf() const;
+  Conf& GetConf() const override;
   void Step(Scal dt, const FieldCell<Scal>& fc_vf) override;
   const FieldCell<Scal>& GetPotential() const override;
   const FieldCell<Vect>& GetCurrent() const override;
   const FieldEmbed<Scal>& GetFaceCurrent() const override;
   const Stat& GetStat() const override;
-  Scal GetTime() const;
+  Scal GetTime() const override;
 
  private:
   struct Imp;

@@ -29,7 +29,8 @@ include ../make/obj.mk
 include ../make/dir.mk
 include ../make/hdr.mk
 $L: $O; ar rv $@ $O && ranlib $@
-.cpp.o:; $(CXX) $< -c $(CXXFLAGS) -I. $1 -o $@
+ap.mfer: main.o $L; $(CXX) $< $(CXXFLAGS) -std=c++14 -I. $1 -L. -laphros_static -o $@
+.cpp.o:; $(CXX) $< -c $(CXXFLAGS) -std=c++14 -I. $1 -o $@
 .c.o:; $(CC) $< -c $(CFLAGS) -o $@
 util/gitgen.cpp:; ./gitrev $@
 install: $L

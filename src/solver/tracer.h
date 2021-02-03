@@ -89,8 +89,8 @@ class Tracer : public TracerInterface<typename EB_::M> {
       M& m, const EB& eb, const Multi<const FieldCell<Scal>*>& vfcu,
       const Multi<const MapEmbed<BCond<Scal>>*>& vmebc, Scal t, Conf conf);
   ~Tracer();
-  const Conf& GetConf() const;
-  void SetConf(Conf);
+  const Conf& GetConf() const override;
+  void SetConf(Conf) override;
   // dt: time step
   // fe_flux: mixture volume flux
   // vfc_src: volume source, or nullptr
@@ -102,8 +102,8 @@ class Tracer : public TracerInterface<typename EB_::M> {
   const FieldCell<Scal>& GetMixtureVolumeFraction() const override;
   // Returns view with pointers to fields.
   TracerView GetView() const override;
-  Scal GetTime() const;
-  Multi<MapEmbed<BCond<Scal>>>& GetBCondMutable();
+  Scal GetTime() const override;
+  Multi<MapEmbed<BCond<Scal>>>& GetBCondMutable() override;
 
  private:
   struct Imp;

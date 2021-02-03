@@ -100,7 +100,7 @@ class Reconst {
     }
   }
   static void Sort(Vect4& v) {
-    std::sort(&v[0], &v[v.dim]);
+    std::sort(&v[0], &v[v.size()]);
   }
 
   // Returns sequence of indices `r` such that v[r] is sorted

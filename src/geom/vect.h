@@ -97,8 +97,8 @@ class Vect {
     }
   }
   Vect& operator=(const Vect&) = default;
-  size_t size() const {
-    return data_.size();
+  constexpr size_t size() const {
+    return dim;
   }
   Scal& operator[](size_t i) {
     return data_[i];
@@ -419,6 +419,9 @@ class Vect {
  private:
   std::array<Scal, dim> data_;
 };
+
+template <class Scal, size_t dim>
+const size_t Vect<Scal, dim>::dim;
 
 } // namespace generic
 
