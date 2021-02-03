@@ -55,13 +55,6 @@ if (USE_AMGX)
   find_package(CUDAToolkit)
 endif()
 
-set(T "openmp")
-add_library(${T} INTERFACE)
-if (USE_OPENMP)
-  target_link_libraries(${T} INTERFACE OpenMP::OpenMP_CXX)
-endif()
-install(TARGETS ${T} EXPORT export)
-
 if (USE_HYPRE)
   set(T "hypreext")
   set(HYPRE_DIR ${APHROS_PREFIX})
