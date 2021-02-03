@@ -1,13 +1,12 @@
 set(T "primlist")
 add_library(${T} primlist.cpp)
-target_link_libraries(${T} format use_dims)
+target_link_libraries(${T} PUBLIC format PRIVATE use_dims)
 
 set(T "init")
 add_library(${T} init.cpp)
-target_link_libraries(${T} primlist vars suspender use_mpi)
-target_compile_definitions(${T} PUBLIC _USE_OVERLAP_=$<BOOL:${USE_OVERLAP}>)
+target_link_libraries(${T} PUBLIC primlist vars suspender PRIVATE use_mpi use_overlap)
 if (USE_OVERLAP)
-  target_link_libraries(${T} overlap)
+  target_link_libraries(${T} PUBLIC overlap)
 endif()
 
 set(T "init_vel")

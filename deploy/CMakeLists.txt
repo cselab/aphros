@@ -3,7 +3,7 @@ project("aphros-deploy")
 
 option(USE_FPZIP "Install fpzip. Used for compression of communication buffers (experimental)" OFF)
 option(USE_HYPRE "Install Hypre library providing linear solvers" ON)
-option(USE_EIGEN "Install Eigen. Used by Overlap library for exact initialization of ellipsoids" ON)
+option(USE_EIGEN "Install Eigen. Used by Overlap library for exact initialization of ellipsoids" OFF)
 option(USE_AMGX "Install AMGX, linear solver on GPUs. Requires CUDA Toolkit" OFF)
 option(USE_GSL "Install utilities that require GSL: chmath, csv, split" OFF)
 
