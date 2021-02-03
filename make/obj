@@ -8,6 +8,8 @@ BEGIN {
     skip["main.cpp"]
     skip["overlap/overlap.cpp"]
     skip["gen/wave_lamb.c"]
+    skip["distr/comm_manager.cpp"]
+    skip["distr/cubismnc.cpp"]
 }
 { sub(/^\.\//, "") }
 ($0 in skip) || /^test\// { next }

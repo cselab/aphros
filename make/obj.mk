@@ -1,7 +1,5 @@
 O = \
 color/color.o\
-distr/comm_manager.o\
-distr/cubismnc.o\
 distr/distrbasic.o\
 distr/distr.o\
 distr/distrsolver.o\
