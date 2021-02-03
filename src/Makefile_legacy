@@ -2,8 +2,8 @@
 .SUFFIXES:
 .SUFFIXES: .o .cpp .c
 L = libaphros_static.a
-MPICXX = mpicxx
-MPICC = mpicc
+CXX = mpicxx
+CC = mpicc
 CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g
 HDF_CFLAGS = `pkg-config --cflags hdf5-openmpi`
@@ -17,8 +17,8 @@ include ../make/obj.mk
 include ../make/dir.mk
 include ../make/hdr.mk
 $L: $O; ar rv $@ $O && ranlib $@
-.cpp.o:; $(MPICXX) $< -c $(CXXFLAGS) $(HDF_CFLAGS) -I. $1 -o $@
-.c.o:; $(MPICC) $< -c $(CFLAGS) -o $@
+.cpp.o:; $(CXX) $< -c $(CXXFLAGS) $(HDF_CFLAGS) -I. $1 -o $@
+.c.o:; $(CC) $< -c $(CFLAGS) -o $@
 util/gitgen.cpp:; ./gitrev $@
 install: $L
 	mkdir -p "$(APHROS_PREFIX)"/lib; \
