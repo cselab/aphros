@@ -45,10 +45,13 @@ std::string GetFormat(std::string path, std::string format) {
 void Run(M& m, Vars& var) {
   const bool verbose = var.Int["VERBOSE"];
   using Scal = typename M::Scal;
+  using Raw = dump::Raw<M>;
   auto sem = m.GetSem();
   struct {
     std::unique_ptr<Vof<M>> solver;
     Vof<M>::Par par;
+
+    Raw::Meta meta;
 
     FieldCell<Scal> fcu;
     FieldEmbed<Scal> fe_flux;
@@ -69,16 +72,19 @@ void Run(M& m, Vars& var) {
   auto& t = *ctx;
 
   auto read = [&](FieldCell<Scal>& fc_buf, std::string path) {
+    if (sem.Nested("readxmf")) {
+      auto format = GetFormat(path, var.String["format"]);
+      if (format == "raw") {
+        const auto xmfpath = util::SplitExt(path)[0] + ".xmf";
+        t.meta = dump::Raw<M>::ReadXmf(xmfpath);
+      }
+    }
     if (sem.Nested("read")) {
       auto format = GetFormat(path, var.String["format"]);
       if (format == "h5") {
         Hdf<M>::Read(fc_buf, path, m);
       } else if (format == "raw") {
-        dump::Raw<M>::Meta meta;
-        meta.dimensions = m.GetGlobalSize();
-        meta.count = m.GetGlobalSize();
-        using Raw = dump::Raw<M>;
-        Raw::Read(fc_buf, meta, path, m);
+        Raw::Read(fc_buf, t.meta, path, m);
       } else {
         fassert(false, "Unkown format=" + format);
       }
@@ -249,9 +255,9 @@ int main(int argc, const char** argv) {
   } else if (inputformat == "raw") {
     const auto xmfpath = util::SplitExt(input)[0] + ".xmf";
     const auto meta = dump::Raw<M>::ReadXmf(xmfpath);
-    nx = meta.dimensions[0];
-    ny = meta.dimensions[1];
-    nz = meta.dimensions[2];
+    nx = meta.count[0];
+    ny = meta.count[1];
+    nz = meta.count[2];
   } else {
     fassert(
         false,
@@ -262,7 +268,7 @@ int main(int argc, const char** argv) {
     if (n % b) {
       std::stringstream s;
       s << name << "=" << n << " not divisible by " << b;
-      throw std::runtime_error(s.str());
+      fassert(false, s.str());
     }
   };
 

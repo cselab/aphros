@@ -146,17 +146,31 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
       comb_start = comb_start.min(t.starts[b]);
       comb_end = comb_start.max(t.starts[b] + t.sizes[b]);
     }
+    // size of region combined from all blocks on current rank
     const MIdx comb_size = comb_end - comb_start;
 
     // XXX check the blocks on current rank constitute a rectangular subarray
     fassert_equal(comb_size % t.sizes[0], MIdx(0));
     fassert_equal((comb_size / t.sizes[0]).prod(), (int)nblocks);
+    // check the hyperslab has the same dimensions as the global mesh
+    fassert_equal(meta.count, m.GetGlobalSize());
 
     typename M::IndexCells comb_indexer(comb_start, comb_size);
     FieldCell<T> comb_field(comb_indexer);
 
+    fassert_equal(meta.stride, MIdx(1, 1, 1), ". Unsupported stride");
+    fassert(
+        MIdx(0) <= meta.start,
+        util::Format("Negative hyperslab start={}", meta.start));
+    fassert(
+        meta.start + meta.count * meta.stride < meta.dimensions,
+        util::Format(
+            "Hyperslab start+count*stride={} beyond array dimensions={}",
+            meta.start + meta.count * meta.stride, meta.dimensions));
+
     MPI_Datatype filetype;
-    CreateSubarray(m.GetGlobalSize(), comb_size, comb_start, &filetype);
+    CreateSubarray(
+        meta.dimensions, comb_size, meta.start + comb_start, &filetype);
 
     MPI_Datatype memtype;
     CreateSubarray(comb_size, comb_size, MIdx(0), &memtype);
@@ -408,6 +422,7 @@ auto Raw<M>::ReadXmf(std::istream& buf) -> Meta {
 template <class M>
 auto Raw<M>::ReadXmf(const std::string& xmfpath) -> Meta {
   std::ifstream f(xmfpath);
+  fassert(f.good(), "Can't open file '" + xmfpath + "' for reading");
   return ReadXmf(f);
 }
 
@@ -478,6 +493,7 @@ void Raw<M>::WriteXmf(std::ostream& buf, const Meta& meta) {
 template <class M>
 void Raw<M>::WriteXmf(const std::string& xmfpath, const Meta& meta) {
   std::ofstream f(xmfpath);
+  fassert(f.good(), "Can't open file '" + xmfpath + "' for writing");
   WriteXmf(f, meta);
 }
 
