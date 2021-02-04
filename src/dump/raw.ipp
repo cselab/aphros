@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <limits>
+#include <map>
 #include <sstream>
 
 #include "raw.h"
@@ -197,88 +198,287 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
   }
 }
 
+
 template <class M>
-void Raw<M>::WriteXmf(
-    std::string xmfpath, std::string name, Type type, Vect origin, Vect spacing,
-    MIdx dims, std::string rawpath) {
-  std::ofstream f(xmfpath);
-  f.precision(20);
-  f << "<?xml version='1.0' ?>\n";
-  f << "<!DOCTYPE Xdmf SYSTEM 'Xdmf.dtd' []>\n";
-  f << "<Xdmf Version='2.0'>\n";
+std::string Raw<M>::GetXmfTemplate() {
+  const std::string fmt = R"EOF(<?xml version="1.0" ?>
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
+<Xdmf Version="2.0">
+ <Domain>
+   <Grid GridType="Uniform">
+     <Topology TopologyType="3DCORECTMesh" Dimensions="{nodes2} {nodes1} {nodes0}"/>
+     <Geometry GeometryType="ORIGIN_DXDYDZ">
+       <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
+         {origin2} {origin1} {origin0}
+       </DataItem>
+       <DataItem Name="Spacing" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
+         {spacing2} {spacing1} {spacing0}
+       </DataItem>
+     </Geometry>
+     <Attribute Name="{name}" AttributeType="Scalar" Center="Cell">
+       <DataItem ItemType="HyperSlab" Dimensions="{countd2} {countd1} {countd0}" Type="HyperSlab">
+           <DataItem Dimensions="3 3" Format="XML">
+             {start2} {start1} {start0}
+             {stride2} {stride1} {stride0}
+             {count2} {count1} {count0}
+           </DataItem>
+           <DataItem Dimensions="{dim2} {dim1} {dim0}" Seek="{seek}" Precision="{precision}" NumberType="{type}" Format="Binary">
+             {binpath}
+           </DataItem>
+       </DataItem>
+     </Attribute>
+   </Grid>
+ </Domain>
+</Xdmf>
+)EOF";
+  return fmt;
+}
 
-  auto getstr = [](auto v) {
-    std::stringstream s;
-    s.precision(20);
-    bool first = true;
-    for (size_t d = v.size(); d > 0;) {
-      --d;
-      if (!first) {
-        s << ' ';
-      } else {
-        first = false;
+std::string Substitute(
+    const std::string& fmt, const std::map<std::string, std::string>& map) {
+  std::string res;
+  size_t i = 0;
+  std::string key;
+  while (i < fmt.size()) {
+    if (fmt[i] == '{') {
+      key = "";
+      ++i;
+      for (; i < fmt.size(); ++i) {
+        if (fmt[i] == '}') {
+          break;
+        }
+        key += fmt[i];
       }
-      s << v[d];
+      ++i;
+      fassert(map.count(key), "Key not found: " + key)
+      res += map.at(key);
+    } else {
+      res.push_back(fmt[i]);
+      ++i;
     }
-    return s.str();
-  };
-
-  std::string numbertype;
-  int precision = 0;
-  switch (type) {
-    case Type::UInt16:
-      numbertype = "UShort";
-      precision = 2;
-      break;
-    case Type::Float32:
-      numbertype = "Float";
-      precision = 4;
-      break;
-    case Type::Float64:
-      numbertype = "Double";
-      precision = 8;
-      break;
-    default:
-      fassert(false);
   }
+  return res;
+}
 
-  f << " <Domain>\n";
-  f << "   <Grid GridType='Uniform'>\n";
-  f << "     <Topology TopologyType='3DCORECTMesh' Dimensions='";
-  f << getstr(dims + MIdx(1)) << "'/>\n\n";
-
-  f << "     <Geometry GeometryType='ORIGIN_DXDYDZ'>\n";
-  f << "       <DataItem Name='Origin' Dimensions='" << dim
-    << "' NumberType='Float' Precision='8' Format='XML'>\n";
-  f << "         " << getstr(origin) << "\n";
-  f << "       </DataItem>\n";
-  f << "       <DataItem Name='Spacing' Dimensions='" << dim
-    << "' NumberType='Float' Precision='8' Format='XML'>\n";
-  f << "         " << getstr(spacing) << "\n";
-  f << "       </DataItem>\n";
-  f << "     </Geometry>\n\n";
-
-  f << "     <Attribute Name='" << name
-    << "' AttributeType='Scalar' Center='Cell'>\n";
-  f << "       <DataItem Dimensions='" << getstr(dims);
-  f << "' NumberType='" << numbertype << "' Precision='" << precision
-    << "' Format='Binary'>\n";
-  f << "        " << rawpath << '\n';
-  f << "       </DataItem>\n";
-  f << "     </Attribute>\n";
-  f << "   </Grid>\n";
-  f << " </Domain>\n";
-  f << "</Xdmf>\n";
+std::map<std::string, std::string> Parse(
+    const std::string& fmt, const std::string& txt) {
+  std::map<std::string, std::string> res;
+  size_t i = 0;
+  size_t j = 0;
+  std::string key;
+  std::string value;
+  while (i < fmt.size() && j < txt.size()) {
+    if (fmt[i] == '{') {
+      if (fmt[i] == txt[j]) {
+        std::stringstream msg;
+        msg << "Expected different characters, got '" << fmt[i]
+            << "' at position " << i << " of template and '" << txt[j]
+            << "' at position " << j << " of input";
+        fassert(false, msg.str());
+      }
+      key = "";
+      value = "";
+      ++i;
+      for (; i < fmt.size(); ++i) {
+        if (fmt[i] == '}') {
+          break;
+        }
+        key += fmt[i];
+      }
+      ++i;
+      while (i < fmt.size() && j < txt.size() && fmt[i] != txt[j]) {
+        value += txt[j];
+        ++j;
+      }
+      res[key] = value;
+    } else {
+      if (fmt[i] != txt[j]) {
+        std::stringstream msg;
+        msg << "Expected equal characters, got '" << fmt[i] << "' at position "
+            << i << " of template and '" << txt[j] << "' at position " << j
+            << " of input\n";
+        fassert(false, msg.str());
+      }
+      ++i;
+      ++j;
+    }
+  }
+  return res;
 }
 
 template <class M>
-void Raw<M>::WriteXmf(
-    std::string xmfpath, std::string name, Type type, std::string rawpath,
-    const M& m) {
-  const Vect origin(0);
-  const Vect spacing = m.GetCellSize();
-  const auto dims = m.GetGlobalSize();
-  WriteXmf(xmfpath, name, type, origin, spacing, dims, rawpath);
+auto Raw<M>::StringToType(std::string s) -> Type {
+  Type res;
+  if (s == "UShort") {
+    res = Type::UInt16;
+  } else if (s == "Float") {
+    res = Type::Float32;
+  } else if (s == "Double") {
+    res = Type::Float64;
+  } else {
+    fassert(false, "Unknown type=" + s);
+  }
+  return res;
+}
+
+template <class M>
+std::string Raw<M>::TypeToString(Type type) {
+  switch (type) {
+    case Type::UInt16:
+      return "UShort";
+    case Type::Float32:
+      return "Float";
+    case Type::Float64:
+      return "Double";
+    default:
+      fassert(false);
+  }
+  return "";
+}
+
+template <class M>
+int Raw<M>::GetPrecision(Type type) {
+  switch (type) {
+    case Type::UInt16:
+      return 2;
+    case Type::Float32:
+      return 4;
+    case Type::Float64:
+      return 8; 
+    default:
+      fassert(false);
+  }
+  return 8;
+}
+
+template <class M>
+auto Raw<M>::ReadXmf(std::istream& buf) -> Meta {
+  const std::string fmt = GetXmfTemplate();
+  std::stringstream sstr;
+  sstr << buf.rdbuf();
+  const std::string txt = sstr.str();
+  const auto map = Parse(fmt, txt);
+
+  auto get = [&map](std::string key) {
+    fassert(map.count(key), "Key not found: " + key);
+    return map.at(key);
+  };
+  auto conv = [&map, &get](std::string key, auto& value) {
+    std::stringstream(get(key)) >> value;
+  };
+
+  Meta res;
+  conv("name", res.name);
+  conv("binpath", res.binpath);
+
+  conv("dim0", res.dimensions[0]);
+  conv("dim1", res.dimensions[1]);
+  conv("dim2", res.dimensions[2]);
+
+  conv("start0", res.start[0]);
+  conv("start1", res.start[1]);
+  conv("start2", res.start[2]);
+
+  conv("stride0", res.stride[0]);
+  conv("stride1", res.stride[1]);
+  conv("stride2", res.stride[2]);
+
+  conv("count0", res.count[0]);
+  conv("count1", res.count[1]);
+  conv("count2", res.count[2]);
+
+  conv("seek", res.seek);
+
+  conv("spacing0", res.spacing[0]);
+  conv("spacing1", res.spacing[1]);
+  conv("spacing2", res.spacing[2]);
+
+  conv("origin0", res.origin[0]);
+  conv("origin1", res.origin[1]);
+  conv("origin2", res.origin[2]);
+
+  res.type = StringToType(get("type"));
+  int precision;
+  conv("precision", precision);
+  fassert_equal(precision, GetPrecision(res.type));
+
+  return res;
+}
+
+template <class M>
+auto Raw<M>::ReadXmf(const std::string& xmfpath) -> Meta {
+  std::ifstream f(xmfpath);
+  return ReadXmf(f);
+}
+
+template <class M>
+auto Raw<M>::GetMeta(MIdx start, MIdx stride, const M& m) -> Meta {
+  Meta res;
+  res.dimensions = m.GetGlobalSize();
+  res.start = start;
+  res.stride = stride;
+  res.count = (res.dimensions - res.start) / stride;
+  res.origin = Vect(start) * m.GetCellSize();
+  res.spacing = m.GetCellSize();
+  return res;
+}
+
+template <class M>
+void Raw<M>::WriteXmf(std::ostream& buf, const Meta& meta) {
+  std::map<std::string, std::string> map;
+
+  auto conv = [&map](std::string key, const auto& value) {
+    std::stringstream s;
+    s.precision(16);
+    s << value;
+    map[key] = s.str();
+  };
+
+  conv("name", meta.name);
+  conv("binpath", meta.binpath);
+
+  conv("dim0", meta.dimensions[0]);
+  conv("dim1", meta.dimensions[1]);
+  conv("dim2", meta.dimensions[2]);
+
+  conv("start0", meta.start[0]);
+  conv("start1", meta.start[1]);
+  conv("start2", meta.start[2]);
+
+  conv("stride0", meta.stride[0]);
+  conv("stride1", meta.stride[1]);
+  conv("stride2", meta.stride[2]);
+
+  conv("nodes0", meta.count[0] + 1);
+  conv("nodes1", meta.count[1] + 1);
+  conv("nodes2", meta.count[2] + 1);
+  conv("count0", meta.count[0]);
+  conv("count1", meta.count[1]);
+  conv("count2", meta.count[2]);
+  conv("countd0", meta.count[0]);
+  conv("countd1", meta.count[1]);
+  conv("countd2", meta.count[2]);
+
+  conv("seek", meta.seek);
+
+  conv("spacing0", meta.spacing[0]);
+  conv("spacing1", meta.spacing[1]);
+  conv("spacing2", meta.spacing[2]);
+
+  conv("origin0", meta.origin[0]);
+  conv("origin1", meta.origin[1]);
+  conv("origin2", meta.origin[2]);
+
+  conv("type", TypeToString(meta.type));
+  conv("precision", GetPrecision(meta.type));
+
+  buf << Substitute(GetXmfTemplate(), map);
+}
+
+template <class M>
+void Raw<M>::WriteXmf(const std::string& xmfpath, const Meta& meta) {
+  std::ofstream f(xmfpath);
+  WriteXmf(f, meta);
 }
 
 } // namespace dump

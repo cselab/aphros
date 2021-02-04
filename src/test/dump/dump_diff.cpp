@@ -56,7 +56,7 @@ void Run(M& m, Vars& var) {
         Hdf<M>::Read(fc_buf, input, m);
       } else if (format == "raw") {
         dump::Raw<M>::Meta meta;
-        meta.size = m.GetGlobalSize();
+        meta.dimensions = m.GetGlobalSize();
         meta.count = m.GetGlobalSize();
         using Raw = dump::Raw<M>;
         Raw::Read(fc_buf, meta, input, m);

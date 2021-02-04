@@ -1,2 +1,41 @@
 GetDumpName("vf", ".h5", 8, 100)=vf_0008_0100.h5
 GetDumpName("vf", ".h5", 8)=vf_0008.h5
+meta.name=u
+meta.binpath=./a.raw
+Raw::TypeToString(meta.type)=UShort
+meta.dimensions=(2048,2048,2500)
+meta.start=(0,0,0)
+meta.stride=(4,4,4)
+meta.count=(512,512,625)
+meta.seek=0
+meta.origin=(-0.1,-0.2,-0.3)
+meta.spacing=(0.01,0.02,0.03)
+<?xml version="1.0" ?>
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
+<Xdmf Version="2.0">
+ <Domain>
+   <Grid GridType="Uniform">
+     <Topology TopologyType="3DCORECTMesh" Dimensions="626 513 513"/>
+     <Geometry GeometryType="ORIGIN_DXDYDZ">
+       <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
+         -0.3 -0.2 -0.1
+       </DataItem>
+       <DataItem Name="Spacing" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
+         0.03 0.02 0.01
+       </DataItem>
+     </Geometry>
+     <Attribute Name="u" AttributeType="Scalar" Center="Cell">
+       <DataItem ItemType="HyperSlab" Dimensions="625 512 512" Type="HyperSlab">
+           <DataItem Dimensions="3 3" Format="XML">
+             0 0 0
+             4 4 4
+             625 512 512
+           </DataItem>
+           <DataItem Dimensions="2500 2048 2048" Seek="0" NumberType="UShort" Format="Binary">
+             ./a.raw
+           </DataItem>
+       </DataItem>
+     </Attribute>
+   </Grid>
+ </Domain>
+</Xdmf>
