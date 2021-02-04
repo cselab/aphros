@@ -26,7 +26,7 @@ CXXFLAGS_STD = -std=c++14
 -D_USE_OPENMP_=1 \
 -D_USE_OVERLAP_=0 \
 
-all: $L
+all: $L ap.mfer
 include ../make/obj.mk
 include ../make/dir.mk
 include ../make/hdr.mk
