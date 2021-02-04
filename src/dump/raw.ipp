@@ -159,11 +159,12 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
     FieldCell<T> comb_field(comb_indexer);
 
     fassert_equal(meta.stride, MIdx(1, 1, 1), ". Unsupported stride");
+    fassert_equal(meta.seek, 0, ". Unsupported seek");
     fassert(
         MIdx(0) <= meta.start,
         util::Format("Negative hyperslab start={}", meta.start));
     fassert(
-        meta.start + meta.count * meta.stride < meta.dimensions,
+        meta.start + meta.count * meta.stride <= meta.dimensions,
         util::Format(
             "Hyperslab start+count*stride={} beyond array dimensions={}",
             meta.start + meta.count * meta.stride, meta.dimensions));
