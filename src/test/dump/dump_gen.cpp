@@ -90,7 +90,7 @@ void Run(M& m, Vars& var) {
 int main(int argc, const char** argv) {
   MpiWrapper mpi(&argc, &argv);
 
-  ArgumentParser parser("Test for writers and readers.", mpi.IsRoot());
+  ArgumentParser parser("Writes a file with scalar field.", mpi.IsRoot());
   parser.AddVariable<int>("--nx", 16).Help("Mesh size in x-direction");
   parser.AddVariable<int>("--ny", 16).Help("Mesh size in y-direction");
   parser.AddVariable<int>("--nz", 16).Help("Mesh size in z-direction");

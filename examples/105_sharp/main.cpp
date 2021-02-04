@@ -239,17 +239,23 @@ int main(int argc, const char** argv) {
   }
 
   int nx, ny, nz;
-  const auto inputformat =
-      GetFormat(args.String.GetStr("input"), args.String.GetStr("format"));
+  const auto input = args.String.GetStr("input");
+  const auto inputformat = GetFormat(input, args.String.GetStr("format"));
   if (inputformat == "h5") {
-    const auto shape = Hdf<M>::GetShape(args.String["input"]);
+    const auto shape = Hdf<M>::GetShape(input);
     nx = shape[2];
     ny = shape[1];
     nz = shape[0];
+  } else if (inputformat == "raw") {
+    const auto xmfpath = util::SplitExt(input)[0] + ".xmf";
+    const auto meta = dump::Raw<M>::ReadXmf(xmfpath);
+    nx = meta.dimensions[0];
+    ny = meta.dimensions[1];
+    nz = meta.dimensions[2];
   } else {
-    nx = 0;
-    ny = 0;
-    nz = 0;
+    fassert(
+        false,
+        "Can't determine the field dimensions of format '" + inputformat + "'");
   }
 
   auto checkdiv = [](int n, int b, std::string name) {
