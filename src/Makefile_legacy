@@ -33,7 +33,7 @@ include ../make/dir.mk
 include ../make/hdr.mk
 $L: $O; ar rv $@ $O && ranlib $@
 $J: $O; emar rv $@ $O
-ap.mfer: main.o $L; $(LINK) $(LDFLAGS) $< $L -o $@
+ap.mfer: main.o $L; $(LINK) $< $(LDFLAGS) $L -o $@
 .cpp.o:; $(CXX) $< -c $(CXXFLAGS) $(CXXFLAGS_STD) -I. $1 -o $@
 .c.o:; $(CC) $< -c $(CFLAGS) -o $@
 util/gitgen.cpp:; ./gitrev $@
