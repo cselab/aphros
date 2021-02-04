@@ -13,5 +13,9 @@ set(T t.${name}_gen)
 add_executable(${T} dump_gen.cpp)
 target_link_libraries(${T} aphros)
 
+set(T t.${name}_meta)
+add_executable(${T} dump_meta.cpp)
+target_link_libraries(${T} aphros)
+
 add_test_current(NAME dump_h5 COMMAND ./test h5)
 add_test_current(NAME dump_raw COMMAND ./test raw)
