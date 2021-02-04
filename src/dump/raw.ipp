@@ -1,6 +1,7 @@
 // Created by Petr Karnakov on 01.02.2021
 // Copyright 2021 ETH Zurich
 
+#include <cstdint>
 #include <fstream>
 #include <limits>
 #include <map>
@@ -13,9 +14,44 @@
 
 namespace dump {
 
+template <class Type>
+MPI_Datatype GetMpiType(Type type) {
+  switch (type) {
+    case Type::UInt16:
+      return MPI_UINT16_T;
+    case Type::Float32:
+      return MPI_FLOAT;
+    case Type::Float64:
+      return MPI_DOUBLE;
+    default:
+      fassert(false);
+  }
+}
+
+template <class T>
+MPI_Datatype GetMpiType() {
+  return MPI_DATATYPE_NULL;
+}
+
+template <>
+MPI_Datatype GetMpiType<double>() {
+  return MPI_DOUBLE;
+}
+
+template <>
+MPI_Datatype GetMpiType<float>() {
+  return MPI_FLOAT;
+}
+
+template <>
+MPI_Datatype GetMpiType<std::uint16_t>() {
+  return MPI_UINT16_T;
+}
+
 template <class MIdx>
 void CreateSubarray(
-    MIdx wsize, MIdx wsubsize, MIdx wstart, MPI_Datatype* filetype) {
+    MIdx wsize, MIdx wsubsize, MIdx wstart, MPI_Datatype numbertype,
+    /*out*/ MPI_Datatype* filetype) {
   const auto dim = MIdx::dim;
   int size[dim];
   int subsize[dim];
@@ -26,7 +62,7 @@ void CreateSubarray(
     start[d] = wstart[dim - d - 1];
   }
   MPI_Type_create_subarray(
-      dim, size, subsize, start, MPI_ORDER_C, MPI_DOUBLE, filetype);
+      dim, size, subsize, start, MPI_ORDER_C, numbertype, filetype);
   MPI_Type_commit(filetype);
 }
 
@@ -84,11 +120,14 @@ void Raw<M>::Write(
       }
     }
 
+    const MPI_Datatype metatype = GetMpiType(meta.type);
     MPI_Datatype filetype;
-    CreateSubarray(m.GetGlobalSize(), comb_size, comb_start, &filetype);
+    CreateSubarray(
+        m.GetGlobalSize(), comb_size, comb_start, metatype, &filetype);
 
+    const MPI_Datatype fieldtype = GetMpiType<T>();
     MPI_Datatype memtype;
-    CreateSubarray(comb_size, comb_size, MIdx(0), &memtype);
+    CreateSubarray(comb_size, comb_size, MIdx(0), fieldtype, &memtype);
 
     const MPI_Comm comm = m.GetMpiComm();
     MPI_File fh;
@@ -100,9 +139,8 @@ void Raw<M>::Write(
       throw std::runtime_error(
           std::string() + e.what() + ", while opening file '" + path + "'");
     }
-    // fassert(error == MPI_SUCCESS, "Can't open file '" + path + "'");
     MPICALL(MPI_File_set_view(
-        fh, 0, MPI_DOUBLE, filetype, "native", MPI_INFO_NULL));
+        fh, 0, metatype, filetype, "native", MPI_INFO_NULL));
     MPICALL(MPI_File_write_all(
         fh, comb_field.data(), 1, memtype, MPI_STATUS_IGNORE));
     MPI_File_close(&fh);
@@ -169,12 +207,16 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
             "Hyperslab start+count*stride={} beyond array dimensions={}",
             meta.start + meta.count * meta.stride, meta.dimensions));
 
+    const MPI_Datatype metatype = GetMpiType(meta.type);
+
     MPI_Datatype filetype;
     CreateSubarray(
-        meta.dimensions, comb_size, meta.start + comb_start, &filetype);
+        meta.dimensions, comb_size, meta.start + comb_start, metatype,
+        &filetype);
 
+    const MPI_Datatype fieldtype = GetMpiType<T>();
     MPI_Datatype memtype;
-    CreateSubarray(comb_size, comb_size, MIdx(0), &memtype);
+    CreateSubarray(comb_size, comb_size, MIdx(0), fieldtype, &memtype);
 
     const MPI_Comm comm = m.GetMpiComm();
     MPI_File fh;
@@ -185,9 +227,8 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
       throw std::runtime_error(
           std::string() + e.what() + ", while opening file '" + path + "'");
     }
-    // fassert(error == MPI_SUCCESS, "Can't open file '" + path + "'");
     MPICALL(MPI_File_set_view(
-        fh, 0, MPI_DOUBLE, filetype, "native", MPI_INFO_NULL));
+        fh, 0, metatype, filetype, "native", MPI_INFO_NULL));
     MPICALL(MPI_File_read_all(
         fh, comb_field.data(), 1, memtype, MPI_STATUS_IGNORE));
     MPI_File_close(&fh);
@@ -212,7 +253,6 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
   if (sem()) { // XXX empty stage
   }
 }
-
 
 template <class M>
 std::string Raw<M>::GetXmfTemplate() {
@@ -265,8 +305,7 @@ std::string Substitute(
         key += fmt[i];
       }
       ++i;
-      fassert(map.count(key), "Key not found: " + key)
-      res += map.at(key);
+      fassert(map.count(key), "Key not found: " + key) res += map.at(key);
     } else {
       res.push_back(fmt[i]);
       ++i;
@@ -359,7 +398,7 @@ int Raw<M>::GetPrecision(Type type) {
     case Type::Float32:
       return 4;
     case Type::Float64:
-      return 8; 
+      return 8;
     default:
       fassert(false);
   }
