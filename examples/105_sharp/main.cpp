@@ -75,7 +75,7 @@ void Run(M& m, Vars& var) {
         Hdf<M>::Read(fc_buf, path, m);
       } else if (format == "raw") {
         dump::Raw<M>::Meta meta;
-        meta.size = m.GetGlobalSize();
+        meta.dimensions = m.GetGlobalSize();
         meta.count = m.GetGlobalSize();
         using Raw = dump::Raw<M>;
         Raw::Read(fc_buf, meta, path, m);
@@ -95,15 +95,18 @@ void Run(M& m, Vars& var) {
       }
     } else if (format == "raw") {
       dump::Raw<M>::Meta meta;
-      meta.size = m.GetGlobalSize();
+      meta.dimensions = m.GetGlobalSize();
       meta.count = m.GetGlobalSize();
       using Raw = dump::Raw<M>;
       if (sem.Nested("write")) {
         Raw::Write(fc_buf(), meta, path, m);
       }
       if (sem("writexmf")) {
-        Raw::WriteXmf(
-            util::SplitExt(path)[0] + ".xmf", "u", Raw::Type::Float64, path, m);
+        auto meta = Raw::GetMeta(MIdx(0), MIdx(1), m);
+        meta.name = "u";
+        meta.binpath = path;
+        meta.type = Raw::Type::Float64;
+        Raw::WriteXmf(util::SplitExt(path)[0] + ".xmf", meta);
       }
     } else {
       fassert(false, "Unkown format=" + format);
