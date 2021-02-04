@@ -5,6 +5,7 @@ L = libaphros_static.a
 J = libaphros_js.a
 CXX = g++
 CC = c99
+LINK = $(CXX)
 CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g
 CXXFLAGS_STD = -std=c++14
@@ -32,7 +33,7 @@ include ../make/dir.mk
 include ../make/hdr.mk
 $L: $O; ar rv $@ $O && ranlib $@
 $J: $O; emar rv $@ $O
-ap.mfer: main.o $L; $(CXX) $< $(CXXFLAGS) $(CXXFLAGS_STD) -I. $1 -L. -laphros_static -o $@
+ap.mfer: main.o $L; $(LINK) $(LDFLAGS) $< $L -o $@
 .cpp.o:; $(CXX) $< -c $(CXXFLAGS) $(CXXFLAGS_STD) -I. $1 -o $@
 .c.o:; $(CC) $< -c $(CFLAGS) -o $@
 util/gitgen.cpp:; ./gitrev $@
