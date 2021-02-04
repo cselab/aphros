@@ -111,23 +111,14 @@ void Raw<M>::Write(
     fassert_equal((comb_size / t.sizes[0]).prod(), (int)nblocks);
 
     typename M::IndexCells comb_indexer(comb_start, comb_size);
-    FieldCell<T> comb_field(comb_indexer);
-    for (size_t b = 0; b < nblocks; ++b) {
-      const typename M::BlockCells block(t.starts[b], t.sizes[b]);
-      size_t i = 0;
-      for (auto c : GRangeIn<IdxCell, dim>(comb_indexer, block)) {
-        comb_field[c] = t.data[b][i++];
-      }
-    }
 
     const MPI_Datatype metatype = GetMpiType(meta.type);
     MPI_Datatype filetype;
     CreateSubarray(
         m.GetGlobalSize(), comb_size, comb_start, metatype, &filetype);
 
-    const MPI_Datatype fieldtype = GetMpiType<T>();
     MPI_Datatype memtype;
-    CreateSubarray(comb_size, comb_size, MIdx(0), fieldtype, &memtype);
+    CreateSubarray(comb_size, comb_size, MIdx(0), metatype, &memtype);
 
     const MPI_Comm comm = m.GetMpiComm();
     MPI_File fh;
@@ -139,10 +130,36 @@ void Raw<M>::Write(
       throw std::runtime_error(
           std::string() + e.what() + ", while opening file '" + path + "'");
     }
-    MPICALL(MPI_File_set_view(
-        fh, 0, metatype, filetype, "native", MPI_INFO_NULL));
-    MPICALL(MPI_File_write_all(
-        fh, comb_field.data(), 1, memtype, MPI_STATUS_IGNORE));
+    MPICALL(
+        MPI_File_set_view(fh, 0, metatype, filetype, "native", MPI_INFO_NULL));
+
+    auto cast = [type = meta.type](T value, void* ptr) {
+      switch (type) {
+        case Type::UInt16:
+          (*reinterpret_cast<std::uint16_t*>(ptr)) = value;
+          break;
+        case Type::Float32:
+          (*reinterpret_cast<float*>(ptr)) = value;
+          break;
+        case Type::Float64:
+          (*reinterpret_cast<double*>(ptr)) = value;
+          break;
+        default:
+          fassert(false);
+      }
+    };
+
+    const size_t metatypesize = GetPrecision(meta.type);
+    std::vector<char> buf(comb_size.prod() * metatypesize);
+    for (size_t b = 0; b < nblocks; ++b) {
+      const typename M::BlockCells block(t.starts[b], t.sizes[b]);
+      size_t i = 0;
+      for (auto c : GRangeIn<IdxCell, dim>(comb_indexer, block)) {
+        cast(t.data[b][i++], &buf[c.raw() * metatypesize]);
+      }
+    }
+
+    MPICALL(MPI_File_write_all(fh, buf.data(), 1, memtype, MPI_STATUS_IGNORE));
     MPI_File_close(&fh);
     MPI_Type_free(&memtype);
     MPI_Type_free(&filetype);
@@ -194,7 +211,6 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
     fassert_equal(meta.count, m.GetGlobalSize());
 
     typename M::IndexCells comb_indexer(comb_start, comb_size);
-    FieldCell<T> comb_field(comb_indexer);
 
     fassert_equal(meta.stride, MIdx(1, 1, 1), ". Unsupported stride");
     fassert_equal(meta.seek, 0, ". Unsupported seek");
@@ -214,9 +230,8 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
         meta.dimensions, comb_size, meta.start + comb_start, metatype,
         &filetype);
 
-    const MPI_Datatype fieldtype = GetMpiType<T>();
     MPI_Datatype memtype;
-    CreateSubarray(comb_size, comb_size, MIdx(0), fieldtype, &memtype);
+    CreateSubarray(comb_size, comb_size, MIdx(0), metatype, &memtype);
 
     const MPI_Comm comm = m.GetMpiComm();
     MPI_File fh;
@@ -229,17 +244,32 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
     }
     MPICALL(MPI_File_set_view(
         fh, 0, metatype, filetype, "native", MPI_INFO_NULL));
-    MPICALL(MPI_File_read_all(
-        fh, comb_field.data(), 1, memtype, MPI_STATUS_IGNORE));
+
+    const size_t metatypesize = GetPrecision(meta.type);
+    std::vector<char> buf(comb_size.prod() * metatypesize);
+    MPICALL(MPI_File_read_all(fh, buf.data(), 1, memtype, MPI_STATUS_IGNORE));
     MPI_File_close(&fh);
     MPI_Type_free(&memtype);
     MPI_Type_free(&filetype);
+
+    auto cast = [type = meta.type](const void* ptr) -> T {
+      switch (type) {
+        case Type::UInt16:
+          return *reinterpret_cast<const std::uint16_t*>(ptr);
+        case Type::Float32:
+          return *reinterpret_cast<const float*>(ptr);
+        case Type::Float64:
+          return *reinterpret_cast<const double*>(ptr);
+        default:
+          fassert(false);
+      }
+    };
 
     for (size_t b = 0; b < nblocks; ++b) {
       const typename M::BlockCells block(t.starts[b], t.sizes[b]);
       size_t i = 0;
       for (auto c : GRangeIn<IdxCell, dim>(comb_indexer, block)) {
-        (*t.dataptr[b])[i++] = comb_field[c];
+        (*t.dataptr[b])[i++] = cast(&buf[c.raw() * metatypesize]);
       }
     }
   }

@@ -6,6 +6,7 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -52,6 +53,7 @@ void Run(M& m, Vars& var) {
     Vof<M>::Par par;
 
     Raw::Meta meta;
+    Raw::Meta outmeta;
 
     FieldCell<Scal> fcu;
     FieldEmbed<Scal> fe_flux;
@@ -68,11 +70,14 @@ void Run(M& m, Vars& var) {
     std::vector<std::string> column_names;
     std::vector<Scal> row_colors;
     std::vector<std::vector<Scal>> table;
+
+    // write buffer
+    FieldCell<Scal> fc_write;
   } * ctx(sem);
   auto& t = *ctx;
 
   auto read = [&](FieldCell<Scal>& fc_buf, std::string path) {
-    if (sem.Nested("readxmf")) {
+    if (sem("readxmf")) {
       auto format = GetFormat(path, var.String["format"]);
       if (format == "raw") {
         const auto xmfpath = util::SplitExt(path)[0] + ".xmf";
@@ -89,6 +94,13 @@ void Run(M& m, Vars& var) {
         fassert(false, "Unkown format=" + format);
       }
     }
+    if (sem("scale")) {
+      if (t.meta.type == Raw::Type::UInt16) {
+        for (auto c : m.Cells()) {
+          fc_buf[c] /= std::numeric_limits<std::uint16_t>::max();
+        }
+      }
+    }
   };
   auto write = [&](auto fc_buf, std::string path) {
     auto format = GetFormat(path, var.String["format"]);
@@ -100,19 +112,32 @@ void Run(M& m, Vars& var) {
         Hdf<M>::WriteXmf(util::SplitExt(path)[0] + ".xmf", "u", path, m);
       }
     } else if (format == "raw") {
-      dump::Raw<M>::Meta meta;
-      meta.dimensions = m.GetGlobalSize();
-      meta.count = m.GetGlobalSize();
-      using Raw = dump::Raw<M>;
+      if (sem("outmeta")) {
+        t.outmeta.dimensions = m.GetGlobalSize();
+        t.outmeta.count = m.GetGlobalSize();
+        t.outmeta.spacing = t.meta.spacing;
+        const auto outtype = var.String["outtype"];
+        if (outtype.length()) {
+          t.outmeta.type = Raw::StringToType(outtype);
+        } else {
+          t.outmeta.type = Raw::Type::Float64;
+        }
+        t.outmeta.binpath = path;
+        t.outmeta.name = t.meta.name + "sh";
+        t.fc_write = fc_buf();
+        if (t.outmeta.type == Raw::Type::UInt16) {
+          for (auto c : m.Cells()) {
+            auto& u = t.fc_write[c];
+            u = std::min(1., std::max(0., u)) *
+                std::numeric_limits<std::uint16_t>::max();
+          }
+        }
+      }
       if (sem.Nested("write")) {
-        Raw::Write(fc_buf(), meta, path, m);
+        Raw::Write(t.fc_write, t.outmeta, path, m);
       }
       if (sem("writexmf")) {
-        auto meta = Raw::GetMeta(MIdx(0), MIdx(1), m);
-        meta.name = "u";
-        meta.binpath = path;
-        meta.type = Raw::Type::Float64;
-        Raw::WriteXmf(util::SplitExt(path)[0] + ".xmf", meta);
+        Raw::WriteXmf(util::SplitExt(path)[0] + ".xmf", t.outmeta);
       }
     } else {
       fassert(false, "Unkown format=" + format);
@@ -231,13 +256,19 @@ int main(int argc, const char** argv) {
   parser.AddVariable<std::string>("--extra", "")
       .Help("Extra configuration (commands 'set ... ')");
   parser.AddVariable<std::string>({"--format", "-f"}, "auto")
-      .Help("File format")
-      .Options({"auto", "h5", "raw", "dat"});
+      .Help("Input and output file format")
+      .Options({"auto", "h5", "raw"});
+  parser.AddVariable<std::string>("--outtype", "")
+      .Help(
+          "Number type of the output file. UShort is rescaled to [0, 1]. "
+          "If empty, input type is used")
+      .Options({"", "UShort", "Float", "Double"});
 
   parser.AddVariable<std::string>("input").Help(
-      "Path to input image as HDF5 array of floats between 0 and 1");
+      "Path to input array. Integer type UShort is converted to float and "
+      "rescaled to [0, 1]");
   parser.AddVariable<std::string>("output").Help(
-      "Path to output image, can be the same as input");
+      "Path to output, can be the same as input");
 
   auto args = parser.ParseArgs(argc, argv);
   if (const int* p = args.Int.Find("EXIT")) {
@@ -317,6 +348,7 @@ int main(int argc, const char** argv) {
   conf << "set double cfl " << args.Double["cfl"] << '\n';
   conf << "set int VERBOSE " << args.Int["verbose"] << '\n';
   conf << "set string format " << args.String["format"] << '\n';
+  conf << "set string outtype " << args.String["outtype"] << '\n';
 
   conf << args.String["extra"] << '\n';
 
