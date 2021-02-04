@@ -20,8 +20,10 @@ using MIdx = typename M::MIdx;
 
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem(__func__);
+  using Raw = dump::Raw<M>;
   struct {
     FieldCell<Scal> fc_write;
+    Raw::Meta meta;
   } * ctx(sem);
   auto& t = *ctx;
   auto get_format = [&var](std::string path) {
@@ -66,19 +68,27 @@ void Run(M& m, Vars& var) {
       Hdf<M>::WriteXmf(util::SplitExt(output)[0] + ".xmf", "u", output, m);
     }
   } else if (format == "raw") {
-    dump::Raw<M>::Meta meta;
-    meta.dimensions = m.GetGlobalSize();
-    meta.count = m.GetGlobalSize();
-    using Raw = dump::Raw<M>;
-    if (sem.Nested("write")) {
-      Raw::Write(t.fc_write, meta, output, m);
-    }
     if (sem("writexmf")) {
-      auto meta = Raw::GetMeta(MIdx(0), MIdx(1), m);
-      meta.name = "u";
-      meta.binpath = output;
-      meta.type = Raw::Type::Float64;
-      Raw::WriteXmf(util::SplitExt(output)[0] + ".xmf", meta);
+      t.meta = Raw::GetMeta(MIdx(0), MIdx(1), m);
+      t.meta.name = "u";
+      t.meta.binpath = output;
+      const auto type = var.String["type"];
+      if (type.length()) {
+        t.meta.type = Raw::StringToType(type);
+      } else {
+        t.meta.type = Raw::Type::Float64;
+      }
+      Raw::WriteXmf(util::SplitExt(output)[0] + ".xmf", t.meta);
+      if (t.meta.type == Raw::Type::UInt16) {
+        for (auto c : m.Cells()) {
+          auto& u = t.fc_write[c];
+          u = std::min(1., std::max(0., u)) *
+              std::numeric_limits<std::uint16_t>::max();
+        }
+      }
+    }
+    if (sem.Nested("write")) {
+      Raw::Write(t.fc_write, t.meta, output, m);
     }
   } else {
     fassert(false, "Unkown format=" + format);
@@ -103,6 +113,9 @@ int main(int argc, const char** argv) {
   parser.AddVariable<std::string>({"--content", "-c"}, "norm")
       .Help("Field to write")
       .Options({"norm", "zero", "one"});
+  parser.AddVariable<std::string>("--type", "")
+      .Help("Number type of the output file. UShort is rescaled to [0, 1].")
+      .Options({"", "UShort", "Float", "Double"});
   parser.AddVariable<std::string>("output", "o.h5").Help("Path to output file");
   auto args = parser.ParseArgs(argc, argv);
   if (const int* p = args.Int.Find("EXIT")) {
@@ -123,6 +136,7 @@ int main(int argc, const char** argv) {
   conf += "\nset string output_path " + args.String.GetStr("output");
   conf += "\nset string format " + args.String.GetStr("format");
   conf += "\nset string content " + args.String.GetStr("content");
+  conf += "\nset string type " + args.String.GetStr("type");
 
   return RunMpiBasicString<M>(mpi, Run, conf);
 }
