@@ -213,7 +213,6 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
     typename M::IndexCells comb_indexer(comb_start, comb_size);
 
     fassert_equal(meta.stride, MIdx(1, 1, 1), ". Unsupported stride");
-    fassert_equal(meta.seek, 0, ". Unsupported seek");
     fassert(
         MIdx(0) <= meta.start,
         util::Format("Negative hyperslab start={}", meta.start));
@@ -242,8 +241,9 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
       throw std::runtime_error(
           std::string() + e.what() + ", while opening file '" + path + "'");
     }
+
     MPICALL(MPI_File_set_view(
-        fh, 0, metatype, filetype, "native", MPI_INFO_NULL));
+        fh, meta.seek, metatype, filetype, "native", MPI_INFO_NULL));
 
     const size_t metatypesize = GetPrecision(meta.type);
     std::vector<char> buf(comb_size.prod() * metatypesize);

@@ -18,55 +18,58 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
+std::string GetFormat(std::string path, std::string format) {
+  const auto ext = util::SplitExt(path)[1];
+  if (format == "auto") {
+    if (ext == ".h5") {
+      format = "h5";
+    } else if (ext == ".raw") {
+      format = "raw";
+    } else {
+      fassert(false, util::Format("Unknown extension '{}' of '{}'", ext, path));
+    }
+  }
+  return format;
+}
+
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem(__func__);
+  using Raw = dump::Raw<M>;
   struct {
     FieldCell<Scal> fc_read1;
     FieldCell<Scal> fc_read2;
     FieldCell<Scal> fc_diff;
     std::vector<generic::Vect<Scal, 3>> norms;
+    Raw::Meta meta;
   } * ctx(sem);
   auto& t = *ctx;
-  auto get_format = [&var](std::string path) {
-    const auto ext = util::SplitExt(path)[1];
-    auto format = var.String["format"];
-    if (format == "auto") {
-      if (ext == ".h5") {
-        format = "h5";
-      } else if (ext == ".raw") {
-        format = "raw";
-      } else if (ext == ".dat") {
-        format = "dat";
-      } else {
-        fassert(
-            false, util::Format("Unknown extension '{}' of '{}'", ext, path));
+
+  auto read = [&](FieldCell<Scal>& fc_buf, std::string path) {
+    if (sem("readxmf")) {
+      auto format = GetFormat(path, var.String["format"]);
+      if (format == "raw") {
+        const auto xmfpath = util::SplitExt(path)[0] + ".xmf";
+        t.meta = dump::Raw<M>::ReadXmf(xmfpath);
       }
     }
-    return format;
-  };
-  if (sem()) {
-    t.fc_read1.Reinit(m, 0);
-    t.fc_read2.Reinit(m, 0);
-  }
-  auto read = [&](FieldCell<Scal>& fc_buf, std::string suff) {
-    if (sem.Nested("read" + suff)) {
-      const auto input = var.String["input" + suff];
-      auto format = get_format(input);
+    if (sem.Nested("read")) {
+      auto format = GetFormat(path, var.String["format"]);
       if (format == "h5") {
-        Hdf<M>::Read(fc_buf, input, m);
+        Hdf<M>::Read(fc_buf, path, m);
       } else if (format == "raw") {
-        dump::Raw<M>::Meta meta;
-        meta.dimensions = m.GetGlobalSize();
-        meta.count = m.GetGlobalSize();
-        using Raw = dump::Raw<M>;
-        Raw::Read(fc_buf, meta, input, m);
+        Raw::Read(fc_buf, t.meta, path, m);
       } else {
         fassert(false, "Unkown format=" + format);
       }
     }
   };
-  read(t.fc_read1, "1");
-  read(t.fc_read2, "2");
+
+  if (sem()) {
+    t.fc_read1.Reinit(m, 0);
+    t.fc_read2.Reinit(m, 0);
+  }
+  read(t.fc_read1, var.String["input1"]);
+  read(t.fc_read2, var.String["input2"]);
   if (sem("norms")) {
     t.fc_diff.Reinit(m, 0);
     for (auto c : m.Cells()) {
@@ -89,10 +92,11 @@ void Run(M& m, Vars& var) {
 int main(int argc, const char** argv) {
   MpiWrapper mpi(&argc, &argv);
 
-  ArgumentParser parser("Test for writers and readers.", mpi.IsRoot());
-  parser.AddVariable<int>("--nx", 16).Help("Mesh size in x-direction");
-  parser.AddVariable<int>("--ny", 16).Help("Mesh size in y-direction");
-  parser.AddVariable<int>("--nz", 16).Help("Mesh size in z-direction");
+  ArgumentParser parser(
+      "Compares two scalar arrays in files"
+      ". Prints the L1,L2, and Linf norms of the difference"
+      ". Assumes both arrays have the same shape",
+      mpi.IsRoot());
   parser.AddVariable<int>("--bs", 8)
       .Help("Block size in all directions")
       .Options({8, 16, 32});
@@ -108,11 +112,40 @@ int main(int argc, const char** argv) {
 
   std::string conf;
 
-  MIdx mesh_size(args.Int["nx"], args.Int["ny"], args.Int["nz"]);
+  auto get_shape = [&](std::string path) {
+    MIdx res;
+    const auto format = GetFormat(path, args.String.GetStr("format"));
+    if (format == "h5") {
+      const auto shape = Hdf<M>::GetShape(path);
+      res[0] = shape[2];
+      res[1] = shape[1];
+      res[2] = shape[0];
+    } else if (format == "raw") {
+      const auto xmfpath = util::SplitExt(path)[0] + ".xmf";
+      const auto meta = dump::Raw<M>::ReadXmf(xmfpath);
+      res = meta.count;
+    } else {
+      fassert(
+          false, "Can't determine the field dimensions of format '" + format +
+                     "' of '" + path + "'");
+    }
+    return res;
+  };
+
+  const MIdx mesh_size = get_shape(args.String.GetStr("input1"));
+  const MIdx mesh_size2 = get_shape(args.String.GetStr("input2"));
+  fassert_equal(mesh_size, mesh_size2, ". Files have different shapes");
+
   MIdx block_size(args.Int["bs"]);
   if (mesh_size[2] == 1) {
     block_size[2] = 1;
   }
+
+  fassert(
+      mesh_size % block_size == MIdx(0),
+      util::Format(
+          "File shape {} not divisible by block size {}", mesh_size,
+          block_size));
 
   Subdomains<MIdx> sub(mesh_size, block_size, mpi.GetCommSize());
   conf += sub.GetConfig();
