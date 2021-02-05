@@ -22,3 +22,5 @@ s*.vtk
 a.conf
 !ref*/*
 !b.dat
+par.conf
+output

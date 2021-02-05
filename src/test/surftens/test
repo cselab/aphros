@@ -9,7 +9,7 @@ import aphros
 
 class Test(aphros.TestBase):
     def __init__(self):
-        super().__init__(cases=["2d", "3d"])
+        super().__init__()
         self.parser.add_argument('--block',
                                  '-b',
                                  type=int,
@@ -21,70 +21,75 @@ class Test(aphros.TestBase):
                                  default='cubismnc',
                                  choices=['local', 'cubismnc', 'native'],
                                  help="Communication backend")
+        self.parser.add_argument('--vofm',
+                                 action="store_true",
+                                 help="Use vofm advection")
         self.parser.add_argument('--nproc',
                                  '-n',
                                  type=int,
-                                 default=2,
-                                 choices=[1, 2, 4],
+                                 default=1,
+                                 choices=[1, 2],
                                  help="Number of processors")
 
-    def run(self, case):
-        self.runcmd("make -f $(ap.makesim) cleanall")
-        self.runcmd("rm -vf *.dat u_*.vtk")
-
-        dim = 3 if case == "3d" else 2
+    def run(self):
         b = self.args.block
-        m = [32, 32, 1] if dim == 2 else [24, 24, 16]
-        bs = [b, b, 1] if dim == 2 else [8, 8, 8]
+        m = [32, 32, 1]
+        bs = [self.args.block, self.args.block, 1]
         nproc = 1 if b == 32 or self.args.comm == "local" else self.args.nproc
 
-        with open("a.conf", 'w') as f:
-            f.write("include {}.conf\n".format(case))
+        conf = "par.conf"
+        with open(conf, 'w') as f:
             f.write("set string backend {}\n".format(self.args.comm))
+            if self.args.vofm:
+                f.write("set string advection_solver vofm\n")
 
         with open("np", 'w') as f:
             f.write(str(nproc))
 
         self.runcmd("ap.create_base_conf")
+        self.runcmd("ap.create_a_conf")
         self.runcmd("ap.part " + ' '.join(map(str, m + bs + [nproc])) +
                     " > mesh.conf")
-        self.runcmd("ap.run ./t.advection")
+        self.runcmd("ap.run ap.mfer".format(nproc, conf))
 
         return [
-            "a_0001.dat",
-            "k_0001.dat",
-            "nx_0001.dat",
-            "ny_0001.dat",
-            "nz_0001.dat",
-            "u_0001.dat",
-        ] if dim == 2 else [
-            "u_0000.dat",
-            "u_0002.dat",
+            "p_0000.dat",
+            "partit_0000.csv",
+            "vf_0000.dat",
+            "vx_0000.dat",
+            "vy_0000.dat",
+            "vz_0000.dat",
         ]
 
     def check(self, outdir, refdir, output_files):
-        r = True
+        res = True
         for f in output_files:
-
-            def cmp(fa, fb):
+            def cmpdat(fa, fb):
                 ua = aphros.ReadPlain(fa)
                 ub = aphros.ReadPlain(fb)
+                error = np.nanmax(abs(ua - ub))
+                return error
+            def cmpcsv(fa, fb):
+                ua = np.genfromtxt(fa, delimiter=',', skip_header=1)
+                ub = np.genfromtxt(fb, delimiter=',', skip_header=1)
                 error = np.nanmax(abs(ua - ub))
                 return error
 
             out = os.path.join(outdir, f)
             ref = os.path.join(refdir, f)
-            error = cmp(out, ref)
-            eps = 1e-11
+            if os.path.splitext(ref)[1] == ".csv":
+                error = cmpcsv(out, ref)
+            else:
+                error = cmpdat(out, ref)
+            eps = 1e-10
             if error > eps:
                 self.printlog("error exceeded for '{}', {:} >= {:}".format(
                     out, error, eps))
-                r = False
+                res = False
             self.printlog("pass for '{}', {:} < {:}".format(f, error, eps))
-        return r
+        return res
 
     def plot(self, datadir, output_files):
-        assert self.case == "2d"
         exe = "plot.py"
         assert os.path.isfile(exe), "{} not found".format(exe)
         exerel = os.path.relpath(exe, datadir)
@@ -92,8 +97,6 @@ class Test(aphros.TestBase):
 
     def clean(self, outdir, output_files):
         self.runcmd("make -f $(ap.makesim) cleanall")
-        self.runcmd("rm -vf *.dat u_*.vtk")
         super().clean(outdir, output_files)
-
 
 Test().main()

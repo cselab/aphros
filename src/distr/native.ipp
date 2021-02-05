@@ -88,8 +88,8 @@ Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
     p.cellsize = Vect(extent_ / p.globalsize.max());
     p.blocksize = blocksize_;
     p.halos = halos_;
-    p.isroot = (p.index == MIdx(0) && isroot_);
-    p.islead = (p.index == MIdx(0));
+    p.isroot = (ib == 0 && isroot_);
+    p.islead = (ib == 0);
     proxies.push_back(p);
   }
 
