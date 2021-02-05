@@ -9,12 +9,15 @@
 
 #include <distr/distrbasic.h>
 #include <dump/dump.h>
+#include <dump/raw.h>
 #include <geom/mesh.h>
 #include <parse/argparse.h>
 #include <parse/parser.h>
+#include <parse/util.h>
 #include <solver/approx_eb.h>
 #include <solver/cond.h>
 #include <solver/embed.h>
+#include <util/filesystem.h>
 #include <util/format.h>
 
 using M = MeshCartesian<double, 4>;
@@ -67,6 +70,30 @@ void DumpCsv(std::string path, FieldCell<Scal>& fcu, M& m, bool verbose=false) {
   }
 }
 
+void DumpRaw(std::string path, FieldCell<Scal>& fcu, M& m, bool verbose=false) {
+  auto sem = m.GetSem();
+  using Raw = dump::Raw<M>;
+  struct {
+    Raw::Meta meta;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem("writexmf")) {
+    t.meta = Raw::GetMeta(MIdx(0), MIdx(1), m);
+    t.meta.name = "u";
+    t.meta.binpath = path;
+    if (m.IsRoot()) {
+      const auto xmfpath = util::SplitExt(path)[0] + ".xmf";
+      Raw::WriteXmf(xmfpath, t.meta);
+      if (verbose) {
+        std::cout << path << ' ' << xmfpath << std::endl;
+      }
+    }
+  }
+  if (sem.Nested("write")) {
+    Raw::Write(fcu, t.meta, path, m);
+  }
+}
+
 void Run(M& m, Vars& var) {
   using Scal = typename M::Scal;
   auto sem = m.GetSem();
@@ -77,9 +104,11 @@ void Run(M& m, Vars& var) {
     Scal sum0;
     Scal sum2;
     Scal max;
+    std::set<std::string> dumpformats;
   } * ctx(sem);
   auto& t = *ctx;
   if (sem()) {
+    t.dumpformats = GetWords(var.String["dumpformats"]);
     if (m.IsRoot()) {
       std::ofstream out("out.conf");
       Parser::PrintVars(var, out);
@@ -100,8 +129,13 @@ void Run(M& m, Vars& var) {
           t.max);
     }
   }
-  if (sem.Nested() && t.step % var.Int["dumpevery"] == 0) {
+  if (sem.Nested() && t.step % var.Int["dumpevery"] == 0 &&
+      t.dumpformats.count("csv")) {
     DumpCsv(util::Format("u_{:04d}.csv", t.step), t.fcu, m, true);
+  }
+  if (sem.Nested() && t.step % var.Int["dumpevery"] == 0 &&
+      t.dumpformats.count("raw")) {
+    DumpRaw(util::Format("u_{:04d}.raw", t.step), t.fcu, m, true);
   }
   if (sem("step")) {
     const Scal dt = var.Double["dt"];

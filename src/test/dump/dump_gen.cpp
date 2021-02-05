@@ -64,7 +64,7 @@ void Run(M& m, Vars& var) {
     if (sem.Nested("write")) {
       Hdf<M>::Write(t.fc_write, output, m);
     }
-    if (sem("writexmf")) {
+    if (sem("writexmf") && m.IsRoot()) {
       Hdf<M>::WriteXmf(util::SplitExt(output)[0] + ".xmf", "u", output, m);
     }
   } else if (format == "raw") {
@@ -78,7 +78,9 @@ void Run(M& m, Vars& var) {
       } else {
         t.meta.type = Raw::Type::Float64;
       }
-      Raw::WriteXmf(util::SplitExt(output)[0] + ".xmf", t.meta);
+      if (m.IsRoot()) {
+        Raw::WriteXmf(util::SplitExt(output)[0] + ".xmf", t.meta);
+      }
       if (t.meta.type == Raw::Type::UInt16) {
         for (auto c : m.Cells()) {
           auto& u = t.fc_write[c];

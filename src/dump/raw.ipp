@@ -212,7 +212,7 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
 
     typename M::IndexCells comb_indexer(comb_start, comb_size);
 
-    fassert_equal(meta.stride, MIdx(1, 1, 1), ". Unsupported stride");
+    fassert_equal(meta.stride, MIdx(1), ". Unsupported stride");
     fassert(
         MIdx(0) <= meta.start,
         util::Format("Negative hyperslab start={}", meta.start));
@@ -291,23 +291,23 @@ std::string Raw<M>::GetXmfTemplate() {
 <Xdmf Version="2.0">
  <Domain>
    <Grid Name="mesh" GridType="Uniform">
-     <Topology TopologyType="3DCORECTMesh" Dimensions="{nodes2} {nodes1} {nodes0}"/>
-     <Geometry GeometryType="ORIGIN_DXDYDZ">
-       <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
-         {origin2} {origin1} {origin0}
+     <Topology TopologyType="{dim}DCORECTMesh" Dimensions="{nodes*}"/>
+     <Geometry GeometryType="{geomtype}">
+       <DataItem Name="Origin" Dimensions="{dim}" NumberType="Float" Precision="8" Format="XML">
+         {origin*}
        </DataItem>
-       <DataItem Name="Spacing" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
-         {spacing2} {spacing1} {spacing0}
+       <DataItem Name="Spacing" Dimensions="{dim}" NumberType="Float" Precision="8" Format="XML">
+         {spacing*}
        </DataItem>
      </Geometry>
      <Attribute Name="{name}" AttributeType="Scalar" Center="Cell">
-       <DataItem ItemType="HyperSlab" Dimensions="{countd2} {countd1} {countd0}" Type="HyperSlab">
-           <DataItem Dimensions="3 3" Format="XML">
-             {start2} {start1} {start0}
-             {stride2} {stride1} {stride0}
-             {count2} {count1} {count0}
+       <DataItem ItemType="HyperSlab" Dimensions="{countd*}" Type="HyperSlab">
+           <DataItem Dimensions="3 {dim}" Format="XML">
+             {start*}
+             {stride*}
+             {count*}
            </DataItem>
-           <DataItem Dimensions="{dim2} {dim1} {dim0}" Seek="{seek}" Precision="{precision}" NumberType="{type}" Format="Binary">
+           <DataItem Dimensions="{dim*}" Seek="{seek}" Precision="{precision}" NumberType="{type}" Format="Binary">
              {binpath}
            </DataItem>
        </DataItem>
@@ -316,7 +316,39 @@ std::string Raw<M>::GetXmfTemplate() {
  </Domain>
 </Xdmf>
 )EOF";
-  return fmt;
+  std::string res;
+  size_t i = 0;
+  std::string key;
+  // replace '{key*}' with '{key2} {key1} {key0}'
+  while (i < fmt.size()) {
+    if (fmt[i] == '{') {
+      key = "";
+      ++i;
+      for (; i < fmt.size(); ++i) {
+        if (fmt[i] == '}') {
+          break;
+        }
+        key += fmt[i];
+      }
+      ++i;
+      if (key.length() && key.back() == '*') {
+        const auto keybase = key.substr(0, key.length() - 1);
+        for (size_t d = dim; d > 0;) {
+          --d;
+          res += '{' + keybase + std::to_string(d) + '}';
+          if (d > 0) {
+            res += ' ';
+          }
+        }
+      } else {
+        res += '{' + key + '}';
+      }
+    } else {
+      res.push_back(fmt[i]);
+      ++i;
+    }
+  }
+  return res;
 }
 
 std::string Substitute(
@@ -335,7 +367,8 @@ std::string Substitute(
         key += fmt[i];
       }
       ++i;
-      fassert(map.count(key), "Key not found: " + key) res += map.at(key);
+      fassert(map.count(key), "Key not found: " + key);
+      res += map.at(key);
     } else {
       res.push_back(fmt[i]);
       ++i;
@@ -450,36 +483,29 @@ auto Raw<M>::ReadXmf(std::istream& buf) -> Meta {
   auto conv = [&map, &get](std::string key, auto& value) {
     std::stringstream(get(key)) >> value;
   };
+  auto convvect = [&conv](std::string key, auto& value) {
+    for (size_t d = 0; d < dim; ++d) {
+      conv(key + std::to_string(d), value[d]);
+    }
+  };
 
   Meta res;
   conv("name", res.name);
   conv("binpath", res.binpath);
 
-  conv("dim0", res.dimensions[0]);
-  conv("dim1", res.dimensions[1]);
-  conv("dim2", res.dimensions[2]);
+  int dim;
+  conv("dim", dim);
+  fassert_equal(dim, M::dim);
 
-  conv("start0", res.start[0]);
-  conv("start1", res.start[1]);
-  conv("start2", res.start[2]);
-
-  conv("stride0", res.stride[0]);
-  conv("stride1", res.stride[1]);
-  conv("stride2", res.stride[2]);
-
-  conv("count0", res.count[0]);
-  conv("count1", res.count[1]);
-  conv("count2", res.count[2]);
+  convvect("dim", res.dimensions);
+  convvect("start", res.start);
+  convvect("stride", res.stride);
+  convvect("count", res.count);
 
   conv("seek", res.seek);
 
-  conv("spacing0", res.spacing[0]);
-  conv("spacing1", res.spacing[1]);
-  conv("spacing2", res.spacing[2]);
-
-  conv("origin0", res.origin[0]);
-  conv("origin1", res.origin[1]);
-  conv("origin2", res.origin[2]);
+  convvect("spacing", res.spacing);
+  convvect("origin", res.origin);
 
   res.type = StringToType(get("type"));
   int precision;
@@ -518,44 +544,38 @@ void Raw<M>::WriteXmf(std::ostream& buf, const Meta& meta) {
     s << value;
     map[key] = s.str();
   };
+  auto convvect = [&conv](std::string key, const auto& value) {
+    for (size_t d = 0; d < dim; ++d) {
+      conv(key + std::to_string(d), value[d]);
+    }
+  };
 
   conv("name", meta.name);
   conv("binpath", meta.binpath);
+  conv("dim", M::dim);
 
-  conv("dim0", meta.dimensions[0]);
-  conv("dim1", meta.dimensions[1]);
-  conv("dim2", meta.dimensions[2]);
-
-  conv("start0", meta.start[0]);
-  conv("start1", meta.start[1]);
-  conv("start2", meta.start[2]);
-
-  conv("stride0", meta.stride[0]);
-  conv("stride1", meta.stride[1]);
-  conv("stride2", meta.stride[2]);
-
-  conv("nodes0", meta.count[0] + 1);
-  conv("nodes1", meta.count[1] + 1);
-  conv("nodes2", meta.count[2] + 1);
-  conv("count0", meta.count[0]);
-  conv("count1", meta.count[1]);
-  conv("count2", meta.count[2]);
-  conv("countd0", meta.count[0]);
-  conv("countd1", meta.count[1]);
-  conv("countd2", meta.count[2]);
+  convvect("dim", meta.dimensions);
+  convvect("start", meta.start);
+  convvect("stride", meta.stride);
+  convvect("nodes", meta.count + MIdx(1));
+  convvect("count", meta.count);
+  convvect("countd", meta.count);
 
   conv("seek", meta.seek);
 
-  conv("spacing0", meta.spacing[0]);
-  conv("spacing1", meta.spacing[1]);
-  conv("spacing2", meta.spacing[2]);
-
-  conv("origin0", meta.origin[0]);
-  conv("origin1", meta.origin[1]);
-  conv("origin2", meta.origin[2]);
+  convvect("spacing", meta.spacing);
+  convvect("origin", meta.origin);
 
   conv("type", TypeToString(meta.type));
   conv("precision", GetPrecision(meta.type));
+
+  const std::string geomtypes[] = {
+      "ORIGIN_DX",
+      "ORIGIN_DXDY",
+      "ORIGIN_DXDYDZ",
+      "ORIGIN_DXDYDZDW",
+  };
+  conv("geomtype", geomtypes[dim - 1]);
 
   buf << Substitute(GetXmfTemplate(), map);
 }

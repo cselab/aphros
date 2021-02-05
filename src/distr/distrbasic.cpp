@@ -17,6 +17,8 @@
 std::string GetDefaultConf() {
 #if USEFLAG(BACKEND_CUBISM)
   const std::string backend = "cubismnc";
+#elif USEFLAG(BACKEND_NATIVE)
+  const std::string backend = "native";
 #else
   const std::string backend = "local";
 #endif
@@ -24,14 +26,17 @@ std::string GetDefaultConf() {
 set int px 1
 set int py 1
 set int pz 1
+set int pw 1
 
 set int bx 1
 set int by 1
 set int bz 1
+set int bw 1
 
 set int bsx 16
 set int bsy 16
 set int bsz 16
+set int bsw 16
 
 set int CHECKNAN 1
 set int dim 3
@@ -62,6 +67,7 @@ set string hypre_gen_solver gmres
 set int loc_periodic_x 1
 set int loc_periodic_y 1
 set int loc_periodic_z 1
+set int loc_periodic_w 1
 set int loc_maxcomm 16
 
 set int verbose 0

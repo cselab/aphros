@@ -11,15 +11,15 @@
 
 namespace dump {
 
-using M = MeshStructured<double, 3>;
-using Scal = typename M::Scal;
-using Vect = typename M::Vect;
-using Expr = typename M::Expr;
-template class Raw<M>;
+#define XX(M)                                                           \
+  template class Raw<M>;                                                \
+  template void Raw<M>::Read(                                           \
+      FieldCell<typename M::Scal>&, const Meta& meta, std::string, M&); \
+  template void Raw<M>::Write(                                          \
+      const FieldCell<typename M::Scal>&, const Meta& meta, std::string, M&);
 
-template void Raw<M>::Read(FieldCell<Scal>&, const Meta& meta, std::string, M&);
-
-template void Raw<M>::Write(
-    const FieldCell<Scal>&, const Meta& meta, std::string, M&);
+#define COMMA ,
+#define X(dim) XX(MeshCartesian<double COMMA dim>)
+MULTIDIMX
 
 } // namespace dump
