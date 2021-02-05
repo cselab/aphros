@@ -14,7 +14,7 @@ meta.spacing=(0.01,0.02,0.03)
 <!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
 <Xdmf Version="2.0">
  <Domain>
-   <Grid GridType="Uniform">
+   <Grid Name="mesh" GridType="Uniform">
      <Topology TopologyType="3DCORECTMesh" Dimensions="626 513 513"/>
      <Geometry GeometryType="ORIGIN_DXDYDZ">
        <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
