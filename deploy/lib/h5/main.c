@@ -145,7 +145,7 @@ int h5_xmf(
       "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n"
       "<Xdmf Version=\"2.0\">\n"
       " <Domain>\n"
-      "   <Grid GridType=\"Uniform\">\n"
+      "   <Grid Name=\"mesh\" GridType=\"Uniform\">\n"
       "     <Topology TopologyType=\"3DCORECTMesh\" Dimensions=\"%d %d %d\"/>\n"
       "     <Geometry GeometryType=\"ORIGIN_DXDYDZ\">\n"
       "       <DataItem Name=\"Origin\" Dimensions=\"3\" NumberType=\"Float\" "
