@@ -290,7 +290,7 @@ std::string Raw<M>::GetXmfTemplate() {
 <!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
 <Xdmf Version="2.0">
  <Domain>
-   <Grid GridType="Uniform">
+   <Grid Name="mesh" GridType="Uniform">
      <Topology TopologyType="3DCORECTMesh" Dimensions="{nodes2} {nodes1} {nodes0}"/>
      <Geometry GeometryType="ORIGIN_DXDYDZ">
        <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">

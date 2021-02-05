@@ -269,7 +269,7 @@ void Hdf<M>::WriteXmf(
   f << "<Xdmf Version='2.0'>\n";
 
   f << " <Domain>\n";
-  f << "   <Grid GridType='Uniform'>\n";
+  f << "   <Grid Name='mesh' GridType='Uniform'>\n";
   f << "     <Topology TopologyType='3DCORECTMesh' Dimensions='";
   f << dims[2] + 1 << " " << dims[1] + 1 << " " << dims[0] + 1 << "'/>\n\n";
 
