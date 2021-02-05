@@ -39,7 +39,7 @@ struct CommManager {
   // blocks: blocks owned by current rank
   static Tasks GetTasks(
       const std::vector<Block>& blocks, std::function<int(MIdx)> cell_to_rank,
-      MIdx globalsize, std::array<bool, dim> is_periodic,
+      MIdx globalsize, generic::Vect<bool, dim> is_periodic,
       const MpiWrapper& mpi);
 
   struct Imp;

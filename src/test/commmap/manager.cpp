@@ -17,7 +17,7 @@ int Run(const Vars& args, const MpiWrapper& mpi) {
   using MIdx = generic::MIdx<dim>;
   using Dir = GDir<dim>;
   MIdx meshsize;
-  std::array<bool, dim> is_periodic;
+  generic::Vect<bool, dim> is_periodic;
   for (size_t i = 0; i < dim; ++i) {
     meshsize[i] = args.Int[std::string() + 'n' + Dir(i).letter()];
     is_periodic[i] = args.Int[std::string("per") + Dir(i).letter()];

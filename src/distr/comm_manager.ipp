@@ -36,7 +36,7 @@
 template <size_t dim_>
 struct CommManager<dim_>::Imp {
   static bool IsValid(
-      MIdx w, MIdx globalsize, std::array<bool, dim> is_periodic) {
+      MIdx w, MIdx globalsize, generic::Vect<bool, dim> is_periodic) {
     for (size_t i = 0; i < dim; ++i) {
       if (!is_periodic[i] && (w[i] < 0 || w[i] >= globalsize[i])) {
         return false;
@@ -50,7 +50,7 @@ struct CommManager<dim_>::Imp {
   static std::map<int, std::vector<LocalCell>> GetRecvCells(
       const std::vector<Block>& blocks, std::function<int(MIdx)> cell_to_rank,
       int halos, bool full, MIdx globalsize,
-      std::array<bool, dim> is_periodic) {
+      generic::Vect<bool, dim> is_periodic) {
     std::map<int, std::vector<LocalCell>> res;
 
     auto nnz = [](MIdx dw) {
@@ -174,8 +174,8 @@ struct CommManager<dim_>::Imp {
 template <size_t dim_>
 auto CommManager<dim_>::GetTasks(
     const std::vector<Block>& blocks, std::function<int(MIdx)> cell_to_rank,
-    MIdx globalsize, std::array<bool, dim> is_periodic, const MpiWrapper& mpi)
-    -> Tasks {
+    MIdx globalsize, generic::Vect<bool, dim> is_periodic,
+    const MpiWrapper& mpi) -> Tasks {
   Tasks res;
   res.full_two.recv =
       Imp::GetRecvCells(blocks, cell_to_rank, 2, true, globalsize, is_periodic);

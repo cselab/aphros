@@ -19,18 +19,17 @@
 // Format:
 // <Nx> <Ny> <Nz>
 // <data:x=0,y=0,z=0> <data:x=1,y=0,z=0> ...
-template <class Scal>
+template <class Scal, size_t dim>
 void Dump(
-    const FieldCell<Scal>& u, const GIndex<IdxCell, 3>& ndc,
-    const GBlock<IdxCell, 3>& bc, std::string op) {
+    const FieldCell<Scal>& u, const GIndex<IdxCell, dim>& ndc,
+    const GBlock<IdxCell, dim>& bc, std::string op) {
   std::ofstream o;
   o.open(op);
   o.precision(20);
 
-  auto s = bc.GetSize();
-  o << s[0] << " " << s[1] << " " << s[2] << std::endl;
+  o << bc.GetSize().to_string() << std::endl;
 
-  for (auto c : GRangeIn<IdxCell, 3>(ndc, bc)) {
+  for (auto c : GRangeIn<IdxCell, dim>(ndc, bc)) {
     o << u[c] << " ";
   }
 

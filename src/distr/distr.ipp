@@ -29,6 +29,15 @@ void DistrMesh<M>::MakeKernels(const std::vector<BlockInfoProxy>& proxies) {
   }
 }
 
+template <size_t dim, class Map>
+auto GetVect(const Map& map, std::string prefix) {
+  generic::Vect<typename Map::Value, dim> res;
+  for (size_t d = 0; d < dim; ++d) {
+    res[d] = map[prefix + GDir<dim>(d).letter()];
+  }
+  return res;
+}
+
 template <class M>
 DistrMesh<M>::DistrMesh(
     MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var0)
@@ -37,9 +46,9 @@ DistrMesh<M>::DistrMesh(
     , var_mutable(var0)
     , kernelfactory_(kf)
     , halos_(var.Int["hl"])
-    , blocksize_{var.Int["bsx"], var.Int["bsy"], var.Int["bsz"]}
-    , nprocs_{var.Int["px"], var.Int["py"], var.Int["pz"]}
-    , nblocks_{var.Int["bx"], var.Int["by"], var.Int["bz"]}
+    , blocksize_(GetVect<dim>(var.Int, "bs"))
+    , nprocs_(GetVect<dim>(var.Int, "p"))
+    , nblocks_(GetVect<dim>(var.Int, "b"))
     , extent_(var.Double["extent"]) {}
 
 template <class M>

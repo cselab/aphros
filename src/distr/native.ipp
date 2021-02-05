@@ -104,7 +104,7 @@ Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
     auto cell_to_rank = [&procs, this](MIdx w) -> int {
       return procs.GetIdx(w / blocksize_ / nblocks_);
     };
-    const std::array<bool, dim> is_periodic{true, true, true};
+    const generic::Vect<bool, dim> is_periodic(true);
     tasks_ = CommManager<dim>::GetTasks(
         cm_blocks, cell_to_rank, globalsize, is_periodic, mpi);
   }

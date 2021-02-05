@@ -8,6 +8,7 @@
 #include <istream>
 #include <limits>
 #include <ostream>
+#include <string>
 #include <vector>
 
 template <class T>
@@ -105,6 +106,12 @@ class Vect {
   }
   const Scal& operator[](size_t i) const {
     return data_[i];
+  }
+  const Scal* data() const {
+    return data_.data();
+  }
+  Scal* data() {
+    return data_.data();
   }
   Scal& back() {
     return data_.back();
@@ -407,6 +414,16 @@ class Vect {
     }
     out << ")";
     return out;
+  }
+  std::string to_string() const {
+    std::string res;
+    for (size_t i = 0; i < dim; ++i) {
+      if (i != 0) {
+        res += ' ';
+      }
+      res += std::to_string(data_[i]);
+    }
+    return res;
   }
 
   friend std::istream& operator>>(std::istream& in, Vect& v) {

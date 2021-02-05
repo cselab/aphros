@@ -3,6 +3,8 @@
 
 #include <sstream>
 
+#include "util/macros.h"
+
 #include "geom/mesh.h"
 #include "kernel/kernelmesh.h"
 #include "native.ipp"
@@ -19,8 +21,6 @@ class ModuleDistrNative : public ModuleDistr<M> {
   }
 };
 
-using M = MeshStructured<double, 3>;
+#define X(dim) RegisterModule<ModuleDistrNative<MeshStructured<double, dim>>>(),
 
-bool kRegDistrNative[] = {
-    RegisterModule<ModuleDistrNative<M>>(),
-};
+bool kRegDistrNative[] = {MULTIDIMX};

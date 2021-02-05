@@ -6,6 +6,8 @@
 #include <vector>
 
 #include "format.h"
+#include "geom/dir.h"
+#include "geom/range.h"
 #include "logger.h"
 
 #include "distr.h"
@@ -107,18 +109,22 @@ Subdomains<MIdx>::Subdomains(MIdx mesh_size, MIdx block_size, size_t nproc) {
 
 template <class MIdx>
 std::string Subdomains<MIdx>::GetConfig() const {
+  const size_t dim = MIdx::dim;
   std::string res;
-  res += "set int px " + std::to_string(info.procs[0]);
-  res += "\nset int py " + std::to_string(info.procs[1]);
-  res += "\nset int pz " + std::to_string(info.procs[2]);
 
-  res += "\n\nset int bx " + std::to_string(info.blocks[0]);
-  res += "\nset int by " + std::to_string(info.blocks[1]);
-  res += "\nset int bz " + std::to_string(info.blocks[2]);
-
-  res += "\n\nset int bsx " + std::to_string(info.block_size[0]);
-  res += "\nset int bsy " + std::to_string(info.block_size[1]);
-  res += "\nset int bsz " + std::to_string(info.block_size[2]);
-  res += "\n";
+  auto dirs = generic::Range<size_t>(dim);
+  auto cmd = [&](std::string prefix, size_t d, int value) {
+    return "set int " + prefix + GDir<dim>(d).letter() + ' ' +
+           std::to_string(value) + '\n';
+  };
+  for (auto d : dirs) {
+    res += cmd("p", d, info.procs[d]);
+  }
+  for (auto d : dirs) {
+    res += cmd("b", d, info.blocks[d]);
+  }
+  for (auto d : dirs) {
+    res += cmd("bs", d, info.block_size[d]);
+  }
   return res;
 }

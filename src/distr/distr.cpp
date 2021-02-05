@@ -3,4 +3,5 @@
 
 #include "distr.ipp"
 
-template class DistrMesh<MeshStructured<double, 3>>;
+#define X(dim) template class DistrMesh<MeshStructured<double, dim>>;
+MULTIDIMX

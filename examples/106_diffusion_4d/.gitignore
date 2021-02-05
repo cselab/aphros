@@ -1,3 +1,4 @@
 *.csv
 *.o
 *.out
+out.conf

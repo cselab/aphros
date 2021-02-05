@@ -4,8 +4,10 @@
 #include <cassert>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <string>
 
+#include <distr/distrbasic.h>
 #include <dump/dump.h>
 #include <geom/mesh.h>
 #include <parse/argparse.h>
@@ -20,21 +22,90 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
-void Run(M& m, Vars& var) {
-  FieldCell<Scal> fcu(m); // field
-  MapEmbed<BCond<Scal>> mebc; // face conditions
+void DumpCsv(std::string path, FieldCell<Scal>& fcu, M& m, bool verbose=false) {
+  auto sem = m.GetSem();
+  struct {
+    std::vector<std::string> csv_names;
+    std::vector<std::vector<Scal>> csv_data;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem()) {
+    t.csv_names.clear();
+    t.csv_data.clear();
+    for (auto d : m.dirs) {
+      std::vector<Scal> data;
+      for (auto c : m.CellsM()) {
+        data.push_back(c.center[d]);
+      }
+      const std::string name = std::string() + M::Dir(d).letter();
+      t.csv_names.push_back(name);
+      t.csv_data.push_back(data);
+    }
 
-  const Scal dt = var.Double["dt"];
-
-  // initial
-  fcu.Reinit(m, 0);
-  for (auto c : m.AllCellsM()) {
-    const Vect xc = m.GetGlobalLength() * 0.5;
-    fcu[c] = xc.sqrdist(c.center) < 0.2 ? 1 : 0;
+    {
+      std::vector<Scal> data;
+      for (auto c : m.Cells()) {
+        data.push_back(fcu[c]);
+      }
+      const std::string name = "u";
+      t.csv_names.push_back(name);
+      t.csv_data.push_back(data);
+    }
+    m.Reduce(&t.csv_data, Reduction::concat);
   }
+  if (sem()) {
+    if (m.IsRoot()) {
+      std::vector<std::pair<std::string, std::vector<Scal>>> csv;
+      for (size_t i = 0; i < t.csv_names.size(); ++i) {
+        csv.emplace_back(t.csv_names[i], t.csv_data[i]);
+      }
+      if (verbose) {
+        std::cout << path << std::endl;
+      }
+      DumpCsv<Scal>(csv, path);
+    }
+  }
+}
 
-  for (int step = 0; step < var.Int["nsteps"]; ++step) {
-    const auto ffg = UEmbed<M>::Gradient(fcu, mebc, m);
+void Run(M& m, Vars& var) {
+  using Scal = typename M::Scal;
+  auto sem = m.GetSem();
+  struct {
+    FieldCell<Scal> fcu; // field
+    MapEmbed<BCond<Scal>> mebc; // face conditions
+    int step = 0;
+    Scal sum0;
+    Scal sum2;
+    Scal max;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem()) {
+    if (m.IsRoot()) {
+      std::ofstream out("out.conf");
+      Parser::PrintVars(var, out);
+    }
+  }
+  if (sem("initial")) {
+    t.fcu.Reinit(m, 0);
+    for (auto c : m.AllCellsM()) {
+      const Vect xc = m.GetGlobalLength() * 0.5;
+      t.fcu[c] = xc.sqrdist(c.center) < 0.2 ? 1 : 0;
+    }
+  }
+  sem.LoopBegin();
+  if (sem() && m.IsRoot()) {
+    if (t.step % var.Int["reportevery"] == 0) {
+      std::cout << util::Format(
+          "{}: sum0={:.3f} sum2={:.3f} max={:.3f}\n", t.step, t.sum0, t.sum2,
+          t.max);
+    }
+  }
+  if (sem.Nested() && t.step % var.Int["dumpevery"] == 0) {
+    DumpCsv(util::Format("u_{:04d}.csv", t.step), t.fcu, m, true);
+  }
+  if (sem("step")) {
+    const Scal dt = var.Double["dt"];
+    const auto ffg = UEmbed<M>::Gradient(t.fcu, t.mebc, m);
     FieldFace<Scal> ff_flux(m);
     for (auto f : m.FacesM()) {
       ff_flux[f] = ffg[f] * f.area;
@@ -45,46 +116,40 @@ void Run(M& m, Vars& var) {
       for (auto q : m.Nci(c)) {
         sum += ff_flux[c.face(q)] * c.outward_factor(q);
       }
-      fcu[c] += sum * dt / c.volume;
+      t.fcu[c] += sum * dt / c.volume;
     }
+    m.Comm(&t.fcu);
 
-    Scal sum0 = 0;
-    Scal sum2 = 0;
+    t.sum0 = 0;
+    t.sum2 = 0;
+    t.max = 0;
     for (auto c : m.CellsM()) {
       const Vect xc = m.GetGlobalLength() * 0.5;
-      sum0 += fcu[c] * c.volume;
-      sum2 += fcu[c] * xc.sqrdist(c.center) * c.volume;
+      t.sum0 += t.fcu[c] * c.volume;
+      t.sum2 += t.fcu[c] * xc.sqrdist(c.center) * c.volume;
+      t.max = std::max(t.max, t.fcu[c]);
     }
-    std::cout << util::Format("{}) sum0={:.3f} sum2={:.3f}\n", step, sum0, sum2)
-              << std::endl;
-
-    std::vector<std::pair<std::string, std::vector<Scal>>> data;
-    for (auto d : m.dirs) {
-      std::vector<Scal> field;
-      for (auto c : m.CellsM()) {
-        field.push_back(c.center[d]);
-      }
-      const std::string name = std::string() + M::Dir(d).letter();
-      data.emplace_back(name, field);
-    }
-
-    {
-      std::vector<Scal> field;
-      for (auto c : m.Cells()) {
-        field.push_back(fcu[c]);
-      }
-      const std::string name = "u";
-      data.emplace_back(name, field);
-    }
-
-    DumpCsv<Scal>(data, util::Format("u_{:04d}.csv", step));
+    m.Reduce(&t.sum0, Reduction::sum);
+    m.Reduce(&t.sum2, Reduction::sum);
+    m.Reduce(&t.max, Reduction::max);
+    ++t.step;
   }
+  if (sem()) {
+    if (t.step >= var.Int["nsteps"]) {
+      sem.LoopBreak();
+    }
+  }
+  sem.LoopEnd();
 }
 
 int main(int argc, const char** argv) {
-  ArgumentParser argparser("Diffusion solver in 4D");
+  MpiWrapper mpi(&argc, &argv);
+
+  ArgumentParser argparser("Diffusion solver in 4D", mpi.IsRoot());
   argparser.AddVariable<std::string>("config", "a.conf")
       .Help("Path to configuration file");
+  argparser.AddVariable<std::string>("--extra", "")
+      .Help("Extra configuration (commands 'set ... ')");
 
   auto args = argparser.ParseArgs(argc, argv);
   if (const int* p = args.Int.Find("EXIT")) {
@@ -93,12 +158,25 @@ int main(int argc, const char** argv) {
 
   Vars var;
   Parser parser(var);
-  parser.ParseFile(args.String["config"]);
+  const std::string confpath = args.String["config"];
+  std::ifstream fconf(confpath);
+  fassert(fconf.good(), "Can't open file '" + confpath + "'");
+  std::stringstream conf;
+  conf << fconf.rdbuf();
+  {
+    std::stringstream s(conf.str());
+    parser.ParseStream(s);
+  }
 
-  const Rect<Vect> dom(Vect(0), Vect(1));
-  const MIdx begin(0);
-  const MIdx size(var.Int["nx"], var.Int["ny"], var.Int["nz"], var.Int["nw"]);
-  const int halos = 2;
-  M m = InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);
-  Run(m, var);
+  const MIdx mesh_size(
+      var.Int["nx"], var.Int["ny"], var.Int["nz"], var.Int["nw"]);
+  const MIdx block_size(
+      var.Int["bsx"], var.Int["bsy"], var.Int["bsz"], var.Int["bsw"]);
+
+  Subdomains<MIdx> sub(mesh_size, block_size, mpi.GetCommSize());
+  conf << sub.GetConfig();
+
+  conf << args.String["extra"] << '\n';
+
+  return RunMpiBasicString<M>(mpi, Run, conf.str());
 }
