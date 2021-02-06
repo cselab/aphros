@@ -489,9 +489,8 @@ struct PartStrMeshM<M_>::Imp {
 
           for (size_t j = 0; j < dpx.size(); ++j) {
             const size_t i = idx[j];
-            Vect x = dpx[i];
-            o << x[0] << "," << x[1] << "," << x[2] << "," << dpc[i] << ","
-              << dpk[i] << "\n";
+            const Vect x = dpx[i];
+            o << x.to_string(",") << "," << dpc[i] << "," << dpk[i] << "\n";
           }
         }
       }

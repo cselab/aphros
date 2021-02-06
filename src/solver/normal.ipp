@@ -80,13 +80,13 @@ struct UNormal<M_>::Imp {
     // offset
     const size_t fx = 1;
     const size_t fy = nx;
-    const size_t fz = ny * nx;
+    const size_t fz = M::dim > 2 ? ny * nx : 0;
 
     // index range
     const MIdx wb = bc.GetBegin() - ic.GetBegin();
     const MIdx we = bc.GetEnd() - ic.GetBegin();
-    const size_t xb = wb[0], yb = wb[1], zb = wb[2];
-    const size_t xe = we[0], ye = we[1], ze = we[2];
+    const size_t xb = wb[0], yb = wb[1], zb = M::dim > 2 ? wb[2] : 0;
+    const size_t xe = we[0], ye = we[1], ze = M::dim > 2 ? we[2] : 1;
 
     fcn.Reinit(m);
 
@@ -132,9 +132,16 @@ struct UNormal<M_>::Imp {
     }
   }
 #if USEFLAG(AVX)
+  template <int dummy>
   static void CalcNormalYoungsAvx(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
-      FieldCell<Vect>& fcn) {
+      FieldCell<Vect>& fcn, generic::Vect<Scal, 2>*) {
+    CalcNormalYoungs1(m, fcu, fci, fcn);
+  }
+  template <int dummy>
+  static void CalcNormalYoungsAvx(
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
+      FieldCell<Vect>& fcn, generic::Vect<Scal, 3>*) {
     (void)fci;
     fcn.Reinit(m, Vect(0));
 
@@ -183,6 +190,11 @@ struct UNormal<M_>::Imp {
       util::Soa::Normalize1(vx, vy, vz);
       util::Soa::StoreAsAos(vx, vy, vz, (Scal*)(&fcn[c]));
     }
+  }
+  static void CalcNormalYoungsAvx(
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
+      FieldCell<Vect>& fcn) {
+    CalcNormalYoungsAvx<M::dim>(m, fcu, fci, fcn, (typename M::Vect*)(nullptr));
   }
 #endif
   // Computes normal and curvature from height functions.
@@ -393,7 +405,7 @@ struct UNormal<M_>::Imp {
   }
   static void GetNormal(
       const Scal* u, Vect& pn, size_t edim, bool force_overwrite,
-      const int s[3]) {
+      const int offset[3]) {
     Vect best_n(0);
     size_t best_dz = 0;
     for (size_t dz : {0, 1, 2}) {
@@ -403,12 +415,14 @@ struct UNormal<M_>::Imp {
       const size_t dx = (dz + 1) % dim;
       const size_t dy = (dz + 2) % dim;
 
-      auto hh = [&](int ss) { return u[ss - s[dz]] + u[ss] + u[ss + s[dz]]; };
+      auto hh = [&](int ss) { //
+        return u[ss - offset[dz]] + u[ss] + u[ss + offset[dz]];
+      };
 
       Vect n;
-      n[dx] = hh(s[dx]) - hh(-s[dx]);
-      n[dy] = hh(s[dy]) - hh(-s[dy]);
-      n[dz] = (u[s[dz]] - u[-s[dz]] > 0 ? 2 : -2);
+      n[dx] = hh(offset[dx]) - hh(-offset[dx]);
+      n[dy] = hh(offset[dy]) - hh(-offset[dy]);
+      n[dz] = (u[offset[dz]] - u[-offset[dz]] > 0 ? 2 : -2);
       n /= -n.norm1();
       if (std::abs(best_n[best_dz]) < std::abs(n[dz])) {
         best_n = n;
@@ -430,7 +444,7 @@ struct UNormal<M_>::Imp {
     const auto s = indexc.GetSize();
     const int nx = s[0];
     const int ny = s[1];
-    const int offset[] = {1, nx, ny * nx};
+    const int offset[] = {1, nx, (M::dim > 2 ? ny * nx : 0)};
 
     const MIdx wb = blockc_su.GetBegin() - indexc.GetBegin();
     const MIdx we = blockc_su.GetEnd() - indexc.GetBegin();
@@ -440,7 +454,7 @@ struct UNormal<M_>::Imp {
     const Scal* pu = fcu.data();
     Vect* pn = fcn.data();
     const bool* pi = fci.data();
-    for (int z = wb[2]; z < we[2]; ++z) {
+    for (int z = (M::dim > 2 ? wb[2] : 0); z < (M::dim > 2 ? we[2] : 1); ++z) {
       for (int y = wb[1]; y < we[1]; ++y) {
         for (int x = wb[0]; x < we[0]; ++x) {
           const int i = (z * ny + y) * nx + x;
@@ -462,13 +476,12 @@ struct UNormal<M_>::Imp {
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci, size_t edim,
       FieldCell<Vect>& fcn) {
     fcn.Reinit(m, Vect(GetNan<Scal>()));
-    FieldCell<char> fcd(m);
 #if USEFLAG(AVX)
     CalcNormalYoungsAvx(m, fcu, fci, fcn);
 #else
     CalcNormalYoungs1(m, fcu, fci, fcn);
 #endif
-    CalcNormalHeight1(m, fcu, fci, edim, false, fcn);
+    CalcNormalHeight1(m, fcu, fci, edim, true, fcn);
   }
 
   // u: volume fraction, array of size 3x3x3

@@ -34,6 +34,7 @@ class Reconst {
     return a * a;
   }
 
+  // Returns k-th root of equation `ax^3 + bx^2 + cx + d = 0`
   static Scal SolveCubic(Scal a, Scal b, Scal c, Scal d, int k) {
     Scal p = (3. * a * c - b * b) / (3. * a * a);
     p = std::min(p, 0.);
@@ -65,22 +66,6 @@ class Reconst {
     const Vect l = x1 - x0;
     Scal k = l.dot(x - x0) / l.sqrnorm();
     return x0 + l * Clip(k, 0, 1);
-  }
-
-  // GetLineU() helper
-  // assuming a < 0, 0 < nx < ny
-  // XXX: 2d specific
-  static Scal GetLineU0(Scal nx, Scal ny, Scal a) {
-    Scal a1 = 0.5 * (nx - ny);
-    if (a <= a1) {
-      if (nx == 0.) { // TODO revise
-        return 0.;
-      } else {
-        return sqr(a + 0.5 * (nx + ny)) / (2. * nx * ny);
-      }
-    } else {
-      return 0.5 + a / ny;
-    }
   }
 
   static void Sort(Vect2& v) {
@@ -139,18 +124,15 @@ class Reconst {
 
   // Volume fraction from plane constant in unit cell with ordered normal.
   // nx,ny: normal, 0 <= nx <= ny
-  // a: plane constant, -0.5*n.sum() <= a <= 0
+  // a: plane constant, -0.5*(nx + ny) <= a <= 0
   static Scal GetLineU0(Vect2 n, Scal a) {
     const Scal nx = n[0];
     const Scal ny = n[1];
-    Scal f = a + 0.5 * (nx + ny);
-    if (f <= 0) {
-      return 0;
-    }
+    const Scal f = a + 0.5 * (nx + ny);
     if (nx >= f) {
       return sqr(f) / (2 * nx * ny);
     }
-    return (2 * f - nx) / (2 * ny);
+    return a / ny + 0.5;
   }
   // Volume fraction from plane constant in unit cell with ordered normal.
   // nx,ny,nz: normal, 0 <= nx <= ny <= nz
@@ -205,9 +187,8 @@ class Reconst {
 
     if (a < 0) {
       return GetLineU0(n, a);
-    } else {
-      return 1 - GetLineU0(n, -a);
     }
+    return 1 - GetLineU0(n, -a);
   }
 
   // Volume fraction from line constant in rectangular cell.
@@ -259,20 +240,16 @@ class Reconst {
 
     return f - 0.5 * (nx + ny + nz);
   }
-
   // GetLineA() helper
   // assuming 0 < u < 0.5, 0 < nx < ny
   static Scal GetLineA0(Vect2 n, Scal u) {
     const Scal nx = n[0];
     const Scal ny = n[1];
-    const Scal u1 = 0.5 * nx / ny;
-    if (u <= u1) {
-      return -0.5 * (nx + ny) + std::sqrt(2 * nx * ny * u);
-    } else {
-      return ny * (u - 0.5);
+    if (2 * ny * u < nx) {
+      return std::sqrt(2 * nx * ny * u) - 0.5 * (nx + ny);
     }
+    return ny * u - 0.5 * ny;
   }
-
   // GetLineA() helper
   // assuming 0 < u < 0.5, 0 < nx < ny < nz < nw
   static Scal GetLineA0(Vect4 n, Scal u) {
@@ -280,7 +257,6 @@ class Reconst {
     (void)u;
     return 0; // XXX not implemented
   }
-
   // Plane constant by volume fraction in unit cell.
   // n : normal
   // u: volume fraction
@@ -530,9 +506,7 @@ class Reconst {
     // f <= 0.5 * n.sum()
     // nx + ny >= 2 * f
 
-    auto P = [&xx, &b](Scal x0, Scal x1) {
-      xx.push_back(b + Vect2(x0, x1));
-    };
+    auto P = [&xx, &b](Scal x0, Scal x1) { xx.push_back(b + Vect2(x0, x1)); };
 
     if (f <= 0) {
       P(0, 0);

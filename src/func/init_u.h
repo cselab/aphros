@@ -115,10 +115,11 @@ Scal GetFaceAreaFraction(std::array<Scal, 4> ee) {
   if (nx > ny) {
     std::swap(nx, ny);
   }
+  using Vect2 = generic::Vect<Scal, 2>;
   if (a < 0) {
-    return R::GetLineU0(nx, ny, a);
+    return R::GetLineU0(Vect2{nx, ny}, a);
   }
-  return 1 - R::GetLineU0(nx, ny, -a);
+  return 1 - R::GetLineU0(Vect2{nx, ny}, -a);
 }
 
 // Copmutes face area for which ls > 0.
@@ -240,7 +241,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
     return [xc, rmin, rmax, dim](FieldCell<Scal>& fc, const M& m) {
       for (auto c : m.Cells()) {
         auto dx = m.GetCenter(c) - xc;
-        if (dim == 2) {
+        if (M::dim > 2 && dim == 2) {
           dx[2] = 0;
         }
         const Scal r = dx.norm();
@@ -281,7 +282,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
       // cylinder along z if dim=2
       auto f = [dim, n, a](const Vect& x) -> Scal {
         Vect xd = x;
-        if (dim == 2) {
+        if (M::dim > 2 && dim == 2) {
           xd[2] = 0;
         }
         const Scal phi = std::atan2(xd[1], xd[0]);
@@ -430,9 +431,15 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
     }
 
     return [k](FieldCell<Scal>& fc, const M& m) {
+      auto sin = [](Vect x){
+        Vect res;
+        for (auto d : M::dirs) {
+          res[d] = std::sin(x[d]);
+        }
+        return res;
+      };
       for (auto c : m.Cells()) {
-        Vect z = m.GetCenter(c) * k;
-        fc[c] = std::sin(z[0]) * std::sin(z[1]) * std::sin(z[2]);
+        fc[c] = sin(m.GetCenter(c) * k).prod();
       }
     };
   } else if (v == "sinc") {

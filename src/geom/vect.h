@@ -415,11 +415,11 @@ class Vect {
     out << ")";
     return out;
   }
-  std::string to_string() const {
+  std::string to_string(std::string sep = " ") const {
     std::string res;
     for (size_t i = 0; i < dim; ++i) {
       if (i != 0) {
-        res += ' ';
+        res += sep;
       }
       res += std::to_string(data_[i]);
     }
