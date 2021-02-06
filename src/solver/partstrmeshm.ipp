@@ -489,8 +489,10 @@ struct PartStrMeshM<M_>::Imp {
 
           for (size_t j = 0; j < dpx.size(); ++j) {
             const size_t i = idx[j];
-            const Vect x = dpx[i];
-            o << x.to_string(",") << "," << dpc[i] << "," << dpk[i] << "\n";
+            for (auto d : M::dirs) {
+              o << dpx[i][d] << ',';
+            }
+            o << dpc[i] << "," << dpk[i] << "\n";
           }
         }
       }

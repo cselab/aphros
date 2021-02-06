@@ -80,7 +80,8 @@ class Test(aphros.TestBase):
                 self.printlog("error exceeded for '{}', {:} >= {:}".format(
                     out, error, eps))
                 r = False
-            self.printlog("pass for '{}', {:} < {:}".format(f, error, eps))
+            else:
+                self.printlog("pass for '{}', {:} < {:}".format(f, error, eps))
         return r
 
     def plot(self, datadir, output_files):
