@@ -40,6 +40,8 @@ int RunMpi0(
     parser.AddSwitch({"--version"}).Help("Print version");
     parser.AddVariable<std::string>("config", "a.conf")
         .Help("Path to configuration file");
+    parser.AddSwitch("--logo").Help("Print logo");
+    parser.AddSwitch("--exit").Help("Exit before reading the configuration");
     return parser.ParseArgs(argc, argv);
   }();
   if (const int* p = args.Int.Find("EXIT")) {
@@ -51,6 +53,14 @@ int RunMpi0(
   if (args.Int["version"] && isroot) {
     std::cerr << "aphros " << GetGitRev() << "\nmsg: " << GetGitMsg()
               << "\ndiff: " << GetGitDiff() << '\n';
+  }
+
+  if (args.Int["logo"] && isroot) {
+    std::cerr << GetLogo();
+  }
+
+  if (args.Int["exit"]) {
+    return 0;
   }
 
   if (verbose && isroot) {
