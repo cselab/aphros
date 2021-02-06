@@ -14,8 +14,12 @@ class Test(aphros.TestBase):
                                  '-b',
                                  type=int,
                                  default=32,
-                                 choices=[8, 16, 32],
                                  help="Block size")
+        self.parser.add_argument('--mesh',
+                                 '-m',
+                                 type=int,
+                                 default=32,
+                                 help="Mesh size")
         self.parser.add_argument('--comm',
                                  '-c',
                                  default='cubismnc',
@@ -28,19 +32,18 @@ class Test(aphros.TestBase):
                                  '-n',
                                  type=int,
                                  default=1,
-                                 choices=[1, 2],
                                  help="Number of processors")
 
     def run(self):
-        b = self.args.block
-        m = [32, 32, 1]
-        bs = [self.args.block, self.args.block, 1]
-        nproc = 1 if b == 32 or self.args.comm == "local" else self.args.nproc
+        args = self.args
+        m = [args.mesh, args.mesh, 1]
+        bs = [args.block, args.block, 1]
+        nproc = args.nproc
 
         conf = "par.conf"
         with open(conf, 'w') as f:
-            f.write("set string backend {}\n".format(self.args.comm))
-            if self.args.vofm:
+            f.write("set string backend {}\n".format(args.comm))
+            if args.vofm:
                 f.write("set string advection_solver vofm\n")
 
         with open("np", 'w') as f:
@@ -65,11 +68,13 @@ class Test(aphros.TestBase):
     def check(self, outdir, refdir, output_files):
         res = True
         for f in output_files:
+
             def cmpdat(fa, fb):
                 ua = aphros.ReadPlain(fa)
                 ub = aphros.ReadPlain(fb)
                 error = np.nanmax(abs(ua - ub))
                 return error
+
             def cmpcsv(fa, fb):
                 ua = np.genfromtxt(fa, delimiter=',', skip_header=1)
                 ub = np.genfromtxt(fb, delimiter=',', skip_header=1)
@@ -100,5 +105,6 @@ class Test(aphros.TestBase):
     def clean(self, outdir, output_files):
         self.runcmd("make -f $(ap.makesim) cleanall")
         super().clean(outdir, output_files)
+
 
 Test().main()
