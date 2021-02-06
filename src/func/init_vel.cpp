@@ -14,18 +14,20 @@ namespace init_velocity {
 template <class M>
 class TaylorGreen : public ModuleInitVelocity<M> {
  public:
+  using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using Vect3 = generic::Vect<Scal, 3>;
   TaylorGreen() : ModuleInitVelocity<M>("taylor-green") {}
   void operator()(FieldCell<Vect>& fcv, const Vars& var, const M& m) override {
     for (auto i : m.AllCells()) {
       auto& v = fcv[i];
-      auto x = m.GetCenter(i);
-      if (var.Int["dim"] == 2) {
-        x[2] = 0.;
+      Vect3 x(m.GetCenter(i));
+      if (var.Int["dim"] == 2 && M::dim > 2) {
+        x[2] = 0;
       }
+      v = Vect(0);
       v[0] = std::sin(x[0]) * std::cos(x[1]) * std::cos(x[2]);
       v[1] = -std::cos(x[0]) * std::sin(x[1]) * std::cos(x[2]);
-      v[2] = 0.;
     }
   }
 };
@@ -44,9 +46,9 @@ class KelvinHelmholtz : public ModuleInitVelocity<M> {
     for (auto i : m.AllCells()) {
       Vect& v = fcv[i];
       const Vect x = m.GetCenter(i);
+      v = Vect(0);
       v[0] = (x - center).abs() < radius ? 0.5 : -0.5;
       v[1] = std::sin(x[0] * 2 * M_PI / wavelength) * amplitude;
-      v[2] = 0.;
     }
   }
 };
@@ -75,18 +77,19 @@ class Couette : public ModuleInitVelocity<M> {
     const Scal vy1 = var.Double["vx_y1"];
     for (auto c : m.AllCells()) {
       const Vect x = m.GetCenter(c);
-      fcv[c] = Vect(vy0 + (vy1 - vy0) * x[1], 0., 0.);
+      fcv[c] = Vect(0);
+      fcv[c][0] = vy0 + (vy1 - vy0) * x[1];
     }
   }
 };
 
-using M = MeshStructured<double, 3>;
+#define XX(M)                                                             \
+  RegisterModule<TaylorGreen<M>>(), RegisterModule<KelvinHelmholtz<M>>(), \
+      RegisterModule<Uniform<M>>(), RegisterModule<Couette<M>>(),
 
-bool kReg[] = {
-    RegisterModule<TaylorGreen<M>>(),
-    RegisterModule<KelvinHelmholtz<M>>(),
-    RegisterModule<Uniform<M>>(),
-    RegisterModule<Couette<M>>(),
-};
+#define COMMA ,
+#define X(dim) XX(MeshCartesian<double COMMA dim>)
+
+bool kReg[] = {MULTIDIMX};
 
 } // namespace init_velocity

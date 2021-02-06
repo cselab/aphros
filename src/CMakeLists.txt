@@ -262,7 +262,7 @@ set(EXE "mfer")
 add_executable(${EXE} main.cpp)
 install(TARGETS ${EXE} DESTINATION bin)
 set_target_properties(${EXE} PROPERTIES PREFIX "ap.")
-target_link_libraries(${EXE} aphros)
+target_link_libraries(${EXE} aphros use_dims)
 
 # test
 add_subdirectory(test)

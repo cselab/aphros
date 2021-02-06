@@ -60,7 +60,6 @@ struct GPar {
   std::function<Vect(Vect, Scal)> fv; // velocity
 
   using K = Advection<M>;
-  DistrSolver<M, K>* ds;
 };
 
 template <class M_>
@@ -128,10 +127,10 @@ void Advection<M>::Init(Sem& sem) {
   if (sem("init-create")) {
     // flux
     ff_flux_.Reinit(m, 0);
-    int vdim = var.Int["dim"];
+    int edim = var.Int["dim"];
     for (auto f : m.AllFaces()) {
       Vect x = m.GetCenter(f);
-      if (vdim == 2) {
+      if (edim == 2 && M::dim > 2) {
         x[2] = 0.;
       }
       ff_flux_[f] = par_.fv(x, 0.).dot(m.GetSurface(f));
@@ -295,7 +294,6 @@ void Run(MPI_Comm comm, Vars& var) {
   par.fv = CreateInitVel<Vect>(var);
 
   DistrSolver<M, K> ds(comm, var, par);
-  par.ds = &ds;
   ds.Run();
 }
 

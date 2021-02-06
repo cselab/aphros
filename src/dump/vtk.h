@@ -40,11 +40,11 @@ T SwapEnd(T a) {
 // cm: comment
 // poly: true: polygons, false: lines
 // bin: true: binary, false: ascii
-template <class Vect, class Scal = typename Vect::value_type>
+template <class Vect>
 void WriteVtkPoly(
     const std::string& fn, const std::vector<Vect>& xx,
     const std::vector<Vect>& nn, const std::vector<std::vector<size_t>>& pp,
-    const std::vector<const std::vector<Scal>*>& dd,
+    const std::vector<const std::vector<typename Vect::Scal>*>& dd,
     const std::vector<std::string>& dn, const std::string& cm, bool poly,
     bool bin) {
   std::ofstream f(fn.c_str(), std::ios::binary);
@@ -73,12 +73,12 @@ void WriteVtkPoly(
     for (auto& x : xx) {
       WFloat(x[0]);
       WFloat(x[1]);
-      WFloat(x[2]);
+      WFloat(Vect::dim > 2 ? x[2] : 0);
     }
     f << "\n";
   } else {
     for (auto& x : xx) {
-      f << x[0] << " " << x[1] << " " << x[2] << "\n";
+      f << x[0] << " " << x[1] << " " << (Vect::dim > 2 ? x[2] : 0) << "\n";
     }
   }
 
@@ -142,11 +142,11 @@ void WriteVtkPoly(
       for (auto& n : nn) {
         WFloat(n[0]);
         WFloat(n[1]);
-        WFloat(n[2]);
+        WFloat(Vect::dim ? n[2] : 0);
       }
     } else {
       for (auto& n : nn) {
-        f << n[0] << " " << n[1] << " " << n[2] << "\n";
+        f << n[0] << " " << n[1] << " " << (Vect::dim > 2 ? n[2] : 0) << "\n";
       }
     }
   }
@@ -289,18 +289,18 @@ void ConvertMerge(
 // poly: true: polygons, false: lines
 // binary: use binary format
 // merge: combine close points
-template <class Vect, class Scal = typename Vect::value_type>
+template <class Vect>
 void WriteVtkPoly(
     const std::string& fn, const std::vector<std::vector<Vect>>& vv,
     const std::vector<std::vector<Vect>>* vvn,
-    const std::vector<const std::vector<Scal>*>& dd,
+    const std::vector<const std::vector<typename Vect::Scal>*>& dd,
     const std::vector<std::string>& dn, const std::string& cm, bool poly,
     bool binary, bool merge) {
   std::vector<Vect> xx;
   std::vector<Vect> nn;
   std::vector<std::vector<size_t>> pp;
   if (merge) {
-    const Scal tol = 1e-8;
+    const auto tol = 1e-8;
     ConvertMerge(vv, vvn, tol, xx, nn, pp);
   } else {
     Convert(vv, vvn, xx, nn, pp);
