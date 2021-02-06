@@ -261,11 +261,4 @@ class ModuleLinearJacobi : public ModuleLinear<M> {
   }
 };
 
-using M = MeshStructured<double, 3>;
-
-bool kReg_base[] = {
-    RegisterModule<ModuleLinearConjugate<M>>(),
-    RegisterModule<ModuleLinearJacobi<M>>(),
-};
-
 } // namespace linear

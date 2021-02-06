@@ -52,7 +52,7 @@ target_link_libraries(${T} gitgen)
 
 set(T "posthook_default")
 add_library(${T} posthook_default.cpp)
-target_link_libraries(${T} suspender vars use_mpi)
+target_link_libraries(${T} suspender vars use_mpi use_dims)
 
 set(T "subcomm")
 if (USE_OPENMP AND USE_MPI)

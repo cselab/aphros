@@ -3,4 +3,6 @@
 
 #include "linear.ipp"
 
-template class ULinear<MeshStructured<double, 3>>;
+#define X(dim) template class ULinear<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X

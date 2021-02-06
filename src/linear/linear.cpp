@@ -5,8 +5,22 @@
 
 namespace linear {
 
-using M = MeshStructured<double, 3>;
-template class SolverConjugate<M>;
-template class SolverJacobi<M>;
+#define X(dim) template class SolverConjugate<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X
+
+#define X(dim) template class SolverJacobi<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X
+
+#define X(dim) \
+  RegisterModule<ModuleLinearConjugate<MeshStructured<double, dim>>>(),
+bool kReg_conjugate[] = {MULTIDIMX};
+#undef X
+
+#define X(dim) \
+  RegisterModule<ModuleLinearJacobi<MeshStructured<double, dim>>>(),
+bool kReg_jacobi[] = {MULTIDIMX};
+#undef X
 
 } // namespace linear

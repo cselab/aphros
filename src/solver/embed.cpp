@@ -3,9 +3,6 @@
 
 #include "embed.ipp"
 
-using M = MeshStructured<double, 3>;
-using EB = Embed<M>;
-using Scal = typename M::Scal;
-using Vect = typename M::Vect;
-
-template class Embed<M>;
+#define X(dim) template class Embed<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X

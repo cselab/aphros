@@ -9,7 +9,7 @@ void Main(MPI_Comm comm, Vars& var) {
   FORCE_LINK(init_contang);
   FORCE_LINK(init_vel);
 
-  using M = MeshStructured<double, 3>;
+  using M = MeshStructured<double, 2>;
   using K = Hydro<M>;
   using Par = typename K::Par;
   Par par;

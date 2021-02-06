@@ -71,6 +71,14 @@ class GPar {};
 template <class M>
 class Hydro;
 
+template <class Vect>
+Vect Sqrt(Vect v) {
+  for (size_t d = 0; d < Vect::dim; ++d) {
+    v[d] = std::sqrt(v[d]);
+  }
+  return v;
+}
+
 template <class M>
 class ModulePostStep : public Module<ModulePostStep<M>> {
  public:
@@ -458,8 +466,10 @@ void Hydro<M>::OverwriteBc() {
         fs_->GetTime(), var.Vect["bodyvel_times"], var.Vect["bodyvel_x"]);
     bodyvel[1] = piecewise(
         fs_->GetTime(), var.Vect["bodyvel_times"], var.Vect["bodyvel_y"]);
-    bodyvel[2] = piecewise(
-        fs_->GetTime(), var.Vect["bodyvel_times"], var.Vect["bodyvel_z"]);
+    if (M::dim > 2) {
+      bodyvel[2] = piecewise(
+          fs_->GetTime(), var.Vect["bodyvel_times"], var.Vect["bodyvel_z"]);
+    }
     if (!IsNan(bodyvel)) {
       st_.meshvel = bodyvel;
       mebc_fluid_.LoopPairs([&](auto cf_bc) {
@@ -534,14 +544,18 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
   for (auto c : m.Cells()) {
     const auto xc = m.GetCenter(c);
     Vect dx = xc - sphere_c;
-    if (edim == 2) {
+    if (edim == 2 && M::dim > 2) {
       dx[2] = 0;
     }
     if (dx.sqrnorm() < sqr(sphere_r)) {
       for (size_t i = 0; i < num_rates; ++i) {
         const Scal prob = particles_dt_ * cell_vol * spawn_rate[i] / sphere_vol;
         if (u(g) < prob) {
-          view.x.push_back(m.GetCenter(c) + Vect(um(g), um(g), um(g)) * h);
+          Vect xrand;
+          for (auto d : M::dirs) {
+            xrand[d] = um(g);
+          }
+          view.x.push_back(m.GetCenter(c) + xrand * h);
           view.v.push_back(velocity);
           view.r.push_back(diameter[i] * 0.5);
           view.rho.push_back(density);
@@ -1046,8 +1060,7 @@ void Hydro<M>::InitStat(const MEB& eb) {
     stat.AddDerived(
         "dvel_l2", "L2 norm of velocity difference with `vel`", //
         [](const Stat<M>& s) {
-          const Vect v = s.vect["dv*dv*vol"] / s["vol"];
-          return Vect(std::sqrt(v[0]), std::sqrt(v[1]), std::sqrt(v[2]));
+          return Sqrt(s.vect["dv*dv*vol"] / s["vol"]);
         });
     stat.AddMax(
         "dvel2_max", "maximum phase 2 velocity difference with `vel`",
@@ -1058,8 +1071,7 @@ void Hydro<M>::InitStat(const MEB& eb) {
     stat.AddDerived(
         "dvel2_l2", "L2 norm of phase 2 velocity difference with `vel`", //
         [](const Stat<M>& s) {
-          const Vect dv = s.vect["dv*dv*vol2"] / s["vol2"];
-          return Vect(std::sqrt(dv[0]), std::sqrt(dv[1]), std::sqrt(dv[2]));
+          return Sqrt(s.vect["dv*dv*vol2"] / s["vol2"]);
         });
   }
   if (var.Int["stat_vofm"]) {
@@ -1127,14 +1139,14 @@ void Hydro<M>::InitStat(const MEB& eb) {
   if (eb_) {
     stat.AddSum("pdrag", "pressure drag", [this]() {
       auto d = CalcPressureDrag(fs_->GetPressure(), *eb_);
-      if (m.GetEdim() == 2) {
+      if (m.GetEdim() == 2 && M::dim > 2) {
         d /= m.GetCellSize()[2];
       }
       return d;
     });
     stat.AddSum("vdrag", "viscous drag", [this]() {
       auto d = CalcViscousDrag(fs_->GetVelocity(), fc_mu_, *eb_);
-      if (m.GetEdim() == 2) {
+      if (m.GetEdim() == 2 && M::dim > 2) {
         d /= m.GetCellSize()[2];
       }
       return d;

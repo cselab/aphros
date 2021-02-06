@@ -1,6 +1,6 @@
 set(T "linear")
 add_library(${T} linear.cpp)
-target_link_libraries(${T} use_mpi)
+target_link_libraries(${T} use_mpi use_dims)
 target_compile_definitions(${T} PUBLIC _USE_HYPRE_=$<BOOL:${USE_HYPRE}>)
 target_compile_definitions(${T} PUBLIC _USE_AMGX_=$<BOOL:${USE_AMGX}>)
 

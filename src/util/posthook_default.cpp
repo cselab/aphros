@@ -28,16 +28,21 @@ void FluidDummyHook(
 template <class M>
 void StepHook(Hydro<M>*) {}
 
-using M = MeshStructured<double, 3>;
-using Scal = typename M::Scal;
-using Vect = typename M::Vect;
-using EB = Embed<M>;
+#define XX(M)                                                                  \
+  template void PostHook(const Vars&, const FieldCell<typename M::Vect>&, M&); \
+  template void PostHook(                                                      \
+      const Vars&, const FieldCell<typename M::Vect>&, M&, const Embed<M>&);   \
+  template void InitVelHook(                                                   \
+      FieldCell<typename M::Vect>&, const Vars&, const M&);                    \
+  template void InitVelHook(                                                   \
+      FieldCell<typename M::Vect>&, const Vars&, const M&, const Embed<M>&);   \
+  template void InitEmbedHook(                                                 \
+      FieldNode<typename M::Scal>&, const Vars&, const M&);                    \
+  template void FluidDummyHook(                                                \
+      FieldCell<typename M::Vect>&, FieldFace<typename M::Scal>&,              \
+      typename M::Scal t, typename M::Scal dt, const Vars&, const M&);         \
+  template void StepHook(Hydro<M>*);
 
-template void PostHook(const Vars&, const FieldCell<Vect>&, M&);
-template void PostHook(const Vars&, const FieldCell<Vect>&, M&, const EB&);
-template void InitVelHook(FieldCell<Vect>&, const Vars&, const M&);
-template void InitVelHook(FieldCell<Vect>&, const Vars&, const M&, const EB&);
-template void InitEmbedHook(FieldNode<Scal>&, const Vars&, const M&);
-template void FluidDummyHook(
-    FieldCell<Vect>&, FieldFace<Scal>&, Scal t, Scal dt, const Vars&, const M&);
-template void StepHook(Hydro<M>*);
+#define COMMA ,
+#define X(dim) XX(MeshCartesian<double COMMA dim>)
+MULTIDIMX

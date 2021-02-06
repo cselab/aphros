@@ -4,6 +4,10 @@
 #include "fluid_dummy.ipp"
 #include "embed.h"
 
-using M = MeshStructured<double, 3>;
-template class FluidDummy<M>;
-template class FluidDummy<Embed<M>>;
+#define X(dim) template class FluidDummy<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X
+
+#define X(dim) template class FluidDummy<Embed<MeshStructured<double, dim>>>;
+MULTIDIMX
+#undef X
