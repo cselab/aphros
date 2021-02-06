@@ -141,6 +141,12 @@ struct PartStrMeshM<M_>::Imp {
     return true;
   }
 
+  struct Basis {
+    Vect origin;
+    Vect unit_x;
+    Vect unit_y;
+  };
+
   // Local coordinates in plane section of the interface.
   // xc: cell center
   // n: normal to interface
@@ -152,89 +158,98 @@ struct PartStrMeshM<M_>::Imp {
   // mx: unit in x, tangent to interface
   // my: unit in y, normal to interface
   // mn: unit vector to form orthonormal positively oriented basis <mx,my,mn>
-  std::array<Vect, 3> GetPlaneBasis(
-      const Vect& xc, const Vect& n, Scal a, Scal an) {
-    Vect h = m.GetCellSize();
-    // direction in which normal has minimal component
-    size_t d = n.abs().argmin();
-    Vect xd(0);
-    xd[d] = 1.;
-    // t0 orthogonal to n and d, <n,d,t0> positively oriented
-    Vect t0 = n.cross(xd);
-    t0 /= t0.norm();
-    // t1 orthogonal to n and t0, <t0,t1,n> positively oriented
-    Vect t1 = n.cross(t0);
-    t1 /= t1.norm();
-    // tangent at angle an
-    Vect t = t0 * std::cos(an) + t1 * std::sin(an);
-    t /= t.norm();
+  Basis GetPlaneBasis(const Vect xc, const Vect n, Scal a, Scal an) {
+    Basis res;
+    const Vect h = m.GetCellSize();
+    if (M::dim == 2) {
+      res.origin = xc + R::GetCenter(n, a, h);
+      res.unit_y = n / n.norm();
+      res.unit_x[0] = res.unit_y[1];
+      res.unit_x[1] = -res.unit_y[0];
+    } else {
+      // direction in which normal has minimal component
+      size_t d = n.abs().argmin();
+      Vect xd(0);
+      xd[d] = 1.;
+      // t0 orthogonal to n and d, <n,d,t0> positively oriented
+      Vect t0 = n.cross(xd);
+      t0 /= t0.norm();
+      // t1 orthogonal to n and t0, <t0,t1,n> positively oriented
+      Vect t1 = n.cross(t0);
+      t1 /= t1.norm();
+      // tangent at angle an
+      Vect t = t0 * std::cos(an) + t1 * std::sin(an);
+      t /= t.norm();
 
-    Vect mc = xc + R::GetCenter(n, a, h); // center of interface
-    Vect mx = t; // unit in x, tangent
-    Vect my = n / n.norm(); // unit in y, normal
-    return {mc, mx, my};
+      res.origin = xc + R::GetCenter(n, a, h);
+      res.unit_x = t;
+      res.unit_y = n / n.norm();
+    }
+    return res;
   }
   // Convert from space to plane coordinates.
   // x: space coordinates
-  // v: output of GetPlaneBasis()
+  // basis: output of GetPlaneBasis()
   // Returns:
   // Vect(xl,yl,0) with plane coordinates xl,yl
-  Vect2 GetPlaneCoords(const Vect& x, const std::array<Vect, 3>& v) {
-    auto mc = v[0];
-    auto mx = v[1];
-    auto my = v[2];
-    return Vect2((x - mc).dot(mx), (x - mc).dot(my));
+  Vect2 GetPlaneCoords(const Vect x, const Basis& basis) {
+    return Vect2(
+        (x - basis.origin).dot(basis.unit_x),
+        (x - basis.origin).dot(basis.unit_y));
   }
   // Convert from plane to space coordinates.
-  // (xl,yl,0): plane coordinates
-  // v: output of GetPlaneBasis()
+  // p: plane coordinates
+  // basis: output of GetPlaneBasis()
   // Returns:
   // x: space coordinates
-  Vect GetSpaceCoords(const Vect2& xl, const std::array<Vect, 3>& v) {
-    auto mc = v[0];
-    auto mx = v[1];
-    auto my = v[2];
-    return mc + mx * xl[0] + my * xl[1];
+  Vect GetSpaceCoords(const Vect2 p, const Basis& basis) {
+    return basis.origin + basis.unit_x * p[0] + basis.unit_y * p[1];
   }
 
   // Appends interface line of one cell.
-  // v: output of GetPlaneBasis()
+  // basis: output of GetPlaneBasis()
   // xc: cell center
   // a: plane constant
   // n: interface normal
   // in: interface flag
   // lx: nodes
   // ls: sizes
+  // Returns true if a fragment is appended.
   // Output:
-  // lx, ls: appended with interface element
+  // lx, ls: appended with interface fragment
   bool AppendInterface(
-      const std::array<Vect, 3>& v, Vect xc, Scal a, const Vect& n,
+      const Basis& basis, Vect xc, Scal a, const Vect n,
       std::vector<Vect2>& lx, std::vector<size_t>& ls) {
-    Vect h = m.GetCellSize(); // cell size
-    std::array<Vect, 2> e; // ends of intersection
-    Vect mc = v[0]; // plane center
-    Vect mx = v[1]; // unit in x
-    Vect my = v[2]; // unit in y
-    Vect mn = mx.cross(my); // normal to plane
+    std::array<Vect, 2> ends; // ends of intersection
 
-    auto xx = R::GetCutPoly(xc, n, a, h); // interface polygon
-    if (R::GetInterPoly(xx, mc, mn, e)) { // intersection non-empty
-      // if (GetInterPoly(xc, n, a, h, mc, mn, e[0], e[1])) {
-      // interface normal
-      auto pn = GetPlaneCoords(mc + n, v);
-      // line ends
-      auto pe0 = GetPlaneCoords(e[0], v);
-      auto pe1 = GetPlaneCoords(e[1], v);
-      // make <pn,pe1-pe0> positively oriented
-      if (pn.cross_third(pe1 - pe0) < 0.) {
-        std::swap(pe0, pe1);
+    auto interface = R::GetCutPoly(xc, n, a, m.GetCellSize());
+
+    if (M::dim == 2) {
+      if (interface.size() == 2) {
+        ends[0] = interface[0];
+        ends[1] = interface[1];
+      } else {
+        return false;
       }
-      lx.push_back(pe0);
-      lx.push_back(pe1);
-      ls.push_back(2);
-      return true;
+    } else {
+      const auto unit_z = basis.unit_x.cross(basis.unit_y);
+      if (!R::GetInterPoly(interface, basis.origin, unit_z, ends)) {
+        return false;
+      }
     }
-    return false;
+
+    auto pn = GetPlaneCoords(basis.origin + n, basis);
+    auto pe0 = GetPlaneCoords(ends[0], basis);
+    auto pe1 = GetPlaneCoords(ends[1], basis);
+    // make <pn,pe1-pe0> positively oriented
+    if (pn.cross_third(pe1 - pe0) < 0) {
+      std::swap(pe0, pe1);
+    }
+
+    lx.push_back(pe0);
+    lx.push_back(pe1);
+    ls.push_back(2);
+    return true;
   }
   template <class EB>
   void Seed(const Plic& plic, const EB& eb) {
@@ -294,7 +309,8 @@ struct PartStrMeshM<M_>::Imp {
               auto unit = [](const Vect& t) { return t / t.norm(); };
               const Vect tf = unit(unit(fcn[cn]).orth(nf));
               const Vect ni = tf * std::sin(contang) - nf * std::cos(contang);
-              Vect dir = ni.cross(basis[1].cross(basis[2]));
+              const Vect unit_z = basis.unit_x.cross(basis.unit_y);
+              Vect dir = ni.cross(unit_z);
               if (dir.dot(nf) < 0) {
                 dir *= -1;
               }
