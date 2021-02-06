@@ -236,7 +236,7 @@ def ReadArray(p):
         u = u.reshape(ss)
         # data x,y,z
         u = np.transpose(u)
-        if u.shape[2] == 2:  # XXX: workaround for ch 2d loc=0
+        if len(u.shape) > 2 and u.shape[2] == 2:
             u = u[:, :, :1]
         return u
 
