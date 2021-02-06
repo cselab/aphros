@@ -481,7 +481,7 @@ struct UNormal<M_>::Imp {
 #else
     CalcNormalYoungs1(m, fcu, fci, fcn);
 #endif
-    CalcNormalHeight1(m, fcu, fci, edim, true, fcn);
+    CalcNormalHeight1(m, fcu, fci, edim, false, fcn);
   }
 
   // u: volume fraction, array of size 3x3x3
