@@ -48,6 +48,7 @@ class Test(aphros.TestBase):
 
         self.runcmd("ap.create_base_conf")
         self.runcmd("ap.create_a_conf")
+        self.runcmd("touch add.conf")
         self.runcmd("ap.part " + ' '.join(map(str, m + bs + [nproc])) +
                     " > mesh.conf")
         self.runcmd("ap.run ap.mfer".format(nproc, conf))
