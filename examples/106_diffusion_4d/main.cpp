@@ -54,7 +54,9 @@ void DumpCsv(std::string path, FieldCell<Scal>& fcu, M& m, bool verbose=false) {
       t.csv_names.push_back(name);
       t.csv_data.push_back(data);
     }
-    m.Reduce(&t.csv_data, Reduction::concat);
+    for (auto& v : t.csv_data) {
+      m.Reduce(&v, Reduction::concat);
+    }
   }
   if (sem()) {
     if (m.IsRoot()) {
