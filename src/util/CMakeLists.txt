@@ -7,7 +7,7 @@ target_compile_definitions(${T} PRIVATE _USE_AMGX_=$<BOOL:${USE_AMGX}>)
 
 set(T "utilhydro")
 add_library(${T} hydro.cpp)
-target_link_libraries(${T} vars dumper approx vof vofm)
+target_link_libraries(${T} PUBLIC vars dumper approx vof vofm PRIVATE use_dims)
 
 set(T "utillinear")
 add_library(${T} linear.cpp)

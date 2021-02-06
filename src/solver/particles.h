@@ -14,9 +14,10 @@ namespace generic {
 
 // Piecewise Linear Interface Characterization.
 // Describes the multilayer interface.
-template <class Scal>
+template <class Vect_>
 struct ParticlesView {
-  using Vect = generic::Vect<Scal, 3>;
+  using Scal = typename Vect_::Scal;
+  using Vect = Vect_;
   std::vector<Vect>& x; // positions
   std::vector<Vect>& v; // velocity
   std::vector<Scal>& r; // radius
@@ -30,9 +31,10 @@ template <class M_>
 class ParticlesInterface {
  public:
   using M = M_;
+  static constexpr size_t dim = M::dim;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using ParticlesView = generic::ParticlesView<Scal>;
+  using ParticlesView = generic::ParticlesView<Vect>;
 
   struct Conf {
     Scal mixture_density;
@@ -62,11 +64,12 @@ template <class EB_>
 class Particles : public ParticlesInterface<typename EB_::M> {
  public:
   using M = typename EB_::M;
+  static constexpr size_t dim = M::dim;
   using Base = ParticlesInterface<M>;
   using EB = EB_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
-  using ParticlesView = generic::ParticlesView<Scal>;
+  using ParticlesView = generic::ParticlesView<Vect>;
   using Conf = typename Base::Conf;
   using UEB = UEmbed<M>;
   template <class T>

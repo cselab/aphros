@@ -207,9 +207,9 @@ struct Particles<EB_>::Imp {
           fassert_equal(vgather.size(), gather_size);
           vscatter.resize(maxid);
           for (size_t i = 0; i < vgather.size(); ++i) {
-            vscatter[remote_index[i]].push_back(vgather[i][0]);
-            vscatter[remote_index[i]].push_back(vgather[i][1]);
-            vscatter[remote_index[i]].push_back(vgather[i][2]);
+            for (auto d : M::dirs) {
+              vscatter[remote_index[i]].push_back(vgather[i][d]);
+            }
           }
         };
 
@@ -224,7 +224,7 @@ struct Particles<EB_>::Imp {
       m.Scatter({&ctx->scatter_serial, &ctx->recv_serial});
     }
     if (sem()) {
-      const size_t nscal = 3 + attr_scal.size() + attr_vect.size() * 3;
+      const size_t nscal = dim + attr_scal.size() + attr_vect.size() * dim;
       fassert_equal(ctx->recv_serial.size() % nscal, 0);
       // number of particles received
       const size_t recv_size = ctx->recv_serial.size() / nscal;
@@ -238,12 +238,11 @@ struct Particles<EB_>::Imp {
       auto deserialv = [recv_size](auto& attr, auto& serial) {
         for (size_t i = 0; i < recv_size; ++i) {
           Vect v;
-          v[2] = serial.back();
-          serial.pop_back();
-          v[1] = serial.back();
-          serial.pop_back();
-          v[0] = serial.back();
-          serial.pop_back();
+          for (size_t d = dim; d > 0;) {
+            --d;
+            v[d] = serial.back();
+            serial.pop_back();
+          }
           attr.push_back(v);
         }
       };

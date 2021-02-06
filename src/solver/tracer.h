@@ -16,7 +16,6 @@ namespace generic {
 // Describes the multilayer interface.
 template <class Scal>
 struct TracerView {
-  using Vect = generic::Vect<Scal, 3>;
   GRange<size_t> layers;
   Multi<const FieldCell<Scal>*> vfcu; // volume fraction
   Multi<const MapEmbed<BCond<Scal>>*> vmebc; // boundary conditions
@@ -28,6 +27,7 @@ template <class M_>
 class TracerInterface {
  public:
   using M = M_;
+  static constexpr size_t dim = M::dim;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using TracerView = generic::TracerView<Scal>;
@@ -72,6 +72,7 @@ template <class EB_>
 class Tracer : public TracerInterface<typename EB_::M> {
  public:
   using M = typename EB_::M;
+  static constexpr size_t dim = M::dim;
   using Base = TracerInterface<M>;
   using EB = EB_;
   using Scal = typename M::Scal;

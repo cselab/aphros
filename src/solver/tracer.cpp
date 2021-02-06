@@ -4,6 +4,10 @@
 #include "tracer.ipp"
 #include "embed.h"
 
-using M = MeshStructured<double, 3>;
-template class Tracer<M>;
-template class Tracer<Embed<M>>;
+#define X(dim) template class Tracer<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X
+
+#define X(dim) template class Tracer<Embed<MeshStructured<double, dim>>>;
+MULTIDIMX
+#undef X

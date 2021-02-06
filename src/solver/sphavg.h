@@ -14,6 +14,7 @@ class Sphavg {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using Vect3 = generic::Vect<Scal, 3>;
   using MIdx = typename M::MIdx;
   static constexpr size_t dim = M::dim;
 
@@ -67,58 +68,58 @@ class Sphavg {
       as("rhp");
       return r;
     }
-    void Ser(Scal a, std::vector<Scal>& g) const {
+    void Serialize(Scal a, std::vector<Scal>& g) const {
       g.push_back(a);
     }
-    void Ser(const Vect& a, std::vector<Scal>& g) const {
-      Ser(a[0], g);
-      Ser(a[1], g);
-      Ser(a[2], g);
+    void Serialize(const Vect& a, std::vector<Scal>& g) const {
+      for (auto d : M::dirs) {
+        Serialize(a[d], g);
+      }
     }
-    std::vector<Scal> Ser() const {
+    std::vector<Scal> Serialize() const {
       std::vector<Scal> g;
-      Ser(b, g);
-      Ser(x, g);
-      Ser(v, g);
-      Ser(dvt, g);
-      Ser(dvx, g);
-      Ser(dvmat, g);
-      Ser(gp, g);
-      Ser(vm, g);
-      Ser(p, g);
-      Ser(gvx, g);
-      Ser(gvy, g);
-      Ser(gvz, g);
+      Serialize(b, g);
+      Serialize(x, g);
+      Serialize(v, g);
+      Serialize(dvt, g);
+      Serialize(dvx, g);
+      Serialize(dvmat, g);
+      Serialize(gp, g);
+      Serialize(vm, g);
+      Serialize(p, g);
+      Serialize(gvx, g);
+      Serialize(gvy, g);
+      Serialize(gvz, g);
       return g;
     }
     std::vector<Scal> SerOut() const {
       std::vector<Scal> g;
-      Ser(b, g);
-      Ser(x, g);
-      Ser(v, g);
-      Ser(dvt, g);
-      Ser(dvx, g);
-      Ser(dvmat, g);
-      Ser(gp, g);
-      Ser(vm, g);
-      Ser(p, g);
-      Ser(gvx, g);
-      Ser(gvy, g);
-      Ser(gvz, g);
-      Ser(r, g);
-      Ser(rhm, g);
-      Ser(rhp, g);
+      Serialize(b, g);
+      Serialize(x, g);
+      Serialize(v, g);
+      Serialize(dvt, g);
+      Serialize(dvx, g);
+      Serialize(dvmat, g);
+      Serialize(gp, g);
+      Serialize(vm, g);
+      Serialize(p, g);
+      Serialize(gvx, g);
+      Serialize(gvy, g);
+      Serialize(gvz, g);
+      Serialize(r, g);
+      Serialize(rhm, g);
+      Serialize(rhp, g);
       return g;
     }
     void Ext(Scal& a, const std::vector<Scal>& g, size_t& i) {
       a = g[i++];
     }
     void Ext(Vect& a, const std::vector<Scal>& g, size_t& i) {
-      Ext(a[0], g, i);
-      Ext(a[1], g, i);
-      Ext(a[2], g, i);
+      for (auto d : M::dirs) {
+        Ext(a[d], g, i);
+      }
     }
-    void Des(const std::vector<Scal>& g) {
+    void Deserialize(const std::vector<Scal>& g) {
       size_t i = 0;
       Ext(b, g, i);
       Ext(x, g, i);
@@ -203,7 +204,7 @@ class Sphavg {
       wr[d] = std::min(wr[d], m.GetGlobalSize()[d]);
     }
     MIdx wx(GetStd(s.x) / h + Vect(0.5));
-    if (edim_ < 3) {
+    if (edim_ < 3 && M::dim > 2) {
       wr[2] = 0;
       wx[2] = 0;
     }
@@ -333,9 +334,11 @@ void Sphavg<M_>::Update(
               auto tx = sdv(fcv, wt, 0) * b;
               auto ty = sdv(fcv, wt, 1) * b;
               auto tz = sdv(fcv, wt, 2) * b;
-              a.gvx += Vect(tx[0], ty[0], tz[0]);
-              a.gvy += Vect(tx[1], ty[1], tz[1]);
-              a.gvz += Vect(tx[2], ty[2], tz[2]);
+              a.gvx += Vect(Vect3(tx[0], ty[0], tz[0]));
+              a.gvy += Vect(Vect3(tx[1], ty[1], tz[1]));
+              if (M::dim > 2) {
+                a.gvz += Vect(Vect3(tx[2], ty[2], tz[2]));
+              }
             }
           }
         }
@@ -345,7 +348,7 @@ void Sphavg<M_>::Update(
     vv_.clear();
     // serialize
     for (size_t i = 0; i < ss_.size(); ++i) {
-      vv_.push_back(aa_[i].Ser());
+      vv_.push_back(aa_[i].Serialize());
     }
 
     m.Reduce(&vv_, Reduction::concat);
@@ -384,7 +387,7 @@ void Sphavg<M_>::Update(
     }
     // deserialize
     for (size_t i = 0; i < ss_.size(); ++i) {
-      aa_[i].Des(vv_[i]);
+      aa_[i].Deserialize(vv_[i]);
     }
     // append r
     for (size_t i = 0; i < ss_.size(); ++i) {

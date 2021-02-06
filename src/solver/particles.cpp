@@ -4,6 +4,10 @@
 #include "particles.ipp"
 #include "embed.h"
 
-using M = MeshStructured<double, 3>;
-template class Particles<M>;
-template class Particles<Embed<M>>;
+#define X(dim) template class Particles<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X
+
+#define X(dim) template class Particles<Embed<MeshStructured<double, dim>>>;
+MULTIDIMX
+#undef X

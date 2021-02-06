@@ -4,6 +4,10 @@
 #include "electro.ipp"
 #include "embed.h"
 
-using M = MeshStructured<double, 3>;
-template class Electro<M>;
-template class Electro<Embed<M>>;
+#define X(dim) template class Electro<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X
+
+#define X(dim) template class Electro<Embed<MeshStructured<double, dim>>>;
+MULTIDIMX
+#undef X

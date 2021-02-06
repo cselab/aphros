@@ -24,11 +24,11 @@ target_link_libraries(${T} solver normal utilvof approx_eb use_dims)
 
 set(T "tracer")
 add_library(${T} tracer.cpp)
-target_link_libraries(${T} approx_eb)
+target_link_libraries(${T} PUBLIC approx_eb PRIVATE use_dims)
 
 set(T "particles")
 add_library(${T} particles.cpp)
-target_link_libraries(${T} mesh)
+target_link_libraries(${T} PUBLIC mesh PRIVATE use_dims)
 
 set(T "normal")
 add_library(${T} normal.cpp)
@@ -60,11 +60,11 @@ target_link_libraries(${T} convdiffvg utilconvdiff)
 
 set(T "proj")
 add_library(${T} proj.cpp)
-target_link_libraries(${T} utilconvdiff use_dims)
+target_link_libraries(${T} PRIVATE utilconvdiff PUBLIC use_dims)
 
 set(T "proj_eb")
 add_library(${T} proj_eb.cpp)
-target_link_libraries(${T} utilconvdiff use_dims)
+target_link_libraries(${T} PRIVATE utilconvdiff PUBLIC use_dims)
 
 set(T "fluid_dummy")
 add_library(${T} fluid_dummy.cpp)
@@ -72,5 +72,5 @@ target_link_libraries(${T} vars suspender posthook_default approx_eb)
 
 set(T "electro")
 add_library(${T} electro.cpp)
-target_link_libraries(${T} approx_eb)
+target_link_libraries(${T} PRIVATE approx_eb PUBLIC use_dims)
 

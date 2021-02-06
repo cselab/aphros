@@ -57,6 +57,7 @@ template <class M>
 void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using Vect2 = generic::Vect<Scal, 2>;
   const std::string vi = var.String["vel_init"];
   fcv.Reinit(m);
   if (auto ptr = ModuleInitVelocity<M>::GetInstance(vi)) {
@@ -81,7 +82,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       auto xx = m.GetCenter(i) - xc;
       auto x = xx[0];
       auto y = xx[1];
-      auto z = xx[2];
+      auto z = (M::dim > 2 ? xx[2] : 0);
       Scal vrr; // vr / r
       Scal vz;
       if (x * x + y * y + z * z < 1.) { // inside sphere
@@ -116,7 +117,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       auto xx = m.GetCenter(i) - xc;
       auto x = xx[0];
       auto y = xx[1];
-      auto z = xx[2];
+      auto z = (M::dim > 2 ? xx[2] : 0);
       Scal vrr; // vr / r
       Scal vz;
       if (x * x + y * y + z * z < a * a) {
@@ -170,7 +171,8 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal r0 = var.Double["ring_r0"]; // inner radius
     Scal r1 = var.Double["ring_r1"]; // outer radius
     Scal qr = (r1 - r0) * 0.5; // radius
-    Vect qc((r1 + r0) * 0.5, 0., 0.); // center
+    Vect qc(0); // center
+    qc[0] = (r1 + r0) * 0.5;
     const Scal eps = 1e-10;
     for (auto c : m.AllCells()) {
       Vect x = m.GetCenter(c) - xc;
@@ -182,7 +184,9 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       Vect t = (x - n * xn) / std::max(eps, xt);
       // unit along circle
       Vect s = n.cross(t);
-      Vect q(xt, xn, 0.);
+      Vect q(0);
+      q[0] = xt;
+      q[1] = xn;
       fcv[c] = ((q - qc).sqrnorm() <= sqr(qr) ? s * om : Vect(0));
     }
   } else if (vi == "vortexgauss") {
@@ -205,7 +209,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       Scal xn = n.dot(x);
       // select direction
       Vect v(0);
-      v[n.abs().argmin()] = 1.;
+      v[n.abs().argmin()] = 1;
       // unit vectors in plane
       Vect vx = n.cross(v);
       Vect vy = n.cross(vx);
@@ -246,7 +250,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       Vect v;
       v[0] = vx.dot(x);
       v[1] = vy.dot(x);
-      v[2] = vz.dot(x);
+      if (M::dim > 2) v[2] = vz.dot(x);
       fcv[c] = v;
     }
   } else if (vi == "pois" || vi == "poisy") {
@@ -272,7 +276,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal pi = M_PI;
 
     Scal ly = domain[1];
-    Scal lz = domain[2];
+    Scal lz = M::dim > 2 ? domain[2] : 1;
 
     if ((!wym && !wyp) || (!wzm && !wzp)) {
       throw std::runtime_error("poisyz: can't remove both walls");
@@ -304,7 +308,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     for (auto i : m.AllCells()) {
       Scal y = m.GetCenter(i)[1] / ly;
       y = y + oy;
-      Scal z = m.GetCenter(i)[2] / lz;
+      Scal z = (M::dim > 2 ? m.GetCenter(i)[2] : 0) / lz;
       z = z + oz;
       Scal s = 0.;
       for (int iy = 1; iy < im * 2; iy += 2) {
@@ -351,7 +355,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       Scal om = sqrt(g * k * (1 + sqr(e)));
       Scal u = om * a * exp(ky) * cos(kx);
       Scal v = om * a * exp(ky) * sin(kx);
-      fcv[c] = Vect(u, v, 0.) * (y > h ? 0. : 1.);
+      fcv[c] = Vect(Vect2(u, v)) * (y > h ? 0. : 1.);
     }
   } else if (vi == "solitoncos") {
     Scal xc(var.Double["soliton_xc"]);
@@ -378,7 +382,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
           H * p2 / T * cosh((p2 / L) * y) * cos(p2 * x / L) / sinh(p2 * D / L);
       Scal Uy =
           H * p2 / T * sinh((p2 / L) * y) * sin(p2 * x / L) / sinh(p2 * D / L);
-      fcv[c] = Vect(Ux, Uy, 0.);
+      fcv[c] = Vect(Vect2(Ux, Uy));
     }
   } else if (vi == "soliton") {
     Scal xc(var.Double["soliton_xc"]);
@@ -421,7 +425,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       h *= D;
       y *= D;
 
-      fcv[c] = Vect(u, v, 0.);
+      fcv[c] = Vect(Vect2(u, v));
       if (y > h) {
         fcv[c] *= 0;
       }
@@ -484,7 +488,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
               sin(2 * k * x) * sinh(2 * k * (h + y)) /
               (chi * omega * cosh(2 * h * k));
 
-      fcv[c] = Vect(vx, vy, 0.) * kvel;
+      fcv[c] = Vect(Vect2(vx, vy)) * kvel;
       if (y > eta) {
         fcv[c] = air;
       }
@@ -545,7 +549,9 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
 
       Scal omz = 2 * vx * D;
 
-      fcv[c] = Vect(0., 0., omz) * omk;
+      if (M::dim > 2) {
+        fcv[c][2] = omz * omk;
+      }
     }
   } else if (vi == "solitonmccowan") {
     Scal xc(var.Double["soliton_xc"]);
@@ -589,7 +595,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       h *= D;
       y *= D;
 
-      fcv[c] = Vect(u, v, 0.);
+      fcv[c] = Vect(Vect2(u, v));
       if (y > h) {
         fcv[c] *= 0;
       }
@@ -1033,9 +1039,9 @@ void CalcTraj(
           };
           // append vector value
           auto addv = [&](Vect a) {
-            add(a[0]);
-            add(a[1]);
-            add(a[2]);
+            for (auto d : M::dirs) {
+              add(a[d]);
+            }
           };
 
           // list of vars, XXX: keep consistent with column_names
@@ -1046,10 +1052,14 @@ void CalcTraj(
           add(fcp[c] * w); // pressure
           add(x[0] * x[0] * w); // xx
           add(x[0] * x[1] * w); // xy
-          add(x[0] * x[2] * w); // xz
+          if (M::dim > 2) {
+            add(x[0] * x[2] * w); // xz
+          }
           add(x[1] * x[1] * w); // yy
-          add(x[1] * x[2] * w); // yz
-          add(x[2] * x[2] * w); // zz
+          if (M::dim > 2) {
+            add(x[1] * x[2] * w); // yz
+            add(x[2] * x[2] * w); // zz
+          }
         }
       }
     }
@@ -1089,7 +1099,7 @@ void CalcTraj(
         if (m.GetEdim() == 3) {
           v[1] = std::pow(3. / (4. * pi) * vf, 1. / 3.);
         } else { // dim 2
-          v[1] = std::sqrt(vf / pi / m.GetCellSize()[2]);
+          v[1] = std::sqrt(vf / pi / (M::dim > 2 ? m.GetCellSize()[2] : 1));
         }
         // divide remaining by vf
         for (size_t i = 2; i < v.size(); ++i) {
@@ -1123,6 +1133,7 @@ void DumpTraj(
   using M = typename EB::M;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using Vect3 = generic::Vect<Scal, 3>;
   using SA = Sphavg<M>; // spherical averages
   auto& m = eb.GetMesh();
 
@@ -1158,8 +1169,8 @@ void DumpTraj(
     vsph.clear();
     for (auto& s : t.table) {
       // XXX: adhoc, assume vf,r,x,y,z in t.table
-      Vect x(s[2], s[3], s[4]);
-      Scal r = s[1] * shrr + shr;
+      const Vect x(Vect3(s[2], s[3], s[4]));
+      const Scal r = s[1] * shrr + shr;
       vsph.emplace_back(x, r, h[0] * shh);
     }
   }
