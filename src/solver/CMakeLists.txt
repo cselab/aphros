@@ -40,7 +40,7 @@ target_link_libraries(${T} partstrmeshm normal vof vofm)
 
 set(T "partstrmeshm")
 add_library(${T} partstrmeshm.cpp)
-target_link_libraries(${T} dumper suspender use_mpi)
+target_link_libraries(${T} PUBLIC dumper suspender PRIVATE use_mpi use_dims)
 
 set(T "convdiffi")
 add_library(${T} convdiffi.cpp)

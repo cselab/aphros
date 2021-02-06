@@ -397,7 +397,7 @@ void TestLevelSet() {
   auto f = [](const Vect& x) -> Scal { return 1. - x.dot(x); };
 
   auto t = [&](const Vect& xc, const Vect& h, Scal ue) {
-    Scal u = GetLevelSetVolume<Scal>(f, xc, h);
+    Scal u = GetLevelSetVolume<Scal, 3>(f, xc, h);
     std::cout << "circle:"
               << " xc=" << xc << " h=" << h << " u=" << u << " ue=" << ue
               << std::endl;

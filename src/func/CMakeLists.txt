@@ -4,7 +4,8 @@ target_link_libraries(${T} PUBLIC format PRIVATE use_dims)
 
 set(T "init")
 add_library(${T} init.cpp)
-target_link_libraries(${T} PUBLIC primlist vars suspender PRIVATE use_mpi use_overlap)
+target_link_libraries(${T} PUBLIC primlist vars suspender PRIVATE use_mpi
+    use_overlap use_dims)
 if (USE_OVERLAP)
   target_link_libraries(${T} PUBLIC overlap)
 endif()

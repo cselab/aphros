@@ -21,10 +21,11 @@
 // Output:
 // u: field
 // size: mesh size
-template <class Scal>
-void ReadPlain(std::istream& dat, FieldCell<Scal>& u, generic::MIdx<3>& size) {
-  dat >> size[0] >> size[1] >> size[2];
-  GIndex<IdxCell, 3> bc(size);
+template <class Scal, size_t dim>
+void ReadPlain(
+    std::istream& dat, FieldCell<Scal>& u, generic::MIdx<dim>& size) {
+  dat >> size;
+  GIndex<IdxCell, dim> bc(size);
   u.Reinit(bc, 0);
   for (auto c : bc.Range()) {
     dat >> u[c];
@@ -124,19 +125,18 @@ CreateInitCl(const Vars& var, bool verb) {
     };
   } else if (v == "grid") {
     using MIdx = typename M::MIdx;
-    const int dx = var.Int["initvf_grid_dx"];
-    const int dy = var.Int["initvf_grid_dy"];
-    const int dz = var.Int["initvf_grid_dz"];
-    const MIdx dw(dx, dy, dz);
-    return [dw](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {
+    MIdx gridstep;
+    for (auto d : M::dirs) {
+      gridstep[d] = var.Int["initvf_grid_d" + GDir<M::dim>(d).letter()];
+    }
+    return [gridstep](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {
       fc.Reinit(m, kClNone);
       const auto& bc = m.GetIndexCells();
-      const MIdx gs = m.GetGlobalSize();
-      const MIdx ds = (gs + dw - MIdx(1)) / dw;
+      const MIdx globalsize = m.GetGlobalSize();
+      const MIdx gridsize = (globalsize + gridstep - MIdx(1)) / gridstep;
+      GIndex<size_t, M::dim> indexer(gridsize);
       for (auto c : m.Cells()) {
-        const MIdx w = bc.GetMIdx(c);
-        const MIdx rw = w / dw;
-        fc[c] = rw[0] + rw[1] * ds[0] + rw[2] * ds[0] * ds[1];
+        fc[c] = indexer.GetIdx(bc.GetMIdx(c) / gridstep);
       }
     };
   } else if (v == "readplain") {

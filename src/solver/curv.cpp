@@ -3,4 +3,6 @@
 
 #include "curv.ipp"
 
-template struct UCurv<MeshStructured<double, 3>>;
+#define X(dim) template class UCurv<MeshStructured<double, dim>>;
+MULTIDIMX
+#undef X

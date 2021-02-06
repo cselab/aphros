@@ -4,9 +4,11 @@
 #include "partstrmeshm.ipp"
 #include "embed.h"
 
-using M = MeshStructured<double, 3>;
-template class PartStrMeshM<M>;
+#define XX(M)                                                                \
+  template class PartStrMeshM<M>;                                            \
+  template void PartStrMeshM<M>::Part(const Plic& plic, const Embed<M>& eb); \
+  template void PartStrMeshM<M>::Part(const Plic& plic, const M& eb);
 
-template void PartStrMeshM<M>::Part(const Plic& plic, const Embed<M>& eb);
-
-template void PartStrMeshM<M>::Part(const Plic& plic, const M& eb);
+#define COMMA ,
+#define X(dim) XX(MeshCartesian<double COMMA dim>)
+MULTIDIMX

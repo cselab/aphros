@@ -9,19 +9,21 @@
 #include "hdf_nompi.ipp"
 #endif
 
-using M = MeshStructured<double, 3>;
-using Scal = typename M::Scal;
-using Vect = typename M::Vect;
-using Expr = typename M::Expr;
-template class Hdf<M>;
+#define XX(M)                                                            \
+  template class Hdf<M>;                                                 \
+  template void Hdf<M>::Read(                                            \
+      FieldCell<typename M::Scal>&, std::string, M&, std::string);       \
+  template void Hdf<M>::Read(                                            \
+      FieldCell<typename M::Vect>&, std::string, M&, std::string);       \
+  template void Hdf<M>::Read(                                            \
+      FieldCell<typename M::Expr>&, std::string, M&, std::string);       \
+  template void Hdf<M>::Write(                                           \
+      const FieldCell<typename M::Scal>&, std::string, M&, std::string); \
+  template void Hdf<M>::Write(                                           \
+      const FieldCell<typename M::Vect>&, std::string, M&, std::string); \
+  template void Hdf<M>::Write(                                           \
+      const FieldCell<typename M::Expr>&, std::string, M&, std::string);
 
-template void Hdf<M>::Read(FieldCell<Scal>&, std::string, M&, std::string);
-template void Hdf<M>::Read(FieldCell<Vect>&, std::string, M&, std::string);
-template void Hdf<M>::Read(FieldCell<Expr>&, std::string, M&, std::string);
-
-template void Hdf<M>::Write(
-    const FieldCell<Scal>&, std::string, M&, std::string);
-template void Hdf<M>::Write(
-    const FieldCell<Vect>&, std::string, M&, std::string);
-template void Hdf<M>::Write(
-    const FieldCell<Expr>&, std::string, M&, std::string);
+#define COMMA ,
+#define X(dim) XX(MeshCartesian<double COMMA dim>)
+MULTIDIMX

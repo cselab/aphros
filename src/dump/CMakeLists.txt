@@ -4,7 +4,7 @@ target_link_libraries(${T} vars)
 
 set(T "dump_hdf")
 add_library(${T} hdf.cpp)
-target_link_libraries(${T} PRIVATE use_mpi use_hdf)
+target_link_libraries(${T} PRIVATE use_mpi use_hdf use_dims)
 if (USE_HDF)
   target_link_libraries(${T} PUBLIC hdf)
 endif()

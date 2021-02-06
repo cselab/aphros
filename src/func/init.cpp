@@ -93,17 +93,18 @@ void InitVfList(
   }
 }
 
-using M = MeshStructured<double, 3>;
+#define XX(M)                                                                 \
+  template void InitVf(                                                       \
+      FieldCell<typename M::Scal>& fcu, const Vars& var, M& m, bool verbose); \
+  template std::function<void(                                                \
+      FieldCell<typename M::Scal>&, const FieldCell<typename M::Scal>&,       \
+      const M&)>                                                              \
+  CreateInitCl(const Vars& par, bool verb);                                   \
+  template std::function<void(FieldCell<typename M::Scal>&, const M&)>        \
+  CreateInitU(const Vars& par, bool verb);                                    \
+  template std::function<void(FieldCell<typename M::Scal>&, const M&)>        \
+  CreateInitSig(const Vars& var);
 
-template void InitVf(
-    FieldCell<typename M::Scal>& fcu, const Vars& var, M& m, bool verbose);
-
-template std::function<void(
-    FieldCell<typename M::Scal>&, const FieldCell<typename M::Scal>&, const M&)>
-CreateInitCl(const Vars& par, bool verb);
-
-template std::function<void(FieldCell<typename M::Scal>&, const M&)>
-CreateInitU(const Vars& par, bool verb);
-
-template std::function<void(FieldCell<typename M::Scal>&, const M&)>
-CreateInitSig(const Vars& var);
+#define COMMA ,
+#define X(dim) XX(MeshCartesian<double COMMA dim>)
+MULTIDIMX

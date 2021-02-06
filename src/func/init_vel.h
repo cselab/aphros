@@ -29,20 +29,23 @@ std::function<Vect(Vect, Scal)> CreateInitVel(const Vars& par) {
     Scal revt = par.Double["revt"]; // reverse time
     f = [revt](Vect x, Scal t) -> Vect {
       x = x * M_PI;
-      Vect r(
-          std::sin(x[0]) * std::cos(x[1]), -std::cos(x[0]) * std::sin(x[1]),
-          0.);
+      Vect res(0);
+      res[0] = std::sin(x[0]) * std::cos(x[1]);
+      res[1] = -std::cos(x[0]) * std::sin(x[1]);
       if (t > revt) {
-        r *= -1.;
+        res *= -1.;
       }
-      return r;
+      return res;
     };
   } else if (v == "stretch") {
     Scal mg = par.Double["stretch_magn"];
     Vect o(par.Vect["stretch_origin"]);
     f = [mg, o](Vect x, Scal) -> Vect {
       x -= o;
-      return Vect(x[0], -x[1], 0.) * mg;
+      Vect res(0);
+      res[0] = x[0];
+      res[1] = -x[1];
+      return res * mg;
     };
   } else {
     throw std::runtime_error("Unknown init_vel=" + v);

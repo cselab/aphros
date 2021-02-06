@@ -24,10 +24,10 @@
 // ls: level-set function, interface ls=0, ls>0 for volume fraction 1
 // xc: cell center
 // h: cell size
-template <class Scal, size_t dim = 3>
+template <class Scal, size_t dim>
 static Scal GetLevelSetVolume(
-    std::function<Scal(const generic::Vect<Scal, 3>&)> ls,
-    const generic::Vect<Scal, 3>& xc, const generic::Vect<Scal, 3>& h) {
+    std::function<Scal(const generic::Vect<Scal, dim>&)> ls,
+    const generic::Vect<Scal, dim>& xc, const generic::Vect<Scal, dim>& h) {
   using Vect = generic::Vect<Scal, dim>;
   using MIdx = generic::Vect<IntIdx, dim>;
 
@@ -227,7 +227,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
       for (auto c : m.Cells()) {
         auto dx = m.GetCenter(c) - xc;
         if (dim == 2) {
-          dx[2] = 0.;
+          dx[2] = 0;
         }
         fc[c] = dx.sqrnorm() < sqr(r) ? 1. : 0.;
       }
@@ -241,7 +241,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
       for (auto c : m.Cells()) {
         auto dx = m.GetCenter(c) - xc;
         if (dim == 2) {
-          dx[2] = 0.;
+          dx[2] = 0;
         }
         const Scal r = dx.norm();
         fc[c] = std::max(0., std::min(1., (rmax - r) / (rmax - rmin)));
@@ -256,16 +256,16 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
       // positive inside,
       // cylinder along z if dim=2
       auto f = [dim](const Vect& x) -> Scal {
-        Vect xd = x;
+        auto xd = x;
         if (dim == 2) {
           xd[2] = 0.;
         }
-        return 1. - xd.sqrnorm();
+        return 1 - xd.sqrnorm();
       };
       for (auto c : m.Cells()) {
         auto x = m.GetCenter(c);
         Vect h = m.GetCellSize();
-        fc[c] = GetLevelSetVolume<Scal>(f, (x - xc) / r, h / r);
+        fc[c] = GetLevelSetVolume<Scal, M::dim>(f, (x - xc) / r, h / r);
       }
     };
   } else if (v == "gear") {
@@ -282,15 +282,15 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
       auto f = [dim, n, a](const Vect& x) -> Scal {
         Vect xd = x;
         if (dim == 2) {
-          xd[2] = 0.;
+          xd[2] = 0;
         }
-        Scal phi = std::atan2(xd[1], xd[0]);
-        return 1. + std::sin(phi * n) * a - xd.norm();
+        const Scal phi = std::atan2(xd[1], xd[0]);
+        return 1 + std::sin(phi * n) * a - xd.norm();
       };
       for (auto c : m.Cells()) {
         auto x = m.GetCenter(c);
         Vect h = m.GetCellSize();
-        fc[c] = GetLevelSetVolume<Scal>(f, (x - xc) / r, h / r);
+        fc[c] = GetLevelSetVolume<Scal, M::dim>(f, (x - xc) / r, h / r);
       }
     };
   } else if (v == "soliton") {
@@ -319,7 +319,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
       for (auto c : m.Cells()) {
         auto x = m.GetCenter(c);
         Vect h = m.GetCellSize();
-        fc[c] = GetLevelSetVolume<Scal>(f, x, h);
+        fc[c] = GetLevelSetVolume<Scal, M::dim>(f, x, h);
       }
     };
   } else if (v == "solitoncos") {
@@ -340,7 +340,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
       for (auto c : m.Cells()) {
         auto x = m.GetCenter(c);
         Vect h = m.GetCellSize();
-        fc[c] = GetLevelSetVolume<Scal>(f, x, h);
+        fc[c] = GetLevelSetVolume<Scal, M::dim>(f, x, h);
       }
     };
   } else if (v == "wavelamb") {
@@ -374,7 +374,8 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
         return y - eta;
       };
       for (auto c : m.Cells()) {
-        fc[c] = GetLevelSetVolume<Scal>(f, m.GetCenter(c), m.GetCellSize());
+        fc[c] =
+            GetLevelSetVolume<Scal, M::dim>(f, m.GetCenter(c), m.GetCellSize());
       }
     };
   } else if (v == "solitonwang") {
@@ -399,7 +400,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
       for (auto c : m.Cells()) {
         auto x = m.GetCenter(c);
         Vect h = m.GetCellSize();
-        fc[c] = GetLevelSetVolume<Scal>(f, x, h);
+        fc[c] = GetLevelSetVolume<Scal, M::dim>(f, x, h);
       }
     };
   } else if (v == "box") {
