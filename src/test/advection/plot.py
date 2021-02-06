@@ -20,7 +20,7 @@ def Get2d(u):
         return u
     else:
         assert len(s) >= 3
-        return u[0, :, :].reshape((s[1], s[2]))
+        return u[:, :, 0].reshape((s[0], s[1]))
 
 def Read2d(p):
     return Get2d(aphros.plot.ReadArray(p))
