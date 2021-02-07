@@ -18,7 +18,7 @@ jobs:
             - cache-build-{{ .Environment.CacheSuff }}
       - run:
           name: Extract cache archive
-          command: (cd ~ && test -f cache.tar && tar vxf cache.tar)
+          command: (cd ~ && test -f cache.tar && tar vxf cache.tar || true)
       - checkout
       - run:
           name: Build dependencies
@@ -44,7 +44,7 @@ jobs:
             cd ../..
       - run:
           name: Create cache archive
-          command: (cd ~ && rm -vf cache.tar && tar vcfH cache.tar posix aphros opt .local)
+          command: (cd ~ && rm -vf cache.tar && tar vcfH cache.tar posix aphros opt .local || true)
       - save_cache:
           key: cache-build-{{ .Environment.CacheSuff }}
           paths:
