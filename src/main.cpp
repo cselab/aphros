@@ -8,7 +8,6 @@
 template <size_t dim>
 void Run(MPI_Comm comm, Vars& var) {
   using M = MeshStructured<double, dim>;
-  using Vect = typename M::Vect;
   using K = Hydro<M>;
   using Par = typename K::Par;
   Par par;

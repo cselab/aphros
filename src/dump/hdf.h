@@ -10,6 +10,7 @@ template <class M>
 class Hdf {
  public:
   using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
   static constexpr const char* kDefaultName = "data";
   // Writes HDF file with dimensions (nz, ny, nx, 1).
@@ -44,10 +45,8 @@ class Hdf {
   // hdfpath: path to existing hdf
   // dname: hdf dataset name
   static void WriteXmf(
-      std::string xmfpath, std::string name,
-      const std::array<double, 3>& origin, const std::array<double, 3>& spacing,
-      const std::array<size_t, 3>& dims, std::string hdfpath,
-      std::string dname);
+      std::string xmfpath, std::string name, Vect origin, Vect spacing,
+      MIdx dims, std::string hdfpath, std::string dname);
   static void WriteXmf(
       std::string xmfpath, std::string name, std::string hdfpath, const M& m,
       std::string dname = kDefaultName);

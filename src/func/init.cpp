@@ -72,11 +72,12 @@ void InitVfList(
         const auto& p = pp[lsmax(m.GetCenter(c)).second];
         Vect qx = (x - p.c) / p.r;
         Vect qh = h / p.r;
-        if (edim == 2) {
+        if (edim == 2 && M::dim == 3) {
           qx[2] = 0.;
           qh[2] *= 1e-3; // XXX: adhoc, thin cell for 2d
         }
-        fc[c] = GetSphereOverlap(qx, qh, Vect(0), 1.);
+        using Vect3 = generic::Vect<Scal, 3>;
+        fc[c] = GetSphereOverlap(Vect3(qx), Vect3(qh), Vect3(0), 1);
       }
 #else
       fassert(false, "overlap is disabled");

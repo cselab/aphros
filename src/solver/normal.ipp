@@ -191,6 +191,12 @@ struct UNormal<M_>::Imp {
       util::Soa::StoreAsAos(vx, vy, vz, (Scal*)(&fcn[c]));
     }
   }
+  template <int dummy>
+  static void CalcNormalYoungsAvx(
+      M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
+      FieldCell<Vect>& fcn, generic::Vect<Scal, 4>*) {
+    CalcNormalYoungs1(m, fcu, fci, fcn);
+  }
   static void CalcNormalYoungsAvx(
       M& m, const FieldCell<Scal>& fcu, const FieldCell<bool>& fci,
       FieldCell<Vect>& fcn) {

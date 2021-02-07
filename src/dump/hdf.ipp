@@ -259,8 +259,7 @@ std::vector<size_t> Hdf<M>::GetShape(std::string path, std::string dname) {
 
 template <class M>
 void Hdf<M>::WriteXmf(
-    std::string xmfpath, std::string name, const std::array<double, 3>& origin,
-    const std::array<double, 3>& spacing, const std::array<size_t, 3>& dims,
+    std::string xmfpath, std::string name, Vect origin, Vect spacing, MIdx dims,
     std::string hdfpath, std::string dname) {
   std::ofstream f(xmfpath);
   f.precision(20);
@@ -303,8 +302,7 @@ template <class M>
 void Hdf<M>::WriteXmf(
     std::string xmfpath, std::string name, std::string hdfpath, const M& m,
     std::string dname) {
-  const std::array<double, 3> origin = {0, 0, 0};
-  const std::array<double, 3> spacing = m.GetCellSize();
-  const auto dims = m.GetGlobalSize();
-  WriteXmf(xmfpath, name, origin, spacing, dims, hdfpath, dname);
+  WriteXmf(
+      xmfpath, name, Vect(0), m.GetCellSize(), m.GetGlobalSize(), hdfpath,
+      dname);
 }
