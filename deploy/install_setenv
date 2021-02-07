@@ -30,20 +30,25 @@ profiles = [profile_default] + profiles
 parser = argparse.ArgumentParser(
     description="Installs file 'ap.setenv' which appends paths \
 and loads modules depending on the selected configuration profile. \
-After sourcing the file in a shell, proceed with CMake.")
-parser.add_argument('prefix', help="installation prefix for Aphros")
+After sourcing the file in a shell, proceed with CMake."                                                        ,
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+parser.add_argument('prefix', help="Installation prefix for Aphros")
 parser.add_argument(
     '--profile',
     default=profile_default,
     choices=profiles,
-    help="configuration profile, defined in 'scripts_gen/profiles'")
+    help="Configuration profile, defined in 'scripts_gen/profiles'")
+parser.add_argument('--binpath',
+                    default="~/.local/bin",
+                    help="Directory for symlink to ap.setenv")
 parser.add_argument('--no-bin-symlink',
                     action='store_true',
-                    help="do not create symlink '~/.local/bin/ap.setenv'")
+                    help="Do not create symlink 'BINPATH/ap.setenv'")
 parser.add_argument('--force',
                     '-f',
                     action='store_true',
-                    help="overwrite existing files and symlinks")
+                    help="Overwrite existing files and symlinks")
 args = parser.parse_args()
 
 prefix = os.path.abspath(args.prefix)
@@ -58,7 +63,8 @@ fname = "ap.setenv"
 fpath = os.path.join(prefix_bin, fname)
 if os.path.isfile(fpath):
     if not args.force:
-        raise RuntimeError("File '{:}' exists, pass -f to overwrite.".format(fpath))
+        raise RuntimeError(
+            "File '{:}' exists, pass -f to overwrite.".format(fpath))
 printerr("Created '{:}' from profile '{:}'.".format(fpath, profile))
 
 if profile == profile_default:
@@ -76,12 +82,9 @@ with open(fpath, "wb") as f:
     modenv = os.environ.copy()
     modenv["PREFIX"] = prefix
     modenv["PROFILE"] = profile
-    subprocess.call([exe_path],
-                    cwd=profile_dir,
-                    env=modenv,
-                    stdout=f)
+    subprocess.call([exe_path], cwd=profile_dir, env=modenv, stdout=f)
 
-home_bin = os.path.expanduser("~/.local/bin")
+home_bin = os.path.expanduser(args.binpath)
 lpath = os.path.join(home_bin, fname)
 if symlink:
     if not os.path.isdir(home_bin):
@@ -89,7 +92,8 @@ if symlink:
     if os.path.islink(lpath) or os.path.isfile(lpath):
         if not args.force:
             raise RuntimeError(
-                "Symlink or file '{:}' exists, pass -f to overwrite.".format(lpath))
+                "Symlink or file '{:}' exists, pass -f to overwrite.".format(
+                    lpath))
         os.remove(lpath)
     os.symlink(fpath, lpath)
     printerr("Added symlink to '{:}'.".format(home_bin))
@@ -98,6 +102,7 @@ printerr("Command to source the file:")
 if symlink:
     printerr("  . {:}".format(fname))
     if home_bin not in os.environ["PATH"].split(os.pathsep):
-        printerr("Warning: this requires adding '~/.local/bin' to PATH.")
+        printerr("Warning: this requires adding '{}' to PATH.".format(
+            args.binpath))
 else:
     printerr("  . {:}".format(fpath))
