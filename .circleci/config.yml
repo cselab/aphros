@@ -3,7 +3,7 @@ version: 2.1
 executors:
   mainexecutor:
     docker:
-      - image: pkarnakov/aphros-gcc-openmp:0.1
+      - image: pkarnakov/aphros-gcc-openmpi:0.1
 
 # using environment variable CacheSuff
 # defined in the Project Settings
