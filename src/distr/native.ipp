@@ -54,13 +54,13 @@ class Native : public DistrMesh<M_> {
   int commsize_;
   int commrank_;
   typename CommManager<dim>::Tasks tasks_;
-  struct HaloTmp {
+  struct ReqTmp {
     MPI_Request req;
     size_t cnt = 0;
     std::vector<Scal> buf;
   };
-  std::map<int, HaloTmp> tmp_send_;
-  std::map<int, HaloTmp> tmp_recv_;
+  std::map<int, ReqTmp> tmp_send_; // rank to request
+  std::map<int, ReqTmp> tmp_recv_;
 };
 
 template <class M>
@@ -125,152 +125,171 @@ auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
     return bb;
   }
 
-  auto& task = tasks_.full_two;
+  using Task = typename CommManager<dim>::Task;
+  using CommStencil = typename M::CommStencil;
+  std::array<std::pair<const Task*, CommStencil>, 4> taskstencils{
+      std::make_pair(&tasks_.full_two, CommStencil::full_two),
+      std::make_pair(&tasks_.full_one, CommStencil::full_one),
+      std::make_pair(&tasks_.direct_two, CommStencil::direct_two),
+      std::make_pair(&tasks_.direct_one, CommStencil::direct_one),
+  };
 
-  size_t nscal = 0; // number of scalar fields to transfer
-  for (size_t i = 0; i < vcr.size(); ++i) {
-    if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
-      nscal += 1;
-    }
-    if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
-      nscal += (crd->d == -1 ? dim : 1);
-    }
-  }
+  for (auto& pair : taskstencils) {
+    auto& task = *pair.first;
+    auto stencil = pair.second;
 
-  // Clear buffers
-  for (auto& p : tmp_recv_) {
-    auto& tmp = p.second;
-    tmp.buf.resize(0);
-    tmp.cnt = 0;
-  }
-  for (auto& p : tmp_send_) {
-    auto& tmp = p.second;
-    tmp.buf.resize(0);
-    tmp.cnt = 0;
-  }
-
-  // Determine the size of receive buffer
-  for (auto& p : task.recv) {
-    auto& rank = p.first;
-    auto& cells = p.second;
-    tmp_recv_[rank].cnt += cells.size() * nscal;
-  }
-
-  auto type = sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT;
-  const int tag = 0;
-
-  // Receive
-  for (auto& p : tmp_recv_) {
-    auto& rank = p.first;
-    auto& tmp = p.second;
-    tmp.buf.resize(tmp.cnt);
-    MPI_Irecv(tmp.buf.data(), tmp.cnt, type, rank, tag, comm_, &tmp.req);
-  }
-  // Determine the size of send buffer
-  for (auto& p : task.send) {
-    auto& rank = p.first;
-    auto& cells = p.second;
-    tmp_send_[rank].cnt += cells.size() * nscal;
-  }
-  // Reserve send buffer
-  for (auto& p : tmp_send_) {
-    auto& tmp = p.second;
-    tmp.buf.reserve(tmp.cnt);
-  }
-  // Collect data to send
-  for (size_t i = 0; i < vcr.size(); ++i) {
-    if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
-      std::vector<FieldCell<Scal>*> fields;
-      for (auto& k : kernels_) {
-        const auto* cr = static_cast<typename M::CommRequestScal*>(
-            k->GetMesh().GetComm()[i].get());
-        fields.push_back(cr->field);
+    std::vector<size_t> vcr_indices;
+    for (size_t i = 0; i < vcr.size(); ++i) {
+      if (vcr[i]->stencil == stencil) {
+        vcr_indices.push_back(i);
       }
-      for (auto& p : task.send) {
-        auto& rank = p.first;
-        auto& cells = p.second;
-        auto& tmp = tmp_send_[rank];
-        for (auto bc : cells) {
-          tmp.buf.push_back((*fields[bc.block])[bc.cell]);
+    }
+
+    size_t nscal = 0; // number of scalar fields to transfer
+    for (auto i : vcr_indices) {
+      if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
+        nscal += 1;
+      }
+      if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
+        nscal += (crd->d == -1 ? dim : 1);
+      }
+    }
+
+    // Clear buffers
+    for (auto& p : tmp_recv_) {
+      auto& tmp = p.second;
+      tmp.buf.resize(0);
+      tmp.cnt = 0;
+    }
+    for (auto& p : tmp_send_) {
+      auto& tmp = p.second;
+      tmp.buf.resize(0);
+      tmp.cnt = 0;
+    }
+
+    // Determine the size of receive buffer
+    for (auto& p : task.recv) {
+      auto& rank = p.first;
+      auto& cells = p.second;
+      tmp_recv_[rank].cnt += cells.size() * nscal;
+    }
+
+    auto type = sizeof(Scal) == 8 ? MPI_DOUBLE : MPI_FLOAT;
+    const int tag = 0;
+
+    // Receive
+    for (auto& p : tmp_recv_) {
+      auto& rank = p.first;
+      auto& tmp = p.second;
+      tmp.buf.resize(tmp.cnt);
+      MPI_Irecv(tmp.buf.data(), tmp.cnt, type, rank, tag, comm_, &tmp.req);
+    }
+    // Determine the size of send buffer
+    for (auto& p : task.send) {
+      auto& rank = p.first;
+      auto& cells = p.second;
+      tmp_send_[rank].cnt += cells.size() * nscal;
+    }
+    // Reserve send buffer
+    for (auto& p : tmp_send_) {
+      auto& tmp = p.second;
+      tmp.buf.reserve(tmp.cnt);
+    }
+    // Collect data to send
+    for (auto i : vcr_indices) {
+      if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
+        std::vector<FieldCell<Scal>*> fields;
+        for (auto& k : kernels_) {
+          const auto* cr = static_cast<typename M::CommRequestScal*>(
+              k->GetMesh().GetComm()[i].get());
+          fields.push_back(cr->field);
+        }
+        for (auto& p : task.send) {
+          auto& rank = p.first;
+          auto& cells = p.second;
+          auto& tmp = tmp_send_[rank];
+          for (auto bc : cells) {
+            tmp.buf.push_back((*fields[bc.block])[bc.cell]);
+          }
         }
       }
-    }
-    if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
-      std::vector<FieldCell<Vect>*> fields;
-      for (auto& k : kernels_) {
-        const auto* cr = static_cast<typename M::CommRequestVect*>(
-            k->GetMesh().GetComm()[i].get());
-        fields.push_back(cr->field);
-      }
-      for (auto& p : task.send) {
-        auto& rank = p.first;
-        auto& cells = p.second;
-        auto& tmp = tmp_send_[rank];
-        for (auto bc : cells) {
-          if (crd->d == -1) {
-            for (size_t d = 0; d < dim; ++d) {
-              tmp.buf.push_back((*fields[bc.block])[bc.cell][d]);
+      if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
+        std::vector<FieldCell<Vect>*> fields;
+        for (auto& k : kernels_) {
+          const auto* cr = static_cast<typename M::CommRequestVect*>(
+              k->GetMesh().GetComm()[i].get());
+          fields.push_back(cr->field);
+        }
+        for (auto& p : task.send) {
+          auto& rank = p.first;
+          auto& cells = p.second;
+          auto& tmp = tmp_send_[rank];
+          for (auto bc : cells) {
+            if (crd->d == -1) {
+              for (size_t d = 0; d < dim; ++d) {
+                tmp.buf.push_back((*fields[bc.block])[bc.cell][d]);
+              }
+            } else {
+              tmp.buf.push_back((*fields[bc.block])[bc.cell][crd->d]);
             }
-          } else {
-            tmp.buf.push_back((*fields[bc.block])[bc.cell][crd->d]);
           }
         }
       }
     }
-  }
-  // Send
-  for (auto& p : tmp_send_) {
-    auto& rank = p.first;
-    auto& tmp = p.second;
-    tmp.buf.resize(tmp.cnt);
-    MPI_Isend(tmp.buf.data(), tmp.cnt, type, rank, tag, comm_, &tmp.req);
-  }
-  // Wait for send and receive
-  for (auto& p : tmp_send_) {
-    MPI_Wait(&p.second.req, MPI_STATUS_IGNORE);
-  }
-  for (auto& p : tmp_recv_) {
-    MPI_Wait(&p.second.req, MPI_STATUS_IGNORE);
-  }
-  // Copy received data to fields, use `cnt` for position
-  for (auto& p : tmp_recv_) {
-    p.second.cnt = 0;
-  }
-  for (size_t i = 0; i < vcr.size(); ++i) {
-    if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
-      std::vector<FieldCell<Scal>*> fields;
-      for (auto& k : kernels_) {
-        const auto* cr = static_cast<typename M::CommRequestScal*>(
-            k->GetMesh().GetComm()[i].get());
-        fields.push_back(cr->field);
-      }
-      for (auto& p : task.recv) {
-        auto& rank = p.first;
-        auto& cells = p.second;
-        auto& tmp = tmp_recv_[rank];
-        for (auto bc : cells) {
-          (*fields[bc.block])[bc.cell] = tmp.buf[tmp.cnt++];
+    // Send
+    for (auto& p : tmp_send_) {
+      auto& rank = p.first;
+      auto& tmp = p.second;
+      tmp.buf.resize(tmp.cnt);
+      MPI_Isend(tmp.buf.data(), tmp.cnt, type, rank, tag, comm_, &tmp.req);
+    }
+    // Wait for send and receive
+    for (auto& p : tmp_send_) {
+      MPI_Wait(&p.second.req, MPI_STATUS_IGNORE);
+    }
+    for (auto& p : tmp_recv_) {
+      MPI_Wait(&p.second.req, MPI_STATUS_IGNORE);
+    }
+    // Copy received data to fields, use `cnt` for position
+    for (auto& p : tmp_recv_) {
+      p.second.cnt = 0;
+    }
+    for (auto i : vcr_indices) {
+      if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
+        std::vector<FieldCell<Scal>*> fields;
+        for (auto& k : kernels_) {
+          const auto* cr = static_cast<typename M::CommRequestScal*>(
+              k->GetMesh().GetComm()[i].get());
+          fields.push_back(cr->field);
+        }
+        for (auto& p : task.recv) {
+          auto& rank = p.first;
+          auto& cells = p.second;
+          auto& tmp = tmp_recv_[rank];
+          for (auto bc : cells) {
+            (*fields[bc.block])[bc.cell] = tmp.buf[tmp.cnt++];
+          }
         }
       }
-    }
-    if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
-      std::vector<FieldCell<Vect>*> fields;
-      for (auto& k : kernels_) {
-        const auto* cr = static_cast<typename M::CommRequestVect*>(
-            k->GetMesh().GetComm()[i].get());
-        fields.push_back(cr->field);
-      }
-      for (auto& p : task.recv) {
-        auto& rank = p.first;
-        auto& cells = p.second;
-        auto& tmp = tmp_recv_[rank];
-        for (auto bc : cells) {
-          if (crd->d == -1) {
-            for (size_t d = 0; d < dim; ++d) {
-              (*fields[bc.block])[bc.cell][d] = tmp.buf[tmp.cnt++];
+      if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
+        std::vector<FieldCell<Vect>*> fields;
+        for (auto& k : kernels_) {
+          const auto* cr = static_cast<typename M::CommRequestVect*>(
+              k->GetMesh().GetComm()[i].get());
+          fields.push_back(cr->field);
+        }
+        for (auto& p : task.recv) {
+          auto& rank = p.first;
+          auto& cells = p.second;
+          auto& tmp = tmp_recv_[rank];
+          for (auto bc : cells) {
+            if (crd->d == -1) {
+              for (size_t d = 0; d < dim; ++d) {
+                (*fields[bc.block])[bc.cell][d] = tmp.buf[tmp.cnt++];
+              }
+            } else {
+              (*fields[bc.block])[bc.cell][crd->d] = tmp.buf[tmp.cnt++];
             }
-          } else {
-            (*fields[bc.block])[bc.cell][crd->d] = tmp.buf[tmp.cnt++];
           }
         }
       }
@@ -572,4 +591,3 @@ std::unique_ptr<DistrMesh<M>> CreateNative(
     MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var) {
   return std::unique_ptr<DistrMesh<M>>(new Native<M>(comm, kf, var));
 }
-

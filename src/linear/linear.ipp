@@ -55,7 +55,7 @@ struct SolverConjugate<M>::Imp {
         }
         t.fcr[c] = -u;
       }
-      m.Comm(&t.fcr);
+      m.Comm(&t.fcr, M::CommStencil::direct_one);
     }
     if (sem("init")) {
       t.fcp = t.fcr;
@@ -98,7 +98,7 @@ struct SolverConjugate<M>::Imp {
       for (auto c : m.Cells()) {
         t.fcp[c] = t.fcr[c] + (t.dot_r / (t.dot_r_prev + 1e-100)) * t.fcp[c];
       }
-      m.Comm(&t.fcp);
+      m.Comm(&t.fcp, M::CommStencil::direct_one);
     }
     if (sem("check")) {
       if (extra.residual_max) {
@@ -116,7 +116,7 @@ struct SolverConjugate<M>::Imp {
     sem.LoopEnd();
     if (sem("result")) {
       fc_sol = t.fcu;
-      m.Comm(&fc_sol);
+      m.Comm(&fc_sol, M::CommStencil::direct_one);
       if (m.flags.linreport && m.IsRoot()) {
         std::cout << std::scientific;
         std::cout << "linear(conjugate) '" + fc_system.GetName() + "':"

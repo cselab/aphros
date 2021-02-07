@@ -219,27 +219,30 @@ void MeshCartesian<Scal, dim>::Comm(std::unique_ptr<CommRequest>&& r) {
   imp->commreq.emplace_back(std::move(r));
 }
 template <class Scal, size_t dim>
-void MeshCartesian<Scal, dim>::Comm(FieldCell<Scal>* f) {
-  Comm(std::make_unique<CommRequestScal>(f));
+void MeshCartesian<Scal, dim>::Comm(FieldCell<Scal>* f, CommStencil stencil) {
+  Comm(std::make_unique<CommRequestScal>(f, stencil));
 }
 template <class Scal, size_t dim>
-void MeshCartesian<Scal, dim>::Comm(FieldCell<Vect>* f, int d) {
-  Comm(std::make_unique<CommRequestVect>(f, d));
+void MeshCartesian<Scal, dim>::Comm(
+    FieldCell<Vect>* f, int d, CommStencil stencil) {
+  Comm(std::make_unique<CommRequestVect>(f, d, stencil));
 }
 template <class Scal, size_t dim>
-void MeshCartesian<Scal, dim>::Comm(FieldCell<Vect>* f) {
-  Comm(f, -1);
+void MeshCartesian<Scal, dim>::Comm(FieldCell<Vect>* f, CommStencil stencil) {
+  Comm(f, -1, stencil);
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Dump(const FieldCell<Scal>* f, std::string n) {
   auto ff = const_cast<FieldCell<Scal>*>(f);
-  imp->dump.emplace_back(std::make_unique<CommRequestScal>(ff), n);
+  imp->dump.emplace_back(
+      std::make_unique<CommRequestScal>(ff, CommStencil::none), n);
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Dump(
     const FieldCell<Vect>* f, int d, std::string n) {
   auto ff = const_cast<FieldCell<Vect>*>(f);
-  imp->dump.emplace_back(std::make_unique<CommRequestVect>(ff, d), n);
+  imp->dump.emplace_back(
+      std::make_unique<CommRequestVect>(ff, d, CommStencil::none), n);
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Dump(

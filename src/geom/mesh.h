@@ -629,7 +629,10 @@ class MeshCartesian {
     return susp_;
   }
 
+  enum class CommStencil { none, full_two, full_one, direct_two, direct_one };
   struct CommRequest {
+    CommRequest() = default;
+    CommRequest(CommStencil stencil_) : stencil(stencil_) {}
     virtual ~CommRequest() {}
     // Number of scalar cell fields  (used in Dump and ghost communication)
     virtual size_t GetSize() const = 0;
@@ -640,10 +643,12 @@ class MeshCartesian {
     // Pointer to the start of data.  Retain type-safety of data type, requires
     // that Vect::value_type is Scal and must not be changed
     virtual Scal* GetBasePtr() = 0;
+    CommStencil stencil = CommStencil::full_two;
   };
   // FieldCell<Scal>
   struct CommRequestScal : public CommRequest {
-    CommRequestScal(FieldCell<Scal>* field_) : field(field_) {}
+    CommRequestScal(FieldCell<Scal>* field_, CommStencil stencil_)
+        : CommRequest(stencil_), field(field_) {}
     size_t GetSize() const override {
       return 1;
     }
@@ -658,11 +663,11 @@ class MeshCartesian {
     }
     FieldCell<Scal>* field;
   };
-  // FieldCell<Vect>
   struct CommRequestVect : public CommRequest {
     // f: vector field
-    // i: component (0,1,2), or -1 for all
-    CommRequestVect(FieldCell<Vect>* field_, int d_) : field(field_), d(d_) {}
+    // d_: component (0,1,2), or -1 for all
+    CommRequestVect(FieldCell<Vect>* field_, int d_, CommStencil stencil_)
+        : CommRequest(stencil_), field(field_), d(d_) {}
     size_t GetSize() const override {
       return d == -1 ? Vect::dim : 1;
     }
@@ -679,9 +684,14 @@ class MeshCartesian {
     int d;
   };
   void Comm(std::unique_ptr<CommRequest>&& r);
-  void Comm(FieldCell<Scal>* field);
-  void Comm(FieldCell<Vect>* field, int component);
-  void Comm(FieldCell<Vect>* field);
+  void Comm(
+      FieldCell<Scal>* field,
+      CommStencil stencil = CommStencil::full_two);
+  void Comm(
+      FieldCell<Vect>* field, int component,
+      CommStencil stencil = CommStencil::full_two);
+  void Comm(
+      FieldCell<Vect>* field, CommStencil stencil = CommStencil::full_two);
   const std::vector<std::unique_ptr<CommRequest>>& GetComm() const;
   void ClearComm();
 
