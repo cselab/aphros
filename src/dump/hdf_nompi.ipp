@@ -21,9 +21,8 @@ std::vector<size_t> Hdf<M>::GetShape(std::string, std::string) {
 
 template <class M>
 void Hdf<M>::WriteXmf(
-    std::string, std::string, const std::array<double, 3>&,
-    const std::array<double, 3>&, const std::array<size_t, 3>&, std::string,
-    std::string) {}
+    std::string, std::string, typename M::Vect, typename M::Vect,
+    typename M::MIdx, std::string, std::string) {}
 
 template <class M>
 void Hdf<M>::WriteXmf(
