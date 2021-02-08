@@ -13,6 +13,14 @@
   <body>
     <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
 
+    <div class="emscripten">
+      <input type="button" value="faster"
+        onclick="Module.ccall('MulSpeed', 'number', ['number'], [1.5])">
+      <input type="button" value="slower"
+        onclick="Module.ccall('MulSpeed', 'number', ['number'], [1/1.5])">
+    </div>
+
+
     <textarea class="emscripten" id="output" rows="30"></textarea>
 
     <script type='text/javascript'>
@@ -43,6 +51,7 @@
         setStatus: function(text) {},
       };
     </script>
+
     <script async src=canvas.js></script>
   </body>
 </html>
