@@ -127,7 +127,8 @@ CreateInitCl(const Vars& var, bool verb) {
     using MIdx = typename M::MIdx;
     MIdx gridstep;
     for (auto d : M::dirs) {
-      gridstep[d] = var.Int["initvf_grid_d" + GDir<M::dim>(d).letter()];
+      gridstep[d] =
+          var.Int[std::string("initvf_grid_d") + GDir<M::dim>(d).letter()];
     }
     return [gridstep](FieldCell<Scal>& fc, const FieldCell<Scal>&, const M& m) {
       fc.Reinit(m, kClNone);
