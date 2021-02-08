@@ -8,15 +8,17 @@
       .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
       textarea.emscripten { font-family: monospace; width: 80%;}
       canvas.emscripten { border: 0px none; background-color: black; }
+      div.emscripten { text-align: center; }
+      .button {width: 200px; height: 60px; font-size: 20pt; }
     </style>
   </head>
   <body>
     <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
 
     <div class="emscripten">
-      <input type="button" value="faster"
+      <input type="button" class="button" value="faster"
         onclick="Module.ccall('MulSpeed', 'number', ['number'], [1.5])">
-      <input type="button" value="slower"
+      <input type="button" class="button" value="slower"
         onclick="Module.ccall('MulSpeed', 'number', ['number'], [1/1.5])">
     </div>
 
