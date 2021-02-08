@@ -59,7 +59,9 @@ auto ULinearFit<Vect_>::FitLinear(
   constexpr Int N = dim + 1;
   std::array<Scal, N * N> a;
   std::array<Scal, N> b;
-  auto aa = [&a](Int i, Int j) -> Scal& { return a[i * N + j]; };
+  auto aa = [&a](Int i, Int j) -> Scal& { //
+    return a[i * N + j];
+  };
   std::fill(a.begin(), a.end(), 0);
   std::fill(b.begin(), b.end(), 0);
   for (size_t k = 0; k < xx.size(); ++k) {
@@ -648,10 +650,10 @@ auto UEmbed<M>::InterpolateUpwind(
       const Scal du = fcu[cp] - fcu[cm];
       if (fev[f] > 0) {
         const auto rm = m.GetVectToCell(f, 0);
-        feu[f] = fcu[cm] + 0.5 * Superbee(du, -4. * fcg[cm].dot(rm) - du);
+        feu[f] = fcu[cm] + 0.5 * Superbee(du, -4 * fcg[cm].dot(rm) - du);
       } else if (fev[f] < 0) {
         const auto rp = m.GetVectToCell(f, 1);
-        feu[f] = fcu[cp] - 0.5 * Superbee(du, 4. * fcg[cp].dot(rp) - du);
+        feu[f] = fcu[cp] - 0.5 * Superbee(du, 4 * fcg[cp].dot(rp) - du);
       } else {
         feu[f] = (fcu[cm] + fcu[cp]) * 0.5;
       }
@@ -981,10 +983,10 @@ auto UEmbed<M>::InterpolateUpwind(
       const Scal du = fcu[cp] - fcu[cm];
       if (ffv[f] > 0) {
         const auto rm = m.GetVectToCell(f, 0);
-        ffu[f] = fcu[cm] + 0.5 * Superbee(du, -4. * fcg[cm].dot(rm) - du);
+        ffu[f] = fcu[cm] + 0.5 * Superbee(du, -4 * fcg[cm].dot(rm) - du);
       } else if (ffv[f] < 0) {
         const auto rp = m.GetVectToCell(f, 1);
-        ffu[f] = fcu[cp] - 0.5 * Superbee(du, 4. * fcg[cp].dot(rp) - du);
+        ffu[f] = fcu[cp] - 0.5 * Superbee(du, 4 * fcg[cp].dot(rp) - du);
       } else {
         ffu[f] = (fcu[cm] + fcu[cp]) * 0.5;
       }
@@ -1010,7 +1012,7 @@ auto UEmbed<M>::InterpolateUpwind(
     }
   }
 
-  auto calc = [&](IdxFace, IdxCell c, const BCond<Scal>& bc) {
+  auto calc = [&](IdxFace, IdxCell c, const BCond<Scal>& bc) -> Scal {
     switch (bc.type) {
       case BCondType::dirichlet: {
         return bc.val;
@@ -1209,7 +1211,7 @@ auto UEmbed<M>::RedistributeCutCellsAdvection(
   // dt < cfl * V / volumeflux
   // dt * volumeflux < cfl * V
   // dtmax = cfl * V / volumeflux
-  auto excess = [&](IdxCell c) {
+  auto excess = [&](IdxCell c) -> Scal {
     Scal dtmax = std::numeric_limits<Scal>::max();
     eb.LoopNci(c, [&](auto q) {
       const auto cf = eb.GetFace(c, q);
@@ -1218,7 +1220,7 @@ auto UEmbed<M>::RedistributeCutCellsAdvection(
         dtmax = std::min(dtmax, cfl * eb.GetVolume(c) / flux);
       }
     });
-    return fcs[c] * std::max(0., (dt - dtmax) / dt);
+    return fcs[c] * std::max<Scal>(0, (dt - dtmax) / dt);
   };
   auto fcr = fcs;
   for (auto c : eb.Cells()) {

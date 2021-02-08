@@ -3,8 +3,6 @@
 
 #include "mesh.h"
 
-using M = MeshCartesian<double, 3>;
-
 template <class Scal, size_t dim>
 constexpr generic::Range<size_t> MeshCartesian<Scal, dim>::dirs;
 
