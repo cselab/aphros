@@ -26,12 +26,12 @@ class Local : public DistrMesh<M_> {
  private:
   using MIdx = typename M::MIdx;
   using P = DistrMesh<M>;
+  using P::dim;
   using RedOp = typename M::Op;
-  using BlockInfoProxy = generic::BlockInfoProxy<3>;
+  using BlockInfoProxy = generic::BlockInfoProxy<dim>;
 
   using P::blocksize_;
   using P::comm_;
-  using P::dim;
   using P::extent_;
   using P::frame_;
   using P::halos_;
@@ -47,7 +47,7 @@ class Local : public DistrMesh<M_> {
   M globalmesh; // global mesh
   std::unique_ptr<output::Ser> oser_; // output series
   std::vector<BlockInfoProxy> proxies_;
-  generic::Vect<bool, 3> per_; // periodic in direction
+  generic::Vect<bool, dim> per_; // periodic in direction
 
   size_t WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m);
   size_t WriteBuffer(const FieldCell<Vect>& f, size_t d, size_t e, M& m);
@@ -318,7 +318,7 @@ size_t Local<M>::ReadBuffer(FieldCell<Scal>& fc, size_t e, M& m) {
   for (auto c : m.AllCells()) {
     auto w = ndc.GetMIdx(c);
     // periodic
-    for (int d = 0; d < 3; ++d) {
+    for (int d = 0; d < dim; ++d) {
       if (per_[d]) {
         w[d] = (w[d] + gs[d]) % gs[d];
       }
@@ -351,7 +351,7 @@ size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t comp, size_t e, M& m) {
   for (auto c : m.AllCells()) {
     auto w = indexc.GetMIdx(c);
     // periodic
-    for (int d = 0; d < 3; ++d) {
+    for (int d = 0; d < dim; ++d) {
       if (per_[d]) {
         w[d] = (w[d] + gs[d]) % gs[d];
       }
