@@ -26,6 +26,8 @@ option(USE_BACKEND_NATIVE "Enable native backend for distributed computation. Re
 
 set(CMAKE_MACOSX_RPATH OFF)
 set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)
+set(CMAKE_LINK_DEPENDS_NO_SHARED ON)
 
 set(APHROS_USE_MPI ${USE_MPI})
 set(APHROS_USE_OPENMP ${USE_OPENMP})
@@ -123,8 +125,6 @@ target_compile_definitions(
 target_compile_definitions(
   ${T} INTERFACE _USE_BACKEND_NATIVE_=$<BOOL:${USE_BACKEND_NATIVE}>)
 install(TARGETS ${T} EXPORT export)
-
-set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY ON)
 
 include_directories(.)
 
