@@ -318,7 +318,7 @@ size_t Local<M>::ReadBuffer(FieldCell<Scal>& fc, size_t e, M& m) {
   for (auto c : m.AllCells()) {
     auto w = ndc.GetMIdx(c);
     // periodic
-    for (int d = 0; d < dim; ++d) {
+    for (auto d : M::dirs) {
       if (per_[d]) {
         w[d] = (w[d] + gs[d]) % gs[d];
       }
@@ -351,7 +351,7 @@ size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t comp, size_t e, M& m) {
   for (auto c : m.AllCells()) {
     auto w = indexc.GetMIdx(c);
     // periodic
-    for (int d = 0; d < dim; ++d) {
+    for (auto d : M::dirs) {
       if (per_[d]) {
         w[d] = (w[d] + gs[d]) % gs[d];
       }
@@ -374,7 +374,7 @@ size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t comp, size_t e, M& m) {
 // number of scalar fields read
 template <class M>
 size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t e, M& m) {
-  for (size_t d = 0; d < Vect::dim; ++d) {
+  for (auto d : M::dirs) {
     e += ReadBuffer(fc, d, e, m);
   }
   return Vect::dim;
@@ -453,7 +453,7 @@ size_t Local<M>::WriteBuffer(
 // number of scalar fields written
 template <class M>
 size_t Local<M>::WriteBuffer(const FieldCell<Vect>& fc, size_t e, M& m) {
-  for (size_t d = 0; d < Vect::dim; ++d) {
+  for (auto d : M::dirs) {
     e += WriteBuffer(fc, d, e, m);
   }
   return Vect::dim;

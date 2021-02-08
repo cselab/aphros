@@ -24,4 +24,4 @@ class ModuleDistrLocal : public ModuleDistr<M> {
 
 #define X(dim) RegisterModule<ModuleDistrLocal<MeshStructured<double, dim>>>(),
 
-bool kRegDistrNative[] = {MULTIDIMX};
+bool kRegDistrLocal[] = {MULTIDIMX};
