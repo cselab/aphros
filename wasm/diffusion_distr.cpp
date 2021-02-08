@@ -1,12 +1,12 @@
-#include <stdint.h>
-#include <stdlib.h>
-#include <emscripten.h>
-#include <emscripten/html5.h>
 #include <cmath>
 #include <cstring>
+#include <emscripten.h>
+#include <emscripten/html5.h>
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "distr/distrbasic.h"
 #include "distr/distrsolver.h"
@@ -16,6 +16,7 @@
 #include "solver/approx_eb.h"
 #include "solver/cond.h"
 #include "solver/solver.h"
+#include "solver/vof.h"
 #include "util/format.h"
 #include "util/module.h"
 #include "util/timer.h"
@@ -25,7 +26,7 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
-void CopyToCanvas(uint32_t* ptr, int w, int h) {
+void CopyToCanvas(uint32_t *ptr, int w, int h) {
   EM_ASM_(
       {
         let data = Module.HEAPU8.slice($0, $0 + $1 * $2 * 4);
@@ -40,24 +41,29 @@ void CopyToCanvas(uint32_t* ptr, int w, int h) {
 struct Par {};
 
 class Solver : public KernelMeshPar<M, Par> {
- public:
+public:
   using P = KernelMeshPar<M, Par>; // parent
   using Par = typename P::Par;
   static constexpr size_t dim = M::dim;
   using Sem = typename M::Sem;
   using BlockInfoProxy = generic::BlockInfoProxy<dim>;
 
-  Solver(Vars& var_, const BlockInfoProxy& proxy, Par& par)
-      : KernelMeshPar<M, Par>(var_, proxy, par), fcu(m, 0) {}
+  Solver(Vars &var_, const BlockInfoProxy &proxy, Par &par)
+      : KernelMeshPar<M, Par>(var_, proxy, par), fcu(m, 0), fc_src(m, 0),
+        ff_flux(m, 0) {}
   void Run() override;
 
- protected:
+protected:
   using P::m;
   using P::par_;
   using P::var;
 
- private:
+private:
   FieldCell<Scal> fcu;
+  FieldFace<Scal> ff_flux;
+  FieldCell<Scal> fc_src;
+  MapEmbed<BCondAdvection<Scal>> bc_vof;
+  std::unique_ptr<Vof<M>> vof;
 };
 
 struct Canvas {
@@ -74,7 +80,7 @@ M GetMesh(MIdx size) {
 }
 
 struct State {
-  State(MPI_Comm comm, Vars& var)
+  State(MPI_Comm comm, Vars &var)
       : m(GetMesh(MIdx(8))), distrsolver(comm, var, par) {}
   M m;
   typename Solver::Par par;
@@ -84,24 +90,23 @@ struct State {
   Scal diffusion = 0.01;
   Vect velocity{1., 0.5};
   bool pause = false;
-  bool to_init = true;
+  bool to_init_field = true;
+  bool to_init_solver = true;
 };
 
 std::shared_ptr<State> g_state;
 std::shared_ptr<Canvas> g_canvas;
 
-static Scal Clamp(Scal f) {
-  return f < 0 ? 0 : f > 1 ? 1 : f;
-}
+static Scal Clamp(Scal f) { return f < 0 ? 0 : f > 1 ? 1 : f; }
 
-static void Init(FieldCell<Scal>& fcu, const M& m) {
+static void Init(FieldCell<Scal> &fcu, const M &m) {
   for (auto c : m.AllCellsM()) {
     fcu[c] = (Vect(0.5).dist(c.center) < 0.2 ? 1 : 0);
   }
 }
 
-static void Step(
-    FieldCell<Scal>& fcu, Scal dt, Scal diffusion, Vect velocity, const M& m) {
+static void Step(FieldCell<Scal> &fcu, Scal dt, Scal diffusion, Vect velocity,
+                 const M &m) {
   using UEB = UEmbed<M>;
   const auto ffg = UEB::Gradient(fcu, {}, m);
   const auto fcg = UEB::AverageGradient(ffg, m);
@@ -122,7 +127,7 @@ static void Step(
   }
 }
 
-static void Render(Canvas& canvas, const FieldCell<Scal>& fcu, const M& m) {
+static void Render(Canvas &canvas, const FieldCell<Scal> &fcu, const M &m) {
   const auto msize = m.GetGlobalSize();
   for (auto c : m.CellsM()) {
     const MIdx w(c);
@@ -143,20 +148,40 @@ static void Render(Canvas& canvas, const FieldCell<Scal>& fcu, const M& m) {
 void Solver::Run() {
   auto sem = m.GetSem();
   auto state = g_state;
-  auto& s = *state;
+  auto &s = *state;
   if (sem("init")) {
-    if (s.to_init) {
+    s.to_init_solver = false;
+    if (s.to_init_field) {
       Init(fcu, m);
     }
+    for (auto f : m.Faces()) {
+      ff_flux[f] = s.velocity.dot(m.GetSurface(f));
+    }
+  }
+  if (sem("init_solver")) {
+    auto p = ParsePar<Vof<M>>()(var);
+    const FieldCell<Scal> fccl(m, 0);
+    const Scal dt = 0.25 * h / s.velocity.abs().max();
+    vof.reset(new Vof<M>(m, m, fcu, fccl, bc_vof, &ff_flux, &fc_src, 0, dt, p));
+  }
+  if (sem.Nested("start")) {
+    vof->StartStep();
+  }
+  if (sem.Nested("iter")) {
+    vof->MakeIteration();
+  }
+  if (sem.Nested("finish")) {
+    vof->FinishStep();
   }
   if (sem()) {
-    s.to_init = false;
+    s.to_init_field = false;
     const Scal h = m.GetCellSize()[0];
-    const Scal dt = std::min(
-        0.125 * h * h / s.diffusion, 0.25 * h / s.velocity.abs().max());
+    const Scal dt = std::min(0.125 * h * h / s.diffusion,
+                             0.25 * h / s.velocity.abs().max());
 
     Step(fcu, dt, s.diffusion, s.velocity, m);
-    Render(*g_canvas, fcu, m);
+    //Render(*g_canvas, fcu, m);
+    Render(*g_canvas, vof.GetField(), m);
     m.Comm(&fcu);
 
     if (m.IsRoot()) {
@@ -168,7 +193,7 @@ void Solver::Run() {
 
 static void main_loop() {
   auto state = g_state;
-  auto& s = *state;
+  auto &s = *state;
   if (s.pause) {
     return;
   }
@@ -190,13 +215,13 @@ static void main_loop() {
 
 extern "C" {
 Scal MulDiffusion(Scal factor) {
-  auto& s = *g_state;
+  auto &s = *g_state;
   s.diffusion *= factor;
   std::cout << util::Format("diff={}", s.diffusion) << std::endl;
   return s.diffusion;
 }
 Scal AddVelocityAngle(Scal add_deg) {
-  auto& s = *g_state;
+  auto &s = *g_state;
   const Vect v = s.velocity;
   Scal deg = std::atan2(v[1], v[0]) * 180. / M_PI;
   deg += add_deg;
@@ -207,12 +232,12 @@ Scal AddVelocityAngle(Scal add_deg) {
   return deg;
 }
 int Init() {
-  auto& s = *g_state;
-  s.to_init = true;
+  auto &s = *g_state;
+  s.to_init_field = true;
   return 0;
 }
 int TogglePause() {
-  auto& s = *g_state;
+  auto &s = *g_state;
   s.pause = !s.pause;
   return s.pause;
 }
@@ -230,7 +255,7 @@ int SetMesh(int nx) {
   std::shared_ptr<State> new_state;
   try {
     new_state = std::make_shared<State>(comm, var);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::cerr << FILELINE + "\nabort after throwing exception\n"
               << e.what() << '\n';
     std::terminate();
@@ -259,7 +284,7 @@ int main() {
 
   SetCanvas(500, 500);
   SetMesh(32);
-  emscripten_set_canvas_element_size(
-      "#canvas", g_canvas->size[0], g_canvas->size[1]);
+  emscripten_set_canvas_element_size("#canvas", g_canvas->size[0],
+                                     g_canvas->size[1]);
   emscripten_set_main_loop(main_loop, 30, 1);
 }
