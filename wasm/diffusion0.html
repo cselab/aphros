@@ -5,11 +5,11 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Canvas example</title>
     <style>
-      .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
-      textarea.emscripten { font-family: monospace; width: 80%;}
+      .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; touch-action: manipulation; }
+      textarea.emscripten { font-family: monospace; width: 500px; }
       canvas.emscripten { border: 0px none; background-color: black; }
       div.emscripten { text-align: center; }
-      .button {width: 90px; height: 60px; font-size: 15pt; padding: 0pt; margin: 0pt; }
+      .button {width: 80px; height: 60px; font-size: 15pt; padding: 0pt; margin: 0pt; touch-action: manipulation; }
     </style>
   </head>
   <body>
@@ -21,9 +21,9 @@
       <input type="button" class="button" value="pause"
         onclick="Module.ccall('TogglePause', 'number', [])">
       <input type="button" class="button" value="diff-"
-        onclick="Module.ccall('MulDiffusion', 'number', ['number'], [1/1.5])">
+        onclick="Module.ccall('MulDiffusion', 'number', ['number'], [0.5])">
       <input type="button" class="button" value="diff+"
-        onclick="Module.ccall('MulDiffusion', 'number', ['number'], [1.5])">
+        onclick="Module.ccall('MulDiffusion', 'number', ['number'], [2])">
       <input type="button" class="button" value="left"
         onclick="Module.ccall('AddVelocityAngle', 'number', ['number'], [30])">
       <input type="button" class="button" value="right"
@@ -39,6 +39,8 @@
         onclick="Module.ccall('SetMesh', 'number', ['number'], [128])">
       <input type="button" class="button" value="256"
         onclick="Module.ccall('SetMesh', 'number', ['number'], [256])">
+      <input type="button" class="button" value="512"
+        onclick="Module.ccall('SetMesh', 'number', ['number'], [512])">
     </div>
 
 
@@ -73,6 +75,6 @@
       };
     </script>
 
-    <script async src=diffusion.js></script>
+    <script async src=diffusion_distr.js></script>
   </body>
 </html>
