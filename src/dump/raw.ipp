@@ -262,6 +262,8 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
     MPI_Type_free(&memtype);
     MPI_Type_free(&filetype);
 #else
+    fassert_equal(
+        meta.start, MIdx(0), ". Sequential reader only supports start=(0,0,0)");
     std::ifstream file(path, std::ios::binary);
     fassert(file.good(), "Can't open file '" + path + "' for reading");
     file.seekg(meta.seek);
