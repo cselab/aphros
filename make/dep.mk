@@ -284,7 +284,6 @@ dump/hdf.o : util/suspender.h
 dump/raw.o : distr/reduce.h
 dump/raw.o : dump/raw.h
 dump/raw.o : dump/raw.ipp
-dump/raw.o : dump/raw_nompi.ipp
 dump/raw.o : geom/blockface.h
 dump/raw.o : geom/block.h
 dump/raw.o : geom/dir.h

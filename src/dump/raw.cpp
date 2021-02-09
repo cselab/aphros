@@ -3,11 +3,7 @@
 
 #include "util/macros.h"
 
-#if USEFLAG(MPI)
 #include "raw.ipp"
-#else
-#include "raw_nompi.ipp"
-#endif
 
 namespace dump {
 

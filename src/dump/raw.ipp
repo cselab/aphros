@@ -15,6 +15,7 @@
 
 namespace dump {
 
+#if USEFLAG(MPI)
 template <class Type>
 static MPI_Datatype GetMpiType(Type type) {
   switch (type) {
@@ -66,6 +67,7 @@ static void CreateSubarray(
       dim, size, subsize, start, MPI_ORDER_C, numbertype, filetype);
   MPI_Type_commit(filetype);
 }
+#endif
 
 template <class M>
 template <class T>
@@ -105,6 +107,7 @@ void Raw<M>::Write(
       comb_start = comb_start.min(t.starts[b]);
       comb_end = comb_start.max(t.starts[b] + t.sizes[b]);
     }
+    // size of block combined from all blocks on current rank
     const MIdx comb_size = comb_end - comb_start;
 
     // XXX check the blocks on current rank constitute a rectangular subarray
@@ -113,28 +116,7 @@ void Raw<M>::Write(
 
     typename M::IndexCells comb_indexer(comb_start, comb_size);
 
-    const MPI_Datatype metatype = GetMpiType(meta.type);
-    MPI_Datatype filetype;
-    CreateSubarray(
-        m.GetGlobalSize(), comb_size, comb_start, metatype, &filetype);
-
-    MPI_Datatype memtype;
-    CreateSubarray(comb_size, comb_size, MIdx(0), metatype, &memtype);
-
-    const MPI_Comm comm = m.GetMpiComm();
-    MPI_File fh;
-    try {
-      MPICALL(MPI_File_open(
-          comm, path.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL,
-          &fh));
-    } catch (const std::exception& e) {
-      throw std::runtime_error(
-          std::string() + e.what() + ", while opening file '" + path + "'");
-    }
-    MPICALL(
-        MPI_File_set_view(fh, 0, metatype, filetype, "native", MPI_INFO_NULL));
-
-    auto cast = [type = meta.type](T value, void* ptr) {
+    auto to_elemtype = [type = meta.type](T value, void* ptr) {
       switch (type) {
         case Type::UInt16:
           (*reinterpret_cast<std::uint16_t*>(ptr)) = value;
@@ -149,21 +131,47 @@ void Raw<M>::Write(
           fassert(false);
       }
     };
-
-    const size_t metatypesize = GetPrecision(meta.type);
-    std::vector<char> buf(comb_size.prod() * metatypesize);
+    const size_t elemtypesize = GetPrecision(meta.type);
+    std::vector<char> buf(comb_size.prod() * elemtypesize);
     for (size_t b = 0; b < nblocks; ++b) {
       const typename M::BlockCells block(t.starts[b], t.sizes[b]);
       size_t i = 0;
       for (auto c : GRangeIn<IdxCell, dim>(comb_indexer, block)) {
-        cast(t.data[b][i++], &buf[c.raw() * metatypesize]);
+        to_elemtype(t.data[b][i++], &buf[c.raw() * elemtypesize]);
       }
     }
+
+#if USEFLAG(MPI)
+    const MPI_Datatype elemtype = GetMpiType(meta.type);
+    MPI_Datatype filetype;
+    CreateSubarray(
+        m.GetGlobalSize(), comb_size, comb_start, elemtype, &filetype);
+
+    MPI_Datatype memtype;
+    CreateSubarray(comb_size, comb_size, MIdx(0), elemtype, &memtype);
+
+    const MPI_Comm comm = m.GetMpiComm();
+    MPI_File fh;
+    try {
+      MPICALL(MPI_File_open(
+          comm, path.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL,
+          &fh));
+    } catch (const std::exception& e) {
+      throw std::runtime_error(
+          std::string() + e.what() + ", while opening file '" + path + "'");
+    }
+    MPICALL(
+        MPI_File_set_view(fh, 0, elemtype, filetype, "native", MPI_INFO_NULL));
 
     MPICALL(MPI_File_write_all(fh, buf.data(), 1, memtype, MPI_STATUS_IGNORE));
     MPI_File_close(&fh);
     MPI_Type_free(&memtype);
     MPI_Type_free(&filetype);
+#else
+    std::ofstream file(path, std::ios::binary);
+    fassert(file.good(), "Can't open file '" + path + "' for write");
+    file.write(buf.data(), buf.size());
+#endif
   }
   if (sem()) { // XXX empty stage
   }
@@ -223,15 +231,18 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
             "Hyperslab start+count*stride={} beyond array dimensions={}",
             meta.start + meta.count * meta.stride, meta.dimensions));
 
-    const MPI_Datatype metatype = GetMpiType(meta.type);
+    const size_t elemtypesize = GetPrecision(meta.type);
+    std::vector<char> buf(comb_size.prod() * elemtypesize);
+#if USEFLAG(MPI)
+    const MPI_Datatype elemtype = GetMpiType(meta.type);
 
     MPI_Datatype filetype;
     CreateSubarray(
-        meta.dimensions, comb_size, meta.start + comb_start, metatype,
+        meta.dimensions, comb_size, meta.start + comb_start, elemtype,
         &filetype);
 
     MPI_Datatype memtype;
-    CreateSubarray(comb_size, comb_size, MIdx(0), metatype, &memtype);
+    CreateSubarray(comb_size, comb_size, MIdx(0), elemtype, &memtype);
 
     const MPI_Comm comm = m.GetMpiComm();
     MPI_File fh;
@@ -244,16 +255,20 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
     }
 
     MPICALL(MPI_File_set_view(
-        fh, meta.seek, metatype, filetype, "native", MPI_INFO_NULL));
+        fh, meta.seek, elemtype, filetype, "native", MPI_INFO_NULL));
 
-    const size_t metatypesize = GetPrecision(meta.type);
-    std::vector<char> buf(comb_size.prod() * metatypesize);
     MPICALL(MPI_File_read_all(fh, buf.data(), 1, memtype, MPI_STATUS_IGNORE));
     MPI_File_close(&fh);
     MPI_Type_free(&memtype);
     MPI_Type_free(&filetype);
+#else
+    std::ifstream file(path, std::ios::binary);
+    fassert(file.good(), "Can't open file '" + path + "' for reading");
+    file.seekg(meta.seek);
+    file.read(buf.data(), buf.size());
+#endif
 
-    auto cast = [type = meta.type](const void* ptr) -> T {
+    auto from_elemtype = [type = meta.type](const void* ptr) -> T {
       switch (type) {
         case Type::UInt16:
           return *reinterpret_cast<const std::uint16_t*>(ptr);
@@ -270,7 +285,7 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
       const typename M::BlockCells block(t.starts[b], t.sizes[b]);
       size_t i = 0;
       for (auto c : GRangeIn<IdxCell, dim>(comb_indexer, block)) {
-        (*t.dataptr[b])[i++] = cast(&buf[c.raw() * metatypesize]);
+        (*t.dataptr[b])[i++] = from_elemtype(&buf[c.raw() * elemtypesize]);
       }
     }
   }
