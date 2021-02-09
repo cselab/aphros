@@ -6,7 +6,7 @@ import aphros
 
 class Test(aphros.TestBase):
     def __init__(self):
-        cases = ["util", "h5", "raw", "meta"]
+        cases = ["util", "h5", "raw", "raw_seq", "meta"]
         super().__init__(cases=cases)
 
     def run(self, case):
@@ -26,6 +26,13 @@ class Test(aphros.TestBase):
             self.runcmd("ap.mpirun -n 2 ./t.dump_gen o1.raw --content one")
             self.runcmd("ap.mpirun -n 2 ./t.dump_diff o0.raw o.raw > out")
             self.runcmd("ap.mpirun -n 2 ./t.dump_diff o0.raw o1.raw >> out")
+            return ["out"]
+        elif case == "raw_seq":
+            self.runcmd("./t.dump_gen o.raw --content norm")
+            self.runcmd("./t.dump_gen o0.raw --content zero")
+            self.runcmd("./t.dump_gen o1.raw --content one")
+            self.runcmd("./t.dump_diff o0.raw o.raw > out")
+            self.runcmd("./t.dump_diff o0.raw o1.raw >> out")
             return ["out"]
         elif case == "meta":
             self.runcmd("./t.dump_meta --dim 1 out1.xmf")
