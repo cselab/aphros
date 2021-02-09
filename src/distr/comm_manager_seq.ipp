@@ -57,7 +57,6 @@ struct CommManager<dim_>::Imp {
         }
       }
       for (auto c : seen_cells) {
-        const auto wp = GetPeriodic(b.indexc->GetMIdx(c), globalsize);
         res.push_back({ib, c});
       }
     }
