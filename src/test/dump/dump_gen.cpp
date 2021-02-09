@@ -8,6 +8,7 @@
 #include "distr/distrbasic.h"
 #include "dump/hdf.h"
 #include "dump/raw.h"
+#include "dump/xmf.h"
 #include "parse/argparse.h"
 #include "util/distr.h"
 #include "util/filesystem.h"
@@ -21,9 +22,10 @@ using MIdx = typename M::MIdx;
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem(__func__);
   using Raw = dump::Raw<M>;
+  using Xmf = dump::Xmf<Vect>;
   struct {
     FieldCell<Scal> fc_write;
-    Raw::Meta meta;
+    Xmf::Meta meta;
   } * ctx(sem);
   auto& t = *ctx;
   auto get_format = [&var](std::string path) {
@@ -69,19 +71,19 @@ void Run(M& m, Vars& var) {
     }
   } else if (format == "raw") {
     if (sem("writexmf")) {
-      t.meta = Raw::GetMeta(MIdx(0), MIdx(1), m);
+      t.meta = Xmf::GetMeta(MIdx(0), MIdx(1), m);
       t.meta.name = "u";
       t.meta.binpath = output;
       const auto type = var.String["type"];
       if (type.length()) {
-        t.meta.type = Raw::StringToType(type);
+        t.meta.type = dump::StringToType(type);
       } else {
-        t.meta.type = Raw::Type::Float64;
+        t.meta.type = dump::Type::Float64;
       }
       if (m.IsRoot()) {
-        Raw::WriteXmf(util::SplitExt(output)[0] + ".xmf", t.meta);
+        Xmf::WriteXmf(util::SplitExt(output)[0] + ".xmf", t.meta);
       }
-      if (t.meta.type == Raw::Type::UInt16) {
+      if (t.meta.type == dump::Type::UInt16) {
         for (auto c : m.Cells()) {
           auto& u = t.fc_write[c];
           u = std::min(1., std::max(0., u)) *

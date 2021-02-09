@@ -49,7 +49,7 @@ void Run(M& m, Vars& var) {
       auto format = GetFormat(path, var.String["format"]);
       if (format == "raw") {
         const auto xmfpath = util::SplitExt(path)[0] + ".xmf";
-        t.meta = dump::Raw<M>::ReadXmf(xmfpath);
+        t.meta = dump::Xmf<Vect>::ReadXmf(xmfpath);
       }
     }
     if (sem.Nested("read")) {
@@ -122,7 +122,7 @@ int main(int argc, const char** argv) {
       res[2] = shape[0];
     } else if (format == "raw") {
       const auto xmfpath = util::SplitExt(path)[0] + ".xmf";
-      const auto meta = dump::Raw<M>::ReadXmf(xmfpath);
+      const auto meta = dump::Xmf<Vect>::ReadXmf(xmfpath);
       res = meta.count;
     } else {
       fassert(

@@ -175,6 +175,7 @@ set(ObjLibs
   dump
   dump_hdf
   dump_raw
+  dump_xmf
   dumper
   electro
   embed
@@ -193,6 +194,7 @@ set(ObjLibs
   mesh
   normal
   parser
+  parse_template
   particles
   partstrmeshm
   posthook_default

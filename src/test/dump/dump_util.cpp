@@ -7,8 +7,8 @@
 #include <fstream>
 
 #include "dump/dumper.h"
-#include "dump/raw.h"
-#include "dump/raw.ipp"
+#include "dump/xmf.h"
+#include "dump/xmf.ipp"
 #include "util/logger.h"
 #include "geom/vect.h"
 
@@ -17,22 +17,19 @@ void TestName() {
   std::cout << NAMEVALUE(GetDumpName("vf", ".h5", 8)) << '\n';
 }
 
-struct M {
-  static constexpr size_t dim = 3;
-  using Scal = double;
-  using Vect = generic::Vect<Scal, dim>;
-  using MIdx = generic::Vect<int, dim>;
-};
+static constexpr size_t dim = 3;
+using Scal = double;
+using Vect = generic::Vect<Scal, dim>;
 
 void TestReadXmf() {
   const std::string path = "input.xmf";
   std::ifstream fin(path);
-  using Raw = dump::Raw<M>;
-  const auto meta = Raw::ReadXmf(fin);
+  using Xmf = dump::Xmf<Vect>;
+  const auto meta = Xmf::ReadXmf(fin);
 
   std::cout << NAMEVALUE(meta.name) << std::endl;
   std::cout << NAMEVALUE(meta.binpath) << std::endl;
-  std::cout << NAMEVALUE(Raw::TypeToString(meta.type)) << std::endl;
+  std::cout << NAMEVALUE(dump::TypeToString(meta.type)) << std::endl;
   std::cout << NAMEVALUE(meta.dimensions) << std::endl;
   std::cout << NAMEVALUE(meta.start) << std::endl;
   std::cout << NAMEVALUE(meta.stride) << std::endl;
@@ -41,7 +38,7 @@ void TestReadXmf() {
   std::cout << NAMEVALUE(meta.origin) << std::endl;
   std::cout << NAMEVALUE(meta.spacing) << std::endl;
 
-  dump::Raw<M>::WriteXmf(std::cout, meta);
+  Xmf::WriteXmf(std::cout, meta);
 }
 
 int main() {

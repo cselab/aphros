@@ -13,6 +13,10 @@ set(T "dump_raw")
 add_library(${T} raw.cpp)
 target_link_libraries(${T} PRIVATE use_mpi use_dims)
 
+set(T "dump_xmf")
+add_library(${T} xmf.cpp)
+target_link_libraries(${T} PRIVATE parse_template use_dims use_mpi)
+
 set(T "dump")
 add_library(${T} dump.cpp)
 target_link_libraries(${T} mesh)

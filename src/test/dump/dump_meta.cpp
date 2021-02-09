@@ -4,8 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "dump/raw.h"
-#include "dump/raw.ipp"
+#include "dump/xmf.h"
 #include "geom/vect.h"
 #include "parse/argparse.h"
 #include "util/format.h"
@@ -15,10 +14,10 @@ struct Mesh {
   static constexpr size_t dim = dim_;
   using Scal = double;
   using Vect = generic::Vect<Scal, dim>;
-  using MIdx = generic::Vect<int, dim>;
+  using MIdx = generic::MIdx<dim>;
 };
 
-template <size_t dim_>
+template <int dim_>
 int Run(const Vars& args) {
   using M = Mesh<dim_>;
   constexpr size_t dim = M::dim;
@@ -36,11 +35,11 @@ int Run(const Vars& args) {
     return MIdx(Vect(v.data()) + Vect(0.5));
   };
 
-  using Raw = dump::Raw<M>;
-  typename Raw::Meta meta;
+  using Xmf = dump::Xmf<Vect>;
+  typename Xmf::Meta meta;
   meta.name = args.String["name"];
   meta.binpath = args.String["binpath"];
-  meta.type = Raw::StringToType(args.String["type"]);
+  meta.type = dump::StringToType(args.String["type"]);
   meta.dimensions = args_midx("dimensions");
   meta.start = args_midx("start");
   meta.stride = args_midx("stride");
@@ -52,7 +51,7 @@ int Run(const Vars& args) {
   meta.origin = args_vect("origin");
   meta.spacing = args_vect("spacing");
 
-  Raw::WriteXmf(args.String["output"], meta);
+  Xmf::WriteXmf(args.String["output"], meta);
   return 0;
 }
 
