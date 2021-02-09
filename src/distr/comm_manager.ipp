@@ -187,7 +187,7 @@ struct CommManager<dim_>::Imp {
 // blocks: blocks owned by current rank
 template <size_t dim_>
 auto CommManager<dim_>::GetTasks(
-    const std::vector<Block>& blocks, std::function<Rank(MIdx)> cell_to_rank,
+    const std::vector<Block>& blocks, std::function<int(MIdx)> cell_to_rank,
     MIdx globalsize, generic::Vect<bool, dim> is_periodic,
     const MpiWrapper& mpi) -> Tasks {
   Tasks res;
