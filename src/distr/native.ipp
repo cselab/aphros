@@ -15,6 +15,38 @@
 #include "util/format.h"
 #include "util/mpi.h"
 
+#if ! USEFLAG(MPI)
+using MPI_Comm = int;
+using MPI_Op = int;
+using MPI_Datatype = int;
+using MPI_Request = int;
+
+constexpr int MPI_CHAR = 0;
+constexpr int MPI_DOUBLE = 0;
+constexpr int MPI_DOUBLE_INT = 0;
+constexpr int MPI_FLOAT = 0;
+constexpr int MPI_FLOAT_INT = 0;
+constexpr int MPI_MAX = 0;
+constexpr int MPI_MAXLOC = 0;
+constexpr int MPI_MIN = 0;
+constexpr int MPI_MINLOC = 0;
+constexpr int MPI_IN_PLACE = 0;
+constexpr int MPI_STATUS_IGNORE = 0;
+constexpr int MPI_INT = 0;
+constexpr int MPI_PROD = 0;
+constexpr int MPI_SUM = 0;
+
+void MPI_Allreduce(...){}
+void MPI_Bcast(...){}
+void MPI_Gather(...){}
+void MPI_Gatherv(...){}
+void MPI_Irecv(...){}
+void MPI_Isend(...){}
+void MPI_Scatter(...){}
+void MPI_Scatterv(...){}
+void MPI_Wait(...){}
+#endif
+
 template <class M_>
 class Native : public DistrMesh<M_> {
  public:

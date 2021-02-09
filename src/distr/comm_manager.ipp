@@ -9,16 +9,13 @@
 
 // Communication manager.
 // Assigns blocks to processors and enumerates halo cells.
-// No dependency on MPI.
-// Valid only on root.
-// Supports irregular domains.
 // For example, to exclude blocks with all excluded cells.
 //
 // The computational domain is a subset of cells.
 // Its bounding box is divided into equally sizes blocks.
 // Blocks that contain cells from the computational domain are
 // distributed among multiple processors.
-// Each block is assigned to one processor,
+// Each block is assigned to only one processor,
 // while one processor may have multiple blocks.
 //
 // Each block is characterized by:
@@ -35,6 +32,8 @@
 
 template <size_t dim_>
 struct CommManager<dim_>::Imp {
+  using Rank = int;
+
   static bool IsValid(
       MIdx w, MIdx globalsize, generic::Vect<bool, dim> is_periodic) {
     for (size_t i = 0; i < dim; ++i) {
@@ -47,12 +46,20 @@ struct CommManager<dim_>::Imp {
   static MIdx GetPeriodic(MIdx w, MIdx globalsize) {
     return (w + globalsize * 16) % globalsize;
   }
-  static std::map<int, std::vector<LocalCell>> GetRecvCells(
-      const std::vector<Block>& blocks, std::function<int(MIdx)> cell_to_rank,
+  // Returns list of cells to receive from each rank.
+  // blocks: blocks on current rank
+  // cell_to_rank: function that returns rank from global cell index
+  // halos: number of layers of halo cells
+  //        (1 for 3x3x3 stencil, 2 for 5x5x5 stencil)
+  // globalsize: global mesh size
+  // is_periodic: components are `true` for periodic directions
+  static std::map<Rank, std::vector<LocalCell>> GetRecvCells(
+      const std::vector<Block>& blocks, std::function<Rank(MIdx)> cell_to_rank,
       int halos, bool full, MIdx globalsize,
       generic::Vect<bool, dim> is_periodic) {
-    std::map<int, std::vector<LocalCell>> res;
+    std::map<Rank, std::vector<LocalCell>> res;
 
+    // Returns the number of non-zero components
     auto nnz = [](MIdx dw) {
       int cnt = 0;
       for (size_t i = 0; i < MIdx::dim; ++i) {
@@ -63,7 +70,7 @@ struct CommManager<dim_>::Imp {
 
     for (size_t ib = 0; ib < blocks.size(); ++ib) {
       auto& b = blocks[ib];
-      std::set<IdxCell> set; // set to keep only unique indices
+      std::set<IdxCell> seen_cells;
       for (auto wc : *b.incells) {
         GBlock<size_t, dim> offsets(MIdx(-halos), MIdx(2 * halos + 1));
         for (auto dw : offsets) {
@@ -71,22 +78,29 @@ struct CommManager<dim_>::Imp {
             const auto w = wc + dw;
             if (IsValid(w, globalsize, is_periodic) &&
                 !b.incells->IsInside(w)) {
-              set.insert(b.indexc->GetIdx(w));
+              seen_cells.insert(b.indexc->GetIdx(w));
             }
           }
         }
       }
-      for (auto c : set) {
+      for (auto c : seen_cells) {
         const auto wp = GetPeriodic(b.indexc->GetMIdx(c), globalsize);
         res[cell_to_rank(wp)].push_back({ib, c});
       }
     }
     return res;
   }
-  static std::map<int, std::vector<LocalCell>> GetSendCells(
+  // Returns list of cells to send in each rank.
+  // blocks: blocks on current rank
+  // cell_to_rank: function that returns rank from global cell index
+  // halos: number of layers of halo cells
+  //        (1 for 3x3x3 stencil, 2 for 5x5x5 stencil)
+  // globalsize: global mesh size
+  // is_periodic: components are `true` for periodic directions
+  static std::map<Rank, std::vector<LocalCell>> GetSendCells(
       const std::vector<Block>& blocks, const MpiWrapper& mpi, MIdx globalsize,
-      const std::map<int, std::vector<LocalCell>>& recv) {
-    const int myrank = mpi.GetCommRank();
+      const std::map<Rank, std::vector<LocalCell>>& recv) {
+    const Rank myrank = mpi.GetCommRank();
     std::vector<int> msg_count(mpi.GetCommSize(), 0);
     for (auto& p : recv) {
       auto& rank = p.first;
@@ -99,7 +113,7 @@ struct CommManager<dim_>::Imp {
     // msg_count[myrank] is the number of messages to receive.
 
     // multi-indices of inner cells to receive
-    std::map<int, std::vector<MIdx>> rank_to_midx;
+    std::map<Rank, std::vector<MIdx>> rank_to_midx;
     for (auto& p : recv) {
       auto& rank = p.first;
       auto& midx = rank_to_midx[rank];
@@ -141,7 +155,7 @@ struct CommManager<dim_>::Imp {
       return ib_last;
     };
 
-    std::map<int, std::vector<LocalCell>> res;
+    std::map<Rank, std::vector<LocalCell>> res;
 
     // Receive cell multi-indices.
     for (int i = 0; i < msg_count[myrank]; ++i) {
@@ -150,7 +164,7 @@ struct CommManager<dim_>::Imp {
       int count;
       MPI_Get_count(&status, MPI_CHAR, &count);
       fassert_equal(count % sizeof(MIdx), 0);
-      const int rank = status.MPI_SOURCE;
+      const Rank rank = status.MPI_SOURCE;
       fassert(
           res[rank].empty(),
           util::Format("Got more than one message from rank {}", rank));
@@ -173,7 +187,7 @@ struct CommManager<dim_>::Imp {
 // blocks: blocks owned by current rank
 template <size_t dim_>
 auto CommManager<dim_>::GetTasks(
-    const std::vector<Block>& blocks, std::function<int(MIdx)> cell_to_rank,
+    const std::vector<Block>& blocks, std::function<Rank(MIdx)> cell_to_rank,
     MIdx globalsize, generic::Vect<bool, dim> is_periodic,
     const MpiWrapper& mpi) -> Tasks {
   Tasks res;
