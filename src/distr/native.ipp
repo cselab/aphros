@@ -707,6 +707,7 @@ void Native<M>::DumpWrite(const std::vector<size_t>& bb) {
         {
           auto meta = Xmf::GetMeta(MIdx(0), MIdx(1), mfirst);
           meta3.binpath = path;
+          meta3.name = dumpfirst[idump].second;
           meta3.type = dump::Type::Float64;
           meta3.dimensions = MIdx3(1).max(MIdx3(meta.dimensions));
           meta3.count = meta3.dimensions;
@@ -718,6 +719,7 @@ void Native<M>::DumpWrite(const std::vector<size_t>& bb) {
             MpiWrapper(comm_));
 
         Xmf3::WriteXmf(util::SplitExt(path)[0] + ".xmf", meta3);
+        ++frame_;
       }
     } else {
       P::DumpWrite(bb);
