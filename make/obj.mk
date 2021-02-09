@@ -3,7 +3,9 @@ color/color.o\
 distr/distrbasic.o\
 distr/distr.o\
 distr/distrsolver.o\
+distr/comm_manager.o\
 distr/local.o\
+distr/native.o\
 distr/report.o\
 dump/dumper.o\
 dump/dump.o\
