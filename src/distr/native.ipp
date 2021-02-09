@@ -662,10 +662,13 @@ void Native<M>::DumpWrite(const std::vector<size_t>& bb) {
             const auto& m = kernels_[b]->GetMesh();
             const auto bc = m.GetInBlockCells();
             data.emplace_back();
-            auto& d = data.back();
-            d.reserve(bc.size());
+            auto& dat = data.back();
+            dat.reserve(bc.size());
+            auto& field = *static_cast<const typename M::CommRequestScal*>(
+                               m.GetDump()[idump].first.get())
+                               ->field;
             for (auto c : m.Cells()) {
-              d.push_back((*req_scal->field)[c]);
+              dat.push_back(field[c]);
             }
           }
 
@@ -679,10 +682,13 @@ void Native<M>::DumpWrite(const std::vector<size_t>& bb) {
             const auto& m = kernels_[b]->GetMesh();
             const auto bc = m.GetInBlockCells();
             data.emplace_back();
-            auto& d = data.back();
-            d.reserve(bc.size());
+            auto& dat = data.back();
+            dat.reserve(bc.size());
+            auto& field = *static_cast<const typename M::CommRequestVect*>(
+                               m.GetDump()[idump].first.get())
+                               ->field;
             for (auto c : m.Cells()) {
-              d.push_back((*req_vect->field)[c][req_vect->d]);
+              dat.push_back(field[c][req_vect->d]);
             }
           }
         } else {
