@@ -20,7 +20,7 @@ endif()
 if (USE_BACKEND_NATIVE)
   set(T "native")
   add_library(${T} native.cpp)
-  target_link_libraries(${T} PUBLIC distr PRIVATE use_dims)
+  target_link_libraries(${T} PUBLIC distr dump_raw dump_xmf PRIVATE use_dims)
 
   set(T "comm_manager")
   add_library(${T} comm_manager.cpp)

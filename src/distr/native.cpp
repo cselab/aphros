@@ -7,11 +7,7 @@
 #include "geom/mesh.h"
 #include "kernel/kernelmesh.h"
 
-#if USEFLAG(MPI)
 #include "native.ipp"
-#else
-#include "native_seq.ipp"
-#endif
 
 DECLARE_FORCE_LINK_TARGET(distr_native);
 

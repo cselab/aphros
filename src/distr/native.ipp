@@ -12,6 +12,9 @@
 #include "comm_manager.h"
 #include "distr.h"
 #include "dump/dumper.h"
+#include "dump/raw.h"
+#include "dump/xmf.h"
+#include "util/filesystem.h"
 #include "util/format.h"
 #include "util/mpi.h"
 
@@ -55,8 +58,10 @@ class Native : public DistrMesh<M_> {
   int commrank_;
   typename CommManager<dim>::Tasks tasks_;
   struct ReqTmp {
+#if USEFLAG(MPI)
     MPI_Request req;
     size_t cnt = 0;
+#endif
     std::vector<Scal> buf;
   };
   std::map<int, ReqTmp> tmp_send_; // rank to request
@@ -146,6 +151,7 @@ auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
       }
     }
 
+#if USEFLAG(MPI)
     size_t nscal = 0; // number of scalar fields to transfer
     for (auto i : vcr_indices) {
       if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
@@ -295,6 +301,48 @@ auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
         }
       }
     }
+#else
+    // Exchange data between blocks.
+    for (auto i : vcr_indices) {
+      if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
+        std::vector<FieldCell<Scal>*> fields;
+        for (auto& k : kernels_) {
+          const auto* cr = static_cast<typename M::CommRequestScal*>(
+              k->GetMesh().GetComm()[i].get());
+          fields.push_back(cr->field);
+        }
+        auto& send = task.send.at(0);
+        auto& recv = task.recv.at(0);
+        fassert_equal(send.size(), recv.size());
+        for (size_t ic = 0; ic < send.size(); ++ic) {
+          (*fields[recv[ic].block])[recv[ic].cell] =
+              (*fields[send[ic].block])[send[ic].cell];
+        }
+      }
+      if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
+        std::vector<FieldCell<Vect>*> fields;
+        for (auto& k : kernels_) {
+          const auto* cr = static_cast<typename M::CommRequestVect*>(
+              k->GetMesh().GetComm()[i].get());
+          fields.push_back(cr->field);
+        }
+        auto& send = task.send.at(0);
+        auto& recv = task.recv.at(0);
+        fassert_equal(send.size(), recv.size());
+        for (size_t ic = 0; ic < send.size(); ++ic) {
+          const auto d = crd->d;
+          if (d == -1) {
+            (*fields[recv[ic].block])[recv[ic].cell] =
+                (*fields[send[ic].block])[send[ic].cell];
+          } else {
+            fassert(0 <= d && d < int(M::dim));
+            (*fields[recv[ic].block])[recv[ic].cell][d] =
+                (*fields[send[ic].block])[send[ic].cell][d];
+          }
+        }
+      }
+    }
+#endif
   }
 
   return bb;
@@ -315,7 +363,7 @@ void Native<M>::Bcast(const std::vector<size_t>& bb) {
 
   for (size_t i = 0; i < vfirst.size(); ++i) {
     if (OpConcat* o = dynamic_cast<OpConcat*>(vfirst[i].get())) {
-      std::vector<char> r = o->Neutral(); // buffer
+      std::vector<char> buf = o->Neutral(); // buffer
 
       if (isroot_) {
         // read from root block
@@ -324,28 +372,27 @@ void Native<M>::Bcast(const std::vector<size_t>& bb) {
           if (m.IsRoot()) {
             auto& v = m.GetBcast();
             OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
-            ob->Append(r);
+            ob->Append(buf);
           }
         }
       }
 
-      int s = r.size(); // size
-
+#if USEFLAG(MPI)
+      int size = buf.size(); // size
       // broadcast size
-      MPI_Bcast(&s, 1, MPI_INT, 0, comm_);
-
+      MPI_Bcast(&size, 1, MPI_INT, 0, comm_);
       // resize
-      r.resize(s);
-
+      buf.resize(size);
       // broadcast data
-      MPI_Bcast(r.data(), r.size(), MPI_CHAR, 0, comm_);
+      MPI_Bcast(buf.data(), buf.size(), MPI_CHAR, 0, comm_);
+#endif
 
       // write to all blocks
       for (auto b : bb) {
         auto& m = kernels_[b]->GetMesh();
         auto& v = m.GetBcast();
         OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
-        ob->Set(r);
+        ob->Set(buf);
       }
     } else {
       throw std::runtime_error("Bcast: Unknown M::Op instance");
@@ -356,6 +403,7 @@ void Native<M>::Bcast(const std::vector<size_t>& bb) {
     kernels_[b]->GetMesh().ClearBcast();
   }
 }
+
 template <class M>
 void Native<M>::Scatter(const std::vector<size_t>& bb) {
   auto& vfirst = kernels_.front()->GetMesh().GetScatter();
@@ -369,6 +417,7 @@ void Native<M>::Scatter(const std::vector<size_t>& bb) {
   }
 
   for (size_t q = 0; q < vfirst.size(); ++q) {
+#if USEFLAG(MPI)
     int recvcount;
     int sizes_recvcount;
     std::vector<Scal> rbuf;
@@ -445,6 +494,13 @@ void Native<M>::Scatter(const std::vector<size_t>& bb) {
           rbuf.data() + off, rbuf.data() + off + sizes_rbuf[k]);
       off += sizes_rbuf[k];
     }
+#else
+    auto& req_root = kernels_.at(0)->GetMesh().GetScatter()[q];
+    for (auto b : bb) {
+      auto& req = kernels_[b]->GetMesh().GetScatter()[q];
+      (*req.second) = (*req_root.first)[b];
+    }
+#endif
   }
 
   // Clear requests
@@ -470,6 +526,7 @@ void Native<M>::ReduceSingleRequest(const std::vector<RedOp*>& blocks) {
       other->Append(buf);
     }
 
+#if USEFLAG(MPI)
     MPI_Op mpiop;
     if (dynamic_cast<typename UReduce<Scal>::OpSum*>(first)) {
       mpiop = MPI_SUM;
@@ -486,6 +543,7 @@ void Native<M>::ReduceSingleRequest(const std::vector<RedOp*>& blocks) {
 
     // Reduce over ranks
     MPI_Allreduce(MPI_IN_PLACE, &buf, 1, mt, mpiop, comm_);
+#endif
 
     // Write results to all blocks on current rank
     for (auto otherbase : blocks) {
@@ -503,6 +561,7 @@ void Native<M>::ReduceSingleRequest(const std::vector<RedOp*>& blocks) {
       other->Append(buf);
     }
 
+#if USEFLAG(MPI)
     MPI_Op mpiop;
     if (dynamic_cast<typename UReduce<Scal>::OpMinloc*>(first)) {
       mpiop = MPI_MINLOC;
@@ -516,6 +575,7 @@ void Native<M>::ReduceSingleRequest(const std::vector<RedOp*>& blocks) {
 
     // Reduce over all ranks
     MPI_Allreduce(MPI_IN_PLACE, &buf, 1, mt, mpiop, comm_);
+#endif
 
     // Write results to all blocks on current rank
     for (auto otherbase : blocks) {
@@ -533,8 +593,8 @@ void Native<M>::ReduceSingleRequest(const std::vector<RedOp*>& blocks) {
       other->Append(buf);
     }
 
+#if USEFLAG(MPI)
     int bufsize = buf.size();
-
     if (isroot_) {
       std::vector<int> sizes(commsize_);
 
@@ -565,6 +625,9 @@ void Native<M>::ReduceSingleRequest(const std::vector<RedOp*>& blocks) {
           buf.data(), buf.size(), MPI_CHAR, nullptr, nullptr, nullptr, MPI_CHAR,
           0, comm_);
     }
+#else
+    first->Set(buf);
+#endif
     return;
   }
   fassert(false, "Unknown M::Op implementation");
@@ -576,11 +639,80 @@ void Native<M>::DumpWrite(const std::vector<size_t>& bb) {
   if (mfirst.GetDump().size()) {
     std::string dumpformat = var.String["dumpformat"];
     if (dumpformat == "default") {
-      dumpformat = "hdf";
+      dumpformat = "raw";
     }
 
-    if (dumpformat == "hdf") {
-      // nop
+    if (dumpformat == "raw") {
+      std::vector<MIdx> starts;
+      std::vector<MIdx> sizes;
+      for (auto b : bb) {
+        const auto& m = kernels_[b]->GetMesh();
+        const auto bc = m.GetInBlockCells();
+        starts.push_back(bc.GetBegin());
+        sizes.push_back(bc.GetSize());
+      }
+
+      const auto& dumpfirst = mfirst.GetDump();
+      for (size_t idump = 0; idump < dumpfirst.size(); ++idump) {
+        std::vector<std::vector<Scal>> data;
+        const auto* req = dumpfirst[idump].first.get();
+        if (auto* req_scal =
+                dynamic_cast<const typename M::CommRequestScal*>(req)) {
+          for (auto b : bb) {
+            const auto& m = kernels_[b]->GetMesh();
+            const auto bc = m.GetInBlockCells();
+            data.emplace_back();
+            auto& d = data.back();
+            d.reserve(bc.size());
+            for (auto c : m.Cells()) {
+              d.push_back((*req_scal->field)[c]);
+            }
+          }
+
+        } else if (
+            auto* req_vect =
+                dynamic_cast<const typename M::CommRequestVect*>(req)) {
+          fassert(
+              req_vect->d != -1,
+              "Dump only supports vector fields with selected one component");
+          for (auto b : bb) {
+            const auto& m = kernels_[b]->GetMesh();
+            const auto bc = m.GetInBlockCells();
+            data.emplace_back();
+            auto& d = data.back();
+            d.reserve(bc.size());
+            for (auto c : m.Cells()) {
+              d.push_back((*req_vect->field)[c][req_vect->d]);
+            }
+          }
+        } else {
+          fassert(false);
+        }
+
+        const std::string path =
+            GetDumpName(dumpfirst[idump].second, ".raw", frame_);
+
+        using Xmf = dump::Xmf<Vect>;
+        using Vect3 = generic::Vect<Scal, 3>;
+        using MIdx3 = generic::MIdx<3>;
+        using Xmf3 = dump::Xmf<Vect3>;
+
+        typename Xmf3::Meta meta3;
+        {
+          auto meta = Xmf::GetMeta(MIdx(0), MIdx(1), mfirst);
+          meta3.binpath = path;
+          meta3.type = dump::Type::Float64;
+          meta3.dimensions = MIdx3(1).max(MIdx3(meta.dimensions));
+          meta3.count = meta3.dimensions;
+          meta3.spacing = Vect3(meta.spacing.min());
+        }
+
+        dump::Raw<M>::Write(
+            path, starts, sizes, data, mfirst.GetGlobalSize(), meta3.type,
+            MpiWrapper(comm_));
+
+        Xmf3::WriteXmf(util::SplitExt(path)[0] + ".xmf", meta3);
+      }
     } else {
       P::DumpWrite(bb);
     }

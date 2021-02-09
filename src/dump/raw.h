@@ -22,6 +22,11 @@ class Raw {
 
   template <class T>
   static void Write(
+      const std::string& path, const std::vector<MIdx>& starts,
+      const std::vector<MIdx>& sizes, const std::vector<std::vector<T>>& data,
+      MIdx global_size, Type type, const MpiWrapper& mpi);
+  template <class T>
+  static void Write(
       const FieldCell<T>& fc, const Meta& meta, std::string path, M& m);
   template <class T>
   static void Read(
