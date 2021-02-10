@@ -65,7 +65,7 @@ clean::
 
 cleandat::
 	rm -vf *.pdf
-	rm -vf *_*.{xmf,h5}
+	rm -vf *_*.{xmf,h5,raw}
 	rm -vf *_*.vts
 	rm -vf p.pvd
 	rm -vf stat.dat stat_summary
