@@ -27,7 +27,6 @@ struct Vof<EB_>::Imp {
   using R = Reconst<Scal>;
   using TRM = Trackerm<M>;
   static constexpr size_t dim = M::dim;
-  using Vect2 = generic::Vect<Scal, 2>;
   using Sem = typename M::Sem;
   using MIdx = typename M::MIdx;
   using UEB = UEmbed<M>;
@@ -68,7 +67,6 @@ struct Vof<EB_>::Imp {
   void ReconstPlanes(const FieldCell<Scal>& uc) {
     DetectInterface(uc);
     UNormal<M>::CalcNormal(m, uc, fci_, par.dim, fcn_);
-
     auto h = m.GetCellSize();
     for (auto c : eb.SuCells()) {
       if (fci_[c]) {

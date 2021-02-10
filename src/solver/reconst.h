@@ -129,7 +129,7 @@ class Reconst {
     const Scal nx = n[0];
     const Scal ny = n[1];
     const Scal f = a + 0.5 * (nx + ny);
-    if (nx >= f) {
+    if (nx > f) {
       return sqr(f) / (2 * nx * ny);
     }
     return a / ny + 0.5;
@@ -202,11 +202,19 @@ class Reconst {
     return GetLineU1(n * h, a);
   }
 
-  // Plane constant by volume fraction in unit cell.
+  // Plane constant from volume fraction in unit cell.
   // nx,ny,nz: normal, 0 <= nx <= ny <= nz
   // u: volume fraction, 0 <= u <= 0.5
   // Returns:
   // a: plane constant
+  static Scal GetLineA0(Vect2 n, Scal u) {
+    const Scal nx = n[0];
+    const Scal ny = n[1];
+    if (2 * ny * u <= nx) {
+      return std::sqrt(2 * nx * ny * u) - 0.5 * (nx + ny);
+    }
+    return ny * (u - 0.5);
+  }
   static Scal GetLineA0(Vect3 n, Scal u) {
     const Scal nx = n[0];
     const Scal ny = n[1];
@@ -240,18 +248,6 @@ class Reconst {
 
     return f - 0.5 * (nx + ny + nz);
   }
-  // GetLineA() helper
-  // assuming 0 < u < 0.5, 0 < nx < ny
-  static Scal GetLineA0(Vect2 n, Scal u) {
-    const Scal nx = n[0];
-    const Scal ny = n[1];
-    if (2 * ny * u < nx) {
-      return std::sqrt(2 * nx * ny * u) - 0.5 * (nx + ny);
-    }
-    return ny * u - 0.5 * ny;
-  }
-  // GetLineA() helper
-  // assuming 0 < u < 0.5, 0 < nx < ny < nz < nw
   static Scal GetLineA0(Vect4 n, Scal u) {
     (void)n;
     (void)u;
