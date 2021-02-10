@@ -12,9 +12,6 @@
 #include "comm_manager.h"
 #include "distr.h"
 #include "dump/dumper.h"
-#include "dump/raw.h"
-#include "dump/xmf.h"
-#include "util/filesystem.h"
 #include "util/format.h"
 #include "util/mpi.h"
 
@@ -641,89 +638,7 @@ void Native<M>::DumpWrite(const std::vector<size_t>& bb) {
     if (dumpformat == "default") {
       dumpformat = "raw";
     }
-
-    if (dumpformat == "raw") {
-      std::vector<MIdx> starts;
-      std::vector<MIdx> sizes;
-      for (auto b : bb) {
-        const auto& m = kernels_[b]->GetMesh();
-        const auto bc = m.GetInBlockCells();
-        starts.push_back(bc.GetBegin());
-        sizes.push_back(bc.GetSize());
-      }
-
-      const auto& dumpfirst = mfirst.GetDump();
-      for (size_t idump = 0; idump < dumpfirst.size(); ++idump) {
-        std::vector<std::vector<Scal>> data;
-        const auto* req = dumpfirst[idump].first.get();
-        if (auto* req_scal =
-                dynamic_cast<const typename M::CommRequestScal*>(req)) {
-          for (auto b : bb) {
-            const auto& m = kernels_[b]->GetMesh();
-            const auto bc = m.GetInBlockCells();
-            data.emplace_back();
-            auto& dat = data.back();
-            dat.reserve(bc.size());
-            auto& field = *static_cast<const typename M::CommRequestScal*>(
-                               m.GetDump()[idump].first.get())
-                               ->field;
-            for (auto c : m.Cells()) {
-              dat.push_back(field[c]);
-            }
-          }
-
-        } else if (
-            auto* req_vect =
-                dynamic_cast<const typename M::CommRequestVect*>(req)) {
-          fassert(
-              req_vect->d != -1,
-              "Dump only supports vector fields with selected one component");
-          for (auto b : bb) {
-            const auto& m = kernels_[b]->GetMesh();
-            const auto bc = m.GetInBlockCells();
-            data.emplace_back();
-            auto& dat = data.back();
-            dat.reserve(bc.size());
-            auto& field = *static_cast<const typename M::CommRequestVect*>(
-                               m.GetDump()[idump].first.get())
-                               ->field;
-            for (auto c : m.Cells()) {
-              dat.push_back(field[c][req_vect->d]);
-            }
-          }
-        } else {
-          fassert(false);
-        }
-
-        const std::string path =
-            GetDumpName(dumpfirst[idump].second, ".raw", frame_);
-
-        using Xmf = dump::Xmf<Vect>;
-        using Vect3 = generic::Vect<Scal, 3>;
-        using MIdx3 = generic::MIdx<3>;
-        using Xmf3 = dump::Xmf<Vect3>;
-
-        typename Xmf3::Meta meta3;
-        {
-          auto meta = Xmf::GetMeta(MIdx(0), MIdx(1), mfirst);
-          meta3.binpath = path;
-          meta3.name = dumpfirst[idump].second;
-          meta3.type = dump::Type::Float64;
-          meta3.dimensions = MIdx3(1).max(MIdx3(meta.dimensions));
-          meta3.count = meta3.dimensions;
-          meta3.spacing = Vect3(meta.spacing.min());
-        }
-
-        dump::Raw<M>::Write(
-            path, starts, sizes, data, mfirst.GetGlobalSize(), meta3.type,
-            MpiWrapper(comm_));
-
-        Xmf3::WriteXmf(util::SplitExt(path)[0] + ".xmf", meta3);
-        ++frame_;
-      }
-    } else {
-      P::DumpWrite(bb);
-    }
+    P::DumpWrite(bb);
   }
 }
 
