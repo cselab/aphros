@@ -749,7 +749,7 @@ auto UEmbed<M>::InterpolateBcg(
       ut -= ux * w;
     }
     // tangential directions
-    for (int i = 0; i < 2; ++i) {
+    for (size_t i = 0; i + 1 < M::dim; ++i) {
       d = d.next();
       const IdxFace fm = c.face(-d);
       const IdxFace fp = c.face(d);
@@ -822,7 +822,7 @@ auto UEmbed<M>::InterpolateBcg(
       ut -= ux * w;
     }
     // tangential directions
-    for (int i = 0; i < 2; ++i) {
+    for (size_t i = 0; i + 1 < M::dim; ++i) {
       d = d.next();
       const IdxFace fm = c.face(-d);
       const IdxFace fp = c.face(d);
