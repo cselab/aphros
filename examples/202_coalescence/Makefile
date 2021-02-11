@@ -2,8 +2,6 @@ m = 32 32 32
 np = 1
 tl = 600
 
-MAKE=make
-
 default:
 
 include $(shell ap.makesim)
