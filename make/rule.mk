@@ -58,7 +58,6 @@ $(WRK)/util/fixed_allocator.o: $(SRC)/util/fixed_allocator.cpp; mkdir -p $(WRK)/
 $(WRK)/util/fluid.o: $(SRC)/util/fluid.cpp; mkdir -p $(WRK)/util && $(CXX_RULE)
 $(WRK)/util/format.o: $(SRC)/util/format.cpp; mkdir -p $(WRK)/util && $(CXX_RULE)
 $(WRK)/util/gitgen.o: $(SRC)/util/gitgen.cpp; mkdir -p $(WRK)/util && $(CXX_RULE)
-$(WRK)/util/gitgen.o: $(SRC)/util/gitgen.cpp; mkdir -p $(WRK)/util && $(CXX_RULE)
 $(WRK)/util/git.o: $(SRC)/util/git.cpp; mkdir -p $(WRK)/util && $(CXX_RULE)
 $(WRK)/util/histogram.o: $(SRC)/util/histogram.cpp; mkdir -p $(WRK)/util && $(CXX_RULE)
 $(WRK)/util/hydro.o: $(SRC)/util/hydro.cpp; mkdir -p $(WRK)/util && $(CXX_RULE)
