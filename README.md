@@ -108,7 +108,7 @@ Aphros is developed and maintained by researchers at ETH Zurich
 
 * [Petr Karnakov](https://www.cse-lab.ethz.ch/member/petr-karnakov/)
 * [Dr. Sergey Litvinov](https://www.cse-lab.ethz.ch/member/sergey-litvinov/)
-* [Fabian Wermelinger](https://www.cse-lab.ethz.ch/member/fabian-wermelinger/)
+* [Dr. Fabian Wermelinger](https://www.cse-lab.ethz.ch/member/fabian-wermelinger/)
 
 under the supervision of
 
