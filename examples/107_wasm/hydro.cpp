@@ -420,7 +420,6 @@ set int vtkmerge 1
 
 extern "C" {
 Scal AddVelocityAngle(Scal add_deg) {
-  auto& s = *g_state;
   auto& var_g = g_var.Vect["gravity"];
   Vect g(var_g);
   Scal deg = std::atan2(g[1], g[0]) * 180. / M_PI;
