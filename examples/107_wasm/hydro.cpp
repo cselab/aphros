@@ -322,7 +322,7 @@ void Solver::Run() {
         *g_canvas, vof->GetField(), fluid->GetVelocity(), fluid->GetPressure(),
         m);
 
-    // Render interafce lines
+    // Render interface lines
     if (m.IsRoot()) {
       s.lines.clear();
     }
@@ -369,7 +369,7 @@ static void main_loop() {
 
   const Scal tstep = timer.GetSeconds() / nsteps;
 
-  if (s.step % 10 == 0) {
+  if (s.step % g_var.Int("reportevery", 10) == 0) {
     std::cout << util::Format(
                      "step={:05} t={:.5f} dt={:.4f} g={:.1f} tstep={:.1f}ms",
                      s.step, s.time, s.dt, Vect(g_var.Vect["gravity"]),
@@ -399,6 +399,7 @@ set int sharpen 0
 set double sharpen_cfl 0.1
 
 set int nsteps 1
+set int reportevery 10
 
 set double cfl 1
 set double cflvis 0.5

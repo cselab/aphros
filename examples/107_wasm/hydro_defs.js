@@ -1,7 +1,9 @@
 var g_lines;
+var g_lines_ptr;
 var TogglePause;
 var Spawn;
 var AddVelocityAngle;
+var GetLines;
 
 function SetExtraConfig() {
   Module.ccall('SetExtraConfig', '', ['string'], [
@@ -14,12 +16,12 @@ set vect gravity 0 -5
 set double hypre_symm_tol 1e-1
 set int hypre_symm_maxiter 20
 set int hypre_symm_miniter 1
-set double visvel 0
+set double visvel 0.4
 set double visvf 0.5
 set int sharpen 1
 set double dtmax 0.005
 set double sigma 4
-set int nsteps 3
+set int nsteps 2
 
 set double cflsurf 2
 `
@@ -40,7 +42,7 @@ function Draw() {
   ctx.strokeStyle="#000000";
   ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-  var GetLines = Module.cwrap('GetLines', 'number', ['number', 'number']);
+  g_lines = new Uint16Array(Module.HEAPU8.buffer, g_lines_ptr, g_lines_max_size);
   let size = GetLines(g_lines.byteOffset, g_lines.length);
   ctx.lineWidth = 3;
   ctx.strokeStyle = "black";
@@ -53,12 +55,13 @@ function Draw() {
 }
 
 function PostRun() {
-  let max_size = 10000;
-  g_lines = new Uint16Array(
-    Module.HEAPU8.buffer, Module._malloc(max_size * 2), max_size);
+  g_lines_max_size = 10000;
+  g_lines_ptr = Module._malloc(g_lines_max_size * 2);
   TogglePause = Module.cwrap('TogglePause', null, []);
   Spawn = Module.cwrap('Spawn', null, ['number', 'number', 'number']);
   AddVelocityAngle = Module.cwrap('AddVelocityAngle', null, ['number']);
+  GetLines = Module.cwrap('GetLines', 'number', ['number', 'number']);
+
   let keypress = function(ev){
     if (ev.key == ' ') {
       TogglePause();
