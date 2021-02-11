@@ -23,22 +23,21 @@ BEGIN {
         rule = "$(CXX_RULE)"
     else if (sub(/\.c$/, ".o"))
         rule = "$(CC_RULE)"
-    printf "%s: $S/%s; mkdir -p %s && %s\n", $0, file, dirname($0), rule | "sort > ../make/rule.mk"
-    print $0 "\\" | "sort | uniq"
+    printf "$B/%s: $S/%s; mkdir -p $B/%s && %s\n", $0, file, dirname($0), rule | "sort > ../make/rule.mk"
+    print "$B/" $0 "\\" | "sort | uniq"
 }
 
 END {
-    print "util/gitgen.o" "\\" | "sort | uniq"
     close("sort")
     printf "\n"
 }
 
 function dirname(s)
 {
-    if (!sub(/\/.*/, "", s))
-        return "."
-    else
+    if (sub(/\/.*/, "", s))
         return s
+    else
+        return "."
 }
 
 '
