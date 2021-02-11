@@ -23,8 +23,8 @@ BEGIN {
         rule = "$(CXX_RULE)"
     else if (sub(/\.c$/, ".o"))
         rule = "$(CC_RULE)"
-    printf "$B/%s: $S/%s; mkdir -p $B/%s && %s\n", $0, file, dirname($0), rule | "sort > ../make/rule.mk"
-    print "$B/" $0 "\\" | "sort | uniq"
+    printf "$(WRK)/%s: $(SRC)/%s; mkdir -p $(WRK)/%s && %s\n", $0, file, dirname($0), rule | "sort > ../make/rule.mk"
+    print "$(WRK)/" $0 "\\" | "sort | uniq"
 }
 
 END {

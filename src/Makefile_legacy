@@ -1,7 +1,7 @@
 .POSIX:
 .SUFFIXES:
-S = .
-B = .
+SRC = .
+WRK = .
 L = libaphros_static.a
 J = libaphros_js.a
 CXX = g++
@@ -11,7 +11,7 @@ CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g
 CXXFLAGS_STD = -std=c++14
 CC_RULE = $(CC) $< -c $(CFLAGS) -o $@
-CXX_RULE = $(CXX) $< -c $(CXXFLAGS) $(CXXFLAGS_STD) -I$S $1 -o $@
+CXX_RULE = $(CXX) $< -c $(CXXFLAGS) $(CXXFLAGS_STD) -I$(SRC) $1 -o $@
 1 = \
 -D_ALIGNBYTES_=16 \
 -D_USE_AMGX_=0 \
@@ -30,16 +30,16 @@ CXX_RULE = $(CXX) $< -c $(CXXFLAGS) $(CXXFLAGS_STD) -I$S $1 -o $@
 -D_USE_OPENMP_=1 \
 -D_USE_OVERLAP_=0 \
 
-all: $B/$L $B/ap.mfer
-include $S/../make/obj.mk
-include $S/../make/dir.mk
-include $S/../make/hdr.mk
-include $S/../make/rule.mk
-$B/$L: $O; ar rv $@ $O && ranlib $@
-$B/$J: $O; emar rv $@ $O
-$B/ap.mfer: $B/main.o $B/$L; $(LINK) $< $(LDFLAGS) $B/$L -o $@
-$S/util/gitgen.cpp:; $S/gitrev $@
-install: $B/$L $B/ap.mfer
+all: $(WRK)/$L $(WRK)/ap.mfer
+include $(SRC)/../make/obj.mk
+include $(SRC)/../make/dir.mk
+include $(SRC)/../make/hdr.mk
+include $(SRC)/../make/rule.mk
+$(WRK)/$L: $O; mkdir -p $(WRK) && ar rv $@ $O && ranlib $@
+$(WRK)/$J: $O; mkdir -p $(WRK) && emar rv $@ $O
+$(WRK)/ap.mfer: $(WRK)/main.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $< $(LDFLAGS) $(WRK)/$L -o $@
+$(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@
+install: $(WRK)/$L $(WRK)/ap.mfer
 	mkdir -p "$(APHROS_PREFIX)"/lib; \
 	mkdir -p "$(APHROS_PREFIX)"/bin; \
 	mkdir -p "$(APHROS_PREFIX)"/include/aphros; \
@@ -49,11 +49,11 @@ install: $B/$L $B/ap.mfer
 	for i in $H; \
 	do cp $$i "$(APHROS_PREFIX)"/include/aphros/$$i; \
 	done; \
-	cp $B/$L "$(APHROS_PREFIX)"/lib/; \
-	cp $B/ap.mfer "$(APHROS_PREFIX)"/bin
+	cp $(WRK)/$L "$(APHROS_PREFIX)"/lib/; \
+	cp $(WRK)/ap.mfer "$(APHROS_PREFIX)"/bin
 install_js: $J
 	mkdir -p "$(APHROS_PREFIX)"/lib; \
 	cp $J "$(APHROS_PREFIX)"/lib/
 clean:
-	-rm $O $B/$L $B/$J $B/ap.mfer
-include $S/../make/dep.mk
+	-rm $O $(WRK)/$L $(WRK)/$J $(WRK)/ap.mfer
+include $(SRC)/../make/dep.mk
