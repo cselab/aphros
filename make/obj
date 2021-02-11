@@ -1,6 +1,6 @@
 #!/bin/sh
 
-find . -name '*.cpp' -or -name '*.c' | awk '
+(find . -name '*.cpp' -or -name '*.c'; echo util/gitgen.cpp) | awk '
 BEGIN {
     print "O = \\"
     skip["distr/comm_manager.cpp"]
@@ -18,8 +18,12 @@ BEGIN {
 { sub(/^\.\//, "") }
 ($0 in skip) || /^test\// { next }
 {
-    sub(/\.cpp$/, ".o")
-    sub(/\.c$/, ".o")
+    file = $0
+    if (sub(/\.cpp$/, ".o"))
+        rule = "$(CXX_RULE)"
+    else if (sub(/\.c$/, ".o"))
+        rule = "$(CC_RULE)"
+    printf "%s: $S/%s; mkdir -p %s && %s\n", $0, file, dirname($0), rule | "sort > ../make/rule.mk"
     print $0 "\\" | "sort | uniq"
 }
 
@@ -27,6 +31,14 @@ END {
     print "util/gitgen.o" "\\" | "sort | uniq"
     close("sort")
     printf "\n"
+}
+
+function dirname(s)
+{
+    if (!sub(/\/.*/, "", s))
+        return "."
+    else
+        return s
 }
 
 '

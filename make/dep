@@ -18,7 +18,7 @@ function dfs(s,   q, i, j, k, seen, nxt, c) {
 	    nxt = adj[c, k]
 	    if (!(nxt in seen)) {
 		q[++j] = nxt
-		print f2obj(s) " : " nxt
+		print f2obj(s) ": " "$S/" nxt
 	    }
 	}
     }
