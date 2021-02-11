@@ -18,6 +18,7 @@
 #include "parse/vof.h"
 #include "solver/approx.h"
 #include "solver/approx_eb.h"
+#include "solver/approx_eb.ipp"
 #include "solver/cond.h"
 #include "solver/curv.h"
 #include "solver/proj.h"
@@ -80,6 +81,7 @@ class Solver : public KernelMeshPar<M, Par> {
   FieldEmbed<Scal> ff_bforce;
   MapEmbed<BCondAdvection<Scal>> bc_vof;
   MapEmbed<BCondFluid<Vect>> bc_fluid;
+  MapEmbed<BCond<Scal>> bc_vort;
   MapCell<std::shared_ptr<CondCellFluid>> mc_velcond;
   std::unique_ptr<Vof<M>> vof;
   std::unique_ptr<Proj<M>> fluid;
@@ -103,6 +105,7 @@ struct State {
   bool pause = false;
   bool to_init_field = true;
   bool to_init_solver = true;
+  bool render = false;
   std::vector<std::array<MIdx, 2>> lines; // interface lines
 
   bool to_spawn = false;
@@ -117,6 +120,11 @@ Vars g_var;
 
 static Scal Clamp(Scal f, Scal min, Scal max) {
   return f < min ? min : f > max ? max : f;
+}
+
+template <class T>
+static T Clamp(T v) {
+  return v.max(T(0)).min(T(1));
 }
 
 static Scal Clamp(Scal f) {
@@ -140,35 +148,90 @@ static MIdx GetCanvasCoords(Vect x, const Canvas& canvas, const M& m) {
   return w;
 }
 
+template <class MEB>
+FieldCell<typename MEB::Scal> GetVortScal(
+    const FieldCell<typename MEB::Vect>& fcvel,
+    const MapEmbed<BCond<typename MEB::Vect>>& me_vel, MEB& eb) {
+  using M = typename MEB::M;
+  constexpr auto dim = M::dim;
+  auto& m = eb.GetMesh();
+  using Scal = typename MEB::Scal;
+  using Vect = typename MEB::Vect;
+  using UEB = UEmbed<M>;
+
+  std::array<FieldCell<Vect>, dim> grad;
+  for (size_t d = 0; d < dim; ++d) {
+    grad[d].Reinit(m, Vect(0));
+    const auto mebc = GetScalarCond(me_vel, d, m);
+    const FieldCell<Scal> fcu = GetComponent(fcvel, d);
+    const FieldFace<Scal> ffg = UEB::Gradient(fcu, mebc, m);
+    grad[d] = UEB::AverageGradient(ffg, m);
+  }
+
+  FieldCell<Scal> res(m, 0);
+  for (auto c : m.Cells()) {
+    res[c] = grad[1][c][0] - grad[0][c][1];
+  }
+  return res;
+}
+
 static void RenderField(
     Canvas& canvas, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcvel,
+    const MapEmbed<BCond<Vect>>& bc_vel, const MapEmbed<BCond<Scal>>& bc_vort,
     const FieldCell<Scal>& fcp, const M& m) {
+  auto fcvelbc = fcvel;
+  auto fc_vort = GetVortScal(fcvel, bc_vel, m);
+  // fill halo cells
+  BcApply<Vect>(fcvelbc, bc_vel, m);
+  BcApply<Scal>(fc_vort, bc_vort, m);
   const auto msize = m.GetGlobalSize();
   const Scal visvel = g_var.Double("visvel", 0);
+  const Scal visvort = g_var.Double("visvort", 0);
   const Scal visvf = g_var.Double("visvf", 0);
+  using Vect3 = generic::Vect<Scal, 3>;
+  using MIdx3 = generic::Vect<unsigned char, 3>;
+  auto get_color = [&](IdxCell c) -> Vect3{
+    Vect3 q(0);
+    if (visvel) {
+      q = interp::Bilinear(
+          Clamp(visvel * std::abs(fcvelbc[c][0])),
+          Clamp(visvel * std::abs(fcvelbc[c][1])),
+          Vect3(1), Vect3(0, 1, 0), Vect3(0, 0, 1), Vect3(0, 1, 1)
+          );
+    }
+    if (visvort) {
+      const auto vort = fc_vort[c];
+      const auto f = Clamp(std::abs(vort * visvort));
+      if (vort > 0) {
+        q = interp::Linear(f, Vect3(1, 1, 1), Vect3(1, 0.12, 0.35));
+      } else {
+        q = interp::Linear(f, Vect3(1, 1, 1), Vect3(0, 0.6, 0.87));
+      }
+    }
+    if (visvf) {
+      q = interp::Linear(visvf * fcu[c], Vect3(q), Vect3(0, 0.8, 0.42));
+    }
+    return q;
+  };
   for (auto c : m.CellsM()) {
     const MIdx w(c);
     const MIdx start = w * canvas.size / msize;
     const MIdx end = (w + MIdx(1)) * canvas.size / msize;
-    unsigned char qr = 0;
-    unsigned char qg = 0;
-    unsigned char qb = 0;
-    if (visvel) {
-      qg = qb = Clamp(visvel * fcvel[c].norm()) * 255;
-    }
-    qr = ~qr;
-    qg = ~qg;
-    qb = ~qb;
-    if (visvf) {
-      const auto f = Clamp(1 - visvf * fcu[c]);
-      qr *= f;
-      qg *= f;
-      qb *= f;
-    }
-    uint32_t q = 0xff000000 | (qr << 0) | (qg << 8) | (qb << 16);
     for (int y = start[1]; y < end[1]; y++) {
+      const Scal fy = Scal(y - start[1]) / (end[1] - start[1] - 1)  - 0.5;
       for (int x = start[0]; x < end[0]; x++) {
-        canvas.buf[canvas.size[0] * (canvas.size[1] - y - 1) + x] = q;
+        const Scal fx = Scal(x - start[0]) / (end[0] - start[0] - 1) - 0.5;
+        const Vect f(fx, fy);
+        const auto dx = m.direction(0).orient(f);
+        const auto dy = m.direction(1).orient(f);
+        auto q = get_color(c);
+        auto qx = get_color(c + dx);
+        auto qy = get_color(c + dy);
+        auto qyx = get_color(c + dx + dy);
+        auto qb = interp::Bilinear(std::abs(fx), std::abs(fy), q, qx, qy, qyx);
+        MIdx3 mq(qb * 255);
+        canvas.buf[canvas.size[0] * (canvas.size[1] - y - 1) + x] =
+            0xff000000 | (mq[0] << 0) | (mq[1] << 8) | (mq[2] << 16);
       }
     }
   }
@@ -197,7 +260,8 @@ void Solver::Run() {
             auto& bc = bc_fluid[f];
             bc.nci = nci;
             bc.type = BCondFluidType::wall;
-            if (f[1] == m.GetGlobalSize()[1]) {
+            if (topvel && f[1] == m.GetGlobalSize()[1]) {
+              bc.type = BCondFluidType::slipwall;
               bc.velocity = Vect(topvel, 0);
             }
           }
@@ -206,6 +270,11 @@ void Solver::Run() {
             bc.nci = nci;
             bc.halo = BCondAdvection<Scal>::Halo::fill;
             bc.fill_vf = 0;
+          }
+          { // vorticity
+            auto& bc = bc_vort[f];
+            bc.nci = nci;
+            bc.type = BCondType::neumann;
           }
         }
       }
@@ -318,27 +387,30 @@ void Solver::Run() {
     s.to_init_field = false;
     s.to_spawn = false;
 
-    RenderField(
-        *g_canvas, vof->GetField(), fluid->GetVelocity(), fluid->GetPressure(),
-        m);
+    if (s.render) {
+      auto bc_vel = GetVelCond<M>(bc_fluid);
+      RenderField(
+          *g_canvas, vof->GetField(), fluid->GetVelocity(), bc_vel, bc_vort,
+          fluid->GetPressure(), m);
 
-    // Render interface lines
-    if (m.IsRoot()) {
-      s.lines.clear();
-    }
-    auto h = m.GetCellSize();
-    const auto& fci = vof->GetMask();
-    const auto& fcn = vof->GetNormal();
-    const auto& fca = vof->GetAlpha();
-    for (auto c : m.Cells()) {
-      if (fci[c]) {
-        const auto poly =
-            Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
-        if (poly.size() == 2) {
-          s.lines.push_back({
-              GetCanvasCoords(poly[0], *g_canvas, m),
-              GetCanvasCoords(poly[1], *g_canvas, m),
-          });
+      // Render interface lines
+      if (m.IsRoot()) {
+        s.lines.clear();
+      }
+      auto h = m.GetCellSize();
+      const auto& fci = vof->GetMask();
+      const auto& fcn = vof->GetNormal();
+      const auto& fca = vof->GetAlpha();
+      for (auto c : m.Cells()) {
+        if (fci[c]) {
+          const auto poly =
+              Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
+          if (poly.size() == 2) {
+            s.lines.push_back({
+                GetCanvasCoords(poly[0], *g_canvas, m),
+                GetCanvasCoords(poly[1], *g_canvas, m),
+            });
+          }
         }
       }
     }
@@ -364,6 +436,7 @@ static void main_loop() {
 
   const int nsteps = g_var.Int["nsteps"];
   for (int i = 0; i < nsteps; ++i) {
+    s.render = (i + 1 == nsteps);
     s.distrsolver.Run();
   }
 
@@ -512,7 +585,7 @@ int main() {
   FORCE_LINK(distr_local);
   FORCE_LINK(distr_native);
 
-  SetCanvas(500, 500);
+  SetCanvas(512, 512);
   emscripten_set_canvas_element_size(
       "#canvas", g_canvas->size[0], g_canvas->size[1]);
   emscripten_set_main_loop(main_loop, 30, 1);

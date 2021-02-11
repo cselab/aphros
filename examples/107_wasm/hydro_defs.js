@@ -13,15 +13,17 @@ set double mu1 0.0001
 set double rho2 10
 set double mu2 0.001
 set vect gravity 0 -5
-set double hypre_symm_tol 1e-1
+set double hypre_symm_tol 1e-2
 set int hypre_symm_maxiter 20
-set int hypre_symm_miniter 1
-set double visvel 0.4
-set double visvf 0.5
+set int hypre_symm_miniter 5
+set double visvel 0
+set double visvf 0.7
+set double visvort 0.025
 set int sharpen 1
-set double dtmax 0.005
+set double dtmax 0.1
 set double sigma 4
 set int nsteps 2
+set double cfl 1
 
 set double cflsurf 2
 `
@@ -62,19 +64,24 @@ function PostRun() {
   AddVelocityAngle = Module.cwrap('AddVelocityAngle', null, ['number']);
   GetLines = Module.cwrap('GetLines', 'number', ['number', 'number']);
 
-  let keypress = function(ev){
+  let keydown = function(ev){
     if (ev.key == ' ') {
       TogglePause();
+      ev.preventDefault();
     }
-    return false;
+  };
+  let keyup = function(ev){
+    if (ev.key == ' ') {
+      ev.preventDefault();
+    }
   };
   let mouseclick = function(ev){
     let x = ev.offsetX / 500;
     let y = 1 - ev.offsetY / 500;
     Spawn(x, y, 0.1);
-    return false;
   };
-  window.addEventListener('keypress', keypress, false);
+  window.addEventListener('keydown', keydown, false);
+  window.addEventListener('keyup', keyup, false);
   let canvas = Module['canvas'];
   canvas.addEventListener('click', mouseclick, false);
   SetMesh(32);
