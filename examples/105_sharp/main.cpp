@@ -13,21 +13,24 @@
 #include <utility>
 
 #include <distr/distrbasic.h>
-#include "dump/hdf.h"
-#include "dump/raw.h"
-#include "parse/argparse.h"
-#include "parse/vars.h"
-#include "parse/vof.h"
-#include "solver/vof.h"
-#include "util/distr.h"
-#include "util/filesystem.h"
-#include "util/hydro.h"
-#include "util/vof.h"
+#include <dump/hdf.h>
+#include <dump/raw.h>
+#include <dump/xmf.h>
+#include <parse/argparse.h>
+#include <parse/vars.h>
+#include <parse/vof.h>
+#include <solver/vof.h>
+#include <util/distr.h>
+#include <util/filesystem.h>
+#include <util/hydro.h>
+#include <util/vof.h>
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
+using Raw = dump::Raw<M>;
+using Xmf = dump::Xmf<Vect>;
 
 std::string GetFormat(std::string path, std::string format) {
   const auto ext = util::SplitExt(path)[1];
@@ -45,15 +48,13 @@ std::string GetFormat(std::string path, std::string format) {
 
 void Run(M& m, Vars& var) {
   const bool verbose = var.Int["VERBOSE"];
-  using Scal = typename M::Scal;
-  using Raw = dump::Raw<M>;
   auto sem = m.GetSem();
   struct {
     std::unique_ptr<Vof<M>> solver;
     Vof<M>::Par par;
 
-    Raw::Meta meta;
-    Raw::Meta outmeta;
+    Xmf::Meta meta;
+    Xmf::Meta outmeta;
 
     FieldCell<Scal> fcu;
     FieldEmbed<Scal> fe_flux;
@@ -81,7 +82,7 @@ void Run(M& m, Vars& var) {
       auto format = GetFormat(path, var.String["format"]);
       if (format == "raw") {
         const auto xmfpath = util::SplitExt(path)[0] + ".xmf";
-        t.meta = dump::Raw<M>::ReadXmf(xmfpath);
+        t.meta = Xmf::ReadXmf(xmfpath);
       }
     }
     if (sem.Nested("read")) {
@@ -95,7 +96,7 @@ void Run(M& m, Vars& var) {
       }
     }
     if (sem("scale")) {
-      if (t.meta.type == Raw::Type::UInt16) {
+      if (t.meta.type == dump::Type::UInt16) {
         for (auto c : m.Cells()) {
           fc_buf[c] /= std::numeric_limits<std::uint16_t>::max();
         }
@@ -118,14 +119,14 @@ void Run(M& m, Vars& var) {
         t.outmeta.spacing = t.meta.spacing;
         const auto outtype = var.String["outtype"];
         if (outtype.length()) {
-          t.outmeta.type = Raw::StringToType(outtype);
+          t.outmeta.type = dump::StringToType(outtype);
         } else {
-          t.outmeta.type = Raw::Type::Float64;
+          t.outmeta.type = dump::Type::Float64;
         }
         t.outmeta.binpath = path;
         t.outmeta.name = t.meta.name + "sh";
         t.fc_write = fc_buf();
-        if (t.outmeta.type == Raw::Type::UInt16) {
+        if (t.outmeta.type == dump::Type::UInt16) {
           for (auto c : m.Cells()) {
             auto& u = t.fc_write[c];
             u = std::min(1., std::max(0., u)) *
@@ -137,7 +138,7 @@ void Run(M& m, Vars& var) {
         Raw::Write(t.fc_write, t.outmeta, path, m);
       }
       if (sem("writexmf")) {
-        Raw::WriteXmf(util::SplitExt(path)[0] + ".xmf", t.outmeta);
+        Xmf::WriteXmf(util::SplitExt(path)[0] + ".xmf", t.outmeta);
       }
     } else {
       fassert(false, "Unkown format=" + format);
@@ -285,7 +286,7 @@ int main(int argc, const char** argv) {
     nz = shape[0];
   } else if (inputformat == "raw") {
     const auto xmfpath = util::SplitExt(input)[0] + ".xmf";
-    const auto meta = dump::Raw<M>::ReadXmf(xmfpath);
+    const auto meta = Xmf::ReadXmf(xmfpath);
     nx = meta.count[0];
     ny = meta.count[1];
     nz = meta.count[2];

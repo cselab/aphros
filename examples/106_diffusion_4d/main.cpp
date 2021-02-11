@@ -75,17 +75,18 @@ void DumpCsv(std::string path, FieldCell<Scal>& fcu, M& m, bool verbose=false) {
 void DumpRaw(std::string path, FieldCell<Scal>& fcu, M& m, bool verbose=false) {
   auto sem = m.GetSem();
   using Raw = dump::Raw<M>;
+  using Xmf = dump::Xmf<Vect>;
   struct {
     Raw::Meta meta;
   } * ctx(sem);
   auto& t = *ctx;
   if (sem("writexmf")) {
-    t.meta = Raw::GetMeta(MIdx(0), MIdx(1), m);
+    t.meta = Xmf::GetMeta(MIdx(0), MIdx(1), m);
     t.meta.name = "u";
     t.meta.binpath = path;
     if (m.IsRoot()) {
       const auto xmfpath = util::SplitExt(path)[0] + ".xmf";
-      Raw::WriteXmf(xmfpath, t.meta);
+      Xmf::WriteXmf(xmfpath, t.meta);
       if (verbose) {
         std::cout << path << ' ' << xmfpath << std::endl;
       }

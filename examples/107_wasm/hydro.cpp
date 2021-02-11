@@ -34,16 +34,16 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
-void CopyToCanvas(uint32_t* ptr, int w, int h) {
+void CopyToCanvas(uint32_t* buf, int w, int h) {
   EM_ASM_(
       {
         let data = Module.HEAPU8.slice($0, $0 + $1 * $2 * 4);
-        let context = Module['canvas'].getContext('2d');
-        let imageData = context.getImageData(0, 0, $1, $2);
-        imageData.data.set(data);
-        context.putImageData(imageData, 0, 0);
+        let ctx = Module['canvas'].getContext('2d');
+        let image = context.getImageData(0, 0, $1, $2);
+        image.data.set(data);
+        ctx.putImageData(imageData, 0, 0);
       },
-      ptr, w, h);
+      buf, w, h);
 }
 
 struct Par {};
@@ -109,7 +109,6 @@ std::shared_ptr<State> g_state;
 std::shared_ptr<Canvas> g_canvas;
 std::string g_extra_config;
 Vars g_var;
-
 
 static Scal Clamp(Scal f, Scal min, Scal max) {
   return f < min ? min : f > max ? max : f;
@@ -206,7 +205,6 @@ void Solver::Run() {
           p));
     }
 
-
     auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
     psm_par = ParsePar<PartStrMeshM<M>>()(ps, var);
   }
@@ -300,7 +298,6 @@ void Solver::Run() {
   }
 }
 
-
 static void main_loop() {
   auto state = g_state;
   auto& s = *state;
@@ -311,17 +308,8 @@ static void main_loop() {
   SingleTimer timer;
 
   const int nsteps = g_var.Int["nsteps"];
-  try {
-    for (int i = 0; i < nsteps; ++i) {
-      s.distrsolver.Run();
-    }
-  } catch (const std::exception& e) {
-    std::cerr << FILELINE + "\nabort after throwing exception\n"
-              << e.what() << '\n';
-    std::terminate();
-  } catch (...) {
-    std::cerr << FILELINE + "\nabort after unknown exception\n";
-    std::terminate();
+  for (int i = 0; i < nsteps; ++i) {
+    s.distrsolver.Run();
   }
 
   const Scal tstep = timer.GetSeconds() / nsteps;
@@ -336,41 +324,8 @@ static void main_loop() {
   CopyToCanvas(g_canvas->buf.data(), g_canvas->size[0], g_canvas->size[1]);
 }
 
-extern "C" {
-Scal AddVelocityAngle(Scal add_deg) {
-  auto& s = *g_state;
-  auto& var_g = g_var.Vect["gravity"];
-  Vect g(var_g);
-  Scal deg = std::atan2(g[1], g[0]) * 180. / M_PI;
-  deg += add_deg;
-  const Scal rad = deg * M_PI / 180.;
-  g = Vect(std::cos(rad), std::sin(rad)) * g.norm();
-  std::cout << util::Format("g={:.3f} angle={:.1f}", g, deg) << std::endl;
-  var_g = g;
-  return deg;
-}
-int Init() {
-  auto& s = *g_state;
-  s.to_init_field = true;
-  return 0;
-}
-int TogglePause() {
-  auto& s = *g_state;
-  s.pause = !s.pause;
-  return s.pause;
-}
-int SetExtraConfig(const char* extra) {
-  g_extra_config = extra;
-  return 0;
-}
-
-int SetMesh(int nx) {
-  MPI_Comm comm = 0;
-  std::stringstream conf;
-  conf << GetDefaultConf();
-  Subdomains<MIdx> sub(MIdx(nx), MIdx(nx), 1);
-  conf << sub.GetConfig();
-  conf << R"EOF(
+static std::string GetBaseConfig() {
+  return R"EOF(
 set string linsolver_symm conjugate
 set double hypre_symm_tol 1e-3
 set int hypre_symm_maxiter 100
@@ -408,24 +363,49 @@ set int dim 2
 set int vtkbin 1
 set int vtkmerge 1
 )EOF";
+}
+
+extern "C" {
+Scal AddVelocityAngle(Scal add_deg) {
+  auto& s = *g_state;
+  auto& var_g = g_var.Vect["gravity"];
+  Vect g(var_g);
+  Scal deg = std::atan2(g[1], g[0]) * 180. / M_PI;
+  deg += add_deg;
+  const Scal rad = deg * M_PI / 180.;
+  g = Vect(std::cos(rad), std::sin(rad)) * g.norm();
+  std::cout << util::Format("g={:.3f} angle={:.1f}", g, deg) << std::endl;
+  var_g = g;
+  return deg;
+}
+int Init() {
+  auto& s = *g_state;
+  s.to_init_field = true;
+  return 0;
+}
+int TogglePause() {
+  auto& s = *g_state;
+  s.pause = !s.pause;
+  return s.pause;
+}
+int SetExtraConfig(const char* extra) {
+  g_extra_config = extra;
+  return 0;
+}
+
+int SetMesh(int nx) {
+  MPI_Comm comm = 0;
+  std::stringstream conf;
+  conf << GetDefaultConf();
+  Subdomains<MIdx> sub(MIdx(nx), MIdx(nx), 1);
+  conf << sub.GetConfig();
+  conf << GetBaseConfig();
   conf << g_extra_config << '\n';
   Parser(g_var).ParseStream(conf);
 
   std::shared_ptr<State> new_state;
-  try {
-    new_state = std::make_shared<State>(comm, g_var);
-  } catch (const std::exception& e) {
-    std::cerr << FILELINE + "\nabort after throwing exception\n"
-              << e.what() << '\n';
-    std::terminate();
-  } catch (...) {
-    std::cerr << FILELINE + "\nabort after unknown exception\n";
-    std::terminate();
-  }
+  new_state = std::make_shared<State>(comm, g_var);
 
-  if (g_state) {
-    //new_state->velocity = g_state->velocity;
-  }
   g_state = new_state;
   std::cout << util::Format("mesh {}", MIdx(nx)) << std::endl;
   return 0;
