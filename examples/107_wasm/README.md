@@ -1,4 +1,8 @@
-# Install
+# WebAssembly Coalescence of Drops
+
+Finite-volume simulation of two fluids with different densities.
+
+## Install
 
 Uses
 [emscripten](https://emscripten.org/docs/getting_started/downloads.html#sdk-download-and-install),
