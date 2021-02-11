@@ -39,9 +39,9 @@ void CopyToCanvas(uint32_t* buf, int w, int h) {
       {
         let data = Module.HEAPU8.slice($0, $0 + $1 * $2 * 4);
         let ctx = Module['canvas'].getContext('2d');
-        let image = context.getImageData(0, 0, $1, $2);
+        let image = ctx.getImageData(0, 0, $1, $2);
         image.data.set(data);
-        ctx.putImageData(imageData, 0, 0);
+        ctx.putImageData(image, 0, 0);
       },
       buf, w, h);
 }
