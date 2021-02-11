@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>PLIC advection</title>
+    <title>Fluid flow</title>
     <style>
       .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; touch-action: manipulation; }
       textarea.emscripten { font-family: monospace; width: 500px; }
@@ -20,11 +20,21 @@
       function SetExtraConfig() {
         Module.ccall('SetExtraConfig', '', ['string'], [
                 `
-set string backend native
-set double rho2 1
-set vect gravity 0 -1
-set double hypre_symm_tol 0
-set int hypre_symm_maxiter 30
+set double rho1 1
+set double mu1 0.0001
+set double rho2 10
+set double mu2 0.001
+set vect gravity 0 -5
+set double hypre_symm_tol 1e-1
+set int hypre_symm_maxiter 20
+set int hypre_symm_miniter 1
+set double visvel 0.4
+set int sharpen 1
+set double dtmax 0.005
+set double sigma 4
+set int nsteps 3
+
+set double cflsurf 2
      `
               ]);
       }
@@ -57,7 +67,7 @@ set int hypre_symm_maxiter 30
     <script type='text/javascript'>
       var Module = {
         preRun: [],
-        postRun: [],
+        postRun: [function (){ return SetMesh(32);}],
         print: (function() {
           var element = document.getElementById('output');
           if (element) element.value = '';
