@@ -1,9 +1,11 @@
 O = \
 $(WRK)/color/color.o\
+$(WRK)/distr/comm_manager.o\
 $(WRK)/distr/distrbasic.o\
 $(WRK)/distr/distr.o\
 $(WRK)/distr/distrsolver.o\
 $(WRK)/distr/local.o\
+$(WRK)/distr/native.o\
 $(WRK)/distr/report.o\
 $(WRK)/dump/dumper.o\
 $(WRK)/dump/dump.o\

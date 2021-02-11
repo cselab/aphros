@@ -3,9 +3,7 @@
 (find . -name '*.cpp' -or -name '*.c'; echo util/gitgen.cpp) | awk '
 BEGIN {
     print "O = \\"
-    skip["distr/comm_manager.cpp"]
     skip["distr/cubismnc.cpp"]
-    skip["distr/native.cpp"]
     skip["gen/wave_lamb.c"]
     skip["linear/hypre.cpp"]
     skip["linear/hypresub.cpp"]
@@ -16,7 +14,7 @@ BEGIN {
     skip["util/subcomm.cpp"]
 }
 { sub(/^\.\//, "") }
-($0 in skip) || /^test\// { next }
+($0 in skip) || /^test\// || /^build[a-z_0-9]*\// || /^main[.]cpp$/ { next }
 {
     file = $0
     if (sub(/\.cpp$/, ".o"))
