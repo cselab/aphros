@@ -82,6 +82,9 @@ jobs:
   examples:
     executor: mainexecutor
     working_directory: ~/aphros
+    environment:
+      OMPI_ALLOW_RUN_AS_ROOT: 1
+      OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
     steps:
       - attach_workspace:
           at: ~/
