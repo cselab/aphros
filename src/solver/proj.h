@@ -22,11 +22,11 @@ struct ProjPar {
   bool stokes = false; // Stokes flow
   bool convsymm = false; // symmetric solver for linear system in convdiff
   Conv conv = Conv::imp; // convection-diffusion solver
-  bool bcg = false; // Bell-Colella-Glaz scheme
+  bool bcg = true; // Bell-Colella-Glaz scheme
   Scal outlet_relax = 1;
   Scal inletpressure_factor =
       0; // correction factor on inlet with given pressure
-  bool explviscous = true; // enable explicit viscous terms
+  bool explviscous = false; // enable explicit viscous terms
   bool redistr_adv = false; // use RedistributeCutCellsAdvection()
                             // if true else RedistributeCutCells()
   size_t diffusion_iters = 1; // number of iterations in implicit diffusion
