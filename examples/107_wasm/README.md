@@ -3,7 +3,7 @@
 Uses
 [emscripten](https://emscripten.org/docs/getting_started/downloads.html#sdk-download-and-install),
 commands `emcc` and `emar` should be available. Build and open in a
-brwoser:
+web browser:
 
 ```
 make
