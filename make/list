@@ -2,7 +2,7 @@
 
 find . -name '*.cpp' -or -name '*.c' -or -name '*.h' -or -name '*.ipp' -or -name '*.inc' | awk -v me=list '
 { sub(/^\.\//, "") }
-/^test\// || /^main[.]cpp$/ { next }
+/^test\// { next }
 {
     f = $0
     while (getline < f)
