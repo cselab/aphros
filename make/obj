@@ -28,7 +28,7 @@ BEGIN {
 }
 
 END {
-    close("sort")
+    close("sort | uniq")
     printf "\n"
 }
 
