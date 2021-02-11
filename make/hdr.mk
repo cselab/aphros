@@ -29,6 +29,7 @@ dump/output.h\
 dump/output_paraview.h\
 dump/raw.h\
 dump/vtk.h\
+dump/xmf.h\
 func/init_bc.h\
 func/init_cl.h\
 func/init_contang.h\
@@ -79,6 +80,7 @@ parse/parser.h\
 parse/proj.h\
 parse/simple.h\
 parse/solver.h\
+parse/template.h\
 parse/tvd.h\
 parse/util.h\
 parse/vars.h\

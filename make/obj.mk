@@ -3,14 +3,13 @@ color/color.o\
 distr/distrbasic.o\
 distr/distr.o\
 distr/distrsolver.o\
-distr/comm_manager.o\
 distr/local.o\
-distr/native.o\
 distr/report.o\
 dump/dumper.o\
 dump/dump.o\
 dump/hdf.o\
 dump/raw.o\
+dump/xmf.o\
 func/init_contang.o\
 func/init.o\
 func/init_vel.o\
@@ -29,6 +28,7 @@ march/main.o\
 parse/argparse.o\
 parse/conf2py.o\
 parse/parser.o\
+parse/template.o\
 parse/vars.o\
 solver/approx_eb.o\
 solver/approx.o\
