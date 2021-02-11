@@ -13,5 +13,5 @@ hydro.js: hydro.cpp $B/libaphros_js.a
 	$(CXX) $< $(CXXFLAGS) $(WASMFLAGS) -I$S $B/laphros_js.a $1 \
 		-s EXPORTED_FUNCTIONS='["_main", "_AddVelocityAngle", "_SetExtraConfig", "_TogglePause", "_Init", "_SetMesh"]' \
 		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@
-clean:; rm -vf $(ALL)
+clean:; rm -rvf $(ALL) $B
 .PHONY: clean all
