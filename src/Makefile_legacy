@@ -9,6 +9,8 @@ LINK = $(CXX)
 CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g
 CXXFLAGS_STD = -std=c++14
+CC_RULE = $(CC) $< -c $(CFLAGS) -o $@
+CXX_RULE = $(CXX) $< -c $(CXXFLAGS) $(CXXFLAGS_STD) -I$S $1 -o $@
 1 = \
 -D_ALIGNBYTES_=16 \
 -D_USE_AMGX_=0 \
@@ -31,11 +33,7 @@ all: $L ap.mfer
 include $S/../make/obj.mk
 include $S/../make/dir.mk
 include $S/../make/hdr.mk
-
-CC_RULE = $(CC) $< -c $(CFLAGS) -o $@
-CXX_RULE = $(CXX) $< -c $(CXXFLAGS) $(CXXFLAGS_STD) -I$S $1 -o $@
 include $S/../make/rule.mk
-
 $L: $O; ar rv $@ $O && ranlib $@
 $J: $O; emar rv $@ $O
 ap.mfer: main.o $L; $(LINK) $< $(LDFLAGS) $L -o $@
