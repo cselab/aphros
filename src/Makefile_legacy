@@ -51,9 +51,9 @@ install: $(WRK)/$L $(WRK)/ap.mfer
 	done; \
 	cp $(WRK)/$L "$(APHROS_PREFIX)"/lib/; \
 	cp $(WRK)/ap.mfer "$(APHROS_PREFIX)"/bin
-install_js: $J
+install_js: $(WRK)/$J
 	mkdir -p "$(APHROS_PREFIX)"/lib; \
-	cp $J "$(APHROS_PREFIX)"/lib/
+	cp $(WRK)/$J "$(APHROS_PREFIX)"/lib/
 clean:
 	-rm $O $(WRK)/$L $(WRK)/$J $(WRK)/ap.mfer
 include $(SRC)/../make/dep.mk
