@@ -15,3 +15,8 @@ hydro.js: hydro.cpp $(WRK)/libaphros_js.a
 		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@
 clean:; rm -vf $(ALL)
 .PHONY: clean all
+
+diffusion_distr.js: diffusion_distrro.cpp $(WRK)/libaphros_js.a
+	$(CXX) $< $(CXXFLAGS) $(WASMFLAGS) -I$(SRC) $(WRK)/libaphros_js.a $1 \
+		-s EXPORTED_FUNCTIONS='["_main", "_MulDiffusion", "_AddVelocityAngle", "_TogglePause", "_Init", "_SetMesh"]' \
+		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@

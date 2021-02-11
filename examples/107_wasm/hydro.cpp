@@ -351,6 +351,9 @@ void Solver::Run() {
 }
 
 static void main_loop() {
+  if (!g_state) {
+    return;
+  }
   auto state = g_state;
   auto& s = *state;
   if (s.pause) {
@@ -420,6 +423,9 @@ set int vtkmerge 1
 
 extern "C" {
 Scal AddVelocityAngle(Scal add_deg) {
+  if (!g_state) {
+    return 0;
+  }
   auto& var_g = g_var.Vect["gravity"];
   Vect g(var_g);
   Scal deg = std::atan2(g[1], g[0]) * 180. / M_PI;
@@ -431,10 +437,16 @@ Scal AddVelocityAngle(Scal add_deg) {
   return deg;
 }
 void Init() {
+  if (!g_state) {
+    return;
+  }
   auto& s = *g_state;
   s.to_init_field = true;
 }
 void Spawn(float x, float y, float r) {
+  if (!g_state) {
+    return;
+  }
   auto& s = *g_state;
   s.to_spawn = true;
   s.spawn_c = Vect(x, y);
@@ -443,6 +455,9 @@ void Spawn(float x, float y, float r) {
             << std::endl;
 }
 int TogglePause() {
+  if (!g_state) {
+    return 0;
+  }
   auto& s = *g_state;
   s.pause = !s.pause;
   return s.pause;
@@ -472,6 +487,9 @@ void SetCanvas(int nx, int ny) {
   std::cout << util::Format("canvas {}", g_canvas->size) << std::endl;
 }
 int GetLines(uint16_t* data, int max_size) {
+  if (!g_state) {
+    return 0;
+  }
   auto state = g_state;
   auto& s = *state;
   int i = 0;
