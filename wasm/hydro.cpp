@@ -8,8 +8,11 @@
 #include <memory>
 #include <sstream>
 
+#include <cstdio>
+
 #include "distr/distrbasic.h"
 #include "distr/distrsolver.h"
+#include "dump/xmf.h"
 #include "func/init_u.h"
 #include "geom/mesh.h"
 #include "geom/rangemulti.h"
@@ -18,6 +21,7 @@
 #include "parse/vof.h"
 #include "solver/approx.h"
 #include "solver/approx_eb.h"
+#include "solver/approx_eb.ipp"
 #include "solver/cond.h"
 #include "solver/curv.h"
 #include "solver/proj.h"
@@ -29,21 +33,23 @@
 #include "util/module.h"
 #include "util/timer.h"
 
+static constexpr int kScale = 4;
+
 using M = MeshStructured<double, 2>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
-void CopyToCanvas(uint32_t* ptr, int w, int h) {
+void CopyToCanvas(uint32_t* buf, int w, int h) {
   EM_ASM_(
       {
         let data = Module.HEAPU8.slice($0, $0 + $1 * $2 * 4);
-        let context = Module['canvas'].getContext('2d');
-        let imageData = context.getImageData(0, 0, $1, $2);
-        imageData.data.set(data);
-        context.putImageData(imageData, 0, 0);
+        let tctx = g_tmp_canvas.getContext("2d");
+        let image = tctx.getImageData(0, 0, $1, $2);
+        image.data.set(data);
+        tctx.putImageData(image, 0, 0);
       },
-      ptr, w, h);
+      buf, w, h);
 }
 
 struct Par {};
@@ -61,7 +67,6 @@ class Solver : public KernelMeshPar<M, Par> {
       , fc_src(m, 0)
       , fc_rho(m, 1)
       , fc_mu(m, 0)
-      , fc_curv(m, 0)
       , fc_force(m, Vect(0))
       , ff_bforce(m, 0) {}
   void Run() override;
@@ -75,16 +80,19 @@ class Solver : public KernelMeshPar<M, Par> {
   FieldCell<Scal> fc_src;
   FieldCell<Scal> fc_rho;
   FieldCell<Scal> fc_mu;
-  FieldCell<Scal> fc_curv;
+  Multi<FieldCell<Scal>> fc_curv;
   FieldCell<Vect> fc_force;
   FieldEmbed<Scal> ff_bforce;
   MapEmbed<BCondAdvection<Scal>> bc_vof;
   MapEmbed<BCondFluid<Vect>> bc_fluid;
+  MapEmbed<BCond<Scal>> bc_vort;
   MapCell<std::shared_ptr<CondCellFluid>> mc_velcond;
-  std::unique_ptr<Vof<M>> vof;
+  std::unique_ptr<Vofm<M>> vof;
   std::unique_ptr<Proj<M>> fluid;
   Scal maxvel;
   typename PartStrMeshM<M>::Par psm_par;
+  GRange<size_t> layers;
+  typename Vof<M>::Par vof_par;
 };
 
 struct Canvas {
@@ -103,6 +111,13 @@ struct State {
   bool pause = false;
   bool to_init_field = true;
   bool to_init_solver = true;
+  bool to_switch_coal = false;
+  bool render = false;
+  std::vector<std::array<MIdx, 2>> lines; // interface lines
+
+  bool to_spawn = false;
+  Vect spawn_c;
+  Scal spawn_r;
 };
 
 std::shared_ptr<State> g_state;
@@ -110,45 +125,138 @@ std::shared_ptr<Canvas> g_canvas;
 std::string g_extra_config;
 Vars g_var;
 
-
 static Scal Clamp(Scal f, Scal min, Scal max) {
   return f < min ? min : f > max ? max : f;
+}
+
+template <class T>
+static T Clamp(T v) {
+  return v.max(T(0)).min(T(1));
 }
 
 static Scal Clamp(Scal f) {
   return Clamp(f, 0, 1);
 }
 
-void Init(FieldCell<Scal>& fcu, const M& m) {
+void GetCircle(FieldCell<Scal>& fcu, Vect c, Scal r, const M& m) {
   Vars par;
   par.String.Set("init_vf", "circlels");
-  par.Vect.Set("circle_c", {0.5, 0.5});
-  par.Double.Set("circle_r", 0.2);
+  par.Vect.Set("circle_c", c);
+  par.Double.Set("circle_r", r);
   par.Int.Set("dim", 2);
   auto func = CreateInitU<M>(par, false);
   func(fcu, m);
 }
 
-static void Render(
+static MIdx GetCanvasCoords(Vect x, const Canvas& canvas, const M& m) {
+  auto scaledsize = canvas.size * kScale;
+  MIdx w = MIdx(x * Vect(scaledsize) / m.GetGlobalLength());
+  w = w.max(MIdx(0)).min(scaledsize - MIdx(1));
+  w[1] = scaledsize[1] - w[1] - 1;
+  return w;
+}
+
+template <class MEB>
+FieldCell<typename MEB::Scal> GetVortScal(
+    const FieldCell<typename MEB::Vect>& fcvel,
+    const MapEmbed<BCond<typename MEB::Vect>>& me_vel, MEB& eb) {
+  using M = typename MEB::M;
+  constexpr auto dim = M::dim;
+  auto& m = eb.GetMesh();
+  using Scal = typename MEB::Scal;
+  using Vect = typename MEB::Vect;
+  using UEB = UEmbed<M>;
+
+  std::array<FieldCell<Vect>, dim> grad;
+  for (size_t d = 0; d < dim; ++d) {
+    grad[d].Reinit(m, Vect(0));
+    const auto mebc = GetScalarCond(me_vel, d, m);
+    const FieldCell<Scal> fcu = GetComponent(fcvel, d);
+    const FieldFace<Scal> ffg = UEB::Gradient(fcu, mebc, m);
+    grad[d] = UEB::AverageGradient(ffg, m);
+  }
+
+  FieldCell<Scal> res(m, 0);
+  for (auto c : m.Cells()) {
+    res[c] = grad[1][c][0] - grad[0][c][1];
+  }
+  return res;
+}
+
+static void RenderField(
     Canvas& canvas, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcvel,
-    const FieldCell<Scal>& fcp, const M& m) {
+    const MapEmbed<BCond<Vect>>& bc_vel, const MapEmbed<BCond<Scal>>& bc_vort,
+    const FieldCell<Scal>& fcp, bool interpolate, const M& m) {
+  auto fcvelbc = fcvel;
+  auto fc_vort = GetVortScal(fcvel, bc_vel, m);
+  // fill halo cells
+  BcApply<Vect>(fcvelbc, bc_vel, m);
+  BcApply<Scal>(fc_vort, bc_vort, m);
   const auto msize = m.GetGlobalSize();
   const Scal visvel = g_var.Double("visvel", 0);
-  for (auto c : m.CellsM()) {
-    const MIdx w(c);
-    const MIdx start = w * canvas.size / msize;
-    const MIdx end = (w + MIdx(1)) * canvas.size / msize;
-    unsigned char qr = 0;
-    unsigned char qg = 0;
-    unsigned char qb = 0;
-    qg = 255 * Clamp(fcu[c]);
+  const Scal visvort = g_var.Double("visvort", 0);
+  const Scal visvf = g_var.Double("visvf", 0);
+  using Vect3 = generic::Vect<Scal, 3>;
+  using MIdx3 = generic::Vect<unsigned char, 3>;
+  auto get_color = [&](IdxCell c) -> Vect3 {
+    Vect3 q(0);
     if (visvel) {
-      qr = Clamp(visvel * fcvel[c].norm()) * 255;
+      q = interp::Bilinear(
+          Clamp(visvel * std::abs(fcvelbc[c][0])),
+          Clamp(visvel * std::abs(fcvelbc[c][1])), Vect3(1), Vect3(0, 1, 0),
+          Vect3(0, 0, 1), Vect3(0, 1, 1));
     }
-    uint32_t q = 0xff000000 | (qr << 0) | (qg << 8) | (qb << 16);
-    for (int y = start[1]; y < end[1]; y++) {
-      for (int x = start[0]; x < end[0]; x++) {
-        canvas.buf[canvas.size[0] * (canvas.size[1] - y - 1) + x] = q;
+    if (visvort) {
+      const auto vort = fc_vort[c];
+      const auto f = Clamp(std::abs(vort * visvort));
+      if (vort > 0) {
+        q = interp::Linear(f, Vect3(1, 1, 1), Vect3(1, 0.12, 0.35));
+      } else {
+        q = interp::Linear(f, Vect3(1, 1, 1), Vect3(0, 0.6, 0.87));
+      }
+    }
+    if (visvf) {
+      q = interp::Linear(visvf * fcu[c], Vect3(q), Vect3(0, 0.8, 0.42));
+    }
+    return q;
+  };
+  if (interpolate && m.GetGlobalSize() < canvas.size) {
+    for (auto c : m.CellsM()) {
+      const MIdx w(c);
+      const MIdx start = w * canvas.size / msize;
+      const MIdx end = (w + MIdx(1)) * canvas.size / msize;
+      for (int y = start[1]; y < end[1]; y++) {
+        const Scal fy = Scal(y - start[1]) / (end[1] - start[1] - 1) - 0.5;
+        for (int x = start[0]; x < end[0]; x++) {
+          const Scal fx = Scal(x - start[0]) / (end[0] - start[0] - 1) - 0.5;
+          const Vect f(fx, fy);
+          const auto dx = m.direction(0).orient(f);
+          const auto dy = m.direction(1).orient(f);
+          auto q = get_color(c);
+          auto qx = get_color(c + dx);
+          auto qy = get_color(c + dy);
+          auto qyx = get_color(c + dx + dy);
+          auto qb =
+              interp::Bilinear(std::abs(fx), std::abs(fy), q, qx, qy, qyx);
+          const MIdx3 mq(qb * 255);
+          canvas.buf[canvas.size[0] * (canvas.size[1] - y - 1) + x] =
+              0xff000000 | (mq[0] << 0) | (mq[1] << 8) | (mq[2] << 16);
+        }
+      }
+    }
+  } else {
+    for (auto c : m.CellsM()) {
+      const MIdx w(c);
+      const MIdx start = w * canvas.size / msize;
+      const MIdx end = (w + MIdx(1)) * canvas.size / msize;
+      auto q = get_color(c);
+      const MIdx3 mq(q * 255);
+      const uint32_t v =
+          0xff000000 | (mq[0] << 0) | (mq[1] << 8) | (mq[2] << 16);
+      for (int y = start[1]; y < end[1]; y++) {
+        for (int x = start[0]; x < end[0]; x++) {
+          canvas.buf[canvas.size[0] * (canvas.size[1] - y - 1) + x] = v;
+        }
       }
     }
   }
@@ -158,6 +266,21 @@ void Solver::Run() {
   auto sem = m.GetSem();
   auto state = g_state;
   auto& s = *state;
+  auto update_vof_par = [&](typename Vof<M>::Par& p) {
+    p.dim = 2;
+    p.sharpen = var.Int["sharpen"];
+    p.sharpen_cfl = var.Double["sharpen_cfl"];
+    p.coalth = var.Double["coalth"];
+    p.recolor_grid = false;
+    p.recolor_reduce = false;
+    if (var.Int["coal"]) {
+      p.layers = 1;
+      p.recolor = 0;
+    } else {
+      p.layers = var.Int["layers"];
+      p.recolor = 1;
+    }
+  };
   if (sem("init_solver") && s.to_init_solver) {
     if (m.IsRoot()) {
       std::cout << "backend=" << var.String["backend"] << std::endl;
@@ -177,7 +300,8 @@ void Solver::Run() {
             auto& bc = bc_fluid[f];
             bc.nci = nci;
             bc.type = BCondFluidType::wall;
-            if (f[1] == m.GetGlobalSize()[1]) {
+            if (topvel && f[1] == m.GetGlobalSize()[1]) {
+              bc.type = BCondFluidType::slipwall;
               bc.velocity = Vect(topvel, 0);
             }
           }
@@ -187,6 +311,11 @@ void Solver::Run() {
             bc.halo = BCondAdvection<Scal>::Halo::fill;
             bc.fill_vf = 0;
           }
+          { // vorticity
+            auto& bc = bc_vort[f];
+            bc.nci = nci;
+            bc.type = BCondType::neumann;
+          }
         }
       }
       const ProjArgs<M> args{fcvel,     bc_fluid,   mc_velcond, &fc_rho, &fc_mu,
@@ -195,20 +324,38 @@ void Solver::Run() {
       fluid.reset(new Proj<M>(m, m, args));
     }
     {
-      typename Vof<M>::Par p;
-      p.dim = 2;
-      p.sharpen = var.Int["sharpen"];
-      p.sharpen_cfl = var.Double["sharpen_cfl"];
-      FieldCell<Scal> fcu(m, 0);
-      const FieldCell<Scal> fccl(m, 0);
-      vof.reset(new Vof<M>(
+      auto& p = vof_par;
+      update_vof_par(p);
+      layers = GRange<size_t>(p.layers);
+      Multi<FieldCell<Scal>> fcu(layers, m, 0);
+      Multi<FieldCell<Scal>> fccl(layers, m, 0);
+      fc_curv.Reinit(layers, m, 0);
+      vof.reset(new Vofm<M>(
           m, m, fcu, fccl, bc_vof, &fluid->GetVolumeFlux(), &fc_src, 0, s.dt,
           p));
     }
 
-
     auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
     psm_par = ParsePar<PartStrMeshM<M>>()(ps, var);
+  }
+  if (sem("switch_coal") && s.to_switch_coal) {
+    auto& p = vof_par;
+    update_vof_par(p);
+    layers = GRange<size_t>(p.layers);
+    Multi<FieldCell<Scal>> fcu(layers, m, 0);
+    Multi<FieldCell<Scal>> fccl(layers, m, 0);
+    fc_curv.Reinit(layers, m, 0);
+    const auto fcus = vof->GetField();
+    vof.reset(new Vofm<M>(
+        m, m, fcu, fccl, bc_vof, &fluid->GetVolumeFlux(), &fc_src,
+        vof->GetTime(), vof->GetTimeStep(), p));
+    vof->AddModifier([fcus](
+                         const Multi<FieldCell<Scal>*>& fcu0,
+                         const Multi<FieldCell<Scal>*>& fccl0,
+                         GRange<size_t> layers, const M& m) { //
+      (*fcu0[0]) = fcus;
+      (*fccl0[0]).Reinit(m, 0);
+    });
   }
   if (sem.Nested("start")) {
     fluid->StartStep();
@@ -240,7 +387,7 @@ void Solver::Run() {
     m.Reduce(&maxvel, Reduction::max);
   }
   if (sem.Nested("curv")) {
-    UCurv<M>::CalcCurvPart(vof.get(), psm_par, &fc_curv, m);
+    UCurv<M>::CalcCurvPart(vof.get(), psm_par, fc_curv, m);
   }
   if (sem("flux")) {
     const Scal rho1 = var.Double["rho1"];
@@ -277,22 +424,71 @@ void Solver::Run() {
     }
 
     const FieldFace<Scal> ff_sigma(m, var.Double["sigma"]);
-    AppendSurfaceTension(m, ff_bforce, fcu, fc_curv, ff_sigma);
+    AppendSurfaceTension(
+        m, ff_bforce, layers, vof->GetFieldM(), vof->GetColor(), fc_curv,
+        ff_sigma);
   }
   if (sem("init") && s.to_init_field) {
-    vof->AddModifier(
-        [](FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const M& m) {
-          Init(fcu, m);
-          fccl.Reinit(m, 0);
-        });
+    vof->AddModifier([&](const Multi<FieldCell<Scal>*>& fcu,
+                         const Multi<FieldCell<Scal>*>&, GRange<size_t> layers,
+                         const M& m) { //
+      for (auto c : m.Cells()) {
+        for (auto l : layers) {
+          (*fcu[l])[c] = 0;
+        }
+      }
+    });
+  }
+  if (sem("spawn") && s.to_spawn) {
+    vof->AddModifier([&](const Multi<FieldCell<Scal>*>& fcu,
+                         const Multi<FieldCell<Scal>*>& fccl,
+                         GRange<size_t> layers, const M& m) { //
+      FieldCell<Scal> fc_add(m);
+      GetCircle(fc_add, s.spawn_c, s.spawn_r, m);
+      for (auto c : m.Cells()) {
+        if (fc_add[c] > (*fcu[0])[c]) {
+          (*fcu[0])[c] = fc_add[c];
+          (*fccl[0])[c] = 0;
+        }
+      }
+    });
   }
   if (sem()) {
     s.to_init_solver = false;
     s.to_init_field = false;
+    s.to_switch_coal = false;
+    s.to_spawn = false;
 
-    Render(
-        *g_canvas, vof->GetField(), fluid->GetVelocity(), fluid->GetPressure(),
-        m);
+    if (s.render) {
+      auto bc_vel = GetVelCond<M>(bc_fluid);
+      RenderField(
+          *g_canvas, vof->GetField(), fluid->GetVelocity(), bc_vel, bc_vort,
+          fluid->GetPressure(), var.Int["visinterp"], m);
+
+      // Render interface lines
+      if (m.IsRoot()) {
+        s.lines.clear();
+      }
+      auto h = m.GetCellSize();
+      const auto& fci = vof->GetMask();
+      const auto& fcn = vof->GetNormal();
+      const auto& fca = vof->GetAlpha();
+      for (auto c : m.Cells()) {
+        for (auto l : layers) {
+          if ((*fci[l])[c]) {
+            const auto poly = Reconst<Scal>::GetCutPoly(
+                m.GetCenter(c), (*fcn[l])[c], (*fca[l])[c], h);
+            if (poly.size() == 2) {
+              s.lines.push_back({
+                  GetCanvasCoords(poly[0], *g_canvas, m),
+                  GetCanvasCoords(poly[1], *g_canvas, m),
+              });
+            }
+          }
+        }
+      }
+    }
+
     if (m.IsRoot()) {
       ++s.step;
       s.time += vof->GetTimeStep();
@@ -300,8 +496,10 @@ void Solver::Run() {
   }
 }
 
-
 static void main_loop() {
+  if (!g_state) {
+    return;
+  }
   auto state = g_state;
   auto& s = *state;
   if (s.pause) {
@@ -311,22 +509,14 @@ static void main_loop() {
   SingleTimer timer;
 
   const int nsteps = g_var.Int["nsteps"];
-  try {
-    for (int i = 0; i < nsteps; ++i) {
-      s.distrsolver.Run();
-    }
-  } catch (const std::exception& e) {
-    std::cerr << FILELINE + "\nabort after throwing exception\n"
-              << e.what() << '\n';
-    std::terminate();
-  } catch (...) {
-    std::cerr << FILELINE + "\nabort after unknown exception\n";
-    std::terminate();
+  for (int i = 0; i < nsteps; ++i) {
+    s.render = (i + 1 == nsteps);
+    s.distrsolver.Run();
   }
 
   const Scal tstep = timer.GetSeconds() / nsteps;
 
-  if (s.step % 10 == 0) {
+  if (s.step % g_var.Int("reportevery", 10) == 0) {
     std::cout << util::Format(
                      "step={:05} t={:.5f} dt={:.4f} g={:.1f} tstep={:.1f}ms",
                      s.step, s.time, s.dt, Vect(g_var.Vect["gravity"]),
@@ -334,43 +524,11 @@ static void main_loop() {
               << std::endl;
   }
   CopyToCanvas(g_canvas->buf.data(), g_canvas->size[0], g_canvas->size[1]);
+  EM_ASM_({ Draw(); });
 }
 
-extern "C" {
-Scal AddVelocityAngle(Scal add_deg) {
-  auto& s = *g_state;
-  auto& var_g = g_var.Vect["gravity"];
-  Vect g(var_g);
-  Scal deg = std::atan2(g[1], g[0]) * 180. / M_PI;
-  deg += add_deg;
-  const Scal rad = deg * M_PI / 180.;
-  g = Vect(std::cos(rad), std::sin(rad)) * g.norm();
-  std::cout << util::Format("g={:.3f} angle={:.1f}", g, deg) << std::endl;
-  var_g = g;
-  return deg;
-}
-int Init() {
-  auto& s = *g_state;
-  s.to_init_field = true;
-  return 0;
-}
-int TogglePause() {
-  auto& s = *g_state;
-  s.pause = !s.pause;
-  return s.pause;
-}
-int SetExtraConfig(const char* extra) {
-  g_extra_config = extra;
-  return 0;
-}
-
-int SetMesh(int nx) {
-  MPI_Comm comm = 0;
-  std::stringstream conf;
-  conf << GetDefaultConf();
-  Subdomains<MIdx> sub(MIdx(nx), MIdx(nx), 1);
-  conf << sub.GetConfig();
-  conf << R"EOF(
+static std::string GetBaseConfig() {
+  return R"EOF(
 set string linsolver_symm conjugate
 set double hypre_symm_tol 1e-3
 set int hypre_symm_maxiter 100
@@ -385,13 +543,22 @@ set double sigma 0
 set vect gravity 0 -1
 set double topvel 0
 set int sharpen 0
+set int layers 3
+set double coalth 1.5
 set double sharpen_cfl 0.1
+set int coal 1
 
 set int nsteps 1
+set int reportevery 10
 
 set double cfl 1
 set double cflvis 0.5
 set double cflsurf 2
+
+set double visvel 0
+set double visvf 1
+set double visvort 0
+set int visinterp 0
 
 set int part 1
 set double part_h 4
@@ -400,40 +567,115 @@ set int part_np 7
 set double part_segcirc 0
 set int part_dn 0
 set int part_dump_fr 1
-set int part_ns 3
-set double part_tol 1e-5
-set int part_itermax 20
+set int part_ns 1
+set double part_tol 1e-4
+set int part_itermax 10
 set int part_verb 0
 set int dim 2
 set int vtkbin 1
 set int vtkmerge 1
 )EOF";
+}
+
+extern "C" {
+Scal AddVelocityAngle(Scal add_deg) {
+  if (!g_state) {
+    return 0;
+  }
+  auto& var_g = g_var.Vect["gravity"];
+  Vect g(var_g);
+  Scal deg = std::atan2(g[1], g[0]) * 180. / M_PI;
+  deg += add_deg;
+  const Scal rad = deg * M_PI / 180.;
+  g = Vect(std::cos(rad), std::sin(rad)) * g.norm();
+  std::cout << util::Format("g={:.3f} angle={:.1f}", g, deg) << std::endl;
+  var_g = g;
+  return deg;
+}
+void Init() {
+  if (!g_state) {
+    return;
+  }
+  auto& s = *g_state;
+  s.to_init_field = true;
+}
+void Spawn(float x, float y, float r) {
+  if (!g_state) {
+    return;
+  }
+  auto& s = *g_state;
+  s.to_spawn = true;
+  s.spawn_c = Vect(x, y);
+  s.spawn_r = r;
+  std::cout << util::Format("spawn c={:.3f} r={:.3f}", s.spawn_c, s.spawn_r)
+            << std::endl;
+}
+int TogglePause() {
+  if (!g_state) {
+    return 0;
+  }
+  auto& s = *g_state;
+  s.pause = !s.pause;
+  return s.pause;
+}
+void SetCoal(int flag) {
+  if (!g_state) {
+    return;
+  }
+  auto& s = *g_state;
+  int& var_coal = g_var.Int["coal"];
+  if (var_coal != flag) {
+    var_coal = flag;
+    s.to_switch_coal = true;
+  }
+}
+void SetExtraConfig(const char* conf) {
+  g_extra_config = conf;
+}
+
+void SetRuntimeConfig(const char* s) {
+  std::stringstream conf(s);
+  Parser(g_var).ParseStream(conf);
+}
+
+void SetMesh(int nx) {
+  MPI_Comm comm = 0;
+  std::stringstream conf;
+  conf << GetDefaultConf();
+  Subdomains<MIdx> sub(MIdx(nx), MIdx(nx), 1);
+  conf << sub.GetConfig();
+  conf << GetBaseConfig();
   conf << g_extra_config << '\n';
   Parser(g_var).ParseStream(conf);
 
   std::shared_ptr<State> new_state;
-  try {
-    new_state = std::make_shared<State>(comm, g_var);
-  } catch (const std::exception& e) {
-    std::cerr << FILELINE + "\nabort after throwing exception\n"
-              << e.what() << '\n';
-    std::terminate();
-  } catch (...) {
-    std::cerr << FILELINE + "\nabort after unknown exception\n";
-    std::terminate();
-  }
+  new_state = std::make_shared<State>(comm, g_var);
 
-  if (g_state) {
-    //new_state->velocity = g_state->velocity;
-  }
   g_state = new_state;
   std::cout << util::Format("mesh {}", MIdx(nx)) << std::endl;
-  return 0;
 }
-int SetCanvas(int nx, int ny) {
+void SetCanvas(int nx, int ny) {
   g_canvas = std::make_shared<Canvas>(MIdx(nx, ny));
   std::cout << util::Format("canvas {}", g_canvas->size) << std::endl;
-  return 0;
+}
+int GetLines(uint16_t* data, int max_size) {
+  if (!g_state) {
+    return 0;
+  }
+  auto state = g_state;
+  auto& s = *state;
+  int i = 0;
+  for (auto p : s.lines) {
+    if (i + 3 >= max_size) {
+      break;
+    }
+    data[i] = p[0][0];
+    data[i + 1] = p[0][1];
+    data[i + 2] = p[1][0];
+    data[i + 3] = p[1][1];
+    i += 4;
+  }
+  return i;
 }
 }
 
@@ -441,9 +683,8 @@ int main() {
   FORCE_LINK(distr_local);
   FORCE_LINK(distr_native);
 
-  SetCanvas(500, 500);
-  SetMesh(32);
+  SetCanvas(128, 128);
   emscripten_set_canvas_element_size(
-      "#canvas", g_canvas->size[0], g_canvas->size[1]);
+      "#canvas", g_canvas->size[0] * kScale, g_canvas->size[1] * kScale);
   emscripten_set_main_loop(main_loop, 30, 1);
 }

@@ -3,96 +3,62 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Fluid flow</title>
+    <title>WebAssembly Coalescence of Drops</title>
     <style>
       .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; touch-action: manipulation; }
       textarea.emscripten { font-family: monospace; width: 500px; }
-      canvas.emscripten { border: 0px none; background-color: black; }
+      canvas.emscripten { border: 0px none; background-color: white; }
       div.emscripten { text-align: center; }
       .button {width: 82px; height: 60px; font-size: 12pt; padding: 0pt; margin: 0pt; touch-action: manipulation; }
       .button2 {width: 80px; height: 60px; font-size: 15pt; padding: 0pt; margin: 0pt; touch-action: manipulation; }
+      .frame { border: 3px solid #ccc; background: #eee; margin: auto; padding: 15px 10px; }
+      .label {}
+      .emscripten span { display: inline-block; white-space: nowrap; }
     </style>
   </head>
   <body>
-    <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
-
-    <script type='text/javascript'>
-      function SetExtraConfig() {
-        Module.ccall('SetExtraConfig', '', ['string'], [
-                `
-set double rho1 1
-set double mu1 0.0001
-set double rho2 10
-set double mu2 0.001
-set vect gravity 0 -5
-set double hypre_symm_tol 1e-1
-set int hypre_symm_maxiter 20
-set int hypre_symm_miniter 1
-set double visvel 0.4
-set int sharpen 1
-set double dtmax 0.005
-set double sigma 4
-set int nsteps 3
-
-set double cflsurf 2
-     `
-              ]);
-      }
-      function SetMesh(nx) {
-        SetExtraConfig();
-        Module.ccall('SetMesh', 'number', ['number'], [nx])
-      }
-    </script>
-
-    <div class="emscripten">
-      <input type="button" class="button" value="init"
-        onclick="SetExtraConfig(); Module.ccall('Init', 'number', [])">
-      <input type="button" class="button" value="pause"
-        onclick="Module.ccall('TogglePause', 'number', [])">
-      <input type="button" class="button" value="left"
-        onclick="Module.ccall('AddVelocityAngle', 'number', ['number'], [30])">
-      <input type="button" class="button" value="right"
-        onclick="Module.ccall('AddVelocityAngle', 'number', ['number'], [-30])">
-      <br>
-      <input type="button" class="button2" value="16" onclick="SetMesh(16)">
-      <input type="button" class="button2" value="32" onclick="SetMesh(32)">
-      <input type="button" class="button2" value="64" onclick="SetMesh(64)">
-      <input type="button" class="button2" value="128" onclick="SetMesh(128)">
-      <input type="button" class="button2" value="256" onclick="SetMesh(256)">
+    <div class="emscripten" style="padding: 5px;">
+      Fluid simulation with coalescence of drops
+      </br>
+      <a href="https://github.com/cselab/aphros">github.com/cselab/aphros</a>
+      [<a href="https://github.com/cselab/aphros/tree/master/examples/107_wasm">wasm</a>]
     </div>
 
+    <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
 
-    <textarea class="emscripten" id="output" rows="20"></textarea>
+    <div class="emscripten" style="padding: 5px;">
+      [mouse click] spawn a drop, [space] pause
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <input type="button" class="button" value="clear"
+        onclick="SetExtraConfig(); Module.ccall('Init', null, [])">
+      <input type="button" class="button" value="spawn" onclick="Spawn(0.5, 0.8, 0.1);">
+      <input type="button" class="button" value="pause" onclick="TogglePause();">
+      <label class="label"><input type="checkbox" id="checkbox_coal" name="checkbox_coal"
+        checked onchange="SetCoal(this.checked);">
+        <span style="line-height: 24px; vertical-align: text-bottom;">coalescence</span></label>
 
-    <script type='text/javascript'>
-      var Module = {
-        preRun: [],
-        postRun: [function (){ return SetMesh(32);}],
-        print: (function() {
-          var element = document.getElementById('output');
-          if (element) element.value = '';
-          return function(text) {
-            if (arguments.length > 1) {
-              text = Array.prototype.slice.call(arguments).join(' ');
-            }
-            console.log(text);
-            if (element) {
-              element.value += text + "\n";
-              element.scrollTop = element.scrollHeight;
-            }
-          };
-        })(),
-        printErr: function(text) {
-          if (arguments.length > 1) {
-            text = Array.prototype.slice.call(arguments).join(' ');
-          }
-          console.error(text);
-        },
-        canvas: (function() { return document.getElementById('canvas'); })(),
-        setStatus: function(text) {},
-      };
-    </script>
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <input type="button" class="button2" value="16" onclick="Init(16)">
+      <input type="button" class="button2" value="32" onclick="Init(32)">
+      <input type="button" class="button2" value="64" onclick="Init(64)">
+      <input type="button" class="button2" value="128" onclick="Init(128)">
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label" style="margin-top: 10px"><input type="range" min="0" max="10" value="4" step="0.5" id="range_sigma" style="padding-top: 0px;"
+        onchange="SetSigma(this.value);">
+        <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">surface tension</span></label>
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label" style="margin-top: 10px"><input type="range" min="0" max="0.01" value="0.001" step="0.0001" id="range_mu" style="padding-top: 0px;"
+        onchange="SetMu(this.value);">
+        <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">viscosity</span></label>
+    </div>
 
+    <!--<textarea class="emscripten" id="output" rows="20"></textarea>-->
+
+    <script src=hydro_defs.js></script>
     <script async src=hydro.js></script>
   </body>
 </html>
