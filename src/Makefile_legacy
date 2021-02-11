@@ -39,7 +39,7 @@ include $S/../make/rule.mk
 $L: $O; ar rv $@ $O && ranlib $@
 $J: $O; emar rv $@ $O
 ap.mfer: main.o $L; $(LINK) $< $(LDFLAGS) $L -o $@
-util/gitgen.cpp:; ./gitrev $@
+$S/util/gitgen.cpp:; $S/gitrev $@
 install: $L ap.mfer
 	mkdir -p "$(APHROS_PREFIX)"/lib; \
 	mkdir -p "$(APHROS_PREFIX)"/bin; \
