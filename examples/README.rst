@@ -8,5 +8,3 @@ Examples in this directory have numbers from the following categories:
 
 **200..299**
   Simulation setups for **ap.mfer**.
-
-
