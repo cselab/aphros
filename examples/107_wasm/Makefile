@@ -11,7 +11,7 @@ all: $(ALL)
 $(WRK)/libaphros_js.a:; $(MAKE) -f $(SRC)/Makefile_legacy 'WRK = $(WRK)' 'SRC = $(SRC)' 'CXX = $(CXX)' 'CC = $(CXX)' 'CXXFLAGS = $(CXXFLAGS)' $@
 hydro.js: hydro.cpp $(WRK)/libaphros_js.a
 	$(CXX) $< $(CXXFLAGS) $(WASMFLAGS) -I$(SRC) $(WRK)/laphros_js.a $1 \
-		-s EXPORTED_FUNCTIONS='["_main", "_AddVelocityAngle", "_SetExtraConfig", "_TogglePause", "_Init", "_SetMesh"]' \
+		-s EXPORTED_FUNCTIONS='["_main", "_AddVelocityAngle", "_SetExtraConfig", "_TogglePause", "_Init", "_Spawn", "_SetMesh" ,"_GetLines"]' \
 		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@
 clean:; rm -vf $(ALL)
 .PHONY: clean all

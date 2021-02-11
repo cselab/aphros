@@ -103,6 +103,11 @@ struct State {
   bool pause = false;
   bool to_init_field = true;
   bool to_init_solver = true;
+  std::vector<std::array<MIdx, 2>> lines; // interface lines
+
+  bool to_spawn = false;
+  Vect spawn_c;
+  Scal spawn_r;
 };
 
 std::shared_ptr<State> g_state;
@@ -118,21 +123,29 @@ static Scal Clamp(Scal f) {
   return Clamp(f, 0, 1);
 }
 
-void Init(FieldCell<Scal>& fcu, const M& m) {
+void GetCircle(FieldCell<Scal>& fcu, Vect c, Scal r,  const M& m) {
   Vars par;
   par.String.Set("init_vf", "circlels");
-  par.Vect.Set("circle_c", {0.5, 0.5});
-  par.Double.Set("circle_r", 0.2);
+  par.Vect.Set("circle_c", c);
+  par.Double.Set("circle_r", r);
   par.Int.Set("dim", 2);
   auto func = CreateInitU<M>(par, false);
   func(fcu, m);
 }
 
-static void Render(
+static MIdx GetCanvasCoords(Vect x, const Canvas& canvas, const M& m) {
+  MIdx w = MIdx(x * Vect(canvas.size) / m.GetGlobalLength());
+  w = w.max(MIdx(0)).min(canvas.size - MIdx(1));
+  w[1] = canvas.size[1] - w[1] - 1;
+  return w;
+}
+
+static void RenderField(
     Canvas& canvas, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcvel,
     const FieldCell<Scal>& fcp, const M& m) {
   const auto msize = m.GetGlobalSize();
   const Scal visvel = g_var.Double("visvel", 0);
+  const Scal visvf = g_var.Double("visvf", 0);
   for (auto c : m.CellsM()) {
     const MIdx w(c);
     const MIdx start = w * canvas.size / msize;
@@ -140,9 +153,17 @@ static void Render(
     unsigned char qr = 0;
     unsigned char qg = 0;
     unsigned char qb = 0;
-    qg = 255 * Clamp(fcu[c]);
     if (visvel) {
-      qr = Clamp(visvel * fcvel[c].norm()) * 255;
+      qg = qb = Clamp(visvel * fcvel[c].norm()) * 255;
+    }
+    qr = ~qr;
+    qg = ~qg;
+    qb = ~qb;
+    if (visvf) {
+      const auto f = Clamp(1 - visvf * fcu[c]);
+      qr *= f;
+      qg *= f;
+      qb *= f;
     }
     uint32_t q = 0xff000000 | (qr << 0) | (qg << 8) | (qb << 16);
     for (int y = start[1]; y < end[1]; y++) {
@@ -278,19 +299,50 @@ void Solver::Run() {
     AppendSurfaceTension(m, ff_bforce, fcu, fc_curv, ff_sigma);
   }
   if (sem("init") && s.to_init_field) {
+    vof->AddModifier([](FieldCell<Scal>& fcu, FieldCell<Scal>&, const M& m) { //
+      fcu.Reinit(m, 0);
+    });
+  }
+  if (sem("spawn") && s.to_spawn) {
     vof->AddModifier(
-        [](FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const M& m) {
-          Init(fcu, m);
-          fccl.Reinit(m, 0);
+        [&](FieldCell<Scal>& fcu, FieldCell<Scal>&, const M& m) { //
+          FieldCell<Scal> fc_add(m);
+          GetCircle(fc_add, s.spawn_c, s.spawn_r, m);
+          for (auto c : m.Cells()) {
+            fcu[c] = std::max(fcu[c], fc_add[c]);
+          }
         });
   }
   if (sem()) {
     s.to_init_solver = false;
     s.to_init_field = false;
+    s.to_spawn = false;
 
-    Render(
+    RenderField(
         *g_canvas, vof->GetField(), fluid->GetVelocity(), fluid->GetPressure(),
         m);
+
+    // Render interafce lines
+    if (m.IsRoot()) {
+      s.lines.clear();
+    }
+    auto h = m.GetCellSize();
+    const auto& fci = vof->GetMask();
+    const auto& fcn = vof->GetNormal();
+    const auto& fca = vof->GetAlpha();
+    for (auto c : m.Cells()) {
+      if (fci[c]) {
+        const auto poly =
+            Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
+        if (poly.size() == 2) {
+          s.lines.push_back({
+              GetCanvasCoords(poly[0], *g_canvas, m),
+              GetCanvasCoords(poly[1], *g_canvas, m),
+          });
+        }
+      }
+    }
+
     if (m.IsRoot()) {
       ++s.step;
       s.time += vof->GetTimeStep();
@@ -322,6 +374,7 @@ static void main_loop() {
               << std::endl;
   }
   CopyToCanvas(g_canvas->buf.data(), g_canvas->size[0], g_canvas->size[1]);
+  EM_ASM_({ Draw(); });
 }
 
 static std::string GetBaseConfig() {
@@ -378,22 +431,28 @@ Scal AddVelocityAngle(Scal add_deg) {
   var_g = g;
   return deg;
 }
-int Init() {
+void Init() {
   auto& s = *g_state;
   s.to_init_field = true;
-  return 0;
+}
+void Spawn(float x, float y, float r) {
+  auto& s = *g_state;
+  s.to_spawn = true;
+  s.spawn_c = Vect(x, y);
+  s.spawn_r = r;
+  std::cout << util::Format("spawn c={:.3f} r={:.3f}", s.spawn_c, s.spawn_r)
+            << std::endl;
 }
 int TogglePause() {
   auto& s = *g_state;
   s.pause = !s.pause;
   return s.pause;
 }
-int SetExtraConfig(const char* extra) {
+void SetExtraConfig(const char* extra) {
   g_extra_config = extra;
-  return 0;
 }
 
-int SetMesh(int nx) {
+void SetMesh(int nx) {
   MPI_Comm comm = 0;
   std::stringstream conf;
   conf << GetDefaultConf();
@@ -408,12 +467,26 @@ int SetMesh(int nx) {
 
   g_state = new_state;
   std::cout << util::Format("mesh {}", MIdx(nx)) << std::endl;
-  return 0;
 }
-int SetCanvas(int nx, int ny) {
+void SetCanvas(int nx, int ny) {
   g_canvas = std::make_shared<Canvas>(MIdx(nx, ny));
   std::cout << util::Format("canvas {}", g_canvas->size) << std::endl;
-  return 0;
+}
+int GetLines(uint16_t* data, int max_size) {
+  auto state = g_state;
+  auto& s = *state;
+  int i = 0;
+  for (auto p : s.lines) {
+    if (i + 3 >= max_size) {
+      break;
+    }
+    data[i] = p[0][0];
+    data[i + 1] = p[0][1];
+    data[i + 2] = p[1][0];
+    data[i + 3] = p[1][1];
+    i += 4;
+  }
+  return i;
 }
 }
 
@@ -422,7 +495,6 @@ int main() {
   FORCE_LINK(distr_native);
 
   SetCanvas(500, 500);
-  SetMesh(32);
   emscripten_set_canvas_element_size(
       "#canvas", g_canvas->size[0], g_canvas->size[1]);
   emscripten_set_main_loop(main_loop, 30, 1);

@@ -20,7 +20,6 @@
 template <class M>
 void DistrMesh<M>::MakeKernels(const std::vector<BlockInfoProxy>& proxies) {
   for (auto proxy : proxies) {
-    const MIdx d(proxy.index);
     std::unique_ptr<KernelMesh<M>> kernel(
         kernelfactory_.Make(var_mutable, proxy));
     auto& m = kernel->GetMesh();
