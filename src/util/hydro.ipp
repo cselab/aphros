@@ -27,12 +27,14 @@
 
 #include "hydro.h"
 
-template <class M>
-FieldCell<typename M::Vect> GetVort(
-    const FieldCell<typename M::Vect>& fcvel,
-    const MapEmbed<BCond<typename M::Vect>>& me_vel, M& m) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
+template <class MEB>
+FieldCell<typename MEB::Vect> GetVort(
+    const FieldCell<typename MEB::Vect>& fcvel,
+    const MapEmbed<BCond<typename MEB::Vect>>& me_vel, MEB& eb) {
+  using M = typename MEB::M;
+  auto& m = eb.GetMesh();
+  using Scal = typename MEB::Scal;
+  using Vect = typename MEB::Vect;
   using UEB = UEmbed<M>;
 
   std::array<FieldCell<Vect>, 3> grad;
@@ -68,9 +70,8 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     for (auto c : m.AllCells()) {
       auto& v = fcv[c];
       auto x = m.GetCenter(c);
-      v[0] = 0;
+      v = Vect(0);
       v[1] = std::sin(x[0] / (dx * h[0]));
-      v[2] = 0;
     }
   } else if (vi == "hill") {
     auto a = var.Double["hill_a"];

@@ -7,6 +7,9 @@
   template FieldCell<typename M::Vect> GetVort(                                \
       const FieldCell<typename M::Vect>& fcv,                                  \
       const MapEmbed<BCond<typename M::Vect>>& mebc, M& m);                    \
+  template FieldCell<typename M::Vect> GetVort(                                \
+      const FieldCell<typename M::Vect>& fcv,                                  \
+      const MapEmbed<BCond<typename M::Vect>>& mebc, Embed<M>& eb);            \
                                                                                \
   template void InitVel(                                                       \
       FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m);          \

@@ -88,34 +88,6 @@ class ModulePostStep : public Module<ModulePostStep<M>> {
   virtual void operator()(Hydro<M>*, M& m) = 0;
 };
 
-template <class M>
-FieldCell<typename M::Vect> GetVort(
-    const FieldCell<typename M::Vect>& fcvel,
-    const MapEmbed<BCond<typename M::Vect>>& me_vel, Embed<M>& eb) {
-  auto& m = eb.GetMesh();
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  using UEB = UEmbed<M>;
-
-  std::array<FieldCell<Vect>, 3> grad;
-  for (size_t d = 0; d < 3; ++d) {
-    grad[d].Reinit(eb, Vect(0));
-    const auto mebc = GetScalarCond(me_vel, d, m);
-    const FieldCell<Scal> fcu = GetComponent(fcvel, d);
-    const FieldEmbed<Scal> ffg = UEB::Gradient(fcu, mebc, eb);
-    grad[d] = UEB::AverageGradient(ffg, eb);
-  }
-
-  FieldCell<Vect> r(m, Vect(0));
-  for (auto c : eb.Cells()) {
-    r[c][0] = grad[2][c][1] - grad[1][c][2];
-    r[c][1] = grad[0][c][2] - grad[2][c][0];
-    r[c][2] = grad[1][c][0] - grad[0][c][1];
-  }
-
-  return r;
-}
-
 template <class M_>
 class Hydro : public KernelMeshPar<M_, GPar> {
  public:
@@ -405,7 +377,7 @@ void Hydro<M>::SpawnTracer() {
     for (auto c : m.AllCells()) {
       const auto xc = m.GetCenter(c);
       Vect dx = xc - sphere_c;
-      if (edim == 2) {
+      if (edim == 2 && M::dim > 2 ) {
         dx[2] = 0;
       }
       if (dx.sqrnorm() < sqr(sphere_r)) {
@@ -1743,7 +1715,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     }
 
     // zero force in z if 2D
-    if (var.Int["dim"] <= 2) {
+    const size_t edim = var.Int["dim"];
+    if (edim < M::dim) {
       for (auto f : m.Faces()) {
         using Dir = typename M::Dir;
         if (m.GetIndexFaces().GetDir(f) == Dir(2)) {
