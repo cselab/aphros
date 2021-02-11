@@ -30,6 +30,8 @@
 #include "util/module.h"
 #include "util/timer.h"
 
+static constexpr int kScale = 4;
+
 using M = MeshStructured<double, 2>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
@@ -39,10 +41,10 @@ void CopyToCanvas(uint32_t* buf, int w, int h) {
   EM_ASM_(
       {
         let data = Module.HEAPU8.slice($0, $0 + $1 * $2 * 4);
-        let ctx = Module['canvas'].getContext('2d');
-        let image = ctx.getImageData(0, 0, $1, $2);
+        let tctx = g_tmp_canvas.getContext("2d");
+        let image = tctx.getImageData(0, 0, $1, $2);
         image.data.set(data);
-        ctx.putImageData(image, 0, 0);
+        tctx.putImageData(image, 0, 0);
       },
       buf, w, h);
 }
@@ -142,9 +144,10 @@ void GetCircle(FieldCell<Scal>& fcu, Vect c, Scal r,  const M& m) {
 }
 
 static MIdx GetCanvasCoords(Vect x, const Canvas& canvas, const M& m) {
-  MIdx w = MIdx(x * Vect(canvas.size) / m.GetGlobalLength());
-  w = w.max(MIdx(0)).min(canvas.size - MIdx(1));
-  w[1] = canvas.size[1] - w[1] - 1;
+  auto scaledsize = canvas.size * kScale;
+  MIdx w = MIdx(x * Vect(scaledsize) / m.GetGlobalLength());
+  w = w.max(MIdx(0)).min(scaledsize - MIdx(1));
+  w[1] = scaledsize[1] - w[1] - 1;
   return w;
 }
 
@@ -178,7 +181,7 @@ FieldCell<typename MEB::Scal> GetVortScal(
 static void RenderField(
     Canvas& canvas, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcvel,
     const MapEmbed<BCond<Vect>>& bc_vel, const MapEmbed<BCond<Scal>>& bc_vort,
-    const FieldCell<Scal>& fcp, const M& m) {
+    const FieldCell<Scal>& fcp, bool interpolate, const M& m) {
   auto fcvelbc = fcvel;
   auto fc_vort = GetVortScal(fcvel, bc_vel, m);
   // fill halo cells
@@ -213,25 +216,42 @@ static void RenderField(
     }
     return q;
   };
-  for (auto c : m.CellsM()) {
-    const MIdx w(c);
-    const MIdx start = w * canvas.size / msize;
-    const MIdx end = (w + MIdx(1)) * canvas.size / msize;
-    for (int y = start[1]; y < end[1]; y++) {
-      const Scal fy = Scal(y - start[1]) / (end[1] - start[1] - 1)  - 0.5;
-      for (int x = start[0]; x < end[0]; x++) {
-        const Scal fx = Scal(x - start[0]) / (end[0] - start[0] - 1) - 0.5;
-        const Vect f(fx, fy);
-        const auto dx = m.direction(0).orient(f);
-        const auto dy = m.direction(1).orient(f);
-        auto q = get_color(c);
-        auto qx = get_color(c + dx);
-        auto qy = get_color(c + dy);
-        auto qyx = get_color(c + dx + dy);
-        auto qb = interp::Bilinear(std::abs(fx), std::abs(fy), q, qx, qy, qyx);
-        MIdx3 mq(qb * 255);
-        canvas.buf[canvas.size[0] * (canvas.size[1] - y - 1) + x] =
-            0xff000000 | (mq[0] << 0) | (mq[1] << 8) | (mq[2] << 16);
+  if (interpolate) {
+    for (auto c : m.CellsM()) {
+      const MIdx w(c);
+      const MIdx start = w * canvas.size / msize;
+      const MIdx end = (w + MIdx(1)) * canvas.size / msize;
+      for (int y = start[1]; y < end[1]; y++) {
+        const Scal fy = Scal(y - start[1]) / (end[1] - start[1] - 1)  - 0.5;
+        for (int x = start[0]; x < end[0]; x++) {
+          const Scal fx = Scal(x - start[0]) / (end[0] - start[0] - 1) - 0.5;
+          const Vect f(fx, fy);
+          const auto dx = m.direction(0).orient(f);
+          const auto dy = m.direction(1).orient(f);
+          auto q = get_color(c);
+          auto qx = get_color(c + dx);
+          auto qy = get_color(c + dy);
+          auto qyx = get_color(c + dx + dy);
+          auto qb = interp::Bilinear(std::abs(fx), std::abs(fy), q, qx, qy, qyx);
+          const MIdx3 mq(qb * 255);
+          canvas.buf[canvas.size[0] * (canvas.size[1] - y - 1) + x] =
+              0xff000000 | (mq[0] << 0) | (mq[1] << 8) | (mq[2] << 16);
+        }
+      }
+    }
+  } else {
+    for (auto c : m.CellsM()) {
+      const MIdx w(c);
+      const MIdx start = w * canvas.size / msize;
+      const MIdx end = (w + MIdx(1)) * canvas.size / msize;
+      auto q = get_color(c);
+      const MIdx3 mq(q * 255);
+      const uint32_t v =
+          0xff000000 | (mq[0] << 0) | (mq[1] << 8) | (mq[2] << 16);
+      for (int y = start[1]; y < end[1]; y++) {
+        for (int x = start[0]; x < end[0]; x++) {
+          canvas.buf[canvas.size[0] * (canvas.size[1] - y - 1) + x] = v;
+        }
       }
     }
   }
@@ -391,7 +411,7 @@ void Solver::Run() {
       auto bc_vel = GetVelCond<M>(bc_fluid);
       RenderField(
           *g_canvas, vof->GetField(), fluid->GetVelocity(), bc_vel, bc_vort,
-          fluid->GetPressure(), m);
+          fluid->GetPressure(), var.Int["visinterp"], m);
 
       // Render interface lines
       if (m.IsRoot()) {
@@ -477,6 +497,11 @@ set int reportevery 10
 set double cfl 1
 set double cflvis 0.5
 set double cflsurf 2
+
+set double visvel 0
+set double visvf 1
+set double visvort 0
+set int visinterp 0
 
 set int part 1
 set double part_h 4
@@ -585,8 +610,8 @@ int main() {
   FORCE_LINK(distr_local);
   FORCE_LINK(distr_native);
 
-  SetCanvas(512, 512);
+  SetCanvas(128, 128);
   emscripten_set_canvas_element_size(
-      "#canvas", g_canvas->size[0], g_canvas->size[1]);
+      "#canvas", g_canvas->size[0] * kScale, g_canvas->size[1] * kScale);
   emscripten_set_main_loop(main_loop, 30, 1);
 }
