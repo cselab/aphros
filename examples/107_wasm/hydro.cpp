@@ -216,7 +216,7 @@ static void RenderField(
     }
     return q;
   };
-  if (interpolate) {
+  if (interpolate && canvas.size < m.GetGlobalSize()) {
     for (auto c : m.CellsM()) {
       const MIdx w(c);
       const MIdx start = w * canvas.size / msize;
