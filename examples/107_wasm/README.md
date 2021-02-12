@@ -2,6 +2,8 @@
 
 Finite-volume simulation of two fluids with different densities.
 
+[Online demo](https://cselab.github.io/aphros/wasm/hydro.html)
+
 ## Install
 
 Uses
