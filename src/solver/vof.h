@@ -21,9 +21,10 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
     Scal clipth = 1e-10; // vf clipping threshold
-    bool recolor_unionfind = true;
-    bool recolor_reduce = true;
-    bool recolor_grid = true;
+    bool recolor = true; // run connected component labeling on every step
+    bool recolor_unionfind = true; // use union-find algorithm
+    bool recolor_reduce = true; // reduce set of colors to integers
+    bool recolor_grid = true; // use grid heuristic
     Scal clfixed = -1; // if >= 0, value for color at point clfixed_x
     Vect clfixed_x = Vect(1e10);
     bool cloverride = false; // XXX adhoc if clear1<1, override color with 0

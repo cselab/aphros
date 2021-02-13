@@ -717,13 +717,12 @@ struct Vofm<EB_>::Imp {
         }
       }
     }
-    if (sem.Nested()) {
+    if (sem.Nested() && par.recolor) {
       uvof_.Recolor(
           layers, fcu_.iter_curr, fccl_, fccl_, par.clfixed, par.clfixed_x,
           par.coalth, me_cl_, par.verb, par.recolor_unionfind,
           par.recolor_reduce, par.recolor_grid, m);
     }
-
     if (sem("sum")) {
       CalcSum(
           layers, fcu_.Get(Step::iter_curr), fccl_, fcus_.Get(Step::iter_curr),

@@ -302,7 +302,7 @@ struct PartStrMeshM<M_>::Imp {
                 GetPlaneBasis(m.GetCenter(c), fcn[c], fca[c], section_angle);
 
             // Returns segment to insert in cell cn to enforce contact angle
-            auto contang_segment = [&basis, &fcn, this, &plic](
+            auto contang_segment = [&basis, &fcn, this](
                                        IdxCell cn, Scal contang, Vect2 xl,
                                        Vect nf) -> std::array<Vect2, 2> {
               const Scal h = m.GetCellSize()[0];
