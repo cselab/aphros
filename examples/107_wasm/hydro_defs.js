@@ -1,15 +1,16 @@
 var g_lines;
 var g_lines_ptr;
-var TogglePause;
-var Spawn;
 var AddVelocityAngle;
 var GetLines;
+var Spawn;
+var TogglePause;
 var g_tmp_canvas;
 var kScale = 4;
+var g_coal = true;
+var g_nx = 32
 
-function SetExtraConfig() {
-  Module.ccall('SetExtraConfig', '', ['string'], [
-          `
+function GetExtraConfig() {
+  return `
 set double rho1 1
 set double mu1 0.0004
 set double rho2 10
@@ -29,12 +30,28 @@ set int nsteps 2
 set double cfl 0.9
 set double cflvis 0.5
 set double cflsurf 2
+set double coalth 0
 `
-        ]);
 }
 
-function SetMesh(nx) {
-  SetExtraConfig();
+function SetCoal(flag) {
+  g_coal = flag;
+  Module.ccall('SetCoal', null, ['number'], [flag]);
+}
+
+function SetExtraConfig(conf) {
+  Module.ccall('SetExtraConfig', null, ['string'], [conf]);
+}
+
+function Init(nx) {
+  g_nx = nx
+  conf = GetExtraConfig()
+  if (g_coal) {
+    conf += "set int coal 1\n";
+  } else {
+    conf += "set int coal 0\n";
+  }
+  SetExtraConfig(conf);
   Module.ccall('SetMesh', null, ['number'], [nx])
   Spawn(0.5, 0.5, 0.2);
 }
@@ -64,6 +81,7 @@ function Draw() {
 }
 
 function PostRun() {
+  window.checkbox_coal.checked = true;
   g_lines_max_size = 10000;
   g_lines_ptr = Module._malloc(g_lines_max_size * 2);
   TogglePause = Module.cwrap('TogglePause', null, []);
@@ -96,7 +114,7 @@ function PostRun() {
   window.addEventListener('keydown', keydown, false);
   window.addEventListener('keyup', keyup, false);
   canvas.addEventListener('click', mouseclick, false);
-  SetMesh(32);
+  Init(32);
 }
 
 var Module = {

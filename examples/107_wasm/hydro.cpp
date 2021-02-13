@@ -8,8 +8,11 @@
 #include <memory>
 #include <sstream>
 
+#include <cstdio>
+
 #include "distr/distrbasic.h"
 #include "distr/distrsolver.h"
+#include "dump/xmf.h"
 #include "func/init_u.h"
 #include "geom/mesh.h"
 #include "geom/rangemulti.h"
@@ -64,7 +67,6 @@ class Solver : public KernelMeshPar<M, Par> {
       , fc_src(m, 0)
       , fc_rho(m, 1)
       , fc_mu(m, 0)
-      , fc_curv(m, 0)
       , fc_force(m, Vect(0))
       , ff_bforce(m, 0) {}
   void Run() override;
@@ -78,17 +80,19 @@ class Solver : public KernelMeshPar<M, Par> {
   FieldCell<Scal> fc_src;
   FieldCell<Scal> fc_rho;
   FieldCell<Scal> fc_mu;
-  FieldCell<Scal> fc_curv;
+  Multi<FieldCell<Scal>> fc_curv;
   FieldCell<Vect> fc_force;
   FieldEmbed<Scal> ff_bforce;
   MapEmbed<BCondAdvection<Scal>> bc_vof;
   MapEmbed<BCondFluid<Vect>> bc_fluid;
   MapEmbed<BCond<Scal>> bc_vort;
   MapCell<std::shared_ptr<CondCellFluid>> mc_velcond;
-  std::unique_ptr<Vof<M>> vof;
+  std::unique_ptr<Vofm<M>> vof;
   std::unique_ptr<Proj<M>> fluid;
   Scal maxvel;
   typename PartStrMeshM<M>::Par psm_par;
+  GRange<size_t> layers;
+  typename Vof<M>::Par vof_par;
 };
 
 struct Canvas {
@@ -107,6 +111,7 @@ struct State {
   bool pause = false;
   bool to_init_field = true;
   bool to_init_solver = true;
+  bool to_switch_coal = false;
   bool render = false;
   std::vector<std::array<MIdx, 2>> lines; // interface lines
 
@@ -133,7 +138,7 @@ static Scal Clamp(Scal f) {
   return Clamp(f, 0, 1);
 }
 
-void GetCircle(FieldCell<Scal>& fcu, Vect c, Scal r,  const M& m) {
+void GetCircle(FieldCell<Scal>& fcu, Vect c, Scal r, const M& m) {
   Vars par;
   par.String.Set("init_vf", "circlels");
   par.Vect.Set("circle_c", c);
@@ -193,14 +198,13 @@ static void RenderField(
   const Scal visvf = g_var.Double("visvf", 0);
   using Vect3 = generic::Vect<Scal, 3>;
   using MIdx3 = generic::Vect<unsigned char, 3>;
-  auto get_color = [&](IdxCell c) -> Vect3{
+  auto get_color = [&](IdxCell c) -> Vect3 {
     Vect3 q(0);
     if (visvel) {
       q = interp::Bilinear(
           Clamp(visvel * std::abs(fcvelbc[c][0])),
-          Clamp(visvel * std::abs(fcvelbc[c][1])),
-          Vect3(1), Vect3(0, 1, 0), Vect3(0, 0, 1), Vect3(0, 1, 1)
-          );
+          Clamp(visvel * std::abs(fcvelbc[c][1])), Vect3(1), Vect3(0, 1, 0),
+          Vect3(0, 0, 1), Vect3(0, 1, 1));
     }
     if (visvort) {
       const auto vort = fc_vort[c];
@@ -222,7 +226,7 @@ static void RenderField(
       const MIdx start = w * canvas.size / msize;
       const MIdx end = (w + MIdx(1)) * canvas.size / msize;
       for (int y = start[1]; y < end[1]; y++) {
-        const Scal fy = Scal(y - start[1]) / (end[1] - start[1] - 1)  - 0.5;
+        const Scal fy = Scal(y - start[1]) / (end[1] - start[1] - 1) - 0.5;
         for (int x = start[0]; x < end[0]; x++) {
           const Scal fx = Scal(x - start[0]) / (end[0] - start[0] - 1) - 0.5;
           const Vect f(fx, fy);
@@ -232,7 +236,8 @@ static void RenderField(
           auto qx = get_color(c + dx);
           auto qy = get_color(c + dy);
           auto qyx = get_color(c + dx + dy);
-          auto qb = interp::Bilinear(std::abs(fx), std::abs(fy), q, qx, qy, qyx);
+          auto qb =
+              interp::Bilinear(std::abs(fx), std::abs(fy), q, qx, qy, qyx);
           const MIdx3 mq(qb * 255);
           canvas.buf[canvas.size[0] * (canvas.size[1] - y - 1) + x] =
               0xff000000 | (mq[0] << 0) | (mq[1] << 8) | (mq[2] << 16);
@@ -261,6 +266,21 @@ void Solver::Run() {
   auto sem = m.GetSem();
   auto state = g_state;
   auto& s = *state;
+  auto update_vof_par = [&](typename Vof<M>::Par& p) {
+    p.dim = 2;
+    p.sharpen = var.Int["sharpen"];
+    p.sharpen_cfl = var.Double["sharpen_cfl"];
+    p.coalth = var.Double["coalth"];
+    p.recolor_grid = false;
+    p.recolor_reduce = false;
+    if (var.Int["coal"]) {
+      p.layers = 1;
+      p.recolor = 0;
+    } else {
+      p.layers = var.Int["layers"];
+      p.recolor = 1;
+    }
+  };
   if (sem("init_solver") && s.to_init_solver) {
     if (m.IsRoot()) {
       std::cout << "backend=" << var.String["backend"] << std::endl;
@@ -304,19 +324,38 @@ void Solver::Run() {
       fluid.reset(new Proj<M>(m, m, args));
     }
     {
-      typename Vof<M>::Par p;
-      p.dim = 2;
-      p.sharpen = var.Int["sharpen"];
-      p.sharpen_cfl = var.Double["sharpen_cfl"];
-      FieldCell<Scal> fcu(m, 0);
-      const FieldCell<Scal> fccl(m, 0);
-      vof.reset(new Vof<M>(
+      auto& p = vof_par;
+      update_vof_par(p);
+      layers = GRange<size_t>(p.layers);
+      Multi<FieldCell<Scal>> fcu(layers, m, 0);
+      Multi<FieldCell<Scal>> fccl(layers, m, 0);
+      fc_curv.Reinit(layers, m, 0);
+      vof.reset(new Vofm<M>(
           m, m, fcu, fccl, bc_vof, &fluid->GetVolumeFlux(), &fc_src, 0, s.dt,
           p));
     }
 
     auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
     psm_par = ParsePar<PartStrMeshM<M>>()(ps, var);
+  }
+  if (sem("switch_coal") && s.to_switch_coal) {
+    auto& p = vof_par;
+    update_vof_par(p);
+    layers = GRange<size_t>(p.layers);
+    Multi<FieldCell<Scal>> fcu(layers, m, 0);
+    Multi<FieldCell<Scal>> fccl(layers, m, 0);
+    fc_curv.Reinit(layers, m, 0);
+    const auto fcus = vof->GetField();
+    vof.reset(new Vofm<M>(
+        m, m, fcu, fccl, bc_vof, &fluid->GetVolumeFlux(), &fc_src,
+        vof->GetTime(), vof->GetTimeStep(), p));
+    vof->AddModifier([fcus](
+                         const Multi<FieldCell<Scal>*>& fcu0,
+                         const Multi<FieldCell<Scal>*>& fccl0,
+                         GRange<size_t> layers, const M& m) { //
+      (*fcu0[0]) = fcus;
+      (*fccl0[0]).Reinit(m, 0);
+    });
   }
   if (sem.Nested("start")) {
     fluid->StartStep();
@@ -348,7 +387,7 @@ void Solver::Run() {
     m.Reduce(&maxvel, Reduction::max);
   }
   if (sem.Nested("curv")) {
-    UCurv<M>::CalcCurvPart(vof.get(), psm_par, &fc_curv, m);
+    UCurv<M>::CalcCurvPart(vof.get(), psm_par, fc_curv, m);
   }
   if (sem("flux")) {
     const Scal rho1 = var.Double["rho1"];
@@ -385,26 +424,39 @@ void Solver::Run() {
     }
 
     const FieldFace<Scal> ff_sigma(m, var.Double["sigma"]);
-    AppendSurfaceTension(m, ff_bforce, fcu, fc_curv, ff_sigma);
+    AppendSurfaceTension(
+        m, ff_bforce, layers, vof->GetFieldM(), vof->GetColor(), fc_curv,
+        ff_sigma);
   }
   if (sem("init") && s.to_init_field) {
-    vof->AddModifier([](FieldCell<Scal>& fcu, FieldCell<Scal>&, const M& m) { //
-      fcu.Reinit(m, 0);
+    vof->AddModifier([&](const Multi<FieldCell<Scal>*>& fcu,
+                         const Multi<FieldCell<Scal>*>&, GRange<size_t> layers,
+                         const M& m) { //
+      for (auto c : m.Cells()) {
+        for (auto l : layers) {
+          (*fcu[l])[c] = 0;
+        }
+      }
     });
   }
   if (sem("spawn") && s.to_spawn) {
-    vof->AddModifier(
-        [&](FieldCell<Scal>& fcu, FieldCell<Scal>&, const M& m) { //
-          FieldCell<Scal> fc_add(m);
-          GetCircle(fc_add, s.spawn_c, s.spawn_r, m);
-          for (auto c : m.Cells()) {
-            fcu[c] = std::max(fcu[c], fc_add[c]);
-          }
-        });
+    vof->AddModifier([&](const Multi<FieldCell<Scal>*>& fcu,
+                         const Multi<FieldCell<Scal>*>& fccl,
+                         GRange<size_t> layers, const M& m) { //
+      FieldCell<Scal> fc_add(m);
+      GetCircle(fc_add, s.spawn_c, s.spawn_r, m);
+      for (auto c : m.Cells()) {
+        if (fc_add[c] > (*fcu[0])[c]) {
+          (*fcu[0])[c] = fc_add[c];
+          (*fccl[0])[c] = 0;
+        }
+      }
+    });
   }
   if (sem()) {
     s.to_init_solver = false;
     s.to_init_field = false;
+    s.to_switch_coal = false;
     s.to_spawn = false;
 
     if (s.render) {
@@ -422,14 +474,16 @@ void Solver::Run() {
       const auto& fcn = vof->GetNormal();
       const auto& fca = vof->GetAlpha();
       for (auto c : m.Cells()) {
-        if (fci[c]) {
-          const auto poly =
-              Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
-          if (poly.size() == 2) {
-            s.lines.push_back({
-                GetCanvasCoords(poly[0], *g_canvas, m),
-                GetCanvasCoords(poly[1], *g_canvas, m),
-            });
+        for (auto l : layers) {
+          if ((*fci[l])[c]) {
+            const auto poly = Reconst<Scal>::GetCutPoly(
+                m.GetCenter(c), (*fcn[l])[c], (*fca[l])[c], h);
+            if (poly.size() == 2) {
+              s.lines.push_back({
+                  GetCanvasCoords(poly[0], *g_canvas, m),
+                  GetCanvasCoords(poly[1], *g_canvas, m),
+              });
+            }
           }
         }
       }
@@ -489,7 +543,10 @@ set double sigma 0
 set vect gravity 0 -1
 set double topvel 0
 set int sharpen 0
+set int layers 3
+set double coalth 1.5
 set double sharpen_cfl 0.1
+set int coal 1
 
 set int nsteps 1
 set int reportevery 10
@@ -560,6 +617,17 @@ int TogglePause() {
   auto& s = *g_state;
   s.pause = !s.pause;
   return s.pause;
+}
+void SetCoal(int flag) {
+  if (!g_state) {
+    return;
+  }
+  auto& s = *g_state;
+  int& var_coal = g_var.Int["coal"];
+  if (var_coal != flag) {
+    var_coal = flag;
+    s.to_switch_coal = true;
+  }
 }
 void SetExtraConfig(const char* extra) {
   g_extra_config = extra;
