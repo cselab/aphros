@@ -33,7 +33,7 @@
 #include "util/module.h"
 #include "util/timer.h"
 
-static constexpr int kScale = 4;
+static constexpr int kScale = 1;
 
 using M = MeshStructured<double, 2>;
 using Scal = typename M::Scal;
@@ -221,21 +221,23 @@ static void RenderField(
     return q;
   };
   if (interpolate && m.GetGlobalSize() < canvas.size) {
-    for (auto c : m.CellsM()) {
+    for (auto c : m.SuCellsM()) {
       const MIdx w(c);
-      const MIdx start = w * canvas.size / msize;
-      const MIdx end = (w + MIdx(1)) * canvas.size / msize;
+      const MIdx bs = canvas.size / msize;
+      const MIdx start = (w * canvas.size / msize + bs / 2).max(MIdx(0));
+      const MIdx end =
+          ((w + MIdx(1)) * canvas.size / msize + bs / 2).min(canvas.size);
+      const auto dx = m.direction(0);
+      const auto dy = m.direction(1);
+      const auto q = get_color(c);
+      const auto qx = get_color(c + dx);
+      const auto qy = get_color(c + dy);
+      const auto qyx = get_color(c + dx + dy);
       for (int y = start[1]; y < end[1]; y++) {
-        const Scal fy = Scal(y - start[1]) / (end[1] - start[1] - 1) - 0.5;
+        const Scal fy = Scal(y - start[1]) / (end[1] - start[1]);
         for (int x = start[0]; x < end[0]; x++) {
-          const Scal fx = Scal(x - start[0]) / (end[0] - start[0] - 1) - 0.5;
+          const Scal fx = Scal(x - start[0]) / (end[0] - start[0]);
           const Vect f(fx, fy);
-          const auto dx = m.direction(0).orient(f);
-          const auto dy = m.direction(1).orient(f);
-          auto q = get_color(c);
-          auto qx = get_color(c + dx);
-          auto qy = get_color(c + dy);
-          auto qyx = get_color(c + dx + dy);
           auto qb =
               interp::Bilinear(std::abs(fx), std::abs(fy), q, qx, qy, qyx);
           const MIdx3 mq(qb * 255);
@@ -683,7 +685,7 @@ int main() {
   FORCE_LINK(distr_local);
   FORCE_LINK(distr_native);
 
-  SetCanvas(128, 128);
+  SetCanvas(512, 512);
   emscripten_set_canvas_element_size(
       "#canvas", g_canvas->size[0] * kScale, g_canvas->size[1] * kScale);
   emscripten_set_main_loop(main_loop, 30, 1);

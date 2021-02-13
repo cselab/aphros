@@ -6,9 +6,8 @@ var GetLines;
 var Spawn;
 var TogglePause;
 var g_tmp_canvas;
-var kScale = 4;
+var kScale = 1;
 var g_coal = true;
-var g_nx = 32
 
 function GetExtraConfig() {
   return `
@@ -57,8 +56,13 @@ function SetMu(mu) {
   SetRuntimeConfig("set double mu2 " + (mu * 10));
 }
 
+function SetGravity(g) {
+  g = g ? -5 : 0;
+  SetRuntimeConfig("set vect gravity 0 " + g);
+}
+
+
 function Init(nx) {
-  g_nx = nx
   conf = GetExtraConfig()
   if (g_coal) {
     conf += "set int coal 1\n";
@@ -70,6 +74,7 @@ function Init(nx) {
   Spawn(0.5, 0.5, 0.2);
   SetSigma(window.range_sigma.value);
   SetMu(window.range_mu.value);
+  SetGravity(window.checkbox_gravity.checked);
 }
 
 
