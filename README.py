@@ -20,9 +20,12 @@ Key features:
 - coroutines to enable encapsulation in the block-wise processing framework
 - fluid solver based on SIMPLE or Bell-Colella-Glaz methods
 - conservative split PLIC advection solver
-- novel particle method for curvature estimation improving the accuracy at low resolutions
-[[demo]](https://cselab.github.io/aphros/curv.html)
+- particle method for curvature estimation improving the accuracy at low resolutions
+[[online demo]](https://cselab.github.io/aphros/curv.html)
 [[ref:partstr]]
+- coalescence prevention
+[[online demo]](https://cselab.github.io/aphros/wasm/hydro.html)
+[[ref:pasc20]]
 
 ### Clone
 
@@ -113,7 +116,7 @@ Aphros is developed and maintained by researchers at ETH Zurich
 
 * [Petr Karnakov](https://www.cse-lab.ethz.ch/member/petr-karnakov/)
 * [Dr. Sergey Litvinov](https://www.cse-lab.ethz.ch/member/sergey-litvinov/)
-* [Fabian Wermelinger](https://www.cse-lab.ethz.ch/member/fabian-wermelinger/)
+* [Dr. Fabian Wermelinger](https://www.cse-lab.ethz.ch/member/fabian-wermelinger/)
 
 under the supervision of
 
