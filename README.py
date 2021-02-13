@@ -43,17 +43,18 @@ C++14, CMake
 
 Optional dependencies:
 
-* MPI
-* parallel HDF5
-* python3, python3-numpy
+MPI,
+parallel HDF5,
+python3,
+python3-numpy
 
 Bundled optional dependencies:
 
-* [hypre](https://github.com/hypre-space/hypre)
-* [eigen](https://gitlab.com/libeigen/eigen)
-* [overlap](https://github.com/severinstrobl/overlap)
-* [vofi](https://github.com/VOFTracking/Vofi)
-* [fpzip](https://github.com/LLNL/fpzip)
+[hypre](https://github.com/hypre-space/hypre),
+[eigen](https://gitlab.com/libeigen/eigen),
+[overlap](https://github.com/severinstrobl/overlap),
+[vofi](https://github.com/VOFTracking/Vofi),
+[fpzip](https://github.com/LLNL/fpzip)
 
 ### Build and install
 
