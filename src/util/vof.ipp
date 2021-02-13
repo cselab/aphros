@@ -47,6 +47,9 @@ struct UVof<M_>::Imp {
   using R = Reconst<Scal>;
   static constexpr size_t dim = M::dim;
   static constexpr Scal kClNone = -1;
+  using Vect2 = generic::Vect<Scal, 2>;
+  using Vect3 = generic::Vect<Scal, 3>;
+  using Vect4 = generic::Vect<Scal, 4>;
 
   Imp() = default;
   ~Imp() = default;
@@ -113,14 +116,17 @@ struct UVof<M_>::Imp {
     }
   }
 
-  // uu: volume fraction in nodes
+  // Constructs iso-surface triangles with marching cubes.
+  // uu: volume fraction in cell nodes, 3D
   // xc: cell center
   // h: cell size
   // iso: isovalue for surface uu=iso
-  void GetMarchTriangles(
-      const std::array<Scal, 8>& uu, const std::array<Vect, 8>& nn,
-      const Vect& xc, const Vect& h, Scal iso,
-      std::vector<std::vector<Vect>>& vv, std::vector<std::vector<Vect>>& vvn) {
+  static void GetMarchTriangles(
+      const std::array<Scal, 8>& uu, const std::array<Vect3, 8>& nn,
+      const Vect3& xc, const Vect3& h, Scal iso, /*out*/
+      std::vector<std::vector<Vect3>>& vv,
+      std::vector<std::vector<Vect3>>& vvn) {
+    (void)MARCH_O[0][0];
     std::array<double, 8> uuz = uu;
     for (auto& u : uuz) {
       u -= iso;
@@ -163,63 +169,175 @@ struct UVof<M_>::Imp {
       }
     }
   }
-  // Interpolates from cells to nodes.
-  // sw: stencil half-width
-  template <int sw, class T, int sn = sw * 2 + 1, int snn = sw * 2>
-  std::array<T, snn * snn * snn> InterpolateToNodes(
-      const std::array<T, sn * sn * sn>& uu) {
-    std::array<T, snn * snn * snn> uun;
+  // 2D
+  static void GetMarchTriangles(
+      const std::array<Scal, 4>&, const std::array<Vect2, 4>&, const Vect2&,
+      const Vect2&, Scal, std::vector<std::vector<Vect2>>&,
+      std::vector<std::vector<Vect2>>&) {}
+  // 4D
+  static void GetMarchTriangles(
+      const std::array<Scal, 16>&, const std::array<Vect4, 16>&, const Vect4&,
+      const Vect4&, Scal, std::vector<std::vector<Vect4>>&,
+      std::vector<std::vector<Vect4>>&) {}
+  // Interpolates from cells to nodes
+  // uu: values on a 3x3x3x3 stencil
+  template <class T>
+  static std::array<T, 16> InterpolateToNodes(const std::array<T, 81>& uu) {
+    std::array<T, 16> res;
     size_t i = 0;
-    for (int z = 0; z < snn; ++z) {
-      for (int y = 0; y < snn; ++y) {
-        for (int x = 0; x < snn; ++x) {
-          auto u = [&uu, x, y, z](int dx, int dy, int dz) {
-            return uu[(z + dz) * sn * sn + (y + dy) * sn + (x + dx)];
-          };
-          uun[i++] =
-              (1. / 8.) * (u(0, 0, 0) + u(1, 0, 0) + u(0, 1, 0) + u(1, 1, 0) +
-                           u(0, 0, 1) + u(1, 0, 1) + u(0, 1, 1) + u(1, 1, 1));
+    for (int w = 0; w < 2; ++w) {
+      for (int z = 0; z < 2; ++z) {
+        for (int y = 0; y < 2; ++y) {
+          for (int x = 0; x < 2; ++x) {
+            auto u = [&uu, x, y, z, w](int dx, int dy, int dz, int dw) {
+              return uu[(w + dw) * 27 + (z + dz) * 9 + (y + dy) * 3 + (x + dx)];
+            };
+            res[i++] =
+                (1. / 16) *
+                (u(0, 0, 0, 0) + u(1, 0, 0, 0) + u(0, 1, 0, 0) + u(1, 1, 0, 0) +
+                 u(0, 0, 1, 0) + u(1, 0, 1, 0) + u(0, 1, 1, 0) + u(1, 1, 1, 0) +
+                 u(0, 0, 0, 1) + u(1, 0, 0, 1) + u(0, 1, 0, 1) + u(1, 1, 0, 1) +
+                 u(0, 0, 1, 1) + u(1, 0, 1, 1) + u(0, 1, 1, 1) + u(1, 1, 1, 1));
+          }
         }
       }
     }
-    return uun;
+    return res;
+  }
+  // TODO: move to an util file
+  // Interpolates from cells to nodes
+  // uu: values on a 3x3x3 stencil
+  template <class T>
+  static std::array<T, 8> InterpolateToNodes(const std::array<T, 27>& uu) {
+    std::array<T, 8> res;
+    size_t i = 0;
+    for (int z = 0; z < 2; ++z) {
+      for (int y = 0; y < 2; ++y) {
+        for (int x = 0; x < 2; ++x) {
+          auto u = [&uu, x, y, z](int dx, int dy, int dz) {
+            return uu[(z + dz) * 9 + (y + dy) * 3 + (x + dx)];
+          };
+          res[i++] =
+              (1. / 8) * (u(0, 0, 0) + u(1, 0, 0) + u(0, 1, 0) + u(1, 1, 0) +
+                          u(0, 0, 1) + u(1, 0, 1) + u(0, 1, 1) + u(1, 1, 1));
+        }
+      }
+    }
+    return res;
+  }
+  // Interpolates from cells to nodes
+  // uu: values on a 3x3 stencil
+  template <class T>
+  static std::array<T, 4> InterpolateToNodes(const std::array<T, 9>& uu) {
+    std::array<T, 4> res;
+    size_t i = 0;
+    for (int y = 0; y < 2; ++y) {
+      for (int x = 0; x < 2; ++x) {
+        auto u = [&uu, x, y](int dx, int dy) {
+          return uu[(y + dy) * 3 + (x + dx)];
+        };
+        res[i++] = (1. / 4) * (u(0, 0) + u(1, 0) + u(0, 1) + u(1, 1));
+      }
+    }
+    return res;
+  }
+  // TODO: move to an util file
+  // Computes sum of cell values adjacent to each node, skips nan values.
+  // sw: stencil half-width
+  // uu: cell values on 3x3x3x3 stencil
+  template <class T>
+  static std::array<T, 16> SumToNodesNan(const std::array<T, 81>& uu) {
+    std::array<T, 16> res;
+    size_t i = 0;
+    for (int w = 0; w < 2; ++w) {
+      for (int z = 0; z < 2; ++z) {
+        for (int y = 0; y < 2; ++y) {
+          for (int x = 0; x < 2; ++x) {
+            auto u = [&uu, x, y, z, w](int dx, int dy, int dz, int dw) {
+              auto q =
+                  uu[(w + dw) * 27 + (z + dz) * 9 + (y + dy) * 3 + (x + dx)];
+              return IsNan(q) ? T(0) : q;
+            };
+            res[i++] =
+                u(0, 0, 0, 0) + u(1, 0, 0, 0) + u(0, 1, 0, 0) + u(1, 1, 0, 0) +
+                u(0, 0, 1, 0) + u(1, 0, 1, 0) + u(0, 1, 1, 0) + u(1, 1, 1, 0) +
+                u(0, 0, 0, 1) + u(1, 0, 0, 1) + u(0, 1, 0, 1) + u(1, 1, 0, 1) +
+                u(0, 0, 1, 1) + u(1, 0, 1, 1) + u(0, 1, 1, 1) + u(1, 1, 1, 1);
+          }
+        }
+      }
+    }
+    return res;
   }
   // Computes sum of cell values adjacent to each node, skips nan values.
   // sw: stencil half-width
-  template <int sw, class T, int sn = sw * 2 + 1, int snn = sw * 2>
-  std::array<T, snn * snn * snn> SumToNodesNan(
-      const std::array<T, sn * sn * sn>& uu) {
-    std::array<T, snn * snn * snn> uun;
+  // uu: cell values on 3x3x3 stencil
+  template <class T>
+  static std::array<T, 8> SumToNodesNan(const std::array<T, 27>& uu) {
+    std::array<T, 8> res;
     size_t i = 0;
-    for (int z = 0; z < snn; ++z) {
-      for (int y = 0; y < snn; ++y) {
-        for (int x = 0; x < snn; ++x) {
+    for (int z = 0; z < 2; ++z) {
+      for (int y = 0; y < 2; ++y) {
+        for (int x = 0; x < 2; ++x) {
           auto u = [&uu, x, y, z](int dx, int dy, int dz) {
-            auto q = uu[(z + dz) * sn * sn + (y + dy) * sn + (x + dx)];
+            auto q = uu[(z + dz) * 9 + (y + dy) * 3 + (x + dx)];
             return IsNan(q) ? T(0) : q;
           };
-          uun[i++] = u(0, 0, 0) + u(1, 0, 0) + u(0, 1, 0) + u(1, 1, 0) +
+          res[i++] = u(0, 0, 0) + u(1, 0, 0) + u(0, 1, 0) + u(1, 1, 0) +
                      u(0, 0, 1) + u(1, 0, 1) + u(0, 1, 1) + u(1, 1, 1);
         }
       }
     }
-    return uun;
+    return res;
+  }
+  // Computes sum of cell values adjacent to each node, skips nan values.
+  // sw: stencil half-width
+  // uu: cell values on 3x3 stencil
+  template <class T>
+  static std::array<T, 4> SumToNodesNan(const std::array<T, 9>& uu) {
+    std::array<T, 4> res;
+    size_t i = 0;
+    for (int y = 0; y < 2; ++y) {
+      for (int x = 0; x < 2; ++x) {
+        auto u = [&uu, x, y](int dx, int dy) {
+          auto q = uu[(y + dy) * 3 + (x + dx)];
+          return IsNan(q) ? T(0) : q;
+        };
+        res[i++] = u(0, 0) + u(1, 0) + u(0, 1) + u(1, 1);
+      }
+    }
+    return res;
+  }
+  // TODO: move to an util file
+  // Computes gradients in nodes.
+  // uu: volume fractions in cells on a 3x3 stencil
+  static std::array<Vect, 4> GradientNodes(const std::array<Scal, 9>& uu) {
+    std::array<Vect, 4> res;
+    size_t i = 0;
+    for (int y = 0; y < 2; ++y) {
+      for (int x = 0; x < 2; ++x) {
+        auto u = [&uu, x, y](int dx, int dy) {
+          return uu[(y + dy) * 3 + (x + dx)];
+        };
+        auto& g = res[i++];
+        g[0] = ((u(1, 0) + u(1, 1)) - (u(0, 0) + u(0, 1))) * 0.5;
+        g[1] = ((u(0, 1) + u(1, 1)) - (u(0, 0) + u(1, 0))) * 0.5;
+      }
+    }
+    return res;
   }
   // Computes gradients in nodes.
-  // sw: stencil half-width
-  // uu: volume fractions in cells on stencil [-sw,sw]
-  template <int sw, int sn = sw * 2 + 1, int snn = sw * 2>
-  std::array<Vect, snn * snn * snn> GradientNodes(
-      const std::array<Scal, sn * sn * sn>& uu) {
-    std::array<Vect, snn * snn * snn> gg;
+  // uu: volume fractions in cells on a 3x3x3 stencil
+  static std::array<Vect, 8> GradientNodes(const std::array<Scal, 27>& uu) {
+    std::array<Vect, 8> res;
     size_t i = 0;
-    for (int z = 0; z < snn; ++z) {
-      for (int y = 0; y < snn; ++y) {
-        for (int x = 0; x < snn; ++x) {
+    for (int z = 0; z < 2; ++z) {
+      for (int y = 0; y < 2; ++y) {
+        for (int x = 0; x < 2; ++x) {
           auto u = [&uu, x, y, z](int dx, int dy, int dz) {
-            return uu[(z + dz) * sn * sn + (y + dy) * sn + (x + dx)];
+            return uu[(z + dz) * 9 + (y + dy) * 3 + (x + dx)];
           };
-          auto& g = gg[i++];
+          auto& g = res[i++];
           g[0] = ((u(1, 0, 0) + u(1, 1, 0) + u(1, 0, 1) + u(1, 1, 1)) -
                   (u(0, 0, 0) + u(0, 1, 0) + u(0, 0, 1) + u(0, 1, 1))) *
                  0.25;
@@ -232,32 +350,53 @@ struct UVof<M_>::Imp {
         }
       }
     }
-    return gg;
+    return res;
   }
-  // Returns values over stencil centered at cell c with color cl.
-  // Values for neighbors without color cl are filled with 0.
-  // sw: stencil half-width
-  template <size_t sw>
-  struct GetStencilPure {
-    static constexpr size_t sn = sw * 2 + 1;
-    std::array<Scal, sn * sn * sn> operator()(
-        const FieldCell<Scal>& fc, IdxCell c, const M& m) {
-      using MIdx = typename M::MIdx;
-      auto& bc = m.GetIndexCells();
-      GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
-      MIdx w = bc.GetMIdx(c);
-      std::array<typename M::Scal, sn * sn * sn> uu;
-      size_t k = 0;
-      for (MIdx wo : bo) {
-        IdxCell cn = bc.GetIdx(w + wo);
-        uu[k++] = fc[cn];
+  // Computes gradients in nodes.
+  // uu: volume fractions in cells on a 3x3x3x3 stencil
+  static std::array<Vect, 16> GradientNodes(const std::array<Scal, 81>& uu) {
+    std::array<Vect, 16> res;
+    size_t i = 0;
+    for (int w = 0; w < 2; ++w) {
+      for (int z = 0; z < 2; ++z) {
+        for (int y = 0; y < 2; ++y) {
+          for (int x = 0; x < 2; ++x) {
+            auto u = [&uu, x, y, z, w](int dx, int dy, int dz, int dw) {
+              return uu[(w + dw) * 27 + (z + dz) * 9 + (y + dy) * 3 + (x + dx)];
+            };
+            auto& g = res[i++];
+            g[0] = ((u(1, 0, 0, 0) + u(1, 1, 0, 0) + u(1, 0, 1, 0) +
+                     u(1, 1, 1, 0) +
+                     (u(1, 0, 0, 1) + u(1, 1, 0, 1) + u(1, 0, 1, 1) +
+                      u(1, 1, 1, 1)) -
+                     (u(0, 0, 0, 0) + u(0, 1, 0, 0) + u(0, 0, 1, 0) +
+                      u(0, 1, 1, 0)) +
+                     u(0, 0, 0, 1) + u(0, 1, 0, 1) + u(0, 0, 1, 1) +
+                     u(0, 1, 1, 1))) *
+                   0.125;
+            g[1] = ((u(0, 1, 0, 0) + u(1, 1, 0, 0) + u(0, 1, 1, 0) +
+                     u(1, 1, 1, 0) + u(0, 1, 0, 1) + u(1, 1, 0, 1) +
+                     u(0, 1, 1, 1) + u(1, 1, 1, 1)) -
+                    (u(0, 0, 0, 0) + u(1, 0, 0, 0) + u(0, 0, 1, 0) +
+                     u(1, 0, 1, 0) + u(0, 0, 0, 1) + u(1, 0, 0, 1) +
+                     u(0, 0, 1, 1) + u(1, 0, 1, 1))) *
+                   0.125;
+            g[2] = ((u(0, 0, 1, 0) + u(1, 0, 1, 0) + u(0, 1, 1, 0) +
+                     u(1, 1, 1, 0) + u(0, 0, 1, 1) + u(1, 0, 1, 1) +
+                     u(0, 1, 1, 1) + u(1, 1, 1, 1)) -
+                    (u(0, 0, 0, 0) + u(1, 0, 0, 0) + u(0, 1, 0, 0) +
+                     u(1, 1, 0, 0) + u(0, 0, 0, 1) + u(1, 0, 0, 1) +
+                     u(0, 1, 0, 1) + u(1, 1, 0, 1))) *
+                   0.125;
+          }
+        }
       }
-      return uu;
     }
-  };
+    return res;
+  }
   // bcfill: if >=0. add triangles from
   // fcus [a]: sum of volume fractions, add triangles from SuCells if not null
-  void DumpPolyMarch(
+  static void DumpPolyMarch(
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Vect>*>& fcn,
@@ -291,14 +430,7 @@ struct UVof<M_>::Imp {
         for (auto c : m.Cells()) {
           Scal cl = (*fccl[i])[c];
           if (cl != kClNone) {
-            const size_t sw = 1; // stencil halfwidth
-            const size_t sn = sw * 2 + 1;
-            auto& bc = m.GetIndexCells();
-            using MIdx = typename M::MIdx;
-            GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sn));
-            MIdx w = bc.GetMIdx(c);
-            for (MIdx wo : bo) {
-              IdxCell cn = bc.GetIdx(w + wo);
+            for (auto cn : m.Stencil(c)) {
               if (!in[cn]) continue;
               bool q = false;
               for (auto j : layers) {
@@ -316,12 +448,12 @@ struct UVof<M_>::Imp {
                 done.insert(e);
                 // volume fraction in cells on 3x3x3 stencil
                 const auto uu =
-                    GetStencil<M, 1, Scal>{}(layers, fcu, fccl, cn, cl, m);
+                    GetStencilValues<Scal>(layers, fcu, fccl, cn, cl, m);
                 // volume fraction in nodes on 2x2x2 stencil
-                const auto uun = InterpolateToNodes<1>(uu);
-                auto nnc =
-                    GetStencil<M, 1, Vect>{}(layers, fcn, fccl, cn, cl, m);
-                auto nnn = SumToNodesNan<1>(nnc);
+                const auto uun = InterpolateToNodes(uu);
+                const auto nnc =
+                    GetStencilValues<Vect>(layers, fcn, fccl, cn, cl, m);
+                const auto nnn = SumToNodesNan(nnc);
                 std::vector<std::vector<Vect>> vv, vvn;
                 GetMarchTriangles(uun, nnn, m.GetCenter(cn), h, iso, vv, vvn);
                 for (size_t j = 0; j < vv.size(); ++j) {
@@ -341,11 +473,11 @@ struct UVof<M_>::Imp {
         auto& bc = m.GetIndexCells();
         using MIdx = typename M::MIdx;
         for (auto c : m.SuCells()) {
-          MIdx w = bc.GetMIdx(c);
+          const MIdx w = bc.GetMIdx(c);
           if (!(MIdx(1) <= w && w < m.GetGlobalSize() - MIdx(1))) {
-            auto uu = GetStencilPure<1>{}(*fcus, c, m);
-            auto uun = InterpolateToNodes<1>(uu);
-            auto nn = GradientNodes<1>(uu);
+            auto uu = GetStencilValues<Scal>(*fcus, c, m);
+            auto uun = InterpolateToNodes(uu);
+            auto nn = GradientNodes(uu);
             for (auto& n : nn) {
               n = -n;
             }
@@ -378,7 +510,7 @@ struct UVof<M_>::Imp {
     }
   }
 
-  // Initializes usermap_.
+  // Initializes usermap.
   // fccl0: known colors
   // fccl: colors to reduce
   static void UserMap(

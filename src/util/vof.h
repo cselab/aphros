@@ -120,3 +120,41 @@ class UVof {
   struct Imp;
   std::unique_ptr<Imp> imp;
 };
+
+
+// Returns values over stencil centered at cell c.
+// Values for neighbors without color cl are filled with 0.
+// sw: stencil half-width
+template <class T, class M>
+std::array<T, M::Pow(3, M::dim)> GetStencilValues(
+    const FieldCell<T>& fc, IdxCell c, const M& m) {
+  std::array<T, M::Pow(3, M::dim)> res;
+  size_t i = 0;
+  for (auto cn : m.Stencil(c)) {
+    res[i++] = fc[cn];
+  }
+  return res;
+}
+
+// Returns values over stencil centered at cell c with color cl.
+// Values for neighbors without color cl are filled with 0.
+// sw: stencil half-width
+template <class T, class M>
+std::array<T, M::Pow(3, M::dim)> GetStencilValues(
+    const GRange<size_t>& layers, const Multi<const FieldCell<T>*>& fc,
+    const Multi<const FieldCell<typename M::Scal>*>& fccl, IdxCell c,
+    typename M::Scal cl, const M& m) {
+  std::array<T, M::Pow(3, M::dim)> res;
+  size_t i = 0;
+  for (auto cn : m.Stencil(c)) {
+    T u(0);
+    for (auto l : layers) {
+      if ((*fccl[l])[cn] == cl) {
+        u = (*fc[l])[cn];
+        break;
+      }
+    }
+    res[i++] = u;
+  }
+  return res;
+}

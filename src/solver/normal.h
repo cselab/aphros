@@ -14,6 +14,9 @@ class UNormal {
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
+  using Vect2 = generic::Vect<Scal, 2>;
+  using Vect3 = generic::Vect<Scal, 3>;
+  using Vect4 = generic::Vect<Scal, 4>;
 
   // Computes normal by combined Youngs scheme and height-functions
   // m: mesh
@@ -70,10 +73,14 @@ class UNormal {
       FieldCell<Vect>& fcn);
 
   // u: volume fraction, array of size 3x3x3
-  static Vect GetNormalYoungs(const std::array<Scal, 27>& u);
+  static Vect2 GetNormalYoungs(const std::array<Scal, 9>& u);
+  static Vect3 GetNormalYoungs(const std::array<Scal, 27>& u);
+  static Vect4 GetNormalYoungs(const std::array<Scal, 81>& u);
   // u: volume fraction, array of size 3x3x3
   // n: guess for normal, updated if heights give steeper estimate
-  static void GetNormalHeight(const std::array<Scal, 27>& u, Vect& n);
+  static void GetNormalHeight(const std::array<Scal, 9>& u, Vect2& n);
+  static void GetNormalHeight(const std::array<Scal, 27>& u, Vect3& n);
+  static void GetNormalHeight(const std::array<Scal, 81>& u, Vect4& n);
 
  public:
   struct Imp; // implementation
