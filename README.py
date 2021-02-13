@@ -42,14 +42,12 @@ Generated in [doc/sphinx](doc/sphinx).
 C++14, CMake
 
 Optional dependencies:
-
 MPI,
 parallel HDF5,
 python3,
 python3-numpy
 
 Bundled optional dependencies:
-
 [hypre](https://github.com/hypre-space/hypre),
 [eigen](https://gitlab.com/libeigen/eigen),
 [overlap](https://github.com/severinstrobl/overlap),
@@ -88,6 +86,13 @@ cd src
 APHROS_PREFIX=PREFIX make -f Makefile_legacy install
 ```
 where `PREFIX` is the installation location (e.g. `~/.local`).
+
+## Online demos
+
+[<img src="[[IMAGES]]/curv.png" height=200>](https://cselab.github.io/aphros/curv.html) | [<img src="[[IMAGES]]/wasm.png" height=200>](https://cselab.github.io/aphros/wasm/hydro.html)
+:---:|:---:
+curvature estimation | coalescence prevention
+
 
 ## Videos
 
@@ -166,6 +171,7 @@ refs = [m_ref.group(0) for m_ref in m_refs]
 gen = text
 gen = gen.replace('[[GEN]]', os.path.basename(__file__))
 gen = gen.replace('[[VIDEOS]]', "https://cselab.github.io/aphros/videos")
+gen = gen.replace('[[IMAGES]]', "https://cselab.github.io/aphros/images")
 for i, m_item in enumerate(m_items):
     item = m_item.group(0)
     name = re.match("\[\[item:([^]]*)\]\]", item).group(1)

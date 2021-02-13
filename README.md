@@ -37,18 +37,17 @@ Generated in [doc/sphinx](doc/sphinx).
 C++14, CMake
 
 Optional dependencies:
-
-* MPI
-* parallel HDF5
-* python3, python3-numpy
+MPI,
+parallel HDF5,
+python3,
+python3-numpy
 
 Bundled optional dependencies:
-
-* [hypre](https://github.com/hypre-space/hypre)
-* [eigen](https://gitlab.com/libeigen/eigen)
-* [overlap](https://github.com/severinstrobl/overlap)
-* [vofi](https://github.com/VOFTracking/Vofi)
-* [fpzip](https://github.com/LLNL/fpzip)
+[hypre](https://github.com/hypre-space/hypre),
+[eigen](https://gitlab.com/libeigen/eigen),
+[overlap](https://github.com/severinstrobl/overlap),
+[vofi](https://github.com/VOFTracking/Vofi),
+[fpzip](https://github.com/LLNL/fpzip)
 
 ### Build and install
 
@@ -82,6 +81,13 @@ cd src
 APHROS_PREFIX=PREFIX make -f Makefile_legacy install
 ```
 where `PREFIX` is the installation location (e.g. `~/.local`).
+
+## Online demos
+
+[<img src="https://cselab.github.io/aphros/images/curv.png" height=200>](https://cselab.github.io/aphros/curv.html) | [<img src="https://cselab.github.io/aphros/images/wasm.png" height=200>](https://cselab.github.io/aphros/wasm/hydro.html)
+:---:|:---:
+curvature estimation | coalescence prevention
+
 
 ## Videos
 
