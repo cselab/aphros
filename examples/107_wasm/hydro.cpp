@@ -567,9 +567,9 @@ set int part_np 7
 set double part_segcirc 0
 set int part_dn 0
 set int part_dump_fr 1
-set int part_ns 3
-set double part_tol 1e-5
-set int part_itermax 20
+set int part_ns 1
+set double part_tol 1e-4
+set int part_itermax 10
 set int part_verb 0
 set int dim 2
 set int vtkbin 1
@@ -629,8 +629,13 @@ void SetCoal(int flag) {
     s.to_switch_coal = true;
   }
 }
-void SetExtraConfig(const char* extra) {
-  g_extra_config = extra;
+void SetExtraConfig(const char* conf) {
+  g_extra_config = conf;
+}
+
+void SetRuntimeConfig(const char* s) {
+  std::stringstream conf(s);
+  Parser(g_var).ParseStream(conf);
 }
 
 void SetMesh(int nx) {

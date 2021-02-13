@@ -1,6 +1,8 @@
 var g_lines;
 var g_lines_ptr;
+var g_runtime_conf;
 var AddVelocityAngle;
+var SetRuntimeConfig;
 var GetLines;
 var Spawn;
 var TogglePause;
@@ -30,7 +32,7 @@ set int nsteps 2
 set double cfl 0.9
 set double cflvis 0.5
 set double cflsurf 2
-set double coalth 0
+set double coalth 0.1
 `
 }
 
@@ -43,6 +45,15 @@ function SetExtraConfig(conf) {
   Module.ccall('SetExtraConfig', null, ['string'], [conf]);
 }
 
+function SetRuntimeConfig(conf) {
+  g_runtime_conf = conf;
+  Module.ccall('SetRuntimeConfig', null, ['string'], [conf]);
+}
+
+function SetSigma(sigma) {
+  SetRuntimeConfig("set double sigma " + sigma);
+}
+
 function Init(nx) {
   g_nx = nx
   conf = GetExtraConfig()
@@ -52,16 +63,16 @@ function Init(nx) {
     conf += "set int coal 0\n";
   }
   SetExtraConfig(conf);
+  SetRuntimeConfig(g_runtime_conf);
   Module.ccall('SetMesh', null, ['number'], [nx])
   Spawn(0.5, 0.5, 0.2);
+  SetSigma(window.range_sigma.value);
 }
 
 
 function Draw() {
   let canvas = Module['canvas'];
   let ctx = canvas.getContext('2d');
-
-  //ctx.scale(kScale, kScale);
   ctx.drawImage(g_tmp_canvas, 0, 0, canvas.width, canvas.height);
 
   ctx.lineWidth = 3;
