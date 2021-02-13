@@ -13,6 +13,7 @@
       .button2 {width: 80px; height: 60px; font-size: 15pt; padding: 0pt; margin: 0pt; touch-action: manipulation; }
       .frame { border: 3px solid #ccc; background: #eee; margin: auto; padding: 15px 10px; }
       .label {}
+      .emscripten span { display: inline-block; white-space: nowrap; }
     </style>
   </head>
   <body>
@@ -47,7 +48,12 @@
     <div class="emscripten" style="padding: 5px;">
       <label class="label" style="margin-top: 10px"><input type="range" min="0" max="10" value="4" step="0.5" id="range_sigma" style="padding-top: 0px;"
         onchange="SetSigma(this.value);">
-        <span style="line-height: 32px; vertical-align: text-bottom;">surface tension</span></label>
+        <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">surface tension</span></label>
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label" style="margin-top: 10px"><input type="range" min="0" max="0.01" value="0.001" step="0.0001" id="range_mu" style="padding-top: 0px;"
+        onchange="SetMu(this.value);">
+        <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">viscosity</span></label>
     </div>
 
     <!--<textarea class="emscripten" id="output" rows="20"></textarea>-->

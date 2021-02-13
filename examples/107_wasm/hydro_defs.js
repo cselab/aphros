@@ -1,6 +1,5 @@
 var g_lines;
 var g_lines_ptr;
-var g_runtime_conf;
 var AddVelocityAngle;
 var SetRuntimeConfig;
 var GetLines;
@@ -30,7 +29,7 @@ set double dtmax 0.1
 set double sigma 4
 set int nsteps 2
 set double cfl 0.9
-set double cflvis 0.5
+set double cflvis 0.125
 set double cflsurf 2
 set double coalth 0.1
 `
@@ -46,12 +45,16 @@ function SetExtraConfig(conf) {
 }
 
 function SetRuntimeConfig(conf) {
-  g_runtime_conf = conf;
   Module.ccall('SetRuntimeConfig', null, ['string'], [conf]);
 }
 
 function SetSigma(sigma) {
   SetRuntimeConfig("set double sigma " + sigma);
+}
+
+function SetMu(mu) {
+  SetRuntimeConfig("set double mu1 " + mu);
+  SetRuntimeConfig("set double mu2 " + (mu * 10));
 }
 
 function Init(nx) {
@@ -63,10 +66,10 @@ function Init(nx) {
     conf += "set int coal 0\n";
   }
   SetExtraConfig(conf);
-  SetRuntimeConfig(g_runtime_conf);
   Module.ccall('SetMesh', null, ['number'], [nx])
   Spawn(0.5, 0.5, 0.2);
   SetSigma(window.range_sigma.value);
+  SetMu(window.range_mu.value);
 }
 
 
