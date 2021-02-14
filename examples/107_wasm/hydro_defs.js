@@ -6,9 +6,8 @@ var GetLines;
 var Spawn;
 var TogglePause;
 var g_tmp_canvas;
-var kScale = 4;
+var kScale = 1;
 var g_coal = true;
-var g_nx = 32
 
 function GetExtraConfig() {
   return `
@@ -64,7 +63,6 @@ function SetGravity(g) {
 
 
 function Init(nx) {
-  g_nx = nx
   conf = GetExtraConfig()
   if (g_coal) {
     conf += "set int coal 1\n";
