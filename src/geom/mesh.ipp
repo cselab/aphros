@@ -48,7 +48,7 @@ MeshCartesian<_Scal, _dim>::MeshCartesian(
     , blockfa_(blockca_.GetBegin(), blockca_.GetSize())
     , blockna_(blockca_.GetBegin(), blockca_.GetSize() + MIdx(1))
     // support
-    , blockcs_(blockca_.GetBegin() + MIdx(1), blockca_.GetSize() - MIdx(2))
+    , blockcs_(b - MIdx(1), cs + MIdx(2))
     , blockfs_(blockcs_.GetBegin(), blockcs_.GetSize())
     , blockns_(blockcs_.GetBegin(), blockcs_.GetSize() + MIdx(1))
     // index
