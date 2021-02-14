@@ -57,6 +57,12 @@ function SetMu(mu) {
   SetRuntimeConfig("set double mu2 " + (mu * 10));
 }
 
+function SetGravity(g) {
+  g = g ? -5 : 0;
+  SetRuntimeConfig("set vect gravity 0 " + g);
+}
+
+
 function Init(nx) {
   g_nx = nx
   conf = GetExtraConfig()
@@ -70,6 +76,7 @@ function Init(nx) {
   Spawn(0.5, 0.5, 0.2);
   SetSigma(window.range_sigma.value);
   SetMu(window.range_mu.value);
+  SetGravity(window.checkbox_gravity.checked);
 }
 
 
