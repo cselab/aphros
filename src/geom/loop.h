@@ -20,7 +20,7 @@ struct Loop {
 
   struct Cell {
     static IdxCell GetIdx(MIdx w, MIdx lead) {
-      return IdxCell(w[0] + lead[0] * w[1] + lead[0] * lead[1] * w[2]);
+      return IdxCell(w.dot(lead.cumprod()));
     }
     Cell() = default;
     Cell(MIdx w_, MIdx lead_, Vect h_)
@@ -34,6 +34,13 @@ struct Loop {
       return c;
     }
     inline Face face(IdxNci q) const;
+    inline Face face(size_t q) const {
+      return face(IdxNci(q));
+    }
+    inline Cell cell(IdxNci q) const;
+    inline Cell cell(size_t q) const {
+      return cell(IdxNci(q));
+    }
     inline Scal outward_factor(IdxNci q) const {
       return q.raw() % 2 == 0 ? -1 : 1;
     }
@@ -48,9 +55,7 @@ struct Loop {
 
   struct Face {
     static IdxFace GetIdx(size_t direction, MIdx w, MIdx lead) {
-      return IdxFace(
-          direction * lead.prod() + w[0] + lead[0] * w[1] +
-          lead[0] * lead[1] * w[2]);
+      return IdxFace(direction * lead.prod() + w.dot(lead.cumprod()));
     }
     Face() = default;
     Face(size_t direction_, MIdx w_, MIdx lead_, Vect h_)
@@ -64,6 +69,9 @@ struct Loop {
       return f;
     }
     inline Cell cell(Side s) const;
+    inline Cell cell(size_t s) const {
+      return cell(Side(s));
+    }
 
     size_t direction;
     MIdx w;
@@ -79,11 +87,12 @@ struct Loop {
     const auto& indexer = m.GetIndexCells();
     const auto& block = m.GetInBlockCells();
     const MIdx lead = indexer.GetSize();
-    const MIdx mstart = block.GetBegin();
-    const MIdx mend = block.GetEnd();
-    for (int iz = mstart[2]; iz < mend[2]; ++iz) {
-      for (int iy = mstart[1]; iy < mend[1]; ++iy) {
-        for (int ix = mstart[0]; ix < mend[0]; ++ix) {
+    const MIdx start = indexer.GetBegin();
+    const MIdx bstart = block.GetBegin() - start;
+    const MIdx bend = block.GetEnd() - start;
+    for (int iz = bstart[2]; iz < bend[2]; ++iz) {
+      for (int iy = bstart[1]; iy < bend[1]; ++iy) {
+        for (int ix = bstart[0]; ix < bend[0]; ++ix) {
           func(Cell(MIdx(ix, iy, iz), lead, h));
         }
       }
@@ -96,12 +105,13 @@ struct Loop {
     const auto& indexer = m.GetIndexCells();
     const auto& block = m.GetInBlockCells();
     const MIdx lead = indexer.GetSize();
-    const MIdx mstart = block.GetBegin();
-    const MIdx mend = block.GetEnd();
+    const MIdx start = indexer.GetBegin();
+    const MIdx bstart = block.GetBegin() - start;
+    const MIdx bend = block.GetEnd() - start;
     for (size_t d = 0; d < dim; ++d) {
-      for (int iz = mstart[2]; iz < mend[2] + (d == 2 ? 1 : 0); ++iz) {
-        for (int iy = mstart[1]; iy < mend[1] + (d == 1 ? 1 : 0); ++iy) {
-          for (int ix = mstart[0]; ix < mend[0] + (d == 0 ? 1 : 0); ++ix) {
+      for (int iz = bstart[2]; iz < bend[2] + (d == 2 ? 1 : 0); ++iz) {
+        for (int iy = bstart[1]; iy < bend[1] + (d == 1 ? 1 : 0); ++iy) {
+          for (int ix = bstart[0]; ix < bend[0] + (d == 0 ? 1 : 0); ++ix) {
             func(Face(d, MIdx(ix, iy, iz), lead, h));
           }
         }
@@ -115,10 +125,11 @@ struct Loop {
     const auto& indexer = m.GetIndexCells();
     const auto& block = m.GetInBlockCells();
     const MIdx lead = indexer.GetSize();
-    const MIdx mstart = block.GetBegin();
-    const MIdx mend = block.GetEnd();
-    for (int iy = mstart[1]; iy < mend[1]; ++iy) {
-      for (int ix = mstart[0]; ix < mend[0]; ++ix) {
+    const MIdx start = indexer.GetBegin();
+    const MIdx bstart = block.GetBegin() - start;
+    const MIdx bend = block.GetEnd() - start;
+    for (int iy = bstart[1]; iy < bend[1]; ++iy) {
+      for (int ix = bstart[0]; ix < bend[0]; ++ix) {
         func(Cell(MIdx(ix, iy), lead, h));
       }
     }
@@ -130,11 +141,12 @@ struct Loop {
     const auto& indexer = m.GetIndexCells();
     const auto& block = m.GetInBlockCells();
     const MIdx lead = indexer.GetSize();
-    const MIdx mstart = block.GetBegin();
-    const MIdx mend = block.GetEnd();
+    const MIdx start = indexer.GetBegin();
+    const MIdx bstart = block.GetBegin() - start;
+    const MIdx bend = block.GetEnd() - start;
     for (size_t d = 0; d < dim; ++d) {
-      for (int iy = mstart[1]; iy < mend[1] + (d == 1 ? 1 : 0); ++iy) {
-        for (int ix = mstart[0]; ix < mend[0] + (d == 0 ? 1 : 0); ++ix) {
+      for (int iy = bstart[1]; iy < bend[1] + (d == 1 ? 1 : 0); ++iy) {
+        for (int ix = bstart[0]; ix < bend[0] + (d == 0 ? 1 : 0); ++ix) {
           func(Face(d, MIdx(ix, iy), lead, h));
         }
       }
@@ -158,6 +170,16 @@ auto Loop<M>::Cell::face(IdxNci q) const -> Face {
     return Face(d, w, lead, h);
   } else {
     return Face(d, w + MIdx::GetUnit(d), lead, h);
+  }
+}
+
+template <class M>
+auto Loop<M>::Cell::cell(IdxNci q) const -> Cell {
+  const size_t d = q.raw() / 2;
+  if (q.raw() % 2 == 0) {
+    return Cell(w - MIdx::GetUnit(d), lead, h);
+  } else {
+    return Cell(w + MIdx::GetUnit(d), lead, h);
   }
 }
 

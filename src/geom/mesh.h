@@ -75,12 +75,12 @@ class MeshCartesian {
   using Face = typename geom::Loop<M>::Face;
 
   template <class Func>
-  void ForEachCell(Func func) {
+  void ForEachCell(Func func) const {
     geom::Loop<M>::ForEachCell(*this, func);
   }
 
   template <class Func>
-  void ForEachFace(Func func) {
+  void ForEachFace(Func func) const {
     geom::Loop<M>::ForEachFace(*this, func);
   }
 

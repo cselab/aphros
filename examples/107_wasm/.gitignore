@@ -1,3 +1,4 @@
 *.wasm
 hydro.js
+diffusion.js
 .work

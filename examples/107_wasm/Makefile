@@ -2,7 +2,7 @@
 SRC = ../../src
 WRK = .work
 CXX = emcc
-CXXFLAGS = -Wall -O3
+CXXFLAGS = -Wall -O3 -DNDEBUG
 WASMFLAGS = -s ALLOW_MEMORY_GROWTH=1
 APHROS_PREFIX ?= $(HOME)/hy
 ALL = hydro.js
@@ -12,6 +12,10 @@ $(WRK)/libaphros_js.a:; $(MAKE) -f $(SRC)/Makefile_legacy 'WRK = $(WRK)' 'SRC = 
 hydro.js: hydro.cpp $(WRK)/libaphros_js.a
 	$(CXX) $< $(CXXFLAGS) $(WASMFLAGS) -I$(SRC) $(WRK)/libaphros_js.a $1 \
 		-s EXPORTED_FUNCTIONS='["_main", "_AddVelocityAngle", "_SetRuntimeConfig", "_SetExtraConfig", "_TogglePause", "_Init", "_Spawn", "_SetMesh" ,"_GetLines", "_SetCoal"]' \
+		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@
+diffusion.js: diffusion.cpp $(WRK)/libaphros_js.a
+	$(CXX) $< $(CXXFLAGS) $(WASMFLAGS) -I$(SRC) $(WRK)/libaphros_js.a $1 \
+		-s EXPORTED_FUNCTIONS='["_main", "_MulDiffusion", "_AddVelocityAngle", "_TogglePause", "_Init", "_SetMesh"]' \
 		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@
 clean:; rm -vf $(ALL)
 .PHONY: clean all

@@ -315,6 +315,13 @@ class Vect {
     }
     return r;
   }
+  Vect cumprod() const {
+    Vect res(1);
+    for (size_t i = 1; i < dim; ++i) {
+      res[i] = res[i - 1] * data_[i - 1];
+    }
+    return res;
+  }
   Scal norm1() const {
     Scal r = 0;
     for (size_t i = 0; i < dim; ++i) {
