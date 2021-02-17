@@ -11,6 +11,9 @@ struct Loop {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
+  using MIdx2 = generic::MIdx<2>;
+  using MIdx3 = generic::MIdx<3>;
+  using MIdx4 = generic::MIdx<4>;
   static constexpr size_t dim = M::dim;
 
   struct Face;
@@ -71,7 +74,7 @@ struct Loop {
   };
 
   template <class Func>
-  static void ForEachCell(const M& m, Func func) {
+  static void ForEachCell(const M& m, Func func, MIdx3*) {
     const auto h = m.GetCellSize();
     const auto& indexer = m.GetIndexCells();
     const auto& block = m.GetInBlockCells();
@@ -88,7 +91,7 @@ struct Loop {
   }
 
   template <class Func>
-  static void ForEachFace(const M& m, Func func) {
+  static void ForEachFace(const M& m, Func func, MIdx3*) {
     const auto h = m.GetCellSize();
     const auto& indexer = m.GetIndexCells();
     const auto& block = m.GetInBlockCells();
@@ -105,25 +108,57 @@ struct Loop {
       }
     }
   }
+
+  template <class Func>
+  static void ForEachCell(const M& m, Func func, MIdx2*) {
+    const auto h = m.GetCellSize();
+    const auto& indexer = m.GetIndexCells();
+    const auto& block = m.GetInBlockCells();
+    const MIdx lead = indexer.GetSize();
+    const MIdx mstart = block.GetBegin();
+    const MIdx mend = block.GetEnd();
+    for (int iy = mstart[1]; iy < mend[1]; ++iy) {
+      for (int ix = mstart[0]; ix < mend[0]; ++ix) {
+        func(Cell(MIdx(ix, iy), lead, h));
+      }
+    }
+  }
+
+  template <class Func>
+  static void ForEachFace(const M& m, Func func, MIdx2*) {
+    const auto h = m.GetCellSize();
+    const auto& indexer = m.GetIndexCells();
+    const auto& block = m.GetInBlockCells();
+    const MIdx lead = indexer.GetSize();
+    const MIdx mstart = block.GetBegin();
+    const MIdx mend = block.GetEnd();
+    for (size_t d = 0; d < dim; ++d) {
+      for (int iy = mstart[1]; iy < mend[1] + (d == 1 ? 1 : 0); ++iy) {
+        for (int ix = mstart[0]; ix < mend[0] + (d == 0 ? 1 : 0); ++ix) {
+          func(Face(d, MIdx(ix, iy), lead, h));
+        }
+      }
+    }
+  }
+
+  template <class Func>
+  static void ForEachCell(const M& m, Func func) {
+    ForEachCell(m, func, (MIdx*)nullptr);
+  }
+  template <class Func>
+  static void ForEachFace(const M& m, Func func) {
+    ForEachFace(m, func, (MIdx*)nullptr);
+  }
 };
 
 template <class M>
 auto Loop<M>::Cell::face(IdxNci q) const -> Face {
-  switch (q.raw()) {
-    case 0:
-      return Face(0, w, lead, h);
-    case 1:
-      return Face(0, w + MIdx::GetUnit(0), lead, h);
-    case 2:
-      return Face(1, w, lead, h);
-    case 3:
-      return Face(1, w + MIdx::GetUnit(1), lead, h);
-    case 4:
-      return Face(2, w, lead, h);
-    case 5:
-      return Face(2, w + MIdx::GetUnit(2), lead, h);
+  const size_t d = q.raw() / 2;
+  if (q.raw() % 2 == 0) {
+    return Face(d, w, lead, h);
+  } else {
+    return Face(d, w + MIdx::GetUnit(d), lead, h);
   }
-  return {};
 }
 
 template <class M>
