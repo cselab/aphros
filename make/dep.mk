@@ -12,6 +12,7 @@ $(WRK)/distr/comm_manager.o: $(SRC)/geom/block.h
 $(WRK)/distr/comm_manager.o: $(SRC)/geom/dir.h
 $(WRK)/distr/comm_manager.o: $(SRC)/geom/field.h
 $(WRK)/distr/comm_manager.o: $(SRC)/geom/idx.h
+$(WRK)/distr/comm_manager.o: $(SRC)/geom/loop.h
 $(WRK)/distr/comm_manager.o: $(SRC)/geom/map.h
 $(WRK)/distr/comm_manager.o: $(SRC)/geom/mesh.h
 $(WRK)/distr/comm_manager.o: $(SRC)/geom/notation.h
@@ -55,6 +56,7 @@ $(WRK)/distr/cubismnc.o: $(SRC)/geom/block.h
 $(WRK)/distr/cubismnc.o: $(SRC)/geom/dir.h
 $(WRK)/distr/cubismnc.o: $(SRC)/geom/field.h
 $(WRK)/distr/cubismnc.o: $(SRC)/geom/idx.h
+$(WRK)/distr/cubismnc.o: $(SRC)/geom/loop.h
 $(WRK)/distr/cubismnc.o: $(SRC)/geom/map.h
 $(WRK)/distr/cubismnc.o: $(SRC)/geom/mesh.h
 $(WRK)/distr/cubismnc.o: $(SRC)/geom/notation.h
@@ -86,6 +88,7 @@ $(WRK)/distr/distrbasic.o: $(SRC)/geom/block.h
 $(WRK)/distr/distrbasic.o: $(SRC)/geom/dir.h
 $(WRK)/distr/distrbasic.o: $(SRC)/geom/field.h
 $(WRK)/distr/distrbasic.o: $(SRC)/geom/idx.h
+$(WRK)/distr/distrbasic.o: $(SRC)/geom/loop.h
 $(WRK)/distr/distrbasic.o: $(SRC)/geom/map.h
 $(WRK)/distr/distrbasic.o: $(SRC)/geom/mesh.h
 $(WRK)/distr/distrbasic.o: $(SRC)/geom/notation.h
@@ -123,6 +126,7 @@ $(WRK)/distr/distr.o: $(SRC)/geom/block.h
 $(WRK)/distr/distr.o: $(SRC)/geom/dir.h
 $(WRK)/distr/distr.o: $(SRC)/geom/field.h
 $(WRK)/distr/distr.o: $(SRC)/geom/idx.h
+$(WRK)/distr/distr.o: $(SRC)/geom/loop.h
 $(WRK)/distr/distr.o: $(SRC)/geom/map.h
 $(WRK)/distr/distr.o: $(SRC)/geom/mesh.h
 $(WRK)/distr/distr.o: $(SRC)/geom/notation.h
@@ -153,6 +157,7 @@ $(WRK)/distr/distrsolver.o: $(SRC)/geom/block.h
 $(WRK)/distr/distrsolver.o: $(SRC)/geom/dir.h
 $(WRK)/distr/distrsolver.o: $(SRC)/geom/field.h
 $(WRK)/distr/distrsolver.o: $(SRC)/geom/idx.h
+$(WRK)/distr/distrsolver.o: $(SRC)/geom/loop.h
 $(WRK)/distr/distrsolver.o: $(SRC)/geom/map.h
 $(WRK)/distr/distrsolver.o: $(SRC)/geom/mesh.h
 $(WRK)/distr/distrsolver.o: $(SRC)/geom/notation.h
@@ -190,6 +195,7 @@ $(WRK)/distr/local.o: $(SRC)/geom/block.h
 $(WRK)/distr/local.o: $(SRC)/geom/dir.h
 $(WRK)/distr/local.o: $(SRC)/geom/field.h
 $(WRK)/distr/local.o: $(SRC)/geom/idx.h
+$(WRK)/distr/local.o: $(SRC)/geom/loop.h
 $(WRK)/distr/local.o: $(SRC)/geom/map.h
 $(WRK)/distr/local.o: $(SRC)/geom/mesh.h
 $(WRK)/distr/local.o: $(SRC)/geom/notation.h
@@ -220,6 +226,7 @@ $(WRK)/distr/native.o: $(SRC)/geom/block.h
 $(WRK)/distr/native.o: $(SRC)/geom/dir.h
 $(WRK)/distr/native.o: $(SRC)/geom/field.h
 $(WRK)/distr/native.o: $(SRC)/geom/idx.h
+$(WRK)/distr/native.o: $(SRC)/geom/loop.h
 $(WRK)/distr/native.o: $(SRC)/geom/map.h
 $(WRK)/distr/native.o: $(SRC)/geom/mesh.h
 $(WRK)/distr/native.o: $(SRC)/geom/notation.h
@@ -252,6 +259,7 @@ $(WRK)/dump/dump.o: $(SRC)/geom/block.h
 $(WRK)/dump/dump.o: $(SRC)/geom/dir.h
 $(WRK)/dump/dump.o: $(SRC)/geom/field.h
 $(WRK)/dump/dump.o: $(SRC)/geom/idx.h
+$(WRK)/dump/dump.o: $(SRC)/geom/loop.h
 $(WRK)/dump/dump.o: $(SRC)/geom/map.h
 $(WRK)/dump/dump.o: $(SRC)/geom/mesh.h
 $(WRK)/dump/dump.o: $(SRC)/geom/notation.h
@@ -273,6 +281,7 @@ $(WRK)/dump/hdf.o: $(SRC)/geom/block.h
 $(WRK)/dump/hdf.o: $(SRC)/geom/dir.h
 $(WRK)/dump/hdf.o: $(SRC)/geom/field.h
 $(WRK)/dump/hdf.o: $(SRC)/geom/idx.h
+$(WRK)/dump/hdf.o: $(SRC)/geom/loop.h
 $(WRK)/dump/hdf.o: $(SRC)/geom/map.h
 $(WRK)/dump/hdf.o: $(SRC)/geom/mesh.h
 $(WRK)/dump/hdf.o: $(SRC)/geom/notation.h
@@ -294,6 +303,7 @@ $(WRK)/dump/raw.o: $(SRC)/geom/block.h
 $(WRK)/dump/raw.o: $(SRC)/geom/dir.h
 $(WRK)/dump/raw.o: $(SRC)/geom/field.h
 $(WRK)/dump/raw.o: $(SRC)/geom/idx.h
+$(WRK)/dump/raw.o: $(SRC)/geom/loop.h
 $(WRK)/dump/raw.o: $(SRC)/geom/map.h
 $(WRK)/dump/raw.o: $(SRC)/geom/mesh.h
 $(WRK)/dump/raw.o: $(SRC)/geom/notation.h
@@ -316,6 +326,7 @@ $(WRK)/dump/xmf.o: $(SRC)/geom/block.h
 $(WRK)/dump/xmf.o: $(SRC)/geom/dir.h
 $(WRK)/dump/xmf.o: $(SRC)/geom/field.h
 $(WRK)/dump/xmf.o: $(SRC)/geom/idx.h
+$(WRK)/dump/xmf.o: $(SRC)/geom/loop.h
 $(WRK)/dump/xmf.o: $(SRC)/geom/map.h
 $(WRK)/dump/xmf.o: $(SRC)/geom/mesh.h
 $(WRK)/dump/xmf.o: $(SRC)/geom/notation.h
@@ -336,6 +347,7 @@ $(WRK)/func/init_contang.o: $(SRC)/geom/block.h
 $(WRK)/func/init_contang.o: $(SRC)/geom/dir.h
 $(WRK)/func/init_contang.o: $(SRC)/geom/field.h
 $(WRK)/func/init_contang.o: $(SRC)/geom/idx.h
+$(WRK)/func/init_contang.o: $(SRC)/geom/loop.h
 $(WRK)/func/init_contang.o: $(SRC)/geom/map.h
 $(WRK)/func/init_contang.o: $(SRC)/geom/mesh.h
 $(WRK)/func/init_contang.o: $(SRC)/geom/notation.h
@@ -365,6 +377,7 @@ $(WRK)/func/init.o: $(SRC)/geom/dir.h
 $(WRK)/func/init.o: $(SRC)/geom/field.h
 $(WRK)/func/init.o: $(SRC)/geom/filter.h
 $(WRK)/func/init.o: $(SRC)/geom/idx.h
+$(WRK)/func/init.o: $(SRC)/geom/loop.h
 $(WRK)/func/init.o: $(SRC)/geom/map.h
 $(WRK)/func/init.o: $(SRC)/geom/mesh.h
 $(WRK)/func/init.o: $(SRC)/geom/notation.h
@@ -388,6 +401,7 @@ $(WRK)/func/init_vel.o: $(SRC)/geom/block.h
 $(WRK)/func/init_vel.o: $(SRC)/geom/dir.h
 $(WRK)/func/init_vel.o: $(SRC)/geom/field.h
 $(WRK)/func/init_vel.o: $(SRC)/geom/idx.h
+$(WRK)/func/init_vel.o: $(SRC)/geom/loop.h
 $(WRK)/func/init_vel.o: $(SRC)/geom/map.h
 $(WRK)/func/init_vel.o: $(SRC)/geom/mesh.h
 $(WRK)/func/init_vel.o: $(SRC)/geom/notation.h
@@ -414,6 +428,7 @@ $(WRK)/geom/mesh.o: $(SRC)/geom/block.h
 $(WRK)/geom/mesh.o: $(SRC)/geom/dir.h
 $(WRK)/geom/mesh.o: $(SRC)/geom/field.h
 $(WRK)/geom/mesh.o: $(SRC)/geom/idx.h
+$(WRK)/geom/mesh.o: $(SRC)/geom/loop.h
 $(WRK)/geom/mesh.o: $(SRC)/geom/map.h
 $(WRK)/geom/mesh.o: $(SRC)/geom/mesh.h
 $(WRK)/geom/mesh.o: $(SRC)/geom/mesh.ipp
@@ -466,6 +481,7 @@ $(WRK)/linear/linear_amgx.o: $(SRC)/geom/block.h
 $(WRK)/linear/linear_amgx.o: $(SRC)/geom/dir.h
 $(WRK)/linear/linear_amgx.o: $(SRC)/geom/field.h
 $(WRK)/linear/linear_amgx.o: $(SRC)/geom/idx.h
+$(WRK)/linear/linear_amgx.o: $(SRC)/geom/loop.h
 $(WRK)/linear/linear_amgx.o: $(SRC)/geom/map.h
 $(WRK)/linear/linear_amgx.o: $(SRC)/geom/mesh.h
 $(WRK)/linear/linear_amgx.o: $(SRC)/geom/notation.h
@@ -498,6 +514,7 @@ $(WRK)/linear/linear_hypre.o: $(SRC)/geom/block.h
 $(WRK)/linear/linear_hypre.o: $(SRC)/geom/dir.h
 $(WRK)/linear/linear_hypre.o: $(SRC)/geom/field.h
 $(WRK)/linear/linear_hypre.o: $(SRC)/geom/idx.h
+$(WRK)/linear/linear_hypre.o: $(SRC)/geom/loop.h
 $(WRK)/linear/linear_hypre.o: $(SRC)/geom/map.h
 $(WRK)/linear/linear_hypre.o: $(SRC)/geom/mesh.h
 $(WRK)/linear/linear_hypre.o: $(SRC)/geom/notation.h
@@ -522,6 +539,7 @@ $(WRK)/linear/linear.o: $(SRC)/geom/block.h
 $(WRK)/linear/linear.o: $(SRC)/geom/dir.h
 $(WRK)/linear/linear.o: $(SRC)/geom/field.h
 $(WRK)/linear/linear.o: $(SRC)/geom/idx.h
+$(WRK)/linear/linear.o: $(SRC)/geom/loop.h
 $(WRK)/linear/linear.o: $(SRC)/geom/map.h
 $(WRK)/linear/linear.o: $(SRC)/geom/mesh.h
 $(WRK)/linear/linear.o: $(SRC)/geom/notation.h
@@ -554,6 +572,7 @@ $(WRK)/main.o: $(SRC)/geom/dir.h
 $(WRK)/main.o: $(SRC)/geom/field.h
 $(WRK)/main.o: $(SRC)/geom/filter.h
 $(WRK)/main.o: $(SRC)/geom/idx.h
+$(WRK)/main.o: $(SRC)/geom/loop.h
 $(WRK)/main.o: $(SRC)/geom/map.h
 $(WRK)/main.o: $(SRC)/geom/mesh.h
 $(WRK)/main.o: $(SRC)/geom/notation.h
@@ -561,7 +580,6 @@ $(WRK)/main.o: $(SRC)/geom/range.h
 $(WRK)/main.o: $(SRC)/geom/rangein.h
 $(WRK)/main.o: $(SRC)/geom/rangemulti.h
 $(WRK)/main.o: $(SRC)/geom/transform.h
-$(WRK)/main.o: $(SRC)/geom/unique.h
 $(WRK)/main.o: $(SRC)/geom/vect.h
 $(WRK)/main.o: $(SRC)/kernel/hydro.h
 $(WRK)/main.o: $(SRC)/kernel/kernelmesh.h
@@ -654,6 +672,7 @@ $(WRK)/solver/approx_eb.o: $(SRC)/geom/dir.h
 $(WRK)/solver/approx_eb.o: $(SRC)/geom/field.h
 $(WRK)/solver/approx_eb.o: $(SRC)/geom/filter.h
 $(WRK)/solver/approx_eb.o: $(SRC)/geom/idx.h
+$(WRK)/solver/approx_eb.o: $(SRC)/geom/loop.h
 $(WRK)/solver/approx_eb.o: $(SRC)/geom/map.h
 $(WRK)/solver/approx_eb.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/approx_eb.o: $(SRC)/geom/notation.h
@@ -661,7 +680,6 @@ $(WRK)/solver/approx_eb.o: $(SRC)/geom/range.h
 $(WRK)/solver/approx_eb.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/approx_eb.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/approx_eb.o: $(SRC)/geom/transform.h
-$(WRK)/solver/approx_eb.o: $(SRC)/geom/unique.h
 $(WRK)/solver/approx_eb.o: $(SRC)/geom/vect.h
 $(WRK)/solver/approx_eb.o: $(SRC)/inside/inside.h
 $(WRK)/solver/approx_eb.o: $(SRC)/linear/linear.h
@@ -687,6 +705,7 @@ $(WRK)/solver/approx.o: $(SRC)/geom/dir.h
 $(WRK)/solver/approx.o: $(SRC)/geom/field.h
 $(WRK)/solver/approx.o: $(SRC)/geom/filter.h
 $(WRK)/solver/approx.o: $(SRC)/geom/idx.h
+$(WRK)/solver/approx.o: $(SRC)/geom/loop.h
 $(WRK)/solver/approx.o: $(SRC)/geom/map.h
 $(WRK)/solver/approx.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/approx.o: $(SRC)/geom/notation.h
@@ -694,7 +713,6 @@ $(WRK)/solver/approx.o: $(SRC)/geom/range.h
 $(WRK)/solver/approx.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/approx.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/approx.o: $(SRC)/geom/transform.h
-$(WRK)/solver/approx.o: $(SRC)/geom/unique.h
 $(WRK)/solver/approx.o: $(SRC)/geom/vect.h
 $(WRK)/solver/approx.o: $(SRC)/linear/linear.h
 $(WRK)/solver/approx.o: $(SRC)/parse/vars.h
@@ -718,6 +736,7 @@ $(WRK)/solver/convdiffe.o: $(SRC)/geom/dir.h
 $(WRK)/solver/convdiffe.o: $(SRC)/geom/field.h
 $(WRK)/solver/convdiffe.o: $(SRC)/geom/filter.h
 $(WRK)/solver/convdiffe.o: $(SRC)/geom/idx.h
+$(WRK)/solver/convdiffe.o: $(SRC)/geom/loop.h
 $(WRK)/solver/convdiffe.o: $(SRC)/geom/map.h
 $(WRK)/solver/convdiffe.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/convdiffe.o: $(SRC)/geom/notation.h
@@ -725,7 +744,6 @@ $(WRK)/solver/convdiffe.o: $(SRC)/geom/range.h
 $(WRK)/solver/convdiffe.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/convdiffe.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/convdiffe.o: $(SRC)/geom/transform.h
-$(WRK)/solver/convdiffe.o: $(SRC)/geom/unique.h
 $(WRK)/solver/convdiffe.o: $(SRC)/geom/vect.h
 $(WRK)/solver/convdiffe.o: $(SRC)/linear/linear.h
 $(WRK)/solver/convdiffe.o: $(SRC)/parse/vars.h
@@ -752,6 +770,7 @@ $(WRK)/solver/convdiffi.o: $(SRC)/geom/dir.h
 $(WRK)/solver/convdiffi.o: $(SRC)/geom/field.h
 $(WRK)/solver/convdiffi.o: $(SRC)/geom/filter.h
 $(WRK)/solver/convdiffi.o: $(SRC)/geom/idx.h
+$(WRK)/solver/convdiffi.o: $(SRC)/geom/loop.h
 $(WRK)/solver/convdiffi.o: $(SRC)/geom/map.h
 $(WRK)/solver/convdiffi.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/convdiffi.o: $(SRC)/geom/notation.h
@@ -759,7 +778,6 @@ $(WRK)/solver/convdiffi.o: $(SRC)/geom/range.h
 $(WRK)/solver/convdiffi.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/convdiffi.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/convdiffi.o: $(SRC)/geom/transform.h
-$(WRK)/solver/convdiffi.o: $(SRC)/geom/unique.h
 $(WRK)/solver/convdiffi.o: $(SRC)/geom/vect.h
 $(WRK)/solver/convdiffi.o: $(SRC)/linear/linear.h
 $(WRK)/solver/convdiffi.o: $(SRC)/parse/vars.h
@@ -788,6 +806,7 @@ $(WRK)/solver/convdiffvg.o: $(SRC)/geom/dir.h
 $(WRK)/solver/convdiffvg.o: $(SRC)/geom/field.h
 $(WRK)/solver/convdiffvg.o: $(SRC)/geom/filter.h
 $(WRK)/solver/convdiffvg.o: $(SRC)/geom/idx.h
+$(WRK)/solver/convdiffvg.o: $(SRC)/geom/loop.h
 $(WRK)/solver/convdiffvg.o: $(SRC)/geom/map.h
 $(WRK)/solver/convdiffvg.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/convdiffvg.o: $(SRC)/geom/notation.h
@@ -795,7 +814,6 @@ $(WRK)/solver/convdiffvg.o: $(SRC)/geom/range.h
 $(WRK)/solver/convdiffvg.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/convdiffvg.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/convdiffvg.o: $(SRC)/geom/transform.h
-$(WRK)/solver/convdiffvg.o: $(SRC)/geom/unique.h
 $(WRK)/solver/convdiffvg.o: $(SRC)/geom/vect.h
 $(WRK)/solver/convdiffvg.o: $(SRC)/linear/linear.h
 $(WRK)/solver/convdiffvg.o: $(SRC)/parse/vars.h
@@ -826,6 +844,7 @@ $(WRK)/solver/curv.o: $(SRC)/geom/dir.h
 $(WRK)/solver/curv.o: $(SRC)/geom/field.h
 $(WRK)/solver/curv.o: $(SRC)/geom/filter.h
 $(WRK)/solver/curv.o: $(SRC)/geom/idx.h
+$(WRK)/solver/curv.o: $(SRC)/geom/loop.h
 $(WRK)/solver/curv.o: $(SRC)/geom/map.h
 $(WRK)/solver/curv.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/curv.o: $(SRC)/geom/notation.h
@@ -833,7 +852,6 @@ $(WRK)/solver/curv.o: $(SRC)/geom/range.h
 $(WRK)/solver/curv.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/curv.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/curv.o: $(SRC)/geom/transform.h
-$(WRK)/solver/curv.o: $(SRC)/geom/unique.h
 $(WRK)/solver/curv.o: $(SRC)/geom/vect.h
 $(WRK)/solver/curv.o: $(SRC)/parse/vars.h
 $(WRK)/solver/curv.o: $(SRC)/solver/advection.h
@@ -864,6 +882,7 @@ $(WRK)/solver/electro.o: $(SRC)/geom/dir.h
 $(WRK)/solver/electro.o: $(SRC)/geom/field.h
 $(WRK)/solver/electro.o: $(SRC)/geom/filter.h
 $(WRK)/solver/electro.o: $(SRC)/geom/idx.h
+$(WRK)/solver/electro.o: $(SRC)/geom/loop.h
 $(WRK)/solver/electro.o: $(SRC)/geom/map.h
 $(WRK)/solver/electro.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/electro.o: $(SRC)/geom/notation.h
@@ -871,7 +890,6 @@ $(WRK)/solver/electro.o: $(SRC)/geom/range.h
 $(WRK)/solver/electro.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/electro.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/electro.o: $(SRC)/geom/transform.h
-$(WRK)/solver/electro.o: $(SRC)/geom/unique.h
 $(WRK)/solver/electro.o: $(SRC)/geom/vect.h
 $(WRK)/solver/electro.o: $(SRC)/linear/linear.h
 $(WRK)/solver/electro.o: $(SRC)/parse/vars.h
@@ -905,6 +923,7 @@ $(WRK)/solver/embed.o: $(SRC)/geom/dir.h
 $(WRK)/solver/embed.o: $(SRC)/geom/field.h
 $(WRK)/solver/embed.o: $(SRC)/geom/filter.h
 $(WRK)/solver/embed.o: $(SRC)/geom/idx.h
+$(WRK)/solver/embed.o: $(SRC)/geom/loop.h
 $(WRK)/solver/embed.o: $(SRC)/geom/map.h
 $(WRK)/solver/embed.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/embed.o: $(SRC)/geom/notation.h
@@ -930,6 +949,7 @@ $(WRK)/solver/fluid_dummy.o: $(SRC)/geom/dir.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/geom/field.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/geom/filter.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/geom/idx.h
+$(WRK)/solver/fluid_dummy.o: $(SRC)/geom/loop.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/geom/map.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/geom/notation.h
@@ -937,7 +957,6 @@ $(WRK)/solver/fluid_dummy.o: $(SRC)/geom/range.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/geom/transform.h
-$(WRK)/solver/fluid_dummy.o: $(SRC)/geom/unique.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/geom/vect.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/linear/linear.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/parse/vars.h
@@ -964,6 +983,7 @@ $(WRK)/solver/normal.o: $(SRC)/geom/dir.h
 $(WRK)/solver/normal.o: $(SRC)/geom/field.h
 $(WRK)/solver/normal.o: $(SRC)/geom/filter.h
 $(WRK)/solver/normal.o: $(SRC)/geom/idx.h
+$(WRK)/solver/normal.o: $(SRC)/geom/loop.h
 $(WRK)/solver/normal.o: $(SRC)/geom/map.h
 $(WRK)/solver/normal.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/normal.o: $(SRC)/geom/notation.h
@@ -971,7 +991,6 @@ $(WRK)/solver/normal.o: $(SRC)/geom/range.h
 $(WRK)/solver/normal.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/normal.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/normal.o: $(SRC)/geom/transform.h
-$(WRK)/solver/normal.o: $(SRC)/geom/unique.h
 $(WRK)/solver/normal.o: $(SRC)/geom/vect.h
 $(WRK)/solver/normal.o: $(SRC)/parse/vars.h
 $(WRK)/solver/normal.o: $(SRC)/solver/approx_eb.h
@@ -995,6 +1014,7 @@ $(WRK)/solver/particles.o: $(SRC)/geom/dir.h
 $(WRK)/solver/particles.o: $(SRC)/geom/field.h
 $(WRK)/solver/particles.o: $(SRC)/geom/filter.h
 $(WRK)/solver/particles.o: $(SRC)/geom/idx.h
+$(WRK)/solver/particles.o: $(SRC)/geom/loop.h
 $(WRK)/solver/particles.o: $(SRC)/geom/map.h
 $(WRK)/solver/particles.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/particles.o: $(SRC)/geom/notation.h
@@ -1002,7 +1022,6 @@ $(WRK)/solver/particles.o: $(SRC)/geom/range.h
 $(WRK)/solver/particles.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/particles.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/particles.o: $(SRC)/geom/transform.h
-$(WRK)/solver/particles.o: $(SRC)/geom/unique.h
 $(WRK)/solver/particles.o: $(SRC)/geom/vect.h
 $(WRK)/solver/particles.o: $(SRC)/parse/vars.h
 $(WRK)/solver/particles.o: $(SRC)/solver/advection.h
@@ -1030,6 +1049,7 @@ $(WRK)/solver/partstrmeshm.o: $(SRC)/geom/dir.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/geom/field.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/geom/filter.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/geom/idx.h
+$(WRK)/solver/partstrmeshm.o: $(SRC)/geom/loop.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/geom/map.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/geom/notation.h
@@ -1037,7 +1057,6 @@ $(WRK)/solver/partstrmeshm.o: $(SRC)/geom/range.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/geom/transform.h
-$(WRK)/solver/partstrmeshm.o: $(SRC)/geom/unique.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/geom/vect.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/parse/vars.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/solver/advection.h
@@ -1063,6 +1082,7 @@ $(WRK)/solver/proj_eb.o: $(SRC)/geom/dir.h
 $(WRK)/solver/proj_eb.o: $(SRC)/geom/field.h
 $(WRK)/solver/proj_eb.o: $(SRC)/geom/filter.h
 $(WRK)/solver/proj_eb.o: $(SRC)/geom/idx.h
+$(WRK)/solver/proj_eb.o: $(SRC)/geom/loop.h
 $(WRK)/solver/proj_eb.o: $(SRC)/geom/map.h
 $(WRK)/solver/proj_eb.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/proj_eb.o: $(SRC)/geom/notation.h
@@ -1070,7 +1090,6 @@ $(WRK)/solver/proj_eb.o: $(SRC)/geom/range.h
 $(WRK)/solver/proj_eb.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/proj_eb.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/proj_eb.o: $(SRC)/geom/transform.h
-$(WRK)/solver/proj_eb.o: $(SRC)/geom/unique.h
 $(WRK)/solver/proj_eb.o: $(SRC)/geom/vect.h
 $(WRK)/solver/proj_eb.o: $(SRC)/linear/linear.h
 $(WRK)/solver/proj_eb.o: $(SRC)/parse/vars.h
@@ -1104,6 +1123,7 @@ $(WRK)/solver/proj.o: $(SRC)/geom/dir.h
 $(WRK)/solver/proj.o: $(SRC)/geom/field.h
 $(WRK)/solver/proj.o: $(SRC)/geom/filter.h
 $(WRK)/solver/proj.o: $(SRC)/geom/idx.h
+$(WRK)/solver/proj.o: $(SRC)/geom/loop.h
 $(WRK)/solver/proj.o: $(SRC)/geom/map.h
 $(WRK)/solver/proj.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/proj.o: $(SRC)/geom/notation.h
@@ -1111,7 +1131,6 @@ $(WRK)/solver/proj.o: $(SRC)/geom/range.h
 $(WRK)/solver/proj.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/proj.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/proj.o: $(SRC)/geom/transform.h
-$(WRK)/solver/proj.o: $(SRC)/geom/unique.h
 $(WRK)/solver/proj.o: $(SRC)/geom/vect.h
 $(WRK)/solver/proj.o: $(SRC)/linear/linear.h
 $(WRK)/solver/proj.o: $(SRC)/parse/vars.h
@@ -1145,6 +1164,7 @@ $(WRK)/solver/simple.o: $(SRC)/geom/dir.h
 $(WRK)/solver/simple.o: $(SRC)/geom/field.h
 $(WRK)/solver/simple.o: $(SRC)/geom/filter.h
 $(WRK)/solver/simple.o: $(SRC)/geom/idx.h
+$(WRK)/solver/simple.o: $(SRC)/geom/loop.h
 $(WRK)/solver/simple.o: $(SRC)/geom/map.h
 $(WRK)/solver/simple.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/simple.o: $(SRC)/geom/notation.h
@@ -1152,7 +1172,6 @@ $(WRK)/solver/simple.o: $(SRC)/geom/range.h
 $(WRK)/solver/simple.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/simple.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/simple.o: $(SRC)/geom/transform.h
-$(WRK)/solver/simple.o: $(SRC)/geom/unique.h
 $(WRK)/solver/simple.o: $(SRC)/geom/vect.h
 $(WRK)/solver/simple.o: $(SRC)/linear/linear.h
 $(WRK)/solver/simple.o: $(SRC)/parse/vars.h
@@ -1187,6 +1206,7 @@ $(WRK)/solver/tracer.o: $(SRC)/geom/dir.h
 $(WRK)/solver/tracer.o: $(SRC)/geom/field.h
 $(WRK)/solver/tracer.o: $(SRC)/geom/filter.h
 $(WRK)/solver/tracer.o: $(SRC)/geom/idx.h
+$(WRK)/solver/tracer.o: $(SRC)/geom/loop.h
 $(WRK)/solver/tracer.o: $(SRC)/geom/map.h
 $(WRK)/solver/tracer.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/tracer.o: $(SRC)/geom/notation.h
@@ -1194,7 +1214,6 @@ $(WRK)/solver/tracer.o: $(SRC)/geom/range.h
 $(WRK)/solver/tracer.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/tracer.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/tracer.o: $(SRC)/geom/transform.h
-$(WRK)/solver/tracer.o: $(SRC)/geom/unique.h
 $(WRK)/solver/tracer.o: $(SRC)/geom/vect.h
 $(WRK)/solver/tracer.o: $(SRC)/parse/vars.h
 $(WRK)/solver/tracer.o: $(SRC)/solver/advection.h
@@ -1222,6 +1241,7 @@ $(WRK)/solver/vofm.o: $(SRC)/geom/dir.h
 $(WRK)/solver/vofm.o: $(SRC)/geom/field.h
 $(WRK)/solver/vofm.o: $(SRC)/geom/filter.h
 $(WRK)/solver/vofm.o: $(SRC)/geom/idx.h
+$(WRK)/solver/vofm.o: $(SRC)/geom/loop.h
 $(WRK)/solver/vofm.o: $(SRC)/geom/map.h
 $(WRK)/solver/vofm.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/vofm.o: $(SRC)/geom/notation.h
@@ -1229,7 +1249,6 @@ $(WRK)/solver/vofm.o: $(SRC)/geom/range.h
 $(WRK)/solver/vofm.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/vofm.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/vofm.o: $(SRC)/geom/transform.h
-$(WRK)/solver/vofm.o: $(SRC)/geom/unique.h
 $(WRK)/solver/vofm.o: $(SRC)/geom/vect.h
 $(WRK)/solver/vofm.o: $(SRC)/linear/linear.h
 $(WRK)/solver/vofm.o: $(SRC)/parse/vars.h
@@ -1266,6 +1285,7 @@ $(WRK)/solver/vof.o: $(SRC)/geom/dir.h
 $(WRK)/solver/vof.o: $(SRC)/geom/field.h
 $(WRK)/solver/vof.o: $(SRC)/geom/filter.h
 $(WRK)/solver/vof.o: $(SRC)/geom/idx.h
+$(WRK)/solver/vof.o: $(SRC)/geom/loop.h
 $(WRK)/solver/vof.o: $(SRC)/geom/map.h
 $(WRK)/solver/vof.o: $(SRC)/geom/mesh.h
 $(WRK)/solver/vof.o: $(SRC)/geom/notation.h
@@ -1273,7 +1293,6 @@ $(WRK)/solver/vof.o: $(SRC)/geom/range.h
 $(WRK)/solver/vof.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/vof.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/vof.o: $(SRC)/geom/transform.h
-$(WRK)/solver/vof.o: $(SRC)/geom/unique.h
 $(WRK)/solver/vof.o: $(SRC)/geom/vect.h
 $(WRK)/solver/vof.o: $(SRC)/linear/linear.h
 $(WRK)/solver/vof.o: $(SRC)/parse/vars.h
@@ -1307,6 +1326,7 @@ $(WRK)/util/convdiff.o: $(SRC)/geom/dir.h
 $(WRK)/util/convdiff.o: $(SRC)/geom/field.h
 $(WRK)/util/convdiff.o: $(SRC)/geom/filter.h
 $(WRK)/util/convdiff.o: $(SRC)/geom/idx.h
+$(WRK)/util/convdiff.o: $(SRC)/geom/loop.h
 $(WRK)/util/convdiff.o: $(SRC)/geom/map.h
 $(WRK)/util/convdiff.o: $(SRC)/geom/mesh.h
 $(WRK)/util/convdiff.o: $(SRC)/geom/notation.h
@@ -1314,7 +1334,6 @@ $(WRK)/util/convdiff.o: $(SRC)/geom/range.h
 $(WRK)/util/convdiff.o: $(SRC)/geom/rangein.h
 $(WRK)/util/convdiff.o: $(SRC)/geom/rangemulti.h
 $(WRK)/util/convdiff.o: $(SRC)/geom/transform.h
-$(WRK)/util/convdiff.o: $(SRC)/geom/unique.h
 $(WRK)/util/convdiff.o: $(SRC)/geom/vect.h
 $(WRK)/util/convdiff.o: $(SRC)/linear/linear.h
 $(WRK)/util/convdiff.o: $(SRC)/parse/vars.h
@@ -1373,6 +1392,7 @@ $(WRK)/util/hydro.o: $(SRC)/geom/dir.h
 $(WRK)/util/hydro.o: $(SRC)/geom/field.h
 $(WRK)/util/hydro.o: $(SRC)/geom/filter.h
 $(WRK)/util/hydro.o: $(SRC)/geom/idx.h
+$(WRK)/util/hydro.o: $(SRC)/geom/loop.h
 $(WRK)/util/hydro.o: $(SRC)/geom/map.h
 $(WRK)/util/hydro.o: $(SRC)/geom/mesh.h
 $(WRK)/util/hydro.o: $(SRC)/geom/notation.h
@@ -1380,7 +1400,6 @@ $(WRK)/util/hydro.o: $(SRC)/geom/range.h
 $(WRK)/util/hydro.o: $(SRC)/geom/rangein.h
 $(WRK)/util/hydro.o: $(SRC)/geom/rangemulti.h
 $(WRK)/util/hydro.o: $(SRC)/geom/transform.h
-$(WRK)/util/hydro.o: $(SRC)/geom/unique.h
 $(WRK)/util/hydro.o: $(SRC)/geom/vect.h
 $(WRK)/util/hydro.o: $(SRC)/linear/linear.h
 $(WRK)/util/hydro.o: $(SRC)/parse/codeblocks.h
@@ -1417,6 +1436,7 @@ $(WRK)/util/linear.o: $(SRC)/geom/block.h
 $(WRK)/util/linear.o: $(SRC)/geom/dir.h
 $(WRK)/util/linear.o: $(SRC)/geom/field.h
 $(WRK)/util/linear.o: $(SRC)/geom/idx.h
+$(WRK)/util/linear.o: $(SRC)/geom/loop.h
 $(WRK)/util/linear.o: $(SRC)/geom/map.h
 $(WRK)/util/linear.o: $(SRC)/geom/mesh.h
 $(WRK)/util/linear.o: $(SRC)/geom/notation.h
@@ -1444,6 +1464,7 @@ $(WRK)/util/posthook_default.o: $(SRC)/geom/dir.h
 $(WRK)/util/posthook_default.o: $(SRC)/geom/field.h
 $(WRK)/util/posthook_default.o: $(SRC)/geom/filter.h
 $(WRK)/util/posthook_default.o: $(SRC)/geom/idx.h
+$(WRK)/util/posthook_default.o: $(SRC)/geom/loop.h
 $(WRK)/util/posthook_default.o: $(SRC)/geom/map.h
 $(WRK)/util/posthook_default.o: $(SRC)/geom/mesh.h
 $(WRK)/util/posthook_default.o: $(SRC)/geom/notation.h
@@ -1483,6 +1504,7 @@ $(WRK)/util/vof.o: $(SRC)/geom/dir.h
 $(WRK)/util/vof.o: $(SRC)/geom/field.h
 $(WRK)/util/vof.o: $(SRC)/geom/filter.h
 $(WRK)/util/vof.o: $(SRC)/geom/idx.h
+$(WRK)/util/vof.o: $(SRC)/geom/loop.h
 $(WRK)/util/vof.o: $(SRC)/geom/map.h
 $(WRK)/util/vof.o: $(SRC)/geom/mesh.h
 $(WRK)/util/vof.o: $(SRC)/geom/notation.h
@@ -1490,7 +1512,6 @@ $(WRK)/util/vof.o: $(SRC)/geom/range.h
 $(WRK)/util/vof.o: $(SRC)/geom/rangein.h
 $(WRK)/util/vof.o: $(SRC)/geom/rangemulti.h
 $(WRK)/util/vof.o: $(SRC)/geom/transform.h
-$(WRK)/util/vof.o: $(SRC)/geom/unique.h
 $(WRK)/util/vof.o: $(SRC)/geom/vect.h
 $(WRK)/util/vof.o: $(SRC)/march/march.h
 $(WRK)/util/vof.o: $(SRC)/solver/advection.h

@@ -8,7 +8,6 @@
 #include <utility>
 
 #include "geom/map.h"
-#include "geom/unique.h"
 
 class CondCell {
  public:

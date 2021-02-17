@@ -45,6 +45,7 @@ geom/dir.h\
 geom/field.h\
 geom/filter.h\
 geom/idx.h\
+geom/loop.h\
 geom/map.h\
 geom/mesh.h\
 geom/notation.h\

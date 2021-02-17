@@ -15,6 +15,7 @@
 #include "distr/reduce.h"
 #include "field.h"
 #include "idx.h"
+#include "loop.h"
 #include "map.h"
 #include "notation.h"
 #include "range.h"
@@ -69,6 +70,19 @@ class MeshCartesian {
   static constexpr size_t kNumStencil = Pow(3, dim);
   static constexpr size_t kNumStencil5 = Pow(5, dim);
   static constexpr bool kIsEmbed = false;
+
+  using Cell = typename geom::Loop<M>::Cell;
+  using Face = typename geom::Loop<M>::Face;
+
+  template <class Func>
+  void ForEachCell(Func func) {
+    geom::Loop<M>::ForEachCell(*this, func);
+  }
+
+  template <class Func>
+  void ForEachFace(Func func) {
+    geom::Loop<M>::ForEachFace(*this, func);
+  }
 
   struct Flags {
     size_t edim = dim; // effective dimension
@@ -685,8 +699,7 @@ class MeshCartesian {
   };
   void Comm(std::unique_ptr<CommRequest>&& r);
   void Comm(
-      FieldCell<Scal>* field,
-      CommStencil stencil = CommStencil::full_two);
+      FieldCell<Scal>* field, CommStencil stencil = CommStencil::full_two);
   void Comm(
       FieldCell<Vect>* field, int component,
       CommStencil stencil = CommStencil::full_two);

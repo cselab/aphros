@@ -409,6 +409,32 @@ class Grad : public TimerMesh {
   FieldFace<Scal> ff;
 };
 
+class GradTemplate : public TimerMesh {
+ public:
+  GradTemplate(M& m_) : TimerMesh("grad-template", m_), fc(m), ff(m) {
+    for (auto i : m.AllFaces()) {
+      ff[i] = std::sin(i.GetRaw());
+    }
+  }
+  void F() override {
+    static size_t a = 0;
+    m.ForEachCell([&](auto c) {
+      Vect sum(0);
+      for (auto q : m.Nci(c)) {
+        auto f = c.face(q);
+        sum[f.direction] += ff[f] * c.outward_factor(q) / c.h[f.direction];
+      }
+      fc[c] = sum;
+    });
+    a += fc[IdxCell(0)][0];
+    EXPOSE(a);
+  }
+
+ private:
+  FieldCell<Vect> fc;
+  FieldFace<Scal> ff;
+};
+
 class ExplVisc : public TimerMesh {
  public:
   ExplVisc(M& m_)
@@ -448,7 +474,6 @@ class ExplVisc : public TimerMesh {
   FieldFace<Scal> ffmu;
 };
 
-
 class ExplViscNotation : public TimerMesh {
  public:
   ExplViscNotation(M& m_)
@@ -477,6 +502,130 @@ class ExplViscNotation : public TimerMesh {
         }
         fcf[c] += sum / c.volume;
       }
+    }
+    a += fcf[IdxCell(0)][0];
+    EXPOSE(a);
+  }
+
+ private:
+  FieldCell<Vect> fcv;
+  FieldCell<Vect> fcf;
+  FieldFace<Scal> ffmu;
+};
+
+template <class Field>
+class GradientOperatorCell {
+ public:
+  GradientOperatorCell(const Field& ff_, const M& m_) : ff(ff_), m(m_) {}
+  Vect operator[](typename M::Cell c) const {
+    Vect res(0);
+    for (auto q : m.Nci(c)) {
+      auto f = c.face(q);
+      res[f.direction] += ff[f] * c.outward_factor(q) / c.h[f.direction];
+    }
+    return res;
+  }
+
+  const Field& ff;
+  const M& m;
+};
+
+template <class Field>
+class GradientOperator {
+ public:
+  GradientOperator(
+      const Field& fc_, const MapEmbed<BCond<Scal>>& mbc_, const M& m_)
+      : fc(fc_), mebc(mbc_), m(m_) {}
+  auto operator[](typename M::Face f) const {
+    return (fc[f.cell(1)] - fc[f.cell(0)]) / f.h[0];
+  }
+
+  const Field& fc;
+  const MapEmbed<BCond<Scal>>& mebc;
+  const M& m;
+};
+
+template <class Field>
+class InterpolateOperator {
+ public:
+  InterpolateOperator(
+      const Field& fc_, const MapEmbed<BCond<Scal>>& mbc_, const M& m_)
+      : fc(fc_), mebc(mbc_), m(m_) {}
+  auto operator[](typename M::Face f) const {
+    return (fc[f.cell(1)] + fc[f.cell(0)]) * 0.5;
+  }
+
+  const Field& fc;
+  const MapEmbed<BCond<Scal>>& mebc;
+  const M& m;
+};
+
+template <class Field>
+class ComponentOperator {
+ public:
+  ComponentOperator(const Field& fc_, size_t d_)
+      : fc(fc_), d(d_) {}
+  auto operator[](typename M::Cell c) const {
+    return fc[c][d];
+  }
+
+  const Field& fc;
+  const size_t d;
+};
+
+namespace func {
+
+template <class Field>
+auto Gradient(const Field& fc, const MapEmbed<BCond<Scal>>& bc, const M& m) {
+  return GradientOperator<Field>(fc, bc, m);
+}
+
+template <class Field>
+auto Interpolate(const Field& fc, const MapEmbed<BCond<Scal>>& bc, const M& m) {
+  return InterpolateOperator<Field>(fc, bc, m);
+}
+
+template <class Field>
+auto Gradient(const Field& ff, const M& m) {
+  return GradientOperatorCell<Field>(ff, m);
+}
+
+template <class Field>
+auto Component(const Field& fc, size_t d) {
+  return ComponentOperator<Field>(fc, d);
+}
+
+} // namespace func
+
+class ExplViscTemplate : public TimerMesh {
+ public:
+  ExplViscTemplate(M& m_)
+      : TimerMesh("explvisc-template", m_, Cover::su), fcv(m), fcf(m), ffmu(m) {
+    for (auto i : m.AllCells()) {
+      auto a = i.GetRaw();
+      fcv[i] = Vect(std::sin(a), std::sin(a + 1), std::sin(a + 2));
+    }
+    for (auto i : m.AllFaces()) {
+      auto a = i.GetRaw();
+      ffmu[i] = std::sin(a);
+    }
+  }
+  void F() override {
+    static size_t a = 0;
+    for (size_t n = 0; n < dim; ++n) {
+      auto fc = GetComponent(fcv, n);
+      auto ff = func::Interpolate(fc, {}, m);
+      auto gc = func::Gradient(ff, m);
+      auto gf = func::Interpolate(gc, {}, m);
+      m.ForEachCell([&](auto c) { //
+        Vect sum(0);
+        for (auto q : m.Nci(c)) {
+          const auto f = c.face(q);
+          sum += gf[f] * (ffmu[f] * c.outward_factor(q) *
+                          (n == f.direction ? f.area : 0));
+        }
+        fcf[c] += sum / c.volume;
+      });
     }
     a += fcf[IdxCell(0)][0];
     EXPOSE(a);
@@ -558,8 +707,10 @@ bool RunTest(
   create((LoopMIdxAllFaces*)0);
   create((Interp*)0);
   create((Grad*)0);
+  create((GradTemplate*)0);
   create((ExplVisc*)0);
   create((ExplViscNotation*)0);
+  create((ExplViscTemplate*)0);
 
   create((CellVolume*)0);
   create((CellCenter*)0);
