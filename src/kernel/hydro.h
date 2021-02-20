@@ -1523,7 +1523,7 @@ void Hydro<M>::Init() {
       }
     }
   }
-  if (eb_ && sem.Nested()) {
+  if (eb_ && sem.Nested() && var.Int("dump_eb", 1)) {
     eb_->DumpPoly(var.Int["vtkbin"], var.Int["vtkmerge"]);
   }
   if (sem.Nested("stat")) {
