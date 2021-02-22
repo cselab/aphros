@@ -117,22 +117,21 @@ and destroyed after the last stage.</p>
 <p>Abstract class <code class="docutils literal notranslate"><span class="pre">ConvDiffVect</span></code> describes the interface
 of a solver for the vector convection-diffusion equation</p>
 <div class="math">
-<p><img src="_images/math/000063c31d804946e6666931e11ec79a695df9e0.svg" alt="\rho \Big(
+<p><img src="_images/math/411eacddfb096a19ce9fcebf7e3b15fb1974bf92.svg" alt="\rho \Big(
 \frac{\partial \mathbf{u}}{\partial t}
 + (\mathbf{v}\cdot\nabla) \mathbf{u}
 \Big)
-+ \nabla \cdot (\mu \nabla \mathbf{u})
-+ \mathbf{f}
-= 0"/></p>
+= \nabla \cdot (\mu \nabla \mathbf{u})
++ \mathbf{f}"/></p>
 </div><p>in the discrete form</p>
 <div class="math" id="equation-e-momentum">
-<p><span class="eqno">(3.1)<a class="headerlink" href="#equation-e-momentum" title="Permalink to this equation">¶</a></span><img src="_images/math/c3e585ba6a4eb4b01407818a5685a7632cb36474.svg" alt="\rho_c \Big(
+<p><span class="eqno">(3.1)<a class="headerlink" href="#equation-e-momentum" title="Permalink to this equation">¶</a></span><img src="_images/math/0f93facf5b44568d71ef4da031d12521dda135e8.svg" alt="\rho_c \Big(
 \frac{\delta \mathbf{u}_c}{\delta t}
 + \frac{1}{V_c}\sum_{f\in c} v_f \mathbf{u}_f S^c_{\!f}
 \Big)
-+ \frac{1}{V_c}\sum_{f\in c} \mu_f
+= \frac{1}{V_c}\sum_{f\in c} \mu_f
   \frac{\delta \mathbf{u}_f}{\delta n} S^c_{\!f}
-+ \mathbf{f}_c = 0,"/></p>
++ \mathbf{f}_c"/></p>
 </div><p>where <img class="math" src="_images/math/c638da8edb6ea1a653ade24e1409935eca6a1521.svg" alt="c" style="vertical-align: 0px"/> is a cell index,
 <img class="math" src="_images/math/094bd97918d7c5d512e1cef3860853479e1ede35.svg" alt="\phi_c" style="vertical-align: -4px"/> is a cell-average,
 <img class="math" src="_images/math/bea1295cdbb6955826a09b2733b95dacd4bcacee.svg" alt="f\in c" style="vertical-align: -4px"/> are neighbour faces of cell <img class="math" src="_images/math/c638da8edb6ea1a653ade24e1409935eca6a1521.svg" alt="c" style="vertical-align: 0px"/>,
@@ -191,13 +190,13 @@ with</p>
 <p>Class <code class="docutils literal notranslate"><span class="pre">ConvDiffVectImp</span></code> implements an implicit solver
 corresponding to the discrete equation</p>
 <div class="math">
-<p><img src="_images/math/6bba4521f78bb5bc48b8fb3f848146fbb59985b9.svg" alt="\rho_c^s \Big(
+<p><img src="_images/math/f203a2984d0c4ec05322e233a36cde34a3ed33d0.svg" alt="\rho_c^s \Big(
 \frac{\delta \mathbf{u}_c^{s+1}}{\delta t}
 + \frac{1}{V_c}\sum_{f\in c} v_f^s \mathbf{u}_f^{s+1} S^c_{\!f}
 \Big)
-+ \frac{1}{V_c}\sum_{f\in c} \mu_f^s
+= \frac{1}{V_c}\sum_{f\in c} \mu_f^s
   \frac{\delta \mathbf{u}_f^{s+1}}{\delta n} S^c_{\!f}
-+ \mathbf{f}_c^s = 0"/></p>
++ \mathbf{f}_c^s"/></p>
 </div><p>which requires solving a linear system at every iteration.</p>
 <p>In addition to the requirements of the base class,
 the constructor takes mappings describing the boundary
@@ -257,13 +256,13 @@ Parameters of the solver are provided by</p>
 <p>Class <code class="docutils literal notranslate"><span class="pre">ConvDiffVectExp</span></code> implements an explicit solver
 corresponding to the discrete equation</p>
 <div class="math">
-<p><img src="_images/math/50eb4096cc5c98b71d0d1d7cec959dc65eb3e7ba.svg" alt="\rho_c^s \Big(
+<p><img src="_images/math/04291abdba4a8e16d9b9d9b25e4c2945de9fb79e.svg" alt="\rho_c^s \Big(
 \frac{\delta \mathbf{u}_c^{s+1}}{\delta t}
 + \frac{1}{V_c}\sum_{f\in c} v_f^s \mathbf{u}_f^{s} S^c_{\!f}
 \Big)
-+ \frac{1}{V_c}\sum_{f\in c} \mu_f^s
+= \frac{1}{V_c}\sum_{f\in c} \mu_f^s
   \frac{\delta \mathbf{u}_f^{s}}{\delta n} S^c_{\!f}
-+ \mathbf{f}_c^s = 0."/></p>
++ \mathbf{f}_c^s."/></p>
 </div><p>Here the solution is advanced by explicit formulas
 and the linear system is constructed
 only to implement <code class="docutils literal notranslate"><span class="pre">Assemble()</span></code> and
@@ -275,15 +274,14 @@ only to implement <code class="docutils literal notranslate"><span class="pre">A
 <p>Abstract class <code class="docutils literal notranslate"><span class="pre">FluidSolver</span></code> describes the interface
 of a solver for the Navier-Stokes equations</p>
 <div class="math">
-<p><img src="_images/math/98018a911d6308560efaa482dcb730bfae42378a.svg" alt="\nabla \cdot \mathbf{u} = S_v
+<p><img src="_images/math/ea1b7dfa3d8a6f657f1cc3685676a79e84ce2b7e.svg" alt="\nabla \cdot \mathbf{u} &amp;= S_v
 \\
 \rho \Big(
 \frac{\partial \mathbf{u}}{\partial t}
 + (\mathbf{v}\cdot\nabla) \mathbf{u}
 \Big)
-+ \nabla \cdot (\mu \nabla \mathbf{u})
-+ \mathbf{f}
-= 0"/></p>
+&amp;=  -\nabla p + \nabla \cdot \mu (\nabla \mathbf{u} + \nabla \mathbf{u}^T)
++ \mathbf{f}"/></p>
 </div><p>where the continuity equation is discretized as</p>
 <div class="math">
 <p><img src="_images/math/9063ce8ec2a9b835dec9899873a09df4346a04a2.svg" alt="\sum_{f\in c} v_f S^c_{\!f} = S_v"/></p>
@@ -341,7 +339,7 @@ projections of well-balanced force <code class="docutils literal notranslate"><s
 volume source <code class="docutils literal notranslate"><span class="pre">fcsv</span></code> and mass source <code class="docutils literal notranslate"><span class="pre">fcsm</span></code>.
 Parameters of the solver are provided by</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">SimplePar</span> <span class="p">{</span>
-  <span class="k">using</span> <span class="n">Vect</span> <span class="o">=</span> <span class="n">generic</span><span class="o">::</span><span class="n">Vect</span><span class="o">&lt;</span><span class="n">Scal</span><span class="p">,</span> <span class="mi">3</span><span class="o">&gt;</span><span class="p">;</span>
+  <span class="k">using</span> <span class="n">Scal</span> <span class="o">=</span> <span class="k">typename</span> <span class="nc">Vect</span><span class="o">::</span><span class="n">Scal</span><span class="p">;</span>
   <span class="n">Scal</span> <span class="n">vrelax</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">;</span> <span class="c1">// velocity relaxation factor [0,1]</span>
   <span class="n">Scal</span> <span class="n">prelax</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// pressure relaxation factor [0,1]</span>
   <span class="n">Scal</span> <span class="n">rhie</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// Rhie-Chow factor [0,1] (0 disable, 1 full)</span>
@@ -379,7 +377,7 @@ projections of well-balanced force <code class="docutils literal notranslate"><s
 volume source <code class="docutils literal notranslate"><span class="pre">fcsv</span></code> and mass source <code class="docutils literal notranslate"><span class="pre">fcsm</span></code>.
 Parameters of the solver are provided by</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">ProjPar</span> <span class="p">{</span>
-  <span class="k">using</span> <span class="n">Vect</span> <span class="o">=</span> <span class="n">generic</span><span class="o">::</span><span class="n">Vect</span><span class="o">&lt;</span><span class="n">Scal</span><span class="p">,</span> <span class="mi">3</span><span class="o">&gt;</span><span class="p">;</span>
+  <span class="k">using</span> <span class="n">Scal</span> <span class="o">=</span> <span class="k">typename</span> <span class="nc">Vect</span><span class="o">::</span><span class="n">value_type</span><span class="p">;</span>
   <span class="n">Scal</span> <span class="n">vrelax</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">// velocity relaxation factor [0,1]</span>
   <span class="n">Scal</span> <span class="n">prelax</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">;</span> <span class="c1">// pressure relaxation factor [0,1]</span>
   <span class="kt">bool</span> <span class="n">second</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// second order in time</span>
@@ -390,11 +388,11 @@ Parameters of the solver are provided by</p>
   <span class="kt">bool</span> <span class="n">stokes</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// Stokes flow</span>
   <span class="kt">bool</span> <span class="n">convsymm</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// symmetric solver for linear system in convdiff</span>
   <span class="n">Conv</span> <span class="n">conv</span> <span class="o">=</span> <span class="n">Conv</span><span class="o">::</span><span class="n">imp</span><span class="p">;</span> <span class="c1">// convection-diffusion solver</span>
-  <span class="kt">bool</span> <span class="n">bcg</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// Bell-Colella-Glaz scheme</span>
+  <span class="kt">bool</span> <span class="n">bcg</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// Bell-Colella-Glaz scheme</span>
   <span class="n">Scal</span> <span class="n">outlet_relax</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>
   <span class="n">Scal</span> <span class="n">inletpressure_factor</span> <span class="o">=</span>
       <span class="mi">0</span><span class="p">;</span> <span class="c1">// correction factor on inlet with given pressure</span>
-  <span class="kt">bool</span> <span class="n">explviscous</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// enable explicit viscous terms</span>
+  <span class="kt">bool</span> <span class="n">explviscous</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// enable explicit viscous terms</span>
   <span class="kt">bool</span> <span class="n">redistr_adv</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// use RedistributeCutCellsAdvection()</span>
                             <span class="c1">// if true else RedistributeCutCells()</span>
   <span class="kt">size_t</span> <span class="n">diffusion_iters</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">// number of iterations in implicit diffusion</span>
@@ -1121,17 +1119,18 @@ to execute the same lambda-function on indices of two types</span><a class="head
 for a list of geometric primitives such as spheres and boxes.
 A primitive is described by</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">Primitive</span> <span class="p">{</span>
+  <span class="k">using</span> <span class="n">Vect</span> <span class="o">=</span> <span class="n">Vect_</span><span class="p">;</span>
+  <span class="k">using</span> <span class="n">Scal</span> <span class="o">=</span> <span class="k">typename</span> <span class="nc">Vect</span><span class="o">::</span><span class="n">Scal</span><span class="p">;</span>
+  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">size_t</span> <span class="n">dim</span> <span class="o">=</span> <span class="n">Vect</span><span class="o">::</span><span class="n">dim</span><span class="p">;</span>
+
   <span class="n">Primitive</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name_</span><span class="p">)</span>
       <span class="o">:</span> <span class="n">name</span><span class="p">(</span><span class="n">name_</span><span class="p">),</span> <span class="n">inter</span><span class="p">([](</span><span class="k">const</span> <span class="n">Rect</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;&amp;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">bool</span> <span class="p">{</span> <span class="k">return</span> <span class="nb">true</span><span class="p">;</span> <span class="p">})</span> <span class="p">{}</span>
   <span class="n">Primitive</span><span class="p">()</span> <span class="o">:</span> <span class="n">Primitive</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">)</span> <span class="p">{}</span>
-  <span class="k">friend</span> <span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">&lt;&lt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="n">o</span><span class="p">,</span> <span class="k">const</span> <span class="n">Primitive</span><span class="o">&lt;</span><span class="n">Scal</span><span class="o">&gt;&amp;</span> <span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">friend</span> <span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="k">operator</span><span class="o">&lt;&lt;</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span> <span class="n">o</span><span class="p">,</span> <span class="k">const</span> <span class="n">Primitive</span><span class="o">&lt;</span><span class="n">Vect</span><span class="o">&gt;&amp;</span> <span class="n">p</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">o</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;name=&#39;&quot;</span> <span class="o">&lt;&lt;</span> <span class="n">p</span><span class="p">.</span><span class="n">name</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;&#39;&quot;</span><span class="p">;</span>
     <span class="n">o</span> <span class="o">&lt;&lt;</span> <span class="s">&quot; mod=&#39;&quot;</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">mod_minus</span> <span class="o">?</span> <span class="s">&quot;-&quot;</span> <span class="o">:</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">mod_and</span> <span class="o">?</span> <span class="s">&quot;&amp;&quot;</span> <span class="o">:</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">&quot;&#39;&quot;</span><span class="p">;</span>
     <span class="k">return</span> <span class="n">o</span><span class="p">;</span>
   <span class="p">}</span>
-
-  <span class="k">static</span> <span class="k">constexpr</span> <span class="kt">size_t</span> <span class="n">dim</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span>
-  <span class="k">using</span> <span class="n">Vect</span> <span class="o">=</span> <span class="n">generic</span><span class="o">::</span><span class="n">Vect</span><span class="o">&lt;</span><span class="n">Scal</span><span class="p">,</span> <span class="n">dim</span><span class="o">&gt;</span><span class="p">;</span>
 
   <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">name</span><span class="p">;</span>
   <span class="kt">bool</span> <span class="n">mod_minus</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
@@ -1601,7 +1600,7 @@ relative distance from the node first[i].</p>
 <span class="cp">#undef NDEBUG</span>
 <span class="cp">#include</span> <span class="cpf">&lt;assert.h&gt;</span><span class="cp"></span>
 <span class="cp">#include</span> <span class="cpf">&lt;math.h&gt;</span><span class="cp"></span>
-<span class="cp">#include</span> <span class="cpf">&lt;march.h&gt;</span><span class="cp"></span>
+<span class="cp">#include</span> <span class="cpf">&lt;aphros/march/march.h&gt;</span><span class="cp"></span>
 
 <span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
   <span class="k">enum</span> <span class="p">{</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span> <span class="p">};</span>
@@ -1614,7 +1613,7 @@ relative distance from the node first[i].</p>
   <span class="n">a</span> <span class="o">=</span> <span class="n">MARCH_O</span><span class="p">[</span><span class="n">first</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="n">X</span><span class="p">];</span>
   <span class="n">b</span> <span class="o">=</span> <span class="n">MARCH_O</span><span class="p">[</span><span class="n">second</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="n">X</span><span class="p">];</span>
   <span class="n">x</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="p">(</span><span class="n">b</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="n">offset</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
-  <span class="n">assert</span><span class="p">(</span><span class="n">fabs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">tri</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="n">X</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">1e-12</span><span class="p">));</span>
+  <span class="n">assert</span><span class="p">(</span><span class="n">fabs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">tri</span><span class="p">[</span><span class="mi">3</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="n">X</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mf">1e-12</span><span class="p">);</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -1646,9 +1645,10 @@ relative distance from the node first[i].</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">Par</span> <span class="p">{</span>
   <span class="kt">size_t</span> <span class="n">dim</span> <span class="o">=</span> <span class="mi">3</span><span class="p">;</span> <span class="c1">// dimension (dim=2 assumes zero velocity in z)</span>
   <span class="n">Scal</span> <span class="n">clipth</span> <span class="o">=</span> <span class="mf">1e-10</span><span class="p">;</span> <span class="c1">// vf clipping threshold</span>
-  <span class="kt">bool</span> <span class="n">recolor_unionfind</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
-  <span class="kt">bool</span> <span class="n">recolor_reduce</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
-  <span class="kt">bool</span> <span class="n">recolor_grid</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+  <span class="kt">bool</span> <span class="n">recolor</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// run connected component labeling on every step</span>
+  <span class="kt">bool</span> <span class="n">recolor_unionfind</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// use union-find algorithm</span>
+  <span class="kt">bool</span> <span class="n">recolor_reduce</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// reduce set of colors to integers</span>
+  <span class="kt">bool</span> <span class="n">recolor_grid</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span> <span class="c1">// use grid heuristic</span>
   <span class="n">Scal</span> <span class="n">clfixed</span> <span class="o">=</span> <span class="mi">-1</span><span class="p">;</span> <span class="c1">// if &gt;= 0, value for color at point clfixed_x</span>
   <span class="n">Vect</span> <span class="n">clfixed_x</span> <span class="o">=</span> <span class="n">Vect</span><span class="p">(</span><span class="mf">1e10</span><span class="p">);</span>
   <span class="kt">bool</span> <span class="n">cloverride</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// XXX adhoc if clear1&lt;1, override color with 0</span>
