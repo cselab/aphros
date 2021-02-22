@@ -14,16 +14,16 @@ set double rho1 1
 set double mu1 0.0004
 set double rho2 0.1
 set double mu2 0.00004
-set vect gravity 0 -20
+set vect gravity 0 -10
 set double hypre_symm_tol 1e-2
 set int hypre_symm_maxiter 20
 set int hypre_symm_miniter 5
 set double visvel 0
 set double visvf 0.7
 set double visvort 0
-set double vispot 0
+set double vispot 1
 set double vistracer 1
-set int visinterp 1
+set int visinterp 0
 set int sharpen 1
 set double dtmax 0.1
 set double sigma 4
@@ -31,17 +31,22 @@ set int nsteps 2
 set double cfl 0.9
 set double cflvis 0.125
 set double cflsurf 2
+set double cfldiff 0.125
 set double coalth 0.1
 
-set double growth_rate 100
+set double growth_rate 10
+set double reaction_rate_top -2
+set double reaction_rate_bottom -1
 
-set double resist1 100
-set double resist2 1
+set double resist1 1
+set double resist2 100
 
-set vect tracer_density 1 1
-set vect tracer_diffusion 0.01 0.01
-set vect tracer_diameter 0 0
-set vect tracer_viscosity 0 0
+set int reportevery 100
+
+set vect tracer_density 1
+set vect tracer_diffusion 0.002
+set vect tracer_diameter 0
+set vect tracer_viscosity 0
 set string tracer_scheme superbee
 `
 }
@@ -63,8 +68,17 @@ function SetMu(mu) {
   SetRuntimeConfig("set double mu2 " + (mu * 10));
 }
 
+function SetRate(r) {
+  SetRuntimeConfig("set double reaction_rate_top " + (-r * 2));
+  SetRuntimeConfig("set double reaction_rate_bottom " + (-r));
+}
+
+function SetDiffusion(d) {
+  SetRuntimeConfig("set vect tracer_diffusion " + d);
+}
+
 function SetGravity(g) {
-  g = g ? -5 : 0;
+  g = g ? -10 : 0;
   SetRuntimeConfig("set vect gravity 0 " + g);
 }
 
@@ -73,9 +87,11 @@ function Init(nx) {
   conf = GetExtraConfig()
   SetExtraConfig(conf);
   Module.ccall('SetMesh', null, ['number'], [nx])
-  Spawn(0.5, 0.5, 0.2);
+  //Spawn(0.5, 0.5, 0.2);
   SetSigma(window.range_sigma.value);
   SetMu(window.range_mu.value);
+  SetRate(window.range_rate.value);
+  SetDiffusion(window.range_diffusion.value);
   SetGravity(window.checkbox_gravity.checked);
 }
 

@@ -42,6 +42,13 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
+
+auto ToMulti(const std::vector<Scal>& v) {
+  Multi<Scal> w(v.size());
+  w.data() = v;
+  return w;
+};
+
 void CopyToCanvas(uint32_t* buf, int w, int h) {
   EM_ASM_(
       {
@@ -218,7 +225,7 @@ static void RenderField(
   }
   if (vistracer) {
     BcApply<Scal>(fc_tracer[0], bc_tracer[0], m);
-    //BcApply<Scal>(fc_tracer[1], bc_tracer[1], m);
+    // BcApply<Scal>(fc_tracer[1], bc_tracer[1], m);
   }
 
   using Vect3 = generic::Vect<Scal, 3>;
@@ -252,18 +259,14 @@ static void RenderField(
     if (visvf) {
       q = interp::Linear(visvf * fcu[c], Vect3(q), Vect3(0, 0.8, 0.42));
     }
-    if (vistracer) {
+    if (vistracer && !vispot) {
       const auto u0 = fc_tracer[0][c];
-      //const auto u1 = fc_tracer[1][c];
       const auto f0 = Clamp(std::abs(u0 * vistracer));
-      //const auto f1 = Clamp(std::abs(u1 * vistracer));
-      /*
-      q = interp::Bilinear(
-          f0, f1, //
-          Vect3(1, 1, 1), Vect3(1, 0.12, 0.35), //
-          Vect3(0, 0.6, 0.87), Vect3(0, 0.8, 0.42));
-          */
       q = interp::Linear(f0, Vect3(1, 1, 1), Vect3(1, 0.12, 0.35));
+    }
+    if (vistracer && vispot) {
+      const auto ftr = Clamp(std::abs(fc_tracer[0][c] * vistracer));
+      q = interp::Linear(ftr, Vect3(q), Vect3(0, 0.8, 0.42));
     }
     return q;
   };
@@ -339,7 +342,7 @@ void Solver::Run() {
         electro.reset(new Electro<M>(m, m, bc_electro, 0, conf));
       }
 
-      const size_t ntracers = 2;
+      const size_t ntracers = 1;
       Multi<MapEmbed<BCond<Scal>>> bc_tracer(ntracers);
 
       const auto topvel = var.Double["topvel"];
@@ -388,15 +391,7 @@ void Solver::Run() {
             for (size_t i = 0; i < ntracers; ++i) {
               auto& bc = bc_tracer[i][f];
               bc.nci = nci;
-              if (f_top && i == 0) {
-                bc.type = BCondType::dirichlet;
-                bc.val = 1;
-              } else if (f_bottom && i == 0) {
-                bc.type = BCondType::dirichlet;
-                bc.val = 1;
-              } else {
-                bc.type = BCondType::neumann;
-              }
+              bc.type = BCondType::neumann;
             }
           }
         }
@@ -406,15 +401,10 @@ void Solver::Run() {
         fc_src_tracer.Reinit(m, 0);
         typename TracerInterface<M>::Conf conf;
         conf.layers = ntracers;
-        auto multi = [](const std::vector<Scal>& v) {
-          Multi<Scal> w(v.size());
-          w.data() = v;
-          return w;
-        };
-        conf.density = multi(var.Vect["tracer_density"]);
-        conf.diffusion = multi(var.Vect["tracer_diffusion"]);
-        conf.diameter = multi(var.Vect["tracer_diameter"]);
-        conf.viscosity = multi(var.Vect["tracer_viscosity"]);
+        conf.density = ToMulti(var.Vect["tracer_density"]);
+        conf.diffusion = ToMulti(var.Vect["tracer_diffusion"]);
+        conf.diameter = ToMulti(var.Vect["tracer_diameter"]);
+        conf.viscosity = ToMulti(var.Vect["tracer_viscosity"]);
         conf.scheme = GetConvSc(var.String["tracer_scheme"]);
         conf.slip.resize(conf.layers);
         conf.fc_src = &fc_src_tracer;
@@ -493,11 +483,21 @@ void Solver::Run() {
     const Scal mu2 = var.Double["mu2"];
     const Scal sigma = var.Double["sigma"];
     const Vect gravity(var.Vect["gravity"]);
+    const Scal tracer_diffusion(var.Vect["tracer_diffusion"][0]);
+
+    {
+      auto conf = tracer->GetConf();
+      conf.diffusion = ToMulti(var.Vect["tracer_diffusion"]);
+      tracer->SetConf(conf);
+    }
 
     const Scal h = m.GetCellSize()[0];
     s.dt = var.Double["cfl"] * h / maxvel;
     if (mu1 != 0) {
       s.dt = std::min(s.dt, var.Double["cflvis"] * h * h / mu1);
+    }
+    if (tracer_diffusion != 0) {
+      s.dt = std::min(s.dt, var.Double["cfldiff"] * h * h / tracer_diffusion);
     }
     if (sigma != 0) {
       s.dt = std::min(
@@ -531,6 +531,24 @@ void Solver::Run() {
         fc_src2[c] = src2;
         fc_src_tracer[c] = -src2;
         fc_src[c] = src2;
+      }
+    }
+
+    {
+      auto& mebc = tracer->GetBCondMutable()[0];
+      auto& ffcur = electro->GetFaceCurrent();
+      const auto rate_top = var.Double["reaction_rate_top"];
+      const auto rate_bottom = var.Double["reaction_rate_bottom"];
+      for (auto& p : mebc.GetMapFace()) {
+        const auto f = m(p.first);
+        auto& bc = p.second;
+        const bool f_bottom = (f.direction() == 1 && f[1] == 0);
+        const bool f_top = (f.direction() == 1 && f[1] == m.GetGlobalSize()[1]);
+        if (f_top) {
+          bc.val = rate_top * ffcur[f];
+        } else if (f_bottom) {
+          bc.val = rate_bottom * ffcur[f];
+        }
       }
     }
   }
