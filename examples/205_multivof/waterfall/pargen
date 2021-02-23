@@ -1,0 +1,175 @@
+#!/usr/bin/env python
+
+def Exp():
+    # SI units
+
+    sig = 72e-3 # surface tension
+    g = 9.8
+    # water
+    rho = 1000 # density
+    mu = 1e-3  # dynamic viscosity
+    nu = mu / rho # kinematic viscosity
+
+    U = 1.5   # waterfall velocity
+    W = 0.005   # waterfall thickness
+    H = 6 * W   # waterfall height, distance from inlet to surface
+
+    ###
+    Re = U * W / nu
+    Fr = (U ** 2 / (g * H)) ** 0.5
+    We = rho * U ** 2 * W / sig
+    HW = H / W  # height to thickness ratio
+
+    for key in sorted(locals()):
+        print("{:} \t=\t {:}".format(key, locals()[key]))
+    print("\n")
+
+    return locals()
+
+def Sim(c):
+    Re,We,Fr,HW = (c['Re'], c['We'], c['Fr'], c['HW'])
+
+    # domain 
+    lx = 2
+    ly = 1
+    lz = 1.
+    lys = 0.5 # position of free surface
+    lmax = max([lx, ly, lz])
+
+    U = 1. # velocity
+    W = 0.05 # waterfall thickness
+    H = HW * W
+
+    assert H > W*2 and H + W*2 < ly
+
+    # time
+    tun = 1 / U  # unit
+    tmax = tun * 500.
+    dumpdt = tun * 0.05
+
+    # liquid
+    rho0 = 1. # density
+    mu0 = U * W / Re  # viscosity
+
+    sig = (rho0 * U ** 2 * W) / We
+    g = U ** 2 / Fr ** 2 / H
+
+    # gas, ratio to liquid
+    mu = 0.01
+    rho = 0.01
+
+    def rnd(a): return int(a + 0.5)
+
+    # mesh
+    nn = 192 * 2
+    nx = rnd(nn * lx)
+    ny = rnd(nn * ly)
+    nz = rnd(nn * lz)
+
+    # block size
+    bs = 16
+    bsz = bs
+    # cores
+    np = 216*4*16
+    # time limit in minutes
+    tl = 1440
+
+    for key in sorted(locals()):
+        print("{:} \t=\t {:}".format(key, locals()[key]))
+    print("\n")
+
+    return locals()
+
+def Gen(c):
+    lx = c['lx']
+    ly = c['ly']
+    lz = c['lz']
+    lys = c['lys']
+    lmax = c['lmax']
+    W = c['W']
+    H = c['H']
+    # bubble 
+    bx = lx * 0.5
+    by = ly
+    bz = lz * 0.5
+    brx = 1e10
+    bry = ly - lys
+    brz = brx
+
+    tmax = c['tmax']
+    dumpdt = c['dumpdt']
+
+    rho1 = c['rho0']
+    mu1 = c['mu0']
+    rho2 = rho1 * c['rho']
+    mu2 = mu1 * c['mu']
+    sig = c['sig']
+
+    g = -c['g']
+
+    inv = 0
+    invx = c['U']
+
+    eps = 1e-4
+
+    inx0 = -eps
+    inx1 = eps
+    iny0 = lys + H
+    iny1 = iny0 + W
+    inz0 = lz * 0.5 - lz * 1
+    inz1 = lz * 0.5 + lz * 1
+
+    outx0 = "-1e10"
+    outx1 = "1e10"
+    outy0 = eps
+    outy1 = lys * 0.5
+    assert outy1 < lys
+
+
+    with open("par.conf", 'w') as f:
+        f.write('''\
+# domain
+set double extent {lmax}
+
+# time
+set double tmax {tmax}
+set double dump_field_dt {dumpdt}
+set double dump_part_dt {dumpdt}
+set double dump_traj_dt {dumpdt}
+
+# physical 
+set double rho1 {rho1}
+set double rho2 {rho2}
+set double mu1 {mu1}
+set double mu2 {mu2}
+set double sigma {sig}
+set vect gravity 0 {g} 0
+
+set string box0 inlet {invx} {inv} 0
+set vect box0_a {inx0} {iny0} {inz0}
+set vect box0_b {inx1} {iny1} {inz1}
+set double box0_vf 0.
+
+set string box1 outlet
+set vect box1_a {outx0} {outy0} -1e10
+set vect box1_b {outx1} {outy1} 1e10
+set double box1_vf 0.
+
+        '''.format(**locals()))
+
+
+    with open("b.dat", 'w') as f:
+        f.write("{bx} {by} {bz} {brx} {bry} {brz}\n".format(**locals()))
+
+    with open("par.make", 'w') as f:
+        f.write(
+'''m = {nx} {ny} {nz}
+bs = {bs} {bs} {bsz}
+np = {np}
+tl = {tl}
+'''.format(**c))
+
+
+c = Exp()
+c = Sim(c)
+Gen(c)

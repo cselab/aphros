@@ -1,0 +1,296 @@
+#!/usr/bin/env python3
+
+import aphros
+import os
+import numpy as np
+import sys
+import argparse
+
+
+def Numbers(p):
+    n = argparse.Namespace()
+    n.l2w = p.length / p.width
+    n.h2w = p.height / p.width
+    n.Re = p.height * p.vfoam * p.rho_liquid / p.mu_liquid
+    n.Ca = p.mu_liquid * p.vfoam / p.sigma
+    n.sidevel_ratio = p.vside / p.vfoam
+    return n
+
+def PhysicalToNumerical(length, width, narrow_width, height, rho_liquid, mu_liquid, sigma,
+                        vfoam, Ql, side_inlet_width):
+    """
+    Values in SI units.
+    """
+    phys = argparse.Namespace(**locals())
+    phys.sidearea = 2 * phys.side_inlet_width * phys.height
+    phys.vside = phys.Ql / phys.sidearea
+    physn = Numbers(phys)
+    print("physical:")
+    print(phys)
+    print(physn)
+    p = argparse.Namespace()
+    p.width = 1.
+    p.length = physn.l2w * p.width
+    p.height = physn.h2w * p.width
+    p.length_p2n = p.length / phys.length
+    p.narrow_width = phys.narrow_width * p.length_p2n
+    p.rho_liquid = 1.
+    p.vfoam = 0.1
+    p.vside = p.vfoam * physn.sidevel_ratio
+    p.sidearea = phys.sidearea * p.length_p2n ** 2
+    p.Ql = p.vside * p.sidearea
+    p.mu_liquid = p.height * p.vfoam * p.rho_liquid / physn.Re
+    p.sigma = p.mu_liquid * p.vfoam / physn.Ca
+    p.pressure_threshold = \
+            p.sigma * (2 / p.height + 2 / p.narrow_width)
+
+    diff = aphros.Domain.compare(Numbers(p), Numbers(phys))
+    print("\nnumerical:")
+    print(p)
+    if diff:
+        print("Numbers do not match:")
+        aphros.Domain.printdiff(diff)
+        exit(1)
+    return p
+
+
+class Default(aphros.Parameters):
+    dim = 3
+    np = 1
+    tl = 1440
+    ny = 99
+    nz = None
+    bs = 8
+    tmax = 1000.
+    dump_field_dt = 0.1
+    gapy = 1  # gap in y, cells to boundary
+    gapz = 1  # gap in z, cells to boundary
+    dumplist = "vf ebvf vx vy vz p"
+    angle = 30
+    rho_ratio = 0.1
+    # SI units
+    length = 6e-3
+    width = 1e-3 # main channel width
+    height = 0.1e-3
+    junction_x = 0.75e-3
+    narrow_length = 0.42e-3
+    narrow_width = 0.11e-3
+    side_inlet_width = 0.055e-3
+    rounding_r = 0.23e-3
+    Ql = 5e-9 / 60. # side inlet flowrate (total over all inlets)
+    vfoam = 15e-3
+    rho_liquid = 1000.
+    mu_liquid = 1e-3
+    musurf = 0
+    sigma = 72e-3
+    wall_faces_z = False # use regular faces in z direction
+    inletpressure = None
+    inletpressure_add = None # pressure added to pressure_threshold
+    row = False
+    erasevf = True
+    erasevf_per = 4.5
+    erasevf_per_rel = None
+    erasevf_length = 0.05
+    lbuf = 0.5
+    sharpen = True
+    vfsmooth = 2
+
+
+par = Default("par.py")
+
+num = PhysicalToNumerical(length=par.length,
+                          width=par.width,
+                          narrow_width=par.narrow_width,
+                          height=par.height,
+                          sigma=par.sigma,
+                          rho_liquid=par.rho_liquid,
+                          mu_liquid=par.mu_liquid,
+                          vfoam=par.vfoam,
+                          Ql=par.Ql,
+                          side_inlet_width=par.side_inlet_width)
+
+if par.wall_faces_z:
+    assert par.ny is None
+    assert par.nz % par.bs == 0
+    par.gapz = 0
+
+hx = num.width / par.ny if par.ny is not None else num.height / par.nz
+ny = (par.ny + par.gapy * 2) if par.ny is not None else None
+nz = (par.nz + par.gapz * 2) if par.nz is not None else None
+lx = num.length
+ly = num.width + par.gapy * hx * 2
+lz = num.height + par.gapz * hx * 2
+inf = lx * 10
+eps = 1e-2
+
+if par.inletpressure_add is not None:
+    par.inletpressure = num.pressure_threshold + par.inletpressure_add
+
+if par.dim == 2:
+    nz = 1
+    bsz = 1
+    lz = None
+else:
+    bsz = None
+
+domain = aphros.AdjustedDomain(lx=lx,
+                               ly=ly,
+                               lz=lz,
+                               ny=ny,
+                               nz=nz,
+                               bsz=bsz,
+                               nproc=par.np,
+                               bs=par.bs)
+
+lx = domain.lx
+ly = domain.ly
+lz = domain.lz
+hx = domain.h
+W = num.width * 0.999  # reduce to have non-integer number of cells
+H = num.height * 0.999
+
+
+def rad(deg):
+    return deg * np.pi / 180.
+
+
+# geometry
+geom = aphros.Geometry()
+a = 0.5 * par.angle
+jx = par.junction_x * num.length_p2n
+narrowx = par.narrow_length * num.length_p2n
+narrowy = par.narrow_width * num.length_p2n
+bx = jx + ly * np.sin(rad(a)) + narrowy * 0.5 / np.tan(rad(a))
+by = ly / 2
+geom.Box([bx, by + ly * np.cos(rad(a)), 0], [inf, ly, inf], -a)
+geom.Box([bx, by - ly * np.cos(rad(a)), 0], [inf, ly, inf], a)
+geom.Box([bx + inf, 0, 0], [inf, inf, inf])
+rr = par.rounding_r * num.length_p2n
+wx = jx + narrowx
+Wh = W / 2
+ii = {"intersect": 1, "invert": 1}
+geom.Cylinder([wx + rr, by + (Wh - rr), 0], [0, 0, 1], rr, [-inf, inf], **ii)
+geom.Cylinder([wx + rr, by - (Wh - rr), 0], [0, 0, 1], rr, [-inf, inf], **ii)
+geom.Box([wx + lx, by, 0], [lx, Wh - rr, inf], **ii)
+geom.Box([wx + lx + rr, by, 0], [lx, Wh, inf], **ii)
+
+geom.Box([0, by, 0], [lx, narrowy / 2, inf], **ii)
+sidex = par.side_inlet_width * num.length_p2n
+geom.Box([jx + sidex * 0.25, by, 0], [sidex * 0.5, inf, inf], **ii)
+
+if par.dim == 3 and not par.wall_faces_z:
+    geom.Box([0, 0, lz / 2], [inf, inf, H * 0.5], invert=1)
+
+with open("body.dat", 'w') as f:
+    f.write(geom.Generate())
+
+
+conf = aphros.Config()
+conf['dim'] = par.dim
+conf['extent'] = domain.extent
+
+if par.row:
+    conf['init_vf'] = "list"
+    vf = aphros.Geometry()
+    brx = 0.2
+    for x in np.arange(wx + rr + brx, lx, 2 * brx):
+        k = 0.98
+        vf.Box([x, ly / 2, lz / 2], [brx * k, W / 2 * k, H / 2 * k])
+    with open("b.dat", 'w') as f:
+        f.write(vf.Generate())
+
+if par.dim == 2:
+    conf['hypre_periodic_z'] = 1
+
+conf['dumplist'] = par.dumplist
+conf['tmax'] = par.tmax
+conf['dump_field_dt'] = par.dump_field_dt
+conf['dump_traj_dt'] = par.dump_field_dt
+
+conf['mu1'] = num.mu_liquid
+conf['mu2'] = conf['mu1'] * par.rho_ratio
+conf['musurf'] = conf['mu1'] * par.musurf
+conf['rho1'] = num.rho_liquid
+conf['rho2'] = conf['rho1'] * par.rho_ratio
+conf['sigma'] = num.sigma
+
+if par.erasevf:
+    conf['enable_erasevf'] = 1
+    conf['erasevf_rect_x0'] = [jx, 0, 0]
+    conf['erasevf_rect_x1'] = [jx + par.erasevf_length, inf, inf]
+    conf['erasevf_t0'] = 0.
+    if par.erasevf_per_rel is not None:
+        par.erasevf_per = \
+                par.erasevf_per_rel * num.height * num.narrow_width**2 / num.Ql
+    conf['erasevf_per'] = par.erasevf_per
+
+conf['erasecl_rect_x0'] = [lx - W * par.lbuf, 0, 0]
+conf['erasecl_rect_x1'] = [lx, inf, inf]
+conf['sharpen'] = 1 if par.sharpen else 0
+conf['vfsmooth'] = par.vfsmooth
+
+conf.GenerateFile("par.conf")
+
+bc = aphros.BoundaryConditions()
+bc.Wall(
+    aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]),  #
+    velocity=[0, 0, 0])
+inletwidth = jx * np.tan(rad(a)) * 2
+inletvel = num.vfoam * num.width / inletwidth
+
+# gas inlet
+if par.inletpressure is not None:
+    bc.InletPressure(
+        aphros.Geometry().Box([0, 0, 0], [hx * 0.1, inf, inf]),  #
+        pressure=par.inletpressure,
+        #extra="")
+        extra=" , fill_vf 1 , halo fill 1")
+else:
+    bc.Inlet(
+        aphros.Geometry().Box([0, 0, 0], [hx * 0.1, inf, inf]),  #
+        velocity=[inletvel, 0, 0],
+        extra=" , fill_vf 1 , halo fill 1")
+
+# liquid inlet
+sideinletvel = num.vside
+bc.Inlet(
+    aphros.Geometry().Box([0, 0, 0], [inf, hx * 0.1, inf]),  #
+    velocity=[0, sideinletvel, 0])
+bc.Inlet(
+    aphros.Geometry().Box([0, ly, 0], [inf, hx * 0.1, inf]),  #
+    velocity=[0, -sideinletvel, 0])
+
+if par.inletpressure is not None:
+    bc.OutletPressure(
+        aphros.Geometry().Box([lx, 0, 0], [hx * 0.1, inf, inf]),
+        pressure=0)
+else:
+    bc.Outlet(aphros.Geometry().Box([lx, 0, 0], [hx * 0.1, inf, inf]))
+
+bc.GenerateFile("bc.dat")
+
+def DumpVars(d, f):
+    for k, v in d.items():
+        if type(v) in [int, float, bool]:
+            f.write('{} = {:}\n'.format(k, v))
+        elif type(v) == str:
+            f.write('{} = "{}"\n'.format(k, v))
+        elif type(v) in [list, np.array]:
+            f.write('{} = {:}\n'.format(k, list(v)))
+
+with open("gen_par.py", 'w') as f:
+    DumpVars(vars(par), f)
+
+with open("gen_num.py", 'w') as f:
+    DumpVars(vars(num), f)
+
+
+print(domain)
+domain.tl = par.tl
+with open("par.make", 'w') as f:
+    f.write('''m = {nx} {ny} {nz}
+bs = {bsx} {bsy} {bsz}
+np = {nproc}
+tl = {tl}
+'''.format(**vars(domain)))
+
