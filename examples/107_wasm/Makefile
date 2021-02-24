@@ -4,7 +4,6 @@ WRK = .work
 CXX = emcc
 CXXFLAGS = -Wall -O3 -DNDEBUG
 WASMFLAGS = -s ALLOW_MEMORY_GROWTH=1
-APHROS_PREFIX ?= $(HOME)/hy
 ALL = hydro.js
 1 = -D_USE_MPI_=0
 all: $(ALL)
