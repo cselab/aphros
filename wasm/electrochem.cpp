@@ -6,9 +6,8 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <random>
 #include <sstream>
-
-#include <cstdio>
 
 #include "distr/distrbasic.h"
 #include "distr/distrsolver.h"
@@ -42,24 +41,7 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
-
-auto ToMulti(const std::vector<Scal>& v) {
-  Multi<Scal> w(v.size());
-  w.data() = v;
-  return w;
-};
-
-void CopyToCanvas(uint32_t* buf, int w, int h) {
-  EM_ASM_(
-      {
-        let data = Module.HEAPU8.slice($0, $0 + $1 * $2 * 4);
-        let tctx = g_tmp_canvas.getContext("2d");
-        let image = tctx.getImageData(0, 0, $1, $2);
-        image.data.set(data);
-        tctx.putImageData(image, 0, 0);
-      },
-      buf, w, h);
-}
+#include "common.h"
 
 struct Par {};
 
@@ -108,12 +90,7 @@ class Solver : public KernelMeshPar<M, Par> {
   typename Vof<M>::Par vof_par;
   std::shared_ptr<linear::Solver<M>> linsolver;
   std::unique_ptr<TracerInterface<M>> tracer;
-};
-
-struct Canvas {
-  Canvas(MIdx size_) : size(size_), buf(size.prod()) {}
-  MIdx size;
-  std::vector<uint32_t> buf;
+  std::default_random_engine gen{21};
 };
 
 struct State {
@@ -138,64 +115,6 @@ std::shared_ptr<State> g_state;
 std::shared_ptr<Canvas> g_canvas;
 std::string g_extra_config;
 Vars g_var;
-
-static Scal Clamp(Scal f, Scal min, Scal max) {
-  return f < min ? min : f > max ? max : f;
-}
-
-template <class T>
-static T Clamp(T v) {
-  return v.max(T(0)).min(T(1));
-}
-
-static Scal Clamp(Scal f) {
-  return Clamp(f, 0, 1);
-}
-
-void GetCircle(FieldCell<Scal>& fcu, Vect c, Scal r, const M& m) {
-  Vars par;
-  par.String.Set("init_vf", "circlels");
-  par.Vect.Set("circle_c", c);
-  par.Double.Set("circle_r", r);
-  par.Int.Set("dim", 2);
-  auto func = CreateInitU<M>(par, false);
-  func(fcu, m);
-}
-
-static MIdx GetCanvasCoords(Vect x, const Canvas& canvas, const M& m) {
-  auto scaledsize = canvas.size * kScale;
-  MIdx w = MIdx(x * Vect(scaledsize) / m.GetGlobalLength());
-  w = w.max(MIdx(0)).min(scaledsize - MIdx(1));
-  w[1] = scaledsize[1] - w[1] - 1;
-  return w;
-}
-
-template <class MEB>
-FieldCell<typename MEB::Scal> GetVortScal(
-    const FieldCell<typename MEB::Vect>& fcvel,
-    const MapEmbed<BCond<typename MEB::Vect>>& me_vel, MEB& eb) {
-  using M = typename MEB::M;
-  constexpr auto dim = M::dim;
-  auto& m = eb.GetMesh();
-  using Scal = typename MEB::Scal;
-  using Vect = typename MEB::Vect;
-  using UEB = UEmbed<M>;
-
-  std::array<FieldCell<Vect>, dim> grad;
-  for (size_t d = 0; d < dim; ++d) {
-    grad[d].Reinit(m, Vect(0));
-    const auto mebc = GetScalarCond(me_vel, d, m);
-    const FieldCell<Scal> fcu = GetComponent(fcvel, d);
-    const FieldFace<Scal> ffg = UEB::Gradient(fcu, mebc, m);
-    grad[d] = UEB::AverageGradient(ffg, m);
-  }
-
-  FieldCell<Scal> res(m, 0);
-  for (auto c : m.Cells()) {
-    res[c] = grad[1][c][0] - grad[0][c][1];
-  }
-  return res;
-}
 
 static void RenderField(
     Canvas& canvas, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcvel,
@@ -256,9 +175,6 @@ static void RenderField(
         q = interp::Linear(f, Vect3(1, 1, 1), Vect3(0, 0.6, 0.87));
       }
     }
-    if (visvf) {
-      q = interp::Linear(visvf * fcu[c], Vect3(q), Vect3(0, 0.8, 0.42));
-    }
     if (vistracer && !vispot) {
       const auto u0 = fc_tracer[0][c];
       const auto f0 = Clamp(std::abs(u0 * vistracer));
@@ -267,6 +183,9 @@ static void RenderField(
     if (vistracer && vispot) {
       const auto ftr = Clamp(std::abs(fc_tracer[0][c] * vistracer));
       q = interp::Linear(ftr, Vect3(q), Vect3(0, 0.8, 0.42));
+    }
+    if (visvf) {
+      q = interp::Linear(visvf * fcu[c], Vect3(q), Vect3(0, 0.8, 0.42));
     }
     return q;
   };
@@ -322,10 +241,25 @@ void Solver::Run() {
     p.dim = 2;
     p.sharpen = var.Int["sharpen"];
     p.sharpen_cfl = var.Double["sharpen_cfl"];
-    p.coalth = var.Double["coalth"];
     p.recolor_grid = false;
     p.recolor_reduce = false;
-    p.recolor = 0;
+  };
+  constexpr auto kClNone = Vof<M>::kClNone;
+  auto is_left = [&](IdxFace ff) { //
+    auto f = m(ff);
+    return f.direction() == 0 && f[0] == 0;
+  };
+  auto is_right = [&](IdxFace ff) {
+    auto f = m(ff);
+    return f.direction() == 0 && f[0] == m.GetGlobalSize()[0];
+  };
+  auto is_bottom = [&](IdxFace ff) { //
+    auto f = m(ff);
+    return f.direction() == 1 && f[1] == 0;
+  };
+  auto is_top = [&](IdxFace ff) {
+    auto f = m(ff);
+    return f.direction() == 1 && f[1] == m.GetGlobalSize()[1];
   };
   if (sem("init_solver") && s.to_init_solver) {
     if (m.IsRoot()) {
@@ -345,25 +279,20 @@ void Solver::Run() {
       const size_t ntracers = 1;
       Multi<MapEmbed<BCond<Scal>>> bc_tracer(ntracers);
 
-      const auto topvel = var.Double["topvel"];
       for (auto f : m.AllFacesM()) {
         size_t nci;
         if (m.IsBoundary(f, nci)) {
-          const bool f_bottom = (f.direction() == 1 && f[1] == 0);
-          const bool f_top =
-              (f.direction() == 1 && f[1] == m.GetGlobalSize()[1]);
-          /*
-          const bool f_left = (f.direction() == 0 && f[0] == 0);
-          const bool f_right =
-              (f.direction() == 0 && f[0] == m.GetGlobalSize()[0]);
-              */
+          const bool f_left = is_left(f);
+          const bool f_right = is_right(f);
+          const bool f_top = is_top(f);
           { // fluid
             auto& bc = bc_fluid[f];
             bc.nci = nci;
-            bc.type = BCondFluidType::wall;
-            if (topvel && f_top) {
-              bc.type = BCondFluidType::slipwall;
-              bc.velocity = Vect(topvel, 0);
+            if (f_top) {
+              bc.type = BCondFluidType::outletpressure;
+              bc.pressure = 0;
+            } else {
+              bc.type = BCondFluidType::wall;
             }
           }
           { // vof
@@ -371,6 +300,7 @@ void Solver::Run() {
             bc.nci = nci;
             bc.halo = BCondAdvection<Scal>::Halo::fill;
             bc.fill_vf = 0;
+            bc.fill_cl = kClNone;
           }
           { // vorticity
             auto& bc = bc_vort[f];
@@ -380,9 +310,9 @@ void Solver::Run() {
           { // electro
             auto& bc = bc_electro[f];
             bc.nci = nci;
-            if (f_top || f_bottom) {
+            if (f_left || f_right) {
               bc.type = BCondType::dirichlet;
-              bc.val = (f_bottom ? 1 : -1);
+              bc.val = (f_left ? 1 : -1);
             } else {
               bc.type = BCondType::neumann;
             }
@@ -526,28 +456,75 @@ void Solver::Run() {
     if (auto* rate = var.Double.Find("growth_rate")) {
       const auto& fcvf = vof->GetField();
       const auto& trvf0 = tracer->GetVolumeFraction()[0];
-      for (auto c : m.Cells()) {
-        auto src2 = trvf0[c] * (*rate) * fcvf[c];
-        fc_src2[c] = src2;
-        fc_src_tracer[c] = -src2;
-        fc_src[c] = src2;
+      for (auto c : m.CellsM()) {
+        auto s = trvf0[c] * (*rate) * fcvf[c];
+        fc_src2[c] = s;
+        fc_src_tracer[c] = -s;
+        fc_src[c] = s;
       }
     }
 
-    {
+    { // update boundary conditions for dissolved gas flux
       auto& mebc = tracer->GetBCondMutable()[0];
+      auto& fcu = tracer->GetVolumeFraction()[0];
       auto& ffcur = electro->GetFaceCurrent();
-      const auto rate_top = var.Double["reaction_rate_top"];
-      const auto rate_bottom = var.Double["reaction_rate_bottom"];
+      const auto rate_left = var.Double["reaction_rate_left"];
+      const auto rate_right = var.Double["reaction_rate_right"];
+      const Scal cmax = var.Double["cmax"];
       for (auto& p : mebc.GetMapFace()) {
         const auto f = m(p.first);
         auto& bc = p.second;
-        const bool f_bottom = (f.direction() == 1 && f[1] == 0);
-        const bool f_top = (f.direction() == 1 && f[1] == m.GetGlobalSize()[1]);
-        if (f_top) {
-          bc.val = rate_top * ffcur[f];
-        } else if (f_bottom) {
-          bc.val = rate_bottom * ffcur[f];
+        const Scal u = fcu[f.cell(bc.nci)];
+        const bool f_left = is_left(f);
+        const bool f_right = is_right(f);
+        const Scal limit = std::max<Scal>(1 - u / cmax, 0);
+        if (f_left) {
+          bc.val = -rate_left * ffcur[f] * limit;
+        } else if (f_right) {
+          bc.val = -rate_right * ffcur[f] * limit;
+        }
+      }
+    }
+
+    { // nucleate bubbles
+      // XXX assuming a single block, otherwise reduction is needed
+      const auto& mebc = tracer->GetBCondMutable()[0];
+      const auto& tr0 = tracer->GetVolumeFraction()[0];
+      const Scal cmax = var.Double["cmax"] * var.Double["nucleate_cmax_factor"];
+      std::uniform_real_distribution<Scal> noise(
+          0, var.Double["nucleate_noise"]);
+      Scal max_noise = 0;
+      IdxCell max_c;
+      for (auto& p : mebc.GetMapFace()) {
+        const auto f = m(p.first);
+        auto& bc = p.second;
+        const auto c = f.cell(bc.nci);
+        const Scal u_noise = noise(gen);
+        const Scal u_sum = tr0[c] + u_noise;
+        const bool f_left = is_left(f);
+        const bool f_right = is_right(f);
+        if (f_left || f_right) {
+          if (u_sum > cmax && u_noise > max_noise) {
+            max_noise = u_noise;
+            max_c = c;
+          }
+        }
+      }
+      vof->AddModifier(
+          [](FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const M& m) { //
+            for (auto c : m.CellsM()) {
+              if (c.center[1] > 0.94) {
+                fcu[c] *= 0.5;
+              }
+            }
+          });
+      if (max_noise) {
+        if (auto* rate = var.Double.Find("growth_rate")) {
+          const auto c = max_c;
+          const auto s = tr0[c] * (*rate);
+          fc_src2[c] += s;
+          fc_src_tracer[c] += -s;
+          fc_src[c] += s;
         }
       }
     }
@@ -560,7 +537,7 @@ void Solver::Run() {
   }
   if (sem("spawn") && s.to_spawn) {
     vof->AddModifier(
-        [&](FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const M& m) { //
+        [&](FieldCell<Scal>& fcu, FieldCell<Scal>&, const M& m) { //
           FieldCell<Scal> fc_add(m);
           GetCircle(fc_add, s.spawn_c, s.spawn_r, m);
           for (auto c : m.Cells()) {
@@ -646,8 +623,9 @@ static void main_loop() {
 static std::string GetBaseConfig() {
   return R"EOF(
 set string linsolver_symm conjugate
-set double hypre_symm_tol 1e-3
-set int hypre_symm_maxiter 100
+set double hypre_symm_tol 1e-2
+set int hypre_symm_maxiter 20
+set int hypre_symm_miniter 5
 set int hypre_periodic_x 0
 set int hypre_periodic_y 0
 set double dtmax 0.1
@@ -657,23 +635,23 @@ set double mu1 0.001
 set double mu2 0.001
 set double sigma 0
 set vect gravity 0 -1
-set double topvel 0
-set int sharpen 0
-set int layers 3
-set double coalth 1.5
+set int sharpen 1
 set double sharpen_cfl 0.1
 set int coal 1
 
 set int nsteps 1
-set int reportevery 10
+set int reportevery 100
 
-set double cfl 1
-set double cflvis 0.5
+set double cfl 0.9
+set double cflvis 0.125
 set double cflsurf 2
+set double cfldiff 0.125
 
 set double visvel 0
-set double visvf 1
+set double visvf 0.7
 set double visvort 0
+set double vispot 1
+set double vistracer 1
 set int visinterp 0
 
 set int part 1
@@ -690,6 +668,26 @@ set int part_verb 0
 set int dim 2
 set int vtkbin 1
 set int vtkmerge 1
+
+# maximum concentration
+set double cmax 0.6
+
+set vect tracer_density 1
+set vect tracer_diffusion 0.002
+set vect tracer_diameter 0
+set vect tracer_viscosity 0
+set string tracer_scheme superbee
+
+set double growth_rate 0
+set double reaction_rate_left 0
+set double reaction_rate_right 0
+
+set double resist1 1
+set double resist2 1
+
+set double nucleate_cmax_factor 0.7
+set double nucleate_noise 0.001
+
 )EOF";
 }
 

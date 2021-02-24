@@ -11,43 +11,28 @@ var kScale = 1;
 function GetExtraConfig() {
   return `
 set double rho1 1
-set double mu1 0.0004
 set double rho2 0.1
-set double mu2 0.00004
-set vect gravity 0 -10
-set double hypre_symm_tol 1e-2
-set int hypre_symm_maxiter 20
-set int hypre_symm_miniter 5
-set double visvel 0
-set double visvf 0.7
-set double visvort 0
-set double vispot 1
-set double vistracer 1
-set int visinterp 0
-set int sharpen 1
-set double dtmax 0.1
-set double sigma 4
-set int nsteps 2
-set double cfl 0.9
-set double cflvis 0.125
-set double cflsurf 2
-set double cfldiff 0.125
-set double coalth 0.1
 
-set double growth_rate 10
-set double reaction_rate_top -2
-set double reaction_rate_bottom -1
+set int nsteps 2
+
+set double growth_rate 100
 
 set double resist1 1
 set double resist2 100
 
-set int reportevery 100
+set int visinterp 1
 
-set vect tracer_density 1
-set vect tracer_diffusion 0.002
-set vect tracer_diameter 0
-set vect tracer_viscosity 0
-set string tracer_scheme superbee
+set double cmax 0.6
+
+set double visvort 0.01
+set double vispot 0
+set double vistracer 2
+set double visvf 0.7
+
+#set double vistracer 0
+
+set double nucleate_cmax_factor 0.7
+set double nucleate_noise 0.001
 `
 }
 
@@ -60,39 +45,60 @@ function SetRuntimeConfig(conf) {
 }
 
 function SetSigma(sigma) {
-  SetRuntimeConfig("set double sigma " + sigma);
+  let c = `
+set double sigma ${sigma}
+`;
+  SetRuntimeConfig(c);
+  return c;
 }
 
 function SetMu(mu) {
-  SetRuntimeConfig("set double mu1 " + mu);
-  SetRuntimeConfig("set double mu2 " + (mu * 10));
+  let c = `
+set double mu1 ${mu}
+set double mu2 ${mu * 0.1}
+`;
+  SetRuntimeConfig(c);
+  return c;
 }
 
 function SetRate(r) {
-  SetRuntimeConfig("set double reaction_rate_top " + (-r * 2));
-  SetRuntimeConfig("set double reaction_rate_bottom " + (-r));
+  let c = `
+set double reaction_rate_left ${r * 2}
+set double reaction_rate_right ${r}
+`;
+  SetRuntimeConfig(c);
+  return c;
 }
 
 function SetDiffusion(d) {
-  SetRuntimeConfig("set vect tracer_diffusion " + d);
+  let c = `
+set vect tracer_diffusion ${d}
+`;
+  SetRuntimeConfig(c);
+  return c;
 }
 
-function SetGravity(g) {
-  g = g ? -10 : 0;
-  SetRuntimeConfig("set vect gravity 0 " + g);
+function SetGravity(flag) {
+  let g = flag ? -10 : 0;
+  let c = `
+set vect gravity 0 ${g}
+`;
+  SetRuntimeConfig(c);
+  return c;
 }
 
 
 function Init(nx) {
   conf = GetExtraConfig()
+  let cc = [];
+  cc.push(SetSigma(window.range_sigma.value));
+  cc.push(SetMu(window.range_mu.value));
+  cc.push(SetRate(window.range_rate.value));
+  cc.push(SetDiffusion(window.range_diffusion.value));
+  cc.push(SetGravity(window.checkbox_gravity.checked));
+  conf += cc.join('');
   SetExtraConfig(conf);
   Module.ccall('SetMesh', null, ['number'], [nx])
-  //Spawn(0.5, 0.5, 0.2);
-  SetSigma(window.range_sigma.value);
-  SetMu(window.range_mu.value);
-  SetRate(window.range_rate.value);
-  SetDiffusion(window.range_diffusion.value);
-  SetGravity(window.checkbox_gravity.checked);
 }
 
 
@@ -144,7 +150,7 @@ function PostRun() {
   let mouseclick = function(ev){
     let x = ev.offsetX / canvas.width;
     let y = 1 - ev.offsetY / canvas.height;
-    Spawn(x, y, 0.1);
+    Spawn(x, y, 0.015);
   };
 
   window.addEventListener('keydown', keydown, false);
