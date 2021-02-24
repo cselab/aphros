@@ -27,7 +27,7 @@
     <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
 
     <div class="emscripten" style="padding: 5px;">
-      [mouse click] spawn a drop, [space] pause
+      [mouse click] spawn a bubble, [space] pause
     </div>
     <div class="emscripten" style="padding: 5px;">
       <input type="button" class="button" value="clear"
@@ -50,17 +50,17 @@
         <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">surface tension</span></label>
     </div>
     <div class="emscripten" style="padding: 5px;">
-      <label class="label" style="margin-top: 10px"><input type="range" min="0" max="0.01" value="0.001" step="0.0001" id="range_mu" style="padding-top: 0px;"
+      <label class="label" style="margin-top: 10px"><input type="range" min="0" max="0.02" value="0.001" step="0.0002" id="range_mu" style="padding-top: 0px;"
         onchange="SetMu(this.value);">
         <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">viscosity</span></label>
     </div>
     <div class="emscripten" style="padding: 5px;">
-      <label class="label" style="margin-top: 10px"><input type="range" min="0" max="50" value="30" step="1" id="range_rate" style="padding-top: 0px;"
+      <label class="label" style="margin-top: 10px"><input type="range" min="0" max="1" value="0.1" step="0.01" id="range_rate" style="padding-top: 0px;"
         onchange="SetRate(this.value);">
         <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">reaction rate</span></label>
     </div>
     <div class="emscripten" style="padding: 5px;">
-      <label class="label" style="margin-top: 10px"><input type="range" min="0" max="0.003" value="0.0005" step="0.0001" id="range_diffusion" style="padding-top: 0px;"
+      <label class="label" style="margin-top: 10px"><input type="range" min="0.0005" max="0.05" value="0.005" step="0.0005" id="range_diffusion" style="padding-top: 0px;"
         onchange="SetDiffusion(this.value);">
         <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">molecular diffusion</span></label>
     </div>

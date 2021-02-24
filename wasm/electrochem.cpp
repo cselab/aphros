@@ -477,11 +477,16 @@ void Solver::Run() {
         const Scal u = fcu[f.cell(bc.nci)];
         const bool f_left = is_left(f);
         const bool f_right = is_right(f);
-        const Scal limit = std::max<Scal>(1 - u / cmax, 0);
+        Scal k;
+        if (tracer_diffusion > 0) {
+          k = std::max<Scal>(1 - u / cmax, 0) * ffcur[f] / tracer_diffusion;
+        } else {
+          k = 0;
+        }
         if (f_left) {
-          bc.val = -rate_left * ffcur[f] * limit;
+          bc.val = -rate_left * k;
         } else if (f_right) {
-          bc.val = -rate_right * ffcur[f] * limit;
+          bc.val = -rate_right * k;
         }
       }
     }
@@ -510,11 +515,12 @@ void Solver::Run() {
           }
         }
       }
+      const Scal surface_height = var.Double["surface_height"];
       vof->AddModifier(
-          [](FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const M& m) { //
+          [surface_height](FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const M& m) { //
             for (auto c : m.CellsM()) {
-              if (c.center[1] > 0.94) {
-                fcu[c] *= 0.5;
+              if (c.center[1] > surface_height) {
+                fcu[c] = 1;
               }
             }
           });

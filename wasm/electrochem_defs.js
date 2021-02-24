@@ -15,6 +15,8 @@ set double rho2 0.1
 
 set int nsteps 2
 
+set double cfl 0.5
+
 set double growth_rate 100
 
 set double resist1 1
@@ -23,6 +25,7 @@ set double resist2 100
 set int visinterp 1
 
 set double cmax 0.6
+set double surface_height 0.8
 
 set double visvort 0.01
 set double vispot 0
@@ -150,7 +153,7 @@ function PostRun() {
   let mouseclick = function(ev){
     let x = ev.offsetX / canvas.width;
     let y = 1 - ev.offsetY / canvas.height;
-    Spawn(x, y, 0.015);
+    Spawn(x, y, 0.05);
   };
 
   window.addEventListener('keydown', keydown, false);
