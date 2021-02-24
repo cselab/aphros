@@ -17,7 +17,7 @@ set int nsteps 2
 
 set double cfl 0.5
 
-set double growth_rate 100
+set double growth_rate 10
 
 set double resist1 1
 set double resist2 100
@@ -34,8 +34,10 @@ set double visvf 0.7
 
 #set double vistracer 0
 
-set double nucleate_cmax_factor 0.7
-set double nucleate_noise 0.001
+set double nucl_cmax_factor 0.9
+set double nucl_noise 0.01
+set double nucl_vf_factor 0
+set double nucl_dt 0
 `
 }
 

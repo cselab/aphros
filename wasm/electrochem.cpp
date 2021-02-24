@@ -91,6 +91,8 @@ class Solver : public KernelMeshPar<M, Par> {
   std::shared_ptr<linear::Solver<M>> linsolver;
   std::unique_ptr<TracerInterface<M>> tracer;
   std::default_random_engine gen{21};
+  IdxCell nucl_cell;
+  Scal nucl_last_t = -1e10;
 };
 
 struct State {
@@ -491,42 +493,51 @@ void Solver::Run() {
       }
     }
 
-    { // nucleate bubbles
-      // XXX assuming a single block, otherwise reduction is needed
-      const auto& mebc = tracer->GetBCondMutable()[0];
-      const auto& tr0 = tracer->GetVolumeFraction()[0];
-      const Scal cmax = var.Double["cmax"] * var.Double["nucleate_cmax_factor"];
-      std::uniform_real_distribution<Scal> noise(
-          0, var.Double["nucleate_noise"]);
-      Scal max_noise = 0;
-      IdxCell max_c;
-      for (auto& p : mebc.GetMapFace()) {
-        const auto f = m(p.first);
-        auto& bc = p.second;
-        const auto c = f.cell(bc.nci);
-        const Scal u_noise = noise(gen);
-        const Scal u_sum = tr0[c] + u_noise;
-        const bool f_left = is_left(f);
-        const bool f_right = is_right(f);
-        if (f_left || f_right) {
-          if (u_sum > cmax && u_noise > max_noise) {
-            max_noise = u_noise;
-            max_c = c;
-          }
-        }
-      }
+    { // create layer of gas
       const Scal surface_height = var.Double["surface_height"];
       vof->AddModifier(
-          [surface_height](FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const M& m) { //
+          [surface_height](
+              FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const M& m) { //
             for (auto c : m.CellsM()) {
               if (c.center[1] > surface_height) {
                 fcu[c] = 1;
               }
             }
           });
-      if (max_noise) {
+    }
+
+    { // nucl bubbles
+      // XXX assuming a single block, otherwise reduction is needed
+      const auto& mebc = tracer->GetBCondMutable()[0];
+      const auto& fcvf = vof->GetField();
+      const auto& tr0 = tracer->GetVolumeFraction()[0];
+      const Scal cmax = var.Double["cmax"] * var.Double["nucl_cmax_factor"];
+      const Scal vff = var.Double["nucl_vf_factor"];
+      std::uniform_real_distribution<Scal> noise(0, var.Double["nucl_noise"]);
+      Scal max_noise = 0;
+      if (fluid->GetTime() - nucl_last_t > var.Double["nucl_dt"]) {
+        IdxCell max_c;
+        for (auto& p : mebc.GetMapFace()) {
+          const auto f = m(p.first);
+          auto& bc = p.second;
+          const auto c = f.cell(bc.nci);
+          const Scal u_noise = noise(gen);
+          const Scal u_sum = tr0[c] + u_noise + fcvf[c] * vff;
+          const bool f_left = is_left(f);
+          const bool f_right = is_right(f);
+          if (f_left || f_right) {
+            if (u_sum > cmax && u_noise > max_noise) {
+              max_noise = u_noise;
+              max_c = c;
+            }
+          }
+        }
+        nucl_cell = max_c;
+        nucl_last_t = fluid->GetTime();
+      }
+      if (nucl_last_t >= 0) {
         if (auto* rate = var.Double.Find("growth_rate")) {
-          const auto c = max_c;
+          const auto c = nucl_cell;
           const auto s = tr0[c] * (*rate);
           fc_src2[c] += s;
           fc_src_tracer[c] += -s;
@@ -691,8 +702,8 @@ set double reaction_rate_right 0
 set double resist1 1
 set double resist2 1
 
-set double nucleate_cmax_factor 0.7
-set double nucleate_noise 0.001
+set double nucl_cmax_factor 0.7
+set double nucl_noise 0.001
 
 )EOF";
 }
