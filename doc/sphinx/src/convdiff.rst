@@ -12,9 +12,8 @@ of a solver for the vector convection-diffusion equation
   \frac{\partial \mathbf{u}}{\partial t} 
   + (\mathbf{v}\cdot\nabla) \mathbf{u}
   \Big)
-  + \nabla \cdot (\mu \nabla \mathbf{u})
+  = \nabla \cdot (\mu \nabla \mathbf{u})
   + \mathbf{f}
-  = 0
 
 in the discrete form
 
@@ -25,9 +24,9 @@ in the discrete form
   \frac{\delta \mathbf{u}_c}{\delta t}
   + \frac{1}{V_c}\sum_{f\in c} v_f \mathbf{u}_f S^c_{\!f}
   \Big)
-  + \frac{1}{V_c}\sum_{f\in c} \mu_f
+  = \frac{1}{V_c}\sum_{f\in c} \mu_f
     \frac{\delta \mathbf{u}_f}{\delta n} S^c_{\!f}
-  + \mathbf{f}_c = 0,
+  + \mathbf{f}_c
 
 where :math:`c` is a cell index,
 :math:`\phi_c` is a cell-average,
@@ -95,9 +94,9 @@ corresponding to the discrete equation
   \frac{\delta \mathbf{u}_c^{s+1}}{\delta t}
   + \frac{1}{V_c}\sum_{f\in c} v_f^s \mathbf{u}_f^{s+1} S^c_{\!f}
   \Big)
-  + \frac{1}{V_c}\sum_{f\in c} \mu_f^s
+  = \frac{1}{V_c}\sum_{f\in c} \mu_f^s
     \frac{\delta \mathbf{u}_f^{s+1}}{\delta n} S^c_{\!f}
-  + \mathbf{f}_c^s = 0
+  + \mathbf{f}_c^s
 
 which requires solving a linear system at every iteration.
 
@@ -150,9 +149,9 @@ corresponding to the discrete equation
   \frac{\delta \mathbf{u}_c^{s+1}}{\delta t}
   + \frac{1}{V_c}\sum_{f\in c} v_f^s \mathbf{u}_f^{s} S^c_{\!f}
   \Big)
-  + \frac{1}{V_c}\sum_{f\in c} \mu_f^s
+  = \frac{1}{V_c}\sum_{f\in c} \mu_f^s
     \frac{\delta \mathbf{u}_f^{s}}{\delta n} S^c_{\!f}
-  + \mathbf{f}_c^s = 0.
+  + \mathbf{f}_c^s.
 
 Here the solution is advanced by explicit formulas
 and the linear system is constructed

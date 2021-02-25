@@ -109,7 +109,7 @@ int RunMpi0(
 
   if (isroot) {
     if (var.Int("verbose_conf_reads", 0)) {
-      auto print_reads = [&var, &var_reads](const auto& map) {
+      auto print_reads = [&var_reads](const auto& map) {
         for (auto it = map.cbegin(); it != map.cend(); ++it) {
           const auto key = it->first;
           std::cout << (var_reads.count(key) ? var_reads.at(key).load() : 0)
@@ -134,7 +134,7 @@ int RunMpi0(
         });
       }
       std::cout << "Unused configuration variables:\n";
-      var.ForEachMap([&var, &ignore, &var_reads](const auto& map) {
+      var.ForEachMap([&ignore, &var_reads](const auto& map) {
         for (auto it = map.cbegin(); it != map.cend(); ++it) {
           const auto key = it->first;
           if (!var_reads.count(key) && !ignore.count(key)) {

@@ -232,8 +232,8 @@ struct Vof<EB_>::Imp {
       const Scal v = ffv[f];
       // flux through full face that would give the same velocity
       const Scal v0 = v / eb.GetAreaFraction(f);
-      const IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
-      if (uc[c] > 0 && uc[c] < 1) { // interfacial cell
+      const IdxCell c = m.GetCell(f, v > 0 ? 0 : 1); // upwind cell
+      if (uc[c] > 0 && uc[c] < 1 && fcn[c].sqrnorm() > 0) { // interfacial cell
         switch (type) {
           case SweepType::plain:
           case SweepType::EI:
@@ -242,19 +242,19 @@ struct Vof<EB_>::Imp {
             break;
           }
           case SweepType::LE: {
-            const Scal vc = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
+            const Scal vc = (v > 0 ? (*fcfm)[c] : (*fcfp)[c]);
             const Scal vc0 = vc / eb.GetAreaFraction(f);
             ffvu[f] = R::GetLineFluxStr(fcn[c], fca[c], h, v0, vc0, dt, d);
             break;
           }
         }
-      } else { // pure cell
+      } else { // pure cell or cell with undefined normal
         ffvu[f] = v0 * uc[c];
       }
 
       // propagate color to downwind cell if empty
       if (fccl[c] != kClNone) {
-        const IdxCell cd = m.GetCell(f, v > 0. ? 1 : 0); // downwind cell
+        const IdxCell cd = m.GetCell(f, v > 0 ? 1 : 0); // downwind cell
         if (fccl[cd] == kClNone) {
           fccl[cd] = fccl[c];
           const MIdx w = indexc.GetMIdx(c);
@@ -273,7 +273,7 @@ struct Vof<EB_>::Imp {
         const IdxFace f = p.first;
         const auto& bc = p.second;
         const Scal v = ffv[f];
-        if ((bc.nci == 0) != (v > 0.)) {
+        if ((bc.nci == 0) != (v > 0)) {
           ffvu[f] = v * ffu[f];
         }
       }
@@ -297,7 +297,7 @@ struct Vof<EB_>::Imp {
           break;
         }
         case SweepType::EI: {
-          u = (u - dl) / (1. - ds);
+          u = (u - dl) / (1 - ds);
           break;
         }
         case SweepType::LE: {

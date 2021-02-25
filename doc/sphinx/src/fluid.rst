@@ -8,15 +8,14 @@ Abstract class ``FluidSolver`` describes the interface
 of a solver for the Navier-Stokes equations
 
 .. math::
-  \nabla \cdot \mathbf{u} = S_v
+  \nabla \cdot \mathbf{u} &= S_v
   \\
   \rho \Big(
   \frac{\partial \mathbf{u}}{\partial t}
   + (\mathbf{v}\cdot\nabla) \mathbf{u}
   \Big)
-  + \nabla \cdot (\mu \nabla \mathbf{u})
+  &=  -\nabla p + \nabla \cdot \mu (\nabla \mathbf{u} + \nabla \mathbf{u}^T)
   + \mathbf{f}
-  = 0
 
 where the continuity equation is discretized as
 

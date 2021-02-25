@@ -9,8 +9,8 @@
 #include "comm_manager_seq.ipp"
 #endif
 
-template class CommManager<1>;
-template class CommManager<2>;
-template class CommManager<3>;
-template class CommManager<4>;
+template struct CommManager<1>;
+template struct CommManager<2>;
+template struct CommManager<3>;
+template struct CommManager<4>;
 

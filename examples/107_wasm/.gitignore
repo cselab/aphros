@@ -1,4 +1,5 @@
 *.wasm
 hydro.js
 diffusion.js
+electrochem.js
 .work

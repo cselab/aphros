@@ -103,7 +103,7 @@ auto Xmf<Vect>::ReadXmf(std::istream& buf) -> Meta {
     fassert(map.count(key), "Key not found: " + key);
     return map.at(key);
   };
-  auto conv = [&map, &get](std::string key, auto& value) {
+  auto conv = [&get](std::string key, auto& value) {
     std::stringstream(get(key)) >> value;
   };
   auto convvect = [&conv](std::string key, auto& value) {

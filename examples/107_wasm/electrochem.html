@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=640px, initial-scale=0.55">
+    <title>Electrochemical Reactor</title>
+    <style>
+      html *
+      {
+         font-family: Arial, Helvetica, sans-serif;
+      }
+      .emscripten {
+        padding-right: 0;
+        padding: 5px;
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+        touch-action: manipulation;
+      }
+      textarea.emscripten { font-family: monospace; width: 500px; }
+      canvas.emscripten { border: 0px none; background-color: white; }
+      div.emscripten { text-align: center; }
+
+      .slider {
+        outline: none;
+        width: 300px;
+        height: 30px;
+        padding-top: 0px;
+      }
+      .label {
+        margin-top: 0px;
+      }
+      .emscripten span {
+        display: inline-block;
+        white-space: nowrap;
+        line-height: 42px;
+        vertical-align: text-bottom;
+        width: 150px;
+        text-align:left;
+      }
+
+      .button {
+        display: inline-block;
+        color: #000000;
+        vertical-align: baseline;
+        border-radius: 0;
+        border: none;
+        border: 2px solid #808080;
+        margin: 0 0;
+        padding: 0;
+        text-align: center;
+        text-decoration: none;
+        font-size: 15pt;
+        height: 60px;
+        width: 80px;
+        touch-action: manipulation;
+      }
+      .button2 {width: 80px;}
+
+      .frame { border: 3px solid #ccc; background: #eee; margin: auto; padding: 15px 10px; }
+    </style>
+  </head>
+  <body>
+    <div class="emscripten" style="padding: 5px;">
+      Electrolysis of water. Dissolved hydrogen and oxygen (red)<br>
+      nucleate into bubbles (green)
+      </br>
+      <a href="https://github.com/cselab/aphros">github.com/cselab/aphros</a>
+      [<a href="https://github.com/cselab/aphros/tree/master/examples/107_wasm">wasm</a>]
+    </div>
+
+    <noscript>
+      <div style="color:red;" class="emscripten">
+        This simulation needs JavaScript
+      </div>
+    </noscript>
+    <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
+
+    <div class="emscripten" style="padding: 5px;">
+    [space] pause, [mouse click] spawn a bubble
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <input type="button" class="button" value="pause" onclick="TogglePause();">
+      <input type="button" class="button" value="clear"
+        onclick="SetExtraConfig(); Module.ccall('Init', null, [])">
+      <input type="button" class="button button2" value="16" onclick="Init(16)">
+      <input type="button" class="button button2" value="32" onclick="Init(32)">
+      <input type="button" class="button button2" value="64" onclick="Init(64)">
+      <input type="button" class="button button2" value="128" onclick="Init(128)">
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label"><input type="range" class="slider" min="0" max="20" value="10" step="1" id="range_gravity"
+        onchange="SetGravity(this.value);">
+        <span>gravity</span></label>
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label"><input type="range" class="slider" min="0" max="1" value="0.2" step="0.01" id="range_sigma"
+        onchange="SetSigma(this.value);">
+        <span>surface tension</span></label>
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label"><input type="range" class="slider" min="0" max="0.02" value="0.001" step="0.0002" id="range_mu"
+        onchange="SetMu(this.value);">
+        <span>viscosity</span></label>
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label"><input type="range" class="slider" min="0" max="0.5" value="0.1" step="0.01" id="range_rate"
+        onchange="SetRate(this.value);">
+        <span>reaction rate</span></label>
+    </div>
+    <div class="emscripten" style="padding: 5px;">
+      <label class="label"><input type="range" class="slider" min="0.0005" max="0.05" value="0.005" step="0.0005" id="range_diffusion"
+        onchange="SetDiffusion(this.value);">
+        <span>molecular diffusion</span></label>
+    </div>
+
+    <!--<textarea class="emscripten" id="output" rows="20"></textarea>-->
+
+    <script src=electrochem_defs.js></script>
+    <script async src=electrochem.js></script>
+  </body>
+</html>

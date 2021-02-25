@@ -180,7 +180,7 @@ struct Vofm<EB_>::Imp {
       fci.Reinit(m, false);
       for (auto c : eb.AllCells()) {
         Scal u = fcu[c];
-        if (u > 0. && u < 1.) {
+        if (u > 0 && u < 1) {
           fci[c] = true;
         }
       }
@@ -464,10 +464,10 @@ struct Vofm<EB_>::Imp {
         const Scal v = ffv[f];
         // flux through full face that would give the same velocity
         const Scal v0 = v / eb.GetAreaFraction(f);
-        const IdxCell c = m.GetCell(f, v > 0. ? 0 : 1); // upwind cell
+        const IdxCell c = m.GetCell(f, v > 0 ? 0 : 1); // upwind cell
         if (fccl[c] != kClNone) {
           ffcl[f] = fccl[c];
-          if (fcu[c] > 0 && fcu[c] < 1) {
+          if (fcu[c] > 0 && fcu[c] < 1 && fcn[c].sqrnorm() > 0) {
             switch (type) {
               case SweepType::plain:
               case SweepType::EI:
@@ -477,7 +477,7 @@ struct Vofm<EB_>::Imp {
                 break;
               }
               case SweepType::LE: {
-                const Scal vc = (v > 0. ? (*fcfm)[c] : (*fcfp)[c]);
+                const Scal vc = (v > 0 ? (*fcfm)[c] : (*fcfp)[c]);
                 const Scal vc0 = vc / eb.GetAreaFraction(f);
                 const Scal vu0 =
                     R::GetLineFluxStr(fcn[c], fca[c], h, v0, vc0, dt, d);
@@ -485,12 +485,12 @@ struct Vofm<EB_>::Imp {
                 break;
               }
             }
-          } else { // pure cell
+          } else { // pure cell or cell with undefined normal
             ffvu[f] = v * fcu[c];
           }
 
           // propagate to downwind cell if empty
-          IdxCell cd = eb.GetCell(f, v > 0. ? 1 : 0); // downwind cell
+          IdxCell cd = eb.GetCell(f, v > 0 ? 1 : 0); // downwind cell
           bool found = false; // found same color downwind
           for (auto j : layers) {
             if ((*mfccl[j])[cd] == fccl[c]) {
@@ -521,7 +521,7 @@ struct Vofm<EB_>::Imp {
         const auto& bc = p.second;
         if (ffcl[f] != kClNone) {
           const Scal v = ffv[f];
-          if ((bc.nci == 0) != (v > 0.)) {
+          if ((bc.nci == 0) != (v > 0)) {
             ffvu[f] = v * ffu[f];
           }
         }
@@ -562,7 +562,7 @@ struct Vofm<EB_>::Imp {
               break;
             }
             case SweepType::EI: {
-              u = (u - dl) / (1. - ds);
+              u = (u - dl) / (1 - ds);
               break;
             }
             case SweepType::LE: {
