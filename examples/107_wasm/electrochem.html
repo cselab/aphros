@@ -47,14 +47,14 @@
         vertical-align: baseline;
         border-radius: 0;
         border: none;
-        border: 2px solid #808080;
+        border: 0.15em solid #808080;
         margin: 0 0;
         padding: 0;
         text-align: center;
         text-decoration: none;
-        font-size: 15pt;
-        height: 60px;
-        width: 80px;
+        font-size: 1.2em;
+        height: 1.8em;
+        width: 3.5em;
         touch-action: manipulation;
       }
       .button:hover {
@@ -64,7 +64,7 @@
         background: #808080;
       }
       .pressed {
-        border: 3px solid #000000;
+        border: 0.22em solid #000000;
       }
 
       .frame { border: 3px solid #ccc; background: #eee; margin: auto; padding: 15px 10px; }
@@ -72,7 +72,7 @@
   </head>
   <body>
     <div align="center">
-      Water electrolysis. Dissolved hydrogen and oxygen (red)<br>
+      Water electrolysis. Dissolved hydrogen and oxygen gases (red)
       nucleate into bubbles (green)
       </br>
       <a href="https://github.com/cselab/aphros">github.com/cselab/aphros</a>
@@ -87,7 +87,7 @@
     <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
 
     <div class="emscripten" style="padding: 5px;">
-    [space] pause, [click] spawn a bubble
+    [space] pause, [click] draw a bubble
     </div>
     <div class="emscripten" style="padding: 5px;">
       <input type="button" class="button" id="button_pause" value="pause" onclick="TogglePause();">
