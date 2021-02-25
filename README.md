@@ -84,9 +84,9 @@ where `PREFIX` is the installation location (e.g. `~/.local`).
 
 ## Online demos
 
-[<img src="https://cselab.github.io/aphros/images/curv.png" height=200>](https://cselab.github.io/aphros/curv.html) | [<img src="https://cselab.github.io/aphros/images/wasm.png" height=200>](https://cselab.github.io/aphros/wasm/hydro.html)
+[<img src="https://cselab.github.io/aphros/images/curv.png" height=200>](https://cselab.github.io/aphros/curv.html) | [<img src="https://cselab.github.io/aphros/images/wasm.png" height=200>](https://cselab.github.io/aphros/wasm/hydro.html) | [<img src="https://cselab.github.io/aphros/images/electrochem.png" height=200>](https://cselab.github.io/aphros/wasm/electrochem.html)
 :---:|:---:
-curvature estimation | coalescence prevention
+curvature estimation | coalescence prevention | electrochemical reactor
 
 
 ## Videos
