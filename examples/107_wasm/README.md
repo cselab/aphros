@@ -1,10 +1,19 @@
-# WebAssembly Coalescence of Drops
+# WebAssembly Examples
 
-Finite-volume simulation of two fluids with different densities.
+Examples compiled to [WebAssembly](https://webassembly.org/)
+that directly in the web browser.
 
+* `electrochem`: Water electrolysis with dissolved gases nucleating into bubbles
+[Online demo](https://cselab.github.io/aphros/wasm/electrochem.html)
+
+* `hydro`: Interacting liquid drops with or without coalescence
 [Online demo](https://cselab.github.io/aphros/wasm/hydro.html)
 
-## Install
+* `diffusion`: Advection-diffusion equation
+[Online demo](https://cselab.github.io/aphros/wasm/diffusion.html)
+
+
+## Build and run
 
 Uses
 [emscripten](https://emscripten.org/docs/getting_started/downloads.html#sdk-download-and-install),
