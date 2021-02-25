@@ -1,7 +1,7 @@
 # WebAssembly Examples
 
 Examples compiled to [WebAssembly](https://webassembly.org/)
-that directly in the web browser.
+that run directly in the web browser.
 
 * [electrochem](https://cselab.github.io/aphros/wasm/electrochem.html):
 Water electrolysis with dissolved gases nucleating into bubbles
