@@ -15,7 +15,7 @@ hydro.js: hydro.cpp $(WRK)/libaphros_js.a
 		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@
 electrochem.js: electrochem.cpp $(WRK)/libaphros_js.a
 	$(CXX) $< $(CXXFLAGS) $(WASMFLAGS) -I$(SRC) $(WRK)/libaphros_js.a $1 \
-		-s EXPORTED_FUNCTIONS='["_main", "_AddVelocityAngle", "_SetRuntimeConfig", "_SetExtraConfig", "_TogglePause", "_Init", "_Spawn", "_SetMesh" ,"_GetLines", "_SetCoal"]' \
+		-s EXPORTED_FUNCTIONS='["_main", "_SetRuntimeConfig", "_SetExtraConfig", "_TogglePause", "_Init", "_Spawn", "_SetMesh" ,"_GetLines"]' \
 		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@
 diffusion.js: diffusion.cpp $(WRK)/libaphros_js.a
 	$(CXX) $< $(CXXFLAGS) $(WASMFLAGS) -I$(SRC) $(WRK)/libaphros_js.a $1 \

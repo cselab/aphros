@@ -735,20 +735,6 @@ set double surface_height 0.9
 }
 
 extern "C" {
-Scal AddVelocityAngle(Scal add_deg) {
-  if (!g_state) {
-    return 0;
-  }
-  auto& var_g = g_var.Vect["gravity"];
-  Vect g(var_g);
-  Scal deg = std::atan2(g[1], g[0]) * 180. / M_PI;
-  deg += add_deg;
-  const Scal rad = deg * M_PI / 180.;
-  g = Vect(std::cos(rad), std::sin(rad)) * g.norm();
-  std::cout << util::Format("g={:.3f} angle={:.1f}", g, deg) << std::endl;
-  var_g = g;
-  return deg;
-}
 void Init() {
   if (!g_state) {
     return;
@@ -774,9 +760,6 @@ int TogglePause() {
   auto& s = *g_state;
   s.pause = !s.pause;
   return s.pause;
-}
-void SetCoal(int flag) {
-  return;
 }
 void SetExtraConfig(const char* conf) {
   g_extra_config = conf;
