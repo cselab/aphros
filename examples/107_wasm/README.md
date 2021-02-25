@@ -3,15 +3,14 @@
 Examples compiled to [WebAssembly](https://webassembly.org/)
 that directly in the web browser.
 
-* `electrochem`: Water electrolysis with dissolved gases nucleating into bubbles
-[Online demo](https://cselab.github.io/aphros/wasm/electrochem.html)
+* [electrochem](https://cselab.github.io/aphros/wasm/electrochem.html):
+Water electrolysis with dissolved gases nucleating into bubbles
 
-* `hydro`: Interacting liquid drops with or without coalescence
-[Online demo](https://cselab.github.io/aphros/wasm/hydro.html)
+* [hydro](https://cselab.github.io/aphros/wasm/hydro.html):
+Interacting liquid drops with or without coalescence
 
-* `diffusion`: Advection-diffusion equation
-[Online demo](https://cselab.github.io/aphros/wasm/diffusion.html)
-
+* [diffusion](https://cselab.github.io/aphros/wasm/diffusion.html):
+Advection-diffusion equation
 
 ## Build and run
 
