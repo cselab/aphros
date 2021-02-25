@@ -3,14 +3,21 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=640px, initial-scale=0.55">
     <title>Electrochemical Reactor</title>
     <style>
       html *
       {
          font-family: Arial, Helvetica, sans-serif;
       }
-      .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; touch-action: manipulation; }
+      .emscripten {
+        padding-right: 0;
+        padding: 5px;
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+        touch-action: manipulation;
+      }
       textarea.emscripten { font-family: monospace; width: 500px; }
       canvas.emscripten { border: 0px none; background-color: white; }
       div.emscripten { text-align: center; }
@@ -18,9 +25,20 @@
       .slider {
         outline: none;
         width: 300px;
+        height: 30px;
         padding-top: 0px;
       }
-
+      .label {
+        margin-top: 0px;
+      }
+      .emscripten span {
+        display: inline-block;
+        white-space: nowrap;
+        line-height: 42px;
+        vertical-align: text-bottom;
+        width: 150px;
+        text-align:left;
+      }
 
       .button {
         display: inline-block;
@@ -41,8 +59,6 @@
       .button2 {width: 80px;}
 
       .frame { border: 3px solid #ccc; background: #eee; margin: auto; padding: 15px 10px; }
-      .label {}
-      .emscripten span { display: inline-block; white-space: nowrap; }
     </style>
   </head>
   <body>
@@ -69,29 +85,29 @@
       <input type="button" class="button button2" value="128" onclick="Init(128)">
     </div>
     <div class="emscripten" style="padding: 5px;">
-      <label class="label" style="margin-top: 10px"><input type="range" class="slider" min="0" max="20" value="10" step="1" id="range_gravity"
+      <label class="label"><input type="range" class="slider" min="0" max="20" value="10" step="1" id="range_gravity"
         onchange="SetGravity(this.value);">
-        <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">gravity</span></label>
+        <span>gravity</span></label>
     </div>
     <div class="emscripten" style="padding: 5px;">
-      <label class="label" style="margin-top: 10px"><input type="range" class="slider" min="0" max="1" value="0.2" step="0.01" id="range_sigma"
+      <label class="label"><input type="range" class="slider" min="0" max="1" value="0.2" step="0.01" id="range_sigma"
         onchange="SetSigma(this.value);">
-        <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">surface tension</span></label>
+        <span>surface tension</span></label>
     </div>
     <div class="emscripten" style="padding: 5px;">
-      <label class="label" style="margin-top: 10px"><input type="range" class="slider" min="0" max="0.02" value="0.001" step="0.0002" id="range_mu"
+      <label class="label"><input type="range" class="slider" min="0" max="0.02" value="0.001" step="0.0002" id="range_mu"
         onchange="SetMu(this.value);">
-        <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">viscosity</span></label>
+        <span>viscosity</span></label>
     </div>
     <div class="emscripten" style="padding: 5px;">
-      <label class="label" style="margin-top: 10px"><input type="range" class="slider" min="0" max="0.5" value="0.1" step="0.01" id="range_rate"
+      <label class="label"><input type="range" class="slider" min="0" max="0.5" value="0.1" step="0.01" id="range_rate"
         onchange="SetRate(this.value);">
-        <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">reaction rate</span></label>
+        <span>reaction rate</span></label>
     </div>
     <div class="emscripten" style="padding: 5px;">
-      <label class="label" style="margin-top: 10px"><input type="range" class="slider" min="0.0005" max="0.05" value="0.005" step="0.0005" id="range_diffusion"
+      <label class="label"><input type="range" class="slider" min="0.0005" max="0.05" value="0.005" step="0.0005" id="range_diffusion"
         onchange="SetDiffusion(this.value);">
-        <span style="line-height: 32px; vertical-align: text-bottom; width: 150px; text-align:left;">molecular diffusion</span></label>
+        <span>molecular diffusion</span></label>
     </div>
 
     <!--<textarea class="emscripten" id="output" rows="20"></textarea>-->
