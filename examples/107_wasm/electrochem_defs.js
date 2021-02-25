@@ -97,6 +97,14 @@ set vect gravity 0 ${-g}
   return c;
 }
 
+function ResetButtons() {
+  [16, 32, 64, 128].forEach(nx => {
+    let button = document.getElementById('button_' + nx);
+    if (button) {
+      button.className = "button";
+    }
+  });
+}
 
 function Init(nx) {
   conf = GetExtraConfig()
@@ -106,6 +114,11 @@ function Init(nx) {
   cc.push(SetRate(window.range_rate.value));
   cc.push(SetDiffusion(window.range_diffusion.value));
   cc.push(SetGravity(window.range_gravity.value));
+  ResetButtons();
+  let button = document.getElementById('button_' + nx);
+  if (button) {
+    button.className = "button pressed";
+  }
   conf += cc.join('');
   SetExtraConfig(conf);
   Module.ccall('SetMesh', null, ['number'], [nx])
