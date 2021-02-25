@@ -34,8 +34,6 @@
 #include "util/module.h"
 #include "util/timer.h"
 
-static constexpr int kScale = 1;
-
 using M = MeshStructured<double, 2>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
@@ -68,7 +66,7 @@ class Solver : public KernelMeshPar<M, Par> {
   using P::par_;
   using P::var;
 
- private:
+ public:
   FieldCell<Scal> fc_src;
   FieldCell<Scal> fc_src2;
   FieldCell<Scal> fc_rho;
@@ -91,8 +89,7 @@ class Solver : public KernelMeshPar<M, Par> {
   std::shared_ptr<linear::Solver<M>> linsolver;
   std::unique_ptr<TracerInterface<M>> tracer;
   std::default_random_engine gen{21};
-  IdxCell nucl_cell;
-  Scal nucl_last_t = -1e10;
+  std::set<IdxCell> nucl_cells;
 };
 
 struct State {
@@ -119,10 +116,11 @@ std::string g_extra_config;
 Vars g_var;
 
 static void RenderField(
-    Canvas& canvas, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcvel,
-    const MapEmbed<BCond<Vect>>& bc_vel, const MapEmbed<BCond<Scal>>& bc_vort,
-    const FieldCell<Scal>& fcp, FieldCell<Scal> fc_pot,
-    const MapEmbed<BCond<Scal>>& bc_pot, Multi<FieldCell<Scal>> fc_tracer,
+    Solver* solver, Canvas& canvas, const FieldCell<Scal>& fcu,
+    const FieldCell<Vect>& fcvel, const MapEmbed<BCond<Vect>>& bc_vel,
+    const MapEmbed<BCond<Scal>>& bc_vort, const FieldCell<Scal>& fcp,
+    FieldCell<Scal> fc_pot, const MapEmbed<BCond<Scal>>& bc_pot,
+    Multi<FieldCell<Scal>> fc_tracer,
     const Multi<MapEmbed<BCond<Scal>>>& bc_tracer, bool interpolate,
     const M& m) {
   auto fcvelbc = fcvel;
@@ -132,7 +130,9 @@ static void RenderField(
   const Scal visvort = g_var.Double("visvort", 0);
   const Scal visvf = g_var.Double("visvf", 0);
   const Scal vispot = g_var.Double("vispot", 0);
+  const Scal vispressure = g_var.Double("vispressure", 0);
   const Scal vistracer = g_var.Double("vistracer", 0);
+  const Scal visnucl = g_var.Double("visnucl", 0);
 
   // fill halo cells
   if (visvel) {
@@ -146,7 +146,6 @@ static void RenderField(
   }
   if (vistracer) {
     BcApply<Scal>(fc_tracer[0], bc_tracer[0], m);
-    // BcApply<Scal>(fc_tracer[1], bc_tracer[1], m);
   }
 
   using Vect3 = generic::Vect<Scal, 3>;
@@ -177,17 +176,31 @@ static void RenderField(
         q = interp::Linear(f, Vect3(1, 1, 1), Vect3(0, 0.6, 0.87));
       }
     }
-    if (vistracer && !vispot) {
+    if (vispressure) {
+      const auto p = (fcp[c] * vispressure) * 2 - 1;
+      const auto f = Clamp(std::abs(p));
+      if (p > 0) {
+        q = interp::Linear(f, Vect3(1, 1, 1), Vect3(1, 0.12, 0.35));
+      } else {
+        q = interp::Linear(f, Vect3(1, 1, 1), Vect3(0, 0.6, 0.87));
+      }
+    }
+    if (vistracer) {
       const auto u0 = fc_tracer[0][c];
       const auto f0 = Clamp(std::abs(u0 * vistracer));
       q = interp::Linear(f0, Vect3(1, 1, 1), Vect3(1, 0.12, 0.35));
     }
+
+    // overlayed:
     if (vistracer && vispot) {
       const auto ftr = Clamp(std::abs(fc_tracer[0][c] * vistracer));
-      q = interp::Linear(ftr, Vect3(q), Vect3(0, 0.8, 0.42));
+      q = interp::Linear(ftr, q, Vect3(0, 0.8, 0.42));
     }
     if (visvf) {
-      q = interp::Linear(visvf * fcu[c], Vect3(q), Vect3(0, 0.8, 0.42));
+      q = interp::Linear(visvf * fcu[c], q, Vect3(0, 0.8, 0.42));
+    }
+    if (visnucl && solver->nucl_cells.count(c)) {
+      q = interp::Linear(visnucl, q, Vect3(0, 0.8, 0.42));
     }
     return q;
   };
@@ -246,7 +259,6 @@ void Solver::Run() {
     p.recolor_grid = false;
     p.recolor_reduce = false;
   };
-  constexpr auto kClNone = Vof<M>::kClNone;
   auto is_left = [&](IdxFace ff) { //
     auto f = m(ff);
     return f.direction() == 0 && f[0] == 0;
@@ -255,116 +267,115 @@ void Solver::Run() {
     auto f = m(ff);
     return f.direction() == 0 && f[0] == m.GetGlobalSize()[0];
   };
+  /*
   auto is_bottom = [&](IdxFace ff) { //
     auto f = m(ff);
     return f.direction() == 1 && f[1] == 0;
   };
+  */
   auto is_top = [&](IdxFace ff) {
     auto f = m(ff);
     return f.direction() == 1 && f[1] == m.GetGlobalSize()[1];
   };
   if (sem("init_solver") && s.to_init_solver) {
-    if (m.IsRoot()) {
-      std::cout << "backend=" << var.String["backend"] << std::endl;
+    linsolver = ULinear<M>::MakeLinearSolver(var, "symm", m);
+
+    { // electro
+      typename ElectroInterface<M>::Conf conf{var, linsolver};
+      electro.reset(new Electro<M>(m, m, bc_electro, 0, conf));
     }
-    {
-      typename Proj<M>::Par p;
-      p.conv = Conv::exp;
-      linsolver = ULinear<M>::MakeLinearSolver(var, "symm", m);
-      FieldCell<Vect> fcvel(m, Vect(0));
 
-      { // electro
-        typename ElectroInterface<M>::Conf conf{var, linsolver};
-        electro.reset(new Electro<M>(m, m, bc_electro, 0, conf));
-      }
+    const size_t ntracers = 1;
+    Multi<MapEmbed<BCond<Scal>>> bc_tracer(ntracers);
 
-      const size_t ntracers = 1;
-      Multi<MapEmbed<BCond<Scal>>> bc_tracer(ntracers);
-
-      for (auto f : m.AllFacesM()) {
-        size_t nci;
-        if (m.IsBoundary(f, nci)) {
-          const bool f_left = is_left(f);
-          const bool f_right = is_right(f);
-          const bool f_top = is_top(f);
-          { // fluid
-            auto& bc = bc_fluid[f];
-            bc.nci = nci;
-            if (f_top) {
-              bc.type = BCondFluidType::outletpressure;
-              bc.pressure = 0;
-            } else {
-              bc.type = BCondFluidType::wall;
-            }
+    for (auto f : m.AllFacesM()) {
+      size_t nci;
+      if (m.IsBoundary(f, nci)) {
+        const bool f_left = is_left(f);
+        const bool f_right = is_right(f);
+        const bool f_top = is_top(f);
+        { // fluid
+          auto& bc = bc_fluid[f];
+          bc.nci = nci;
+          if (f_top) {
+            bc.type = BCondFluidType::outlet;
+            bc.pressure = 0;
+          } else {
+            bc.type = BCondFluidType::wall;
           }
-          { // vof
-            auto& bc = bc_vof[f];
-            bc.nci = nci;
-            bc.halo = BCondAdvection<Scal>::Halo::fill;
+        }
+        { // vof
+          auto& bc = bc_vof[f];
+          bc.nci = nci;
+          bc.halo = BCondAdvection<Scal>::Halo::fill;
+          if (f_top) {
+            bc.fill_vf = 1;
+          } else {
             bc.fill_vf = 0;
-            bc.fill_cl = kClNone;
           }
-          { // vorticity
-            auto& bc = bc_vort[f];
+        }
+        { // vorticity
+          auto& bc = bc_vort[f];
+          bc.nci = nci;
+          bc.type = BCondType::neumann;
+        }
+        { // electro
+          auto& bc = bc_electro[f];
+          bc.nci = nci;
+          if (f_left || f_right) {
+            bc.type = BCondType::dirichlet;
+            bc.val = (f_left ? 1 : -1);
+          } else {
+            bc.type = BCondType::neumann;
+          }
+        }
+        { // tracer
+          for (size_t i = 0; i < ntracers; ++i) {
+            auto& bc = bc_tracer[i][f];
             bc.nci = nci;
             bc.type = BCondType::neumann;
           }
-          { // electro
-            auto& bc = bc_electro[f];
-            bc.nci = nci;
-            if (f_left || f_right) {
-              bc.type = BCondType::dirichlet;
-              bc.val = (f_left ? 1 : -1);
-            } else {
-              bc.type = BCondType::neumann;
-            }
-          }
-          { // tracer
-            for (size_t i = 0; i < ntracers; ++i) {
-              auto& bc = bc_tracer[i][f];
-              bc.nci = nci;
-              bc.type = BCondType::neumann;
-            }
-          }
         }
-      }
-
-      { // tracer
-        fc_src_tracer.Reinit(m, 0);
-        typename TracerInterface<M>::Conf conf;
-        conf.layers = ntracers;
-        conf.density = ToMulti(var.Vect["tracer_density"]);
-        conf.diffusion = ToMulti(var.Vect["tracer_diffusion"]);
-        conf.diameter = ToMulti(var.Vect["tracer_diameter"]);
-        conf.viscosity = ToMulti(var.Vect["tracer_viscosity"]);
-        conf.scheme = GetConvSc(var.String["tracer_scheme"]);
-        conf.slip.resize(conf.layers);
-        conf.fc_src = &fc_src_tracer;
-        using SlipType = typename TracerInterface<M>::SlipType;
-        for (size_t i = 0; i < conf.layers; ++i) {
-          conf.slip[i].type = SlipType::none;
-        }
-        Multi<FieldCell<Scal>> vfcu(GRange<size_t>(ntracers), m, 0);
-        tracer.reset(new Tracer<M>(m, m, vfcu, bc_tracer, 0, conf));
-      }
-
-      { // fluid
-        const ProjArgs<M> args{fcvel,   bc_fluid,  mc_velcond, &fc_rho,
-                               &fc_mu,  &fc_force, &ff_bforce, &fc_src,
-                               &fc_src, 0,         s.dt,       linsolver,
-                               p};
-        fluid.reset(new Proj<M>(m, m, args));
       }
     }
+
+    { // tracer
+      fc_src_tracer.Reinit(m, 0);
+      typename TracerInterface<M>::Conf conf;
+      conf.layers = ntracers;
+      conf.density = ToMulti(var.Vect["tracer_density"]);
+      conf.diffusion = ToMulti(var.Vect["tracer_diffusion"]);
+      conf.diameter = ToMulti(var.Vect["tracer_diameter"]);
+      conf.viscosity = ToMulti(var.Vect["tracer_viscosity"]);
+      conf.scheme = GetConvSc(var.String["tracer_scheme"]);
+      conf.slip.resize(conf.layers);
+      conf.fc_src = &fc_src_tracer;
+      using SlipType = typename TracerInterface<M>::SlipType;
+      for (size_t i = 0; i < conf.layers; ++i) {
+        conf.slip[i].type = SlipType::none;
+      }
+      Multi<FieldCell<Scal>> vfcu(GRange<size_t>(ntracers), m, 0);
+      tracer.reset(new Tracer<M>(m, m, vfcu, bc_tracer, 0, conf));
+    }
+
+    { // fluid
+      typename Proj<M>::Par fluid_par;
+      fluid_par.conv = Conv::exp;
+      fluid_par.outlet_relax = 0;
+      FieldCell<Vect> fcvel(m, Vect(0));
+      const ProjArgs<M> args{fcvel,     bc_fluid,   mc_velcond, &fc_rho, &fc_mu,
+                             &fc_force, &ff_bforce, &fc_src,    &fc_src, 0,
+                             s.dt,      linsolver,  fluid_par};
+      fluid.reset(new Proj<M>(m, m, args));
+    }
     {
-      auto& p = vof_par;
-      update_vof_par(p);
+      update_vof_par(vof_par);
       FieldCell<Scal> fcu(m, 0);
       FieldCell<Scal> fccl(m, 0);
       fc_curv.Reinit(m, 0);
       vof.reset(new Vof<M>(
           m, m, fcu, fccl, bc_vof, &fluid->GetVolumeFlux(), &fc_src2, 0, s.dt,
-          p));
+          vof_par));
     }
 
     auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
@@ -493,52 +504,57 @@ void Solver::Run() {
       }
     }
 
-    { // create layer of gas
+    if (0) { // create layer of gas
       const Scal surface_height = var.Double["surface_height"];
       vof->AddModifier(
           [surface_height](
               FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const M& m) { //
             for (auto c : m.CellsM()) {
-              if (c.center[1] > surface_height) {
-                fcu[c] = 1;
-              }
+              auto y = c.center[1];
+              auto sy = surface_height;
+              fcu[c] = std::max(fcu[c], Clamp((y - sy) / m.GetCellSize()[0]));
             }
           });
     }
 
-    { // nucl bubbles
+    { // nucleate bubbles
       // XXX assuming a single block, otherwise reduction is needed
       const auto& mebc = tracer->GetBCondMutable()[0];
       const auto& fcvf = vof->GetField();
-      const auto& tr0 = tracer->GetVolumeFraction()[0];
-      const Scal cmax = var.Double["cmax"] * var.Double["nucl_cmax_factor"];
-      const Scal vff = var.Double["nucl_vf_factor"];
+      const auto& fctr0 = tracer->GetVolumeFraction()[0];
+      const Scal cadd = var.Double["nucl_c_add"];
       std::uniform_real_distribution<Scal> noise(0, var.Double["nucl_noise"]);
       Scal max_noise = 0;
-      if (fluid->GetTime() - nucl_last_t > var.Double["nucl_dt"]) {
-        IdxCell max_c;
-        for (auto& p : mebc.GetMapFace()) {
-          const auto f = m(p.first);
-          auto& bc = p.second;
-          const auto c = f.cell(bc.nci);
-          const Scal u_noise = noise(gen);
-          const Scal u_sum = tr0[c] + u_noise + fcvf[c] * vff;
-          const bool f_left = is_left(f);
-          const bool f_right = is_right(f);
-          if (f_left || f_right) {
-            if (u_sum > cmax && u_noise > max_noise) {
-              max_noise = u_noise;
-              max_c = c;
-            }
+      IdxCell max_c;
+      for (auto& p : mebc.GetMapFace()) {
+        const auto f = m(p.first);
+        auto& bc = p.second;
+        const auto c = f.cell(bc.nci);
+        const Scal u_noise = noise(gen);
+        const Scal u_sum = fctr0[c] + u_noise;
+        if (is_left(f) || is_right(f)) {
+          if (u_sum >= cadd && u_noise > max_noise) {
+            max_noise = u_noise;
+            max_c = c;
           }
         }
-        nucl_cell = max_c;
-        nucl_last_t = fluid->GetTime();
       }
-      if (nucl_last_t >= 0) {
-        if (auto* rate = var.Double.Find("growth_rate")) {
-          const auto c = nucl_cell;
-          const auto s = tr0[c] * (*rate);
+      if (max_noise) {
+        nucl_cells.insert(max_c);
+      }
+      if (auto* rate = var.Double.Find("growth_rate")) {
+        const Scal vfrem = var.Double["nucl_vf_remove"];
+        const Scal crem = var.Double["nucl_c_remove"];
+        for (auto it = nucl_cells.begin(); it != nucl_cells.end();) {
+          auto c = *it;
+          if (fcvf[c] >= vfrem || fctr0[c] <= crem) {
+            it = nucl_cells.erase(it);
+          } else {
+            ++it;
+          }
+        }
+        for (auto c : nucl_cells) {
+          const auto s = fctr0[c] * (*rate);
           fc_src2[c] += s;
           fc_src_tracer[c] += -s;
           fc_src[c] += s;
@@ -547,10 +563,16 @@ void Solver::Run() {
     }
   }
   if (sem("init") && s.to_init_field) {
-    vof->AddModifier([&](FieldCell<Scal>& fcu, FieldCell<Scal>&,
-                         const M& m) { //
-      fcu.Reinit(m, 0);
-    });
+    const Scal surface_height = var.Double["surface_height"];
+    vof->AddModifier(
+        [surface_height](
+            FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const M& m) { //
+          for (auto c : m.CellsM()) {
+            auto y = c.center[1];
+            auto sy = surface_height;
+            fcu[c] = Clamp((y - sy) / m.GetCellSize()[0]);
+          }
+        });
   }
   if (sem("spawn") && s.to_spawn) {
     vof->AddModifier(
@@ -572,8 +594,8 @@ void Solver::Run() {
     if (s.render) {
       auto bc_vel = GetVelCond<M>(bc_fluid);
       RenderField(
-          *g_canvas, vof->GetField(), fluid->GetVelocity(), bc_vel, bc_vort,
-          fluid->GetPressure(), electro->GetPotential(), bc_electro,
+          this, *g_canvas, vof->GetField(), fluid->GetVelocity(), bc_vel,
+          bc_vort, fluid->GetPressure(), electro->GetPotential(), bc_electro,
           tracer->GetVolumeFraction(), tracer->GetBCondMutable(),
           var.Int["visinterp"], m);
 
@@ -639,6 +661,7 @@ static void main_loop() {
 
 static std::string GetBaseConfig() {
   return R"EOF(
+set string backend native
 set string linsolver_symm conjugate
 set double hypre_symm_tol 1e-2
 set int hypre_symm_maxiter 20
@@ -668,6 +691,7 @@ set double visvel 0
 set double visvf 0.7
 set double visvort 0
 set double vispot 1
+set double vispressure 0
 set double vistracer 1
 set int visinterp 0
 
@@ -704,6 +728,8 @@ set double resist2 1
 
 set double nucl_cmax_factor 0.7
 set double nucl_noise 0.001
+
+set double surface_height 0.9
 
 )EOF";
 }
@@ -765,10 +791,14 @@ void SetMesh(int nx) {
   MPI_Comm comm = 0;
   std::stringstream conf;
   conf << GetDefaultConf();
-  Subdomains<MIdx> sub(MIdx(nx), MIdx(nx), 1);
-  conf << sub.GetConfig();
   conf << GetBaseConfig();
   conf << g_extra_config << '\n';
+  Parser(g_var).ParseStream(conf);
+
+  conf.clear();
+  const MIdx size(nx, g_var.Double["extent"] * nx);
+  Subdomains<MIdx> sub(size, size, 1);
+  conf << sub.GetConfig();
   Parser(g_var).ParseStream(conf);
 
   std::shared_ptr<State> new_state;
@@ -779,6 +809,7 @@ void SetMesh(int nx) {
 }
 void SetCanvas(int nx, int ny) {
   g_canvas = std::make_shared<Canvas>(MIdx(nx, ny));
+  g_canvas->xmargin = 32;
   std::cout << util::Format("canvas {}", g_canvas->size) << std::endl;
 }
 int GetLines(uint16_t* data, int max_size) {
@@ -808,6 +839,7 @@ int main() {
 
   SetCanvas(512, 512);
   emscripten_set_canvas_element_size(
-      "#canvas", g_canvas->size[0] * kScale, g_canvas->size[1] * kScale);
+      "#canvas", g_canvas->size[0] * g_canvas->scale + 2 * g_canvas->xmargin,
+      g_canvas->size[1] * g_canvas->scale);
   emscripten_set_main_loop(main_loop, 30, 1);
 }
