@@ -90,7 +90,7 @@
     [space] pause, [click] spawn a bubble
     </div>
     <div class="emscripten" style="padding: 5px;">
-      <input type="button" class="button" value="pause" onclick="TogglePause();">
+      <input type="button" class="button" id="button_pause" value="pause" onclick="TogglePause();">
       <input type="button" class="button" value="clear"
         onclick="SetExtraConfig(); Module.ccall('Init', null, [])">
       <input type="button" class="button" id="button_16" value="16" onclick="Init(16)">

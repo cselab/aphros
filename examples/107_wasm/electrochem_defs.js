@@ -4,7 +4,6 @@ var AddVelocityAngle;
 var SetRuntimeConfig;
 var GetLines;
 var Spawn;
-var TogglePause;
 var g_tmp_canvas;
 var kScale = 1;
 var kMarginX = 32; // XXX must match g_canvas->xmargin
@@ -95,6 +94,18 @@ set vect gravity 0 ${-g}
 `;
   SetRuntimeConfig(c);
   return c;
+}
+
+function TogglePause() {
+  let s = Module.ccall('TogglePause', 'number', []);
+  let button = document.getElementById('button_pause');
+  if (button) {
+    if (s) {
+      button.className = "button pressed";
+    } else {
+      button.className = "button";
+    }
+  }
 }
 
 function ResetButtons() {
@@ -197,7 +208,6 @@ function Draw() {
 function PostRun() {
   g_lines_max_size = 10000;
   g_lines_ptr = Module._malloc(g_lines_max_size * 2);
-  TogglePause = Module.cwrap('TogglePause', null, []);
   Spawn = Module.cwrap('Spawn', null, ['number', 'number', 'number']);
   AddVelocityAngle = Module.cwrap('AddVelocityAngle', null, ['number']);
   GetLines = Module.cwrap('GetLines', 'number', ['number', 'number']);
