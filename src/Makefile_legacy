@@ -41,6 +41,7 @@ $(WRK)/$L: $O; mkdir -p $(WRK) && ar rv $@ $O && ranlib $@
 $(WRK)/$J: $O; mkdir -p $(WRK) && emar rv $@ $O
 $(WRK)/ap.mfer: $(WRK)/main.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $< $(LDFLAGS) $(WRK)/$L -o $@
 $(WRK)/main.o: $(SRC)/main.cpp; mkdir -p $(WRK) && $(CXX_RULE)
+$(WRK)/.dir:; mkdir -p $P && touch $@
 $(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@
 install: $(WRK)/$L $(WRK)/ap.mfer
 	mkdir -p "$(APHROS_PREFIX)"/lib; \
@@ -52,11 +53,12 @@ install: $(WRK)/$L $(WRK)/ap.mfer
 	for i in $H; \
 	do cp $$i "$(APHROS_PREFIX)"/include/aphros/$$i; \
 	done; \
-	cp $(WRK)/$L "$(APHROS_PREFIX)"/lib/; \
+	cp $(WRK)/$L "$(APHROS_PREFIX)"/lib && \
 	cp $(WRK)/ap.mfer "$(APHROS_PREFIX)"/bin
 install_js: $(WRK)/$J
-	mkdir -p "$(APHROS_PREFIX)"/lib; \
+	mkdir -p "$(APHROS_PREFIX)"/lib && \
 	cp $(WRK)/$J "$(APHROS_PREFIX)"/lib/
 clean:
-	rm -f $O $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/ap.mfer
+	-rm -f $O $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/ap.mfer
+	-rmdir -p $P
 include $(SRC)/../make/dep.mk

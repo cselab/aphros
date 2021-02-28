@@ -21,5 +21,5 @@ diffusion.js: diffusion.cpp $(WRK)/libaphros_js.a
 	$(CXX) $< $(CXXFLAGS) $(WASMFLAGS) -I$(SRC) $(WRK)/libaphros_js.a $1 \
 		-s EXPORTED_FUNCTIONS='["_main", "_MulDiffusion", "_AddVelocityAngle", "_TogglePause", "_Init", "_SetMesh"]' \
 		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@
-clean:; rm -vf $(ALL)
+clean:; rm -vf $(ALL) && $(MAKE) -f $(SRC)/Makefile_legacy 'WRK = $(WRK)' 'SRC = $(SRC)' clean
 .PHONY: clean all
