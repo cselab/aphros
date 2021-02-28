@@ -1,7 +1,9 @@
 #!/bin/sh
 
-# cd src
-# ../make/bootstrap
+# $ cd src
+# $ ../make/bootstrap
+#
+# ../make/obj.mk also creates ../make/dir.wrk.mk and ../make/dir.rule.mk
 
 ../make/obj > ../make/obj.mk &&
     ../make/hdr > ../make/hdr.mk &&
