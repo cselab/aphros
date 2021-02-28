@@ -186,7 +186,10 @@ template <class M>
 void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
   auto& mfirst = kernels_.front()->GetMesh();
   if (mfirst.GetDump().size()) {
-    const std::string dumpformat = var.String["dumpformat"];
+    std::string dumpformat = var.String["dumpformat"];
+    if (dumpformat == "default") {
+      dumpformat = "raw";
+    }
     if (dumpformat == "plain") {
       const auto& dumpfirst = mfirst.GetDump();
       for (size_t idump = 0; idump < dumpfirst.size(); ++idump) {
@@ -338,8 +341,8 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
             MpiWrapper(comm_));
 
         Xmf3::WriteXmf(util::SplitExt(path)[0] + ".xmf", meta3);
-        ++frame_;
       }
+      ++frame_;
     } else {
       throw std::runtime_error("Unknown dumpformat=" + dumpformat);
     }
