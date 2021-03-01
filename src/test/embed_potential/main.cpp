@@ -54,7 +54,7 @@ void CalcPotential(
   }
   if (sem.Nested("dump_system")) {
     if (system_out.length()) {
-      //dump::Raw<M>::Write(t.fc_system, system_out, m);
+      // dump::Raw<M>::Write(t.fc_system, system_out, m);
     }
   }
   if (sem.Nested("solve")) {
@@ -250,9 +250,16 @@ set int hypre_symm_maxiter 100
   conf += "\n";
 
   const auto dim = args.Int["dim"];
-  if (dim == 2) {
-    return RunGeneric<2>(mpi, args, conf);
-  } else {
-    return RunGeneric<3>(mpi, args, conf);
+  switch (dim) {
+#if USEFLAG(DIM2)
+    case 2:
+      return RunGeneric<2>(mpi, args, conf);
+#endif
+#if USEFLAG(DIM3)
+    case 3:
+      return RunGeneric<3>(mpi, args, conf);
+#endif
+    default:
+      fassert(false, "Unknown dim=" + std::to_string(dim));
   }
 }

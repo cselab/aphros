@@ -13,3 +13,4 @@ arg
 eb.vtk
 *_*.vtk
 *_*.dat
+*.raw
