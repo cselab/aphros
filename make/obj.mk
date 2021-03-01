@@ -1,4 +1,5 @@
 O = \
+$(WRK)/aphros_c/git.o\
 $(WRK)/aphros_c/main.o\
 $(WRK)/aphros_c/parser.o\
 $(WRK)/color/color.o\

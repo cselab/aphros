@@ -1,3 +1,4 @@
+$(WRK)/aphros_c/git.o: $(SRC)/aphros_c/git.cpp; $(CXX_RULE)
 $(WRK)/aphros_c/main.o: $(SRC)/aphros_c/main.cpp; $(CXX_RULE)
 $(WRK)/aphros_c/parser.o: $(SRC)/aphros_c/parser.cpp; $(CXX_RULE)
 $(WRK)/color/color.o: $(SRC)/color/color.c; $(CC_RULE)

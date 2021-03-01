@@ -1,3 +1,4 @@
+$(WRK)/aphros_c/git.o: $(SRC)/util/git.h
 $(WRK)/aphros_c/main.o: $(SRC)/aphros_c.h
 $(WRK)/aphros_c/main.o: $(SRC)/debug/isnan.h
 $(WRK)/aphros_c/main.o: $(SRC)/debug/linear.h

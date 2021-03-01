@@ -1,3 +1,4 @@
+$(WRK)/aphros_c/git.o: $(WRK)/.dir
 $(WRK)/aphros_c/main.o: $(WRK)/.dir
 $(WRK)/aphros_c/parser.o: $(WRK)/.dir
 $(WRK)/color/color.o: $(WRK)/.dir
