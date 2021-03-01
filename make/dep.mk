@@ -1,3 +1,4 @@
+$(WRK)/c.o: $(SRC)/c.h
 $(WRK)/c.o: $(SRC)/debug/isnan.h
 $(WRK)/c.o: $(SRC)/debug/linear.h
 $(WRK)/c.o: $(SRC)/distr/distr.h
