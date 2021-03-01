@@ -48,7 +48,7 @@ install: $(WRK)/$L $(WRK)/ap.mfer
 	for i in $D; \
 	do mkdir -p '$(APHROS_PREFIX)'/include/aphros/$$i; \
 	done
-        cp aphros_c.h '$(APHROS_PREFIX)'/include
+	cp aphros_c.h '$(APHROS_PREFIX)'/include
 	for i in $H; \
 	do cp $$i '$(APHROS_PREFIX)'/include/aphros/$$i; \
 	done

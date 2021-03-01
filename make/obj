@@ -24,7 +24,11 @@ BEGIN {
         rule = "$(CC_RULE)"
     printf "$(WRK)/%s: $(SRC)/%s; %s\n", $0, file, rule | "sort | uniq > ../make/rule.mk"
     printf "$(WRK)/%s: $(WRK)/.dir\n", $0 | "sort | uniq >  ../make/dir.dep.mk"
-    printf "$(WRK)/%s\\\n", dirname($0) | "sort | uniq >> ../make/dir.rule.mk"
+    dir = dirname($0)
+    if ("." != dir "")
+        printf "$(WRK)/%s\\\n", dir | "sort | uniq >> ../make/dir.rule.mk"
+    else
+        printf "$(WRK)\\\n" | "sort | uniq >> ../make/dir.rule.mk"
     print "$(WRK)/" $0 "\\" | "sort | uniq"
 }
 
