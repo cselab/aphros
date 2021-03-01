@@ -1,4 +1,5 @@
-$(WRK)/c.o: $(WRK)/.dir
+$(WRK)/aphros_c/main.o: $(WRK)/.dir
+$(WRK)/aphros_c/parser.o: $(WRK)/.dir
 $(WRK)/color/color.o: $(WRK)/.dir
 $(WRK)/distr/comm_manager.o: $(WRK)/.dir
 $(WRK)/distr/distrbasic.o: $(WRK)/.dir

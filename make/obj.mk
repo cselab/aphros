@@ -1,5 +1,6 @@
 O = \
-$(WRK)/c.o\
+$(WRK)/aphros_c/main.o\
+$(WRK)/aphros_c/parser.o\
 $(WRK)/color/color.o\
 $(WRK)/distr/comm_manager.o\
 $(WRK)/distr/distrbasic.o\

@@ -1,5 +1,5 @@
 P = \
-$(WRK)\
+$(WRK)/aphros_c\
 $(WRK)/color\
 $(WRK)/distr\
 $(WRK)/dump\
