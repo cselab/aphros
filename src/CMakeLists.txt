@@ -259,7 +259,7 @@ target_include_directories(${T} INTERFACE "${APHROS_PREFIX}/include/aphros")
 target_link_libraries(${T} ${ObjLibs} ${BinLibs})
 
 set(T aphros_c)
-add_library(${T} SHARED c.cpp)
+add_library(${T} SHARED aphros_c/main.cpp  aphros_c/parser.cpp)
 target_link_libraries(${T} aphros use_dims)
 
 set(T mfer)
