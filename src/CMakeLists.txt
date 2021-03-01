@@ -261,7 +261,7 @@ target_link_libraries(${T} ${ObjLibs} ${BinLibs})
 
 # binary
 set(EXE "mfer")
-add_executable(${EXE} main.cpp)
+add_executable(${EXE} main.c)
 install(TARGETS ${EXE} DESTINATION bin)
 set_target_properties(${EXE} PROPERTIES PREFIX "ap.")
 target_link_libraries(${EXE} aphros use_dims)

@@ -1,3 +1,4 @@
+$(WRK)/c.o: $(WRK)/.dir
 $(WRK)/color/color.o: $(WRK)/.dir
 $(WRK)/distr/comm_manager.o: $(WRK)/.dir
 $(WRK)/distr/distrbasic.o: $(WRK)/.dir

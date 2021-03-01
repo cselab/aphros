@@ -1,4 +1,5 @@
 O = \
+$(WRK)/c.o\
 $(WRK)/color/color.o\
 $(WRK)/distr/comm_manager.o\
 $(WRK)/distr/distrbasic.o\

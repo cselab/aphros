@@ -1,3 +1,4 @@
+$(WRK)/c.o: $(SRC)/c.cpp; $(CXX_RULE)
 $(WRK)/color/color.o: $(SRC)/color/color.c; $(CC_RULE)
 $(WRK)/distr/comm_manager.o: $(SRC)/distr/comm_manager.cpp; $(CXX_RULE)
 $(WRK)/distr/distrbasic.o: $(SRC)/distr/distrbasic.cpp; $(CXX_RULE)

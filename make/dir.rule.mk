@@ -1,4 +1,5 @@
 P = \
+$(WRK)/.\
 $(WRK)/color\
 $(WRK)/distr\
 $(WRK)/dump\

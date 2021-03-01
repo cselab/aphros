@@ -1,12 +1,9 @@
-// Created by Petr Karnakov on 30.05.2018
-// Copyright 2018 ETH Zurich
-
 #include "distr/distrsolver.h"
 #include "kernel/hydro.h"
 #include "kernel/kernelmeshpar.h"
 
 template <size_t dim>
-void Run(MPI_Comm comm, Vars& var) {
+static void Run(MPI_Comm comm, Vars& var) {
   using M = MeshStructured<double, dim>;
   using K = Hydro<M>;
   using Par = typename K::Par;
@@ -16,7 +13,7 @@ void Run(MPI_Comm comm, Vars& var) {
   ds.Run();
 }
 
-void Main(MPI_Comm comm, Vars& var) {
+static void Main(MPI_Comm comm, Vars& var) {
   FORCE_LINK(init_contang);
   FORCE_LINK(init_vel);
 
@@ -47,6 +44,6 @@ void Main(MPI_Comm comm, Vars& var) {
   }
 }
 
-int main(int argc, const char** argv) {
+int aphros_main(int argc, const char** argv) {
   return RunMpi(argc, argv, Main);
 }

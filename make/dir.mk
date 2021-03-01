@@ -1,4 +1,5 @@
 D = \
+c.h\
 color\
 CubismNoCopy\
 debug\
