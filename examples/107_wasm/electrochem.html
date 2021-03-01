@@ -1,9 +1,8 @@
 <!doctype html>
-<html lang="en-us">
+<html lang="en-US">
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=640px, initial-scale=0.55">
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=640, initial-scale=0.55">
     <title>Electrochemical Reactor</title>
     <style>
       html *
@@ -71,16 +70,18 @@
     </style>
   </head>
   <body>
-    <div align="center">
+    <div style="text-align:center;">
       Water electrolysis. Dissolved hydrogen and oxygen gases (red)
       nucleate into bubbles (green)
-      </br>
-      <a href="https://github.com/cselab/aphros">github.com/cselab/aphros</a>
-      [<a href="https://github.com/cselab/aphros/tree/master/examples/107_wasm">wasm</a>]
+      <br/>
+      <a class="github-button" href="https://github.com/cselab/aphros" data-size="large" data-show-count="true" aria-label="Star cselab/aphros on GitHub">Star</a>
+      <span style="position: relative; bottom: 0.45em;">
+        <a href="https://github.com/cselab/aphros">github.com/cselab/aphros</a>
+        [<a href="https://github.com/cselab/aphros/tree/master/examples/107_wasm">wasm</a>]
+      </span>
     </div>
-
     <noscript>
-      <div style="color:red;" class="emscripten">
+      <div style="color:red; text-align:center;">
         This simulation needs JavaScript
       </div>
     </noscript>
@@ -125,8 +126,8 @@
     </div>
 
     <!--<textarea class="emscripten" id="output" rows="20"></textarea>-->
-
     <script src=electrochem_defs.js></script>
     <script async src=electrochem.js></script>
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
   </body>
 </html>

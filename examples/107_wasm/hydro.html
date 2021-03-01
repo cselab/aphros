@@ -18,7 +18,7 @@
   </head>
   <body>
     <div class="emscripten" style="padding: 5px;">
-      Fluid simulation with coalescence of drops
+      Liquid drops and prevention of coalescence
       </br>
       <a href="https://github.com/cselab/aphros">github.com/cselab/aphros</a>
       [<a href="https://github.com/cselab/aphros/tree/master/examples/107_wasm">wasm</a>]
@@ -32,7 +32,7 @@
     <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
 
     <div class="emscripten" style="padding: 5px;">
-      [mouse click] spawn a drop, [space] pause
+      [mouse click] draw a drop, [space] pause
     </div>
     <div class="emscripten" style="padding: 5px;">
       <input type="button" class="button" value="clear"
@@ -40,7 +40,7 @@
       <input type="button" class="button" value="spawn" onclick="Spawn(0.5, 0.8, 0.1);">
       <input type="button" class="button" value="pause" onclick="TogglePause();">
       <label class="label"><input type="checkbox" id="checkbox_coal" name="checkbox_coal"
-        checked onchange="SetCoal(this.checked);">
+        unchecked onchange="SetCoal(this.checked);">
         <span style="line-height: 24px; vertical-align: text-bottom;">coalescence</span></label>
       <label class="label"><input type="checkbox" id="checkbox_gravity" name="checkbox_gravity"
         checked onchange="SetGravity(this.checked);">
