@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en-US">
   <head>
+    <link rel="icon" type="image/png" href="electrochem-icon.png">
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=640, initial-scale=0.55">
     <title>Electrochemical Reactor</title>
@@ -20,7 +21,6 @@
       textarea.emscripten { font-family: monospace; width: 500px; }
       canvas.emscripten { border: 0px none; background-color: white; }
       div.emscripten { text-align: center; }
-
       .slider {
         outline: none;
         width: 300px;
@@ -57,7 +57,7 @@
         touch-action: manipulation;
       }
       .button:hover {
-        background: #b0b0b0;
+        border-color: #000000;
       }
       .button:active {
         background: #808080;
@@ -65,15 +65,13 @@
       .pressed {
         border: 0.22em solid #000000;
       }
-
-      .frame { border: 3px solid #ccc; background: #eee; margin: auto; padding: 15px 10px; }
     </style>
   </head>
   <body>
     <div style="text-align:center;">
       Water electrolysis. Dissolved hydrogen and oxygen gases (red)
       nucleate into bubbles (green)
-      <br/>
+      <br>
       <a class="github-button" href="https://github.com/cselab/aphros" data-size="large" data-show-count="true" aria-label="Star cselab/aphros on GitHub">Star</a>
       <span style="position: relative; bottom: 0.45em;">
         <a href="https://github.com/cselab/aphros">github.com/cselab/aphros</a>
@@ -125,7 +123,6 @@
         <span>molecular diffusion</span></label>
     </div>
 
-    <!--<textarea class="emscripten" id="output" rows="20"></textarea>-->
     <script src=electrochem_defs.js></script>
     <script async src=electrochem.js></script>
     <script async defer src="https://buttons.github.io/buttons.js"></script>

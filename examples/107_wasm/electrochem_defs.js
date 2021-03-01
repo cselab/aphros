@@ -1,6 +1,5 @@
 var g_lines;
 var g_lines_ptr;
-var AddVelocityAngle;
 var SetRuntimeConfig;
 var GetLines;
 var Spawn;
@@ -209,7 +208,6 @@ function PostRun() {
   g_lines_max_size = 10000;
   g_lines_ptr = Module._malloc(g_lines_max_size * 2);
   Spawn = Module.cwrap('Spawn', null, ['number', 'number', 'number']);
-  AddVelocityAngle = Module.cwrap('AddVelocityAngle', null, ['number']);
   GetLines = Module.cwrap('GetLines', 'number', ['number', 'number']);
 
   let canvas = Module['canvas'];

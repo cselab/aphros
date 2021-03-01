@@ -4,10 +4,8 @@ var AddVelocityAngle;
 var SetRuntimeConfig;
 var GetLines;
 var Spawn;
-var TogglePause;
 var g_tmp_canvas;
 var kScale = 1;
-var g_coal = true;
 
 function GetExtraConfig() {
   return `
@@ -35,7 +33,6 @@ set double coalth 0.1
 }
 
 function SetCoal(flag) {
-  g_coal = flag;
   Module.ccall('SetCoal', null, ['number'], [flag]);
 }
 
@@ -48,33 +45,71 @@ function SetRuntimeConfig(conf) {
 }
 
 function SetSigma(sigma) {
-  SetRuntimeConfig("set double sigma " + sigma);
+  let c = `
+set double sigma ${sigma}
+`;
+  SetRuntimeConfig(c);
+  return c;
 }
 
 function SetMu(mu) {
-  SetRuntimeConfig("set double mu1 " + mu);
-  SetRuntimeConfig("set double mu2 " + (mu * 10));
+  let c = `
+set double mu1 ${mu}
+set double mu2 ${mu * 10}
+`;
+  SetRuntimeConfig(c);
+  return c;
 }
 
 function SetGravity(g) {
-  g = g ? -5 : 0;
-  SetRuntimeConfig("set vect gravity 0 " + g);
+  let c = `
+set vect gravity 0 ${-g}
+`;
+  SetRuntimeConfig(c);
+  return c;
 }
 
+function TogglePause() {
+  let s = Module.ccall('TogglePause', 'number', []);
+  let button = document.getElementById('button_pause');
+  if (button) {
+    if (s) {
+      button.className = "button pressed";
+    } else {
+      button.className = "button";
+    }
+  }
+}
+
+function ResetButtons() {
+  [16, 32, 64, 128].forEach(nx => {
+    let button = document.getElementById('button_' + nx);
+    if (button) {
+      button.className = "button";
+    }
+  });
+}
 
 function Init(nx) {
   conf = GetExtraConfig()
-  if (g_coal) {
-    conf += "set int coal 1\n";
+  let cc = [];
+  if (window.checkbox_coal.checked) {
+    cc.push("set int coal 1\n");
   } else {
-    conf += "set int coal 0\n";
+    cc.push("set int coal 0\n");
   }
+  cc.push(SetSigma(window.range_sigma.value));
+  cc.push(SetMu(window.range_mu.value));
+  cc.push(SetGravity(window.range_gravity.value));
+  ResetButtons();
+  let button = document.getElementById('button_' + nx);
+  if (button) {
+    button.className = "button pressed";
+  }
+  conf += cc.join('');
   SetExtraConfig(conf);
   Module.ccall('SetMesh', null, ['number'], [nx])
   Spawn(0.5, 0.5, 0.2);
-  SetSigma(window.range_sigma.value);
-  SetMu(window.range_mu.value);
-  SetGravity(window.checkbox_gravity.checked);
 }
 
 
@@ -100,10 +135,9 @@ function Draw() {
 }
 
 function PostRun() {
-  window.checkbox_coal.checked = true;
+  window.checkbox_coal.checked = false;
   g_lines_max_size = 10000;
   g_lines_ptr = Module._malloc(g_lines_max_size * 2);
-  TogglePause = Module.cwrap('TogglePause', null, []);
   Spawn = Module.cwrap('Spawn', null, ['number', 'number', 'number']);
   AddVelocityAngle = Module.cwrap('AddVelocityAngle', null, ['number']);
   GetLines = Module.cwrap('GetLines', 'number', ['number', 'number']);

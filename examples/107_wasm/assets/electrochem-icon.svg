@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="64.353928mm"
+   height="64.353935mm"
+   viewBox="0 0 64.353928 64.353935"
+   version="1.1"
+   id="svg8"
+   inkscape:version="1.0.2 (e86c870879, 2021-01-15)"
+   sodipodi:docname="electrochem-icon.svg">
+  <defs
+     id="defs2">
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient903">
+      <stop
+         style="stop-color:#ff1f5b;stop-opacity:1;"
+         offset="0"
+         id="stop899" />
+      <stop
+         style="stop-color:#ff1f5b;stop-opacity:0.47843137;"
+         offset="0.30581784"
+         id="stop907" />
+      <stop
+         style="stop-color:#ff1f5b;stop-opacity:0;"
+         offset="1"
+         id="stop901" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient903"
+       id="linearGradient905"
+       x1="27.854162"
+       y1="129.4334"
+       x2="41.141129"
+       y2="129.4334"
+       gradientUnits="userSpaceOnUse"
+       spreadMethod="reflect"
+       gradientTransform="matrix(1.6621693,0,0,1.7628677,30.544658,-118.26836)" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="2.0820056"
+     inkscape:cx="111.31685"
+     inkscape:cy="145.5592"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     inkscape:document-rotation="0"
+     showgrid="false"
+     inkscape:window-width="1918"
+     inkscape:window-height="1058"
+     inkscape:window-x="0"
+     inkscape:window-y="20"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-67.272781,-76.164917)">
+    <rect
+       style="fill:#00cd6c;fill-opacity:1;stroke:none;stroke-width:1.65073;stroke-miterlimit:3.91251;stroke-dashoffset:6;paint-order:stroke fill markers"
+       id="rect877"
+       width="64.353928"
+       height="14.504348"
+       x="67.272781"
+       y="76.164917"
+       inkscape:export-xdpi="25.260281"
+       inkscape:export-ydpi="25.260281" />
+    <rect
+       style="fill:#ffc61e;fill-opacity:1;stroke:none;stroke-width:0.603818;stroke-miterlimit:3.91251;stroke-dashoffset:6;paint-order:stroke fill markers"
+       id="rect833-3"
+       width="9.3102417"
+       height="64.353928"
+       x="67.272781"
+       y="76.164917"
+       inkscape:export-xdpi="25.260281"
+       inkscape:export-ydpi="25.260281" />
+    <rect
+       style="fill:#ffc61e;fill-opacity:1;stroke:none;stroke-width:0.603818;stroke-miterlimit:3.91251;stroke-dashoffset:6;paint-order:stroke fill markers"
+       id="rect833-3-6"
+       width="9.3102417"
+       height="64.353928"
+       x="122.31647"
+       y="76.164917"
+       inkscape:export-xdpi="25.260281"
+       inkscape:export-ydpi="25.260281" />
+    <circle
+       style="fill:#00cd6c;fill-opacity:1;stroke:none;stroke-width:2.07595;stroke-miterlimit:3.91251;stroke-dashoffset:6;paint-order:stroke fill markers"
+       id="path875"
+       cx="88.066002"
+       cy="102.26948"
+       r="9.7594719"
+       inkscape:export-xdpi="25.260281"
+       inkscape:export-ydpi="25.260281" />
+    <circle
+       style="fill:#00cd6c;fill-opacity:1;stroke:none;stroke-width:1.5875;stroke-miterlimit:3.91251;stroke-dashoffset:6;paint-order:stroke fill markers"
+       id="circle879"
+       cx="112.95474"
+       cy="101.64955"
+       r="7.4631791"
+       inkscape:export-xdpi="25.260281"
+       inkscape:export-ydpi="25.260281" />
+    <circle
+       style="fill:#00cd6c;fill-opacity:1;stroke:none;stroke-width:1.02413;stroke-miterlimit:3.91251;stroke-dashoffset:6;paint-order:stroke fill markers"
+       id="circle881"
+       cx="83.940033"
+       cy="120.45163"
+       r="4.8146915"
+       inkscape:export-xdpi="25.260281"
+       inkscape:export-ydpi="25.260281" />
+    <circle
+       style="fill:#00cd6c;fill-opacity:1;stroke:none;stroke-width:1.14316;stroke-miterlimit:3.91251;stroke-dashoffset:6;paint-order:stroke fill markers"
+       id="circle883"
+       cx="114.32878"
+       cy="116.64398"
+       r="5.3742619"
+       inkscape:export-xdpi="25.260281"
+       inkscape:export-ydpi="25.260281" />
+    <rect
+       style="mix-blend-mode:overlay;fill:url(#linearGradient905);fill-opacity:1;stroke:none;stroke-width:2.71745;stroke-miterlimit:3.91251;stroke-dashoffset:6;paint-order:stroke fill markers"
+       id="rect897"
+       width="45.733452"
+       height="64.353935"
+       x="76.583023"
+       y="76.164917"
+       inkscape:export-xdpi="25.260281"
+       inkscape:export-ydpi="25.260281" />
+    <circle
+       style="fill:#00cd6c;fill-opacity:1;stroke:none;stroke-width:0.90433;stroke-miterlimit:3.91251;stroke-dashoffset:6;paint-order:stroke fill markers"
+       id="circle885"
+       cx="115.02868"
+       cy="131.79082"
+       r="4.251452"
+       inkscape:export-xdpi="25.260281"
+       inkscape:export-ydpi="25.260281" />
+    <circle
+       style="fill:#00cd6c;fill-opacity:1;stroke:none;stroke-width:0.90433;stroke-miterlimit:3.91251;stroke-dashoffset:6;paint-order:stroke fill markers"
+       id="circle887"
+       cx="81.669243"
+       cy="132.60037"
+       r="4.251452"
+       inkscape:export-xdpi="25.260281"
+       inkscape:export-ydpi="25.260281" />
+  </g>
+</svg>
