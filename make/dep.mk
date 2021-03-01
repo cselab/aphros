@@ -1,4 +1,4 @@
-$(WRK)/c.o: $(SRC)/c.h
+$(WRK)/c.o: $(SRC)/aphros_c.h
 $(WRK)/c.o: $(SRC)/debug/isnan.h
 $(WRK)/c.o: $(SRC)/debug/linear.h
 $(WRK)/c.o: $(SRC)/distr/distr.h
@@ -636,7 +636,7 @@ $(WRK)/linear/linear.o: $(SRC)/util/macros.h
 $(WRK)/linear/linear.o: $(SRC)/util/module.h
 $(WRK)/linear/linear.o: $(SRC)/util/mpi.h
 $(WRK)/linear/linear.o: $(SRC)/util/suspender.h
-$(WRK)/main.o: $(SRC)/c.h
+$(WRK)/main.o: $(SRC)/aphros_c.h
 $(WRK)/march/main.o: $(SRC)/march/march.h
 $(WRK)/march/main.o: $(SRC)/march/table.h
 $(WRK)/overlap/overlap.o: $(SRC)/geom/vect.h

@@ -1,8 +1,7 @@
 #include "distr/distrsolver.h"
 #include "kernel/hydro.h"
 #include "kernel/kernelmeshpar.h"
-
-#include "c.h"
+#include "aphros_c.h"
 
 template <size_t dim>
 static void Run(MPI_Comm comm, Vars& var) {
