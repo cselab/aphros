@@ -11,8 +11,8 @@
 
 #include "distr/distrbasic.h"
 #include "linear/linear.h"
-#include "solver/approx_eb.h"
 #include "solver/approx2.h"
+#include "solver/approx_eb.h"
 #include "solver/convdiffe.h"
 #include "solver/convdiffvg.h"
 #include "solver/embed.h"

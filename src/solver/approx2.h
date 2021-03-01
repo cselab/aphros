@@ -14,7 +14,6 @@
 #include "geom/mesh.h"
 #include "solver.h"
 
-
 template <class MEB>
 struct Approx2 {
   using M = typename MEB::M;

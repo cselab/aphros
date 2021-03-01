@@ -66,6 +66,5 @@ class Range {
 
 } // namespace generic
 
-
 template <class T>
 using GRange = generic::Range<T>;

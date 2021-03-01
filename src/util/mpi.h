@@ -7,9 +7,9 @@
 
 #if USEFLAG(MPI)
 
+#include <mpi.h>
 #include <stdexcept>
 #include <string>
-#include <mpi.h>
 #define MPICALL(x)                                                    \
   do {                                                                \
     int errorcode;                                                    \
@@ -55,4 +55,3 @@ class MpiWrapper {
   bool finalize_;
   MPI_Comm comm_;
 };
-

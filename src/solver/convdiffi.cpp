@@ -7,6 +7,7 @@
 MULTIDIMX
 #undef X
 
-#define X(dim) template class ConvDiffScalImp<Embed<MeshStructured<double, dim>>>;
+#define X(dim) \
+  template class ConvDiffScalImp<Embed<MeshStructured<double, dim>>>;
 MULTIDIMX
 #undef X

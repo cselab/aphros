@@ -144,8 +144,9 @@ struct Tracer<EB_>::Imp {
     if (sem("local-redistr")) {
       for (auto l : layers) {
         t.vfct[l] = UEmbed<M>::RedistributeCutCells(t.vfct[l], eb);
-        //t.vfct[l] =
-        //    UEmbed<M>::RedistributeCutCellsAdvection(t.vfct[l], fev, 1, dt, eb);
+        // t.vfct[l] =
+        //    UEmbed<M>::RedistributeCutCellsAdvection(t.vfct[l], fev, 1, dt,
+        //    eb);
         for (auto c : eb.Cells()) {
           vfcu_[l][c] +=
               t.vfct[l][c] / eb.GetVolume(c) + dt * (*conf.fc_src)[c];

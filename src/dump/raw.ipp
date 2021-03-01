@@ -144,8 +144,8 @@ void Raw<M>::Write(
   MPI_Type_free(&memtype);
   MPI_Type_free(&filetype);
 #else
-  (void) mpi;
-  (void) global_size;
+  (void)mpi;
+  (void)global_size;
   std::ofstream file(path, std::ios::binary);
   fassert(file.good(), "Can't open file '" + path + "' for write");
   file.write(buf.data(), buf.size());

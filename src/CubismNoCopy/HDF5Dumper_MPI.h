@@ -123,14 +123,15 @@ void DumpHDF5_MPI(
   const size_t eY = B::sizeY;
   const size_t eZ = B::sizeZ;
 
-  hsize_t count[4] = {grid.getResidentBlocksPerDimension(2) * B::sizeZ,
-                      grid.getResidentBlocksPerDimension(1) * B::sizeY,
-                      grid.getResidentBlocksPerDimension(0) * B::sizeX,
-                      NCHANNELS};
+  hsize_t count[4] = {
+      grid.getResidentBlocksPerDimension(2) * B::sizeZ,
+      grid.getResidentBlocksPerDimension(1) * B::sizeY,
+      grid.getResidentBlocksPerDimension(0) * B::sizeX, NCHANNELS};
 
-  hsize_t dims[4] = {grid.getBlocksPerDimension(2) * B::sizeZ,
-                     grid.getBlocksPerDimension(1) * B::sizeY,
-                     grid.getBlocksPerDimension(0) * B::sizeX, NCHANNELS};
+  hsize_t dims[4] = {
+      grid.getBlocksPerDimension(2) * B::sizeZ,
+      grid.getBlocksPerDimension(1) * B::sizeY,
+      grid.getBlocksPerDimension(0) * B::sizeX, NCHANNELS};
 
   if (isroot) {
     std::cout << "HDF5 dump '" << fullname << "': "
@@ -151,8 +152,8 @@ void DumpHDF5_MPI(
   assert(vInfo_local.size() == blocks.size());
   for (size_t i = 0; i < vInfo_local.size(); i++) {
     BlockInfo& info = vInfo_local[i];
-    const size_t idx[3] = {(size_t)info.index[0], (size_t)info.index[1],
-                           (size_t)info.index[2]};
+    const size_t idx[3] = {
+        (size_t)info.index[0], (size_t)info.index[1], (size_t)info.index[2]};
     B& b = blocks[i];
     Streamer streamer(b, aos_idx);
 
@@ -199,9 +200,10 @@ void DumpHDF5_MPI(
   delete[] array_all;
 
   if (bXMF && isroot) {
-    size_t mesh_dims[3] = {grid.getBlocksPerDimension(0) * B::sizeX,
-                           grid.getBlocksPerDimension(1) * B::sizeY,
-                           grid.getBlocksPerDimension(2) * B::sizeZ};
+    size_t mesh_dims[3] = {
+        grid.getBlocksPerDimension(0) * B::sizeX,
+        grid.getBlocksPerDimension(1) * B::sizeY,
+        grid.getBlocksPerDimension(2) * B::sizeZ};
 
     const std::string xmfpath = dump_path + "/" + fullname + ".xmf";
     WriteXmf(
@@ -247,10 +249,10 @@ void ReadHDF5_MPI(
   const int eY = B::sizeY;
   const int eZ = B::sizeZ;
 
-  hsize_t count[4] = {grid.getResidentBlocksPerDimension(2) * B::sizeZ,
-                      grid.getResidentBlocksPerDimension(1) * B::sizeY,
-                      grid.getResidentBlocksPerDimension(0) * B::sizeX,
-                      NCHANNELS};
+  hsize_t count[4] = {
+      grid.getResidentBlocksPerDimension(2) * B::sizeZ,
+      grid.getResidentBlocksPerDimension(1) * B::sizeY,
+      grid.getResidentBlocksPerDimension(0) * B::sizeX, NCHANNELS};
 
   /*
   hsize_t dims[4] = {

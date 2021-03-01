@@ -128,7 +128,7 @@ inline double_prec<T> operator-(
 template <typename T>
 inline double_prec<T> operator*(
     const double_prec<T>& lhs,
-    const double_prec<T>& rhs)ENFORCE_EXACT_FPMATH_ATTR;
+    const double_prec<T>& rhs) ENFORCE_EXACT_FPMATH_ATTR;
 
 template <typename T>
 class double_prec {
@@ -498,8 +498,7 @@ class Tetrahedron : public detail::tet_mappings {
   }
 
   Tetrahedron()
-      : vertices{{vector_t::Zero(), vector_t::Zero(), vector_t::Zero(),
-                  vector_t::Zero()}}
+      : vertices{{vector_t::Zero(), vector_t::Zero(), vector_t::Zero(), vector_t::Zero()}}
       , faces()
       , center()
       , volume() {}
@@ -616,8 +615,7 @@ class Wedge : public detail::wedge_mappings {
   }
 
   Wedge()
-      : vertices{{vector_t::Zero(), vector_t::Zero(), vector_t::Zero(),
-                  vector_t::Zero(), vector_t::Zero(), vector_t::Zero()}}
+      : vertices{{vector_t::Zero(), vector_t::Zero(), vector_t::Zero(), vector_t::Zero(), vector_t::Zero(), vector_t::Zero()}}
       , faces()
       , center()
       , volume() {}

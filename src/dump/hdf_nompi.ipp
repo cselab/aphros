@@ -7,8 +7,7 @@
 
 template <class M>
 template <class Field>
-void Hdf<M>::Write(const Field&, std::string, M&, std::string) {
-}
+void Hdf<M>::Write(const Field&, std::string, M&, std::string) {}
 
 template <class M>
 template <class Field>

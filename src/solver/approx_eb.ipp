@@ -7,8 +7,8 @@
 
 #include "approx.h"
 #include "func/primlist.h"
-#include "util/format.h"
 #include "inside/inside.h"
+#include "util/format.h"
 
 namespace interp {
 

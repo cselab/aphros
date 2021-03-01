@@ -115,4 +115,3 @@ class ModuleDistr : public Module<ModuleDistr<M>> {
   virtual std::unique_ptr<DistrMesh<M>> Make(
       MPI_Comm, const KernelMeshFactory<M>&, Vars&) = 0;
 };
-

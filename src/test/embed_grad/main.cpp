@@ -109,7 +109,7 @@ void Run(M& m, Vars& var) {
     ctx->eb.reset(new EB(m));
   }
   if (sem.Nested("levelset")) {
-     UEB::InitLevelSet(ctx->fnl, m, var, m.IsRoot());
+    UEB::InitLevelSet(ctx->fnl, m, var, m.IsRoot());
   }
   if (sem.Nested("init")) {
     ctx->eb->Init(ctx->fnl);

@@ -121,7 +121,6 @@ class UVof {
   std::unique_ptr<Imp> imp;
 };
 
-
 // Returns values over stencil centered at cell c.
 // Values for neighbors without color cl are filled with 0.
 // sw: stencil half-width

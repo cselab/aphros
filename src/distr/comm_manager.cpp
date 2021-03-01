@@ -13,4 +13,3 @@ template struct CommManager<1>;
 template struct CommManager<2>;
 template struct CommManager<3>;
 template struct CommManager<4>;
-

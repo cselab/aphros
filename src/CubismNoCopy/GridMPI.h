@@ -75,9 +75,10 @@ class GridMPI : public TGrid {
     const std::vector<BlockInfo> vInfo = TGrid::getBlocksInfo();
 
     // cells total
-    const int nn[3] = {mybpd[0] * blocksize[0] * pesize[0],
-                       mybpd[1] * blocksize[1] * pesize[1],
-                       mybpd[2] * blocksize[2] * pesize[2]};
+    const int nn[3] = {
+        mybpd[0] * blocksize[0] * pesize[0],
+        mybpd[1] * blocksize[1] * pesize[1],
+        mybpd[2] * blocksize[2] * pesize[2]};
     // cell size (h_gridpoint from BlockInfo)
     const double hc = (maxextent / std::max(nn[0], std::max(nn[1], nn[2])));
     // block extent

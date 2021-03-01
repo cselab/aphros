@@ -431,7 +431,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
     }
 
     return [k](FieldCell<Scal>& fc, const M& m) {
-      auto sin = [](Vect x){
+      auto sin = [](Vect x) {
         Vect res;
         for (auto d : M::dirs) {
           res[d] = std::sin(x[d]);

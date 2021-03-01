@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include <string>
-#include <ostream>
 #include <istream>
+#include <ostream>
+#include <string>
 
 #include "geom/mesh.h"
 #include "xmf.h"
@@ -29,8 +29,7 @@ class Raw {
   static void Write(
       const FieldCell<T>& fc, const Meta& meta, std::string path, M& m);
   template <class T>
-  static void Read(
-      FieldCell<T>& fc, const Meta& meta, std::string path, M& m);
+  static void Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m);
 };
 
 } // namespace dump

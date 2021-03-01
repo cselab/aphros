@@ -3,14 +3,14 @@
 
 #undef NDEBUG
 #include <cassert>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 #include "dump/dumper.h"
 #include "dump/xmf.h"
 #include "dump/xmf.ipp"
-#include "util/logger.h"
 #include "geom/vect.h"
+#include "util/logger.h"
 
 void TestName() {
   std::cout << NAMEVALUE(GetDumpName("vf", ".h5", 8, 100)) << '\n';

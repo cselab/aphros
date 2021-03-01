@@ -205,16 +205,17 @@ class SynchronizerMPI {
             for (size_t fID = 0; fID < fields.size(); ++fID) {
               const int field_comp = fields[fID][blockid].n_comp;
               assert(field_comp > 0);
-              PackInfo info = {(Real*)fields[fID][blockid].data,
-                               data.faces[d][s] + NFACEBLOCK * (a + n1 * b) +
-                                   comp * NFACEBLOCK_COMP,
-                               field_comp,
-                               start[0],
-                               start[1],
-                               start[2],
-                               end[0],
-                               end[1],
-                               end[2]};
+              PackInfo info = {
+                  (Real*)fields[fID][blockid].data,
+                  data.faces[d][s] + NFACEBLOCK * (a + n1 * b) +
+                      comp * NFACEBLOCK_COMP,
+                  field_comp,
+                  start[0],
+                  start[1],
+                  start[2],
+                  end[0],
+                  end[1],
+                  end[2]};
               comp += field_comp;
 
               packinfos.push_back(info);
@@ -460,9 +461,10 @@ class SynchronizerMPI {
                             start[2] + (index[2] - neighbor[2]) * blocksize[2] -
                                 face_start[2]};
 
-                        const int L[3] = {face_end[0] - face_start[0],
-                                          face_end[1] - face_start[1],
-                                          face_end[2] - face_start[2]};
+                        const int L[3] = {
+                            face_end[0] - face_start[0],
+                            face_end[1] - face_start[1],
+                            face_end[2] - face_start[2]};
 
                         // if (isroot)
                         // {
@@ -560,9 +562,10 @@ class SynchronizerMPI {
                             start[2] + (index[2] - neighbor[2]) * blocksize[2] -
                                 face_start[2]};
 
-                        const int L[3] = {face_end[0] - face_start[0],
-                                          face_end[1] - face_start[1],
-                                          face_end[2] - face_start[2]};
+                        const int L[3] = {
+                            face_end[0] - face_start[0],
+                            face_end[1] - face_start[1],
+                            face_end[2] - face_start[2]};
 
                         // if (isroot)
                         // {
@@ -735,9 +738,10 @@ class SynchronizerMPI {
                             start[2] + (index[2] - neighbor[2]) * blocksize[2] -
                                 edge_start[2]};
 
-                        const int L[3] = {edge_end[0] - edge_start[0],
-                                          edge_end[1] - edge_start[1],
-                                          edge_end[2] - edge_start[2]};
+                        const int L[3] = {
+                            edge_end[0] - edge_start[0],
+                            edge_end[1] - edge_start[1],
+                            edge_end[2] - edge_start[2]};
 
                         // if (isroot)
                         // {
@@ -859,15 +863,16 @@ class SynchronizerMPI {
           for (size_t fID = 0; fID < fields.size(); ++fID) {
             const int field_comp = fields[fID][blockid].n_comp;
             assert(field_comp > 0);
-            PackInfo info = {(Real*)fields[fID][blockid].data,
-                             data.corners[z][y][x] + comp * NCORNERBLOCK_COMP,
-                             field_comp,
-                             start[0],
-                             start[1],
-                             start[2],
-                             end[0],
-                             end[1],
-                             end[2]};
+            PackInfo info = {
+                (Real*)fields[fID][blockid].data,
+                data.corners[z][y][x] + comp * NCORNERBLOCK_COMP,
+                field_comp,
+                start[0],
+                start[1],
+                start[2],
+                end[0],
+                end[1],
+                end[2]};
             comp += field_comp;
 
             packinfos.push_back(info);
@@ -932,9 +937,9 @@ class SynchronizerMPI {
     {
       const int blockstart[3] = {stencil.sx, stencil.sy, stencil.sz};
 
-      const int blockend[3] = {stencil.ex + blocksize[0] - 1,
-                               stencil.ey + blocksize[1] - 1,
-                               stencil.ez + blocksize[2] - 1};
+      const int blockend[3] = {
+          stencil.ex + blocksize[0] - 1, stencil.ey + blocksize[1] - 1,
+          stencil.ez + blocksize[2] - 1};
 
       // generate subpack-infos (no memory allocated here)
       vector<PackInfo> packinfos;
@@ -974,8 +979,9 @@ class SynchronizerMPI {
     for (int iz = 0; iz < 3; iz++)
       for (int iy = 0; iy < 3; iy++)
         for (int ix = 0; ix < 3; ix++) {
-          int s[3] = {ix - 1 + mypeindex[0], iy - 1 + mypeindex[1],
-                      iz - 1 + mypeindex[2]};
+          int s[3] = {
+              ix - 1 + mypeindex[0], iy - 1 + mypeindex[1],
+              iz - 1 + mypeindex[2]};
           int nbrRank;
           MPI_Cart_rank(cartcomm, s, &nbrRank);
           neighborsrank[iz][iy][ix] = nbrRank;

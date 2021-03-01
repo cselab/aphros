@@ -203,9 +203,8 @@ void Embed<M>::InitFaces(
       }
     }
     fft[f] =
-        (cut                         ? Type::cut
-         : xx.size() <= (M::dim - 1) ? Type::excluded
-                                     : Type::regular);
+        (cut ? Type::cut
+             : xx.size() <= (M::dim - 1) ? Type::excluded : Type::regular);
 
     if (exclude(f)) {
       fft[f] = Type::excluded;

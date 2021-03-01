@@ -69,5 +69,4 @@ MULTIDIMX
 #undef X
 #undef XX
 
-
 } // namespace dump

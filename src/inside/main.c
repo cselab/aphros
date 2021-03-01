@@ -125,10 +125,8 @@ int inside_ini(int nt, const int* tri, const double* ver, struct Inside** pq) {
         jx = ix + dx;
         jy = iy + dy;
         j = jx + jy * nx;
-        if (j < 0)
-	  continue;
-        if (j >= nx * ny)
-	  continue;
+        if (j < 0) continue;
+        if (j >= nx * ny) continue;
         if (n[j] >= cap[j]) {
           cap[j] *= 2;
           REALLOC(cap[j], &data[j]);

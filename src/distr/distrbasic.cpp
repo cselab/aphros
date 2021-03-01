@@ -22,7 +22,8 @@ std::string GetDefaultConf() {
 #else
   const std::string backend = "local";
 #endif
-  return util::Format(R"EOF(
+  return util::Format(
+      R"EOF(
 set int px 1
 set int py 1
 set int pz 1
@@ -85,7 +86,8 @@ set string hypre_vort_solver pcg
 set int hypre_symm_maxiter 100
 set int hypre_vort_maxiter 100
 set int hypre_gen_maxiter 30
-)EOF", backend);
+)EOF",
+      backend);
 }
 
 int RunMpiKernel(

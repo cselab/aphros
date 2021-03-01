@@ -172,8 +172,7 @@ int main(int argc, const char** argv) {
   parser.AddVariable<double>("--tol", 1e-3).Help("Convergence tolerance");
   parser.AddVariable<int>("--maxiter", 100).Help("Maximum iterations");
   parser.AddVariable<int>("--mesh", 32).Help("Mesh size in all directions");
-  parser.AddVariable<int>("--block", 16)
-      .Help("Block size in all directions");
+  parser.AddVariable<int>("--block", 16).Help("Block size in all directions");
   parser.AddSwitch("--dump").Help(
       "Dump solution, exact solution, and difference");
   parser.AddVariable<std::string>("--system_in", "")

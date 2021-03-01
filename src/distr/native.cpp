@@ -3,9 +3,9 @@
 
 #include <sstream>
 
-#include "util/macros.h"
 #include "geom/mesh.h"
 #include "kernel/kernelmesh.h"
+#include "util/macros.h"
 
 #include "native.ipp"
 

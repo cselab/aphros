@@ -14,7 +14,6 @@ namespace generic {
 template <size_t dim>
 using MIdx = generic::Vect<IntIdx, dim>;
 
-
 template <int id_>
 class Idx {
  public:

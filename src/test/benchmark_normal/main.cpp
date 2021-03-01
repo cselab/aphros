@@ -117,8 +117,7 @@ static const char* kYoungsNames[3] = {
 template <int id>
 class Youngs : public TimerMesh {
  public:
-  Youngs(Mesh& m_)
-      : TimerMesh(kYoungsNames[id], m_), fcu(m), fcmask(m, true) {
+  Youngs(Mesh& m_) : TimerMesh(kYoungsNames[id], m_), fcu(m), fcmask(m, true) {
     for (auto i : m.AllCells()) {
       fcu[i] = Random(i.GetRaw());
     }
@@ -153,8 +152,7 @@ static const char* kHeightNames[3] = {
 template <int id>
 class Height : public TimerMesh {
  public:
-  Height(Mesh& m_)
-      : TimerMesh(kHeightNames[id], m_), fcu(m), fcmask(m, true) {
+  Height(Mesh& m_) : TimerMesh(kHeightNames[id], m_), fcu(m), fcmask(m, true) {
     for (auto i : m.AllCells()) {
       fcu[i] = Random(i.GetRaw());
     }

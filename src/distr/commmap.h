@@ -489,7 +489,6 @@ class CommMap {
 
       fassert_equal(send_neighbors, recv_neighbors);
       system_.neighbors = send_neighbors;
-
     }
     if (sem()) {
       init_called_ = true;

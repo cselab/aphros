@@ -218,8 +218,8 @@ struct PartStrMeshM<M_>::Imp {
   // Output:
   // lx, ls: appended with interface fragment
   bool AppendInterface(
-      const Basis& basis, Vect xc, Scal a, const Vect n,
-      std::vector<Vect2>& lx, std::vector<size_t>& ls) {
+      const Basis& basis, Vect xc, Scal a, const Vect n, std::vector<Vect2>& lx,
+      std::vector<size_t>& ls) {
     std::array<Vect, 2> ends; // ends of intersection
 
     auto interface = R::GetCutPoly(xc, n, a, m.GetCellSize());

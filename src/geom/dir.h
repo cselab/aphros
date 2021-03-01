@@ -37,6 +37,7 @@ class GDir {
   bool operator<(const GDir& other) const {
     return dir_ < other.dir_;
   }
+
  private:
   size_t dir_;
 };

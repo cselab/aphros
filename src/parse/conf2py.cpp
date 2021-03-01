@@ -50,7 +50,7 @@ int main(int argc, const char** argv) {
   }
   for (auto a : var.Vect) {
     std::string val;
-    bool first  = true;
+    bool first = true;
     for (auto q : a.second) {
       auto sep = first ? "" : ", ";
       val += util::Format("{}{:.20f}", sep, q);

@@ -201,8 +201,8 @@ class BlockLab {
       for (int icode = 0; icode < 27; icode++) {
         if (icode == 1 * 1 + 3 * 1 + 9 * 1) continue;
 
-        const int code[3] = {icode % 3 - 1, (icode / 3) % 3 - 1,
-                             (icode / 9) % 3 - 1};
+        const int code[3] = {
+            icode % 3 - 1, (icode / 3) % 3 - 1, (icode / 9) % 3 - 1};
 
         if (!xperiodic && code[0] == xskip && xskin) continue;
         if (!yperiodic && code[1] == yskip && yskin) continue;

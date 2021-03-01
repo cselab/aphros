@@ -377,7 +377,7 @@ void Hydro<M>::SpawnTracer() {
     for (auto c : m.AllCells()) {
       const auto xc = m.GetCenter(c);
       Vect dx = xc - sphere_c;
-      if (edim == 2 && M::dim > 2 ) {
+      if (edim == 2 && M::dim > 2) {
         dx[2] = 0;
       }
       if (dx.sqrnorm() < sqr(sphere_r)) {
@@ -1031,9 +1031,7 @@ void Hydro<M>::InitStat(const MEB& eb) {
         });
     stat.AddDerived(
         "dvel_l2", "L2 norm of velocity difference with `vel`", //
-        [](const Stat<M>& s) {
-          return Sqrt(s.vect["dv*dv*vol"] / s["vol"]);
-        });
+        [](const Stat<M>& s) { return Sqrt(s.vect["dv*dv*vol"] / s["vol"]); });
     stat.AddMax(
         "dvel2_max", "maximum phase 2 velocity difference with `vel`",
         [&vel0, &vel, &vf](IdxCell c, const M&) {

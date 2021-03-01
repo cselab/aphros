@@ -235,7 +235,7 @@ void ConvertMerge(
   };
 
   // Returns a canonical representative of one cell of size `tol`.
-  auto canonical = [tol,&floor](const Vect& x) -> Vect {
+  auto canonical = [tol, &floor](const Vect& x) -> Vect {
     return floor(x / tol) * tol;
   };
 
