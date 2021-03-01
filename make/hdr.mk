@@ -1,5 +1,4 @@
 H = \
-aphros_c.h\
 color/color.h\
 CubismNoCopy/BlockInfo.h\
 CubismNoCopy/BlockLab.h\

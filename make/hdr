@@ -3,9 +3,10 @@
 find . -name '*.h' | awk '
 BEGIN {
     print "H = \\"
+    skip["aphros_c.h"]
 }
 { sub(/^\.\//, "") }
-/^test\// { next }
+($0 in skip) || /^test\// { next }
 {
     print $0 "\\" | "sort"
 }

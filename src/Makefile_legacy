@@ -44,10 +44,11 @@ $(WRK)/main.o: $(SRC)/main.c; mkdir -p $(WRK) && $(CC_RULE)
 $(WRK)/.dir:; mkdir -p $P && touch $@
 $(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@
 install: $(WRK)/$L $(WRK)/ap.mfer
-	mkdir -p '$(APHROS_PREFIX)'/lib '$(APHROS_PREFIX)'/bin '$(APHROS_PREFIX)'/include/aphros
+	mkdir -p '$(APHROS_PREFIX)'/lib '$(APHROS_PREFIX)'/bin '$(APHROS_PREFIX)'/include
 	for i in $D; \
 	do mkdir -p '$(APHROS_PREFIX)'/include/aphros/$$i; \
 	done
+        cp aphros_c.h '$(APHROS_PREFIX)'/include
 	for i in $H; \
 	do cp $$i '$(APHROS_PREFIX)'/include/aphros/$$i; \
 	done
