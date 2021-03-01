@@ -7,8 +7,8 @@ BEGIN {
 { sub(/^\.\//, "") }
 /^test\// { next }
 {
-    sub(/\/.*/, "")
-    print $0 "\\" | "sort | uniq"
+    if (sub(/\/.*/, ""))
+        print $0 "\\" | "sort | uniq"
 }
 
 END {
