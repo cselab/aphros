@@ -19,8 +19,10 @@ BEGIN {
 
 function dirname(s)
 {
-    sub(/\/.*/, "", s)
-    return s
+    if (sub(/\/.*/, "", s))
+        return s
+    else
+        return ""
 }
 
 ' > header.cmake
