@@ -1145,8 +1145,8 @@ void Hydro<M>::InitStat(const MEB& eb) {
       const auto sl = std::to_string(l);
       stat.AddSum(
           "tu" + sl + "_vol", "volume of tracer " + sl, //
-          [&tr = tracer_, l](IdxCell c, const MEB& eb) {
-            return tr->GetVolumeFraction()[l][c] * eb.GetVolume(c);
+          [&tr = tracer_, l](IdxCell c, const MEB& meb) {
+            return tr->GetVolumeFraction()[l][c] * meb.GetVolume(c);
           });
       stat.AddMax(
           "tu" + sl + "_max", "maximum of tracer " + sl, //

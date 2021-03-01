@@ -281,8 +281,7 @@ void Embed<M>::InitCells(
 
   for (auto c : m.AllCells()) {
     if (fct[c] == Type::cut) {
-      // calc normal
-      {
+      { // calc normal
         Vect n(0);
         for (auto q : m.Nci(c)) {
           const IdxFace f = m.GetFace(c, q);
@@ -291,8 +290,7 @@ void Embed<M>::InitCells(
         fcn[c] = -n / n.norm();
       }
 
-      // calc plane constant
-      {
+      { // calc plane constant
         Scal a = 0;
         Scal aw = 0;
         for (auto q : m.Nci(c)) {
@@ -309,7 +307,7 @@ void Embed<M>::InitCells(
 
             if (l * lp < 0) {
               a += fcn[c].dot(GetIso(x, xp, l, lp) - m.GetCenter(c));
-              aw += 1.;
+              aw += 1;
             }
           }
         }

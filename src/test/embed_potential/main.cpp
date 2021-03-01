@@ -11,7 +11,7 @@
 #include <utility>
 
 #include "distr/distrbasic.h"
-#include "dump/hdf.h"
+#include "dump/raw.h"
 #include "func/init_bc.h"
 #include "linear/linear.h"
 #include "parse/argparse.h"
@@ -29,9 +29,8 @@ void CalcPotential(
     FieldCell<typename M::Scal>& fcp, FieldEmbed<typename M::Scal>& feg,
     FieldCell<typename M::Scal>& fc_residual,
     std::shared_ptr<linear::Solver<M>> linsolver, std::string system_out) {
-  using Scal = typename M::Scal;
-  using ExprFace = generic::Vect<Scal, 3>;
-  using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
+  using ExprFace = typename M::ExprFace;
+  using Expr = typename M::Expr;
 
   auto sem = m.GetSem();
   struct {
@@ -55,7 +54,7 @@ void CalcPotential(
   }
   if (sem.Nested("dump_system")) {
     if (system_out.length()) {
-      Hdf<M>::Write(t.fc_system, system_out, m);
+      //dump::Raw<M>::Write(t.fc_system, system_out, m);
     }
   }
   if (sem.Nested("solve")) {
@@ -75,16 +74,11 @@ void CalcPotential(
   }
 }
 
-using M = MeshStructured<double, 3>;
-using Scal = typename M::Scal;
-using Vect = typename M::Vect;
-using MIdx = typename M::MIdx;
-using EB = Embed<M>;
-using UEB = UEmbed<M>;
-using Type = typename EB::Type;
-
+template <class M>
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem(__func__);
+  using Scal = typename M::Scal;
+  using EB = Embed<M>;
   struct {
     std::unique_ptr<EB> eb;
     FieldCell<Scal> fcp;
@@ -92,7 +86,7 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fcdiv;
     FieldNode<Scal> fnl;
     std::shared_ptr<linear::Solver<M>> linsolver;
-    UInitEmbedBc<M>::PlainBc bc;
+    typename UInitEmbedBc<M>::PlainBc bc;
     std::array<FieldCell<Scal>, 7> comps;
     FieldCell<Scal> fc_residual;
     std::string system_out;
@@ -111,7 +105,7 @@ void Run(M& m, Vars& var) {
     t.fcp.Reinit(m, 0);
   }
   if (sem.Nested("levelset")) {
-    UEB::InitLevelSet(t.fnl, m, var, m.IsRoot());
+    UEmbed<M>::InitLevelSet(t.fnl, m, var, m.IsRoot());
   }
   if (sem.Nested("init")) {
     t.eb->Init(t.fnl);
@@ -177,6 +171,22 @@ void Run(M& m, Vars& var) {
   }
 }
 
+template <size_t dim>
+int RunGeneric(MpiWrapper& mpi, const Vars& args, std::string conf) {
+  using M = MeshStructured<double, dim>;
+  using MIdx = typename M::MIdx;
+  MIdx meshsize(1);
+  MIdx blocksize(1);
+  meshsize[0] = args.Int["nx"];
+  meshsize[1] = args.Int["nx"];
+  blocksize[0] = args.Int["bs"];
+  blocksize[1] = args.Int["bs"];
+  Subdomains<MIdx> sub(meshsize, blocksize, mpi.GetCommSize());
+  conf += sub.GetConfig();
+
+  return RunMpiBasicString<M>(mpi, Run<M>, conf);
+}
+
 int main(int argc, const char** argv) {
 #if USEFLAG(HYPRE)
   FORCE_LINK(linear_hypre);
@@ -190,6 +200,7 @@ int main(int argc, const char** argv) {
   MpiWrapper mpi(&argc, &argv);
   ArgumentParser parser("Solver for the Poisson equation", mpi.IsRoot());
   parser.AddVariable<int>("--nx", 128).Help("Mesh size in x,y");
+  parser.AddVariable<int>("--dim", 3).Options({2, 3}).Help("Space dimension");
   parser.AddVariable<int>("--nsteps", 1)
       .Help(
           "Number of steps to dump, repeated with the current solution as "
@@ -200,7 +211,7 @@ int main(int argc, const char** argv) {
   parser.AddSwitch("--dump_fluxes").Help("Dump fluxes from solution");
   parser.AddVariable<std::string>("--system_out", "")
       .Help(
-          "Output path for linear system as HDF5 file with one field 'data' of "
+          "Output path for linear system with one field 'data' of "
           "size (nz,ny,nx,8)");
   parser.AddVariable<std::string>("--extra", "")
       .Help("Extra configuration (commands 'set ... ')");
@@ -210,13 +221,9 @@ int main(int argc, const char** argv) {
   }
 
   std::string conf;
-
-  Subdomains<MIdx> sub(
-      MIdx(args.Int["nx"], args.Int["nx"], 1),
-      MIdx(args.Int["bs"], args.Int["bs"], 1), mpi.GetCommSize());
-  conf += sub.GetConfig();
-
   conf += R"EOF(
+set string backend native
+set string dumpformat raw
 set string eb_init list
 set string eb_list_path body.dat
 set string bc_path bc.dat
@@ -226,6 +233,8 @@ set int linreport 0
 set int check_symmetry 0
 
 set int dim 2
+
+set string linsolver_symm conjugate
 
 set int hypre_periodic_x 0
 set int hypre_periodic_y 0
@@ -240,5 +249,10 @@ set int hypre_symm_maxiter 100
   conf += "\nset string system_out " + args.String.GetStr("system_out");
   conf += "\n";
 
-  return RunMpiBasicString<M>(mpi, Run, conf);
+  const auto dim = args.Int["dim"];
+  if (dim == 2) {
+    return RunGeneric<2>(mpi, args, conf);
+  } else {
+    return RunGeneric<3>(mpi, args, conf);
+  }
 }

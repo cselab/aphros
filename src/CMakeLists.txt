@@ -253,18 +253,20 @@ foreach(name ${ObjLibs})
   list(APPEND ObjLibsTarget "$<TARGET_OBJECTS:${name}>")
 endforeach()
 
-set(T "aphros")
+set(T aphros)
 add_library(${T} SHARED ${ObjLibsTarget})
-set_property(TARGET ${T} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
-    "${APHROS_PREFIX}/include/aphros")
+target_include_directories(${T} INTERFACE "${APHROS_PREFIX}/include/aphros")
 target_link_libraries(${T} ${ObjLibs} ${BinLibs})
 
-# binary
-set(EXE "mfer")
-add_executable(${EXE} main.c)
-install(TARGETS ${EXE} DESTINATION bin)
-set_target_properties(${EXE} PROPERTIES PREFIX "ap.")
-target_link_libraries(${EXE} aphros use_dims)
+set(T aphros_c)
+add_library(${T} SHARED c.cpp)
+target_link_libraries(${T} aphros use_dims)
+
+set(T mfer)
+add_executable(${T} main.c)
+install(TARGETS ${T} DESTINATION bin)
+set_target_properties(${T} PROPERTIES PREFIX "ap.")
+target_link_libraries(${T} aphros_c)
 
 # test
 add_subdirectory(test)
