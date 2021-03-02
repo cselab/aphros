@@ -45,6 +45,6 @@ static void Main(MPI_Comm comm, Vars& var) {
   }
 }
 
-int aphros_main(int argc, const char** argv) {
+int aphros_Main(int argc, const char** argv) {
   return RunMpi(argc, argv, Main);
 }
