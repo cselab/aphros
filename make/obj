@@ -15,7 +15,7 @@ BEGIN {
     printf "P = \\\n" > "../make/dir.rule.mk"
 }
 { sub(/^\.\//, "") }
-($0 in skip) || /^test\// || /^build[a-z_0-9]*\// || /^main[.]cpp$/ { next }
+($0 in skip) || /^test\// || /^build[a-z_0-9]*\// { next }
 {
     file = $0
     if (sub(/\.cpp$/, ".o"))
