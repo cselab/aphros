@@ -1,6 +1,6 @@
 #!/bin/sh
 
-(find . -name '*.cpp' -or -name '*.c'; echo util/gitgen.cpp) | awk '
+{ find . -name '*.cpp' -or -name '*.c'; echo util/gitgen.cpp; } | awk '
 BEGIN {
     print "O = \\"
     skip["distr/cubismnc.cpp"]
