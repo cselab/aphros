@@ -1,10 +1,10 @@
 #include "util/git.h"
 #include "aphros_c.h"
 
-const char* aphros_get_git_rev(void) {
+const char* aphros_GetGitRev(void) {
   return GetGitRev();
 }
 
-const char* aphros_get_logo(void) {
+const char* aphros_GetLogo(void) {
   return GetLogo();
 }

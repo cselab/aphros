@@ -8,8 +8,8 @@ int aphros_parser_fin(struct aphros_Parser*);
 int aphros_parser_print_vars(struct aphros_Parser*);
 int aphros_parser_status(struct aphros_Parser*);
 int aphros_parser_int(struct aphros_Parser*, const char*);
-const char* aphros_get_git_rev(void);
-const char* aphros_get_logo(void);
+const char* aphros_GetGitRev(void);
+const char* aphros_GetLogo(void);
 
 #ifdef __cplusplus
 }
