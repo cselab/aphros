@@ -32,9 +32,17 @@ int aphros_ParserGetInt(struct aphros_Parser* q, const char* name) {
   try {
     return q->par->Int[name];
   } catch (const std::runtime_error& e) {
-    fprintf(stderr, "%s\n", e.what());
     q->status = 1;
     return 0;
+  }
+}
+
+double aphros_ParserGetDouble(struct aphros_Parser* q, const char* name) {
+  try {
+    return q->par->Double[name];
+  } catch (const std::runtime_error& e) {
+    q->status = 1;
+    return 0.0;
   }
 }
 
