@@ -10,6 +10,7 @@ struct aphros_Parser {
   Vars* par;
   Parser* parser;
   char* string;
+  double* vect;
   int status;
 };
 
@@ -17,6 +18,7 @@ struct aphros_Parser* aphros_ParserFileIni(const char* path) {
   struct aphros_Parser* q;
   if ((q = (struct aphros_Parser*)malloc(sizeof *q)) == NULL) return NULL;
   q->string = NULL;
+  q->vect = NULL;
   q->status = 0;
   q->par = new Vars();
   q->parser = new Parser(*q->par);
@@ -55,18 +57,38 @@ char* aphros_ParserGetString(struct aphros_Parser* q, const char* name) {
   std::string s;
   try {
     s = q->par->String[name];
-    if (q->string == NULL)
-      free(q->string);
-    if ((q->string = strdup(s.c_str())) == NULL) {
-      fprintf(stderr, "%s:%d: strdup failed\n", __FILE__, __LINE__);
-      q->status = 2;
-      return NULL;
-    }
-    return q->string;
   } catch (const std::runtime_error& e) {
     q->status = 1;
     return NULL;
   }
+  free(q->string);
+  if ((q->string = strdup(s.c_str())) == NULL) {
+    fprintf(stderr, "%s:%d: strdup failed\n", __FILE__, __LINE__);
+    q->status = 2;
+    return NULL;
+  }
+  return q->string;
+}
+
+double* aphros_ParserGetVect(struct aphros_Parser* q, const char* name, /**/ int *size) {
+  int i;
+  std::vector<double> s;
+  try {
+    s = q->par->Vect[name];
+  } catch (const std::runtime_error& e) {
+    q->status = 1;
+    return NULL;
+  }
+  free(q->vect);
+  if ((q->vect = (double*)malloc(s.size() * sizeof *q->vect)) == NULL) {
+    fprintf(stderr, "%s:%d: malloc failed\n", __FILE__, __LINE__);
+    q->status = 2;
+    return NULL;
+  }
+  for (i = 0; i < (int)s.size(); i++)
+    q->vect[i] = s.at(i);
+  *size = s.size();
+  return q->vect;
 }
 
 int aphros_ParserStatus(struct aphros_Parser* q) {
@@ -80,6 +102,7 @@ int aphros_ParserFin(struct aphros_Parser* q) {
   delete q->par;
   delete q->parser;
   free(q->string);
+  free(q->vect);
   free(q);
   return 0;
 }

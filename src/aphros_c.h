@@ -10,6 +10,7 @@ int aphros_ParserStatus(struct aphros_Parser*);
 int aphros_ParserGetInt(struct aphros_Parser*, const char*);
 double aphros_ParserGetDouble(struct aphros_Parser*, const char*);
 char* aphros_ParserGetString(struct aphros_Parser*, const char*);
+double* aphros_ParserGetVect(struct aphros_Parser*, const char*, /**/ int *);
 const char* aphros_GetGitRev(void);
 const char* aphros_GetLogo(void);
 
