@@ -23,12 +23,12 @@ struct aphros_Parser* aphros_parser_file_ini(const char* path) {
   return q;
 }
 
-int aphros_parser_print_vars(struct aphros_Parser* q) {
+int aphros_ParserPrintVars(struct aphros_Parser* q) {
   q->parser->PrintVars(std::cout);
   return 0;
 }
 
-int aphros_parser_int(struct aphros_Parser* q, const char* name) {
+int aphros_ParserGetInt(struct aphros_Parser* q, const char* name) {
   try {
     return q->par->Int[name];
   } catch (const std::runtime_error& e) {
@@ -38,14 +38,14 @@ int aphros_parser_int(struct aphros_Parser* q, const char* name) {
   }
 }
 
-int aphros_parser_status(struct aphros_Parser* q) {
+int aphros_ParserStatus(struct aphros_Parser* q) {
   int status;
   status = q->status;
   q->status = 0;
   return status;
 }
 
-int aphros_parser_fin(struct aphros_Parser* q) {
+int aphros_ParserFin(struct aphros_Parser* q) {
   delete q->par;
   delete q->parser;
   free(q);

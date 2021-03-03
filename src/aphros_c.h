@@ -4,10 +4,10 @@ extern "C" {
 int aphros_Main(int, const char**);
 struct aphros_Parser;
 struct aphros_Parser* aphros_parser_file_ini(const char*);
-int aphros_parser_fin(struct aphros_Parser*);
-int aphros_parser_print_vars(struct aphros_Parser*);
-int aphros_parser_status(struct aphros_Parser*);
-int aphros_parser_int(struct aphros_Parser*, const char*);
+int aphros_ParserFin(struct aphros_Parser*);
+int aphros_ParserPrintVars(struct aphros_Parser*);
+int aphros_ParserStatus(struct aphros_Parser*);
+int aphros_ParserGetInt(struct aphros_Parser*, const char*);
 const char* aphros_GetGitRev(void);
 const char* aphros_GetLogo(void);
 
