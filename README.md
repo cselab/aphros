@@ -104,7 +104,7 @@ Bubble trapped by vortex ring [[5]](https://doi.org/10.1016/j.ijmultiphaseflow.2
 [<img src="doc/images/reactor.jpg" width=384>](https://cselab.github.io/aphros/videos/reactor.mp4) | [<img src="doc/images/mesh_bubbles.jpg" width=384>](https://cselab.github.io/aphros/videos/mesh_bubbles.mp4)
 Electrochemical reactor [[1]](https://doi.org/10.1039/C9EE00219G) | Bubbles through mesh
 [<img src="doc/images/rising_bubbles.jpg" width=384>](https://cselab.github.io/aphros/videos/rising_bubbles.mp4) | [<img src="doc/images/foaming_waterfall.jpg" width=384>](https://cselab.github.io/aphros/videos/foaming_waterfall.mp4)
- Rising bubbles clustering on the surface [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) [[7]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019) | Foaming waterfall [[8]](https://doi.org/10.1145/3394277.3401856)
+ Clustering of bubbles [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) [[7]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019) [[9]](https://arxiv.org/abs/2103.01513) | Foaming waterfall [[8]](https://doi.org/10.1145/3394277.3401856) [[9]](https://arxiv.org/abs/2103.01513)
 
 |     |
 |:---:|
@@ -142,10 +142,12 @@ under the supervision of
   particle volume-of-fluid method for curvature estimation in multiphase
   flows”, _International journal of multiphase flow_, 2020
   [10.1016/j.ijmultiphaseflow.2020.103209](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209)
+  [arXiv:1906.00314](https://arxiv.org/abs/1906.00314)
 5. Z. Wan, P. Karnakov, P. Koumoutsakos, T. Sapsis, "Bubbles in
   Turbulent Flows: Data-driven, kinematic models with history terms”,
   _International journal of multiphase flow_, 2020
   [10.1016/j.ijmultiphaseflow.2020.103286](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103286)
+  [arXiv:1910.02068](https://arxiv.org/abs/1910.02068)
 6. P. Karnakov, S. Litvinov, J. M. Favre, P. Koumoutsakos
   "V0018: Breaking waves: to foam or not to foam?"
   _Gallery of Fluid Motion Award_
@@ -157,3 +159,6 @@ under the supervision of
   Bubble and Drop Clusters" in _Proceedings of the platform for
   advanced scientific computing conference on – PASC ’20_, 2020
   [10.1145/3394277.3401856](https://doi.org/10.1145/3394277.3401856)
+9. P. Karnakov, S. Litvinov, P. Koumoutsakos
+Computing foaming flows across scales: from breaking waves to microfluidics, 2021
+[arXiv:2103.01513](https://arxiv.org/abs/2103.01513)

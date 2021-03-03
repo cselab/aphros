@@ -109,7 +109,7 @@ Bubble trapped by vortex ring [[ref:datadriven]] | Plunging jet [[ref:pasc19]]
 [<img src="doc/images/reactor.jpg" width=384>]([[VIDEOS]]/reactor.mp4) | [<img src="doc/images/mesh_bubbles.jpg" width=384>]([[VIDEOS]]/mesh_bubbles.mp4)
 Electrochemical reactor [[ref:ees]] | Bubbles through mesh
 [<img src="doc/images/rising_bubbles.jpg" width=384>]([[VIDEOS]]/rising_bubbles.mp4) | [<img src="doc/images/foaming_waterfall.jpg" width=384>]([[VIDEOS]]/foaming_waterfall.mp4)
- Rising bubbles clustering on the surface [[ref:aps]] [[ref:cscs]] | Foaming waterfall [[ref:pasc20]]
+ Clustering of bubbles [[ref:aps]] [[ref:cscs]] [[ref:multivof]] | Foaming waterfall [[ref:pasc20]] [[ref:multivof]]
 
 |     |
 |:---:|
@@ -147,10 +147,12 @@ under the supervision of
   particle volume-of-fluid method for curvature estimation in multiphase
   flows”, _International journal of multiphase flow_, 2020
   [10.1016/j.ijmultiphaseflow.2020.103209](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209)
+  [arXiv:1906.00314](https://arxiv.org/abs/1906.00314)
 [[item:datadriven]] Z. Wan, P. Karnakov, P. Koumoutsakos, T. Sapsis, "Bubbles in
   Turbulent Flows: Data-driven, kinematic models with history terms”,
   _International journal of multiphase flow_, 2020
   [10.1016/j.ijmultiphaseflow.2020.103286](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103286)
+  [arXiv:1910.02068](https://arxiv.org/abs/1910.02068)
 [[item:aps]] P. Karnakov, S. Litvinov, J. M. Favre, P. Koumoutsakos
   "V0018: Breaking waves: to foam or not to foam?"
   _Gallery of Fluid Motion Award_
@@ -162,6 +164,9 @@ under the supervision of
   Bubble and Drop Clusters" in _Proceedings of the platform for
   advanced scientific computing conference on – PASC ’20_, 2020
   [10.1145/3394277.3401856](https://doi.org/10.1145/3394277.3401856)
+[[item:multivof]] P. Karnakov, S. Litvinov, P. Koumoutsakos
+Computing foaming flows across scales: from breaking waves to microfluidics, 2021
+[arXiv:2103.01513](https://arxiv.org/abs/2103.01513)
 '''
 
 m_refs = list(re.finditer("\[\[ref:[^]]*\]\]", text))
@@ -172,13 +177,15 @@ gen = text
 gen = gen.replace('[[GEN]]', os.path.basename(__file__))
 gen = gen.replace('[[VIDEOS]]', "https://cselab.github.io/aphros/videos")
 gen = gen.replace('[[IMAGES]]', "https://cselab.github.io/aphros/images")
+found_refs = set()
 for i, m_item in enumerate(m_items):
     item = m_item.group(0)
     name = re.match("\[\[item:([^]]*)\]\]", item).group(1)
-    ref = "[[ref:{}]]".format(name)
     start = m_item.start(0)
     end = m_items[i + 1].start(0) if i + 1 < len(m_items) else len(text)
     m_url = re.search("\((http[^)]*)\)", text[start:end])
+    ref = "[[ref:{}]]".format(name)
+    found_refs.add(ref)
 
     gen = gen.replace(item, "{:}.".format(i + 1))
 
@@ -189,6 +196,14 @@ for i, m_item in enumerate(m_items):
         if ref in refs:
             print("Warning: no URL found for '{}'".format(item))
         gen = gen.replace(ref, "[{:}]".format(i + 1))
+
+unknown_refs = set(refs) - found_refs
+if len(unknown_refs):
+    for ref in unknown_refs:
+        print("Warning: item not found for '{}'".format(ref))
+
+
+
 
 with open("README.md", 'w') as f:
     f.write(gen)
