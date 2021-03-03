@@ -108,7 +108,7 @@ Coalescence of bubbles [[ref:partstr]] | Taylor-Green vortex with bubbles [[ref:
 Bubble trapped by vortex ring [[ref:datadriven]] | Plunging jet [[ref:pasc19]]
 [<img src="doc/images/reactor.jpg" width=384>]([[VIDEOS]]/reactor.mp4) | [<img src="doc/images/mesh_bubbles.jpg" width=384>]([[VIDEOS]]/mesh_bubbles.mp4)
 Electrochemical reactor [[ref:ees]] | Bubbles through mesh
-[<img src="doc/images/rising_bubbles.jpg" width=384>]([[VIDEOS]]/rising_bubbles.mp4) | [<img src="doc/images/foaming_waterfall.jpg" width=384>]([[VIDEOS]]/foaming_waterfall.mp4)
+[<img src="doc/images/rising_bubbles.jpg" width=384>]([[VIDEOS]]/rising_bubbles.mp4) | [<img src="doc/images/foaming_waterfall.jpg" width=384>](https://www.youtube.com/watch?v=0Cj8pPYNJGY)
  Clustering of bubbles [[ref:aps]] [[ref:cscs]] [[ref:multivof]] | Foaming waterfall [[ref:pasc20]] [[ref:multivof]]
 
 |     |
