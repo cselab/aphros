@@ -202,9 +202,12 @@ void Embed<M>::InitFaces(
         cut = true;
       }
     }
+    const Scal area = std::abs(R::GetArea(xx, m.GetNormal(f)));
+
     fft[f] =
-        (cut ? Type::cut
-             : xx.size() <= (M::dim - 1) ? Type::excluded : Type::regular);
+        (cut                           ? Type::cut
+         : xx.size() == em && area > 0 ? Type::regular
+                                       : Type::excluded);
 
     if (exclude(f)) {
       fft[f] = Type::excluded;
@@ -216,17 +219,6 @@ void Embed<M>::InitFaces(
         break;
       }
       case Type::cut: {
-        // ffs[f] = std::abs(R::GetArea(xx, m.GetNormal(f)));
-        const Scal eps = 1e-3;
-        const Scal area0 = m.GetArea(f);
-        Scal area;
-        if (M::dim == 2) {
-          area = xx.size() == 2 ? xx[0].dist(xx[1]) : 0;
-        } else {
-          area = std::abs(R::GetArea(xx, m.GetNormal(f)));
-        }
-        area = std::max(area, area0 * eps);
-        area = std::min(area, area0 * (1 - eps));
         ffs[f] = area;
         ffpoly[f] = xx;
         break;

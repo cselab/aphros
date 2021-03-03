@@ -28,20 +28,20 @@ void CalcPotential(
     const MapEmbed<BCond<typename M::Scal>>& mebc, M& m, const Embed<M>& eb,
     FieldCell<typename M::Scal>& fcp, FieldEmbed<typename M::Scal>& feg,
     FieldCell<typename M::Scal>& fc_residual,
-    std::shared_ptr<linear::Solver<M>> linsolver, std::string system_out) {
+    std::shared_ptr<linear::Solver<M>> linsolver,
+    FieldCell<typename M::Expr>& fc_system) {
   using ExprFace = typename M::ExprFace;
   using Expr = typename M::Expr;
 
   auto sem = m.GetSem();
   struct {
     FieldEmbed<ExprFace> feg;
-    FieldCell<Expr> fc_system;
   } * ctx(sem);
   auto& t = *ctx;
 
   if (sem("init")) {
-    t.feg = UEmbed<M>::GradientImplicit(fcp, mebc, eb);
-    t.fc_system.Reinit(m, Expr::GetUnit(0));
+    t.feg = UEmbed<M>::GradientImplicit(mebc, eb);
+    fc_system.Reinit(m, Expr::GetUnit(0));
     for (auto c : eb.Cells()) {
       Expr sum(0);
       eb.LoopNci(c, [&](auto q) {
@@ -49,16 +49,11 @@ void CalcPotential(
         eb.AppendExpr(
             sum, t.feg[cf] * eb.GetArea(cf) * eb.GetOutwardFactor(c, q), q);
       });
-      t.fc_system[c] = sum;
-    }
-  }
-  if (sem.Nested("dump_system")) {
-    if (system_out.length()) {
-      // dump::Raw<M>::Write(t.fc_system, system_out, m);
+      fc_system[c] = sum;
     }
   }
   if (sem.Nested("solve")) {
-    linsolver->Solve(t.fc_system, &fcp, fcp, m);
+    linsolver->Solve(fc_system, &fcp, fcp, m);
   }
   if (sem("flux")) {
     feg.Reinit(m, 0);
@@ -67,7 +62,7 @@ void CalcPotential(
     });
     fc_residual.Reinit(m, 0);
     for (auto c : m.Cells()) {
-      fc_residual[c] = UEmbed<M>::Eval(t.fc_system[c], c, fcp, eb);
+      fc_residual[c] = UEmbed<M>::Eval(fc_system[c], c, fcp, eb);
     }
   }
   if (sem()) {
@@ -78,6 +73,7 @@ template <class M>
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem(__func__);
   using Scal = typename M::Scal;
+  using Expr = typename M::Expr;
   using EB = Embed<M>;
   struct {
     std::unique_ptr<EB> eb;
@@ -87,11 +83,12 @@ void Run(M& m, Vars& var) {
     FieldNode<Scal> fnl;
     std::shared_ptr<linear::Solver<M>> linsolver;
     typename UInitEmbedBc<M>::PlainBc bc;
-    std::array<FieldCell<Scal>, 7> comps;
+    std::array<FieldCell<Scal>, M::dim + 1> comps;
     FieldCell<Scal> fc_residual;
-    std::string system_out;
     size_t nsteps;
     FieldCell<Scal> fc_gradexp;
+    FieldCell<Expr> fc_system;
+    std::array<FieldCell<Scal>, Expr::dim> fc_system_comps;
   } * ctx(sem);
   auto& t = *ctx;
 
@@ -100,7 +97,6 @@ void Run(M& m, Vars& var) {
     m.flags.check_symmetry = var.Int["check_symmetry"];
     t.eb.reset(new EB(m));
     t.linsolver = ULinear<M>::MakeLinearSolver(var, "symm", m);
-    t.system_out = var.String["system_out"];
     t.nsteps = var.Int["nsteps"];
     t.fcp.Reinit(m, 0);
   }
@@ -129,29 +125,44 @@ void Run(M& m, Vars& var) {
     if (sem.Nested("potential")) {
       CalcPotential(
           t.bc.mebc, m, *t.eb, t.fcp, t.feg, t.fc_residual, t.linsolver,
-          t.system_out);
+          t.fc_system);
     }
     if (sem("dump-solution")) {
       auto& eb = *t.eb;
       t.fcdiv = Approx2<EB>::GetRegularDivergence(t.feg, *t.eb);
 
       if (var.Int["dump_fluxes"]) {
-        for (size_t q = 0; q < 7; ++q) {
+        for (size_t q = 0; q < M::dim * 2 + 1; ++q) {
           t.comps[q].Reinit(m, 0);
         }
         for (auto c : m.Cells()) {
           for (auto q : m.Nci(c)) {
             t.comps[q.raw()][c] = t.feg[m.GetFace(c, q)];
           }
-          t.comps[6][c] = t.feg[c];
+          t.comps[M::dim * 2][c] = t.feg[c];
         }
-        m.Dump(&t.comps[0], "feg.xm");
-        m.Dump(&t.comps[1], "feg.xp");
-        m.Dump(&t.comps[2], "feg.ym");
-        m.Dump(&t.comps[3], "feg.yp");
-        m.Dump(&t.comps[4], "feg.zm");
-        m.Dump(&t.comps[5], "feg.zp");
-        m.Dump(&t.comps[6], "feg.c");
+        size_t i = 0;
+        m.Dump(&t.comps[i++], "feg.xm");
+        m.Dump(&t.comps[i++], "feg.xp");
+        m.Dump(&t.comps[i++], "feg.ym");
+        m.Dump(&t.comps[i++], "feg.yp");
+        if (M::dim > 2) {
+          m.Dump(&t.comps[i++], "feg.zm");
+          m.Dump(&t.comps[i++], "feg.zp");
+        }
+        m.Dump(&t.comps[i++], "feg.c");
+      }
+
+      if (var.Int["dump_system"]) {
+        for (size_t i = 0; i < Expr::dim; ++i) {
+          t.fc_system_comps[i].Reinit(m, 0);
+        }
+        for (size_t i = 0; i < Expr::dim; ++i) {
+          for (auto c : m.Cells()) {
+            t.fc_system_comps[i][c] = t.fc_system[c][i];
+          }
+          m.Dump(&t.fc_system_comps[i], "system" + std::to_string(i));
+        }
       }
 
       t.fc_gradexp.Reinit(m, 0);
@@ -209,10 +220,7 @@ int main(int argc, const char** argv) {
       .Help("Block size in x,y")
       .Options({8, 16, 32});
   parser.AddSwitch("--dump_fluxes").Help("Dump fluxes from solution");
-  parser.AddVariable<std::string>("--system_out", "")
-      .Help(
-          "Output path for linear system with one field 'data' of "
-          "size (nz,ny,nx,8)");
+  parser.AddSwitch("--dump_system").Help("Dump linear system");
   parser.AddVariable<std::string>("--extra", "")
       .Help("Extra configuration (commands 'set ... ')");
   auto args = parser.ParseArgs(argc, argv);
@@ -246,7 +254,7 @@ set int hypre_symm_maxiter 100
   conf += "\n" + args.String["extra"];
   conf += "\nset int nsteps " + args.Int.GetStr("nsteps");
   conf += "\nset int dump_fluxes " + args.Int.GetStr("dump_fluxes");
-  conf += "\nset string system_out " + args.String.GetStr("system_out");
+  conf += "\nset int dump_system " + args.Int.GetStr("dump_system");
   conf += "\n";
 
   const auto dim = args.Int["dim"];

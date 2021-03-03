@@ -133,8 +133,7 @@ void InitLevelSetFromModel(
   if (sem("ini")) {
     if (m.IsLead()) {
       if (inside_mesh_read(path.c_str(), &t.nt, &t.tri, &t.nv, &t.ver) != 0) {
-        throw std::runtime_error(
-            FILELINE + ": fail to read mesh '" + path + "'");
+        fassert(false, "failed to read mesh '" + path + "'");
       }
 
       // rescale, translate and rotate the vertices
@@ -372,7 +371,7 @@ void UEmbed<M>::InitLevelSet(
       }
     }
   } else {
-    throw std::runtime_error(FILELINE + ": Unknown eb_init=" + name);
+    fassert(false, "unknown bc eb_init=" + name);
   }
   if (sem()) {
     if (var.Int["eb_init_inverse"]) {
@@ -775,7 +774,7 @@ auto UEmbed<M>::InterpolateBcg(
         return u + bc.val * (bc.nci == 0 ? 1 : -1) * h;
       }
       default:
-        throw std::runtime_error(FILELINE + ": unknown");
+        fassert(false, "unknown bc type");
     }
     return GetNan<Scal>();
   };
@@ -846,7 +845,7 @@ auto UEmbed<M>::InterpolateBcg(
         return fcu[c] + bc.val * (h * 0.5);
       }
       default:
-        throw std::runtime_error(FILELINE + ": unknown");
+        fassert(false, "unknown bc type");
     }
     return GetNan<Scal>();
   };
@@ -904,7 +903,7 @@ auto UEmbed<M>::Interpolate(
         return UExtrap(xt, x0, v0, x1, v1);
       }
       default:
-        throw std::runtime_error(FILELINE + ": unknown");
+        fassert(false, "unknown bc type");
     }
     return GetNan<T>();
   };
@@ -953,7 +952,7 @@ auto UEmbed<M>::Gradient(
         return (u1 - u2) / h * sgn;
       }
       default:
-        throw std::runtime_error(FILELINE + ": unknown");
+        fassert(false, "unknown bc type");
     }
     return GetNan<T>();
   };
@@ -1021,7 +1020,7 @@ auto UEmbed<M>::InterpolateUpwind(
         return fcu[c] + bc.val * (h * 0.5);
       }
       default:
-        throw std::runtime_error(FILELINE + ": unknown");
+        fassert(false, "unknown bc type");
     }
     return GetNan<Scal>();
   };
@@ -1369,7 +1368,7 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
         break;
       }
       default:
-        throw std::runtime_error(FILELINE + ": unknown");
+        fassert(false, "unknown bc type");
     }
     e[2] -= fcu[c] * e[bc.nci];
     return e;
@@ -1426,7 +1425,7 @@ auto UEmbed<M>::InterpolateUpwindImplicit(
         break;
       }
       default:
-        throw std::runtime_error(FILELINE + ": unknown");
+        fassert(false, "unknown bc type");
     }
     return e;
   };
@@ -1464,7 +1463,7 @@ auto UEmbed<M>::GradientImplicit(
         break;
       }
       default:
-        throw std::runtime_error(FILELINE + ": unknown");
+        fassert(false, "unknown bc type");
     }
     feg[cf] = e;
   });
@@ -1500,7 +1499,7 @@ auto UEmbed<M>::GradientImplicit(const MapEmbed<BCond<Scal>>& mebc, const M& m)
         break;
       }
       default:
-        throw std::runtime_error(FILELINE + ": unknown");
+        fassert(false, "unknown bc type");
     }
     ffe[f] = e;
   }

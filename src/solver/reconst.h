@@ -871,13 +871,24 @@ class Reconst {
     return false;
   }
 
+  // Length of line segment.
+  // xx: points of polygon
+  // n: normal to line (ignored)
+  // Returns:
+  // a: area, positive if <xx[0]-xc,xx[1]-xc,n> is positively oriented
+  static Scal GetArea(const std::vector<Vect2>& xx, Vect2 n) {
+    (void) n;
+    if (xx.size() != 2) {
+      return 0;
+    }
+    return std::abs(xx[0].dist(xx[1]));
+  }
   // Area of plane convex polygon.
   // xx: points of polygon
   // n: normal to plane
   // Returns:
   // a: area, positive if <xx[0]-xc,xx[1]-xc,n> is positively oriented
-  template <class Vect>
-  static Scal GetArea(const std::vector<Vect>& xx, Vect n) {
+  static Scal GetArea(const std::vector<Vect3>& xx, Vect3 n) {
     size_t sx = xx.size();
 
     if (!sx) {
@@ -895,12 +906,17 @@ class Reconst {
     Scal a = 0;
     for (size_t i = 0; i < sx; ++i) {
       size_t ip = (i + 1 == sx ? 0 : i + 1);
-      const Vect x0 = xx[i];
-      const Vect x1 = xx[ip];
-      const Vect s = (x1 - x0).cross(n); // surface element
+      const Vect3 x0 = xx[i];
+      const Vect3 x1 = xx[ip];
+      const Vect3 s = (x1 - x0).cross(n); // surface element
       const Scal z = ((x0 + x1) * 0.5 - xc).dot(xd); // position along xd
       a += z * s.dot(xd);
     }
     return a;
+  }
+  static Scal GetArea(const std::vector<Vect4>& xx, Vect4 n) {
+    (void) xx;
+    (void) n;
+    return 0; // XXX not implemented
   }
 };
