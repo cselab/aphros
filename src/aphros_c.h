@@ -3,7 +3,7 @@ extern "C" {
 #endif
 int aphros_Main(int, const char**);
 struct aphros_Parser;
-struct aphros_Parser* aphros_parser_file_ini(const char*);
+struct aphros_Parser* aphros_ParserFileIni(const char*);
 int aphros_ParserFin(struct aphros_Parser*);
 int aphros_ParserPrintVars(struct aphros_Parser*);
 int aphros_ParserStatus(struct aphros_Parser*);

@@ -8,7 +8,7 @@ struct aphros_Parser {
   int status;
 };
 
-struct aphros_Parser* aphros_parser_file_ini(const char* path) {
+struct aphros_Parser* aphros_ParserFileIni(const char* path) {
   struct aphros_Parser* q;
   if ((q = (struct aphros_Parser*)malloc(sizeof *q)) == NULL) return NULL;
   q->status = 0;
