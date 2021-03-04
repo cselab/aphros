@@ -6,11 +6,9 @@
 template <size_t dim>
 static void Run(MPI_Comm comm, Vars& var) {
   using M = MeshStructured<double, dim>;
-  using K = Hydro<M>;
-  using Par = typename K::Par;
-  Par par;
+  typename Hydro<M>::Par par;
 
-  DistrSolver<M, K> ds(comm, var, par);
+  DistrSolver<M, Hydro<M>> ds(comm, var, par);
   ds.Run();
 }
 

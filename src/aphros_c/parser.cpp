@@ -8,7 +8,7 @@
 #include "parse/parser.h"
 #include "util/logger.h"
 
-void ErrorHandler(int code, const char* str) {
+void ErrorHandler(int, const char* str) {
   fputs(str, stderr);
   fputs("\n", stderr);
 }

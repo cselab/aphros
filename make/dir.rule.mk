@@ -6,6 +6,7 @@ $(WRK)/dump\
 $(WRK)/func\
 $(WRK)/geom\
 $(WRK)/inside\
+$(WRK)/kernel\
 $(WRK)/linear\
 $(WRK)/march\
 $(WRK)/parse\

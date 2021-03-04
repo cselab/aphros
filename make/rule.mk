@@ -27,6 +27,7 @@ $(WRK)/inside/off.o: $(SRC)/inside/off.c; $(CC_RULE) $(SRC)/inside/off.c
 $(WRK)/inside/ply.o: $(SRC)/inside/ply.c; $(CC_RULE) $(SRC)/inside/ply.c
 $(WRK)/inside/predicate.o: $(SRC)/inside/predicate.c; $(CC_RULE) $(SRC)/inside/predicate.c
 $(WRK)/inside/stl.o: $(SRC)/inside/stl.c; $(CC_RULE) $(SRC)/inside/stl.c
+$(WRK)/kernel/hydro.o: $(SRC)/kernel/hydro.cpp; $(CXX_RULE) $(SRC)/kernel/hydro.cpp
 $(WRK)/linear/linear.o: $(SRC)/linear/linear.cpp; $(CXX_RULE) $(SRC)/linear/linear.cpp
 $(WRK)/march/main.o: $(SRC)/march/main.c; $(CC_RULE) $(SRC)/march/main.c
 $(WRK)/parse/argparse.o: $(SRC)/parse/argparse.cpp; $(CXX_RULE) $(SRC)/parse/argparse.cpp

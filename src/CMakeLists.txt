@@ -259,9 +259,11 @@ add_library(${T} SHARED ${ObjLibsTarget})
 target_include_directories(${T} INTERFACE "${APHROS_PREFIX}/include/aphros")
 target_link_libraries(${T} ${ObjLibs} ${BinLibs})
 
+add_subdirectory(kernel)
+
 set(T aphros_c)
 add_library(${T} SHARED aphros_c/git.cpp  aphros_c/main.cpp  aphros_c/parser.cpp)
-target_link_libraries(${T} aphros use_dims)
+target_link_libraries(${T} aphros hydro use_dims)
 
 set(T mfer)
 add_executable(${T} main.c)

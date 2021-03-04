@@ -55,6 +55,7 @@ geom/rangemulti.h\
 geom/transform.h\
 geom/unique.h\
 geom/vect.h\
+hydro.h\
 inside/bbox.h\
 inside/err.h\
 inside/inside.h\

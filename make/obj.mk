@@ -28,6 +28,7 @@ $(WRK)/inside/off.o\
 $(WRK)/inside/ply.o\
 $(WRK)/inside/predicate.o\
 $(WRK)/inside/stl.o\
+$(WRK)/kernel/hydro.o\
 $(WRK)/linear/linear.o\
 $(WRK)/march/main.o\
 $(WRK)/parse/argparse.o\
