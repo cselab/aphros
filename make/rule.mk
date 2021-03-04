@@ -65,6 +65,7 @@ $(WRK)/util/git.o: $(SRC)/util/git.cpp; $(CXX_RULE) $(SRC)/util/git.cpp
 $(WRK)/util/histogram.o: $(SRC)/util/histogram.cpp; $(CXX_RULE) $(SRC)/util/histogram.cpp
 $(WRK)/util/hydro.o: $(SRC)/util/hydro.cpp; $(CXX_RULE) $(SRC)/util/hydro.cpp
 $(WRK)/util/linear.o: $(SRC)/util/linear.cpp; $(CXX_RULE) $(SRC)/util/linear.cpp
+$(WRK)/util/logger.o: $(SRC)/util/logger.cpp; $(CXX_RULE) $(SRC)/util/logger.cpp
 $(WRK)/util/mpi.o: $(SRC)/util/mpi.cpp; $(CXX_RULE) $(SRC)/util/mpi.cpp
 $(WRK)/util/posthook_default.o: $(SRC)/util/posthook_default.cpp; $(CXX_RULE) $(SRC)/util/posthook_default.cpp
 $(WRK)/util/subcomm_dummy.o: $(SRC)/util/subcomm_dummy.cpp; $(CXX_RULE) $(SRC)/util/subcomm_dummy.cpp

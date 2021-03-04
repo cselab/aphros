@@ -55,6 +55,12 @@ void CopyToCanvas(uint32_t* buf, int w, int h) {
       buf, w, h);
 }
 
+void ErrorHandler(int code, const char* str) {
+  fputs(str, stderr);
+  fputs("\n", stderr);
+  std::abort();
+}
+
 struct Par {};
 
 class Solver : public KernelMeshPar<M, Par> {
@@ -687,6 +693,8 @@ int GetLines(uint16_t* data, int max_size) {
 int main() {
   FORCE_LINK(distr_local);
   FORCE_LINK(distr_native);
+
+  aphros_SetErrorHandler(ErrorHandler);
 
   SetCanvas(512, 512);
   emscripten_set_canvas_element_size(

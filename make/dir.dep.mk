@@ -65,6 +65,7 @@ $(WRK)/util/git.o: $(WRK)/.dir
 $(WRK)/util/histogram.o: $(WRK)/.dir
 $(WRK)/util/hydro.o: $(WRK)/.dir
 $(WRK)/util/linear.o: $(WRK)/.dir
+$(WRK)/util/logger.o: $(WRK)/.dir
 $(WRK)/util/mpi.o: $(WRK)/.dir
 $(WRK)/util/posthook_default.o: $(WRK)/.dir
 $(WRK)/util/subcomm_dummy.o: $(WRK)/.dir

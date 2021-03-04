@@ -66,6 +66,7 @@ $(WRK)/util/git.o\
 $(WRK)/util/histogram.o\
 $(WRK)/util/hydro.o\
 $(WRK)/util/linear.o\
+$(WRK)/util/logger.o\
 $(WRK)/util/mpi.o\
 $(WRK)/util/posthook_default.o\
 $(WRK)/util/subcomm_dummy.o\

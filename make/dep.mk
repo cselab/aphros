@@ -475,6 +475,7 @@ $(WRK)/func/init.o: $(SRC)/overlap/overlap.h
 $(WRK)/func/init.o: $(SRC)/parse/vars.h
 $(WRK)/func/init.o: $(SRC)/solver/embed.h
 $(WRK)/func/init.o: $(SRC)/solver/reconst.h
+$(WRK)/func/init.o: $(SRC)/util/format.h
 $(WRK)/func/init.o: $(SRC)/util/logger.h
 $(WRK)/func/init.o: $(SRC)/util/macros.h
 $(WRK)/func/init.o: $(SRC)/util/mpi.h
@@ -547,9 +548,12 @@ $(WRK)/inside/predicate.o: $(SRC)/inside/predicate.inc
 $(WRK)/inside/stl.o: $(SRC)/inside/err.h
 $(WRK)/inside/stl.o: $(SRC)/inside/memory.h
 $(WRK)/linear/hypre.o: $(SRC)/linear/hypre.h
+$(WRK)/linear/hypre.o: $(SRC)/util/logger.h
+$(WRK)/linear/hypre.o: $(SRC)/util/macros.h
 $(WRK)/linear/hypresub.o: $(SRC)/linear/hypre.h
 $(WRK)/linear/hypresub.o: $(SRC)/linear/hypresub.h
 $(WRK)/linear/hypresub.o: $(SRC)/util/histogram.h
+$(WRK)/linear/hypresub.o: $(SRC)/util/logger.h
 $(WRK)/linear/hypresub.o: $(SRC)/util/macros.h
 $(WRK)/linear/hypresub.o: $(SRC)/util/mpi.h
 $(WRK)/linear/hypresub.o: $(SRC)/util/subcomm.h
@@ -763,6 +767,7 @@ $(WRK)/solver/convdiffe.o: $(SRC)/solver/convdiff.h
 $(WRK)/solver/convdiffe.o: $(SRC)/solver/embed.h
 $(WRK)/solver/convdiffe.o: $(SRC)/solver/reconst.h
 $(WRK)/solver/convdiffe.o: $(SRC)/solver/solver.h
+$(WRK)/solver/convdiffe.o: $(SRC)/util/format.h
 $(WRK)/solver/convdiffe.o: $(SRC)/util/logger.h
 $(WRK)/solver/convdiffe.o: $(SRC)/util/macros.h
 $(WRK)/solver/convdiffe.o: $(SRC)/util/module.h
@@ -800,6 +805,7 @@ $(WRK)/solver/convdiffi.o: $(SRC)/solver/embed.h
 $(WRK)/solver/convdiffi.o: $(SRC)/solver/reconst.h
 $(WRK)/solver/convdiffi.o: $(SRC)/solver/solver.h
 $(WRK)/solver/convdiffi.o: $(SRC)/util/convdiff.h
+$(WRK)/solver/convdiffi.o: $(SRC)/util/format.h
 $(WRK)/solver/convdiffi.o: $(SRC)/util/logger.h
 $(WRK)/solver/convdiffi.o: $(SRC)/util/macros.h
 $(WRK)/solver/convdiffi.o: $(SRC)/util/module.h
@@ -876,6 +882,7 @@ $(WRK)/solver/curv.o: $(SRC)/solver/solver.h
 $(WRK)/solver/curv.o: $(SRC)/solver/trackerm.h
 $(WRK)/solver/curv.o: $(SRC)/solver/vof.h
 $(WRK)/solver/curv.o: $(SRC)/solver/vofm.h
+$(WRK)/solver/curv.o: $(SRC)/util/format.h
 $(WRK)/solver/curv.o: $(SRC)/util/logger.h
 $(WRK)/solver/curv.o: $(SRC)/util/macros.h
 $(WRK)/solver/curv.o: $(SRC)/util/mpi.h
@@ -943,6 +950,7 @@ $(WRK)/solver/embed.o: $(SRC)/parse/vars.h
 $(WRK)/solver/embed.o: $(SRC)/solver/embed.h
 $(WRK)/solver/embed.o: $(SRC)/solver/embed.ipp
 $(WRK)/solver/embed.o: $(SRC)/solver/reconst.h
+$(WRK)/solver/embed.o: $(SRC)/util/format.h
 $(WRK)/solver/embed.o: $(SRC)/util/logger.h
 $(WRK)/solver/embed.o: $(SRC)/util/macros.h
 $(WRK)/solver/embed.o: $(SRC)/util/mpi.h
@@ -976,6 +984,7 @@ $(WRK)/solver/fluid_dummy.o: $(SRC)/solver/fluid_dummy.ipp
 $(WRK)/solver/fluid_dummy.o: $(SRC)/solver/fluid.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/solver/reconst.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/solver/solver.h
+$(WRK)/solver/fluid_dummy.o: $(SRC)/util/format.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/util/logger.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/util/macros.h
 $(WRK)/solver/fluid_dummy.o: $(SRC)/util/module.h
@@ -1009,6 +1018,7 @@ $(WRK)/solver/normal.o: $(SRC)/solver/normal.ipp
 $(WRK)/solver/normal.o: $(SRC)/solver/reconst.h
 $(WRK)/solver/normal.o: $(SRC)/solver/solver.h
 $(WRK)/solver/normal.o: $(SRC)/util/avx.h
+$(WRK)/solver/normal.o: $(SRC)/util/format.h
 $(WRK)/solver/normal.o: $(SRC)/util/height.h
 $(WRK)/solver/normal.o: $(SRC)/util/logger.h
 $(WRK)/solver/normal.o: $(SRC)/util/macros.h
@@ -1076,6 +1086,7 @@ $(WRK)/solver/partstrmeshm.o: $(SRC)/solver/partstrmeshm.ipp
 $(WRK)/solver/partstrmeshm.o: $(SRC)/solver/reconst.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/solver/solver.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/solver/vof.h
+$(WRK)/solver/partstrmeshm.o: $(SRC)/util/format.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/util/logger.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/util/macros.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/util/mpi.h
@@ -1114,6 +1125,7 @@ $(WRK)/solver/proj_eb.o: $(SRC)/solver/reconst.h
 $(WRK)/solver/proj_eb.o: $(SRC)/solver/solver.h
 $(WRK)/solver/proj_eb.o: $(SRC)/util/convdiff.h
 $(WRK)/solver/proj_eb.o: $(SRC)/util/fluid.h
+$(WRK)/solver/proj_eb.o: $(SRC)/util/format.h
 $(WRK)/solver/proj_eb.o: $(SRC)/util/logger.h
 $(WRK)/solver/proj_eb.o: $(SRC)/util/macros.h
 $(WRK)/solver/proj_eb.o: $(SRC)/util/metrics.h
@@ -1155,6 +1167,7 @@ $(WRK)/solver/proj.o: $(SRC)/solver/reconst.h
 $(WRK)/solver/proj.o: $(SRC)/solver/solver.h
 $(WRK)/solver/proj.o: $(SRC)/util/convdiff.h
 $(WRK)/solver/proj.o: $(SRC)/util/fluid.h
+$(WRK)/solver/proj.o: $(SRC)/util/format.h
 $(WRK)/solver/proj.o: $(SRC)/util/logger.h
 $(WRK)/solver/proj.o: $(SRC)/util/macros.h
 $(WRK)/solver/proj.o: $(SRC)/util/metrics.h
@@ -1196,6 +1209,7 @@ $(WRK)/solver/simple.o: $(SRC)/solver/simple.ipp
 $(WRK)/solver/simple.o: $(SRC)/solver/solver.h
 $(WRK)/solver/simple.o: $(SRC)/util/convdiff.h
 $(WRK)/solver/simple.o: $(SRC)/util/fluid.h
+$(WRK)/solver/simple.o: $(SRC)/util/format.h
 $(WRK)/solver/simple.o: $(SRC)/util/logger.h
 $(WRK)/solver/simple.o: $(SRC)/util/macros.h
 $(WRK)/solver/simple.o: $(SRC)/util/metrics.h
@@ -1277,6 +1291,7 @@ $(WRK)/solver/vofm.o: $(SRC)/solver/vofm.h
 $(WRK)/solver/vofm.o: $(SRC)/solver/vofm.ipp
 $(WRK)/solver/vofm.o: $(SRC)/util/convdiff.h
 $(WRK)/solver/vofm.o: $(SRC)/util/filesystem.h
+$(WRK)/solver/vofm.o: $(SRC)/util/format.h
 $(WRK)/solver/vofm.o: $(SRC)/util/logger.h
 $(WRK)/solver/vofm.o: $(SRC)/util/macros.h
 $(WRK)/solver/vofm.o: $(SRC)/util/module.h
@@ -1319,6 +1334,7 @@ $(WRK)/solver/vof.o: $(SRC)/solver/trackerm.h
 $(WRK)/solver/vof.o: $(SRC)/solver/vof.h
 $(WRK)/solver/vof.o: $(SRC)/solver/vof.ipp
 $(WRK)/solver/vof.o: $(SRC)/util/convdiff.h
+$(WRK)/solver/vof.o: $(SRC)/util/format.h
 $(WRK)/solver/vof.o: $(SRC)/util/logger.h
 $(WRK)/solver/vof.o: $(SRC)/util/macros.h
 $(WRK)/solver/vof.o: $(SRC)/util/module.h
@@ -1371,6 +1387,8 @@ $(WRK)/util/distr.o: $(SRC)/util/macros.h
 $(WRK)/util/events.o: $(SRC)/parse/parser.h
 $(WRK)/util/events.o: $(SRC)/parse/vars.h
 $(WRK)/util/events.o: $(SRC)/util/events.h
+$(WRK)/util/events.o: $(SRC)/util/logger.h
+$(WRK)/util/events.o: $(SRC)/util/macros.h
 $(WRK)/util/filesystem.o: $(SRC)/util/filesystem.h
 $(WRK)/util/filesystem.o: $(SRC)/util/logger.h
 $(WRK)/util/filesystem.o: $(SRC)/util/macros.h
@@ -1380,6 +1398,7 @@ $(WRK)/util/format.o: $(SRC)/util/logger.h
 $(WRK)/util/format.o: $(SRC)/util/macros.h
 $(WRK)/util/git.o: $(SRC)/util/git.h
 $(WRK)/util/histogram.o: $(SRC)/util/histogram.h
+$(WRK)/util/histogram.o: $(SRC)/util/logger.h
 $(WRK)/util/histogram.o: $(SRC)/util/macros.h
 $(WRK)/util/histogram.o: $(SRC)/util/mpi.h
 $(WRK)/util/histogram.o: $(SRC)/util/timer.h
@@ -1429,6 +1448,7 @@ $(WRK)/util/hydro.o: $(SRC)/solver/sphavg.h
 $(WRK)/util/hydro.o: $(SRC)/solver/vof.h
 $(WRK)/util/hydro.o: $(SRC)/solver/vofm.h
 $(WRK)/util/hydro.o: $(SRC)/util/convdiff.h
+$(WRK)/util/hydro.o: $(SRC)/util/format.h
 $(WRK)/util/hydro.o: $(SRC)/util/hydro.h
 $(WRK)/util/hydro.o: $(SRC)/util/hydro.ipp
 $(WRK)/util/hydro.o: $(SRC)/util/logger.h
@@ -1461,6 +1481,8 @@ $(WRK)/util/linear.o: $(SRC)/util/macros.h
 $(WRK)/util/linear.o: $(SRC)/util/module.h
 $(WRK)/util/linear.o: $(SRC)/util/mpi.h
 $(WRK)/util/linear.o: $(SRC)/util/suspender.h
+$(WRK)/util/logger.o: $(SRC)/util/logger.h
+$(WRK)/util/logger.o: $(SRC)/util/macros.h
 $(WRK)/util/mpi.o: $(SRC)/util/logger.h
 $(WRK)/util/mpi.o: $(SRC)/util/macros.h
 $(WRK)/util/mpi.o: $(SRC)/util/mpi.h
@@ -1492,10 +1514,13 @@ $(WRK)/util/subcomm_dummy.o: $(SRC)/util/logger.h
 $(WRK)/util/subcomm_dummy.o: $(SRC)/util/macros.h
 $(WRK)/util/subcomm_dummy.o: $(SRC)/util/mpi.h
 $(WRK)/util/subcomm_dummy.o: $(SRC)/util/subcomm.h
+$(WRK)/util/subcomm.o: $(SRC)/util/logger.h
 $(WRK)/util/subcomm.o: $(SRC)/util/macros.h
 $(WRK)/util/subcomm.o: $(SRC)/util/mpi.h
 $(WRK)/util/subcomm.o: $(SRC)/util/subcomm.h
 $(WRK)/util/subcomm.o: $(SRC)/util/sysinfo.h
+$(WRK)/util/suspender.o: $(SRC)/util/logger.h
+$(WRK)/util/suspender.o: $(SRC)/util/macros.h
 $(WRK)/util/suspender.o: $(SRC)/util/suspender.h
 $(WRK)/util/sysinfo.o: $(SRC)/util/logger.h
 $(WRK)/util/sysinfo.o: $(SRC)/util/macros.h
@@ -1529,6 +1554,7 @@ $(WRK)/util/vof.o: $(SRC)/solver/multi.h
 $(WRK)/util/vof.o: $(SRC)/solver/reconst.h
 $(WRK)/util/vof.o: $(SRC)/solver/solver.h
 $(WRK)/util/vof.o: $(SRC)/solver/trackerm.h
+$(WRK)/util/vof.o: $(SRC)/util/format.h
 $(WRK)/util/vof.o: $(SRC)/util/logger.h
 $(WRK)/util/vof.o: $(SRC)/util/macros.h
 $(WRK)/util/vof.o: $(SRC)/util/mpi.h

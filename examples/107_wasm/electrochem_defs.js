@@ -205,7 +205,7 @@ function Draw() {
 }
 
 function PostRun() {
-  g_lines_max_size = 10000;
+  g_lines_max_size = 1024 * 100;
   g_lines_ptr = Module._malloc(g_lines_max_size * 2);
   Spawn = Module.cwrap('Spawn', null, ['number', 'number', 'number']);
   GetLines = Module.cwrap('GetLines', 'number', ['number', 'number']);

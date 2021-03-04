@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <cstdio>
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #include <cmath>
@@ -43,6 +44,12 @@ using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
 #include "common.h"
+
+void ErrorHandler(int code, const char* str) {
+  fputs(str, stderr);
+  fputs("\n", stderr);
+  std::abort();
+}
 
 struct Par {};
 
@@ -822,6 +829,8 @@ int GetLines(uint16_t* data, int max_size) {
 int main() {
   FORCE_LINK(distr_local);
   FORCE_LINK(distr_native);
+
+  aphros_SetErrorHandler(ErrorHandler);
 
   SetCanvas(512, 512);
   emscripten_set_canvas_element_size(
