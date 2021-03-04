@@ -15,6 +15,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include "util/logger.h"
+
 struct CodeBlock {
   std::string name;
   std::string content;
@@ -34,7 +36,12 @@ static std::string Strip(std::string s) {
 
 // Extacts the next code block from stream f.
 // Returns true if found.
-std::pair<bool, CodeBlock> ParseCodeBlock(std::istream& fin) {
+auto ParseCodeBlock(std::istream& fin) {
+  struct Res {
+    bool found;
+    CodeBlock block;
+    std::string error;
+  };
   const auto flags = fin.flags();
   fin >> std::noskipws;
   CodeBlock block;
@@ -42,88 +49,92 @@ std::pair<bool, CodeBlock> ParseCodeBlock(std::istream& fin) {
   S s = S::begin; // state
   char c = ' ';
   int braces = 0;
-  try {
-    while (fin && s != S::exit) {
-      auto next = [&fin, &c]() { fin >> c; };
-      switch (s) {
-        case S::begin: {
-          if (std::isspace(c)) {
-            next();
-          } else {
-            s = S::name;
-          }
-          break;
+  std::string error;
+  while (fin && s != S::exit) {
+    auto next = [&fin, &c]() { fin >> c; };
+    switch (s) {
+      case S::begin: {
+        if (std::isspace(c)) {
+          next();
+        } else {
+          s = S::name;
         }
-        case S::name: {
+        break;
+      }
+      case S::name: {
+        if (c == '{') {
+          s = S::content;
+          next();
+        } else if (c == '}') {
+          error = "name cannot contain '}', unmatched brace?";
+          break;
+        } else {
+          block.name += c;
+          next();
+        }
+        break;
+      }
+      case S::content: {
+        if (c == '}' && braces == 0) {
+          s = S::exit;
+          next();
+        } else {
+          block.content += c;
           if (c == '{') {
-            s = S::content;
-            next();
+            ++braces;
           } else if (c == '}') {
-            throw std::runtime_error(
-                "name cannot contain '}', unmatched brace?");
-          } else {
-            block.name += c;
-            next();
+            --braces;
           }
-          break;
+          next();
         }
-        case S::content: {
-          if (c == '}' && braces == 0) {
-            s = S::exit;
-            next();
-          } else {
-            block.content += c;
-            if (c == '{') {
-              ++braces;
-            } else if (c == '}') {
-              --braces;
-            }
-            next();
-          }
-          break;
-        }
-        case S::exit: {
-          break;
-        }
+        break;
+      }
+      case S::exit: {
+        break;
       }
     }
-    if (s != S::exit && (block.name.size() || block.content.size())) {
-      throw std::runtime_error("unexpected end of stream");
-    }
-  } catch (const std::runtime_error& e) {
-    throw std::runtime_error(
-        std::string(__func__) + ": " + e.what() +
-        "\nstopping at block:\nname='" + Strip(block.name) + "' content='" +
-        Strip(block.content) + "'");
+  }
+  if (s != S::exit && (block.name.size() || block.content.size())) {
+    error = "unexpected end of stream";
+  }
+  if (error.length()) {
+    error = std::string(__func__) + ": " + error +
+            "\nstopping at block:\nname='" + Strip(block.name) + "' content='" +
+            Strip(block.content) + "'";
   }
   fin.flags(flags);
   block.name = Strip(block.name);
   block.content = Strip(block.content);
-  return {s == S::exit, block};
+  return Res{s == S::exit, block, error};
 }
 
 // Parses a stream and returns a list of code blocks.
 std::vector<CodeBlock> ParseCodeBlocks(std::istream& f) {
   std::vector<CodeBlock> blocks;
-  try {
-    while (true) {
-      auto pair = ParseCodeBlock(f);
-      if (!pair.first) {
-        break;
-      }
-      blocks.push_back(pair.second);
+  std::string error;
+  while (true) {
+    auto res = ParseCodeBlock(f);
+    if (!res.found) {
+      break;
     }
-  } catch (const std::runtime_error& e) {
+    blocks.push_back(res.block);
+    if (res.error.length()) {
+      error = res.error;
+      break;
+    }
+  }
+
+  if (error.length()) {
     std::string o;
     o += __func__;
     o += ": error after parsing " + std::to_string(blocks.size()) + " blocks\n";
-    o += e.what();
+    o += error;
     if (blocks.size()) {
       o += "\nlast successful block:\n";
       o += "name='" + Strip(blocks.back().name) + "' ";
       o += "content='" + Strip(blocks.back().content) + "'";
     }
-    throw std::runtime_error(o);
+    fassert(false, o);
   }
   return blocks;
 }

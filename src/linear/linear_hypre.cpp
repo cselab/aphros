@@ -115,7 +115,7 @@ struct SolverHypre<M>::Imp {
         block.l = t.origin[i];
         block.u = t.origin[i] + t.size[i] - MIdx(1);
         for (auto w : t.stencil) {
-          block.st.push_back(w);
+          block.stencil.push_back(w);
         }
         block.a = t.ptr_a[i];
         block.r = t.ptr_b[i];

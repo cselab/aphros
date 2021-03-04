@@ -33,7 +33,7 @@ std::array<Scal, 3> GetCoeff(ConvSc sc) {
       a = {-1. / 8., 6. / 8., 3. / 8.};
       break;
     default:
-      throw std::runtime_error(FILELINE + ": GetCoeff: invalid ConvSc");
+      fassert(false, "GetCoeff: invalid ConvSc");
   }
   return a;
 }

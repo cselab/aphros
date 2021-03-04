@@ -356,11 +356,10 @@ void Sphavg<M_>::Update(
   if (sem("reduce")) {
     // root has concatenation of all vv_
     if (m.IsRoot()) {
-      if (vv_.size() % ss_.size()) {
-        throw std::runtime_error(
-            "reduce: vv_.size()=" + std::to_string(vv_.size()) +
-            " notdiv ss_.size()=" + std::to_string(ss_.size()));
-      }
+      fassert(
+          vv_.size() % ss_.size() == 0,
+          "reduce: vv_.size()=" + std::to_string(vv_.size()) +
+              " not divisible by ss_.size()=" + std::to_string(ss_.size()));
       auto e = ss_.size();
       for (size_t i = 0; i < e; ++i) {
         // append all to [i]
@@ -380,11 +379,7 @@ void Sphavg<M_>::Update(
     m.Bcast(&vv_);
   }
   if (sem("bcast")) {
-    if (vv_.size() != ss_.size()) {
-      throw std::runtime_error(
-          "bcast: vv_.size()=" + std::to_string(vv_.size()) +
-          " != ss_.size()=" + std::to_string(ss_.size()));
-    }
+    fassert_equal(vv_.size(), ss_.size());
     // deserialize
     for (size_t i = 0; i < ss_.size(); ++i) {
       aa_[i].Deserialize(vv_[i]);

@@ -133,7 +133,8 @@ void Raw<M>::Write(
         comm, path.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL,
         &fh));
   } catch (const std::exception& e) {
-    throw std::runtime_error(
+    fassert(
+        false,
         std::string() + e.what() + ", while opening file '" + path + "'");
   }
   MPICALL(
@@ -261,7 +262,8 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
       MPICALL(MPI_File_open(
           comm, path.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &fh));
     } catch (const std::exception& e) {
-      throw std::runtime_error(
+      fassert(
+          false,
           std::string() + e.what() + ", while opening file '" + path + "'");
     }
 

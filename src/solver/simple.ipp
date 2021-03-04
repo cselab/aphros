@@ -110,7 +110,7 @@ struct Simple<EB_>::Imp {
         mc_pressure_[c] =
             std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
       } else {
-        throw std::runtime_error(FILELINE + ": unknown cell condition");
+        fassert(false, "unknown cell condition");
       }
     }
 

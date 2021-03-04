@@ -94,7 +94,7 @@ struct Proj<EB_>::Imp {
       if (auto cd = dynamic_cast<const GivenPressure<M>*>(cb)) {
         mccp_[c] = std::make_shared<CondCellValFixed<Scal>>(cd->GetPressure());
       } else {
-        throw std::runtime_error(FILELINE + ": unknown cell condition");
+        fassert(false, "unknown cell condition");
       }
     }
 

@@ -69,10 +69,7 @@ CreateInitCl(const Vars& var, bool verb) {
           std::cout << "InitCl: Open list of primitives '" << filename
                     << std::endl;
         }
-        if (!fin.good()) {
-          throw std::runtime_error(
-              FILELINE + ": Can't open list of primitives");
-        }
+        fassert(fin.good(), "Can't open list of primitives '" + filename + "'");
         buf << fin.rdbuf();
       }
     }
@@ -143,9 +140,8 @@ CreateInitCl(const Vars& var, bool verb) {
   } else if (v == "readplain") {
     const std::string fn = var.String["readplain_path"];
     std::ifstream qdat(fn);
-    if (!qdat.good()) {
-      throw std::runtime_error("readplain: can't open '" + fn + "'");
-    }
+
+    fassert(qdat.good(), "readplain: can't open '" + fn + "'");
     FieldCell<Scal> qfccl;
     using MIdx = typename M::MIdx;
     MIdx qsize;

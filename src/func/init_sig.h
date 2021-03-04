@@ -77,7 +77,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitSig(
       }
     };
   } else {
-    throw std::runtime_error("Unknown init_sig=" + v);
+    fassert(false, "Unknown init_sig=" + v);
   }
   return g;
 }

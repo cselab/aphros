@@ -9,6 +9,8 @@
 #include <string>
 #include <typeinfo>
 
+#include "util/logger.h"
+
 #define DECLARE_FORCE_LINK_TARGET(x) int kForceLink_##x = 0
 #define FORCE_LINK(x)          \
   do {                         \
@@ -20,12 +22,11 @@ template <class Mod>
 bool RegisterModule() {
   Mod* ptr = new Mod();
   const auto name = ptr->GetName();
-  if (Mod::GetInstance(name)) {
-    throw std::runtime_error(
-        "RegisterModule: module '" + name + "' of type '" + typeid(Mod).name() +
-        "' and base type '" + typeid(typename Mod::Base).name() +
-        "' already registered");
-  }
+  fassert(
+      !Mod::GetInstance(name),
+      "RegisterModule: module '" + name + "' of type '" + typeid(Mod).name() +
+          "' and base type '" + typeid(typename Mod::Base).name() +
+          "' already registered");
   Mod::AddInstance(name, ptr);
   return true;
 }

@@ -48,7 +48,7 @@ std::function<Vect(Vect, Scal)> CreateInitVel(const Vars& par) {
       return res * mg;
     };
   } else {
-    throw std::runtime_error("Unknown init_vel=" + v);
+    fassert(false, "Unknown init_vel=" + v);
   }
 
   return f;

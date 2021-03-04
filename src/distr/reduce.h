@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include "util/logger.h"
+
 namespace ReductionType {
 struct Sum {};
 struct Prod {};
@@ -306,7 +308,7 @@ class UReduce {
     } else if (o == "min") {
       reqs_.push_back(std::make_unique<OpMin>(u));
     } else {
-      throw std::runtime_error("Reduce: unknown operation: '" + o);
+      fassert(false, "Reduce: unknown operation: '" + o);
     }
   }
 

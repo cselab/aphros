@@ -99,7 +99,7 @@ void Histogram::Consolidate_() {
           comm_, name.c_str(),
           MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_UNIQUE_OPEN,
           MPI_INFO_NULL, &fh)) {
-    throw std::runtime_error("Consolidate: Can not open MPI file");
+    fassert(false, "Consolidate: Can not open MPI file");
   }
 
   if (0 == rank) {

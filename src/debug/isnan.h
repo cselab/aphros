@@ -12,6 +12,7 @@
 #include "geom/range.h"
 #include "geom/vect.h"
 #include "solver/embed.h"
+#include "util/format.h"
 #include "util/logger.h"
 
 template <class T, class Idx>
@@ -51,17 +52,15 @@ bool IsNan(const GField<T, Idx>& u) {
 // w: where, name of location (e.g. __FILE__)
 template <class T, class Idx>
 bool CheckNan(
-    const GField<T, Idx>& u, std::string n, const GRange<Idx>& r,
-    std::string w = "") {
-  if (w != "") {
-    w += ": ";
+    const GField<T, Idx>& u, std::string n, const GRange<Idx>& range,
+    std::string msg = "") {
+  if (msg != "") {
+    msg += ": ";
   }
-  for (auto i : r) {
-    if (IsNan(u[i])) {
-      std::stringstream s;
-      s << w << "Nan " << n << " at i=" << size_t(i);
-      throw std::runtime_error(s.str());
-    }
+  for (auto i : range) {
+    fassert(
+        !IsNan(u[i]),
+        util::Format("{} Nan field {} at i={}", msg, n, size_t(i)));
   }
   return false;
 }
@@ -73,16 +72,14 @@ bool CheckNan(
 // w: where, name of location (e.g. __FILE__)
 template <class T, class Idx, class M>
 bool CheckNan(
-    const GField<T, Idx>& u, std::string n, const M& m, std::string w = "") {
-  if (w != "") {
-    w += ": ";
+    const GField<T, Idx>& u, std::string n, const M& m, std::string msg = "") {
+  if (msg != "") {
+    msg += ": ";
   }
   for (auto i : m.template GetRangeIn<Idx>()) {
-    if (IsNan(u[i])) {
-      std::stringstream s;
-      s << w << "Nan " << n << " at x=" << m.GetCenter(i);
-      throw std::runtime_error(s.str());
-    }
+    fassert(
+        !IsNan(u[i]),
+        util::Format("{} Nan field {} at x={}", msg, n, m.GetCenter(i)));
   }
   return false;
 }
@@ -105,27 +102,14 @@ inline std::string SrcPath(const std::string& s) {
 }
 
 // CheckNan for field if condition evaluates to true.
-// F: instance of GField
-// C: condition
+// field: instance of GField
+// cond: bool expression
 // Requires in scope:
 // m: mesh or GRange
-#define CHECKNAN(F, C)                                                \
-  if (C) {                                                            \
+#define CHECKNAN(field, cond)                                         \
+  if (cond) {                                                         \
     CheckNan(                                                         \
-        F, #F, m,                                                     \
+        field, #field, m,                                             \
         SrcPath(__FILE__) + ":" + std::to_string(__LINE__) + " in " + \
             std::string(__func__));                                   \
-  }
-
-// CheckNan for field if condition evaluates to true.
-// F: instance of GField
-// C: condition
-// Requires in scope:
-// m: mesh or GRange
-#define CHECKHALO(field, halo)                                   \
-  if (field.GetHalo() < halo) {                                  \
-    throw std::runtime_error(                                    \
-        FILELINE + ": required " + std::to_string(halo) +        \
-        " halos for field '" + field.GetName() + "' but only " + \
-        std::to_string(field.GetHalo()) + " are valid");         \
   }

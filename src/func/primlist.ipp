@@ -538,7 +538,8 @@ struct Imp {
             p.mod_and = true;
             break;
           default:
-            throw std::runtime_error(
+            fassert(
+                false,
                 std::string("PrimList: unknown mod='") + pair.first + "'");
         }
       }

@@ -40,7 +40,8 @@ DEB(template <class T> static std::ostream& operator<<(
 
 DEB(static std::ostream& operator<<(
     std::ostream& out, const HypreSub::Block& b) {
-  out << "b.l=" << b.l << " b.u=" << b.u << " b.st.size()=" << b.st.size()
+  out << "b.l=" << b.l << " b.u=" << b.u
+      << " b.stencil.size()=" << b.stencil.size()
       << " b.a.size()=" << b.a->size() << " b.r.size()=" << b.r->size()
       << " b.x.size()=" << b.x->size();
   return out;
@@ -183,7 +184,7 @@ struct HypreSub::Imp {
     GETCMD(get_residual);
     GETCMD(get_iter);
     GETCMD(exit);
-    throw std::runtime_error("GetCmd: unknown name '" + s + "'");
+    fassert(false, "GetCmd: unknown name '" + s + "'");
   }
   static std::string GetString(Cmd cmd) {
 #define GETSTR(x) \
@@ -195,7 +196,7 @@ struct HypreSub::Imp {
     GETSTR(get_residual);
     GETSTR(get_iter);
     GETSTR(exit);
-    throw std::runtime_error("GetString: unknown cmd");
+    fassert(false, "GetString: unknown cmd");
   }
   static void InitServer(MPI_Comm comm, MPI_Comm commsub) {
     state.comm = comm;
@@ -266,12 +267,11 @@ struct HypreSub::Imp {
     }
     samp.CollectSample("RunServer::Loop");
 
-    if (state.minst.size() > 0) {
-      throw std::runtime_error(
-          "RunServer: Cmd::exit received on rank " +
-          std::to_string(state.rank) + ", but state.minst still containts " +
-          std::to_string(state.minst.size()) + " instances");
-    }
+    fassert(
+        state.minst.size() <= 0,
+        "RunServer: Cmd::exit received on rank " + std::to_string(state.rank) +
+            ", but state.minst still containts " +
+            std::to_string(state.minst.size()) + " instances");
   }
   static void Notify(MPI_Comm comm) {
     MPI_Request req;
@@ -343,10 +343,10 @@ struct HypreSub::Imp {
     Send(b.l, rank, comm);
     Send(b.u, rank, comm);
     // stencil
-    int stsize = b.st.size();
+    int stsize = b.stencil.size();
     MPI_Send(&stsize, 1, MPI_INT, rank, tag, comm);
     if (stsize > 0) {
-      MPI_Send(b.st[0].data(), stsize * dim, MPI_INT, rank, tag, comm);
+      MPI_Send(b.stencil[0].data(), stsize * dim, MPI_INT, rank, tag, comm);
     }
     Send(*b.a, rank, comm);
     Send(*b.r, rank, comm);
@@ -369,8 +369,9 @@ struct HypreSub::Imp {
     int stsize;
     MPI_Recv(&stsize, 1, MPI_INT, rank, tag, comm, MSI);
     if (stsize > 0) {
-      b.st.resize(stsize);
-      MPI_Recv(b.st[0].data(), stsize * dim, MPI_INT, rank, tag, comm, MSI);
+      b.stencil.resize(stsize);
+      MPI_Recv(
+          b.stencil[0].data(), stsize * dim, MPI_INT, rank, tag, comm, MSI);
     }
     Recv(*b.a, rank, comm);
     Recv(*b.r, rank, comm);

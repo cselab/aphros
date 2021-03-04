@@ -42,7 +42,7 @@ struct Parser::Imp {
     if (type != "") {
       return var_.GetStr(type, key);
     }
-    throw std::runtime_error(FILELINE + ": undefined variable '" + key + "'");
+    fassert(false, "undefined variable '" + key + "'");
   }
   std::string ExpandVariables(std::string str) const {
     enum class S {
@@ -135,8 +135,7 @@ struct Parser::Imp {
         }
       }
     } catch (const std::runtime_error& e) {
-      throw std::runtime_error(
-          FILELINE + ": error while parsing '" + str + "'\n" + e.what());
+      fassert(false, "error while parsing '" + str + "'\n" + e.what());
     }
     return res;
   }
@@ -235,10 +234,7 @@ void Parser::Imp::CmdDel(std::string s) {
   std::string cmd, key;
   std::stringstream b(s);
   b >> cmd >> key;
-  if (!var_.Del(key)) {
-    throw std::runtime_error(
-        FILELINE + ": CmdDel(): unknown variable '" + key + "'");
-  }
+  fassert(var_.Del(key), "CmdDel(): unknown variable '" + key + "'");
 }
 
 void Parser::Imp::CmdInclude(std::string s, std::string curpath) {

@@ -10,6 +10,7 @@
 #include <stdexcept>
 
 #include "hypre.h"
+#include "util/logger.h"
 
 #define EV(x) (#x) << "=" << (x) << " "
 
@@ -50,19 +51,15 @@ Hypre::Imp::Imp(MPI_Comm comm, const std::vector<Block>& bb0, MIdx gs, MIdx per)
   for (auto& b : bb) {
     assert(b.l.size() == dim);
     assert(b.u.size() == dim);
-    for (auto& s : b.st) {
-      if (s.size() != dim) {
-        throw std::runtime_error("Hypre(): s.size() != dim");
-      }
+    for (auto& s : b.stencil) {
+      fassert_equal(s.size(), dim, "Hypre(): s.size() != dim");
     }
   }
 
   // Check all blocks have the same stencil
-  std::vector<MIdx> st = bb[0].st;
+  std::vector<MIdx> stencil = bb[0].stencil;
   for (auto& b : bb) {
-    if (b.st != st) {
-      throw std::runtime_error("Hypre(): b.st != st");
-    }
+    fassert(b.stencil == stencil, "Hypre(): b.stencil != stencil");
   }
 
   // Check size of data
@@ -71,7 +68,7 @@ Hypre::Imp::Imp(MPI_Comm comm, const std::vector<Block>& bb0, MIdx gs, MIdx per)
     for (size_t i = 0; i < dim; ++i) {
       n *= b.u[i] - b.l[i] + 1;
     }
-    assert(b.a->size() == n * st.size());
+    assert(b.a->size() == n * stencil.size());
     assert(b.r->size() == n);
     assert(b.x->size() == n);
   }
@@ -91,22 +88,22 @@ Hypre::Imp::Imp(MPI_Comm comm, const std::vector<Block>& bb0, MIdx gs, MIdx per)
   HYPRE_StructGridAssemble(hd.grid);
 
   // Stencil
-  HYPRE_StructStencilCreate(dim, st.size(), &hd.stencil);
-  for (size_t j = 0; j < st.size(); ++j) {
-    HYPRE_StructStencilSetElement(hd.stencil, j, st[j].data());
+  HYPRE_StructStencilCreate(dim, stencil.size(), &hd.stencil);
+  for (size_t j = 0; j < stencil.size(); ++j) {
+    HYPRE_StructStencilSetElement(hd.stencil, j, stencil[j].data());
   }
 
   // Matrix
   HYPRE_StructMatrixCreate(comm, hd.grid, hd.stencil, &hd.a);
   HYPRE_StructMatrixInitialize(hd.a);
   for (auto& b : bb) {
-    std::vector<int> sti(st.size()); // stencil index (1-to-1)
+    std::vector<int> sti(stencil.size()); // stencil index (1-to-1)
     for (size_t i = 0; i < sti.size(); ++i) {
       sti[i] = (int)i;
     }
 
     HYPRE_StructMatrixSetBoxValues(
-        hd.a, b.l.data(), b.u.data(), st.size(), sti.data(), b.a->data());
+        hd.a, b.l.data(), b.u.data(), stencil.size(), sti.data(), b.a->data());
   }
   HYPRE_StructMatrixAssemble(hd.a);
 
@@ -170,7 +167,7 @@ void Hypre::Imp::SolverSetup(Scal tol, int print, int maxiter) {
   } else if (solver_ == "zero") {
     // nop
   } else {
-    throw std::runtime_error(FILELINE + ": unknown solver '" + solver_ + "'");
+    fassert(false, "unknown solver '" + solver_ + "'");
   }
 }
 
@@ -190,15 +187,15 @@ void Hypre::Imp::SolverDestroy() {
 }
 
 void Hypre::Imp::Update() {
-  std::vector<MIdx> st = bb[0].st;
+  std::vector<MIdx> stencil = bb[0].stencil;
   // Matrix
   for (auto& b : bb) {
-    std::vector<int> sti(st.size()); // stencil index (1-to-1)
+    std::vector<int> sti(stencil.size()); // stencil index (1-to-1)
     for (size_t i = 0; i < sti.size(); ++i) {
       sti[i] = (int)i;
     }
     HYPRE_StructMatrixSetBoxValues(
-        hd.a, b.l.data(), b.u.data(), st.size(), sti.data(), b.a->data());
+        hd.a, b.l.data(), b.u.data(), stencil.size(), sti.data(), b.a->data());
   }
   HYPRE_StructMatrixAssemble(hd.a);
 

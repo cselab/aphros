@@ -5,7 +5,7 @@ import aphros
 
 class Test(aphros.TestBase):
     def run(self):
-        self.runcmd("./t.debug | ./strippath > out")
+        self.runcmd("./t.debug 2>&1 | ./strippath > out")
         return ["out"]
 
 

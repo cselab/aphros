@@ -22,7 +22,7 @@ std::string GetName(Step l) {
       return "iter_prev";
     }
     default: {
-      throw std::runtime_error("GetName: Unknown layer");
+      fassert(false, "GetName: Unknown layer");
     }
   }
 }
@@ -35,7 +35,7 @@ ConvSc GetConvSc(std::string s) {
       return sc;
     }
   }
-  throw std::runtime_error(FILELINE + ": ConvSc: invalid name=" + s);
+  fassert(false, "ConvSc: invalid name=" + s);
 }
 
 std::string GetName(ConvSc sc) {
@@ -51,7 +51,7 @@ std::string GetName(ConvSc sc) {
     case ConvSc::superbee:
       return "superbee";
     default:
-      throw std::runtime_error(FILELINE + ": GetName: invalid ConvSc");
+      fassert(false, "GetName: invalid ConvSc");
   }
   return "";
 }

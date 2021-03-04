@@ -633,7 +633,7 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
         slip.type = SlipType::constant;
         arg >> slip.velocity;
       } else {
-        throw std::runtime_error(FILELINE + "Unknown slip='" + type + "'");
+        fassert(false, "Unknown slip='" + type + "'");
       }
     }
     Multi<MapEmbed<BCond<Scal>>> vmebc(conf.layers); // boundary conditions
@@ -720,7 +720,7 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
           &fc_srcm_, 0., st_.dt, var));
     }
   } else {
-    throw std::runtime_error("Unknown fluid_solver=" + fs);
+    fassert(false,"Unknown fluid_solver=" + fs);
   }
 }
 
@@ -758,7 +758,7 @@ void Hydro<M>::InitAdvection(
       layers = GRange<size_t>(as->GetNumLayers());
     }
   } else {
-    throw std::runtime_error("Unknown advection_solver=" + solver);
+    fassert(false,"Unknown advection_solver=" + solver);
   }
 
   fck_.resize(layers);
@@ -1261,7 +1261,7 @@ void Hydro<M>::Init() {
           }
           std::cerr << std::endl;
         }
-        throw std::runtime_error(FILELINE + ": Unknown init_contang=" + name);
+        fassert(false, "Unknown init_contang=" + name);
       }
       m.Comm(&fc_contang_);
     }
@@ -1341,7 +1341,8 @@ void Hydro<M>::Init() {
         } else if (auto* neumann = getptr("electro_neumann")) {
           mebc_electro_[cf] = BCond<Scal>(BCondType::neumann, nci, *neumann);
         } else {
-          throw std::runtime_error(
+          fassert(
+              false,
               "Unknown electro conditions for group" + std::to_string(group));
         }
       });
@@ -2322,22 +2323,17 @@ void Hydro<M>::ReportIter() {
 template <class M>
 void Hydro<M>::CheckAbort(Sem& sem, Scal& nabort) {
   if (sem("abort-local")) {
-    nabort = 0.;
-    try {
-      CHECKNAN(as_->GetField(), true)
-      CHECKNAN(fs_->GetVelocity(), true)
-      CHECKNAN(fs_->GetPressure(), true)
-      // check abort TODO: revise,move
-      for (auto c : m.Cells()) {
-        if (fs_->GetVelocity()[c].sqrnorm() > sqr(var.Double["abortvel"])) {
-          std::stringstream g;
-          g << "abortvel exceeded at x=" << m.GetCenter(c);
-          throw std::runtime_error(g.str());
-        }
+    const Scal abortvel = var.Double["abortvel"];
+    CHECKNAN(as_->GetField(), true)
+    CHECKNAN(fs_->GetVelocity(), true)
+    CHECKNAN(fs_->GetPressure(), true)
+    for (auto c : m.Cells()) {
+      if (fs_->GetVelocity()[c].norminf() > abortvel) {
+        std::cerr << util::Format(
+            "abortvel exceeded at x={}\n", m.GetCenter(c));
+        nabort += 1;
+        break;
       }
-    } catch (const std::runtime_error& e) {
-      std::cout << e.what() << std::endl;
-      nabort += 1.;
     }
     m.Reduce(&nabort, Reduction::sum);
   }

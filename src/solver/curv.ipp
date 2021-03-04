@@ -156,5 +156,5 @@ std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
   if (auto as = dynamic_cast<const Vofm<Embed<M>>*>(asbase)) {
     return CalcCurvPart(as->GetPlic(), par, fck, m, as->GetEmbed());
   }
-  throw std::runtime_error("CalcCurvPart: unknown advection solver");
+  fassert(false, "CalcCurvPart: unknown advection solver");
 }

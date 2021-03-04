@@ -10,7 +10,7 @@ template <class M>
 void Embed<M>::Init(const FieldNode<Scal>& fnl) {
   auto sem = m.GetSem("init");
   if (sem()) {
-    CHECKHALO(fnl, 2);
+    fnl.CheckHalo(2);
     fnl_ = fnl;
     InitFaces(fnl_, fft_, ffpoly_, ffs_, m);
     InitCells(fnl_, ffs_, fct_, fcn_, fca_, fcs_, fcv_, m);

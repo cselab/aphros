@@ -174,9 +174,7 @@ void Hdf<M>::Read(Field& fc, std::string path, M& m, std::string dname) {
       H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
       return H5Fopen(path.c_str(), H5F_ACC_RDONLY, fapl);
     }();
-    if (file < 0) {
-      throw std::runtime_error(FILELINE + ": cannot open file '" + path + "'");
-    }
+    fassert(file >= 0, "cannot open file '" + path + "'");
 
     const size_t nblocks = ctx->dataptr.size();
     fassert_equal(ctx->dataptr.size(), nblocks);
@@ -243,9 +241,7 @@ std::vector<size_t> Hdf<M>::GetShape(std::string path, std::string dname) {
   const hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
   const hid_t file = H5Fopen(path.c_str(), H5F_ACC_RDONLY, fapl);
   H5Pclose(fapl);
-  if (file < 0) {
-    throw std::runtime_error(FILELINE + ": cannot open file '" + path + "'");
-  }
+  fassert(file >= 0, "cannot open file '" + path + "'");
   const hid_t dataset = H5Dopen2(file, dname.c_str(), H5P_DEFAULT);
   const hid_t fspace = H5Dget_space(dataset);
   const size_t ndims = H5Sget_simple_extent_ndims(fspace);

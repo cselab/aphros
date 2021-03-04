@@ -281,9 +281,8 @@ void Local<M>::DumpWrite(const std::vector<size_t>& bb) {
               on.second, globalmesh,
               [this, k](IdxCell i) { return buf_[k][i]; }));
           k += on.first->GetSize();
-          if (on.first->GetSize() != 1) {
-            throw std::runtime_error("DumpWrite(): Support only size 1");
-          }
+          fassert_equal(
+              on.first->GetSize(), 1, ". DumpWrite(): Support only size 1");
         }
 
         oser_.reset(new output::SerVtkStruct<M>(v, "title", "p", globalmesh));
@@ -309,9 +308,7 @@ void Local<M>::DumpWrite(const std::vector<size_t>& bb) {
 // number of scalar fields read
 template <class M>
 size_t Local<M>::ReadBuffer(FieldCell<Scal>& fc, size_t e, M& m) {
-  if (e >= buf_.size()) {
-    throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
-  }
+  fassert(e < buf_.size(), "ReadBuffer: Too many fields for Comm()");
   auto& ndc = m.GetIndexCells();
   auto& gndc = globalmesh.GetIndexCells();
   MIdx gs = globalmesh.GetInBlockCells().GetSize();
@@ -342,9 +339,7 @@ size_t Local<M>::ReadBuffer(FieldCell<Scal>& fc, size_t e, M& m) {
 // number of scalar fields read
 template <class M>
 size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t comp, size_t e, M& m) {
-  if (e >= buf_.size()) {
-    throw std::runtime_error("ReadBuffer: Too many fields for Comm()");
-  }
+  fassert(e < buf_.size(), "ReadBuffer: Too many fields for Comm()");
   auto& indexc = m.GetIndexCells();
   auto& indexc_global = globalmesh.GetIndexCells();
   MIdx gs = globalmesh.GetInBlockCells().GetSize();
@@ -395,7 +390,7 @@ size_t Local<M>::ReadBuffer(typename M::CommRequest* o, size_t e, M& m) {
     }
     return ReadBuffer(*od->field, od->d, e, m);
   }
-  throw std::runtime_error("ReadBuffer: Unknown CommRequest instance");
+  fassert(false, "ReadBuffer: Unknown CommRequest instance");
   return 0;
 }
 template <class M>
@@ -413,9 +408,7 @@ void Local<M>::ReadBuffer(M& m) {
 // number of scalar fields written
 template <class M>
 size_t Local<M>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
-  if (e >= buf_.size()) {
-    throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
-  }
+  fassert(e < buf_.size(), "WriteBuffer: Too many fields for Comm()");
   auto& indexc = m.GetIndexCells();
   auto& indexc_global = globalmesh.GetIndexCells();
   for (auto c : m.Cells()) {
@@ -434,9 +427,7 @@ size_t Local<M>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
 template <class M>
 size_t Local<M>::WriteBuffer(
     const FieldCell<Vect>& fc, size_t d, size_t e, M& m) {
-  if (e >= buf_.size()) {
-    throw std::runtime_error("WriteBuffer: Too many fields for Comm()");
-  }
+  fassert(e < buf_.size(), "WriteBuffer: Too many fields for Comm()");
   auto& indexc = m.GetIndexCells();
   auto& indexc_global = globalmesh.GetIndexCells();
   for (auto c : m.Cells()) {
@@ -474,7 +465,7 @@ size_t Local<M>::WriteBuffer(typename M::CommRequest* o, size_t e, M& m) {
     }
     return WriteBuffer(*od->field, od->d, e, m);
   }
-  throw std::runtime_error("WriteBuffer: Unknown CommRequest instance");
+  fassert(false, "WriteBuffer: Unknown CommRequest instance");
 }
 template <class M>
 void Local<M>::WriteBuffer(M& m) {

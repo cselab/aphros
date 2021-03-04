@@ -128,10 +128,9 @@ typename M::Scal Mean(const GField<typename M::Scal, Idx>& u, const M& m) {
   return r / w;
 }
 
-#define CMP(a, b)                                                \
-  if (!Cmp(a, b)) {                                              \
-    throw std::runtime_error(                                    \
-        std::string(__FILE__) + ":" + std::to_string(__LINE__)); \
+#define CMP(a, b)   \
+  if (!Cmp(a, b)) { \
+    fassert(false); \
   }
 
 // Print CMP

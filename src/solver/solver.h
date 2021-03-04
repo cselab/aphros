@@ -6,6 +6,8 @@
 #include <exception>
 #include <string>
 
+#include "util/logger.h"
+
 class UnsteadySolver {
  public:
   UnsteadySolver(double t, double dt) : t_(t), dt_(dt) {}
@@ -92,7 +94,7 @@ struct StepData {
         return iter_prev;
       }
       default: {
-        throw std::runtime_error("StepData::Get(): Unknown layer");
+        fassert(false, "StepData::Get(): Unknown layer");
       }
     }
   }

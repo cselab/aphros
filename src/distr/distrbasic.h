@@ -66,10 +66,7 @@ int RunMpiBasicFile(
     MpiWrapper& mpi, std::function<void(M& m, Vars&)> kernel,
     std::string confpath = "a.conf") {
   std::ifstream file(confpath);
-  if (!file.good()) {
-    throw std::runtime_error(
-        FILELINE + ": Can't open config file '" + confpath + "'");
-  }
+  fassert(file.good(), "Can't open config file '" + confpath + "'");
   std::stringstream buf;
   buf << file.rdbuf();
   return RunMpiBasicString<M>(mpi, kernel, buf.str());

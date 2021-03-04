@@ -53,13 +53,10 @@ class ModuleDistrCubismnc : public ModuleDistr<M> {
     Try<32, 32, 1>(comm, kf, var, r);
     Try<16, 16, 1>(comm, kf, var, r);
     Try<8, 8, 1>(comm, kf, var, r);
-    if (!r) {
-      std::stringstream ss;
-      ss << __func__ << ": no instance with "
-         << "bs=" << var.Int["bsx"] << " " << var.Int["bsy"] << " "
-         << var.Int["bsz"] << " hl=" << var.Int["hl"];
-      throw std::runtime_error(ss.str());
-    }
+    fassert(
+        r, util::Format(
+               "{}: no instance with bs={} {} {}, hl={}", __func__,
+               var.Int["bsx"], var.Int["bsy"], var.Int["bsz"], var.Int["hl"]));
     return r;
   }
 };

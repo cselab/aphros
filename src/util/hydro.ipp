@@ -280,7 +280,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal lz = M::dim > 2 ? domain[2] : 1;
 
     if ((!wym && !wyp) || (!wzm && !wzp)) {
-      throw std::runtime_error("poisyz: can't remove both walls");
+      fassert(false, "poisyz: can't remove both walls");
     }
 
     Scal oy = 0.;
@@ -1371,7 +1371,7 @@ void CalcSurfaceTension(
           as->GetEmbed(), ff_st, as->GetField(), *fck[0], ff_sig);
     }
     if (!found) {
-      throw std::runtime_error("CalcSurfaceTension: unknown advection solver");
+      fassert(false, "CalcSurfaceTension: unknown advection solver");
     }
 
     // zero on boundaries
@@ -1418,7 +1418,7 @@ void CalcSurfaceTension(
       }
     }
   } else {
-    throw std::runtime_error("Unknown surftens=" + st);
+    fassert(false, "Unknown surftens=" + st);
   }
 }
 

@@ -70,7 +70,7 @@ struct Tracer<EB_>::Imp {
       case SlipType::constant:
         return conf.slip[l].velocity;
       default:
-        throw std::runtime_error(FILELINE + ": not implemented");
+        fassert(false, "not implemented");
     }
     return Vect(0);
   }

@@ -138,9 +138,9 @@ struct ConvDiffVectGeneric<M_, CD_>::Imp {
     if (l == lvel_) {
       return fcvel_;
     }
-    throw std::runtime_error(
-        "GetVelocity: requested layer '" + GetName(l) + "' but '" +
-        GetName(lvel_) + "' is loaded");
+    fassert(
+        false, "GetVelocity: requested layer '" + GetName(l) + "' but '" +
+                   GetName(lvel_) + "' is loaded");
   }
   void CorrectVelocity(Step l, const FieldCell<Vect>& fc) {
     auto sem = m.GetSem("corr");

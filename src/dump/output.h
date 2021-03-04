@@ -129,7 +129,7 @@ class SerScalPlain : public Ser {
       } else if (auto oint = dynamic_cast<OutScal<int>*>(og.get())) {
         out_ << oint->second() << " ";
       } else {
-        throw std::runtime_error("SerScalPlain: Unknown entry type");
+        fassert(false, "SerScalPlain: Unknown entry type");
       }
     }
 

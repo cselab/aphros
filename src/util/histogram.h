@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "timer.h"
+#include "util/logger.h"
 #include "util/mpi.h"
 
 class Sampler {
@@ -73,9 +74,8 @@ class Sampler {
   void AddTo(const std::string& addto, const std::vector<double>& yours) {
     if (active_) {
       auto& mine = samples_.at(addto);
-      if (mine.size() != yours.size()) {
-        throw std::runtime_error("Add: vectors are of unequal length");
-      }
+      fassert_equal(
+          mine.size(), yours.size(), ", Add: vectors are of unequal length");
       for (size_t i = 0; i < mine.size(); ++i) {
         mine[i] += yours[i];
       }
@@ -85,9 +85,8 @@ class Sampler {
   void SubtractFrom(const std::string& from, const std::vector<double>& yours) {
     if (active_) {
       auto& mine = samples_.at(from);
-      if (mine.size() != yours.size()) {
-        throw std::runtime_error("Add: vectors are of unequal length");
-      }
+      fassert_equal(
+          mine.size(), yours.size(), ", Add: vectors are of unequal length");
       for (size_t i = 0; i < mine.size(); ++i) {
         mine[i] -= yours[i];
       }

@@ -73,11 +73,11 @@ Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
   commrank_ = mpi.GetCommRank();
   isroot_ = (0 == commrank_); // XXX: overwrite isroot_
 
-  if (commsize_ != nprocs_.prod()) {
-    throw std::runtime_error(util::Format(
-        "Number of MPI tasks {} does not match the number of subdomains {}",
-        commsize_, nprocs_));
-  }
+  fassert(
+      commsize_ == nprocs_.prod(),
+      util::Format(
+          "Number of MPI tasks {} does not match the number of subdomains {}",
+          commsize_, nprocs_));
 
   const MIdx globalsize = nprocs_ * nblocks_ * blocksize_;
   std::vector<BlockInfoProxy> proxies;
@@ -392,7 +392,7 @@ void Native<M>::Bcast(const std::vector<size_t>& bb) {
         ob->Set(buf);
       }
     } else {
-      throw std::runtime_error("Bcast: Unknown M::Op instance");
+      fassert(false, "Bcast: Unknown M::Op instance");
     }
   }
 

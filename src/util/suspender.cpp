@@ -6,6 +6,8 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "util/logger.h"
+
 #include "suspender.h"
 
 Suspender::Sem::Sem(Suspender& owner, const std::string& name) : owner_(owner) {
@@ -17,11 +19,10 @@ Suspender::Sem::Sem(Suspender& owner, const std::string& name) : owner_(owner) {
     owner_.depth_ = 0;
   }
 
-  if (!owner_.allow_nested_) {
-    throw std::runtime_error(
-        owner_.GetNameSequence() +
-        ": Nested calls not allowed. Use `sem.Nested()` on upper level");
-  }
+  fassert(
+      owner_.allow_nested_,
+      owner_.GetNameSequence() +
+          ": Nested calls not allowed. Use `sem.Nested()` on upper level");
   owner_.allow_nested_ = false;
 
   if (std::next(pos) == states.end()) {

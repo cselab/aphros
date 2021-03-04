@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
 
   constexpr size_t dim = 3;
 
-  std::vector<MIdx> st = {{0, 0, 0}, {1, 0, 0}};
+  std::vector<MIdx> stencil = {{0, 0, 0}, {1, 0, 0}};
 
   int bs = 16;
 
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
   Block b;
   b.l = {0, 0, 0};
   b.u = {bs - 1, bs - 1, bs - 1};
-  b.st = st;
+  b.stencil = stencil;
 
   size_t n = 1;
   for (size_t i = 0; i < dim; ++i) {
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
     return std::sin(x) * std::cos(y) * std::exp(z / 100.);
   };
 
-  std::vector<Scal> da(n * b.st.size());
+  std::vector<Scal> da(n * b.stencil.size());
   {
     size_t j = 0;
     for (int z = b.l[2]; z <= b.u[2]; ++z) {
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
         }
       }
     }
-    assert(j == n * b.st.size());
+    assert(j == n * b.stencil.size());
   }
   std::vector<Scal> dr(n);
   std::vector<Scal> dx(n);

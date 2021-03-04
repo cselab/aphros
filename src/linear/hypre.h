@@ -17,8 +17,8 @@ class Hypre {
   struct Block { // linear system ax=r
     MIdx l; // lower corner
     MIdx u; // upper corner
-    std::vector<MIdx> st; // stencil
-    std::vector<Scal>* a; // matrix coeffs of size n * st.size()
+    std::vector<MIdx> stencil; // stencil
+    std::vector<Scal>* a; // matrix coeffs of size n * stencil.size()
     std::vector<Scal>* r; // rhs of size n
     std::vector<Scal>* x; // solution and initial guess of size n
   };

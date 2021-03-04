@@ -132,12 +132,11 @@ class GField {
     name_ = name;
   }
   void CheckHalo(int halo) const {
-    if (halo_ < halo) {
-      throw std::runtime_error(
-          FILELINE + ": required " + std::to_string(halo) +
-          " halos for field '" + GetName() + "' but only " +
-          std::to_string(halo_) + " are valid");
-    }
+    fassert(
+        halo <= halo_, //
+        "required " + std::to_string(halo) + " halo cells for field '" +
+            GetName() + "', but only '" + std::to_string(halo_) +
+            "' are valid");
   }
   void SetHalo(int halo) {
     halo_ = halo;

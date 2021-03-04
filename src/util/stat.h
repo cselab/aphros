@@ -374,8 +374,7 @@ class Stat {
       const MEB& meb) {
     switch (op) {
       case Reduction::none:
-        throw std::runtime_error(
-            FILELINE + ": Reduction::none not allowed here");
+        fassert(false, "Reduction::none not allowed here");
       case Reduction::sum:
         entries_.emplace(
             name, //

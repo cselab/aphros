@@ -117,22 +117,19 @@ void Vars::Map<T>::SetStr(Key k, std::string v) {
   b >> std::skipws;
   b >> m_[k];
 
-  if (b.fail()) {
-    throw std::runtime_error(
-        FILELINE + ": unable to parse '" + v + "' as '" + GetTypeName() +
-        "' for variable named '" + k + "'");
-  }
+  fassert(
+      !b.fail(), //
+      "unable to parse '" + v + "' as '" + GetTypeName() +
+          "' for variable named '" + k + "'");
 
   // Check that string contained only one element of type T
   // Read one more character
   char c;
   b >> c;
-  if (b.good()) {
-    // If good, the string contained trailing characters
-    throw std::runtime_error(
-        FILELINE + ": trailing characters '" + v + "' as '" + GetTypeName() +
-        "' for variable named '" + k + "'");
-  }
+  fassert(
+      !b.good(), //
+      "trailing characters '" + v + "' as '" + GetTypeName() +
+          "' for variable named '" + k + "'");
 }
 
 template <>
@@ -145,9 +142,10 @@ void Vars::Map<std::vector<double>>::SetStr(Key k, std::string s) {
     if (!b.fail()) {
       r.push_back(a);
     } else if (!b.eof()) {
-      throw std::runtime_error(
-          FILELINE + ": unable to parse '" + s + "' as '" + GetTypeName() +
-          "' for variable named '" + k + "'");
+      fassert(
+          false, //
+          "unable to parse '" + s + "' as '" + GetTypeName() +
+              "' for variable named '" + k + "'");
     }
   }
   m_[k] = r;
@@ -161,11 +159,9 @@ void Vars::Map<std::string>::SetStr(Key k, std::string s) {
 template <class T>
 const T& Vars::Map<T>::operator[](Key k) const {
   auto it = m_.find(k);
-  if (it == m_.end()) {
-    throw std::runtime_error(
-        FILELINE + ": variable '" + k + "' of type '" + GetTypeName() +
-        "' not found");
-  }
+  fassert(
+      it != m_.end(),
+      "variable '" + k + "' of type '" + GetTypeName() + "' not found");
   hook_(k);
   return it->second;
 }
@@ -173,11 +169,9 @@ const T& Vars::Map<T>::operator[](Key k) const {
 template <class T>
 T& Vars::Map<T>::operator[](Key k) {
   auto it = m_.find(k);
-  if (it == m_.end()) {
-    throw std::runtime_error(
-        FILELINE + ": variable '" + k + "' of type '" + GetTypeName() +
-        "' not found");
-  }
+  fassert(
+      it != m_.end(), //
+      "variable '" + k + "' of type '" + GetTypeName() + "' not found");
   hook_(k);
   return it->second;
 }
@@ -258,16 +252,17 @@ std::string Vars::GetStr(std::string t, Key k) const {
   if (t == Vect.GetTypeName()) {
     return Vect.GetStr(k);
   }
-  throw std::runtime_error("Vars:: GetStr(): Unknown type " + t);
+  fassert(false, "Vars:: GetStr(): Unknown type " + t);
   return "";
 }
 
 void Vars::SetStr(std::string t, Key k, std::string v) {
   std::string e = GetTypeName(k); // existing type
   if (e != "" && e != t) {
-    throw std::runtime_error(
-        FILELINE + ": attempt to change type of variable '" + k + "' from '" +
-        e + "' to '" + t + "'");
+    fassert(
+        false, //
+        "attempt to change type of variable '" + k + "' from '" + e + "' to '" +
+            t + "'");
   }
   // TODO: Map::Set() still allows same name for two variables
 
@@ -280,7 +275,7 @@ void Vars::SetStr(std::string t, Key k, std::string v) {
   } else if (t == Vect.GetTypeName()) {
     Vect.SetStr(k, v);
   } else {
-    throw std::runtime_error(FILELINE + ": unknown type " + t);
+    fassert(false, "unknown type " + t);
   }
 }
 

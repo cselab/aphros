@@ -201,11 +201,12 @@ class Cubismnc : public DistrMesh<M_> {
     CheckProcs(MPI_Comm comm, MIdx nprocs) {
       int commsize;
       MPI_Comm_size(comm, &commsize);
-      if (commsize != nprocs.prod()) {
-        throw std::runtime_error(util::Format(
-            "Number of MPI tasks {} does not match the number of subdomains {}",
-            commsize, nprocs));
-      }
+      fassert(
+          commsize == nprocs.prod(), //
+          util::Format(
+              "Number of MPI tasks {} does not match the number of subdomains "
+              "{}",
+              commsize, nprocs));
     }
   };
 
@@ -560,7 +561,7 @@ void Cubismnc<Par, M>::Bcast(const std::vector<size_t>& bb) {
         ob->Set(r);
       }
     } else {
-      throw std::runtime_error("Bcast: Unknown M::Op instance");
+      fassert(false, "Bcast: Unknown M::Op instance");
     }
   }
 
@@ -824,7 +825,7 @@ void Cubismnc<Par, M>::DumpWrite(const std::vector<size_t>& bb) {
               blocks, aos_idx, grid_, frame_, frame_, name, ".", Vect(0),
               mfirst.GetCellSize(), true);
         } else {
-          throw std::runtime_error("DumpWrite(): Support only size 1 and 3");
+          fassert(false, "DumpWrite(): Support only size 1 and 3");
         }
       }
       if (isroot_) {

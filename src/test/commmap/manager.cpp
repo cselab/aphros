@@ -113,6 +113,6 @@ int main(int argc, const char** argv) {
     case 4:
       return Run<4>(args, mpi);
     default:
-      throw std::runtime_error(util::Format("Unknown dim={}", dim));
+      fassert(false, util::Format("Unknown dim={}", dim));
   }
 }

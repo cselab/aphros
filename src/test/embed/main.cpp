@@ -60,10 +60,9 @@ void Run(M& m, Vars& var) {
     auto& eb = *ctx->eb;
     const std::string filename = "bc.dat";
     std::ifstream fin(filename);
-    if (!fin.good()) {
-      throw std::runtime_error(
-          "Can't open list of boundary conditions '" + filename + "'");
-    }
+    fassert(
+        fin.good(),
+        "Can't open list of boundary conditions '" + filename + "'");
     std::vector<std::string> vdesc;
     MapEmbed<size_t> me_nci;
     std::tie(ctx->me_group, me_nci, vdesc) =

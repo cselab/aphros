@@ -31,7 +31,7 @@ struct ParsePar<Proj<M>> {
     } else if (conv == "exp") {
       p.conv = Conv::exp;
     } else {
-      throw std::runtime_error("Parse: unknown conv=" + conv);
+      fassert(false, "Parse: unknown conv=" + conv);
     }
     p.outlet_relax = var.Double["outlet_relax"];
     p.redistr_adv = var.Int["proj_redistr_adv"];

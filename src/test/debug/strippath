@@ -1,6 +1,9 @@
 #!/bin/sh
 
-pre=/src/test/
+ set -eu
+
+pre=$(dirname $(dirname $(pwd)))/
 while read v ; do
-  echo "${v#*$pre}"
+  v="${v#*$pre}"
+  echo "$v" | sed 's/:[0-9]*\(: assertion\)/\1/g'
 done

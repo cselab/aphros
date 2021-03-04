@@ -171,8 +171,7 @@ void DistrMesh<M>::ReduceToLead(const std::vector<size_t>& bb) {
         apply(dynamic_cast<ReductionScalInt*>(request), i) ||
         apply(dynamic_cast<ReductionConcat*>(request), i)) {
     } else {
-      throw std::runtime_error(
-          FILELINE + "ReduceToLead: Unknown M::Op implementation");
+      fassert(false, "ReduceToLead: Unknown M::Op implementation");
     }
   }
 
@@ -344,7 +343,7 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
       }
       ++frame_;
     } else {
-      throw std::runtime_error("Unknown dumpformat=" + dumpformat);
+      fassert(false, "Unknown dumpformat=" + dumpformat);
     }
   }
 }
@@ -372,7 +371,7 @@ void DistrMesh<M>::ApplyNanFaces(const std::vector<size_t>& bb) {
           auto* ov = dynamic_cast<typename M::CommRequestVect*>(o.get())) {
         m.ApplyNanFaces(*ov->field);
       } else {
-        throw std::runtime_error("Distr::Run(): unknown field type for nan");
+        fassert(false, "Distr::Run(): unknown field type for nan");
       }
     }
   }

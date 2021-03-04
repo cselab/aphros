@@ -46,7 +46,7 @@ struct ParsePar<Vof<M>> {
     } else if (s == "weymouth") {
       p.scheme = Scheme::weymouth;
     } else {
-      throw std::runtime_error("Update: unknown vof_scheme=" + s);
+      fassert(false, "Update: unknown vof_scheme=" + s);
     }
     return p;
   }

@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "events.h"
+#include "logger.h"
 #include "parse/parser.h"
 
 Events::Events(Vars& var, bool isroot, bool islead)
@@ -91,7 +92,7 @@ void Events::Execute(double t) {
       if (ith != handlers_.end()) {
         ith->second(arg);
       } else {
-        throw std::runtime_error("ExecEvents(): Unknown command '" + cmd + "'");
+        fassert(false, "ExecEvents(): Unknown command '" + cmd + "'");
       }
       it = events_.erase(it);
     } else {

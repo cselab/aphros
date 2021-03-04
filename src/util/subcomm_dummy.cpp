@@ -7,13 +7,13 @@
 #include "util/logger.h"
 
 void SetAffinity(int) {
-  throw std::runtime_error(FILELINE + ": not implemented");
+  fassert(false, "not implemented");
 }
 
 void PrintStats(MPI_Comm, MPI_Comm, MPI_Comm) {
-  throw std::runtime_error(FILELINE + ": not implemented");
+  fassert(false, "not implemented");
 }
 
 void SubComm(MPI_Comm&, MPI_Comm&, MPI_Comm&) {
-  throw std::runtime_error(FILELINE + ": not implemented");
+  fassert(false, "not implemented");
 }

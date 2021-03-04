@@ -472,7 +472,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
       }
     };
   } else {
-    throw std::runtime_error("Unknown init_vf=" + v);
+    fassert(false, "Unknown init_vf=" + v);
   }
   return std::function<void(FieldCell<Scal>&, const M&)>();
 }
@@ -511,8 +511,7 @@ void InitVf(
                       << std::endl;
           }
           if (!fin.good()) {
-            throw std::runtime_error(
-                FILELINE + ": Can't open list of primitives '" + fname + "'");
+            fassert(false, "Can't open list of primitives '" + fname + "'");
           }
           ctx->buf = std::vector<char>(
               std::istreambuf_iterator<char>(fin),

@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "logger.h"
 #include "subcomm.h"
 #include "sysinfo.h"
 
@@ -168,13 +169,10 @@ void SubComm(MPI_Comm& comm_world, MPI_Comm& comm_omp, MPI_Comm& comm_master) {
   thread_affinity = mpi_affinity;
 
 #ifdef _OPENMP
-  if (omp_size < omp_get_max_threads()) {
-    std::stringstream s;
-    s << __FILE__ << ":" << __LINE__ << " " << __func__;
-    s << " Not enough MPI processes: " << EV(omp_size);
-    s << " but " << EV(omp_get_max_threads());
-    throw std::runtime_error(s.str());
-  }
+  fassert(
+      omp_get_max_threads() <= omp_size,
+      "Not enough MPI processes: " + NAMEVALUE(omp_size) + " but " +
+          NAMEVALUE(omp_get_max_threads()));
 #endif
 
   // 2.

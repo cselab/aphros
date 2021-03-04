@@ -155,7 +155,7 @@ void Advection<M>::Init(Sem& sem) {
       as_.reset(new ASVM(
           m, m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
     } else {
-      throw std::runtime_error("Unknown advection_solver=" + as);
+      fassert(false, "Unknown advection_solver=" + as);
     }
     fck_.resize(layers);
     fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
