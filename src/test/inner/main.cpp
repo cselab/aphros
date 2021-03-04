@@ -53,7 +53,7 @@ set int bsz 8
 
 set int px 2
 set int py 1
-set int pz 2
+set int pz 1
 
 set int openmp 0
 set int histogram 0

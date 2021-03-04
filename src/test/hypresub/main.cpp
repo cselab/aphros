@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
   MPI_Comm comm = MPI_COMM_WORLD;
   MIdx per = {1, 0, 0};
   Scal tol = 1e-12;
-  int print = 2;
+  int print = 0;
   int maxiter = 80;
 
   (void)tol;
@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(comm, &rank);
 
   MPI_Comm commsub;
-  MPI_Comm_split(comm, rank / 3, rank, &commsub);
+  MPI_Comm_split(comm, rank, rank, &commsub);
 
   int ranksub;
   MPI_Comm_rank(commsub, &ranksub);

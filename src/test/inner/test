@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+
+import aphros
+
+
+class Test(aphros.TestBase):
+    def run(self):
+        np = 2
+        self.runcmd("echo {} > np".format(np))
+        self.runcmd("ap.mpirun ./t.inner")
+        return ["{}.out".format(i) for i in range(np)]
+
+
+Test().main()
