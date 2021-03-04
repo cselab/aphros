@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 04.03.2021
+// Copyright 2021 ETH Zurich
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <emscripten.h>

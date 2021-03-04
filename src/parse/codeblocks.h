@@ -50,7 +50,7 @@ auto ParseCodeBlock(std::istream& fin) {
   char c = ' ';
   int braces = 0;
   std::string error;
-  while (fin && s != S::exit) {
+  while (fin && s != S::exit && error.empty()) {
     auto next = [&fin, &c]() { fin >> c; };
     switch (s) {
       case S::begin: {
@@ -67,7 +67,6 @@ auto ParseCodeBlock(std::istream& fin) {
           next();
         } else if (c == '}') {
           error = "name cannot contain '}', unmatched brace?";
-          break;
         } else {
           block.name += c;
           next();
@@ -94,10 +93,11 @@ auto ParseCodeBlock(std::istream& fin) {
       }
     }
   }
-  if (s != S::exit && (block.name.size() || block.content.size())) {
+  if (error.empty() && s != S::exit &&
+      (block.name.size() || block.content.size())) {
     error = "unexpected end of stream";
   }
-  if (error.length()) {
+  if (!error.empty()) {
     error = std::string(__func__) + ": " + error +
             "\nstopping at block:\nname='" + Strip(block.name) + "' content='" +
             Strip(block.content) + "'";
@@ -114,17 +114,17 @@ std::vector<CodeBlock> ParseCodeBlocks(std::istream& f) {
   std::string error;
   while (true) {
     auto res = ParseCodeBlock(f);
+    if (!res.error.empty()) {
+      error = res.error;
+      break;
+    }
     if (!res.found) {
       break;
     }
     blocks.push_back(res.block);
-    if (res.error.length()) {
-      error = res.error;
-      break;
-    }
   }
 
-  if (error.length()) {
+  if (!error.empty()) {
     std::string o;
     o += __func__;
     o += ": error after parsing " + std::to_string(blocks.size()) + " blocks\n";

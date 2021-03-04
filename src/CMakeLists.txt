@@ -190,6 +190,7 @@ set(ObjLibs
   init_contang
   init_vel
   linear
+  logger
   march
   mesh
   normal

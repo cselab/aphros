@@ -1,6 +1,6 @@
 get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 set(EXE t.${name})
 add_executable(${EXE} main.cpp)
-target_link_libraries(${EXE} vars)
+target_link_libraries(${EXE} vars logger)
 add_test_current(COMMAND ./test)
 

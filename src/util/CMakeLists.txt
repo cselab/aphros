@@ -64,10 +64,14 @@ target_link_libraries(${T} sysinfo openmp)
 
 set(T "histogram")
 add_library(${T} histogram.cpp)
-target_link_libraries(${T} timer use_mpi)
+target_link_libraries(${T} timer logger use_mpi)
+
+set(T "logger")
+add_library(${T} logger.cpp)
 
 set(T "format")
 add_library(${T} format.cpp)
+target_link_libraries(${T} logger)
 
 set(T "allocator")
 add_library(${T} fixed_allocator.cpp)
