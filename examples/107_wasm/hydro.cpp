@@ -43,23 +43,7 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
-void CopyToCanvas(uint32_t* buf, int w, int h) {
-  EM_ASM_(
-      {
-        let data = Module.HEAPU8.slice($0, $0 + $1 * $2 * 4);
-        let tctx = g_tmp_canvas.getContext("2d");
-        let image = tctx.getImageData(0, 0, $1, $2);
-        image.data.set(data);
-        tctx.putImageData(image, 0, 0);
-      },
-      buf, w, h);
-}
-
-void ErrorHandler(int code, const char* str) {
-  fputs(str, stderr);
-  fputs("\n", stderr);
-  std::abort();
-}
+#include "common.h"
 
 struct Par {};
 
@@ -104,12 +88,6 @@ class Solver : public KernelMeshPar<M, Par> {
   typename Vof<M>::Par vof_par;
 };
 
-struct Canvas {
-  Canvas(MIdx size_) : size(size_), buf(size.prod()) {}
-  MIdx size;
-  std::vector<uint32_t> buf;
-};
-
 struct State {
   State(MPI_Comm comm, Vars& var) : distrsolver(comm, var, par) {}
   typename Solver::Par par;
@@ -133,64 +111,6 @@ std::shared_ptr<State> g_state;
 std::shared_ptr<Canvas> g_canvas;
 std::string g_extra_config;
 Vars g_var;
-
-static Scal Clamp(Scal f, Scal min, Scal max) {
-  return f < min ? min : f > max ? max : f;
-}
-
-template <class T>
-static T Clamp(T v) {
-  return v.max(T(0)).min(T(1));
-}
-
-static Scal Clamp(Scal f) {
-  return Clamp(f, 0, 1);
-}
-
-void GetCircle(FieldCell<Scal>& fcu, Vect c, Scal r, const M& m) {
-  Vars par;
-  par.String.Set("init_vf", "circlels");
-  par.Vect.Set("circle_c", c);
-  par.Double.Set("circle_r", r);
-  par.Int.Set("dim", 2);
-  auto func = CreateInitU<M>(par, false);
-  func(fcu, m);
-}
-
-static MIdx GetCanvasCoords(Vect x, const Canvas& canvas, const M& m) {
-  auto scaledsize = canvas.size * kScale;
-  MIdx w = MIdx(x * Vect(scaledsize) / m.GetGlobalLength());
-  w = w.max(MIdx(0)).min(scaledsize - MIdx(1));
-  w[1] = scaledsize[1] - w[1] - 1;
-  return w;
-}
-
-template <class MEB>
-FieldCell<typename MEB::Scal> GetVortScal(
-    const FieldCell<typename MEB::Vect>& fcvel,
-    const MapEmbed<BCond<typename MEB::Vect>>& me_vel, MEB& eb) {
-  using M = typename MEB::M;
-  constexpr auto dim = M::dim;
-  auto& m = eb.GetMesh();
-  using Scal = typename MEB::Scal;
-  using Vect = typename MEB::Vect;
-  using UEB = UEmbed<M>;
-
-  std::array<FieldCell<Vect>, dim> grad;
-  for (size_t d = 0; d < dim; ++d) {
-    grad[d].Reinit(m, Vect(0));
-    const auto mebc = GetScalarCond(me_vel, d, m);
-    const FieldCell<Scal> fcu = GetComponent(fcvel, d);
-    const FieldFace<Scal> ffg = UEB::Gradient(fcu, mebc, m);
-    grad[d] = UEB::AverageGradient(ffg, m);
-  }
-
-  FieldCell<Scal> res(m, 0);
-  for (auto c : m.Cells()) {
-    res[c] = grad[1][c][0] - grad[0][c][1];
-  }
-  return res;
-}
 
 static void RenderField(
     Canvas& canvas, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcvel,

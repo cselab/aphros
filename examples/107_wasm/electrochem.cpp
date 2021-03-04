@@ -45,12 +45,6 @@ using MIdx = typename M::MIdx;
 
 #include "common.h"
 
-void ErrorHandler(int code, const char* str) {
-  fputs(str, stderr);
-  fputs("\n", stderr);
-  std::abort();
-}
-
 struct Par {};
 
 class Solver : public KernelMeshPar<M, Par> {

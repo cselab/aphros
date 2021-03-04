@@ -1,3 +1,8 @@
+void ErrorHandler(int code, const char* str) {
+  fputs(str, stderr);
+  fputs("\n", stderr);
+}
+
 auto ToMulti(const std::vector<Scal>& v) {
   Multi<Scal> w(v.size());
   w.data() = v;

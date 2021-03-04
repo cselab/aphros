@@ -1,10 +1,17 @@
-#include "parse/parser.h"
 #include <float.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
 #include "aphros_c.h"
+
+#include "parse/parser.h"
+#include "util/logger.h"
+
+void ErrorHandler(int code, const char* str) {
+  fputs(str, stderr);
+  fputs("\n", stderr);
+}
 
 struct aphros_Parser {
   Vars* par;
@@ -15,6 +22,7 @@ struct aphros_Parser {
 };
 
 struct aphros_Parser* aphros_ParserFileIni(const char* path) {
+  aphros_SetErrorHandler(ErrorHandler);
   struct aphros_Parser* q;
   if ((q = (struct aphros_Parser*)malloc(sizeof *q)) == NULL) return NULL;
   q->string = NULL;
