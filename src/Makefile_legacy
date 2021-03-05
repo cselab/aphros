@@ -10,8 +10,9 @@ LINK = $(CXX)
 CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g
 CXXFLAGS_STD = -std=c++14
-CC_RULE = $(CC) -c $(CFLAGS) -o $@
-CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) -I$(SRC) $1 -o $@
+FLAGS_FPIC = -fPIC
+CC_RULE = $(CC) -c $(CFLAGS) $(FLAGS_FPIC) -o $@
+CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(FLAGS_FPIC) -I$(SRC) $1 -o $@
 1 = \
 -D_ALIGNBYTES_=16 \
 -D_USE_AMGX_=0 \
