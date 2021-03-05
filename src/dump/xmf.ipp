@@ -198,4 +198,7 @@ void Xmf<Vect>::WriteXmf(const std::string& xmfpath, const Meta& meta) {
   WriteXmf(f, meta);
 }
 
+template <class Vect>
+constexpr size_t Xmf<Vect>::dim;
+
 } // namespace dump

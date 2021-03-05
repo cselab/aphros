@@ -16,3 +16,6 @@ build*
 CTestTestfile.cmake
 Testing/
 DartConfiguration.tcl
+
+# Makefile_legacy
+.dir
