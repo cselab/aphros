@@ -72,7 +72,7 @@ class Hydro;
 
 template <class M>
 struct GPar {
-  void* ptr; // opaque pointer to data
+  void* ptr = nullptr; // opaque pointer to data
   std::function<void(void* ptr, Hydro<M>* hydro)> step_callback;
 };
 
@@ -178,6 +178,9 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   void CalcVort();
   FieldCell<Scal> CalcStrain(const FieldCell<Vect> fcvel) const;
   FieldCell<Scal> GetDiv() const;
+
+  bool initialized_ = false;
+  bool finished_ = false;
 
   GRange<size_t> layers;
   FieldCell<Scal> fc_mu_; // viscosity

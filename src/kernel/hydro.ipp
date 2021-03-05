@@ -1361,6 +1361,9 @@ void Hydro<M>::Init() {
       Dump(true);
     }
   }
+  if (sem()) {
+    initialized_ = true;
+  }
 }
 
 template <class M>
@@ -1929,7 +1932,7 @@ void Hydro<M>::Run() {
     Scal nabort;
   } * ctx(sem);
 
-  if (sem.Nested("init")) {
+  if (sem.Nested("init") && !initialized_) {
     Init();
   }
 
@@ -1948,18 +1951,21 @@ void Hydro<M>::Run() {
                   << std::endl;
       }
       sem.LoopBreak();
+      finished_ = true;
     } else if (int(st_.step + 0.5) >= var.Int["max_step"]) {
       if (m.IsRoot()) {
         std::cout << "End of simulation, step > max_step="
                   << var.Int["max_step"] << std::endl;
       }
       sem.LoopBreak();
+      finished_ = true;
     } else if (st_.step > 1 && fs_->GetError() < var.Double("stop_diff", 0)) {
       if (m.IsRoot()) {
         std::cout << "End of simulation, diff < stop_diff="
                   << var.Double["stop_diff"] << std::endl;
       }
       sem.LoopBreak();
+      finished_ = true;
     } else {
       if (m.IsRoot()) {
         if (st_.step % var.Int("report_step_every", 1) == 0) {
@@ -2045,16 +2051,19 @@ void Hydro<M>::Run() {
   }
   if (sem("inc")) {
     ++st_.step;
+    if (var.Int("return_after_each_step", 0)) {
+      sem.LoopBreak();
+    }
   }
   sem.LoopEnd();
 
-  if (sem.Nested("dumplast")) {
+  if (sem.Nested("dumplast") && finished_) {
     if (var.Int["dumplast"]) {
       Dump(true);
     }
   }
 
-  if (sem.Nested("posthook")) {
+  if (sem.Nested("posthook") && finished_) {
     if (eb_) {
       PostHook(var, fs_->GetVelocity(), m, *eb_);
     } else {
