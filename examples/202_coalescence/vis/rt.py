@@ -23,17 +23,16 @@ parser.add_argument('--force',
                     help="overwrite existing files")
 parser.add_argument('--draft',
                     action="store_true",
-                    help="render at reduced resolution (half)")
-parser.add_argument('--resolution',
+                    help="render at reduced resolution (half) and fewer samples")
+parser.add_argument('--res',
+                    type=int,
+                    nargs=2,
                     default=[1920, 1080],
                     help="image resolution")
 parser.add_argument('--samples',
                     default=50,
+                    type=int,
                     help="number of samples for pathtracer")
-parser.add_argument('--backend',
-                    default="pathtracer",
-                    choices=["pathtracer", "default"],
-                    help="rendering backend")
 args = parser.parse_args()
 
 light1 = CreateLight()
@@ -65,6 +64,9 @@ with open(materials_json, 'w') as f:
     "scratched": {
       "type": "Principled",
       "doubles" : {
+          "roughnessMap.scale" : [0.3, 0.3],
+          "baseColorMap.scale" : [0.3, 0.3],
+          "normalMap.scale" : [0.3, 0.3],
           "metallic" : [1.0]
       },
       "textures" : {
@@ -82,18 +84,19 @@ with open(materials_json, 'w') as f:
             .replace("TEXTURE2", os.path.abspath("metal_Base_Color.jpg"))
             .replace("TEXTURE3", os.path.abspath("metal_Roughness.jpg"))
     )
+# XXX textures are part of ParaView distrubution
+#    copy or symlink them from 'materials/'
 materialLibrary = GetMaterialLibrary()
 materialLibrary.LoadMaterials = materials_json
 
-
-# create light
-# Create a new 'Render View'
-renderView = CreateView('RenderView')
-renderView.ViewSize = [1920, 1080]
 if args.draft:
     k = 2
-    renderView.ViewSize[0] //= k
-    renderView.ViewSize[1] //= k
+    args.res[0] //= k
+    args.res[1] //= k
+    args.samples //= 10
+
+renderView = CreateView('RenderView')
+renderView.ViewSize = args.res
 renderView.OrientationAxesVisibility = 0
 renderView.UseLight = 1
 renderView.KeyLightWarmth = 0.5
@@ -110,12 +113,16 @@ renderView.Background = [0.3] * 3
 renderView.EnableRayTracing = 1
 renderView.BackEnd = 'OSPRay pathtracer'
 renderView.AmbientSamples = 0
-renderView.SamplesPerPixel = 50
+renderView.SamplesPerPixel = args.samples
 renderView.AdditionalLights = [light1]
 renderView.OSPRayMaterialLibrary = materialLibrary
 
 sm = LegacyVTKReader(FileNames=args.files)
-surf = GenerateSurfaceNormals(Input=sm)
+surf = Calculator(Input=sm)
+surf.ResultNormals = 1
+surf.AttributeType = 'Point Data'
+surf.ResultArrayName = 'normals'
+surf.Function = 'nn'
 surfDisplay = Show(surf, renderView, 'GeometryRepresentation')
 surfDisplay.Representation = 'Surface'
 surfDisplay.ColorArrayName = ['POINTS', '']
@@ -142,8 +149,8 @@ back.Point2 = [-10.0, 10.0, -10.0]
 backDisplay = Show(back, renderView, 'GeometryRepresentation')
 backDisplay.Representation = 'Surface'
 backDisplay.ColorArrayName = [None, '']
-backDisplay.AmbientColor = [0.5] * 3
-backDisplay.DiffuseColor = [0.5] * 3
+backDisplay.AmbientColor = [0.7] * 3
+backDisplay.DiffuseColor = [0.7] * 3
 
 
 anim = GetAnimationScene()
