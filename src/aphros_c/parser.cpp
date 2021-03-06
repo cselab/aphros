@@ -22,17 +22,29 @@ struct aphros_Parser {
 };
 
 struct aphros_Parser* aphros_ParserFileIni(const char* path) {
-  aphros_SetErrorHandler(ErrorHandler);
   struct aphros_Parser* q;
+
+  aphros_SetErrorHandler(ErrorHandler);
   if ((q = (struct aphros_Parser*)malloc(sizeof *q)) == NULL) return NULL;
   q->string = NULL;
   q->vect = NULL;
   q->status = 0;
-  q->par = new Vars();
-  q->parser = new Parser(*q->par);
+  try {
+    q->par = new Vars();
+  } catch (const std::bad_alloc& e) {
+    return NULL;
+  }
+  try {
+    q->parser = new Parser(*q->par);
+  } catch (const std::bad_alloc& e) {
+    delete q->par;
+    return NULL;
+  }
   try {
     q->parser->ParseFile(path);
   } catch (const std::runtime_error& e) {
+    delete q->parser;
+    delete q->par;
     return NULL;
   }
   return q;
@@ -63,6 +75,7 @@ double aphros_ParserGetDouble(struct aphros_Parser* q, const char* name) {
 
 char* aphros_ParserGetString(struct aphros_Parser* q, const char* name) {
   std::string s;
+
   try {
     s = q->par->String[name];
   } catch (const std::runtime_error& e) {
@@ -81,6 +94,7 @@ char* aphros_ParserGetString(struct aphros_Parser* q, const char* name) {
 double* aphros_ParserGetVect(struct aphros_Parser* q, const char* name, /**/ int *size) {
   int i;
   std::vector<double> s;
+  
   try {
     s = q->par->Vect[name];
   } catch (const std::runtime_error& e) {
@@ -101,6 +115,7 @@ double* aphros_ParserGetVect(struct aphros_Parser* q, const char* name, /**/ int
 
 int aphros_ParserStatus(struct aphros_Parser* q) {
   int status;
+  
   status = q->status;
   q->status = 0;
   return status;
