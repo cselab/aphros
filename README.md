@@ -138,9 +138,11 @@ under the supervision of
   turbulent flows on structured grids" in _Proceedings of the platform for
   advanced scientific computing conference on – PASC ’19_, 2019
   [10.1145/3324989.3325727](https://doi.org/10.1145/3324989.3325727)
+  [[pdf]](https://cselab.github.io/aphros/pdf/pasc2019.pdf)
 3. P. Karnakov, S. Litvinov, P. Koumoutsakos
   "Coalescence and transport of bubbles and drops"
   _10th International Conference on Multiphase Flow (ICMF)_, 2019
+  [[pdf]](https://cselab.github.io/aphros/pdf/icmf2019.pdf)
 4. P. Karnakov, S. Litvinov, and P. Koumoutsakos, "A hybrid
   particle volume-of-fluid method for curvature estimation in multiphase
   flows”, _International journal of multiphase flow_, 2020
@@ -162,6 +164,7 @@ under the supervision of
   Bubble and Drop Clusters" in _Proceedings of the platform for
   advanced scientific computing conference on – PASC ’20_, 2020
   [10.1145/3394277.3401856](https://doi.org/10.1145/3394277.3401856)
+  [[pdf]](https://cselab.github.io/aphros/pdf/pasc2020.pdf)
 9. P. Karnakov, S. Litvinov, P. Koumoutsakos
 "Computing foaming flows across scales: from breaking waves to microfluidics", 2021
 [arXiv:2103.01513](https://arxiv.org/abs/2103.01513)

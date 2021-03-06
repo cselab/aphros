@@ -143,9 +143,11 @@ under the supervision of
   turbulent flows on structured grids" in _Proceedings of the platform for
   advanced scientific computing conference on – PASC ’19_, 2019
   [10.1145/3324989.3325727](https://doi.org/10.1145/3324989.3325727)
+  [[pdf]]([[PDF]]/pasc2019.pdf)
 [[item:icmf]] P. Karnakov, S. Litvinov, P. Koumoutsakos
   "Coalescence and transport of bubbles and drops"
   _10th International Conference on Multiphase Flow (ICMF)_, 2019
+  [[pdf]]([[PDF]]/icmf2019.pdf)
 [[item:partstr]] P. Karnakov, S. Litvinov, and P. Koumoutsakos, "A hybrid
   particle volume-of-fluid method for curvature estimation in multiphase
   flows”, _International journal of multiphase flow_, 2020
@@ -167,6 +169,7 @@ under the supervision of
   Bubble and Drop Clusters" in _Proceedings of the platform for
   advanced scientific computing conference on – PASC ’20_, 2020
   [10.1145/3394277.3401856](https://doi.org/10.1145/3394277.3401856)
+  [[pdf]]([[PDF]]/pasc2020.pdf)
 [[item:multivof]] P. Karnakov, S. Litvinov, P. Koumoutsakos
 "Computing foaming flows across scales: from breaking waves to microfluidics", 2021
 [arXiv:2103.01513](https://arxiv.org/abs/2103.01513)
@@ -180,6 +183,7 @@ gen = text
 gen = gen.replace('[[GEN]]', os.path.basename(__file__))
 gen = gen.replace('[[VIDEOS]]', "https://cselab.github.io/aphros/videos")
 gen = gen.replace('[[IMAGES]]', "https://cselab.github.io/aphros/images")
+gen = gen.replace('[[PDF]]', "https://cselab.github.io/aphros/pdf")
 found_refs = set()
 for i, m_item in enumerate(m_items):
     item = m_item.group(0)
