@@ -12,28 +12,27 @@ Finite volume solver for incompressible multiphase flows with surface tension.
 Key features:
 
 - implementation in C++14
-- scalability to thousands of compute nodes with the
-  [Cubism](https://gitlab.ethz.ch/mavt-cse/Cubism)
-  library for distributed computing on structured grids
-- coroutines to enable encapsulation in the block-wise processing framework
+- scalability to thousands of compute nodes
+- emulated coroutines for encapsulation in with block-wise processing
 - fluid solver based on SIMPLE or Bell-Colella-Glaz methods
-- conservative split PLIC advection solver
-- particle method for curvature estimation improving the accuracy at low resolutions
+- advection with PLIC volume-of-fluid
+- particle method for curvature estimation accurate at low resolutions
 [[online demo]](https://cselab.github.io/aphros/curv.html)
 [[4]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209)
-- coalescence prevention
+- scalable coalescence prevention
 [[online demo]](https://cselab.github.io/aphros/wasm/hydro.html)
 [[8]](https://doi.org/10.1145/3394277.3401856)
+[[9]](https://arxiv.org/abs/2103.01513)
 
-### Clone
+## Online demos
 
-    git clone https://github.com/cselab/aphros.git
+[<img src="https://cselab.github.io/aphros/images/curv.png" height=200>](https://cselab.github.io/aphros/curv.html) | [<img src="https://cselab.github.io/aphros/images/wasm.png" height=200>](https://cselab.github.io/aphros/wasm/hydro.html) | [<img src="https://cselab.github.io/aphros/images/electrochem.png" height=200>](https://cselab.github.io/aphros/wasm/electrochem.html)
+:---:|:---:|:---:
+curvature estimation | coalescence prevention | electrochemical reactor
 
 ### Documentation
 
-<https://cselab.github.io/aphros/doc>
-
-Generated in [doc/sphinx](doc/sphinx).
+[Online version](<https://cselab.github.io/aphros/doc>) generated from [doc/sphinx](doc/sphinx).
 
 ### Requirements
 
@@ -52,17 +51,18 @@ Bundled optional dependencies:
 [vofi](https://github.com/VOFTracking/Vofi),
 [fpzip](https://github.com/LLNL/fpzip)
 
-### Build and install
+### Clone and build
 
-Follow instructions from [deploy/README.md](deploy/README.md) to
-prepare environment and install dependencies.
+```
+git clone https://github.com/cselab/aphros.git
+```
 
-Configure, build, install and run tests:
+First, follow [deploy/README.md](deploy/README.md) to
+prepare environment and install dependencies. Then build with
 
 ```
 cd src
-make -j4
-make test
+make
 ```
 
 ### Docker
@@ -84,13 +84,6 @@ cd src
 APHROS_PREFIX=PREFIX make -f Makefile_legacy install
 ```
 where `PREFIX` is the installation location (e.g. `~/.local`).
-
-## Online demos
-
-[<img src="https://cselab.github.io/aphros/images/curv.png" height=200>](https://cselab.github.io/aphros/curv.html) | [<img src="https://cselab.github.io/aphros/images/wasm.png" height=200>](https://cselab.github.io/aphros/wasm/hydro.html) | [<img src="https://cselab.github.io/aphros/images/electrochem.png" height=200>](https://cselab.github.io/aphros/wasm/electrochem.html)
-:---:|:---:|:---:
-curvature estimation | coalescence prevention | electrochemical reactor
-
 
 ## Videos
 
