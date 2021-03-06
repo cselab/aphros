@@ -197,7 +197,7 @@ void Embed<M>::InitFaces(
       if (l >= 0) {
         xx.push_back(x);
       }
-      if (l * lp < 0) {
+      if (l * lp < 0 && (em > 2 || e == 0)) {
         xx.push_back(GetIso(x, xp, l, lp));
         cut = true;
       }
@@ -235,8 +235,8 @@ void Embed<M>::InitCells(
     const FieldNode<Scal>& fnl, const FieldFace<Scal>& ffs,
     FieldCell<Type>& fct, FieldCell<Vect>& fcn, FieldCell<Scal>& fca,
     FieldCell<Scal>& fcs, FieldCell<Scal>& fcv, const M& m) {
-  fct.Reinit(m), GetNan<Scal>();
-  fcn.Reinit(m), GetNan<Scal>();
+  fct.Reinit(m, Type::excluded);
+  fcn.Reinit(m, GetNan<Vect>());
   fca.Reinit(m, GetNan<Scal>());
   fcs.Reinit(m, 0);
   fcv.Reinit(m, 0);
