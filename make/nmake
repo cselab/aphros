@@ -21,6 +21,9 @@ function cat(file, rc, line) {
     for (;;) {
         rc = getline < file
         if (rc == 1) {
+	    if ($0 ~ /[:] .*\.dir$/)
+		continue
+	    remove(".dir:; mkdir -p $P && touch $@")
             remove("$(SRC)/")
             remove("$(WRK)/")
             remove(" -I$(SRC)")
