@@ -98,14 +98,14 @@ in collaboration with Jean M. Favre at [CSCS](https://www.cscs.ch).
 
 |    |    |
 :---:|:---:
-[<img src="doc/images/coalescence.jpg" width=384>]([[VIDEOS]]/coalescence.mp4) | [<img src="doc/images/taylor_green.jpg" width=250>]([[VIDEOS]]/taylor_green.mp4)
-Coalescence of bubbles [[ref:partstr]] [[conf]](examples/202_coalescence) | Taylor-Green vortex with bubbles [[ref:pasc19]] [[ref:datadriven]]
+[<img src="doc/images/coalescence.jpg" width=384>](https://www.youtube.com/watch?v=pRWGhGoQjyI) | [<img src="doc/images/taylor_green.jpg" width=250>]([[VIDEOS]]/taylor_green.mp4)
+Coalescence of bubbles [[conf]](examples/202_coalescence) [[ref:partstr]] | Taylor-Green vortex with bubbles [[ref:pasc19]] [[ref:datadriven]]
 [<img src="doc/images/vortex_bubble.jpg" width=200>]([[VIDEOS]]/vortex_bubble.mp4) | [<img src="doc/images/plunging_jet.jpg" width=200>]([[VIDEOS]]/plunging_jet.mp4)
 Bubble trapped by vortex ring [[ref:datadriven]] | Plunging jet [[ref:pasc19]]
 [<img src="doc/images/reactor.jpg" width=384>]([[VIDEOS]]/reactor.mp4) | [<img src="doc/images/mesh_bubbles.jpg" width=384>]([[VIDEOS]]/mesh_bubbles.mp4)
 Electrochemical reactor [[ref:ees]] | Bubbles through mesh
-[<img src="doc/images/rising_bubbles.jpg" width=384>]([[VIDEOS]]/rising_bubbles.mp4) | [<img src="doc/images/foaming_waterfall.jpg" width=384>](https://www.youtube.com/watch?v=0Cj8pPYNJGY)
- Clustering of bubbles [[ref:aps]] [[ref:cscs]] [[ref:multivof]] | Foaming waterfall [[ref:pasc20]] [[ref:multivof]] [[vote &#x1f44d;]](https://pollunit.com/polls/bestswisssciencevideo)
+[<img src="doc/images/rising_bubbles.jpg" width=384>](https://www.youtube.com/watch?v=WzOe0buD8uM) | [<img src="doc/images/foaming_waterfall.jpg" width=384>](https://www.youtube.com/watch?v=0Cj8pPYNJGY)
+ Clustering of bubbles [[conf]](examples/205_multivof/clustering) [[ref:aps]] [[ref:cscs]] [[ref:multivof]] | Foaming waterfall [[conf]](examples/205_multivof/waterfall) [[ref:pasc20]] [[ref:multivof]] [[vote &#x1f44d;]](https://pollunit.com/polls/bestswisssciencevideo)
 
 |     |
 |:---:|

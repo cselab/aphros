@@ -93,14 +93,14 @@ in collaboration with Jean M. Favre at [CSCS](https://www.cscs.ch).
 
 |    |    |
 :---:|:---:
-[<img src="doc/images/coalescence.jpg" width=384>](https://cselab.github.io/aphros/videos/coalescence.mp4) | [<img src="doc/images/taylor_green.jpg" width=250>](https://cselab.github.io/aphros/videos/taylor_green.mp4)
-Coalescence of bubbles [[4]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209) [[conf]](examples/202_coalescence) | Taylor-Green vortex with bubbles [[2]](https://doi.org/10.1145/3324989.3325727) [[5]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103286)
+[<img src="doc/images/coalescence.jpg" width=384>](https://www.youtube.com/watch?v=pRWGhGoQjyI) | [<img src="doc/images/taylor_green.jpg" width=250>](https://cselab.github.io/aphros/videos/taylor_green.mp4)
+Coalescence of bubbles [[conf]](examples/202_coalescence) [[4]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209) | Taylor-Green vortex with bubbles [[2]](https://doi.org/10.1145/3324989.3325727) [[5]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103286)
 [<img src="doc/images/vortex_bubble.jpg" width=200>](https://cselab.github.io/aphros/videos/vortex_bubble.mp4) | [<img src="doc/images/plunging_jet.jpg" width=200>](https://cselab.github.io/aphros/videos/plunging_jet.mp4)
 Bubble trapped by vortex ring [[5]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103286) | Plunging jet [[2]](https://doi.org/10.1145/3324989.3325727)
 [<img src="doc/images/reactor.jpg" width=384>](https://cselab.github.io/aphros/videos/reactor.mp4) | [<img src="doc/images/mesh_bubbles.jpg" width=384>](https://cselab.github.io/aphros/videos/mesh_bubbles.mp4)
 Electrochemical reactor [[1]](https://doi.org/10.1039/C9EE00219G) | Bubbles through mesh
-[<img src="doc/images/rising_bubbles.jpg" width=384>](https://cselab.github.io/aphros/videos/rising_bubbles.mp4) | [<img src="doc/images/foaming_waterfall.jpg" width=384>](https://www.youtube.com/watch?v=0Cj8pPYNJGY)
- Clustering of bubbles [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) [[7]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019) [[9]](https://arxiv.org/abs/2103.01513) | Foaming waterfall [[8]](https://doi.org/10.1145/3394277.3401856) [[9]](https://arxiv.org/abs/2103.01513) [[vote &#x1f44d;]](https://pollunit.com/polls/bestswisssciencevideo)
+[<img src="doc/images/rising_bubbles.jpg" width=384>](https://www.youtube.com/watch?v=WzOe0buD8uM) | [<img src="doc/images/foaming_waterfall.jpg" width=384>](https://www.youtube.com/watch?v=0Cj8pPYNJGY)
+ Clustering of bubbles [[conf]](examples/205_multivof/clustering) [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) [[7]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019) [[9]](https://arxiv.org/abs/2103.01513) | Foaming waterfall [[conf]](examples/205_multivof/waterfall) [[8]](https://doi.org/10.1145/3394277.3401856) [[9]](https://arxiv.org/abs/2103.01513) [[vote &#x1f44d;]](https://pollunit.com/polls/bestswisssciencevideo)
 
 |     |
 |:---:|
