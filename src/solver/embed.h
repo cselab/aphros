@@ -592,6 +592,10 @@ class Embed {
   }
 
  private:
+  using Vect2 = generic::Vect<Scal, 2>;
+  using Vect3 = generic::Vect<Scal, 3>;
+  using Vect4 = generic::Vect<Scal, 4>;
+
   Vect GetFaceCenter0(IdxCell c) const {
     if (fct_[c] == Type::cut) {
       return GetBaryCenter(
@@ -629,19 +633,30 @@ class Embed {
         return GetNan<Vect>();
     }
   }
-  static Scal GetTriangleArea(Vect xa, Vect xb, Vect xc) {
+  static Scal GetTriangleArea(Vect3 xa, Vect3 xb, Vect3 xc) {
     return (xc - xa).cross(xb - xa).norm() * 0.5;
   }
-  static Vect GetBaryCenter(const std::vector<Vect>& xx) {
-    Vect sum(0);
+  static Vect2 GetBaryCenter(const std::vector<Vect2>& xx) {
+    if (xx.size() == 1) {
+      return xx[0];
+    } else if (xx.size() == 2) {
+      return 0.5 * (xx[0] + xx[1]);
+    }
+    return Vect2(0);
+  }
+  static Vect3 GetBaryCenter(const std::vector<Vect3>& xx) {
+    Vect3 sum(0);
     Scal suma = 0;
     for (size_t i = 2; i < xx.size(); ++i) {
       const Scal a = GetTriangleArea(xx[0], xx[i - 1], xx[i]);
-      const Vect x = (xx[0] + xx[i - 1] + xx[i]) / 3.;
+      const auto x = (xx[0] + xx[i - 1] + xx[i]) / 3.;
       sum += x * a;
       suma += a;
     }
     return sum / suma;
+  }
+  static Vect4 GetBaryCenter(const std::vector<Vect4>& xx) {
+    return Vect4(0); // XXX not implemented
   }
   static std::vector<Vect> GetRegularFacePoly(IdxFace f, const M& m) {
     std::vector<Vect> xx;
