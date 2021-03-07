@@ -1,0 +1,75 @@
+#!/bin/sh
+
+me=namke
+case $# in
+    0) printf >&2 '%s: Makefile is not give\n' $me
+       exit 2
+esac
+make=$1
+shift
+
+t=/tmp/nmake.$$
+trap 'rm $t; exit 1' 1 2 3 14 15
+
+# include
+awk -v me=$me -v make="$make" '
+BEGIN {
+    cat(make)
+}
+
+function cat(file, rc, line) {
+    for (;;) {
+        rc = getline < file
+        if (rc == 1) {
+            remove("$(SRC)/")
+            remove("$(WRK)/")
+            remove(" -I$(SRC)")
+            remove("mkdir -p $(WRK) && ")
+            line = $0
+            sub(/#.*/, "", line)
+            if (sub(/^[ \t]*include[ \t]+/, "", line)) {
+                sub(/[ \t]*$/, "", line)
+                cat(line)
+            } else
+                print
+        } else if (rc == 0)
+            break
+        else {
+            printf "%s: fail to read '\''%s'\''\n", me, file | "cat >&2"
+            exit(1)
+        }
+    }
+    close(file)
+}
+
+function replace(s, from, to,   ans, i, size) {
+    if ((size = length(from)) == 0)
+        return s
+    ans = ""
+    for (;;) {
+        if (i = index(s, from)) {
+            ans = ans substr(s, 1, i - 1) to
+            s = substr(s, i + size)
+        } else {
+            ans = ans s
+            break
+        }
+    }
+    return ans
+}
+
+function remove(s) {
+    $0 = replace($0, s, "")
+}
+
+' > $t
+
+if test $? -ne 0
+then
+    status=$?
+    rm -rf $t
+    exit $status
+fi
+
+cat $t
+rm -f $t
