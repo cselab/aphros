@@ -58,12 +58,7 @@ inline void aphros_SetError(int code, const std::string& str) {
     }                                                                         \
   } while (0);
 
-#ifndef _MSC_VER
 #define fassert(...) APHROS_XCAT(fassert##_, VA_SIZE(__VA_ARGS__))(__VA_ARGS__)
-#else
-#define fassert(...)
-#define fassert_equal_1(...)
-#endif
 
 #define fassert_equal_2(x, y)                                                 \
   do {                                                                        \
