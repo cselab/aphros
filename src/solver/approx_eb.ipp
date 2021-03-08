@@ -56,7 +56,7 @@ auto ULinearFit<Vect_>::FitLinear(
   assert(xx.size() == uu.size());
   // sum 0.5 * [ (g.dot(x[k]) + u0 - u[k]) ** 2 ] -> min
   using Int = size_t;
-  constexpr Int N = dim + 1;
+  static constexpr Int N = dim + 1;
   std::array<Scal, N * N> a;
   std::array<Scal, N> b;
   auto aa = [&a](Int i, Int j) -> Scal& { //
