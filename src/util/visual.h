@@ -1,6 +1,8 @@
 // Created by Petr Karnakov on 07.03.2021
 // Copyright 2021 ETH Zurich
 
+#pragma once
+
 #include <fstream>
 #include <functional>
 #include <string>

@@ -6,14 +6,28 @@ var g_tmp_canvas;
 var kScale = 1;
 
 function GetExtraConfig() {
-  return `
+  let res = `
 set double cfl 0.9
 set double cflvis 0.125
 set double cflsurf 2
 
 set double tmax 100
 set double vispressure 1
+
+set string Cred 1 0.12 0.35
+set string Cgreen 0 0.8 0.42
+set string Cblue 0 0.6 0.87
+set string Cwhite 1 1 1
+
+set string visual "
+vf {
+set vect values 0 1
+set vect colors $Cwhite $Cgreen
+set vect opacities 1 1
+}
+"
 `
+  return res;
 }
 
 function SetExtraConfig(conf) {
@@ -73,14 +87,13 @@ function ResetButtons() {
 function Init(nx) {
   conf = GetExtraConfig()
   let cc = [];
-  if (window.checkbox_coal.checked) {
-    cc.push("set int coal 1\n");
-  } else {
-    cc.push("set int coal 0\n");
-  }
   cc.push(SetSigma(window.range_sigma.value));
   cc.push(SetMu(window.range_mu.value));
   cc.push(SetGravity(window.range_gravity.value));
+  let input_conf = document.getElementById('input_conf');
+  if (input_conf) {
+    cc.push(input_conf.value);
+  }
   ResetButtons();
   let button = document.getElementById('button_' + nx);
   if (button) {
@@ -104,7 +117,6 @@ function Draw() {
 }
 
 function PostRun() {
-  window.checkbox_coal.checked = false;
   g_lines_max_size = 10000;
   g_lines_ptr = Module._malloc(g_lines_max_size * 2);
   Spawn = Module.cwrap('Spawn', null, ['number', 'number', 'number']);
@@ -117,12 +129,12 @@ function PostRun() {
   let keydown = function(ev){
     if (ev.key == ' ') {
       TogglePause();
-      ev.preventDefault();
+      //ev.preventDefault();
     }
   };
   let keyup = function(ev){
     if (ev.key == ' ') {
-      ev.preventDefault();
+      //ev.preventDefault();
     }
   };
   let mouseclick = function(ev){
@@ -133,13 +145,17 @@ function PostRun() {
 
   window.addEventListener('keydown', keydown, false);
   window.addEventListener('keyup', keyup, false);
+  window.input_conf.addEventListener(
+      'keydown', function(ev){ev.stopPropagation();}, false);
+  window.input_conf.addEventListener(
+      'keyup', function(ev){ev.stopPropagation();}, false);
   canvas.addEventListener('click', mouseclick, false);
-  Init(16);
+  Init(64);
 }
 
 var Module = {
   preRun: [],
-  postRun: [function (){ PostRun();}],
+  postRun: [PostRun],
   print: (function() {
     var element = document.getElementById('output');
     if (element) element.value = '';
@@ -154,12 +170,20 @@ var Module = {
       }
     };
   })(),
-  printErr: function(text) {
-    if (arguments.length > 1) {
-      text = Array.prototype.slice.call(arguments).join(' ');
-    }
-    console.error(text);
-  },
+  printErr: (function(text) {
+    var element = document.getElementById('outputerr');
+    if (element) element.value = '';
+    return function(text) {
+      if (arguments.length > 1) {
+        text = Array.prototype.slice.call(arguments).join(' ');
+      }
+      console.error(text);
+      if (element) {
+        element.value += text + "\n";
+        element.scrollTop = element.scrollHeight;
+      }
+    };
+  })(),
   canvas: (function() { return document.getElementById('canvas'); })(),
   setStatus: function(text) {},
 };

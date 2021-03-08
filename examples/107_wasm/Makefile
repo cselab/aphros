@@ -4,7 +4,6 @@ WRK = .work
 CXX = emcc
 CXXFLAGS = -Wall -O3 -DNDEBUG
 WASMFLAGS = -s ALLOW_MEMORY_GROWTH=1
-ALL = hydro.js
 ALL = hydro.js electrochem.js
 1 = -D_USE_MPI_=0
 all: $(ALL)
@@ -19,7 +18,7 @@ electrochem.js: electrochem.cpp $(WRK)/libaphros_js.a
 		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@
 
 aphros.js: aphros.cpp $(WRK)/libaphros_js.a
-		-I$(APHROS_PREFIX)/include/aphros -L$(APHROS_PREFIX)/lib -llibaphros_js $1 \
+	$(CXX) $< $(CXXFLAGS) $(WASMFLAGS) -I$(SRC) $(WRK)/libaphros_js.a $1 \
 		--preload-file conf \
 		-s EXPORTED_FUNCTIONS='["_main", "_SetRuntimeConfig", "_SetExtraConfig", "_TogglePause", "_Spawn", "_SetMesh"]' \
 		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@

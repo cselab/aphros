@@ -1,5 +1,5 @@
 set(T parser)
-add_library(${T} parser.cpp)
+add_library(${T} parser.cpp codeblocks.cpp)
 target_link_libraries(${T} vars filesystem)
 
 set(T vars)

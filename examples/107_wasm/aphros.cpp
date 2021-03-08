@@ -19,6 +19,7 @@
 #include "kernel/kernelmeshpar.h"
 #include "solver/approx_eb.ipp"
 #include "util/timer.h"
+#include "util/visual.h"
 
 static constexpr int kScale = 1;
 
@@ -48,50 +49,40 @@ void StepCallback(void*, Hydro<M>* hydro) {
     return;
   }
   auto& m = hydro->m;
-  auto& fs = hydro->fs_;
+  auto& var = hydro->var;
 
   auto& canvas = *g_canvas;
 
+  using U = util::Visual<M>;
+  typename U::CanvasView view(
+      canvas.size, MIdx(0), canvas.size, canvas.buf.data());
+
+  using Float3 = typename U::Float3;
+  FieldCell<Float3> fc_color(m, Float3(0));
   const auto msize = m.GetGlobalSize();
-  using Vect3 = generic::Vect<Scal, 3>;
-  using MIdx3 = generic::Vect<unsigned char, 3>;
-  const Scal vispressure = hydro->var.Double("vispressure", 0);
 
-  auto get_color = [&](IdxCell c) -> Vect3 {
-    auto& fcp = hydro->as_->GetField();
-    Vect3 q(0);
-    const auto p = (fcp[c] * vispressure) * 2 - 1;
-    const auto f = Clamp(std::abs(p));
-    if (p > 0) {
-      q = interp::Linear(f, Vect3(1, 1, 1), Vect3(1, 0.12, 0.35));
-    } else {
-      q = interp::Linear(f, Vect3(1, 1, 1), Vect3(0, 0.6, 0.87));
+  FieldCell<Scal> fcvel(m, 0);
+  auto& fcvelv = hydro->fs_->GetVelocity();
+  for (auto c : m.Cells()) {
+    fcvel[c] = fcvelv[c].norm();
+  }
+
+  std::stringstream str_entries(var.String["visual"]);
+  auto entries = U::ParseEntries(str_entries);
+  auto get_field = [&](std::string name) -> const FieldCell<Scal>* {
+    if (name == "p" || name == "pressure") {
+      return &hydro->fs_->GetPressure();
     }
-    return q;
+    if (name == "vf" || name == "volume fraction" ) {
+      return &hydro->as_->GetField();
+    }
+    if (name == "vel" || name == "velocity magnitude" ) {
+      return &fcvel;
+    }
+    fassert(false, "Unknown field '" + name + "'");
   };
-
-  for (auto c : m.CellsM()) {
-    const MIdx w(c);
-    const MIdx start = w * canvas.size / msize;
-    const MIdx end = (w + MIdx(1)) * canvas.size / msize;
-    auto q = get_color(c);
-    const MIdx3 mq(q * 255);
-    const uint32_t v =
-        0xff000000 | (mq[0] << 0) | (mq[1] << 8) | (mq[2] << 16);
-    for (int y = start[1]; y < end[1]; y++) {
-      for (int x = start[0]; x < end[0]; x++) {
-        canvas.buf[canvas.size[0] * (canvas.size[1] - y - 1) + x] = v;
-      }
-    }
-  }
-
-  if (m.IsRoot()) {
-    Scal ekin = 0;
-    for (auto c : m.CellsM()) {
-      ekin += fs->GetVelocity()[c].sqrnorm() * c.volume;
-    }
-    std::cerr << util::Format("ekin={}\n", ekin);
-  }
+  U::RenderEntriesToField(fc_color, entries, get_field, m);
+  U::RenderToCanvas(view, fc_color, m);
 }
 
 static void main_loop() {
@@ -169,6 +160,8 @@ set int return_after_each_step 1
 set double tmax 0.5
 set int verbose_stages 0
 set int output 0
+
+set string visual
 )EOF";
 }
 

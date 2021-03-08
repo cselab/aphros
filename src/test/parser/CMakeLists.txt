@@ -7,5 +7,5 @@ add_test_current(NAME main COMMAND ./test main)
 
 set(T t.${name}.codeblocks)
 add_executable(${T} codeblocks.cpp)
-target_link_libraries(${T} logger)
+target_link_libraries(${T} logger parser vars format filesystem)
 add_test_current(NAME codeblocks COMMAND ./test codeblocks)
