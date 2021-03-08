@@ -142,7 +142,9 @@ util/stat.h\
 util/subcomm.h\
 util/suspender.h\
 util/sysinfo.h\
+util/system.h\
 util/timer.h\
+util/visual.h\
 util/vof.h\
 young/young.h\
 

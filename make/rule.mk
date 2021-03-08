@@ -72,6 +72,7 @@ $(WRK)/util/posthook_default.o: $(SRC)/util/posthook_default.cpp; $(CXX_RULE) $(
 $(WRK)/util/subcomm_dummy.o: $(SRC)/util/subcomm_dummy.cpp; $(CXX_RULE) $(SRC)/util/subcomm_dummy.cpp
 $(WRK)/util/suspender.o: $(SRC)/util/suspender.cpp; $(CXX_RULE) $(SRC)/util/suspender.cpp
 $(WRK)/util/sysinfo.o: $(SRC)/util/sysinfo.cpp; $(CXX_RULE) $(SRC)/util/sysinfo.cpp
+$(WRK)/util/system.o: $(SRC)/util/system.c; $(CC_RULE) $(SRC)/util/system.c
 $(WRK)/util/timer.o: $(SRC)/util/timer.cpp; $(CXX_RULE) $(SRC)/util/timer.cpp
 $(WRK)/util/vof.o: $(SRC)/util/vof.cpp; $(CXX_RULE) $(SRC)/util/vof.cpp
 $(WRK)/young/main.o: $(SRC)/young/main.cpp; $(CXX_RULE) $(SRC)/young/main.cpp

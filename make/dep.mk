@@ -1604,6 +1604,9 @@ $(WRK)/util/sysinfo.o: $(SRC)/util/logger.h
 $(WRK)/util/sysinfo.o: $(SRC)/util/macros.h
 $(WRK)/util/sysinfo.o: $(SRC)/util/mpi.h
 $(WRK)/util/sysinfo.o: $(SRC)/util/sysinfo.h
+$(WRK)/util/system.o: $(SRC)/util/system.h
+$(WRK)/util/system.o: $(SRC)/util/system_unix.ipp
+$(WRK)/util/system.o: $(SRC)/util/system_windows.ipp
 $(WRK)/util/timer.o: $(SRC)/util/timer.h
 $(WRK)/util/vof.o: $(SRC)/debug/isnan.h
 $(WRK)/util/vof.o: $(SRC)/distr/reduce.h

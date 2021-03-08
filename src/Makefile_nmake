@@ -107,6 +107,7 @@ util/posthook_default.obj\
 util/subcomm_dummy.obj\
 util/suspender.obj\
 util/sysinfo.obj\
+util/system.obj\
 util/timer.obj\
 util/vof.obj\
 young/main.obj\
@@ -273,7 +274,9 @@ util/stat.h\
 util/subcomm.h\
 util/suspender.h\
 util/sysinfo.h\
+util/system.h\
 util/timer.h\
+util/visual.h\
 util/vof.h\
 young/young.h\
 
@@ -351,6 +354,7 @@ util/posthook_default.obj: util/posthook_default.cpp; $(CXX_RULE) util/posthook_
 util/subcomm_dummy.obj: util/subcomm_dummy.cpp; $(CXX_RULE) util/subcomm_dummy.cpp
 util/suspender.obj: util/suspender.cpp; $(CXX_RULE) util/suspender.cpp
 util/sysinfo.obj: util/sysinfo.cpp; $(CXX_RULE) util/sysinfo.cpp
+util/system.obj: util/system.c; $(CC_RULE) util/system.c
 util/timer.obj: util/timer.cpp; $(CXX_RULE) util/timer.cpp
 util/vof.obj: util/vof.cpp; $(CXX_RULE) util/vof.cpp
 young/main.obj: young/main.cpp; $(CXX_RULE) young/main.cpp
@@ -1976,6 +1980,9 @@ util/sysinfo.obj: util/logger.h
 util/sysinfo.obj: util/macros.h
 util/sysinfo.obj: util/mpi.h
 util/sysinfo.obj: util/sysinfo.h
+util/system.obj: util/system.h
+util/system.obj: util/system_unix.ipp
+util/system.obj: util/system_windows.ipp
 util/timer.obj: util/timer.h
 util/vof.obj: debug/isnan.h
 util/vof.obj: distr/reduce.h

@@ -73,6 +73,7 @@ $(WRK)/util/posthook_default.o\
 $(WRK)/util/subcomm_dummy.o\
 $(WRK)/util/suspender.o\
 $(WRK)/util/sysinfo.o\
+$(WRK)/util/system.o\
 $(WRK)/util/timer.o\
 $(WRK)/util/vof.o\
 $(WRK)/young/main.o\
