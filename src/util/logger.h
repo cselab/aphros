@@ -58,7 +58,11 @@ inline void aphros_SetError(int code, const std::string& str) {
     }                                                                         \
   } while (0);
 
-#define fassert(...) APHROS_XCAT(fassert##_, VA_SIZE(__VA_ARGS__))(__VA_ARGS__)
+#define GET_COUNT(_1, _2, _3, N, ...) N
+#define fassert(...) APHROS_ID_1(APHROS_ID_1(GET_COUNT(__VA_ARGS__, fassert_3, fassert_2, \
+						       fassert_1, fassert_0))(__VA_ARGS__))
+#define fassert_equal(...) APHROS_ID_1(APHROS_ID_1(GET_COUNT(__VA_ARGS__, fassert_equal_3, fassert_equal_2, \
+							     fassert_equal_1, fassert_equal_0))(__VA_ARGS__))
 
 #define fassert_equal_2(x, y)                                                 \
   do {                                                                        \
@@ -83,5 +87,3 @@ inline void aphros_SetError(int code, const std::string& str) {
     }                                                                        \
   } while (0);
 
-#define fassert_equal(...) \
-  APHROS_XCAT(fassert_equal##_, VA_SIZE(__VA_ARGS__))(__VA_ARGS__)
