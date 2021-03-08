@@ -214,7 +214,7 @@ void ConvertMerge(
     const std::vector<std::vector<Vect>>& vv,
     const std::vector<std::vector<Vect>>* vvn, Scal tol, std::vector<Vect>& xx,
     std::vector<Vect>& nn, std::vector<std::vector<size_t>>& pp) {
-  constexpr auto dim = Vect::dim;
+  static constexpr auto dim = Vect::dim;
   struct Hash {
     size_t operator()(const Vect& x) const noexcept {
       size_t res = 0;

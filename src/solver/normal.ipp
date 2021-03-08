@@ -79,7 +79,7 @@ struct UNormal<M_>::Imp {
     const size_t nx = s[0];
     const size_t ny = s[1];
     // offset
-    const size_t fx = 1;
+    static const size_t fx = 1;
     const size_t fy = nx;
     const size_t fz = M::dim > 2 ? ny * nx : 0;
 
