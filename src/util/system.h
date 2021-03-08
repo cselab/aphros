@@ -1,7 +1,7 @@
+#include <stddef.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 char *SystemRealPath(const char *, char *resolved);
 char *SystemDirName(char*);
 char *SystemBaseName(char*);
