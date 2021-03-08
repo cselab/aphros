@@ -5,23 +5,26 @@
 #include <libgen.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 
-char* SystemBaseName(char* path) {
-  return basename(path);
+int SystemBaseName(char* path, char *name) {
+  char *ans;
+  if ((ans = basename(path)) == NULL)
+    return 1;
+  strcpy(name, ans);
+  return 0;
 }
 
-char* SystemDirName(char* path) {
-  return dirname(path);
+int SystemDirName(char *path, char *dir) {
+  strcpy(dir, dirname(path));
+  return 0;
 }
 
 int SystemMakeDir(char* path, int parent) {
   char cmd[2048];
   int rc;
 
-  if (rc)
-    ;
-  else
-    ; /* USED */
+  (void)rc;
   if (parent)
     snprintf(cmd, sizeof cmd - 1, "mkdir -p -- '%s'", path);
   else

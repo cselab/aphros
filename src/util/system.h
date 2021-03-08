@@ -2,8 +2,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-char* SystemBaseName(char*);
-char* SystemDirName(char*);
+int SystemBaseName(char*, char*);
+int SystemDirName(char*, char*);
 char* SystemRealPath(const char*, char* resolved);
 int SystemGetHostName(char*, size_t size);
 int SystemHasHyperthreads(void);
