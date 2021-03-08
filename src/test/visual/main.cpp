@@ -10,6 +10,9 @@
 
 #include "geom/mesh.h"
 #include "util/visual.h"
+#include "parse/codeblocks.h"
+#include "parse/vars.h"
+#include "parse/parser.h"
 
 const int dim = 2;
 using M = MeshStructured<double, dim>;
@@ -33,17 +36,26 @@ void TestRender() {
   using Float3 = typename U::Float3;
   FieldCell<Float3> fc_color(m, Float3(0));
   FieldCell<Scal> fc(m, 0);
+  FieldCell<Scal> fc2(m, 0);
   for (auto c : m.CellsM()) {
-    fc_color[c][0] = Vect(0, 0).dist(c.center);
-    fc_color[c][1] = Vect(0, 0.5).dist(c.center);
-    fc_color[c][2] = Vect(0.5, 0).dist(c.center);
     fc[c] = Vect(0.5, 0.5).dist(c.center);
+    fc2[c] = Vect(0.2, 0.8).dist(c.center);
   }
-  typename U::Colormap cmap;
-  cmap.values = {0.4, 0.5, 0.6};
-  cmap.colors = {Float3(1, 0, 0), Float3(1, 1, 1), Float3(0, 1, 0)};
-  cmap.opacities = {1, 0, 1};
-  U::RenderToField(fc_color, fc, cmap, m);
+
+  auto entries = U::ParseEntries("vislist");
+
+  auto get_field = [&](std::string name) -> const FieldCell<Scal>* {
+    if (name == "p") {
+      return &fc;
+    }
+    if (name == "vx") {
+      return &fc2;
+    }
+    fassert(false, "Unknown field '" + name + "'");
+  };
+
+  U::RenderEntriesToField(fc_color, entries, get_field, m);
+
   U::RenderToCanvas(view, fc_color, m);
   const auto path = "out.ppm";
   const auto path2 = "out2.ppm";

@@ -2,8 +2,14 @@
 // Copyright 2021 ETH Zurich
 
 #include <fstream>
+#include <functional>
+#include <string>
 
 #include "geom/mesh.h"
+#include "parse/codeblocks.h"
+#include "parse/parser.h"
+#include "parse/vars.h"
+#include "util/logger.h"
 
 namespace util {
 
@@ -99,13 +105,58 @@ struct Visual {
     }
   };
 
-  template <class Colormap>
   static void RenderToField(
       FieldCell<Float3>& fc_color, const FieldCell<Scal>& fcu,
       const Colormap& cmap, const M& m) {
     cmap.Check();
     for (auto c : m.Cells()) {
       fc_color[c] = cmap(fc_color[c], fcu[c]);
+    }
+  }
+
+  struct Entry {
+    std::string field;
+    Vars var;
+  };
+  static std::vector<Entry> ParseEntries(std::istream& in) {
+    std::vector<Entry> entries;
+    auto blocks = ParseCodeBlocks(in);
+    for (auto& b : blocks) {
+      Entry entry;
+      entry.field = b.name;
+      std::stringstream ss(b.content);
+      Parser(entry.var).ParseStream(ss);
+      entries.push_back(entry);
+    }
+    return entries;
+  }
+  static auto ParseEntries(std::string path) {
+    std::ifstream f(path);
+    fassert(f.good(), "Can't open file '" + path + "' for reading");
+    return ParseEntries(f);
+  }
+  static Colormap GetColormap(const Vars& var) {
+    Colormap cmap;
+    cmap.values = var.Vect["values"];
+    cmap.opacities = var.Vect["opacities"];
+    const auto& colors = var.Vect["colors"];
+    cmap.colors.resize(cmap.values.size());
+    fassert_equal(colors.size(), cmap.values.size() * 3);
+    for (size_t i = 0; i < cmap.values.size(); ++i) {
+      cmap.colors[i][0] = colors[3 * i + 0];
+      cmap.colors[i][1] = colors[3 * i + 1];
+      cmap.colors[i][2] = colors[3 * i + 2];
+    }
+    return cmap;
+  }
+  static void RenderEntriesToField(
+      FieldCell<Float3>& fc_color, const std::vector<Entry>& entries,
+      const std::function<const FieldCell<Scal>*(std::string)>& get_field,
+      const M& m) {
+    for (const auto& entry : entries) {
+      auto cmap = GetColormap(entry.var);
+      auto* fc = get_field(entry.field);
+      RenderToField(fc_color, *fc, cmap, m);
     }
   }
 
