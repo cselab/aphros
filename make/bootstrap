@@ -8,4 +8,5 @@
 ../make/obj > ../make/obj.mk &&
     ../make/hdr > ../make/hdr.mk &&
     ../make/dir > ../make/dir.mk &&
-    ../make/list | ../make/dep  > ../make/dep.mk
+    ../make/list | ../make/dep  > ../make/dep.mk &&
+    ../make/nmake Makefile_legacy > Makefile_nmake
