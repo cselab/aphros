@@ -59,29 +59,58 @@ struct Visual {
   };
 
   struct Colormap {
-    Scal min = 0;
-    Scal max = 1;
-    Float3 color_min{1};
-    Float3 color_max{0};
-    Scal opacity_min = 1;
-    Scal opacity_max = 1;
+    std::vector<Scal> values; // values of field in ascending order
+    std::vector<Float3> colors; // colors for each field value
+    std::vector<Scal> opacities; // opacities for each field value
+    template <class T>
+    static auto Piecewise(
+        Scal x, const std::vector<Scal>& xx, const std::vector<T>& yy) {
+      if (x <= xx.front()) {
+        return yy.front();
+      }
+      if (x >= xx.back()) {
+        return yy.back();
+      }
+      // invariant: xx[left] <= x < xx[right]
+      size_t left = 0;
+      size_t right = xx.size() - 1;
+      while (left + 1 < right) {
+        size_t mid = (left + right) / 2;
+        if (xx[mid] <= x) {
+          left = mid;
+        } else { // x < xx[mid]
+          right = mid;
+        }
+      }
+      return xx[left] < xx[right]
+                 ? yy[left] + (yy[right] - yy[left]) *
+                                  ((x - xx[left]) / (xx[right] - xx[left]))
+                 : yy[left];
+    }
     Float3 operator()(Float3 src, Scal u) const {
-      u = Clamp((u - min) / (max - min));
-      const Scal a = opacity_min * (1 - u) + opacity_max * u;
-      return src * (1 - a) + (color_min * (1 - u) + color_max * u) * a;
+      const auto color = Piecewise(u, values, colors);
+      const auto opacity = Piecewise(u, values, opacities);
+      return src * (1 - opacity) + color * opacity;
+    }
+    void Check() const {
+      fassert(values.size() >= 1);
+      fassert_equal(values.size(), colors.size());
+      fassert_equal(values.size(), opacities.size());
     }
   };
 
-  static void AppendField(
+  template <class Colormap>
+  static void RenderToField(
       FieldCell<Float3>& fc_color, const FieldCell<Scal>& fcu,
       const Colormap& cmap, const M& m) {
+    cmap.Check();
     for (auto c : m.Cells()) {
       fc_color[c] = cmap(fc_color[c], fcu[c]);
     }
   }
 
-  static void RenderColorField(
-      const FieldCell<Float3>& fc_color, CanvasView& view, const M& m) {
+  static void RenderToCanvas(
+      CanvasView& view, const FieldCell<Float3>& fc_color, const M& m) {
     const auto msize = m.GetGlobalSize();
     for (auto c : m.CellsM()) {
       const MIdx w(c);

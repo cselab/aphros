@@ -27,7 +27,7 @@ M GetMesh(MIdx size) {
 
 void TestRender() {
   using U = util::Visual<M>;
-  typename U::Canvas canvas(MIdx(64));
+  typename U::Canvas canvas(MIdx(256));
   auto m = GetMesh(MIdx(64));
   typename U::CanvasView view(canvas);
   using Float3 = typename U::Float3;
@@ -40,15 +40,11 @@ void TestRender() {
     fc[c] = Vect(0.5, 0.5).dist(c.center);
   }
   typename U::Colormap cmap;
-  cmap.min = 0;
-  cmap.max = 1;
-  cmap.color_min = Float3(1, 0, 0);
-  cmap.color_max = Float3(0, 1, 0);
-  cmap.opacity_min = 1;
-  cmap.opacity_max = 0;
-  U::AppendField(fc_color, fc, cmap, m);
-
-  U::RenderColorField(fc_color, view, m);
+  cmap.values = {0.4, 0.5, 0.6};
+  cmap.colors = {Float3(1, 0, 0), Float3(1, 1, 1), Float3(0, 1, 0)};
+  cmap.opacities = {1, 0, 1};
+  U::RenderToField(fc_color, fc, cmap, m);
+  U::RenderToCanvas(view, fc_color, m);
   const auto path = "out.ppm";
   const auto path2 = "out2.ppm";
   U::WritePpm(path, view);
