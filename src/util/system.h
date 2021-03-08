@@ -2,15 +2,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-char *SystemRealPath(const char *, char *resolved);
-char *SystemDirName(char*);
 char *SystemBaseName(char*);
+char *SystemDirName(char*);
 char *SystemMakeDir(char*, int parent);
-int SystemIsFile(char*);
-int SystemIsDir(char*);
+char *SystemRealPath(const char *, char *resolved);
 int SystemGetHostName(char *, size_t size);
-size_t SystemGetMem(void);
 int SystemHasHyperthreads(void);
+int SystemIsDir(char*);
+int SystemIsFile(char*);
+size_t SystemGetMem(void);
 
 #ifdef __cplusplus
 }
