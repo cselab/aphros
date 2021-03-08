@@ -22,10 +22,11 @@ function cat(file, rc, line) {
         if (rc == 1) {
 	    if ($0 ~ /[:] .*\.dir$/)
 		continue
+	    sub(/\.o/, ".obj")
 	    replace("CXX = g++", "CXX = cl")
 	    replace("CC = c99", "CC = cl")
 	    replace("-o ", "/Fo")
-	    replace("-std=c++14", "/std:c++14")
+	    replace("-std=c++14", "/std:c++14 /permissive")
 	    replace(" -O2 -g", " /O2 /Zi")
 	    remove("-fPIC")
 	    remove(".dir:; mkdir -p $P && touch $@")
