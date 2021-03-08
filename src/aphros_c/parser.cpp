@@ -91,10 +91,11 @@ char* aphros_ParserGetString(struct aphros_Parser* q, const char* name) {
   return q->string;
 }
 
-double* aphros_ParserGetVect(struct aphros_Parser* q, const char* name, /**/ int *size) {
+double* aphros_ParserGetVect(
+    struct aphros_Parser* q, const char* name, /**/ int* size) {
   int i;
   std::vector<double> s;
-  
+
   try {
     s = q->par->Vect[name];
   } catch (const std::runtime_error& e) {
@@ -115,7 +116,7 @@ double* aphros_ParserGetVect(struct aphros_Parser* q, const char* name, /**/ int
 
 int aphros_ParserStatus(struct aphros_Parser* q) {
   int status;
-  
+
   status = q->status;
   q->status = 0;
   return status;
