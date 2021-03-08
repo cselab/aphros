@@ -24,7 +24,7 @@ function cat(file, rc, line) {
 	    if ($0 ~ /[:] .*\.dir$/)
 		continue
 	    replace("CXX = g++", "CXX = cl")
-	    replace("CC = g++", "CC = cl")
+	    replace("CC = c99", "CC = cl")
 	    replace("-o ", "/Fo")
 	    replace("-std=c++14", "/std:c++14")
 	    remove(" -O2 -g")
