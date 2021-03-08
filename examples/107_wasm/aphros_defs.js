@@ -1,23 +1,20 @@
 var g_lines;
 var g_lines_ptr;
 var SetRuntimeConfig;
+var GetLines;
 var Spawn;
 var g_tmp_canvas;
 var kScale = 1;
 
 function GetExtraConfig() {
   let res = `
-set double cfl 0.9
-set double cflvis 0.125
-set double cflsurf 2
-
-set double tmax 100
-set double vispressure 1
-
 set string Cred 1 0.12 0.35
 set string Cgreen 0 0.8 0.42
 set string Cblue 0 0.6 0.87
 set string Cwhite 1 1 1
+
+set double cflvis 1000
+set double cflst 1
 
 set string visual "
 vf {
@@ -87,9 +84,6 @@ function ResetButtons() {
 function Init(nx) {
   conf = GetExtraConfig()
   let cc = [];
-  cc.push(SetSigma(window.range_sigma.value));
-  cc.push(SetMu(window.range_mu.value));
-  cc.push(SetGravity(window.range_gravity.value));
   let input_conf = document.getElementById('input_conf');
   if (input_conf) {
     cc.push(input_conf.value);
@@ -102,7 +96,6 @@ function Init(nx) {
   conf += cc.join('');
   SetExtraConfig(conf);
   Module.ccall('SetMesh', null, ['number'], [nx])
-  //Spawn(0.5, 0.5, 0.2);
 }
 
 
@@ -111,15 +104,29 @@ function Draw() {
   let ctx = canvas.getContext('2d');
   ctx.drawImage(g_tmp_canvas, 0, 0, canvas.width, canvas.height);
 
+  // Draw bounding box
   ctx.lineWidth = 3;
   ctx.strokeStyle="#000000";
   ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+  // Draw interface lines
+  g_lines = new Uint16Array(Module.HEAPU8.buffer, g_lines_ptr, g_lines_max_size);
+  let size = GetLines(g_lines.byteOffset, g_lines.length);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "black";
+  for (let i = 0; i + 3 < size; i += 4) {
+    ctx.beginPath();
+    ctx.moveTo(g_lines[i], g_lines[i + 1]);
+    ctx.lineTo(g_lines[i + 2], g_lines[i + 3]);
+    ctx.stroke();
+  }
 }
 
 function PostRun() {
   g_lines_max_size = 10000;
   g_lines_ptr = Module._malloc(g_lines_max_size * 2);
   Spawn = Module.cwrap('Spawn', null, ['number', 'number', 'number']);
+  GetLines = Module.cwrap('GetLines', 'number', ['number', 'number']);
 
   let canvas = Module['canvas'];
   g_tmp_canvas = document.createElement('canvas');
@@ -143,13 +150,30 @@ function PostRun() {
     Spawn(x, y, 0.1);
   };
 
+  canvas.addEventListener('click', mouseclick, false);
   window.addEventListener('keydown', keydown, false);
   window.addEventListener('keyup', keyup, false);
-  window.input_conf.addEventListener(
-      'keydown', function(ev){ev.stopPropagation();}, false);
-  window.input_conf.addEventListener(
-      'keyup', function(ev){ev.stopPropagation();}, false);
-  canvas.addEventListener('click', mouseclick, false);
+  [
+    window.input_conf,
+  ].forEach(b => {
+    b.addEventListener('keydown', function(ev){ev.stopPropagation();}, false);
+    b.addEventListener('keyup', function(ev){ev.stopPropagation();}, false);
+  });
+  [
+    window.button_pause, window.button_16, window.button_32,
+    window.button_64, window.button_128, 
+  ].forEach(b => {
+    b.addEventListener('keydown', function(ev){
+      if (ev.key == ' ') {
+        ev.preventDefault();
+      }
+    }, false);
+    b.addEventListener('keyup', function(ev){
+      if (ev.key == ' ') {
+        ev.preventDefault();
+      }
+    }, false);
+  });
   Init(64);
 }
 

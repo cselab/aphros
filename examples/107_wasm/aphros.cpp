@@ -48,6 +48,8 @@ void StepCallback(void*, Hydro<M>* hydro) {
   if (!g_canvas) {
     return;
   }
+  auto state = g_state;
+  auto& s = *state;
   auto& m = hydro->m;
   auto& var = hydro->var;
 
@@ -59,12 +61,41 @@ void StepCallback(void*, Hydro<M>* hydro) {
 
   using Float3 = typename U::Float3;
   FieldCell<Float3> fc_color(m, Float3(0));
-  const auto msize = m.GetGlobalSize();
 
-  FieldCell<Scal> fcvel(m, 0);
-  auto& fcvelv = hydro->fs_->GetVelocity();
+  FieldCell<Scal> fc_vel(m, 0);
   for (auto c : m.Cells()) {
-    fcvel[c] = fcvelv[c].norm();
+    fc_vel[c] = hydro->fs_->GetVelocity()[c].norm();
+  }
+
+  FieldCell<Scal> fc_omz(m, 0);
+
+  FieldCell<Scal> fc_ebvf(m, 1);
+  if (hydro->eb_) {
+    auto& eb = *hydro->eb_;
+    fc_omz = GetVortScal(
+        hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(), eb);
+    for (auto c : eb.Cells()) {
+      fc_ebvf[c] = eb.GetVolumeFraction(c);
+    }
+  } else {
+    fc_omz = GetVortScal(
+        hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(), m);
+  }
+
+  if (hydro->st_.step % var.Int("report_step_every", 1) == 0) {
+    auto names = GetWords(var.String("print_vars", ""));
+    for (auto name : names) {
+      auto type = var.GetTypeName(name);
+      if (!type.empty()) {
+        std::cout << name << '=' << var.GetStr(type, name) << ' ';
+      }
+    }
+    if (!names.empty()) {
+      std::cout << std::endl;
+    }
+    if (auto* str = var.String.Find("print_string")) {
+      std::cout << *str << std::endl;
+    }
   }
 
   std::stringstream str_entries(var.String["visual"]);
@@ -73,16 +104,47 @@ void StepCallback(void*, Hydro<M>* hydro) {
     if (name == "p" || name == "pressure") {
       return &hydro->fs_->GetPressure();
     }
-    if (name == "vf" || name == "volume fraction" ) {
+    if (name == "omz" || name == "vorticity") {
+      return &fc_omz;
+    }
+    if (name == "ebvf" || name == "embed fraction") {
+      return &fc_ebvf;
+    }
+    if (name == "vf" || name == "volume fraction") {
       return &hydro->as_->GetField();
     }
-    if (name == "vel" || name == "velocity magnitude" ) {
-      return &fcvel;
+    if (name == "vel" || name == "velocity magnitude") {
+      return &fc_vel;
     }
-    fassert(false, "Unknown field '" + name + "'");
+    if (m.IsRoot()) {
+      std::cerr << "Unknown field '" + name + "'\n";
+    }
+    return nullptr;
   };
   U::RenderEntriesToField(fc_color, entries, get_field, m);
   U::RenderToCanvas(view, fc_color, m);
+
+  // Render interface lines
+  if (m.IsRoot()) {
+    s.lines.clear();
+  }
+  auto h = m.GetCellSize();
+  const auto& plic = hydro->as_->GetPlic();
+  const auto& fci = *plic.vfci[0];
+  const auto& fcn = *plic.vfcn[0];
+  const auto& fca = *plic.vfca[0];
+  for (auto c : m.Cells()) {
+    if (fci[c]) {
+      const auto poly =
+          Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
+      if (poly.size() == 2) {
+        s.lines.push_back({
+            GetCanvasCoords(poly[0], *g_canvas, m),
+            GetCanvasCoords(poly[1], *g_canvas, m),
+        });
+      }
+    }
+  }
 }
 
 static void main_loop() {
@@ -105,61 +167,19 @@ static void main_loop() {
 
 static std::string GetBaseConfig() {
   return R"EOF(
-set string linsolver_symm conjugate
-set double hypre_symm_tol 1e-3
-set int hypre_symm_maxiter 100
-set int hypre_periodic_x 0
-set int hypre_periodic_y 0
-set double dtmax 0.1
-set double rho1 1
-set double rho2 1
-set double mu1 0.001
-set double mu2 0.001
-set double sigma 0
-set vect gravity 0 -1
-set double topvel 0
-set int sharpen 0
-set int layers 3
-set double coalth 1.5
-set double sharpen_cfl 0.1
-set int coal 1
-
-set int nsteps 1
-set int reportevery 10
-
-set double cfl 1
-set double cflvis 0.5
-set double cflsurf 2
-
-set double visvel 0
-set double visvf 1
-set double visvort 0
-set int visinterp 0
-
-set int part 1
-set double part_h 4
-set double part_relax 0.5
-set int part_np 7
-set double part_segcirc 0
-set int part_dn 0
-set int part_dump_fr 1
-set int part_ns 1
-set double part_tol 1e-4
-set int part_itermax 10
-set int part_verb 0
-set int dim 2
-set int vtkbin 1
-set int vtkmerge 1
-
 include conf/coal/a.conf
 
+set vect gravity 0 0
+
+set string linsolver_symm conjugate
+
 set int verbose_time 0
-set int return_after_each_step 1
-
-
-set double tmax 0.5
 set int verbose_stages 0
 set int output 0
+
+set int return_after_each_step 1
+
+set double tmax 1e10
 
 set string visual
 )EOF";
@@ -170,8 +190,6 @@ void Spawn(float x, float y, float r) {
   if (!g_state) {
     return;
   }
-  auto state = g_state;
-  auto& s = *state;
   std::cout << util::Format("action") << std::endl;
 }
 int TogglePause() {
@@ -191,6 +209,13 @@ void SetRuntimeConfig(const char* str) {
     return;
   }
   std::stringstream conf(str);
+
+  std::cout << util::Format(
+      "applied config of {} characters\n", conf.str().length());
+  if (g_var.Int("verbose_runtime_config", 0)) {
+    std::cout << conf.str() << std::endl;
+  }
+
   Parser(g_var).ParseStream(conf);
 }
 
@@ -215,6 +240,25 @@ void SetMesh(int nx) {
 void SetCanvas(int nx, int ny) {
   g_canvas = std::make_shared<Canvas>(MIdx(nx, ny));
   std::cout << util::Format("canvas {}", g_canvas->size) << std::endl;
+}
+int GetLines(uint16_t* data, int max_size) {
+  if (!g_state) {
+    return 0;
+  }
+  auto state = g_state;
+  auto& s = *state;
+  int i = 0;
+  for (auto p : s.lines) {
+    if (i + 3 >= max_size) {
+      break;
+    }
+    data[i] = p[0][0];
+    data[i + 1] = p[0][1];
+    data[i + 2] = p[1][0];
+    data[i + 3] = p[1][1];
+    i += 4;
+  }
+  return i;
 }
 }
 

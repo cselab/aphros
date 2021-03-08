@@ -157,8 +157,10 @@ struct Visual {
       const M& m) {
     for (const auto& entry : entries) {
       auto cmap = GetColormap(entry.var);
-      auto* fc = get_field(entry.field);
-      RenderToField(fc_color, *fc, cmap, m);
+      const auto* fc = get_field(entry.field);
+      if (fc) {
+        RenderToField(fc_color, *fc, cmap, m);
+      }
     }
   }
 
