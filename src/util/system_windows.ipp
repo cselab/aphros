@@ -1,4 +1,9 @@
 char* SystemBaseName(char* path) {
+  сhar drive[_MAX_DRIVE];
+  char dir[_MAX_DIR];
+  char fname[_MAX_FNAME];
+  char ext[_MAX_EXT];
+  _splitpath(path, drive, dir, fname, ext);
   // TODO
   return NULL;
 }
