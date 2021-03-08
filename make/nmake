@@ -26,7 +26,7 @@ function cat(file, rc, line) {
 	    replace("CC = c99", "CC = cl")
 	    replace("-o ", "/Fo")
 	    replace("-std=c++14", "/std:c++14")
-	    replace(" -O2 -g", "/O2 /Zi")
+	    replace(" -O2 -g", " /O2 /Zi")
 	    remove("-fPIC")
 	    remove(".dir:; mkdir -p $P && touch $@")
             remove("$(SRC)/")
