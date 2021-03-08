@@ -53,7 +53,15 @@ int SystemIsFile(char* path) {
   return (stat(path, &info) == 0) && (info.st_mode & (S_IFREG | S_IFLNK));
 }
 
+int SystemJoin(const char *a, const char *b, char *c) {
+  return 0;
+}
+
 size_t SystemGetMem(void) {
   // TODO
+  return 0;
+}
+
+int SystemSplitExt(const char *a, char *base, char *ext) {
   return 0;
 }
