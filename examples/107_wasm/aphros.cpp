@@ -34,6 +34,7 @@ struct State {
       : par(par_), distrsolver(comm, var, par) {}
   typename Hydro<M>::Par par;
   DistrSolver<M, Hydro<M>> distrsolver;
+  bool render = true;
   bool pause = false;
   std::vector<std::array<MIdx, 2>> lines; // interface lines
   std::vector<std::array<MIdx, 2>> lines_eb; // embed lines
@@ -60,7 +61,7 @@ void StepCallback(void*, Hydro<M>* hydro) {
       canvas.size, MIdx(0), canvas.size, canvas.buf.data());
 
   using Float3 = typename U::Float3;
-  FieldCell<Float3> fc_color(m, Float3(0));
+  FieldCell<Float3> fc_color(m, Float3(1));
 
   FieldCell<Scal> fc_vel(m, 0);
   for (auto c : m.Cells()) {
@@ -98,74 +99,76 @@ void StepCallback(void*, Hydro<M>* hydro) {
     }
   }
 
-  std::stringstream str_entries(var.String["visual"]);
-  auto entries = U::ParseEntries(str_entries);
-  auto get_field = [&](std::string name) -> const FieldCell<Scal>* {
-    if (name == "p" || name == "pressure") {
-      return &hydro->fs_->GetPressure();
+  if (s.render) {
+    std::stringstream str_entries(var.String["visual"]);
+    auto entries = U::ParseEntries(str_entries);
+    auto get_field = [&](std::string name) -> const FieldCell<Scal>* {
+      if (name == "p" || name == "pressure") {
+        return &hydro->fs_->GetPressure();
+      }
+      if (name == "omz" || name == "vorticity") {
+        return &fc_omz;
+      }
+      if (name == "ebvf" || name == "embed fraction") {
+        return &fc_ebvf;
+      }
+      if (name == "vf" || name == "volume fraction") {
+        return &hydro->as_->GetField();
+      }
+      if (name == "vel" || name == "velocity magnitude") {
+        return &fc_vel;
+      }
+      if (m.IsRoot()) {
+        std::cerr << "Unknown field '" + name + "'\n";
+      }
+      return nullptr;
+    };
+    U::RenderEntriesToField(fc_color, entries, get_field, m);
+    if (var.Int("visual_interpolate", 1) && m.GetGlobalSize() < view.size) {
+      U::RenderToCanvasBilinear(view, fc_color, m);
+    } else {
+      U::RenderToCanvasNearest(view, fc_color, m);
     }
-    if (name == "omz" || name == "vorticity") {
-      return &fc_omz;
-    }
-    if (name == "ebvf" || name == "embed fraction") {
-      return &fc_ebvf;
-    }
-    if (name == "vf" || name == "volume fraction") {
-      return &hydro->as_->GetField();
-    }
-    if (name == "vel" || name == "velocity magnitude") {
-      return &fc_vel;
-    }
-    if (m.IsRoot()) {
-      std::cerr << "Unknown field '" + name + "'\n";
-    }
-    return nullptr;
-  };
-  U::RenderEntriesToField(fc_color, entries, get_field, m);
-  if (var.Int("visual_interpolate", 1) && m.GetGlobalSize() < view.size) {
-    U::RenderToCanvasBilinear(view, fc_color, m);
-  } else {
-    U::RenderToCanvasNearest(view, fc_color, m);
-  }
 
-  // Render interface lines
-  if (m.IsRoot()) {
-    s.lines.clear();
-  }
-  if (var.Int("visual_lines", 1)) {
-    auto h = m.GetCellSize();
-    const auto& plic = hydro->as_->GetPlic();
-    const auto& fci = *plic.vfci[0];
-    const auto& fcn = *plic.vfcn[0];
-    const auto& fca = *plic.vfca[0];
-    for (auto c : m.Cells()) {
-      if (fci[c]) {
-        const auto poly =
-            Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
+    // Render interface lines
+    if (m.IsRoot()) {
+      s.lines.clear();
+    }
+    if (var.Int("visual_lines", 1)) {
+      auto h = m.GetCellSize();
+      const auto& plic = hydro->as_->GetPlic();
+      const auto& fci = *plic.vfci[0];
+      const auto& fcn = *plic.vfcn[0];
+      const auto& fca = *plic.vfca[0];
+      for (auto c : m.Cells()) {
+        if (fci[c]) {
+          const auto poly =
+              Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
+          if (poly.size() == 2) {
+            s.lines.push_back({
+                GetCanvasCoords(poly[0], *g_canvas, m),
+                GetCanvasCoords(poly[1], *g_canvas, m),
+            });
+          }
+        }
+      }
+    }
+    // Render embed lines
+    if (m.IsRoot()) {
+      s.lines_eb.clear();
+    }
+    if (var.Int("visual_lines_eb", 1) && hydro->eb_) {
+      auto& eb = *hydro->eb_;
+      auto h = m.GetCellSize();
+      for (auto c : eb.CFaces()) {
+        const auto poly = Reconst<Scal>::GetCutPoly(
+            m.GetCenter(c), eb.GetNormal(c), eb.GetAlpha(c), h);
         if (poly.size() == 2) {
-          s.lines.push_back({
+          s.lines_eb.push_back({
               GetCanvasCoords(poly[0], *g_canvas, m),
               GetCanvasCoords(poly[1], *g_canvas, m),
           });
         }
-      }
-    }
-  }
-  // Render embed lines
-  if (m.IsRoot()) {
-    s.lines_eb.clear();
-  }
-  if (var.Int("visual_lines_eb", 1) && hydro->eb_) {
-    auto& eb = *hydro->eb_;
-    auto h = m.GetCellSize();
-    for (auto c : eb.CFaces()) {
-      const auto poly = Reconst<Scal>::GetCutPoly(
-          m.GetCenter(c), eb.GetNormal(c), eb.GetAlpha(c), h);
-      if (poly.size() == 2) {
-        s.lines_eb.push_back({
-            GetCanvasCoords(poly[0], *g_canvas, m),
-            GetCanvasCoords(poly[1], *g_canvas, m),
-        });
       }
     }
   }
@@ -183,7 +186,10 @@ static void main_loop() {
 
   std::memset(g_canvas->buf.data(), 0, g_canvas->size.prod() * 4);
 
-  s.distrsolver.Run();
+  for (int i = 0; i < g_var.Int("steps_per_frame", 1); ++i) {
+    s.render = (i == 0);
+    s.distrsolver.Run();
+  }
 
   CopyToCanvas(g_canvas->buf.data(), g_canvas->size[0], g_canvas->size[1]);
   EM_ASM_({ Draw(); });
@@ -191,20 +197,11 @@ static void main_loop() {
 
 static std::string GetBaseConfig() {
   return R"EOF(
-include conf/coal/a.conf
+include conf/base.conf
+include conf/std.conf
 
-set vect gravity 0 0
-
-set string linsolver_symm conjugate
-
-set int verbose_time 0
-set int verbose_stages 0
-set int output 0
-
+set int steps_per_frame 1
 set int return_after_each_step 1
-
-set double tmax 1e10
-
 set string visual
 )EOF";
 }
@@ -299,5 +296,5 @@ int main() {
   emscripten_set_canvas_element_size(
       "#canvas", g_canvas->size[0] * kScale, g_canvas->size[1] * kScale);
 
-  emscripten_set_main_loop(main_loop, 20, 1);
+  emscripten_set_main_loop(main_loop, 20, 0);
 }

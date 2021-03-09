@@ -5,6 +5,21 @@ var GetLines;
 var Spawn;
 var g_tmp_canvas;
 var kScale = 1;
+var input_conf = document.getElementById('input_conf');
+var output = document.getElementById('output');
+var outputerr = document.getElementById('outputerr');
+
+function EncodeSafe(base) {
+  return base
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_');
+}
+
+function DecodeSafe(base) {
+  return base
+          .replace(/-/g, '+')
+          .replace(/_/g, '/');
+}
 
 function GetExtraConfig() {
   let res = `
@@ -13,27 +28,47 @@ set string Cgreen 0 0.8 0.42
 set string Cblue 0 0.6 0.87
 set string Cwhite 1 1 1
 set string Cblack 0 0 0
+set string Cgray 0.5 0.5 0.5
 
-set double cflvis 1000
-set double cflst 1
-
-set string visual "
-vf {
+set string V_volume_fraction_green "
+volume fraction {
 set vect values 0 1
-set vect colors $Cwhite $Cgreen
-set vect opacities 1 1
+set vect colors $Cgreen $Cgreen
+set vect opacities 0 1
 }
 "
+
+set string V_embed_gray "
+volume fraction {
+set vect values 0 1
+set vect colors $Cgray $Cgray
+set vect opacities 1 0
+}
+"
+
 `
   return res;
 }
 
-function SetExtraConfig(conf) {
-  Module.ccall('SetExtraConfig', null, ['string'], [conf]);
+function Compress(text) {
+  return EncodeSafe(LZString.compressToBase64(text));
 }
 
-function SetRuntimeConfig(conf) {
-  Module.ccall('SetRuntimeConfig', null, ['string'], [conf]);
+function Decompress(compressed) {
+  return LZString.decompressFromBase64(DecodeSafe(compressed));
+}
+
+function SetExtraConfig(config) {
+  Module.ccall('SetExtraConfig', null, ['string'], [config]);
+}
+
+function ApplyConfig() {
+  UpdateFullUrl();
+  SetRuntimeConfig(input_conf.value);
+}
+
+function SetRuntimeConfig(config) {
+  Module.ccall('SetRuntimeConfig', null, ['string'], [config]);
 }
 
 function SetSigma(sigma) {
@@ -83,19 +118,18 @@ function ResetButtons() {
 }
 
 function Init(nx) {
-  conf = GetExtraConfig()
+  ClearOutput();
+  config = GetExtraConfig()
   let cc = [];
-  let input_conf = document.getElementById('input_conf');
-  if (input_conf) {
-    cc.push(input_conf.value);
-  }
+  UpdateFullUrl();
+  cc.push(input_conf.value);
   ResetButtons();
   let button = document.getElementById('button_' + nx);
   if (button) {
     button.className = "button pressed";
   }
-  conf += cc.join('');
-  SetExtraConfig(conf);
+  config += cc.join('');
+  SetExtraConfig(config);
   Module.ccall('SetMesh', null, ['number'], [nx])
 }
 
@@ -139,7 +173,70 @@ function Draw() {
   }
 }
 
+function ClearOutput() {
+  output.value = '';
+  outputerr.value = '';
+}
+function Print(text) {
+  //console.log(text);
+  if (output) {
+    output.value += text + "\n";
+    output.scrollTop = output.scrollHeight;
+  }
+}
+function PrintError(text) {
+  console.error(text);
+  if (outputerr) {
+    outputerr.value += text + "\n";
+    outputerr.scrollTop = outputerr.scrollHeight;
+  }
+}
+function GetFullUrl(config) {
+  let url = new URL(location.href);
+  url.search = "?config=" + Compress(config);
+  return url.toString();
+}
+function ClearUrl() {
+  let url = new URL(location.href);
+  url.search = "";
+  history.pushState(null, null, url.toString());
+}
+function UpdateFullUrl() {
+  let fullurl = GetFullUrl(input_conf.value);
+  history.pushState(null, null, fullurl);
+  document.getElementById('a_fullurl').href = fullurl;
+}
+function Request(url, action) {
+  let req = new XMLHttpRequest();
+  req.onload = function() {
+    if (req.status == 200) {
+      action(req.response)
+    } else {
+      PrintError(`Error ${req.status}: ${req.statusText}`);
+    }
+  };
+  req.open('GET', url, true);
+  req.send();
+}
+function GetShortUrl(fullurl, action) {
+  return Request("https://tinyurl.com/api-create.php?url=" + fullurl, action);
+}
+function UpdateShortUrl() {
+  let fullurl = GetFullUrl(input_conf.value);
+  GetShortUrl(fullurl, function(response) {
+    document.getElementById('text_shorturl').value = response;
+  });
+}
+
 function PostRun() {
+  let url = new URL(location.href);
+  let compressed = url.searchParams.get('config');
+  if (compressed) {
+    input_conf.value = Decompress(compressed);
+  }
+  UpdateFullUrl();
+  ClearUrl();
+
   g_lines_max_size = 10000;
   g_lines_ptr = Module._malloc(g_lines_max_size * 2);
   Spawn = Module.cwrap('Spawn', null, ['number', 'number', 'number']);
@@ -171,7 +268,7 @@ function PostRun() {
   window.addEventListener('keydown', keydown, false);
   window.addEventListener('keyup', keyup, false);
   [
-    window.input_conf,
+    input_conf,
   ].forEach(b => {
     b.addEventListener('keydown', function(ev){ev.stopPropagation();}, false);
     b.addEventListener('keyup', function(ev){ev.stopPropagation();}, false);
@@ -198,31 +295,21 @@ var Module = {
   preRun: [],
   postRun: [PostRun],
   print: (function() {
-    var element = document.getElementById('output');
-    if (element) element.value = '';
+    ClearOutput();
     return function(text) {
       if (arguments.length > 1) {
         text = Array.prototype.slice.call(arguments).join(' ');
       }
-      console.log(text);
-      if (element) {
-        element.value += text + "\n";
-        element.scrollTop = element.scrollHeight;
-      }
+      Print(text);
     };
   })(),
   printErr: (function(text) {
-    var element = document.getElementById('outputerr');
-    if (element) element.value = '';
+    ClearOutput();
     return function(text) {
       if (arguments.length > 1) {
         text = Array.prototype.slice.call(arguments).join(' ');
       }
-      console.error(text);
-      if (element) {
-        element.value += text + "\n";
-        element.scrollTop = element.scrollHeight;
-      }
+      PrintError(text);
     };
   })(),
   canvas: (function() { return document.getElementById('canvas'); })(),

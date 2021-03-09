@@ -4,7 +4,7 @@ WRK = .work
 CXX = emcc
 CXXFLAGS = -Wall -O3 -DNDEBUG
 WASMFLAGS = -s ALLOW_MEMORY_GROWTH=1
-ALL = hydro.js electrochem.js
+ALL = hydro.js electrochem.js aphros.js
 1 = -D_USE_MPI_=0
 all: $(ALL)
 $(WRK)/libaphros_js.a:; $(MAKE) -f $(SRC)/Makefile_legacy 'WRK=$(WRK)' 'SRC=$(SRC)' 'CXX=$(CXX)' 'CC=$(CXX)' 'CXXFLAGS=$(CXXFLAGS)' $@

@@ -70,12 +70,19 @@
   </head>
   <body>
     <div style="text-align: center;">
-      <br>
       <a class="github-button" href="https://github.com/cselab/aphros" data-size="large" data-show-count="true" aria-label="Star cselab/aphros on GitHub">Star</a>
       <span style="position: relative; bottom: 0.45em;">
         <a href="https://github.com/cselab/aphros">github.com/cselab/aphros</a>
-        [<a href="https://github.com/cselab/aphros/tree/master/examples/107_wasm">wasm</a>]
       </span>
+    </div>
+    <div style="text-align: center; padding-top: 5px;">
+      <input type="button" class="button" id="button_url" title="sends encoded config to tinyurl.com" value="tinyurl" onclick="UpdateShortUrl();">
+      <input type="text" id="text_shorturl">
+      <a href="" id="a_fullurl">[full link]</a>
+    </div>
+    <div style="text-align: center; margin-top: 10px;">
+      [<a href="?config=M4UwLgBMYE4JYDsDmEBudgFcCGAbCARAFBGoD2MYcAxnGAJ4QDeRokqI17emIwEAWgBMEAAwQhrcGk6RqZXBX4ASAMIAjXLwhqA7gAs6IHapggAJlPayIZAA7ZaVPhACMbt0QC-JcloC2xgBmMI5UZAjMVjJcaDwu4q7RHLHyijAqqkhmIJFq2SC5yTb2jnRwCZ4-xNHmZJiaxsBwSP7YnmxQsIgoiHQA-qhBELgYYNHQ8MgjY_0OYPqEiKMIIEQQUHb6IGYQAMweACwbnhvAWzvGAKxHJ0k1nXUNuMYw-mQiogB0okmP9Y0IP5MJ8fkkgA=">coalescence</a>]
+      [<a href="?config=M4UwLgBMYE4JYDsDmEBudgFcCGAbCARAFBGoD2MYcAxnGAJ4QDeRokqI17emIwEAWgCMEAAwQhrcGk6RqZXBX4ASAMIAjXLwhqA7gAs6IHapggAJlPayIZAA7ZaVPhNeSAviRABbdRYgAZjCOVGQIzFYyXGg8LuKSbFFyCkomSMGMaunY9JEc0faOdHAuIqJEnsSR5mSYmsYgAB5gIAiQAKyRiJCt2PUA-j5-5hJdbRD69HZm_XYg8GTmNP2No4ndE1MzcwtL1P2MCdIbvQPY5vmh4eWR0PDIEIh0_agBEABe82S3sIgoHLh-k9IJgEHAAhRvHkbADXOVEjU6rhjN5MGUAHSiUSSH73FAgdT9XAYMCzbBgfSERDEhAgVh2fTzYxCdEAdnaEAATOiOfEiFUAMQQBCYbzzGh4aq1eqbaYgfrAejebz9MAKCQgAScsaQSZyhVKlXebCNIwwCRY-HSREy8xgcSiTFCIA">cylinder</a>]
     </div>
 
     <noscript>
@@ -84,9 +91,9 @@
       </div>
     </noscript>
     <div style="text-align: center;">
-    <div style="display: inline;">
-    <div style="display: inline-block;">
-      <textarea class="emscripten" id="input_conf" rows="40">
+      <div style="display: inline;">
+        <div style="display: inline-block;">
+          <textarea class="emscripten" id="input_conf" rows="40">
 set string visual "
 
 vorticity {
@@ -101,39 +108,30 @@ set vect colors $Cgreen $Cgreen
 set vect opacities 0 1
 }
 "
+  </textarea>
+          <input type="button" class="button" id="button_apply" value="apply" onclick="ApplyConfig();">
+        </div>
 
-set string print_string mu=$mu1 sigma=$sigma g=($gravity)
-</textarea>
-      <input type="button" class="button" id="button_apply" value="apply" onclick="SetRuntimeConfig(window.input_conf.value);">
-      <br>
-      <div style="margin-top: 10px;">
-        [<a href="https://github.com/cselab/aphros/tree/master/examples/107_wasm/conf/coalescence.conf">coalescence</a>]
-        [<a href="https://github.com/cselab/aphros/tree/master/examples/107_wasm/conf/cylinder.conf">cylinder</a>]
+        <div style="display: inline-block;">
+          <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
+
+          <div class="emscripten" style="padding: 5px;">
+            <input type="button" class="button" id="button_pause" value="pause" onclick="TogglePause();">
+            <input type="button" class="button" id="button_16" value="16" onclick="Init(16)">
+            <input type="button" class="button" id="button_32" value="32" onclick="Init(32)">
+            <input type="button" class="button" id="button_64" value="64" onclick="Init(64)">
+            <input type="button" class="button" id="button_128" value="128" onclick="Init(128)">
+          </div>
+        </div>
+
+        <div style="display: inline-block;">
+          <textarea class="emscripten" id="output" rows="25"></textarea>
+          <textarea class="emscripten" id="outputerr" rows="15"></textarea>
+        </div>
       </div>
     </div>
 
-    <div style="display: inline-block;">
-    <canvas class="emscripten" id="canvas" tabindex=-1></canvas>
-
-    <div class="emscripten" style="padding: 5px;">
-    [space] pause
-    </div>
-    <div class="emscripten" style="padding: 5px;">
-      <input type="button" class="button" id="button_pause" value="pause" onclick="TogglePause();">
-      <input type="button" class="button" id="button_16" value="16" onclick="Init(16)">
-      <input type="button" class="button" id="button_32" value="32" onclick="Init(32)">
-      <input type="button" class="button" id="button_64" value="64" onclick="Init(64)">
-      <input type="button" class="button" id="button_128" value="128" onclick="Init(128)">
-    </div>
-    </div>
-
-    <div style="display: inline-block;">
-      <textarea class="emscripten" id="output" rows="25"></textarea>
-      <textarea class="emscripten" id="outputerr" rows="15"></textarea>
-    </div>
-    </div>
-    </div>
-
+    <script src="libs/lz-string.js"></script>
     <script src=aphros_defs.js></script>
     <script async src=aphros.js></script>
     <script async defer src="https://buttons.github.io/buttons.js"></script>
