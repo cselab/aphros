@@ -66,6 +66,7 @@ kernel/hydro.obj\
 linear/linear.obj\
 march/main.obj\
 parse/argparse.obj\
+parse/codeblocks.obj\
 parse/conf2py.obj\
 parse/parser.obj\
 parse/template.obj\
@@ -313,6 +314,7 @@ kernel/hydro.obj: kernel/hydro.cpp; $(CXX_RULE) kernel/hydro.cpp
 linear/linear.obj: linear/linear.cpp; $(CXX_RULE) linear/linear.cpp
 march/main.obj: march/main.c; $(CC_RULE) march/main.c
 parse/argparse.obj: parse/argparse.cpp; $(CXX_RULE) parse/argparse.cpp
+parse/codeblocks.obj: parse/codeblocks.cpp; $(CXX_RULE) parse/codeblocks.cpp
 parse/conf2py.obj: parse/conf2py.cpp; $(CXX_RULE) parse/conf2py.cpp
 parse/parser.obj: parse/parser.cpp; $(CXX_RULE) parse/parser.cpp
 parse/template.obj: parse/template.cpp; $(CXX_RULE) parse/template.cpp
@@ -1110,6 +1112,8 @@ parse/argparse.obj: parse/vars.h
 parse/argparse.obj: util/format.h
 parse/argparse.obj: util/logger.h
 parse/argparse.obj: util/macros.h
+parse/codeblocks.obj: util/logger.h
+parse/codeblocks.obj: util/macros.h
 parse/conf2py.obj: parse/argparse.h
 parse/conf2py.obj: parse/parser.h
 parse/conf2py.obj: parse/vars.h

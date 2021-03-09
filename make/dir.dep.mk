@@ -31,6 +31,7 @@ $(WRK)/kernel/hydro.o: $(WRK)/.dir
 $(WRK)/linear/linear.o: $(WRK)/.dir
 $(WRK)/march/main.o: $(WRK)/.dir
 $(WRK)/parse/argparse.o: $(WRK)/.dir
+$(WRK)/parse/codeblocks.o: $(WRK)/.dir
 $(WRK)/parse/conf2py.o: $(WRK)/.dir
 $(WRK)/parse/parser.o: $(WRK)/.dir
 $(WRK)/parse/template.o: $(WRK)/.dir

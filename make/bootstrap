@@ -5,8 +5,14 @@
 #
 # ../make/obj.mk also creates ../make/dir.wrk.mk and ../make/dir.rule.mk
 
+t=/tmp/bootstrap.$$
+trap 'rm -f $t; exit 2' 1 2 3 14 15
 ../make/obj > ../make/obj.mk &&
     ../make/hdr > ../make/hdr.mk &&
     ../make/dir > ../make/dir.mk &&
-    ../make/list | ../make/dep  > ../make/dep.mk &&
+    ../make/list > $t &&
+    ../make/dep  < $t > ../make/dep.mk &&
     ../make/nmake Makefile_legacy > Makefile_nmake
+status=$?
+rm $t
+exit $status

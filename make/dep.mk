@@ -734,6 +734,8 @@ $(WRK)/parse/argparse.o: $(SRC)/parse/vars.h
 $(WRK)/parse/argparse.o: $(SRC)/util/format.h
 $(WRK)/parse/argparse.o: $(SRC)/util/logger.h
 $(WRK)/parse/argparse.o: $(SRC)/util/macros.h
+$(WRK)/parse/codeblocks.o: $(SRC)/util/logger.h
+$(WRK)/parse/codeblocks.o: $(SRC)/util/macros.h
 $(WRK)/parse/conf2py.o: $(SRC)/parse/argparse.h
 $(WRK)/parse/conf2py.o: $(SRC)/parse/parser.h
 $(WRK)/parse/conf2py.o: $(SRC)/parse/vars.h

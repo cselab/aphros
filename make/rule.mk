@@ -31,6 +31,7 @@ $(WRK)/kernel/hydro.o: $(SRC)/kernel/hydro.cpp; $(CXX_RULE) $(SRC)/kernel/hydro.
 $(WRK)/linear/linear.o: $(SRC)/linear/linear.cpp; $(CXX_RULE) $(SRC)/linear/linear.cpp
 $(WRK)/march/main.o: $(SRC)/march/main.c; $(CC_RULE) $(SRC)/march/main.c
 $(WRK)/parse/argparse.o: $(SRC)/parse/argparse.cpp; $(CXX_RULE) $(SRC)/parse/argparse.cpp
+$(WRK)/parse/codeblocks.o: $(SRC)/parse/codeblocks.cpp; $(CXX_RULE) $(SRC)/parse/codeblocks.cpp
 $(WRK)/parse/conf2py.o: $(SRC)/parse/conf2py.cpp; $(CXX_RULE) $(SRC)/parse/conf2py.cpp
 $(WRK)/parse/parser.o: $(SRC)/parse/parser.cpp; $(CXX_RULE) $(SRC)/parse/parser.cpp
 $(WRK)/parse/template.o: $(SRC)/parse/template.cpp; $(CXX_RULE) $(SRC)/parse/template.cpp
