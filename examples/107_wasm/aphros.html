@@ -85,7 +85,6 @@
     </noscript>
     <div style="text-align: center;">
     <div style="display: inline;">
-
     <div style="display: inline-block;">
       <textarea class="emscripten" id="input_conf" rows="40">
 set string visual "
@@ -106,6 +105,10 @@ set vect opacities 0 1
 set string print_string mu=$mu1 sigma=$sigma g=($gravity)
 </textarea>
       <input type="button" class="button" id="button_apply" value="apply" onclick="SetRuntimeConfig(window.input_conf.value);">
+      <br>
+      <div style="margin-top: 10px;">
+        [<a href="https://github.com/cselab/aphros/tree/master/examples/107_wasm/conf/cylinder.conf">cylinder</a>]
+      </div>
     </div>
 
     <div style="display: inline-block;">

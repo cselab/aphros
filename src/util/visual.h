@@ -111,7 +111,7 @@ struct Visual {
       FieldCell<Float3>& fc_color, const FieldCell<Scal>& fcu,
       const Colormap& cmap, const M& m) {
     cmap.Check();
-    for (auto c : m.Cells()) {
+    for (auto c : m.SuCells()) {
       fc_color[c] = cmap(fc_color[c], fcu[c]);
     }
   }
@@ -164,7 +164,7 @@ struct Visual {
     }
   }
 
-  static void RenderToCanvas(
+  static void RenderToCanvasNearest(
       CanvasView& view, const FieldCell<Float3>& fc_color, const M& m) {
     const auto msize = m.GetGlobalSize();
     for (auto c : m.CellsM()) {
@@ -175,6 +175,67 @@ struct Visual {
       const Pixel v = 0xff000000 | (q[0] << 0) | (q[1] << 8) | (q[2] << 16);
       for (int y = start[1]; y < end[1]; y++) {
         for (int x = start[0]; x < end[0]; x++) {
+          view(x, y) = v;
+        }
+      }
+    }
+  }
+
+  // Evaluates bilinear interpolant on points (0,0), (1,0), (0,1) and (1,1).
+  // x,y: target point
+  // u,ux,uy,uyx:  values of function for (x,y) = (0,0), (1,0), (0,1), (1,1)
+  // FIXME: this is a copy from approx_eb.ipp
+  template <class T, class Scal>
+  static T Bilinear(Scal x, Scal y, T u, T ux, T uy, T uyx) {
+    //                      //
+    //   y                  //
+    //   |                  //
+    //   |*uy    *uyx       //
+    //   |                  //
+    //   |                  //
+    //   |*u     *ux        //
+    //   |-------------x    //
+    //                      //
+    const auto v = u * (1 - x) + ux * x;
+    const auto vy = uy * (1 - x) + uyx * x;
+    return v * (1 - y) + vy * y;
+  }
+
+  static void RenderToCanvasBilinear(
+      CanvasView& view, const FieldCell<Float3>& fc_color, const M& m) {
+    const auto msize = m.GetGlobalSize();
+    for (auto c : m.CellsM()) {
+      const MIdx w(c);
+      const MIdx start = w * view.size / msize;
+      const MIdx end = (w + MIdx(1)) * view.size / msize;
+      const Byte3 q(Clamp(fc_color[c]) * 255);
+      const Pixel v = 0xff000000 | (q[0] << 0) | (q[1] << 8) | (q[2] << 16);
+      for (int y = start[1]; y < end[1]; y++) {
+        for (int x = start[0]; x < end[0]; x++) {
+          view(x, y) = v;
+        }
+      }
+    }
+
+    for (auto c : m.SuCellsM()) {
+      const MIdx w(c);
+      const MIdx bs = view.size / msize;
+      const MIdx start = (w * view.size / msize + bs / 2).max(MIdx(0));
+      const MIdx end =
+          ((w + MIdx(1)) * view.size / msize + bs / 2).min(view.size);
+      const auto dx = m.direction(0);
+      const auto dy = m.direction(1);
+      const auto q = fc_color[c];
+      const auto qx = fc_color[c + dx];
+      const auto qy = fc_color[c + dy];
+      const auto qyx = fc_color[c + dx + dy];
+      for (int y = start[1]; y < end[1]; y++) {
+        const Scal fy = Scal(y - start[1]) / (end[1] - start[1]);
+        for (int x = start[0]; x < end[0]; x++) {
+          const Scal fx = Scal(x - start[0]) / (end[0] - start[0]);
+          auto qb = Bilinear(std::abs(fx), std::abs(fy), q, qx, qy, qyx);
+          const Byte3 mq(qb * 255);
+          Pixel v = 0xff000000 | (mq[0] << 0) | (mq[1] << 8) | (mq[2] << 16);
           view(x, y) = v;
         }
       }

@@ -17,7 +17,6 @@
 #include "geom/rangemulti.h"
 #include "kernel/hydro.h"
 #include "kernel/kernelmeshpar.h"
-#include "solver/approx_eb.ipp"
 #include "util/timer.h"
 #include "util/visual.h"
 
@@ -37,6 +36,7 @@ struct State {
   DistrSolver<M, Hydro<M>> distrsolver;
   bool pause = false;
   std::vector<std::array<MIdx, 2>> lines; // interface lines
+  std::vector<std::array<MIdx, 2>> lines_eb; // embed lines
 };
 
 std::shared_ptr<State> g_state;
@@ -122,23 +122,47 @@ void StepCallback(void*, Hydro<M>* hydro) {
     return nullptr;
   };
   U::RenderEntriesToField(fc_color, entries, get_field, m);
-  U::RenderToCanvas(view, fc_color, m);
+  if (var.Int("visual_interpolate", 1) && m.GetGlobalSize() < view.size) {
+    U::RenderToCanvasBilinear(view, fc_color, m);
+  } else {
+    U::RenderToCanvasNearest(view, fc_color, m);
+  }
 
   // Render interface lines
   if (m.IsRoot()) {
     s.lines.clear();
   }
-  auto h = m.GetCellSize();
-  const auto& plic = hydro->as_->GetPlic();
-  const auto& fci = *plic.vfci[0];
-  const auto& fcn = *plic.vfcn[0];
-  const auto& fca = *plic.vfca[0];
-  for (auto c : m.Cells()) {
-    if (fci[c]) {
-      const auto poly =
-          Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
+  if (var.Int("visual_lines", 1)) {
+    auto h = m.GetCellSize();
+    const auto& plic = hydro->as_->GetPlic();
+    const auto& fci = *plic.vfci[0];
+    const auto& fcn = *plic.vfcn[0];
+    const auto& fca = *plic.vfca[0];
+    for (auto c : m.Cells()) {
+      if (fci[c]) {
+        const auto poly =
+            Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
+        if (poly.size() == 2) {
+          s.lines.push_back({
+              GetCanvasCoords(poly[0], *g_canvas, m),
+              GetCanvasCoords(poly[1], *g_canvas, m),
+          });
+        }
+      }
+    }
+  }
+  // Render embed lines
+  if (m.IsRoot()) {
+    s.lines_eb.clear();
+  }
+  if (var.Int("visual_lines_eb", 1) && hydro->eb_) {
+    auto& eb = *hydro->eb_;
+    auto h = m.GetCellSize();
+    for (auto c : eb.CFaces()) {
+      const auto poly = Reconst<Scal>::GetCutPoly(
+          m.GetCenter(c), eb.GetNormal(c), eb.GetAlpha(c), h);
       if (poly.size() == 2) {
-        s.lines.push_back({
+        s.lines_eb.push_back({
             GetCanvasCoords(poly[0], *g_canvas, m),
             GetCanvasCoords(poly[1], *g_canvas, m),
         });
@@ -241,14 +265,15 @@ void SetCanvas(int nx, int ny) {
   g_canvas = std::make_shared<Canvas>(MIdx(nx, ny));
   std::cout << util::Format("canvas {}", g_canvas->size) << std::endl;
 }
-int GetLines(uint16_t* data, int max_size) {
+int GetLines(int embed, uint16_t* data, int max_size) {
   if (!g_state) {
     return 0;
   }
   auto state = g_state;
   auto& s = *state;
   int i = 0;
-  for (auto p : s.lines) {
+  const auto& lines = embed ? s.lines_eb : s.lines;
+  for (auto p : lines) {
     if (i + 3 >= max_size) {
       break;
     }

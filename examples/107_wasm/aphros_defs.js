@@ -110,16 +110,32 @@ function Draw() {
   ctx.strokeStyle="#000000";
   ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-  // Draw interface lines
   g_lines = new Uint16Array(Module.HEAPU8.buffer, g_lines_ptr, g_lines_max_size);
-  let size = GetLines(g_lines.byteOffset, g_lines.length);
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "black";
-  for (let i = 0; i + 3 < size; i += 4) {
-    ctx.beginPath();
-    ctx.moveTo(g_lines[i], g_lines[i + 1]);
-    ctx.lineTo(g_lines[i + 2], g_lines[i + 3]);
-    ctx.stroke();
+
+  // Draw interface lines
+  {
+    let size = GetLines(0, g_lines.byteOffset, g_lines.length);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "black";
+    for (let i = 0; i + 3 < size; i += 4) {
+      ctx.beginPath();
+      ctx.moveTo(g_lines[i], g_lines[i + 1]);
+      ctx.lineTo(g_lines[i + 2], g_lines[i + 3]);
+      ctx.stroke();
+    }
+  }
+
+  // Draw embed lines
+  {
+    let size = GetLines(1, g_lines.byteOffset, g_lines.length);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "black";
+    for (let i = 0; i + 3 < size; i += 4) {
+      ctx.beginPath();
+      ctx.moveTo(g_lines[i], g_lines[i + 1]);
+      ctx.lineTo(g_lines[i + 2], g_lines[i + 3]);
+      ctx.stroke();
+    }
   }
 }
 
@@ -127,7 +143,7 @@ function PostRun() {
   g_lines_max_size = 10000;
   g_lines_ptr = Module._malloc(g_lines_max_size * 2);
   Spawn = Module.cwrap('Spawn', null, ['number', 'number', 'number']);
-  GetLines = Module.cwrap('GetLines', 'number', ['number', 'number']);
+  GetLines = Module.cwrap('GetLines', 'number', ['number', 'number', 'number']);
 
   let canvas = Module['canvas'];
   g_tmp_canvas = document.createElement('canvas');

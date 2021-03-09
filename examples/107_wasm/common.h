@@ -29,16 +29,16 @@ struct Canvas {
   std::vector<uint32_t> buf;
 };
 
-static Scal Clamp(Scal f, Scal min, Scal max) {
+inline Scal Clamp(Scal f, Scal min, Scal max) {
   return f < min ? min : f > max ? max : f;
 }
 
 template <class T>
-static T Clamp(T v) {
+inline T Clamp(T v) {
   return v.max(T(0)).min(T(1));
 }
 
-static Scal Clamp(Scal f) {
+inline Scal Clamp(Scal f) {
   return Clamp(f, 0, 1);
 }
 
