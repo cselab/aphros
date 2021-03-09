@@ -56,7 +56,7 @@ void TestRender() {
 
   U::RenderEntriesToField(fc_color, entries, get_field, m);
 
-  U::RenderToCanvas(view, fc_color, m);
+  U::RenderToCanvasNearest(view, fc_color, m);
   const auto path = "out.ppm";
   const auto path2 = "out2.ppm";
   U::WritePpm(path, view);
