@@ -12,6 +12,7 @@ set string Cred 1 0.12 0.35
 set string Cgreen 0 0.8 0.42
 set string Cblue 0 0.6 0.87
 set string Cwhite 1 1 1
+set string Cblack 0 0 0
 
 set double cflvis 1000
 set double cflst 1

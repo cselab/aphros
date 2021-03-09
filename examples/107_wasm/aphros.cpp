@@ -74,7 +74,7 @@ void StepCallback(void*, Hydro<M>* hydro) {
     auto& eb = *hydro->eb_;
     fc_omz = GetVortScal(
         hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(), eb);
-    for (auto c : eb.Cells()) {
+    for (auto c : m.Cells()) {
       fc_ebvf[c] = eb.GetVolumeFraction(c);
     }
   } else {
