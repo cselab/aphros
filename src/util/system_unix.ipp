@@ -46,7 +46,24 @@ int SystemGetHostName(char* name, size_t len) {
 }
 
 int SystemHasHyperthreads(void) {
-  // TODO
+  FILE *file;
+  char line[1024];
+  char *search = " :\t\n";
+  char *tok;
+  if ((file = fopen("/proc/cpuinfo", "r")) == NULL)
+    return 0;
+  while (fgets(line, sizeof line - 1, file)) {
+    tok = strtok(line, search);
+    if (strcmp(tok, "flags") == 0) {
+      while (tok = strtok(NULL, search)) {
+        if (strcmp(tok, "ht") == 0) {
+            fclose(file);
+            return 1;
+        }
+      }
+    }
+  }
+  fclose(file);
   return 0;
 }
 
@@ -61,14 +78,66 @@ int SystemIsFile(const char* path) {
 }
 
 int SystemJoin(const char *a, const char *b, char *c) {
+  if (a[0] == '\0')
+    strcpy(c, b);
+  else if (b[0] == '\0')
+    strcpy(c, a);
+  else if (b[0] == '/')
+    strcpy(c, b);
+  else if (a[strlen(a) - 1] == '/') {
+    strcpy(c, a);
+    strcat(c, b);
+  } else {
+    strcpy(c, a);
+    strcat(c, "/");
+    strcat(c, b);
+  }
   return 0;
 }
 
 size_t SystemGetMem(void) {
-  // TODO
+  FILE *file;
+  char line[1024];
+  char *search = " :\t\n";
+  char *tok;
+  char *end;
+  size_t ans;
+  if ((file = fopen("/proc/self/status", "r")) == NULL)
+    return 0;
+  while (fgets(line, sizeof line - 1, file)) {
+    tok = strtok(line, search);
+    if (strcmp(tok, "VmRSS") == 0) {
+      if ((tok = strtok(NULL, search)) == NULL) {
+        fclose(file);
+        return 0;
+      }
+      ans = strtol(tok, &end, 10);
+      fclose(file);
+      return ans << 10;
+    }
+  }
+  fclose(file);
   return 0;
 }
 
 int SystemSplitExt(const char *a, char *base, char *ext) {
+  int i;
+  int j;
+  int k;
+  int l;
+  for (i = 0, j = 0; a[i] != '\0'; i++)
+    if (a[i] == '/')
+      j = i;
+  for (k = l = j; a[k] != '\0'; k++)
+    if (a[k] == '.')
+      l = k;
+  if (l == j || (a[j] == '/' && l == j + 1)) {
+    strcpy(base, a);
+    ext[0] = '\0';
+  } else {
+    strncpy(base, a, l);
+    base[l + 1] = '\0';
+    strcpy(ext, &a[l]);
+  }
   return 0;
 }
