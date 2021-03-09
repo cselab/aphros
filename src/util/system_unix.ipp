@@ -7,21 +7,25 @@
 #include <unistd.h>
 #include <string.h>
 
-int SystemBaseName(char* path, char *name) {
+int SystemBaseName(const char* path, char *name) {
   char *ans;
-  if ((ans = basename(path)) == NULL)
+  char path0[FILENAME_MAX];
+  strncpy(path0, path, sizeof path0);
+  if ((ans = basename(path0)) == NULL)
     return 1;
   strcpy(name, ans);
   return 0;
 }
 
-int SystemDirName(char *path, char *dir) {
-  strcpy(dir, dirname(path));
+int SystemDirName(const char *path, char *dir) {
+  char path0[FILENAME_MAX];
+  strncpy(path0, path, sizeof path0);
+  strcpy(dir, dirname(path0));
   return 0;
 }
 
-int SystemMakeDir(char* path, int parent) {
-  char cmd[2048];
+int SystemMakeDir(const char* path, int parent) {
+  char cmd[FILENAME_MAX + 200];
   int rc;
 
   (void)rc;
@@ -46,12 +50,12 @@ int SystemHasHyperthreads(void) {
   return 0;
 }
 
-int SystemIsDir(char* path) {
+int SystemIsDir(const char* path) {
   struct stat info;
   return (stat(path, &info) == 0) && (info.st_mode & S_IFDIR);
 }
 
-int SystemIsFile(char* path) {
+int SystemIsFile(const char* path) {
   struct stat info;
   return (stat(path, &info) == 0) && (info.st_mode & (S_IFREG | S_IFLNK));
 }

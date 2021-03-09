@@ -1,5 +1,5 @@
 #include <stdlib.h>
-int SystemBaseName(char* path, char *fname) {
+int SystemBaseName(const char* path, char *fname) {
   char drive[_MAX_DRIVE];
   char dir[_MAX_DIR];
   char ext[_MAX_EXT];
@@ -7,7 +7,7 @@ int SystemBaseName(char* path, char *fname) {
   return 0;
 }
 
-int SystemDirName(char* path, char* dir) {
+int SystemDirName(const char* path, char* dir) {
   // TODO
   char drive[_MAX_DRIVE];
   char fname[_MAX_FNAME];
@@ -16,7 +16,7 @@ int SystemDirName(char* path, char* dir) {
   return 0;
 }
 
-int SystemMakeDir(char* path, int parent) {
+int SystemMakeDir(const char* path, int parent) {
   // TODO
   char cmd[2048];
   int rc;
@@ -41,12 +41,12 @@ int SystemHasHyperthreads(void) {
   return 0;
 }
 
-int SystemIsDir(char* path) {
+int SystemIsDir(const char* path) {
   // TODO
   return 0;
 }
 
-int SystemIsFile(char* path) {
+int SystemIsFile(const char* path) {
   // TODO
   return 0;
 }
