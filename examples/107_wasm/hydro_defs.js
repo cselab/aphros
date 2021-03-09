@@ -28,7 +28,7 @@ set int nsteps 2
 set double cfl 0.9
 set double cflvis 0.125
 set double cflsurf 2
-set double coalth 0.1
+set double coalth 100
 `
 }
 
