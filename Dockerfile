@@ -13,7 +13,7 @@ python3-numpy \
 rsync
 RUN echo root:g | chpasswd
 SHELL ["/bin/bash", "-l", "-c"]
-ENV MAKEFLAGS='-j4 VERBOSE=1'
+ARG MAKEFLAGS=-j4
 ENV GIT_SSL_NO_VERIFY=1
 RUN git clone --quiet --single-branch --depth 1 https://github.com/cselab/aphros.git aphros
 RUN cd aphros/deploy && ./install_setenv $HOME/.local/aphros
