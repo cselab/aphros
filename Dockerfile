@@ -28,3 +28,4 @@ RUN { \
     (cd aphros/src && make && make test) && \
     (cd aphros/examples && make build) ; \
     } 2>&1 | tee .log
+CMD ap.mfer
