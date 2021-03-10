@@ -137,18 +137,20 @@ void StepCallback(void*, Hydro<M>* hydro) {
     if (var.Int("visual_lines", 1)) {
       auto h = m.GetCellSize();
       const auto& plic = hydro->as_->GetPlic();
-      const auto& fci = *plic.vfci[0];
-      const auto& fcn = *plic.vfcn[0];
-      const auto& fca = *plic.vfca[0];
-      for (auto c : m.Cells()) {
-        if (fci[c]) {
-          const auto poly =
-              Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
-          if (poly.size() == 2) {
-            s.lines.push_back({
-                GetCanvasCoords(poly[0], *g_canvas, m),
-                GetCanvasCoords(poly[1], *g_canvas, m),
-            });
+      for (auto l : plic.layers) {
+        const auto& fci = *plic.vfci[l];
+        const auto& fcn = *plic.vfcn[l];
+        const auto& fca = *plic.vfca[l];
+        for (auto c : m.Cells()) {
+          if (fci[c]) {
+            const auto poly =
+                Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
+            if (poly.size() == 2) {
+              s.lines.push_back({
+                  GetCanvasCoords(poly[0], *g_canvas, m),
+                  GetCanvasCoords(poly[1], *g_canvas, m),
+              });
+            }
           }
         }
       }
