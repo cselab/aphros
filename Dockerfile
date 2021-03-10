@@ -14,12 +14,21 @@ rsync
 RUN echo root:g | chpasswd
 RUN groupadd -r user && useradd -g user -m user
 USER user
-ENTRYPOINT ["/bin/sh", "-l"]
+SHELL ["/bin/bash", "-l", "-c"]
 WORKDIR /home/user
-ENV MAKEFLAGS='VERBOSE=1'
+ENV MAKEFLAGS='-j4 VERBOSE=1'
 ARG GIT_SSL_NO_VERIFY=1
 RUN git clone --quiet --single-branch --depth 1 https://github.com/cselab/aphros.git aphros
 RUN cd aphros/deploy && ./install_setenv $HOME/.local/aphros
+<<<<<<< HEAD
+RUN echo '. $HOME/.local/bin/ap.setenv 2>/dev/null' >> $HOME/.profile
+RUN cmake -B .work/deploy aphros/deploy
+RUN cd .work/deploy && make && make install
+RUN cd aphros/src && make
+RUN cd aphros/src && make test || true
+RUN cd aphros/examples && make build || true
+ENTRYPOINT ["/bin/bash", "-l", "-c", "ap.mfer \"$@\"", "ap.mfer"]
+=======
 RUN echo ". ap.setenv" >> $HOME/.profile
 RUN { \
     . $HOME/.profile && \
@@ -29,3 +38,4 @@ RUN { \
     (cd aphros/examples && make build) ; \
     } 2>&1 | tee .log
 CMD exec ap.mfer
+>>>>>>> 3a8eb71ad087f6785af460c259cca0aba5199bed
