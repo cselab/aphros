@@ -35,11 +35,11 @@ set(T "distr")
 add_library(${T} distr.cpp)
 target_link_libraries(${T}
     sysinfo report parser suspender vars histogram dumper git subcomm openmp
-    use_dims)
+    dump_xmf dump_raw use_dims)
 
 set(T "distrsolver")
 add_library(${T} distrsolver.cpp)
-target_link_libraries(${T} PUBLIC distr utildistr utilmpi PRIVATE use_backend)
+target_link_libraries(${T} PUBLIC distr utildistr utilmpi argparse PRIVATE use_backend)
 if (USE_BACKEND_CUBISM)
   target_link_libraries(${T} PUBLIC cubismnc)
 endif()

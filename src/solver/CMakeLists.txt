@@ -12,7 +12,7 @@ target_link_libraries(${T} suspender mesh)
 
 set(T "approx_eb")
 add_library(${T} approx_eb.cpp)
-target_link_libraries(${T} approx embed vars inside use_dims)
+target_link_libraries(${T} approx embed vars inside use_dims primlist)
 
 set(T "vofm")
 add_library(${T} vofm.cpp)
