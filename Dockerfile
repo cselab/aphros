@@ -25,4 +25,4 @@ ENV OMPI_ALLOW_RUN_AS_ROOT=1
 ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 RUN cd aphros/src && make test || true
 RUN cd aphros/examples && make build || true
-ENTRYPOINT ["/bin/bash", "-l", "-c", "ap.mfer \"$@\"", "ap.mfer"]
+ENTRYPOINT ["/bin/bash", "-l", "-c", "exec ap.mfer \"$@\"", "ap.mfer"]
