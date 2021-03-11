@@ -1850,6 +1850,7 @@ util/events.obj: util/macros.h
 util/filesystem.obj: util/filesystem.h
 util/filesystem.obj: util/logger.h
 util/filesystem.obj: util/macros.h
+util/filesystem.obj: util/system.h
 util/fixed_allocator.obj: util/fixed_allocator.h
 util/format.obj: util/format.h
 util/format.obj: util/logger.h
@@ -1984,6 +1985,7 @@ util/sysinfo.obj: util/logger.h
 util/sysinfo.obj: util/macros.h
 util/sysinfo.obj: util/mpi.h
 util/sysinfo.obj: util/sysinfo.h
+util/sysinfo.obj: util/system.h
 util/system.obj: util/system.h
 util/system.obj: util/system_unix.ipp
 util/system.obj: util/system_windows.ipp

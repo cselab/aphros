@@ -1472,6 +1472,7 @@ $(WRK)/util/events.o: $(SRC)/util/macros.h
 $(WRK)/util/filesystem.o: $(SRC)/util/filesystem.h
 $(WRK)/util/filesystem.o: $(SRC)/util/logger.h
 $(WRK)/util/filesystem.o: $(SRC)/util/macros.h
+$(WRK)/util/filesystem.o: $(SRC)/util/system.h
 $(WRK)/util/fixed_allocator.o: $(SRC)/util/fixed_allocator.h
 $(WRK)/util/format.o: $(SRC)/util/format.h
 $(WRK)/util/format.o: $(SRC)/util/logger.h
@@ -1606,6 +1607,7 @@ $(WRK)/util/sysinfo.o: $(SRC)/util/logger.h
 $(WRK)/util/sysinfo.o: $(SRC)/util/macros.h
 $(WRK)/util/sysinfo.o: $(SRC)/util/mpi.h
 $(WRK)/util/sysinfo.o: $(SRC)/util/sysinfo.h
+$(WRK)/util/sysinfo.o: $(SRC)/util/system.h
 $(WRK)/util/system.o: $(SRC)/util/system.h
 $(WRK)/util/system.o: $(SRC)/util/system_unix.ipp
 $(WRK)/util/system.o: $(SRC)/util/system_windows.ipp
