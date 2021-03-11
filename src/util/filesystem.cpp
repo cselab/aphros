@@ -14,8 +14,9 @@ namespace util {
 
 std::string GetRealpath(std::string path) {
   char buf[PATH_MAX + 1];
-  SystemRealPath(path.c_str(), buf);
-  return buf[0] != '\0' ? std::string(buf) : "";
+  char *ptr;
+  ptr = SystemRealPath(path.c_str(), buf);
+  return ptr == NULL ? "" : std::string(ptr);
 }
 
 std::string GetDirname(std::string path) {

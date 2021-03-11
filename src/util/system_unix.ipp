@@ -1,7 +1,7 @@
 // Created by Sergey Litvinov on 08.03.2021
 // Copyright 2021 ETH Zurich
 
-#define POSIX_C_SOURCE 200112L
+#define POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE 500
 #include <stdio.h>
 #include <stdlib.h>

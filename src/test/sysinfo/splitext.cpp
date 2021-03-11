@@ -1,6 +1,4 @@
 #include "util/filesystem.h"
-#include <tuple>
-
 static const char *me = "splitext";
 int main(int argc, char **argv) {
   std::string a;

@@ -1,6 +1,6 @@
 .SUFFIXES:
 .SUFFIXES: .cpp
-all: main splitext
+all: main splitext realpath
 
 APHROS_PREFIX = /u/hy
 CXXFLAGS = -O0 -g
