@@ -1,6 +1,3 @@
-// Created by Sergey Litvinov on 01.03.2021
-// Copyright 2021 ETH Zurich
-
 #ifdef __cplusplus
 extern "C" {
 #endif

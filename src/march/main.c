@@ -1,6 +1,3 @@
-// Created by Petr Karnakov on 31.01.2021
-// Copyright 2021 ETH Zurich
-
 #include <stdio.h>
 
 #include "march.h"
