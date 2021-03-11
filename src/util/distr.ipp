@@ -109,7 +109,7 @@ Subdomains<MIdx>::Subdomains(MIdx mesh_size, MIdx block_size, size_t nproc) {
 
 template <class MIdx>
 std::string Subdomains<MIdx>::GetConfig() const {
-  constexpr size_t dim = MIdx::dim;
+  static const size_t dim = MIdx::dim;
   std::string res;
 
   auto dirs = generic::Range<size_t>(dim);
