@@ -1,7 +1,9 @@
 add_library(suspender suspender.cpp)
+set(T "system")
+add_library(${T} system.c)
 
 set(T "sysinfo")
-add_library(${T} sysinfo.cpp)
+add_library(${T} sysinfo.cpp system)
 target_link_libraries(${T} openmp utilmpi)
 target_compile_definitions(${T} PRIVATE _USE_AMGX_=$<BOOL:${USE_AMGX}>)
 
@@ -44,7 +46,7 @@ add_library(gitgen gitgen.cpp)
 add_dependencies(gitgen gitrev)
 
 set(T "filesystem")
-add_library(${T} filesystem.cpp)
+add_library(${T} filesystem.cpp system)
 
 set(T "git")
 add_library(${T} git.cpp)
@@ -72,9 +74,6 @@ add_library(${T} logger.cpp)
 set(T "format")
 add_library(${T} format.cpp)
 target_link_libraries(${T} logger)
-
-set(T "system")
-add_library(${T} system.c)
 
 set(T "allocator")
 add_library(${T} fixed_allocator.cpp)
