@@ -2,7 +2,6 @@
 // Copyright 2020 ETH Zurich
 
 #include <limits.h>
-#include <sys/types.h>
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
@@ -28,7 +27,7 @@ std::string GetDirname(std::string path) {
 std::string GetBasename(std::string path) {
   char buf[PATH_MAX + 1];
   SystemBaseName(path.c_str(), buf);
-  return std::string(ptr);
+  return std::string(buf);
 }
 
 std::array<std::string, 2> SplitExt(std::string path) {
