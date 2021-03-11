@@ -6,12 +6,13 @@ dumb-init \
 g++ \
 git \
 hdf5-tools \
-libhdf5-openmpi-dev \
+libhdf5-mpich-dev \
 make \
 man-db \
 python3 \
 python3-numpy \
-rsync
+rsync \
+
 RUN echo root:g | chpasswd
 SHELL ["/bin/bash", "-l", "-c"]
 ARG MAKEFLAGS=-j4
