@@ -2,13 +2,12 @@
 // Copyright 2020 ETH Zurich
 
 #include <limits.h>
-#include <libgen.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
 
+#include "system.h"
 #include "filesystem.h"
 #include "logger.h"
 
@@ -22,9 +21,8 @@ std::string GetRealpath(std::string path) {
 
 std::string GetDirname(std::string path) {
   char buf[PATH_MAX + 1];
-  strcpy(buf, path.c_str());
-  const char* ptr = dirname(buf);
-  return std::string(ptr);
+  SystemDirName(path.c_str(), buf);
+  return std::string(buf);
 }
 
 std::string GetBasename(std::string path) {
@@ -61,28 +59,16 @@ std::string Join(std::string a, std::string b) {
 }
 
 void Makedir(std::string path, bool parent) {
-  std::string cmd;
-  cmd += "mkdir ";
-  if (parent) {
-    cmd += "-p ";
-  }
-  cmd += "'" + path + "'";
-  std::system(cmd.c_str());
-
-  struct stat info;
-  fassert(stat(path.c_str(), &info) == 0, "Can't access '" + path + "'");
-  fassert(info.st_mode & S_IFDIR, "Not a directory '" + path + "'");
+  if (SystemMakeDir(path.c_str(), parent) != 0)
+    fassert(0, "Can't access '" + path + "'");
 }
 
 bool IsFile(std::string path) {
-  struct stat info;
-  return (stat(path.c_str(), &info) == 0) &&
-         (info.st_mode & (S_IFREG | S_IFLNK));
+  return SystemIsFile(path.c_str());
 }
 
 bool IsDir(std::string path) {
-  struct stat info;
-  return (stat(path.c_str(), &info) == 0) && (info.st_mode & S_IFDIR);
+  return SystemIsDir(path.c_str());
 }
 
 } // namespace util
