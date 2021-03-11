@@ -27,8 +27,7 @@ std::string GetDirname(std::string path) {
 
 std::string GetBasename(std::string path) {
   char buf[PATH_MAX + 1];
-  strcpy(buf, path.c_str());
-  const char* ptr = basename(buf);
+  SystemBaseName(path.c_str(), buf);
   return std::string(ptr);
 }
 
