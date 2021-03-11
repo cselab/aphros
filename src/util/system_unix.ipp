@@ -129,9 +129,9 @@ int SystemSplitExt(const char *a, char *base, char *ext) {
   int k;
   for (i = 0, j = -1; a[i] != '\0'; i++)
     if (a[i] == '/') j = i;
-  for (i = j + 1, k = -1; a[i] != '\0'; i++)
+  for (i = j + 1, k = 0; a[i] != '\0'; i++)
     if (a[i] == '.') k = i;
-  if (k == -1 || (j != -1 && k == j + 1)) {
+  if (k == 0 || (j != -1 && k == j + 1)) {
     strcpy(base, a);
     ext[0] = '\0';
   } else {
