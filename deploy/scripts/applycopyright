@@ -12,6 +12,8 @@ EOF
   exit 1
 fi
 
+tmp=${me}_$$.tmp
+
 code=0
 for file in "$@" ; do
   if ! [ -f "$file" ] ; then
@@ -25,13 +27,12 @@ for file in "$@" ; do
   fi
 
   echo "adding copyright to '$file'" 1>&2
-
-  head=$(ap.copyright "$file")
-  text=$(cat "$file")
-
-  echo "$head" > $file
-  echo >> $file
-  echo "$text" >> $file
+  cp "$file" "$tmp"
+  ap.copyright "$file" > "$file"
+  echo >> "$file"
+  cat "$tmp" >> "$file"
 done
+
+rm -f "$tmp"
 
 exit $code
