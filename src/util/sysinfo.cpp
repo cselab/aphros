@@ -1,7 +1,6 @@
 // Created by Petr Karnakov on 20.07.2018
 // Copyright 2018 ETH Zurich
 
-#include <unistd.h>
 #include <fstream>
 #include <sstream>
 
@@ -31,7 +30,7 @@ bool HasHyperthreads() {
 std::string GetHostname() {
   const size_t kMaxLength = 4096;
   char buf[kMaxLength];
-  int err = gethostname(buf, kMaxLength);
+  int err = SystemGetHostName(buf, kMaxLength);
   fassert_equal(err, 0);
   return buf;
 }
