@@ -22,7 +22,7 @@ int SystemBaseName(const char* path, char *name) {
 
 int SystemDirName(const char *path, char *dir) {
   char path0[FILENAME_MAX];
-  strncpy(path0, path, sizeof path0);
+  strncpy(path0, path, sizeof path0 - 1);
   strcpy(dir, dirname(path0));
   return 0;
 }
@@ -58,7 +58,7 @@ int SystemHasHyperthreads(void) {
   while (fgets(line, sizeof line - 1, file)) {
     tok = strtok(line, search);
     if (strcmp(tok, "flags") == 0) {
-      while (tok = strtok(NULL, search)) {
+      while ((tok = strtok(NULL, search)) != NULL) {
         if (strcmp(tok, "ht") == 0) {
             fclose(file);
             return 1;
