@@ -1,6 +1,7 @@
 .SUFFIXES:
 .SUFFIXES: .cpp
-all: main
+all: main splitext
 
 APHROS_PREFIX = /u/hy
-.cpp:; $(CXX) -I$(APHROS_PREFIX)/include/aphros -o $@ $< $(APHROS_PREFIX)/lib/libaphros_static.a
+CXXFLAGS = -O0 -g
+.cpp:; $(CXX) $(CXXFLAGS) -I$(APHROS_PREFIX)/include/aphros -o $@ $< $(APHROS_PREFIX)/lib/libaphros_static.a

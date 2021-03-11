@@ -127,20 +127,17 @@ int SystemSplitExt(const char *a, char *base, char *ext) {
   int i;
   int j;
   int k;
-  int l;
-  for (i = 0, j = 0; a[i] != '\0'; i++)
-    if (a[i] == '/')
-      j = i;
-  for (k = l = j; a[k] != '\0'; k++)
-    if (a[k] == '.')
-      l = k;
-  if (l == j || (a[j] == '/' && l == j + 1)) {
+  for (i = 0, j = -1; a[i] != '\0'; i++)
+    if (a[i] == '/') j = i;
+  for (i = j, k = -1; a[i] != '\0'; i++)
+    if (a[i] == '.') k = i;
+  if (k == -1 || (j != -1 && k == j + 1)) {
     strcpy(base, a);
     ext[0] = '\0';
   } else {
-    strncpy(base, a, l);
-    base[l + 1] = '\0';
-    strcpy(ext, &a[l]);
+    strncpy(base, a, k);
+    base[k] = '\0';
+    strcpy(ext, &a[k]);
   }
   return 0;
 }
