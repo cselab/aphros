@@ -22,8 +22,6 @@ RUN echo '. $HOME/.local/bin/ap.setenv 2>/dev/null' >> $HOME/.profile
 RUN cmake -B .work/deploy aphros/deploy
 RUN cd .work/deploy && make && make install
 RUN cd aphros/src && make
-ENV OMPI_ALLOW_RUN_AS_ROOT=1
-ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 RUN cd aphros/src && dumb-init make test || true
 RUN cd aphros/examples && make build || true
 ENTRYPOINT ["dumb-init", "/bin/bash", "-l", "-c", "ap.mfer \"$@\"", "ap.mfer"]
