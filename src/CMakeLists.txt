@@ -208,6 +208,7 @@ set(ObjLibs
   subcomm
   suspender
   sysinfo
+  system
   timer
   tracer
   utilconvdiff
