@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 17.12.2020
+// Copyright 2020 ETH Zurich
+
 #include <fstream>
 #include <iostream>
 #include <memory>

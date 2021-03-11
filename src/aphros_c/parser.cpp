@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 01.03.2021
+// Copyright 2021 ETH Zurich
+
 #include <float.h>
 #include <limits.h>
 #include <stdio.h>

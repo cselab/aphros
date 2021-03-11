@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 31.01.2021
+// Copyright 2021 ETH Zurich
+
 int err_print(const char* fmt, ...);
 void err_exit(int);
 
