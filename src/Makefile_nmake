@@ -2,7 +2,7 @@
 .SUFFIXES:
 SRC = .
 WRK = .
-L = libaphros_static.a
+L = libaphros_static.lib
 J = libaphros_js.a
 CXX = cl
 CC = cl
