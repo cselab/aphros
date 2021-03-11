@@ -1,0 +1,6 @@
+.SUFFIXES:
+.SUFFIXES: .cpp
+all: main
+
+APHROS_PREFIX = /u/hy
+.cpp:; $(CXX) -I$(APHROS_PREFIX)/include/aphros -o $@ $< $(APHROS_PREFIX)/lib/libaphros_static.a
