@@ -31,13 +31,10 @@ std::string GetBasename(std::string path) {
 }
 
 std::array<std::string, 2> SplitExt(std::string path) {
-  const size_t i = path.find_last_of("/.");
-  if (i == std::string::npos || path[i] == '/' || // no period in filename
-      i == 0 || path[i - 1] == '/' // filename starts with period
-  ) {
-    return {path, ""};
-  }
-  return {path.substr(0, i), path.substr(i, std::string::npos)};
+  char base[PATH_MAX + 1];
+  char ext[PATH_MAX + 1];
+  SystemSplitExt(path.c_str(), base, ext);
+  return {std::string(base), std::string(ext)};
 }
 
 std::string Join(std::string a, std::string b) {
