@@ -29,6 +29,7 @@ function cat(file, rc, line) {
 	    replace("-std=c++14", "/std:c++14 /permissive")
 	    replace(" -O2 -g", " /O2 /Zi")
             replace("$(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@", "$(SRC)/util/gitgen.cpp:; type nul > $@")
+            replace("$(WRK)/$L: $O; mkdir -p $(WRK) && ar rv $@ $O && ranlib $@", "$L: $O; link /lib /OUT:$@ $O")
 	    remove("$(WRK)/.dir:; mkdir -p $P && > $@")
 	    remove(" -fPIC")
             remove("$(SRC)/")
