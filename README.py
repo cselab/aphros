@@ -72,12 +72,14 @@ make
 
 ### Docker
 
-Instead of building the code in your system, you can build and run a Docker
-container
+Instead of building the code in your system, you can build a Docker
+container and run a simulation example
 
 ```
 docker build github.com/cselab/aphros --tag aphros
-docker run -i aphros
+cd examples/202_coalescence/standalone
+./conf
+docker run -v `pwd`:`pwd` -w `pwd` aphros
 ```
 
 ### Minimal build without CMake

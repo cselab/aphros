@@ -1,0 +1,6 @@
+#!/bin/sh -eu
+
+cp -v ../../../deploy/scripts/sim_a.conf a.conf
+cp -v ../../../deploy/scripts/sim_base.conf base.conf
+cp -v ../std.conf .
+touch add.conf
