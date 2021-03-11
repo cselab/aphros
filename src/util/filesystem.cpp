@@ -13,33 +13,33 @@
 namespace util {
 
 std::string GetRealpath(std::string path) {
-  char buf[PATH_MAX + 1];
+  char buf[FILENAME_MAX + 1];
   char *ptr;
   ptr = SystemRealPath(path.c_str(), buf);
   return ptr == NULL ? "" : std::string(ptr);
 }
 
 std::string GetDirname(std::string path) {
-  char buf[PATH_MAX + 1];
+  char buf[FILENAME_MAX + 1];
   SystemDirName(path.c_str(), buf);
   return std::string(buf);
 }
 
 std::string GetBasename(std::string path) {
-  char buf[PATH_MAX + 1];
+  char buf[FILENAME_MAX + 1];
   SystemBaseName(path.c_str(), buf);
   return std::string(buf);
 }
 
 std::array<std::string, 2> SplitExt(std::string path) {
-  char base[PATH_MAX + 1];
-  char ext[PATH_MAX + 1];
+  char base[FILENAME_MAX + 1];
+  char ext[FILENAME_MAX + 1];
   SystemSplitExt(path.c_str(), base, ext);
   return {std::string(base), std::string(ext)};
 }
 
 std::string Join(std::string a, std::string b) {
-  char buf[PATH_MAX + 1];
+  char buf[FILENAME_MAX + 1];
   SystemJoin(a.c_str(), b.c_str(), buf);
   return buf;
 }
