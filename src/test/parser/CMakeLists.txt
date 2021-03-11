@@ -2,10 +2,10 @@ get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 
 set(T t.${name})
 add_executable(${T} main.cpp)
-target_link_libraries(${T} argparse parser vars format filesystem logger)
+target_link_libraries(${T} argparse parser vars format filesystem logger utilsystem)
 add_test_current(NAME main COMMAND ./test main)
 
 set(T t.${name}.codeblocks)
 add_executable(${T} codeblocks.cpp)
-target_link_libraries(${T} logger parser vars format filesystem)
+target_link_libraries(${T} logger parser vars format filesystem utilsystem)
 add_test_current(NAME codeblocks COMMAND ./test codeblocks)

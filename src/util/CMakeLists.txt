@@ -63,7 +63,7 @@ if (USE_OPENMP AND USE_MPI)
 else()
   add_library(${T} subcomm_dummy.cpp)
 endif()
-target_link_libraries(${T} sysinfo openmp)
+target_link_libraries(${T} sysinfo openmp utilsystem)
 
 set(T "histogram")
 add_library(${T} histogram.cpp)
