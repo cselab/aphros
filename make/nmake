@@ -23,6 +23,7 @@ function cat(file, rc, line) {
 	    if ($0 ~ /[:] .*\.dir$/)
 		continue
 	    sub(/\.o/, ".obj")
+            replace("$(WRK)/main.o ", "$(WRK)/main.obj ")
 	    replace("CXX = g++", "CXX = cl")
 	    replace("CC = c99", "CC = cl")
 	    replace("-o ", "/Fo")
