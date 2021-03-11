@@ -1,6 +1,6 @@
 FROM ubuntu:20.04
-RUN DEBIAN_FRONTEND=noninteractive apt update
-RUN DEBIAN_FRONTEND=noninteractive apt install --yes --quiet --no-install-recommends \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update
+RUN DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet --no-install-recommends \
 cmake \
 dumb-init \
 g++ \
