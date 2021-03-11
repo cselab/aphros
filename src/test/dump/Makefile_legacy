@@ -7,5 +7,5 @@ APHROSFLAGS = -I$(APHROS_PREFIX)/include/aphros -L$(APHROS_PREFIX)/lib -laphros_
 0 = dump_diff dump_gen dump_util
 all: $0
 .cpp:
-	$(MPICXX) $< $(CXXFLAGS) $(APHROSFLAGS) -o $@
+	$(MPICXX) $< $(CXXFLAGS) $(APHROSFLAGS) -D_USE_MPI_=0 -o $@
 clean:; -rm $O
