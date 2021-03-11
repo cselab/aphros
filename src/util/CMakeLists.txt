@@ -1,10 +1,10 @@
 add_library(suspender suspender.cpp)
-set(T "system")
+set(T "utilsystem")
 add_library(${T} system.c)
 
 set(T "sysinfo")
 add_library(${T} sysinfo.cpp)
-target_link_libraries(${T} openmp utilmpi system)
+target_link_libraries(${T} openmp utilmpi utilsystem)
 target_compile_definitions(${T} PRIVATE _USE_AMGX_=$<BOOL:${USE_AMGX}>)
 
 set(T "utilhydro")
@@ -47,7 +47,7 @@ add_dependencies(gitgen gitrev)
 
 set(T "filesystem")
 add_library(${T} filesystem.cpp)
-target_link_libraries(${T} system)
+target_link_libraries(${T} utilsystem)
 
 set(T "git")
 add_library(${T} git.cpp)

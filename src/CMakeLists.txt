@@ -208,7 +208,6 @@ set(ObjLibs
   subcomm
   suspender
   sysinfo
-  system
   timer
   tracer
   utilconvdiff
@@ -217,6 +216,7 @@ set(ObjLibs
   utilhydro
   utillinear
   utilmpi
+  utilsystem
   utilvof
   vars
   vof
