@@ -13,7 +13,7 @@
 int SystemBaseName(const char* path, char *name) {
   char *ans;
   char path0[FILENAME_MAX];
-  strncpy(path0, path, sizeof path0);
+  strncpy(path0, path, sizeof path0 - 1);
   if ((ans = basename(path0)) == NULL)
     return 1;
   strcpy(name, ans);
