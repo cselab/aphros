@@ -3,8 +3,8 @@ set(T "system")
 add_library(${T} system.c)
 
 set(T "sysinfo")
-add_library(${T} sysinfo.cpp system)
-target_link_libraries(${T} openmp utilmpi)
+add_library(${T} sysinfo.cpp)
+target_link_libraries(${T} openmp utilmpi system)
 target_compile_definitions(${T} PRIVATE _USE_AMGX_=$<BOOL:${USE_AMGX}>)
 
 set(T "utilhydro")
@@ -46,7 +46,8 @@ add_library(gitgen gitgen.cpp)
 add_dependencies(gitgen gitrev)
 
 set(T "filesystem")
-add_library(${T} filesystem.cpp system)
+add_library(${T} filesystem.cpp)
+target_link_libraries(${T} system)
 
 set(T "git")
 add_library(${T} git.cpp)
