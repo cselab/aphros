@@ -2027,7 +2027,7 @@ util/vof.obj: util/vof.ipp
 young/main.obj: young/young.h
 $L: $O; link /lib /OUT:$@ $O
 $J: $O; emar rv $@ $O
-ap.mfer: main.obj $L; $(LINK) $< $(LDFLAGS) $L /Fo$@
+ap.mfer: main.obj $L; $(LINK) $(LDFLAGS) main.obj $L /Fo$@
 main.obj: main.c; $(CC_RULE) main.c
 
 util/gitgen.cpp:; type nul > $@
