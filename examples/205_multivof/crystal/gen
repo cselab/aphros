@@ -56,7 +56,7 @@ def PhysicalToNumerical(length, width, narrow_width, height, rho_liquid, mu_liqu
 
 class Default(aphros.Parameters):
     dim = 3
-    np = 1
+    np = 1 # number of processors
     tl = 1440
     ny = 99
     nz = None

@@ -1,0 +1,10 @@
+np = 20 * 12
+ny = 99
+mu_liquid = 1e-3 * 0.25
+sigma = 72e-3 * 0.05
+length = 6e-3
+vfoam = 15e-3
+rho_ratio = 0.1
+erasevf_per = 1.
+erasevf_length = 0.05
+inletpressure_add = 3.890909090909088
