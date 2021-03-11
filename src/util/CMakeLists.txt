@@ -74,7 +74,7 @@ add_library(${T} format.cpp)
 target_link_libraries(${T} logger)
 
 set(T "system")
-add_library(${T} system.cpp)
+add_library(${T} system.c)
 
 set(T "allocator")
 add_library(${T} fixed_allocator.cpp)
