@@ -41,19 +41,9 @@ std::array<std::string, 2> SplitExt(std::string path) {
 }
 
 std::string Join(std::string a, std::string b) {
-  if (b == "") {
-    return a;
-  }
-  if (a == "") {
-    return b;
-  }
-  if (b[0] == '/') {
-    return b;
-  }
-  if (a.back() == '/') {
-    return a + b;
-  }
-  return a + '/' + b;
+  char buf[PATH_MAX + 1];
+  SystemJoin(a.c_str(), b.c_str(), buf);
+  return buf;
 }
 
 void Makedir(std::string path, bool parent) {
