@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 17.12.2020
+// Copyright 2020 ETH Zurich
+
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -36,17 +39,22 @@ int main(int argc, const char** argv) {
   }
   auto& out = (opath != "-" ? fout : std::cout);
   for (auto a : var.String) {
-    if (a.second.find('\n') != std::string::npos) {
-      out << util::Format("{} = \"\"\"{}\"\"\"\n", a.first, a.second);
+    if (a.second.find('
+') != std::string::npos) {
+      out << util::Format("{} = \"\"\"{}\"\"\"
+", a.first, a.second);
     } else {
-      out << util::Format("{} = \"{}\"\n", a.first, a.second);
+      out << util::Format("{} = \"{}\"
+", a.first, a.second);
     }
   }
   for (auto a : var.Int) {
-    out << util::Format("{} = {:}\n", a.first, a.second);
+    out << util::Format("{} = {:}
+", a.first, a.second);
   }
   for (auto a : var.Double) {
-    out << util::Format("{} = {:.20f}\n", a.first, a.second);
+    out << util::Format("{} = {:.20f}
+", a.first, a.second);
   }
   for (auto a : var.Vect) {
     std::string val;
@@ -56,6 +64,7 @@ int main(int argc, const char** argv) {
       val += util::Format("{}{:.20f}", sep, q);
       first = false;
     }
-    out << util::Format("{} = [{}]\n", a.first, val);
+    out << util::Format("{} = [{}]
+", a.first, val);
   }
 }

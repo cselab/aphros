@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 03.11.2020
+// Copyright 2020 ETH Zurich
+
 #pragma once
 
 #define APHROS_CAT(x, y) x##y

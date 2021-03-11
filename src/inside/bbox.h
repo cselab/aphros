@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 31.01.2021
+// Copyright 2021 ETH Zurich
+
 struct Bbox;
 int bbox_ini(struct Bbox**);
 int bbox_fin(struct Bbox*);

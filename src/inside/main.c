@@ -1,3 +1,6 @@
+// Created by Petr Karnakov on 31.01.2021
+// Copyright 2021 ETH Zurich
+
 #include <float.h>
 #include <limits.h>
 #include <math.h>
@@ -269,7 +272,8 @@ int inside_fwrite(struct Inside* q, FILE* file) {
       idx = ix + iy * nx;
       if (idx < 0) idx = 0;
       if (idx >= nx * ny) idx = nx * ny - 1;
-      if (fprintf(file, "%d %d %d\n", ix, iy, n[idx]) < 0) return 1;
+      if (fprintf(file, "%d %d %d
+", ix, iy, n[idx]) < 0) return 1;
     }
   return 0;
 }

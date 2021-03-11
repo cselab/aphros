@@ -1,3 +1,6 @@
+// Created by Sergey Litvinov on 01.03.2021
+// Copyright 2021 ETH Zurich
+
 #include <float.h>
 #include <limits.h>
 #include <stdio.h>
@@ -10,7 +13,8 @@
 
 void ErrorHandler(int, const char* str) {
   fputs(str, stderr);
-  fputs("\n", stderr);
+  fputs("
+", stderr);
 }
 
 struct aphros_Parser {
@@ -84,7 +88,8 @@ char* aphros_ParserGetString(struct aphros_Parser* q, const char* name) {
   }
   free(q->string);
   if ((q->string = strdup(s.c_str())) == NULL) {
-    fprintf(stderr, "%s:%d: strdup failed\n", __FILE__, __LINE__);
+    fprintf(stderr, "%s:%d: strdup failed
+", __FILE__, __LINE__);
     q->status = 2;
     return NULL;
   }
@@ -104,7 +109,8 @@ double* aphros_ParserGetVect(
   }
   free(q->vect);
   if ((q->vect = (double*)malloc(s.size() * sizeof *q->vect)) == NULL) {
-    fprintf(stderr, "%s:%d: malloc failed\n", __FILE__, __LINE__);
+    fprintf(stderr, "%s:%d: malloc failed
+", __FILE__, __LINE__);
     q->status = 2;
     return NULL;
   }
