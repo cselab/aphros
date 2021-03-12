@@ -26,7 +26,7 @@ static double sq(double);
 static double edg(const double*, const double*);
 static double tri_point_distance2(
     const double[3], const double[3], const double[3], const double p[3]);
-static double max(double, double);
+static double max_dbl(double, double);
 
 static char me[] = "inside";
 enum { X, Y, Z };
@@ -182,7 +182,7 @@ int inside_inside_naive(struct Inside* q, const double r[3]) {
   zm = bbox_zhi(bbox);
   e[X] = r[X];
   e[Y] = r[Y];
-  e[Z] = max(zm, r[Z]) + eps;
+  e[Z] = max_dbl(zm, r[Z]) + eps;
   for (t = m = 0; t < nt; t++) {
     i = *tri++;
     j = *tri++;
@@ -237,7 +237,7 @@ int inside_inside(struct Inside* q, const double r[3]) {
   zm = bbox_zhi(bbox);
   e[X] = r[X];
   e[Y] = r[Y];
-  e[Z] = max(zm, r[Z]) + eps;
+  e[Z] = max_dbl(zm, r[Z]) + eps;
   ix = (r[X] - lo[X]) / size;
   iy = (r[Y] - lo[Y]) / size;
   idx = ix + iy * nx;
@@ -402,7 +402,7 @@ double inside_distance_naive(struct Inside* q, const double r[3]) {
 
 typedef int (*const ReadType)(
     FILE*, int* status, int* nt, int** tri, int* nv, double** ver);
-static const ReadType Read[] = {off_read, ply_read, stl_read};
+static ReadType Read[] = {off_read, ply_read, stl_read};
 int inside_mesh_read(
     const char* path, int* nt, int** tri, int* nv, double** ver) {
   int status;
@@ -457,7 +457,7 @@ double max_edg(const double* u, const double* v, const double* w) {
   a = edg(v, u);
   b = edg(w, u);
   c = edg(v, w);
-  return max(c, max(a, b));
+  return max_dbl(c, max_dbl(a, b));
 }
 
 static int vec_minus(const double a[3], const double b[3], /**/ double c[3]) {
@@ -531,6 +531,6 @@ static double tri_point_distance2(
   return x * x + y * y + z * z;
 }
 
-static double max(double a, double b) {
-  return a > b  ? a : b
+static double max_dbl(double a, double b) {
+  return a > b  ? a : b;
 }
