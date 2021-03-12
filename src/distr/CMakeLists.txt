@@ -1,12 +1,12 @@
 if (USE_BACKEND_LOCAL)
   set(T "local")
-  add_library(${T} local.cpp)
+  aphros_add_object(T ${T} local.cpp)
   target_link_libraries(${T} distr use_dims)
 endif()
 
 if (USE_BACKEND_CUBISM)
   set(T "cubismnc")
-  add_library(${T} cubismnc.cpp)
+  aphros_add_object(T ${T} cubismnc.cpp)
   target_link_libraries(${T} hdf distr)
   target_compile_definitions(${T} PRIVATE _ALIGNBYTES_=16)
   target_compile_definitions(${T} PRIVATE _USE_HDF_)
@@ -19,26 +19,26 @@ endif()
 
 if (USE_BACKEND_NATIVE)
   set(T "native")
-  add_library(${T} native.cpp)
+  aphros_add_object(T ${T} native.cpp)
   target_link_libraries(${T} PUBLIC distr dump_raw dump_xmf PRIVATE use_dims)
 
   set(T "comm_manager")
-  add_library(${T} comm_manager.cpp)
+  aphros_add_object(T ${T} comm_manager.cpp)
   target_link_libraries(${T} PUBLIC distr PRIVATE use_mpi)
 endif()
 
 set(T "report")
-add_library(${T} report.cpp)
+aphros_add_object(T ${T} report.cpp)
 target_link_libraries(${T})
 
 set(T "distr")
-add_library(${T} distr.cpp)
+aphros_add_object(T ${T} distr.cpp)
 target_link_libraries(${T}
     sysinfo report parser suspender vars histogram dumper git subcomm openmp
     dump_xmf dump_raw use_dims)
 
 set(T "distrsolver")
-add_library(${T} distrsolver.cpp)
+aphros_add_object(T ${T} distrsolver.cpp)
 target_link_libraries(${T} PUBLIC distr utildistr utilmpi argparse PRIVATE use_backend)
 if (USE_BACKEND_CUBISM)
   target_link_libraries(${T} PUBLIC cubismnc)
@@ -51,5 +51,5 @@ if (USE_BACKEND_NATIVE)
 endif()
 
 set(T "distrbasic")
-add_library(${T} distrbasic.cpp)
+aphros_add_object(T ${T} distrbasic.cpp)
 target_link_libraries(${T} PUBLIC distrsolver utildistr PRIVATE use_backend)

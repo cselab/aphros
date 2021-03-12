@@ -1,3 +1,2 @@
-set(TARG "color")
-set(S "color.c")
-add_library(${TARG} ${S})
+set(T color)
+aphros_add_object(T ${T} color.c)

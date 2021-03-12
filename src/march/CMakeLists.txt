@@ -1,2 +1,2 @@
 set(T "march")
-add_library(${T} main.c)
+aphros_add_object(T ${T} main.c)

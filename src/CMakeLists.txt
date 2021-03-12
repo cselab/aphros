@@ -128,12 +128,17 @@ install(TARGETS ${T} EXPORT export)
 
 include_directories(.)
 
-function(add_library T)
-  _add_library(${T} ${ARGN})
-  if (NOT "${ARGN}" MATCHES "INTERFACE")
-    target_compile_options(${T} PRIVATE -Wall -Wextra -pedantic -Wshadow)
-  endif()
-endfunction(add_library)
+# Defines an object library named ${T}_obj and an interface library named ${T}.
+# Sets ${varname} to ${T}_obj.
+macro(aphros_add_object varname T)
+  add_library(${T}_obj OBJECT ${ARGN})
+  add_library(${T} INTERFACE)
+  target_link_libraries(${T} INTERFACE ${T}_obj $<TARGET_OBJECTS:${T}_obj>)
+  target_compile_options(${T}_obj PRIVATE -Wall -Wextra -pedantic -Wshadow)
+  install(TARGETS ${T} EXPORT export)
+  install(TARGETS ${T}_obj EXPORT export)
+  set(${varname} ${T}_obj)
+endmacro(aphros_add_object)
 
 add_subdirectory(color)
 add_subdirectory(distr)
@@ -150,7 +155,7 @@ add_subdirectory(util)
 add_subdirectory(young)
 
 
-set(Libs
+set(ObjLibs
   allocator
   approx
   approx_eb
@@ -180,7 +185,6 @@ set(Libs
   init
   init_contang
   init_vel
-  inside
   linear
   logger
   march
@@ -221,43 +225,51 @@ set(UseLibs
   use_backend
   use_overlap
 )
+set(StaticLibs
+  inside
+)
 
 if (USE_HYPRE)
-  set(Libs ${Libs} hypre hypresub linear_hypre)
+  set(ObjLibs ${ObjLibs} hypre hypresub linear_hypre)
 endif()
 
 if (USE_AMGX)
-  set(Libs ${Libs} linear_amgx)
+  set(ObjLibs ${ObjLibs} linear_amgx)
 endif()
 
 if (USE_OVERLAP)
-  set(Libs ${Libs} overlap)
+  set(ObjLibs ${ObjLibs} overlap)
 endif()
 
 if (USE_BACKEND_CUBISM)
-  set(Libs ${Libs} cubismnc)
+  set(ObjLibs ${ObjLibs} cubismnc)
 endif()
 
 if (USE_BACKEND_LOCAL)
-  set(Libs ${Libs} local)
+  set(ObjLibs ${ObjLibs} local)
 endif()
 
 if (USE_BACKEND_NATIVE)
-  set(Libs ${Libs} native comm_manager)
+  set(ObjLibs ${ObjLibs} native comm_manager)
 endif()
 
+set(ObjLibsTarget)
+foreach(name ${ObjLibs})
+  list(APPEND ObjLibsTarget "$<TARGET_OBJECTS:${name}_obj>")
+endforeach()
+
 set(T aphros)
-add_library(${T} SHARED $<TARGET_OBJECTS:mesh>)
+add_library(${T} SHARED ${ObjLibsTarget})
 target_include_directories(${T} INTERFACE "${APHROS_PREFIX}/include/aphros")
-target_link_libraries(${T} PUBLIC ${Libs} ${UseLibs})
-install(TARGETS ${T} EXPORT export DESTINATION lib)
+target_link_libraries(${T} PUBLIC openmp hypreext hdf inside ${StaticLibs} ${UseLibs})
+install(TARGETS ${T} EXPORT export)
 
 add_subdirectory(kernel)
 
 set(T aphros_c)
-add_library(${T} SHARED aphros_c/git.cpp  aphros_c/main.cpp  aphros_c/parser.cpp)
-target_link_libraries(${T} PUBLIC hydro aphros ${UseLibs})
-install(TARGETS ${T} EXPORT export DESTINATION lib)
+add_library(${T} SHARED aphros_c/git.cpp aphros_c/main.cpp aphros_c/parser.cpp)
+target_link_libraries(${T} PUBLIC aphros hydro_obj ${UseLibs})
+install(TARGETS ${T} EXPORT export)
 
 set(T mfer)
 add_executable(${T} main.c)
