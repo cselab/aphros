@@ -20,7 +20,7 @@ class Hdf {
   template <class Field>
   static void Write(
       const Field& fc, std::string path, M& m,
-      const std::string dname = kDefaultName);
+      std::string dname = kDefaultName);
   // Reads HDF file with one scalar field. Dimensions of the dataset
   // must match the global mesh size: (nz, ny, nx, 1).
   //
@@ -30,7 +30,7 @@ class Hdf {
   template <class Field>
   static void Read(
       Field& fc, std::string path, M& m,
-      const std::string dname = kDefaultName);
+      std::string dname = kDefaultName);
   // Returns shape of a dataset in HDF file.
   // path: input path
   // dname: dataset name
