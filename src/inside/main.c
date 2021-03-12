@@ -26,6 +26,7 @@ static double sq(double);
 static double edg(const double*, const double*);
 static double tri_point_distance2(
     const double[3], const double[3], const double[3], const double p[3]);
+static double max(double, double);
 
 static char me[] = "inside";
 enum { X, Y, Z };
@@ -153,7 +154,6 @@ int inside_ini(int nt, const int* tri, const double* ver, struct Inside** pq) {
   return 0;
 }
 
-#define max(a, b) ((a) > (b) ? (a) : (b))
 int inside_inside_naive(struct Inside* q, const double r[3]) {
   int nt;
   int t;
@@ -529,4 +529,8 @@ static double tri_point_distance2(
   y = q[Y] + t1 * u[Y] + t2 * v[Y];
   z = q[Z] + t1 * u[Z] + t2 * v[Z];
   return x * x + y * y + z * z;
+}
+
+static double max(double a, double b) {
+  return a > b  ? a : b
 }
