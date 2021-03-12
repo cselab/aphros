@@ -1,8 +1,10 @@
-B = build
+BUILD = build
+CMAKE = cmake
 
-$B/libhook.so: $B/Makefile hook.cpp
-	make -C $B
 
-$B/Makefile: CMakeLists.txt
-	mkdir -p $B
-	cd $B && ap.conf ..
+$(BUILD)/libhook.so: $(BUILD)/Makefile hook.cpp
+	make -C $(BUILD)
+
+$(BUILD)/Makefile: CMakeLists.txt
+	mkdir -p $(BUILD)
+	cd $(BUILD) && $(CMAKE) ..

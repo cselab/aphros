@@ -76,8 +76,6 @@ set(ScriptsList
     argmaxall
     base
     cawk
-    conf
-    confdeb
     copyright
     deriv
     diff
