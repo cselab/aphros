@@ -39,7 +39,7 @@ char* SystemRealPath(const char* path, char* resolved) {
 }
 
 int SystemGetHostName(char* name, size_t len) {
-  //return gethostname(name, len);
+  // TODO
   name[0] = 'w'; name[1] = 'i'; name[2] = 'n'; name[3] = '\0';
   return 0;
 }
@@ -60,7 +60,20 @@ int SystemIsFile(const char* path) {
 }
 
 int SystemJoin(const char *a, const char *b, char *c) {
-  // TODO
+  if (a[0] == '\0')
+    strcpy(c, b);
+  else if (b[0] == '\0')
+    strcpy(c, a);
+  else if (b[0] == '\\')
+    strcpy(c, b);
+  else if (a[strlen(a) - 1] == '\\') {
+    strcpy(c, a);
+    strcat(c, b);
+  } else {
+    strcpy(c, a);
+    strcat(c, "\\");
+    strcat(c, b);
+  }
   return 0;
 }
 
