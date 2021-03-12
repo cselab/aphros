@@ -139,7 +139,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       v[2] = vz;
     }
   } else if (vi == "vortex") {
-    Scal pi = MATH_PI;
+    Scal pi = M_PI;
     Vect xc1(var.Vect["vort_x1"]);
     Vect xc2(var.Vect["vort_x2"]);
     Scal g1 = var.Double["vort_g1"];
@@ -192,7 +192,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     }
   } else if (vi == "vortexgauss") {
     // XXX: Bergdorf 2007, Direct numerical simulations of vortex rings
-    Scal pi = MATH_PI;
+    Scal pi = M_PI;
     Scal g(var.Double["ring_gamma"]); // circulation
     Scal sig(var.Double["ring_sigma"]); // sigma
     Scal rad(var.Double["ring_r"]); // radius
@@ -274,7 +274,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     bool wyp = var.Int["poiswyp"]; // wallyp
     bool wzm = var.Int["poiswzm"]; // wallzm
     bool wzp = var.Int["poiswzp"]; // wallzp
-    Scal pi = MATH_PI;
+    Scal pi = M_PI;
 
     Scal ly = domain[1];
     Scal lz = M::dim > 2 ? domain[2] : 1;
@@ -343,7 +343,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal g(Vect(var.Vect["gravity"]).norm());
     Scal a = yh;
     Scal la = xw;
-    Scal k = 2. * MATH_PI / la;
+    Scal k = 2. * M_PI / la;
     for (auto c : m.AllCells()) {
       Vect xx = m.GetCenter(c);
       Scal x = xx[0] - xc;
@@ -369,7 +369,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     auto cos = [](Scal t) { return std::cos(t); };
     auto sin = [](Scal t) { return std::sin(t); };
     Scal g(Vect(var.Vect["gravity"]).norm());
-    Scal p2 = 2 * MATH_PI;
+    Scal p2 = 2 * M_PI;
     Scal L = xw;
     Scal D = yc;
     Scal C = std::sqrt(g * L * tanh(p2 * D / L) / p2);
@@ -502,7 +502,7 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
     Scal d(var.Double["wavelamb_delta"]);
     Scal omk(var.Double["wavelamb_omk"]);
     Scal g = -Vect(var.Vect["gravity"])[1];
-    Scal pi = MATH_PI;
+    Scal pi = M_PI;
 
     using std::cos;
     using std::cosh;
@@ -1095,7 +1095,7 @@ void CalcTraj(
       for (auto& it : cl2row) {
         auto& v = it.second;
         Scal vf = v[0]; // XXX: assume vf is first
-        const Scal pi = MATH_PI;
+        const Scal pi = M_PI;
         // XXX: assume r is second
         if (m.GetEdim() == 3) {
           v[1] = std::pow(3. / (4. * pi) * vf, 1. / 3.);

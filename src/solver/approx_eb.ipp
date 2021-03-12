@@ -142,7 +142,7 @@ void InitLevelSetFromModel(
         // by angles omega[0], omega[1], omega[2] degrees with origin at 0
         auto rotate = [&m](Vect x, Vect omega) {
           for (auto d : m.dirs) {
-            const Scal a = omega[d] / 180 * MATH_PI;
+            const Scal a = omega[d] / 180 * M_PI;
             const size_t du = (d + 1) % m.dim;
             const size_t dv = (d + 2) % m.dim;
             const Scal u = x[du] * std::cos(a) - x[dv] * std::sin(a);
@@ -275,7 +275,7 @@ void UEmbed<M>::InitLevelSet(
     if (sem()) {
       const Vect xc(var.Vect["eb_box_c"]);
       const Vect r(var.Vect["eb_box_r"]);
-      const Scal angle = MATH_PI * var.Double["eb_box_angle"];
+      const Scal angle = M_PI * var.Double["eb_box_angle"];
       auto rotate = [angle](Vect x) {
         const Scal sin = std::sin(angle);
         const Scal cos = std::cos(angle);
@@ -293,7 +293,7 @@ void UEmbed<M>::InitLevelSet(
     if (sem()) {
       const Vect xc(var.Vect["eb_sphere_c"]);
       const Vect r(var.Vect["eb_sphere_r"]);
-      const Scal angle = MATH_PI * var.Double["eb_sphere_angle"];
+      const Scal angle = M_PI * var.Double["eb_sphere_angle"];
       auto rotate = [angle](Vect x) {
         const Scal sin = std::sin(angle);
         const Scal cos = std::cos(angle);

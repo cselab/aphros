@@ -28,7 +28,7 @@ std::function<Vect(Vect, Scal)> CreateInitVel(const Vars& par) {
   } else if (v == "sincos") {
     Scal revt = par.Double["revt"]; // reverse time
     f = [revt](Vect x, Scal t) -> Vect {
-      x = x * MATH_PI;
+      x = x * M_PI;
       Vect res(0);
       res[0] = std::sin(x[0]) * std::cos(x[1]);
       res[1] = -std::cos(x[0]) * std::sin(x[1]);

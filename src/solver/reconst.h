@@ -43,7 +43,7 @@ class Reconst {
     Scal r = 3. * q * std::sqrt(-3. / p) / (2. * p);
     r = std::max(-1., std::min(1., r));
     Scal t = 2. * std::sqrt(-p / 3.) *
-             std::cos(1. / 3. * std::acos(r) - 2. * MATH_PI * k / 3.);
+             std::cos(1. / 3. * std::acos(r) - 2. * M_PI * k / 3.);
     Scal x = t - b / (3. * a);
     return x;
   }

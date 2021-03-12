@@ -64,7 +64,7 @@ void Main(M& m, Vars& var) {
       auto c = m(m.FindNearestCell(Vect(0.4, 0.4, 0.)));
       const int imax = 100;
       for (int i = 0; i < imax; ++i) {
-        const Scal t = 2 * MATH_PI * i / imax;
+        const Scal t = 2 * M_PI * i / imax;
         const Vect nf(std::cos(t), std::sin(t), 0.);
         auto h = m.GetCellSize()[0];
         const Vect rf = c.center() + Vect(h * 0.2, h * 0.3, 0.);
