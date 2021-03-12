@@ -100,9 +100,9 @@ void Init() {
     Vect per0(var.Vect["noise_per0"]);
     Vect per1(var.Vect["noise_per1"]);
     Vect per2(var.Vect["noise_per2"]);
-    Vect k0 = Vect(2 * M_PI) / (per0 * m.GetCellSize());
-    Vect k1 = Vect(2 * M_PI) / (per1 * m.GetCellSize());
-    Vect k2 = Vect(2 * M_PI) / (per2 * m.GetCellSize());
+    Vect k0 = Vect(2 * MATH_PI) / (per0 * m.GetCellSize());
+    Vect k1 = Vect(2 * MATH_PI) / (per1 * m.GetCellSize());
+    Vect k2 = Vect(2 * MATH_PI) / (per2 * m.GetCellSize());
     for (auto c : m.AllCells()) {
       auto x = m.GetCenter(c);
       fcvel[c] += vel0 * std::sin(k0.dot(x));
@@ -250,7 +250,7 @@ void CalcMixture() {
         Scal t0 = var.Double[pre + "_t0"];
         Scal t1 = var.Double[pre + "_t1"];
         Vect sig(var.Vect[pre + "_sig"]);
-        Scal pi = M_PI;
+        Scal pi = MATH_PI;
         int edim = var.Int["dim"];
 
         Scal t = (st_.t - t0) / (t1 - t0);

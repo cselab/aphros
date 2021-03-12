@@ -333,7 +333,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
         Scal x = xx[0] - xc;
         Scal L = xw;
         Scal D = yc;
-        Scal p2 = 2 * M_PI;
+        Scal p2 = 2 * MATH_PI;
         Scal H = yh;
         Scal h = D + std::cos(p2 * x / L) * H;
         return xx[1] - h;
@@ -390,7 +390,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
         using std::cos;
         Scal a = yh;
         Scal la = xw;
-        Scal k = 2. * M_PI / la;
+        Scal k = 2. * MATH_PI / la;
         Scal x = xx[0] - xc;
         Scal kx = k * x;
         Scal h = yc + a / la *
@@ -427,7 +427,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
     if (auto p = par.Vect.Find("sin_k")) {
       k = Vect(*p);
     } else {
-      k = Vect(2. * M_PI);
+      k = Vect(2. * MATH_PI);
     }
 
     return [k](FieldCell<Scal>& fc, const M& m) {

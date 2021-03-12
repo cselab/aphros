@@ -48,7 +48,7 @@ class KelvinHelmholtz : public ModuleInitVelocity<M> {
       const Vect x = m.GetCenter(i);
       v = Vect(0);
       v[0] = (x - center).abs() < radius ? 0.5 : -0.5;
-      v[1] = std::sin(x[0] * 2 * M_PI / wavelength) * amplitude;
+      v[1] = std::sin(x[0] * 2 * MATH_PI / wavelength) * amplitude;
     }
   }
 };

@@ -212,8 +212,8 @@ struct Imp {
     const Vect xc(Vect3(d["cx"], d["cy"], d["cz"])); // center
     const Vect r(Vect3(d["rx"], d["ry"], d["rz"])); // radius (semi-axes)
     const Scal rotz = d["rotz"]; // rotation angle around z in degrees
-    const Scal rotz_cos = std::cos(-M_PI * rotz / 180.);
-    const Scal rotz_sin = std::sin(-M_PI * rotz / 180.);
+    const Scal rotz_cos = std::cos(-MATH_PI * rotz / 180.);
+    const Scal rotz_sin = std::sin(-MATH_PI * rotz / 180.);
 
     res.ls = [edim, xc, r, rotz_cos, rotz_sin](const Vect& x) -> Scal {
       Vect dx = x - xc;
@@ -277,7 +277,7 @@ struct Imp {
       const Vect dx = x - xc;
       const Scal dn = n.dot(dx) / ln;
       const Scal dt = t.dot(dx) / lt;
-      const Scal q = dt < -1 ? 1 : dt > 1 ? -1 : -std::sin(M_PI * 0.5 * dt);
+      const Scal q = dt < -1 ? 1 : dt > 1 ? -1 : -std::sin(MATH_PI * 0.5 * dt);
       return (q - dn) * lt;
     };
     return true;
@@ -601,7 +601,7 @@ struct Imp {
           const Vect et = (dx - n * xn) / std::max(eps, xt);
           // unit along circle
           const Vect es = n.cross(et);
-          const Scal om = magn / (M_PI * sig2) * std::exp(-s2 / sig2);
+          const Scal om = magn / (MATH_PI * sig2) * std::exp(-s2 / sig2);
           return es * om;
         };
 
@@ -620,7 +620,7 @@ struct Imp {
           dx[2] = 0;
           const Scal sig2 = sqr(sig);
           const Scal omz =
-              magn / (2 * M_PI * sig2) * std::exp(-dx.sqrnorm() / sig2);
+              magn / (2 * MATH_PI * sig2) * std::exp(-dx.sqrnorm() / sig2);
           return Vect(Vect3(0., 0., omz));
         };
         pp.push_back(p);

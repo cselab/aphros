@@ -97,7 +97,7 @@ typename M::Scal Hydro<M>::GetSurfaceTensionDt() const {
   const Scal sig = var.Double["sigma"];
   const Scal* cflst = var.Double.Find("cflst");
   if (cflst && sig != 0.) {
-    Scal pi = M_PI;
+    Scal pi = MATH_PI;
     Scal h3 = m.GetVolume(IdxCell(0));
     Scal r1 = var.Double["rho1"];
     Scal r2 = var.Double["rho2"];
@@ -325,8 +325,8 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
   // particles per unit time
   const size_t edim = m.GetEdim();
   const Scal sphere_vol =
-      (edim == 3 ? 4. / 3. * M_PI * std::pow(sphere_r, 3)
-                 : M_PI * sqr(sphere_r));
+      (edim == 3 ? 4. / 3. * MATH_PI * std::pow(sphere_r, 3)
+                 : MATH_PI * sqr(sphere_r));
   const Vect h = m.GetCellSize();
   const Scal cell_vol = (edim == 3 ? h.prod() : h[0] * h[1]);
   const Vect velocity(var.Vect["particles_spawn_velocity"]);

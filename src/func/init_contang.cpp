@@ -20,7 +20,7 @@ class Uniform : public ModuleInitContang<M> {
   Uniform() : ModuleInitContang<M>("uniform") {}
   void operator()(
       FieldCell<Scal>& fc_contang, const Vars& var, const M& m) override {
-    fc_contang.Reinit(m, var.Double["contang"] * M_PI / 180);
+    fc_contang.Reinit(m, var.Double["contang"] * MATH_PI / 180);
   }
 };
 
@@ -39,8 +39,8 @@ class Linear : public ModuleInitContang<M> {
       VAR_DOUBLE(contang1);
     } conf;
     conf.Read(var, "contang_");
-    conf.contang0 *= M_PI / 180.;
-    conf.contang1 *= M_PI / 180.;
+    conf.contang0 *= MATH_PI / 180.;
+    conf.contang1 *= MATH_PI / 180.;
     for (auto c : m.AllCells()) {
       const Vect x0(conf.x0);
       const Vect x1(conf.x1);
@@ -66,8 +66,8 @@ class Radial : public ModuleInitContang<M> {
       VAR_DOUBLE(contang1);
     } conf;
     conf.Read(var, "contang_");
-    conf.contang0 *= M_PI / 180.;
-    conf.contang1 *= M_PI / 180.;
+    conf.contang0 *= MATH_PI / 180.;
+    conf.contang1 *= MATH_PI / 180.;
     for (auto c : m.AllCells()) {
       Scal a = m.GetCenter(c).dist(Vect(conf.x0)) / conf.r;
       a = std::min(1., a);

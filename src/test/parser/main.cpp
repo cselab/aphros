@@ -142,22 +142,22 @@ void TestFormat() {
   std::cout << util::Format(
       "Char '{0}' at position {1} in string '{2}'\n", s[i], i, s);
   std::cout << util::Format(
-      "scientific {0:.3e}, fixed {0:.3f}, default {0:.3g}\n", M_PI);
+      "scientific {0:.3e}, fixed {0:.3f}, default {0:.3g}\n", MATH_PI);
   std::cout << util::Format(
-      "scientific {:.3e}, fixed {:.3f}, default {:.3g}\n", M_PI, M_PI, M_PI);
+      "scientific {:.3e}, fixed {:.3f}, default {:.3g}\n", MATH_PI, MATH_PI, MATH_PI);
   std::cout << util::Format(
       "scientific {:.3e}, fixed {:.3f}, default {:.3g}\n", 0.0, 1.1, 2.2);
   std::cout << util::Format(
       "scientific {0:.3e}, fixed {1:.3f}, default {2:.3g}\n", 0.0, 1.1, 2.2);
   std::cout << util::Format(
-      "width scientific {0:10.3e}, fixed {0:10.3f}, default {0:10.3g}\n", M_PI);
+      "width scientific {0:10.3e}, fixed {0:10.3f}, default {0:10.3g}\n", MATH_PI);
   std::cout << util::Format(
       "width leadzero scientific {0:010.e}, fixed {0:010.3f}, default "
       "{0:010.3g}\n",
-      M_PI);
+      MATH_PI);
   std::cout << util::Format(
       "leadzero scientific {0:010.e}, fixed {0:010.3f}, default {0:010.3g}\n",
-      -M_PI);
+      -MATH_PI);
   std::cout << util::Format(
       "width leadzero {:03d} {:05} {:08d}\n", 1, 123, 123456);
   using Vect = generic::Vect<double, 3>;
@@ -165,7 +165,7 @@ void TestFormat() {
   std::cout << //
       util::Format(
           "a={0} b={0:} c={1:7} d={0:7.3f} e={0:07.3f} f={0:07.3g} g={0:.3e}\n",
-          M_PI, 3.14);
+          MATH_PI, 3.14);
 }
 
 int main() {

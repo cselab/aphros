@@ -297,7 +297,7 @@ struct PartStrMeshM<M_>::Imp {
           // number of strings
           const size_t ns = (par.dim == 2 ? 1 : par.ns);
           for (size_t s = 0; s < ns; ++s) {
-            const Scal section_angle = s * M_PI / ns;
+            const Scal section_angle = s * MATH_PI / ns;
             const auto basis =
                 GetPlaneBasis(m.GetCenter(c), fcn[c], fca[c], section_angle);
 
