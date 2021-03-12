@@ -7,6 +7,10 @@
 #include "table.h"
 
 enum { X, Y, Z };
+static double MARCH_O[][3] = {
+    {0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0},
+    {0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1},
+};
 struct Ver {
   double a;
   int x, y;
@@ -15,7 +19,6 @@ struct March {
   struct Ver cube_ver[3 * MARCH_NTRI];
   int cube_n;
 };
-
 static double offset(double, double);
 static int map(int);
 
@@ -101,6 +104,10 @@ static int march(struct March* q, double u[8], int* pn, double* tri) {
 int march_cube(double u[8], int* n, double* tri) {
   struct March q;
   return march(&q, u, n, tri);
+}
+
+double **march_o(void) {
+  return MARCH_O;
 }
 
 static int cube_location(struct March* q, int* x, int* y, double* a) {
