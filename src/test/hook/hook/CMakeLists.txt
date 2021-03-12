@@ -3,6 +3,6 @@ project(main)
 find_package(aphros)
 
 set(T hook)
-aphros_add_object(T ${T} SHARED hook.cpp)
+add_library(${T} SHARED hook.cpp)
 target_link_libraries(${T} aphros)
 
