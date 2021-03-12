@@ -7,6 +7,7 @@ aphros_add_object(T ${T} system.c)
 set(T "sysinfo")
 aphros_add_object(T ${T} sysinfo.cpp)
 target_link_libraries(${T} openmp utilmpi utilsystem)
+target_link_libraries(sysinfo openmp)
 target_compile_definitions(${T} PRIVATE _USE_AMGX_=$<BOOL:${USE_AMGX}>)
 
 set(T "utilhydro")
