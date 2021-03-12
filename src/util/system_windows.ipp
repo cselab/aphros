@@ -25,7 +25,9 @@ int SystemMakeDir(const char* path, int parent) {
   int rc;
 
   (void)rc;
-  snprintf(cmd, sizeof cmd - 1, "mkdir \"%s\"", path);
+  strcpy(cmd, "mkdir \"");
+  strcat(cmd, path);
+  strcat(cmd, "\"");
   rc = system(cmd);
   return SystemIsDir(path);
 }
