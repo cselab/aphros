@@ -34,7 +34,8 @@ int SystemMakeDir(const char* path, int parent) {
 
 char* SystemRealPath(const char* path, char* resolved) {
   // TODO
-  return NULL;
+  strcpy(resolved, path);
+  return resolved;
 }
 
 int SystemGetHostName(char* name, size_t len) {
