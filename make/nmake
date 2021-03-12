@@ -22,6 +22,8 @@ function cat(file, rc, line) {
         if (rc == 1) {
 	    if ($0 ~ /[:] .*\.dir$/)
 		continue
+            if ($0 ~ /^.POSIX:/)
+                continue
 	    replace("$(WRK)/ap.mfer: $(WRK)/main.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(LDFLAGS) $(WRK)/main.o $(WRK)/$L -o $@",
 		    "ap.mfer: main.o $L; $(LINK) $(LDFLAGS) main.obj $L /Fo$@")
 	    sub(/\.o/, ".obj")
