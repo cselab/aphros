@@ -2030,7 +2030,7 @@ $J: $O; emar rv $@ $O
 ap.mfer: main.obj $L; $(LINK) $(LDFLAGS) main.obj $L /Fo$@
 main.obj: main.c; $(CC_RULE) main.c
 
-util/gitgen.cpp:; type nul > $@
+util\gitgen.cpp: ..\make\gitgen.win.cpp; copy ..\make\gitgen.win.cpp $@
 install: $L ap.mfer
 	mkdir -p '$(APHROS_PREFIX)'/lib '$(APHROS_PREFIX)'/bin '$(APHROS_PREFIX)'/include
 	for i in $D; \
@@ -2046,5 +2046,5 @@ install_js: $J
 	mkdir -p '$(APHROS_PREFIX)'/lib
 	cp $J "$(APHROS_PREFIX)"/lib
 clean:
-	-rm -f $O .dir $L $J ap.mfer
+	del $O .dir $L $J ap.mfer
 	-rmdir $P

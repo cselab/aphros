@@ -30,8 +30,14 @@ function cat(file, rc, line) {
 	    replace("-o ", "/Fo")
 	    replace("-std=c++14", "/std:c++14 /permissive")
 	    replace(" -O2 -g", " /O2 /Zi")
-            replace("$(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@", "$(SRC)/util/gitgen.cpp:; type nul > $@")
-            replace("$(WRK)/$L: $O; mkdir -p $(WRK) && ar rv $@ $O && ranlib $@", "$L: $O; link /lib /OUT:$@ $O")
+            replace("$(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@",
+		    "$(SRC)/util'\\\\'gitgen.cpp: ..'\\\\'make'\\\\'gitgen.win.cpp; copy ..'\\\\'make'\\\\'gitgen.win.cpp $@")
+            replace("$(WRK)/$L: $O; mkdir -p $(WRK) && ar rv $@ $O && ranlib $@",
+		    "$L: $O; link /lib /OUT:$@ $O")
+	    replace("	-rm -f $O $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/ap.mfer",
+		    "	del $O $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/ap.mfer")
+	    replace("$(WRK)/ap.mfer: $(WRK)/main.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(LDFLAGS) $(WRK)/main.o $(WRK)/$L -o $@",
+		    "ap.mfer: main.obj $L; $(LINK) $(LDFLAGS) main.obj $L legacy_stdio_definitions.lib /Fo$@")
 	    remove("$(WRK)/.dir:; mkdir -p $P && > $@")
 	    remove(" -fPIC")
             remove("$(SRC)/")

@@ -36,7 +36,8 @@ char* SystemRealPath(const char* path, char* resolved) {
 }
 
 int SystemGetHostName(char* name, size_t len) {
-  return gethostname(name, len);
+  //return gethostname(name, len);
+  name[0] = 'w'; name[1] = 'i'; name[2] = 'n'; name[3] = '\0';
 }
 
 int SystemHasHyperthreads(void) {
