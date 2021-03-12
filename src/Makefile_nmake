@@ -7,9 +7,9 @@ J = libaphros_js.a
 CXX = cl
 CC = cl
 LINK = $(CXX)
-CXXFLAGS = /O2 /Zi
-CFLAGS = /O2 /Zi
-CXXFLAGS_STD = /std:c++14 /permissive
+CXXFLAGS = /O2 /Zi /nologo
+CFLAGS = /O2 /Zi /nologo
+CXXFLAGS_STD = /std:c++14 /permissive /EHsc
 FLAGS_FPIC =
 CC_RULE = $(CC) -c $(CFLAGS) $(FLAGS_FPIC) /Fo$@
 CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(FLAGS_FPIC) /I. $1 /Fo$@
@@ -2027,7 +2027,7 @@ util/vof.obj: util/vof.ipp
 young/main.obj: young/young.h
 $L: $O; link /lib /OUT:$@ $O
 $J: $O; emar rv $@ $O
-ap.mfer: main.obj $L; $(LINK) $(LDFLAGS) main.obj $L /Fo$@
+ap.mfer: main.obj $L; $(LINK) $(LDFLAGS) main.obj $L legacy_stdio_definitions.lib /Fo$@
 main.obj: main.c; $(CC_RULE) main.c
 
 util\gitgen.cpp: ..\make\gitgen.win.cpp; copy ..\make\gitgen.win.cpp $@
