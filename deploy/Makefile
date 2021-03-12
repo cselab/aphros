@@ -1,5 +1,6 @@
 BUILD = build
 MAKEFILE = $(BUILD)/Makefile
+CMAKE = cmake
 
 all: $(MAKEFILE)
 	+make -C $(BUILD) $(target)
@@ -7,7 +8,7 @@ all: $(MAKEFILE)
 
 $(MAKEFILE):
 	mkdir -p "$(BUILD)"
-	(cd "$(BUILD)" && cmake ..)
+	cd "$(BUILD)" && $(CMAKE) ..
 
 install: $(MAKEFILE)
 	+make -C $(BUILD) install

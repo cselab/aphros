@@ -1,6 +1,6 @@
 BUILD = build
 MAKEFILE = $(BUILD)/Makefile
-CMAKE = ap.conf
+CMAKE = cmake
 
 all: $(MAKEFILE)
 	+make -C $(BUILD) $(target)
@@ -8,7 +8,7 @@ all: $(MAKEFILE)
 
 $(MAKEFILE):
 	mkdir -p "$(BUILD)"
-	(cd "$(BUILD)" && $(CMAKE) ..)
+	cd "$(BUILD)" && $(CMAKE) ..
 
 install: $(MAKEFILE)
 	+make -C $(BUILD) install
