@@ -22,14 +22,13 @@ find . -name '*.cpp' -or -name '*.c' -or -name '*.h' -or -name '*.ipp' -or -name
     }
 }
 
-function filep(path) {
-    return system(sprintf("test -f \"%s\"", path)) == 0
+function filep(path, aux, rc) {
+  rc = getline aux < path
+  close(path)
+  return rc >= 0
 }
 
 function dir(path) {
-    if (sub(/\/[^/]*$/, "", path))
-        return path
-    else
-	return "."
+    return sub(/\/[^/]*$/, "", path) ? path : "."
 }
 '
