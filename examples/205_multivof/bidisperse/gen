@@ -49,9 +49,9 @@ par = {
     "thickness": 60. / 1600.,
     "Re": 128,
     "Ca": 0.074,
-    "rho": 0.01,
-    "gasfrac": 0.75,
-    "np": 1640,
+    "rho": 0.04,
+    "gasfrac": 0.645,
+    "np": 1640, # number of processors
     "tl": 1440,
     "bs": 16,
     "bublength": 2.,
@@ -71,20 +71,19 @@ Re = par["Re"]
 Ca = par["Ca"]
 nx = par['nx']
 
-extent = Lwide + Lnarrow + H * 0.5
-inf = extent * 10.
-lx = extent
+lx = Lwide + Lnarrow + H * 0.5
 hx = lx / nx
-eps = hx * 0.01
+ly = H + hx * 4 + par['gapy']
+lz = thickness + hx * 4
+
+extent = max(lx, ly, lz)
+eps = extent * 0.01
+inf = extent * 10
+
 
 bsx = par['bs']
 bsy = bsx
 bsz = bsx
-
-ly = H + hx * 4 + par['gapy']
-lz = thickness + hx * 4
-assert ly <= extent
-assert lz <= extent
 
 if par['dim'] == 2:
     bsz = 1

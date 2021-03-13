@@ -11,6 +11,10 @@ class Default(aphros.Parameters):
     bs = 16
     tmax = 500
     rho = 0.01
+    lx = 2.
+    ly = 1.
+    lz = 1.
+    dumpdt = 0.05
 
 
 par = Default("par.py")
@@ -47,9 +51,9 @@ def Sim(c):
     Re, We, Fr, HW = (c['Re'], c['We'], c['Fr'], c['HW'])
 
     # domain
-    lx = 2.
-    ly = 1.
-    lz = 1.
+    lx = par.lx
+    ly = par.ly
+    lz = par.lz
     lys = 0.5  # position of free surface
     lmax = max([lx, ly, lz])
 
@@ -64,8 +68,8 @@ def Sim(c):
     # time unit in Exp() SI units
     tun_phys = ((c['W'] / W) / c['gravity'])**0.5
 
-    tmax = tun * 500.
-    dumpdt = tun * 0.05
+    tmax = tun * par.tmax
+    dumpdt = tun * par.dumpdt
 
     # liquid
     rho0 = 1.  # density

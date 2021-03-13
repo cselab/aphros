@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
-set -ex
 
-# This is the master script for the capsule. When you click "Reproducible Run", the code in this file will execute.
-bash test.sh "$@"
+export PATH=$(pwd)/bin:$PATH
+export REPO=/code/aphros
+
+# Prevents OpenMPI errors: Read -1, expected 8192, errno = 1
+# MPICH would work without errors, but ParaView depends on OpenMPI
+export OMPI_MCA_btl_vader_single_copy_mechanism=none
+
+./build.sh
+. $HOME/.local/bin/ap.setenv
+
+#./test.sh
+
+./bidisperse.sh
+./crystal.sh
+./waterfall.sh
+./clustering.sh

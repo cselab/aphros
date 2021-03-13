@@ -1,19 +1,9 @@
-#!/bin/sh
+#!/bin/sh -u
 
-set -eu
+# All tests pass with MPICH but some may fail with OpenMPI.
+# This does not affect production runs without Docker.
 
-REPO=/code/aphros
-
-cd $REPO/deploy
-./install_setenv $HOME/.local/aphros
-. $HOME/.local/bin/ap.setenv
-make -j8
-make install
-
-cd $REPO/src
-make -j8
-
-cd $REPO/src
-make test || true
+cd $REPO/src/build/
+ctest -j 4 || true
 
 rsync -av $REPO/src/build/Testing /results/

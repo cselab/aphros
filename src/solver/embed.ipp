@@ -219,7 +219,9 @@ void Embed<M>::InitFaces(
         break;
       }
       case Type::cut: {
-        ffs[f] = area;
+        const Scal eps = 1e-3;
+        const Scal area0 = m.GetArea(f);
+        ffs[f] = std::min(std::max(area, area0 * eps), area0 * (1 - eps));
         ffpoly[f] = xx;
         break;
       }

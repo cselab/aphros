@@ -655,7 +655,7 @@ class Embed {
     }
     return sum / suma;
   }
-  static Vect4 GetBaryCenter(const std::vector<Vect4>& xx) {
+  static Vect4 GetBaryCenter(const std::vector<Vect4>&) {
     return Vect4(0); // XXX not implemented
   }
   static std::vector<Vect> GetRegularFacePoly(IdxFace f, const M& m) {

@@ -25,6 +25,11 @@ parser.add_argument('--camera',
 parser.add_argument('--draft',
                     action="store_true",
                     help="few samples and low resolution")
+parser.add_argument('--ray',
+                    default=1,
+                    type=int,
+                    choices=(0, 1),
+                    help="raytracing")
 parser.add_argument('--ambient',
                     default=1,
                     type=int,
@@ -37,7 +42,6 @@ if args.draft:
     args.resy //= 2
     args.samples = max(1, args.samples // 10)
 
-materialLibrary1 = GetMaterialLibrary()
 matpath = "tmp_materials.json"
 with open(matpath, 'w') as f:
     f.write('''\
@@ -61,8 +65,9 @@ with open(matpath, 'w') as f:
 }
 ''')
 
-materialLibrary1 = GetMaterialLibrary()
-materialLibrary1.LoadMaterials = matpath
+if args.ray:
+    materialLibrary1 = GetMaterialLibrary()
+    materialLibrary1.LoadMaterials = matpath
 
 renderView1 = CreateView('RenderView')
 renderView1.ViewSize = [args.resx, args.resy]
@@ -83,13 +88,14 @@ elif args.camera == "expclose":
 else:
     assert False, "Unknown camera={}".format(args.camera)
 
-renderView1.EnableRayTracing = 1
-renderView1.BackEnd = 'OSPRay pathtracer'
-renderView1.AmbientSamples = 1
-renderView1.SamplesPerPixel = args.samples
-renderView1.OSPRayMaterialLibrary = materialLibrary1
+if args.ray:
+    renderView1.EnableRayTracing = 1
+    renderView1.BackEnd = 'OSPRay pathtracer'
+    renderView1.AmbientSamples = 1
+    renderView1.SamplesPerPixel = args.samples
+    renderView1.OSPRayMaterialLibrary = materialLibrary1
 
-if args.ambient:
+if args.ambient and args.ray:
     light1 = CreateLight()
     light1.Coords = 'Ambient'
     light1.Intensity = 3
@@ -101,10 +107,6 @@ if len(args.files) > 1:
         FileNames=paratools.ReplaceFilename(args.files, "sm_{}.vtk"))
     sources_ft, timearrays = paratools.ApplyForceTime([source_sm])
     source_sm, = sources_ft
-    source_sm = Calculator(Input=source_sm)
-    source_sm.ResultNormals = 1
-    source_sm.ResultArrayName = 'normals'
-    source_sm.Function = 'nn'
 else:
     source_sm = LegacyVTKReader(FileNames=args.files)
 
@@ -112,6 +114,10 @@ surf = Calculator(Input=source_sm)
 surf.ResultNormals = 1
 surf.ResultArrayName = 'normals'
 surf.Function = 'nn'
+try:
+    surf.AttributeType = 'Point Data'
+except:
+    pass
 
 # Stretch boundaries to fill the view.
 # Expecting bounding box between [0,0,0] and [1.5, *, 1.5]
@@ -126,10 +132,13 @@ surf.Function = '\
     coordsY*jHat + \
     (100*coordsZ - 99*max(0.05, min(1.45, coordsZ)))*kHat'
 
-surfDisplay = Show(surf, renderView1, 'GeometryRepresentation')
+surfDisplay = Show(surf, renderView1)
 surfDisplay.Representation = 'Surface'
 surfDisplay.ColorArrayName = ['POINTS', '']
-surfDisplay.OSPRayMaterial = 'water_white'
+if args.ray:
+    surfDisplay.OSPRayMaterial = 'water_white'
+else:
+    surfDisplay.Opacity = 0.75
 
 eps = 1e-5
 
