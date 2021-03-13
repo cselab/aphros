@@ -63,6 +63,7 @@ jobs:
     environment:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+      OMPI_MCA_btl_vader_single_copy_mechanism: none
     parallelism: 4
     steps:
       - attach_workspace:
@@ -85,6 +86,7 @@ jobs:
     environment:
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+      OMPI_MCA_btl_vader_single_copy_mechanism: none
     steps:
       - attach_workspace:
           at: ~/
