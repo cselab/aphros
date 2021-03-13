@@ -45,7 +45,7 @@ eb.Interpolate() returning FieldEmbed<Scal>
 >> regular faces near cut cell:
    order [error]: min= 0.809 [ 1.119e-05]   max= 1.374 [ 7.553e-06]   mean= 1.045 [ 1.483e-04]
 >> cut faces:
-   order [error]: min= 0.913 [ 6.140e-04]   max= 1.157 [ 7.619e-04]   mean= 1.015 [ 6.754e-04]
+   order [error]: min= 0.913 [ 6.140e-04]   max= 1.157 [ 7.622e-04]   mean= 1.015 [ 6.754e-04]
 >> embed faces:
    order [error]: min= 0.009 [ 2.650e-01]   max= 0.055 [ 2.786e-01]   mean= 0.034 [ 2.740e-01]
 
@@ -58,7 +58,7 @@ eb.GradientLimited() returning FieldEmbed<Scal>
 >> cut faces:
    order [error]: min=-0.000 [ 6.390e-03]   max= 0.000 [ 2.425e-03]   mean= 0.000 [ 1.752e-01]
 >> embed faces:
-   order [error]: min= 0.000 [ 1.489e+00]   max= 0.000 [ 1.489e+00]   mean= 0.000 [ 8.609e-01]
+   order [error]: min= 0.000 [ 1.489e+00]   max= 0.000 [ 1.489e+00]   mean= 0.000 [ 8.614e-01]
 > func=Trilinear
 >> regular faces between regular cells:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.883 [ 0.000e+00]
@@ -67,7 +67,7 @@ eb.GradientLimited() returning FieldEmbed<Scal>
 >> cut faces:
    order [error]: min=-0.113 [ 1.809e-02]   max= 0.075 [ 2.103e-02]   mean=-0.011 [ 1.901e-01]
 >> embed faces:
-   order [error]: min=-0.109 [ 4.755e-02]   max= 0.070 [ 6.097e-02]   mean=-0.011 [ 9.338e-01]
+   order [error]: min=-0.109 [ 4.755e-02]   max= 0.070 [ 6.097e-02]   mean=-0.011 [ 9.344e-01]
 > func=QuadraticBilinear
 >> regular faces between regular cells:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.748 [ 0.000e+00]
@@ -76,94 +76,94 @@ eb.GradientLimited() returning FieldEmbed<Scal>
 >> cut faces:
    order [error]: min=-0.105 [ 2.873e-02]   max= 0.064 [ 3.478e-02]   mean=-0.017 [ 7.921e-01]
 >> embed faces:
-   order [error]: min=-0.086 [ 2.169e-01]   max= 0.043 [ 2.589e-01]   mean=-0.017 [ 3.892e+00]
+   order [error]: min=-0.086 [ 2.169e-01]   max= 0.043 [ 2.589e-01]   mean=-0.017 [ 3.895e+00]
 > func=Sine
 >> regular faces between regular cells:
    order [error]: min= 1.934 [ 8.793e-06]   max= 2.060 [ 1.478e-05]   mean= 1.997 [ 1.243e-05]
 >> regular faces near cut cell:
    order [error]: min=-0.083 [ 9.695e-01]   max= 0.139 [ 2.922e-01]   mean= 0.016 [ 2.961e-01]
 >> cut faces:
-   order [error]: min=-0.161 [ 3.381e-02]   max= 0.158 [ 4.013e-01]   mean= 0.015 [ 6.426e-01]
+   order [error]: min=-0.161 [ 3.381e-02]   max= 0.158 [ 4.013e-01]   mean= 0.015 [ 6.427e-01]
 >> embed faces:
-   order [error]: min=-0.090 [ 2.537e+00]   max= 0.151 [ 3.167e+00]   mean= 0.016 [ 3.084e+00]
+   order [error]: min=-0.090 [ 2.537e+00]   max= 0.151 [ 3.168e+00]   mean= 0.016 [ 3.085e+00]
 
 eb.GradientGauss() returning FieldCell<Vect>
 > func=Linear
 >> regular cells:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.944 [ 0.000e+00]
 >> cut cells:
-   order [error]: min= 0.000 [ 0.000e+00]   max= 0.924 [ 6.676e-12]   mean=-0.373 [ 4.421e-04]
+   order [error]: min= 0.000 [ 0.000e+00]   max= 0.924 [ 6.676e-12]   mean=-0.353 [ 2.975e+00]
 > func=Trilinear
 >> regular cells:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.920 [ 0.000e+00]
 >> cut cells:
-   order [error]: min=-1.204 [ 7.757e-06]   max= 1.200 [ 1.883e-05]   mean= 0.428 [ 4.948e-04]
+   order [error]: min=-1.204 [ 7.757e-06]   max= 1.200 [ 1.883e-05]   mean= 0.371 [ 3.227e+00]
 > func=QuadraticBilinear
 >> regular cells:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.811 [ 0.000e+00]
 >> cut cells:
-   order [error]: min=-1.214 [ 2.217e-05]   max= 1.798 [ 3.024e-04]   mean= 0.463 [ 2.091e-03]
+   order [error]: min=-1.214 [ 2.217e-05]   max= 1.320 [ 1.251e-04]   mean= 0.379 [ 1.345e+01]
 > func=Sine
 >> regular cells:
    order [error]: min= 1.977 [ 1.219e-05]   max= 2.012 [ 1.267e-05]   mean= 1.997 [ 1.243e-05]
 >> cut cells:
-   order [error]: min=-0.008 [ 5.280e-03]   max= 1.055 [ 1.346e-03]   mean= 0.726 [ 2.838e-03]
+   order [error]: min=-0.093 [ 2.986e-02]   max= 1.055 [ 1.346e-03]   mean= 0.633 [ 8.911e+00]
 
 eb.GradientLinearFit() returning FieldCell<Vect>
 > func=Linear
 >> regular cells:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.944 [ 0.000e+00]
 >> cut cells:
-   order [error]: min=-2.693 [ 2.546e-09]   max= 0.175 [ 7.198e-11]   mean=-1.003 [ 3.905e-07]
+   order [error]: min=-2.693 [ 2.546e-09]   max= 0.175 [ 7.198e-11]   mean=-1.002 [ 3.301e-07]
 > func=Trilinear
 >> regular cells:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.920 [ 0.000e+00]
 >> cut cells:
-   order [error]: min=-2.030 [ 2.737e-06]   max= 1.072 [ 6.905e-06]   mean= 0.932 [ 6.138e-05]
+   order [error]: min=-1.779 [ 4.279e-06]   max= 1.072 [ 6.905e-06]   mean= 0.936 [ 6.134e-05]
 > func=QuadraticBilinear
 >> regular cells:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.811 [ 0.000e+00]
 >> cut cells:
-   order [error]: min=-2.362 [ 1.102e-05]   max= 1.025 [ 5.033e-05]   mean= 0.929 [ 3.313e-04]
+   order [error]: min=-2.007 [ 1.762e-05]   max= 1.025 [ 5.033e-05]   mean= 0.935 [ 3.312e-04]
 > func=Sine
 >> regular cells:
    order [error]: min= 1.977 [ 1.219e-05]   max= 2.012 [ 1.267e-05]   mean= 1.997 [ 1.243e-05]
 >> cut cells:
-   order [error]: min= 0.794 [ 2.220e-05]   max= 1.262 [ 2.126e-05]   mean= 1.002 [ 3.342e-03]
+   order [error]: min= 0.878 [ 2.355e-05]   max= 1.287 [ 2.389e-05]   mean= 1.003 [ 3.341e-03]
 
 eb.GradientGauss() returning FieldCell<Vect>
 > func=Linear
 >> regular cells:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.944 [ 0.000e+00]
 >> cut cells:
-   order [error]: min= 0.000 [ 0.000e+00]   max= 0.924 [ 6.676e-12]   mean=-0.373 [ 4.421e-04]
+   order [error]: min= 0.000 [ 0.000e+00]   max= 0.924 [ 6.676e-12]   mean=-0.353 [ 2.975e+00]
 > func=Trilinear
 >> regular cells:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.920 [ 0.000e+00]
 >> cut cells:
-   order [error]: min=-1.204 [ 7.757e-06]   max= 1.200 [ 1.883e-05]   mean= 0.428 [ 4.948e-04]
+   order [error]: min=-1.204 [ 7.757e-06]   max= 1.200 [ 1.883e-05]   mean= 0.371 [ 3.227e+00]
 > func=QuadraticBilinear
 >> regular cells:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.811 [ 0.000e+00]
 >> cut cells:
-   order [error]: min=-1.214 [ 2.217e-05]   max= 1.798 [ 3.024e-04]   mean= 0.463 [ 2.091e-03]
+   order [error]: min=-1.214 [ 2.217e-05]   max= 1.320 [ 1.251e-04]   mean= 0.379 [ 1.345e+01]
 > func=Sine
 >> regular cells:
    order [error]: min= 1.977 [ 1.219e-05]   max= 2.012 [ 1.267e-05]   mean= 1.997 [ 1.243e-05]
 >> cut cells:
-   order [error]: min=-0.008 [ 5.280e-03]   max= 1.055 [ 1.346e-03]   mean= 0.726 [ 2.838e-03]
+   order [error]: min=-0.093 [ 2.986e-02]   max= 1.055 [ 1.346e-03]   mean= 0.633 [ 8.911e+00]
 
 ExplViscous returning FieldCell<Vect> 
 > func=VectQuadraticBilinear
 >> regular cells:
    order [error]: min=-3.145 [ 2.853e-10]   max=-0.981 [ 1.036e+02]   mean=-1.944 [ 5.136e+05]
 >> cut cells:
-   order [error]: min=-2.051 [ 5.419e+06]   max=-1.996 [ 5.532e+06]   mean=-2.022 [ 1.032e+10]
+   order [error]: min=-2.051 [ 5.419e+06]   max=-1.996 [ 5.532e+06]   mean=-2.022 [ 9.844e+13]
 > func=VectSine
 >> regular cells:
    order [error]: min=-2.106 [ 9.134e+04]   max= 2.048 [ 2.162e-03]   mean=-0.035 [ 5.136e+04]
 >> cut cells:
-   order [error]: min=-2.117 [ 3.964e+07]   max=-1.833 [ 3.013e+10]   mean=-1.977 [ 1.109e+09]
+   order [error]: min=-2.117 [ 3.964e+07]   max=-1.857 [ 1.961e+07]   mean=-1.977 [ 1.044e+13]
 
 TestEmbedUpwind
 
@@ -174,7 +174,7 @@ eb.InterpolateUpwind() sc=sou returning FieldEmbed<Scal>
 >> regular faces near cut cell:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.016 [ 1.522e+00]
 >> cut faces:
-   order [error]: min=-0.027 [ 2.557e-02]   max= 0.035 [ 1.612e-02]   mean=-0.006 [ 1.743e+01]
+   order [error]: min=-0.027 [ 2.593e-02]   max= 0.035 [ 1.612e-02]   mean=-0.006 [ 1.603e+01]
 >> embed faces:
    order [error]: min=-0.008 [ 3.113e+00]   max=-0.003 [ 3.136e+00]   mean=-0.006 [ 3.125e+00]
 > func=Trilinear
@@ -183,7 +183,7 @@ eb.InterpolateUpwind() sc=sou returning FieldEmbed<Scal>
 >> regular faces near cut cell:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.065 [ 5.503e-01]
 >> cut faces:
-   order [error]: min=-0.085 [ 8.680e-03]   max= 0.097 [ 6.480e-03]   mean=-0.017 [ 6.302e+00]
+   order [error]: min=-0.084 [ 8.811e-03]   max= 0.097 [ 6.480e-03]   mean=-0.017 [ 5.796e+00]
 >> embed faces:
    order [error]: min=-0.024 [ 1.117e+00]   max=-0.009 [ 1.142e+00]   mean=-0.017 [ 1.130e+00]
 > func=QuadraticBilinear
@@ -192,7 +192,7 @@ eb.InterpolateUpwind() sc=sou returning FieldEmbed<Scal>
 >> regular faces near cut cell:
    order [error]: min=-0.033 [ 1.558e+00]   max= 1.994 [ 8.131e-07]   mean= 0.939 [ 1.721e+00]
 >> cut faces:
-   order [error]: min=-0.115 [ 2.627e-02]   max= 0.123 [ 2.128e-02]   mean=-0.022 [ 1.971e+01]
+   order [error]: min=-0.114 [ 2.668e-02]   max= 0.123 [ 2.128e-02]   mean=-0.022 [ 1.813e+01]
 >> embed faces:
    order [error]: min=-0.033 [ 3.482e+00]   max=-0.012 [ 3.584e+00]   mean=-0.022 [ 3.533e+00]
 > func=Sine
@@ -201,7 +201,7 @@ eb.InterpolateUpwind() sc=sou returning FieldEmbed<Scal>
 >> regular faces near cut cell:
    order [error]: min= 0.009 [ 5.674e-01]   max= 2.051 [ 1.124e-05]   mean= 0.988 [ 1.333e-01]
 >> cut faces:
-   order [error]: min= 0.003 [ 1.577e-02]   max= 0.657 [ 2.222e-03]   mean= 0.036 [ 1.528e+00]
+   order [error]: min= 0.003 [ 1.577e-02]   max= 0.657 [ 2.222e-03]   mean= 0.036 [ 1.405e+00]
 >> embed faces:
    order [error]: min= 0.009 [ 2.650e-01]   max= 0.055 [ 2.786e-01]   mean= 0.034 [ 2.740e-01]
 
@@ -212,7 +212,7 @@ eb.InterpolateUpwind() sc=quick returning FieldEmbed<Scal>
 >> regular faces near cut cell:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.080 [ 3.805e-01]
 >> cut faces:
-   order [error]: min=-0.027 [ 6.391e-03]   max= 0.035 [ 4.031e-03]   mean=-0.006 [ 4.358e+00]
+   order [error]: min=-0.027 [ 6.482e-03]   max= 0.035 [ 4.031e-03]   mean=-0.006 [ 4.008e+00]
 >> embed faces:
    order [error]: min=-0.008 [ 3.113e+00]   max=-0.003 [ 3.136e+00]   mean=-0.006 [ 3.125e+00]
 > func=Trilinear
@@ -221,7 +221,7 @@ eb.InterpolateUpwind() sc=quick returning FieldEmbed<Scal>
 >> regular faces near cut cell:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=  -inf [ 1.376e-01]
 >> cut faces:
-   order [error]: min=-0.085 [ 2.170e-03]   max= 0.097 [ 1.620e-03]   mean=-0.017 [ 1.575e+00]
+   order [error]: min=-0.084 [ 2.203e-03]   max= 0.097 [ 1.620e-03]   mean=-0.017 [ 1.449e+00]
 >> embed faces:
    order [error]: min=-0.024 [ 1.117e+00]   max=-0.009 [ 1.142e+00]   mean=-0.017 [ 1.130e+00]
 > func=QuadraticBilinear
@@ -230,7 +230,7 @@ eb.InterpolateUpwind() sc=quick returning FieldEmbed<Scal>
 >> regular faces near cut cell:
    order [error]: min= 0.000 [ 0.000e+00]   max= 0.000 [ 0.000e+00]   mean=-0.139 [ 4.303e-01]
 >> cut faces:
-   order [error]: min=-0.116 [ 6.568e-03]   max= 0.123 [ 5.320e-03]   mean=-0.022 [ 4.927e+00]
+   order [error]: min=-0.114 [ 6.670e-03]   max= 0.123 [ 5.320e-03]   mean=-0.022 [ 4.532e+00]
 >> embed faces:
    order [error]: min=-0.033 [ 3.482e+00]   max=-0.012 [ 3.584e+00]   mean=-0.022 [ 3.533e+00]
 > func=Sine
@@ -239,7 +239,7 @@ eb.InterpolateUpwind() sc=quick returning FieldEmbed<Scal>
 >> regular faces near cut cell:
    order [error]: min= 0.009 [ 1.418e-01]   max= 3.061 [ 2.222e-08]   mean= 1.450 [ 3.333e-02]
 >> cut faces:
-   order [error]: min= 0.005 [ 4.827e-03]   max= 0.651 [ 5.524e-04]   mean= 0.036 [ 3.820e-01]
+   order [error]: min= 0.005 [ 4.827e-03]   max= 0.651 [ 5.524e-04]   mean= 0.036 [ 3.513e-01]
 >> embed faces:
    order [error]: min= 0.009 [ 2.650e-01]   max= 0.055 [ 2.786e-01]   mean= 0.034 [ 2.740e-01]
 dump to eb.vtk
