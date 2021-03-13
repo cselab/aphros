@@ -1,6 +1,0 @@
-#!/bin/bash
-
-rm -f *.csv
-make
-#gdb ./t.basilisk
-./t.basilisk
