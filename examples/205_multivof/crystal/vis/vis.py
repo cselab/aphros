@@ -13,6 +13,9 @@ import paratools
 parser = argparse.ArgumentParser(
     description="Renders geometry, concentration and particles.")
 parser.add_argument('files', nargs='+', help="list of data files 'sm_*.vtk'")
+parser.add_argument('--bubble_slice',
+                    action="store_true",
+                    help="draw countours of bubble slices instead of surfaces")
 parser.add_argument('--force',
                     action="store_true",
                     help="overwrite existing files")
@@ -33,8 +36,6 @@ div = 16
 boxsize = box[1] - box[0] + pixel * div
 viewsize = [int(a * res + div - 1) // div * div for a in boxsize[:2]]
 
-light1 = CreateLight()
-light1.Coords = 'Ambient'
 
 color_gray = [0.8] * 3
 
@@ -47,16 +48,20 @@ renderView1.CameraFocalPoint = [boxc[0], boxc[1],  0]
 renderView1.CameraParallelScale = boxsize[1] * 0.5 * 1.02
 renderView1.CameraParallelProjection = 1
 renderView1.Background = color_gray
-renderView1.AdditionalLights = light1
+
+try:
+    light1 = CreateLight()
+    light1.Coords = 'Ambient'
+    renderView1.AdditionalLights = light1
+except:
+    pass
 
 
 slice1 = Slice(Input=source_bcvtk)
 slice1.SliceType = 'Plane'
-slice1.HyperTreeGridSlicer = 'Plane'
 slice1.SliceOffsetValues = [0.0]
 slice1.SliceType.Origin = boxc
 slice1.SliceType.Normal = [0.0, 0.0, 1.0]
-slice1.HyperTreeGridSlicer.Origin = [1.5499999523162842, 0.532812487334013, 0.04843749850988388]
 
 # ----------------------------------------------------------------
 # setup the visualization in view 'renderView1'
@@ -65,21 +70,38 @@ slice1.HyperTreeGridSlicer.Origin = [1.5499999523162842, 0.532812487334013, 0.04
 # show data from source_sm
 source_sm = Calculator(Input=source_sm)
 source_sm.ResultNormals = 1
-source_sm.AttributeType = 'Point Data'
+try:
+    source_sm.AttributeType = 'Point Data'
+except:
+    pass
 source_sm.ResultArrayName = 'normals'
 source_sm.Function = 'nn'
 
-smDisplay = Show(source_sm, renderView1, 'GeometryRepresentation')
-smDisplay.Representation = 'Surface'
-smDisplay.AmbientColor = [0.0, 0.0, 0.0]
-smDisplay.ColorArrayName = ['POINTS', '']
-smDisplay.DiffuseColor = [0.0, 0.0, 0.0]
-smDisplay.Specular = 1.0
-smDisplay.SpecularColor = color_gray
-smDisplay.SpecularPower = 20
-smDisplay.Diffuse = 0.0
 
-slice1Display = Show(slice1, renderView1, 'GeometryRepresentation')
+if args.bubble_slice:
+    slice_sm = Slice(Input=source_sm)
+    slice_sm.SliceType = 'Plane'
+    slice_sm.SliceOffsetValues = [0.0]
+    slice_sm.SliceType.Origin = boxc
+    slice_sm.SliceType.Normal = [0.0, 0.0, 1.0]
+    slice_smDisplay = Show(slice_sm, renderView1)
+    slice_smDisplay.Representation = 'Surface'
+    slice_smDisplay.AmbientColor = [0.0, 0.0, 0.0]
+    slice_smDisplay.ColorArrayName = ['POINTS', '']
+    slice_smDisplay.DiffuseColor = [0.0, 0.0, 0.0]
+    slice_smDisplay.LineWidth = 4.0
+else:
+    smDisplay = Show(source_sm, renderView1)
+    smDisplay.Representation = 'Surface'
+    smDisplay.AmbientColor = [0.0, 0.0, 0.0]
+    smDisplay.ColorArrayName = ['POINTS', '']
+    smDisplay.DiffuseColor = [0.0, 0.0, 0.0]
+    smDisplay.Specular = 1.0
+    smDisplay.SpecularColor = color_gray
+    smDisplay.SpecularPower = 20
+    smDisplay.Diffuse = 0.0
+
+slice1Display = Show(slice1, renderView1)
 slice1Display.Representation = 'Wireframe'
 slice1Display.AmbientColor = [0.0, 0.0, 0.0]
 slice1Display.ColorArrayName = ['POINTS', '']
