@@ -747,6 +747,18 @@ void PrintOrder(const Field& order, const Field& error, Range indices) {
   }
   mean /= meanw;
   meanerr /= meanw;
+  const auto thres = 1e-12;
+  if (minerr < thres) {
+    min = 0;
+    minerr = 0;
+  }
+  if (maxerr < thres) {
+    max = 0;
+    maxerr = 0;
+  }
+  if (meanerr < thres) {
+    meanerr = 0;
+  }
   printf(
       "order [error]: min=%6.3f [%10.3e]   max=%6.3f [%10.3e]   mean=%6.3f "
       "[%10.3e]\n",
