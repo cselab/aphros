@@ -12,9 +12,9 @@ int SystemGetHostName(char*, size_t size);
 int SystemHasHyperthreads(void);
 int SystemIsDir(const char*);
 int SystemIsFile(const char*);
-int SystemJoin(const char *, const char *, char *);
+int SystemJoin(const char*, const char*, char*);
 int SystemMakeDir(const char*, int parent);
-int SystemSplitExt(const char *, char *, char *);
+int SystemSplitExt(const char*, char*, char*);
 size_t SystemGetMem(void);
 
 #ifdef __cplusplus

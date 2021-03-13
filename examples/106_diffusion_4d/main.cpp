@@ -25,7 +25,8 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
-void DumpCsv(std::string path, FieldCell<Scal>& fcu, M& m, bool verbose=false) {
+void DumpCsv(
+    std::string path, FieldCell<Scal>& fcu, M& m, bool verbose = false) {
   auto sem = m.GetSem();
   struct {
     std::vector<std::string> csv_names;
@@ -72,7 +73,8 @@ void DumpCsv(std::string path, FieldCell<Scal>& fcu, M& m, bool verbose=false) {
   }
 }
 
-void DumpRaw(std::string path, FieldCell<Scal>& fcu, M& m, bool verbose=false) {
+void DumpRaw(
+    std::string path, FieldCell<Scal>& fcu, M& m, bool verbose = false) {
   auto sem = m.GetSem();
   using Raw = dump::Raw<M>;
   using Xmf = dump::Xmf<Vect>;

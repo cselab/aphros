@@ -65,8 +65,8 @@ int main(int argc, char** argv) {
   MPI_Cart_create(comm, dimension, mpi_dims, Period, reorder, &cartcomm);
   MPI_Cart_coords(cartcomm, mpi_rank, dimension, mpi_coords);
   int siz[dimension] = {n * mpi_dims[Z], n * mpi_dims[Y], n * mpi_dims[X]};
-  int sta[dimension] = {n * mpi_coords[Z], n * mpi_coords[Y],
-                        n * mpi_coords[X]};
+  int sta[dimension] = {
+      n * mpi_coords[Z], n * mpi_coords[Y], n * mpi_coords[X]};
   int ext[dimension] = {n, n, n};
   spa = -2 * ori[X] / siz[X];
   buf = malloc(n * n * n * sizeof(*buf));

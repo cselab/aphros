@@ -6,15 +6,15 @@
 #include <cstring>
 #include <stdexcept>
 
-#include "system.h"
 #include "filesystem.h"
 #include "logger.h"
+#include "system.h"
 
 namespace util {
 
 std::string GetRealpath(std::string path) {
   char buf[FILENAME_MAX + 1];
-  char *ptr;
+  char* ptr;
   ptr = SystemRealPath(path.c_str(), buf);
   return ptr == NULL ? "" : std::string(ptr);
 }

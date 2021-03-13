@@ -29,8 +29,7 @@ class Hdf {
   // dname: dataset name
   template <class Field>
   static void Read(
-      Field& fc, std::string path, M& m,
-      std::string dname = kDefaultName);
+      Field& fc, std::string path, M& m, std::string dname = kDefaultName);
   // Returns shape of a dataset in HDF file.
   // path: input path
   // dname: dataset name

@@ -3,10 +3,10 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <cstdio>
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <memory>

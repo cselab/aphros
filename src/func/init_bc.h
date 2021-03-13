@@ -222,7 +222,8 @@ struct UInitEmbedBc {
       } else {
         filename = path.str();
         std::ifstream fin(filename);
-        fassert(fin.good(), "Can't open boundary conditions '" + filename + "'");
+        fassert(
+            fin.good(), "Can't open boundary conditions '" + filename + "'");
         buf << fin.rdbuf();
       }
     }

@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     fprintf(stderr, "%s: needs an argument\n", me);
     exit(2);
   }
-  name = argv++ [0];
+  name = argv++[0];
 
   vtk = vtk_read(stdin);
   if (vtk == NULL) {

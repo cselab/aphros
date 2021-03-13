@@ -9,10 +9,10 @@
 #include <sstream>
 
 #include "geom/mesh.h"
-#include "util/visual.h"
 #include "parse/codeblocks.h"
-#include "parse/vars.h"
 #include "parse/parser.h"
+#include "parse/vars.h"
+#include "util/visual.h"
 
 const int dim = 2;
 using M = MeshStructured<double, dim>;
@@ -24,8 +24,7 @@ using Vect3 = generic::Vect<Scal, 3>;
 M GetMesh(MIdx size) {
   const Rect<Vect> domain(Vect(0), Vect(1));
   const size_t halos = 1;
-  return InitUniformMesh<M>(
-      domain, MIdx(0), size, halos, true, true, size, 0);
+  return InitUniformMesh<M>(domain, MIdx(0), size, halos, true, true, size, 0);
 }
 
 void TestRender() {

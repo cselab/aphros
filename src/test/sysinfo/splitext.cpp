@@ -1,6 +1,6 @@
 #include "util/filesystem.h"
-static const char *me = "splitext";
-int main(int argc, char **argv) {
+static const char* me = "splitext";
+int main(int argc, char** argv) {
   std::string a;
   std::string b;
   std::array<std::string, 2> ans;

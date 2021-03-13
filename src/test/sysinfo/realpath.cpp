@@ -1,6 +1,6 @@
 #include "util/filesystem.h"
-static const char *me = "realpath";
-int main(int argc, char **argv) {
+static const char* me = "realpath";
+int main(int argc, char** argv) {
   argv++;
   if (*argv == NULL) {
     fprintf(stderr, "%s: need an argument\n", me);

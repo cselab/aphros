@@ -72,10 +72,10 @@ int main(int argc, const char** argv) {
         n[X] = atof(*argv++);
         n[Y] = atof(*argv++);
         n[Z] = atof(*argv);
-	if (n[X] == 0 && n[Y] == 0 && n[Z] == 0) {
-	  fprintf(stderr, "%s: normal cannot be zero\n", me);
-	  return 2;
-	}
+        if (n[X] == 0 && n[Y] == 0 && n[Z] == 0) {
+          fprintf(stderr, "%s: normal cannot be zero\n", me);
+          return 2;
+        }
         Nflag = 1;
         break;
       default:

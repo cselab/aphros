@@ -8,9 +8,9 @@
 #include <string>
 
 #include "distr/distrbasic.h"
+#include "parse/argparse.h"
 #include "solver/approx_eb.h"
 #include "solver/embed.h"
-#include "parse/argparse.h"
 
 using M = MeshStructured<double, 3>;
 using Scal = typename M::Scal;

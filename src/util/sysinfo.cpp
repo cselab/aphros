@@ -4,9 +4,9 @@
 #include <fstream>
 #include <sstream>
 
+#include "logger.h"
 #include "sysinfo.h"
 #include "system.h"
-#include "logger.h"
 #include "util/mpi.h"
 
 #ifdef _OPENMP

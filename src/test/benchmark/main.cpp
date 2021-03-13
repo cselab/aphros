@@ -771,10 +771,13 @@ int main() {
     while (RunTest(test++, m, time, iters, mem, cover, name)) {
       size_t dmem = mem - mem0;
       const auto covcells =
-          (cover == Cover::all ? allcells
-                               : cover == Cover::in ? incells : sucells);
+          (cover == Cover::all  ? allcells
+           : cover == Cover::in ? incells
+                                : sucells);
       const auto covname =
-          (cover == Cover::all ? "all" : cover == Cover::in ? "in" : "su");
+          (cover == Cover::all  ? "all"
+           : cover == Cover::in ? "in"
+                                : "su");
       std::cout << util::Format(
           fmt, //
           name, time * 1e9 / covcells, covname, iters, (dmem / double(1 << 20)),

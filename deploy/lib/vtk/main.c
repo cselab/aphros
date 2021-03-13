@@ -12,12 +12,12 @@ enum { N = 999 };
 
 #define FMT "%.20g"
 #define LINE(s, f)             \
-    do                         \
-        if (line_get(s, f) != 0) {              \
-            MSG(("fail to read"));              \
-            goto fail;                          \
-        }                                       \
-    while (0)
+  do                           \
+    if (line_get(s, f) != 0) { \
+      MSG(("fail to read"));   \
+      goto fail;               \
+    }                          \
+  while (0)
 
 #define SWAP(n, p) swap(n, sizeof(*(p)), p)
 #define FILL(n, f, p)    \
@@ -102,9 +102,9 @@ struct VTK* vtk_read(FILE* f) {
   char rank[N];
   char s[N];
   char type[N];
-  double *x;
-  double *y;
-  double *z;
+  double* x;
+  double* y;
+  double* z;
   float* r;
   int i;
   int j;
@@ -115,10 +115,10 @@ struct VTK* vtk_read(FILE* f) {
   int nt;
   int nv;
   int size;
-  int *t;
-  int *t0;
-  int *t1;
-  int *t2;
+  int* t;
+  int* t0;
+  int* t1;
+  int* t2;
   struct VTK* q;
   void* p;
 
@@ -158,12 +158,11 @@ struct VTK* vtk_read(FILE* f) {
   FREE(r);
   if (line_get(s, f) != 0) goto end_data;
   sscanf(s, "%[^\t ] %d %d", name, &nt, &np0);
-  if (!eq(name, "POLYGONS"))
-    goto end_polygons;
+  if (!eq(name, "POLYGONS")) goto end_polygons;
   if (4 * nt != np0) {
-      MSG(("line: %s", s));
-      MSG(("only triangles are supported"));
-      goto fail;
+    MSG(("line: %s", s));
+    MSG(("only triangles are supported"));
+    goto fail;
   }
   FILL(4 * nt, f, &t);
   MALLOC(nt, &t0);

@@ -532,5 +532,5 @@ static double tri_point_distance2(
 }
 
 static double max_dbl(double a, double b) {
-  return a > b  ? a : b;
+  return a > b ? a : b;
 }

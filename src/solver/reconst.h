@@ -877,7 +877,7 @@ class Reconst {
   // Returns:
   // a: area, positive if <xx[0]-xc,xx[1]-xc,n> is positively oriented
   static Scal GetArea(const std::vector<Vect2>& xx, Vect2 n) {
-    (void) n;
+    (void)n;
     if (xx.size() != 2) {
       return 0;
     }
@@ -915,8 +915,8 @@ class Reconst {
     return a;
   }
   static Scal GetArea(const std::vector<Vect4>& xx, Vect4 n) {
-    (void) xx;
-    (void) n;
+    (void)xx;
+    (void)n;
     return 0; // XXX not implemented
   }
 };

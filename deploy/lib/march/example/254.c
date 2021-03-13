@@ -3,10 +3,9 @@
 #include <stdlib.h>
 #include <march.h>
 
-static const char *me = "254";
+static const char* me = "254";
 
-static void tobin(int x, double *b)
-{
+static void tobin(int x, double* b) {
   int i;
   for (i = 0; i < 8; i++) {
     b[i] = x % 2 == 0 ? -1 : 1;
@@ -22,7 +21,7 @@ int main() {
   int n, i, j;
   int u, v, w;
   double a, b, c;
-  FILE *file;
+  FILE* file;
 
   for (id = 1; id < 255; id++) {
     tobin(id, cube);
