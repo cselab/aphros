@@ -36,8 +36,8 @@ object_link_libraries(${T})
 set(T "distr")
 add_object(${T} distr.cpp)
 object_link_libraries(${T}
-    sysinfo report parser suspender vars histogram dumper git subcomm openmp
-    dump_xmf dump_raw use_dims)
+    sysinfo report parser suspender vars histogram dumper git subcomm
+    dump_xmf dump_raw PRIVATE use_dims openmp)
 
 set(T "distrsolver")
 add_object(${T} distrsolver.cpp)

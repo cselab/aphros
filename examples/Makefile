@@ -21,6 +21,7 @@ DIRS = \
 
 VERBOSE =
 REDIR = $(if $(VERBOSE),,>/dev/null 2>&1)
+CMAKE = cmake
 
 all:
 	+make build
@@ -30,7 +31,7 @@ build: $(DIRS)
 
 $(DIRS):
 	@echo "$@"
-	@(cd "$@" && test -f Makefile || ! test -f CMakeLists.txt ||  ap.conf . ) $(REDIR)
+	@(cd "$@" && test -f Makefile || ! test -f CMakeLists.txt ||  $(CMAKE) . ) $(REDIR)
 	@+make -s -C "$@" $(REDIR)
 
 run:

@@ -6,7 +6,7 @@ add_object(${T} system.c)
 
 set(T "sysinfo")
 add_object(${T} sysinfo.cpp)
-object_link_libraries(${T} openmp utilmpi utilsystem)
+object_link_libraries(${T} utilmpi utilsystem PRIVATE openmp)
 object_compile_definitions(${T} PRIVATE _USE_AMGX_=$<BOOL:${USE_AMGX}>)
 
 set(T "utilhydro")
@@ -66,7 +66,7 @@ if (USE_OPENMP AND USE_MPI)
 else()
   add_object(${T} subcomm_dummy.cpp)
 endif()
-object_link_libraries(${T} sysinfo openmp utilsystem)
+object_link_libraries(${T} sysinfo utilsystem PRIVATE openmp)
 
 set(T "histogram")
 add_object(${T} histogram.cpp)

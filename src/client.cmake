@@ -28,8 +28,9 @@ set(T "openmp")
 add_library(${T} INTERFACE IMPORTED)
 if (APHROS_USE_OPENMP)
   find_package(OpenMP REQUIRED)
-  set_target_properties(${T}
-      PROPERTIES INTERFACE_LINK_LIBRARIES  OpenMP::OpenMP_CXX)
+  find_package(Threads REQUIRED)
+  set_property(TARGET ${T} PROPERTY INTERFACE_COMPILE_OPTIONS "${OpenMP_CXX_FLAGS}")
+  set_property(TARGET ${T} PROPERTY INTERFACE_LINK_LIBRARIES "${OpenMP_CXX_FLAGS}" Threads::Threads)
 endif()
 
 if (APHROS_USE_MPI)

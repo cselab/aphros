@@ -346,7 +346,7 @@ endforeach()
 set(T aphros)
 add_library(${T} SHARED ${ObjLibsTarget})
 target_include_directories(${T} INTERFACE "${APHROS_PREFIX}/include/aphros")
-target_link_libraries(${T} PUBLIC ${ObjLibs} ${StaticLibs} ${UseLibs})
+target_link_libraries(${T} PUBLIC ${ObjLibs} ${StaticLibs} ${UseLibs} openmp)
 install(TARGETS ${T} EXPORT export DESTINATION lib)
 
 add_subdirectory(kernel)
