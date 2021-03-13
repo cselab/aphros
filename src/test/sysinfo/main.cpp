@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "util/filesystem.h"
+#include "util/format.h"
 #include "util/logger.h"
 #include "util/sysinfo.h"
 
@@ -16,26 +17,32 @@ using namespace sysinfo;
 
 volatile char g;
 
-// Perform action allocating s bytes of memory
-void F(size_t s) {
-  static std::vector<char> v(s, 0);
+// Perform action allocating size bytes of memory
+void F(size_t size) {
+  static std::vector<char> v(size, 0);
 }
 
-double MiB(size_t s) {
-  return s / (double(1 << 20));
+double MiB(size_t size) {
+  return size / (double(1 << 20));
 }
 
 void Test() {
   size_t a, b;
-  size_t s = (1 << 20) * 100; // memory to allocate
+  size_t size = (1 << 20) * 100; // memory to allocate
 
   a = GetMem();
 
-  F(s);
+  F(size);
 
   b = GetMem();
-  std::cerr << MiB(a) << " " << MiB(b) << std::endl;
-  assert(b >= a + s);
+  std::cerr << util::Format(
+      "Allocated memory (MiB): {:.0f}\nMeasured increase (MiB): {:.0f}\n",
+      MiB(size), MiB(b - a));
+  const auto factor = 0.5;
+  fassert(
+      b - a >= size * factor, util::Format(
+                                  "required at least {:.0f}, got {:.0f}",
+                                  MiB(factor * size), MiB(b - a)));
 }
 
 std::ostream& operator<<(
