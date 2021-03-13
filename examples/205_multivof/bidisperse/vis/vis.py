@@ -66,12 +66,6 @@ div = 16
 boxsize = box[1] - box[0] + pixel * div
 viewsize = [int(a * args.res + div - 1) // div * div for a in boxsize[:2]]
 
-print(viewsize)
-print(boxsize)
-
-light1 = CreateLight()
-light1.Coords = 'Ambient'
-
 color_gray = [0.75] * 3
 
 renderView1 = CreateView('RenderView')
@@ -83,7 +77,13 @@ renderView1.CameraFocalPoint = [boxc[0], boxc[1],  0]
 renderView1.CameraParallelScale = 0.5 * boxsize[1] * 1.05
 renderView1.CameraParallelProjection = 1
 renderView1.Background = color_gray
-renderView1.AdditionalLights = light1
+
+try:
+    light1 = CreateLight()
+    light1.Coords = 'Ambient'
+    renderView1.AdditionalLights = light1
+except:
+    pass
 
 if args.white:
     renderView1.Background = [1]*3
@@ -91,7 +91,10 @@ if args.white:
 
 source_sm = Calculator(Input=source_sm)
 source_sm.ResultNormals = 1
-source_sm.AttributeType = 'Point Data'
+try:
+    source_sm.AttributeType = 'Point Data'
+except:
+    pass
 source_sm.ResultArrayName = 'normals'
 source_sm.Function = 'nn'
 
@@ -103,7 +106,7 @@ if args.omz:
     slice_omz.HyperTreeGridSlicer = 'Plane'
     slice_omz.SliceType.Origin = boxc
     slice_omz.SliceType.Normal = [0.0, 0.0, 1.0]
-    slice_omzDisplay = Show(slice_omz, renderView1, 'GeometryRepresentation')
+    slice_omzDisplay = Show(slice_omz, renderView1)
     omzLUT = GetColorTransferFunction('omz')
     # geo color scheme (blue/red)
     omzLUT.RGBPoints = [
@@ -122,14 +125,14 @@ if args.bubble_slice:
     slice_sm.SliceOffsetValues = [0.0]
     slice_sm.SliceType.Origin = boxc
     slice_sm.SliceType.Normal = [0.0, 0.0, 1.0]
-    slice_smDisplay = Show(slice_sm, renderView1, 'GeometryRepresentation')
+    slice_smDisplay = Show(slice_sm, renderView1)
     slice_smDisplay.Representation = 'Surface'
     slice_smDisplay.AmbientColor = [0.0, 0.0, 0.0]
     slice_smDisplay.ColorArrayName = ['POINTS', '']
     slice_smDisplay.DiffuseColor = [0.0, 0.0, 0.0]
     slice_smDisplay.LineWidth = 2.0 * linewidth
 else:
-    sm_Display = Show(source_sm, renderView1, 'GeometryRepresentation')
+    sm_Display = Show(source_sm, renderView1)
     sm_Display.Representation = 'Surface'
     sm_Display.AmbientColor = [0.0, 0.0, 0.0]
     sm_Display.ColorArrayName = ['POINTS', '']
@@ -144,7 +147,7 @@ slice1.SliceType = 'Plane'
 slice1.SliceOffsetValues = [0.0]
 slice1.SliceType.Origin = boxc
 slice1.SliceType.Normal = [0.0, 0.0, 1.0]
-slice1Display = Show(slice1, renderView1, 'GeometryRepresentation')
+slice1Display = Show(slice1, renderView1)
 slice1Display.Representation = 'Wireframe'
 slice1Display.AmbientColor = [0.0, 0.0, 0.0]
 slice1Display.ColorArrayName = ['POINTS', '']
