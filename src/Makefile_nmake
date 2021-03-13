@@ -1986,8 +1986,8 @@ util/sysinfo.obj: util/mpi.h
 util/sysinfo.obj: util/sysinfo.h
 util/sysinfo.obj: util/system.h
 util/system.obj: util/system.h
-util/system.obj: util/system_unix.ipp
-util/system.obj: util/system_windows.ipp
+util/system.obj: util/system_unix.inc
+util/system.obj: util/system_windows.inc
 util/timer.obj: util/timer.h
 util/vof.obj: debug/isnan.h
 util/vof.obj: distr/reduce.h

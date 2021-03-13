@@ -3,7 +3,7 @@
 
 #include "system.h"
 #ifdef _WIN32
-#include "system_windows.ipp"
+#include "system_windows.inc"
 #else
-#include "system_unix.ipp"
+#include "system_unix.inc"
 #endif

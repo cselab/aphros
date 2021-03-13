@@ -1609,8 +1609,8 @@ $(WRK)/util/sysinfo.o: $(SRC)/util/mpi.h
 $(WRK)/util/sysinfo.o: $(SRC)/util/sysinfo.h
 $(WRK)/util/sysinfo.o: $(SRC)/util/system.h
 $(WRK)/util/system.o: $(SRC)/util/system.h
-$(WRK)/util/system.o: $(SRC)/util/system_unix.ipp
-$(WRK)/util/system.o: $(SRC)/util/system_windows.ipp
+$(WRK)/util/system.o: $(SRC)/util/system_unix.inc
+$(WRK)/util/system.o: $(SRC)/util/system_windows.inc
 $(WRK)/util/timer.o: $(SRC)/util/timer.h
 $(WRK)/util/vof.o: $(SRC)/debug/isnan.h
 $(WRK)/util/vof.o: $(SRC)/distr/reduce.h
