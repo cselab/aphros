@@ -1,2 +1,2 @@
 set(T "young")
-aphros_add_object(T ${T} main.cpp)
+add_object(${T} main.cpp)

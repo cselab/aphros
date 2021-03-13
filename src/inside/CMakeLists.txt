@@ -13,4 +13,4 @@ add_library(${T} STATIC
     predicate.c
     stl.c
   )
-install(TARGETS ${T} EXPORT export)
+install(TARGETS ${T} EXPORT export DESTINATION lib)

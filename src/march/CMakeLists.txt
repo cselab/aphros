@@ -1,2 +1,2 @@
 set(T "march")
-aphros_add_object(T ${T} main.c)
+add_object(${T} main.c)

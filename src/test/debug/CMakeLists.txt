@@ -1,6 +1,5 @@
 get_filename_component(p ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-set(EXE t.${p})
-add_executable(${EXE} main.cpp)
-target_link_libraries(${EXE} mesh format logger)
+set(T t.${p})
+add_executable_with_objects(${T} main.cpp mesh format logger)
 add_test_current(COMMAND test)
 

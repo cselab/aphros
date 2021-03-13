@@ -28,7 +28,8 @@ set(T "openmp")
 add_library(${T} INTERFACE IMPORTED)
 if (APHROS_USE_OPENMP)
   find_package(OpenMP REQUIRED)
-  target_link_libraries(${T} INTERFACE OpenMP::OpenMP_CXX)
+  set_target_properties(${T}
+      PROPERTIES INTERFACE_LINK_LIBRARIES  OpenMP::OpenMP_CXX)
 endif()
 
 if (APHROS_USE_MPI)

@@ -1,2 +1,2 @@
 set(T color)
-aphros_add_object(T ${T} color.c)
+add_object(${T} color.c)

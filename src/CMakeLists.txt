@@ -63,7 +63,7 @@ if (USE_HYPRE)
   add_library(${T} INTERFACE)
   target_include_directories(${T} INTERFACE ${HYPRE_DIR}/include)
   target_link_libraries(${T} INTERFACE -L${HYPRE_DIR}/lib -lHYPRE -lm)
-  install(TARGETS ${T} EXPORT export)
+  install(TARGETS ${T} EXPORT export DESTINATION lib)
 endif()
 
 if (USE_HDF)
@@ -129,16 +129,97 @@ install(TARGETS ${T} EXPORT export)
 include_directories(.)
 
 # Defines an object library named ${T}_obj and an interface library named ${T}.
-# Sets ${varname} to ${T}_obj.
-macro(aphros_add_object varname T)
+function(add_object T)
   add_library(${T}_obj OBJECT ${ARGN})
   add_library(${T} INTERFACE)
-  target_link_libraries(${T} INTERFACE ${T}_obj $<TARGET_OBJECTS:${T}_obj>)
+  install(TARGETS ${T} EXPORT export DESTINATION lib)
+  install(TARGETS ${T}_obj EXPORT export DESTINATION lib)
   target_compile_options(${T}_obj PRIVATE -Wall -Wextra -pedantic -Wshadow)
-  install(TARGETS ${T} EXPORT export)
-  install(TARGETS ${T}_obj EXPORT export)
-  set(${varname} ${T}_obj)
-endmacro(aphros_add_object)
+endfunction(add_object)
+
+function(object_link_libraries T)
+  cmake_parse_arguments(L "" "" "PRIVATE;PUBLIC;INTERFACE" ${ARGN})
+
+  foreach (L ${L_INTERFACE} ${L_PUBLIC} ${L_UNPARSED_ARGUMENTS})
+    target_link_libraries(${T} INTERFACE ${L})
+  endforeach()
+
+  foreach (L ${L_INTERFACE} ${L_PUBLIC} ${L_PRIVATE} ${L_UNPARSED_ARGUMENTS})
+    target_compile_definitions(${T}_obj
+      PRIVATE $<TARGET_PROPERTY:${L},INTERFACE_COMPILE_DEFINITIONS>)
+    target_compile_options(${T}_obj
+      PRIVATE $<TARGET_PROPERTY:${L},INTERFACE_COMPILE_OPTIONS>)
+    target_include_directories(${T}_obj
+      PRIVATE $<TARGET_PROPERTY:${L},INTERFACE_INCLUDE_DIRECTORIES>)
+  endforeach()
+endfunction()
+
+function(object_compile_definitions T)
+  cmake_parse_arguments(L "" "" "PRIVATE;PUBLIC;INTERFACE" ${ARGN})
+
+  foreach (L ${L_INTERFACE} ${L_PUBLIC} ${L_UNPARSED_ARGUMENTS})
+    target_compile_definitions(${T} INTERFACE ${L})
+  endforeach()
+
+  foreach (L ${L_INTERFACE} ${L_PUBLIC} ${L_PRIVATE} ${L_UNPARSED_ARGUMENTS})
+    target_compile_definitions(${T}_obj PRIVATE ${L})
+  endforeach()
+endfunction()
+
+function(object_compile_options T)
+  cmake_parse_arguments(L "" "" "PRIVATE;PUBLIC;INTERFACE" ${ARGN})
+  foreach (L ${L_INTERFACE} ${L_PUBLIC} ${L_UNPARSED_ARGUMENTS})
+    target_compile_options(${T} INTERFACE ${L})
+  endforeach()
+  foreach (L ${L_INTERFACE} ${L_PUBLIC} ${L_PRIVATE} ${L_UNPARSED_ARGUMENTS})
+    target_compile_options(${T}_obj PRIVATE ${L})
+  endforeach()
+endfunction()
+
+function(get_link_libraries0 T)
+  list(APPEND VISITED ${T})
+  get_target_property(LINKED ${T} INTERFACE_LINK_LIBRARIES)
+  foreach(L ${LINKED})
+    if (TARGET ${L})
+      list(FIND VISITED ${L} V)
+      if (${V} EQUAL -1)
+        get_link_libraries0(${L})
+        list(APPEND RES ${L})
+      endif()
+    endif()
+  endforeach()
+  set(VISITED "${VISITED}" PARENT_SCOPE)
+  set(RES "${RES}" PARENT_SCOPE)
+endfunction()
+
+function(get_link_libraries VARNAME T)
+  set(VISITED)
+  set(RES)
+  get_link_libraries0(${T})
+  set(${VARNAME} "${RES}" PARENT_SCOPE)
+endfunction()
+
+function(add_executable_with_objects T src)
+  set(LIBS ${ARGN})
+  get_object_files(P ${LIBS})
+  add_executable(${T} ${src} ${P})
+  target_link_libraries(${T} ${LIBS})
+endfunction()
+
+function(get_object_files VARNAME)
+  set(RES)
+  foreach (SRC ${ARGN})
+    get_link_libraries(LINKED ${SRC})
+    list(APPEND LINKED "${SRC}")
+    foreach (L ${LINKED})
+      if (TARGET ${L}_obj)
+        list(APPEND RES "$<TARGET_OBJECTS:${L}_obj>")
+      endif()
+    endforeach()
+  endforeach()
+  set(${VARNAME} ${RES} PARENT_SCOPE)
+endfunction()
+
 
 add_subdirectory(color)
 add_subdirectory(distr)
@@ -182,6 +263,7 @@ set(ObjLibs
   git
   gitgen
   histogram
+  hydro
   init
   init_contang
   init_vel
@@ -261,21 +343,29 @@ endforeach()
 set(T aphros)
 add_library(${T} SHARED ${ObjLibsTarget})
 target_include_directories(${T} INTERFACE "${APHROS_PREFIX}/include/aphros")
-target_link_libraries(${T} PUBLIC openmp hypreext hdf inside ${StaticLibs} ${UseLibs})
-install(TARGETS ${T} EXPORT export)
+target_link_libraries(${T} PUBLIC ${ObjLibs} ${StaticLibs} ${UseLibs})
+install(TARGETS ${T} EXPORT export DESTINATION lib)
 
 add_subdirectory(kernel)
 
 set(T aphros_c)
 add_library(${T} SHARED aphros_c/git.cpp aphros_c/main.cpp aphros_c/parser.cpp)
-target_link_libraries(${T} PUBLIC aphros hydro_obj ${UseLibs})
-install(TARGETS ${T} EXPORT export)
+target_link_libraries(${T} PUBLIC aphros ${UseLibs})
+install(TARGETS ${T} EXPORT export DESTINATION lib)
+
+# executables
+
+set(T conf2py)
+add_executable_with_objects(${T} parse/conf2py.cpp parser format argparse)
+set_target_properties(${T} PROPERTIES PREFIX "ap.")
+install(TARGETS ${T} EXPORT export DESTINATION bin)
 
 set(T mfer)
 add_executable(${T} main.c)
 set_target_properties(${T} PROPERTIES PREFIX "ap.")
 target_link_libraries(${T} aphros_c)
 install(TARGETS ${T} EXPORT export DESTINATION bin)
+
 
 # test
 add_subdirectory(test)
