@@ -1,6 +1,10 @@
 #!/usr/bin/awk -f
 
 {
+    if (NF != 2) {
+	printf("dep: wrong line '%s', expect 'file file'\n", $0)  | "cat >&2"
+	exit(1)
+    }
     if (sub(/\.cpp$/, "", $1) ||
 	sub(/\.c$/, "", $1))
 	objs[$1]
