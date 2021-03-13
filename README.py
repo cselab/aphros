@@ -81,13 +81,20 @@ docker run -v `pwd`:`pwd` -w `pwd` aphros
 
 ### Minimal build without CMake
 
-This is a minimal build without dependencies and tests.
+Build without dependencies and tests on unix-like systems
 
 ```
 cd src
-APHROS_PREFIX=PREFIX make -f Makefile_legacy install
+make -f Makefile_legacy install APHROS_PREFIX=$HOME/.local
 ```
-where `PREFIX` is the installation location (e.g. `~/.local`).
+(`APHROS_PREFIX` is the installation location),
+
+on Windows using Microsoft C++ toolset (NMAKE and CL):
+
+```
+cd src
+nmake -f Makefile_nmake
+```
 
 ## Videos
 
