@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12.0)
+cmake_minimum_required(VERSION 3.10.2)
 project("aphros-deploy")
 
 option(USE_FPZIP "Install fpzip. Used for compression of communication buffers (experimental)" OFF)
@@ -76,8 +76,6 @@ set(ScriptsList
     argmaxall
     base
     cawk
-    conf
-    confdeb
     copyright
     deriv
     diff

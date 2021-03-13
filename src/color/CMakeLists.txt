@@ -1,3 +1,2 @@
-set(TARG "color")
-set(S "color.c")
-add_library(${TARG} ${S})
+set(T color)
+add_object(${T} color.c)

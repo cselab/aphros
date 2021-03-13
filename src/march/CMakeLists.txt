@@ -1,2 +1,2 @@
 set(T "march")
-add_library(${T} main.c)
+add_object(${T} main.c)

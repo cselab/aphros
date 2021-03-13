@@ -16,6 +16,16 @@
 
 std::string GetDefaultConf() {
 #if USEFLAG(BACKEND_CUBISM)
+  FORCE_LINK(distr_cubismnc);
+#endif
+#if USEFLAG(BACKEND_LOCAL)
+  FORCE_LINK(distr_local);
+#endif
+#if USEFLAG(BACKEND_NATIVE)
+  FORCE_LINK(distr_native);
+#endif
+
+#if USEFLAG(BACKEND_CUBISM)
   const std::string backend = "cubismnc";
 #elif USEFLAG(BACKEND_NATIVE)
   const std::string backend = "native";

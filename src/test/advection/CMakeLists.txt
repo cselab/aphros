@@ -1,8 +1,8 @@
 get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-set(EXE t.${name})
-add_executable(${EXE} main.cpp)
-install(TARGETS ${EXE} DESTINATION "${APHROS_PREFIX}/bin")
-target_link_libraries(${EXE} aphros)
+set(T t.${name})
+add_executable(${T} main.cpp)
+install(TARGETS ${T} DESTINATION "${APHROS_PREFIX}/bin")
+target_link_libraries(${T} aphros)
 
 
 foreach(comm local cubismnc native)

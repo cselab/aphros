@@ -1,9 +1,9 @@
 get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-set(EXE t.${name})
+set(T t.${name})
 
-add_executable(${EXE} main.cpp)
-target_link_libraries(${EXE} aphros use_overlap)
-add_test_current(NAME "" COMMAND ${EXE})
+add_executable(${T} main.cpp)
+target_link_libraries(${T} aphros use_overlap)
+add_test_current(NAME "" COMMAND ${T})
 
 add_executable(plane plane.cpp)
 

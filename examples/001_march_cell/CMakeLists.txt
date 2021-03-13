@@ -5,3 +5,4 @@ find_package(aphros)
 set(T main)
 add_executable(${T} main.c)
 target_link_libraries(${T} aphros)
+

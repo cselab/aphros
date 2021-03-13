@@ -1,20 +1,14 @@
 set(T parser)
-add_library(${T} parser.cpp codeblocks.cpp)
-target_link_libraries(${T} vars filesystem utilsystem)
+add_object(${T} parser.cpp codeblocks.cpp)
+object_link_libraries(${T} vars filesystem)
 
 set(T vars)
-add_library(${T} vars.cpp)
+add_object(${T} vars.cpp)
+object_link_libraries(${T} logger)
 
 set(T parse_template)
-add_library(${T} template.cpp)
+add_object(${T} template.cpp)
 
 set(T argparse)
-add_library(${T} argparse.cpp)
-target_link_libraries(${T} vars format)
-
-set(T conf2py)
-add_executable(${T} conf2py.cpp)
-install(TARGETS ${T} DESTINATION bin)
-set_target_properties(${T} PROPERTIES PREFIX "ap.")
-target_link_libraries(${T} parser vars format filesystem argparse logger utilsystem)
-
+add_object(${T} argparse.cpp)
+object_link_libraries(${T} vars format)

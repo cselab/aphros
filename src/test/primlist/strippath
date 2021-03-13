@@ -1,9 +1,3 @@
-#!/bin/sh
+#!/bin/sh -eu
 
- set -eu
-
-pre=$(dirname $(dirname $(pwd)))/
-while read v ; do
-  v="${v#*$pre}"
-  echo "$v" | sed 's/:[0-9]*\(: assertion\)/\1/g'
-done
+sed 's/.*\(: assertion\)/\1/g'

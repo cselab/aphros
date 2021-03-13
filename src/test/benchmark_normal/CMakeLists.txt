@@ -1,6 +1,6 @@
 get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 set(T t.${name})
-add_executable(${T} main.cpp)
-target_link_libraries(${T} suspender format timer sysinfo mesh allocator logger utilsystem use_avx)
+add_executable_with_objects(${T} main.cpp format timer sysinfo mesh allocator openmp)
+target_link_libraries(${T} use_avx)
 add_test_current(COMMAND ${T})
 

@@ -1,3 +1,2 @@
-set(TARG "young")
-
-add_library(${TARG} main.cpp)
+set(T "young")
+add_object(${T} main.cpp)

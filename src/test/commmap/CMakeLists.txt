@@ -3,7 +3,7 @@ get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 if (USE_MPI)
   set(T t.${name})
   add_executable(${T} main.cpp)
-  target_link_libraries(${T} aphros)
+  target_link_libraries(${T} aphros openmp)
   add_test_current(COMMAND ./test main)
 endif()
 

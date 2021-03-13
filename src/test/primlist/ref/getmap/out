@@ -1,14 +1,14 @@
 ./t.primlist.getmap 's' 's 1 2 3' 'x y z' '3'
-x:1 y:2 z:3
+x:1 y:2 z:3 
 ./t.primlist.getmap 's' 's 1 2 3 4' 'x y z' '3'
-x:1 y:2 z:3
+x:1 y:2 z:3 
 ./t.primlist.getmap 's' 's 1 2 3' 'x y z r' '3'
-x:1 y:2 z:3
+x:1 y:2 z:3 
 ./t.primlist.getmap 's' 's 1 2 3' 'x y z r' '4'
-./func/primlist.ipp: assertion failed 'nreq <= values.size()'
+: assertion failed 'nreq <= values.size()'
 required 4 values but only 3 values provided, missing value for key 'r' in 's 1 2 3' while parsing keys 'x y z r'
 ./t.primlist.getmap 's' 's 1 2 3' 'x y z' '4'
-./func/primlist.ipp: assertion failed 'nreq <= keys.size()'
+: assertion failed 'nreq <= keys.size()'
 required 4 values but only 3 keys provided while parsing keys 'x y z'
 ./t.primlist.getmap '' '1 2 3' 'x y z' '3'
 
