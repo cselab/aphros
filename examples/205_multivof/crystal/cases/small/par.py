@@ -1,0 +1,12 @@
+np = 2
+ny = 24
+mu_liquid = 1e-3 * 0.25
+sigma = 72e-3 * 0.05
+rho_ratio = 0.1
+erasevf_per_rel = 0.5
+length = 3e-3
+inletpressure_add = 0.5
+tmax = 5.
+erasevf_length = 0.15
+dumplist = ""
+dumppoly = 0

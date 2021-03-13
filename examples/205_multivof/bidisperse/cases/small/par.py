@@ -1,0 +1,10 @@
+Lwide = 0.2
+Lnarrow = 0.15
+Hwide = 0.2
+np = 2
+nx = 64
+tmax = 0.4
+dumplist = ""
+dumppoly = 0
+dump_field_dt = 0.04
+dump_traj_dt = 0.04

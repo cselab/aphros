@@ -21,3 +21,4 @@ mesh.conf
 a.conf
 arg
 *.log
+gen.copy
