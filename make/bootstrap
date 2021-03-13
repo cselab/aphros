@@ -10,7 +10,13 @@ trap 'rm -f $t; exit 2' 1 2 3 14 15
 ../make/obj > ../make/obj.mk &&
     ../make/hdr > ../make/hdr.mk &&
     ../make/dir > ../make/dir.mk &&
-    ../make/list > $t &&
+    find . \
+	 -type f \
+	 -name '*.c' -or \
+	 -name '*.cpp' -or \
+	 -name '*.h' -or \
+	 -name '*.inc' -or \
+	 -name '*.ipp' | grep -v '^\.\/test\/' | ../make/list > $t &&
     ../make/dep $t |
 	awk '{printf "$(WRK)/%s.o: $(SRC)/%s\n", $1, $2}' > ../make/dep.mk &&
     ../make/nmake Makefile_legacy > Makefile_nmake

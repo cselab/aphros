@@ -1,4 +1,4 @@
-#!/usr/bin/awk -f
+#!/bin/awk -f
 
 {
     if (NF != 2) {

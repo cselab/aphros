@@ -1,24 +1,22 @@
-#!/bin/sh
+#!/bin/awk -f
 
-find . -name '*.cpp' -or -name '*.c' -or -name '*.h' -or -name '*.ipp' -or -name '*.inc' | awk -v me=list '
-{ sub(/^\.\//, "") }
-/^test\// { next }
 {
+    sub(/^\.\//, "")
     f = $0
     line = 0
-    while (getline < f) {
-        line++
-        if (sub(/^[ \t]*#[ \t]*include[ \t]*"/, "")) {
-            sub(/".*/, "")
-            if (filep($0))
-                print f, $0
-            else if (filep($0 = dir(f) "/" $0))
-                print f, $0
-            else {
-                printf("%s:%d: error: no such file '\''%s'\''\n", f, line, $0) | "cat >&2"
-                exit(1)
-            }
-        }
+    while (getline < f > 0) {
+	line++
+	if (sub(/^[ \t]*#[ \t]*include[ \t]*"/, "")) {
+	    sub(/".*/, "")
+	    if (filep($0))
+		print f, $0
+	    else if (filep($0 = dir(f) "/" $0))
+		print f, $0
+	    else {
+		printf("%s:%d: error: no such file '%s'\n", f, line, $0) | "cat >&2"
+		exit(1)
+	    }
+	}
     }
 }
 
@@ -31,4 +29,3 @@ function filep(path, aux, rc) {
 function dir(path) {
     return sub(/\/[^/]*$/, "", path) ? path : "."
 }
-'
