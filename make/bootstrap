@@ -3,7 +3,7 @@
 # $ cd src
 # $ ../make/bootstrap
 #
-# ../make/obj.mk also creates ../make/dir.wrk.mk and ../make/dir.rule.mk
+# ../make/obj also creates ../make/dir.wrk.mk and ../make/dir.rule.mk
 
 t=/tmp/bootstrap.$$
 trap 'rm -f $t; exit 2' 1 2 3 14 15
@@ -11,7 +11,8 @@ trap 'rm -f $t; exit 2' 1 2 3 14 15
     ../make/hdr > ../make/hdr.mk &&
     ../make/dir > ../make/dir.mk &&
     ../make/list > $t &&
-    ../make/dep  < $t > ../make/dep.mk &&
+    ../make/dep $t |
+	awk '{printf "$(WRK)/%s.o: $(SRC)/%s\n", $1, $2}' > ../make/dep.mk &&
     ../make/nmake Makefile_legacy > Makefile_nmake
 status=$?
 rm $t

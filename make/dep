@@ -1,13 +1,14 @@
-#!/bin/sh
+#!/usr/bin/awk -f
 
-awk '
 {
+    if (sub(/\.cpp$/, "", $1) ||
+	sub(/\.c$/, "", $1))
+	objs[$1]
     adj[$1, ++n[$1]] = $2
 }
 END {
-    for (s in n)
-	if (s ~ /\.cpp$/ || s ~ /\.c$/)
-	    dfs(s)
+    for (obj in objs)
+	dfs(obj)
 }
 
 function dfs(s,   q, i, j, k, seen, nxt, c) {
@@ -18,16 +19,8 @@ function dfs(s,   q, i, j, k, seen, nxt, c) {
 	    nxt = adj[c, k]
 	    if (!(nxt in seen)) {
 		q[++j] = nxt
-		print "$(WRK)/" f2obj(s) ": " "$(SRC)/" nxt
+		print s, nxt | "sort | uniq"
 	    }
 	}
     }
 }
-
-function f2obj(s) {
-    sub(/\.cpp$/, ".o", s)
-    sub(/\.c/, ".o", s)
-    return s
-}
-
-' | sort | uniq
