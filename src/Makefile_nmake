@@ -41,5 +41,5 @@ main.obj: main.c; $(CC_RULE) main.c
 
 util\gitgen.cpp: ..\make\windows\gitgen.cpp; copy ..\make\windows\gitgen.cpp $@
 clean:
-	del $O .dir $L ap.mfer
+	-del $O .dir $L main.exe
 	-rmdir $P
