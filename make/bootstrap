@@ -35,18 +35,18 @@ awk '{printf "$(WRK)/%s.o\n", $1}' $o | ../make/var O > ../make/unix/obj.mk
 awk '{printf "$(WRK)/%s.o: $(SRC)/%s; %s $(SRC)/%s\n", $1, $2, $3, $2}' $o > ../make/unix/rule.mk
 
 # windows
-awk '{printf "$(WRK)/%s.obj: $(SRC)/%s\n", $1, $2}' $d | \
+awk '{printf "%s.obj: %s\n", $1, $2}' $d | \
     sed 's,/,\\,g' > ../make/windows/dep.mk
 grep '\/' $h | sed 's,\/.*,,g' | uniq | sed 's,/,\\,g' | \
     ../make/var D > ../make/windows/dir.mk
-grep '\/' $o | sed 's,\/.*,,g' | uniq | awk '{printf "$(WRK)/%s\n", $1}' | sed 's,/,\\,g' | \
+grep '\/' $o | sed 's,\/.*,,g' | uniq | awk '{printf "%s\n", $1}' | sed 's,/,\\,g' | \
     ../make/var P > ../make/windows/dir.rule.mk
-awk '{printf "$(WRK)/%s.obj: $(WRK)/.dir\n", $1}' $o | \
+awk '{printf "%s.obj: .dir\n", $1}' $o | \
     sed 's,/,\\,g' > ../make/windows/dir.dep.mk
-awk '{printf "$(WRK)/%s.obj\n", $1}' $o | sed 's,/,\\,g' | \
+awk '{printf "%s.obj\n", $1}' $o | sed 's,/,\\,g' | \
     ../make/var O > ../make/windows/obj.mk
-awk '{printf "$(WRK)/%s.obj: $(SRC)/%s; %s $(SRC)/%s\n", $1, $2, $3, $2}' $o | \
-    sed 's,/,\\,g' | > ../make/windows/rule.mk
+awk '{printf "%s.obj: %s; %s %s\n", $1, $2, $3, $2}' $o | \
+    sed 's,/,\\,g' > ../make/windows/rule.mk
 
 # ../make/nmake Makefile_legacy > Makefile_nmake
 

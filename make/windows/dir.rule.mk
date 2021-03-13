@@ -1,16 +1,16 @@
 P = \
-$(WRK)\aphros_c\
-$(WRK)\color\
-$(WRK)\distr\
-$(WRK)\dump\
-$(WRK)\func\
-$(WRK)\geom\
-$(WRK)\inside\
-$(WRK)\kernel\
-$(WRK)\linear\
-$(WRK)\march\
-$(WRK)\parse\
-$(WRK)\solver\
-$(WRK)\util\
-$(WRK)\young\
+aphros_c\
+color\
+distr\
+dump\
+func\
+geom\
+inside\
+kernel\
+linear\
+march\
+parse\
+solver\
+util\
+young\
 
