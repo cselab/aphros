@@ -9,8 +9,8 @@ $(WRK)/distr/distrsolver.o: $(WRK)/.dir
 $(WRK)/distr/local.o: $(WRK)/.dir
 $(WRK)/distr/native.o: $(WRK)/.dir
 $(WRK)/distr/report.o: $(WRK)/.dir
-$(WRK)/dump/dumper.o: $(WRK)/.dir
 $(WRK)/dump/dump.o: $(WRK)/.dir
+$(WRK)/dump/dumper.o: $(WRK)/.dir
 $(WRK)/dump/hdf.o: $(WRK)/.dir
 $(WRK)/dump/raw.o: $(WRK)/.dir
 $(WRK)/dump/xmf.o: $(WRK)/.dir

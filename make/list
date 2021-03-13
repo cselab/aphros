@@ -1,19 +1,21 @@
 #!/bin/awk -f
 
 {
-    sub(/^\.\//, "")
-    f = $0
+    if (!filep(path = $0)) {
+	printf "list: not a file '%s'\n", path | "cat >&2"
+	exit(1)
+    }
     line = 0
-    while (getline < f > 0) {
+    while (getline < path > 0) {
 	line++
 	if (sub(/^[ \t]*#[ \t]*include[ \t]*"/, "")) {
 	    sub(/".*/, "")
 	    if (filep($0))
-		print f, $0
-	    else if (filep($0 = dir(f) "/" $0))
-		print f, $0
+		print path, $0
+	    else if (filep($0 = dir(path) "/" $0))
+		print path, $0
 	    else {
-		printf("%s:%d: error: no such file '%s'\n", f, line, $0) | "cat >&2"
+		printf "%s:%d: error: no such file '%s'\n", path, line, $0 | "cat >&2"
 		exit(1)
 	    }
 	}

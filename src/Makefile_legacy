@@ -32,13 +32,14 @@ CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(FLAGS_FPIC) -I$(SRC) $1 -o $@
 -D_USE_OVERLAP_=0 \
 
 all: $(WRK)/$L $(WRK)/ap.mfer
-include $(SRC)/../make/obj.mk
-include $(SRC)/../make/dir.mk
 include $(SRC)/../make/hdr.mk
-include $(SRC)/../make/rule.mk
-include $(SRC)/../make/dir.dep.mk
-include $(SRC)/../make/dir.rule.mk
-include $(SRC)/../make/dep.mk
+include $(SRC)/../make/unix/dep.mk
+include $(SRC)/../make/unix/dir.dep.mk
+include $(SRC)/../make/unix/dir.mk
+include $(SRC)/../make/unix/dir.rule.mk
+include $(SRC)/../make/unix/obj.mk
+include $(SRC)/../make/unix/rule.mk
+
 $(WRK)/$L: $O; mkdir -p $(WRK) && ar rv $@ $O && ranlib $@
 $(WRK)/$J: $O; mkdir -p $(WRK) && emar rv $@ $O
 $(WRK)/ap.mfer: $(WRK)/main.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(LDFLAGS) $(WRK)/main.o $(WRK)/$L -o $@
@@ -62,3 +63,4 @@ install_js: $(WRK)/$J
 clean:
 	-rm -f $O $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/ap.mfer
 	-rmdir $P
+

@@ -10,8 +10,8 @@ $(WRK)/distr/distrsolver.o\
 $(WRK)/distr/local.o\
 $(WRK)/distr/native.o\
 $(WRK)/distr/report.o\
-$(WRK)/dump/dumper.o\
 $(WRK)/dump/dump.o\
+$(WRK)/dump/dumper.o\
 $(WRK)/dump/hdf.o\
 $(WRK)/dump/raw.o\
 $(WRK)/dump/xmf.o\

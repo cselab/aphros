@@ -3,23 +3,53 @@
 # $ cd src
 # $ ../make/bootstrap
 #
-# ../make/obj also creates ../make/dir.wrk.mk and ../make/dir.rule.mk
+# ../make/obj defines the files to build
+set -e
 
-t=/tmp/bootstrap.$$
-trap 'rm -f $t; exit 2' 1 2 3 14 15
-../make/obj > ../make/obj.mk &&
-    ../make/hdr > ../make/hdr.mk &&
-    ../make/dir > ../make/dir.mk &&
-    find . \
-	 -type f \
-	 -name '*.c' -or \
-	 -name '*.cpp' -or \
-	 -name '*.h' -or \
-	 -name '*.inc' -or \
-	 -name '*.ipp' | grep -v '^\.\/test\/' | ../make/list > $t &&
-    ../make/dep $t |
-	awk '{printf "$(WRK)/%s.o: $(SRC)/%s\n", $1, $2}' > ../make/dep.mk &&
-    ../make/nmake Makefile_legacy > Makefile_nmake
+l=/tmp/bootstrap.list.$$
+o=/tmp/bootstrap.obj.$$
+h=/tmp/bootstrap.hdr.$$
+d=/tmp/bootstrap.dep.$$
+
+trap 'rm -f $d $h $l $o; exit 2' 1 2 3 14 15
+find . \
+     -type f \
+     -name '*.c' -or \
+     -name '*.cpp' -or \
+     -name '*.h' -or \
+     -name '*.inc' -or \
+     -name '*.ipp' | sed 's,^\.\/,,g' | \
+    grep -v '^test\/' | grep -v '^build[a-z_0-9]\/' > $l
+{ cat $l ; echo util/gitgen.cpp; } | ../make/obj | sort > $o
+grep '\.h$' $l | fgrep -v 'aphros_c.h' | sort | uniq > $h
+../make/var H $h > ../make/hdr.mk
+../make/list $l | ../make/dep > $d
+
+# unix
+awk '{printf "$(WRK)/%s.o: $(SRC)/%s\n", $1, $2}' $d > ../make/unix/dep.mk
+grep '\/' $h | sed 's,\/.*,,g' | uniq | ../make/var D > ../make/unix/dir.mk
+grep '\/' $o | sed 's,\/.*,,g' | uniq | awk '{printf "$(WRK)/%s\n", $1}' | \
+    ../make/var P > ../make/unix/dir.rule.mk
+awk '{printf "$(WRK)/%s.o: $(WRK)/.dir\n", $1}' $o > ../make/unix/dir.dep.mk
+awk '{printf "$(WRK)/%s.o\n", $1}' $o | ../make/var O > ../make/unix/obj.mk
+awk '{printf "$(WRK)/%s.o: $(SRC)/%s; %s $(SRC)/%s\n", $1, $2, $3, $2}' $o > ../make/unix/rule.mk
+
+# windows
+awk '{printf "$(WRK)/%s.obj: $(SRC)/%s\n", $1, $2}' $d | \
+    sed 's,/,\\,g' > ../make/windows/dep.mk
+grep '\/' $h | sed 's,\/.*,,g' | uniq | sed 's,/,\\,g' | \
+    ../make/var D > ../make/windows/dir.mk
+grep '\/' $o | sed 's,\/.*,,g' | uniq | awk '{printf "$(WRK)/%s\n", $1}' | sed 's,/,\\,g' | \
+    ../make/var P > ../make/windows/dir.rule.mk
+awk '{printf "$(WRK)/%s.obj: $(WRK)/.dir\n", $1}' $o | \
+    sed 's,/,\\,g' > ../make/windows/dir.dep.mk
+awk '{printf "$(WRK)/%s.obj\n", $1}' $o | sed 's,/,\\,g' | \
+    ../make/var O > ../make/windows/obj.mk
+awk '{printf "$(WRK)/%s.obj: $(SRC)/%s; %s $(SRC)/%s\n", $1, $2, $3, $2}' $o | \
+    sed 's,/,\\,g' | > ../make/windows/rule.mk
+
+# ../make/nmake Makefile_legacy > Makefile_nmake
+
 status=$?
-rm $t
+rm $d $h $l $o
 exit $status

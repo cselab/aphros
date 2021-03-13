@@ -1,0 +1,23 @@
+#!/bin/awk -f
+
+BEGIN {
+    if (!(1 in ARGV)) {
+	printf "var: needs a variable name\n" | "cat >&2"
+	exit(status = 2)
+    }
+    name = ARGV[1]; ARGV[1] = ""
+    printf "%s = \\\n", name
+}
+
+{
+    if (NF != 1 ) {
+	printf "var: wrong line for var '%s'\n", $0 | "cat >&2"
+	exit(status = 2)
+    }
+    printf "%s\\\n", $0
+}
+
+END {
+    printf "\n"
+    exit(status)
+}

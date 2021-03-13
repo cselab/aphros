@@ -1,8 +1,7 @@
 #!/bin/sh
 
-{ find . -name '*.cpp' -or -name '*.c'; echo util/gitgen.cpp; } | awk '
+awk '
 BEGIN {
-    print "O = \\"
     skip["distr/cubismnc.cpp"]
     skip["gen/wave_lamb.c"]
     skip["linear/hypre.cpp"]
@@ -12,40 +11,15 @@ BEGIN {
     skip["main.c"]
     skip["overlap/overlap.cpp"]
     skip["util/subcomm.cpp"]
-    printf "P = \\\n" > "../make/dir.rule.mk"
 }
 { sub(/^\.\//, "") }
 ($0 in skip) || /^test\// || /^build[a-z_0-9]*\// { next }
 {
     file = $0
-    if (sub(/\.cpp$/, ".o"))
-        rule = "$(CXX_RULE)"
-    else if (sub(/\.c$/, ".o"))
-        rule = "$(CC_RULE)"
-    printf "$(WRK)/%s: $(SRC)/%s; %s $(SRC)/%s\n",
-	$0, file, rule, file | "sort | uniq > ../make/rule.mk"
-    printf "$(WRK)/%s: $(WRK)/.dir\n", $0 | "sort | uniq >  ../make/dir.dep.mk"
-    dir = dirname($0)
-    if ("." != dir "")
-        printf "$(WRK)/%s\\\n", dir | "sort | uniq >> ../make/dir.rule.mk"
-    else
-        printf "$(WRK)\\\n" | "sort | uniq >> ../make/dir.rule.mk"
-    print "$(WRK)/" $0 "\\" | "sort | uniq"
-}
-
-END {
-    close("sort | uniq >> ../make/dir.rule.mk")
-    close("sort | uniq")
-    printf "\n" | "cat >> ../make/dir.rule.mk"
-    printf "\n"
-}
-
-function dirname(s)
-{
-    if (sub(/\/.*/, "", s))
-        return s
-    else
-        return "."
+    if (sub(/\.cpp$/, ""))
+	print $0, file, "$(CXX_RULE)"
+    else if (sub(/\.c$/, ""))
+	print $0, file, "$(CC_RULE)"
 }
 
 '
