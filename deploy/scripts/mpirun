@@ -11,7 +11,9 @@ Reads the number of cores NP from file 'np' and executes
   mpirun -n NP ARGS
 If file 'np' does not exist, executes
   mpirun ARGS
-Prints the command to be executed to STDERR if --silent is not provided.
+Prints the command to be executed to STDERR if --silent is not
+provided. The value of environment variables APHROS_MPIRUN if set is
+used instead of mpirun command.
 EOF
     exit 1
 fi
