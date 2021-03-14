@@ -71,7 +71,7 @@ inline void aphros_SetError(int code, const std::string& str) {
   do {                                                                \
     const auto fasrteq_x = (x);                                       \
     const auto fasrteq_y = (y);                                       \
-    if (!(fasrteq_x == fasrteq_x)) {                                  \
+    if (!(fasrteq_x == fasrteq_y)) {                                  \
       std::stringstream fasrteq_s;                                    \
       fasrteq_s << FILELINE << ": assertion failed, expected equal "; \
       fasrteq_s << #x << "='" << fasrteq_x << "' and " << #y << "='"  \
@@ -85,7 +85,7 @@ inline void aphros_SetError(int code, const std::string& str) {
   do {                                                                \
     const auto fasrteq_x = (x);                                       \
     const auto fasrteq_y = (y);                                       \
-    if (!(fasrteq_x == fasrteq_x)) {                                  \
+    if (!(fasrteq_x == fasrteq_y)) {                                  \
       std::stringstream fasrteq_s;                                    \
       fasrteq_s << FILELINE << ": assertion failed, expected equal "; \
       fasrteq_s << #x << "='" << fasrteq_x << "' and " << #y << "='"  \
