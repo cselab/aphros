@@ -94,7 +94,7 @@ void Hdf<M>::Write(const Field& fc, std::string path, M& m, std::string dname) {
       const Fapl fapl(H5P_FILE_ACCESS);
       H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
       int rc = H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
-      fassert_equal(rc >= 0, 1, "H5Fcreate failed for '" + path + "'");
+      //fassert_equal(rc >= 0, 1, "H5Fcreate failed for '" + path + "'");
       return rc;
     }();
 
