@@ -2,6 +2,8 @@
 
 set -eu
 
+: ${APHROS_MPIRUN=mpirun}
+
 if [ "$#" -lt "1" ] || [ "$1" = "-h" ] ; then
     cat << EOF
 usage: `basename $0` [--silent] [-h] ARGS
@@ -21,9 +23,9 @@ if [ "$1" = "--silent" ] ; then
 fi
 
 if [ -f 'np' ] ; then
-  c='mpirun -n $(cat np) "$@"'
+  c=$APHROS_MPIRUN' -n $(cat np) "$@"'
 else
-  c='mpirun "$@"'
+  c=$APHROS_MPIRUN' "$@"'
 fi
 
 if [ "$silent" = "0" ] ; then
