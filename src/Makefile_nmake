@@ -29,14 +29,12 @@ CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) /I. $1 /Fo$@
 all: $L main.exe
 include ..\make\hdr.mk
 include ..\make\windows\dep.mk
-include ..\make\windows\dir.dep.mk
 include ..\make\windows\dir.mk
 include ..\make\windows\dir.rule.mk
 include ..\make\windows\obj.mk
 include ..\make\windows\rule.mk
 
 $L: $O; link /lib /OUT:$@ $O
-.dir:; type NUL > $@
 main.exe: main.obj $L; $(LINK) $(LDFLAGS) main.obj $L /Fo$@
 main.obj: main.c; $(CC_RULE) main.c
 
