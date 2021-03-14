@@ -37,10 +37,6 @@ awk '{printf "$(WRK)/%s.o: $(SRC)/%s; %s $(SRC)/%s\n", $1, $2, $3, $2}' $o > ../
 # windows
 awk '{printf "%s.obj: %s\n", $1, $2}' $d | \
     sed 's,/,\\,g' > ../make/windows/dep.mk
-grep '\/' $h | sed 's,\/.*,,g' | uniq | sed 's,/,\\,g' | \
-    ../make/var D > ../make/windows/dir.mk
-grep '\/' $o | sed 's,\/.*,,g' | uniq | awk '{printf "%s\n", $1}' | sed 's,/,\\,g' | \
-    ../make/var P > ../make/windows/dir.rule.mk
 awk '{printf "%s.obj\n", $1}' $o | sed 's,/,\\,g' | \
     ../make/var O > ../make/windows/obj.mk
 awk '{printf "%s.obj: %s; %s %s\n", $1, $2, $3, $2}' $o | \
