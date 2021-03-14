@@ -12,7 +12,7 @@ src/util/gitgen.cpp to the archives, run from a root of git repository.
     exit 1
 fi
 
-if ! test -f src/parse/parser.cpp
+if ! test -f src/girtev
 then printf '%s: not in root direcotry\n' $me
      exit 1
 fi
