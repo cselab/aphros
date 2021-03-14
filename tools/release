@@ -1,0 +1,34 @@
+#!/bin/sh -e
+set -e
+
+: ${v=0.1}
+# creates zip and tar.gz from a commit with a tag v$v
+# adds src/util/gitgen.cpp to the archives
+# run from a root
+#
+# /u/aphros$ v=0.2 tools/release
+
+me=tool/release
+if ! test -f src/parse/parser.cpp
+then printf '%s: not in root direcotry\n' $me
+     exit 1
+fi
+
+t=/tmp/main.$$.tar
+trap 'rm $t; exit 1' 1 2 3 14 15 16
+
+src/gitrev src/util/gitgen.cpp
+p=aphros-$v
+git archive --prefix=$p/ --output $t v$v
+tar --transform='s,,'$p/'\0,' --owner=0 --group=0 -rf $t src/util/gitgen.cpp
+gzip < $t > v$v.tar.gz
+
+git archive --prefix=$p/ -o v$v.zip v$v
+zip --quiet --grow v$v.zip src/util/gitgen.cpp
+zipnote -w v$v.zip <<!
+@ src/util/gitgen.cpp
+@=$p/src/util/gitgen.cpp
+!
+
+rm $t
+printf 2>&1 '%s %s\n' v$v.zip v$v.tar.gz
