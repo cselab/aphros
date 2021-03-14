@@ -2,13 +2,16 @@
 set -e
 
 : ${v=0.1}
-# creates zip and tar.gz from a commit with a tag v$v
-# adds src/util/gitgen.cpp to the archives
-# run from a root
-#
-# /u/aphros$ v=0.2 tools/release
 
-me=tool/release
+me=tools/release
+if test "$1" = -h
+then cat >&1 <<'!'
+creates zip and tar.gz from a commit with a tag v$v, adds
+src/util/gitgen.cpp to the archives, run from a root of git repository.
+!
+    exit 1
+fi
+
 if ! test -f src/parse/parser.cpp
 then printf '%s: not in root direcotry\n' $me
      exit 1
