@@ -87,13 +87,15 @@ void Hdf<M>::Write(const Field& fc, std::string path, M& m, std::string dname) {
         (sizeof(Scal) == 4 ? H5T_NATIVE_FLOAT : H5T_NATIVE_DOUBLE);
     const MPI_Comm comm = m.GetMpiComm();
 
-    MPI_Barrier(comm);
-    H5open();
+    fassert_equal(MPI_Barrier(comm), MPI_SUCCESS, "MPI_Barrier faield");
+    fassert_equal(H5open(), 0, "H5open failed");
 
     const hid_t file = [&comm, &path]() {
       const Fapl fapl(H5P_FILE_ACCESS);
       H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
-      return H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
+      int rc = H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
+      fassert_equal(rc >= 0, 1, "H5Fcreate failed for '" + path + "'");
+      return rc;
     }();
 
     const size_t nblocks = ctx->data.size();
