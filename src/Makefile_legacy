@@ -5,7 +5,6 @@ WRK = .
 L = libaphros_static.a
 J = libaphros_js.a
 CXX = g++
-CC = c99
 LINK = $(CXX)
 CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g

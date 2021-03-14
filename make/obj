@@ -1,6 +1,5 @@
-#!/bin/sh
+#!/usr/bin/awk -f
 
-awk '
 BEGIN {
     skip["distr/cubismnc.cpp"]
     skip["gen/wave_lamb.c"]
@@ -12,9 +11,8 @@ BEGIN {
     skip["overlap/overlap.cpp"]
     skip["util/subcomm.cpp"]
 }
-{ sub(/^\.\//, "") }
-($0 in skip) || /^test\// || /^build[a-z_0-9]*\// { next }
-{
+
+!($0 in skip) {
     file = $0
     if (sub(/\.cpp$/, ""))
 	print $0, file, "$(CXX_RULE)"
@@ -22,4 +20,3 @@ BEGIN {
 	print $0, file, "$(CC_RULE)"
 }
 
-'
