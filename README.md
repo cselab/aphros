@@ -25,7 +25,7 @@ Key features:
 
 [<img src="https://cselab.github.io/aphros/images/curv.png" height=200>](https://cselab.github.io/aphros/curv.html) | [<img src="https://cselab.github.io/aphros/images/wasm.png" height=200>](https://cselab.github.io/aphros/wasm/hydro.html) | [<img src="https://cselab.github.io/aphros/images/electrochem.png" height=200>](https://cselab.github.io/aphros/wasm/electrochem.html) | [<img src="https://cselab.github.io/aphros/images/aphros.png" width=200>](https://cselab.github.io/aphros/wasm/aphros.html)
 :---:|:---:|:---:|:---:
-curvature estimation | coalescence prevention | electrochemical reactor | complete solver
+Curvature estimation | Coalescence prevention | Electrochemical reactor | Full solver with configuration
 
 ### Documentation
 
