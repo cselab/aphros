@@ -67,25 +67,30 @@ inline void aphros_SetError(int code, const std::string& str) {
       __VA_ARGS__, fassert_equal_3, fassert_equal_2, fassert_equal_1, \
       fassert_equal_0))(__VA_ARGS__))
 
-#define fassert_equal_2(x, y)                                                 \
-  do {                                                                        \
-    if (!((x) == (y))) {                                                      \
-      std::stringstream fasrteq_s;                                            \
-      fasrteq_s << FILELINE << ": assertion failed, expected equal ";         \
-      fasrteq_s << #x << "='" << (x) << "' and " << #y << "='" << (y) << "'"; \
-      aphros_SetError(1, fasrteq_s.str());                                    \
-      throw std::runtime_error(aphros_GetErrorString());                      \
-    }                                                                         \
+#define fassert_equal_2(x, y)                                         \
+  do {                                                                \
+    const auto fasrteq_x = (x);                                       \
+    const auto fasrteq_y = (y);                                       \
+    if (!(fasrteq_x == fasrteq_x)) {                                  \
+      std::stringstream fasrteq_s;                                    \
+      fasrteq_s << FILELINE << ": assertion failed, expected equal "; \
+      fasrteq_s << #x << "='" << fasrteq_x << "' and " << #y << "='"  \
+                << fasrteq_y << "'";                                  \
+      aphros_SetError(1, fasrteq_s.str());                            \
+      throw std::runtime_error(aphros_GetErrorString());              \
+    }                                                                 \
   } while (0);
 
-#define fassert_equal_3(x, y, msg)                                           \
-  do {                                                                       \
-    if (!((x) == (y))) {                                                     \
-      std::stringstream fasrteq_s;                                           \
-      fasrteq_s << FILELINE << ": assertion failed, expected equal ";        \
-      fasrteq_s << #x << "='" << (x) << "' and " << #y << "='" << (y) << "'" \
-                << msg;                                                      \
-      aphros_SetError(1, fasrteq_s.str());                                   \
-      throw std::runtime_error(aphros_GetErrorString());                     \
-    }                                                                        \
+#define fassert_equal_3(x, y, msg)                                    \
+  do {                                                                \
+    const auto fasrteq_x = (x);                                       \
+    const auto fasrteq_y = (y);                                       \
+    if (!(fasrteq_x == fasrteq_x)) {                                  \
+      std::stringstream fasrteq_s;                                    \
+      fasrteq_s << FILELINE << ": assertion failed, expected equal "; \
+      fasrteq_s << #x << "='" << fasrteq_x << "' and " << #y << "='"  \
+                << fasrteq_y << "'" << msg;                           \
+      aphros_SetError(1, fasrteq_s.str());                            \
+      throw std::runtime_error(aphros_GetErrorString());              \
+    }                                                                 \
   } while (0);
