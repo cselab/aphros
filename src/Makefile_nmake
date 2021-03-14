@@ -36,10 +36,10 @@ include ..\make\windows\obj.mk
 include ..\make\windows\rule.mk
 
 $L: $O; link /lib /OUT:$@ $O
+.dir:; type NUL > $@
 main.exe: main.obj $L; $(LINK) $(LDFLAGS) main.obj $L /Fo$@
 main.obj: main.c; $(CC_RULE) main.c
 
 util\gitgen.cpp: ..\make\windows\gitgen.cpp; copy ..\make\windows\gitgen.cpp $@
-clean:
-	-del $O .dir $L main.exe
-	-rmdir $P
+clean:; -del $O .dir $L main.exe
+	

@@ -2,6 +2,8 @@
 // Copyright 2021 ETH Zurich
 
 #include <stdlib.h>
+#include <sys/stat.h>
+
 int SystemBaseName(const char* path, char *fname) {
   char drive[_MAX_DRIVE];
   char dir[_MAX_DIR];
@@ -34,7 +36,7 @@ int SystemMakeDir(const char* path, int parent) {
 
 char* SystemRealPath(const char* path, char* resolved) {
   // TODO
-  strcpy(resolved, path);
+  strncpy(2048, resolved, path);
   return resolved;
 }
 
@@ -50,13 +52,13 @@ int SystemHasHyperthreads(void) {
 }
 
 int SystemIsDir(const char* path) {
-  // TODO
-  return 0;
+  struct stat info;
+  return (stat(path, &info) == 0) && (info.st_mode & S_IFDIR);
 }
 
 int SystemIsFile(const char* path) {
-  // TODO
-  return 0;
+  struct stat info;
+  return (stat(path, &info) == 0) && (info.st_mode & S_IFREG);
 }
 
 int SystemJoin(const char *a, const char *b, char *c) {
@@ -83,6 +85,20 @@ size_t SystemGetMem(void) {
 }
 
 int SystemSplitExt(const char *a, char *base, char *ext) {
-  // TODO
+  int i;
+  int j;
+  int k;
+  for (i = 0, j = -1; a[i] != '\0'; i++)
+    if (a[i] == '\\') j = i;
+  for (i = j + 1, k = 0; a[i] != '\0'; i++)
+    if (a[i] == '.') k = i;
+  if (k == 0 || (j != -1 && k == j + 1)) {
+    strcpy(base, a);
+    ext[0] = '\0';
+  } else {
+    strncpy(base, a, k);
+    base[k] = '\0';
+    strcpy(ext, &a[k]);
+  }
   return 0;
 }
