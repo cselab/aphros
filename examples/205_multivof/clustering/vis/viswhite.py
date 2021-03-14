@@ -125,6 +125,10 @@ surf = Transform(Input=surf)
 surf.Transform = 'Transform'
 surf.Transform.Scale = [50., 50., 50.]
 surf = Calculator(Input=surf)
+try:
+    surf.AttributeType = 'Point Data'
+except:
+    pass
 surf.CoordinateResults = 1
 surf.ResultArrayName = 'warp'
 surf.Function = '\
