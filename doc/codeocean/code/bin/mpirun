@@ -1,0 +1,1 @@
+dumb-init /usr/bin/mpirun --allow-run-as-root "$@"
