@@ -9,6 +9,7 @@ hdf5-tools \
 libhdf5-mpich-dev \
 make \
 man-db \
+mpich \
 python3 \
 python3-numpy \
 rsync
