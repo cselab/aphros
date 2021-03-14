@@ -1,19 +1,46 @@
-#!/bin/bash
+#!/bin/sh
 
 set -eu
 
-# $1: path to src/util/gitgen.cpp
-o=$1
-a=""
-if [ -f "$o" ] ; then
-  a=$(head -n 1 "$o")
-fi
-b="// $(git describe --always --dirty) $(git diff --name-only | tr '\n' ' ')"
+me=$(basename "$0")
 
-if [ "$a" != "$b" ] ; then
-  echo "revision updated"
-  cat > $o << EOF
-$b
+if [ "$#" -lt "1" ] || [ "$1" = "-h" ] ; then
+  cat << EOF
+usage: $me [-h] OUT
+Generates C++ source file OUT describing the git revision.
+If executed outside a git repository, keeps an existing file or writes a file with unknown revision.
+No action if the file already exists and the generated file would have the same first line.
+EOF
+  exit 1
+fi
+
+out=$1
+
+if [ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ] ; then
+  if [ -f "$out" ] ; then
+    echo "Not a git repository, no action" >&2
+  else
+    echo "Not a git repository, generating '$out' with unknown revision" >&2
+    cat > "$out" << EOF
+// unknown
+const char* kGitRev = "unknown";
+const char* kGitMsg = "";
+const char* kGitDiff = "";
+EOF
+  fi
+  exit 0
+fi
+
+headold=""
+if [ -f "$out" ] ; then
+  headold=$(head -n 1 "$out")
+fi
+headnew="// $(git describe --always --dirty) $(git diff --name-only | tr '\n' ' ' | xargs)"
+
+if [ "$headold" != "$headnew" ] ; then
+  echo "Updating '$out'" >&2
+  cat > "$out" << EOF
+$headnew
 const char* kGitRev = "$(git describe --dirty --always --tags)";
 const char* kGitMsg = R"EOF($(git log -1 --pretty=%B))EOF";
 const char* kGitDiff = "$(git diff --name-only | tr '\n' ' ')";
