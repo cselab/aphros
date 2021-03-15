@@ -1,24 +1,25 @@
 version: 2.1
 
 executors:
-  mainexecutor:
+  linux:
     docker:
       - image: pkarnakov/aphros-gcc-openmpi:0.1
 
-# using environment variable CacheSuff
-# defined in the Project Settings
+orbs:
+  win: circleci/windows@2.2.0
+
+# In the Project Settings,
+# set environment variable CacheSuff to any string (e.g. v8)
+# Change its value to ignore cache.
 
 jobs:
   build:
-    executor: mainexecutor
+    executor: linux
     working_directory: ~/aphros
     steps:
       - restore_cache:
           keys:
-            - cache-build-{{ .Environment.CacheSuff }}
-      - run:
-          name: Extract cache archive
-          command: (cd ~ && test -f cache.tar && tar vxf cache.tar || true)
+            - build-{{ .Environment.CacheSuff }}
       - checkout
       - run:
           name: Build dependencies
@@ -42,14 +43,12 @@ jobs:
             make -j4
             make install
             cd ../..
-      - run:
-          name: Create cache archive
-          command: (cd ~ && rm -vf cache.tar && tar vcfH cache.tar posix aphros opt .local || true)
       - save_cache:
-          key: cache-build-{{ .Environment.CacheSuff }}-{{ .Revision }}
+          key: build-{{ .Environment.CacheSuff }}-{{ .Revision }}
           paths:
-            - ~/cache.tar
-
+            - ~/aphros
+            - ~/opt
+            - ~/.local
       - persist_to_workspace:
           root: ~/
           paths:
@@ -58,7 +57,7 @@ jobs:
             - opt
 
   test:
-    executor: mainexecutor
+    executor: linux
     working_directory: ~/aphros
     environment:
       OMPI_ALLOW_RUN_AS_ROOT: 1
@@ -81,7 +80,7 @@ jobs:
           destination: LastTest.log
 
   examples:
-    executor: mainexecutor
+    executor: linux
     working_directory: ~/aphros
     environment:
       OMPI_ALLOW_RUN_AS_ROOT: 1
@@ -97,6 +96,24 @@ jobs:
             cd examples
             make build VERBOSE=1 -j4
 
+  build-win:
+    executor: win/default
+    working_directory: C:\Users\circleci\aphros
+    steps:
+      - restore_cache:
+          keys:
+            - build-win-{{ .Environment.CacheSuff }}
+      - checkout
+      - run:
+         name: Build source
+         shell: cmd.exe
+         command: |
+            cd src & call ..\.circleci\main.bat
+      - save_cache:
+          key: build-win-{{ .Environment.CacheSuff }}-{{ .Revision }}
+          paths:
+            - C:\Users\circleci\aphros
+
 workflows:
   build-test-examples:
     jobs:
@@ -107,3 +124,4 @@ workflows:
       - examples:
           requires:
             - build
+      - build-win
