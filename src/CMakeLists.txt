@@ -24,6 +24,7 @@ option(USE_BACKEND_CUBISM "Enable Cubism backend for distributed computation. Re
 option(USE_BACKEND_LOCAL "Enable local backend for shared-memory computation." ON)
 option(USE_BACKEND_NATIVE "Enable native backend for distributed computation. Requires MPI" ON)
 option(USE_WARNINGS "Enable compiler warnings" ON)
+option(USE_TESTS "Build tests and enable testing" ON)
 
 set(CMAKE_MACOSX_RPATH OFF)
 set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
@@ -370,9 +371,10 @@ target_link_libraries(${T} aphros_c)
 install(TARGETS ${T} EXPORT export DESTINATION bin)
 
 
-# test
-add_subdirectory(test)
-enable_testing()
+if (USE_TESTS)
+  add_subdirectory(test)
+  enable_testing()
+endif()
 
 configure_file(vars.cmake.in vars.cmake @ONLY)
 
