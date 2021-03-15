@@ -84,11 +84,11 @@ cd src
 make -f Makefile_legacy install APHROS_PREFIX=$HOME/.local
 ```
 
-on Windows using Microsoft C++ toolset (NMAKE and CL):
+on Windows using Microsoft C++ toolset (NMAKE, LINK, and CL):
 
 ```
 cd src
-nmake -f Makefile_nmake
+nmake /f Makefile_nmake
 ```
 
 ## Videos
