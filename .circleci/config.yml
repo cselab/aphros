@@ -20,7 +20,13 @@ jobs:
       - restore_cache:
           keys:
             - build-{{ .Environment.CacheSuff }}
-      - checkout
+      - checkout:
+          path: ../aphros_tmp
+      - run:
+          name: Checkout code revision
+          command: |
+            git fetch
+            git checkout << pipeline.git.revision >>
       - run:
           name: Build dependencies
           command: |
@@ -103,7 +109,13 @@ jobs:
       - restore_cache:
           keys:
             - build-win-{{ .Environment.CacheSuff }}
-      - checkout
+      - checkout:
+          path: ..\aphros_tmp
+      - run:
+          name: Checkout code revision
+          command: |
+            git fetch
+            git checkout << pipeline.git.revision >>
       - run:
          name: Build source
          shell: cmd.exe
