@@ -1,109 +1,18 @@
 version: 2.1
 
-executors:
-  mainexecutor:
-    docker:
-      - image: pkarnakov/aphros-gcc-openmpi:0.1
-
-# using environment variable CacheSuff
-# defined in the Project Settings
+orbs:
+  win: circleci/windows@2.2.0
 
 jobs:
   build:
-    executor: mainexecutor
-    working_directory: ~/aphros
+    executor:
+      name: win/default
+    working_directory: C:\Users\circleci\aphros\src
     steps:
-      - restore_cache:
-          keys:
-            - cache-build-{{ .Environment.CacheSuff }}
+      - checkout:
+          path: C:\Users\circleci\aphros
       - run:
-          name: Extract cache archive
-          command: (cd ~ && test -f cache.tar && tar vxf cache.tar || true)
-      - checkout
-      - run:
-          name: Build dependencies
-          command: |
-            cd deploy
-            ./install_setenv -f ~/opt/aphros
-            . ~/.local/bin/ap.setenv
-            mkdir -p build
-            cd build
-            cmake -DCMAKE_BUILD_TYPE=Release ..
-            make -j4
-            make install
-            cd ../..
-      - run:
-          name: Build source
-          command: |
-            . ~/.local/bin/ap.setenv
-            mkdir -p src/build
-            cd src/build
-            cmake -DCMAKE_BUILD_TYPE=Release ..
-            make -j4
-            make install
-            cd ../..
-      - run:
-          name: Create cache archive
-          command: (cd ~ && rm -vf cache.tar && tar vcfH cache.tar posix aphros opt .local || true)
-      - save_cache:
-          key: cache-build-{{ .Environment.CacheSuff }}-{{ .Revision }}
-          paths:
-            - ~/cache.tar
-
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - aphros
-            - .local
-            - opt
-
-  test:
-    executor: mainexecutor
-    working_directory: ~/aphros
-    environment:
-      OMPI_ALLOW_RUN_AS_ROOT: 1
-      OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
-      OMPI_MCA_btl_vader_single_copy_mechanism: none
-    parallelism: 4
-    steps:
-      - attach_workspace:
-          at: ~/
-      - run:
-          name: Test
-          command: |
-            . ~/.local/bin/ap.setenv
-            cd src/build
-            ctest -N | cut -d: -f 2 | head -n -2 | tail -n +2 > list
-            circleci tests split list | xargs -n 1 echo | tr '\n' '|' | sed 's/.$//' > listsplit
-            ctest -j 4 -R "$(cat listsplit)"
-      - store_artifacts:
-          path: /root/aphros/src/build/Testing/Temporary/LastTest.log
-          destination: LastTest.log
-
-  examples:
-    executor: mainexecutor
-    working_directory: ~/aphros
-    environment:
-      OMPI_ALLOW_RUN_AS_ROOT: 1
-      OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
-      OMPI_MCA_btl_vader_single_copy_mechanism: none
-    steps:
-      - attach_workspace:
-          at: ~/
-      - run:
-          name: Examples
-          command: |
-            . ~/.local/bin/ap.setenv
-            cd examples
-            make build VERBOSE=1 -j4
-
-workflows:
-  build-test-examples:
-    jobs:
-      - build
-      - test:
-          requires:
-            - build
-      - examples:
-          requires:
-            - build
+         name: cl
+         shell: cmd.exe
+         command: |
+            call ..\.circleci\main.bat
