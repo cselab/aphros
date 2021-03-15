@@ -37,4 +37,3 @@ main.exe: main.obj $L; $(LINK) $(LDFLAGS) main.obj $L /Fo$@
 
 util\gitgen.cpp: ..\make\windows\gitgen.cpp; copy ..\make\windows\gitgen.cpp $@
 clean:; -del $O $(O_MPI) .dir $L main.exe
-	
