@@ -76,4 +76,4 @@ $(WRK)/util/sysinfo.o: $(SRC)/util/sysinfo.cpp; $(CXX_RULE) $(SRC)/util/sysinfo.
 $(WRK)/util/system.o: $(SRC)/util/system.c; $(CC_RULE) $(SRC)/util/system.c
 $(WRK)/util/timer.o: $(SRC)/util/timer.cpp; $(CXX_RULE) $(SRC)/util/timer.cpp
 $(WRK)/util/vof.o: $(SRC)/util/vof.cpp; $(CXX_RULE) $(SRC)/util/vof.cpp
-$(WRK)/young/main.o: $(SRC)/young/main.cpp; $(CXX_RULE) $(SRC)/young/main.cpp
+$(WRK)/young/main.o: $(SRC)/young/main.c; $(CC_RULE) $(SRC)/young/main.c

@@ -1,2 +1,2 @@
 set(T "young")
-add_object(${T} main.cpp)
+add_object(${T} main.c)

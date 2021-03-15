@@ -76,4 +76,4 @@ util\sysinfo.obj: util\sysinfo.cpp; $(CXX_RULE) util\sysinfo.cpp
 util\system.obj: util\system.c; $(CC_RULE) util\system.c
 util\timer.obj: util\timer.cpp; $(CXX_RULE) util\timer.cpp
 util\vof.obj: util\vof.cpp; $(CXX_RULE) util\vof.cpp
-young\main.obj: young\main.cpp; $(CXX_RULE) young\main.cpp
+young\main.obj: young\main.c; $(CC_RULE) young\main.c
