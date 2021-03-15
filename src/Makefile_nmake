@@ -5,7 +5,7 @@ CC = cl
 LINK = $(CXX)
 CXXFLAGS = /O2 /Zi /nologo
 CFLAGS = /O2 /Zi /nologo
-CXXFLAGS_STD = /std:c++14 /permissive /EHsc -DM_PI=3.141592653589793
+CXXFLAGS_STD = /std:c++14 /EHsc -DM_PI=3.141592653589793
 CC_RULE = $(CC) -c $(CFLAGS) /Fo$@
 CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) /I. $1 /Fo$@
 1 = \
