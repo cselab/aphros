@@ -204,7 +204,10 @@ function ClearUrl() {
 function UpdateFullUrl() {
   let fullurl = GetFullUrl(input_conf.value);
   history.pushState(null, null, fullurl);
-  document.getElementById('a_fullurl').href = fullurl;
+  let element = document.getElementById('a_fullurl');
+  if (element) {
+    element.href = fullurl;
+  }
 }
 function Request(url, action) {
   let req = new XMLHttpRequest();
