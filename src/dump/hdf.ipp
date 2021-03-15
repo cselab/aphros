@@ -89,12 +89,12 @@ void Hdf<M>::Write(const Field& fc, std::string path, M& m, std::string dname) {
 
     fassert_equal(MPI_Barrier(comm), MPI_SUCCESS);
     fassert_equal(H5open() >= 0, 1);
-
     const hid_t file = [&comm, &path]() {
       const Fapl fapl(H5P_FILE_ACCESS);
       H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
       return H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
     }();
+    fassert(file >= 0, "cannot open file '" + path + "'");
 
     const size_t nblocks = ctx->data.size();
     fassert_equal(ctx->data.size(), nblocks);
@@ -166,9 +166,8 @@ void Hdf<M>::Read(Field& fc, std::string path, M& m, std::string dname) {
         (sizeof(Scal) == 4 ? H5T_NATIVE_FLOAT : H5T_NATIVE_DOUBLE);
     const MPI_Comm comm = m.GetMpiComm();
 
-    MPI_Barrier(comm);
-    H5open();
-
+    fassert_equal(MPI_Barrier(comm), MPI_SUCCESS);
+    fassert_equal(H5open() >= 0, 1);
     const hid_t file = [&comm, &path]() {
       const Fapl fapl(H5P_FILE_ACCESS);
       H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
