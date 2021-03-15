@@ -1,3 +1,5 @@
+0_MPI = $(WRK)/util/subcomm.o
+
 1_MPI = \
 -D_USE_MPI_=1 \
 -D_USE_HDF_=1 \

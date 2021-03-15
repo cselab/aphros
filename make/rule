@@ -1,0 +1,9 @@
+#!/usr/bin/awk -f
+
+!($0 in skip) {
+    file = $1
+    if (sub(/\.cpp$/, ""))
+	print $1, file, "$(CXX_RULE)"
+    else if (sub(/\.c$/, ""))
+	print $1, file, "$(CC_RULE)"
+}

@@ -71,7 +71,6 @@ util\linear.obj\
 util\logger.obj\
 util\mpi.obj\
 util\posthook_default.obj\
-util\subcomm_dummy.obj\
 util\suspender.obj\
 util\sysinfo.obj\
 util\system.obj\

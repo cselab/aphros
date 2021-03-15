@@ -38,10 +38,9 @@ include $(SRC)/../make/unix/rule.mk
 include $(SRC)/../make/$(USE_MPI)mpi.mk
 
 LINK = $(CXX)
-$(WRK)/$L: $O; mkdir -p $(WRK) && ar rv $@ $O && ranlib $@
-$(WRK)/$J: $O; mkdir -p $(WRK) && emar rv $@ $O
+$(WRK)/$L: $O $(O_MPI); mkdir -p $(WRK) && ar rv $@ $O $(O_MPI) && ranlib $@
+$(WRK)/$J: $O $(O_MPI); mkdir -p $(WRK) && emar rv $@ $O $(O_MPI)
 $(WRK)/main: $(WRK)/main.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(WRK)/main.o $(WRK)/$L $(LDFLAGS) $(LDFLAGS_HDF) -o $@
-$(WRK)/main.o: $(SRC)/main.c; mkdir -p $(WRK) && $(CC_RULE) $(SRC)/main.c
 $(WRK)/.dir:; mkdir -p $P && > $@
 $(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@
 install: $(WRK)/$L $(WRK)/main
@@ -59,6 +58,6 @@ install_js: $(WRK)/$J
 	mkdir -p '$(APHROS_PREFIX)'/lib
 	cp $(WRK)/$J "$(APHROS_PREFIX)"/lib
 clean:
-	-rm -f $O $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/ap.mfer
+	-rm -f $O $(O_MPI) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/ap.mfer
 	-rmdir $P
 

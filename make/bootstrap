@@ -10,8 +10,9 @@ l=/tmp/bootstrap.list.$$
 o=/tmp/bootstrap.obj.$$
 h=/tmp/bootstrap.hdr.$$
 d=/tmp/bootstrap.dep.$$
+r=/tmp/bootstrap.rule.$$
 
-trap 'rm -f $d $h $l $o; exit 2' 1 2 3 14 15
+trap 'rm -f $d $h $l $o $r; exit 2' 1 2 3 14 15
 find . \
      -type f \
      -name '*.c' -or \
@@ -19,29 +20,30 @@ find . \
      -name '*.h' -or \
      -name '*.inc' -or \
      -name '*.ipp' | sed 's,^\.\/,,g' | \
-    grep -v '^test\/' | grep -v '^build[a-z_0-9]\/' > $l
-{ cat $l ; echo util/gitgen.cpp; } | ../make/obj | sort > $o
+    grep -v '^build[a-z_0-9]*\/' > $l
+{ cat $l ; echo util/gitgen.cpp; } | ../make/obj | sort | uniq > $o
 grep '\.h$' $l | fgrep -v 'aphros_c.h' | sort | uniq > $h
 ../make/var H $h > ../make/hdr.mk
 ../make/list $l | ../make/dep > $d
+{ cat $l; echo util/gitgen.cpp; } | ../make/rule | sort | uniq > $r
 
 # unix
 awk '{printf "$(WRK)/%s.o: $(SRC)/%s\n", $1, $2}' $d > ../make/unix/dep.mk
 grep '\/' $h | sed 's,\/.*,,g' | uniq | ../make/var D > ../make/unix/dir.mk
-grep '\/' $o | sed 's,\/.*,,g' | uniq | awk '{printf "$(WRK)/%s\n", $1}' | \
+grep '\/' $r | sed 's,\/.*,,g' | uniq | awk '{printf "$(WRK)/%s\n", $1}' | \
     ../make/var P > ../make/unix/dir.rule.mk
 awk '{printf "$(WRK)/%s.o: $(WRK)/.dir\n", $1}' $o > ../make/unix/dir.dep.mk
 awk '{printf "$(WRK)/%s.o\n", $1}' $o | ../make/var O > ../make/unix/obj.mk
-awk '{printf "$(WRK)/%s.o: $(SRC)/%s; %s $(SRC)/%s\n", $1, $2, $3, $2}' $o > ../make/unix/rule.mk
+awk '{printf "$(WRK)/%s.o: $(SRC)/%s; %s $(SRC)/%s\n", $1, $2, $3, $2}' $r > ../make/unix/rule.mk
 
 # windows
 awk '{printf "%s.obj: %s\n", $1, $2}' $d | \
     sed 's,/,\\,g' > ../make/windows/dep.mk
 awk '{printf "%s.obj\n", $1}' $o | sed 's,/,\\,g' | \
     ../make/var O > ../make/windows/obj.mk
-awk '{printf "%s.obj: %s; %s %s\n", $1, $2, $3, $2}' $o | \
+awk '{printf "%s.obj: %s; %s %s\n", $1, $2, $3, $2}' $r | \
     sed 's,/,\\,g' > ../make/windows/rule.mk
 
 status=$?
-rm $d $h $l $o
+rm $d $h $l $o $r
 exit $status

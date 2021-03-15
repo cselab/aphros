@@ -70,7 +70,6 @@ $(WRK)/util/linear.o: $(WRK)/.dir
 $(WRK)/util/logger.o: $(WRK)/.dir
 $(WRK)/util/mpi.o: $(WRK)/.dir
 $(WRK)/util/posthook_default.o: $(WRK)/.dir
-$(WRK)/util/subcomm_dummy.o: $(WRK)/.dir
 $(WRK)/util/suspender.o: $(WRK)/.dir
 $(WRK)/util/sysinfo.o: $(WRK)/.dir
 $(WRK)/util/system.o: $(WRK)/.dir

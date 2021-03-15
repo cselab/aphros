@@ -71,7 +71,6 @@ $(WRK)/util/linear.o\
 $(WRK)/util/logger.o\
 $(WRK)/util/mpi.o\
 $(WRK)/util/posthook_default.o\
-$(WRK)/util/subcomm_dummy.o\
 $(WRK)/util/suspender.o\
 $(WRK)/util/sysinfo.o\
 $(WRK)/util/system.o\
