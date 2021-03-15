@@ -86,8 +86,9 @@ void Hdf<M>::Write(const Field& fc, std::string path, M& m, std::string dname) {
     const auto hdf_type =
         (sizeof(Scal) == 4 ? H5T_NATIVE_FLOAT : H5T_NATIVE_DOUBLE);
     const MPI_Comm comm = m.GetMpiComm();
-    MPI_Barrier(comm);
-    H5open();
+
+    fassert_equal(MPI_Barrier(comm), MPI_SUCCESS);
+    fassert_equal(H5open() >= 0, 1);
 
     const hid_t file = [&comm, &path]() {
       const Fapl fapl(H5P_FILE_ACCESS);

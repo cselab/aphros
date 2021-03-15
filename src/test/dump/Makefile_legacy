@@ -3,9 +3,9 @@
 MPICXX = mpic++
 CXXFLAGS = -O2 -g
 LDFLAGS_HDF = `pkg-config --libs hdf5-openmpi`
-APHROSFLAGS = -I$(APHROS_PREFIX)/include/aphros -L$(APHROS_PREFIX)/lib -laphros_static $(LDFLAGS_HDF)
+APHROSFLAGS = -I../.. -L$(APHROS_PREFIX)/lib -laphros_static $(LDFLAGS_HDF)
 O = dump_diff dump_gen dump_util
 all: $O
 .cpp:
-	$(MPICXX) $< $(CXXFLAGS) $(APHROSFLAGS) -D_USE_MPI_=0 -o $@
+	$(MPICXX) $< $(CXXFLAGS) $(APHROSFLAGS) -D_USE_MPI_=1 -o $@
 clean:; -rm $O
