@@ -118,11 +118,6 @@ solver/tracker.h\
 solver/trackerm.h\
 solver/vof.h\
 solver/vofm.h\
-test/advection/cmp.h\
-test/suspender/context.h\
-test/suspender/loop.h\
-test/suspender/other.h\
-test/suspender/simple.h\
 util/avx.h\
 util/compressor.h\
 util/convdiff.h\
