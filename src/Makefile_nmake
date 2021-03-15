@@ -34,8 +34,6 @@ include ..\make\windows\rule.mk
 
 $L: $O $(O_MPI); link /lib /OUT:$@ $O $(O_MPI)
 main.exe: main.obj $L; $(LINK) $(LDFLAGS) main.obj $L /Fo$@
-main.obj: main.c; $(CC_RULE) main.c
-main.obj: main.c; $(CC_RULE) main.c
 
 util\gitgen.cpp: ..\make\windows\gitgen.cpp; copy ..\make\windows\gitgen.cpp $@
 clean:; -del $O $(O_MPI) .dir $L main.exe
