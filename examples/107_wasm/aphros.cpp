@@ -54,35 +54,6 @@ void StepCallback(void*, Hydro<M>* hydro) {
   auto& m = hydro->m;
   auto& var = hydro->var;
 
-  auto& canvas = *g_canvas;
-
-  using U = util::Visual<M>;
-  typename U::CanvasView view(
-      canvas.size, MIdx(0), canvas.size, canvas.buf.data());
-
-  using Float3 = typename U::Float3;
-  FieldCell<Float3> fc_color(m, Float3(1));
-
-  FieldCell<Scal> fc_vel(m, 0);
-  for (auto c : m.Cells()) {
-    fc_vel[c] = hydro->fs_->GetVelocity()[c].norm();
-  }
-
-  FieldCell<Scal> fc_omz(m, 0);
-
-  FieldCell<Scal> fc_ebvf(m, 1);
-  if (hydro->eb_) {
-    auto& eb = *hydro->eb_;
-    fc_omz = GetVortScal(
-        hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(), eb);
-    for (auto c : m.Cells()) {
-      fc_ebvf[c] = eb.GetVolumeFraction(c);
-    }
-  } else {
-    fc_omz = GetVortScal(
-        hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(), m);
-  }
-
   if (hydro->st_.step % var.Int("report_step_every", 1) == 0) {
     auto names = GetWords(var.String("print_vars", ""));
     for (auto name : names) {
@@ -100,28 +71,65 @@ void StepCallback(void*, Hydro<M>* hydro) {
   }
 
   if (s.render) {
+    auto& canvas = *g_canvas;
+    using U = util::Visual<M>;
+    typename U::CanvasView view(
+        canvas.size, MIdx(0), canvas.size, canvas.buf.data());
+    using Float3 = typename U::Float3;
+    FieldCell<Float3> fc_color(m, Float3(1));
     std::stringstream str_entries(var.String["visual"]);
     auto entries = U::ParseEntries(str_entries);
-    auto get_field = [&](std::string name) -> const FieldCell<Scal>* {
+    auto get_field = [&](std::string name) -> FieldCell<Scal> {
       if (name == "p" || name == "pressure") {
-        return &hydro->fs_->GetPressure();
+        return hydro->fs_->GetPressure();
       }
       if (name == "omz" || name == "vorticity") {
-        return &fc_omz;
+        if (hydro->eb_) {
+          return GetVortScal(
+              hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(),
+              *hydro->eb_);
+        }
+        return GetVortScal(
+            hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(), m);
       }
       if (name == "ebvf" || name == "embed fraction") {
-        return &fc_ebvf;
+        FieldCell<Scal> fc(m, 1);
+        if (hydro->eb_) {
+          auto& eb = *hydro->eb_;
+          for (auto c : m.SuCells()) {
+            fc[c] = eb.GetVolumeFraction(c);
+          }
+        }
+        return fc;
       }
       if (name == "vf" || name == "volume fraction") {
-        return &hydro->as_->GetField();
+        return hydro->as_->GetField();
       }
-      if (name == "vel" || name == "velocity magnitude") {
-        return &fc_vel;
+      if (name == "vmagn" || name == "velocity magnitude") {
+        FieldCell<Scal> fc(m, 0);
+        for (auto c : m.SuCells()) {
+          fc[c] = hydro->fs_->GetVelocity()[c].norm();
+        }
+        return fc;
+      }
+      if (name == "vx" || name == "velocity x") {
+        FieldCell<Scal> fc(m, 0);
+        for (auto c : m.SuCells()) {
+          fc[c] = hydro->fs_->GetVelocity()[c][0];
+        }
+        return fc;
+      }
+      if (name == "vy" || name == "velocity y") {
+        FieldCell<Scal> fc(m, 0);
+        for (auto c : m.SuCells()) {
+          fc[c] = hydro->fs_->GetVelocity()[c][1];
+        }
+        return fc;
       }
       if (m.IsRoot()) {
         std::cerr << "Unknown field '" + name + "'\n";
       }
-      return nullptr;
+      return FieldCell<Scal>(m, 0);
     };
     U::RenderEntriesToField(fc_color, entries, get_field, m);
     if (var.Int("visual_interpolate", 1) && m.GetGlobalSize() < view.size) {

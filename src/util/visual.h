@@ -160,14 +160,11 @@ struct Visual {
   }
   static void RenderEntriesToField(
       FieldCell<Float3>& fc_color, const std::vector<Entry>& entries,
-      const std::function<const FieldCell<Scal>*(std::string)>& get_field,
+      const std::function<FieldCell<Scal>(std::string)>& get_field,
       const M& m) {
     for (const auto& entry : entries) {
       auto cmap = GetColormap(entry.var);
-      const auto* fc = get_field(entry.field);
-      if (fc) {
-        RenderToField(fc_color, *fc, cmap, m);
-      }
+      RenderToField(fc_color, get_field(entry.field), cmap, m);
     }
   }
 

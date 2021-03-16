@@ -328,20 +328,23 @@ function PostRun() {
   g_tmp_canvas.width = canvas.width / kScale;
   g_tmp_canvas.height = canvas.height / kScale;
 
-  let keydown = function(ev){
-    if (ev.key == ' ') {
+  let keydown = function(e){
+    if (e.key == ' ') {
       TogglePause();
-      //ev.preventDefault();
+      //e.preventDefault();
+    }
+    if(e.keyCode == 32 && e.target == document.body) {
+      e.preventDefault();
     }
   };
-  let keyup = function(ev){
-    if (ev.key == ' ') {
-      //ev.preventDefault();
+  let keyup = function(e){
+    if (e.key == ' ') {
+      //e.preventDefault();
     }
   };
-  let mouseclick = function(ev){
-    let x = ev.offsetX / canvas.width;
-    let y = 1 - ev.offsetY / canvas.height;
+  let mouseclick = function(e){
+    let x = e.offsetX / canvas.width;
+    let y = 1 - e.offsetY / canvas.height;
     Spawn(x, y, 0.1);
   };
 
@@ -351,21 +354,21 @@ function PostRun() {
   [
     input_conf,
   ].forEach(b => {
-    b.addEventListener('keydown', function(ev){ev.stopPropagation();}, false);
-    b.addEventListener('keyup', function(ev){ev.stopPropagation();}, false);
+    b.addEventListener('keydown', function(e){e.stopPropagation();}, false);
+    b.addEventListener('keyup', function(e){e.stopPropagation();}, false);
   });
   [
     window.button_pause, window.button_16, window.button_32,
     window.button_64, window.button_128, 
   ].forEach(b => {
-    b.addEventListener('keydown', function(ev){
-      if (ev.key == ' ') {
-        ev.preventDefault();
+    b.addEventListener('keydown', function(e){
+      if (e.key == ' ') {
+        e.preventDefault();
       }
     }, false);
-    b.addEventListener('keyup', function(ev){
-      if (ev.key == ' ') {
-        ev.preventDefault();
+    b.addEventListener('keyup', function(e){
+      if (e.key == ' ') {
+        e.preventDefault();
       }
     }, false);
   });

@@ -43,12 +43,12 @@ void TestRender() {
 
   auto entries = U::ParseEntries("vislist");
 
-  auto get_field = [&](std::string name) -> const FieldCell<Scal>* {
+  auto get_field = [&](std::string name) -> FieldCell<Scal> {
     if (name == "p") {
-      return &fc;
+      return fc;
     }
     if (name == "vx") {
-      return &fc2;
+      return fc2;
     }
     fassert(false, "Unknown field '" + name + "'");
   };
