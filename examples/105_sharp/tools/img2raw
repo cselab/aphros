@@ -68,21 +68,28 @@ with open(xmf, "w") as f:
 <!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
 <Xdmf Version="2.0">
  <Domain>
-   <Grid GridType="Uniform">
+   <Grid Name="mesh" GridType="Uniform">
      <Topology TopologyType="3DCORECTMesh" Dimensions="%d %d %d"/>
      <Geometry GeometryType="ORIGIN_DXDYDZ">
        <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
          0 0 0
        </DataItem>
-       <DataItem Name="Spacing" Dimensions="3" NumberType="Float" Precision="4" Format="XML">
-        1 1 1
+       <DataItem Name="Spacing" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
+         1 1 1
        </DataItem>
      </Geometry>
      <Attribute Name="u" AttributeType="Scalar" Center="Cell">
-       <DataItem Dimensions="%d %d %d" NumberType="%s" Format="Binary">
-        %s
+       <DataItem ItemType="HyperSlab" Dimensions="%d %d %d" Type="HyperSlab">
+           <DataItem Dimensions="3 3" Format="XML">
+             0 0 0
+             1 1 1
+             %d %d %d
+           </DataItem>
+           <DataItem Dimensions="%d %d %d" Seek="0" Precision="2" NumberType="%s" Format="Binary">
+             %s
+           </DataItem>
        </DataItem>
      </Attribute>
    </Grid>
  </Domain>
-</Xdmf>""" % (nz + 1, ny + 1, nx + 1, nz, ny, nx, type, base + ".raw"))
+</Xdmf>""" % (nz + 1, ny + 1, nx + 1, nz, ny, nx, nz, ny, nx, nz, ny, nx, type, base + ".raw"))

@@ -3,7 +3,7 @@
 CXX = mpicxx
 CXXFLAGS = -O2 -g
 LDFLAGS_HDF = `pkg-config --libs hdf5-openmpi`
-APHROSFLAGS = -D_USE_MPI_=1 -I$(APHROS_PREFIX)/include/aphros -L$(APHROS_PREFIX)/lib -laphros_static $(LDFLAGS_HDF)
+APHROSFLAGS = -D_USE_MPI_=0 -I$(APHROS_PREFIX)/include/aphros -L$(APHROS_PREFIX)/lib -laphros_static $(LDFLAGS_HDF)
 all: main
 .cpp:; $(CXX) $(CXXFLAGS) -o $@ $< $(APHROSFLAGS)
 install: main
