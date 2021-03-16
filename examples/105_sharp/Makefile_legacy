@@ -1,16 +1,12 @@
 .SUFFIXES:
 .SUFFIXES: .cpp
-MPICXX = mpicxx
+CXX = mpicxx
 CXXFLAGS = -O2 -g
 HDF_LDFLAGS = `pkg-config --libs hdf5-openmpi`
 APHROSFLAGS = -I$(APHROS_PREFIX)/include/aphros -L$(APHROS_PREFIX)/lib -laphros_static $(HDF_LDFLAGS)
-0 = main
-all: $0
-.cpp:
-	$(MPICXX) $< $(CXXFLAGS) $(APHROSFLAGS) -o $@
+all: main
+.cpp:; $(CXX) $(CXXFLAGS) -o $@ $< $(APHROSFLAGS)
 install: main
 	mkdir -p $(APHROS_PREFIX)/bin
 	cp main $(APHROS_PREFIX)/bin/ap.sharpen
-
 clean:; -rm  $0
-.PHONY: clean
