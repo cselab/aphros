@@ -32,10 +32,16 @@ int SystemMakeDir(const char* path, int parent) {
   int rc;
 
   (void)rc;
-  if (parent)
-    snprintf(cmd, sizeof cmd - 1, "mkdir -p -- '%s'", path);
-  else
-    snprintf(cmd, sizeof cmd - 1, "mkdir -- '%s'", path);
+  if (parent) {
+    strncpy(cmd, "mkdir -p -- '", sizeof cmd - 1);
+    strncat(cmd, path, sizeof cmd - 1);
+    strncat(cmd, "'", sizeof cmd - 1);
+  }
+  else {
+    strncpy(cmd, "mkdir -- '", sizeof cmd - 1);
+    strncat(cmd, path, sizeof cmd - 1);
+    strncat(cmd, "'", sizeof cmd - 1);
+  }
   rc = system(cmd);
   return SystemIsDir(path);
 }
