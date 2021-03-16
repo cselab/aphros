@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import sys
+import os
+import cv2
+
+me = "img2raw"
+def usg():
+    sys.stderr.write("%s -i IMG -o XMF\n" % me)
+    sys.exit(2)
+input = output = None
+while True:
+    sys.argv.pop(0)
+    if sys.argv and len(sys.argv[0]) > 1 and sys.argv[0][0] == '-':
+        if sys.argv[0][1] == 'h':
+            usg()
+        elif sys.argv[0][1] == 'i':
+            sys.argv.pop(0)
+            input = sys.argv[0]
+        elif sys.argv[0][1] == 'o':
+            sys.argv.pop(0)
+            output = sys.argv[0]
+        else:
+            sys.stderr.write("%s: unknown option '%s'\n" % (me, sys.argv[0]))
+            sys.exit(2)
+    else:
+        break
+
+if input == None:
+    sys.stderr.write("%s: -i is not set\n" % me)
+    sys.exit(2)
+if output == None:
+    sys.stderr.write("%s: -o is not set\n" % me)
+    sys.exit(2)
+
+u = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
+if u is None:
+    sys.stderr.write("%s: fail to open image '%s'\n" % (me, input))
+    sys.exit(2)
+
+b = 16
+p0 = (u.shape[0] + b - 1)//b*b - u.shape[0]
+p1 = (u.shape[1] + b - 1)//b*b - u.shape[1]
+u = cv2.copyMakeBorder(u, p0//2, p0 - p0//2, p1//2, p1 - p1//2, cv2.BORDER_DEFAULT)
+
+lo = np.min(u)
+hi = np.max(u)
+a = np.iinfo(np.uint16).min
+b = np.iinfo(np.uint16).max
+u = (u - lo)/(hi - lo)*(b - a)
+u = np.asarray(u, dtype = np.uint16)
+
+path, ext = os.path.splitext(output)
+base = os.path.basename(path)
+raw = path + ".raw"
+with open(raw, "wb") as f:
+    f.write(u.tobytes('F'))
+
+xmf = path + ".xmf"
+with open(xmf, "w") as f:
+    nx, ny = u.shape
+    nz = 1
+    type = {np.dtype('float32') : "Float",
+            np.dtype('uint16') : "UShort",
+            np.dtype('int64') : "Int"}[u.dtype]
+    f.write("""<?xml version="1.0" ?>
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
+<Xdmf Version="2.0">
+ <Domain>
+   <Grid GridType="Uniform">
+     <Topology TopologyType="3DCORECTMesh" Dimensions="%d %d %d"/>
+     <Geometry GeometryType="ORIGIN_DXDYDZ">
+       <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
+         0 0 0
+       </DataItem>
+       <DataItem Name="Spacing" Dimensions="3" NumberType="Float" Precision="4" Format="XML">
+        1 1 1
+       </DataItem>
+     </Geometry>
+     <Attribute Name="u" AttributeType="Scalar" Center="Cell">
+       <DataItem Dimensions="%d %d %d" NumberType="%s" Format="Binary">
+        %s
+       </DataItem>
+     </Attribute>
+   </Grid>
+ </Domain>
+</Xdmf>""" % (nz + 1, ny + 1, nx + 1, nz, ny, nx, type, base + ".raw"))

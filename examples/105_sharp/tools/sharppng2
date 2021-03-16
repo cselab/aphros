@@ -1,0 +1,21 @@
+#!/bin/sh
+
+set -eu
+
+base=$(dirname $(readlink -f $0))
+: ${cfl=0.5}
+: ${steps=5}
+: ${np=1}
+
+i=$1
+o=$2
+shift 2
+
+hdf=_$$.raw
+trap 'rm $hdf; exit 1' 1 2 3 4 15
+
+$base/img2raw -i $i -o $hdf
+ap.sharpen "$@" -v --cfl $cfl --steps $steps $hdf $hdf
+$base/hdf2img -i $hdf -o $o
+
+rm "$hdf"
