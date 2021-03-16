@@ -20,7 +20,7 @@ electrochem.js: electrochem.cpp $(WRK)/libaphros_js.a
 aphros.js: aphros.cpp $(WRK)/libaphros_js.a
 	$(CXX) $< $(CXXFLAGS) $(WASMFLAGS) -I$(SRC) $(WRK)/libaphros_js.a $1 \
 		--preload-file conf \
-		-s EXPORTED_FUNCTIONS='["_main", "_SetRuntimeConfig", "_SetExtraConfig", "_TogglePause", "_Spawn", "_SetMesh" ,"_GetLines"]' \
+		-s EXPORTED_FUNCTIONS='["_main", "_GetConfigString", "_GetConfigDouble", "_SetRuntimeConfig", "_SetExtraConfig", "_TogglePause", "_Spawn", "_SetMesh" ,"_GetLines"]' \
 		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@
 
 diffusion.js: diffusion.cpp $(WRK)/libaphros_js.a

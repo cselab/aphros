@@ -233,13 +233,21 @@ void SetRuntimeConfig(const char* str) {
   }
   std::stringstream conf(str);
 
-  std::cout << util::Format(
-      "applied config of {} characters\n", conf.str().length());
   if (g_var.Int("verbose_runtime_config", 0)) {
     std::cout << conf.str() << std::endl;
   }
 
   Parser(g_var).ParseStream(conf);
+}
+
+const char* GetConfigString(const char* name) {
+  auto* ptr = g_var.String.Find(name);
+  return ptr ? ptr->c_str() : "";
+}
+
+double GetConfigDouble(const char* name) {
+  auto* ptr = g_var.Double.Find(name);
+  return ptr ? *ptr : GetNan<double>();
 }
 
 void SetMesh(int nx) {

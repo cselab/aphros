@@ -102,8 +102,8 @@ struct Visual {
     }
     void Check() const {
       fassert(values.size() >= 1);
-      fassert_equal(values.size(), colors.size());
-      fassert_equal(values.size(), opacities.size());
+      fassert(values.size() <= colors.size());
+      fassert(values.size() <= opacities.size());
     }
   };
 
@@ -148,6 +148,13 @@ struct Visual {
       cmap.colors[i][0] = colors[3 * i + 0];
       cmap.colors[i][1] = colors[3 * i + 1];
       cmap.colors[i][2] = colors[3 * i + 2];
+    }
+    // fill the tail with default values
+    for (size_t i = cmap.opacities.size(); i < cmap.values.size(); ++i) {
+      cmap.opacities.push_back(1);
+    }
+    for (size_t i = cmap.colors.size(); i < cmap.values.size(); ++i) {
+      cmap.colors.push_back(Float3(0, 0, 0));
     }
     return cmap;
   }
