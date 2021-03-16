@@ -24,7 +24,7 @@
       div.emscripten { text-align: center; }
       .slider {
         outline: none;
-        width: 300px;
+        width: 200px;
         height: 30px;
         padding-top: 0px;
       }
@@ -70,7 +70,7 @@
   </head>
   <body>
     <div style="text-align: center; padding: 5px;">
-      [<a href="https://github.com/cselab/aphros/wiki/Aphros-Explorer">catalog</a>]:
+      [<a href="https://github.com/cselab/aphros/wiki/Aphros-Explorer">wiki catalog</a>]:
       [<a href="?config=M4UwLgBMYE4JYDsDmEBudgFcCGAbCARAFCoD2MYcAxnGAJ4QDeREU4aIVkqemIwEALQBGAAwRxYlm26dIVUrnICAJAGEARrj4R1AdwAWtELrUwQAE2mhZXCKQAO2GpX4Rh790QC-RYkRsIC1JMLRMQAA8wEARIYSIA9mh4ZAgNKgB9JzADQkRcRBAiPTx8cXKmaQ1SCIk6yVEfYtLPCuZWatrJOrF3EEEANib_AGIIACUTAGYAJlFGwODQ3BMAW0wPUQA6edEp4RmAViIgA=">cavity</a>]
       [<a href="?config=M4UwLgBMYE4JYDsDmEBudgFcCGAbCARAFCoD2MYcAxnGAJ4QDeREU4aIVkqemIwEALQAmCAAYIwlm26dIVUrnICAJAGEARrj4R1AdwAWtELrUwQAE2mhZXCKQAO2GpX4QAjB49EAvkRKKmAC2JgBmMM6UpAhM1uyocmi8bhLucbbyisqmSOYgMeq5IPnpHHaOzrRwKd5-xEQ2EBakmFomIAAeYPmQABz-jc2tuCbAcEhB2N6N0PDIEIi0APqooRC4GGAN7LOIKBvQS05gBoSIGwgg1g4GIOYQAMxeACys3qzAN3cmAKwvb2l6oMWm0IDADKRRGIAHRiNLA4YmIKYKGwtJAA=">coalescence</a>]
       [<a href="?config=M4UwLgBMYE4JYDsDmEBudgFcCGAbCARAFCoD2MYcAxnGAJ4QDeREU4aIVkqemIwEALQBGCAAYIwlm26dIVUrnICAJAGEARrj4R1AdwAWtELrUwQAE2mhZXCKQAO2GpX6T3UgL5EiIALYalhAAZjDOlKQITNbsqHJovG4SUqw2HHYKSjCqakhhDOp52HQxtpCOzrRwbqJiRN7ERGkWpJhaJiAAHmAgCJAArE3siJC92O0A-v6BFpJDkCMQBnQO5hMOIPCkFtQTnXNpi8urIOubcNu7DFKHfRBjk9gWcVwXUXXzULCIKIi0E6hghAAF6bUifaDwZAcXATP6QTAIODBch-T4vWT4WqfFptXAmPyYWoAOjEYikEO-0JAGgmuAwYHW2DABkIiHpCBA1gcBk2JmExIA7P0IAAmYki5JERoAYggCEwfnOVDwONa7SWKzWwDofj8EzAikkIEEos-Ry1px1eomfmwnWMMEkZLqzXV-IgFjAEjEpOEQA==">cylinder</a>]
@@ -132,6 +132,8 @@ set double mu2 0.01
             <input type="button" class="button" id="button_64" value="64" onclick="Init(64)">
             <input type="button" class="button" id="button_128" value="128" onclick="Init(128)">
           </div>
+          <div class="emscripten" id="div_sliders" style="padding: 5px;">
+          </div>
           <div class="emscripten" style="padding-top: 20px;">
             demos:
             [<a href="hydro.html">drops</a>]
@@ -144,9 +146,10 @@ set double mu2 0.01
           </div>
           <div style="text-align: center; padding-top: 5px;">
             <a class="github-button" href="https://github.com/cselab/aphros" data-size="large" data-show-count="true" aria-label="Star cselab/aphros on GitHub">Star</a>
-            <span style="position: relative; bottom: 0.45em;">
-              [<a href="https://github.com/cselab/aphros">github.com/cselab/aphros</a>]
+            <span style="position: relative; bottom: 0.5em;">
+              ETH Zurich, CSElab
             </span>
+            <br>
           </div>
         </div>
 

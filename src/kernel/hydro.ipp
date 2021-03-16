@@ -781,7 +781,7 @@ void Hydro<M>::InitStat(const MEB& eb) {
       [div](const Stat<M>& s) { return div(s.vect["v*vol2"], s["vol2"]); });
   stat.AddDerived(
       "pd", "pressure max-min", //
-      [div](const Stat<M>& s) { return s["pmax"] - s["pmin"]; });
+      [](const Stat<M>& s) { return s["pmax"] - s["pmin"]; });
   stat.AddDerived(
       "pavg1", "average pressure of phase 1", //
       [div](const Stat<M>& s) { return div(s["p*vol1"], s["vol1"]); });
@@ -1071,8 +1071,7 @@ void Hydro<M>::Init() {
 
     // initial surface tension sigma
     fc_sig_.Reinit(m, 0);
-    auto isig = CreateInitSig<M>(var);
-    isig(fc_sig_, m);
+    CreateInitSig<M>(var)(fc_sig_, m);
     m.Comm(&fc_sig_);
 
     // initial contact angle
@@ -1471,6 +1470,10 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
       m.Comm(&fc_smvf_);
     }
+
+    // update surface tension sigma
+    CreateInitSig<M>(var)(fc_sig_, m);
+    m.Comm(&fc_sig_);
   }
 
   if (sem.Nested("smooth")) {

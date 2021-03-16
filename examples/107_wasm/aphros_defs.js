@@ -1,6 +1,8 @@
 var g_lines;
 var g_lines_ptr;
 var SetRuntimeConfig;
+var GetConfigString;
+var GetConfigDouble;
 var GetLines;
 var Spawn;
 var g_tmp_canvas;
@@ -8,6 +10,22 @@ var kScale = 1;
 var input_conf = document.getElementById('input_conf');
 var output = document.getElementById('output');
 var outputerr = document.getElementById('outputerr');
+var g_sliders = {};
+var g_sliders_string = "";
+
+function GetInputConfig(fromslider=false) {
+  let config = input_conf.value;
+  if (fromslider) {
+    let m = config.match(/^FROMSLIDER.*/gm);
+    if (m) {
+      config = m.join('\n');
+    } else {
+      config = "";
+    }
+  }
+  config = config.replace(/^FROMSLIDER/gm, '');
+  return config;
+}
 
 function EncodeSafe(base) {
   return base
@@ -21,14 +39,21 @@ function DecodeSafe(base) {
           .replace(/_/g, '/');
 }
 
+// colors from
+// https://github.com/OrdnanceSurvey/GeoDataViz-Toolkit/tree/master/Colours
 function GetExtraConfig() {
   let res = `
 set string Cred 1 0.12 0.35
 set string Cgreen 0 0.8 0.42
 set string Cblue 0 0.6 0.87
+set string Cpurple 0.686 0.345 0.729
+set string Cyellow 1 0.776 0.118
+set string Corange 0.949 0.522 0.133
 set string Cwhite 1 1 1
 set string Cblack 0 0 0
-set string Cgray 0.5 0.5 0.5
+set string Cgray 0.627 0.694 0.729
+
+set string sliders
 
 set string V_volume_fraction_green "
 volume fraction {
@@ -58,17 +83,12 @@ function Decompress(compressed) {
   return LZString.decompressFromBase64(DecodeSafe(compressed));
 }
 
-function SetExtraConfig(config) {
-  Module.ccall('SetExtraConfig', null, ['string'], [config]);
-}
-
 function ApplyConfig() {
   UpdateFullUrl();
-  SetRuntimeConfig(input_conf.value);
-}
-
-function SetRuntimeConfig(config) {
-  Module.ccall('SetRuntimeConfig', null, ['string'], [config]);
+  let config = GetInputConfig(false);
+  SetRuntimeConfig(config);
+  Print(`applied config of ${config.length} characters`);
+  UpdateSliders();
 }
 
 function SetSigma(sigma) {
@@ -121,8 +141,7 @@ function Init(nx) {
   ClearOutput();
   config = GetExtraConfig()
   let cc = [];
-  UpdateFullUrl();
-  cc.push(input_conf.value);
+  cc.push(GetInputConfig(false));
   ResetButtons();
   let button = document.getElementById('button_' + nx);
   if (button) {
@@ -131,8 +150,63 @@ function Init(nx) {
   config += cc.join('');
   SetExtraConfig(config);
   Module.ccall('SetMesh', null, ['number'], [nx])
+  ApplyConfig();
 }
 
+function UpdateSlider(elem) {
+  let slider = g_sliders[elem.id];
+  let current = document.getElementById(slider.id_current);
+  slider.value = elem.value
+  current.innerHTML = `${slider.name} (${slider.variable}=${slider.value})`;
+  SetRuntimeConfig(`set double ${slider.variable} ${slider.value}`);
+  SetRuntimeConfig(GetInputConfig(true));
+}
+
+function UpdateSliders() {
+  let div_sliders = document.getElementById('div_sliders');
+  if (!div_sliders) {
+    return;
+  }
+  let sliders_string = GetConfigString("sliders");
+  if (g_sliders_string != sliders_string) {
+    g_sliders_string = sliders_string;
+    g_sliders = {};
+    div_sliders.innerHTML = "";
+    sliders_string.split('\n').forEach(str => {
+      str = str.trim();
+      if (str.length == 0) {
+        return;
+      }
+      let desc = str.split(/ +/);
+      let i = 0;
+      let variable = desc.length > i ? desc[i++] : desc;
+      let min = desc.length > i ? parseFloat(desc[i++]) : 0;
+      let max = desc.length > i ? parseFloat(desc[i++]) : 1;
+      let step = (max - min) * 0.01;
+      let name = desc.length > i ? desc.slice(i++).join(' ') : variable;
+      let value = GetConfigDouble(variable);
+      if (isNaN(value)) {
+        value = (min + max) / 2;
+      }
+      let id = "slider_" + variable;
+      let id_current = id + "_current";
+      g_sliders[id] = {
+          min:min, max:max, step:step, variable:variable,
+          name:name, value:value, id:id, id_current:id_current,
+      };
+      div_sliders.innerHTML += `
+      <div class="emscripten" style="padding: 0px;">
+        <label class="label"><input type="range" class="slider" min="${min}" max="${max}" value="${value}" step="${step}" id="${id}"
+          onchange="UpdateSlider(this);">
+          <span id="${id_current}"></span></label>
+      </div>
+      `;
+    });
+  }
+  for (let s in g_sliders) {
+    UpdateSlider(document.getElementById(s));
+  }
+}
 
 function Draw() {
   let canvas = Module['canvas'];
@@ -244,6 +318,10 @@ function PostRun() {
   g_lines_ptr = Module._malloc(g_lines_max_size * 2);
   Spawn = Module.cwrap('Spawn', null, ['number', 'number', 'number']);
   GetLines = Module.cwrap('GetLines', 'number', ['number', 'number', 'number']);
+  SetRuntimeConfig = Module.cwrap('SetRuntimeConfig', null, ['string']);
+  SetExtraConfig = Module.cwrap('SetExtraConfig', null, ['string']);
+  GetConfigString = Module.cwrap('GetConfigString', 'string', ['string']);
+  GetConfigDouble = Module.cwrap('GetConfigDouble', 'number', ['string']);
 
   let canvas = Module['canvas'];
   g_tmp_canvas = document.createElement('canvas');
