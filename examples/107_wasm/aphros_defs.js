@@ -16,7 +16,12 @@ var g_sliders_string = "";
 function GetInputConfig(fromslider=false) {
   let config = input_conf.value;
   if (fromslider) {
-    config = config.match(/^FROMSLIDER.*/gm).join('\n');
+    let m = config.match(/^FROMSLIDER.*/gm);
+    if (m) {
+      config = m.join('\n');
+    } else {
+      config = "";
+    }
   }
   config = config.replace(/^FROMSLIDER/gm, '');
   return config;
