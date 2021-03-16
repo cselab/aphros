@@ -168,10 +168,11 @@ function UpdateSliders() {
     g_sliders = {};
     div_sliders.innerHTML = "";
     sliders_string.split('\n').forEach(str => {
-      let desc = str.split(' ');
-      if (desc.length == 0) {
+      str = str.trim();
+      if (str.length == 0) {
         return;
       }
+      let desc = str.split(/ +/);
       let i = 0;
       let variable = desc.length > i ? desc[i++] : desc;
       let min = desc.length > i ? parseFloat(desc[i++]) : 0;
