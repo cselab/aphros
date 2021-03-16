@@ -7,4 +7,3 @@
 CXXFLAGS_HDF =
 LDFLAGS_HDF =
 CXX = g++
-CC = c99
