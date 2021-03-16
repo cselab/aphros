@@ -25,6 +25,7 @@ jobs:
       - run:
           name: Checkout code revision
           command: |
+            test -d .git || cp -av ../aphros_tmp/. ./
             git fetch
             git checkout << pipeline.git.revision >>
       - run:
@@ -114,6 +115,7 @@ jobs:
       - run:
           name: Checkout code revision
           command: |
+            bash -c 'test -d .git || cp -av ../aphros_tmp/. ./'
             git fetch
             git checkout << pipeline.git.revision >>
       - run:
@@ -129,6 +131,7 @@ jobs:
   build-mac:
     macos:
       xcode: 11.3.0
+    working_directory: ~/aphros
     steps:
       - restore_cache:
           keys:
@@ -138,6 +141,7 @@ jobs:
       - run:
           name: Checkout code revision
           command: |
+            test -d .git || cp -av ../aphros_tmp/. ./
             git fetch
             git checkout << pipeline.git.revision >>
       - run:
