@@ -1,3 +1,7 @@
+Interactive
+[open-source](https://github.com/cselab/aphros/tree/master/examples/107_wasm)
+fluid solver [Aphros Explorer](aphros.html) running in the web browser.
+
 # Language
 
 The input configuration is defined using commands
@@ -23,6 +27,74 @@ set string s_m "
 set string sub $i $v $s
 FROMSLIDER set vect gravity $g 0
 ```
+
+# Parameters
+
+## Type `int`
+
+`enable_embed` (0, 1)
+: Enable solid bodies using embedded boundaries (cut cells)
+
+`enable_advection` (0, 1)
+: Enable advection solver for two-component flows
+
+`hypre_periodic_x`, `hypre_periodic_y` (0, 1)
+: Make the domain periodic in the `x`- anda `y-` directions.
+
+`stokes` (0, 1)
+: Enable Stokes flow solver (the limit of no inertia)
+
+## Type `double`
+
+`cfl`, `cfla`, `cflst`
+: CFL numbers for fluid, advection, and surface tension
+
+`extent`:
+: Domain size
+
+`mu1`, `mu2`
+: Viscosities of components 1 and 2
+
+`rho1`, `rho2`
+: Densities of components 1 and 2
+
+`sigma`
+: Surface tension
+
+## Type `vect`
+
+`gravity`
+: Gravitational acceleration
+
+`force`
+: Body force
+
+## Type `string`
+
+`advection_solver` (`vof`, `vofm`)
+: Advection solver to use. Choices are `vof` (standard volume-of-fluid)
+and `vofm` (multilayer volume-of-fluid for coalescence prevention)
+
+`bc_path`
+: Boundary conditions (see below)
+
+`eb_list_path`
+: List of primitives composing the solid body (see below)
+
+`init_vf`, list_path`
+: Initial volume fraction and list of primitives (see below)
+
+`sliders`
+: List of sliders (see below)
+
+`visual`
+: List of fields to visualize (see below)
+
+
+## Other parameters
+
+[Base configuration file](https://github.com/cselab/aphros/blob/master/deploy/scripts/sim_base.conf)
+lists other available parameters and their default values.
 
 # Visualization
 
