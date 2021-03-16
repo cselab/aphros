@@ -23,6 +23,9 @@ aphros.js: aphros.cpp $(WRK)/libaphros_js.a
 		-s EXPORTED_FUNCTIONS='["_main", "_GetConfigString", "_GetConfigDouble", "_SetRuntimeConfig", "_SetExtraConfig", "_TogglePause", "_Spawn", "_SetMesh" ,"_GetLines"]' \
 		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@
 
+aphros_doc.html: aphros.md
+	pandoc -s -c pandoc.css $< -o $@
+
 diffusion.js: diffusion.cpp $(WRK)/libaphros_js.a
 	$(CXX) $< $(CXXFLAGS) $(WASMFLAGS) -I$(SRC) $(WRK)/libaphros_js.a $1 \
 		-s EXPORTED_FUNCTIONS='["_main", "_MulDiffusion", "_AddVelocityAngle", "_TogglePause", "_Init", "_SetMesh"]' \

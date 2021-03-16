@@ -140,11 +140,11 @@ struct Visual {
   static Colormap GetColormap(const Vars& var) {
     Colormap cmap;
     cmap.values = var.Vect["values"];
-    cmap.opacities = var.Vect["opacities"];
-    const auto& colors = var.Vect["colors"];
+    cmap.opacities = var.Vect("opacities", {});
+    const auto& colors = var.Vect("colors", {});
     cmap.colors.resize(cmap.values.size());
-    fassert_equal(colors.size(), cmap.values.size() * 3);
-    for (size_t i = 0; i < cmap.values.size(); ++i) {
+    for (size_t i = 0; i < std::min(cmap.values.size(), colors.size() / 3);
+         ++i) {
       cmap.colors[i][0] = colors[3 * i + 0];
       cmap.colors[i][1] = colors[3 * i + 1];
       cmap.colors[i][2] = colors[3 * i + 2];
