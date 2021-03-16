@@ -1,6 +1,4 @@
-# Documentation
-
-## Language
+# Language
 
 The input configuration is defined using commands
 ```
@@ -26,7 +24,7 @@ set string sub $i $v $s
 FROMSLIDER set vect gravity $g 0
 ```
 
-## Visualization
+# Visualization
 
 Parameter `visual` defines a list of scalar fields to visualize.
 
@@ -62,13 +60,13 @@ Valid values of `FIELD`:
 : Component `x` of velocity
 
 `velocity y`
-: Component `x` of velocity
+: Component `y` of velocity
 
-The colormap is defined by
+Fields are rendered sequentially, with the colormap and opacities defined by
 
-* field values in `VALUES`
-* flattened RGB color components between 0 and 1 in `COLORS`
-* opacities between 0 and 1 in `OPACITIES`
+* field values in `VALUES`,
+* flattened RGB color components between 0 and 1 in `COLORS`,
+* opacities between 0 and 1 in `OPACITIES`.
 
 Predefined colors that expand to RGB components:
 
@@ -111,7 +109,7 @@ Valid values of `PRIMITIVE`:
 : Ellipsoid centered at `CX,CY` with principal semi-axes `RX,RY`
 
 `box CX CZ 0 RX [RY=RX]`
-: Ellipsoid centered at `CX,CY` with half-size `RX,RY`
+: Box centered at `CX,CY` with half-size `RX,RY`
 
 Examples:
 
@@ -122,7 +120,7 @@ box 0 0 0 1
 box 0 1 0 1 2
 ```
 
-## Initial volume fraction
+# Initial volume fraction
 
 Parameters `init_vf` defines the initial volume fraction field.
 Valid values of `init_vf`:
@@ -142,11 +140,13 @@ set string list_path "inline
 ```
 The initial volume fraction is 1 inside the primitives and 0 elsewhere.
 
-## Shape of solid body
+# Solid bodies
 
-Parameter `eb_list_path` defines list a list primitives that compose
-the shape of the solid body
-
+Flows in complex geometries around solid bodies are activated by
+```
+set int enable_embed 1
+```
+Parameter `eb_list_path` defines a list of primitives that compose the solid body
 ```
 set string eb_list_path "inline
   PRIMITIVE
@@ -154,12 +154,7 @@ set string eb_list_path "inline
 "
 ```
 
-The solver taking into account solid bodies is activated by
-```
-set int enable_embed 1
-```
-
-## Boundary conditions
+# Boundary conditions
 
 Parameter `bc_path` defines boundary conditions
 
@@ -197,7 +192,7 @@ wall 1 0 0 {
 "
 ```
 
-## Sliders
+# Sliders
 
 Parameter `sliders` defines a list of sliders
 
