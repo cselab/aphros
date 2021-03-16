@@ -126,6 +126,33 @@ jobs:
           paths:
             - C:\Users\circleci\aphros
 
+  build-mac:
+    macos:
+      xcode: 11.3.0
+    steps:
+      - restore_cache:
+          keys:
+            - build-mac-{{ .Environment.CacheSuff }}
+      - checkout:
+          path: ../aphros_tmp
+      - run:
+          name: Checkout code revision
+          command: |
+            git fetch
+            git checkout << pipeline.git.revision >>
+      - run:
+          name: Build source
+          command: |
+            cd src && make -j4 -f Makefile_legacy
+      - run:
+          name: Run executable
+          command: |
+            cd src && ./main --logo --exit
+      - save_cache:
+          key: build-mac-{{ .Environment.CacheSuff }}-{{ .Revision }}
+          paths:
+            - ~/aphros
+
 workflows:
   build-test-examples:
     jobs:
@@ -137,3 +164,4 @@ workflows:
           requires:
             - build
       - build-win
+      - build-mac
