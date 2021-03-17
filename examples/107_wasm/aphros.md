@@ -194,6 +194,11 @@ Valid values of `PRIMITIVE`:
 `box CX CY 0 RX [RY=RX]`
 : Box centered at `CX,CY` with half-size `RX,RY`
 
+Primitives also accept modifiers, negation (`-`) and intersection (`&`),
+used to subtract the primitive from the current shape.
+See the [documentation](https://cselab.github.io/aphros/doc/#geometric-primitives)
+of the full solver for more details.
+
 Examples:
 
 ```
@@ -201,6 +206,7 @@ sphere 0 0 0 1
 sphere 0 1 0 1 2
 box 0 0 0 1
 box 0 1 0 1 2
+&-sphere 0 0 0 0.5
 ```
 
 # Initial volume fraction
@@ -251,8 +257,9 @@ BCTYPE {
 "
 ```
 
-The boundary conditions are set to `BRTYPE` inside the primitives.
-Valid values of `BRTYPE`:
+The boundary conditions are set to `BCTYPE` on domain edges
+and edges of solid bodies that fall inside the primitives.
+Valid values of `BCTYPE`:
 
 `wall VX VY 0`
 : No-slip wall with given velocity
@@ -297,7 +304,7 @@ where `SLIDER` describes one slider
 ```
 that sets a variable named `VAR` with the range between `MIN` and `MAX`.
 Initially, the slider takes the value from the current configuration if
-defined and the default `(MIN+MAX)/2` otherwise.
+`VAR` defined and the default `(MIN+MAX)/2` otherwise.
 Variables set by sliders are expanded in the input configuration.
 Lines that depend on such expansions need to start with `FROMSLIDER`.
 

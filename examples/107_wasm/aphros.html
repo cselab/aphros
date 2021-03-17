@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en-us">
   <head>
-    <link rel="icon" type="image/png" href="hydro-icon.png">
+    <link rel="icon" type="image/png" href="electrochem-icon.png">
     <meta charset="utf-8">
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=640, initial-scale=0.55">
@@ -19,7 +19,7 @@
         display: block;
         touch-action: manipulation;
       }
-      textarea.emscripten { font-family: monospace; width: 500px; }
+      textarea.emscripten { font-family: monospace; width: 430px; }
       canvas.emscripten { border: 0px none; background-color: white; }
       div.emscripten { text-align: center; }
       .slider {
@@ -79,7 +79,7 @@
     </div>
     <div style="text-align: center; padding: 5px;">
       <input type="button" class="button" id="button_url" title="Sends encoded configuration to tinyurl.com" value="share" onclick="UpdateShortUrl();">
-      <input type="text" id="text_shorturl">
+      <input type="text" id="text_shorturl" style="width:250px;height:1.8em;">
       <!--<a href="" id="a_fullurl">[full link]</a>-->
     </div>
 
@@ -91,7 +91,7 @@
     <div style="text-align: center;">
       <div style="display: inline; vertical-align: top;">
         <div style="display: inline-block; vertical-align: top; margin-top: 4px;">
-          <textarea class="emscripten" id="input_conf" rows="40">
+          <textarea class="emscripten" id="input_conf" rows="40" style="height:500px;">
 set string visual "
 vorticity {
   set vect values -2 0 2
@@ -118,7 +118,7 @@ set string list_path "inline
 set double rho2 0.01
 set double mu2 0.01
 </textarea>
-          <div class="emscripten" style="padding: 5px;">
+          <div class="emscripten" style="padding: 8px;">
             <input type="button" class="button" id="button_apply" style="position: relative;" value="apply" onclick="ApplyConfig();">
             <span style="position: absolute; padding-left: 0.5em; margin-top: -0.2em">
               [<a href="aphros_doc.html">documentation</a>]
@@ -157,8 +157,8 @@ set double mu2 0.01
         </div>
 
         <div style="display: inline-block; vertical-align: top; margin-top: 4px;">
-          <textarea class="emscripten" id="output" rows="25"></textarea>
-          <textarea class="emscripten" id="outputerr" rows="14"></textarea>
+          <textarea class="emscripten" id="output" rows="25" style="height:338px;"></textarea>
+          <textarea class="emscripten" id="outputerr" rows="14" style="height:150px;"></textarea>
         </div>
       </div>
     </div>
