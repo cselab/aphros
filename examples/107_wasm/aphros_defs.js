@@ -12,6 +12,7 @@ var output = document.getElementById('output');
 var outputerr = document.getElementById('outputerr');
 var g_sliders = {};
 var g_sliders_string = "";
+var g_nx;
 
 function GetInputConfig(fromslider=false) {
   let config = input_conf.value;
@@ -138,6 +139,12 @@ function ResetButtons() {
   });
 }
 
+function Restart() {
+  if (g_nx) {
+    Init(g_nx);
+  }
+}
+
 function Init(nx) {
   ClearOutput();
   config = GetExtraConfig()
@@ -151,6 +158,7 @@ function Init(nx) {
   config += cc.join('');
   SetExtraConfig(config);
   Module.ccall('SetMesh', null, ['number'], [nx])
+  g_nx = nx;
   ApplyConfig();
 }
 
@@ -367,7 +375,7 @@ function PostRun() {
   });
   [
     window.button_pause, window.button_16, window.button_32,
-    window.button_64, window.button_128, 
+    window.button_64, window.button_128, window.button_restart,
   ].forEach(b => {
     b.addEventListener('keydown', function(e){
       if (e.key == ' ') {

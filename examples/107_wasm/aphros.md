@@ -5,8 +5,8 @@ fluid solver [Aphros Explorer](aphros.html) running in the web browser.
 The domain is filled by a mixture of two liquids
 with different densities and viscosities.
 Effects of gravity and surface tension are included.
-Many parameters can be changed dynamically.
-Various boundary conditions can be set on the edges of the domain
+Many [parameters](#parameters) can be changed dynamically.
+Various [boundary conditions](#bc) can be set on the edges of the domain
 or a solid body.
 [Visualization](#visualization)
 and [controls](#controls) are parameterized through a plain text configuration.
