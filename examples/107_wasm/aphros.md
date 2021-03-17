@@ -41,8 +41,12 @@ FROMSLIDER set vect gravity $g 0
 `hypre_periodic_x`, `hypre_periodic_y` (0, 1)
 : Make the domain periodic in the x- and y-directions
 
+`steps_per_frame`
+: Number of time steps per rendering frame
+
 `stokes` (0, 1)
-: Enable Stokes flow solver (the limit of no inertia)
+: Disable convective fluxes to approach the Stokes limit of no inertia.
+  High viscosity or steady state still needed
 
 ## Type `double`
 
@@ -198,14 +202,14 @@ box 0 1 0 1 2
 
 # Initial volume fraction
 
-Parameters `init_vf` defines the initial volume fraction field.
+Parameter `init_vf` defines the initial volume fraction field.
 Valid values of `init_vf`:
 
 `zero`
 : zero field
 
 `list`
-: initial field defined in `list`
+: initial field defined in `list_path`
 
 Parameter `list_path` defines a list of primitives
 ```
