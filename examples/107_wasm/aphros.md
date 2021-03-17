@@ -39,7 +39,7 @@ FROMSLIDER set vect gravity $g 0
 : Enable advection solver for two-component flows
 
 `hypre_periodic_x`, `hypre_periodic_y` (0, 1)
-: Make the domain periodic in the `x`- anda `y-` directions.
+: Make the domain periodic in the x- and y-directions
 
 `stokes` (0, 1)
 : Enable Stokes flow solver (the limit of no inertia)
@@ -49,7 +49,7 @@ FROMSLIDER set vect gravity $g 0
 `cfl`, `cfla`, `cflst`
 : CFL numbers for fluid, advection, and surface tension
 
-`extent`:
+`extent`
 : Domain size
 
 `mu1`, `mu2`
@@ -63,32 +63,36 @@ FROMSLIDER set vect gravity $g 0
 
 ## Type `vect`
 
-`gravity`
-: Gravitational acceleration
-
 `force`
 : Body force
+
+`gravity`
+: Gravitational acceleration
 
 ## Type `string`
 
 `advection_solver` (`vof`, `vofm`)
-: Advection solver to use. Choices are `vof` (standard volume-of-fluid)
-and `vofm` (multilayer volume-of-fluid for coalescence prevention)
+: Advection solver to use.
+Standard volume-of-fluid (`vof`)
+and multilayer volume-of-fluid for coalescence prevention (`vofm`)
 
 `bc_path`
 : Boundary conditions (see below)
 
 `eb_list_path`
-: List of primitives composing the solid body (see below)
+: Primitives composing the solid body (see below)
 
 `init_vf`, list_path`
 : Initial volume fraction and list of primitives (see below)
 
 `sliders`
-: List of sliders (see below)
+: Sliders (see below)
 
 `visual`
-: List of fields to visualize (see below)
+: Fields to visualize (see below)
+
+`print_vars`
+: Names of variables to print in the output window
 
 
 ## Other parameters
