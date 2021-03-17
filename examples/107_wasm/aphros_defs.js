@@ -54,6 +54,7 @@ set string Cblack 0 0 0
 set string Cgray 0.627 0.694 0.729
 
 set string sliders
+set double spawn_r 0.05
 
 set string V_volume_fraction_green "
 volume fraction {
@@ -345,7 +346,14 @@ function PostRun() {
   let mouseclick = function(e){
     let x = e.offsetX / canvas.width;
     let y = 1 - e.offsetY / canvas.height;
-    Spawn(x, y, 0.1);
+    let r = GetConfigDouble("spawn_r");
+    let extent = GetConfigDouble("extent");
+    if (isNaN(r)) r = 0.05;
+    if (isNaN(extent)) extent = 1;
+    x *= extent;
+    y *= extent;
+    r *= extent;
+    Spawn(x, y, r);
   };
 
   canvas.addEventListener('click', mouseclick, false);

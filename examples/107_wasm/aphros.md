@@ -65,6 +65,9 @@ FROMSLIDER set vect gravity $g 0
 `sigma`
 : Surface tension
 
+`spawn_r`
+: radius of circle spawned on mouse click, relative to the domain size
+
 ## Type `vect`
 
 `force`
@@ -86,7 +89,7 @@ and multilayer volume-of-fluid for coalescence prevention (`vofm`)
 `eb_list_path`
 : Primitives composing the solid body (see below)
 
-`init_vf`, list_path`
+`init_vf`, `list_path`
 : Initial volume fraction and list of primitives (see below)
 
 `sliders`
@@ -185,10 +188,10 @@ set string visual "
 Primitives are used to specify initial and boundary conditions.
 Valid values of `PRIMITIVE`:
 
-`sphere CX CZ 0 RX [RY=RX]`
+`sphere CX CY 0 RX [RY=RX]`
 : Ellipsoid centered at `CX,CY` with principal semi-axes `RX,RY`
 
-`box CX CZ 0 RX [RY=RX]`
+`box CX CY 0 RX [RY=RX]`
 : Box centered at `CX,CY` with half-size `RX,RY`
 
 Examples:
@@ -257,6 +260,11 @@ Valid values of `BRTYPE`:
 `slipwall`
 : Free-slip wall
 
+`inlet VX VY 0`
+: Inlet with velocity `VX,VY`
+
+`outlet`
+: Outlet
 
 Example:
 

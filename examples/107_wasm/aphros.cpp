@@ -38,6 +38,10 @@ struct State {
   bool pause = false;
   std::vector<std::array<MIdx, 2>> lines; // interface lines
   std::vector<std::array<MIdx, 2>> lines_eb; // embed lines
+
+  bool to_spawn = false;
+  Vect spawn_c;
+  Scal spawn_r;
 };
 
 std::shared_ptr<State> g_state;
@@ -53,134 +57,182 @@ void StepCallback(void*, Hydro<M>* hydro) {
   auto& s = *state;
   auto& m = hydro->m;
   auto& var = hydro->var;
+  auto sem = m.GetSem();
 
-  if (hydro->st_.step % var.Int("report_step_every", 1) == 0) {
-    auto names = GetWords(var.String("print_vars", ""));
-    for (auto name : names) {
-      auto type = var.GetTypeName(name);
-      if (!type.empty()) {
-        std::cout << name << '=' << var.GetStr(type, name) << ' ';
-      }
-    }
-    if (!names.empty()) {
-      std::cout << std::endl;
-    }
-    if (auto* str = var.String.Find("print_string")) {
-      std::cout << *str << std::endl;
-    }
-  }
-
-  if (s.render) {
-    auto& canvas = *g_canvas;
-    using U = util::Visual<M>;
-    typename U::CanvasView view(
-        canvas.size, MIdx(0), canvas.size, canvas.buf.data());
-    using Float3 = typename U::Float3;
-    FieldCell<Float3> fc_color(m, Float3(1));
-    std::stringstream str_entries(var.String["visual"]);
-    auto entries = U::ParseEntries(str_entries);
-    auto get_field = [&](std::string name) -> FieldCell<Scal> {
-      if (name == "p" || name == "pressure") {
-        return hydro->fs_->GetPressure();
-      }
-      if (name == "omz" || name == "vorticity") {
-        if (hydro->eb_) {
-          return GetVortScal(
-              hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(),
-              *hydro->eb_);
+  if (sem()) {
+    if (hydro->st_.step % var.Int("report_step_every", 1) == 0) {
+      auto names = GetWords(var.String("print_vars", ""));
+      for (auto name : names) {
+        auto type = var.GetTypeName(name);
+        if (!type.empty()) {
+          std::cout << name << '=' << var.GetStr(type, name) << ' ';
         }
-        return GetVortScal(
-            hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(), m);
       }
-      if (name == "ebvf" || name == "embed fraction") {
-        FieldCell<Scal> fc(m, 1);
-        if (hydro->eb_) {
-          auto& eb = *hydro->eb_;
-          for (auto c : m.SuCells()) {
-            fc[c] = eb.GetVolumeFraction(c);
+      if (!names.empty()) {
+        std::cout << std::endl;
+      }
+      if (auto* str = var.String.Find("print_string")) {
+        std::cout << *str << std::endl;
+      }
+    }
+
+    if (s.render) {
+      auto& canvas = *g_canvas;
+      using U = util::Visual<M>;
+      typename U::CanvasView view(
+          canvas.size, MIdx(0), canvas.size, canvas.buf.data());
+      using Float3 = typename U::Float3;
+      FieldCell<Float3> fc_color(m, Float3(1));
+      std::stringstream str_entries(var.String["visual"]);
+      auto entries = U::ParseEntries(str_entries);
+      auto get_field = [&](std::string name) -> FieldCell<Scal> {
+        if (name == "p" || name == "pressure") {
+          return hydro->fs_->GetPressure();
+        }
+        if (name == "omz" || name == "vorticity") {
+          if (hydro->eb_) {
+            return GetVortScal(
+                hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(),
+                *hydro->eb_);
           }
+          return GetVortScal(
+              hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(), m);
         }
-        return fc;
-      }
-      if (name == "vf" || name == "volume fraction") {
-        return hydro->as_->GetField();
-      }
-      if (name == "vmagn" || name == "velocity magnitude") {
-        FieldCell<Scal> fc(m, 0);
-        for (auto c : m.SuCells()) {
-          fc[c] = hydro->fs_->GetVelocity()[c].norm();
+        if (name == "ebvf" || name == "embed fraction") {
+          FieldCell<Scal> fc(m, 1);
+          if (hydro->eb_) {
+            auto& eb = *hydro->eb_;
+            for (auto c : m.SuCells()) {
+              fc[c] = eb.GetVolumeFraction(c);
+            }
+          }
+          return fc;
         }
-        return fc;
-      }
-      if (name == "vx" || name == "velocity x") {
-        FieldCell<Scal> fc(m, 0);
-        for (auto c : m.SuCells()) {
-          fc[c] = hydro->fs_->GetVelocity()[c][0];
+        if (name == "vf" || name == "volume fraction") {
+          return hydro->as_->GetField();
         }
-        return fc;
-      }
-      if (name == "vy" || name == "velocity y") {
-        FieldCell<Scal> fc(m, 0);
-        for (auto c : m.SuCells()) {
-          fc[c] = hydro->fs_->GetVelocity()[c][1];
+        if (name == "vmagn" || name == "velocity magnitude") {
+          FieldCell<Scal> fc(m, 0);
+          for (auto c : m.SuCells()) {
+            fc[c] = hydro->fs_->GetVelocity()[c].norm();
+          }
+          return fc;
         }
-        return fc;
+        if (name == "vx" || name == "velocity x") {
+          FieldCell<Scal> fc(m, 0);
+          for (auto c : m.SuCells()) {
+            fc[c] = hydro->fs_->GetVelocity()[c][0];
+          }
+          return fc;
+        }
+        if (name == "vy" || name == "velocity y") {
+          FieldCell<Scal> fc(m, 0);
+          for (auto c : m.SuCells()) {
+            fc[c] = hydro->fs_->GetVelocity()[c][1];
+          }
+          return fc;
+        }
+        if (m.IsRoot()) {
+          std::cerr << "Unknown field '" + name + "'\n";
+        }
+        return FieldCell<Scal>(m, 0);
+      };
+      U::RenderEntriesToField(fc_color, entries, get_field, m);
+      if (var.Int("visual_interpolate", 1) && m.GetGlobalSize() < view.size) {
+        U::RenderToCanvasBilinear(view, fc_color, m);
+      } else {
+        U::RenderToCanvasNearest(view, fc_color, m);
       }
-      if (m.IsRoot()) {
-        std::cerr << "Unknown field '" + name + "'\n";
-      }
-      return FieldCell<Scal>(m, 0);
-    };
-    U::RenderEntriesToField(fc_color, entries, get_field, m);
-    if (var.Int("visual_interpolate", 1) && m.GetGlobalSize() < view.size) {
-      U::RenderToCanvasBilinear(view, fc_color, m);
-    } else {
-      U::RenderToCanvasNearest(view, fc_color, m);
-    }
 
-    // Render interface lines
-    if (m.IsRoot()) {
-      s.lines.clear();
-    }
-    if (var.Int("visual_lines", 1)) {
-      auto h = m.GetCellSize();
-      const auto& plic = hydro->as_->GetPlic();
-      for (auto l : plic.layers) {
-        const auto& fci = *plic.vfci[l];
-        const auto& fcn = *plic.vfcn[l];
-        const auto& fca = *plic.vfca[l];
-        for (auto c : m.Cells()) {
-          if (fci[c]) {
-            const auto poly =
-                Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
-            if (poly.size() == 2) {
-              s.lines.push_back({
-                  GetCanvasCoords(poly[0], *g_canvas, m),
-                  GetCanvasCoords(poly[1], *g_canvas, m),
-              });
+      // Render interface lines
+      if (m.IsRoot()) {
+        s.lines.clear();
+      }
+      if (var.Int("visual_lines", 1)) {
+        auto h = m.GetCellSize();
+        const auto& plic = hydro->as_->GetPlic();
+        for (auto l : plic.layers) {
+          const auto& fci = *plic.vfci[l];
+          const auto& fcn = *plic.vfcn[l];
+          const auto& fca = *plic.vfca[l];
+          for (auto c : m.Cells()) {
+            if (fci[c]) {
+              const auto poly =
+                  Reconst<Scal>::GetCutPoly(m.GetCenter(c), fcn[c], fca[c], h);
+              if (poly.size() == 2) {
+                s.lines.push_back({
+                    GetCanvasCoords(poly[0], *g_canvas, m),
+                    GetCanvasCoords(poly[1], *g_canvas, m),
+                });
+              }
             }
           }
         }
       }
-    }
-    // Render embed lines
-    if (m.IsRoot()) {
-      s.lines_eb.clear();
-    }
-    if (var.Int("visual_lines_eb", 1) && hydro->eb_) {
-      auto& eb = *hydro->eb_;
-      auto h = m.GetCellSize();
-      for (auto c : eb.CFaces()) {
-        const auto poly = Reconst<Scal>::GetCutPoly(
-            m.GetCenter(c), eb.GetNormal(c), eb.GetAlpha(c), h);
-        if (poly.size() == 2) {
-          s.lines_eb.push_back({
-              GetCanvasCoords(poly[0], *g_canvas, m),
-              GetCanvasCoords(poly[1], *g_canvas, m),
-          });
+      // Render embed lines
+      if (m.IsRoot()) {
+        s.lines_eb.clear();
+      }
+      if (var.Int("visual_lines_eb", 1) && hydro->eb_) {
+        auto& eb = *hydro->eb_;
+        auto h = m.GetCellSize();
+        for (auto c : eb.CFaces()) {
+          const auto poly = Reconst<Scal>::GetCutPoly(
+              m.GetCenter(c), eb.GetNormal(c), eb.GetAlpha(c), h);
+          if (poly.size() == 2) {
+            s.lines_eb.push_back({
+                GetCanvasCoords(poly[0], *g_canvas, m),
+                GetCanvasCoords(poly[1], *g_canvas, m),
+            });
+          }
         }
       }
     }
+  }
+
+  if (sem() && s.to_spawn) {
+    auto spawn = [&](auto& fcu, auto& fccl, const auto& meb) {
+      FieldCell<Scal> fc_add(m);
+      GetCircle(fc_add, s.spawn_c, s.spawn_r, m);
+      for (auto c : meb.Cells()) {
+        if (fc_add[c] > fcu[c]) {
+          fcu[c] = fc_add[c];
+          fccl[c] = 0;
+        }
+      }
+    };
+    if (auto vof = dynamic_cast<Vof<M>*>(hydro->as_.get())) {
+      vof->AddModifier(
+          [spawn](FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const M& m) { //
+            spawn(fcu, fccl, m);
+          });
+    }
+    if (auto vof = dynamic_cast<Vofm<M>*>(hydro->as_.get())) {
+      vof->AddModifier([spawn](
+                           const Multi<FieldCell<Scal>*>& fcu,
+                           const Multi<FieldCell<Scal>*>& fccl, GRange<size_t>,
+                           const M& m) { //
+        spawn(*fcu[0], *fccl[0], m);
+      });
+    }
+    if (auto vof = dynamic_cast<Vof<Embed<M>>*>(hydro->as_.get())) {
+      vof->AddModifier([spawn](
+                           FieldCell<Scal>& fcu, FieldCell<Scal>& fccl,
+                           const Embed<M>& eb) { //
+        spawn(fcu, fccl, eb);
+      });
+    }
+    if (auto vof = dynamic_cast<Vofm<Embed<M>>*>(hydro->as_.get())) {
+      vof->AddModifier([spawn](
+                           const Multi<FieldCell<Scal>*>& fcu,
+                           const Multi<FieldCell<Scal>*>& fccl, GRange<size_t>,
+                           const Embed<M>& eb) { //
+        spawn(*fcu[0], *fccl[0], eb);
+      });
+    }
+  }
+  if (sem() && m.IsRoot()) {
+    s.to_spawn = false;
   }
 }
 
@@ -221,7 +273,13 @@ void Spawn(float x, float y, float r) {
   if (!g_state) {
     return;
   }
-  std::cout << util::Format("action") << std::endl;
+  auto state = g_state;
+  auto& s = *state;
+  s.to_spawn = true;
+  s.spawn_c = Vect(x, y);
+  s.spawn_r = r;
+  std::cout << util::Format("spawn c={:.3f} r={:.3f}", s.spawn_c, s.spawn_r)
+            << std::endl;
 }
 int TogglePause() {
   if (!g_state) {
