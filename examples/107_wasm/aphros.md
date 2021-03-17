@@ -2,7 +2,16 @@ Interactive
 [open-source](https://github.com/cselab/aphros/tree/master/examples/107_wasm)
 fluid solver [Aphros Explorer](aphros.html) running in the web browser.
 
-# Language
+The domain is filled by a mixture of two liquids
+with different densities and viscosities.
+Effects of gravity and surface tension are included.
+Many parameters can be changed dynamically.
+Various boundary conditions can be set on the edges of the domain
+or a solid body.
+[Visualization](#visualization)
+and [controls](#controls) are parameterized through a plain text configuration.
+
+# <a name="language"></a> [Language](#language)
 
 The input configuration is defined using commands
 ```
@@ -11,7 +20,7 @@ The input configuration is defined using commands
 where `TYPE` is `int`, `double`, `vect` or `string`.
 Expressions `$VAR_NAME` and `${VAR_NAME}` are expanded to the value
 of the variable `VAR_NAME` that must be already defined.
-Lines that depend on expansions of variables defined by sliders
+Lines that depend on expansions of variables defined by [sliders](#sliders)
 need to start with `FROMSLIDER`.
 
 Examples:
@@ -28,75 +37,82 @@ set string sub $i $v $s
 FROMSLIDER set vect gravity $g 0
 ```
 
-# Parameters
+# <a name="parameters"></a> [Parameters](#parameters)
 
 ## Type `int`
 
 `enable_embed` (0, 1)
-: Enable solid bodies using embedded boundaries (cut cells)
+: Enable solid bodies using embedded boundaries (cut cells). Default is 0
 
 `enable_advection` (0, 1)
-: Enable advection solver for two-component flows
+: Enable advection solver for two-component flows. Default is 1
 
 `hypre_periodic_x`, `hypre_periodic_y` (0, 1)
-: Make the domain periodic in the x- and y-directions
+: Make the domain periodic in the x- and y-directions. Default is 0
+
+`sharpen`
+: Enable interface sharpening based on PLIC forward-backward advection.
+Default is 1
 
 `steps_per_frame`
-: Number of time steps per rendering frame
+: Number of time steps per rendering frame. Default is 1
 
 `stokes` (0, 1)
 : Disable convective fluxes to approach the Stokes limit of no inertia.
-  High viscosity or steady state still needed
+  High viscosity or steady state still needed. Default is 0
 
 ## Type `double`
 
 `cfl`, `cfla`, `cflst`
-: CFL numbers for fluid, advection, and surface tension
+: CFL numbers for fluid, advection, and surface tension. Defaults are
+  `cfl=0.8`, `cfla=0.8`, and `cflst=1`
 
 `extent`
-: Domain size
+: Domain size. Default is 1
 
 `mu1`, `mu2`
-: Viscosities of components 1 and 2
+: Viscosities of components 1 and 2. Default is 0.01
 
 `rho1`, `rho2`
-: Densities of components 1 and 2
+: Densities of components 1 and 2. Default is 1
 
 `sigma`
-: Surface tension
+: Surface tension. Default is 0
 
 `spawn_r`
-: radius of circle spawned on mouse click, relative to the domain size
+: radius of circle spawned on mouse click, relative to the domain size.
+  Default is 0.05
 
 ## Type `vect`
 
 `force`
-: Body force
+: Body force. Default is `0 0`.
 
 `gravity`
-: Gravitational acceleration
+: Gravitational acceleration. Default is `0 0`.
 
 ## Type `string`
 
 `advection_solver` (`vof`, `vofm`)
 : Advection solver to use.
 Standard volume-of-fluid (`vof`)
-and multilayer volume-of-fluid for coalescence prevention (`vofm`)
+and multilayer volume-of-fluid for coalescence prevention (`vofm`).
+Default is `vof`
 
 `bc_path`
-: Boundary conditions (see below)
+: [Boundary conditions](#bc)
 
 `eb_list_path`
-: Primitives composing the solid body (see below)
+: [Primitives](#primitives) composing the solid body
 
 `init_vf`, `list_path`
-: Initial volume fraction and list of primitives (see below)
+: [Initial volume fraction](#initvf) with a list of primitives
 
 `sliders`
-: Sliders (see below)
+: [Sliders](#sliders)
 
 `visual`
-: Fields to visualize (see below)
+: Fields to [visualize](#visualization)
 
 `print_vars`
 : Names of variables to print in the output window
@@ -105,9 +121,28 @@ and multilayer volume-of-fluid for coalescence prevention (`vofm`)
 ## Other parameters
 
 [Base configuration file](https://github.com/cselab/aphros/blob/master/deploy/scripts/sim_base.conf)
-lists other available parameters and their default values.
+together with [additional configuration](https://github.com/cselab/aphros/blob/master/examples/107_wasm/conf/std.conf)
+list other available parameters and their default values.
 
-# Visualization
+# <a name="controls"></a> [Controls](#controls)
+
+The Apply button sends the input configuration to the solver.
+Changes of some parameters have an immediate effect
+(density, viscosity, surface tension, and gravity).
+Others will only be considered after the next restart
+(boundary conditions, shape of the solid body, initial fields,
+and choice of advection solver).
+To restart the simulation,
+click on any button that selects the mesh size (16, 32, 64, 128)
+including the one currently selected.
+
+Mouse click on the canvas creates a circle of radius `spawn_r`
+filled with component 2.
+
+[Sliders](#sliders) are defined by parameter `sliders`
+and appear under the canvas.
+
+# <a name="visualization"></a> [Visualization](#visualization)
 
 Parameter `visual` defines a list of scalar fields to visualize.
 
@@ -183,7 +218,7 @@ set string visual "
 ```
 
 
-# Geometric primitives
+# <a name="primitives"></a> [Geometric primitives](#primitives)
 
 Primitives are used to specify initial and boundary conditions.
 Valid values of `PRIMITIVE`:
@@ -209,7 +244,7 @@ box 0 1 0 1 2
 &-sphere 0 0 0 0.5
 ```
 
-# Initial volume fraction
+# <a name="initvf"></a> [Initial volume fraction](#initvf)
 
 Parameter `init_vf` defines the initial volume fraction field.
 Valid values of `init_vf`:
@@ -229,7 +264,7 @@ set string list_path "inline
 ```
 The initial volume fraction is 1 inside the primitives and 0 elsewhere.
 
-# Solid bodies
+# <a name="bodies"></a> [Solid bodies](#bodies)
 
 Flows in complex geometries around solid bodies are activated by
 ```
@@ -243,7 +278,7 @@ set string eb_list_path "inline
 "
 ```
 
-# Boundary conditions
+# <a name="bc"></a> [Boundary conditions](#bc)
 
 Parameter `bc_path` defines boundary conditions
 
@@ -262,7 +297,7 @@ and edges of solid bodies that fall inside the primitives.
 Valid values of `BCTYPE`:
 
 `wall VX VY 0`
-: No-slip wall with given velocity
+: No-slip wall with velocity `VX,VY`
 
 `slipwall`
 : Free-slip wall
@@ -273,7 +308,8 @@ Valid values of `BCTYPE`:
 `outlet`
 : Outlet
 
-Example:
+Example setting walls with velocity `(1,0)` at `y=0` and `y=1`
+and walls with zero velocity elsewhere:
 
 ```
 set string bc_path "inline
@@ -287,7 +323,7 @@ wall 1 0 0 {
 "
 ```
 
-# Sliders
+# <a name="sliders"></a> [Sliders](#sliders)
 
 Parameter `sliders` defines a list of sliders
 
@@ -300,7 +336,7 @@ set string sliders "
 
 where `SLIDER` describes one slider
 ```
-  VAR MIN MAX [LABEL=VAR]
+VAR MIN MAX [LABEL=VAR]
 ```
 that sets a variable named `VAR` with the range between `MIN` and `MAX`.
 Initially, the slider takes the value from the current configuration if
@@ -311,6 +347,7 @@ Lines that depend on such expansions need to start with `FROMSLIDER`.
 
 Examples:
 ```
+set double g 5   # initial value
 set string sliders "
   rho1 1 10 density 1
   sigma 0 1 surface tension
