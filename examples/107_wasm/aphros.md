@@ -50,7 +50,7 @@ FROMSLIDER set vect gravity $g 0
 `hypre_periodic_x`, `hypre_periodic_y` (0, 1)
 : Make the domain periodic in the x- and y-directions. Default is 0
 
-`sharpen`
+`sharpen` (0, 1)
 : Enable interface sharpening based on PLIC forward-backward advection.
 Default is 1
 
@@ -80,7 +80,7 @@ Default is 1
 : Surface tension. Default is 0
 
 `spawn_r`
-: radius of circle spawned on mouse click, relative to the domain size.
+: Radius of circle spawned on mouse click, relative to the domain size.
   Default is 0.05
 
 ## Type `vect`
@@ -110,6 +110,9 @@ Default is `vof`
 
 `sliders`
 : [Sliders](#sliders)
+
+`title`
+: Window title. Default is `Aphros Explorer`.
 
 `visual`
 : Fields to [visualize](#visualization)

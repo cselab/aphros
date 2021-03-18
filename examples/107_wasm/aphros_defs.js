@@ -91,6 +91,7 @@ function ApplyConfig() {
   SetRuntimeConfig(config);
   Print(`applied config of ${config.length} characters`);
   UpdateSliders();
+  UpdateTitle();
 }
 
 function SetSigma(sigma) {
@@ -160,6 +161,11 @@ function Init(nx) {
   Module.ccall('SetMesh', null, ['number'], [nx])
   g_nx = nx;
   ApplyConfig();
+}
+
+function UpdateTitle() {
+  let title = GetConfigString("title");
+  document.title = title ? title : "Aphros explorer";
 }
 
 function UpdateSlider(elem) {
