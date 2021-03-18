@@ -1582,17 +1582,21 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     // source for bubble growth from tracer0
     if (tracer_) {
       if (auto* rate = var.Double.Find("growth_rate_tracer0")) {
-        if (auto as = dynamic_cast<ASV*>(as_.get())) {
-          fc_src2_.Reinit(m, 0.);
-          auto& fcvf = as->GetField();
-          auto& trvf0 = tracer_->GetVolumeFraction()[0];
-          for (auto c : m.Cells()) {
-            auto src2 = trvf0[c] * (*rate) * fcvf[c];
-            fc_src2_[c] = src2;
-            fc_src_tracer0_[c] = -src2;
-            fc_src_[c] = src2;
+        auto apply = [&](auto as) {
+          if (as) {
+            fc_src2_.Reinit(m, 0.);
+            auto& fcvf = as->GetField();
+            auto& trvf0 = tracer_->GetVolumeFraction()[0];
+            for (auto c : m.Cells()) {
+              auto src2 = trvf0[c] * (*rate) * fcvf[c];
+              fc_src2_[c] = src2;
+              fc_src_tracer0_[c] = -src2;
+              fc_src_[c] = src2;
+            }
           }
-        }
+        };
+        apply(dynamic_cast<ASV*>(as_.get()));
+        apply(dynamic_cast<ASVEB*>(as_.get()));
       }
     }
     if (tracer_ && electro_) {
