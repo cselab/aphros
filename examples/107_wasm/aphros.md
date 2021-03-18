@@ -311,6 +311,12 @@ Valid values of `BCTYPE`:
 `outlet`
 : Outlet
 
+`inletpressure P`
+: Inlet with fixed pressure `P`
+
+`outletpressure P`
+: Outlet with fixed pressure `P`
+
 Example setting walls with velocity `(1,0)` at `y=0` and `y=1`
 and walls with zero velocity elsewhere:
 

@@ -23,9 +23,9 @@ Key features:
 
 ## Online demos
 
-[<img src="https://cselab.github.io/aphros/images/curv.png" height=200>](https://cselab.github.io/aphros/curv.html) | [<img src="https://cselab.github.io/aphros/images/wasm.png" height=200>](https://cselab.github.io/aphros/wasm/hydro.html) | [<img src="https://cselab.github.io/aphros/images/electrochem.png" height=200>](https://cselab.github.io/aphros/wasm/electrochem.html) | [<img src="https://cselab.github.io/aphros/images/aphros.png" width=200>](https://cselab.github.io/aphros/wasm/aphros.html)
+[<img src="https://cselab.github.io/aphros/images/curv.png" height=200>](https://cselab.github.io/aphros/curv.html) | [<img src="https://cselab.github.io/aphros/images/wasm.png" height=200>](https://cselab.github.io/aphros/wasm/hydro.html) | [<img src="https://cselab.github.io/aphros/images/electrochem.png" height=200>](https://cselab.github.io/aphros/wasm/electrochem.html) | [<img src="https://cselab.github.io/aphros/images/aphros_tile9.jpg" width=200>](https://github.com/cselab/aphros/wiki/Aphros-Explorer)
 :---:|:---:|:---:|:---:
-Curvature estimation | Coalescence prevention | Electrochemical reactor | Aphros Explorer
+Curvature estimation | Coalescence prevention | Electrochemical reactor | Gallery of interactive simulations
 
 ### Documentation
 

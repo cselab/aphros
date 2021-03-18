@@ -10,9 +10,11 @@ var kScale = 1;
 var input_conf = document.getElementById('input_conf');
 var output = document.getElementById('output');
 var outputerr = document.getElementById('outputerr');
+var text_shorturl = document.getElementById('text_shorturl');
 var g_sliders = {};
 var g_sliders_string = "";
 var g_nx;
+var g_fullurl;
 
 function GetInputConfig(fromslider=false) {
   let config = input_conf.value;
@@ -165,7 +167,7 @@ function Init(nx) {
 
 function UpdateTitle() {
   let title = GetConfigString("title");
-  document.title = title ? title : "Aphros explorer";
+  document.title = title ? title : "Aphros Explorer";
 }
 
 function UpdateSlider(elem) {
@@ -292,10 +294,13 @@ function ClearUrl() {
 }
 function UpdateFullUrl() {
   let fullurl = GetFullUrl(input_conf.value);
-  history.pushState(null, null, fullurl);
+  history.replaceState(null, null, fullurl);
   let element = document.getElementById('a_fullurl');
   if (element) {
     element.href = fullurl;
+  }
+  if (g_fullurl != fullurl) {
+    ClearShortUrl();
   }
 }
 function Request(url, action) {
@@ -313,10 +318,14 @@ function Request(url, action) {
 function GetShortUrl(fullurl, action) {
   return Request("https://tinyurl.com/api-create.php?url=" + fullurl, action);
 }
+function ClearShortUrl() {
+  text_shorturl.value = "";
+}
 function UpdateShortUrl() {
   let fullurl = GetFullUrl(input_conf.value);
+  g_fullurl = fullurl;
   GetShortUrl(fullurl, function(response) {
-    document.getElementById('text_shorturl').value = response;
+    text_shorturl.value = response;
   });
 }
 
@@ -327,7 +336,6 @@ function PostRun() {
     input_conf.value = Decompress(compressed);
   }
   UpdateFullUrl();
-  ClearUrl();
 
   g_lines_max_size = 10000;
   g_lines_ptr = Module._malloc(g_lines_max_size * 2);
