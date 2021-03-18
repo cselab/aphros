@@ -266,6 +266,8 @@ class MapEmbed {
   MapFace<Value> df_;
 };
 
+struct NciEmbed {};
+
 // Embedded boundaries.
 template <class M_>
 class Embed {
@@ -284,7 +286,6 @@ class Embed {
 
  public:
   using Type = typename M::Type;
-  class NciEmbed {};
   // Constructor
   // fnl: level-set function on nodes, interface at fnl=0
   Embed(M& m_, Scal gradlim) : m(m_), eb(*this), gradlim_(gradlim) {}

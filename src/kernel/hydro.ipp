@@ -1455,6 +1455,16 @@ void Hydro<M>::CalcDt() {
 }
 
 template <class M>
+IdxCell GetCell(IdxFace f, Side nci, const M& m) {
+  return m.GetCell(f, nci);
+}
+
+template <class M>
+IdxCell GetCell(IdxCell c, Side, const M&) {
+  return c;
+}
+
+template <class M>
 void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
   auto sem = m.GetSem("mixture");
 
@@ -1607,6 +1617,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           auto cf = cf_group.first;
           size_t group = cf_group.second;
           auto nci = mebc_fluid_[cf].nci;
+          const IdxCell c = GetCell(cf, nci, m);
 
           const auto& custom = bc_group_custom_[group];
           auto getptr = [&](std::string key) -> const Scal* {
@@ -1617,14 +1628,22 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             return nullptr;
           };
 
-          for (auto l : GRange<size_t>(tracer_->GetConf().layers)) {
+          const auto& conf = tracer_->GetConf();
+          for (auto l : GRange<size_t>(conf.layers)) {
             auto sl = std::to_string(l);
-            auto k = (*coeff) * ff_current[cf];
+            const auto& trvf = tracer_->GetVolumeFraction()[l];
+            // TODO: add cmax
+            auto k =
+                trvf[c] >= 0 ? //
+                    (*coeff) * ff_current[cf] * std::max<Scal>(0, 1 - trvf[c])
+                             : 0;
             if (auto* ptr = getptr("tracer" + sl + "_dirichlet")) {
               vmebc[l][cf] = BCond<Scal>(BCondType::dirichlet, nci, (*ptr) * k);
             }
             if (auto* ptr = getptr("tracer" + sl + "_neumann")) {
-              vmebc[l][cf] = BCond<Scal>(BCondType::neumann, nci, (*ptr) * k);
+              const auto d = conf.diffusion[l];
+              vmebc[l][cf] = BCond<Scal>(
+                  BCondType::neumann, nci, d > 0 ? (*ptr) * k / d : 0);
             }
           }
         });
