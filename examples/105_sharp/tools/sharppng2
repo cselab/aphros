@@ -11,11 +11,12 @@ i=$1
 o=$2
 shift 2
 
-hdf=_$$.raw
-trap 'rm $hdf; exit 1' 1 2 3 4 15
+input=/tmp/input.$$.raw
+output=/tmp/output.$$.raw
+trap 'rm $input $output; exit 1' 1 2 3 4 15
 
-$base/img2raw -i $i -o $hdf
-./main "$@" -v --cfl $cfl --steps $steps $hdf $hdf
-$base/hdf2img -i $hdf -o $o
+$base/img2raw -i $i -o $input
+./main "$@" -v --cfl $cfl --steps $steps --outtype UShort $input $output
+$base/raw2img -i $output -o $o
 
-rm "$hdf"
+echo $input $output
