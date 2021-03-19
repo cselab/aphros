@@ -109,9 +109,6 @@ void Run(M& m, Vars& var) {
       if (sem.Nested("write")) {
         Hdf<M>::Write(fc_buf(), path, m);
       }
-      if (sem("writexmf")) {
-        Hdf<M>::WriteXmf(util::SplitExt(path)[0] + ".xmf", "u", path, m);
-      }
     } else if (format == "raw") {
       if (sem("outmeta")) {
         t.outmeta.dimensions = m.GetGlobalSize();
