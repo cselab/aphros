@@ -82,11 +82,12 @@ docker run -v `pwd`:`pwd` -w `pwd` aphros
 ### Minimal build without CMake
 
 Build without dependencies and tests on unix-like systems
-(`APHROS_PREFIX` is the installation location)
+(`APHROS_PREFIX` is the installation location, with `USE_MPI=1` builds
+with MPI)
 
 ```
 cd src
-make -f Makefile_legacy install APHROS_PREFIX=$HOME/.local
+make -f Makefile_legacy install APHROS_PREFIX=$HOME/.local USE_MPI=0
 ```
 
 on Windows using Microsoft C++ toolset (NMAKE, LINK, and CL):
