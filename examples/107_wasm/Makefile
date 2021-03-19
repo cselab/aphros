@@ -23,7 +23,7 @@ aphros.js: aphros.cpp $(WRK)/libaphros_js.a
 		-s EXPORTED_FUNCTIONS='["_main", "_GetConfigString", "_GetConfigDouble", "_SetRuntimeConfig", "_SetExtraConfig", "_TogglePause", "_Spawn", "_SetMesh" ,"_GetLines"]' \
 		-s EXPORTED_RUNTIME_METHODS='["cwrap", "ccall"]' -o $@
 
-aphros_doc.html: aphros.md aphros_doc.css
+aphros_doc.html: aphros_doc.md aphros_doc.css
 	pandoc -s -c aphros_doc.css --metadata title='Aphros Explorer documentation' $< -o $@
 
 diffusion.js: diffusion.cpp $(WRK)/libaphros_js.a

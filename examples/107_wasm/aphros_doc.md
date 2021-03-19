@@ -1,6 +1,8 @@
 Interactive
 [open-source](https://github.com/cselab/aphros/tree/master/examples/107_wasm)
 fluid solver [Aphros Explorer](aphros.html) running in the web browser.
+The interactive version illustrates the full solver
+[Aphros](https://github.com/cselab/aphros) for scientific flow simulations.
 
 The domain is filled by a mixture of two liquids
 with different densities and viscosities.
@@ -189,7 +191,8 @@ Fields are rendered sequentially, with the colormap and opacities defined by
 * flattened RGB color components between 0 and 1 in `COLORS`,
 * opacities between 0 and 1 in `OPACITIES`.
 
-Predefined colors that expand to RGB components:
+Predefined colors that expand to RGB components, based on
+[palette](https://github.com/OrdnanceSurvey/GeoDataViz-Toolkit/tree/master/Colours):
 
 ```
 set string Cred 1 0.12 0.35
