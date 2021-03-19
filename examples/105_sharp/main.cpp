@@ -141,7 +141,7 @@ void Run(M& m, Vars& var) {
         Xmf::WriteXmf(util::SplitExt(path)[0] + ".xmf", t.outmeta);
       }
     } else {
-      fassert(false, "Unkown format=" + format);
+      fassert(false, "Unknown format=" + format);
     }
   };
   read(t.fcu, var.String["inputpath"]);
