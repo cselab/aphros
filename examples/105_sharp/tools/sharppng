@@ -11,11 +11,16 @@ i=$1
 o=$2
 shift 2
 
-hdf=_$$.h5
-trap 'rm $hdf; exit 1' 1 2 3 4 15
+input=/tmp/input.$$.raw
+output=/tmp/output.$$.raw
+trap 'rm $input $output; exit 1' 1 2 3 4 15
 
-$base/img2hdf -i $i -o $hdf
-(. ap.setenv &> /dev/null && ap.mpirun -n $np ap.sharpen "$@" -v --cfl $cfl --steps $steps $hdf $hdf)
-$base/hdf2img -i $hdf -o $o
+shape=`identify -format "%w %h" "$i"`
 
-rm "$hdf"
+$base/img2raw -i $i -o $input
+mpirun -n 4 ap.sharpen "$@" -v --cfl $cfl --steps $steps --outtype UShort $input $output
+$base/raw2img -d 256 256 -i $output -o $o
+status=$?
+
+rm $input $output
+exit $status
