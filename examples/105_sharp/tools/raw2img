@@ -44,7 +44,6 @@ if output == None:
 dtype=np.dtype(np.uint16)
 with open(input, "rb") as file:
     buffer = file.read()
-print(len(buffer), nx, ny, dtype.itemsize)
 if len(buffer) != nx * ny * dtype.itemsize:
     sys.stderr.write("%s: len(%s) != %d x %d x %d\n" % (me, input, nx, ny, dtype.itemsize))
     sys.exit(2)

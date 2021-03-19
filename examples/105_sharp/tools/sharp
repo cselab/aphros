@@ -12,15 +12,16 @@ o=$2
 shift 2
 
 input=/tmp/input.$$.raw
+xmf=/tmp/input.$$.xmf
 output=/tmp/output.$$.raw
-trap 'rm $input $output; exit 1' 1 2 3 4 15
+trap 'rm $input $output $xmf; exit 1' 1 2 3 4 15
 
-shape=`identify -format "%w %h" "$i"`
 
 $base/img2raw -i $i -o $input
+shape=`awk 'sub(/^           <DataItem Dimensions="/, "") && sub(/" Seek=.*/, "") {print $2, $3}' $xmf`
 mpirun -n 4 ap.sharpen "$@" --cfl $cfl --steps $steps --outtype UShort $input $output
 $base/raw2img -d 256 256 -i $output -o $o
 status=$?
 
-rm $input $output
+rm $input $output $xmf
 exit $status

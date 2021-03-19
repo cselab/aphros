@@ -1,8 +1,8 @@
 ```
 cmake . && make && make install # or make -f Makefile_legacy install
-make -C data/text
-python3 -m pip install --user h5py opencv-python
-tools/sharppng data/text/blur.pgm o.pgm --csv_out o.csv
+(cd data/text && make)
+python3 -m pip install --user opencv-python
+tools/sharp data/text/blur.pgm o.pgm --csv_out o.csv
 ```
 
 # UZH
