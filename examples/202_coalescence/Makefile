@@ -1,15 +1,13 @@
-m = 32 32 32
-np = 1
+# mesh size
+m = 256 256 256
+# number of processors
+np = 256
+# job time limit in minutes
 tl = 600
-
-default:
 
 include $(shell ap.makesim)
 
-.PHONY: nx32 nx128 default
+.PHONY: small
 
-nx32:
+small:
 	$(MAKE) cleanrun m='32 32 32' np=1
-
-nx128:
-	$(MAKE) cleanrun m='128 128 128' np=64
