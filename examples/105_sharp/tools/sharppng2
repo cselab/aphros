@@ -18,7 +18,7 @@ trap 'rm $input $output; exit 1' 1 2 3 4 15
 shape=`identify -format "%w %h" "$i"`
 
 $base/img2raw -i $i -o $input
-./main "$@" -v --cfl $cfl --steps $steps --outtype UShort $input $output
+mpirun -n 4 ap.sharpen "$@" -v --cfl $cfl --steps $steps --outtype UShort $input $output
 $base/raw2img -d 256 256 -i $output -o $o
 status=$?
 
