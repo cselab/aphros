@@ -10,7 +10,7 @@ CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g
 CXXFLAGS_STD = -std=c++14
 CC_RULE = $(CC) -c $(CFLAGS) -o $@
-CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(FLAGS_FPIC) $(CXXFLAGS_HDF) -I$(SRC) $1 $(1_MPI) -o $@
+CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(CXXFLAGS_HDF) -I$(SRC) $1 $(1_MPI) -o $@
 1 = \
 -D_ALIGNBYTES_=16 \
 -D_USE_AMGX_=0 \
