@@ -15,8 +15,12 @@ input=/tmp/input.$$.raw
 output=/tmp/output.$$.raw
 trap 'rm $input $output; exit 1' 1 2 3 4 15
 
+shape=`identify -format "%w %h" "$i"`
+
 $base/img2raw -i $i -o $input
 ./main "$@" -v --cfl $cfl --steps $steps --outtype UShort $input $output
-$base/raw2img -i $output -o $o
+$base/raw2img -d 256 256 -i $output -o $o
+status=$?
 
-echo $input $output
+rm $input $output
+exit $status

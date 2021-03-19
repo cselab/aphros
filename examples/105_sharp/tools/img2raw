@@ -7,7 +7,7 @@ import cv2
 
 me = "img2raw"
 def usg():
-    sys.stderr.write("%s -i IMG -o XMF\n" % me)
+    sys.stderr.write("%s -i IMG -o RAW\n" % me)
     sys.exit(2)
 input = output = None
 while True:

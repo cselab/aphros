@@ -7,7 +7,7 @@ import cv2
 
 me = "raw2img"
 def usg():
-    sys.stderr.write("%s -i HDF5 -o IMG\n" % me)
+    sys.stderr.write("%s -d nx ny -i RAW -o IMG\n" % me)
     sys.exit(2)
 input = output = None
 while True:
@@ -21,6 +21,13 @@ while True:
         elif sys.argv[0][1] == 'o':
             sys.argv.pop(0)
             output = sys.argv[0]
+        elif sys.argv[0][1] == 'd':
+            sys.argv.pop(0)
+            if len(sys.argv) < 2:
+                sys.stderr.write("%s: -d needs two arguments" % (me, sys.argv[0]))
+                sys.exit(2)
+            nx = int(sys.argv[0]); sys.argv.pop(0)
+            ny = int(sys.argv[0])
         else:
             sys.stderr.write("%s: unknown option '%s'\n" % (me, sys.argv[0]))
             sys.exit(2)
@@ -34,9 +41,14 @@ if output == None:
     sys.stderr.write("%s: -o is not set\n" % me)
     sys.exit(2)
 
+dtype=np.dtype(np.uint16)
 with open(input, "rb") as file:
     buffer = file.read()
-u = np.ndarray((256, 256), np.uint16, buffer, order = 'F')
+print(len(buffer), nx, ny, dtype.itemsize)
+if len(buffer) != nx * ny * dtype.itemsize:
+    sys.stderr.write("%s: len(%s) != %d x %d x %d\n" % (me, input, nx, ny, dtype.itemsize))
+    sys.exit(2)
+u = np.ndarray((nx, ny), dtype, buffer, order = 'F')
 lo = np.min(u)
 hi = np.max(u)
 u = 255 * (u - lo + 0.0) / (hi - lo)
