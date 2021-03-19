@@ -17,7 +17,7 @@ output=/tmp/output.$$.raw
 trap 'rm $input $output $xmf; exit 1' 1 2 3 4 15
 
 $base/img2raw -i $i -o $input
-shape=`awk 'sub(/^           <DataItem Dimensions="/, "") && sub(/" Seek=.*/, "") {print $2, $3}' $xmf`
+shape=`awk 'sub(/^           <DataItem Dimensions="/, "") && sub(/" Seek=.*/, "") {print $3, $2}' $xmf`
 ap.sharpen "$@" --cfl $cfl --steps $steps --outtype UShort $input $output
 $base/raw2img -d $shape -i $output -o $o
 status=$?
