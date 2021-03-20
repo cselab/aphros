@@ -57,7 +57,7 @@ CreateInitCl(const Vars& var, bool verb) {
       path >> filename;
       if (filename == "inline") {
         if (verb) {
-          std::cout
+          std::cerr
               << "InitCl: Reading inline list of primitives from list_path"
               << std::endl;
         }
@@ -66,7 +66,7 @@ CreateInitCl(const Vars& var, bool verb) {
         filename = path.str();
         std::ifstream fin(filename);
         if (verb) {
-          std::cout << "InitCl: Open list of primitives '" << filename
+          std::cerr << "InitCl: Open list of primitives '" << filename
                     << std::endl;
         }
         fassert(fin.good(), "Can't open list of primitives '" + filename + "'");
@@ -147,7 +147,7 @@ CreateInitCl(const Vars& var, bool verb) {
     MIdx qsize;
     ReadPlain(qdat, qfccl, qsize);
     if (verb) {
-      std::cout << "Read field of size " << qsize << " from '" << fn << "'"
+      std::cerr << "Read field of size " << qsize << " from '" << fn << "'"
                 << std::endl;
     }
     return [qfccl, qsize](
@@ -173,7 +173,7 @@ CreateInitCl(const Vars& var, bool verb) {
     };
   }
   if (verb) {
-    std::cout << "Info: no color function for init_vf=" << v << std::endl;
+    std::cerr << "Info: no color function for init_vf=" << v << std::endl;
   }
   return std::function<void(
       FieldCell<typename M::Scal>&, const FieldCell<typename M::Scal>&,

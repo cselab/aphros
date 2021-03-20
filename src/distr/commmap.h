@@ -589,17 +589,17 @@ class CommMap {
       }
     }
     if (sem.Nested()) {
-      PrintField(std::cout, s.fc_rank, m, "{:2g}");
+      PrintField(std::cerr, s.fc_rank, m, "{:2g}");
     }
     if (sem.Nested()) {
-      PrintField(std::cout, s.fc_col, m, "{:3g}");
+      PrintField(std::cerr, s.fc_col, m, "{:3g}");
     }
     if (sem.Nested()) {
-      PrintField(std::cout, t.fc_nci, m, " {:06d}");
+      PrintField(std::cerr, t.fc_nci, m, " {:06d}");
     }
     if (sem() && m.IsLead()) {
       auto& system = GetSystem();
-      StreamMpi out(std::cout, comm);
+      StreamMpi out(std::cerr, comm);
       out << "\nrank=" << rank;
       for (const auto& p : system.send) {
         out << "\nsend to rank " << p.first;

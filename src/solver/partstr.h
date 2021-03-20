@@ -172,11 +172,11 @@ class PartStr {
       size_t it = rit.second;
       // report
       if (verb && s % std::max<size_t>(1, GetNumStr() / 10) == 0) {
-        auto fl = std::cout.flags();
-        std::cout.precision(16);
-        std::cout << "s=" << std::setw(10) << s << " r=" << std::setw(20) << r
+        auto fl = std::cerr.flags();
+        std::cerr.precision(16);
+        std::cerr << "s=" << std::setw(10) << s << " r=" << std::setw(20) << r
                   << " it=" << std::setw(5) << it << std::endl;
-        std::cout.flags(fl);
+        std::cerr.flags(fl);
       }
       rm = std::max(rm, r);
       itm = std::max(itm, it);

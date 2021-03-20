@@ -61,6 +61,7 @@ std::string g_extra_config;
 Vars g_var;
 bool g_exit = false;
 bool g_is_root = false;
+bool g_verbose = false;
 
 static void StepCallback(void*, Hydro<M>* hydro) {
   if (!g_canvas) {
@@ -78,14 +79,14 @@ static void StepCallback(void*, Hydro<M>* hydro) {
       for (auto name : names) {
         auto type = var.GetTypeName(name);
         if (!type.empty()) {
-          std::cout << name << '=' << var.GetStr(type, name) << ' ';
+          std::cerr << name << '=' << var.GetStr(type, name) << ' ';
         }
       }
       if (!names.empty()) {
-        std::cout << std::endl;
+        std::cerr << std::endl;
       }
       if (auto* str = var.String.Find("print_string")) {
-        std::cout << *str << std::endl;
+        std::cerr << *str << std::endl;
       }
     }
 
@@ -213,7 +214,7 @@ static void main_loop() {
   auto state = g_state;
   auto& s = *state;
 
-  const bool verbose = g_var.Int["VERBOSE"];
+  g_verbose = g_var.Int["VERBOSE"];
   g_view->Clear(0xFFFFFFFF);
   for (int i = 0; i < g_var.Int("steps_per_frame", 1); ++i) {
     s.render = (i == 0);
@@ -223,11 +224,15 @@ static void main_loop() {
     DrawLines(*g_view, s.lines, Float3(0), g_var.Int["line_width"]);
     DrawLines(*g_view, s.lines_eb, Float3(0), g_var.Int["line_width"]);
   }
-  const std::string path = util::Format("a_{:06d}.ppm", s.frame);
   if (g_is_root) {
-    util::WritePpm(path, *g_view);
-    if (verbose) {
-      std::cout << path << std::endl;
+    if (g_var.Int["stdout"]) {
+      util::WritePpm(std::cout, *g_view);
+    } else {
+      const std::string path = util::Format("a_{:06d}.ppm", s.frame);
+      util::WritePpm(path, *g_view);
+      if (g_verbose) {
+        std::cerr << path << std::endl;
+      }
     }
   }
   ++s.frame;
@@ -277,16 +282,16 @@ static void SetMesh(const MpiWrapper& mpi, int nx, int bx) {
   new_state = std::make_shared<State>(mpi.GetComm(), g_var, par);
 
   g_state = new_state;
-  if (g_is_root) {
-    std::cout << util::Format("mesh {}", MIdx(nx)) << std::endl;
+  if (g_is_root && g_verbose) {
+    std::cerr << util::Format("mesh {}", MIdx(nx)) << std::endl;
   }
 }
 
 static void SetCanvas(int nx, int ny) {
   g_canvas = std::make_shared<Canvas>(MIdx(nx, ny));
   g_view = std::make_shared<CanvasView>(*g_canvas);
-  if (g_is_root) {
-    std::cout << util::Format("canvas {}", g_canvas->size) << std::endl;
+  if (g_is_root && g_verbose) {
+    std::cerr << util::Format("canvas {}", g_canvas->size) << std::endl;
   }
 }
 
@@ -309,6 +314,7 @@ int main(int argc, const char** argv) {
   ArgumentParser parser(
       "Sharpens the image using PLIC advection", mpi.IsRoot());
   parser.AddSwitch({"--verbose", "-v"}).Help("Report steps");
+  parser.AddSwitch("--stdout").Help("Output ppm to STDOUT");
   parser.AddVariable<std::string>("--extra", "")
       .Help("Extra configuration (commands 'set ... ')");
   parser.AddVariable<int>({"--steps_per_frame", "-s"}, 10)
@@ -329,21 +335,25 @@ int main(int argc, const char** argv) {
   }
 
   if (args.Int["logo"] && mpi.IsRoot()) {
-    std::cout << GetLogo();
+    std::cerr << GetLogo();
   }
   if (args.Int["exit"]) {
     return 0;
   }
+
+  g_verbose = args.Int["verbose"];
 
   g_extra_config += util::Format(
       R"EOF(
 set int num_frames {}
 set int steps_per_frame {}
 set int VERBOSE {}
+set int silent {}
+set int stdout {}
 {}
 )EOF",
       args.Int["frames"], args.Int["steps_per_frame"], args.Int["verbose"],
-      args.String["extra"]);
+      !g_verbose, args.Int["stdout"], args.String["extra"]);
 
   if (!args.Int["verbose"]) {
     g_extra_config += R"EOF(

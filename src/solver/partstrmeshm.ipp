@@ -490,7 +490,7 @@ struct PartStrMeshM<M_>::Imp {
         if (m.IsRoot()) {
           std::string s =
               GetDumpName("partit", ".csv", id, par.dump_fr > 1 ? it : -1);
-          std::cout << std::fixed << std::setprecision(8) << "dump"
+          std::cerr << std::fixed << std::setprecision(8) << "dump"
                     << " t=" << t << " to " << s << std::endl;
           std::ofstream o;
           o.open(s);
@@ -560,7 +560,7 @@ struct PartStrMeshM<M_>::Imp {
         Reorder(dlc, idx);
 
         std::string fn = GetDumpName("sp", ".vtk", id);
-        std::cout << std::fixed << std::setprecision(8) << "dump"
+        std::cerr << std::fixed << std::setprecision(8) << "dump"
                   << " t=" << t << " to " << fn << std::endl;
         WriteVtkPoly<Vect>(
             fn, dl, nullptr, {&dlc}, {"c"},

@@ -608,14 +608,14 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
   } else if (vi == "list") {
     const std::string fpath = var.String["vellist_path"];
     if (m.IsRoot()) {
-      std::cout << __func__ << ": Open list of velocity primitives '" << fpath
+      std::cerr << __func__ << ": Open list of velocity primitives '" << fpath
                 << std::endl;
     }
     std::ifstream buf(fpath);
     fassert(buf.good(), "Can't open list of primitives");
     auto pp = UPrimList<Vect>::GetVelocityPrimitives(buf, var.Int["dim"]);
     if (m.IsRoot()) {
-      std::cout << "Read " << pp.size() << " primitives" << std::endl;
+      std::cerr << "Read " << pp.size() << " primitives" << std::endl;
     }
     fcv.Reinit(m, Vect(0));
     for (auto c : m.AllCells()) {
@@ -880,7 +880,7 @@ void GetFluidCellCond(
         Vect x(var.Vect["pfixed_x"]);
         IdxCell c = m.FindNearestCell(x);
         mcvel[c] = std::make_shared<fluid_condition::GivenPressureFixed<M>>(*p);
-        std::cout << "pfixed id=" << pdist.second << " dist=" << pdist.first
+        std::cerr << "pfixed id=" << pdist.second << " dist=" << pdist.first
                   << std::endl;
       }
     }
@@ -1185,7 +1185,7 @@ void DumpTraj(
   if (sem("color-dump") && dm) {
     if (m.IsRoot()) {
       std::string s = GetDumpName("traj", ".csv", frame);
-      std::cout << std::fixed << std::setprecision(8) << "dump"
+      std::cerr << std::fixed << std::setprecision(8) << "dump"
                 << " t=" << time << " to " << s << std::endl;
       std::ofstream o;
       o.open(s);
@@ -1210,7 +1210,7 @@ void DumpTraj(
     if (sphavg) {
       if (m.IsRoot()) {
         std::string s = GetDumpName("trajsh", ".csv", frame);
-        std::cout << std::fixed << std::setprecision(8) << "dump"
+        std::cerr << std::fixed << std::setprecision(8) << "dump"
                   << " t=" << time << " to " << s << std::endl;
         std::ofstream o;
         o.open(s);

@@ -179,7 +179,7 @@ void Hydro<M>::InitEmbed() {
       eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
     }
     if (sem.Nested("levelset")) {
-      UEB::InitLevelSet(ctx->fnl, m, var, m.IsRoot());
+      UEB::InitLevelSet(ctx->fnl, m, var, m.IsRoot() && !silent_);
     }
     if (sem("hook")) {
       InitEmbedHook(ctx->fnl, var, m);
@@ -1024,6 +1024,7 @@ void Hydro<M>::Init() {
   auto& fcvf = ctx->fcvf;
   auto& fccl = ctx->fccl;
   if (sem("flags")) {
+    silent_ = var.Int("silent", 0);
     if (m.IsRoot() && var.Int("dumpconfig", 1)) {
       std::ofstream out("out.conf");
       Parser::PrintVars(var, out);
@@ -1042,14 +1043,14 @@ void Hydro<M>::Init() {
           "ModulePostStep instance '" + *name + "' not found");
     }
   }
-  if (sem.Nested("sysinfo")) {
-    ReportSysinfo(std::cout);
+  if (sem.Nested("sysinfo") && !silent_) {
+    ReportSysinfo(std::cerr);
   }
   if (sem.Nested("embed")) {
     InitEmbed();
   }
   if (sem.Nested()) {
-    InitVf(fcvf, var, m, true);
+    InitVf(fcvf, var, m, !silent_);
   }
   if (sem.Nested()) {
     if (var.Int["enable_tracer"]) {
@@ -1109,10 +1110,10 @@ void Hydro<M>::Init() {
     // global mesh size
     MIdx gs = m.GetGlobalSize();
 
-    if (m.IsRoot()) {
-      std::cout << "global mesh=" << gs << std::endl;
-      std::cout << "surface tension dt=" << GetSurfaceTensionDt() << std::endl;
-      std::cout << "viscosity dt=" << GetViscosityDt() << std::endl;
+    if (m.IsRoot() && !silent_) {
+      std::cerr << "global mesh=" << gs << std::endl;
+      std::cerr << "surface tension dt=" << GetSurfaceTensionDt() << std::endl;
+      std::cerr << "viscosity dt=" << GetViscosityDt() << std::endl;
     }
 
     // boundary conditions
@@ -1249,7 +1250,7 @@ void Hydro<M>::Init() {
     varbody.Int.Set("list_ls", 3);
   }
   if (sem.Nested("body-mask")) {
-    InitVf(ctx->fcbody, ctx->varbody, m, true);
+    InitVf(ctx->fcbody, ctx->varbody, m, !silent_);
   }
   /*
   // TODO: implement
@@ -1316,7 +1317,7 @@ void Hydro<M>::Init() {
     }
 
     events_ = std::unique_ptr<Events>(
-        new Events(this->var_mutable, m.IsRoot(), m.IsLead()));
+        new Events(this->var_mutable, m.IsRoot(), m.IsLead(), !silent_));
     events_->AddHandler(
         "vf_save_state",
         [& path = vf_save_state_path_](std::string arg) { //
@@ -1351,7 +1352,7 @@ void Hydro<M>::Init() {
     }
   }
   if (eb_ && sem.Nested() && var.Int("dump_eb", 1)) {
-    eb_->DumpPoly(var.Int["vtkbin"], var.Int["vtkmerge"]);
+    eb_->DumpPoly("eb.vtk", var.Int["vtkbin"], var.Int["vtkmerge"]);
   }
   if (sem.Nested("stat")) {
     stat_->Update();
@@ -1692,8 +1693,10 @@ void Hydro<M>::Dump(bool force) {
     if (m.IsRoot() && dmptrep_.Try(st_.t, st_.dt)) {
       const std::string path = GetDumpName("trep", ".log", dmptrep_.GetN());
       m.TimerReport(path);
-      std::cout << std::fixed << std::setprecision(8) << "timer report"
-                << " t=" << st_.t << " to " << path << std::endl;
+      if (!silent_) {
+        std::cerr << std::fixed << std::setprecision(8) << "timer report"
+                  << " t=" << st_.t << " to " << path << std::endl;
+      }
     }
   }
   if (sem("dumpstat")) {
@@ -1776,29 +1779,29 @@ void Hydro<M>::Run() {
   }
   if (sem("loop-check")) {
     if (st_.t + st_.dt * 0.25 > var.Double["tmax"]) {
-      if (m.IsRoot()) {
-        std::cout << "End of simulation, t > tmax=" << var.Double["tmax"]
+      if (m.IsRoot() && !silent_) {
+        std::cerr << "End of simulation, t > tmax=" << var.Double["tmax"]
                   << std::endl;
       }
       sem.LoopBreak();
       finished_ = true;
     } else if (int(st_.step + 0.5) >= var.Int["max_step"]) {
-      if (m.IsRoot()) {
-        std::cout << "End of simulation, step > max_step="
+      if (m.IsRoot() && !silent_) {
+        std::cerr << "End of simulation, step > max_step="
                   << var.Int["max_step"] << std::endl;
       }
       sem.LoopBreak();
       finished_ = true;
     } else if (st_.step > 1 && fs_->GetError() < var.Double("stop_diff", 0)) {
-      if (m.IsRoot()) {
-        std::cout << "End of simulation, diff < stop_diff="
+      if (m.IsRoot() && !silent_) {
+        std::cerr << "End of simulation, diff < stop_diff="
                   << var.Double["stop_diff"] << std::endl;
       }
       sem.LoopBreak();
       finished_ = true;
     } else {
-      if (m.IsRoot()) {
-        if (st_.step % var.Int("report_step_every", 1) == 0) {
+      if (m.IsRoot() && !silent_) {
+        if (st_.step % var.Int("report_step_every", 1) == 0 && !silent_) {
           ReportStep();
         }
       }
@@ -1904,35 +1907,35 @@ void Hydro<M>::Run() {
 
 template <class M>
 void Hydro<M>::ReportStep() {
-  std::cout << std::fixed << std::setprecision(8) << "STEP=" << st_.step
+  std::cerr << std::fixed << std::setprecision(8) << "STEP=" << st_.step
             << " t=" << st_.t << " dt=" << st_.dt
             << " wt=" << timer_.GetSeconds() << std::endl;
 }
 
 template <class M>
 void Hydro<M>::ReportStepAdv() {
-  std::cout << std::fixed << std::setprecision(8)
+  std::cerr << std::fixed << std::setprecision(8)
             << ".....adv: t=" << as_->GetTime() << " dt=" << as_->GetTimeStep()
             << std::endl;
 }
 
 template <class M>
 void Hydro<M>::ReportStepTracer() {
-  std::cout << std::fixed << std::setprecision(8)
+  std::cerr << std::fixed << std::setprecision(8)
             << ".....tracer: t=" << tracer_->GetTime() << " dt=" << tracer_dt_
             << std::endl;
 }
 
 template <class M>
 void Hydro<M>::ReportStepParticles() {
-  std::cout << std::fixed << std::setprecision(8)
+  std::cerr << std::fixed << std::setprecision(8)
             << ".....particles: t=" << particles_->GetTime()
             << " dt=" << particles_dt_ << std::endl;
 }
 
 template <class M>
 void Hydro<M>::ReportStepElectro() {
-  std::cout << std::fixed << std::setprecision(8)
+  std::cerr << std::fixed << std::setprecision(8)
             << ".....electro: t=" << electro_->GetTime()
             << " dt=" << fs_->GetTimeStep() << std::endl;
 }
@@ -1985,7 +1988,7 @@ auto Hydro<M>::CalcViscousDrag(
 
 template <class M>
 void Hydro<M>::ReportIter() {
-  std::cout << std::scientific << std::setprecision(16)
+  std::cerr << std::scientific << std::setprecision(16)
             << ".....iter=" << fs_->GetIter() << ", diff=" << fs_->GetError()
             << std::endl;
 }
@@ -2011,7 +2014,7 @@ void Hydro<M>::CheckAbort(Sem& sem, Scal& nabort) {
   if (sem("abort-reduce")) {
     if (nabort != 0.) {
       if (m.IsRoot()) {
-        std::cout << "nabort = " << nabort << std::endl;
+        std::cerr << "nabort = " << nabort << std::endl;
       }
       sem.LoopBreak();
     }
@@ -2034,7 +2037,7 @@ void Hydro<M>::StepFluid() {
       this->var_mutable.Int["iter"] = st_.iter;
     }
     if (m.IsRoot()) {
-      if (st_.step % var.Int("report_step_every", 1) == 0) {
+      if (st_.step % var.Int("report_step_every", 1) == 0 && !silent_) {
         ReportIter();
       }
     }
@@ -2063,7 +2066,7 @@ void Hydro<M>::StepTracer() {
   }
   if (sem("report")) {
     if (m.IsRoot()) {
-      if (st_.step % var.Int("report_step_every", 1) == 0) {
+      if (st_.step % var.Int("report_step_every", 1) == 0 && !silent_) {
         ReportStepTracer();
       }
     }
@@ -2095,7 +2098,7 @@ void Hydro<M>::StepParticles() {
   }
   if (sem("report")) {
     if (m.IsRoot()) {
-      if (st_.step % var.Int("report_step_every", 1) == 0) {
+      if (st_.step % var.Int("report_step_every", 1) == 0 && !silent_) {
         ReportStepParticles();
       }
     }
@@ -2116,7 +2119,7 @@ void Hydro<M>::StepElectro() {
   }
   if (sem("report")) {
     if (m.IsRoot()) {
-      if (st_.step % var.Int("report_step_every", 1) == 0) {
+      if (st_.step % var.Int("report_step_every", 1) == 0 && !silent_) {
         ReportStepElectro();
       }
     }
@@ -2164,7 +2167,7 @@ void Hydro<M>::StepAdvection() {
   }
   if (sem("report")) {
     if (m.IsRoot()) {
-      if (st_.step % var.Int("report_step_every", 1) == 0) {
+      if (st_.step % var.Int("report_step_every", 1) == 0 && !silent_) {
         ReportStepAdv();
       }
     }
@@ -2216,7 +2219,7 @@ void Hydro<M>::InitTracerFields(Multi<FieldCell<Scal>>& vfcu) {
       ctx->vart.Int.Set("list_ls", 3);
     }
     if (sem.Nested("field" + std::to_string(l))) {
-      InitVf(vfcu[l], ctx->vart, m, true);
+      InitVf(vfcu[l], ctx->vart, m, !silent_);
     }
     if (sem("factor" + std::to_string(l))) {
       auto k = var.Double[prefix + "_factor"];
@@ -2301,7 +2304,7 @@ void Hydro<M>::StepEraseVolumeFraction(std::string prefix, Scal& last_t) {
   const Scal tper = var.Double[prefix + "_per"];
   if (st_.t > t0 && st_.t - last_t >= tper) {
     if (m.IsRoot() && tper > fs_->GetTimeStep()) {
-      std::cout << prefix + " t=" << st_.t << std::endl;
+      std::cerr << prefix + " t=" << st_.t << std::endl;
     }
     last_t = st_.t;
     auto apply_vof = [this, &rect](auto* as, const auto& eb) {

@@ -17,7 +17,7 @@ class Events {
   // var: parameters to read events from, and apply events to
   // isroot: root block
   // islead: lead block
-  Events(Vars& var, bool isroot, bool islead);
+  Events(Vars& var, bool isroot, bool islead, bool verbose);
   // Parse events from var.String and put to events_
   void Parse();
   // Execute events due and remove from events_
@@ -31,7 +31,9 @@ class Events {
     std::string arg;
   };
   Vars& var_;
-  const bool isroot_, islead_;
+  const bool isroot_;
+  const bool islead_;
+  bool verbose_;
   std::map<std::string, Event> events_;
   // Mapping from command name <cmd> to handler.
   std::map<std::string, Handler> handlers_;

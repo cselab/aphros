@@ -324,7 +324,7 @@ void UEmbed<M>::InitLevelSet(
         path >> filename;
         if (filename == "inline") {
           if (verb) {
-            std::cout << "InitLevelSet: Reading inline list of primitives from "
+            std::cerr << "InitLevelSet: Reading inline list of primitives from "
                          "list_path"
                       << std::endl;
           }
@@ -333,7 +333,7 @@ void UEmbed<M>::InitLevelSet(
           filename = path.str();
           std::ifstream fin(filename);
           if (verb) {
-            std::cout << "InitLevelSet: Open list of primitives '" << filename
+            std::cerr << "InitLevelSet: Open list of primitives '" << filename
                       << std::endl;
           }
           fassert(fin.good(), "Can't open list of primitives");
@@ -345,7 +345,7 @@ void UEmbed<M>::InitLevelSet(
       auto pp = UPrimList<Vect>::GetPrimitives(in, edim);
 
       if (verb) {
-        std::cout << "Read " << pp.size() << " primitives." << std::endl;
+        std::cerr << "Read " << pp.size() << " primitives." << std::endl;
       }
 
       auto lsmax = [&pp](Vect x) {

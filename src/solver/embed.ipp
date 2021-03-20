@@ -111,8 +111,6 @@ void Embed<M>::DumpPoly(
   }
   if (sem("write")) {
     if (m.IsRoot()) {
-      std::cout << std::fixed << std::setprecision(8) << "dump"
-                << " to " << fn << std::endl;
       WriteVtkPoly<Vect>(
           fn, dl, nullptr, {&dld, &dls, &dlf}, {"dir", "area", "face"},
           "Embedded boundary", true, vtkbin, vtkmerge);
@@ -145,8 +143,6 @@ void Embed<M>::DumpPlaneSection(
   }
   if (sem("write")) {
     if (m.IsRoot()) {
-      std::cout << std::fixed << std::setprecision(8) << "dump"
-                << " to " << fn << std::endl;
       std::ofstream f(fn);
       for (auto e : dl) {
         f << e[0][0] << ' ' << e[0][1] << ' ' << e[0][2] << ' ';

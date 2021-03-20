@@ -497,7 +497,7 @@ void InitVf(
         path >> fname;
         if (fname == "inline") {
           if (verbose) {
-            std::cout
+            std::cerr
                 << "InitVf: Reading inline list of primitives from list_path"
                 << std::endl;
           }
@@ -507,7 +507,7 @@ void InitVf(
         } else {
           std::ifstream fin(fname);
           if (verbose) {
-            std::cout << "InitVf: Open list of primitives '" << fname << "'"
+            std::cerr << "InitVf: Open list of primitives '" << fname << "'"
                       << std::endl;
           }
           if (!fin.good()) {

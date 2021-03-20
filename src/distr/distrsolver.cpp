@@ -112,11 +112,11 @@ int RunMpi0(
       auto print_reads = [&var_reads](const auto& map) {
         for (auto it = map.cbegin(); it != map.cend(); ++it) {
           const auto key = it->first;
-          std::cout << (var_reads.count(key) ? var_reads.at(key).load() : 0)
+          std::cerr << (var_reads.count(key) ? var_reads.at(key).load() : 0)
                     << ' ' << map.GetTypeName() << ' ' << key << '\n';
         }
       };
-      std::cout << "Number of accesses to configuration variables\n";
+      std::cerr << "Number of accesses to configuration variables\n";
       var.ForEachMap(print_reads);
     }
     if (var.Int("verbose_conf_unused", 0)) {
@@ -133,12 +133,12 @@ int RunMpi0(
           }
         });
       }
-      std::cout << "Unused configuration variables:\n";
+      std::cerr << "Unused configuration variables:\n";
       var.ForEachMap([&ignore, &var_reads](const auto& map) {
         for (auto it = map.cbegin(); it != map.cend(); ++it) {
           const auto key = it->first;
           if (!var_reads.count(key) && !ignore.count(key)) {
-            std::cout << map.GetTypeName() << ' ' << key << '\n';
+            std::cerr << map.GetTypeName() << ' ' << key << '\n';
           }
         }
       });

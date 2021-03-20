@@ -829,7 +829,7 @@ void Cubismnc<Par, M>::DumpWrite(const std::vector<size_t>& bb) {
         }
       }
       if (isroot_) {
-        std::cout << "Dump " << frame_ << ": format=" << dumpformat
+        std::cerr << "Dump " << frame_ << ": format=" << dumpformat
                   << std::endl;
       }
       ++frame_;

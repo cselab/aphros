@@ -107,8 +107,8 @@ struct SolverAmgx<M>::Imp {
       comm_map_.ArrayToField(buf.sol, fc_sol, m);
       m.Comm(&fc_sol);
       if (m.flags.linreport && m.IsRoot()) {
-        std::cout << std::scientific;
-        std::cout << "linear(amgx) '" + fc_system.GetName() + "':"
+        std::cerr << std::scientific;
+        std::cerr << "linear(amgx) '" + fc_system.GetName() + "':"
                   << " res=" << t.info.residual << " iter=" << t.info.iter
                   << std::endl;
       }

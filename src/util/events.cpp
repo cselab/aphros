@@ -9,11 +9,11 @@
 #include "logger.h"
 #include "parse/parser.h"
 
-Events::Events(Vars& var, bool isroot, bool islead)
-    : var_(var), isroot_(isroot), islead_(islead) {
-  AddHandler("echo", [isroot = isroot_](std::string arg) {
-    if (isroot) {
-      std::cout << arg << std::endl;
+Events::Events(Vars& var, bool isroot, bool islead, bool verbose)
+    : var_(var), isroot_(isroot), islead_(islead), verbose_(verbose) {
+  AddHandler("echo", [isroot = isroot_, verbose = verbose_](std::string arg) {
+    if (isroot && verbose) {
+      std::cerr << arg << std::endl;
     }
   });
   AddHandler("set", [this](std::string arg) {
@@ -62,14 +62,14 @@ void Events::Parse() {
     ++n;
   }
 
-  if (isroot_) {
-    std::cout << "Found events: \n=====" << std::endl;
+  if (isroot_ && verbose_) {
+    std::cerr << "Found events: \n=====" << std::endl;
     for (auto p : events_) {
       Event& e = p.second;
-      std::cout << p.first << " " << e.t << " " << e.cmd << " " << e.arg
+      std::cerr << p.first << " " << e.t << " " << e.cmd << " " << e.arg
                 << std::endl;
     }
-    std::cout << "=====" << std::endl;
+    std::cerr << "=====" << std::endl;
   }
 }
 
@@ -83,8 +83,8 @@ void Events::Execute(double t) {
     const std::string arg = event.arg;
 
     if (t >= event.t) {
-      if (isroot_) {
-        std::cout << std::fixed << std::setprecision(8)
+      if (isroot_ && verbose_) {
+        std::cerr << std::fixed << std::setprecision(8)
                   << "Event at t=" << event.t << ": " << cmd << " " << arg
                   << std::endl;
       }

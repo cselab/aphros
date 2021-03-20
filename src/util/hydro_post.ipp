@@ -105,7 +105,7 @@ struct HydroPost<M>::Imp {
     const auto& var = hydro->var;
     if (sem("dump")) {
       if (m.IsRoot()) {
-        hydro->dumper_.Report(std::cout);
+        hydro->dumper_.Report(std::cerr);
       }
 
       auto dl = GetWords(var.String["dumplist"]);
@@ -274,7 +274,7 @@ struct HydroPost<M>::Imp {
           GetDumpName("part", ".csv", hydro->dumper_.GetN());
       if (sem()) {
         if (m.IsRoot()) {
-          std::cout << std::fixed << std::setprecision(8) << "dump"
+          std::cerr << std::fixed << std::setprecision(8) << "dump"
                     << " t=" << hydro->particles_->GetTime() << " to " << path
                     << std::endl;
         }

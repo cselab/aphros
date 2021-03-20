@@ -118,8 +118,8 @@ struct SolverConjugate<M>::Imp {
       fc_sol = t.fcu;
       m.Comm(&fc_sol, M::CommStencil::direct_one);
       if (m.flags.linreport && m.IsRoot()) {
-        std::cout << std::scientific;
-        std::cout << "linear(conjugate) '" + fc_system.GetName() + "':"
+        std::cerr << std::scientific;
+        std::cerr << "linear(conjugate) '" + fc_system.GetName() + "':"
                   << " res=" << t.info.residual << " iter=" << t.info.iter
                   << std::endl;
       }
@@ -206,8 +206,8 @@ struct SolverJacobi<M>::Imp {
       fc_sol = t.fcu;
       m.Comm(&fc_sol);
       if (m.flags.linreport && m.IsRoot()) {
-        std::cout << std::scientific;
-        std::cout << "linear(jacobi) '" + fc_system.GetName() + "':"
+        std::cerr << std::scientific;
+        std::cerr << "linear(jacobi) '" + fc_system.GetName() + "':"
                   << " res=" << t.info.residual << " iter=" << t.info.iter
                   << std::endl;
       }

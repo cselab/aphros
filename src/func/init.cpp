@@ -17,7 +17,7 @@ void InitVfList(
   using Primitive = typename UPrimList<Vect>::Primitive;
   const std::vector<Primitive> ppa = UPrimList<Vect>::GetPrimitives(list, edim);
   if (verbose && m.IsRoot()) {
-    std::cout << "Read " << ppa.size() << " primitives" << std::endl;
+    std::cerr << "Read " << ppa.size() << " primitives" << std::endl;
   }
 
   const Vect h = m.GetCellSize();

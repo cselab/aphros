@@ -144,8 +144,8 @@ struct SolverHypre<M>::Imp {
       }
       m.Comm(&fc_sol);
       if (m.flags.linreport && m.IsRoot()) {
-        std::cout << std::scientific;
-        std::cout << "linear(hypre) '" + fc_system.GetName() + "':"
+        std::cerr << std::scientific;
+        std::cerr << "linear(hypre) '" + fc_system.GetName() + "':"
                   << " res=" << t.info.residual << " iter=" << t.info.iter
                   << std::endl;
       }

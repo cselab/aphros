@@ -107,7 +107,7 @@ struct UVof<M_>::Imp {
         Reorder(dll, idx);
         Reorder(dlcl, idx);
 
-        std::cout << std::fixed << std::setprecision(8) << "dump"
+        std::cerr << std::fixed << std::setprecision(8) << "dump"
                   << " t=" << t << " to " << fn << std::endl;
         WriteVtkPoly<Vect>(
             fn, dl, nullptr, {&dlc, &dll, &dlcl}, {"c", "l", "cl"},
@@ -501,7 +501,7 @@ struct UVof<M_>::Imp {
     }
     if (sem("write")) {
       if (m.IsRoot()) {
-        std::cout << std::fixed << std::setprecision(8) << "dump"
+        std::cerr << std::fixed << std::setprecision(8) << "dump"
                   << " t=" << t << " to " << fn << std::endl;
         WriteVtkPoly<Vect>(
             fn, dl, &dln, {&dlc, &dll, &dlcl}, {"c", "l", "cl"},

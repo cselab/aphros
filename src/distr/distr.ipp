@@ -259,7 +259,7 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
         }
       }
       if (isroot_) {
-        std::cout << "Dump " << frame_ << ": format=" << dumpformat
+        std::cerr << "Dump " << frame_ << ": format=" << dumpformat
                   << std::endl;
       }
       ++frame_;
@@ -461,11 +461,11 @@ void DistrMesh<M>::Report() {
     }
 
     if (var.Int["verbose_stages"]) {
-      std::cout << std::fixed;
+      std::cerr << std::fixed;
       auto& map = multitimer_all_.GetMap();
-      std::cout << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB"
+      std::cerr << "mem=" << (sysinfo::GetMem() / double(1 << 20)) << " MB"
                 << std::endl;
-      ParseReport(map, std::cout);
+      ParseReport(map, std::cerr);
     }
 
     const auto& m = kernels_.front()->GetMesh();
@@ -486,7 +486,7 @@ void DistrMesh<M>::Report() {
     };
 
     const auto hmsm = get_hmsm(total);
-    std::cout << util::Format(
+    std::cerr << util::Format(
                      "cells = {}\n"
                      "steps = {}\n"
                      "iters = {}\n"
@@ -505,15 +505,15 @@ void DistrMesh<M>::ReportOpenmp() {
 #pragma omp parallel
     {
 #pragma omp single
-      std::cout << "OpenMP threads" << std::endl;
+      std::cerr << "OpenMP threads" << std::endl;
 #pragma omp for ordered
       for (int i = 0; i < omp_get_num_threads(); ++i) {
 #pragma omp ordered
         {
-          std::cout << "thread=" << std::setw(2) << omp_get_thread_num();
-          std::cout << std::setw(8) << " cpu=" << std::setw(2)
+          std::cerr << "thread=" << std::setw(2) << omp_get_thread_num();
+          std::cerr << std::setw(8) << " cpu=" << std::setw(2)
                     << sched_getcpu();
-          std::cout << std::endl;
+          std::cerr << std::endl;
         }
       }
     }

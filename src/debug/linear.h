@@ -142,17 +142,17 @@ struct UDebug {
     }
     if (sem("print")) {
       if (m.IsRoot()) {
-        auto flags = std::cout.flags();
-        std::cout << std::scientific;
-        std::cout.precision(10);
-        std::cout << "CheckSymmetry() of system '" + fce.GetName() + "':"
+        auto flags = std::cerr.flags();
+        std::cerr << std::scientific;
+        std::cerr.precision(10);
+        std::cerr << "CheckSymmetry() of system '" + fce.GetName() + "':"
                   << std::endl;
-        std::cout << "asymm: " << vnorms[0] << std::endl;
-        std::cout << "diag: " << vnorms[1] << std::endl;
-        std::cout << "nondiag: " << vnorms[2] << std::endl;
-        std::cout << "const: " << vnorms[3] << std::endl;
-        std::cout << "sum_const: " << sum_const << std::endl;
-        std::cout.flags(flags);
+        std::cerr << "asymm: " << vnorms[0] << std::endl;
+        std::cerr << "diag: " << vnorms[1] << std::endl;
+        std::cerr << "nondiag: " << vnorms[2] << std::endl;
+        std::cerr << "const: " << vnorms[3] << std::endl;
+        std::cerr << "sum_const: " << sum_const << std::endl;
+        std::cerr.flags(flags);
       }
       if (vnorms[0][2] > m.flags.check_symmetry_dump_threshold) {
         m.Dump(&fc_asymm, "asymm_" + fce.GetName());

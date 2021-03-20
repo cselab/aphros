@@ -48,7 +48,7 @@ std::string GetErrorCodes() {
 
 class Library {
  public:
-  Library(std::ostream* log = &std::cout) {
+  Library(std::ostream* log = &std::cerr) {
     log_ = log;
     AMGXCALL(AMGX_register_print_callback(print_callback));
     AMGXCALL(AMGX_initialize());
