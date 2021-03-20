@@ -29,7 +29,6 @@ inside\ply.obj\
 inside\predicate.obj\
 inside\stl.obj\
 kernel\hydro.obj\
-kernel\hydro_post.obj\
 linear\linear.obj\
 march\main.obj\
 parse\argparse.obj\
@@ -67,6 +66,7 @@ util\format.obj\
 util\gitgen.obj\
 util\git.obj\
 util\histogram.obj\
+util\hydro_post.obj\
 util\hydro.obj\
 util\linear.obj\
 util\logger.obj\

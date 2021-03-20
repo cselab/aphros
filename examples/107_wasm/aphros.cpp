@@ -16,8 +16,8 @@
 #include "distr/distrsolver.h"
 #include "geom/rangemulti.h"
 #include "kernel/hydro.h"
-#include "kernel/hydro_post.h"
 #include "kernel/kernelmeshpar.h"
+#include "util/hydro_post.h"
 #include "util/timer.h"
 #include "util/visual.h"
 

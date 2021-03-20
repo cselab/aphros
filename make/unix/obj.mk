@@ -29,7 +29,6 @@ $(WRK)/inside/ply.o\
 $(WRK)/inside/predicate.o\
 $(WRK)/inside/stl.o\
 $(WRK)/kernel/hydro.o\
-$(WRK)/kernel/hydro_post.o\
 $(WRK)/linear/linear.o\
 $(WRK)/march/main.o\
 $(WRK)/parse/argparse.o\
@@ -67,6 +66,7 @@ $(WRK)/util/format.o\
 $(WRK)/util/gitgen.o\
 $(WRK)/util/git.o\
 $(WRK)/util/histogram.o\
+$(WRK)/util/hydro_post.o\
 $(WRK)/util/hydro.o\
 $(WRK)/util/linear.o\
 $(WRK)/util/logger.o\

@@ -268,6 +268,7 @@ set(ObjLibs
   gitgen
   histogram
   hydro
+  hydro_post
   init
   init_contang
   init_vel

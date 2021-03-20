@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "hydro.h"
+#include "kernel/hydro.h"
 
 template <class M>
 struct HydroPost {

@@ -30,7 +30,6 @@ inside\ply.obj: inside\ply.c; $(CC_RULE) inside\ply.c
 inside\predicate.obj: inside\predicate.c; $(CC_RULE) inside\predicate.c
 inside\stl.obj: inside\stl.c; $(CC_RULE) inside\stl.c
 kernel\hydro.obj: kernel\hydro.cpp; $(CXX_RULE) kernel\hydro.cpp
-kernel\hydro_post.obj: kernel\hydro_post.cpp; $(CXX_RULE) kernel\hydro_post.cpp
 linear\hypre.obj: linear\hypre.cpp; $(CXX_RULE) linear\hypre.cpp
 linear\hypresub.obj: linear\hypresub.cpp; $(CXX_RULE) linear\hypresub.cpp
 linear\linear_amgx.obj: linear\linear_amgx.cpp; $(CXX_RULE) linear\linear_amgx.cpp
@@ -129,6 +128,7 @@ util\format.obj: util\format.cpp; $(CXX_RULE) util\format.cpp
 util\gitgen.obj: util\gitgen.cpp; $(CXX_RULE) util\gitgen.cpp
 util\git.obj: util\git.cpp; $(CXX_RULE) util\git.cpp
 util\histogram.obj: util\histogram.cpp; $(CXX_RULE) util\histogram.cpp
+util\hydro_post.obj: util\hydro_post.cpp; $(CXX_RULE) util\hydro_post.cpp
 util\hydro.obj: util\hydro.cpp; $(CXX_RULE) util\hydro.cpp
 util\linear.obj: util\linear.cpp; $(CXX_RULE) util\linear.cpp
 util\logger.obj: util\logger.cpp; $(CXX_RULE) util\logger.cpp

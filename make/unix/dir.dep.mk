@@ -28,7 +28,6 @@ $(WRK)/inside/ply.o: $(WRK)/.dir
 $(WRK)/inside/predicate.o: $(WRK)/.dir
 $(WRK)/inside/stl.o: $(WRK)/.dir
 $(WRK)/kernel/hydro.o: $(WRK)/.dir
-$(WRK)/kernel/hydro_post.o: $(WRK)/.dir
 $(WRK)/linear/linear.o: $(WRK)/.dir
 $(WRK)/march/main.o: $(WRK)/.dir
 $(WRK)/parse/argparse.o: $(WRK)/.dir
@@ -66,6 +65,7 @@ $(WRK)/util/format.o: $(WRK)/.dir
 $(WRK)/util/gitgen.o: $(WRK)/.dir
 $(WRK)/util/git.o: $(WRK)/.dir
 $(WRK)/util/histogram.o: $(WRK)/.dir
+$(WRK)/util/hydro_post.o: $(WRK)/.dir
 $(WRK)/util/hydro.o: $(WRK)/.dir
 $(WRK)/util/linear.o: $(WRK)/.dir
 $(WRK)/util/logger.o: $(WRK)/.dir

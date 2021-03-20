@@ -85,3 +85,7 @@ object_link_libraries(${T} logger)
 
 set(T "allocator")
 add_object(${T} fixed_allocator.cpp)
+
+set(T hydro_post)
+add_object(${T} hydro_post.cpp)
+object_link_libraries(${T} PUBLIC dump visual PRIVATE use_dims use_mpi)

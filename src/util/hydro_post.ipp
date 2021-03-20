@@ -1,6 +1,11 @@
 // Created by Petr Karnakov on 20.03.2021
 // Copyright 2021 ETH Zurich
 
+#include <iomanip>
+
+#include "dump/dumper.h"
+#include "parse/util.h"
+
 #include "hydro_post.h"
 
 template <class M>
@@ -82,7 +87,7 @@ struct HydroPost<M>::Imp {
     }
     return FieldCell<Scal>(m, 0);
   };
-  void DumpFields(Hydro<M>* hydro, M& m) {
+  static void DumpFields(Hydro<M>* hydro, M& m) {
     auto sem = m.GetSem("dumpfields");
     struct {
       Multi<FieldCell<Vect>> fcim;
@@ -288,4 +293,9 @@ template <class M>
 auto HydroPost<M>::GetField(const Hydro<M>* hydro, std::string name, const M& m)
     -> FieldCell<Scal> {
   return Imp::GetField(hydro, name, m);
+}
+
+template <class M>
+void HydroPost<M>::DumpFields(Hydro<M>* hydro, M& m) {
+  Imp::DumpFields(hydro, m);
 }
