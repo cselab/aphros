@@ -302,6 +302,7 @@ set(ObjLibs
   utilsystem
   utilvof
   vars
+  visual
   vof
   vofm
   young
@@ -369,6 +370,12 @@ set(T mfer)
 add_executable(${T} main.c)
 set_target_properties(${T} PROPERTIES PREFIX "ap.")
 target_link_libraries(${T} aphros_c)
+install(TARGETS ${T} EXPORT export DESTINATION bin)
+
+set(T explorer)
+add_executable(${T} explorer.cpp)
+target_link_libraries(${T} aphros)
+set_target_properties(${T} PROPERTIES PREFIX "ap.")
 install(TARGETS ${T} EXPORT export DESTINATION bin)
 
 

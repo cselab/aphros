@@ -39,6 +39,13 @@ struct CanvasView {
   const auto& operator()(int x, int y) const {
     return buf[size[0] * (size[1] - y - 1) + x];
   }
+  void Clear(Pixel p) {
+    for (int y = start[1]; y < end[1]; ++y) {
+      for (int x = start[0]; x < end[0]; ++x) {
+        (*this)(x, y) = p;
+      }
+    }
+  }
 };
 
 struct Colormap {
