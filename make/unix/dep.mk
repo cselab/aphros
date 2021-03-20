@@ -584,6 +584,9 @@ $(WRK)/kernel/hydro.o: $(SRC)/parse/solver.h
 $(WRK)/kernel/hydro.o: $(SRC)/parse/util.h
 $(WRK)/kernel/hydro.o: $(SRC)/parse/vars.h
 $(WRK)/kernel/hydro.o: $(SRC)/parse/vof.h
+$(WRK)/kernel/hydro_post.o: $(SRC)/hydro.h
+$(WRK)/kernel/hydro_post.o: $(SRC)/kernel/hydro_post.h
+$(WRK)/kernel/hydro_post.o: $(SRC)/kernel/hydro_post.ipp
 $(WRK)/kernel/hydro.o: $(SRC)/solver/advection.h
 $(WRK)/kernel/hydro.o: $(SRC)/solver/approx2.h
 $(WRK)/kernel/hydro.o: $(SRC)/solver/approx_eb.h

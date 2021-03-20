@@ -30,6 +30,7 @@ $(WRK)/inside/ply.o: $(SRC)/inside/ply.c; $(CC_RULE) $(SRC)/inside/ply.c
 $(WRK)/inside/predicate.o: $(SRC)/inside/predicate.c; $(CC_RULE) $(SRC)/inside/predicate.c
 $(WRK)/inside/stl.o: $(SRC)/inside/stl.c; $(CC_RULE) $(SRC)/inside/stl.c
 $(WRK)/kernel/hydro.o: $(SRC)/kernel/hydro.cpp; $(CXX_RULE) $(SRC)/kernel/hydro.cpp
+$(WRK)/kernel/hydro_post.o: $(SRC)/kernel/hydro_post.cpp; $(CXX_RULE) $(SRC)/kernel/hydro_post.cpp
 $(WRK)/linear/hypre.o: $(SRC)/linear/hypre.cpp; $(CXX_RULE) $(SRC)/linear/hypre.cpp
 $(WRK)/linear/hypresub.o: $(SRC)/linear/hypresub.cpp; $(CXX_RULE) $(SRC)/linear/hypresub.cpp
 $(WRK)/linear/linear_amgx.o: $(SRC)/linear/linear_amgx.cpp; $(CXX_RULE) $(SRC)/linear/linear_amgx.cpp

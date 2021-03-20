@@ -62,6 +62,7 @@ inside/inside.h\
 inside/memory.h\
 inside/predicate.h\
 kernel/hydro.h\
+kernel/hydro_post.h\
 kernel/hydro_snippets.h\
 kernel/kernelmesh.h\
 kernel/kernelmeshpar.h\

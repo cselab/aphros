@@ -37,8 +37,13 @@ FieldCell<typename MEB::Vect> GetVort(
   using Vect = typename MEB::Vect;
   using UEB = UEmbed<M>;
 
-  std::array<FieldCell<Vect>, 3> grad;
-  for (size_t d = 0; d < 3; ++d) {
+  FieldCell<Vect> r(m, Vect(0));
+  if (M::dim < 3) {
+    return r;
+  }
+
+  std::array<FieldCell<Vect>, M::dim> grad;
+  for (size_t d = 0; d < M::dim; ++d) {
     grad[d].Reinit(m, Vect(0));
     const auto mebc = GetScalarCond(me_vel, d, m);
     const FieldCell<Scal> fcu = GetComponent(fcvel, d);
@@ -46,7 +51,6 @@ FieldCell<typename MEB::Vect> GetVort(
     grad[d] = UEB::AverageGradient(ffg, m);
   }
 
-  FieldCell<Vect> r(m, Vect(0));
   for (auto c : m.Cells()) {
     r[c][0] = grad[2][c][1] - grad[1][c][2];
     r[c][1] = grad[0][c][2] - grad[2][c][0];

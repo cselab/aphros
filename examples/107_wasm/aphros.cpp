@@ -16,6 +16,7 @@
 #include "distr/distrsolver.h"
 #include "geom/rangemulti.h"
 #include "kernel/hydro.h"
+#include "kernel/hydro_post.h"
 #include "kernel/kernelmeshpar.h"
 #include "util/timer.h"
 #include "util/visual.h"
@@ -86,56 +87,7 @@ void StepCallback(void*, Hydro<M>* hydro) {
       std::stringstream str_entries(var.String["visual"]);
       auto entries = util::ParseEntries(str_entries);
       auto get_field = [&](std::string name) -> FieldCell<Scal> {
-        if (name == "p" || name == "pressure") {
-          return hydro->fs_->GetPressure();
-        }
-        if (name == "omz" || name == "vorticity") {
-          if (hydro->eb_) {
-            return GetVortScal(
-                hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(),
-                *hydro->eb_);
-          }
-          return GetVortScal(
-              hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(), m);
-        }
-        if (name == "ebvf" || name == "embed fraction") {
-          FieldCell<Scal> fc(m, 1);
-          if (hydro->eb_) {
-            auto& eb = *hydro->eb_;
-            for (auto c : m.SuCells()) {
-              fc[c] = eb.GetVolumeFraction(c);
-            }
-          }
-          return fc;
-        }
-        if (name == "vf" || name == "volume fraction") {
-          return hydro->as_->GetField();
-        }
-        if (name == "vmagn" || name == "velocity magnitude") {
-          FieldCell<Scal> fc(m, 0);
-          for (auto c : m.SuCells()) {
-            fc[c] = hydro->fs_->GetVelocity()[c].norm();
-          }
-          return fc;
-        }
-        if (name == "vx" || name == "velocity x") {
-          FieldCell<Scal> fc(m, 0);
-          for (auto c : m.SuCells()) {
-            fc[c] = hydro->fs_->GetVelocity()[c][0];
-          }
-          return fc;
-        }
-        if (name == "vy" || name == "velocity y") {
-          FieldCell<Scal> fc(m, 0);
-          for (auto c : m.SuCells()) {
-            fc[c] = hydro->fs_->GetVelocity()[c][1];
-          }
-          return fc;
-        }
-        if (m.IsRoot()) {
-          std::cerr << "Unknown field '" + name + "'\n";
-        }
-        return FieldCell<Scal>(m, 0);
+        return HydroPost<M>::GetField(hydro, name, m);
       };
       U::RenderEntriesToField(fc_color, entries, get_field, m);
       if (var.Int("visual_interpolate", 1) && m.GetGlobalSize() < view.size) {

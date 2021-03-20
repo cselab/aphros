@@ -584,6 +584,9 @@ kernel\hydro.obj: parse\solver.h
 kernel\hydro.obj: parse\util.h
 kernel\hydro.obj: parse\vars.h
 kernel\hydro.obj: parse\vof.h
+kernel\hydro_post.obj: hydro.h
+kernel\hydro_post.obj: kernel\hydro_post.h
+kernel\hydro_post.obj: kernel\hydro_post.ipp
 kernel\hydro.obj: solver\advection.h
 kernel\hydro.obj: solver\approx2.h
 kernel\hydro.obj: solver\approx_eb.h

@@ -30,6 +30,7 @@ inside\ply.obj: inside\ply.c; $(CC_RULE) inside\ply.c
 inside\predicate.obj: inside\predicate.c; $(CC_RULE) inside\predicate.c
 inside\stl.obj: inside\stl.c; $(CC_RULE) inside\stl.c
 kernel\hydro.obj: kernel\hydro.cpp; $(CXX_RULE) kernel\hydro.cpp
+kernel\hydro_post.obj: kernel\hydro_post.cpp; $(CXX_RULE) kernel\hydro_post.cpp
 linear\hypre.obj: linear\hypre.cpp; $(CXX_RULE) linear\hypre.cpp
 linear\hypresub.obj: linear\hypresub.cpp; $(CXX_RULE) linear\hypresub.cpp
 linear\linear_amgx.obj: linear\linear_amgx.cpp; $(CXX_RULE) linear\linear_amgx.cpp

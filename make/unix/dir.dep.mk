@@ -28,6 +28,7 @@ $(WRK)/inside/ply.o: $(WRK)/.dir
 $(WRK)/inside/predicate.o: $(WRK)/.dir
 $(WRK)/inside/stl.o: $(WRK)/.dir
 $(WRK)/kernel/hydro.o: $(WRK)/.dir
+$(WRK)/kernel/hydro_post.o: $(WRK)/.dir
 $(WRK)/linear/linear.o: $(WRK)/.dir
 $(WRK)/march/main.o: $(WRK)/.dir
 $(WRK)/parse/argparse.o: $(WRK)/.dir
