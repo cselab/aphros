@@ -1,7 +1,10 @@
 // Created by Petr Karnakov on 20.03.2021
 // Copyright 2021 ETH Zurich
 
+#include <array>
 #include <iomanip>
+#include <iostream>
+#include <string>
 
 #include "dump/dumper.h"
 #include "parse/util.h"
