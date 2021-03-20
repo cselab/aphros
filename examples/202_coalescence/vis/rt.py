@@ -29,11 +29,26 @@ parser.add_argument('--res',
                     nargs=2,
                     default=[1920, 1080],
                     help="image resolution")
+parser.add_argument('--camera',
+                    type=str,
+                    default="std",
+                    choices=["std", "vertical"])
+parser.add_argument('--preset',
+                    type=str,
+                    default="std",
+                    choices=["", "std", "vertical"])
 parser.add_argument('--samples',
                     default=50,
                     type=int,
                     help="number of samples for pathtracer")
 args = parser.parse_args()
+
+if args.preset == "std":
+    args.camera = "std"
+    args.res = [1920, 1080]
+elif args.preset == "vertical":
+    args.camera = "vertical"
+    args.res = [960, 1080]
 
 light1 = CreateLight()
 light1.Coords = 'Ambient'
@@ -103,11 +118,21 @@ renderView.KeyLightWarmth = 0.5
 #renderView.KeyLightIntensity = 1
 renderView.FillLightWarmth = 0.5
 
-renderView.CameraPosition = [4, 2.55, 14.4]
-renderView.CameraFocalPoint = [4, 1.89, 5]
-renderView.CameraViewUp = [0, 1, -0.07]
-renderView.CameraParallelProjection = 1
-renderView.CameraParallelScale = 2.45
+if args.camera == "std":
+    renderView.CameraPosition = [4, 2.55, 14.4]
+    renderView.CameraFocalPoint = [4, 1.89, 5]
+    renderView.CameraViewUp = [0, 1, -0.07]
+    renderView.CameraParallelProjection = 1
+    renderView.CameraParallelScale = 2.45
+elif args.camera == "vertical":
+    renderView.CameraPosition = [4, 4.6778164394271835, 13.88409281728644]
+    renderView.CameraFocalPoint = [4, 2.676401642283468, 4.672994141787723]
+    renderView.CameraViewUp = [0, 0.977198335864855, -0.21232854820527072]
+    renderView.CameraParallelProjection  = 1
+    renderView.CameraParallelScale = 2.701125
+else:
+    assert False, "Unknown camera=" + args.camera
+
 
 renderView.Background = [0.3] * 3
 renderView.EnableRayTracing = 1
