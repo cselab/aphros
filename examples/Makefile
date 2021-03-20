@@ -15,7 +15,6 @@ DIRS = \
 	106_diffusion_4d \
 	200_primlist \
 	201_taylor_couette \
-	202_coalescence \
 	203_hydrostatic \
 	204_microfoam \
 
