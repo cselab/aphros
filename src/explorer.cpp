@@ -22,17 +22,17 @@
 
 const char* g_base_conf =
 #include "explorer.inc"
-;
+    ;
 
 using M = MeshStructured<double, 2>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
+using util::Byte3;
 using util::Canvas;
 using util::CanvasView;
-using util::MIdx2;
 using util::Float3;
-using util::Byte3;
+using util::MIdx2;
 using util::Pixel;
 
 template <class M>
@@ -176,25 +176,26 @@ static void DrawLines(
           y += sy;
         }
         for (int hy = -width; hy < (width + 1); ++hy) {
-          if (x >= view.start[q] && x < view.end[q] && y >= view.start[!q] &&
-              y < view.end[!q]) {
+          const int yy = y + hy;
+          if (x >= view.start[q] && x < view.end[q] && yy >= view.start[!q] &&
+              yy < view.end[!q]) {
             Vect v;
             v[q] = x;
-            v[!q] = y + hy;
+            v[!q] = yy;
             float f;
             f = width * 0.5 -
                 Reconst<Scal>::GetNearest(v, Vect(line[0]), Vect(line[1]))
                     .dist(v);
             f = Reconst<Scal>::Clip(f * 0.75, 0, 1);
 
-            const Pixel p0 = (!q ? view(x, y + hy) : view(y + hy, x));
+            const Pixel p0 = (!q ? view(x, yy) : view(yy, x));
             Byte3 b0(p0 & 0xFF, (p0 >> 8) & 0xFF, (p0 >> 16) & 0xFF);
             Float3 c0 = Float3(b0) / 255;
             Float3 c = color * f + c0 * (1 - f);
             util::Byte3 b(c * 255);
             util::Pixel p =
                 0xFF000000 | (b[0] << 0) | (b[1] << 8) | (b[2] << 16);
-            (!q ? view(x, y + hy) : view(y + hy, x)) = p;
+            (!q ? view(x, yy) : view(yy, x)) = p;
           }
         }
       }
