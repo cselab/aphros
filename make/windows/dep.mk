@@ -573,6 +573,7 @@ kernel\hydro.obj: geom\transform.h
 kernel\hydro.obj: geom\vect.h
 kernel\hydro.obj: hydro.h
 kernel\hydro.obj: kernel\hydro.ipp
+kernel\hydro.obj: kernel\hydro_post.h
 kernel\hydro.obj: kernel\kernelmesh.h
 kernel\hydro.obj: kernel\kernelmeshpar.h
 kernel\hydro.obj: linear\linear.h

@@ -573,6 +573,7 @@ $(WRK)/kernel/hydro.o: $(SRC)/geom/transform.h
 $(WRK)/kernel/hydro.o: $(SRC)/geom/vect.h
 $(WRK)/kernel/hydro.o: $(SRC)/hydro.h
 $(WRK)/kernel/hydro.o: $(SRC)/kernel/hydro.ipp
+$(WRK)/kernel/hydro.o: $(SRC)/kernel/hydro_post.h
 $(WRK)/kernel/hydro.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/kernel/hydro.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/kernel/hydro.o: $(SRC)/linear/linear.h
