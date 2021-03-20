@@ -53,22 +53,22 @@ usage: program [--help|-h] [--int|-i INT] [--double DOUBLE] [--string STRING] [-
 Description
 
 positional arguments:
-NX                  Size in x-direction
-NY                  Size in y-direction
-NZ                  Size in z-direction. Default is 1
-BS                  Block size. Options are: 8, 16, 32. Default is 32
-BSY                 Block size in y. Options are: 8, 16, 32
+NX                   Size in x-direction
+NY                   Size in y-direction
+NZ                   Size in z-direction. Default is 1
+BS                   Block size. Options are: 8, 16, 32. Default is 32
+BSY                  Block size in y. Options are: 8, 16, 32
 
 optional arguments:
---help, -h          Print help and exit
---int, -i           Options are: 3, 4. Default is 3
---double            Type double. Options are: 3, 4. Default is 3
---string            Default is a
---vect              Default is 0
---int0, -i0         
---double0           
---string0           
---vect0, -v0        List of doubles
+--help, -h           Print help and exit
+--int, -i            Options are: 3, 4. Default is 3
+--double             Type double. Options are: 3, 4. Default is 3
+--string             Default is a
+--vect               Default is 0
+--int0, -i0          
+--double0            
+--string0            
+--vect0, -v0         List of doubles
 
 
 Known args:
