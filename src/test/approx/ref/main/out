@@ -242,4 +242,3 @@ eb.InterpolateUpwind() sc=quick returning FieldEmbed<Scal>
    order [error]: min= 0.005 [ 4.827e-03]   max= 0.651 [ 5.524e-04]   mean= 0.036 [ 3.513e-01]
 >> embed faces:
    order [error]: min= 0.009 [ 2.650e-01]   max= 0.055 [ 2.786e-01]   mean= 0.034 [ 2.740e-01]
-dump to eb.vtk
