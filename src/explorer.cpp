@@ -20,6 +20,10 @@
 #include "util/timer.h"
 #include "util/visual.h"
 
+const char* g_base_conf =
+#include "explorer.inc"
+;
+
 using M = MeshStructured<double, 2>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
@@ -179,9 +183,6 @@ static void main_loop() {
 
 static std::string GetBaseConfig() {
   return R"EOF(
-include conf/base.conf
-include conf/std.conf
-
 set int num_frames -1
 
 set int steps_per_frame 1
@@ -206,6 +207,7 @@ void SetMesh(const MpiWrapper& mpi, int nx, int bx) {
   const MIdx meshsize(nx);
   const MIdx blocksize(bx > 0 ? bx : nx);
   const Subdomains<MIdx> sub(meshsize, blocksize, mpi.GetCommSize());
+  conf << g_base_conf;
   conf << GetBaseConfig();
   conf << g_extra_config << '\n';
   conf << sub.GetConfig();

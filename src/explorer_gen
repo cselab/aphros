@@ -1,0 +1,13 @@
+#!/bin/sh -eu
+
+: ${base="../deploy/scripts/sim_base.conf"}
+: ${wasm="../examples/107_wasm/conf/std.conf"}
+: ${out="explorer.inc"}
+
+cat > "$out" << EOS
+R"EOF(
+$(cat "$base")
+
+$(cat "$wasm")
+)EOF"
+EOS

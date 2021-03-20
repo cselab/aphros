@@ -19,3 +19,5 @@ DartConfiguration.tcl
 
 # Makefile_legacy
 .dir
+
+explorer.inc
