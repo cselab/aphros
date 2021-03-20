@@ -31,13 +31,15 @@ using MIdx = typename M::MIdx;
 using util::Canvas;
 using util::CanvasView;
 using util::MIdx2;
+using util::Float3;
+using util::Byte3;
+using util::Pixel;
 
 template <class M>
 static MIdx2 GetViewCoords(Vect x, const CanvasView& view, const M& m) {
   MIdx2 w =
       view.start + MIdx2(x * Vect(view.end - view.start) / m.GetGlobalLength());
   w = w.max(view.start).min(view.end - MIdx2(1));
-  w[1] = view.start[1] + view.end[1] - w[1] - 1;
   return w;
 }
 
@@ -60,7 +62,7 @@ Vars g_var;
 bool g_exit = false;
 bool g_is_root = false;
 
-void StepCallback(void*, Hydro<M>* hydro) {
+static void StepCallback(void*, Hydro<M>* hydro) {
   if (!g_canvas) {
     return;
   }
@@ -92,7 +94,6 @@ void StepCallback(void*, Hydro<M>* hydro) {
       using U = util::Visual<M>;
       util::CanvasView view(
           canvas.size, MIdx(0), canvas.size, canvas.buf.data());
-      using util::Float3;
       FieldCell<Float3> fc_color(m, Float3(1));
       std::stringstream str_entries(var.String["visual"]);
       auto entries = util::ParseEntries(str_entries);
@@ -153,6 +154,57 @@ void StepCallback(void*, Hydro<M>* hydro) {
   }
 }
 
+static void DrawLines(
+    CanvasView& view, const std::vector<std::array<MIdx, 2>>& lines,
+    Float3 color, float width) {
+  for (auto line : lines) {
+    auto draw = [&](bool q) {
+      if (line[1][q] < line[0][q]) {
+        std::swap(line[0], line[1]);
+      }
+      const int dx = line[1][q] - line[0][q];
+      const int dy = std::abs(line[1][!q] - line[0][!q]);
+      const int sy = line[1][!q] > line[0][!q] ? 1 : -1;
+      int y = line[0][!q];
+      int err = 2 * std::abs(dy) - dx;
+      for (int x = line[0][q]; x < line[1][q]; ++x) {
+        if (err <= 0) {
+          err += 2 * dy;
+        } else {
+          err += 2 * (dy - dx);
+          y += sy;
+        }
+        for (int hy = -width; hy < (width + 1); ++hy) {
+          if (x >= view.start[q] && x < view.end[q] && y >= view.start[!q] &&
+              y < view.end[!q]) {
+            Vect v;
+            v[q] = x;
+            v[!q] = y + hy;
+            float f;
+            f = width * 0.5 -
+                Reconst<Scal>::GetNearest(v, Vect(line[0]), Vect(line[1]))
+                    .dist(v);
+            f = Reconst<Scal>::Clip(f * 0.75, 0, 1);
+
+            const Pixel p0 = (!q ? view(x, y + hy) : view(y + hy, x));
+            Byte3 b0(p0 & 0xFF, (p0 >> 8) & 0xFF, (p0 >> 16) & 0xFF);
+            Float3 c0 = Float3(b0) / 255;
+            Float3 c = color * f + c0 * (1 - f);
+            util::Byte3 b(c * 255);
+            util::Pixel p =
+                0xFF000000 | (b[0] << 0) | (b[1] << 8) | (b[2] << 16);
+            (!q ? view(x, y + hy) : view(y + hy, x)) = p;
+          }
+        }
+      }
+    };
+    const bool q =
+        std::abs(line[1][0] - line[0][0]) < std::abs(line[1][1] - line[0][1]);
+    draw(q);
+    draw(!q);
+  }
+}
+
 static void main_loop() {
   if (!g_state) {
     return;
@@ -166,6 +218,10 @@ static void main_loop() {
   for (int i = 0; i < g_var.Int("steps_per_frame", 1); ++i) {
     s.render = (i == 0);
     s.distrsolver.Run();
+  }
+  if (g_is_root) {
+    DrawLines(*g_view, s.lines, Float3(0), g_var.Int["line_width"]);
+    DrawLines(*g_view, s.lines_eb, Float3(0), g_var.Int["line_width"]);
   }
   const std::string path = util::Format("a_{:06d}.ppm", s.frame);
   if (g_is_root) {
@@ -189,6 +245,8 @@ set int steps_per_frame 1
 set int return_after_each_step 1
 set string visual
 
+set int line_width 5
+
 set string Cred 1 0.12 0.35
 set string Cgreen 0 0.8 0.42
 set string Cblue 0 0.6 0.87
@@ -201,7 +259,7 @@ set string Cgray 0.627 0.694 0.729
 )EOF";
 }
 
-void SetMesh(const MpiWrapper& mpi, int nx, int bx) {
+static void SetMesh(const MpiWrapper& mpi, int nx, int bx) {
   std::stringstream conf;
   conf << GetDefaultConf();
   const MIdx meshsize(nx);
@@ -224,11 +282,19 @@ void SetMesh(const MpiWrapper& mpi, int nx, int bx) {
   }
 }
 
-void SetCanvas(int nx, int ny) {
+static void SetCanvas(int nx, int ny) {
   g_canvas = std::make_shared<Canvas>(MIdx(nx, ny));
   g_view = std::make_shared<CanvasView>(*g_canvas);
   if (g_is_root) {
     std::cout << util::Format("canvas {}", g_canvas->size) << std::endl;
+  }
+}
+
+void FindReplace(std::string& s, std::string find, std::string replace) {
+  auto pos = s.find(find);
+  while (pos != std::string::npos) {
+    s.replace(pos, find.size(), replace);
+    pos = s.find(find);
   }
 }
 
@@ -294,7 +360,9 @@ set int report_step_every 1000000
     fassert(f.good(), "Can't open file '" + confpath + "' for reading");
     buf << f.rdbuf();
   }
-  g_extra_config += buf.str();
+  std::string bufstr = buf.str();
+  FindReplace(bufstr, "FROMSLIDER", "");
+  g_extra_config += bufstr;
 
   SetCanvas(args.Int["canvas"], args.Int["canvas"]);
   SetMesh(mpi, args.Int["mesh"], args.Int["block"]);
