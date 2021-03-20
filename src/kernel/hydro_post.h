@@ -13,5 +13,7 @@ struct HydroPost {
   static FieldCell<Scal> GetField(
       const Hydro<M>* hydro, std::string name, const M& m);
 
+  static void DumpFields(Hydro<M>* hydro, M& m);
+
   struct Imp;
 };

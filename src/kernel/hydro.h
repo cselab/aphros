@@ -139,7 +139,6 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   Vect CalcViscousDrag(
       const FieldCell<Vect>& fcvel, const FieldCell<Scal>& fcmu,
       const Embed<M>& eb);
-  void DumpFields();
   void Dump(bool force);
   // Calc rho, mu and force based on volume fraction
   void CalcMixture(const FieldCell<Scal>& vf);
@@ -189,7 +188,6 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   FieldCell<Scal> fc_src2_; // source of second phase volume
   FieldCell<Scal> fc_srcm_; // mass source
   FieldCell<Vect> fc_force_; // force
-  FieldCell<Scal> fc_dist_; // distance from eb
   FieldCell<Scal> fc_phi_; // distance from eb
   FieldEmbed<Scal> febp_; // balanced force projections
 
