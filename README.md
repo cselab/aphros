@@ -110,8 +110,8 @@ Electrochemical reactor [[1]](https://doi.org/10.1039/C9EE00219G) | Bubbles thro
 
 |     |
 |:---:|
-|[<img src="https://cselab.github.io/aphros/videos/preview/thumb/breaking_waves.jpg" height=350>](https://www.youtube.com/watch?v=iGdphpztCJQ)|
-|APS Gallery of Fluid Motion 2019 award winner: Breaking waves: to foam or not to foam? [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)|
+|[<img src="https://cselab.github.io/aphros/videos/preview/thumb/breaking_waves.jpg" height=300>](https://www.youtube.com/watch?v=iGdphpztCJQ)|
+|APS Gallery of Fluid Motion 2019 award winner<br> Breaking waves: to foam or not to foam? [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)|
 
 ## Developers
 

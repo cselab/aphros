@@ -1,6 +1,6 @@
 if (USE_DIM2)
   get_filename_component(name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
   set(T t.${name})
-  add_executable_with_objects(${T} main.cpp mesh parser format)
-  add_test_current(COMMAND ${T})
+  add_executable_with_objects(${T} main.cpp mesh parser format visual)
+  add_test_current(COMMAND test)
 endif()

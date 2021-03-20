@@ -115,8 +115,8 @@ Electrochemical reactor [[ref:ees]] | Bubbles through mesh
 
 |     |
 |:---:|
-|[<img src="[[VIDTHUMB]]/breaking_waves.jpg" height=350>](https://www.youtube.com/watch?v=iGdphpztCJQ)|
-|APS Gallery of Fluid Motion 2019 award winner: Breaking waves: to foam or not to foam? [[ref:aps]]|
+|[<img src="[[VIDTHUMB]]/breaking_waves.jpg" height=300>](https://www.youtube.com/watch?v=iGdphpztCJQ)|
+|APS Gallery of Fluid Motion 2019 award winner<br> Breaking waves: to foam or not to foam? [[ref:aps]]|
 
 ## Developers
 

@@ -1,0 +1,10 @@
+#!/bin/sh -eu
+
+e () {
+  echo "$@"
+  eval "$@"
+}
+
+./t.visual
+e diff out_ascii.ppm out2_ascii.ppm
+e diff out_bin.ppm out2_bin.ppm

@@ -75,6 +75,7 @@ $(WRK)/util/suspender.o\
 $(WRK)/util/sysinfo.o\
 $(WRK)/util/system.o\
 $(WRK)/util/timer.o\
+$(WRK)/util/visual.o\
 $(WRK)/util/vof.o\
 $(WRK)/young/main.o\
 

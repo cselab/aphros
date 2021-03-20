@@ -29,10 +29,10 @@ M GetMesh(MIdx size) {
 
 void TestRender() {
   using U = util::Visual<M>;
-  typename U::Canvas canvas(MIdx(256));
+  typename util::Canvas canvas(MIdx(256));
   auto m = GetMesh(MIdx(64));
-  typename U::CanvasView view(canvas);
-  using Float3 = typename U::Float3;
+  typename util::CanvasView view(canvas);
+  using util::Float3;
   FieldCell<Float3> fc_color(m, Float3(0));
   FieldCell<Scal> fc(m, 0);
   FieldCell<Scal> fc2(m, 0);
@@ -41,7 +41,7 @@ void TestRender() {
     fc2[c] = Vect(0.2, 0.8).dist(c.center);
   }
 
-  auto entries = U::ParseEntries("vislist");
+  auto entries = util::ParseEntries("vislist");
 
   auto get_field = [&](std::string name) -> FieldCell<Scal> {
     if (name == "p") {
@@ -56,12 +56,22 @@ void TestRender() {
   U::RenderEntriesToField(fc_color, entries, get_field, m);
 
   U::RenderToCanvasNearest(view, fc_color, m);
-  const auto path = "out.ppm";
-  const auto path2 = "out2.ppm";
-  U::WritePpm(path, view);
-  auto canvas2 = U::ReadPpm(path);
-  auto view2 = U::CanvasView(canvas2);
-  U::WritePpm(path2, view2);
+  {
+    const auto path = "out_ascii.ppm";
+    const auto path2 = "out2_ascii.ppm";
+    util::WritePpm(path, view, false);
+    auto canvas2 = util::ReadPpm(path);
+    auto view2 = util::CanvasView(canvas2);
+    util::WritePpm(path2, view2, false);
+  }
+  {
+    const auto path = "out_bin.ppm";
+    const auto path2 = "out2_bin.ppm";
+    util::WritePpm(path, view, true);
+    auto canvas2 = util::ReadPpm(path);
+    auto view2 = util::CanvasView(canvas2);
+    util::WritePpm(path2, view2, true);
+  }
 }
 
 int main() {

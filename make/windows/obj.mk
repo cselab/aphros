@@ -75,6 +75,7 @@ util\suspender.obj\
 util\sysinfo.obj\
 util\system.obj\
 util\timer.obj\
+util\visual.obj\
 util\vof.obj\
 young\main.obj\
 

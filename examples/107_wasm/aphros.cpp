@@ -79,12 +79,12 @@ void StepCallback(void*, Hydro<M>* hydro) {
     if (s.render) {
       auto& canvas = *g_canvas;
       using U = util::Visual<M>;
-      typename U::CanvasView view(
+      util::CanvasView view(
           canvas.size, MIdx(0), canvas.size, canvas.buf.data());
-      using Float3 = typename U::Float3;
+      using util::Float3;
       FieldCell<Float3> fc_color(m, Float3(1));
       std::stringstream str_entries(var.String["visual"]);
-      auto entries = U::ParseEntries(str_entries);
+      auto entries = util::ParseEntries(str_entries);
       auto get_field = [&](std::string name) -> FieldCell<Scal> {
         if (name == "p" || name == "pressure") {
           return hydro->fs_->GetPressure();

@@ -139,5 +139,6 @@ util\suspender.obj: util\suspender.cpp; $(CXX_RULE) util\suspender.cpp
 util\sysinfo.obj: util\sysinfo.cpp; $(CXX_RULE) util\sysinfo.cpp
 util\system.obj: util\system.c; $(CC_RULE) util\system.c
 util\timer.obj: util\timer.cpp; $(CXX_RULE) util\timer.cpp
+util\visual.obj: util\visual.cpp; $(CXX_RULE) util\visual.cpp
 util\vof.obj: util\vof.cpp; $(CXX_RULE) util\vof.cpp
 young\main.obj: young\main.c; $(CC_RULE) young\main.c

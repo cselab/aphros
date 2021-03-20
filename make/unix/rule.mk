@@ -139,5 +139,6 @@ $(WRK)/util/suspender.o: $(SRC)/util/suspender.cpp; $(CXX_RULE) $(SRC)/util/susp
 $(WRK)/util/sysinfo.o: $(SRC)/util/sysinfo.cpp; $(CXX_RULE) $(SRC)/util/sysinfo.cpp
 $(WRK)/util/system.o: $(SRC)/util/system.c; $(CC_RULE) $(SRC)/util/system.c
 $(WRK)/util/timer.o: $(SRC)/util/timer.cpp; $(CXX_RULE) $(SRC)/util/timer.cpp
+$(WRK)/util/visual.o: $(SRC)/util/visual.cpp; $(CXX_RULE) $(SRC)/util/visual.cpp
 $(WRK)/util/vof.o: $(SRC)/util/vof.cpp; $(CXX_RULE) $(SRC)/util/vof.cpp
 $(WRK)/young/main.o: $(SRC)/young/main.c; $(CC_RULE) $(SRC)/young/main.c

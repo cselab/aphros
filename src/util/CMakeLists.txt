@@ -21,6 +21,10 @@ set(T "utilfluid")
 add_object(${T} fluid.cpp)
 object_link_libraries(${T})
 
+set(T "visual")
+add_object(${T} visual.cpp)
+object_link_libraries(${T} mesh)
+
 set(T "utilconvdiff")
 add_object(${T} convdiff.cpp)
 object_link_libraries(${T} convdiffvg)

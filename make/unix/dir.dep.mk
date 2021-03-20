@@ -74,5 +74,6 @@ $(WRK)/util/suspender.o: $(WRK)/.dir
 $(WRK)/util/sysinfo.o: $(WRK)/.dir
 $(WRK)/util/system.o: $(WRK)/.dir
 $(WRK)/util/timer.o: $(WRK)/.dir
+$(WRK)/util/visual.o: $(WRK)/.dir
 $(WRK)/util/vof.o: $(WRK)/.dir
 $(WRK)/young/main.o: $(WRK)/.dir
