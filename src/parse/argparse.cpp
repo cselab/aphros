@@ -214,7 +214,7 @@ struct ArgumentParser::Imp {
 
       out << "\npositional arguments:\n";
       for (auto key : pos_keys_) {
-        out << PadRight(ToUpper(key), 20);
+        out << PadRight(ToUpper(key), 20) << ' ';
         auto help = help_.count(key) ? help_.at(key) : "";
         out << help;
         bool need_dot = help.length();
@@ -226,7 +226,7 @@ struct ArgumentParser::Imp {
       out << "\noptional arguments:\n";
       for (auto key : opt_keys_) {
         const auto& names = names_.at(key);
-        out << PadRight(Join(", ", names.begin(), names.end()), 20);
+        out << PadRight(Join(", ", names.begin(), names.end()), 20) << ' ';
         auto help = help_.count(key) ? help_.at(key) : "";
         out << help;
         bool need_dot = help.length();
