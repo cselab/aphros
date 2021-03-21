@@ -65,25 +65,37 @@ struct HydroPost<M>::Imp {
       return hydro->as_->GetField();
     }
     if (name == "vmagn" || name == "velocity magnitude") {
+      const auto& fcvel = hydro->fs_->GetVelocity();
       FieldCell<Scal> fc(m, 0);
       for (auto c : m.SuCells()) {
-        fc[c] = hydro->fs_->GetVelocity()[c].norm();
+        fc[c] = fcvel[c].norm();
       }
       return fc;
     }
     if (name == "vx" || name == "velocity x") {
-      FieldCell<Scal> fc(m, 0);
-      for (auto c : m.SuCells()) {
-        fc[c] = hydro->fs_->GetVelocity()[c][0];
-      }
-      return fc;
+      return GetComponent(hydro->fs_->GetVelocity(), 0);
     }
     if (name == "vy" || name == "velocity y") {
-      FieldCell<Scal> fc(m, 0);
-      for (auto c : m.SuCells()) {
-        fc[c] = hydro->fs_->GetVelocity()[c][1];
+      return GetComponent(hydro->fs_->GetVelocity(), 1);
+    }
+    if (hydro->electro_) {
+      if (name == "elpot" || name == "electric potential") {
+        return hydro->electro_->GetPotential();
       }
-      return fc;
+      if (name == "elcurx" || name == "electric current x") {
+        return GetComponent(hydro->electro_->GetCurrent(), 0);
+      }
+      if (name == "elcury" || name == "electric current y") {
+        return GetComponent(hydro->electro_->GetCurrent(), 1);
+      }
+      if (name == "elcurmagn" || name == "electric current magnitude") {
+        const auto& fccur = hydro->electro_->GetCurrent();
+        FieldCell<Scal> fc(m, 0);
+        for (auto c : m.SuCells()) {
+          fc[c] = fccur[c].norm();
+        }
+        return fc;
+      }
     }
     if (m.IsRoot()) {
       std::cerr << "Unknown field '" + name + "'\n";
