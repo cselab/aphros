@@ -43,7 +43,8 @@ struct Vof<EB_>::Imp {
       , fcim_(m, TRM::Pack(MIdx(0)))
       , fcim_unpack_(m, MIdx(0))
       , fca_(m, GetNan<Scal>())
-      , fcn_(m, GetNan<Vect>()) {
+      , fcn_(m, GetNan<Vect>())
+      , fci_(m, false) {
     fcu_.time_curr = fcu;
 
     UpdateBc(mebc_);
