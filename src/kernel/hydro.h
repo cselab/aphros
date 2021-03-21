@@ -181,6 +181,7 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   bool initialized_ = false;
   bool finished_ = false;
   bool silent_ = false;
+  bool dumpstat_ = true; // write statistics to stat.dat, stat_summary
 
   GRange<size_t> layers;
   FieldCell<Scal> fc_mu_; // viscosity

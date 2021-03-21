@@ -995,13 +995,21 @@ void Hydro<M>::InitStat(const MEB& eb) {
     stat_->SetEnabled(name, !blacklist.count(name));
   }
 
-  if (m.IsRoot()) {
-    fstat_.open("stat.dat");
-    fstat_.precision(16);
-    stat_->WriteHeader(fstat_);
+  if (m.IsRoot() && dumpstat_) {
+    {
+      const std::string path = "stat.dat";
+      fstat_.open(path);
+      fassert(fstat_.good(), "Can't open file '" + path + "' for writing");
+      fstat_.precision(16);
+      stat_->WriteHeader(fstat_);
+    }
 
-    std::ofstream fsum("stat_summary");
-    stat_->WriteSummary(fsum, true);
+    {
+      const std::string path = "stat_summary";
+      std::ofstream fsum(path);
+      fassert(fsum.good(), "Can't open file '" + path + "' for writing");
+      stat_->WriteSummary(fsum, true);
+    }
   }
 }
 
@@ -1025,6 +1033,7 @@ void Hydro<M>::Init() {
   auto& fccl = ctx->fccl;
   if (sem("flags")) {
     silent_ = var.Int("silent", 0);
+    dumpstat_ = var.Int("dumpstat", 1);
     if (m.IsRoot() && var.Int("dumpconfig", 1)) {
       std::ofstream out("out.conf");
       Parser::PrintVars(var, out);
@@ -1354,7 +1363,7 @@ void Hydro<M>::Init() {
   if (eb_ && sem.Nested() && var.Int("dump_eb", 1)) {
     eb_->DumpPoly("eb.vtk", var.Int["vtkbin"], var.Int["vtkmerge"]);
   }
-  if (sem.Nested("stat")) {
+  if (sem.Nested("stat") && dumpstat_) {
     stat_->Update();
   }
   if (var.Int["dumpinit"]) {
@@ -1700,7 +1709,7 @@ void Hydro<M>::Dump(bool force) {
     }
   }
   if (sem("dumpstat")) {
-    if (m.IsRoot()) {
+    if (m.IsRoot() && dumpstat_) {
       if (st_.step % var.Int("stat_step_every", 1) == 0 || force) {
         stat_->WriteValues(fstat_);
       }

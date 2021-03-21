@@ -246,6 +246,8 @@ static void main_loop() {
 static std::string GetBaseConfig() {
   return R"EOF(
 set int num_frames -1
+set int dumpstat 0
+set int dumpconfig 0
 
 set int steps_per_frame 1
 set int return_after_each_step 1
