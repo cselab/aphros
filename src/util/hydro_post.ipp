@@ -78,23 +78,31 @@ struct HydroPost<M>::Imp {
     if (name == "vy" || name == "velocity y") {
       return GetComponent(hydro->fs_->GetVelocity(), 1);
     }
-    if (hydro->electro_) {
+    if (auto& electro = hydro->electro_) {
       if (name == "elpot" || name == "electric potential") {
-        return hydro->electro_->GetPotential();
+        return electro->GetPotential();
       }
       if (name == "elcurx" || name == "electric current x") {
-        return GetComponent(hydro->electro_->GetCurrent(), 0);
+        return GetComponent(electro->GetCurrent(), 0);
       }
       if (name == "elcury" || name == "electric current y") {
-        return GetComponent(hydro->electro_->GetCurrent(), 1);
+        return GetComponent(electro->GetCurrent(), 1);
       }
       if (name == "elcurmagn" || name == "electric current magnitude") {
-        const auto& fccur = hydro->electro_->GetCurrent();
+        const auto& fccur = electro->GetCurrent();
         FieldCell<Scal> fc(m, 0);
         for (auto c : m.SuCells()) {
           fc[c] = fccur[c].norm();
         }
         return fc;
+      }
+    }
+    if (auto& tracer = hydro->tracer_) {
+      for (auto l : tracer->GetView().layers) {
+        const auto sl = std::to_string(l);
+        if (name == "tu" + sl || name == "tracer" + sl) {
+          return tracer->GetVolumeFraction()[l];
+        }
       }
     }
     if (m.IsRoot()) {
