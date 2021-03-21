@@ -230,7 +230,9 @@ void Spawn(float x, float y, float r) {
   s.to_spawn = true;
   s.spawn_c = Vect(x, y);
   s.spawn_r = r;
-  std::cout << util::Format("spawn c={:.3f} r={:.3f}", s.spawn_c, s.spawn_r)
+  std::cout << util::Format(
+                   "sphere {:.3f} {:.3f} 0 {:.3f}", s.spawn_c[0], s.spawn_c[1],
+                   s.spawn_r)
             << std::endl;
 }
 int TogglePause() {
