@@ -1,6 +1,6 @@
 D = \
-CubismNoCopy\
 color\
+CubismNoCopy\
 debug\
 distr\
 dump\
