@@ -2,13 +2,13 @@
 
 BEGIN {
     skip["distr/cubismnc.cpp"]
+    skip["explorer.cpp"]
     skip["gen/wave_lamb.c"]
     skip["linear/hypre.cpp"]
     skip["linear/hypresub.cpp"]
     skip["linear/linear_amgx.cpp"]
     skip["linear/linear_hypre.cpp"]
     skip["main.c"]
-    skip["explorer.cpp"]
     skip["overlap/overlap.cpp"]
     skip["util/subcomm.cpp"]
     skip["util/subcomm_dummy.cpp"]

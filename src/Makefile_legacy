@@ -46,6 +46,7 @@ $(WRK)/$J: $O $(O_MPI); mkdir -p $(WRK) && emar rv $@ $O $(O_MPI)
 $(WRK)/main: $(WRK)/main.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(WRK)/main.o $(WRK)/$L $(LDFLAGS) $(LDFLAGS_HDF) -o $@
 $(WRK)/.dir:; mkdir -p $P && > $@
 $(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@
+$(SRC)/explorer.inc:; out="$@" $(SRC)/explorer_gen
 install: $(WRK)/$L $(WRK)/main
 	mkdir -p '$(APHROS_PREFIX)'/lib '$(APHROS_PREFIX)'/bin '$(APHROS_PREFIX)'/include
 	for i in $D; \

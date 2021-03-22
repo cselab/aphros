@@ -1,5 +1,9 @@
 #!/usr/bin/awk -f
 
+BEGIN {
+    generated["explorer.inc"]
+}
+
 {
     if (!filep(path = $0)) {
 	printf "list: not a file '%s'\n", path | "cat >&2"
@@ -23,9 +27,11 @@
 }
 
 function filep(path, aux, rc) {
-  rc = getline aux < path
-  close(path)
-  return rc >= 0
+    if (path in generated)
+	return 1
+    rc = getline aux < path
+    close(path)
+    return rc >= 0
 }
 
 function dir(path) {
