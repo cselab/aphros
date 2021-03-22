@@ -162,10 +162,29 @@ struct HydroPost<M>::Imp {
       }
       if (dl.count("omx") || dl.count("omy") || dl.count("omz") ||
           dl.count("omm") || dl.count("omcalc")) {
-        hydro->CalcVort();
-        dumpv(hydro->fcom_, 0, "omx");
-        dumpv(hydro->fcom_, 1, "omy");
-        dumpv(hydro->fcom_, 2, "omz");
+        auto& fcom = hydro->fcom_;
+        if (M::dim == 3) {
+          hydro->CalcVort();
+          dumpv(fcom, 0, "omx");
+          dumpv(fcom, 1, "omy");
+          dumpv(fcom, 2, "omz");
+        } else {
+          fcom.Reinit(m, Vect(0));
+          if (hydro->eb_) {
+            SetComponent(
+                fcom, 0,
+                GetVortScal(
+                    hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(),
+                    *hydro->eb_));
+          } else {
+            SetComponent(
+                fcom, 0,
+                GetVortScal(
+                    hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(),
+                    m));
+          }
+          dumpv(fcom, 0, "omz");
+        }
         dump(hydro->fcomm_, "omm");
       }
       if (dl.count("fluxx") || dl.count("fluxy") || dl.count("fluxz")) {
