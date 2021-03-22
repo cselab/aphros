@@ -37,5 +37,5 @@ main.exe: main.obj $L; $(LINK) $(LDFLAGS) main.obj $L /Fo$@
 explorer.exe: explorer.obj $L; $(LINK) $(LDFLAGS) explorer.obj $L /Fo$@
 
 util\gitgen.cpp: ..\make\windows\gitgen.cpp; copy ..\make\windows\gitgen.cpp $@
-util\explorer.inc: ..\make\windows\explorer.inc; copy ..\make\windows\explorer.inc $@
+explorer.inc: ..\make\windows\explorer.inc; copy ..\make\windows\explorer.inc $@
 clean:; -del $O $(O_MPI) .dir $L main.exe explorer.exe
