@@ -44,10 +44,11 @@ LINK = $(CXX)
 $(WRK)/$L: $O $(O_MPI); mkdir -p $(WRK) && ar rv $@ $O $(O_MPI) && ranlib $@
 $(WRK)/$J: $O $(O_MPI); mkdir -p $(WRK) && emar rv $@ $O $(O_MPI)
 $(WRK)/main: $(WRK)/main.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(WRK)/main.o $(WRK)/$L $(LDFLAGS) $(LDFLAGS_HDF) -o $@
+$(WRK)/explorer: $(WRK)/explorer.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(WRK)/explorer.o $(WRK)/$L $(LDFLAGS) $(LDFLAGS_HDF) -o $@
 $(WRK)/.dir:; mkdir -p $P && > $@
 $(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@
 $(SRC)/explorer.inc:; out="$@" $(SRC)/explorer_gen
-install: $(WRK)/$L $(WRK)/main
+install: $(WRK)/$L $(WRK)/main $(WRK)/explorer
 	mkdir -p '$(APHROS_PREFIX)'/lib '$(APHROS_PREFIX)'/bin '$(APHROS_PREFIX)'/include
 	for i in $D; \
 	do mkdir -p '$(APHROS_PREFIX)'/include/aphros/$$i; \
@@ -58,10 +59,11 @@ install: $(WRK)/$L $(WRK)/main
 	done
 	cp $(WRK)/$L '$(APHROS_PREFIX)'/lib
 	cp $(WRK)/main '$(APHROS_PREFIX)'/bin/ap.mfer
+	cp $(WRK)/explorer '$(APHROS_PREFIX)'/bin/ap.explorer
 install_js: $(WRK)/$J
 	mkdir -p '$(APHROS_PREFIX)'/lib
 	cp $(WRK)/$J "$(APHROS_PREFIX)"/lib
 clean:
-	-rm -f $O $(O_MPI) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/ap.mfer
+	-rm -f $O $(O_MPI) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/main $(WRK)/explorer
 	-rmdir $P
 
