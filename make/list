@@ -1,37 +1,39 @@
 #!/usr/bin/awk -f
 
-BEGIN {
-    generated["explorer.inc"]
-}
-
 {
-    if (!filep(path = $0)) {
-	printf "list: not a file '%s'\n", path | "cat >&2"
+    if (NF != 1) {
+	printf "list: wrong input line '%s'\n", $0 | "cat >&2"
 	exit(1)
     }
-    line = 0
-    while (getline < path > 0) {
-	line++
-	if (sub(/^[ \t]*#[ \t]*include[ \t]*"/, "")) {
-	    sub(/".*/, "")
-	    if (filep($0))
-		print path, $0
-	    else if (filep($0 = dir(path) "/" $0))
-		print path, $0
-	    else {
-		printf "%s:%d: error: no such file '%s'\n", path, line, $0 | "cat >&2"
-		exit(1)
+    ppath[$0]
+}
+
+END {
+    for (path in ppath) {
+	if (!filep(path)) {
+	    printf "list: not a file '%s'\n", path0 | "cat >&2"
+	    exit(1)
+	}
+	line = 0
+	while (getline < path > 0) {
+	    line++
+	    if (sub(/^[ \t]*#[ \t]*include[ \t]*"/, "")) {
+		sub(/".*/, "")
+		if (filep($0))
+		    print path, $0
+		else if (filep($0 = dir(path) "/" $0))
+		    print path, $0
+		else {
+		    printf "%s:%d: error: no such file '%s'\n", path, line, $0 | "cat >&2"
+		    exit(1)
+		}
 	    }
 	}
     }
 }
 
 function filep(path, aux, rc) {
-    if (path in generated)
-	return 1
-    rc = getline aux < path
-    close(path)
-    return rc >= 0
+    return (path in ppath)
 }
 
 function dir(path) {

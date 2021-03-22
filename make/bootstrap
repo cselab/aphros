@@ -18,13 +18,14 @@ find . \
      -name '*.c' -or \
      -name '*.cpp' -or \
      -name '*.h' -or \
+     -name '*.hpp' -or \
      -name '*.inc' -or \
      -name '*.ipp' | sed 's,^\.\/,,g' | \
     grep -v '^build[a-z_0-9]*\/' > $l
 { cat $l ; echo util/gitgen.cpp; } | ../make/obj | sort | uniq > $o
 grep '\.h$' $l | grep -v '^test\/' | fgrep -v 'aphros_c.h' | sort | uniq > $h
 ../make/var H $h > ../make/hdr.mk
-../make/list $l | ../make/dep > $d
+{ cat $l; echo explorer.inc; } | ../make/list | ../make/dep > $d
 { cat $l; echo util/gitgen.cpp; } | ../make/rule | sort | uniq > $r
 
 # unix
