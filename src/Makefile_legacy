@@ -29,7 +29,7 @@ CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(CXXFLAGS_HDF) -I$(SRC) $1 -o 
 -D_USE_MPI_=$(USE_MPI) \
 -D_USE_HDF_=$(USE_HDF) \
 
-all: $(WRK)/$L $(WRK)/main $(SRC)/Makefile_legacy
+all: $(WRK)/$L $(WRK)/main $(WRK)/explorer
 include $(SRC)/../make/hdr.mk
 include $(SRC)/../make/unix/dep.mk
 include $(SRC)/../make/unix/dir.dep.mk
