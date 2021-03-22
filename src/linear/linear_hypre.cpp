@@ -157,7 +157,7 @@ struct SolverHypre<M>::Imp {
 
  private:
   Owner* owner_;
-  Conf& conf;
+  Conf conf;
   Extra extra;
 };
 

@@ -249,6 +249,7 @@ set int hypre_periodic_y 0
 set int hypre_periodic_z 1
 set double hypre_symm_tol 1e-8
 set int hypre_symm_maxiter 100
+set int linsolver_symm_maxnorm 0
 )EOF";
 
   conf += "\n" + args.String["extra"];
