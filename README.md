@@ -88,7 +88,7 @@ on Windows using Microsoft C++ toolset (NMAKE, LINK, and CL):
 
 ```
 cd src
-nmake /f Makefile_nmake
+nmake /f NMakefile
 ```
 
 ## Videos
