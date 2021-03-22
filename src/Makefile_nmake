@@ -26,7 +26,7 @@ CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) /I. $1 /Fo$@
 -D_USE_OPENMP_=1 \
 -D_USE_OVERLAP_=0 \
 
-all: $L main.exe
+all: $L main.exe explorer.exe
 O_MPI = util\subcomm_dummy.obj
 include ..\make\windows\dep.mk
 include ..\make\windows\obj.mk
@@ -34,6 +34,8 @@ include ..\make\windows\rule.mk
 
 $L: $O $(O_MPI); link /lib /OUT:$@ $O $(O_MPI)
 main.exe: main.obj $L; $(LINK) $(LDFLAGS) main.obj $L /Fo$@
+explorer.exe: explorer.obj $L; $(LINK) $(LDFLAGS) explorer.obj $L /Fo$@
 
 util\gitgen.cpp: ..\make\windows\gitgen.cpp; copy ..\make\windows\gitgen.cpp $@
-clean:; -del $O $(O_MPI) .dir $L main.exe
+util\explorer.inc: ..\make\windows\explorer.inc; copy ..\make\windows\explorer.inc $@
+clean:; -del $O $(O_MPI) .dir $L main.exe explorer.exe

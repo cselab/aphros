@@ -1,0 +1,503 @@
+R"EOF(
+# General config
+
+# local: shared-memory
+# cubismnc: distrubuted with MPI using Cubism, 3D only
+# native:  distrubited with MPI using native implementation, 2D and 3D
+set string backend cubismnc
+set int openmp 0
+set int mpi_compress_msg 0
+
+set int CHECKNAN 0
+set int fill_halo_nan 0
+set double fill_halo_nan_value 1e100
+
+# ranks
+set int px 2
+set int py 2
+set int pz 1
+
+# blocks per rank
+set int bx 1
+set int by 1
+set int bz 2
+
+# cells per block
+set int bsx 16
+set int bsy 16
+set int bsz 16
+
+# domain
+set double extent 1.
+set int spacedim 3
+set int dim 3
+set int hypre_periodic_x 0
+set int hypre_periodic_y 0
+set int hypre_periodic_z 0
+
+
+# time step
+set double tmax 1e10
+set double dt0 1e-6
+set double dtmax 1e10
+set double cfl 0.8
+set double cfla 0.8
+set double cflst 2
+set int max_step 1000000
+
+# solvers
+set int enable_advection 1
+set int enable_bc 0
+set int enable_electro 0
+set int enable_embed 0
+set int enable_erasevf 0
+set int enable_fluid 1
+set int enable_surftens 1
+set int enable_tracer 0
+
+# erasevf
+set vect erasevf_rect_x0 0 0 0
+set vect erasevf_rect_x1 1 1 1
+set double erasevf_t0 0
+set double erasevf_per 1
+
+# tracer
+set int tracer_layers 2
+set double cflt 0.25
+set string tracer_scheme superbee
+set int tracer_override_mixture 0
+set int tracer_use_termvel 0
+set vect tracer_spawn_sphere_c 0 0 0
+set double tracer_spawn_sphere_r 0
+set vect tracer_density 1 1
+set vect tracer_viscosity 0 0
+set vect tracer_termvel 0 0
+set vect tracer_diameter 0 0
+set int tracer_override_mixture 0
+set string tracer0_list_path inline
+set string tracer1_list_path inline
+set string tracer0_init zero
+set string tracer1_init zero
+set string tracer0_slip none
+set string tracer1_slip none
+set double tracer0_factor 1
+set double tracer1_factor 1
+
+# particles
+set int enable_particles 0
+set int dump_particles 1
+set vect particles_spawn_sphere_c 0 0 0
+set double particles_spawn_sphere_r 0
+set vect particles_spawn_rate 10 # particles per unit time
+set vect particles_termvel 0
+set vect particles_spawn_velocity 0 0 0
+set vect particles_diameter 0
+set double particles_density 1
+
+# embedded boundaries
+set string eb_init list
+set string eb_list_path body.dat
+set string eb_model_path model.ply
+set vect eb_model_center 0.5 0.5 0.5
+set vect eb_model_rotation 0 0 0
+set double eb_model_extent 1
+set int eb_init_inverse 1
+set double embed_gradlim 0.5
+set string bc_path bc.dat
+set int embed_smoothen_iters 0
+
+# convergence
+set double tol 1e-3
+set int max_iter 1
+set int min_iter 1
+set double abortvel 1e10     # abort if exceeded by velocity magnitude
+set double stop_diff 0
+
+# numerical
+# options: proj (projection), simple (SIMPLE)
+set string fluid_solver proj
+# Bell-Colella-Glaz scheme in projection if true, else upwind scheme
+set int proj_bcg 1
+set int proj_redistr_adv 0
+set int proj_diffusion_iters 1
+set int proj_diffusion_consistent_guess 1
+set double prelax 0.9
+set double vrelax 0.8
+set double rhie 1.
+set int second_order 1
+set int vfsmooth 0
+set int vfsmooth_extrapolate_cut 0
+set int vfsmoothnode 0
+set int inletflux_numid 1
+set double inletpressure_factor 0
+set double stdiag 1.
+set string conv imp
+set string convsc quick
+set double convdf 1.
+set double kslip 0
+set double penalslip 0
+set double slipnormal 0
+#set double slipnormal 10
+set double slipnormal_dist 1
+set vect slipvel 1 0 0
+set int stokes 0
+set int convsymm 0
+set int explconv 0
+set int explviscous 0
+set double outlet_relax 1
+
+# advection solver
+# vof: standard VOF, vofm: multi-VOF for coalescence prevention
+set string advection_solver vof
+
+# use forward-backward PLIC sharpening
+set int sharpen 0
+set double sharpen_cfl 0.1
+set string vof_scheme weymouth
+set int vof_verb 0
+set int vof_recolor_unionfind 1
+set int vof_recolor_reduce 1
+set int vof_recolor_grid 1
+
+# curvature estimation with particles
+set int part 1
+set double part_relax 0.5
+set double part_h 4
+set int part_k 1
+set int part_bendmean 1
+set int part_itermax 20
+set double part_tol 1e-5
+set double clipth 1e-10
+set double part_segcirc 0. # factor for circular segment
+set int part_ns 3
+set int part_np 7
+set int part_verb 0
+set double part_tmax 180.   # total angle for string [deg]
+set double part_dtmax 10.   # difference in theta at one iteration [deg]
+set int part_dn 0  # normal displacement
+
+# vofm
+set double avgnorm0 1
+set double avgnorm1 1
+set int vofm_layers 4
+# coalescence is triggered the sum of volume fractions exceeds this value
+set double vofm_coalth 1e10
+set int vof_extrapolate_boundaries 0
+
+# physical
+set double rho1 1
+set double rho2 1
+set double mu1 0.01
+set double mu2 0.01
+set vect force 0 0 0
+set vect gravity 0 0 0
+
+# surface tension
+set string surftens kn
+set double zerostx0 1e10   # decay of surface tension withing range [x0,x1]
+set double zerostx1 1e10
+# initial surface tension sigma field
+set string init_sig uniform
+set double sigma 0
+set double sig_k 1.25
+set int marangoni 0
+set int youngbc 0
+
+set int bcc_reflectpoly 1   # reflect at boundaries for DumpPolyMarch
+set double bcc_fill 0
+set double bcc_clear0 0      # range for clipping vf near walls
+set double bcc_clear1 1      # value set to 0 or 1 if outside the range
+set double inletcl 1          # inlet color
+
+set string body_bc wall 0 0 0
+set string body_list_path body.dat
+#set string body_init list
+set string body_init zero
+set int body_init_inverse 0
+
+# fixed pressure point
+#set double pfixed 0
+#set vect pfixed_x 0. 0. 0.
+
+# initial velocity
+set string vel_init zero
+set string vellist_path vel.dat
+
+# initial contact angle
+set string init_contang uniform
+set double contang -1
+
+# initial volume fraction
+set string init_vf zero
+set int vf_init_sm 0
+set string list_path b.dat
+set string init_vf_hdf_path vf.h5
+set int init_vf_load_state 0
+set string init_vf_state_dir state
+set int list_ls 1
+
+# wavelamb
+set int wavelamb_vort 0
+#set string init_vf wavelamb
+#set double wavelamb_a0 0.1
+#set double wavelamb_xc 0.5
+#set double wavelamb_h 0.5
+#set double wavelamb_k 6.28
+#set double wavelamb_delta 0.01
+#set double wavelamb_omk 1
+#set int wavelamb_vort 1
+#set string vel_init wavelamb_vort
+#set int initvort 1
+
+# noise to initial velocity
+set int vel_init_noise 0
+# disturbance vector
+set vect noise_vel0 1 0 0
+set vect noise_vel1 1 0 0
+set vect noise_vel2 1 0 0
+# wavelength relative to cell size
+set vect noise_per0 0 0 1
+set vect noise_per1 0 0 1
+set vect noise_per2 0 0 1
+
+
+set int vel_init_random 0
+set double random_amp 1
+set vect random_vel 1 0 0
+
+# source from volume fraction
+set double source_mag 0.   # magnitude [1/time]
+#set double source_freq 1.   # frequency [1/time]
+#set double source_wly 1.   # wavelength in y [length]
+set double source_mag0 0.   # magnitude, constant component [1/time]
+set double source_mexp 0   # exponent for factor (m2/m20)^mexp
+set double source_mexp0 0   # exponent for factor (m2/m20)^mexp0
+
+# force from volume fraction
+set double force_mag 0.   # magnitude [1/time]
+#set double force_freq 1.   # frequency [1/time]
+#set double force_wly 1.   # wavelength in y [length]
+
+# vortex force
+set double force_vort_g 0
+set double force_vort_r 0
+set vect force_vort_c 0
+
+# moving force
+set vect force_mov 0 0 0
+set vect force_mov2 0 0 0
+
+# Kolmogorov forcing
+set int force_kolm 0
+set int force_kolm_accel 0
+
+# vortex ring
+set int initvort 0
+#set string vel_init vortexring
+set vect ring_c 0.5 0.5 0.5
+set vect ring_n 1. 0. 0.
+set double ring_om 0.01
+set double ring_r0 0.2
+set double ring_r1 0.4
+
+set int vort_report 1
+set int linreport 0
+set int check_symmetry 0
+set double check_symmetry_dump_threshold 1e10
+
+# bubble generation
+set int enable_bubgen 0
+set string bubgen_path bg.dat
+set double bubgen_t0 0
+set double bubgen_dt 1
+set int bubgen_max 1000000
+
+# communication
+set int hl 2
+
+# parameters of backend=local
+set int loc_maxcomm 16
+set int loc_periodic_x 1
+set int loc_periodic_y 1
+set int loc_periodic_z 1
+
+
+# bubble tracker
+set int enable_color 0
+set double color_th 0.5
+set double color_maxr 1e10
+# shell averaging around bubbles
+# requires enable_color=true
+# shell total radius: rr * req + r
+set int enable_shell 0
+set double shell_h 3    # shell thickness in cells
+set double shell_rr 2   # shell inner radius relative to equivalent radius
+set double shell_r 0    # shell inner radius absolute
+
+# linear solver
+# general
+set string linsolver_gen hypre
+set string hypre_gen_solver gmres
+set int hypre_gen_maxiter 30
+set double hypre_gen_tol 1e-3
+# symmetric
+set string linsolver_symm hypre
+set string hypre_symm_solver pcg
+#set string hypre_symm_solver pcg+smg
+#set string hypre_symm_solver smg
+set int hypre_symm_maxiter 100
+set int hypre_symm_miniter 10
+set double hypre_symm_tol 1e-3
+# vorticity
+set string linsolver_vort hypre
+set string hypre_vort_solver smg
+set int hypre_vort_maxiter 1000
+set double hypre_vort_tol 1e-6
+# common
+set int hypre_print 0
+
+set string bc_xm wall 0 0 0
+set string bc_xp wall 0 0 0
+set string bc_ym wall 0 0 0
+set string bc_yp wall 0 0 0
+set string bc_zm wall 0 0 0
+set string bc_zp wall 0 0 0
+
+set int enable_bc 0
+set string BOX_X0 "box 0 0 0  1e-10 10 10"
+set string BOX_X1 "box 1 0 0  1e-10 10 10"
+set string BOX_Y0 "box 0 0 0  10 1e-10 10"
+set string BOX_Y1 "box 0 1 0  10 1e-10 10"
+set string BOX_Z0 "box 0 0 0  10 10 1e-10"
+set string BOX_Z1 "box 0 0 1  10 10 1e-10"
+set string BOX_ALL "box 0 0 0  1e6 1e6 1e6"
+
+set int bc_wall_init_vel 0
+
+set vect overwrite_inlet_times
+set vect overwrite_inlet_factors
+set vect overwrite_inletpressure_times
+set vect overwrite_inletpressure_pressure
+set int enable_inlet_periodic 0
+
+# body velocity
+set vect bodyvel_times
+set vect bodyvel_x
+set vect bodyvel_y
+set vect bodyvel_z
+
+# initial velocity asa Poiseuille flow in rectangular duct
+set int poiswym 1
+set int poiswyp 1
+set int poiswzm 1
+set int poiswzp 1
+
+# output field
+set int output 1
+set double dump_field_t0 0
+set double dump_field_dt 1
+set int dump_field_max 10000
+set int dumpinit 0
+set string dumplist vx vy vz p vf cl
+set int dumpbc 0  # dump boundary conditions on faces to bc.vtk
+set int dumplast 0
+
+# timer report
+set double dump_trep_t0 1e10
+set double dump_trep_dt 1
+set int dump_trep_max 10000
+
+# debug output
+set int report_knan 0  # nan curvature
+set int report_stat 0  # field statistics
+set int histogram 0    # collect statistics on each rank [ap.histbin -h]
+                       # may generate large data in the case of many ranks and
+                       # steps
+
+# output traj
+set double dump_traj_t0 0
+set double dump_traj_dt 1
+set int dump_traj_max 10000
+
+# output vof 
+set int dumppoly 1
+set int dumppolymarch 1
+set double dumppolymarch_fill -1  # value to fill halo cells, applied if >=0
+set int dumppart 0
+set int dumppartinter 0
+set double dump_part_t0 0.
+set double dump_part_dt 1
+set int dump_part_max 10000
+set int part_dump_fr 1
+set int part_report_fr 1
+set double clfixed -1
+set vect clfixed_x 1e10 1e10 1e10
+set int cloverride 0
+set int vtkbin 1
+set int vtkmerge 1
+set double vtkiso 0.5
+
+# output stat
+set int dump_stat_max 1000000
+set double dump_stat_dt 0
+set string dumpformat default
+set int report_sysinfo 1
+set int verbose 0
+set int verbose_stages 1
+set int verbose_time 1
+set int verbose_openmp 0
+set int verbose_conf_reads 0
+set int verbose_conf_unused 1
+set string conf_unused_ignore_path base.conf
+set int statvel 0
+set int enstrophy 0
+set int stat_area 0
+set int stat_dissip 0
+set int stat_vofm 0
+set int report_step_every 1
+set int stat_step_every 1
+
+set string backend native
+
+set int spacedim 2
+set int dim 2
+set int hypre_periodic_z 1
+
+# boundary conditions
+set string bc_path "inline wall 0 0 0 { box 0 0 0 1e6 }"
+
+# physical
+set double rho1 1
+set double rho2 1
+set double sigma 0
+set double mu1 0.01
+set double mu2 0.01
+
+# numerical
+set double cfl 0.8
+set double cfla 0.8
+set int max_iter 1
+set string fluid_solver proj
+set int sharpen 1
+set int vfsmooth 1
+set double dtmax 0.1
+set int hypre_symm_miniter 10
+set double hypre_symm_tol 0.1
+set string linsolver_symm conjugate
+set double cflvis 1000
+set double cflst 1
+
+# dump
+set string dumplist
+set double dumppolymarch_fill 0
+set double dump_field_t0 1e10
+set double dump_field_dt 1e10
+set double dump_traj_t0 1e10
+set int verbose_time 0
+set int verbose_stages 0
+set string dumpformat raw
+set int dumppoly 0
+set int dumppolymarch 0
+set int dump_eb 0
+set int report_step_every 10
+)EOF"
