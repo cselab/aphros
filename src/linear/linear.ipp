@@ -243,7 +243,11 @@ class ModuleLinearConjugate : public ModuleLinear<M> {
   ModuleLinearConjugate() : ModuleLinear<M>("conjugate") {}
   std::unique_ptr<Solver<M>> Make(
       const Vars& var, std::string prefix, const M& m) override {
+    auto addprefix = [prefix](std::string name) {
+      return "linsolver_" + prefix + "_" + name;
+    };
     typename linear::SolverConjugate<M>::Extra extra;
+    extra.residual_max = var.Int[addprefix("maxnorm")];
     return std::make_unique<linear::SolverConjugate<M>>(
         this->GetConf(var, prefix), extra, m);
   }
