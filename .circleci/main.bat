@@ -1,5 +1,5 @@
 call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
-nmake "CXXFLAGS=/O2 /nologo" "CFLAGS=/O2 /nologo" /k /f Makefile_nmake
+nmake "CXXFLAGS=/O2 /nologo" "CFLAGS=/O2 /nologo" /k
 main.exe --logo --exit
 
 
