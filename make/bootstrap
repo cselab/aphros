@@ -13,7 +13,8 @@ d=/tmp/bootstrap.dep.$$
 r=/tmp/bootstrap.rule.$$
 
 trap 'rm -f $d $h $l $o $r; exit 2' 1 2 3 14 15
-find . \
+{
+    find . \
      -type f \
      -name '*.c' -or \
      -name '*.cpp' -or \
@@ -21,12 +22,15 @@ find . \
      -name '*.hpp' -or \
      -name '*.inc' -or \
      -name '*.ipp' | sed 's,^\.\/,,g' | \
-    grep -v '^build[a-z_0-9]*\/' > $l
-{ cat $l ; echo util/gitgen.cpp; } | ../make/obj | sort | uniq > $o
+	grep -v '^build[a-z_0-9]*\/';
+    echo explorer.inc;
+    echo util/gitgen.cpp;
+} > $l
+../make/obj $l | sort | uniq > $o
 grep '\.h$' $l | grep -v '^test\/' | fgrep -v 'aphros_c.h' | sort | uniq > $h
 ../make/var H $h > ../make/hdr.mk
-{ cat $l; echo explorer.inc; } | ../make/list | ../make/dep > $d
-{ cat $l; echo util/gitgen.cpp; } | ../make/rule | sort | uniq > $r
+../make/list $l | ../make/dep > $d
+../make/rule $l | sort | uniq > $r
 
 # unix
 awk '{printf "$(WRK)/%s.o: $(SRC)/%s\n", $1, $2}' $d > ../make/unix/dep.mk
