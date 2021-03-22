@@ -47,7 +47,7 @@ $(WRK)/main: $(WRK)/main.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(WRK)/main.o $
 $(WRK)/explorer: $(WRK)/explorer.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(WRK)/explorer.o $(WRK)/$L $(LDFLAGS) $(LDFLAGS_HDF) -o $@
 $(WRK)/.dir:; mkdir -p $P && > $@
 $(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@
-$(SRC)/explorer.inc:; out="$@" $(SRC)/explorer_gen
+$(SRC)/explorer.inc:; out="$@" base=$(SRC)/../deploy/scripts/sim_base.conf wasm="$(SRC)/../examples/107_wasm/conf/std.conf" $(SRC)/explorer_gen
 install: $(WRK)/$L $(WRK)/main $(WRK)/explorer
 	mkdir -p '$(APHROS_PREFIX)'/lib '$(APHROS_PREFIX)'/bin '$(APHROS_PREFIX)'/include
 	for i in $D; \
