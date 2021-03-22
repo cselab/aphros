@@ -1,10 +1,23 @@
 #!/bin/sh
 
-# $ cd src
-# $ ../make/bootstrap
-#
-# ../make/obj defines the files to build
-set -e
+me=make/bootstrap
+if test $# -ge 0 -a "$1" = -h
+then
+    cat >&1 <<'!'
+usage:
+$ cd src
+$ ../make/bootstrap
+generates *.mk files in make/
+a program ../make/obj defines object files for a library
+!
+    exit 2
+fi
+
+if ! test -f parse/parser.h
+then
+    printf >&2 '%s: error: should be used from aphros/src\n' $me
+    exit 1
+fi
 
 l=/tmp/bootstrap.list.$$
 o=/tmp/bootstrap.obj.$$
