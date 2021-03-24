@@ -294,25 +294,33 @@ struct Imp {
       return false;
     }
 
-    const Vect xc(Vect3(d["cx"], d["cy"], d["cz"]));
-    Vect t(Vect3(d["tx"], d["ty"], d["tz"]));
-    t /= t.norm();
-    const Scal r = d["r"];
-    const Scal t0 = d["t0"];
-    const Scal t1 = d["t1"];
+    if (dim == 2) {
+      const Vect xc(Vect3(d["cx"], d["cy"], 0));
+      const Scal r = d["r"];
+      res.ls = [xc, r](const Vect& x) -> Scal { //
+        return r - (x - xc).norm();
+      };
+    } else {
+      const Vect xc(Vect3(d["cx"], d["cy"], d["cz"]));
+      Vect t(Vect3(d["tx"], d["ty"], d["tz"]));
+      t /= t.norm();
+      const Scal r = d["r"];
+      const Scal t0 = d["t0"];
+      const Scal t1 = d["t1"];
 
-    res.ls = [xc, t, r, t0, t1, edim](const Vect& x) -> Scal {
-      Vect dx = x - xc;
-      for (size_t i = edim; i < dim; ++i) {
-        dx[i] = 0;
-      }
-      const Scal dt = t.dot(dx);
-      const Scal dr = dx.dist(t * dt);
-      Scal q = r - dr;
-      if (dt < t0) q = std::min(q, dt - t0);
-      if (dt > t1) q = std::min(q, t1 - dt);
-      return q;
-    };
+      res.ls = [xc, t, r, t0, t1, edim](const Vect& x) -> Scal {
+        Vect dx = x - xc;
+        for (size_t i = edim; i < dim; ++i) {
+          dx[i] = 0;
+        }
+        const Scal dt = t.dot(dx);
+        const Scal dr = dx.dist(t * dt);
+        Scal q = r - dr;
+        if (dt < t0) q = std::min(q, dt - t0);
+        if (dt > t1) q = std::min(q, t1 - dt);
+        return q;
+      };
+    }
     return true;
   }
 
@@ -403,7 +411,6 @@ struct Imp {
     const Scal n0 = d["n0"];
     const Scal n1 = d["n1"];
 
-    // http://geomalgorithms.com/a03-_inclusion.html
     // TODO: add bounding box heuristic
     res.ls = [edim, o, n, u, v, n0, n1, points](const Vect& x) -> Scal {
       Vect dx = x - o;
@@ -418,6 +425,57 @@ struct Imp {
           p, points.size(), [&points](size_t i) { return points[i]; });
       if (dn < n0) q = std::min(q, dn - n0);
       if (dn > n1) q = std::min(q, n1 - dn);
+      return q;
+    };
+    res.inter = [](const Rect<Vect>&) -> bool { return true; };
+    return true;
+  }
+  static bool ParsePolygon2(std::string s, Primitive& res) {
+    if (dim != 2) {
+      return false;
+    }
+    res.name = "polygon2";
+    std::vector<Scal> coords;
+    auto d = GetMap(res.name, s, "ox oy ux uy scale", 5, &coords);
+    if (d.empty()) {
+      return false;
+    }
+    // coords: vertices of nonintersecting polygons stored as loops
+    //         that start and end with the same point.
+
+    fassert(
+        coords.size() % 2 == 0,
+        util::Format(
+            "got {} coordinates, required an even number", coords.size()));
+    const size_t npoints = coords.size() / 2;
+    fassert(
+        npoints >= 4,
+        util::Format(
+            "got {} two-dimensional points, at least 4 points required",
+            npoints));
+
+    std::vector<Vect2> points(npoints);
+    const Scal scale = d["scale"];
+    for (size_t i = 0; i < npoints; ++i) {
+      points[i][0] = coords[2 * i] * scale;
+      points[i][1] = coords[2 * i + 1] * scale;
+    }
+    AssertPolygonPoints(points);
+
+    const Vect2 o(d["ox"], d["oy"]); // origin
+    // direction of local x-axis
+    Vect2 u(d["ux"], d["uy"]);
+    u /= u.norm();
+    const Vect2 v(-u[1], u[0]);
+
+    // TODO: add bounding box heuristic
+    res.ls = [o, u, v, points](const Vect& x) -> Scal {
+      Vect2 dx = Vect2(x) - o;
+      const Scal du = u.dot(dx);
+      const Scal dv = v.dot(dx);
+      const Vect2 p(du, dv);
+      Scal q = GetPolygonSdf(
+          p, points.size(), [&points](size_t i) { return points[i]; });
       return q;
     };
     res.inter = [](const Rect<Vect>&) -> bool { return true; };
@@ -552,6 +610,7 @@ struct Imp {
       if (!r) r = ParseSmoothStep(s, p);
       if (!r) r = ParseCylinder(s, edim, p);
       if (!r) r = ParsePolygon(s, edim, p);
+      if (!r) r = ParsePolygon2(s, p);
       if (!r) r = ParseRuled(s, edim, p);
 
       if (p.mod_minus) {

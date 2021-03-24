@@ -14,5 +14,5 @@
 
 #include "primlist.ipp"
 
-#define X(dim) template class UPrimList<generic::Vect<double, dim>>;
+#define X(dim) template struct UPrimList<generic::Vect<double, dim>>;
 MULTIDIMX

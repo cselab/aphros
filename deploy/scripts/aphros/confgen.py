@@ -315,6 +315,25 @@ class Geometry:
         self.__Append(s)
         return self
 
+    def Polygon2(self, origin, right, scale, polygon, **kwargs):
+        '''
+        polygon: `list(list(float))`, polygon as list of 2D vertices
+            If first and last vertices do not coincide,
+            appended by the first vertex to make a loop
+        '''
+        assert all(len(p) == 2 for p in polygon), \
+                "expected 2D points, got '{:}'".format(polygon)
+        assert len(polygon) >= 3, \
+                "expected polygon of at least 3 vertices, got '{:}'".format(polygon)
+        if polygon[0] != polygon[-1]:
+            polygon.append(polygon[0])
+        coords = [x for p in polygon for x in p]
+        s = self.__Prefix(**kwargs)
+        s += "polygon2 {:}   {:}   {:}   {:}".format(
+            VectToStr(origin), VectToStr(right), scale, VectToStr(coords))
+        self.__Append(s)
+        return self
+
     def Ruled(self, origin, normal, right, normalrange, scale0, scale1,
               polygon0, polygon1, **kwargs):
         '''
@@ -451,4 +470,3 @@ def ReadConfig(fpath):
     d = dict()
     exec(code, None, d)
     return Config(d)
-
