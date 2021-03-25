@@ -75,6 +75,10 @@ set int hypre_periodic_y 1
 set int hypre_periodic_z 1
 set string hypre_gen_solver gmres
 
+set int linsolver_gen_maxnorm 0
+set int linsolver_symm_maxnorm 0
+set int linsolver_vort_maxnorm 0
+
 set int loc_periodic_x 1
 set int loc_periodic_y 1
 set int loc_periodic_z 1
