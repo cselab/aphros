@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+
+import aphros
+
+
+class Default(aphros.Parameters):
+    dim = 2
+    spacedim = 2
+    np = 96
+    bs = 128
+    nx = 6144
+    extent = 24
+    Re = 1000
+    tmax = 40
+    tl = 1440
+    dumpdt = 0.025
+    dumplist = "vx vx omz p"
+    lyk = 0.5
+    lzk = 0.25
+    body = "cylinder"
+    center_x = 0.3
+
+par = Default("par.py")
+
+lx = par.extent
+ly = par.extent * par.lyk
+lz = par.extent * par.lzk
+inf = lx * 10
+eps = 1e-2
+
+if par.dim == 2:
+    nz = 1
+    bsz = 1
+    lz = None
+else:
+    nz = None
+    bsz = None
+
+domain = aphros.AdjustedDomain(lx=lx,
+                               ly=ly,
+                               lz=lz,
+                               nx=par.nx,
+                               nz=nz,
+                               bsz=bsz,
+                               nproc=par.np,
+                               bs=par.bs)
+
+lx = domain.lx
+ly = domain.ly
+lz = domain.lz
+hx = lx / domain.nx
+
+center = [lx * par.center_x, ly * 0.5, lz * 0.5]
+R = 0.5
+
+body = aphros.Geometry()
+if par.body == "cylinder":
+    if par.dim == 2:
+        body.Sphere(center, [R] * 3)
+    else:
+        body.Cylinder(center, [0, 0, 1], 0.5, [-inf, inf])
+elif par.body == "sphere":
+    body.Sphere(center, [R]*3)
+else:
+    assert False, "Unknown body=" + par.body
+
+bc = aphros.BoundaryConditions()
+bc.SlipWall(aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]))
+bc.Inlet(aphros.Geometry().Box([0, 0, 0], [eps, inf, inf]), velocity=[1, 0, 0])
+bc.Outlet(aphros.Geometry().Box([lx, 0, 0], [eps, inf, inf]))
+if par.body == "sphere":
+    bc.Wall(aphros.Geometry().Box(center, [R + hx, R + hx, R + hx]),
+            velocity=[0, 0, 0])
+else:
+    bc.Wall(aphros.Geometry().Box(center, [R + hx, R + hx, inf]),
+            velocity=[0, 0, 0])
+
+par.spacedim = max(par.spacedim, par.dim)
+
+conf = aphros.Config()
+conf.spacedim = par.spacedim
+conf.tmax = float(par.tmax)
+conf.extent = domain.extent
+conf.mu1 = 1. / par.Re
+conf.eb_list_path = "inline\n{}\n".format(body.Generate())
+conf.bc_path = "inline\n{}\n".format(bc.Generate())
+conf.dump_field_dt = float(par.dumpdt)
+conf.dumplist = par.dumplist
+if par.body == "sphere":
+    conf.hypre_periodic_z = 0
+conf.GenerateFile("par.conf")
+
+print(domain)
+domain.tl = par.tl
+with open("par.make", 'w') as f:
+    f.write('''m = {nx} {ny} {nz}
+bs = {bsx} {bsy} {bsz}
+np = {nproc}
+tl = {tl}
+'''.format(**vars(domain)))
+
