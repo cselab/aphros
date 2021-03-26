@@ -155,6 +155,7 @@ install(
     DIRECTORY
       "${ScriptsDir}/aphros"
       "${ScriptsDir}/paratools"
+      "${ScriptsDir}/plottools"
     DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
     USE_SOURCE_PERMISSIONS
     PATTERN __pycache__ EXCLUDE)

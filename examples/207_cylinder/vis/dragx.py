@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
+try:
+    import plottools
+    import matplotlib.pyplot as plt
+    plottools.apply_params(plt)
+except:
+    import matplotlib.pyplot as plt
+
 import sys
-import matplotlib
-matplotlib.use('Agg')
-matplotlib.rc('text', usetex=True)
-import matplotlib.pyplot as plt
 import os
 import re
 import numpy as np
@@ -34,18 +37,18 @@ def GetDrag(basedir, skip=10):
     return stat['t'], stat['dragx'], stat['dragy'], cpd, os.path.basename(basedir)
 
 
-fig,ax = plt.subplots(figsize=(4,3))
+fig,ax = plt.subplots()
 
 fref = "ref/dragx_ba"
 t,dragx = np.genfromtxt(fref).T
-ax.plot(t, dragx * 2, label="basilisk $D/h={:.0f}$".format(2**13/18), c='green')
+ax.plot(t, dragx * 2, label="basilisk $D/h={:.0f}$".format(2**13/18), c='g')
 
 fref = "ref/dragx_k95"
 ref = np.genfromtxt(fref)
 refx,refy = ref.T
 refx = refx * 0.5
 refy *= 1
-ax.plot(refx, refy, label="koumoutsakos1995", c='red')
+ax.plot(refx, refy, label="koumoutsakos1995", c='0')
 
 
 for path in sys.argv[1:]:
