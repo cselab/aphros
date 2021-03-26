@@ -23,7 +23,7 @@ if [ "${omp:-1}" != 1 ] ; then
   np=$(($np / $omp))
 fi
 
-r="`ap.part0 $nx $ny $nz $bsx $bsy $bsz $np`"
+r=$(ap.part0 "$nx" "$ny" "$nz" "$bsx" "$bsy" "$bsz" "$np")
 IFS=' ' read px py pz bx by bz <<< "$r"
 
 echo "set int px $px

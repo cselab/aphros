@@ -15,10 +15,12 @@ class Default(aphros.Parameters):
     tl = 1440
     dumpdt = 0.025
     dumplist = "vx vx omz p"
+    dumplist3d = "vz omm"
     lyk = 0.5
     lzk = 0.25
     body = "cylinder"
     center_x = 0.3
+
 
 par = Default("par.py")
 
@@ -60,7 +62,7 @@ if par.body == "cylinder":
     else:
         body.Cylinder(center, [0, 0, 1], 0.5, [-inf, inf])
 elif par.body == "sphere":
-    body.Sphere(center, [R]*3)
+    body.Sphere(center, [R] * 3)
 else:
     assert False, "Unknown body=" + par.body
 
@@ -86,16 +88,12 @@ conf.eb_list_path = "inline\n{}\n".format(body.Generate())
 conf.bc_path = "inline\n{}\n".format(bc.Generate())
 conf.dump_field_dt = float(par.dumpdt)
 conf.dumplist = par.dumplist
+if par.dim == 3:
+    conf.dumplist += ' ' + par.dumplist3d
 if par.body == "sphere":
     conf.hypre_periodic_z = 0
 conf.GenerateFile("par.conf")
 
-print(domain)
-domain.tl = par.tl
-with open("par.make", 'w') as f:
-    f.write('''m = {nx} {ny} {nz}
-bs = {bsx} {bsy} {bsz}
-np = {nproc}
-tl = {tl}
-'''.format(**vars(domain)))
-
+domain = aphros.PartitionDomain(domain)
+domain.GenerateMeshConfig()
+aphros.GenerateJobConfig(domain.nproc, par.tl)

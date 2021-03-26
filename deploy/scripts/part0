@@ -5,108 +5,112 @@ import sys
 dim = 3
 rd = range(dim)
 
+
 # product of triplet
 def Prod(p):
-  r = 1
-  for i in rd:  
-    r *= p[i]
-  return r
+    r = 1
+    for i in rd:
+        r *= p[i]
+    return r
+
 
 # true if p is divisible by b
 # p, b: triplets
-def IsDiv(p, b):
-  return all(p[i] % b[i] == 0 for i in rd)
+def IsDivisible(p, b):
+    return all(p[i] % b[i] == 0 for i in rd)
+
 
 # divide p by b
 def Div(p, b):
-  return [p[i] // b[i] for i in rd]
+    return [p[i] // b[i] for i in rd]
 
-# blocks for processors
-def GetB(p):
-  global bp
-  assert IsDiv(bp, p)
-  return Div(bp, p)
 
-# quality: value to maximize
-# communication_area * (-1)
+def GetBlocks(p):
+    global bp
+    assert IsDivisible(bp, p)
+    return Div(bp, p)
+
+
+# Value to maximize: minus communication area.
 # p: processors
-def Qual(p):
-  global bs
-  b = GetB(p)
+def Quality(p):
+    global bs
+    b = GetBlocks(p)
 
-  # area normal to each direction
-  a = [Prod(b) // b[i] * Prod(bs) // bs[i] for i in rd]
-  return -sum(a)
+    # area normal to each direction
+    a = [Prod(b) // b[i] * Prod(bs) // bs[i] for i in rd]
+    return -sum(a)
+
 
 v = sys.argv
 vn = 1 + 2 * dim + 1
 
 if len(v) != vn:
-  print(
-"""usage: {:} nx ny nz bsx bsy bsz np
+    print("""usage: {:} nx ny nz bsx bsy bsz nproc
 Partition mesh minimizing the communication area.
 ARGS:
   nx,ny,nz: mesh size
   bsx,bsy,bsz: block size
-  np: number of processors
+  nproc: number of processors
 STDOUT:
-  px,py,pz: processors, np=px*py*pz
+  px,py,pz: processors, nproc=px*py*pz
   bx,by,bz: blocks per processor, px*bx*bsx=nx
 """.format(v[0]))
-  exit(1)
+    exit(1)
 
-nx,ny,nz,bsx,bsy,bsz,np = map(int, v[1:])
+nx, ny, nz, bsx, bsy, bsz, nproc = map(int, v[1:])
 
 i = 1
-n = list(map(int, v[i:i+dim])); i += dim
-bs = list(map(int, v[i:i+dim])); i += dim
-np = int(v[i]); i += 1
+n = list(map(int, v[i:i + dim]))
+i += dim
+bs = list(map(int, v[i:i + dim]))
+i += dim
+nproc = int(v[i])
+i += 1
 assert i == vn
 
 # check n divisible by bs
-if not IsDiv(n, bs):
-  sys.stderr.write(
-      "Error: mesh size {:} not divisible by block size {:}\n".format(n, bs))
-  exit(1)
+if not IsDivisible(n, bs):
+    sys.stderr.write(
+        "Error: mesh size {:} not divisible by block size {:}\n".format(n, bs))
+    exit(1)
 
-# b*p 
+# b*p
 bp = Div(n, bs)
 
-# check bp divisible by np
-if Prod(bp) % np != 0:
-  sys.stderr.write(
-      "Error: number of blocks {:} not divisible by np={:}\n"
-          .format(Prod(bp), np))
-  exit(1)
+# check bp divisible by nproc
+if Prod(bp) % nproc != 0:
+    sys.stderr.write(
+        "Error: number of blocks {:} not divisible by nproc={:}\n".format(
+            Prod(bp), nproc))
+    exit(1)
 
+# divisors of nproc
+divisors = [i for i in range(1, nproc + 1) if nproc % i == 0]
 
-# divisors of np
-d = [i for i in range (1, np + 1) if np % i == 0]
+# maximize Quality(p)
+best_p = None  # best p
+for px in divisors:
+    for py in divisors:
+        pz = nproc // (px * py)
+        p = [px, py, pz]
 
+        if Prod(p) != nproc:
+            continue
 
-# maximize Qual(p)
-q = None # best p
-for px in d:
-  for py in d:
-    pz = np // (px * py)
-    p = [px, py, pz]
+        if not IsDivisible(bp, p):
+            continue
 
-    if Prod(p) != np:
-      continue
+        b = GetBlocks(p)
 
-    if not IsDiv(bp, p):
-      continue
+        assert all(p[i] * b[i] * bs[i] == n[i] for i in rd)
 
-    b = GetB(p)
+        if (best_p is None or Quality(p) > Quality(best_p)):
+            best_p = p
 
-    assert all(p[i]*b[i]*bs[i] == n[i] for i in rd)
-
-    if (q is None or Qual(p) > Qual(q)):
-      q = p
-
-assert q, "Can't partition"
+assert best_p, "Can't partition"
 
 o = sys.stdout
-for a in q + GetB(q):
-  o.write("{:} ".format(a))
+for a in best_p + GetBlocks(best_p):
+    o.write("{:} ".format(a))
 o.write("\n")

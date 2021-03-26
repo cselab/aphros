@@ -29,6 +29,8 @@ ReadConfig = aphros.confgen.ReadConfig
 Var = aphros.confgen.Config
 Domain = aphros.confgen.Domain
 AdjustedDomain = aphros.confgen.AdjustedDomain
+PartitionDomain = aphros.confgen.PartitionDomain
+GenerateJobConfig = aphros.confgen.GenerateJobConfig
 AdjustDomainToProcessors = aphros.confgen.AdjustDomainToProcessors
 CheckDomain = aphros.confgen.CheckDomain
 from aphros.confgen import Parameters

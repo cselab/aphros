@@ -25,7 +25,7 @@ def NormalizeType(v):
 
 class Config:
     def __init__(self, var=dict()):
-        for k,v in var.items():
+        for k, v in var.items():
             self[k] = v
 
     def __getitem__(self, key):
@@ -80,6 +80,8 @@ class Domain:
         Block size in each direction.
     bx,by,bz: `int`
         Number of blocks in each direction.
+    px,py,pz: `int`
+        Number of processors in each direction.
     nproc: `int`
         Number of processors.
     """
@@ -102,20 +104,20 @@ class Domain:
                  nproc=None):
         conf = locals()
 
-        def t(line):
+        def tryline(line):
             nonlocal conf
             try:
                 exec(line, None, conf)
             except:
                 pass
 
-        def tt(lines):
+        def trylines(lines):
             for line in lines:
-                t(line)
+                tryline(line)
 
         # TODO: detect conflicting parameters
 
-        tt([
+        trylines([
             "extent = max(lx, ly, lz)",
             "nmax = max(nx, ny, nz)",
             "bsx = bs if bsx is None else bsx",
@@ -143,6 +145,9 @@ class Domain:
             "lz = float(nz * h)",
             "extent = max(lx, ly, lz)",
             "nmax = max(nx, ny, nz)",
+            "px = 1",
+            "py = 1",
+            "pz = 1",
         ])
 
         for k, v in conf.items():
@@ -169,6 +174,79 @@ class Domain:
         for k, v in diff.items():
             print("{:>8}  {:<7} {:<7}".format(k, *v))
 
+    def GetMeshConfig(self):
+        return """\
+set int px {px}
+set int py {py}
+set int pz {pz}
+
+set int bx {bx}
+set int by {by}
+set int bz {bz}
+
+set int bsx {bsx}
+set int bsy {bsy}
+set int bsz {bsz}
+""".format(**vars(self))
+
+    def GenerateMeshConfig(self, path="mesh.conf"):
+        with open(path, 'w') as f:
+            f.write(self.GetMeshConfig())
+
+
+def PartitionDomain(domain):
+    """
+    Partitions domain to subdomains for given number of processors
+    minimizing the communication area.
+    Returns new domain with updated px,py,pz and divided bx,by,bz.
+    """
+    CheckDomain(domain)
+    dim = 3
+    b_all = [domain.bx, domain.by, domain.bz]
+    bs = [domain.bsx, domain.bsy, domain.bsz]
+
+    def prod(v):
+        res = 1
+        for a in v:
+            res *= a
+        return res
+
+    def divisible(p, d):
+        return all(p[i] % d[i] == 0 for i in range(dim))
+
+    def div(p, d):
+        return [p[i] / d[i] for i in range(dim)]
+
+    def quality(p):
+        nonlocal bs, b_all
+        b = div(b_all, p)
+        return -sum([prod(b) // b[i] * prod(bs) // bs[i] for i in range(dim)])
+
+    nproc = domain.nproc
+    divisors = [i for i in range(1, nproc + 1) if nproc % i == 0]
+    best_p = None
+    for px in divisors:
+        for py in divisors:
+            pz = nproc // (px * py)
+            p = [px, py, pz]
+            if prod(p) != nproc:
+                continue
+            if not divisible(b_all, p):
+                continue
+            if best_p is None or quality(p) > quality(best_p):
+                best_p = p
+    assert best_p, "No partition found for {:}".format(domain)
+    newdomain = copy.deepcopy(domain)
+    p = best_p
+    newdomain.px = p[0]
+    newdomain.py = p[1]
+    newdomain.pz = p[2]
+    b = div(b_all, p)
+    newdomain.bx = p[0]
+    newdomain.by = p[1]
+    newdomain.bz = p[2]
+    return newdomain
+
 
 def AdjustedDomain(verbose=True,
                    decrease_nproc=True,
@@ -189,21 +267,28 @@ def AdjustedDomain(verbose=True,
     if diff and verbose:
         print("Domain is adjusted. Changes:")
         Domain.printdiff(diff)
-    domain = newdomain
-    assert CheckDomain(domain), "Check failed for \n{:}".format(domain)
+    CheckDomain(newdomain)
     return newdomain
 
 
-def CheckDomain(domain):
+def CheckDomain(domain, fatal=True):
     """
     Reports statistics and performs quality checks of the domain:
         - number of blocks is divisible by `nproc`
 
-    Returns True if checks pass.
+    Returns list of failed checks or aborts if fatal=True.
     """
-    if (domain.bx * domain.by * domain.bz) % domain.nproc == 0:
-        return True
-    return False
+    checks = [
+        "(domain.bx * domain.by * domain.bz) % domain.nproc == 0",
+    ]
+    failed = []
+    for check in checks:
+        if not eval(check):
+            failed.append(check)
+    assert not failed, \
+            "While checking domain\n{:}\nthe following checks failed\n{:}".format(
+        domain, failed)
+    return failed
 
 
 def AdjustDomainToProcessors(domain,
@@ -329,8 +414,9 @@ class Geometry:
             polygon.append(polygon[0])
         coords = [x for p in polygon for x in p]
         s = self.__Prefix(**kwargs)
-        s += "polygon2 {:}   {:}   {:}   {:}".format(
-            VectToStr(origin), VectToStr(right), scale, VectToStr(coords))
+        s += "polygon2 {:}   {:}   {:}   {:}".format(VectToStr(origin),
+                                                     VectToStr(right), scale,
+                                                     VectToStr(coords))
         self.__Append(s)
         return self
 
@@ -461,6 +547,7 @@ class Parameters:
                 setattr(self, k, v)
         return self
 
+
 def ReadConfig(fpath):
     """
     Returns Config from configuration file (commands "set ...").
@@ -470,3 +557,10 @@ def ReadConfig(fpath):
     d = dict()
     exec(code, None, d)
     return Config(d)
+
+def GenerateJobConfig(nproc, time_limit_minutes, basedir="."):
+    with open(os.path.join(basedir, "np"), 'w') as f:
+        f.write(str(nproc))
+    with open(os.path.join(basedir, "tl"), 'w') as f:
+        f.write(str(time_limit_minutes))
+
