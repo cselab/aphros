@@ -215,7 +215,7 @@ def PartitionDomain(domain):
         return all(p[i] % d[i] == 0 for i in range(dim))
 
     def div(p, d):
-        return [p[i] / d[i] for i in range(dim)]
+        return [p[i] // d[i] for i in range(dim)]
 
     def quality(p):
         nonlocal bs, b_all
@@ -242,9 +242,9 @@ def PartitionDomain(domain):
     newdomain.py = p[1]
     newdomain.pz = p[2]
     b = div(b_all, p)
-    newdomain.bx = p[0]
-    newdomain.by = p[1]
-    newdomain.bz = p[2]
+    newdomain.bx = b[0]
+    newdomain.by = b[1]
+    newdomain.bz = b[2]
     return newdomain
 
 
