@@ -463,7 +463,7 @@ class BoundaryConditions:
         line = "{:} {{\n{:}\n}}".format(line, self.__Indent(geom.Generate()))
         self.lines.append(line)
 
-    def Wall(self, geom, velocity, extra=""):
+    def Wall(self, geom, velocity=[0, 0, 0], extra=""):
         s = "wall {:}".format(VectToStr(velocity)) + extra
         self.__Append(s, geom)
 
@@ -563,4 +563,3 @@ def GenerateJobConfig(nproc, time_limit_minutes, basedir="."):
         f.write(str(nproc))
     with open(os.path.join(basedir, "tl"), 'w') as f:
         f.write(str(time_limit_minutes))
-
