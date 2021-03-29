@@ -59,10 +59,13 @@ def SetTimeStep(index, sources_ft, timearrays):
     '''
     Sets sources to time step given by index.
     '''
-    for s,tt in zip(sources_ft, timearrays):
+    for s,t in zip(sources_ft, timearrays):
         if hasattr(s, "ForcedTime"):
-            s.ForcedTime = tt[index]
-            s.UpdatePipeline()
+            try:
+                s.ForcedTime = t[index]
+            except:
+                pass
+        s.UpdatePipeline()
 
 def SaveAnimation(steps, renderView, sources_ft, timearrays, pattern="a_{:}.png", force=False):
     for index,step in enumerate(steps):
@@ -86,4 +89,3 @@ def GetBoundingBox(o):
     lim0 = np.array(lim[::2])
     lim1 = np.array(lim[1::2])
     return np.array(lim0), np.array(lim1)
-
