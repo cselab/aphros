@@ -1606,10 +1606,18 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           if (as) {
             fc_src2_.Reinit(m, 0.);
             auto& fcvf = as->GetField();
-            auto& trvf0 = tracer_->GetVolumeFraction()[0];
+            auto& tu0 = tracer_->GetVolumeFraction()[0];
             for (auto c : meb.Cells()) {
               if (meb.IsRegular(c)) {
-                auto src2 = trvf0[c] * (*rate) * fcvf[c];
+                auto src2 = tu0[c] * (*rate) * fcvf[c];
+                fc_src2_[c] = src2;
+                fc_src_tracer0_[c] = -src2;
+                fc_src_[c] = src2;
+              }
+            }
+            for (auto c : nucl_cells_) {
+              if (meb.IsRegular(c)) {
+                auto src2 = tu0[c] * (*rate);
                 fc_src2_[c] = src2;
                 fc_src_tracer0_[c] = -src2;
                 fc_src_[c] = src2;
@@ -1620,6 +1628,18 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         apply(m, dynamic_cast<ASV*>(as_.get()));
         if (eb_) {
           apply(*eb_, dynamic_cast<ASVEB*>(as_.get()));
+        }
+      }
+    }
+    if (tracer_ && var.Int("enable_nucleation", 0)) {
+      auto& tu0 = tracer_->GetVolumeFraction()[0];
+      const Scal cmax = var.Double["nucl_cmax"];
+      auto& g = randgen_;
+      std::uniform_real_distribution<Scal> uniform(0, 1);
+      const Scal k = var.Double["nucl_k"] * st_.dt;
+      for (auto c : m.Cells()) {
+        if ((tu0[c] - cmax) * k > uniform(g)) {
+          nucl_cells_.insert(c);
         }
       }
     }
@@ -1675,6 +1695,10 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
 template <class M>
 void Hydro<M>::Dump(bool force) {
   auto sem = m.GetSem("dump");
+  struct {
+    std::vector<Vect> nucl_points;
+  } * ctx(sem);
+  auto& t = *ctx;
   if (sem.Nested("fields")) {
     if (dumper_.Try(st_.t, st_.dt) || force) {
       HydroPost<M>::DumpFields(this, m);
@@ -1733,6 +1757,30 @@ void Hydro<M>::Dump(bool force) {
   dump_part(dynamic_cast<ASVEB*>(as_.get()));
   dump_part(dynamic_cast<ASVM*>(as_.get()));
   dump_part(dynamic_cast<ASVMEB*>(as_.get()));
+  if (tracer_ && dumper_.Try(st_.t, st_.dt)) {
+    if (sem("dump-nucl-gather")) {
+      for (auto c : nucl_cells_) {
+        t.nucl_points.push_back(m.GetCenter(c));
+      }
+      m.Reduce(&t.nucl_points, Reduction::concat);
+    }
+    if (sem("dump-nucl-write")) {
+      if (m.IsRoot()) {
+        const std::string s = GetDumpName("nucl", ".csv", dumper_.GetN(), -1);
+        std::cerr << std::fixed << std::setprecision(8) << "dump"
+                  << " t=" << st_.t << " to " << s << std::endl;
+        std::ofstream o;
+        o.open(s);
+        o.precision(16);
+        o << "x,y,z\n";
+        for (auto x : t.nucl_points) {
+          using Vect3 = generic::Vect<Scal, 3>;
+          Vect3 xx(x);
+          o << xx[0] << ',' << xx[1] << ',' << xx[2] << '\n';
+        }
+      }
+    }
+  }
 }
 
 template <class M>
