@@ -250,6 +250,8 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   std::unique_ptr<TracerInterface<M>> tracer_;
   FieldCell<Scal> fc_src_tracer0_; // source of tracer0
 
+  std::set<IdxCell> nucl_cells_;
+
   std::unique_ptr<ParticlesInterface<M>> particles_;
   std::mt19937 randgen_;
   Scal tracer_dt_;

@@ -1715,56 +1715,24 @@ void Hydro<M>::Dump(bool force) {
       }
     }
   }
-  if (auto as = dynamic_cast<ASV*>(as_.get())) {
-    if (psm_ && dumper_.Try(st_.t, st_.dt)) {
-      if (var.Int["dumppart"] && sem.Nested("part-dump")) {
-        psm_->DumpParticles(
-            &as->GetAlpha(), &as->GetNormal(), dumper_.GetN(), st_.t);
-      }
-      if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
-        psm_->DumpPartInter(
-            &as->GetAlpha(), &as->GetNormal(), dumper_.GetN(), st_.t);
-      }
-    }
-  }
-  // TODO reuse ASV code
-  if (auto as = dynamic_cast<ASVEB*>(as_.get())) {
-    if (psm_ && dumper_.Try(st_.t, st_.dt)) {
-      if (var.Int["dumppart"] && sem.Nested("part-dump")) {
-        psm_->DumpParticles(
-            &as->GetAlpha(), &as->GetNormal(), dumper_.GetN(), st_.t);
-      }
-      if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
-        psm_->DumpPartInter(
-            &as->GetAlpha(), &as->GetNormal(), dumper_.GetN(), st_.t);
+  auto dump_part = [&](auto* as) {
+    if (as) {
+      if (psm_ && dumper_.Try(st_.t, st_.dt)) {
+        if (var.Int["dumppart"] && sem.Nested("part-dump")) {
+          psm_->DumpParticles(
+              as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
+        }
+        if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
+          psm_->DumpPartInter(
+              as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
+        }
       }
     }
-  }
-  if (auto as = dynamic_cast<ASVM*>(as_.get())) {
-    if (psm_ && dumper_.Try(st_.t, st_.dt)) {
-      if (var.Int["dumppart"] && sem.Nested("part-dump")) {
-        psm_->DumpParticles(
-            as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
-      }
-      if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
-        psm_->DumpPartInter(
-            as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
-      }
-    }
-  }
-  // TODO reuse ASVM code
-  if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
-    if (psm_ && dumper_.Try(st_.t, st_.dt)) {
-      if (var.Int["dumppart"] && sem.Nested("part-dump")) {
-        psm_->DumpParticles(
-            as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
-      }
-      if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
-        psm_->DumpPartInter(
-            as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
-      }
-    }
-  }
+  };
+  dump_part(dynamic_cast<ASV*>(as_.get()));
+  dump_part(dynamic_cast<ASVEB*>(as_.get()));
+  dump_part(dynamic_cast<ASVM*>(as_.get()));
+  dump_part(dynamic_cast<ASVMEB*>(as_.get()));
 }
 
 template <class M>
