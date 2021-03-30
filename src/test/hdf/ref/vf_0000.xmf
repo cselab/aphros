@@ -3,8 +3,6 @@
 <Xdmf Version='2.0'>
  <Domain>
    <Grid GridType='Uniform'>
-     <Time Value='0'/>
-
      <Topology TopologyType='3DCORECTMesh' Dimensions='17 17 9'/>
 
      <Geometry GeometryType='ORIGIN_DXDYDZ'>
