@@ -214,9 +214,6 @@ void Hydro<M>::InitStepwiseBody(FieldCell<bool>& fc_innermask) {
     InitVf(t.fcbody, t.varbody, m, !silent_);
   }
   if (sem()) {
-    m.Comm(&t.fcbody);
-  }
-  if (sem()) {
     // clear cells outside domain
     for (auto f : m.AllFaces()) {
       size_t nci;
