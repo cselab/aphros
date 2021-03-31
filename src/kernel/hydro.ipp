@@ -25,6 +25,7 @@
 #include "debug/isnan.h"
 #include "dump/dumper.h"
 #include "dump/hdf.h"
+#include "dump/raw.h"
 #include "func/init.h"
 #include "func/init_contang.h"
 #include "geom/mesh.h"
@@ -95,16 +96,16 @@ void Hydro<M>::UpdateAdvectionPar() {
 }
 template <class M>
 typename M::Scal Hydro<M>::GetSurfaceTensionDt() const {
-  const Scal sig = var.Double["sigma"];
-  const Scal* cflst = var.Double.Find("cflst");
-  if (cflst && sig != 0.) {
-    Scal pi = M_PI;
-    Scal h3 = m.GetVolume(IdxCell(0));
-    Scal r1 = var.Double["rho1"];
-    Scal r2 = var.Double["rho2"];
-    return (*cflst) * std::sqrt(h3 * (r1 + r2) / (4. * pi * std::abs(sig)));
+  const Scal sigma = var.Double["sigma"];
+  const Scal cflst = var.Double("cflst", 0);
+  if (cflst > 0 && sigma != 0) {
+    const Scal pi = M_PI;
+    const Scal h3 = std::pow(m.GetCellSize()[0], 3);
+    const Scal rho1 = var.Double["rho1"];
+    const Scal rho2 = var.Double["rho2"];
+    return cflst * std::sqrt(h3 * (rho1 + rho2) / (4. * pi * std::abs(sigma)));
   }
-  return std::numeric_limits<Scal>::max();
+  return 0;
 }
 template <class M>
 typename M::Scal Hydro<M>::GetViscosityDt() const {
@@ -114,13 +115,13 @@ typename M::Scal Hydro<M>::GetViscosityDt() const {
   const Scal mu2 = var.Double["mu2"];
   const Scal nu1 = mu1 / rho1;
   const Scal nu2 = mu2 / rho2;
-  const Scal num = std::max(nu1, nu2);
-  const Scal* cflvis = var.Double.Find("cflvis");
-  if (cflvis && num != 0.) {
-    const Scal h2 = sqr(m.GetCellSize()[0]); // XXX adhoc cubic cell
-    return (*cflvis) * h2 / num;
+  const Scal nu_max = std::max(nu1, nu2);
+  const Scal cflvis = var.Double("cflvis", 0);
+  if (cflvis > 0 && nu_max != 0) {
+    const Scal h2 = sqr(m.GetCellSize()[0]);
+    return cflvis * h2 / nu_max;
   }
-  return std::numeric_limits<Scal>::max();
+  return 0;
 }
 template <class M>
 void Hydro<M>::CalcVort() {
@@ -189,6 +190,50 @@ void Hydro<M>::InitEmbed() {
     }
     if (sem.Nested("init")) {
       eb_->Init(ctx->fnl);
+    }
+  }
+}
+template <class M>
+void Hydro<M>::InitStepwiseBody(FieldCell<bool>& fc_innermask) {
+  auto sem = m.GetSem("stepwise");
+  using Xmf = dump::Xmf<Vect>;
+  struct {
+    FieldCell<Scal> fcbody;
+    Vars varbody;
+    typename Xmf::Meta meta;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem()) {
+    auto& varbody = t.varbody;
+    varbody.String.Set("init_vf", var.String["body_init"]);
+    varbody.String.Set("list_path", var.String["body_list_path"]);
+    varbody.Int.Set("dim", var.Int["dim"]);
+    varbody.Int.Set("list_ls", 3);
+  }
+  if (sem.Nested("body-mask")) {
+    InitVf(t.fcbody, t.varbody, m, !silent_);
+  }
+  if (sem("body-bc")) {
+    fc_innermask.Reinit(m, true);
+    for (auto c : m.AllCells()) {
+      fc_innermask[c] = (t.fcbody[c] < 0.5);
+    }
+    if (var.Int["body_init_inverse"]) {
+      for (auto c : m.AllCells()) {
+        fc_innermask[c] = !fc_innermask[c];
+      }
+    }
+  }
+  if (var.Int("dump_stepwise_body", 0)) {
+    const auto binpath = "stepwise.raw";
+    if (sem("dump-xmf")) {
+      t.meta = Xmf::GetMeta(m);
+      t.meta.binpath = binpath;
+      t.meta.name = "stepwise";
+      Xmf::WriteXmf(util::SplitExt(binpath)[0] + ".xmf", t.meta);
+    }
+    if (sem.Nested("dump-raw")) {
+      dump::Raw<M>::Write(t.fcbody, t.meta, binpath, m);
     }
   }
 }
@@ -1021,16 +1066,14 @@ void Hydro<M>::Init() {
     FieldCell<Vect> fcvel; // initial velocity
     FieldCell<Scal> fcvf; // initial volume fraction
     FieldCell<Scal> fccl; // initial color
-    FieldCell<Scal> fcbody;
-    FieldCell<bool> fcbodymask;
     Multi<FieldCell<Scal>> tracer_vfcu;
-    Vars varbody;
     std::shared_ptr<linear::Solver<M>> linsolver_vort;
+    FieldCell<bool> fc_innermask;
   } * ctx(sem);
   auto& t = *ctx;
-  auto& fcvel = ctx->fcvel;
-  auto& fcvf = ctx->fcvf;
-  auto& fccl = ctx->fccl;
+  auto& fcvel = t.fcvel;
+  auto& fcvf = t.fcvf;
+  auto& fccl = t.fccl;
   if (sem("flags")) {
     silent_ = var.Int("silent", 0);
     dumpstat_ = var.Int("dumpstat", 1);
@@ -1061,9 +1104,12 @@ void Hydro<M>::Init() {
   if (sem.Nested()) {
     InitVf(fcvf, var, m, !silent_);
   }
+  if (sem.Nested("stepwise") && var.Int("enable_stepwise_body", 0)) {
+    InitStepwiseBody(t.fc_innermask);
+  }
   if (sem.Nested()) {
     if (var.Int["enable_tracer"]) {
-      InitTracerFields(ctx->tracer_vfcu);
+      InitTracerFields(t.tracer_vfcu);
     }
   }
   if (sem("fields")) {
@@ -1116,13 +1162,10 @@ void Hydro<M>::Init() {
     fcvel.SetHalo(2);
     fcvel.SetName("fcvel");
 
-    // global mesh size
-    MIdx gs = m.GetGlobalSize();
-
     if (m.IsRoot() && !silent_) {
-      std::cerr << "global mesh=" << gs << std::endl;
-      std::cerr << "surface tension dt=" << GetSurfaceTensionDt() << std::endl;
-      std::cerr << "viscosity dt=" << GetViscosityDt() << std::endl;
+      std::cerr << "global mesh=" << m.GetGlobalSize() << '\n';
+      std::cerr << "surface tension dt=" << GetSurfaceTensionDt() << '\n';
+      std::cerr << "viscosity dt=" << GetViscosityDt() << '\n';
     }
 
     // boundary conditions
@@ -1131,7 +1174,7 @@ void Hydro<M>::Init() {
         "tracer0_neumann",   "tracer1_dirichlet", "tracer1_neumann",
     };
     if (eb_) {
-      auto initbc = InitBc(var, *eb_, known_keys);
+      auto initbc = InitBc(var, *eb_, known_keys, t.fc_innermask);
       mebc_fluid_ = std::get<0>(initbc);
       mebc_adv_ = std::get<1>(initbc);
       me_group_ = std::get<2>(initbc);
@@ -1142,7 +1185,7 @@ void Hydro<M>::Init() {
         mebc_adv_[cf].contang = fc_contang_[c];
       });
     } else {
-      auto initbc = InitBc(var, m, known_keys);
+      auto initbc = InitBc(var, m, known_keys, t.fc_innermask);
       mebc_fluid_ = std::get<0>(initbc);
       mebc_adv_ = std::get<1>(initbc);
       me_group_ = std::get<2>(initbc);
@@ -1250,41 +1293,6 @@ void Hydro<M>::Init() {
   if (sem.Nested("cellcond")) {
     GetFluidCellCond(var, m, mc_velcond_);
   }
-
-  if (sem("body-mask")) {
-    auto& varbody = ctx->varbody;
-    varbody.String.Set("init_vf", var.String["body_init"]);
-    varbody.String.Set("list_path", var.String["body_list_path"]);
-    varbody.Int.Set("dim", var.Int["dim"]);
-    varbody.Int.Set("list_ls", 3);
-  }
-  if (sem.Nested("body-mask")) {
-    InitVf(ctx->fcbody, ctx->varbody, m, !silent_);
-  }
-  /*
-  // TODO: implement
-  if (sem("body-bc")) {
-    // Step-wise approximation of bodies
-    const Scal clear0 = var.Double["bcc_clear0"];
-    const Scal clear1 = var.Double["bcc_clear1"];
-    const Scal inletcl = var.Double["inletcl"];
-    const Scal fill_vf = var.Double["bcc_fill"];
-    auto& fc = ctx->fcbodymask;
-    fc.Reinit(m, false);
-    for (auto c : m.AllCells()) {
-      fc[c] = (ctx->fcbody[c] > 0.5);
-    }
-    if (var.Int["body_init_inverse"]) {
-      for (auto c : m.AllCells()) {
-        fc[c] = !fc[c];
-      }
-    }
-    AppendBodyCond<M>(
-        fc, var.String["body_bc"], m, clear0, clear1, inletcl, fill_vf, nullptr,
-        mebc_fluid_, mebc_adv_);
-  }
-  */
-
   if (sem("calcdt0")) {
     const Scal dt = var.Double["dt0"];
     st_.dt = dt;
@@ -1297,7 +1305,7 @@ void Hydro<M>::Init() {
 
     InitAdvection(fcvf, fccl);
 
-    InitTracer(ctx->tracer_vfcu);
+    InitTracer(t.tracer_vfcu);
 
     InitElectro();
 
@@ -1416,11 +1424,19 @@ void Hydro<M>::CalcDt() {
       st_.dt = std::min<Scal>(st_.dt, var.Double["dtmax"]);
     }
 
-    // constraint from surface tension
-    st_.dt = std::min<Scal>(st_.dt, GetSurfaceTensionDt());
+    { // constraint from surface tension
+      const auto dt = GetSurfaceTensionDt();
+      if (dt > 0) {
+        st_.dt = std::min<Scal>(st_.dt, dt);
+      }
+    }
 
-    // constraint from viscosity
-    st_.dt = std::min<Scal>(st_.dt, GetViscosityDt());
+    { // constraint from viscosity
+      const auto dt = GetViscosityDt();
+      if (dt > 0) {
+        st_.dt = std::min<Scal>(st_.dt, dt);
+      }
+    }
 
     fs_->SetTimeStep(st_.dt);
 

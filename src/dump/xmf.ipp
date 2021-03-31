@@ -80,7 +80,7 @@ std::string Xmf<Vect>::GetXmfTemplate() {
 
 template <class Vect>
 template <class M>
-auto Xmf<Vect>::GetMeta(MIdx start, MIdx stride, const M& m) -> Meta {
+auto Xmf<Vect>::GetMeta(const M& m, MIdx start, MIdx stride) -> Meta {
   Meta res;
   res.dimensions = m.GetGlobalSize();
   res.start = start;

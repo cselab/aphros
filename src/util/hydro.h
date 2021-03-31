@@ -45,7 +45,9 @@ std::tuple<
     MapEmbed<BCondAdvection<typename MEB::Scal>>, MapEmbed<size_t>,
     std::vector<std::string>,
     std::vector<std::map<std::string, typename MEB::Scal>>>
-InitBc(const Vars& var, const MEB& eb, std::set<std::string> known_keys);
+InitBc(
+    const Vars& var, const MEB& eb, std::set<std::string> known_keys,
+    const FieldCell<bool>& fc_innermask);
 
 template <class MEB>
 void DumpBcPoly(
@@ -61,25 +63,6 @@ void DumpBcPoly(
 template <class M>
 void GetFluidCellCond(
     const Vars& var, M& m, MapCell<std::shared_ptr<CondCellFluid>>& mcvel);
-
-// Appends step-wise approximation of body to cell and face conditions.
-// Shape is defined as fc=1.
-// Boundary conditions added on faces separating fc=0 and fc=1.
-// Neighbor cell index (Nci) is chosen from cell fc=0.
-// fc: boolean mask, fc=1 is inside the body
-// Output:
-// mcf: fluid cell conditions
-// bc: boundary condition
-// mff,mfa: fluid and advection face conditions
-// pdist, pdistmin: temporary buffer for reduction,
-// TODO: revise, allow temporary buffers in functions (attached to m)
-template <class M, class Scal = typename M::Scal>
-void AppendBodyCond(
-    const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
-    Scal clear1, Scal inletcl, Scal fill_vf,
-    MapCell<std::shared_ptr<CondCellFluid>>* mcf,
-    MapEmbed<BCondFluid<typename M::Vect>>& mff,
-    MapEmbed<BCondAdvection<Scal>>& mfa);
 
 // Computes velocity fcvel from vorticity fcvort
 template <class M>

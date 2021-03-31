@@ -124,6 +124,7 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
  public:
   void Init();
   void InitEmbed();
+  void InitStepwiseBody(FieldCell<bool>& fc_innermask);
   void InitTracer(Multi<FieldCell<Scal>>& vfcu);
   void InitTracerFields(Multi<FieldCell<Scal>>& vfcu);
   void InitElectro();

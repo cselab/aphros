@@ -83,7 +83,7 @@ void DumpRaw(
   } * ctx(sem);
   auto& t = *ctx;
   if (sem("writexmf")) {
-    t.meta = Xmf::GetMeta(MIdx(0), MIdx(1), m);
+    t.meta = Xmf::GetMeta(m);
     t.meta.name = "u";
     t.meta.binpath = path;
     if (m.IsRoot()) {

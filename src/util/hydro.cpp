@@ -19,7 +19,9 @@
       MapEmbed<BCondAdvection<typename M::Scal>>, MapEmbed<size_t>,            \
       std::vector<std::string>,                                                \
       std::vector<std::map<std::string, typename M::Scal>>>                    \
-  InitBc(const Vars& var, const M& eb, std::set<std::string> known_keys);      \
+  InitBc(                                                                      \
+      const Vars& var, const M& eb, std::set<std::string> known_keys,          \
+      const FieldCell<bool>& fc_innermask);                                    \
                                                                                \
   template std::tuple<                                                         \
       MapEmbed<BCondFluid<typename M::Vect>>,                                  \
@@ -27,7 +29,8 @@
       std::vector<std::string>,                                                \
       std::vector<std::map<std::string, typename M::Scal>>>                    \
   InitBc(                                                                      \
-      const Vars& var, const Embed<M>& eb, std::set<std::string> known_keys);  \
+      const Vars& var, const Embed<M>& eb, std::set<std::string> known_keys,   \
+      const FieldCell<bool>& fc_innermask);                                    \
                                                                                \
   template void DumpBcPoly(                                                    \
       const std::string filename, const MapEmbed<size_t>& me_group,            \

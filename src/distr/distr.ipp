@@ -326,7 +326,7 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
 
         typename Xmf3::Meta meta3;
         {
-          auto meta = Xmf::GetMeta(MIdx(0), MIdx(1), mfirst);
+          auto meta = Xmf::GetMeta(mfirst);
           meta3.binpath = path;
           meta3.name = dumpfirst[idump].second;
           meta3.type = dump::Type::Float64;

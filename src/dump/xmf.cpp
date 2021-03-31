@@ -60,7 +60,7 @@ X(4)
 #define XX(M)                                   \
   template typename Xmf<typename M::Vect>::Meta \
   Xmf<typename M::Vect>::GetMeta<M>(            \
-      typename M::MIdx, typename M::MIdx, const M&);
+      const M&, typename M::MIdx, typename M::MIdx);
 #define COMMA ,
 
 #define X(dim) XX(MeshCartesian<double COMMA dim>)

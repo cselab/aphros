@@ -71,7 +71,7 @@ void Run(M& m, Vars& var) {
     }
   } else if (format == "raw") {
     if (sem("writexmf")) {
-      t.meta = Xmf::GetMeta(MIdx(0), MIdx(1), m);
+      t.meta = Xmf::GetMeta(m);
       t.meta.name = "u";
       t.meta.binpath = output;
       const auto type = var.String["type"];
