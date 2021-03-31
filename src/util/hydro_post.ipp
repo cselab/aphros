@@ -120,6 +120,7 @@ struct HydroPost<M>::Imp {
       FieldCell<Scal> fc_ebvf; // embedded boundaries volume fraction
       FieldCell<Scal> fc_tracer_sum; // sum of tracer_ fields starting from 1
       FieldCell<Vect> fc_flux; // mixture flux
+      FieldCell<Scal> fc_vel_magn; // velocity magnitude
     } * ctx(sem);
     auto& t = *ctx;
     const auto& var = hydro->var;
@@ -142,10 +143,17 @@ struct HydroPost<M>::Imp {
         }
       };
 
-      auto& fcv = hydro->fs_->GetVelocity();
-      dumpv(fcv, 0, "vx");
-      dumpv(fcv, 1, "vy");
-      dumpv(fcv, 2, "vz");
+      auto& fc_vel = hydro->fs_->GetVelocity();
+      dumpv(fc_vel, 0, "vx");
+      dumpv(fc_vel, 1, "vy");
+      dumpv(fc_vel, 2, "vz");
+      if (dl.count("vm")) {
+        t.fc_vel_magn.Reinit(m, 0);
+        for (auto c : m.Cells()) {
+          t.fc_vel_magn[c] = fc_vel[c].norm();
+        }
+        dump(t.fc_vel_magn, "vm");
+      }
       dump(hydro->fs_->GetPressure(), "p");
       dump(hydro->as_->GetField(), "vf");
       dump(hydro->fc_rho_, "rho");
