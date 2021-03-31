@@ -379,7 +379,7 @@ void Run(M& m, Vars& var) {
     m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
 
     {
-      auto p = InitBc(var, m, {});
+      auto p = InitBc(var, m, {}, {});
       ctx->mebc_fluid = std::get<0>(p);
       ctx->mebc_adv = std::get<1>(p);
     }
