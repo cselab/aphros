@@ -154,18 +154,30 @@ struct UInitEmbedBc {
       };
       auto is_stepwise = [&](IdxFace f, size_t& nci) -> bool {
         if (fc_innermask.size()) {
-          const auto cm = m.GetCell(f, 0);
-          const auto cp = m.GetCell(f, 1);
-          if (fc_innermask[cm] != fc_innermask[cp]) {
-            nci = (fc_innermask[cm] ? 0 : 1);
-            return true;
+          if (m.IsBoundary(f, nci)) {
+            const auto c = m.GetCell(f, nci);
+            return fc_innermask[c];
+          } else {
+            const auto cm = m.GetCell(f, 0);
+            const auto cp = m.GetCell(f, 1);
+            if (fc_innermask[cm] != fc_innermask[cp]) {
+              nci = (fc_innermask[cm] ? 0 : 1);
+              return true;
+            }
           }
+        }
+        return false;
+      };
+      auto is_boundary = [&](IdxFace f, size_t& nci) -> bool {
+        if (m.IsBoundary(f, nci)) {
+          const auto c = m.GetCell(f, nci);
+          return fc_innermask.empty() || fc_innermask[c];
         }
         return false;
       };
       for (auto f : eb.SuFaces()) {
         size_t nci;
-        if (m.IsBoundary(f, nci) || is_stepwise(f, nci)) {
+        if (is_boundary(f, nci) || is_stepwise(f, nci)) {
           auto ls = lsmax(eb.GetFaceCenter(f));
           if (ls > 0) {
             me_group[f] = group;

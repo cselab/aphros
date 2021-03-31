@@ -198,7 +198,7 @@ void Hydro<M>::InitStepwiseBody(FieldCell<bool>& fc_innermask) {
   auto sem = m.GetSem("stepwise");
   using Xmf = dump::Xmf<Vect>;
   struct {
-    FieldCell<Scal> fcbody;
+    FieldCell<Scal> fcbody; // 1 inside body
     Vars varbody;
     typename Xmf::Meta meta;
   } * ctx(sem);
@@ -212,6 +212,20 @@ void Hydro<M>::InitStepwiseBody(FieldCell<bool>& fc_innermask) {
   }
   if (sem.Nested("body-mask")) {
     InitVf(t.fcbody, t.varbody, m, !silent_);
+  }
+  if (sem()) {
+    m.Comm(&t.fcbody);
+  }
+  if (sem()) {
+    // clear cells outside domain
+    for (auto f : m.AllFaces()) {
+      size_t nci;
+      if (m.IsBoundary(f, nci)) {
+        auto cc = m.GetCellColumn(f, nci);
+        t.fcbody[cc[0]] = 1;
+        t.fcbody[cc[1]] = 1;
+      }
+    }
   }
   if (sem("body-bc")) {
     fc_innermask.Reinit(m, true);
