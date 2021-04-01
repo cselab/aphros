@@ -31,7 +31,7 @@ M CreateMesh(const generic::BlockInfoProxy<M::dim>& p) {
   using Vect = typename M::Vect;
   const MIdx bs = p.blocksize;
   const MIdx worigin = p.index * bs;
-  const Vect h = p.cellsize;
+  const Vect h(p.cellsize);
   const Rect<Vect> domain(Vect(worigin) * h, Vect(worigin + bs) * h);
 
   const MIdx global_blocks = p.globalsize / bs;
