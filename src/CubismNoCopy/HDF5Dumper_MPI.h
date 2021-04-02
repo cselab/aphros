@@ -30,7 +30,7 @@
 // hdfpath: path to existing hdf
 // hdfdims: dimensions of hdf, either (nz,ny,nx,1) or (ny,nx,1)
 void WriteXmf(
-    std::string xmfpath, std::string name, double time,
+    std::string xmfpath, std::string name, double /*time*/,
     const std::array<double, 3>& origin, const std::array<double, 3>& spacing,
     const std::array<size_t, 3>& dims, std::string hdfpath,
     const std::array<size_t, 4>& hdfdims) {
@@ -42,7 +42,6 @@ void WriteXmf(
 
   f << " <Domain>\n";
   f << "   <Grid GridType='Uniform'>\n";
-  f << "     <Time Value='" << time << "'/>\n\n";
   f << "     <Topology TopologyType='3DCORECTMesh' Dimensions='";
   f << dims[2] + 1 << " " << dims[1] + 1 << " " << dims[0] + 1 << "'/>\n\n";
 

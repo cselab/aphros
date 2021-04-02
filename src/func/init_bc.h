@@ -108,7 +108,11 @@ struct UInitEmbedBc {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
-  // Parses boundary conditions set on groups of primitives in stream.
+  // Parses boundary conditions for faces and embedded faces
+  // that fall inside groups of primitives in stream.
+  // Considers boundaries of the domain, embedded faces
+  // and faces of stepwise body approximation in fc_innermask
+  // fc_innermask: true in inner cells, false inside body, ignored if empty
   // Returns:
   // me_group: index of group of primitives
   // me_nci: neighbor cell id
@@ -116,7 +120,8 @@ struct UInitEmbedBc {
   template <class MEB>
   static std::tuple<
       MapEmbed<size_t>, MapEmbed<size_t>, std::vector<std::string>>
-  ParseGroups(std::istream& fin, const MEB& eb) {
+  ParseGroups(
+      std::istream& fin, const MEB& eb, const FieldCell<bool>& fc_innermask) {
     auto& m = eb.GetMesh();
     const std::vector<CodeBlock> bb = ParseCodeBlocks(fin);
     std::vector<std::string> vdesc;
@@ -147,9 +152,32 @@ struct UInitEmbedBc {
         }
         return lmax;
       };
+      auto is_stepwise = [&](IdxFace f, size_t& nci) -> bool {
+        if (fc_innermask.size()) {
+          if (m.IsBoundary(f, nci)) {
+            const auto c = m.GetCell(f, nci);
+            return fc_innermask[c];
+          } else {
+            const auto cm = m.GetCell(f, 0);
+            const auto cp = m.GetCell(f, 1);
+            if (fc_innermask[cm] != fc_innermask[cp]) {
+              nci = (fc_innermask[cm] ? 0 : 1);
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+      auto is_boundary = [&](IdxFace f, size_t& nci) -> bool {
+        if (m.IsBoundary(f, nci)) {
+          const auto c = m.GetCell(f, nci);
+          return fc_innermask.empty() || fc_innermask[c];
+        }
+        return false;
+      };
       for (auto f : eb.SuFaces()) {
         size_t nci;
-        if (m.IsBoundary(f, nci)) {
+        if (is_boundary(f, nci) || is_stepwise(f, nci)) {
           auto ls = lsmax(eb.GetFaceCenter(f));
           if (ls > 0) {
             me_group[f] = group;
@@ -231,7 +259,8 @@ struct UInitEmbedBc {
     PlainBc res;
 
     MapEmbed<size_t> me_nci;
-    std::tie(res.me_group, me_nci, res.vdesc) = UI::ParseGroups(buf, eb);
+    std::tie(res.me_group, me_nci, res.vdesc) =
+        UI::ParseGroups(buf, eb, FieldCell<bool>());
     for (auto desc : res.vdesc) {
       std::map<std::string, Scal> map;
       for (std::string s : Split(desc, ',')) {

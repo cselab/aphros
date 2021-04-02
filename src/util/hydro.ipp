@@ -687,7 +687,9 @@ std::tuple<
     MapEmbed<BCondAdvection<typename MEB::Scal>>, MapEmbed<size_t>,
     std::vector<std::string>,
     std::vector<std::map<std::string, typename MEB::Scal>>>
-InitBc(const Vars& var, const MEB& eb, std::set<std::string> known_keys) {
+InitBc(
+    const Vars& var, const MEB& eb, std::set<std::string> known_keys,
+    const FieldCell<bool>& fc_innermask) {
   using M = typename MEB::M;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
@@ -797,7 +799,7 @@ InitBc(const Vars& var, const MEB& eb, std::set<std::string> known_keys) {
   std::vector<std::string> vdesc;
   MapEmbed<size_t> me_group;
   MapEmbed<size_t> me_nci;
-  std::tie(me_group, me_nci, vdesc) = UI::ParseGroups(buf, eb);
+  std::tie(me_group, me_nci, vdesc) = UI::ParseGroups(buf, eb, fc_innermask);
   std::vector<std::map<std::string, Scal>> vcustom(vdesc.size());
 
   me_group.LoopPairs([&](const auto& p) {
@@ -899,36 +901,6 @@ std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
     xx.push_back(m.GetNode(n));
   }
   return xx;
-}
-
-// FIXME: only fills SuFaces, more halo faces AllFaces may be needed
-template <class M, class Scal>
-void AppendBodyCond(
-    const FieldCell<bool>& fc, std::string str, const M& m, Scal clear0,
-    Scal clear1, Scal inletcl, Scal fill_vf,
-    MapCell<std::shared_ptr<CondCellFluid>>* mcf,
-    MapEmbed<BCondFluid<typename M::Vect>>& mff,
-    MapEmbed<BCondAdvection<Scal>>& mfa) {
-  fassert(false, "not implemented");
-  /*
-  using Vect = typename M::Vect;
-  for (auto f : m.SuFaces()) {
-    const IdxCell cm = m.GetCell(f, 0);
-    const IdxCell cp = m.GetCell(f, 1);
-    if (fc[cm] != fc[cp]) {
-      size_t nci = (fc[cm] ? 1 : 0); // inner cell
-      auto& condf = mff[f];
-      auto& conda = mfa[f];
-      ParseFaceCond(
-          f, nci, str, m, clear0, clear1, inletcl, fill_vf, condf, conda);
-      if (mcf) {
-        (*mcf)[m.GetCell(f, 1 - nci)] =
-            std::make_shared<fluid_condition::GivenVelocityAndPressureFixed<M>>(
-                Vect(0), 0.);
-      }
-    }
-  }
-  */
 }
 
 // Computes velocity fcvel from vorticity fcvort

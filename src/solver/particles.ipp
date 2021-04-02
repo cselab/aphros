@@ -51,21 +51,30 @@ struct Particles<EB_>::Imp {
 
       for (size_t i = 0; i < s.x.size(); ++i) {
         const auto c = m.GetCellFromPoint(s.x[i]);
-        const Scal tau_stokes = (s.rho[i] - conf.mixture_density) *
-                                sqr(2 * s.r[i]) / (18 * conf.mixture_viscosity);
-        const Scal tau =
-            (conf.use_termvel ? s.termvel[i] / conf.gravity.norm()
-                              : tau_stokes);
+        Scal tau = 0;
+        switch (conf.mode) {
+          case ParticlesMode::stokes:
+            tau = (s.rho[i] - conf.mixture_density) * sqr(2 * s.r[i]) /
+                  (18 * conf.mixture_viscosity);
+            break;
+          case ParticlesMode::termvel:
+            tau = s.termvel[i] / conf.gravity.norm();
+            break;
+          case ParticlesMode::tracer:
+            tau = 0;
+            break;
+        }
         const auto gl = m.GetGlobalLength();
-        // implicit drag
-        // dv/dt = (u - v) / tau + g
+        // Implicit relaxation
+        //   dv/dt = (u - v) / tau + g
+        // particle velocity `v`, liquid velocity `u`,
+        // relaxation time `tau`, gravity `g`
         if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || eb.IsCut(c) ||
             eb.IsExcluded(c)) {
           s.v[i] = Vect(0);
         } else {
-          s.v[i] = //
-              (fc_vel[c] + s.v[i] * (tau / dt) + conf.gravity * tau) /
-              (1 + tau / dt);
+          s.v[i] = (fc_vel[c] + s.v[i] * (tau / dt) + conf.gravity * tau) /
+                   (1 + tau / dt);
         }
         const Vect x_old = s.x[i];
         s.x[i] += s.v[i] * dt;
@@ -341,9 +350,8 @@ void Particles<EB_>::Step(Scal dt, const FieldEmbed<Scal>& fe_flux) {
 
 template <class EB_>
 auto Particles<EB_>::GetView() const -> ParticlesView {
-  return {
-      imp->state_.x, imp->state_.v, imp->state_.r, imp->state_.rho,
-      imp->state_.termvel};
+  return {imp->state_.x, imp->state_.v, imp->state_.r, imp->state_.rho,
+          imp->state_.termvel};
 }
 
 template <class EB_>

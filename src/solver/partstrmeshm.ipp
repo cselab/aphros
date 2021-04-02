@@ -614,6 +614,18 @@ void PartStrMeshM<M_>::DumpParticles(
 }
 
 template <class M_>
+void PartStrMeshM<M_>::DumpPartInter(
+    const FieldCell<Scal>& fca, const FieldCell<Vect>& fcn, size_t id, Scal t) {
+  imp->DumpPartInter(&fca, &fcn, id, t);
+}
+
+template <class M_>
+void PartStrMeshM<M_>::DumpParticles(
+    const FieldCell<Scal>& fca, const FieldCell<Vect>& fcn, size_t id, Scal t) {
+  imp->DumpParticles(&fca, &fcn, id, t);
+}
+
+template <class M_>
 auto PartStrMeshM<M_>::GetCurv() -> Multi<const FieldCell<Scal>*> {
   return imp->GetCurv();
 }

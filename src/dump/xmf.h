@@ -39,7 +39,7 @@ class Xmf {
   };
 
   template <class M>
-  static Meta GetMeta(MIdx start, MIdx stride, const M&);
+  static Meta GetMeta(const M& m, MIdx start = MIdx(0), MIdx stride = MIdx(1));
 
   static void WriteXmf(std::ostream&, const Meta&);
   static void WriteXmf(const std::string& xmfpath, const Meta&);

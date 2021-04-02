@@ -66,7 +66,7 @@ void Run(M& m, Vars& var) {
     std::vector<std::string> vdesc;
     MapEmbed<size_t> me_nci;
     std::tie(ctx->me_group, me_nci, vdesc) =
-        UInitEmbedBc<M>::ParseGroups(fin, eb);
+        UInitEmbedBc<M>::ParseGroups(fin, eb, FieldCell<bool>());
     fin.close();
 
     ctx->me_group.LoopPairs([&](auto p) {

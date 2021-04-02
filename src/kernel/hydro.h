@@ -124,6 +124,7 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
  public:
   void Init();
   void InitEmbed();
+  void InitStepwiseBody(FieldCell<bool>& fc_innermask);
   void InitTracer(Multi<FieldCell<Scal>>& vfcu);
   void InitTracerFields(Multi<FieldCell<Scal>>& vfcu);
   void InitElectro();
@@ -248,7 +249,9 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   std::shared_ptr<linear::Solver<M>> linsolver_symm_;
 
   std::unique_ptr<TracerInterface<M>> tracer_;
-  FieldCell<Scal> fc_src_tracer0_; // source of tracer0
+  Multi<FieldCell<Scal>> fc_tracer_source;
+
+  std::set<IdxCell> nucl_cells_;
 
   std::unique_ptr<ParticlesInterface<M>> particles_;
   std::mt19937 randgen_;
