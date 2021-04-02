@@ -339,7 +339,9 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
             path, starts, sizes, data, mfirst.GetGlobalSize(), meta3.type,
             MpiWrapper(comm_));
 
-        Xmf3::WriteXmf(util::SplitExt(path)[0] + ".xmf", meta3);
+        if (isroot_) {
+          Xmf3::WriteXmf(util::SplitExt(path)[0] + ".xmf", meta3);
+        }
       }
       ++frame_;
     } else {

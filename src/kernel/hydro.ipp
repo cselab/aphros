@@ -241,7 +241,9 @@ void Hydro<M>::InitStepwiseBody(FieldCell<bool>& fc_innermask) {
       t.meta = Xmf::GetMeta(m);
       t.meta.binpath = binpath;
       t.meta.name = "stepwise";
-      Xmf::WriteXmf(util::SplitExt(binpath)[0] + ".xmf", t.meta);
+      if (m.IsRoot()) {
+        Xmf::WriteXmf(util::SplitExt(binpath)[0] + ".xmf", t.meta);
+      }
     }
     if (sem.Nested("dump-raw")) {
       dump::Raw<M>::Write(t.fcbody, t.meta, binpath, m);
