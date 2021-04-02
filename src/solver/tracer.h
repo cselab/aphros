@@ -46,8 +46,8 @@ class TracerInterface {
     Multi<Slip> slip;
     Multi<Scal> diffusion;
     Vect gravity;
-    ConvSc scheme = ConvSc::sou;
-    const FieldCell<Scal>* fc_src = nullptr; // source of tracer0
+    ConvSc scheme = ConvSc::superbee;
+    Multi<const FieldCell<Scal>*> fc_source;
   };
 
   virtual ~TracerInterface() {}
@@ -94,7 +94,6 @@ class Tracer : public TracerInterface<typename EB_::M> {
   void SetConf(Conf) override;
   // dt: time step
   // fe_flux: mixture volume flux
-  // vfc_src: volume source, or nullptr
   void Step(Scal dt, const FieldEmbed<Scal>& fe_flux) override;
   const Multi<FieldCell<Scal>>& GetVolumeFraction() const override;
   void SetVolumeFraction(const Multi<FieldCell<Scal>>&) override;

@@ -430,7 +430,7 @@ void Hydro<M>::InitParticles() {
     conf.mixture_density = var.Double["rho1"];
     conf.mixture_viscosity = var.Double["mu1"];
     conf.gravity = Vect(var.Vect["gravity"]);
-    const auto mode = var.String["particles_termvel"];
+    const auto mode = var.String["particles_mode"];
     if (mode == "tracer") {
       conf.mode = ParticlesMode::tracer;
     } else if (mode == "stokes") {
@@ -558,8 +558,8 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
       }
     });
 
-    fc_src_tracer0_.Reinit(m, 0);
-    conf.fc_src = &fc_src_tracer0_;
+    fc_tracer_source.Reinit(tracer_layers, m, 0);
+    conf.fc_source = fc_tracer_source;
 
     if (eb_) {
       tracer_.reset(new Tracer<EB>(m, *eb_, vfcu, vmebc, fs_->GetTime(), conf));
@@ -1521,6 +1521,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     fc_rho_.Reinit(m);
     fc_force_.Reinit(m, Vect(0));
     febp_.Reinit(m, 0);
+    fc_src_.Reinit(m, 0);
+    fc_src2_.Reinit(m, 0);
     fc_smvf_ = fc_vf0;
     if (eb_ && var.Int["vfsmooth_extrapolate_cut"]) {
       auto& eb = *eb_;
@@ -1620,7 +1622,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     // source for uniform bubble growth
     if (auto* rate = var.Double.Find("growth_rate")) {
       if (auto as = dynamic_cast<ASV*>(as_.get())) {
-        fc_src2_.Reinit(m, 0.);
         auto& fcn = as->GetNormal();
         auto& fca = as->GetAlpha();
         auto& fcvf = as->GetField();
@@ -1631,53 +1632,64 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             auto area =
                 std::abs(R::GetArea(R::GetCutPoly2(fcn[c], fca[c], h), fcn[c]));
             auto src2 = (*rate) * area / m.GetVolume(c);
-            fc_src2_[c] = src2;
-            fc_src_[c] = src2;
+            fc_src2_[c] += src2;
+            fc_src_[c] += src2;
           }
         }
       }
     }
     // source for bubble growth from tracer0
     if (tracer_) {
-      if (auto* rate = var.Double.Find("growth_rate_tracer0")) {
-        auto apply = [&](const auto& meb, auto as) {
-          if (as) {
-            fc_src2_.Reinit(m, 0.);
-            auto& fcvf = as->GetField();
-            auto& tu0 = tracer_->GetVolumeFraction()[0];
-            for (auto c : meb.Cells()) {
-              if (meb.IsRegular(c)) {
-                auto src2 = tu0[c] * (*rate) * fcvf[c];
-                fc_src2_[c] = src2;
-                fc_src_tracer0_[c] = -src2;
-                fc_src_[c] = src2;
+      const auto& conf = tracer_->GetConf();
+      for (auto l : GRange<size_t>(conf.layers)) {
+        const auto sl = std::to_string(l);
+        const Scal rate = var.Double("growth_rate_tracer" + sl, 0);
+        if (rate) {
+          fc_tracer_source[l].Reinit(m, 0);
+          auto apply = [&](const auto& meb, auto as) {
+            if (as) {
+              const auto& fcvf = as->GetField();
+              const auto& tu = tracer_->GetVolumeFraction()[l];
+              for (auto c : meb.Cells()) {
+                if (meb.IsRegular(c)) {
+                  auto src2 = tu[c] * rate * fcvf[c];
+                  fc_src2_[c] += src2;
+                  fc_tracer_source[l][c] += -src2;
+                  fc_src_[c] += src2;
+                }
+              }
+              for (auto c : nucl_cells_) {
+                if (meb.IsRegular(c)) {
+                  auto src2 = tu[c] * rate;
+                  fc_src2_[c] += src2;
+                  fc_tracer_source[l][c] += -src2;
+                  fc_src_[c] += src2;
+                }
               }
             }
-            for (auto c : nucl_cells_) {
-              if (meb.IsRegular(c)) {
-                auto src2 = tu0[c] * (*rate);
-                fc_src2_[c] = src2;
-                fc_src_tracer0_[c] = -src2;
-                fc_src_[c] = src2;
-              }
-            }
+          };
+          apply(m, dynamic_cast<ASV*>(as_.get()));
+          if (eb_) {
+            apply(*eb_, dynamic_cast<ASVEB*>(as_.get()));
           }
-        };
-        apply(m, dynamic_cast<ASV*>(as_.get()));
-        if (eb_) {
-          apply(*eb_, dynamic_cast<ASVEB*>(as_.get()));
         }
       }
     }
     if (tracer_ && var.Int("enable_nucleation", 0)) {
-      auto& tu0 = tracer_->GetVolumeFraction()[0];
-      const Scal cmax = var.Double["nucl_cmax"];
-      auto& g = randgen_;
-      std::uniform_real_distribution<Scal> uniform(0, 1);
-      const Scal k = var.Double["nucl_k"] * st_.dt;
-      for (auto c : m.Cells()) {
-        if ((tu0[c] - cmax) * k > uniform(g)) {
-          nucl_cells_.insert(c);
+      const auto& conf = tracer_->GetConf();
+      for (auto l : GRange<size_t>(conf.layers)) {
+        const auto sl = std::to_string(l);
+        const Scal rate = var.Double("nucleation_rate" + sl, 0);
+        if (rate) {
+          const Scal cmax = var.Double["nucleation_cmax" + sl];
+          const auto& tu = tracer_->GetVolumeFraction()[l];
+          std::uniform_real_distribution<Scal> uniform(0, 1);
+          const Scal k = rate * st_.dt;
+          for (auto c : m.Cells()) {
+            if ((tu[c] - cmax) * k > uniform(randgen_)) {
+              nucl_cells_.insert(c);
+            }
+          }
         }
       }
     }
