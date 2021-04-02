@@ -389,10 +389,10 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
   const Vect velocity(var.Vect["particles_spawn_velocity"]);
   const Scal density = var.Double["particles_density"];
   const auto spawn_rate = var.Vect["particles_spawn_rate"];
-  const auto diameter = var.Vect["particles_diameter"];
+  const auto radius = var.Vect["particles_radius"];
   const auto termvel = var.Vect["particles_termvel"];
   const size_t num_rates = spawn_rate.size();
-  fassert_equal(diameter.size(), num_rates);
+  fassert_equal(radius.size(), num_rates);
   fassert_equal(termvel.size(), num_rates);
   std::uniform_real_distribution<Scal> u(0, 1);
   std::uniform_real_distribution<Scal> um(-0.5, 0.5);
@@ -414,7 +414,7 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
           }
           view.x.push_back(m.GetCenter(c) + xrand * h);
           view.v.push_back(velocity);
-          view.r.push_back(diameter[i] * 0.5);
+          view.r.push_back(radius[i] * 0.5);
           view.rho.push_back(density);
           view.termvel.push_back(termvel[i]);
         }
@@ -430,7 +430,18 @@ void Hydro<M>::InitParticles() {
     conf.mixture_density = var.Double["rho1"];
     conf.mixture_viscosity = var.Double["mu1"];
     conf.gravity = Vect(var.Vect["gravity"]);
-
+    const auto mode = var.String["particles_termvel"];
+    if (mode == "tracer") {
+      conf.mode = ParticlesMode::tracer;
+    } else if (mode == "stokes") {
+      conf.mode = ParticlesMode::stokes;
+    } else if (mode == "termvel") {
+      conf.mode = ParticlesMode::termvel;
+    } else {
+      fassert(
+          false,
+          "Unknown mode=" + mode + ". Known modes are tracer, stokes, termvel");
+    }
     std::vector<Vect> p_x;
     std::vector<Vect> p_v;
     std::vector<Scal> p_r;

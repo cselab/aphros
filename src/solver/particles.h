@@ -10,6 +10,16 @@
 #include "multi.h"
 #include "solver/embed.h"
 
+enum class ParticlesMode {
+  tracer, // particle velocity equals mixture velocity
+  stokes, // linear relaxation with mixture velocity,
+          // relaxation time from Stokes' law
+          // based on gravity, mixture density, mixture viscosity in Conf,
+          // and particle density `rho`, particle radius `r`
+  termvel, // linear relaxation with mixture velocity,
+           // relaxation time based on given terminal velocity `termvel`
+};
+
 namespace generic {
 
 // Piecewise Linear Interface Characterization.
@@ -22,7 +32,7 @@ struct ParticlesView {
   std::vector<Vect>& v; // velocity
   std::vector<Scal>& r; // radius
   std::vector<Scal>& rho; // density
-  std::vector<Scal>& termvel; // terminal hettling velocity
+  std::vector<Scal>& termvel; // terminal settling velocity
 };
 
 } // namespace generic
@@ -37,11 +47,10 @@ class ParticlesInterface {
   using ParticlesView = generic::ParticlesView<Vect>;
 
   struct Conf {
-    Scal mixture_density;
-    Scal mixture_viscosity;
-    Vect gravity;
-    bool use_termvel = true; // settling from terminal velocity
-                             // (requires non-zero gravity)
+    Scal mixture_density{0};
+    Scal mixture_viscosity{0};
+    Vect gravity{0};
+    ParticlesMode mode{ParticlesMode::tracer};
   };
 
   virtual ~ParticlesInterface() {}
