@@ -107,6 +107,8 @@ Bubble trapped by vortex ring [[5]](https://doi.org/10.1016/j.ijmultiphaseflow.2
 Electrochemical reactor [[1]](https://doi.org/10.1039/C9EE00219G) | Bubbles through mesh
 [<img src="https://cselab.github.io/aphros/videos/preview/thumb/rising_bubbles.jpg" height=150>](https://www.youtube.com/watch?v=WzOe0buD8uM) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/foaming_waterfall.jpg" height=150>](https://www.youtube.com/watch?v=0Cj8pPYNJGY)
  Clustering of bubbles [[conf]](examples/205_multivof/clustering) [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) [[7]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019) [[9]](https://arxiv.org/abs/2103.01513) | Foaming waterfall [[conf]](examples/205_multivof/waterfall) [[8]](https://doi.org/10.1145/3394277.3401856) [[9]](https://arxiv.org/abs/2103.01513)
+[<img src="https://cselab.github.io/aphros/videos/preview/thumb/bidisperse.jpg" height=150>](https://www.youtube.com/watch?v=2fm_JX9-Wbg) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/crystal.jpg" height=45>](https://www.youtube.com/watch?v=8iPmOsXnXAM)
+ Bidisperse foam [[conf]](examples/205_multivof/bidisperse) [[9]](https://arxiv.org/abs/2103.01513) | Microfluidic crystals [[conf]](examples/205_multivof/crystal) [[9]](https://arxiv.org/abs/2103.01513)
 
 |     |
 |:---:|
@@ -155,7 +157,8 @@ under the supervision of
 6. P. Karnakov, S. Litvinov, J. M. Favre, P. Koumoutsakos
   "V0018: Breaking waves: to foam or not to foam?"
   _Gallery of Fluid Motion Award_
-  [10.1103/APS.DFD.2019.GFM.V0018](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)
+  [video](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)
+  [article](http://dx.doi.org/10.1103/physrevfluids.5.110503)
 7. Annual report 2019 of the Swiss National Supercomputing Centre (cover page)
   [[link]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019)
 8. P. Karnakov, F. Wermelinger, S. Litvinov,

@@ -112,6 +112,8 @@ Bubble trapped by vortex ring [[ref:datadriven]] | Plunging jet [[ref:pasc19]]
 Electrochemical reactor [[ref:ees]] | Bubbles through mesh
 [<img src="[[VIDTHUMB]]/rising_bubbles.jpg" height=150>](https://www.youtube.com/watch?v=WzOe0buD8uM) | [<img src="[[VIDTHUMB]]/foaming_waterfall.jpg" height=150>](https://www.youtube.com/watch?v=0Cj8pPYNJGY)
  Clustering of bubbles [[conf]](examples/205_multivof/clustering) [[ref:aps]] [[ref:cscs]] [[ref:multivof]] | Foaming waterfall [[conf]](examples/205_multivof/waterfall) [[ref:pasc20]] [[ref:multivof]]
+[<img src="[[VIDTHUMB]]/bidisperse.jpg" height=150>](https://www.youtube.com/watch?v=2fm_JX9-Wbg) | [<img src="[[VIDTHUMB]]/crystal.jpg" height=45>](https://www.youtube.com/watch?v=8iPmOsXnXAM)
+ Bidisperse foam [[conf]](examples/205_multivof/bidisperse) [[ref:multivof]] | Microfluidic crystals [[conf]](examples/205_multivof/crystal) [[ref:multivof]]
 
 |     |
 |:---:|
@@ -160,7 +162,8 @@ under the supervision of
 [[item:aps]] P. Karnakov, S. Litvinov, J. M. Favre, P. Koumoutsakos
   "V0018: Breaking waves: to foam or not to foam?"
   _Gallery of Fluid Motion Award_
-  [10.1103/APS.DFD.2019.GFM.V0018](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)
+  [video](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)
+  [article](http://dx.doi.org/10.1103/physrevfluids.5.110503)
 [[item:cscs]] Annual report 2019 of the Swiss National Supercomputing Centre (cover page)
   [[link]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019)
 [[item:pasc20]] P. Karnakov, F. Wermelinger, S. Litvinov,
