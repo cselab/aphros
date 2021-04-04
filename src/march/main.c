@@ -18,7 +18,10 @@ struct March {
 
 static double offset(double, double);
 static int map(int);
-
+const double MARCH_O[][3] = {
+    {0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0},
+    {0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1},
+};
 static int cube(struct March* q, double cube[8], int* pn, double* tri) {
   double a;
   int c, i, j, idx, flag, x, y;
