@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "march.h"
-#include "table.h"
+#include "table.inc"
 
 enum { X, Y, Z };
 struct Ver {

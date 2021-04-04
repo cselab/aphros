@@ -639,6 +639,8 @@ kernel\hydro.obj: debug\linear.h
 kernel\hydro.obj: distr\reduce.h
 kernel\hydro.obj: dump\dumper.h
 kernel\hydro.obj: dump\hdf.h
+kernel\hydro.obj: dump\raw.h
+kernel\hydro.obj: dump\xmf.h
 kernel\hydro.obj: func\init_contang.h
 kernel\hydro.obj: func\init.h
 kernel\hydro.obj: geom\blockface.h
@@ -812,7 +814,7 @@ linear\linear.obj: util\mpi.h
 linear\linear.obj: util\suspender.h
 main.obj: aphros_c.h
 march\main.obj: march\march.h
-march\main.obj: march\table.h
+march\main.obj: march\table.inc
 overlap\overlap.obj: geom\vect.h
 overlap\overlap.obj: overlap\overlap.h
 overlap\overlap.obj: overlap\overlap.hpp

@@ -72,7 +72,6 @@ linear/linear_amgx.h\
 linear/linear.h\
 linear/linear_hypre.h\
 march/march.h\
-march/table.h\
 overlap/overlap.h\
 parse/argparse.h\
 parse/codeblocks.h\

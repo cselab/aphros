@@ -639,6 +639,8 @@ $(WRK)/kernel/hydro.o: $(SRC)/debug/linear.h
 $(WRK)/kernel/hydro.o: $(SRC)/distr/reduce.h
 $(WRK)/kernel/hydro.o: $(SRC)/dump/dumper.h
 $(WRK)/kernel/hydro.o: $(SRC)/dump/hdf.h
+$(WRK)/kernel/hydro.o: $(SRC)/dump/raw.h
+$(WRK)/kernel/hydro.o: $(SRC)/dump/xmf.h
 $(WRK)/kernel/hydro.o: $(SRC)/func/init_contang.h
 $(WRK)/kernel/hydro.o: $(SRC)/func/init.h
 $(WRK)/kernel/hydro.o: $(SRC)/geom/blockface.h
@@ -812,7 +814,7 @@ $(WRK)/linear/linear.o: $(SRC)/util/mpi.h
 $(WRK)/linear/linear.o: $(SRC)/util/suspender.h
 $(WRK)/main.o: $(SRC)/aphros_c.h
 $(WRK)/march/main.o: $(SRC)/march/march.h
-$(WRK)/march/main.o: $(SRC)/march/table.h
+$(WRK)/march/main.o: $(SRC)/march/table.inc
 $(WRK)/overlap/overlap.o: $(SRC)/geom/vect.h
 $(WRK)/overlap/overlap.o: $(SRC)/overlap/overlap.h
 $(WRK)/overlap/overlap.o: $(SRC)/overlap/overlap.hpp
