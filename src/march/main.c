@@ -18,7 +18,7 @@ struct March {
 
 static double offset(double, double);
 static int map(int);
-const double MARCH_O[][3] = {
+const int MARCH_O[][3] = {
     {0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0},
     {0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1},
 };
