@@ -794,45 +794,37 @@ struct UVof<M_>::Imp {
     auto sem = m.GetSem("recolor");
     struct {
       std::map<Scal, Scal> usermap;
-      Scal tries;
-      Multi<FieldCell<Scal>> fcclt; // tmp color
+      Scal iters;
+      Multi<FieldCell<Scal>> fccl_new;
     } * ctx(sem);
-    auto& fcclt = ctx->fcclt;
+    auto& t = *ctx;
+    auto& fccl_new = ctx->fccl_new;
     if (sem.Nested()) {
-      Init(layers, fcu, fccl, fcclt, clfixed, clfixed_x, coalth, m);
+      Init(layers, fcu, fccl, fccl_new, clfixed, clfixed_x, coalth, m);
     }
     if (sem("reflect")) {
       for (auto i : layers) {
-        BcApply(fcclt[i], mfc_cl, m);
+        BcApply(fccl_new[i], mfc_cl, m);
       }
     }
     sem.LoopBegin();
     if (grid && sem.Nested()) {
-      Grid(layers, fccl, fcclt, m);
+      Grid(layers, fccl, fccl_new, m);
     }
-    if (sem("min")) {
-      size_t tries = 0;
-      size_t cells = 0;
-      using MIdx = typename M::MIdx;
-      auto& bc = m.GetIndexCells();
-      static constexpr size_t sw = 1; // stencil half-width
-      static constexpr size_t sn = sw * 2 + 1;
-      GBlock<IdxCell, M::dim> bo(MIdx(-sw), MIdx(sn));
+    if (sem("MIN")) {
+      size_t iters = 0;
       while (true) {
-        bool chg = false;
-        for (auto i : layers) {
+        bool changed = false;
+        for (auto l : layers) {
           for (auto c : m.Cells()) {
-            if ((*fccl[i])[c] != kClNone) {
+            if ((*fccl[l])[c] != kClNone) {
               // update color with minimum over neighbours
-              MIdx w = bc.GetMIdx(c);
-              for (MIdx wo : bo) {
-                IdxCell cn = bc.GetIdx(w + wo);
-                for (auto j : layers) {
-                  if ((*fccl[j])[cn] == (*fccl[i])[c]) {
-                    if (fcclt[j][cn] < fcclt[i][c]) {
-                      chg = true;
-                      ++cells;
-                      fcclt[i][c] = fcclt[j][cn];
+              for (auto cn : m.Stencil(c)) {
+                for (auto ln : layers) {
+                  if ((*fccl[ln])[cn] == (*fccl[l])[c]) {
+                    if (fccl_new[ln][cn] < fccl_new[l][c]) {
+                      changed = true;
+                      fccl_new[l][c] = fccl_new[ln][cn];
                     }
                   }
                 }
@@ -840,42 +832,42 @@ struct UVof<M_>::Imp {
             }
           }
         }
-        if (!chg) {
+        if (!changed) {
           break;
         }
-        ++tries;
+        ++iters;
       }
       for (auto i : layers) {
-        m.Comm(&fcclt[i]);
+        m.Comm(&fccl_new[i]);
       }
-      ctx->tries = tries;
-      m.Reduce(&ctx->tries, Reduction::max);
+      t.iters = iters;
+      m.Reduce(&t.iters, Reduction::max);
     }
     if (sem("reflect")) {
       for (auto i : layers) {
-        BcApply(fcclt[i], mfc_cl, m);
+        BcApply(fccl_new[i], mfc_cl, m);
       }
     }
     if (sem("check")) {
       if (verb && m.IsRoot()) {
         std::cerr << "recolor:"
-                  << " max tries: " << ctx->tries << std::endl;
+                  << " max iters: " << t.iters << std::endl;
       }
-      if (!ctx->tries) {
+      if (!t.iters) {
         sem.LoopBreak();
       }
     }
     sem.LoopEnd();
     if (reduce && sem.Nested()) {
-      UserMap(layers, fccl0, fcclt, ctx->usermap, m);
+      UserMap(layers, fccl0, fccl_new, t.usermap, m);
     }
     if (reduce && sem.Nested()) {
-      ReduceColor(layers, fcclt, ctx->usermap, clfixed, m);
+      ReduceColor(layers, fccl_new, t.usermap, clfixed, m);
     }
     if (sem("copy")) {
       for (auto c : m.AllCells()) {
         for (auto l : layers) {
-          (*fccl[l])[c] = fcclt[l][c];
+          (*fccl[l])[c] = fccl_new[l][c];
         }
       }
     }
