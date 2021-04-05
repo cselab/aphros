@@ -59,7 +59,7 @@ class UVof {
   // Computes unique color for each connected component over all layers.
   // fcu: volume fraction
   // fccl: color to update
-  // fccl0: known colors to keep (may be same as fccl)
+  // fccl_stable: known colors to keep (may be same as fccl)
   // clfixed: if >=0, override value for color in cell nearest to clfixed_x
   // coalth: merge two layers i,j if  u_i + u_j > coalth
   // mfcu: boundary conditions for u
@@ -69,9 +69,9 @@ class UVof {
   static void Recolor(
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<FieldCell<Scal>*>& fccl,
-      const Multi<const FieldCell<Scal>*>& fccl0, Scal clfixed, Vect clfixed_x,
-      Scal coalth, const MapEmbed<BCond<Scal>>& mfcu, bool verb, bool unionfind,
-      bool reduce, bool grid, M& m);
+      const Multi<const FieldCell<Scal>*>& fccl_stable, Scal clfixed,
+      Vect clfixed_x, Scal coalth, const MapEmbed<BCond<Scal>>& mfcu, bool verb,
+      bool unionfind, bool reduce, bool grid, M& m);
 
   static std::tuple<
       MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>, MapEmbed<BCond<Scal>>,
