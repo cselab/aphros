@@ -28,8 +28,8 @@ using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
 void Init(
-    GRange<size_t> layers, Multi<FieldCell<Scal>>& fcu,
-    std::string prefix, const Vars& var, M& m) {
+    GRange<size_t> layers, Multi<FieldCell<Scal>>& fcu, std::string prefix,
+    const Vars& var, M& m) {
   auto sem = m.GetSem();
   struct {
     Vars var;
@@ -53,18 +53,26 @@ void Init(
 }
 
 void Dump(
+    const FieldCell<Scal>& fcu, std::string fieldname, std::string filename,
+    M& m) {
+  auto sem = m.GetSem();
+  const auto path = filename + ".h5";
+  if (sem.Nested()) {
+    Hdf<M>::Write(fcu, path, m);
+  }
+  if (sem() && m.IsRoot()) {
+    Hdf<M>::WriteXmf(util::SplitExt(path)[0] + ".xmf", fieldname, path, m);
+  }
+}
+
+void Dump(
     GRange<size_t> layers, const Multi<FieldCell<Scal>>& fcu,
-    std::string prefix, M& m) {
+    std::string fieldname, std::string filename, M& m) {
   auto sem = m.GetSem();
   for (auto l : layers) {
     const auto sl = std::to_string(l);
-    const auto name = prefix + sl;
-    const auto path = name + ".h5";
     if (sem.Nested()) {
-      Hdf<M>::Write(fcu[l], path, m);
-    }
-    if (sem() && m.IsRoot()) {
-      Hdf<M>::WriteXmf(util::SplitExt(path)[0] + ".xmf", prefix, path, m);
+      Dump(fcu[l], fieldname, filename + sl, m);
     }
   }
 }
@@ -76,12 +84,14 @@ void Run(M& m, Vars& var) {
     Multi<FieldCell<Scal>> fcvf; // volume fraction
     Multi<FieldCell<Scal>> fccl; // color
     MapEmbed<BCond<Scal>> mebc; // boundary conditions for volume fraction
+    FieldCell<Scal> fcvf_sum; // sum of volume fractions from all layers
+    FieldCell<Scal> fccl_sum; // colors from all layers
   } * ctx(sem);
   constexpr Scal kClNone = -1;
   auto& t = *ctx;
   if (sem()) {
     t.layers = GRange<size_t>(var.Int["layers"]);
-    t.fccl.Reinit(t.layers, m, 0);
+    t.fccl.Reinit(t.layers, m, kClNone);
   }
   if (sem.Nested()) {
     Init(t.layers, t.fcvf, "vf", var, m);
@@ -90,13 +100,13 @@ void Run(M& m, Vars& var) {
     // Clear color in cells with zero volume fraction
     for (auto l : t.layers) {
       for (auto c : m.AllCells()) {
-        t.fccl[l][c] = (t.fcvf[l][c] > 0 ? 1 : kClNone);
+        t.fccl[l][c] = (t.fcvf[l][c] > 0 ? l : kClNone);
       }
     }
   }
   if (sem.Nested()) {
     const bool verbose = false;
-    const bool reduce = false;
+    const bool reduce = true;
     const bool unionfind = false;
     const bool grid = false;
     UVof<M>().Recolor(
@@ -104,10 +114,29 @@ void Run(M& m, Vars& var) {
         unionfind, reduce, grid, m);
   }
   if (sem.Nested()) {
-    Dump(t.layers, t.fcvf, "vf", m);
+    Dump(t.layers, t.fcvf, "vf", "vf", m);
   }
   if (sem.Nested()) {
-    Dump(t.layers, t.fccl, "cl", m);
+    Dump(t.layers, t.fccl, "cl", "cl", m);
+  }
+  if (sem()) {
+    // Collect volume fractions and colors from all layers in one field.
+    t.fcvf_sum.Reinit(m, 0);
+    t.fccl_sum.Reinit(m, kClNone);
+    for (auto c : m.Cells()) {
+      for (auto l : t.layers) {
+        t.fcvf_sum[c] += t.fcvf[l][c];
+        if (t.fcvf[l][c] > 0) {
+          t.fccl_sum[c] = t.fccl[l][c];
+        }
+      }
+    }
+  }
+  if (sem.Nested()) {
+    Dump(t.fcvf_sum, "vf", "vf_sum", m);
+  }
+  if (sem.Nested()) {
+    Dump(t.fccl_sum, "cl", "cl_sum", m);
   }
 }
 
