@@ -91,6 +91,7 @@ class DistrMesh {
   virtual void ReduceToLead(const std::vector<size_t>& bb);
   virtual void Scatter(const std::vector<size_t>& bb) = 0;
   virtual void Bcast(const std::vector<size_t>& bb) = 0;
+  virtual void BcastFromLead(const std::vector<size_t>& bb);
   virtual void DumpWrite(const std::vector<size_t>& bb);
   virtual void ClearComm(const std::vector<size_t>& bb);
   virtual void ClearDump(const std::vector<size_t>& bb);

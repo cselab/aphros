@@ -31,6 +31,7 @@ struct MeshCartesian<_Scal, _dim>::Imp {
   UReduce<Scal> reduce;
   UReduce<Scal> reduce_lead;
   std::vector<std::unique_ptr<typename UReduce<Scal>::Op>> bcast;
+  std::vector<std::unique_ptr<typename UReduce<Scal>::Op>> bcast_lead;
   std::vector<ScatterRequest> scatter;
   std::vector<std::pair<IdxFace, size_t>> vfnan;
 };
@@ -350,6 +351,20 @@ auto MeshCartesian<Scal, dim>::GetBcast() const
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::ClearBcast() {
   imp->bcast.clear();
+}
+template <class Scal, size_t dim>
+void MeshCartesian<Scal, dim>::BcastFromLead(
+    std::unique_ptr<typename UReduce<Scal>::Op>&& o) {
+  imp->bcast_lead.emplace_back(std::move(o));
+}
+template <class Scal, size_t dim>
+auto MeshCartesian<Scal, dim>::GetBcastFromLead() const
+    -> const std::vector<std::unique_ptr<Op>>& {
+  return imp->bcast_lead;
+}
+template <class Scal, size_t dim>
+void MeshCartesian<Scal, dim>::ClearBcastFromLead() {
+  imp->bcast_lead.clear();
 }
 template <class Scal, size_t dim>
 auto MeshCartesian<Scal, dim>::GetNanFaces() const

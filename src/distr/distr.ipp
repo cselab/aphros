@@ -182,6 +182,50 @@ void DistrMesh<M>::ReduceToLead(const std::vector<size_t>& bb) {
 }
 
 template <class M>
+void DistrMesh<M>::BcastFromLead(const std::vector<size_t>& bb) {
+  using OpConcat = typename UReduce<Scal>::OpCat;
+  auto& vfirst = kernels_.front()->GetMesh().GetBcastFromLead();
+
+  if (!vfirst.size()) {
+    return;
+  }
+
+  for (auto b : bb) {
+    fassert_equal(
+        kernels_[b]->GetMesh().GetBcastFromLead().size(), vfirst.size());
+  }
+
+  for (size_t i = 0; i < vfirst.size(); ++i) {
+    if (OpConcat* o = dynamic_cast<OpConcat*>(vfirst[i].get())) {
+      std::vector<char> buf = o->Neutral();
+
+      // Read from lead block
+      for (auto b : bb) {
+        const auto& m = kernels_[b]->GetMesh();
+        if (m.IsLead()) {
+          const OpConcat* ob =
+              static_cast<OpConcat*>(m.GetBcastFromLead()[i].get());
+          ob->Append(buf);
+        }
+      }
+
+      // Write to all blocks
+      for (auto b : bb) {
+        const auto& m = kernels_[b]->GetMesh();
+        OpConcat* ob = static_cast<OpConcat*>(m.GetBcastFromLead()[i].get());
+        ob->Set(buf);
+      }
+    } else {
+      fassert(false, "BcastFromLead: Unknown M::Op instance");
+    }
+  }
+
+  for (auto b : bb) {
+    kernels_[b]->GetMesh().ClearBcastFromLead();
+  }
+}
+
+template <class M>
 void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
   auto& mfirst = kernels_.front()->GetMesh();
   if (mfirst.GetDump().size()) {
@@ -437,6 +481,7 @@ void DistrMesh<M>::Run() {
     ReduceToLead(bb);
     Scatter(bb);
     Bcast(bb);
+    BcastFromLead(bb);
 
     const std::string nameseq =
         kernels_.front()->GetMesh().GetSuspender().GetNameSequence();

@@ -528,37 +528,29 @@ void Cubismnc<Par, M>::Bcast(const std::vector<size_t>& bb) {
 
   for (size_t i = 0; i < vfirst.size(); ++i) {
     if (OpConcat* o = dynamic_cast<OpConcat*>(vfirst[i].get())) {
-      std::vector<char> r = o->Neutral(); // buffer
+      std::vector<char> buf = o->Neutral();
 
       if (isroot_) {
-        // read from root block
+        // Read from root block
         for (auto b : bb) {
-          auto& m = kernels_[b]->GetMesh();
+          const auto& m = kernels_[b]->GetMesh();
           if (m.IsRoot()) {
-            auto& v = m.GetBcast();
-            OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
-            ob->Append(r);
+            const OpConcat* ob = static_cast<OpConcat*>(m.GetBcast()[i].get());
+            ob->Append(buf);
           }
         }
       }
 
-      int s = r.size(); // size
+      int size = buf.size();
+      MPI_Bcast(&size, 1, MPI_INT, 0, comm_);
+      buf.resize(size);
+      MPI_Bcast(buf.data(), buf.size(), MPI_CHAR, 0, comm_);
 
-      // broadcast size
-      MPI_Bcast(&s, 1, MPI_INT, 0, comm_);
-
-      // resize
-      r.resize(s);
-
-      // broadcast data
-      MPI_Bcast(r.data(), r.size(), MPI_CHAR, 0, comm_);
-
-      // write to all blocks
+      // Write to all blocks
       for (auto b : bb) {
-        auto& m = kernels_[b]->GetMesh();
-        auto& v = m.GetBcast();
-        OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
-        ob->Set(r);
+        const auto& m = kernels_[b]->GetMesh();
+        OpConcat* ob = static_cast<OpConcat*>(m.GetBcast()[i].get());
+        ob->Set(buf);
       }
     } else {
       fassert(false, "Bcast: Unknown M::Op instance");

@@ -753,6 +753,10 @@ class MeshCartesian {
   void ClearReduceToLead();
   void Bcast(std::unique_ptr<Op>&& o);
   template <class T>
+  void Bcast(T* elem) {
+    Bcast(std::make_unique<typename UReduce<Scal>::template OpCatRaw<T>>(elem));
+  }
+  template <class T>
   void Bcast(std::vector<T>* buf) {
     Bcast(std::make_unique<typename UReduce<Scal>::template OpCatT<T>>(buf));
   }
@@ -762,6 +766,14 @@ class MeshCartesian {
   }
   const std::vector<std::unique_ptr<Op>>& GetBcast() const;
   void ClearBcast();
+  void BcastFromLead(std::unique_ptr<Op>&& o);
+  template <class T>
+  void BcastFromLead(T* elem) {
+    BcastFromLead(
+        std::make_unique<typename UReduce<Scal>::template OpCatRaw<T>>(elem));
+  }
+  const std::vector<std::unique_ptr<Op>>& GetBcastFromLead() const;
+  void ClearBcastFromLead();
   // Scatter request:
   // first: sendbuffer on root, vector for each block; ignored on others
   // second: receive buffer

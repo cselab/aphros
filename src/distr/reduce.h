@@ -44,7 +44,7 @@ class UReduce {
     // v: buffer containing current value and used for result
     OpT(T* v) : v_(v) {}
     // Appends internal value to a
-    virtual void Append(T& a) {
+    virtual void Append(T& a) const {
       Append(a, *v_);
     }
     // Returns neutral value a such that Append(a, v) would set a=v
@@ -169,6 +169,46 @@ class UReduce {
     }
   };
 
+  // Raw copy of object.
+  template <class T>
+  class OpCatRaw : public OpCat {
+   public:
+    using Base = OpCat;
+    using Bytes = std::vector<char>;
+    OpCatRaw(T* elem) : OpCat(nullptr), elem_(elem) {}
+    // Appends `buf` with serialized `elem_`
+    void Append(Bytes& buf) const override {
+      const Bytes elembuf = Serialize(*elem_);
+      buf.insert(buf.end(), elembuf.begin(), elembuf.end());
+    }
+    // Sets `elem_` to deserialized `buf`
+    void Set(const Bytes& buf) override {
+      *elem_ = Deserialize(buf);
+    }
+
+   protected:
+    using Base::Append;
+    T* elem_;
+
+   private:
+    static Bytes Serialize(const T& elem) {
+      Bytes res;
+      const char* chars = (const char*)(const void*)&elem;
+      for (size_t i = 0; i < sizeof(T); ++i) {
+        res.push_back(chars[i]);
+      }
+      return res;
+    }
+    static T Deserialize(const Bytes& buf) {
+      T res;
+      char* chars = (char*)(void*)&res;
+      for (size_t i = 0; i < sizeof(T); ++i) {
+        chars[i] = buf[i];
+      }
+      return res;
+    }
+  };
+
   // Concatenation of std::vector<T>.
   // Result only on root block.
   template <class T>
@@ -180,7 +220,7 @@ class UReduce {
     // OpCat::v_ initialized with nullptr // TODO: revise
     OpCatT(std::vector<T>* vt) : OpCat(nullptr), vt_(vt) {}
     // Serializes vt_ and appends to a
-    void Append(Bytes& a) override {
+    void Append(Bytes& a) const override {
       Bytes v = Serialize(*vt_);
       a.insert(a.end(), v.begin(), v.end());
     }
@@ -230,7 +270,7 @@ class UReduce {
     // vt: buffer containing current value and used for result
     // OpCat::v_ initialized with nullptr // TODO: revise
     OpCatVT(std::vector<std::vector<T>>* vt) : OpCat(nullptr), vt_(vt) {}
-    void Append(Bytes& a) override {
+    void Append(Bytes& a) const override {
       Bytes v = Serialize(*vt_);
       a.insert(a.end(), v.begin(), v.end());
     }
@@ -292,7 +332,6 @@ class UReduce {
       return res;
     }
   };
-
   void Add(std::unique_ptr<Op>&& o) {
     reqs_.emplace_back(std::move(o));
   }
