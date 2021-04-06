@@ -19,49 +19,75 @@ template <class T>
 class Vector {
  public:
   Vector() = default;
-  ~Vector() = default;
-  explicit Vector(size_t size) : size_(size), data_(new T[size]) {}
-  Vector(size_t size, const T& value) : size_(size), data_(new T[size]) {
-    std::fill(data_.get(), data_.get() + size_, value);
+  ~Vector() {
+    if (owning_) {
+      delete[] data_;
+    }
   }
-  Vector(const Vector& other) : size_(other.size_), data_(new T[other.size_]) {
-    std::copy(other.data_.get(), other.data_.get() + size_, data_.get());
+  explicit Vector(size_t size)
+      : size_(size), data_(new T[size]), owning_(true) {}
+  Vector(T* data, size_t size) : size_(size), data_(data), owning_(false) {}
+  Vector(size_t size, const T& value)
+      : size_(size), data_(new T[size]), owning_(true) {
+    std::fill(data_, data_ + size_, value);
   }
-  Vector(Vector&& other) = default;
+  Vector(const Vector& other)
+      : size_(other.size_), data_(new T[other.size_]), owning_(true) {
+    std::copy(other.data_, other.data_ + size_, data_);
+  }
+  Vector(Vector&& other)
+      : size_(other.size_), data_(other.data_), owning_(other.owning_) {
+    other.size_ = 0;
+    other.data_ = nullptr;
+    other.owning_ = true;
+  }
   Vector& operator=(const Vector& other) {
-    auto tmp = Vector(other);
-    swap(tmp);
+    Vector(other).swap(*this);
     return *this;
   }
-  Vector& operator=(Vector&&) = default;
-  void swap(Vector& other) {
+  Vector& operator=(Vector&& other) {
+    if (owning_) {
+      delete[] data_;
+    }
+    size_ = other.size_;
+    data_ = other.data_;
+    owning_ = other.owning_;
+    other.size_ = 0;
+    other.data_ = nullptr;
+    other.owning_ = true;
+    return *this;
+  }
+  void swap(Vector& other) noexcept {
     std::swap(other, *this);
   }
-  size_t size() const {
+  size_t size() const noexcept {
     return size_;
   }
   void resize(size_t newsize) {
     if (newsize != size_) {
-      auto tmp = Vector(newsize);
-      swap(tmp);
+      Vector(newsize).swap(*this);
     }
   }
-  const T* data() const {
-    return data_.get();
+  const T* data() const noexcept {
+    return data_;
   }
-  T* data() {
-    return data_.get();
+  T* data() noexcept {
+    return data_;
   }
-  const T& operator[](size_t i) const {
-    return data_.get()[i];
+  const T& operator[](size_t i) const noexcept {
+    return data_[i];
   }
-  T& operator[](size_t i) {
-    return data_.get()[i];
+  T& operator[](size_t i) noexcept {
+    return data_[i];
+  }
+  bool owning() const noexcept {
+    return owning_;
   }
 
  private:
   size_t size_ = 0;
-  std::unique_ptr<T[]> data_;
+  T* data_ = nullptr;
+  bool owning_ = true; // true if memory is managed by the object
 };
 
 template <class Value_, class Idx_>
@@ -74,6 +100,8 @@ class GField {
 
   GField() = default;
   explicit GField(const Range& range) : range_(range), data_(size(range)) {}
+  GField(Value* data, const Range& range)
+      : range_(range), data_(data, size(range)) {}
   ~GField() = default;
   GField(const GField& o) = default;
   GField(GField&& o) = default;
@@ -89,6 +117,12 @@ class GField {
   }
   bool empty() const {
     return size() == 0;
+  }
+  bool owning() const {
+    return data_.owning();
+  }
+  void Reinit(Value* data, const Range& range) {
+    GField(data, range).swap(*this);
   }
   // Changes the range, reallocates memory if size differs
   void Reinit(const Range& range) {
