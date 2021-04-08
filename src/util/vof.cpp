@@ -3,5 +3,5 @@
 
 #include "vof.ipp"
 
-#define X(dim) template class UVof<MeshStructured<double, dim>>;
+#define X(dim) template class UVof<MeshCartesian<double, dim>>;
 MULTIDIMX

@@ -32,14 +32,14 @@ using MIdx = generic::MIdx<dim>;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = generic::Vect<Scal, dim>;
-using M = MeshStructured<Scal, dim>;
+using M = MeshCartesian<Scal, dim>;
 
 M GetMesh() {
   const Rect<Vect> dom(Vect(0), Vect(1));
   const MIdx begin(0, 0, 0);
   const MIdx size(2, 2, 1);
   const int halos = 0;
-  return InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);
+  return {begin, size, dom, halos, true, true, size, 0};
 }
 
 void TestRange() {

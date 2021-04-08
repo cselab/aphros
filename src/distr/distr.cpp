@@ -3,5 +3,5 @@
 
 #include "distr.ipp"
 
-#define X(dim) template class DistrMesh<MeshStructured<double, dim>>;
+#define X(dim) template class DistrMesh<MeshCartesian<double, dim>>;
 MULTIDIMX

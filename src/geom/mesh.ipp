@@ -206,13 +206,6 @@ MeshCartesian<Scal, dim>::~MeshCartesian() = default;
 template <class Scal, size_t dim>
 MeshCartesian<Scal, dim>::MeshCartesian(MeshCartesian&&) = default;
 
-template <class M>
-M InitUniformMesh(
-    Rect<typename M::Vect> domain, typename M::MIdx begin, typename M::MIdx s,
-    int halos, bool isroot, bool islead, typename M::MIdx gs, int id) {
-  return {begin, s, domain, halos, isroot, islead, gs, id};
-}
-
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Comm(std::unique_ptr<CommRequest>&& r) {
   imp->commreq.emplace_back(std::move(r));

@@ -30,14 +30,13 @@ M CreateMesh(const generic::BlockInfoProxy<M::dim>& p) {
   using MIdx = typename M::MIdx;
   using Vect = typename M::Vect;
   const MIdx bs = p.blocksize;
-  const MIdx worigin = p.index * bs;
+  const MIdx begin = p.index * bs;
   const Vect h(p.cellsize);
-  const Rect<Vect> domain(Vect(worigin) * h, Vect(worigin + bs) * h);
+  const Rect<Vect> domain(Vect(begin) * h, Vect(begin + bs) * h);
 
   const MIdx global_blocks = p.globalsize / bs;
   const int id = M::Flags::GetIdFromBlock(p.index, global_blocks);
-  M m = InitUniformMesh<M>(
-      domain, worigin, bs, p.halos, p.isroot, p.islead, p.globalsize, id);
+  M m(begin, bs, domain, p.halos, p.isroot, p.islead, p.globalsize, id);
   m.flags.global_origin = Vect(0);
   m.flags.global_blocks = global_blocks;
   m.flags.block_length = h * Vect(bs);

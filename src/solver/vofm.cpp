@@ -4,10 +4,10 @@
 #include "vofm.ipp"
 #include "embed.h"
 
-#define X(dim) template class Vofm<MeshStructured<double, dim>>;
+#define X(dim) template class Vofm<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X
 
-#define X(dim) template class Vofm<Embed<MeshStructured<double, dim>>>;
+#define X(dim) template class Vofm<Embed<MeshCartesian<double, dim>>>;
 MULTIDIMX
 #undef X

@@ -446,7 +446,7 @@ void Simple<M>::Run() {
 }
 
 void Main(MPI_Comm comm, Vars& var) {
-  using M = MeshStructured<double, 3>;
+  using M = MeshCartesian<double, 3>;
   using K = Simple<M>;
   using Par = typename K::Par;
   Par par;

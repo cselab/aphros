@@ -76,12 +76,12 @@ class Local : public DistrMesh<M_> {
 
 template <class M>
 auto Local<M>::CreateGlobalMesh(MIdx bs, MIdx b, MIdx p, Scal ext) -> M {
-  MIdx gs = bs * b * p; // global size in cells (without halos)
-  Scal h = ext / gs.max(); // cell size
-  Rect<Vect> d(Vect(0), Vect(gs) * h); // bounding box
-  MIdx o(0); // origin index
+  const MIdx gs = bs * b * p; // global size in cells (without halos)
+  const Scal h = ext / gs.max(); // cell size
+  const Rect<Vect> domain(Vect(0), Vect(gs) * h); // bounding box
+  const MIdx begin(0);
 
-  return InitUniformMesh<M>(d, o, gs, 0, true, true, gs, 0);
+  return {begin, gs, domain, 0, true, true, gs, 0};
 }
 
 template <class M>

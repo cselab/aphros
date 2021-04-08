@@ -192,7 +192,7 @@ class ModuleLinearHypre : public ModuleLinear<M> {
   }
 };
 
-using M = MeshStructured<double, 3>;
+using M = MeshCartesian<double, 3>;
 
 bool kReg_hypre[] = {
     RegisterModule<ModuleLinearHypre<M>>(),

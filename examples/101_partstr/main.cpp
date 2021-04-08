@@ -10,7 +10,7 @@
 #include <distr/distrbasic.h>
 #include <solver/curv.h>
 
-using M = MeshStructured<double, 3>;
+using M = MeshCartesian<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 

@@ -3,6 +3,6 @@
 
 #include "hydro.ipp"
 
-#define X(dim) template class Hydro<MeshStructured<double, dim>>;
+#define X(dim) template class Hydro<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X

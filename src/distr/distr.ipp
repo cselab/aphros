@@ -26,7 +26,9 @@ void DistrMesh<M>::MakeKernels(const std::vector<BlockInfoProxy>& proxies) {
     m.flags.comm = comm_;
     m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
     m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
-    m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
+    if (M::dim > 2) {
+      m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
+    }
     kernels_.emplace_back(kernel.release());
   }
 }

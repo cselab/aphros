@@ -110,16 +110,16 @@ class MeshCartesian {
     MPI_Comm comm;
   };
 
-  // b: begin, lower corner cell index
-  // cs: inner cells size
+  // begin: begin, lower corner cell index
+  // size: inner cells size
   // domain: domain, rectangle covering inner cells
   // halos: halo cells from each side
   // isroot: root block
   // gs: global mesh size
   // id: unique id
   MeshCartesian(
-      MIdx b, MIdx cs, Rect<Vect> domain, int halos, bool isroot, bool islead,
-      MIdx gs, int id);
+      MIdx begin, MIdx size, Rect<Vect> domain, int halos, bool isroot,
+      bool islead, MIdx gs, int id);
   MeshCartesian(const MeshCartesian&) = delete;
   MeshCartesian(MeshCartesian&&);
   MeshCartesian& operator=(const MeshCartesian&) = delete;
@@ -848,21 +848,3 @@ class MeshCartesian {
   struct Imp;
   std::unique_ptr<Imp> imp;
 };
-
-// FIXME: Legacy alias, remove
-template <class Scal, size_t dim>
-using MeshStructured = MeshCartesian<Scal, dim>;
-
-// Create uniform mesh
-// domain: rectangle covering inner cells
-// begin: index of lower inner cells
-// s: number of inner cells in each direction
-// halos: number of halo layers
-// isroot: root block
-// islead: lead block
-// gs: global mesh size
-// id: unique id
-template <class M>
-M InitUniformMesh(
-    Rect<typename M::Vect> domain, typename M::MIdx begin, typename M::MIdx s,
-    int halos, bool isroot, bool islead, typename M::MIdx gs, int id);

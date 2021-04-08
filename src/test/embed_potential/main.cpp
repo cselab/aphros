@@ -184,7 +184,7 @@ void Run(M& m, Vars& var) {
 
 template <size_t dim>
 int RunGeneric(MpiWrapper& mpi, const Vars& args, std::string conf) {
-  using M = MeshStructured<double, dim>;
+  using M = MeshCartesian<double, dim>;
   using MIdx = typename M::MIdx;
   MIdx meshsize(1);
   MIdx blocksize(1);

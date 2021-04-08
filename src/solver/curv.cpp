@@ -3,6 +3,6 @@
 
 #include "curv.ipp"
 
-#define X(dim) template struct UCurv<MeshStructured<double, dim>>;
+#define X(dim) template struct UCurv<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X

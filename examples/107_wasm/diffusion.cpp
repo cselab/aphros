@@ -24,7 +24,7 @@
 #include "util/module.h"
 #include "util/timer.h"
 
-using M = MeshStructured<double, 2>;
+using M = MeshCartesian<double, 2>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;

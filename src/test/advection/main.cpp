@@ -286,7 +286,7 @@ void Advection<M>::Run() {
 
 template <size_t dim>
 void Run(MPI_Comm comm, Vars& var) {
-  using M = MeshStructured<double, dim>;
+  using M = MeshCartesian<double, dim>;
   using Vect = typename M::Vect;
   using K = Advection<M>;
   using Par = typename K::Par;

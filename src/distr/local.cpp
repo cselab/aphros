@@ -22,6 +22,6 @@ class ModuleDistrLocal : public ModuleDistr<M> {
   }
 };
 
-#define X(dim) RegisterModule<ModuleDistrLocal<MeshStructured<double, dim>>>(),
+#define X(dim) RegisterModule<ModuleDistrLocal<MeshCartesian<double, dim>>>(),
 
 bool kRegDistrLocal[] = {MULTIDIMX};

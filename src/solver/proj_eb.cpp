@@ -4,6 +4,6 @@
 #include "embed.h"
 #include "proj.ipp"
 
-#define X(dim) template class Proj<Embed<MeshStructured<double, dim>>>;
+#define X(dim) template class Proj<Embed<MeshCartesian<double, dim>>>;
 MULTIDIMX
 #undef X

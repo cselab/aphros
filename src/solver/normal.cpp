@@ -3,5 +3,5 @@
 
 #include "normal.ipp"
 
-#define X(dim) template class UNormal<MeshStructured<double, dim>>;
+#define X(dim) template class UNormal<MeshCartesian<double, dim>>;
 MULTIDIMX

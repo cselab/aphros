@@ -24,7 +24,7 @@ const char* g_base_conf =
 #include "explorer.inc"
     ;
 
-using M = MeshStructured<double, 2>;
+using M = MeshCartesian<double, 2>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;

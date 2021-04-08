@@ -5,10 +5,6 @@
 
 #define XX(M)                                                      \
   template class M;                                                \
-  template M InitUniformMesh(                                      \
-      Rect<typename M::Vect> domain, typename M::MIdx begin,       \
-      typename M::MIdx s, int halos, bool isroot, bool islead,     \
-      typename M::MIdx gs, int id);                                \
   template void M::ApplyNanFaces(FieldCell<typename M::Scal>& fc); \
   template void M::ApplyNanFaces(FieldCell<typename M::Vect>& fc);
 

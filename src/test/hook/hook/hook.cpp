@@ -20,5 +20,5 @@ void InitVelHook(FieldCell<typename M::Vect>&, const Vars& var, const M&) {
   std::cout << std::endl;
 }
 
-using M = MeshStructured<double, 3>;
+using M = MeshCartesian<double, 3>;
 template void InitVelHook(FieldCell<typename M::Vect>&, const Vars&, const M&);

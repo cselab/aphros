@@ -41,7 +41,7 @@ using IdxFace = IdxFace;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = generic::Vect<Scal, dim>;
-using Mesh = MeshStructured<Scal, dim>;
+using Mesh = MeshCartesian<Scal, dim>;
 using Normal = typename UNormal<Mesh>::Imp;
 
 template <class M>
@@ -99,7 +99,7 @@ Mesh GetMesh(MIdx size) {
   const Rect<Vect> dom(Vect(0), Vect(size) / Vect(size.max()));
   const MIdx begin(0, 0, 0);
   const int halos = 2;
-  return InitUniformMesh<Mesh>(dom, begin, size, halos, true, true, size, 0);
+  return {begin, size, dom, halos, true, true, size, 0};
 }
 
 class TimerMesh : public ExecutionTimer {

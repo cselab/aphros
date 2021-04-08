@@ -18,7 +18,7 @@
 #include "solver/embed.h"
 #include "solver/solver.h"
 
-using M = MeshStructured<double, 3>;
+using M = MeshCartesian<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
@@ -489,8 +489,7 @@ Field Eval(
 std::unique_ptr<M> CreateMesh(Scal h) {
   const MIdx size(16);
   Rect<Vect> dom(Vect(0), Vect(h) * Vect(size));
-  return std::make_unique<M>(
-      InitUniformMesh<M>(dom, MIdx(0), size, 2, true, true, size, 0));
+  return std::make_unique<M>(MIdx(0), size, dom, 2, true, true, size, 0);
 }
 
 // TODO: rename SuCells to Cells(1)
