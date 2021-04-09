@@ -84,8 +84,6 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   void Dump(Sem& sem);
 
  protected:
-  using P::IsLead;
-  using P::IsRoot;
   using P::m;
   using P::par_;
   using P::var;
@@ -195,7 +193,7 @@ void Advection<M>::Dump(Sem& sem) {
         m.Dump(n, 2, "nz");
       }
 
-      if (IsRoot()) {
+      if (m.IsRoot()) {
         dmf_.Report(std::cout);
       }
     }
@@ -271,7 +269,7 @@ void Advection<M>::Run() {
     if (m.IsLead()) {
       ++(this->var_mutable.Int["iter"]);
     }
-    if (IsRoot()) {
+    if (m.IsRoot()) {
       const Scal t = as_->GetTime();
       const Scal dt = as_->GetTimeStep();
       if (dms_.Try(t, dt)) {

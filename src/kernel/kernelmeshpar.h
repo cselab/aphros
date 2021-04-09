@@ -18,8 +18,6 @@ class KernelMeshPar : public KernelMesh<M_> {
   void Run() override = 0;
 
  protected:
-  using P::IsLead;
-  using P::IsRoot;
   using P::m;
   using P::var;
   using P::var_mutable;

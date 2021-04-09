@@ -113,7 +113,6 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
 
   // FIXME: make private and introduce public interface
  public:
-  using P::bi_;
   using P::m;
   using P::par_;
   using P::var;

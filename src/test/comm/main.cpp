@@ -45,7 +45,6 @@ class Simple : public KernelMeshPar<M_, GPar> {
   void Run() override;
 
  protected:
-  using P::bi_;
   using P::m;
   using P::var;
 
@@ -199,11 +198,13 @@ void Simple<M>::TestReduce() {
   GIndex<size_t, dim> indexc(nprocs * nblocks);
   GBlock<IdxCell, dim> procs(nprocs);
   GBlock<IdxCell, dim> blocks(nblocks);
+  const MIdx block_index =
+      m.GetInBlockCells().GetBegin() / m.GetInBlockCells().GetSize();
   auto func = [](MIdx w) {
     return std::sin(w[0] + 1.7) * std::cos(w[1]) * std::exp(w[2] * 0.1);
   };
   if (sem("sum")) {
-    r_ = func(MIdx(bi_.index));
+    r_ = func(block_index);
     m.Reduce(&r_, Reduction::sum);
   }
   if (sem("sum-check")) {
@@ -214,7 +215,7 @@ void Simple<M>::TestReduce() {
     PCMP(r_, exact);
   }
   if (sem("prod")) {
-    r_ = func(MIdx(bi_.index));
+    r_ = func(block_index);
     m.Reduce(&r_, Reduction::prod);
   }
   if (sem("prod-check")) {
@@ -225,7 +226,7 @@ void Simple<M>::TestReduce() {
     PCMP(r_, exact);
   }
   if (sem("max")) {
-    r_ = func(MIdx(bi_.index));
+    r_ = func(block_index);
     m.Reduce(&r_, Reduction::max);
   }
   if (sem("max-check")) {
@@ -236,7 +237,7 @@ void Simple<M>::TestReduce() {
     PCMP(r_, s);
   }
   if (sem("min")) {
-    r_ = func(MIdx(bi_.index));
+    r_ = func(block_index);
     m.Reduce(&r_, Reduction::min);
   }
   if (sem("min-check")) {
@@ -247,7 +248,7 @@ void Simple<M>::TestReduce() {
     PCMP(r_, s);
   }
   if (sem("minloc")) {
-    MIdx w(bi_.index);
+    MIdx w(block_index);
     rsi_ = std::make_pair(func(w), indexc.GetIdx(w));
     m.Reduce(&rsi_, Reduction::minloc);
   }
@@ -264,7 +265,7 @@ void Simple<M>::TestReduce() {
     PCMP(indexc.GetMIdx(rsi_.second), ws);
   }
   if (sem("maxloc")) {
-    MIdx w(bi_.index);
+    MIdx w(block_index);
     rsi_ = std::make_pair(func(w), indexc.GetIdx(w));
     m.Reduce(&rsi_, Reduction::maxloc);
   }
@@ -281,7 +282,7 @@ void Simple<M>::TestReduce() {
     PCMP(indexc.GetMIdx(rsi_.second), ws);
   }
   if (sem("cat")) {
-    MIdx w(bi_.index);
+    MIdx w(block_index);
     rvs_.resize(0);
     rvs_.push_back(indexc.GetIdx(w));
     m.Reduce(&rvs_, Reduction::concat);
@@ -302,7 +303,7 @@ void Simple<M>::TestReduce() {
   }
   const size_t q = 10;
   if (sem("cati")) {
-    MIdx w(bi_.index);
+    MIdx w(block_index);
     rvi_.resize(0);
     size_t i = indexc.GetIdx(w);
     for (size_t j = 0; j < i % q; ++j) {
@@ -328,7 +329,7 @@ void Simple<M>::TestReduce() {
     }
   }
   if (sem("catvi")) {
-    MIdx w(bi_.index);
+    MIdx w(block_index);
     rvvi_.resize(0);
     size_t i = indexc.GetIdx(w);
     for (size_t j = 0; j < i % q; ++j) {
@@ -354,9 +355,9 @@ void Simple<M>::TestReduce() {
     }
   }
   if (sem("bcast-catvi")) {
-    MIdx w(bi_.index);
+    MIdx w(block_index);
     rvvi_.resize(0);
-    size_t i = indexc.GetIdx(w);
+    size_t i = indexc.GetIdx(block_index);
     for (size_t j = 0; j < (i + 5) % q; ++j) {
       rvvi_.push_back(std::vector<int>({int(100 * i + j)}));
     }
@@ -382,6 +383,8 @@ void Simple<M>::TestScatter() {
   GIndex<size_t, dim> indexc(nprocs * nblocks);
   GBlock<IdxCell, dim> procs(nprocs);
   GBlock<IdxCell, dim> blocks(nblocks);
+  const MIdx block_index =
+      m.GetInBlockCells().GetBegin() / m.GetInBlockCells().GetSize();
   auto GetBlockData = [](size_t i) {
     std::vector<Scal> r;
     r.push_back(Scal(i));
@@ -411,7 +414,7 @@ void Simple<M>::TestScatter() {
     PCMPF(rvs_, GetBlockData(std::lround(rvs_[0])));
   }
   if (sem("gather")) {
-    MIdx w(bi_.index);
+    MIdx w(block_index);
     size_t i = indexc.GetIdx(w);
     rvvs_ = {GetBlockData(i)};
     m.Reduce(&rvvs_, Reduction::concat);
@@ -425,8 +428,8 @@ void Simple<M>::TestScatter() {
     }
   }
   if (sem("check")) {
-    MIdx w(bi_.index);
-    size_t i = indexc.GetIdx(w);
+    MIdx w(block_index);
+    size_t i = indexc.GetIdx(block_index);
     PCMPF(rvs_, GetBlockData(i));
   }
 }

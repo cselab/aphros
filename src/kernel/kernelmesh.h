@@ -54,7 +54,7 @@ class KernelMesh {
   static constexpr size_t dim = M::dim;
 
   KernelMesh(Vars& var_, const generic::BlockInfoProxy<dim>& bi)
-      : var(var_), var_mutable(var_), bi_(bi), m(CreateMesh<M>(bi)) {
+      : var(var_), var_mutable(var_), m(CreateMesh<M>(bi)) {
     m.flags.check_nan = var.Int["CHECKNAN"];
     m.flags.edim = var.Int["dim"];
   }
@@ -63,17 +63,10 @@ class KernelMesh {
   M& GetMesh() {
     return m;
   }
-  bool IsRoot() {
-    return bi_.isroot;
-  }
-  bool IsLead() {
-    return bi_.islead;
-  }
 
  protected:
   const Vars& var; // shared among all blocks on each PEs
   Vars& var_mutable; // shared among all blocks on each PEs
-  generic::BlockInfoProxy<dim> bi_;
   M m;
 };
 
