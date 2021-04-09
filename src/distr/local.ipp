@@ -30,24 +30,20 @@ class Local : public DistrMesh<M_> {
   using RedOp = typename M::Op;
   using BlockInfoProxy = generic::BlockInfoProxy<dim>;
 
-  using P::blocksize_;
   using P::comm_;
-  using P::extent_;
+  using P::domain_;
   using P::frame_;
-  using P::halos_;
   using P::isroot_;
   using P::kernelfactory_;
   using P::kernels_;
-  using P::nblocks_;
-  using P::nprocs_;
   using P::stage_;
   using P::var;
 
   std::vector<FieldCell<Scal>> buf_; // buffer on mesh
-  M globalmesh; // global mesh
-  std::unique_ptr<output::Ser> oser_; // output series
+  M globalmesh_; // global mesh
+  std::unique_ptr<output::Ser> output_; // output series
   std::vector<BlockInfoProxy> proxies_;
-  generic::Vect<bool, dim> per_; // periodic in direction
+  generic::Vect<bool, dim> is_periodic_; // periodic in direction
 
   size_t WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m);
   size_t WriteBuffer(const FieldCell<Vect>& f, size_t d, size_t e, M& m);
@@ -88,34 +84,33 @@ template <class M>
 Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
     : DistrMesh<M>(comm, kf, var_)
     , buf_(var.Int["loc_maxcomm"])
-    , globalmesh(CreateGlobalMesh(blocksize_, nblocks_, nprocs_, extent_)) {
+    , globalmesh_(CreateGlobalMesh(
+          domain_.blocksize, domain_.nblocks, domain_.nprocs, domain_.extent)) {
   // Resize buffer for mesh
   for (auto& u : buf_) {
-    u.Reinit(globalmesh);
+    u.Reinit(globalmesh_);
   }
 
-  GBlock<size_t, dim> procs(nprocs_);
-  GBlock<size_t, dim> blocks(nblocks_);
+  GBlock<size_t, dim> procs(domain_.nprocs);
+  GBlock<size_t, dim> blocks(domain_.nblocks);
   for (auto wproc : procs) { // same ordering as in Cubism
     for (auto wblock : blocks) {
       BlockInfoProxy p;
-      p.index = nblocks_ * wproc + wblock;
-      p.cellsize = globalmesh.GetCellSize();
-      p.blocksize = blocksize_;
-      p.halos = halos_;
+      p.index = domain_.nblocks * wproc + wblock;
+      p.cellsize = globalmesh_.GetCellSize();
+      p.blocksize = domain_.blocksize;
+      p.halos = domain_.halos;
       p.isroot = (p.index == MIdx(0));
       p.islead = (p.index == MIdx(0));
-      p.globalsize = nprocs_ * nblocks_ * blocksize_;
+      p.globalsize = domain_.nprocs * domain_.nblocks * domain_.blocksize;
       proxies_.push_back(p);
     }
   }
 
   isroot_ = true; // XXX: overwrite isroot_
-
-  // periodic
-  per_[0] = var.Int["loc_periodic_x"];
-  per_[1] = var.Int["loc_periodic_y"];
-  per_[2] = var.Int["loc_periodic_z"];
+  is_periodic_[0] = var.Int["loc_periodic_x"];
+  is_periodic_[1] = var.Int["loc_periodic_y"];
+  is_periodic_[2] = var.Int["loc_periodic_z"];
 
   this->MakeKernels(proxies_);
 }
@@ -267,7 +262,7 @@ void Local<M>::DumpWrite(const std::vector<size_t>& bb) {
 
     if (dumpformat == "vtk") {
       // Initialize on first call
-      if (!oser_) {
+      if (!output_) {
         // TODO: check all blocks are same as first
         output::VOut v;
         size_t k = 0; // offset in buffer
@@ -278,20 +273,21 @@ void Local<M>::DumpWrite(const std::vector<size_t>& bb) {
         // Write dump
         for (auto& on : m.GetDump()) {
           v.emplace_back(new output::OutFldFunc<Scal, IdxCell, M>(
-              on.second, globalmesh,
+              on.second, globalmesh_,
               [this, k](IdxCell i) { return buf_[k][i]; }));
           k += on.first->GetSize();
           fassert_equal(
               on.first->GetSize(), 1, ". DumpWrite(): Support only size 1");
         }
 
-        oser_.reset(new output::SerVtkStruct<M>(v, "title", "p", globalmesh));
+        output_.reset(
+            new output::SerVtkStruct<M>(v, "title", "p", globalmesh_));
       }
 
       // TODO: Check no change in comm list between time steps
-      //       (otherwise oser_ needs reinitialization)
+      //       (otherwise output_ needs reinitialization)
 
-      oser_->Write(frame_, "title"); // TODO: t instead of stage_
+      output_->Write(frame_, "title"); // TODO: t instead of stage_
       std::cerr << "Dump " << frame_ << ": format=" << dumpformat << std::endl;
       ++frame_;
     } else {
@@ -310,13 +306,13 @@ template <class M>
 size_t Local<M>::ReadBuffer(FieldCell<Scal>& fc, size_t e, M& m) {
   fassert(e < buf_.size(), "ReadBuffer: Too many fields for Comm()");
   auto& ndc = m.GetIndexCells();
-  auto& gndc = globalmesh.GetIndexCells();
-  MIdx gs = globalmesh.GetInBlockCells().GetSize();
+  auto& gndc = globalmesh_.GetIndexCells();
+  MIdx gs = globalmesh_.GetInBlockCells().GetSize();
   for (auto c : m.AllCells()) {
     auto w = ndc.GetMIdx(c);
     // periodic
     for (auto d : M::dirs) {
-      if (per_[d]) {
+      if (is_periodic_[d]) {
         w[d] = (w[d] + gs[d]) % gs[d];
       }
     }
@@ -341,13 +337,13 @@ template <class M>
 size_t Local<M>::ReadBuffer(FieldCell<Vect>& fc, size_t comp, size_t e, M& m) {
   fassert(e < buf_.size(), "ReadBuffer: Too many fields for Comm()");
   auto& indexc = m.GetIndexCells();
-  auto& indexc_global = globalmesh.GetIndexCells();
-  MIdx gs = globalmesh.GetInBlockCells().GetSize();
+  auto& indexc_global = globalmesh_.GetIndexCells();
+  MIdx gs = globalmesh_.GetInBlockCells().GetSize();
   for (auto c : m.AllCells()) {
     auto w = indexc.GetMIdx(c);
     // periodic
     for (auto d : M::dirs) {
-      if (per_[d]) {
+      if (is_periodic_[d]) {
         w[d] = (w[d] + gs[d]) % gs[d];
       }
     }
@@ -410,7 +406,7 @@ template <class M>
 size_t Local<M>::WriteBuffer(const FieldCell<Scal>& fc, size_t e, M& m) {
   fassert(e < buf_.size(), "WriteBuffer: Too many fields for Comm()");
   auto& indexc = m.GetIndexCells();
-  auto& indexc_global = globalmesh.GetIndexCells();
+  auto& indexc_global = globalmesh_.GetIndexCells();
   for (auto c : m.Cells()) {
     auto w = indexc.GetMIdx(c);
     auto gc = indexc_global.GetIdx(w);
@@ -429,7 +425,7 @@ size_t Local<M>::WriteBuffer(
     const FieldCell<Vect>& fc, size_t d, size_t e, M& m) {
   fassert(e < buf_.size(), "WriteBuffer: Too many fields for Comm()");
   auto& indexc = m.GetIndexCells();
-  auto& indexc_global = globalmesh.GetIndexCells();
+  auto& indexc_global = globalmesh_.GetIndexCells();
   for (auto c : m.Cells()) {
     auto w = indexc.GetMIdx(c);
     auto gc = indexc_global.GetIdx(w);

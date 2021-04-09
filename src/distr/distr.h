@@ -40,31 +40,30 @@ class DistrMesh {
   virtual ~DistrMesh();
 
  protected:
-  // TODO: remove comm, needed only by Hypre
-  MPI_Comm comm_; // XXX: overwritten by Cubism<M>
+  MPI_Comm comm_;
   const Vars& var;
   Vars& var_mutable;
   const KernelMeshFactory<M>& kernelfactory_; // kernel factory
 
-  int halos_; // number of halo cells (same in all directions)
-  MIdx blocksize_; // block size
-  MIdx nprocs_; // number of ranks
-  MIdx nblocks_; // number of blocks
-  Scal extent_; // extent (maximum over all directions)
+  struct DomainInfo {
+    int halos; // number of halo cells (same in all directions)
+    MIdx blocksize; // block size
+    MIdx nprocs; // number of ranks
+    MIdx nblocks; // number of blocks
+    Scal extent; // extent (maximum length over all directions)
+    DomainInfo(
+        int halos_, MIdx blocksize_, MIdx nprocs_, MIdx nblocks_, Scal extent_)
+        : halos(halos_)
+        , blocksize(blocksize_)
+        , nprocs(nprocs_)
+        , nblocks(nblocks_)
+        , extent(extent_) {}
+  };
+  DomainInfo domain_;
 
   int stage_ = 0;
   size_t frame_ = 0; // current dump frame
-
-  bool isroot_; // XXX: overwritten by Local<M> and Cubism<M>
-
-  struct Hash {
-    size_t operator()(const MIdx& x) const noexcept {
-      const size_t h0 = std::hash<IntIdx>{}(x[0]);
-      const size_t h1 = std::hash<IntIdx>{}(x[1]);
-      const size_t h2 = std::hash<IntIdx>{}(x[2]);
-      return h0 ^ (h1 << 1) ^ (h2 << 2);
-    }
-  };
+  bool isroot_; // XXX: overwritten by derived classes
 
   std::vector<std::unique_ptr<KernelMesh<M>>> kernels_;
 

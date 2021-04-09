@@ -37,17 +37,13 @@ class Native : public DistrMesh<M_> {
   void Scatter(const std::vector<size_t>& bb) override;
   void DumpWrite(const std::vector<size_t>& bb) override;
 
-  using P::blocksize_;
   using P::comm_;
   using P::dim;
-  using P::extent_;
+  using P::domain_;
   using P::frame_;
-  using P::halos_;
   using P::isroot_;
   using P::kernelfactory_;
   using P::kernels_;
-  using P::nblocks_;
-  using P::nprocs_;
   using P::stage_;
   using P::var;
 
@@ -74,22 +70,22 @@ Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
   isroot_ = (0 == commrank_); // XXX: overwrite isroot_
 
   fassert(
-      commsize_ == nprocs_.prod(),
+      commsize_ == domain_.nprocs.prod(),
       util::Format(
           "Number of MPI tasks {} does not match the number of subdomains {}",
-          commsize_, nprocs_));
+          commsize_, domain_.nprocs));
 
-  const MIdx globalsize = nprocs_ * nblocks_ * blocksize_;
+  const MIdx globalsize = domain_.nprocs * domain_.nblocks * domain_.blocksize;
   std::vector<BlockInfoProxy> proxies;
-  GIndex<size_t, dim> procs(nprocs_);
-  GIndex<size_t, dim> blocks(nblocks_);
+  GIndex<size_t, dim> procs(domain_.nprocs);
+  GIndex<size_t, dim> blocks(domain_.nblocks);
   for (auto ib : blocks.Range()) {
     BlockInfoProxy p;
-    p.index = nblocks_ * procs.GetMIdx(commrank_) + blocks.GetMIdx(ib);
+    p.index = domain_.nblocks * procs.GetMIdx(commrank_) + blocks.GetMIdx(ib);
     p.globalsize = globalsize;
-    p.cellsize = Vect(extent_ / p.globalsize.max());
-    p.blocksize = blocksize_;
-    p.halos = halos_;
+    p.cellsize = Vect(domain_.extent / p.globalsize.max());
+    p.blocksize = domain_.blocksize;
+    p.halos = domain_.halos;
     p.isroot = (ib == 0 && isroot_);
     p.islead = (ib == 0);
     proxies.push_back(p);
@@ -104,7 +100,7 @@ Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
       cm_blocks.push_back({&m.GetInBlockCells(), &m.GetIndexCells()});
     }
     auto cell_to_rank = [&procs, this](MIdx w) -> int {
-      return procs.GetIdx(w / blocksize_ / nblocks_);
+      return procs.GetIdx(w / domain_.blocksize / domain_.nblocks);
     };
     const generic::Vect<bool, dim> is_periodic(true);
     tasks_ = CommManager<dim>::GetTasks(
