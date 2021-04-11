@@ -16,6 +16,8 @@
 #include "kernel/kernelmeshpar.h"
 #include "solver/pois.h"
 #include "solver/solver.h"
+#include "util/format.h"
+#include "util/mpi.h"
 #include "util/suspender.h"
 
 template <class T>
@@ -31,9 +33,9 @@ std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
 struct GPar {};
 
 template <class M_>
-class Simple : public KernelMeshPar<M_, GPar> {
+class Test : public KernelMeshPar<M_, GPar> {
  public:
-  using P = KernelMeshPar<M_, GPar>; // parent
+  using P = KernelMeshPar<M_, GPar>;
   using M = M_;
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
@@ -52,9 +54,8 @@ class Simple : public KernelMeshPar<M_, GPar> {
   void TestComm();
   void TestReduce();
   void TestScatter();
-  void TestPois();
+  void TestShared();
 
-  // TODO: revise 1e-10
   bool Cmp(Scal a, Scal b) {
     return std::abs(a - b) < 1e-10;
   }
@@ -77,7 +78,11 @@ class Simple : public KernelMeshPar<M_, GPar> {
   std::vector<int> rvi_; // reduction vector<int> (concatenation)
   std::vector<std::vector<int>> rvvi_; // reduction vector<vector<int>>
   std::vector<std::vector<Scal>> rvvs_; // reduction vector<vector<int>>
+  static std::ofstream fout;
 };
+
+template <class M>
+std::ofstream Test<M>::fout;
 
 template <class Idx, class M>
 typename M::Scal DiffMax(
@@ -133,23 +138,23 @@ typename M::Scal Mean(const GField<typename M::Scal, Idx>& u, const M& m) {
   }
 
 // Print CMP
-#define PCMP(a, b)                                                        \
-  {                                                                       \
-    auto _fmt = std::cerr.flags();                                        \
-    std::cerr << std::scientific << std::setprecision(16) << "CMP " << #a \
-              << "=" << a << "\n    " << #b << "=" << b << std::endl;     \
-    CMP(a, b);                                                            \
-    std::cerr.flags(_fmt);                                                \
+#define PCMP(a, b)                                                          \
+  {                                                                         \
+    auto _fmt = fout.flags();                                               \
+    fout << std::scientific << std::setprecision(16) << "CMP " << #a << "=" \
+         << a << "\n    " << #b << "=" << b << std::endl;                   \
+    CMP(a, b);                                                              \
+    fout.flags(_fmt);                                                       \
   }
 
 // Print CMP standard flags
-#define PCMPF(a, b)                                                  \
-  std::cerr << "CMP " << std::setw(15) << #a << "=" << a << "\n    " \
-            << std::setw(15) << #b << "=" << b << std::endl;         \
+#define PCMPF(a, b)                                             \
+  fout << "CMP " << std::setw(15) << #a << "=" << a << "\n    " \
+       << std::setw(15) << #b << "=" << b << std::endl;         \
   CMP(a, b);
 
 template <class M>
-void Simple<M>::TestComm() {
+void Test<M>::TestComm() {
   auto sem = m.GetSem("Comm");
   auto func = [&](Vect x) {
     auto gl = m.GetGlobalLength();
@@ -176,13 +181,13 @@ void Simple<M>::TestComm() {
     for (auto c : m.AllCells()) {
       auto x = m.GetCenter(c);
       if (!Cmp(fc_[c], func(x))) {
-        std::cerr << bc.GetMIdx(c) << " " << fc_[c] << " != " << func(x) << " "
-                  << std::endl;
+        fout << bc.GetMIdx(c) << " " << fc_[c] << " != " << func(x) << " "
+             << std::endl;
         fassert(false);
       }
       if (!Cmp(fcv_[c], funcv(x))) {
-        std::cerr << bc.GetMIdx(c) << " " << fcv_[c] << " != " << funcv(x)
-                  << " " << std::endl;
+        fout << bc.GetMIdx(c) << " " << fcv_[c] << " != " << funcv(x) << " "
+             << std::endl;
         fassert(false);
       }
     }
@@ -190,7 +195,7 @@ void Simple<M>::TestComm() {
 }
 
 template <class M>
-void Simple<M>::TestReduce() {
+void Test<M>::TestReduce() {
   auto sem = m.GetSem("Reduce");
   MIdx nprocs(var.Int["px"], var.Int["py"], var.Int["pz"]);
   MIdx nblocks(var.Int["bx"], var.Int["by"], var.Int["bz"]);
@@ -375,7 +380,7 @@ void Simple<M>::TestReduce() {
 }
 
 template <class M>
-void Simple<M>::TestScatter() {
+void Test<M>::TestScatter() {
   auto sem = m.GetSem("scatter");
   MIdx nprocs(var.Int["px"], var.Int["py"], var.Int["pz"]);
   MIdx nblocks(var.Int["bx"], var.Int["by"], var.Int["bz"]);
@@ -403,7 +408,7 @@ void Simple<M>::TestScatter() {
       }
     }
     if (m.IsRoot()) {
-      std::cerr << "rvvs=" << rvvs_ << std::endl;
+      fout << "rvvs=" << rvvs_ << std::endl;
       m.Scatter({&rvvs_, &rvs_});
     } else {
       m.Scatter({nullptr, &rvs_});
@@ -421,7 +426,7 @@ void Simple<M>::TestScatter() {
   }
   if (sem("scatter")) {
     if (m.IsRoot()) {
-      std::cerr << "rvvs=" << rvvs_ << std::endl;
+      fout << "rvvs=" << rvvs_ << std::endl;
       m.Scatter({&rvvs_, &rvs_});
     } else {
       m.Scatter({nullptr, &rvs_});
@@ -435,8 +440,62 @@ void Simple<M>::TestScatter() {
 }
 
 template <class M>
-void Simple<M>::Run() {
+void Test<M>::TestShared() {
+  auto sem = m.GetSem("shared");
+  struct {
+    FieldCell<Scal> fc;
+  } * ctx(sem);
+  auto& t = *ctx;
+  auto& ms = m.GetShared();
+  if (sem()) {
+    if (m.IsRoot()) {
+      fout << "\nTestShared\n";
+      fout << util::Format(
+          "m.size={} ms.size={}\n", m.GetInBlockCells().GetSize(),
+          ms.GetInBlockCells().GetSize());
+    }
+  }
+  // Prints slice of field
+  auto print = [&](const FieldCell<Scal>& fc) {
+    MIdx last_w(ms.GetAllBlockCells().GetBegin());
+    for (auto c : ms.AllCellsM()) {
+      const MIdx w(c);
+      if (w[2] != 0) {
+        continue;
+      }
+      if (w[1] != last_w[1]) {
+        fout << '\n';
+      }
+      fout << fc[c] << ' ';
+      last_w = w;
+    }
+    fout << '\n';
+  };
+  if (sem() && m.IsLead()) {
+    const auto rank = MpiWrapper(m.GetMpiComm()).GetCommRank();
+    t.fc.Reinit(ms, 0);
+    for (auto c : ms.CellsM()) {
+      t.fc[c] = (rank + 1) * 10 + IdxCell(c).raw() % 10;
+    }
+    fout << "before Comm\n";
+    print(t.fc);
+    ms.Comm(&t.fc);
+  }
+  if (sem() && m.IsLead()) {
+    fout << "after Comm\n";
+    print(t.fc);
+  }
+}
+
+template <class M>
+void Test<M>::Run() {
   auto sem = m.GetSem("Run");
+  if (sem()) {
+    if (m.IsLead()) {
+      fout.open(
+          util::Format("out_{}", MpiWrapper(m.GetMpiComm()).GetCommRank()));
+    }
+  }
   if (sem.Nested()) {
     TestComm();
   }
@@ -446,11 +505,14 @@ void Simple<M>::Run() {
   if (sem.Nested()) {
     TestScatter();
   }
+  if (sem.Nested()) {
+    TestShared();
+  }
 }
 
 void Main(MPI_Comm comm, Vars& var) {
   using M = MeshCartesian<double, 3>;
-  using K = Simple<M>;
+  using K = Test<M>;
   using Par = typename K::Par;
   Par par;
 

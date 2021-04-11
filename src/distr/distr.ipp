@@ -18,7 +18,34 @@
 #include "util/format.h"
 
 template <class M>
+M DistrMesh<M>::CreateSharedMesh(
+    MIdx block, Vect cellsize, int halos, bool isroot,
+    const DomainInfo& domain) {
+  const MIdx bs = domain.blocksize;
+  const MIdx global_size = bs * domain.nblocks * domain.nprocs;
+  const MIdx global_blocks = global_size / bs;
+  const MIdx shared_size = bs * domain.nblocks;
+  const Vect h(cellsize);
+  const MIdx begin = block * bs;
+  const Rect<Vect> rect(Vect(begin) * h, Vect(begin + shared_size) * h);
+  const int id = M::Flags::GetIdFromBlock(block, global_blocks);
+  const bool islead = true;
+  M m(begin, shared_size, rect, halos, isroot, islead, global_size, id);
+  m.flags.global_origin = Vect(0);
+  m.flags.global_blocks = global_blocks;
+  m.flags.block_length = h * Vect(bs);
+  return m;
+}
+
+template <class M>
 void DistrMesh<M>::MakeKernels(const std::vector<BlockInfoProxy>& proxies) {
+  {
+    fassert(!proxies.empty());
+    auto& p = proxies.front();
+    mshared_ = std::make_unique<M>(
+        CreateSharedMesh(p.index, p.cellsize, p.halos, isroot_, domain_));
+  }
+
   for (auto proxy : proxies) {
     std::unique_ptr<KernelMesh<M>> kernel(
         kernelfactory_.Make(var_mutable, proxy));
@@ -29,6 +56,7 @@ void DistrMesh<M>::MakeKernels(const std::vector<BlockInfoProxy>& proxies) {
     if (M::dim > 2) {
       m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
     }
+    m.SetShared(mshared_.get());
     kernels_.emplace_back(kernel.release());
   }
 }
@@ -396,7 +424,7 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
 }
 
 template <class M>
-bool DistrMesh<M>::Pending(const std::vector<size_t>& bb) {
+bool DistrMesh<M>::Pending(const std::vector<size_t>& bb) const {
   size_t pending = 0;
   for (auto b : bb) {
     if (kernels_[b]->GetMesh().Pending()) {

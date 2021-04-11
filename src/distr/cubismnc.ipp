@@ -190,6 +190,7 @@ class Cubismnc : public DistrMesh<M_> {
   using P::isroot_;
   using P::kernelfactory_;
   using P::kernels_;
+  using P::mshared_;
   using P::stage_;
   using P::var;
 
@@ -409,6 +410,7 @@ template <class Par, class M>
 auto Cubismnc<Par, M>::TransferHalos(bool inner) -> std::vector<size_t> {
   const std::vector<BlockInfo> infos = grid_.getBlocksInfo(); // all blocks
   fassert_equal(infos.size(), kernels_.size());
+  fassert_equal(mshared_->GetComm().size(), 0, ". Shared Comm not implemented");
 
   std::vector<size_t> bb;
   if (inner) {

@@ -56,6 +56,7 @@ MeshCartesian<_Scal, _dim>::MeshCartesian(
     , indexc_(blockca_.GetBegin(), blockca_.GetSize() + MIdx(1))
     , indexf_(indexc_.GetBegin(), indexc_.GetSize())
     , indexn_(indexc_.GetBegin(), indexc_.GetSize())
+    , mshared_(this)
     , isroot_(isroot)
     , islead_(islead)
     , incells_begin_(blockci_.GetBegin())

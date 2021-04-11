@@ -40,11 +40,6 @@ class DistrMesh {
   virtual ~DistrMesh();
 
  protected:
-  MPI_Comm comm_;
-  const Vars& var;
-  Vars& var_mutable;
-  const KernelMeshFactory<M>& kernelfactory_; // kernel factory
-
   struct DomainInfo {
     int halos; // number of halo cells (same in all directions)
     MIdx blocksize; // block size
@@ -59,13 +54,17 @@ class DistrMesh {
         , nblocks(nblocks_)
         , extent(extent_) {}
   };
-  DomainInfo domain_;
 
+  MPI_Comm comm_;
+  const Vars& var;
+  Vars& var_mutable;
+  const KernelMeshFactory<M>& kernelfactory_;
+  DomainInfo domain_;
   int stage_ = 0;
   size_t frame_ = 0; // current dump frame
-  bool isroot_; // XXX: overwritten by derived classes
-
+  bool isroot_ = false; // XXX: overwritten by derived classes
   std::vector<std::unique_ptr<KernelMesh<M>>> kernels_;
+  std::unique_ptr<M> mshared_;
 
   DistrMesh(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   // Performs communication and returns indices of blocks with updated halos.
@@ -94,8 +93,13 @@ class DistrMesh {
   virtual void DumpWrite(const std::vector<size_t>& bb);
   virtual void ClearComm(const std::vector<size_t>& bb);
   virtual void ClearDump(const std::vector<size_t>& bb);
-  // TODO: make Pending const
-  virtual bool Pending(const std::vector<size_t>& bb);
+  virtual bool Pending(const std::vector<size_t>& bb) const;
+  // Returns mesh that consists of all local blocks
+  // block: index of lower block
+  // cellsize: size of one cell
+  // halos: number of halo cells in each direction
+  static M CreateSharedMesh(
+      MIdx block, Vect cellsize, int halos, bool isroot, const DomainInfo&);
   // Create a kernel for each block and put into kernels_
   // Requires initialized isroot_;
   virtual void MakeKernels(const std::vector<BlockInfoProxy>&);

@@ -8,7 +8,7 @@
 
 namespace generic {
 
-template <size_t dim_ = 3>
+template <size_t dim_>
 struct BlockInfoProxy {
   static constexpr size_t dim = dim_;
   using Vect = generic::Vect<double, dim>;
@@ -48,12 +48,8 @@ template <class M_>
 class KernelMesh {
  public:
   using M = M_;
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  using MIdx = typename M::MIdx;
-  static constexpr size_t dim = M::dim;
 
-  KernelMesh(Vars& var_, const generic::BlockInfoProxy<dim>& bi)
+  KernelMesh(Vars& var_, const generic::BlockInfoProxy<M::dim>& bi)
       : var(var_), var_mutable(var_), m(CreateMesh<M>(bi)) {
     m.flags.check_nan = var.Int["CHECKNAN"];
     m.flags.edim = var.Int["dim"];
@@ -65,8 +61,8 @@ class KernelMesh {
   }
 
  protected:
-  const Vars& var; // shared among all blocks on each PEs
-  Vars& var_mutable; // shared among all blocks on each PEs
+  const Vars& var; // read-only configuration, shared by local blocks
+  Vars& var_mutable; // mutable configuration, shared by local blocks
   M m;
 };
 

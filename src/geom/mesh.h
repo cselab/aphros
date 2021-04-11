@@ -132,6 +132,15 @@ class MeshCartesian {
   int GetId() const {
     return id_;
   }
+  void SetShared(M* mshared) {
+    mshared_ = mshared;
+  }
+  M& GetShared() {
+    return *mshared_;
+  }
+  const M& GetShared() const {
+    return *mshared_;
+  }
   int GetIdFromPoint(Vect x) const {
     return flags.GetIdFromBlock(flags.GetBlockFromPoint(x));
   }
@@ -815,6 +824,7 @@ class MeshCartesian {
   const IndexFaces indexf_;
   const IndexNodes indexn_;
 
+  M* mshared_ = nullptr;
   const bool isroot_;
   const bool islead_;
   const MIdx incells_begin_, incells_end_;
@@ -842,7 +852,6 @@ class MeshCartesian {
 
   FieldCell<Vect> fc_center_;
   FieldFace<Vect> ff_center_;
-
   Suspender susp_;
   std::string timer_report_path_;
   struct Imp;
