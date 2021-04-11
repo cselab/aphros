@@ -309,7 +309,7 @@ void Native<M>::TransferHalos(
 #else
     // Exchange data between blocks.
     for (auto i : vcr_indices) {
-      if (dynamic_cast<CommRequestScal*>(vcr[i].get())) {
+      if (dynamic_cast<const CommRequestScal*>(vcr[i])) {
         std::vector<FieldCell<Scal>*> fields;
         for (auto& req : reqs) {
           const auto* cr = static_cast<const CommRequestScal*>(req[i]);
@@ -323,10 +323,10 @@ void Native<M>::TransferHalos(
               (*fields[send[ic].block])[send[ic].cell];
         }
       }
-      if (auto crd = dynamic_cast<const CommRequestVect*>(vcr[i].get())) {
+      if (auto crd = dynamic_cast<const CommRequestVect*>(vcr[i])) {
         std::vector<FieldCell<Vect>*> fields;
         for (auto& req : reqs) {
-          const auto* cr = static_cast<const CommRequestVect*>(req);
+          const auto* cr = static_cast<const CommRequestVect*>(req[i]);
           fields.push_back(cr->field);
         }
         auto& send = task.send.at(0);

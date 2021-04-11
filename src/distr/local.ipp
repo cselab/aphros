@@ -118,7 +118,6 @@ Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
 
 template <class M>
 auto Local<M>::TransferHalos(bool inner) -> std::vector<size_t> {
-  fassert_equal(mshared_->GetComm().size(), 0, ". Shared Comm not implemented");
   std::vector<size_t> bb;
   if (inner) {
     bb.resize(proxies_.size());

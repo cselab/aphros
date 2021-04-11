@@ -483,6 +483,7 @@ void DistrMesh<M>::Run() {
       bb = bbi;
       bb.insert(bb.end(), bbh.begin(), bbh.end());
     }
+    mshared_->ClearComm();
 
     stage_ += 1;
 
