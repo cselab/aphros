@@ -468,22 +468,21 @@ void DistrMesh<M>::Run() {
       DumpWrite(bb);
       ClearDump(bb);
       ClearComm(bb);
+      mshared_->ClearComm();
       RunKernels(bb);
     } else {
       auto bbi = TransferHalos(true); // inner blocks, async communication
-      // ApplyNanFaces(bbi);
       ClearComm(bbi);
+      mshared_->ClearComm();
       RunKernels(bbi);
 
       auto bbh = TransferHalos(false); // halo blocks, wait for communication
-      // ApplyNanFaces(bbh);
       ClearComm(bbh);
       RunKernels(bbh);
 
       bb = bbi;
       bb.insert(bb.end(), bbh.begin(), bbh.end());
     }
-    mshared_->ClearComm();
 
     stage_ += 1;
 
