@@ -285,6 +285,7 @@ struct OpenCL {
   }
 
   Context context;
+  Device device;
   Program program;
   Queue queue;
   Kernel kernel_inner_to_buf;

@@ -211,49 +211,50 @@ void OpenCL<M>::HaloComm::Create(
   const auto lead_x = cl.lead_x;
   const auto start = cl.start;
   fc_buf.Reinit(ms);
-  const int halos = 1;
+  const int halos = 2;
   d_buf.Create(context, msize.sum() * 2 * halos);
 
-  /*
-  for (int iy : {0l, 1l, msize[1] - 2, msize[1] - 1}) {
-    for (int ix = 0; ix < msize[0]; ++ix) {
-      cells_inner.emplace_back(start + iy * lead_x + ix);
+  if (halos == 1) {
+    for (int iy : {0l, msize[1] - 1}) {
+      for (int ix = 0; ix < msize[0]; ++ix) {
+        cells_inner.emplace_back(start + iy * lead_x + ix);
+      }
     }
-  }
-  for (int ix : {0l, 1l, msize[0] - 2, msize[0] - 1}) {
-    for (int iy = 0; iy < msize[1]; ++iy) {
-      cells_inner.emplace_back(start + iy * lead_x + ix);
+    for (int ix : {0l, msize[0] - 1}) {
+      for (int iy = 0; iy < msize[1]; ++iy) {
+        cells_inner.emplace_back(start + iy * lead_x + ix);
+      }
     }
-  }
-  for (int iy : {-2l, -1l, msize[1], msize[1] + 1}) {
-    for (int ix = 0; ix < msize[0]; ++ix) {
-      cells_halo.emplace_back(start + iy * lead_x + ix);
+    for (int iy : {-1l, msize[1]}) {
+      for (int ix = 0; ix < msize[0]; ++ix) {
+        cells_halo.emplace_back(start + iy * lead_x + ix);
+      }
     }
-  }
-  for (int ix : {-2l, -1l, msize[0], msize[0] + 1}) {
-    for (int iy = 0; iy < msize[1]; ++iy) {
-      cells_halo.emplace_back(start + iy * lead_x + ix);
+    for (int ix : {-1l, msize[0]}) {
+      for (int iy = 0; iy < msize[1]; ++iy) {
+        cells_halo.emplace_back(start + iy * lead_x + ix);
+      }
     }
-  }
-  */
-  for (int iy : {0l, msize[1] - 1}) {
-    for (int ix = 0; ix < msize[0]; ++ix) {
-      cells_inner.emplace_back(start + iy * lead_x + ix);
+  } else {
+    for (int iy : {0l, 1l, msize[1] - 2, msize[1] - 1}) {
+      for (int ix = 0; ix < msize[0]; ++ix) {
+        cells_inner.emplace_back(start + iy * lead_x + ix);
+      }
     }
-  }
-  for (int ix : {0l, msize[0] - 1}) {
-    for (int iy = 0; iy < msize[1]; ++iy) {
-      cells_inner.emplace_back(start + iy * lead_x + ix);
+    for (int ix : {0l, 1l, msize[0] - 2, msize[0] - 1}) {
+      for (int iy = 0; iy < msize[1]; ++iy) {
+        cells_inner.emplace_back(start + iy * lead_x + ix);
+      }
     }
-  }
-  for (int iy : {-1l, msize[1]}) {
-    for (int ix = 0; ix < msize[0]; ++ix) {
-      cells_halo.emplace_back(start + iy * lead_x + ix);
+    for (int iy : {-2l, -1l, msize[1], msize[1] + 1}) {
+      for (int ix = 0; ix < msize[0]; ++ix) {
+        cells_halo.emplace_back(start + iy * lead_x + ix);
+      }
     }
-  }
-  for (int ix : {-1l, msize[0]}) {
-    for (int iy = 0; iy < msize[1]; ++iy) {
-      cells_halo.emplace_back(start + iy * lead_x + ix);
+    for (int ix : {-2l, -1l, msize[0], msize[0] + 1}) {
+      for (int iy = 0; iy < msize[1]; ++iy) {
+        cells_halo.emplace_back(start + iy * lead_x + ix);
+      }
     }
   }
 }
@@ -302,7 +303,6 @@ OpenCL<M>::OpenCL(const M& ms, const Vars& var) {
   start = (*ms.Cells().begin()).raw();
   lead_x = ms.GetIndexCells().GetSize()[0];
 
-  Device device;
   const int pid = var.Int["opencl_platform"];
   device.Create(pid);
 
@@ -323,8 +323,8 @@ OpenCL<M>::OpenCL(const M& ms, const Vars& var) {
 
   d_buf_reduce.Create(context, ngroups, CL_MEM_WRITE_ONLY);
 
-  kernel_inner_to_buf.Create(program, "inner_to_buf1");
-  kernel_buf_to_halo.Create(program, "buf_to_halo1");
+  kernel_inner_to_buf.Create(program, "inner_to_buf");
+  kernel_buf_to_halo.Create(program, "buf_to_halo");
   kernel_dot.Create(program, "field_dot");
   kernel_sum.Create(program, "field_sum");
 
