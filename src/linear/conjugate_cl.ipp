@@ -9,15 +9,15 @@
 #include <vector>
 
 #include "linear.h"
+#include "conjugate_cl.h"
 
-DECLARE_FORCE_LINK_TARGET(linear_conjugate);
-DECLARE_FORCE_LINK_TARGET(linear_jacobi);
+DECLARE_FORCE_LINK_TARGET(linear_conjugate_cl);
 
 namespace linear {
 
 template <class M>
-struct SolverConjugate<M>::Imp {
-  using Owner = SolverConjugate<M>;
+struct SolverConjugateCL<M>::Imp {
+  using Owner = SolverConjugateCL<M>;
 
   Imp(Owner* owner, const Extra& extra_, const M&)
       : owner_(owner), conf(owner_->conf), extra(extra_) {}
@@ -118,7 +118,7 @@ struct SolverConjugate<M>::Imp {
       m.Comm(&fc_sol, M::CommStencil::direct_one);
       if (m.flags.linreport && m.IsRoot()) {
         std::cerr << std::scientific;
-        std::cerr << "linear(conjugate) '" + fc_system.GetName() + "':"
+        std::cerr << "linear(conjugate_cl) '" + fc_system.GetName() + "':"
                   << " res=" << t.info.residual << " iter=" << t.info.iter
                   << std::endl;
       }
@@ -135,131 +135,32 @@ struct SolverConjugate<M>::Imp {
 };
 
 template <class M>
-SolverConjugate<M>::SolverConjugate(
+SolverConjugateCL<M>::SolverConjugateCL(
     const Conf& conf_, const Extra& extra, const M& m)
     : Base(conf_), imp(new Imp(this, extra, m)) {}
 
 template <class M>
-SolverConjugate<M>::~SolverConjugate() = default;
+SolverConjugateCL<M>::~SolverConjugateCL() = default;
 
 template <class M>
-auto SolverConjugate<M>::Solve(
+auto SolverConjugateCL<M>::Solve(
     const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
     FieldCell<Scal>& fc_sol, M& m) -> Info {
   return imp->Solve(fc_system, fc_init, fc_sol, m);
 }
 
 template <class M>
-struct SolverJacobi<M>::Imp {
-  using Owner = SolverJacobi<M>;
-
-  Imp(Owner* owner, const Extra& extra_, const M&)
-      : owner_(owner), conf(owner_->conf), extra(extra_) {}
-  Info Solve(
-      const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
-      FieldCell<Scal>& fc_sol, M& m) {
-    auto sem = m.GetSem(__func__);
-    struct {
-      FieldCell<Scal> fcu;
-      FieldCell<Scal> fcu_new;
-      Scal maxdiff;
-      int iter = 0;
-      Info info;
-    } * ctx(sem);
-    auto& t = *ctx;
-    if (sem("init")) {
-      if (fc_init) {
-        t.fcu = *fc_init;
-      } else {
-        t.fcu.Reinit(m, 0);
-      }
-      t.fcu_new.Reinit(m, 0);
-    }
-    sem.LoopBegin();
-    if (sem("iter")) {
-      t.maxdiff = 0;
-      for (auto c : m.Cells()) {
-        const auto& e = fc_system[c];
-        Scal nondiag = e.back();
-        for (auto q : m.Nci(c)) {
-          nondiag += t.fcu[m.GetCell(c, q)] * e[1 + q.raw()];
-        }
-        t.fcu_new[c] = -nondiag / e[0];
-        t.maxdiff = std::max(t.maxdiff, std::abs(t.fcu_new[c] - t.fcu[c]));
-      }
-      t.fcu.swap(t.fcu_new);
-      m.Comm(&t.fcu);
-      m.Reduce(&t.maxdiff, Reduction::max);
-    }
-    if (sem("check")) {
-      t.info.residual = t.maxdiff;
-      ++t.iter;
-      t.info.iter = t.iter;
-      if (t.iter >= conf.miniter &&
-          (t.iter > conf.maxiter || t.info.residual < conf.tol)) {
-        sem.LoopBreak();
-      }
-    }
-    sem.LoopEnd();
-    if (sem("result")) {
-      fc_sol = t.fcu;
-      m.Comm(&fc_sol);
-      if (m.flags.linreport && m.IsRoot()) {
-        std::cerr << std::scientific;
-        std::cerr << "linear(jacobi) '" + fc_system.GetName() + "':"
-                  << " res=" << t.info.residual << " iter=" << t.info.iter
-                  << std::endl;
-      }
-    }
-    if (sem()) {
-    }
-    return t.info;
-  }
-
- private:
-  Owner* owner_;
-  Conf& conf;
-  Extra extra;
-};
-
-template <class M>
-SolverJacobi<M>::SolverJacobi(const Conf& conf_, const Extra& extra, const M& m)
-    : Base(conf_), imp(new Imp(this, extra, m)) {}
-
-template <class M>
-SolverJacobi<M>::~SolverJacobi() = default;
-
-template <class M>
-auto SolverJacobi<M>::Solve(
-    const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
-    FieldCell<Scal>& fc_sol, M& m) -> Info {
-  return imp->Solve(fc_system, fc_init, fc_sol, m);
-}
-
-template <class M>
-class ModuleLinearConjugate : public ModuleLinear<M> {
+class ModuleLinearConjugateCL : public ModuleLinear<M> {
  public:
-  ModuleLinearConjugate() : ModuleLinear<M>("conjugate") {}
+  ModuleLinearConjugateCL() : ModuleLinear<M>("conjugate_cl") {}
   std::unique_ptr<Solver<M>> Make(
       const Vars& var, std::string prefix, const M& m) override {
     auto addprefix = [prefix](std::string name) {
       return "linsolver_" + prefix + "_" + name;
     };
-    typename linear::SolverConjugate<M>::Extra extra;
+    typename linear::SolverConjugateCL<M>::Extra extra;
     extra.residual_max = var.Int[addprefix("maxnorm")];
-    return std::make_unique<linear::SolverConjugate<M>>(
-        this->GetConf(var, prefix), extra, m);
-  }
-};
-
-template <class M>
-class ModuleLinearJacobi : public ModuleLinear<M> {
- public:
-  ModuleLinearJacobi() : ModuleLinear<M>("jacobi") {}
-  std::unique_ptr<Solver<M>> Make(
-      const Vars& var, std::string prefix, const M& m) override {
-    typename linear::SolverJacobi<M>::Extra extra;
-    return std::make_unique<linear::SolverJacobi<M>>(
+    return std::make_unique<linear::SolverConjugateCL<M>>(
         this->GetConf(var, prefix), extra, m);
   }
 };

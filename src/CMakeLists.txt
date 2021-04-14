@@ -337,7 +337,7 @@ if (USE_OVERLAP)
 endif()
 
 if (USE_OPENCL)
-  set(ObjLibs ${ObjLibs} opencl)
+  set(ObjLibs ${ObjLibs} opencl linear_conjugate_cl)
 endif()
 
 if (USE_BACKEND_CUBISM)

@@ -153,6 +153,9 @@ int main(int argc, const char** argv) {
 #endif
   FORCE_LINK(linear_conjugate);
   FORCE_LINK(linear_jacobi);
+#if USEFLAG(OPENCL)
+  FORCE_LINK(linear_conjugate_cl);
+#endif
 
   MpiWrapper mpi(&argc, &argv);
 
