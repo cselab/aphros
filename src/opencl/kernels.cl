@@ -116,20 +116,20 @@ __kernel void buf_to_halo1(
   const unsigned int ny = get_global_size(1);
   int i = 0;
   if (iy == 0) {
-    field[start + (iy - 2) * lead_x + ix] = buf[i + ix];
+    field[start + (iy - 1) * lead_x + ix] = buf[i + ix];
   }
   i += nx;
-  if (iy == ny - 2) {
-    field[start + (iy + 2) * lead_x + ix] = buf[i + ix];
+  if (iy == ny - 1) {
+    field[start + (iy + 1) * lead_x + ix] = buf[i + ix];
   }
   i += nx;
 
   if (ix == 0) {
-    field[start + iy * lead_x + ix - 2] = buf[i + iy];
+    field[start + iy * lead_x + ix - 1] = buf[i + iy];
   }
   i += ny;
-  if (ix == nx - 2) {
-    field[start + iy * lead_x + ix + 2] = buf[i + iy];
+  if (ix == nx - 1) {
+    field[start + iy * lead_x + ix + 1] = buf[i + iy];
   }
   i += ny;
 }
