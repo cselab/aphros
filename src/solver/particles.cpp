@@ -4,10 +4,10 @@
 #include "particles.ipp"
 #include "embed.h"
 
-#define X(dim) template class Particles<MeshStructured<double, dim>>;
+#define X(dim) template class Particles<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X
 
-#define X(dim) template class Particles<Embed<MeshStructured<double, dim>>>;
+#define X(dim) template class Particles<Embed<MeshCartesian<double, dim>>>;
 MULTIDIMX
 #undef X

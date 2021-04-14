@@ -34,7 +34,7 @@ using IdxFace = IdxFace;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = generic::Vect<Scal, dim>;
-using M = MeshStructured<Scal, dim>;
+using M = MeshCartesian<Scal, dim>;
 
 // Echo Execute
 #define EE(...)                                   \
@@ -46,7 +46,7 @@ M GetMesh(MIdx size) {
   const Rect<Vect> dom(Vect(0), Vect(1));
   const MIdx begin(0);
   const int halos = 2;
-  return InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);
+  return {begin, size, dom, halos, true, true, size, 0};
 }
 
 // Covered range of cells

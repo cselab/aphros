@@ -8,7 +8,7 @@
 
 template <size_t dim>
 static void Run(MPI_Comm comm, Vars& var) {
-  using M = MeshStructured<double, dim>;
+  using M = MeshCartesian<double, dim>;
   typename Hydro<M>::Par par;
 
   DistrSolver<M, Hydro<M>> ds(comm, var, par);

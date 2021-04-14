@@ -5,21 +5,21 @@
 
 namespace linear {
 
-#define X(dim) template class SolverConjugate<MeshStructured<double, dim>>;
+#define X(dim) template class SolverConjugate<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X
 
-#define X(dim) template class SolverJacobi<MeshStructured<double, dim>>;
+#define X(dim) template class SolverJacobi<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X
 
 #define X(dim) \
-  RegisterModule<ModuleLinearConjugate<MeshStructured<double, dim>>>(),
+  RegisterModule<ModuleLinearConjugate<MeshCartesian<double, dim>>>(),
 bool kReg_conjugate[] = {MULTIDIMX};
 #undef X
 
 #define X(dim) \
-  RegisterModule<ModuleLinearJacobi<MeshStructured<double, dim>>>(),
+  RegisterModule<ModuleLinearJacobi<MeshCartesian<double, dim>>>(),
 bool kReg_jacobi[] = {MULTIDIMX};
 #undef X
 

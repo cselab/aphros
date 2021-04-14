@@ -19,7 +19,7 @@
 #include "solver/fluid.h"
 #include "solver/reconst.h"
 
-using M = MeshStructured<double, 3>;
+using M = MeshCartesian<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using EB = Embed<M>;

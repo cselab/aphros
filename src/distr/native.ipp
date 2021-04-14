@@ -30,30 +30,35 @@ class Native : public DistrMesh<M_> {
  private:
   using P = DistrMesh<M>; // parent
   using MIdx = typename M::MIdx;
+  using P::dim;
 
+  // reqs[i] is communication requests from `kernels_[i]`
+  using CommRequest = typename M::CommRequest;
+  void TransferHalos(
+      std::vector<std::vector<const CommRequest*>>& reqs,
+      const typename CommManager<dim>::Tasks& tasks);
   std::vector<size_t> TransferHalos(bool inner) override;
   void ReduceSingleRequest(const std::vector<RedOp*>& blocks) override;
   void Bcast(const std::vector<size_t>& bb) override;
   void Scatter(const std::vector<size_t>& bb) override;
   void DumpWrite(const std::vector<size_t>& bb) override;
 
-  using P::blocksize_;
   using P::comm_;
-  using P::dim;
-  using P::extent_;
+  using P::domain_;
   using P::frame_;
-  using P::halos_;
   using P::isroot_;
   using P::kernelfactory_;
   using P::kernels_;
-  using P::nblocks_;
-  using P::nprocs_;
+  using P::mshared_;
   using P::stage_;
   using P::var;
 
   int commsize_;
   int commrank_;
+  // communication tasks
   typename CommManager<dim>::Tasks tasks_;
+  // communication tasks for shared mesh
+  typename CommManager<dim>::Tasks tasks_shared_;
   struct ReqTmp {
 #if USEFLAG(MPI)
     MPI_Request req;
@@ -74,22 +79,22 @@ Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
   isroot_ = (0 == commrank_); // XXX: overwrite isroot_
 
   fassert(
-      commsize_ == nprocs_.prod(),
+      commsize_ == domain_.nprocs.prod(),
       util::Format(
           "Number of MPI tasks {} does not match the number of subdomains {}",
-          commsize_, nprocs_));
+          commsize_, domain_.nprocs));
 
-  const MIdx globalsize = nprocs_ * nblocks_ * blocksize_;
+  const MIdx globalsize = domain_.nprocs * domain_.nblocks * domain_.blocksize;
   std::vector<BlockInfoProxy> proxies;
-  GIndex<size_t, dim> procs(nprocs_);
-  GIndex<size_t, dim> blocks(nblocks_);
+  GIndex<size_t, dim> procs(domain_.nprocs);
+  GIndex<size_t, dim> blocks(domain_.nblocks);
   for (auto ib : blocks.Range()) {
     BlockInfoProxy p;
-    p.index = nblocks_ * procs.GetMIdx(commrank_) + blocks.GetMIdx(ib);
+    p.index = domain_.nblocks * procs.GetMIdx(commrank_) + blocks.GetMIdx(ib);
     p.globalsize = globalsize;
-    p.cellsize = Vect(extent_ / p.globalsize.max());
-    p.blocksize = blocksize_;
-    p.halos = halos_;
+    p.cellsize = Vect(domain_.extent / p.globalsize.max());
+    p.blocksize = domain_.blocksize;
+    p.halos = domain_.halos;
     p.isroot = (ib == 0 && isroot_);
     p.islead = (ib == 0);
     proxies.push_back(p);
@@ -97,17 +102,26 @@ Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
 
   this->MakeKernels(proxies);
 
+  auto cell_to_rank = [&procs, this](MIdx w) -> int {
+    return procs.GetIdx(w / domain_.blocksize / domain_.nblocks);
+  };
+  const generic::Vect<bool, dim> is_periodic(true);
+
   {
     std::vector<typename CommManager<dim>::Block> cm_blocks;
     for (auto& k : kernels_) {
       auto& m = k->GetMesh();
       cm_blocks.push_back({&m.GetInBlockCells(), &m.GetIndexCells()});
     }
-    auto cell_to_rank = [&procs, this](MIdx w) -> int {
-      return procs.GetIdx(w / blocksize_ / nblocks_);
-    };
-    const generic::Vect<bool, dim> is_periodic(true);
     tasks_ = CommManager<dim>::GetTasks(
+        cm_blocks, cell_to_rank, globalsize, is_periodic, mpi);
+  }
+
+  {
+    auto& ms = *mshared_;
+    std::vector<typename CommManager<dim>::Block> cm_blocks;
+    cm_blocks.push_back({&ms.GetInBlockCells(), &ms.GetIndexCells()});
+    tasks_shared_ = CommManager<dim>::GetTasks(
         cm_blocks, cell_to_rank, globalsize, is_periodic, mpi);
   }
 }
@@ -116,24 +130,22 @@ template <class M>
 Native<M>::~Native() = default;
 
 template <class M>
-auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
-  if (!inner) {
-    return {};
+void Native<M>::TransferHalos(
+    std::vector<std::vector<const CommRequest*>>& reqs,
+    const typename CommManager<dim>::Tasks& tasks) {
+  if (reqs.empty()) {
+    return;
   }
-  std::vector<size_t> bb(kernels_.size());
-  std::iota(bb.begin(), bb.end(), 0);
-  auto& vcr = kernels_.front()->GetMesh().GetComm();
-  if (vcr.empty()) {
-    return bb;
-  }
-
+  auto& vcr = reqs.front(); // communication requests from first block
   using Task = typename CommManager<dim>::Task;
   using CommStencil = typename M::CommStencil;
+  using CommRequestScal = typename M::CommRequestScal;
+  using CommRequestVect = typename M::CommRequestVect;
   std::array<std::pair<const Task*, CommStencil>, 4> taskstencils{
-      std::make_pair(&tasks_.full_two, CommStencil::full_two),
-      std::make_pair(&tasks_.full_one, CommStencil::full_one),
-      std::make_pair(&tasks_.direct_two, CommStencil::direct_two),
-      std::make_pair(&tasks_.direct_one, CommStencil::direct_one),
+      std::make_pair(&tasks.full_two, CommStencil::full_two),
+      std::make_pair(&tasks.full_one, CommStencil::full_one),
+      std::make_pair(&tasks.direct_two, CommStencil::direct_two),
+      std::make_pair(&tasks.direct_one, CommStencil::direct_one),
   };
 
   for (auto& pair : taskstencils) {
@@ -151,10 +163,10 @@ auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
 #if USEFLAG(MPI)
     size_t nscal = 0; // number of scalar fields to transfer
     for (auto i : vcr_indices) {
-      if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
+      if (dynamic_cast<const CommRequestScal*>(vcr[i])) {
         nscal += 1;
       }
-      if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
+      if (auto crd = dynamic_cast<const CommRequestVect*>(vcr[i])) {
         nscal += (crd->d == -1 ? dim : 1);
       }
     }
@@ -201,11 +213,10 @@ auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
     }
     // Collect data to send
     for (auto i : vcr_indices) {
-      if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
+      if (dynamic_cast<const CommRequestScal*>(vcr[i])) {
         std::vector<FieldCell<Scal>*> fields;
-        for (auto& k : kernels_) {
-          const auto* cr = static_cast<typename M::CommRequestScal*>(
-              k->GetMesh().GetComm()[i].get());
+        for (auto& req : reqs) {
+          const auto* cr = static_cast<const CommRequestScal*>(req[i]);
           fields.push_back(cr->field);
         }
         for (auto& p : task.send) {
@@ -217,11 +228,10 @@ auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
           }
         }
       }
-      if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
+      if (auto crd = dynamic_cast<const CommRequestVect*>(vcr[i])) {
         std::vector<FieldCell<Vect>*> fields;
-        for (auto& k : kernels_) {
-          const auto* cr = static_cast<typename M::CommRequestVect*>(
-              k->GetMesh().GetComm()[i].get());
+        for (auto& req : reqs) {
+          const auto* cr = static_cast<const CommRequestVect*>(req[i]);
           fields.push_back(cr->field);
         }
         for (auto& p : task.send) {
@@ -259,11 +269,10 @@ auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
       p.second.cnt = 0;
     }
     for (auto i : vcr_indices) {
-      if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
+      if (dynamic_cast<const CommRequestScal*>(vcr[i])) {
         std::vector<FieldCell<Scal>*> fields;
-        for (auto& k : kernels_) {
-          const auto* cr = static_cast<typename M::CommRequestScal*>(
-              k->GetMesh().GetComm()[i].get());
+        for (auto& req : reqs) {
+          const auto* cr = static_cast<const CommRequestScal*>(req[i]);
           fields.push_back(cr->field);
         }
         for (auto& p : task.recv) {
@@ -275,11 +284,10 @@ auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
           }
         }
       }
-      if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
+      if (auto crd = dynamic_cast<const CommRequestVect*>(vcr[i])) {
         std::vector<FieldCell<Vect>*> fields;
-        for (auto& k : kernels_) {
-          const auto* cr = static_cast<typename M::CommRequestVect*>(
-              k->GetMesh().GetComm()[i].get());
+        for (auto& req : reqs) {
+          const auto* cr = static_cast<const CommRequestVect*>(req[i]);
           fields.push_back(cr->field);
         }
         for (auto& p : task.recv) {
@@ -301,11 +309,10 @@ auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
 #else
     // Exchange data between blocks.
     for (auto i : vcr_indices) {
-      if (dynamic_cast<typename M::CommRequestScal*>(vcr[i].get())) {
+      if (dynamic_cast<const CommRequestScal*>(vcr[i])) {
         std::vector<FieldCell<Scal>*> fields;
-        for (auto& k : kernels_) {
-          const auto* cr = static_cast<typename M::CommRequestScal*>(
-              k->GetMesh().GetComm()[i].get());
+        for (auto& req : reqs) {
+          const auto* cr = static_cast<const CommRequestScal*>(req[i]);
           fields.push_back(cr->field);
         }
         auto& send = task.send.at(0);
@@ -316,11 +323,10 @@ auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
               (*fields[send[ic].block])[send[ic].cell];
         }
       }
-      if (auto crd = dynamic_cast<typename M::CommRequestVect*>(vcr[i].get())) {
+      if (auto crd = dynamic_cast<const CommRequestVect*>(vcr[i])) {
         std::vector<FieldCell<Vect>*> fields;
-        for (auto& k : kernels_) {
-          const auto* cr = static_cast<typename M::CommRequestVect*>(
-              k->GetMesh().GetComm()[i].get());
+        for (auto& req : reqs) {
+          const auto* cr = static_cast<const CommRequestVect*>(req[i]);
           fields.push_back(cr->field);
         }
         auto& send = task.send.at(0);
@@ -341,6 +347,40 @@ auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
     }
 #endif
   }
+}
+
+template <class M>
+auto Native<M>::TransferHalos(bool inner) -> std::vector<size_t> {
+  if (!inner) {
+    return {};
+  }
+
+  // Exchange halos of shared mesh
+  {
+    std::vector<std::vector<const CommRequest*>> reqs;
+    reqs.emplace_back();
+    for (auto& cr : mshared_->GetComm()) {
+      reqs.back().push_back(cr.get());
+    }
+    TransferHalos(reqs, tasks_shared_);
+  }
+
+  std::vector<size_t> bb(kernels_.size());
+  std::iota(bb.begin(), bb.end(), 0);
+  auto& vcr = kernels_.front()->GetMesh().GetComm();
+  if (vcr.empty()) {
+    return bb;
+  }
+
+  // Exchange halos of blocks
+  std::vector<std::vector<const CommRequest*>> reqs;
+  for (auto& k : kernels_) {
+    reqs.emplace_back();
+    for (auto& cr : k->GetMesh().GetComm()) {
+      reqs.back().push_back(cr.get());
+    }
+  }
+  TransferHalos(reqs, tasks_);
 
   return bb;
 }

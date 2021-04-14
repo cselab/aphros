@@ -6,7 +6,7 @@
 
 #include "distr/distrbasic.h"
 
-using M = MeshStructured<double, 3>;
+using M = MeshCartesian<double, 3>;
 using Scal = typename M::Scal;
 
 void Run(M& m, Vars&) {

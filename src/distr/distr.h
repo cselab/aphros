@@ -40,33 +40,31 @@ class DistrMesh {
   virtual ~DistrMesh();
 
  protected:
-  // TODO: remove comm, needed only by Hypre
-  MPI_Comm comm_; // XXX: overwritten by Cubism<M>
-  const Vars& var;
-  Vars& var_mutable;
-  const KernelMeshFactory<M>& kernelfactory_; // kernel factory
-
-  int halos_; // number of halo cells (same in all directions)
-  MIdx blocksize_; // block size
-  MIdx nprocs_; // number of ranks
-  MIdx nblocks_; // number of blocks
-  Scal extent_; // extent (maximum over all directions)
-
-  int stage_ = 0;
-  size_t frame_ = 0; // current dump frame
-
-  bool isroot_; // XXX: overwritten by Local<M> and Cubism<M>
-
-  struct Hash {
-    size_t operator()(const MIdx& x) const noexcept {
-      const size_t h0 = std::hash<IntIdx>{}(x[0]);
-      const size_t h1 = std::hash<IntIdx>{}(x[1]);
-      const size_t h2 = std::hash<IntIdx>{}(x[2]);
-      return h0 ^ (h1 << 1) ^ (h2 << 2);
-    }
+  struct DomainInfo {
+    int halos; // number of halo cells (same in all directions)
+    MIdx blocksize; // block size
+    MIdx nprocs; // number of ranks
+    MIdx nblocks; // number of blocks
+    Scal extent; // extent (maximum length over all directions)
+    DomainInfo(
+        int halos_, MIdx blocksize_, MIdx nprocs_, MIdx nblocks_, Scal extent_)
+        : halos(halos_)
+        , blocksize(blocksize_)
+        , nprocs(nprocs_)
+        , nblocks(nblocks_)
+        , extent(extent_) {}
   };
 
+  MPI_Comm comm_;
+  const Vars& var;
+  Vars& var_mutable;
+  const KernelMeshFactory<M>& kernelfactory_;
+  DomainInfo domain_;
+  int stage_ = 0;
+  size_t frame_ = 0; // current dump frame
+  bool isroot_ = false; // XXX: overwritten by derived classes
   std::vector<std::unique_ptr<KernelMesh<M>>> kernels_;
+  std::unique_ptr<M> mshared_;
 
   DistrMesh(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   // Performs communication and returns indices of blocks with updated halos.
@@ -91,11 +89,17 @@ class DistrMesh {
   virtual void ReduceToLead(const std::vector<size_t>& bb);
   virtual void Scatter(const std::vector<size_t>& bb) = 0;
   virtual void Bcast(const std::vector<size_t>& bb) = 0;
+  virtual void BcastFromLead(const std::vector<size_t>& bb);
   virtual void DumpWrite(const std::vector<size_t>& bb);
   virtual void ClearComm(const std::vector<size_t>& bb);
   virtual void ClearDump(const std::vector<size_t>& bb);
-  // TODO: make Pending const
-  virtual bool Pending(const std::vector<size_t>& bb);
+  virtual bool Pending(const std::vector<size_t>& bb) const;
+  // Returns mesh that consists of all local blocks
+  // block: index of lower block
+  // cellsize: size of one cell
+  // halos: number of halo cells in each direction
+  static M CreateSharedMesh(
+      MIdx block, Vect cellsize, int halos, bool isroot, const DomainInfo&);
   // Create a kernel for each block and put into kernels_
   // Requires initialized isroot_;
   virtual void MakeKernels(const std::vector<BlockInfoProxy>&);

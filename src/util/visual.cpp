@@ -5,7 +5,7 @@
 
 namespace util {
 
-#define X(dim) template struct Visual<MeshStructured<double, dim>>;
+#define X(dim) template struct Visual<MeshCartesian<double, dim>>;
 MULTIDIMX
 
 } // namespace util

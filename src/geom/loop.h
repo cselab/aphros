@@ -1,6 +1,8 @@
 // Created by Petr Karnakov on 17.02.2021
 // Copyright 2021 ETH Zurich
 
+#pragma once
+
 #include "idx.h"
 #include "notation.h"
 

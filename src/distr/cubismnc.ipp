@@ -183,17 +183,14 @@ class Cubismnc : public DistrMesh<M_> {
   void Scatter(const std::vector<size_t>& bb) override;
   void DumpWrite(const std::vector<size_t>& bb) override;
 
-  using P::blocksize_;
   using P::comm_;
   using P::dim;
-  using P::extent_;
+  using P::domain_;
   using P::frame_;
-  using P::halos_;
   using P::isroot_;
   using P::kernelfactory_;
   using P::kernels_;
-  using P::nblocks_;
-  using P::nprocs_;
+  using P::mshared_;
   using P::stage_;
   using P::var;
 
@@ -219,10 +216,10 @@ class Cubismnc : public DistrMesh<M_> {
   int commsize_;
 };
 
-// nblocks_ - instance of GFieldViewRaw
-template <class nblocks_>
+// B_ - instance of GFieldViewRaw
+template <class B_>
 struct StreamHdfScal {
-  using B = nblocks_;
+  using B = B_;
   using Scal = typename B::Scal;
 
   // Required by Cubism
@@ -253,10 +250,10 @@ struct StreamHdfScal {
   }
 };
 
-// nblocks_ - instance of GFieldViewRaw
-template <class nblocks_>
+// B_ - instance of GFieldViewRaw
+template <class B_>
 struct StreamHdfVect {
-  using B = nblocks_;
+  using B = B_;
   using Scal = typename B::Scal;
 
   // Required by Cubism
@@ -315,34 +312,36 @@ template <class Par, class M>
 Cubismnc<Par, M>::Cubismnc(
     MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var)
     : DistrMesh<M>(comm, kf, var)
-    , checkprocs_(comm, nprocs_)
+    , checkprocs_(comm, domain_.nprocs)
     , grid_(
-          nprocs_[0], nprocs_[1], nprocs_[2], nblocks_[0], nblocks_[1],
-          nblocks_[2], extent_, comm) {
-  fassert_equal(blocksize_[0], FieldView::bx);
-  fassert_equal(blocksize_[1], FieldView::by);
-  fassert_equal(blocksize_[2], FieldView::bz);
+          domain_.nprocs[0], domain_.nprocs[1], domain_.nprocs[2], //
+          domain_.nblocks[0], domain_.nblocks[1], domain_.nblocks[2], //
+          domain_.extent, comm) {
+  fassert_equal(domain_.blocksize[0], FieldView::bx);
+  fassert_equal(domain_.blocksize[1], FieldView::by);
+  fassert_equal(domain_.blocksize[2], FieldView::bz);
 
   {
     MPI_Comm_size(comm, &commsize_);
     int rank;
     MPI_Comm_rank(comm, &rank);
-    isroot_ = (0 == rank); // XXX: overwrite isroot_
+    isroot_ = (0 == rank);
   }
 
   // FIXME: [fabianw@mavt.ethz.ch; 2019-11-12] Get rid of BlockInfo type
   const std::vector<BlockInfo> infos = grid_.getBlocksInfo();
 
-  std::vector<BlockInfoProxy> proxies = Convert(infos, blocksize_, halos_);
+  std::vector<BlockInfoProxy> proxies =
+      Convert(infos, domain_.blocksize, domain_.halos);
   for (size_t i = 0; i < proxies.size(); ++i) {
     auto& p = proxies[i];
     p.isroot = (p.index == MIdx(0));
     p.islead = (i == 0);
-    p.globalsize = nprocs_ * nblocks_ * blocksize_;
+    p.globalsize = domain_.nprocs * domain_.nblocks * domain_.blocksize;
     midx_to_kernel_[p.index] = i;
   }
 
-  comm_ = grid_.getCartComm(); // XXX: overwrite comm_
+  comm_ = grid_.getCartComm();
   this->MakeKernels(proxies);
 }
 
@@ -373,8 +372,8 @@ auto Cubismnc<Par, M>::TransferHalos() -> std::vector<size_t> {
     // 1. Exchange halos in buffer mesh.
     // stencil type
     const bool is_tensorial = true;
-    const int nhalo_start[3] = {halos_, halos_, halos_};
-    const int nhalo_end[3] = {halos_, halos_, halos_};
+    const int nhalo_start[3] = {domain_.halos, domain_.halos, domain_.halos};
+    const int nhalo_end[3] = {domain_.halos, domain_.halos, domain_.halos};
 
     // schedule asynchronous communication
     Synch& s = grid_.sync(
@@ -434,8 +433,8 @@ auto Cubismnc<Par, M>::TransferHalos(bool inner) -> std::vector<size_t> {
       // 1. Exchange halos in buffer mesh.
       // stencil type
       const bool is_tensorial = true;
-      const int nhalo_start[3] = {halos_, halos_, halos_};
-      const int nhalo_end[3] = {halos_, halos_, halos_};
+      const int nhalo_start[3] = {domain_.halos, domain_.halos, domain_.halos};
+      const int nhalo_end[3] = {domain_.halos, domain_.halos, domain_.halos};
 
       // schedule asynchronous communication
       sync_ = &grid_.sync(
@@ -528,37 +527,29 @@ void Cubismnc<Par, M>::Bcast(const std::vector<size_t>& bb) {
 
   for (size_t i = 0; i < vfirst.size(); ++i) {
     if (OpConcat* o = dynamic_cast<OpConcat*>(vfirst[i].get())) {
-      std::vector<char> r = o->Neutral(); // buffer
+      std::vector<char> buf = o->Neutral();
 
       if (isroot_) {
-        // read from root block
+        // Read from root block
         for (auto b : bb) {
-          auto& m = kernels_[b]->GetMesh();
+          const auto& m = kernels_[b]->GetMesh();
           if (m.IsRoot()) {
-            auto& v = m.GetBcast();
-            OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
-            ob->Append(r);
+            const OpConcat* ob = static_cast<OpConcat*>(m.GetBcast()[i].get());
+            ob->Append(buf);
           }
         }
       }
 
-      int s = r.size(); // size
+      int size = buf.size();
+      MPI_Bcast(&size, 1, MPI_INT, 0, comm_);
+      buf.resize(size);
+      MPI_Bcast(buf.data(), buf.size(), MPI_CHAR, 0, comm_);
 
-      // broadcast size
-      MPI_Bcast(&s, 1, MPI_INT, 0, comm_);
-
-      // resize
-      r.resize(s);
-
-      // broadcast data
-      MPI_Bcast(r.data(), r.size(), MPI_CHAR, 0, comm_);
-
-      // write to all blocks
+      // Write to all blocks
       for (auto b : bb) {
-        auto& m = kernels_[b]->GetMesh();
-        auto& v = m.GetBcast();
-        OpConcat* ob = dynamic_cast<OpConcat*>(v[i].get());
-        ob->Set(r);
+        const auto& m = kernels_[b]->GetMesh();
+        OpConcat* ob = static_cast<OpConcat*>(m.GetBcast()[i].get());
+        ob->Set(buf);
       }
     } else {
       fassert(false, "Bcast: Unknown M::Op instance");

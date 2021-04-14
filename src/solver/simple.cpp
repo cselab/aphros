@@ -3,10 +3,10 @@
 
 #include "simple.ipp"
 
-#define X(dim) template class Simple<MeshStructured<double, dim>>;
+#define X(dim) template class Simple<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X
 
-#define X(dim) template class Simple<Embed<MeshStructured<double, dim>>>;
+#define X(dim) template class Simple<Embed<MeshCartesian<double, dim>>>;
 MULTIDIMX
 #undef X

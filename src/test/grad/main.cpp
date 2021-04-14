@@ -45,7 +45,7 @@ using IdxFace = IdxFace;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = generic::Vect<Scal, dim>;
-using M = MeshStructured<Scal, dim>;
+using M = MeshCartesian<Scal, dim>;
 
 bool Cmp(Scal a, Scal b) {
   return std::abs(a - b) < 1e-12;
@@ -86,7 +86,7 @@ M GetMesh(MIdx s /*size in cells*/) {
   Rect<Vect> dom(Vect(0.1, 0.2, 0.1), Vect(1.1, 1.2, 1.3));
   MIdx b(-2, -3, -4); // lower index
   int hl = 1; // halos
-  return InitUniformMesh<M>(dom, b, s, hl, true, true, s, 0);
+  return {b, s, dom, hl, true, true, s, 0};
 }
 
 template <class T, class Idx, class M>

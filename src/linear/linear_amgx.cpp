@@ -161,7 +161,7 @@ class ModuleLinearAmgx : public ModuleLinear<M> {
   }
 };
 
-using M = MeshStructured<double, 3>;
+using M = MeshCartesian<double, 3>;
 
 bool kReg_amgx[] = {
     RegisterModule<ModuleLinearAmgx<M>>(),

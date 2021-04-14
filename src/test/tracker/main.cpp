@@ -33,14 +33,14 @@ using MIdx = generic::MIdx<dim>;
 using Dir = GDir<dim>;
 using Scal = double;
 using Vect = generic::Vect<Scal, dim>;
-using M = MeshStructured<Scal, dim>;
+using M = MeshCartesian<Scal, dim>;
 
 M GetMesh() {
   Rect<Vect> dom(Vect(0., 0., 0.), Vect(1., 1., 1.));
   MIdx b(0, 0, 0); // lower index
   MIdx s(10, 10, 10); // size in cells
   int hl = 2; // halos
-  return InitUniformMesh<M>(dom, b, s, hl, true, true, MIdx(20, 20, 20), 0);
+  return {b, s, dom, hl, true, true, MIdx(20, 20, 20), 0};
 }
 
 void TestAvg() {

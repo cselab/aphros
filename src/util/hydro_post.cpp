@@ -3,6 +3,6 @@
 
 #include "hydro_post.ipp"
 
-#define X(dim) template struct HydroPost<MeshStructured<double, dim>>;
+#define X(dim) template struct HydroPost<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X

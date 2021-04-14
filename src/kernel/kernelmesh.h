@@ -8,7 +8,7 @@
 
 namespace generic {
 
-template <size_t dim_ = 3>
+template <size_t dim_>
 struct BlockInfoProxy {
   static constexpr size_t dim = dim_;
   using Vect = generic::Vect<double, dim>;
@@ -30,14 +30,13 @@ M CreateMesh(const generic::BlockInfoProxy<M::dim>& p) {
   using MIdx = typename M::MIdx;
   using Vect = typename M::Vect;
   const MIdx bs = p.blocksize;
-  const MIdx worigin = p.index * bs;
+  const MIdx begin = p.index * bs;
   const Vect h(p.cellsize);
-  const Rect<Vect> domain(Vect(worigin) * h, Vect(worigin + bs) * h);
+  const Rect<Vect> domain(Vect(begin) * h, Vect(begin + bs) * h);
 
   const MIdx global_blocks = p.globalsize / bs;
   const int id = M::Flags::GetIdFromBlock(p.index, global_blocks);
-  M m = InitUniformMesh<M>(
-      domain, worigin, bs, p.halos, p.isroot, p.islead, p.globalsize, id);
+  M m(begin, bs, domain, p.halos, p.isroot, p.islead, p.globalsize, id);
   m.flags.global_origin = Vect(0);
   m.flags.global_blocks = global_blocks;
   m.flags.block_length = h * Vect(bs);
@@ -49,13 +48,9 @@ template <class M_>
 class KernelMesh {
  public:
   using M = M_;
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  using MIdx = typename M::MIdx;
-  static constexpr size_t dim = M::dim;
 
-  KernelMesh(Vars& var_, const generic::BlockInfoProxy<dim>& bi)
-      : var(var_), var_mutable(var_), bi_(bi), m(CreateMesh<M>(bi)) {
+  KernelMesh(Vars& var_, const generic::BlockInfoProxy<M::dim>& bi)
+      : var(var_), var_mutable(var_), m(CreateMesh<M>(bi)) {
     m.flags.check_nan = var.Int["CHECKNAN"];
     m.flags.edim = var.Int["dim"];
   }
@@ -64,17 +59,10 @@ class KernelMesh {
   M& GetMesh() {
     return m;
   }
-  bool IsRoot() {
-    return bi_.isroot;
-  }
-  bool IsLead() {
-    return bi_.islead;
-  }
 
  protected:
-  const Vars& var; // shared among all blocks on each PEs
-  Vars& var_mutable; // shared among all blocks on each PEs
-  generic::BlockInfoProxy<dim> bi_;
+  const Vars& var; // read-only configuration, shared by local blocks
+  Vars& var_mutable; // mutable configuration, shared by local blocks
   M m;
 };
 

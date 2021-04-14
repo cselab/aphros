@@ -4,10 +4,10 @@
 #include "electro.ipp"
 #include "embed.h"
 
-#define X(dim) template class Electro<MeshStructured<double, dim>>;
+#define X(dim) template class Electro<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X
 
-#define X(dim) template class Electro<Embed<MeshStructured<double, dim>>>;
+#define X(dim) template class Electro<Embed<MeshCartesian<double, dim>>>;
 MULTIDIMX
 #undef X

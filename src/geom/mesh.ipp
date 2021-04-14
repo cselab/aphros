@@ -31,6 +31,7 @@ struct MeshCartesian<_Scal, _dim>::Imp {
   UReduce<Scal> reduce;
   UReduce<Scal> reduce_lead;
   std::vector<std::unique_ptr<typename UReduce<Scal>::Op>> bcast;
+  std::vector<std::unique_ptr<typename UReduce<Scal>::Op>> bcast_lead;
   std::vector<ScatterRequest> scatter;
   std::vector<std::pair<IdxFace, size_t>> vfnan;
 };
@@ -55,6 +56,7 @@ MeshCartesian<_Scal, _dim>::MeshCartesian(
     , indexc_(blockca_.GetBegin(), blockca_.GetSize() + MIdx(1))
     , indexf_(indexc_.GetBegin(), indexc_.GetSize())
     , indexn_(indexc_.GetBegin(), indexc_.GetSize())
+    , mshared_(this)
     , isroot_(isroot)
     , islead_(islead)
     , incells_begin_(blockci_.GetBegin())
@@ -205,13 +207,6 @@ MeshCartesian<Scal, dim>::~MeshCartesian() = default;
 template <class Scal, size_t dim>
 MeshCartesian<Scal, dim>::MeshCartesian(MeshCartesian&&) = default;
 
-template <class M>
-M InitUniformMesh(
-    Rect<typename M::Vect> domain, typename M::MIdx begin, typename M::MIdx s,
-    int halos, bool isroot, bool islead, typename M::MIdx gs, int id) {
-  return {begin, s, domain, halos, isroot, islead, gs, id};
-}
-
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Comm(std::unique_ptr<CommRequest>&& r) {
   imp->commreq.emplace_back(std::move(r));
@@ -350,6 +345,20 @@ auto MeshCartesian<Scal, dim>::GetBcast() const
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::ClearBcast() {
   imp->bcast.clear();
+}
+template <class Scal, size_t dim>
+void MeshCartesian<Scal, dim>::BcastFromLead(
+    std::unique_ptr<typename UReduce<Scal>::Op>&& o) {
+  imp->bcast_lead.emplace_back(std::move(o));
+}
+template <class Scal, size_t dim>
+auto MeshCartesian<Scal, dim>::GetBcastFromLead() const
+    -> const std::vector<std::unique_ptr<Op>>& {
+  return imp->bcast_lead;
+}
+template <class Scal, size_t dim>
+void MeshCartesian<Scal, dim>::ClearBcastFromLead() {
+  imp->bcast_lead.clear();
 }
 template <class Scal, size_t dim>
 auto MeshCartesian<Scal, dim>::GetNanFaces() const

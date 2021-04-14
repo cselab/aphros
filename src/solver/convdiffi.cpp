@@ -3,11 +3,11 @@
 
 #include "convdiffi.ipp"
 
-#define X(dim) template class ConvDiffScalImp<MeshStructured<double, dim>>;
+#define X(dim) template class ConvDiffScalImp<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X
 
 #define X(dim) \
-  template class ConvDiffScalImp<Embed<MeshStructured<double, dim>>>;
+  template class ConvDiffScalImp<Embed<MeshCartesian<double, dim>>>;
 MULTIDIMX
 #undef X

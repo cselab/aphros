@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -eu
+
+: ${kernels="kernels.cl"}
+: ${out="kernels.inc"}
+
+cat > "$out" << EOS
+R"EOF(
+$(cat "$kernels")
+)EOF"
+EOS

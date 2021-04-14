@@ -4,10 +4,10 @@
 #include "fluid_dummy.ipp"
 #include "embed.h"
 
-#define X(dim) template class FluidDummy<MeshStructured<double, dim>>;
+#define X(dim) template class FluidDummy<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X
 
-#define X(dim) template class FluidDummy<Embed<MeshStructured<double, dim>>>;
+#define X(dim) template class FluidDummy<Embed<MeshCartesian<double, dim>>>;
 MULTIDIMX
 #undef X

@@ -7,19 +7,17 @@
 
 template <class M_, class Par_>
 class KernelMeshPar : public KernelMesh<M_> {
+  using P = KernelMesh<M_>;
+
  public:
-  using P = KernelMesh<M_>; // parent
   using M = M_;
   using Par = Par_;
-  static constexpr size_t dim = M::dim;
 
-  KernelMeshPar(Vars& var_, const generic::BlockInfoProxy<dim>& bi, Par& par)
+  KernelMeshPar(Vars& var_, const generic::BlockInfoProxy<M::dim>& bi, Par& par)
       : KernelMesh<M>(var_, bi), par_(par) {}
   void Run() override = 0;
 
  protected:
-  using P::IsLead;
-  using P::IsRoot;
   using P::m;
   using P::var;
   using P::var_mutable;

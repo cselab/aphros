@@ -61,7 +61,7 @@ class ModuleDistrCubismnc : public ModuleDistr<M> {
   }
 };
 
-using M = MeshStructured<double, 3>;
+using M = MeshCartesian<double, 3>;
 
 bool kRegDistrCubismnc[] = {
     RegisterModule<ModuleDistrCubismnc<M>>(),

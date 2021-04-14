@@ -3,6 +3,6 @@
 
 #include "linear.ipp"
 
-#define X(dim) template class ULinear<MeshStructured<double, dim>>;
+#define X(dim) template class ULinear<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X

@@ -18,24 +18,19 @@
 
 // Client for DistrMesh
 // M_: mesh
-// K_: kernel derived from KernelMeshPar
-template <class M_, class K_>
+// Kernel_: kernel derived from KernelMeshPar
+template <class M_, class Kernel_>
 class DistrSolver {
  public:
   using M = M_;
-  static constexpr size_t dim = M::dim;
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-
-  using K = K_;
-  using KF = KernelMeshParFactory<M, K>;
-  using Par = typename K::Par;
+  using Kernel = Kernel_;
+  using Par = typename Kernel::Par;
 
   DistrSolver(MPI_Comm comm, Vars& var0, Par& par)
       : var(var0), var_mutable(var0), kernelfactory_(par) {
     const std::string backend = var.String["backend"];
     if (auto ptr = ModuleDistr<M>::GetInstance(backend)) {
-      d_ = ptr->Make(comm, kernelfactory_, var_mutable);
+      distr_ = ptr->Make(comm, kernelfactory_, var_mutable);
     } else {
       if (MpiWrapper(comm).IsRoot()) {
         std::string backends;
@@ -49,17 +44,17 @@ class DistrSolver {
     }
   }
   void Run() {
-    d_->Run();
+    distr_->Run();
   }
   void Report() {
-    d_->Report();
+    distr_->Report();
   }
 
  private:
   const Vars& var;
   Vars& var_mutable;
-  std::unique_ptr<DistrMesh<M>> d_;
-  KF kernelfactory_;
+  std::unique_ptr<DistrMesh<M>> distr_;
+  KernelMeshParFactory<M, Kernel> kernelfactory_;
 };
 
 int RunMpi(

@@ -96,7 +96,7 @@ void TestMesh() {
   const int halos = 2;
   Vect doms = dom.GetDimensions();
   const Vect h = dom.GetDimensions() / Vect(size);
-  M m = InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);
+  M m{begin, size, dom, halos, true, true, size, 0};
 
   // Total volume
   Scal v = 0.;
@@ -264,7 +264,7 @@ void TestMeshIndices() {
   const MIdx begin(0);
   const MIdx size(2);
   const int halos = 0;
-  M m = InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);
+  M m{begin, size, dom, halos, true, true, size, 0};
 
   {
     std::cout << "\nm.GetAllBlockCells()" << std::endl;
@@ -318,11 +318,11 @@ void TestMeshIndices() {
 void TestNotation() {
   std::cout << __func__ << std::endl;
   const Rect<Vect> dom(Vect(0), Vect(1));
-  using M = MeshStructured<Scal, dim>;
+  using M = MeshCartesian<Scal, dim>;
   const MIdx begin(0);
   const MIdx size(2);
   const size_t halos = 1;
-  const M m = InitUniformMesh<M>(dom, begin, size, halos, true, true, size, 0);
+  const M m{begin, size, dom, halos, true, true, size, 0};
 
   {
     std::cout << "\nTestNotation: IdxCellMesh\n";

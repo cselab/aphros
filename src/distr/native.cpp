@@ -21,6 +21,6 @@ class ModuleDistrNative : public ModuleDistr<M> {
   }
 };
 
-#define X(dim) RegisterModule<ModuleDistrNative<MeshStructured<double, dim>>>(),
+#define X(dim) RegisterModule<ModuleDistrNative<MeshCartesian<double, dim>>>(),
 
 bool kRegDistrNative[] = {MULTIDIMX};

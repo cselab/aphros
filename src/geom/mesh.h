@@ -110,16 +110,16 @@ class MeshCartesian {
     MPI_Comm comm;
   };
 
-  // b: begin, lower corner cell index
-  // cs: inner cells size
+  // begin: begin, lower corner cell index
+  // size: inner cells size
   // domain: domain, rectangle covering inner cells
   // halos: halo cells from each side
   // isroot: root block
   // gs: global mesh size
   // id: unique id
   MeshCartesian(
-      MIdx b, MIdx cs, Rect<Vect> domain, int halos, bool isroot, bool islead,
-      MIdx gs, int id);
+      MIdx begin, MIdx size, Rect<Vect> domain, int halos, bool isroot,
+      bool islead, MIdx gs, int id);
   MeshCartesian(const MeshCartesian&) = delete;
   MeshCartesian(MeshCartesian&&);
   MeshCartesian& operator=(const MeshCartesian&) = delete;
@@ -131,6 +131,15 @@ class MeshCartesian {
   // Returns linear index of block between 0 and number of blocks - 1.
   int GetId() const {
     return id_;
+  }
+  void SetShared(M* mshared) {
+    mshared_ = mshared;
+  }
+  M& GetShared() {
+    return *mshared_;
+  }
+  const M& GetShared() const {
+    return *mshared_;
   }
   int GetIdFromPoint(Vect x) const {
     return flags.GetIdFromBlock(flags.GetBlockFromPoint(x));
@@ -753,6 +762,10 @@ class MeshCartesian {
   void ClearReduceToLead();
   void Bcast(std::unique_ptr<Op>&& o);
   template <class T>
+  void Bcast(T* elem) {
+    Bcast(std::make_unique<typename UReduce<Scal>::template OpCatRaw<T>>(elem));
+  }
+  template <class T>
   void Bcast(std::vector<T>* buf) {
     Bcast(std::make_unique<typename UReduce<Scal>::template OpCatT<T>>(buf));
   }
@@ -762,6 +775,14 @@ class MeshCartesian {
   }
   const std::vector<std::unique_ptr<Op>>& GetBcast() const;
   void ClearBcast();
+  void BcastFromLead(std::unique_ptr<Op>&& o);
+  template <class T>
+  void BcastFromLead(T* elem) {
+    BcastFromLead(
+        std::make_unique<typename UReduce<Scal>::template OpCatRaw<T>>(elem));
+  }
+  const std::vector<std::unique_ptr<Op>>& GetBcastFromLead() const;
+  void ClearBcastFromLead();
   // Scatter request:
   // first: sendbuffer on root, vector for each block; ignored on others
   // second: receive buffer
@@ -803,6 +824,7 @@ class MeshCartesian {
   const IndexFaces indexf_;
   const IndexNodes indexn_;
 
+  M* mshared_ = nullptr;
   const bool isroot_;
   const bool islead_;
   const MIdx incells_begin_, incells_end_;
@@ -830,27 +852,8 @@ class MeshCartesian {
 
   FieldCell<Vect> fc_center_;
   FieldFace<Vect> ff_center_;
-
   Suspender susp_;
   std::string timer_report_path_;
   struct Imp;
   std::unique_ptr<Imp> imp;
 };
-
-// FIXME: Legacy alias, remove
-template <class Scal, size_t dim>
-using MeshStructured = MeshCartesian<Scal, dim>;
-
-// Create uniform mesh
-// domain: rectangle covering inner cells
-// begin: index of lower inner cells
-// s: number of inner cells in each direction
-// halos: number of halo layers
-// isroot: root block
-// islead: lead block
-// gs: global mesh size
-// id: unique id
-template <class M>
-M InitUniformMesh(
-    Rect<typename M::Vect> domain, typename M::MIdx begin, typename M::MIdx s,
-    int halos, bool isroot, bool islead, typename M::MIdx gs, int id);

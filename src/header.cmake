@@ -73,6 +73,7 @@ install(FILES linear/linear_amgx.h DESTINATION ${APHROS_PREFIX}/include/aphros/l
 install(FILES linear/linear.h DESTINATION ${APHROS_PREFIX}/include/aphros/linear)
 install(FILES linear/linear_hypre.h DESTINATION ${APHROS_PREFIX}/include/aphros/linear)
 install(FILES march/march.h DESTINATION ${APHROS_PREFIX}/include/aphros/march)
+install(FILES opencl/opencl.h DESTINATION ${APHROS_PREFIX}/include/aphros/opencl)
 install(FILES overlap/overlap.h DESTINATION ${APHROS_PREFIX}/include/aphros/overlap)
 install(FILES parse/argparse.h DESTINATION ${APHROS_PREFIX}/include/aphros/parse)
 install(FILES parse/codeblocks.h DESTINATION ${APHROS_PREFIX}/include/aphros/parse)

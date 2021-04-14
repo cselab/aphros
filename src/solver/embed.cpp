@@ -3,6 +3,6 @@
 
 #include "embed.ipp"
 
-#define X(dim) template class Embed<MeshStructured<double, dim>>;
+#define X(dim) template class Embed<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X

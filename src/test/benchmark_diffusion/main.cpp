@@ -18,34 +18,30 @@
 #include "util/sysinfo.h"
 #include "util/timer.h"
 
-const int dim = 3;
-using MIdx = generic::MIdx<dim>;
-using IdxCell = IdxCell;
-using IdxFace = IdxFace;
-using Dir = GDir<dim>;
-using Scal = double;
-using Vect = generic::Vect<Scal, dim>;
-using Mesh = MeshStructured<Scal, dim>;
+using M = MeshCartesian<double, 3>;
+using Scal = typename M::Scal;
+using Vect = typename M::Vect;
+using MIdx = typename M::MIdx;
 
-Mesh GetMesh(MIdx s /*size in cells*/) {
+M GetMesh(MIdx size) {
   Rect<Vect> dom(Vect(0), Vect(1));
-  MIdx b(0, 0, 0); // lower index
-  int hl = 2; // halos
-  return InitUniformMesh<Mesh>(dom, b, s, hl, true, true, s, 0);
+  MIdx begin(0, 0, 0); // lower index
+  int halos = 2;
+  return {begin, size, dom, halos, true, true, size, 0};
 }
 
 class TimerMesh : public ExecutionTimer {
  public:
-  TimerMesh(const std::string& name, Mesh& m_)
+  TimerMesh(const std::string& name, M& m_)
       : ExecutionTimer(name, 0.1, 3), m(m_) {}
 
  protected:
-  Mesh& m;
+  M& m;
 };
 
 class LoopPlain : public TimerMesh {
  public:
-  LoopPlain(Mesh& m_) : TimerMesh("loop-plain", m_) {}
+  LoopPlain(M& m_) : TimerMesh("loop-plain", m_) {}
   void F() override {
     volatile size_t a = 0;
     size_t b = a;
@@ -58,7 +54,7 @@ class LoopPlain : public TimerMesh {
 
 class LoopInCells : public TimerMesh {
  public:
-  LoopInCells(Mesh& m_) : TimerMesh("loop-incells", m_) {}
+  LoopInCells(M& m_) : TimerMesh("loop-incells", m_) {}
   void F() override {
     volatile size_t a = 0;
     size_t b = a;
@@ -71,7 +67,7 @@ class LoopInCells : public TimerMesh {
 
 class LoopFldInCells : public TimerMesh {
  public:
-  LoopFldInCells(Mesh& m_) : TimerMesh("loop-fld-incells", m_), v(m) {}
+  LoopFldInCells(M& m_) : TimerMesh("loop-fld-incells", m_), v(m) {}
   void F() override {
     volatile size_t a = 0;
     size_t b = a;
@@ -88,7 +84,8 @@ class LoopFldInCells : public TimerMesh {
 
 class Interp : public TimerMesh {
  public:
-  Interp(Mesh& m_) : TimerMesh("interp", m_), fc(m), ff(m) {
+  Interp(M& m_) : TimerMesh("interp", m_), fc(m), ff(m) {
+    using Dir = typename M::Dir;
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -102,7 +99,7 @@ class Interp : public TimerMesh {
   }
   void F() override {
     volatile size_t a = 0;
-    ff = UEmbed<Mesh>::Interpolate(fc, mfc, m);
+    ff = UEmbed<M>::Interpolate(fc, mfc, m);
     a = ff[IdxFace(a)];
   }
 
@@ -114,7 +111,7 @@ class Interp : public TimerMesh {
 
 class Diffusion : public TimerMesh {
  public:
-  Diffusion(Mesh& m_) : TimerMesh("diff-face-idx", m_), fc(m), ff(m) {
+  Diffusion(M& m_) : TimerMesh("diff-face-idx", m_), fc(m), ff(m) {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -149,7 +146,7 @@ class Diffusion : public TimerMesh {
 
 class DiffusionNeighb : public TimerMesh {
  public:
-  DiffusionNeighb(Mesh& m_) : TimerMesh("diff-cell-idx", m_), fc(m), fct(m) {
+  DiffusionNeighb(M& m_) : TimerMesh("diff-cell-idx", m_), fc(m), fct(m) {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -179,7 +176,7 @@ class DiffusionNeighb : public TimerMesh {
 
 class DiffusionPlain : public TimerMesh {
  public:
-  DiffusionPlain(Mesh& m_) : TimerMesh("diff-cell-plain", m_), fc(m), fct(m) {
+  DiffusionPlain(M& m_) : TimerMesh("diff-cell-plain", m_), fc(m), fct(m) {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
     }
@@ -229,7 +226,7 @@ class DiffusionPlain : public TimerMesh {
 
 class DiffusionPlainFace : public TimerMesh {
  public:
-  DiffusionPlainFace(Mesh& m_)
+  DiffusionPlainFace(M& m_)
       : TimerMesh("diff-face-plain", m_), fc(m), fcx(m), fcy(m), fcz(m) {
     for (auto i : m.AllCells()) {
       fc[i] = std::sin(i.GetRaw());
@@ -305,7 +302,7 @@ class DiffusionPlainFace : public TimerMesh {
 // ++k
 // p: pointer to new instance
 template <class T>
-void Try(Mesh& m, size_t i, size_t& k, ExecutionTimer*& p) {
+void Try(M& m, size_t i, size_t& k, ExecutionTimer*& p) {
   if (k++ == i) {
     p = new T(m);
   }
@@ -320,7 +317,7 @@ void Try(Mesh& m, size_t i, size_t& k, ExecutionTimer*& p) {
 // name: test name
 // Returns 1 if test with index i found
 bool Run(
-    const size_t i, Mesh& m, double& t, size_t& n, size_t& mem,
+    const size_t i, M& m, double& t, size_t& n, size_t& mem,
     std::string& name) {
   size_t k = 0;
   ExecutionTimer* p = nullptr;

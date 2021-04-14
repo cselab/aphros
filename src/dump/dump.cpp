@@ -60,7 +60,7 @@ void DumpCsv(
 }
 
 using Scal = double;
-using M = MeshStructured<Scal, 3>;
+using M = MeshCartesian<Scal, 3>;
 
 template void DumpCsv<Scal>(
     const std::vector<std::pair<std::string, std::vector<Scal>>>& indata,

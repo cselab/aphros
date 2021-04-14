@@ -18,7 +18,34 @@
 #include "util/format.h"
 
 template <class M>
+M DistrMesh<M>::CreateSharedMesh(
+    MIdx block, Vect cellsize, int halos, bool isroot,
+    const DomainInfo& domain) {
+  const MIdx bs = domain.blocksize;
+  const MIdx global_size = bs * domain.nblocks * domain.nprocs;
+  const MIdx global_blocks = global_size / bs;
+  const MIdx shared_size = bs * domain.nblocks;
+  const Vect h(cellsize);
+  const MIdx begin = block * bs;
+  const Rect<Vect> rect(Vect(begin) * h, Vect(begin + shared_size) * h);
+  const int id = M::Flags::GetIdFromBlock(block, global_blocks);
+  const bool islead = true;
+  M m(begin, shared_size, rect, halos, isroot, islead, global_size, id);
+  m.flags.global_origin = Vect(0);
+  m.flags.global_blocks = global_blocks;
+  m.flags.block_length = h * Vect(bs);
+  return m;
+}
+
+template <class M>
 void DistrMesh<M>::MakeKernels(const std::vector<BlockInfoProxy>& proxies) {
+  {
+    fassert(!proxies.empty());
+    auto& p = proxies.front();
+    mshared_ = std::make_unique<M>(
+        CreateSharedMesh(p.index, p.cellsize, p.halos, isroot_, domain_));
+  }
+
   for (auto proxy : proxies) {
     std::unique_ptr<KernelMesh<M>> kernel(
         kernelfactory_.Make(var_mutable, proxy));
@@ -26,14 +53,17 @@ void DistrMesh<M>::MakeKernels(const std::vector<BlockInfoProxy>& proxies) {
     m.flags.comm = comm_;
     m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
     m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
-    m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
+    if (M::dim > 2) {
+      m.flags.is_periodic[2] = var.Int["hypre_periodic_z"];
+    }
+    m.SetShared(mshared_.get());
     kernels_.emplace_back(kernel.release());
   }
 }
 
 template <size_t dim, class Map>
-auto GetVect(const Map& map, std::string prefix) {
-  generic::Vect<typename Map::Value, dim> res;
+auto GetMIdx(const Map& map, std::string prefix) {
+  generic::MIdx<dim> res;
   for (size_t d = 0; d < dim; ++d) {
     res[d] = map[prefix + GDir<dim>(d).letter()];
   }
@@ -47,11 +77,10 @@ DistrMesh<M>::DistrMesh(
     , var(var0)
     , var_mutable(var0)
     , kernelfactory_(kf)
-    , halos_(var.Int["hl"])
-    , blocksize_(GetVect<dim>(var.Int, "bs"))
-    , nprocs_(GetVect<dim>(var.Int, "p"))
-    , nblocks_(GetVect<dim>(var.Int, "b"))
-    , extent_(var.Double["extent"]) {}
+    , domain_(
+          var.Int["hl"], GetMIdx<dim>(var.Int, "bs"),
+          GetMIdx<dim>(var.Int, "p"), GetMIdx<dim>(var.Int, "b"),
+          var.Double["extent"]) {}
 
 template <class M>
 DistrMesh<M>::~DistrMesh() {}
@@ -178,6 +207,50 @@ void DistrMesh<M>::ReduceToLead(const std::vector<size_t>& bb) {
   // Clear reduce requests
   for (auto b : bb) {
     kernels_[b]->GetMesh().ClearReduceToLead();
+  }
+}
+
+template <class M>
+void DistrMesh<M>::BcastFromLead(const std::vector<size_t>& bb) {
+  using OpConcat = typename UReduce<Scal>::OpCat;
+  auto& vfirst = kernels_.front()->GetMesh().GetBcastFromLead();
+
+  if (!vfirst.size()) {
+    return;
+  }
+
+  for (auto b : bb) {
+    fassert_equal(
+        kernels_[b]->GetMesh().GetBcastFromLead().size(), vfirst.size());
+  }
+
+  for (size_t i = 0; i < vfirst.size(); ++i) {
+    if (OpConcat* o = dynamic_cast<OpConcat*>(vfirst[i].get())) {
+      std::vector<char> buf = o->Neutral();
+
+      // Read from lead block
+      for (auto b : bb) {
+        const auto& m = kernels_[b]->GetMesh();
+        if (m.IsLead()) {
+          const OpConcat* ob =
+              static_cast<OpConcat*>(m.GetBcastFromLead()[i].get());
+          ob->Append(buf);
+        }
+      }
+
+      // Write to all blocks
+      for (auto b : bb) {
+        const auto& m = kernels_[b]->GetMesh();
+        OpConcat* ob = static_cast<OpConcat*>(m.GetBcastFromLead()[i].get());
+        ob->Set(buf);
+      }
+    } else {
+      fassert(false, "BcastFromLead: Unknown M::Op instance");
+    }
+  }
+
+  for (auto b : bb) {
+    kernels_[b]->GetMesh().ClearBcastFromLead();
   }
 }
 
@@ -351,7 +424,7 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
 }
 
 template <class M>
-bool DistrMesh<M>::Pending(const std::vector<size_t>& bb) {
+bool DistrMesh<M>::Pending(const std::vector<size_t>& bb) const {
   size_t pending = 0;
   for (auto b : bb) {
     if (kernels_[b]->GetMesh().Pending()) {
@@ -395,15 +468,15 @@ void DistrMesh<M>::Run() {
       DumpWrite(bb);
       ClearDump(bb);
       ClearComm(bb);
+      mshared_->ClearComm();
       RunKernels(bb);
     } else {
       auto bbi = TransferHalos(true); // inner blocks, async communication
-      // ApplyNanFaces(bbi);
       ClearComm(bbi);
+      mshared_->ClearComm();
       RunKernels(bbi);
 
       auto bbh = TransferHalos(false); // halo blocks, wait for communication
-      // ApplyNanFaces(bbh);
       ClearComm(bbh);
       RunKernels(bbh);
 
@@ -437,6 +510,7 @@ void DistrMesh<M>::Run() {
     ReduceToLead(bb);
     Scatter(bb);
     Bcast(bb);
+    BcastFromLead(bb);
 
     const std::string nameseq =
         kernels_.front()->GetMesh().GetSuspender().GetNameSequence();

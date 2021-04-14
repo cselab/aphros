@@ -15,7 +15,7 @@
 #include "util/visual.h"
 
 const int dim = 2;
-using M = MeshStructured<double, dim>;
+using M = MeshCartesian<double, dim>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
@@ -24,7 +24,7 @@ using Vect3 = generic::Vect<Scal, 3>;
 M GetMesh(MIdx size) {
   const Rect<Vect> domain(Vect(0), Vect(1));
   const size_t halos = 1;
-  return InitUniformMesh<M>(domain, MIdx(0), size, halos, true, true, size, 0);
+  return {MIdx(0), size, domain, halos, true, true, size, 0};
 }
 
 void TestRender() {
