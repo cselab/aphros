@@ -479,7 +479,9 @@ void Test<M>::TestShared() {
     }
     fout << "before Comm\n";
     print(t.fc);
-    ms.Comm(&t.fc);
+    if (var.String["backend"] == "native") {
+      ms.Comm(&t.fc);
+    }
   }
   if (sem() && m.IsLead()) {
     fout << "after Comm\n";

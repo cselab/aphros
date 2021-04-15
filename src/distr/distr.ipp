@@ -154,6 +154,18 @@ void DistrMesh<M>::Reduce(const std::vector<size_t>& bb) {
 }
 
 template <class M>
+void DistrMesh<M>::ReduceShared(const std::vector<size_t>& bb) {
+  const size_t nreqs = mshared_->GetReduce().size();
+  if (!nreqs) {
+    return;
+  }
+  for (size_t i = 0; i < nreqs; ++i) {
+    ReduceSingleRequest({mshared_->GetReduce()[i].get()});
+  }
+  mshared_->ClearReduce();
+}
+
+template <class M>
 void DistrMesh<M>::ReduceToLead(const std::vector<size_t>& bb) {
   using ReductionScal = typename UReduce<Scal>::OpS;
   using ReductionScalInt = typename UReduce<Scal>::OpSI;
@@ -508,6 +520,7 @@ void DistrMesh<M>::Run() {
 
     Reduce(bb);
     ReduceToLead(bb);
+    ReduceShared(bb);
     Scatter(bb);
     Bcast(bb);
     BcastFromLead(bb);

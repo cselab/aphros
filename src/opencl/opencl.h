@@ -32,9 +32,14 @@ void SharedToLocal(
     const FieldCell<T>& fc_shared, FieldCell<T>& fc_local, const M& m) {
   using MIdx = typename M::MIdx;
   auto& ms = m.GetShared();
-  fc_local.Reinit(m);
+  fassert_equal(fc_shared.size(), ms.GetIndexCells().size());
+  if (fc_local.size()) {
+    fassert_equal(fc_local.size(), m.GetIndexCells().size());
+  } else {
+    fc_local.Reinit(m);
+  }
   auto& ics = ms.GetIndexCells();
-  for (auto c : m.CellsM()) {
+  for (auto c : m.AllCellsM()) {
     const auto cs = ics.GetIdx(MIdx(c));
     fc_local[c] = fc_shared[cs];
   }
@@ -45,7 +50,12 @@ void LocalToShared(
     const FieldCell<T>& fc_local, FieldCell<T>& fc_shared, const M& m) {
   using MIdx = typename M::MIdx;
   auto& ms = m.GetShared();
-  fc_shared.Reinit(ms);
+  fassert_equal(fc_local.size(), m.GetIndexCells().size());
+  if (fc_shared.size()) {
+    fassert_equal(fc_shared.size(), ms.GetIndexCells().size());
+  } else {
+    fc_shared.Reinit(ms);
+  }
   auto& ics = ms.GetIndexCells();
   for (auto c : m.CellsM()) {
     const auto cs = ics.GetIdx(MIdx(c));

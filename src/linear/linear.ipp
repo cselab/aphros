@@ -29,8 +29,8 @@ struct SolverConjugate<M>::Imp {
       FieldCell<Scal> fcu;
       FieldCell<Scal> fcr;
       FieldCell<Scal> fcp;
-      FieldCell<Scal> fc_opp; // linear fc_system operator applied to p
-      Scal dot_p_opp;
+      FieldCell<Scal> fclp; // linear fc_system operator applied to p
+      Scal dot_p_lp;
       Scal dot_r;
       Scal dot_r_prev;
       Scal max_r;
@@ -58,7 +58,7 @@ struct SolverConjugate<M>::Imp {
     }
     if (sem("init")) {
       t.fcp = t.fcr;
-      t.fc_opp.Reinit(m);
+      t.fclp.Reinit(m);
     }
     sem.LoopBegin();
     if (sem("iter")) {
@@ -68,25 +68,25 @@ struct SolverConjugate<M>::Imp {
         for (auto q : m.Nci(c)) {
           p += t.fcp[m.GetCell(c, q)] * e[1 + q.raw()];
         }
-        t.fc_opp[c] = p;
+        t.fclp[c] = p;
       }
 
       t.dot_r_prev = 0;
-      t.dot_p_opp = 0;
+      t.dot_p_lp = 0;
       for (auto c : m.Cells()) {
         t.dot_r_prev += sqr(t.fcr[c]);
-        t.dot_p_opp += t.fcp[c] * t.fc_opp[c];
+        t.dot_p_lp += t.fcp[c] * t.fclp[c];
       }
       m.Reduce(&t.dot_r_prev, Reduction::sum);
-      m.Reduce(&t.dot_p_opp, Reduction::sum);
+      m.Reduce(&t.dot_p_lp, Reduction::sum);
     }
     if (sem("iter2")) {
-      const Scal alpha = t.dot_r_prev / (t.dot_p_opp + 1e-100);
+      const Scal alpha = t.dot_r_prev / (t.dot_p_lp + 1e-100);
       t.dot_r = 0;
       t.max_r = 0;
       for (auto c : m.Cells()) {
         t.fcu[c] += alpha * t.fcp[c];
-        t.fcr[c] -= alpha * t.fc_opp[c];
+        t.fcr[c] -= alpha * t.fclp[c];
         t.dot_r += sqr(t.fcr[c]);
         t.max_r = std::max(t.max_r, std::abs(t.fcr[c]));
       }

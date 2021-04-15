@@ -411,6 +411,10 @@ auto Cubismnc<Par, M>::TransferHalos(bool inner) -> std::vector<size_t> {
   const std::vector<BlockInfo> infos = grid_.getBlocksInfo(); // all blocks
   fassert_equal(infos.size(), kernels_.size());
 
+  fassert_equal(
+      mshared_->GetComm().size(), 0,
+      ". Comm() on shared mesh is not implemented");
+
   std::vector<size_t> bb;
   if (inner) {
     n_fields_ = kernels_.front()->GetMesh().GetComm().size();

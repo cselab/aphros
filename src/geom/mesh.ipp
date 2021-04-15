@@ -213,15 +213,18 @@ void MeshCartesian<Scal, dim>::Comm(std::unique_ptr<CommRequest>&& r) {
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Comm(FieldCell<Scal>* f, CommStencil stencil) {
+  fassert_equal(f->size(), indexc_.size());
   Comm(std::make_unique<CommRequestScal>(f, stencil));
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Comm(
     FieldCell<Vect>* f, int d, CommStencil stencil) {
+  fassert_equal(f->size(), indexc_.size());
   Comm(std::make_unique<CommRequestVect>(f, d, stencil));
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Comm(FieldCell<Vect>* f, CommStencil stencil) {
+  fassert_equal(f->size(), indexc_.size());
   Comm(f, -1, stencil);
 }
 template <class Scal, size_t dim>

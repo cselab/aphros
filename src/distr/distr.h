@@ -87,6 +87,7 @@ class DistrMesh {
   // for all elements in `kernels_`
   virtual void Reduce(const std::vector<size_t>& bb);
   virtual void ReduceToLead(const std::vector<size_t>& bb);
+  virtual void ReduceShared(const std::vector<size_t>& bb);
   virtual void Scatter(const std::vector<size_t>& bb) = 0;
   virtual void Bcast(const std::vector<size_t>& bb) = 0;
   virtual void BcastFromLead(const std::vector<size_t>& bb);
