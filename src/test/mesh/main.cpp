@@ -240,7 +240,7 @@ void TestMesh() {
   }
 
   // Comm
-  FieldCell<Scal> fc;
+  FieldCell<Scal> fc(m);
   m.Comm(&fc);
   auto p = dynamic_cast<typename M::CommRequestScal*>(m.GetComm()[0].get());
   CMP(p->field, &fc);
