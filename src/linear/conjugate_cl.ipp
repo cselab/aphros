@@ -112,22 +112,16 @@ struct SolverConjugateCL<M>::Imp {
       ms.Reduce(&s.dot_r, Reduction::sum);
       ms.Reduce(&s.max_r, Reduction::max);
     }
-    if (sem("iter2") && m.IsLead()) {
-      for (auto c : ms.Cells()) {
-        s.fcp[c] = s.fcr[c] + (s.dot_r / (s.dot_r_prev + 1e-100)) * s.fcp[c];
-        s.fcp[c] += 1; // XXX
-      }
-      ms.Comm(&s.fcp, M::CommStencil::direct_one);
-    }
     if (sem("iter2_cl") && m.IsLead()) {
       auto& cl = s.cl;
-      auto info = OpenCL<M>::Device::GetDeviceInfo(cl.device.platform);
       s.d_fcp.EnqueueWrite(cl.queue, s.fcp.data());
+      s.d_fcr.EnqueueWrite(cl.queue, s.fcr.data());
       s.kernel.EnqueueWithArgs(
           cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
-          cl.lead_z, s.d_fcp, s.d_fcp);
+          cl.lead_z, s.d_fcp, s.d_fcr, s.dot_r, s.dot_r_prev, s.d_fcp);
       s.d_fcp.EnqueueRead(cl.queue, s.fcp.data());
       cl.queue.Finish();
+      ms.Comm(&s.fcp, M::CommStencil::direct_one);
     }
     if (sem("check")) {
       if (extra.residual_max) {
@@ -162,6 +156,7 @@ struct SolverConjugateCL<M>::Imp {
   struct Shared {
     Shared(const M& m, const Vars& var) : cl(m.GetShared(), var) {
       d_fcp.Create(cl.context, cl.size);
+      d_fcr.Create(cl.context, cl.size);
       program.CreateFromString(kProgram, cl.context, cl.device);
       kernel.Create(program, "iter2");
       CLCALL(clGetKernelWorkGroupInfo(
@@ -186,6 +181,7 @@ struct SolverConjugateCL<M>::Imp {
     Kernel kernel;
     size_t max_work_size;
     Buffer<Scal> d_fcp;
+    Buffer<Scal> d_fcr;
   };
 
   Owner* owner_;
