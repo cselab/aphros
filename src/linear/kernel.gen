@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -eu
+
+in="$1"
+out="$2"
+
+cat > "$out" << EOS
+R"EOF(
+$(cat "$in")
+)EOF"
+EOS
