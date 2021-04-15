@@ -84,6 +84,12 @@ auto OpenCL<M>::Device::GetDeviceInfo(cl_platform_id platform) -> DeviceInfo {
   CLCALL(clGetDeviceInfo(
       info.id, CL_DEVICE_EXTENSIONS, ext.size() - 1, ext.data(), NULL));
   info.extensions = std::string(ext.data());
+
+  CLCALL(clGetDeviceInfo(
+      info.id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(info.max_work_size),
+      &info.max_work_size, NULL));
+  info.extensions = std::string(ext.data());
+
   return info;
 }
 
@@ -210,7 +216,7 @@ template <class M>
 void OpenCL<M>::HaloComm::Create(
     cl_context context, const M& ms, const OpenCL<M>& cl) {
   const auto msize = cl.msize;
-  const auto lead_x = cl.lead_x;
+  const auto lead_y = cl.lead_y;
   const auto start = cl.start;
   fc_buf.Reinit(ms);
   d_buf.Create(context, msize.sum() * 2 * kHalos);
@@ -218,43 +224,43 @@ void OpenCL<M>::HaloComm::Create(
   if (kHalos == 1) {
     for (int iy : {0l, msize[1] - 1}) {
       for (int ix = 0; ix < msize[0]; ++ix) {
-        cells_inner.emplace_back(start + iy * lead_x + ix);
+        cells_inner.emplace_back(start + iy * lead_y + ix);
       }
     }
     for (int ix : {0l, msize[0] - 1}) {
       for (int iy = 0; iy < msize[1]; ++iy) {
-        cells_inner.emplace_back(start + iy * lead_x + ix);
+        cells_inner.emplace_back(start + iy * lead_y + ix);
       }
     }
     for (int iy : {-1l, msize[1]}) {
       for (int ix = 0; ix < msize[0]; ++ix) {
-        cells_halo.emplace_back(start + iy * lead_x + ix);
+        cells_halo.emplace_back(start + iy * lead_y + ix);
       }
     }
     for (int ix : {-1l, msize[0]}) {
       for (int iy = 0; iy < msize[1]; ++iy) {
-        cells_halo.emplace_back(start + iy * lead_x + ix);
+        cells_halo.emplace_back(start + iy * lead_y + ix);
       }
     }
   } else {
     for (int iy : {0l, 1l, msize[1] - 2, msize[1] - 1}) {
       for (int ix = 0; ix < msize[0]; ++ix) {
-        cells_inner.emplace_back(start + iy * lead_x + ix);
+        cells_inner.emplace_back(start + iy * lead_y + ix);
       }
     }
     for (int ix : {0l, 1l, msize[0] - 2, msize[0] - 1}) {
       for (int iy = 0; iy < msize[1]; ++iy) {
-        cells_inner.emplace_back(start + iy * lead_x + ix);
+        cells_inner.emplace_back(start + iy * lead_y + ix);
       }
     }
     for (int iy : {-2l, -1l, msize[1], msize[1] + 1}) {
       for (int ix = 0; ix < msize[0]; ++ix) {
-        cells_halo.emplace_back(start + iy * lead_x + ix);
+        cells_halo.emplace_back(start + iy * lead_y + ix);
       }
     }
     for (int ix : {-2l, -1l, msize[0], msize[0] + 1}) {
       for (int iy = 0; iy < msize[1]; ++iy) {
-        cells_halo.emplace_back(start + iy * lead_x + ix);
+        cells_halo.emplace_back(start + iy * lead_y + ix);
       }
     }
   }
@@ -266,7 +272,7 @@ void OpenCL<M>::HaloComm::Comm(
     OpenCL<M>& cl) {
   if (sem() && m.IsLead()) {
     cl.kernel_inner_to_buf.EnqueueWithArgs(
-        queue, cl.global_size, cl.local_size, cl.start, cl.lead_x, d_field,
+        queue, cl.global_size, cl.local_size, cl.start, cl.lead_y, d_field,
         d_buf);
     d_buf.EnqueueRead(queue);
     queue.Finish();
@@ -284,7 +290,7 @@ void OpenCL<M>::HaloComm::Comm(
     d_buf.EnqueueWrite(queue);
 
     cl.kernel_buf_to_halo.EnqueueWithArgs(
-        queue, cl.global_size, cl.local_size, cl.start, cl.lead_x, d_buf,
+        queue, cl.global_size, cl.local_size, cl.start, cl.lead_y, d_buf,
         d_field);
     queue.Finish();
   }
@@ -296,20 +302,24 @@ OpenCL<M>::OpenCL(const M& ms, const Vars& var) {
     return (n + d - MSize(1)) / d * d;
   };
 
+  const int pid = var.Int("opencl_platform", 0);
+  device.Create(pid);
+  auto dinfo = Device::GetDeviceInfo(device.platform);
+
   size = ms.GetIndexCells().size();
   msize = ms.GetInBlockCells().GetSize();
-  local_size = MSize(8);
+  local_size = MSize(1);
+  while ((local_size * 2).prod() <= dinfo.max_work_size) {
+    local_size *= 2;
+  }
   global_size = ceil(MSize(msize), local_size);
   ngroups = global_size.prod() / local_size.prod();
   start = (*ms.Cells().begin()).raw();
-  lead_x = ms.GetIndexCells().GetSize()[0];
-
-  const int pid = var.Int["opencl_platform"];
-  device.Create(pid);
+  lead_y = ms.GetIndexCells().GetSize()[0];
+  lead_z = ms.GetIndexCells().GetSize()[0] * ms.GetIndexCells().GetSize()[1];
 
   if (var.Int("opencl_verbose", 0) && ms.IsRoot()) {
     auto pinfo = Device::GetPlatformInfos()[pid];
-    auto dinfo = Device::GetDeviceInfo(pinfo.id);
     std::cout << util::Format(
         "Platform name: {}\n"
         "Platform vendor: {}\n"
@@ -337,7 +347,7 @@ OpenCL<M>::OpenCL(const M& ms, const Vars& var) {
 template <class M>
 auto OpenCL<M>::Sum(cl_mem d_u) -> Scal {
   kernel_sum.EnqueueWithArgs(
-      queue, global_size, local_size, start, lead_x, d_u, d_buf_reduce);
+      queue, global_size, local_size, start, lead_y, d_u, d_buf_reduce);
   d_buf_reduce.EnqueueRead(queue);
   queue.Finish();
   Scal res = 0;
@@ -350,7 +360,7 @@ auto OpenCL<M>::Sum(cl_mem d_u) -> Scal {
 template <class M>
 auto OpenCL<M>::Dot(cl_mem d_u, cl_mem d_v) -> Scal {
   kernel_dot.EnqueueWithArgs(
-      queue, global_size, local_size, start, lead_x, d_u, d_v, d_buf_reduce);
+      queue, global_size, local_size, start, lead_y, d_u, d_v, d_buf_reduce);
   d_buf_reduce.EnqueueRead(queue);
   queue.Finish();
   Scal res = 0;

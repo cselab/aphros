@@ -86,6 +86,7 @@ struct OpenCL {
       cl_device_id id;
       std::string name;
       std::string extensions;
+      size_t max_work_size;
     };
     static cl_device_id GetDevice(cl_platform_id platform);
     static DeviceInfo GetDeviceInfo(cl_platform_id platform);
@@ -310,6 +311,7 @@ struct OpenCL {
   MSize local_size;
   size_t ngroups;
   int start; // offset of first element of inner cells
-  int lead_x; // leading dimension in x
+  int lead_y; // leading dimension in y, factor before y in linear index
+  int lead_z; // leading dimension in z, factor before z in linear index
   MIdx msize; // number of inner cells
 };

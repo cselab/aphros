@@ -8,12 +8,17 @@
 #include <iostream>
 #include <vector>
 
-#include "linear.h"
 #include "conjugate_cl.h"
+#include "linear.h"
 #include "opencl/opencl.h"
+#include "parse/vars.h"
 #include "util/format.h"
 
 DECLARE_FORCE_LINK_TARGET(linear_conjugate_cl);
+
+const char* kProgram =
+#include "conjugate_cl.inc"
+    ;
 
 namespace linear {
 
@@ -21,42 +26,28 @@ template <class M>
 struct SolverConjugateCL<M>::Imp {
   using Owner = SolverConjugateCL<M>;
 
-  Imp(Owner* owner, const Extra& extra_, const M&)
-      : owner_(owner), conf(owner_->conf), extra(extra_) {}
+  Imp(Owner* owner, const Extra& extra_, const M& m, const Vars& var)
+      : owner_(owner), conf(owner_->conf), extra(extra_) {
+    if (m.IsLead()) {
+      shared_obj_ = std::make_unique<Shared>(m, var);
+      shared = shared_obj_.get();
+    }
+  }
   Info Solve(
       const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
       FieldCell<Scal>& fc_sol, M& m) {
     auto sem = m.GetSem(__func__);
-    struct Shared {
-      FieldCell<Scal> fcu;
-      FieldCell<Scal> fcr;
-      FieldCell<Scal> fcp;
-      FieldCell<Scal> fclp; // linear fc_system operator applied to p
-      Scal dot_p_lp;
-      Scal dot_r;
-      Scal dot_r_prev;
-      Scal max_r;
-      FieldCell<Expr> fc_system;
-    };
     struct {
-      std::unique_ptr<Shared> shared_obj;
-      Shared* shared;
-      Scal dummy0;
-      Scal dummy1;
       int iter = 0;
       Info info;
     } * ctx(sem);
     auto& t = *ctx;
     auto& ms = m.GetShared();
-    if (sem("shared")) {
-      if (m.IsLead()) {
-        t.shared_obj = std::make_unique<Shared>();
-        t.shared = t.shared_obj.get();
-      }
-      m.BcastFromLead(&t.shared);
+    if (sem()) {
+      m.BcastFromLead(&shared);
     }
+    auto& s = *shared;
     if (sem("init0")) {
-      auto& s = *t.shared;
       if (fc_init) {
         LocalToShared(*fc_init, s.fcu, m);
         if (m.IsLead()) {
@@ -70,7 +61,6 @@ struct SolverConjugateCL<M>::Imp {
       LocalToShared(fc_system, s.fc_system, m);
     }
     if (sem("init1") && m.IsLead()) {
-      auto& s = *t.shared;
       s.fcr.Reinit(ms);
       for (auto c : ms.Cells()) {
         const auto& e = s.fc_system[c];
@@ -83,13 +73,11 @@ struct SolverConjugateCL<M>::Imp {
       ms.Comm(&s.fcr, M::CommStencil::direct_one);
     }
     if (sem("init2") && m.IsLead()) {
-      auto& s = *t.shared;
       s.fcp = s.fcr;
       s.fclp.Reinit(ms, 0);
     }
     sem.LoopBegin();
     if (sem("iter0") && m.IsLead()) {
-      auto& s = *t.shared;
       for (auto c : ms.Cells()) {
         const auto& e = s.fc_system[c];
         Scal p = s.fcp[c] * e[0];
@@ -110,7 +98,6 @@ struct SolverConjugateCL<M>::Imp {
       ms.Reduce(&s.dot_p_lp, Reduction::sum);
     }
     if (sem("iter1") && m.IsLead()) {
-      auto& s = *t.shared;
       const Scal alpha = s.dot_r_prev / (s.dot_p_lp + 1e-100);
       s.dot_r = 0;
       s.max_r = 0;
@@ -126,14 +113,23 @@ struct SolverConjugateCL<M>::Imp {
       ms.Reduce(&s.max_r, Reduction::max);
     }
     if (sem("iter2") && m.IsLead()) {
-      auto& s = *t.shared;
       for (auto c : ms.Cells()) {
         s.fcp[c] = s.fcr[c] + (s.dot_r / (s.dot_r_prev + 1e-100)) * s.fcp[c];
+        s.fcp[c] += 1; // XXX
       }
       ms.Comm(&s.fcp, M::CommStencil::direct_one);
     }
+    if (sem("iter2_cl") && m.IsLead()) {
+      auto& cl = s.cl;
+      auto info = OpenCL<M>::Device::GetDeviceInfo(cl.device.platform);
+      s.d_fcp.EnqueueWrite(cl.queue, s.fcp.data());
+      s.kernel.EnqueueWithArgs(
+          cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
+          cl.lead_z, s.d_fcp, s.d_fcp);
+      s.d_fcp.EnqueueRead(cl.queue, s.fcp.data());
+      cl.queue.Finish();
+    }
     if (sem("check")) {
-      auto& s = *t.shared;
       if (extra.residual_max) {
         t.info.residual = s.max_r / ms.GetCellSize().prod();
       } else { // L2-norm
@@ -148,7 +144,6 @@ struct SolverConjugateCL<M>::Imp {
     }
     sem.LoopEnd();
     if (sem("result")) {
-      auto& s = *t.shared;
       SharedToLocal(s.fcu, fc_sol, m);
       m.Comm(&fc_sol, M::CommStencil::direct_one);
       if (m.flags.linreport && m.IsRoot()) {
@@ -164,15 +159,47 @@ struct SolverConjugateCL<M>::Imp {
   }
 
  private:
+  struct Shared {
+    Shared(const M& m, const Vars& var) : cl(m.GetShared(), var) {
+      d_fcp.Create(cl.context, cl.size);
+      program.CreateFromString(kProgram, cl.context, cl.device);
+      kernel.Create(program, "iter2");
+      CLCALL(clGetKernelWorkGroupInfo(
+          kernel, cl.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t),
+          &max_work_size, NULL));
+    }
+    FieldCell<Scal> fcu;
+    FieldCell<Scal> fcr;
+    FieldCell<Scal> fcp;
+    FieldCell<Scal> fclp; // linear fc_system operator applied to p
+    Scal dot_p_lp;
+    Scal dot_r;
+    Scal dot_r_prev;
+    Scal max_r;
+    FieldCell<Expr> fc_system;
+    OpenCL<M> cl;
+    using Kernel = typename OpenCL<M>::Kernel;
+    using Program = typename OpenCL<M>::Program;
+    template <class T>
+    using Buffer = typename OpenCL<M>::Buffer<T>;
+    Program program;
+    Kernel kernel;
+    size_t max_work_size;
+    Buffer<Scal> d_fcp;
+  };
+
   Owner* owner_;
   Conf& conf;
   Extra extra;
+
+  std::unique_ptr<Shared> shared_obj_;
+  Shared* shared;
 };
 
 template <class M>
 SolverConjugateCL<M>::SolverConjugateCL(
-    const Conf& conf_, const Extra& extra, const M& m)
-    : Base(conf_), imp(new Imp(this, extra, m)) {}
+    const Conf& conf_, const Extra& extra, const M& m, const Vars& var)
+    : Base(conf_), imp(new Imp(this, extra, m, var)) {}
 
 template <class M>
 SolverConjugateCL<M>::~SolverConjugateCL() = default;
@@ -196,7 +223,7 @@ class ModuleLinearConjugateCL : public ModuleLinear<M> {
     typename linear::SolverConjugateCL<M>::Extra extra;
     extra.residual_max = var.Int[addprefix("maxnorm")];
     return std::make_unique<linear::SolverConjugateCL<M>>(
-        this->GetConf(var, prefix), extra, m);
+        this->GetConf(var, prefix), extra, m, var);
   }
 };
 

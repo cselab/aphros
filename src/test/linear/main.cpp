@@ -216,6 +216,7 @@ int main(int argc, const char** argv) {
   conf += "\nset string linsolver_symm " + args.String["solver"];
   conf += "\nset double hypre_symm_tol " + args.Double.GetStr("tol");
   conf += "\nset int hypre_symm_maxiter " + args.Int.GetStr("maxiter");
+  conf += "\nset string backend native";
   conf += "\nset int hypre_print 0";
   conf += "\nset string hypre_symm_solver pcg";
   conf += "\nset int linsolver_symm_maxnorm 0";

@@ -20,7 +20,8 @@ class SolverConjugateCL : public Solver<M> {
   struct Extra {
     bool residual_max = false; // if true, use max-norm of residual, else L2
   };
-  SolverConjugateCL(const Conf& conf, const Extra& extra, const M&);
+  SolverConjugateCL(
+      const Conf& conf, const Extra& extra, const M&, const Vars&);
   ~SolverConjugateCL();
   Info Solve(
       const FieldCell<Expr>& fc_system, const FieldCell<Scal>* fc_init,
