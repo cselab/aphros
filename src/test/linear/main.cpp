@@ -46,9 +46,12 @@ void Run(M& m, Vars& var) {
     t.fc_sol_exact.Reinit(m);
     for (auto c : m.CellsM()) {
       Vect x = c.center;
+      /*
       t.fc_sol_exact[c] = std::sin(2 * M_PI * std::pow(x[0], 1)) *
                           std::sin(2 * M_PI * std::pow(x[1], 2)) *
                           std::sin(2 * M_PI * std::pow(x[2], 3));
+                          */
+      t.fc_sol_exact[c] = x[1];
     }
     m.Comm(&t.fc_sol_exact);
   }

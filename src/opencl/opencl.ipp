@@ -150,6 +150,7 @@ void OpenCL<M>::Program::CreateFromString(
     std::string source, cl_context context, cl_device_id device) {
   std::stringstream flags;
   flags << " -DScal=" << (sizeof(Scal) == 4 ? "float" : "double");
+  flags << " -DDIM=" << M::dim;
   flags << " -cl-std=CL2.0";
 
   int error;
@@ -216,54 +217,46 @@ template <class M>
 void OpenCL<M>::HaloComm::Create(
     cl_context context, const M& ms, const OpenCL<M>& cl) {
   const auto msize = cl.msize;
-  const auto lead_y = cl.lead_y;
+  const int lead_y = cl.lead_y;
+  const int lead_z = cl.lead_z;
   const auto start = cl.start;
   fc_buf.Reinit(ms);
-  d_buf.Create(context, msize.sum() * 2 * kHalos);
+  const int nfaces = (MIdx(msize.prod()) / msize).sum() * 2;
+  d_buf.Create(context, nfaces * kHalos);
+  const int nx = msize[0];
+  const int ny = msize[1];
+  const int nz = M::dim > 2 ? msize[2] : 1;
 
-  if (kHalos == 1) {
-    for (int iy : {0l, msize[1] - 1}) {
-      for (int ix = 0; ix < msize[0]; ++ix) {
-        cells_inner.emplace_back(start + iy * lead_y + ix);
-      }
-    }
-    for (int ix : {0l, msize[0] - 1}) {
-      for (int iy = 0; iy < msize[1]; ++iy) {
-        cells_inner.emplace_back(start + iy * lead_y + ix);
-      }
-    }
-    for (int iy : {-1l, msize[1]}) {
-      for (int ix = 0; ix < msize[0]; ++ix) {
-        cells_halo.emplace_back(start + iy * lead_y + ix);
-      }
-    }
-    for (int ix : {-1l, msize[0]}) {
-      for (int iy = 0; iy < msize[1]; ++iy) {
-        cells_halo.emplace_back(start + iy * lead_y + ix);
-      }
-    }
-  } else {
-    for (int iy : {0l, 1l, msize[1] - 2, msize[1] - 1}) {
-      for (int ix = 0; ix < msize[0]; ++ix) {
-        cells_inner.emplace_back(start + iy * lead_y + ix);
-      }
-    }
-    for (int ix : {0l, 1l, msize[0] - 2, msize[0] - 1}) {
-      for (int iy = 0; iy < msize[1]; ++iy) {
-        cells_inner.emplace_back(start + iy * lead_y + ix);
-      }
-    }
-    for (int iy : {-2l, -1l, msize[1], msize[1] + 1}) {
-      for (int ix = 0; ix < msize[0]; ++ix) {
-        cells_halo.emplace_back(start + iy * lead_y + ix);
-      }
-    }
-    for (int ix : {-2l, -1l, msize[0], msize[0] + 1}) {
-      for (int iy = 0; iy < msize[1]; ++iy) {
-        cells_halo.emplace_back(start + iy * lead_y + ix);
-      }
-    }
+#define X(IX, IY, IZ, NX, NY, NZ)                                         \
+  for (int IX : {0, NX - 1}) {                                            \
+    for (int IZ = 0; IZ < NZ; ++IZ) {                                     \
+      for (int IY = 0; IY < NY; ++IY) {                                   \
+        cells_inner.emplace_back(start + iz * lead_z + iy * lead_y + ix); \
+      }                                                                   \
+    }                                                                     \
   }
+  X(ix, iy, iz, nx, ny, nz);
+  X(iy, iz, ix, ny, nz, nx);
+  if (M::dim > 2) {
+    X(iz, ix, iy, nz, nx, ny);
+  }
+#undef X
+
+#define X(IX, IY, IZ, NX, NY, NZ)                                        \
+  for (int IX : {-1, NX}) {                                              \
+    for (int IZ = 0; IZ < NZ; ++IZ) {                                    \
+      for (int IY = 0; IY < NY; ++IY) {                                  \
+        cells_halo.emplace_back(start + iz * lead_z + iy * lead_y + ix); \
+      }                                                                  \
+    }                                                                    \
+  }
+
+  X(ix, iy, iz, nx, ny, nz);
+  X(iy, iz, ix, ny, nz, nx);
+  if (M::dim > 2) {
+    X(iz, ix, iy, nz, nx, ny);
+  }
+#undef X
 }
 
 template <class M>
@@ -272,8 +265,8 @@ void OpenCL<M>::HaloComm::Comm(
     OpenCL<M>& cl) {
   if (sem() && m.IsLead()) {
     cl.kernel_inner_to_buf.EnqueueWithArgs(
-        queue, cl.global_size, cl.local_size, cl.start, cl.lead_y, d_field,
-        d_buf);
+        queue, cl.global_size, cl.local_size, cl.start, cl.lead_y, cl.lead_z,
+        d_field, d_buf);
     d_buf.EnqueueRead(queue);
     queue.Finish();
 
@@ -290,8 +283,8 @@ void OpenCL<M>::HaloComm::Comm(
     d_buf.EnqueueWrite(queue);
 
     cl.kernel_buf_to_halo.EnqueueWithArgs(
-        queue, cl.global_size, cl.local_size, cl.start, cl.lead_y, d_buf,
-        d_field);
+        queue, cl.global_size, cl.local_size, cl.start, cl.lead_y, cl.lead_z,
+        d_buf, d_field);
     queue.Finish();
   }
 }
@@ -334,10 +327,8 @@ OpenCL<M>::OpenCL(const M& ms, const Vars& var) {
 
   d_buf_reduce.Create(context, ngroups, CL_MEM_WRITE_ONLY);
 
-  kernel_inner_to_buf.Create(
-      program, kHalos == 1 ? "inner_to_buf1" : "inner_to_buf");
-  kernel_buf_to_halo.Create(
-      program, kHalos == 1 ? "buf_to_halo1" : "buf_to_halo");
+  kernel_inner_to_buf.Create(program, "inner_to_buf_dim3");
+  kernel_buf_to_halo.Create(program, "buf_to_halo_dim3");
   kernel_dot.Create(program, "field_dot");
   kernel_sum.Create(program, "field_sum");
 
@@ -347,7 +338,7 @@ OpenCL<M>::OpenCL(const M& ms, const Vars& var) {
 template <class M>
 auto OpenCL<M>::Sum(cl_mem d_u) -> Scal {
   kernel_sum.EnqueueWithArgs(
-      queue, global_size, local_size, start, lead_y, d_u, d_buf_reduce);
+      queue, global_size, local_size, start, lead_y, lead_z, d_u, d_buf_reduce);
   d_buf_reduce.EnqueueRead(queue);
   queue.Finish();
   Scal res = 0;
@@ -360,7 +351,8 @@ auto OpenCL<M>::Sum(cl_mem d_u) -> Scal {
 template <class M>
 auto OpenCL<M>::Dot(cl_mem d_u, cl_mem d_v) -> Scal {
   kernel_dot.EnqueueWithArgs(
-      queue, global_size, local_size, start, lead_y, d_u, d_v, d_buf_reduce);
+      queue, global_size, local_size, start, lead_y, lead_z, d_u, d_v,
+      d_buf_reduce);
   d_buf_reduce.EnqueueRead(queue);
   queue.Finish();
   Scal res = 0;

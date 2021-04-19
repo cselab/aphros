@@ -119,9 +119,14 @@ struct SolverConjugateCL<M>::Imp {
       s.kernel.EnqueueWithArgs(
           cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
           cl.lead_z, s.d_fcp, s.d_fcr, s.dot_r, s.dot_r_prev, s.d_fcp);
+      cl.queue.Finish();
+      //ms.Comm(&s.fcp, M::CommStencil::direct_one);
+    }
+    s.cl.Comm(m, sem, s.d_fcp);
+    if (sem("iter2_cl2") && m.IsLead()) {
+      auto& cl = s.cl;
       s.d_fcp.EnqueueRead(cl.queue, s.fcp.data());
       cl.queue.Finish();
-      ms.Comm(&s.fcp, M::CommStencil::direct_one);
     }
     if (sem("check")) {
       if (extra.residual_max) {
