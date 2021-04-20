@@ -61,15 +61,16 @@ struct SolverConjugateCL<M>::Imp {
       LocalToShared(fc_system, s.fc_system, m);
     }
     if (sem("init1") && m.IsLead()) {
+      auto& cl = s.cl;
+      s.d_system.EnqueueWrite(cl.queue, s.fc_system.data()->data());
+      s.d_fcu.EnqueueWrite(cl.queue, s.fcu.data());
+
+      s.kernel_linear.EnqueueWithArgs(
+          cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
+          cl.lead_z, s.d_system, s.d_fcu, s.d_fcr, Scal(-1), Scal(-1));
+
       s.fcr.Reinit(ms);
-      for (auto c : ms.Cells()) {
-        const auto& e = s.fc_system[c];
-        Scal u = s.fcu[c] * e[0] + e.back();
-        for (auto q : ms.Nci(c)) {
-          u += s.fcu[ms.GetCell(c, q)] * e[1 + q.raw()];
-        }
-        s.fcr[c] = -u;
-      }
+      s.d_fcr.EnqueueRead(cl.queue, s.fcr.data());
       ms.Comm(&s.fcr, M::CommStencil::direct_one);
     }
     if (sem("init2") && m.IsLead()) {
@@ -77,19 +78,16 @@ struct SolverConjugateCL<M>::Imp {
       s.fclp.Reinit(ms, 0);
     }
     sem.LoopBegin();
-    if (sem("iter0") && m.IsLead()) {
-      for (auto c : ms.Cells()) {
-        const auto& e = s.fc_system[c];
-        Scal p = s.fcp[c] * e[0];
-        for (auto q : ms.Nci(c)) {
-          p += s.fcp[ms.GetCell(c, q)] * e[1 + q.raw()];
-        }
-        s.fclp[c] = p;
-      }
-
+    if (sem("iter0_cl") && m.IsLead()) {
       auto& cl = s.cl;
       s.d_fcp.EnqueueWrite(cl.queue, s.fcp.data());
-      s.d_fclp.EnqueueWrite(cl.queue, s.fclp.data());
+      s.kernel_linear.EnqueueWithArgs(
+          cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
+          cl.lead_z, s.d_system, s.d_fcp, s.d_fclp, Scal(1), Scal(0));
+      s.d_fclp.EnqueueRead(cl.queue, s.fclp.data());
+    }
+    if (sem("iter0") && m.IsLead()) {
+      auto& cl = s.cl;
       s.d_fcr.EnqueueWrite(cl.queue, s.fcr.data());
 
       s.dot_r_prev = cl.Dot(s.d_fcr, s.d_fcr);
@@ -117,7 +115,7 @@ struct SolverConjugateCL<M>::Imp {
       auto& cl = s.cl;
       s.d_fcp.EnqueueWrite(cl.queue, s.fcp.data());
 
-      s.kernel.EnqueueWithArgs(
+      s.kernel_iter2.EnqueueWithArgs(
           cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
           cl.lead_z, s.d_fcp, s.d_fcr, s.dot_r, s.dot_r_prev, s.d_fcp);
       cl.queue.Finish();
@@ -160,14 +158,14 @@ struct SolverConjugateCL<M>::Imp {
  private:
   struct Shared {
     Shared(const M& m, const Vars& var) : cl(m.GetShared(), var) {
+      d_fcu.Create(cl.context, cl.size);
       d_fcp.Create(cl.context, cl.size);
       d_fclp.Create(cl.context, cl.size);
       d_fcr.Create(cl.context, cl.size);
+      d_system.Create(cl.context, cl.size * (M::dim * 2 + 2));
       program.CreateFromString(kProgram, cl.context, cl.device);
-      kernel.Create(program, "iter2");
-      CLCALL(clGetKernelWorkGroupInfo(
-          kernel, cl.device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t),
-          &max_work_size, NULL));
+      kernel_iter2.Create(program, "iter2");
+      kernel_linear.Create(program, "linear");
     }
     FieldCell<Scal> fcu;
     FieldCell<Scal> fcr;
@@ -184,11 +182,13 @@ struct SolverConjugateCL<M>::Imp {
     template <class T>
     using Buffer = typename OpenCL<M>::Buffer<T>;
     Program program;
-    Kernel kernel;
-    size_t max_work_size;
+    Kernel kernel_iter2;
+    Kernel kernel_linear;
+    Buffer<Scal> d_fcu;
     Buffer<Scal> d_fcp;
     Buffer<Scal> d_fclp;
     Buffer<Scal> d_fcr;
+    Buffer<Scal> d_system;
   };
 
   Owner* owner_;
