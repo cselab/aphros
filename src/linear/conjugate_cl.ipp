@@ -170,7 +170,7 @@ struct SolverConjugateCL<M>::Imp {
     using Kernel = typename OpenCL<M>::Kernel;
     using Program = typename OpenCL<M>::Program;
     template <class T>
-    using Buffer = typename OpenCL<M>::Buffer<T>;
+    using Buffer = typename OpenCL<M>::template Buffer<T>;
     Program program;
     Kernel kernel_iter2;
     Kernel kernel_linear;
