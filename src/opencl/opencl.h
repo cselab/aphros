@@ -289,6 +289,7 @@ struct OpenCL {
   };
 
   OpenCL(const M& ms, const Vars& var);
+  Scal Max(cl_mem d_u);
   Scal Sum(cl_mem d_u);
   Scal Dot(cl_mem d_u, cl_mem d_v);
   void Comm(M& m, typename M::Sem& sem, Buffer<Scal>& buf) {
@@ -303,6 +304,7 @@ struct OpenCL {
   Kernel kernel_buf_to_halo;
   Kernel kernel_dot;
   Kernel kernel_sum;
+  Kernel kernel_max;
   MirroredBuffer<Scal> d_buf_reduce;
   HaloComm halocomm;
 

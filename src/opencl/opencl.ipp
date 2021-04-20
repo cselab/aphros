@@ -329,10 +329,24 @@ OpenCL<M>::OpenCL(const M& ms, const Vars& var) {
 
   kernel_inner_to_buf.Create(program, "inner_to_buf_dim3");
   kernel_buf_to_halo.Create(program, "buf_to_halo_dim3");
+  kernel_max.Create(program, "field_max");
   kernel_dot.Create(program, "field_dot");
   kernel_sum.Create(program, "field_sum");
 
   halocomm.Create(context, ms, *this);
+}
+
+template <class M>
+auto OpenCL<M>::Max(cl_mem d_u) -> Scal {
+  kernel_max.EnqueueWithArgs(
+      queue, global_size, local_size, start, lead_y, lead_z, d_u, d_buf_reduce);
+  d_buf_reduce.EnqueueRead(queue);
+  queue.Finish();
+  Scal res = -std::numeric_limits<Scal>::max();
+  for (size_t i = 0; i < ngroups; ++i) {
+    res = std::max(res, d_buf_reduce[i]);
+  }
+  return res;
 }
 
 template <class M>

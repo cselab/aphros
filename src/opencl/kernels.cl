@@ -60,27 +60,47 @@ __kernel void buf_to_halo_dim3(
 #undef X
 }
 
+__kernel void field_max(
+    int start, int lead_y, int lead_z, __global const Scal* u,
+    __global Scal* output) {
+  const int ngx = get_num_groups(0);
+  const int ngy = get_num_groups(1);
+  const int gx = get_group_id(0);
+  const int gy = get_group_id(1);
+  const int gz = get_group_id(2);
+  const int ix = get_global_id(0);
+  const int iy = get_global_id(1);
+  const int iz = get_global_id(2);
+  const int i = start + iz * lead_z + iy * lead_y + ix;
+  output[gz * ngy * ngx + gy * ngx + gx] = work_group_reduce_max(u[i]);
+}
+
 __kernel void field_sum(
     int start, int lead_y, int lead_z, __global const Scal* u,
     __global Scal* output) {
-  const unsigned int ngx = get_num_groups(0);
-  const unsigned int gx = get_group_id(0);
-  const unsigned int gy = get_group_id(1);
-  const unsigned int ix = get_global_id(0);
-  const unsigned int iy = get_global_id(1);
-  const unsigned int i = start + iy * lead_y + ix;
-  output[gy * ngx + gx] = work_group_reduce_add(u[i]);
+  const int ngx = get_num_groups(0);
+  const int ngy = get_num_groups(1);
+  const int gx = get_group_id(0);
+  const int gy = get_group_id(1);
+  const int gz = get_group_id(2);
+  const int ix = get_global_id(0);
+  const int iy = get_global_id(1);
+  const int iz = get_global_id(2);
+  const int i = start + iz * lead_z + iy * lead_y + ix;
+  output[gz * ngy * ngx + gy * ngx + gx] = work_group_reduce_add(u[i]);
 }
 
 __kernel void field_dot(
     int start, int lead_y, int lead_z, __global const Scal* u,
     __global const Scal* v, __global Scal* output) {
-  const unsigned int ngx = get_num_groups(0);
-  const unsigned int gx = get_group_id(0);
-  const unsigned int gy = get_group_id(1);
-  const unsigned int ix = get_global_id(0);
-  const unsigned int iy = get_global_id(1);
-  const unsigned int i = start + iy * lead_y + ix;
-
-  output[gy * ngx + gx] = work_group_reduce_add(u[i] * v[i]);
+  const int ngx = get_num_groups(0);
+  const int ngy = get_num_groups(1);
+  const int gx = get_group_id(0);
+  const int gy = get_group_id(1);
+  const int gz = get_group_id(2);
+  const int ix = get_global_id(0);
+  const int iy = get_global_id(1);
+  const int iz = get_global_id(2);
+  const int i = start + iz * lead_z + iy * lead_y + ix;
+  output[gz * ngy * ngx + gy * ngx + gx] = work_group_reduce_add(u[i] * v[i]);
 }

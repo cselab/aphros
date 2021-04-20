@@ -87,27 +87,28 @@ struct SolverConjugateCL<M>::Imp {
         s.fclp[c] = p;
       }
 
-      s.dot_r_prev = 0;
-      s.dot_p_lp = 0;
-      for (auto c : ms.Cells()) {
-        s.dot_r_prev += sqr(s.fcr[c]);
-        s.dot_p_lp += s.fcp[c] * s.fclp[c];
-      }
+      auto& cl = s.cl;
+      s.d_fcp.EnqueueWrite(cl.queue, s.fcp.data());
+      s.d_fclp.EnqueueWrite(cl.queue, s.fclp.data());
+      s.d_fcr.EnqueueWrite(cl.queue, s.fcr.data());
+
+      s.dot_r_prev = cl.Dot(s.d_fcr, s.d_fcr);
+      s.dot_p_lp = cl.Dot(s.d_fcp, s.d_fclp);
 
       ms.Reduce(&s.dot_r_prev, Reduction::sum);
       ms.Reduce(&s.dot_p_lp, Reduction::sum);
     }
     if (sem("iter1") && m.IsLead()) {
       const Scal alpha = s.dot_r_prev / (s.dot_p_lp + 1e-100);
-      s.dot_r = 0;
-      s.max_r = 0;
-
       for (auto c : ms.Cells()) {
         s.fcu[c] += alpha * s.fcp[c];
         s.fcr[c] -= alpha * s.fclp[c];
-        s.dot_r += sqr(s.fcr[c]);
-        s.max_r = std::max(s.max_r, std::abs(s.fcr[c]));
       }
+
+      auto& cl = s.cl;
+      s.d_fcr.EnqueueWrite(cl.queue, s.fcr.data());
+      s.dot_r = cl.Dot(s.d_fcr, s.d_fcr);
+      s.max_r = cl.Max(s.d_fcr);
 
       ms.Reduce(&s.dot_r, Reduction::sum);
       ms.Reduce(&s.max_r, Reduction::max);
@@ -115,12 +116,11 @@ struct SolverConjugateCL<M>::Imp {
     if (sem("iter2_cl") && m.IsLead()) {
       auto& cl = s.cl;
       s.d_fcp.EnqueueWrite(cl.queue, s.fcp.data());
-      s.d_fcr.EnqueueWrite(cl.queue, s.fcr.data());
+
       s.kernel.EnqueueWithArgs(
           cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
           cl.lead_z, s.d_fcp, s.d_fcr, s.dot_r, s.dot_r_prev, s.d_fcp);
       cl.queue.Finish();
-      //ms.Comm(&s.fcp, M::CommStencil::direct_one);
     }
     s.cl.Comm(m, sem, s.d_fcp);
     if (sem("iter2_cl2") && m.IsLead()) {
@@ -161,6 +161,7 @@ struct SolverConjugateCL<M>::Imp {
   struct Shared {
     Shared(const M& m, const Vars& var) : cl(m.GetShared(), var) {
       d_fcp.Create(cl.context, cl.size);
+      d_fclp.Create(cl.context, cl.size);
       d_fcr.Create(cl.context, cl.size);
       program.CreateFromString(kProgram, cl.context, cl.device);
       kernel.Create(program, "iter2");
@@ -186,6 +187,7 @@ struct SolverConjugateCL<M>::Imp {
     Kernel kernel;
     size_t max_work_size;
     Buffer<Scal> d_fcp;
+    Buffer<Scal> d_fclp;
     Buffer<Scal> d_fcr;
   };
 
