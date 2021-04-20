@@ -68,28 +68,21 @@ struct SolverConjugateCL<M>::Imp {
       s.kernel_linear.EnqueueWithArgs(
           cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
           cl.lead_z, s.d_system, s.d_fcu, s.d_fcr, Scal(-1), Scal(-1));
-
-      s.fcr.Reinit(ms);
-      s.d_fcr.EnqueueRead(cl.queue, s.fcr.data());
-      ms.Comm(&s.fcr, M::CommStencil::direct_one);
     }
+    s.cl.Comm(m, sem, s.d_fcr);
     if (sem("init2") && m.IsLead()) {
-      s.fcp = s.fcr;
-      s.fclp.Reinit(ms, 0);
+      auto& cl = s.cl;
+      s.d_fcp.EnqueueCopyFrom(cl.queue, s.d_fcr);
     }
     sem.LoopBegin();
     if (sem("iter0_cl") && m.IsLead()) {
       auto& cl = s.cl;
-      s.d_fcp.EnqueueWrite(cl.queue, s.fcp.data());
       s.kernel_linear.EnqueueWithArgs(
           cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
           cl.lead_z, s.d_system, s.d_fcp, s.d_fclp, Scal(1), Scal(0));
-      s.d_fclp.EnqueueRead(cl.queue, s.fclp.data());
     }
     if (sem("iter0") && m.IsLead()) {
       auto& cl = s.cl;
-      s.d_fcr.EnqueueWrite(cl.queue, s.fcr.data());
-
       s.dot_r_prev = cl.Dot(s.d_fcr, s.d_fcr);
       s.dot_p_lp = cl.Dot(s.d_fcp, s.d_fclp);
 
@@ -97,14 +90,15 @@ struct SolverConjugateCL<M>::Imp {
       ms.Reduce(&s.dot_p_lp, Reduction::sum);
     }
     if (sem("iter1") && m.IsLead()) {
-      const Scal alpha = s.dot_r_prev / (s.dot_p_lp + 1e-100);
-      for (auto c : ms.Cells()) {
-        s.fcu[c] += alpha * s.fcp[c];
-        s.fcr[c] -= alpha * s.fclp[c];
-      }
-
       auto& cl = s.cl;
-      s.d_fcr.EnqueueWrite(cl.queue, s.fcr.data());
+      const Scal alpha = s.dot_r_prev / (s.dot_p_lp + 1e-100);
+      s.kernel_accum.EnqueueWithArgs(
+          cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
+          cl.lead_z, alpha, s.d_fcp, s.d_fcu);
+      s.kernel_accum.EnqueueWithArgs(
+          cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
+          cl.lead_z, -alpha, s.d_fclp, s.d_fcr);
+
       s.dot_r = cl.Dot(s.d_fcr, s.d_fcr);
       s.max_r = cl.Max(s.d_fcr);
 
@@ -113,19 +107,12 @@ struct SolverConjugateCL<M>::Imp {
     }
     if (sem("iter2_cl") && m.IsLead()) {
       auto& cl = s.cl;
-      s.d_fcp.EnqueueWrite(cl.queue, s.fcp.data());
-
       s.kernel_iter2.EnqueueWithArgs(
           cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
           cl.lead_z, s.d_fcp, s.d_fcr, s.dot_r, s.dot_r_prev, s.d_fcp);
       cl.queue.Finish();
     }
     s.cl.Comm(m, sem, s.d_fcp);
-    if (sem("iter2_cl2") && m.IsLead()) {
-      auto& cl = s.cl;
-      s.d_fcp.EnqueueRead(cl.queue, s.fcp.data());
-      cl.queue.Finish();
-    }
     if (sem("check")) {
       if (extra.residual_max) {
         t.info.residual = s.max_r / ms.GetCellSize().prod();
@@ -140,6 +127,11 @@ struct SolverConjugateCL<M>::Imp {
       }
     }
     sem.LoopEnd();
+    if (sem("result") && m.IsLead()) {
+      auto& cl = s.cl;
+      s.d_fcu.EnqueueRead(cl.queue, s.fcu.data());
+      cl.queue.Finish();
+    }
     if (sem("result")) {
       SharedToLocal(s.fcu, fc_sol, m);
       m.Comm(&fc_sol, M::CommStencil::direct_one);
@@ -166,11 +158,9 @@ struct SolverConjugateCL<M>::Imp {
       program.CreateFromString(kProgram, cl.context, cl.device);
       kernel_iter2.Create(program, "iter2");
       kernel_linear.Create(program, "linear");
+      kernel_accum.Create(program, "accum");
     }
     FieldCell<Scal> fcu;
-    FieldCell<Scal> fcr;
-    FieldCell<Scal> fcp;
-    FieldCell<Scal> fclp; // linear fc_system operator applied to p
     Scal dot_p_lp;
     Scal dot_r;
     Scal dot_r_prev;
@@ -184,9 +174,10 @@ struct SolverConjugateCL<M>::Imp {
     Program program;
     Kernel kernel_iter2;
     Kernel kernel_linear;
+    Kernel kernel_accum;
     Buffer<Scal> d_fcu;
     Buffer<Scal> d_fcp;
-    Buffer<Scal> d_fclp;
+    Buffer<Scal> d_fclp; // linear fc_system operator applied to p
     Buffer<Scal> d_fcr;
     Buffer<Scal> d_system;
   };

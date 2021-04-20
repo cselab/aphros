@@ -29,3 +29,13 @@ __kernel void linear(
                     fc_system[k + 5] * fcu[izm] + fc_system[k + 6] * fcu[izp]) +
               k1 * fc_system[k + 7];
 }
+
+__kernel void accum(
+    int start, int lead_y, int lead_z, Scal alpha, __global const Scal* src,
+    __global Scal* dst) {
+  const int ix = get_global_id(0);
+  const int iy = get_global_id(1);
+  const int iz = get_global_id(2);
+  const int i = start + iz * lead_z + iy * lead_y + ix;
+  dst[i] += alpha * src[i];
+}

@@ -180,6 +180,11 @@ struct OpenCL {
     void EnqueueWrite(cl_command_queue queue, const std::vector<T>& buf) {
       EnqueueWrite(queue, buf.data());
     }
+    void EnqueueCopyFrom(cl_command_queue queue, const Buffer& src) {
+      fassert_equal(src.size, size);
+      CLCALL(clEnqueueCopyBuffer(
+          queue, src, handle, 0, 0, sizeof(T) * size, 0, NULL, NULL));
+    }
     operator cl_mem() const {
       return handle;
     }
