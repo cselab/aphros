@@ -606,17 +606,32 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       }
     }
   } else if (vi == "list") {
-    const std::string fpath = var.String["vellist_path"];
-    if (m.IsRoot()) {
-      std::cerr << __func__ << ": Open list of velocity primitives '" << fpath
-                << std::endl;
+    std::stringstream sstr(var.String["vellist_path"]);
+    std::string fname;
+    sstr >> fname;
+    std::vector<typename UPrimList<Vect>::VelocityPrimitive> pp;
+
+    if (fname == "inline") {
+      if (m.IsRoot()) {
+        std::cerr << __func__
+                  << ": Reading inline list of primitives from vellist_path\n";
+      }
+      pp = UPrimList<Vect>::GetVelocityPrimitives(sstr, var.Int["dim"]);
+    } else {
+      if (m.IsRoot()) {
+        std::cerr << __func__ << ": Open list of velocity primitives '" << fname
+                  << "'\n";
+      }
+      std::ifstream fin(fname);
+      fassert(fin.good(), "Can't open list of primitives '" + fname + "'");
+      pp = UPrimList<Vect>::GetVelocityPrimitives(fin, var.Int["dim"]);
     }
-    std::ifstream buf(fpath);
-    fassert(buf.good(), "Can't open list of primitives");
-    auto pp = UPrimList<Vect>::GetVelocityPrimitives(buf, var.Int["dim"]);
+
     if (m.IsRoot()) {
       std::cerr << "Read " << pp.size() << " primitives" << std::endl;
     }
+
+
     fcv.Reinit(m, Vect(0));
     for (auto c : m.AllCells()) {
       Vect x = m.GetCenter(c);

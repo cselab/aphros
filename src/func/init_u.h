@@ -510,9 +510,7 @@ void InitVf(
             std::cerr << "InitVf: Open list of primitives '" << fname << "'"
                       << std::endl;
           }
-          if (!fin.good()) {
-            fassert(false, "Can't open list of primitives '" + fname + "'");
-          }
+          fassert(fin.good(), "Can't open list of primitives '" + fname + "'");
           ctx->buf = std::vector<char>(
               std::istreambuf_iterator<char>(fin),
               std::istreambuf_iterator<char>());
