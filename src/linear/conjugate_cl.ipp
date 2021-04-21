@@ -112,7 +112,9 @@ struct SolverConjugateCL<M>::Imp {
           cl.lead_z, s.d_fcp, s.d_fcr, s.dot_r, s.dot_r_prev, s.d_fcp);
       cl.queue.Finish();
     }
-    s.cl.Comm(m, sem, s.d_fcp);
+    if (sem.Nested()) {
+      s.cl.Comm(m, s.d_fcp);
+    }
     if (sem("check")) {
       if (extra.residual_max) {
         t.info.residual = s.max_r / ms.GetCellSize().prod();

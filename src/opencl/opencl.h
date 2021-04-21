@@ -283,9 +283,7 @@ struct OpenCL {
     HaloComm& operator=(HaloComm&) = delete;
     HaloComm& operator=(HaloComm&&) = delete;
     void Create(cl_context context, const M& ms, const OpenCL& cl);
-    void Comm(
-        M& m, typename M::Sem& sem, Buffer<Scal>& d_field, Queue& queue,
-        OpenCL& cl);
+    void Comm(M& m, Buffer<Scal>& d_field, Queue& queue, OpenCL& cl);
 
     FieldCell<Scal> fc_buf;
     MirroredBuffer<Scal> d_buf;
@@ -297,8 +295,8 @@ struct OpenCL {
   Scal Max(cl_mem d_u);
   Scal Sum(cl_mem d_u);
   Scal Dot(cl_mem d_u, cl_mem d_v);
-  void Comm(M& m, typename M::Sem& sem, Buffer<Scal>& buf) {
-    halocomm.Comm(m, sem, buf, queue, *this);
+  void Comm(M& m, Buffer<Scal>& buf) {
+    halocomm.Comm(m, buf, queue, *this);
   }
 
   Context context;

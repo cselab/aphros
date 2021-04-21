@@ -261,8 +261,8 @@ void OpenCL<M>::HaloComm::Create(
 
 template <class M>
 void OpenCL<M>::HaloComm::Comm(
-    M& m, typename M::Sem& sem, Buffer<Scal>& d_field, Queue& queue,
-    OpenCL<M>& cl) {
+    M& m, Buffer<Scal>& d_field, Queue& queue, OpenCL<M>& cl) {
+  auto sem = m.GetSem("halocomm");
   if (sem() && m.IsLead()) {
     cl.kernel_inner_to_buf.EnqueueWithArgs(
         queue, cl.global_size, cl.local_size, cl.start, cl.lead_y, cl.lead_z,
