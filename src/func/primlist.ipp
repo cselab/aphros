@@ -687,6 +687,27 @@ struct Imp {
         };
         pp.push_back(p);
       }
+
+      d = GetMap("gauss2d_shield", s, "cx cy radius omega", 4);
+      if (!d.empty()) {
+        VelocityPrimitive p;
+        const Vect xc(Vect2(d["cx"], d["cy"]));
+        const Scal radius = d["radius"];
+        const Scal omega = d["omega"];
+
+        p.velocity = [xc, radius, omega](const Vect& x) -> Vect {
+          Vect dx = x - xc;
+          dx[2] = 0;
+          const Scal r = dx.sqrnorm() / sqr(radius);
+          const Scal omz = omega * (1 - r) * std::exp(-r);
+          if (dim == 2) {
+            return Vect(Vect2(omz, 0));
+          } else {
+            return Vect(Vect3(0, 0, omz));
+          }
+        };
+        pp.push_back(p);
+      }
     }
 
     return pp;
