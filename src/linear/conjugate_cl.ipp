@@ -69,7 +69,9 @@ struct SolverConjugateCL<M>::Imp {
           cl.queue, cl.global_size, cl.local_size, cl.start, cl.lead_y,
           cl.lead_z, s.d_system, s.d_fcu, s.d_fcr, Scal(-1), Scal(-1));
     }
-    s.cl.Comm(m, sem, s.d_fcr);
+    if (sem.Nested()) {
+      s.cl.Comm(m, s.d_fcr);
+    }
     if (sem("init2") && m.IsLead()) {
       auto& cl = s.cl;
       s.d_fcp.EnqueueCopyFrom(cl.queue, s.d_fcr);

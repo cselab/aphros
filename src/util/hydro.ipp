@@ -27,38 +27,6 @@
 
 #include "hydro.h"
 
-template <class MEB>
-FieldCell<typename MEB::Vect> GetVort(
-    const FieldCell<typename MEB::Vect>& fcvel,
-    const MapEmbed<BCond<typename MEB::Vect>>& me_vel, MEB& eb) {
-  using M = typename MEB::M;
-  auto& m = eb.GetMesh();
-  using Scal = typename MEB::Scal;
-  using Vect = typename MEB::Vect;
-  using UEB = UEmbed<M>;
-
-  FieldCell<Vect> r(m, Vect(0));
-  if (M::dim < 3) {
-    return r;
-  }
-
-  std::array<FieldCell<Vect>, M::dim> grad;
-  for (size_t d = 0; d < M::dim; ++d) {
-    grad[d].Reinit(m, Vect(0));
-    const auto mebc = GetScalarCond(me_vel, d, m);
-    const FieldCell<Scal> fcu = GetComponent(fcvel, d);
-    const FieldFace<Scal> ffg = UEB::Gradient(fcu, mebc, m);
-    grad[d] = UEB::AverageGradient(ffg, m);
-  }
-
-  for (auto c : m.Cells()) {
-    r[c][0] = grad[2][c][1] - grad[1][c][2];
-    r[c][1] = grad[0][c][2] - grad[2][c][0];
-    r[c][2] = grad[1][c][0] - grad[0][c][1];
-  }
-  return r;
-}
-
 template <class M>
 void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
   using Scal = typename M::Scal;
@@ -631,7 +599,6 @@ void InitVel(FieldCell<typename M::Vect>& fcv, const Vars& var, const M& m) {
       std::cerr << "Read " << pp.size() << " primitives" << std::endl;
     }
 
-
     fcv.Reinit(m, Vect(0));
     for (auto c : m.AllCells()) {
       Vect x = m.GetCenter(c);
@@ -919,12 +886,59 @@ std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
 }
 
 // Computes velocity fcvel from vorticity fcvort
+// Scalar vorticity is stored in fcvort[c][0].
+// Component fcvort[c][1] is ignored.
 template <class M>
 void InitVort(
     const FieldCell<typename M::Vect>& fcvort,
     FieldCell<typename M::Vect>& fcvel,
     const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid,
-    std::shared_ptr<linear::Solver<M>> linsolver, M& m) {
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m,
+    generic::Vect<typename M::Scal, 2>*) {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  auto sem = m.GetSem("initvort");
+  using UEB = UEmbed<M>;
+  struct {
+    MapEmbed<BCond<Vect>> mebc; // velocity conditions
+    MapEmbed<BCond<Scal>> mebc_pot; // potential conditions
+    FieldCell<Scal> fcvort_scal; // one component of vorticity
+    FieldCell<Scal> fcpot; // velocity potential
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem("initpois")) {
+    t.fcpot.Reinit(m);
+    t.mebc = GetVelCond<M>(mebc_fluid);
+    t.mebc_pot = GetBCondZeroGrad<Scal>(t.mebc);
+  }
+  if (sem("init")) {
+    t.fcvort_scal = GetComponent(fcvort, 0);
+    for (auto c : m.Cells()) {
+      t.fcvort_scal[c] *= -1;
+    }
+  }
+  if (sem.Nested("solve")) {
+    SolvePoisson(t.fcpot, t.fcvort_scal, t.mebc_pot, linsolver, m);
+  }
+  if (sem("vel")) {
+    auto ffg = UEB::Gradient(t.fcpot, t.mebc_pot, m);
+    auto fcg = UEB::AverageGradient(ffg, m);
+    for (auto c : m.Cells()) {
+      fcvel[c][0] = fcg[c][1];
+      fcvel[c][1] = -fcg[c][0];
+    }
+    m.Comm(&fcvel);
+  }
+}
+
+// Computes velocity fcvel from vorticity fcvort
+template <class M>
+void InitVort(
+    const FieldCell<typename M::Vect>& fcvort,
+    FieldCell<typename M::Vect>& fcvel,
+    const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m,
+    generic::Vect<typename M::Scal, 3>*) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   auto sem = m.GetSem("initvort");
@@ -957,9 +971,26 @@ void InitVort(
     }
   }
   if (sem("vel")) {
-    fcvel = GetVort(t.fcpot, t.mebc, m);
+    fcvel = UEmbed<M>::GetVort(t.fcpot, t.mebc, m);
     m.Comm(&fcvel);
   }
+}
+
+template <class M>
+void InitVort(
+    const FieldCell<typename M::Vect>&, FieldCell<typename M::Vect>&,
+    const MapEmbed<BCondFluid<typename M::Vect>>&,
+    std::shared_ptr<linear::Solver<M>>, M&,
+    generic::Vect<typename M::Scal, 4>*) {}
+
+// Computes velocity fcvel from vorticity fcvort
+template <class M>
+void InitVort(
+    const FieldCell<typename M::Vect>& fcvort,
+    FieldCell<typename M::Vect>& fcvel,
+    const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m) {
+  InitVort(fcvort, fcvel, mebc_fluid, linsolver, m, (typename M::Vect*)nullptr);
 }
 
 template <class EB>

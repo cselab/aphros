@@ -1598,3 +1598,112 @@ void Smoothen(
     }
   }
 }
+
+template <class M>
+template <class MEB>
+auto UEmbed<M>::GetVortScal(
+    const FieldCell<Vect>& fcvel, const MapEmbed<BCond<Vect>>& me_vel,
+    const MEB& eb) -> FieldCell<Scal> {
+  auto& m = eb.GetMesh();
+
+  std::array<FieldCell<Vect>, dim> grad;
+  for (size_t d = 0; d < dim; ++d) {
+    grad[d].Reinit(m, Vect(0));
+    const auto mebc = GetScalarCond(me_vel, d, m);
+    const FieldCell<Scal> fcu = GetComponent(fcvel, d);
+    const FieldFace<Scal> ffg = Gradient(fcu, mebc, m);
+    grad[d] = AverageGradient(ffg, m);
+  }
+
+  FieldCell<Scal> res(m, 0);
+  for (auto c : m.Cells()) {
+    res[c] = grad[1][c][0] - grad[0][c][1];
+  }
+  return res;
+}
+
+template <class M>
+template <class MEB>
+auto UEmbed<M>::GetVort(
+    const FieldCell<Vect>& fcvel, const MapEmbed<BCond<Vect>>& me_vel,
+    const MEB& eb) -> FieldCell<Vect> {
+  auto& m = eb.GetMesh();
+
+  FieldCell<Vect> r(m, Vect(0));
+  if (M::dim < 3) {
+    return r;
+  }
+
+  std::array<FieldCell<Vect>, M::dim> grad;
+  for (size_t d = 0; d < M::dim; ++d) {
+    grad[d].Reinit(m, Vect(0));
+    const auto mebc = GetScalarCond(me_vel, d, m);
+    const FieldCell<Scal> fcu = GetComponent(fcvel, d);
+    const FieldFace<Scal> ffg = Gradient(fcu, mebc, m);
+    grad[d] = AverageGradient(ffg, m);
+  }
+
+  for (auto c : m.Cells()) {
+    r[c][0] = grad[2][c][1] - grad[1][c][2];
+    r[c][1] = grad[0][c][2] - grad[2][c][0];
+    r[c][2] = grad[1][c][0] - grad[0][c][1];
+  }
+  return r;
+}
+
+// Converts vector conditions to scalar.
+// mfv: vector velocity conditions
+// d: direction, 0..2
+template <class M>
+MapEmbed<BCond<typename M::Scal>> GetScalarCond(
+    const MapEmbed<BCond<typename M::Vect>>& mev, size_t d, const M& m) {
+  using Scal = typename M::Scal;
+  MapEmbed<BCond<Scal>> mes;
+
+  for (auto& p : mev.GetMapFace()) {
+    const IdxFace f = p.first;
+    const auto& bcv = p.second;
+    auto& bcs = mes[f];
+    bcs.type = bcv.type;
+    bcs.nci = bcv.nci;
+    switch (bcv.type) {
+      case BCondType::dirichlet:
+      case BCondType::neumann:
+        bcs.val = bcv.val[d];
+        break;
+      case BCondType::mixed:
+      case BCondType::reflect:
+        if (size_t(m.GetDir(f)) == d) {
+          bcs.type = BCondType::dirichlet;
+        } else {
+          bcs.type = BCondType::neumann;
+        }
+        bcs.val = bcv.val[d];
+        break;
+      case BCondType::extrap:
+        // nop
+        break;
+    }
+  }
+  for (auto& p : mev.GetMapCell()) {
+    const IdxCell c = p.first;
+    const auto& bcv = p.second;
+    auto& bcs = mes[c];
+    bcs.type = bcv.type;
+    bcs.nci = bcv.nci;
+    switch (bcv.type) {
+      case BCondType::dirichlet:
+      case BCondType::neumann:
+        bcs.val = bcv.val[d];
+        break;
+      case BCondType::mixed:
+      case BCondType::reflect:
+        bcs.type = BCondType::neumann;
+        // TODO revise to have zero normal component
+      case BCondType::extrap:
+        // nop
+        break;
+    }
+  }
+  return mes;
+}

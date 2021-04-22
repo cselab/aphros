@@ -19,7 +19,7 @@ object_link_libraries(${T} vars linear)
 
 set(T "utilfluid")
 add_object(${T} fluid.cpp)
-object_link_libraries(${T})
+object_link_libraries(${T} approx_eb)
 
 set(T "visual")
 add_object(${T} visual.cpp)
@@ -88,4 +88,4 @@ add_object(${T} fixed_allocator.cpp)
 
 set(T hydro_post)
 add_object(${T} hydro_post.cpp)
-object_link_libraries(${T} PUBLIC dump visual PRIVATE use_dims use_mpi)
+object_link_libraries(${T} PUBLIC dump visual utilhydro PRIVATE use_dims use_mpi)

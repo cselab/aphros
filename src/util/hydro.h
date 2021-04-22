@@ -13,16 +13,6 @@
 #include "solver/fluid.h"
 #include "solver/multi.h"
 
-// Computes vorticity of vector field.
-// fcv: vector field [s]
-// mf: boundary conditions for fcv
-// Returns:
-// fco: vorticity [i]
-template <class M>
-FieldCell<typename M::Vect> GetVort(
-    const FieldCell<typename M::Vect>& fcv,
-    const MapEmbed<BCond<typename M::Vect>>& mebc, M& m);
-
 // Initializes velocity from parameters.
 // fcv: vector field [s]
 // mf: boundary conditions for fcv

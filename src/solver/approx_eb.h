@@ -322,6 +322,20 @@ struct UEmbed {
     });
     return ff;
   }
+
+// Computes vorticity of vector field.
+// fcv: vector field [s]
+// mf: boundary conditions for fcv
+// Returns:
+// fco: vorticity [i]
+  template <class MEB>
+  static FieldCell<Vect> GetVort(
+      const FieldCell<Vect>& fcv, const MapEmbed<BCond<Vect>>& mebc,
+      const MEB&);
+  template <class MEB>
+  static FieldCell<Scal> GetVortScal(
+      const FieldCell<Vect>& fcv, const MapEmbed<BCond<Vect>>& mebc,
+      const MEB&);
 };
 
 template <class T, class B>
@@ -344,3 +358,10 @@ MapEmbed<BCond<T>> GetBCondZeroGrad(const MapEmbed<B>& mebc) {
 template <class T, class MEB>
 void Smoothen(
     FieldCell<T>& fc, const MapEmbed<BCond<T>>& mfc, MEB& eb, size_t iters);
+
+// Converts vector conditions to scalar.
+// mfv: vector velocity conditions
+// d: direction, 0..2
+template <class M>
+MapEmbed<BCond<typename M::Scal>> GetScalarCond(
+    const MapEmbed<BCond<typename M::Vect>>& mev, size_t d, const M& m);

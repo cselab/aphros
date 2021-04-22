@@ -13,30 +13,6 @@
 
 template <class M>
 struct HydroPost<M>::Imp {
-  template <class MEB>
-  static FieldCell<Scal> GetVortScal(
-      const FieldCell<Vect>& fcvel, const MapEmbed<BCond<Vect>>& me_vel,
-      MEB& eb) {
-    constexpr auto dim = M::dim;
-    auto& m = eb.GetMesh();
-    using UEB = UEmbed<M>;
-
-    std::array<FieldCell<Vect>, dim> grad;
-    for (size_t d = 0; d < dim; ++d) {
-      grad[d].Reinit(m, Vect(0));
-      const auto mebc = GetScalarCond(me_vel, d, m);
-      const FieldCell<Scal> fcu = GetComponent(fcvel, d);
-      const FieldFace<Scal> ffg = UEB::Gradient(fcu, mebc, m);
-      grad[d] = UEB::AverageGradient(ffg, m);
-    }
-
-    FieldCell<Scal> res(m, 0);
-    for (auto c : m.Cells()) {
-      res[c] = grad[1][c][0] - grad[0][c][1];
-    }
-    return res;
-  }
-
   static FieldCell<Scal> GetField(
       const Hydro<M>* hydro, std::string name, const M& m) {
     if (name == "p" || name == "pressure") {
@@ -44,11 +20,11 @@ struct HydroPost<M>::Imp {
     }
     if (name == "omz" || name == "vorticity") {
       if (hydro->eb_) {
-        return GetVortScal(
+        return UEmbed<M>::GetVortScal(
             hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(),
             *hydro->eb_);
       }
-      return GetVortScal(
+      return UEmbed<M>::GetVortScal(
           hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(), m);
     }
     if (name == "ebvf" || name == "embed fraction") {
@@ -181,13 +157,13 @@ struct HydroPost<M>::Imp {
           if (hydro->eb_) {
             SetComponent(
                 fcom, 0,
-                GetVortScal(
+                UEmbed<M>::GetVortScal(
                     hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(),
                     *hydro->eb_));
           } else {
             SetComponent(
                 fcom, 0,
-                GetVortScal(
+                UEmbed<M>::GetVortScal(
                     hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(),
                     m));
           }

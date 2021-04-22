@@ -127,9 +127,9 @@ template <class M>
 void Hydro<M>::CalcVort() {
   auto& fcv = fs_->GetVelocity();
   if (eb_) {
-    fcom_ = GetVort(fcv, fs_->GetVelocityCond(), *eb_);
+    fcom_ = UEmbed<M>::GetVort(fcv, fs_->GetVelocityCond(), *eb_);
   } else {
-    fcom_ = GetVort(fcv, fs_->GetVelocityCond(), m);
+    fcom_ = UEmbed<M>::GetVort(fcv, fs_->GetVelocityCond(), m);
   }
   fcomm_.Reinit(m);
   for (auto c : m.Cells()) {

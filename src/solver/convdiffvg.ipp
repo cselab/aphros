@@ -8,6 +8,7 @@
 #include <stdexcept>
 
 #include "convdiffvg.h"
+#include "solver/approx_eb.h"
 #include "util/convdiff.h"
 #include "util/metrics.h"
 

@@ -638,7 +638,6 @@ struct Imp {
       std::getline(buf, s);
       std::map<std::string, Scal> d;
 
-      // ring
       d = GetMap("ring", s, "cx cy cz nx ny nz r th magn", 9);
       if (!d.empty()) {
         VelocityPrimitive p;
@@ -666,7 +665,7 @@ struct Imp {
 
         pp.push_back(p);
       }
-      // ring
+
       d = GetMap("gauss2d", s, "cx cy sig magn", 4);
       if (!d.empty()) {
         VelocityPrimitive p;
@@ -680,7 +679,11 @@ struct Imp {
           const Scal sig2 = sqr(sig);
           const Scal omz =
               magn / (2 * M_PI * sig2) * std::exp(-dx.sqrnorm() / sig2);
-          return Vect(Vect3(0., 0., omz));
+          if (dim == 2) {
+            return Vect(Vect2(omz, 0));
+          } else {
+            return Vect(Vect3(0, 0, omz));
+          }
         };
         pp.push_back(p);
       }

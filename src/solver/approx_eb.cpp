@@ -54,13 +54,29 @@
       const FieldCell<typename M::Vect>& fcu,                               \
       const MapEmbed<BCond<typename M::Vect>>& mebc, const M& m);           \
                                                                             \
+  template FieldCell<typename M::Vect> UEmbed<M>::GetVort(                  \
+      const FieldCell<typename M::Vect>& fcv,                               \
+      const MapEmbed<BCond<typename M::Vect>>& mebc, const M& m);           \
+  template FieldCell<typename M::Vect> UEmbed<M>::GetVort(                  \
+      const FieldCell<typename M::Vect>& fcv,                               \
+      const MapEmbed<BCond<typename M::Vect>>& mebc, const Embed<M>& eb);   \
+  template FieldCell<typename M::Scal> UEmbed<M>::GetVortScal(              \
+      const FieldCell<typename M::Vect>& fcv,                               \
+      const MapEmbed<BCond<typename M::Vect>>& mebc, const M& m);           \
+  template FieldCell<typename M::Scal> UEmbed<M>::GetVortScal(              \
+      const FieldCell<typename M::Vect>& fcv,                               \
+      const MapEmbed<BCond<typename M::Vect>>& mebc, const Embed<M>& eb);   \
+                                                                            \
   template void Smoothen(                                                   \
       FieldCell<typename M::Scal>& fc,                                      \
       const MapEmbed<BCond<typename M::Scal>>& mfc, Embed<M>& eb,           \
       size_t iters);                                                        \
   template void Smoothen(                                                   \
       FieldCell<typename M::Scal>& fc,                                      \
-      const MapEmbed<BCond<typename M::Scal>>& mfc, M& eb, size_t iters);
+      const MapEmbed<BCond<typename M::Scal>>& mfc, M& eb, size_t iters);   \
+                                                                            \
+  template MapEmbed<BCond<typename M::Scal>> GetScalarCond(                 \
+      const MapEmbed<BCond<typename M::Vect>>& mev, size_t d, const M& m);
 
 #define COMMA ,
 #define X(dim) XX(MeshCartesian<double COMMA dim>)
