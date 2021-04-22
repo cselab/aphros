@@ -88,4 +88,4 @@ add_object(${T} fixed_allocator.cpp)
 
 set(T hydro_post)
 add_object(${T} hydro_post.cpp)
-object_link_libraries(${T} PUBLIC dump visual utilhydro PRIVATE use_dims use_mpi)
+object_link_libraries(${T} PUBLIC dump visual PRIVATE use_dims use_mpi)
