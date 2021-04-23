@@ -166,8 +166,12 @@ struct CommManager<dim_>::Imp {
       fassert_equal(count % sizeof(MIdx), 0);
       const Rank rank = status.MPI_SOURCE;
       fassert(
-          res[rank].empty(),
-          util::Format("Got more than one message from rank {}", rank));
+          !res.count(rank),
+          util::Format(
+              "Rank {} got more than one message from rank {}. "
+              "Expected new message of size {}, buffer already contains {} "
+              "cells",
+              myrank, rank, count / sizeof(MIdx), res[rank].size()));
       // indices of cells required by remote rank
       std::vector<MIdx> midx(count / sizeof(MIdx));
       MPI_Recv(
@@ -180,6 +184,7 @@ struct CommManager<dim_>::Imp {
       }
     }
     MPI_Waitall(reqs.size(), reqs.data(), MPI_STATUSES_IGNORE);
+    MPI_Barrier(mpi.GetComm());
     return res;
   }
 };
