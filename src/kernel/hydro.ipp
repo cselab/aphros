@@ -419,6 +419,7 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
           view.r.push_back(radius[i] * 0.5);
           view.rho.push_back(density);
           view.termvel.push_back(termvel[i]);
+          view.removed.push_back(0);
         }
       }
     }
@@ -449,12 +450,13 @@ void Hydro<M>::InitParticles() {
     std::vector<Scal> p_r;
     std::vector<Scal> p_rho;
     std::vector<Scal> p_termvel;
-    ParticlesView init{p_x, p_v, p_r, p_rho, p_termvel};
-    SpawnParticles(init);
+    std::vector<Scal> p_removed;
+    ParticlesView view{p_x, p_v, p_r, p_rho, p_termvel, p_removed};
+    SpawnParticles(view);
     if (eb_) {
-      particles_.reset(new Particles<EB>(m, *eb_, init, fs_->GetTime(), conf));
+      particles_.reset(new Particles<EB>(m, *eb_, view, fs_->GetTime(), conf));
     } else {
-      particles_.reset(new Particles<M>(m, m, init, fs_->GetTime(), conf));
+      particles_.reset(new Particles<M>(m, m, view, fs_->GetTime(), conf));
     }
   }
 }
@@ -2193,7 +2195,8 @@ void Hydro<M>::StepParticles() {
     std::vector<Scal> p_r;
     std::vector<Scal> p_rho;
     std::vector<Scal> p_termvel;
-    ParticlesView view{p_x, p_v, p_r, p_rho, p_termvel};
+    std::vector<Scal> p_removed;
+    ParticlesView view{p_x, p_v, p_r, p_rho, p_termvel, p_removed};
     SpawnParticles(view);
     particles_->Append(view);
   }

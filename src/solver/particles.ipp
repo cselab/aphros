@@ -6,12 +6,14 @@
 #include <array>
 #include <exception>
 #include <fstream>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <type_traits>
 
 #include "approx.h"
 #include "approx_eb.h"
+#include "util/format.h"
 #include "util/vof.h"
 
 #include "particles.h"
@@ -27,6 +29,7 @@ struct Particles<EB_>::Imp {
     std::vector<Scal> r;
     std::vector<Scal> rho;
     std::vector<Scal> termvel;
+    std::vector<Scal> removed;
   };
 
   Imp(Owner* owner, M& m_, const EB& eb_, const ParticlesView& init, Scal time,
@@ -36,7 +39,78 @@ struct Particles<EB_>::Imp {
       , eb(eb_)
       , conf(conf_)
       , time_(time)
-      , state_({init.x, init.v, init.r, init.rho, init.termvel}) {}
+      , state_({init.x, init.v, init.r, init.rho, init.termvel, init.removed}) {
+  }
+  static ParticlesView GetView(State& s) {
+    return {s.x, s.v, s.r, s.rho, s.termvel, s.removed};
+  }
+  static void CheckSize(const State& s) {
+    const size_t n = s.x.size();
+    fassert_equal(s.v.size(), n);
+    fassert_equal(s.r.size(), n);
+    fassert_equal(s.rho.size(), n);
+    fassert_equal(s.termvel.size(), n);
+    fassert_equal(s.removed.size(), n);
+  }
+  static void CheckSize(const ParticlesView& s) {
+    const size_t n = s.x.size();
+    fassert_equal(s.v.size(), n);
+    fassert_equal(s.r.size(), n);
+    fassert_equal(s.rho.size(), n);
+    fassert_equal(s.termvel.size(), n);
+    fassert_equal(s.removed.size(), n);
+  }
+  template <class F>
+  static void ForEachAttribute(const ParticlesView& view, F func) {
+    func(view.x);
+    func(view.v);
+    func(view.r);
+    func(view.rho);
+    func(view.termvel);
+    func(view.removed);
+  }
+  static void SwapParticles(const ParticlesView& view, size_t i, size_t j) {
+    ForEachAttribute(view, [&](auto& v) { //
+      std::swap(v[i], v[j]);
+    });
+  }
+  static void ResizeParticles(const ParticlesView& view, size_t size) {
+    ForEachAttribute(view, [&](auto& v) { //
+      v.resize(size);
+    });
+  }
+  // Clears particles marked as removed.
+  static void ClearRemoved(const ParticlesView& view) {
+    const size_t n = view.x.size();
+    if (!n) {
+      return;
+    }
+    size_t i = 0;
+    for (size_t j = n - 1; j >= i;) { // j: index of last non-removed particle
+      if (view.removed[i]) {
+        while (j > i && view.removed[j]) {
+          --j;
+        }
+        if (i == j) {
+          break;
+        }
+        SwapParticles(view, i, j);
+      }
+      ++i;
+    }
+    { // check
+      size_t j = 0;
+      while (j < n && !view.removed[j]) {
+        ++j;
+      }
+      fassert_equal(j, i);
+      while (j < n && view.removed[j]) {
+        ++j;
+      }
+      fassert_equal(j, n);
+    }
+    ResizeParticles(view, i);
+  }
   void Step(Scal dt, const FieldEmbed<Scal>& fev) {
     auto sem = m.GetSem("step");
     auto& s = state_;
@@ -72,9 +146,13 @@ struct Particles<EB_>::Imp {
         if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || eb.IsCut(c) ||
             eb.IsExcluded(c)) {
           s.v[i] = Vect(0);
+          s.removed[i] = 1;
         } else {
           s.v[i] = (fc_vel[c] + s.v[i] * (tau / dt) + conf.gravity * tau) /
                    (1 + tau / dt);
+        }
+        if (s.x[i][1] > 0.8) {
+          s.removed[i] = 1;
         }
         const Vect x_old = s.x[i];
         s.x[i] += s.v[i] * dt;
@@ -93,29 +171,26 @@ struct Particles<EB_>::Imp {
           s.x[i] = x_old;
         }
       }
+      ClearRemoved(GetView(s));
     }
     if (sem.Nested()) {
-      Comm(s.x, {&s.r, &s.rho, &s.termvel}, {&s.v}, m, nrecv_);
+      Comm(s.x, {&s.r, &s.rho, &s.termvel, &s.removed}, {&s.v}, m, nrecv_);
     }
     if (sem("stat")) {
       time_ += dt;
     }
   }
-  static void CheckSize(const State& s) {
-    fassert_equal(s.x.size(), s.x.size());
-    fassert_equal(s.r.size(), s.x.size());
-    fassert_equal(s.rho.size(), s.x.size());
-    fassert_equal(s.termvel.size(), s.x.size());
-  }
   static void Append(State& s, ParticlesView& app) {
     auto append = [](auto& v, const auto& a) {
       v.insert(v.end(), a.begin(), a.end());
     };
+    CheckSize(app);
     append(s.x, app.x);
     append(s.v, app.v);
     append(s.r, app.r);
     append(s.rho, app.rho);
     append(s.termvel, app.termvel);
+    append(s.removed, app.removed);
     CheckSize(s);
   }
   // Exchanges particle positions and data between blocks
@@ -276,39 +351,38 @@ struct Particles<EB_>::Imp {
       State s;
       std::vector<int> block;
     } * ctx(sem);
+    auto& t = *ctx;
     if (sem("gather")) {
       CheckSize(state_);
       auto& s = state_;
-      ctx->s.x = s.x;
-      ctx->s.v = s.v;
-      ctx->s.r = s.r;
-      ctx->s.rho = s.rho;
-      ctx->s.termvel = s.termvel;
+      t.s = s;
       for (size_t i = 0; i < s.x.size(); ++i) {
-        ctx->block.push_back(m.GetId());
+        t.block.push_back(m.GetId());
       }
-      m.Reduce(&ctx->s.x, Reduction::concat);
-      m.Reduce(&ctx->s.v, Reduction::concat);
-      m.Reduce(&ctx->s.r, Reduction::concat);
-      m.Reduce(&ctx->s.rho, Reduction::concat);
-      m.Reduce(&ctx->s.termvel, Reduction::concat);
-      m.Reduce(&ctx->block, Reduction::concat);
+      m.Reduce(&t.s.x, Reduction::concat);
+      m.Reduce(&t.s.v, Reduction::concat);
+      m.Reduce(&t.s.r, Reduction::concat);
+      m.Reduce(&t.s.rho, Reduction::concat);
+      m.Reduce(&t.s.termvel, Reduction::concat);
+      m.Reduce(&t.s.removed, Reduction::concat);
+      m.Reduce(&t.block, Reduction::concat);
     }
     if (sem("write") && m.IsRoot()) {
       std::ofstream o(path);
       o.precision(16);
       // header
-      o << "x,y,z,vx,vy,vz,r,rho,termvel,block";
+      o << "x,y,z,vx,vy,vz,r,rho,termvel,removed,block";
       o << std::endl;
       // content
-      auto& s = ctx->s;
+      auto& s = t.s;
       for (size_t i = 0; i < s.x.size(); ++i) {
         o << s.x[i][0] << ',' << s.x[i][1] << ',' << s.x[i][2];
         o << ',' << s.v[i][0] << ',' << s.v[i][1] << ',' << s.v[i][2];
         o << ',' << s.r[i];
         o << ',' << s.rho[i];
         o << ',' << s.termvel[i];
-        o << ',' << ctx->block[i];
+        o << ',' << s.removed[i];
+        o << ',' << t.block[i];
         o << "\n";
       }
     }
@@ -350,8 +424,7 @@ void Particles<EB_>::Step(Scal dt, const FieldEmbed<Scal>& fe_flux) {
 
 template <class EB_>
 auto Particles<EB_>::GetView() const -> ParticlesView {
-  return {imp->state_.x, imp->state_.v, imp->state_.r, imp->state_.rho,
-          imp->state_.termvel};
+  return imp->GetView(imp->state_);
 }
 
 template <class EB_>

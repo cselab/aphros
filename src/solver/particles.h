@@ -31,8 +31,10 @@ struct ParticlesView {
   std::vector<Vect>& x; // positions
   std::vector<Vect>& v; // velocity
   std::vector<Scal>& r; // radius
-  std::vector<Scal>& rho; // density
+  std::vector<Scal>& rho; // densite
   std::vector<Scal>& termvel; // terminal settling velocity
+  std::vector<Scal>& removed; // 1 if particle is removed, else 0
+                              // TODO: use type bool, needs support by Comm()
 };
 
 } // namespace generic
