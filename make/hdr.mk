@@ -66,12 +66,14 @@ kernel/hydro_snippets.h\
 kernel/kernelmesh.h\
 kernel/kernelmeshpar.h\
 linear/amgx.h\
+linear/conjugate_cl.h\
 linear/hypre.h\
 linear/hypresub.h\
 linear/linear_amgx.h\
 linear/linear.h\
 linear/linear_hypre.h\
 march/march.h\
+opencl/opencl.h\
 overlap/overlap.h\
 parse/argparse.h\
 parse/codeblocks.h\

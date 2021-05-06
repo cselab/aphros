@@ -10,6 +10,7 @@ inside\
 kernel\
 linear\
 march\
+opencl\
 overlap\
 parse\
 solver\

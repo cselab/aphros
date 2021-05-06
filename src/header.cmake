@@ -67,6 +67,7 @@ install(FILES kernel/hydro_snippets.h DESTINATION ${APHROS_PREFIX}/include/aphro
 install(FILES kernel/kernelmesh.h DESTINATION ${APHROS_PREFIX}/include/aphros/kernel)
 install(FILES kernel/kernelmeshpar.h DESTINATION ${APHROS_PREFIX}/include/aphros/kernel)
 install(FILES linear/amgx.h DESTINATION ${APHROS_PREFIX}/include/aphros/linear)
+install(FILES linear/conjugate_cl.h DESTINATION ${APHROS_PREFIX}/include/aphros/linear)
 install(FILES linear/hypre.h DESTINATION ${APHROS_PREFIX}/include/aphros/linear)
 install(FILES linear/hypresub.h DESTINATION ${APHROS_PREFIX}/include/aphros/linear)
 install(FILES linear/linear_amgx.h DESTINATION ${APHROS_PREFIX}/include/aphros/linear)

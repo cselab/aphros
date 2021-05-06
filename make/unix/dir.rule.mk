@@ -10,6 +10,7 @@ $(WRK)/inside\
 $(WRK)/kernel\
 $(WRK)/linear\
 $(WRK)/march\
+$(WRK)/opencl\
 $(WRK)/overlap\
 $(WRK)/parse\
 $(WRK)/solver\

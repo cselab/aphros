@@ -8,6 +8,8 @@ BEGIN {
     skip["linear/hypresub.cpp"]
     skip["linear/linear_amgx.cpp"]
     skip["linear/linear_hypre.cpp"]
+    skip["linear/conjugate_cl.cpp"]
+    skip["opencl/opencl.cpp"]
     skip["main.c"]
     skip["overlap/overlap.cpp"]
     skip["util/subcomm.cpp"]
