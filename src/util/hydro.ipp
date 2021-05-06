@@ -891,16 +891,16 @@ std::vector<typename M::Vect> GetPoly(IdxFace f, const M& m) {
 template <class M>
 void InitVort(
     const FieldCell<typename M::Vect>& fcvort,
-    FieldCell<typename M::Vect>& fcvel,
+    FieldCell<typename M::Vect>& fcvel, FieldCell<typename M::Vect>* fcpot,
     const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid,
     std::shared_ptr<linear::Solver<M>> linsolver, M& m,
-    generic::Vect<typename M::Scal, 2>*) {
+    generic::Vect<typename M::Scal, 2>*, bool zero_dirichlet) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   auto sem = m.GetSem("initvort");
   using UEB = UEmbed<M>;
   struct {
-    MapEmbed<BCond<Vect>> mebc; // velocity conditions
+    MapEmbed<BCond<Vect>> mebc_vel; // velocity conditions
     MapEmbed<BCond<Scal>> mebc_pot; // potential conditions
     FieldCell<Scal> fcvort_scal; // one component of vorticity
     FieldCell<Scal> fcpot; // velocity potential
@@ -908,8 +908,15 @@ void InitVort(
   auto& t = *ctx;
   if (sem("initpois")) {
     t.fcpot.Reinit(m);
-    t.mebc = GetVelCond<M>(mebc_fluid);
-    t.mebc_pot = GetBCondZeroGrad<Scal>(t.mebc);
+    t.mebc_vel = GetVelCond<M>(mebc_fluid);
+    t.mebc_pot = GetBCondZeroGrad<Scal>(t.mebc_vel);
+    if (zero_dirichlet) {
+      mebc_fluid.LoopPairs([&](auto p) {
+        const auto cf = p.first;
+        const auto bc = p.second;
+        t.mebc_pot[cf] = BCond<Scal>(BCondType::dirichlet, bc.nci, 0);
+      });
+    }
   }
   if (sem("init")) {
     t.fcvort_scal = GetComponent(fcvort, 0);
@@ -918,7 +925,7 @@ void InitVort(
     }
   }
   if (sem.Nested("solve")) {
-    SolvePoisson(t.fcpot, t.fcvort_scal, t.mebc_pot, linsolver, m);
+    SolvePoisson(t.fcpot, t.fcvort_scal, t.mebc_pot, linsolver, m, false);
   }
   if (sem("vel")) {
     auto ffg = UEB::Gradient(t.fcpot, t.mebc_pot, m);
@@ -926,6 +933,10 @@ void InitVort(
     for (auto c : m.Cells()) {
       fcvel[c][0] = fcg[c][1];
       fcvel[c][1] = -fcg[c][0];
+    }
+    if (fcpot) {
+      fcpot->Reinit(m);
+      SetComponent(*fcpot, 0, t.fcpot);
     }
     m.Comm(&fcvel);
   }
@@ -935,16 +946,16 @@ void InitVort(
 template <class M>
 void InitVort(
     const FieldCell<typename M::Vect>& fcvort,
-    FieldCell<typename M::Vect>& fcvel,
+    FieldCell<typename M::Vect>& fcvel, FieldCell<typename M::Vect>* fcpot,
     const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid,
     std::shared_ptr<linear::Solver<M>> linsolver, M& m,
-    generic::Vect<typename M::Scal, 3>*) {
+    generic::Vect<typename M::Scal, 3>*, bool zero_dirichlet) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   auto sem = m.GetSem("initvort");
   struct {
-    MapEmbed<BCond<Vect>> mebc; // velocity conditions
-    MapEmbed<BCond<Scal>> mebc_scal; // scalar conditions
+    MapEmbed<BCond<Vect>> mebc_vel; // velocity conditions
+    MapEmbed<BCond<Scal>> mebc_pot_scal; // conditions for potential
     FieldCell<Scal> fcvort_scal; // one component of vorticity
     FieldCell<Vect> fcpot; // velocity potential
     FieldCell<Scal> fcpot_scal; // one component of potential
@@ -952,8 +963,15 @@ void InitVort(
   auto& t = *ctx;
   if (sem("initpois")) {
     t.fcpot.Reinit(m);
-    t.mebc = GetVelCond<M>(mebc_fluid);
-    t.mebc_scal = GetBCondZeroGrad<Scal>(t.mebc);
+    t.mebc_vel = GetVelCond<M>(mebc_fluid);
+    t.mebc_pot_scal = GetBCondZeroGrad<Scal>(t.mebc_vel);
+    if (zero_dirichlet) {
+      mebc_fluid.LoopPairs([&](auto p) {
+        const auto cf = p.first;
+        const auto bc = p.second;
+        t.mebc_pot_scal[cf] = BCond<Scal>(BCondType::dirichlet, bc.nci, 0);
+      });
+    }
   }
   for (size_t d = 0; d < M::dim; ++d) {
     const std::string dname = std::to_string(d);
@@ -964,14 +982,18 @@ void InitVort(
       }
     }
     if (sem.Nested("solve-" + dname)) {
-      SolvePoisson(t.fcpot_scal, t.fcvort_scal, t.mebc_scal, linsolver, m);
+      SolvePoisson(t.fcpot_scal, t.fcvort_scal, t.mebc_pot_scal, linsolver, m);
     }
     if (sem("post-" + dname)) {
       SetComponent(t.fcpot, d, t.fcpot_scal);
     }
   }
   if (sem("vel")) {
-    fcvel = UEmbed<M>::GetVort(t.fcpot, t.mebc, m);
+    fcvel = UEmbed<M>::GetVort(t.fcpot, t.mebc_vel, m);
+    if (fcpot) {
+      fcpot->Reinit(m);
+      SetComponent(*fcpot, 0, t.fcpot_scal);
+    }
     m.Comm(&fcvel);
   }
 }
@@ -979,18 +1001,20 @@ void InitVort(
 template <class M>
 void InitVort(
     const FieldCell<typename M::Vect>&, FieldCell<typename M::Vect>&,
-    const MapEmbed<BCondFluid<typename M::Vect>>&,
+    FieldCell<typename M::Vect>*, const MapEmbed<BCondFluid<typename M::Vect>>&,
     std::shared_ptr<linear::Solver<M>>, M&,
-    generic::Vect<typename M::Scal, 4>*) {}
+    generic::Vect<typename M::Scal, 4>*, bool) {}
 
 // Computes velocity fcvel from vorticity fcvort
 template <class M>
 void InitVort(
     const FieldCell<typename M::Vect>& fcvort,
-    FieldCell<typename M::Vect>& fcvel,
+    FieldCell<typename M::Vect>& fcvel, FieldCell<typename M::Vect>* fcpot,
     const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid,
-    std::shared_ptr<linear::Solver<M>> linsolver, M& m) {
-  InitVort(fcvort, fcvel, mebc_fluid, linsolver, m, (typename M::Vect*)nullptr);
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m, bool zero_dirichlet) {
+  InitVort(
+      fcvort, fcvel, fcpot, mebc_fluid, linsolver, m,
+      (typename M::Vect*)nullptr, zero_dirichlet);
 }
 
 template <class EB>

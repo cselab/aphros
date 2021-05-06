@@ -58,9 +58,10 @@ void GetFluidCellCond(
 template <class M>
 void InitVort(
     const FieldCell<typename M::Vect>& fcvort,
-    FieldCell<typename M::Vect>& fcvel,
+    FieldCell<typename M::Vect>& fcvel, FieldCell<typename M::Vect>* fcpot,
     const MapEmbed<BCondFluid<typename M::Vect>>& mebc_fluid,
-    std::shared_ptr<linear::Solver<M>> linsolver, M& m);
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m,
+    bool zero_dirichlet = false);
 
 template <class EB>
 void DumpTraj(

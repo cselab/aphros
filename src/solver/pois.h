@@ -17,13 +17,16 @@
 // Solves Poisson equation: laplace u = rhs.
 // fc_rhs: rhs [i]
 // mebc: boundary conditions
+// centered_rhs: subtract average from the rhs to make the problem
+//               with zero-Neumann conditions consistent
 // Output:
 // fc_sol: solution [a]
 template <class M>
 void SolvePoisson(
     FieldCell<typename M::Scal>& fcu, const FieldCell<typename M::Scal>& fc_rhs,
     const MapEmbed<BCond<typename M::Scal>>& mebc,
-    std::shared_ptr<linear::Solver<M>> linsolver, M& m) {
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m,
+    bool centered_rhs=true) {
   using Scal = typename M::Scal;
   using Expr = typename M::Expr;
   using ExprFace = typename M::ExprFace;
@@ -54,7 +57,8 @@ void SolvePoisson(
         const ExprFace flux = ffg[cf] * m.GetArea(cf);
         m.AppendExpr(sum, flux * m.GetOutwardFactor(c, q), q);
       });
-      sum.back() = -(fc_rhs[c] - t.avg_rhs) * m.GetVolume(c);
+      const auto rhs = fc_rhs[c] - (centered_rhs ? t.avg_rhs : 0);
+      sum.back() = -rhs * m.GetVolume(c);
       t.fcl[c] = sum;
     }
   }

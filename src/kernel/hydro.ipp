@@ -1085,11 +1085,15 @@ void Hydro<M>::InitStat(const MEB& eb) {
 template <class M>
 void Hydro<M>::Init() {
   using namespace fluid_condition;
+  using Xmf = dump::Xmf<Vect>;
   auto sem = m.GetSem("init");
   struct {
     FieldCell<Vect> fcvel; // initial velocity
     FieldCell<Scal> fcvf; // initial volume fraction
     FieldCell<Scal> fccl; // initial color
+    FieldCell<Vect> fcpot; // velocity potential (stream function)
+    FieldCell<Scal> fcpot_scal; // first componenet of velocity potential
+    typename Xmf::Meta meta; // metadata for velocity potential dump
     Multi<FieldCell<Scal>> tracer_vfcu;
     std::shared_ptr<linear::Solver<M>> linsolver_vort;
     FieldCell<bool> fc_innermask;
@@ -1274,7 +1278,24 @@ void Hydro<M>::Init() {
       t.linsolver_vort = ULinear<M>::MakeLinearSolver(var, "vort", m);
     }
     if (sem.Nested("initvort")) {
-      InitVort(fcvel, fcvel, mebc_fluid_, t.linsolver_vort, m);
+      InitVort(
+          fcvel, fcvel, &t.fcpot, mebc_fluid_, t.linsolver_vort, m,
+          var.Int("initvort_zero_dirichlet", 0));
+    }
+    if (var.Int("initvort_dumppot", 0)) {
+      const auto binpath = "velpot.raw";
+      if (sem("dump-xmf")) {
+        t.meta = Xmf::GetMeta(m);
+        t.meta.binpath = binpath;
+        t.meta.name = "velpot";
+        if (m.IsRoot()) {
+          Xmf::WriteXmf(util::SplitExt(binpath)[0] + ".xmf", t.meta);
+        }
+        t.fcpot_scal = GetComponent(t.fcpot, 0);
+      }
+      if (sem.Nested("dump-raw")) {
+        dump::Raw<M>::Write(t.fcpot_scal, t.meta, binpath, m);
+      }
     }
   }
 
