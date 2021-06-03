@@ -2,9 +2,6 @@ DIRS = \
 	000_march \
 	001_march_cell \
 	002_march_sphere \
-	003_h5_serial_write \
-	004_h5_mpi_write \
-	005_h5_read_xmf \
 	006_cmake \
 	100_advection \
 	101_partstr \
