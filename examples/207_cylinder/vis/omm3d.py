@@ -12,23 +12,32 @@ import paratools
 
 parser = argparse.ArgumentParser(
     description="Renders geometry and vorticity magnitude.")
-parser.add_argument('files', nargs='+', help="list of data files 'omm_*.xmf'")
+parser.add_argument('files', nargs='+', help="List of data files 'omm_*.xmf'")
 parser.add_argument('--force',
                     action="store_true",
-                    help="overwrite existing files")
+                    help="Overwrite existing files")
 parser.add_argument('--draft', action="store_true", help="less samples")
 parser.add_argument('--ebvf',
                     action="store_true",
-                    help="multiply fields by ebvf to hide values in cut cells")
+                    help="Multiply fields by ebvf to hide values in cut cells")
 parser.add_argument('--omm_max',
                     type=float,
                     default=150,
-                    help="maximum vorticity magnitude omm, range will be [0,max]")
+                    help="Maximum vorticity magnitude omm, range will be [0,max]")
+parser.add_argument('--field_name',
+                    type=str,
+                    default='omm',
+                    help="Name of scalar field for volume rendering")
+parser.add_argument('--subset',
+                    type=int,
+                    nargs=3,
+                    default=[1020, 512, 512],
+                    help="Subset to extract")
 parser.add_argument('--ray', action="store_true", help="raytracing")
 parser.add_argument('--res',
                     type=int,
                     default=1920,
-                    help="image width in pixels")
+                    help="Image width in pixels")
 args = parser.parse_args()
 
 source_bcvtk = LegacyVTKReader(
@@ -42,6 +51,24 @@ viewsize = [1920, 1080]
 viewsize = [
     int(s * args.res / viewsize[0] + div - 1) // div * div for s in viewsize
 ]
+if args.field_name != 'omm':
+    source_omz = XDMFReader(FileNames=args.files)
+    source_omz.CellArrayStatus = [args.field_name]
+    source_omz.GridStatus = ['Grid_10220']
+    (source_omz, ), (timearray, ) = paratools.ApplyForceTime([source_omz])
+    sources_ft.append(source_omz)
+    timearrays.append(timearray)
+    source_omm = Calculator(Input=source_omz)
+    source_omm.AttributeType = 'Cell Data'
+    source_omm.ResultArrayName = 'omm'
+    source_omm.Function = 'abs({})'.format(args.field_name)
+else:
+    source_omm = XDMFReader(FileNames=args.files)
+    source_omm.CellArrayStatus = ['omm']
+    source_omm.GridStatus = ['Grid_10220']
+    (source_omm, ), (timearray, ) = paratools.ApplyForceTime([source_omm])
+    sources_ft.append(source_omm)
+    timearrays.append(timearray)
 
 if args.ebvf:
     files_ebvf = paratools.ReplaceFilename(args.files, "ebvf_{}.xmf")
@@ -52,13 +79,7 @@ if args.ebvf:
     sources_ft.append(source_ebvf)
     timearrays.append(timearray)
 
-files_ebvf = paratools.ReplaceFilename(args.files, "omm_{}.xmf")
-source_omm = XDMFReader(FileNames=files_ebvf)
-source_omm.CellArrayStatus = ['omm']
-source_omm.GridStatus = ['Grid_10220']
-(source_omm, ), (timearray, ) = paratools.ApplyForceTime([source_omm])
-sources_ft.append(source_omm)
-timearrays.append(timearray)
+
 if args.ebvf:
     source_omm = AppendAttributes(Input=[source_omm, source_ebvf])
     calc_omm = Calculator(Input=source_omm)
@@ -72,7 +93,7 @@ else:
     calc_omm.Function = 'min(1, omm / {:})'.format(args.omm_max)
 
 calc_omm = ExtractSubset(Input=calc_omm)
-calc_omm.VOI = [0, 1020, 0, 512, 0, 512]
+calc_omm.VOI = [0, args.subset[0], 0, args.subset[1], 0, args.subset[2]]
 
 renderView1 = CreateView('RenderView')
 renderView1.ViewSize = viewsize
