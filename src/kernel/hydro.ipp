@@ -1387,6 +1387,9 @@ void Hydro<M>::Init() {
         });
     events_->Parse();
   }
+  if (sem.Nested("inithook")) {
+    InitHook(this);
+  }
   if (sem.Nested("vofm-load")) {
     if (var.Int["init_vf_load_state"]) {
       if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {

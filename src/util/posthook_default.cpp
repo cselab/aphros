@@ -26,6 +26,9 @@ void FluidDummyHook(
     typename M::Scal, typename M::Scal, const Vars&, const M&) {}
 
 template <class M>
+void InitHook(Hydro<M>*) {}
+
+template <class M>
 void StepHook(Hydro<M>*) {}
 
 #define XX(M)                                                                  \
@@ -41,6 +44,7 @@ void StepHook(Hydro<M>*) {}
   template void FluidDummyHook(                                                \
       FieldCell<typename M::Vect>&, FieldFace<typename M::Scal>&,              \
       typename M::Scal t, typename M::Scal dt, const Vars&, const M&);         \
+  template void InitHook(Hydro<M>*);                                           \
   template void StepHook(Hydro<M>*);
 
 #define COMMA ,

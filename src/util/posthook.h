@@ -37,4 +37,7 @@ template <class M>
 class Hydro;
 
 template <class M>
+void InitHook(Hydro<M>*);
+
+template <class M>
 void StepHook(Hydro<M>*);
