@@ -57,7 +57,6 @@ clean::
 	rm -vf mesh.conf base.conf a.conf par.conf np tl
 
 cleandat::
-	rm -vf *.log
 	rm -vf *_*.{xmf,h5,raw,vts,vtk,csv} p.pvd
 	rm -vf {vx,vy,vz,p,vf,cl,cls,div,omm}_*.dat
 	rm -vf bc.vtk bc_groups.dat eb.vtk
