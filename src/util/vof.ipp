@@ -116,36 +116,45 @@ struct UVof<M_>::Imp {
     }
   }
 
-  // Constructs iso-surface triangles with marching cubes.
-  // uu: volume fraction in cell nodes, 3D
+  // Constructs iso-surface triangles with marching cubes
+  // uu: volume fraction in cell nodes
+  // nn: normals in cell nodes
   // xc: cell center
   // h: cell size
   // iso: isovalue for surface uu=iso
+  //
+  // Output:
+  // vv: triangles as arrays of vertices
+  // vvn: normals for every vertex
+  //
+  // 3D
   static void GetMarchTriangles(
       const std::array<Scal, 8>& uu, const std::array<Vect3, 8>& nn,
       const Vect3& xc, const Vect3& h, Scal iso, /*out*/
       std::vector<std::vector<Vect3>>& vv,
       std::vector<std::vector<Vect3>>& vvn) {
-    (void)MARCH_O[0][0];
+    (void)MARCH_O[0][0]; // suppress unused variable warning from march.h
     std::array<double, 8> uuz = uu;
     for (auto& u : uuz) {
       u -= iso;
     }
-    int nt;
+    int nt; // output number of triangles
     constexpr int kMaxNt = MARCH_NTRI;
-    std::array<double, kMaxNt> tri;
-    std::array<int, kMaxNt> vc0;
-    std::array<int, kMaxNt> vc1;
-    std::array<double, kMaxNt> vw;
+    std::array<double, kMaxNt> tri; // triangles as flat array of coordinates
+    // Each vertex belongs to a cell edge, the following describes which one.
+    std::array<int, kMaxNt> vc0; // index in `uu` of first endpoint of edge
+    std::array<int, kMaxNt> vc1; // index in `uu` of second endpoint of edge
+    std::array<double, kMaxNt> vw; // position of point on edge
+                                   // 0: first endpoint, 1: second endpoint
     march_cube_location(
         uuz.data(), &nt, tri.data(), vc0.data(), vc1.data(), vw.data());
     assert(size_t(nt) * 3 * 3 <= tri.size());
 
-    vv.resize(nt);
     {
+      vv.clear();
+      vv.resize(nt, std::vector<Vect3>(3));
       size_t i = 0;
       for (auto& v : vv) {
-        v.resize(3);
         for (auto& x : v) {
           x[0] = tri[i++] - 0.5;
           x[1] = tri[i++] - 0.5;
@@ -154,11 +163,11 @@ struct UVof<M_>::Imp {
         }
       }
     }
-    vvn.resize(nt);
     {
+      vvn.clear();
+      vvn.resize(nt, std::vector<Vect3>(3));
       size_t i = 0;
       for (auto& vn : vvn) {
-        vn.resize(3);
         for (auto& n : vn) {
           Scal w = vw[i];
           int c0 = vc0[i];
@@ -171,9 +180,54 @@ struct UVof<M_>::Imp {
   }
   // 2D
   static void GetMarchTriangles(
-      const std::array<Scal, 4>&, const std::array<Vect2, 4>&, const Vect2&,
-      const Vect2&, Scal, std::vector<std::vector<Vect2>>&,
-      std::vector<std::vector<Vect2>>&) {}
+      const std::array<Scal, 4>& uu, const std::array<Vect2, 4>& nn,
+      const Vect2& xc, const Vect2& h, Scal iso,
+      /*out*/ std::vector<std::vector<Vect2>>& vv,
+      std::vector<std::vector<Vect2>>& vvn) {
+    std::array<double, 8> uuz;
+    // Duplicate 2D volume fractions in z.
+    for (size_t i = 0; i < 8; ++i) {
+      uuz[i] = uu[i % 4] - iso;
+    }
+    int nt; // output number of triangles
+    constexpr int kMaxNt = MARCH_NTRI;
+    std::array<double, kMaxNt> tri; // triangles as flat array of coordinates
+    // Each vertex belongs to a cell edge, the following describes which one.
+    std::array<int, kMaxNt> vc0; // index in `uu` of first endpoint of edge
+    std::array<int, kMaxNt> vc1; // index in `uu` of second endpoint of edge
+    std::array<double, kMaxNt> vw; // position of point on edge
+                                   // 0: first endpoint, 1: second endpoint
+    march_cube_location(
+        uuz.data(), &nt, tri.data(), vc0.data(), vc1.data(), vw.data());
+    assert(size_t(nt) * 3 * 3 <= tri.size());
+
+    // 3D triangles are stored in tri, vc0, vc1, vw describe 3D triangles.
+    // Extract edges with z=0.
+    vv.clear();
+    vvn.clear();
+    for (int t = 0; t < nt; ++t) {
+      std::vector<Vect2> v;
+      std::vector<Vect2> vn;
+      for (int j = 0; j < 3; ++j) {
+        const int i = t * 3 + j; // vertex index
+        if (tri[3 * i + 2] == 0) {
+          // vertex
+          const Vect2 x(tri[3 * i] - 0.5, tri[3 * i + 1] - 0.5);
+          v.push_back(xc + h * x);
+          // normal
+          const Scal w = vw[i];
+          const int c0 = vc0[i];
+          const int c1 = vc1[i];
+          const Vect2 n = nn[c0 % 4] * (1 - w) + nn[c1 % 4] * w;
+          vn.push_back(n);
+        }
+      }
+      if (v.size() == 2) {
+        vv.push_back(v);
+        vvn.push_back(vn);
+      }
+    }
+  }
   // 4D
   static void GetMarchTriangles(
       const std::array<Scal, 16>&, const std::array<Vect4, 16>&, const Vect4&,
