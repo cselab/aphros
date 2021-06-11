@@ -24,9 +24,11 @@ struct Particles<EB_>::Imp {
   using UEB = UEmbed<M>;
 
   struct State {
+    // See description of attributes in ParticlesView.
     std::vector<Vect> x;
     std::vector<Vect> v;
     std::vector<Scal> r;
+    std::vector<Scal> source;
     std::vector<Scal> rho;
     std::vector<Scal> termvel;
     std::vector<Scal> removed;
@@ -39,15 +41,16 @@ struct Particles<EB_>::Imp {
       , eb(eb_)
       , conf(conf_)
       , time_(time)
-      , state_({init.x, init.v, init.r, init.rho, init.termvel, init.removed}) {
-  }
+      , state_({init.x, init.v, init.r, init.source, init.rho, init.termvel,
+                init.removed}) {}
   static ParticlesView GetView(State& s) {
-    return {s.x, s.v, s.r, s.rho, s.termvel, s.removed};
+    return {s.x, s.v, s.r, s.source, s.rho, s.termvel, s.removed};
   }
   static void CheckSize(const State& s) {
     const size_t n = s.x.size();
     fassert_equal(s.v.size(), n);
     fassert_equal(s.r.size(), n);
+    fassert_equal(s.source.size(), n);
     fassert_equal(s.rho.size(), n);
     fassert_equal(s.termvel.size(), n);
     fassert_equal(s.removed.size(), n);
@@ -56,6 +59,7 @@ struct Particles<EB_>::Imp {
     const size_t n = s.x.size();
     fassert_equal(s.v.size(), n);
     fassert_equal(s.r.size(), n);
+    fassert_equal(s.source.size(), n);
     fassert_equal(s.rho.size(), n);
     fassert_equal(s.termvel.size(), n);
     fassert_equal(s.removed.size(), n);
@@ -65,6 +69,7 @@ struct Particles<EB_>::Imp {
     func(view.x);
     func(view.v);
     func(view.r);
+    func(view.source);
     func(view.rho);
     func(view.termvel);
     func(view.removed);
@@ -156,6 +161,15 @@ struct Particles<EB_>::Imp {
         }
         const Vect x_old = s.x[i];
         s.x[i] += s.v[i] * dt;
+
+        if (s.source[i] != 0) {
+          const Scal pi = M_PI;
+          const Scal k = 4. / 3 * pi;
+          Scal vol = k * std::pow(s.r[i], 3);
+          vol = std::max<Scal>(0, vol + s.source[i] * dt);
+          s.r[i] = std::pow<Scal>(vol / k, 1. / 3);
+        }
+
         for (size_t d = 0; d < m.GetEdim(); ++d) {
           if (m.flags.is_periodic[d]) {
             if (s.x[i][d] < 0) {
@@ -174,7 +188,9 @@ struct Particles<EB_>::Imp {
       ClearRemoved(GetView(s));
     }
     if (sem.Nested()) {
-      Comm(s.x, {&s.r, &s.rho, &s.termvel, &s.removed}, {&s.v}, m, nrecv_);
+      Comm(
+          s.x, {&s.r, &s.source, &s.rho, &s.termvel, &s.removed}, {&s.v}, m,
+          nrecv_);
     }
     if (sem("stat")) {
       time_ += dt;
@@ -188,6 +204,7 @@ struct Particles<EB_>::Imp {
     append(s.x, app.x);
     append(s.v, app.v);
     append(s.r, app.r);
+    append(s.source, app.source);
     append(s.rho, app.rho);
     append(s.termvel, app.termvel);
     append(s.removed, app.removed);
@@ -362,6 +379,7 @@ struct Particles<EB_>::Imp {
       m.Reduce(&t.s.x, Reduction::concat);
       m.Reduce(&t.s.v, Reduction::concat);
       m.Reduce(&t.s.r, Reduction::concat);
+      m.Reduce(&t.s.source, Reduction::concat);
       m.Reduce(&t.s.rho, Reduction::concat);
       m.Reduce(&t.s.termvel, Reduction::concat);
       m.Reduce(&t.s.removed, Reduction::concat);
@@ -371,7 +389,7 @@ struct Particles<EB_>::Imp {
       std::ofstream o(path);
       o.precision(16);
       // header
-      o << "x,y,z,vx,vy,vz,r,rho,termvel,removed,block";
+      o << "x,y,z,vx,vy,vz,r,source,rho,termvel,removed,block";
       o << std::endl;
       // content
       auto& s = t.s;
@@ -379,6 +397,7 @@ struct Particles<EB_>::Imp {
         o << s.x[i][0] << ',' << s.x[i][1] << ',' << s.x[i][2];
         o << ',' << s.v[i][0] << ',' << s.v[i][1] << ',' << s.v[i][2];
         o << ',' << s.r[i];
+        o << ',' << s.source[i];
         o << ',' << s.rho[i];
         o << ',' << s.termvel[i];
         o << ',' << s.removed[i];

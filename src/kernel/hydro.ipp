@@ -417,6 +417,7 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
           view.x.push_back(m.GetCenter(c) + xrand * h);
           view.v.push_back(velocity);
           view.r.push_back(radius[i] * 0.5);
+          view.source.push_back(0);
           view.rho.push_back(density);
           view.termvel.push_back(termvel[i]);
           view.removed.push_back(0);
@@ -448,10 +449,11 @@ void Hydro<M>::InitParticles() {
     std::vector<Vect> p_x;
     std::vector<Vect> p_v;
     std::vector<Scal> p_r;
+    std::vector<Scal> p_source;
     std::vector<Scal> p_rho;
     std::vector<Scal> p_termvel;
     std::vector<Scal> p_removed;
-    ParticlesView view{p_x, p_v, p_r, p_rho, p_termvel, p_removed};
+    ParticlesView view{p_x, p_v, p_r, p_source, p_rho, p_termvel, p_removed};
     SpawnParticles(view);
     if (eb_) {
       particles_.reset(new Particles<EB>(m, *eb_, view, fs_->GetTime(), conf));
@@ -1666,14 +1668,14 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
-    // source for bubble growth from tracer0
+    // source for bubble growth from tracers
     if (tracer_) {
       const auto& conf = tracer_->GetConf();
       for (auto l : GRange<size_t>(conf.layers)) {
+        fc_tracer_source[l].Reinit(m, 0);
         const auto sl = std::to_string(l);
         const Scal rate = var.Double("growth_rate_tracer" + sl, 0);
         if (rate) {
-          fc_tracer_source[l].Reinit(m, 0);
           auto apply = [&](const auto& meb, auto as) {
             if (as) {
               const auto& fcvf = as->GetField();
@@ -1700,6 +1702,22 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           if (eb_) {
             apply(*eb_, dynamic_cast<ASVEB*>(as_.get()));
           }
+        }
+      }
+    }
+    // growth of particles from tracer
+    if (tracer_ && particles_) {
+      auto view = particles_->GetView();
+      const size_t n = view.x.size();
+      if (tracer_) {
+        const size_t l = 0;
+        const auto& tu = tracer_->GetVolumeFraction()[l];
+        const auto h = m.GetCellSize();
+        for (size_t i = 0; i < n; ++i) {
+          const auto c = m.GetCellFromPoint(view.x[i]);
+          const Scal k = 0.1;
+          view.source[i] = tu[c] * k * h.prod();
+          fc_tracer_source[l][c] -= tu[c] * k;
         }
       }
     }
@@ -2193,10 +2211,11 @@ void Hydro<M>::StepParticles() {
     std::vector<Vect> p_x;
     std::vector<Vect> p_v;
     std::vector<Scal> p_r;
+    std::vector<Scal> p_source;
     std::vector<Scal> p_rho;
     std::vector<Scal> p_termvel;
     std::vector<Scal> p_removed;
-    ParticlesView view{p_x, p_v, p_r, p_rho, p_termvel, p_removed};
+    ParticlesView view{p_x, p_v, p_r, p_source, p_rho, p_termvel, p_removed};
     SpawnParticles(view);
     particles_->Append(view);
   }
