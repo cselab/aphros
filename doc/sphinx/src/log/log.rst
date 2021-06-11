@@ -224,5 +224,30 @@ and introduced ``canonical(x)`` to get a single point from the cell of
 size ``tol``.
 
 .. image:: log10_vtkmerge/vtkmerge.svg
-   :align: center
+  :align: center
+  :width: 300
 
+Explicit part of viscous stress
+-------------------------------
+
+2021-06-11 15:32:27
+
+The viscous stress tensor has the form :math:`\mu(\nabla\mathbf{u} +\nabla\mathbf{u}^T)`.
+Parameter ``int explviscous`` controls whether the second term is included in
+the discretization. Setting ``explviscous=0`` changes the approximated tensor
+to :math:`\mu\nabla\mathbf{u}`.
+This omitted term :math:`\mu\nabla\mathbf{u}^T` is significant if the dynamic viscosity is non-uniform.
+
+The following test case of a rising bubble
+(based on `<http://basilisk.fr/src/test/rising.c>`_) shows a small difference.
+
+
+.. |log11| image:: log11_explviscous/explviscous.png
+  :width: 300
+
+.. table:: Bubble shapes at :math:`t=3`
+  :align: center
+
+  +----------+
+  | |log11|  |
+  +----------+

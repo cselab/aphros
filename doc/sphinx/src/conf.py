@@ -43,12 +43,7 @@ numfig = True
 # html
 html_theme = 'classic'
 
-html_static_path = ['_static']
-
-html_context = {'css_files': ['_static/center.css']}
-
 html_theme_options = {
-      'nosidebar' : True,
       'body_max_width' : '800px',
       }
 
