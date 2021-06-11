@@ -300,8 +300,7 @@ struct Simple<EB_>::Imp {
         fcfcd_[c] += fcf[c] + fc_bforce_[c];
       }
     }
-
-    if (sem("explvisc")) {
+    if (par.explviscous && sem("explvisc")) {
       UFluid<M>::AppendExplViscous(
           fcfcd_, cd_->GetVelocity(Step::iter_curr), me_vel_, ffvisc_, eb);
     }

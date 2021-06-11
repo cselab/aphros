@@ -414,8 +414,8 @@ struct Proj<EB_>::Imp {
     }
     if (par.explviscous) {
       FieldCell<Vect> fc_force(m, Vect(0));
-      UFluid<M>::AppendExplViscousGradMu(
-          fc_force, fcvel_.iter_curr, me_vel_, *owner_->fcr_, me_visc_, eb);
+      UFluid<M>::AppendExplViscous(
+          fc_force, fcvel_.iter_curr, me_vel_, ffvisc_, eb);
       for (auto c : eb.Cells()) {
         fca[c] += fc_force[c] / (*owner_->fcr_)[c];
       }

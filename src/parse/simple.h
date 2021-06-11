@@ -25,6 +25,7 @@ struct ParsePar<Simple<M>> {
     p.stokes = var.Int["stokes"];
     p.convsymm = var.Int["convsymm"];
     p.explconv = var.Int["explconv"];
+    p.explviscous = var.Int["explviscous"];
     std::string conv = var.String["conv"];
     if (conv == "imp") {
       p.conv = Conv::imp;
