@@ -167,7 +167,7 @@ struct Particles<EB_>::Imp {
           const Scal k = 4. / 3 * pi;
           Scal vol = k * std::pow(s.r[i], 3);
           vol = std::max<Scal>(0, vol + s.source[i] * dt);
-          s.r[i] = std::pow<Scal>(vol / k, 1. / 3);
+          s.r[i] = std::pow(vol / k, 1. / 3);
         }
 
         for (size_t d = 0; d < m.GetEdim(); ++d) {
