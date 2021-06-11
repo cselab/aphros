@@ -240,6 +240,7 @@ This omitted term :math:`\mu\nabla\mathbf{u}^T` is significant if the dynamic vi
 
 The following test case of a rising bubble
 (based on `<http://basilisk.fr/src/test/rising.c>`_) shows a small difference.
+See full example in :linkpath:`examples/208_rising`.
 
 
 .. |log11| image:: log11_explviscous/explviscous.png

@@ -1,0 +1,27 @@
+#!/bin/sh -eu
+
+log=run.log
+
+run () {
+  out=$1
+  config=$2
+  in=${3:-sm_0030.vtk}
+  if [ -f "$out" ] ; then
+    echo "skip existing '$out'"
+    return
+  fi
+  cmd="make cleanall &&
+make conf &&
+ap.mpirun ap.mfer --extra '$config' &&
+cp -v '$in' '$out'"
+  echo "$cmd" | tee -a "$log"
+  eval "($cmd) 2>&1" >> "$log"
+}
+
+run 'explviscous1.vtk' ''
+run 'explviscous0.vtk' 'set int explviscous 0'
+./plot.py --output 'explviscous.png' \
+  'explviscous0.vtk;$\nabla \mathbf{u}$' \
+  'explviscous1.vtk;$\nabla \mathbf{u} + \nabla \mathbf{u}^T$' \
+  'ref/c1g3l4s.txt;ref (MooNMD);k;--'
+
