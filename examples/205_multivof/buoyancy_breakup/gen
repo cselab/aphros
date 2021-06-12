@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+
+import aphros
+import numpy
+
+R = 0.15
+H = 0.6
+inf = 10
+gap = 0
+
+vf = aphros.Geometry()
+vf.Box([0, 1, 0], [inf, 1 - H, inf])
+
+Rm = R * 0.5
+vf.Sphere([0.5, H - R - gap, 0], [R] * 3)
+vf.Sphere([0.5, H - R * 2 - Rm - gap * 2, 0], [Rm] * 3)
+
+vf.GenerateFile("b.dat")

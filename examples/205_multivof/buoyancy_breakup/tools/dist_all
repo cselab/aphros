@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -eu
+
+MYDIR=$(dirname "$0")
+
+e () {
+  nx=$(printf %03d $1)
+  nxm=$(($1 / 2))
+  nxm=$(printf %03d $nxm)
+  out=dist$nx
+  dir=nx$nx
+  dirm=nx$nxm
+  if ! [ -d "$dir" ] || ! [ -d "$dirm" ] ; then
+    return
+  fi
+  if [ -f "$out" ] && ! [ "$dir" -nt "$out" ] ; then
+    echo "skip existing $out"
+    return
+  fi
+  $MYDIR/hausdorff_all $dir $dirm > "$out"
+}
+
+e 64
+e 128
+e 256
+e 384
+e 512
+e 1024

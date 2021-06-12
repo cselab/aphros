@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+
+import aphros
+import numpy as np
+
+R = 0.25
+Rin = 0.05
+
+vf = aphros.Geometry()
+
+N = 3
+
+phase = 0
+
+for i in range(N):
+    alpha = i * np.pi * 2 / N + phase
+    dx = np.cos(alpha) * Rin
+    dy = np.sin(alpha) * Rin
+    vf.Sphere([0.5 + dx, 0.3 + dy, 0.5], [R, R, 0.5])
+
+vf.GenerateFile("b.dat")

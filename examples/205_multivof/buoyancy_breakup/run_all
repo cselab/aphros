@@ -1,0 +1,24 @@
+#!/bin/sh -eu
+
+log=run.log
+
+run () {
+  nx=$1
+  shift
+  dir=nx$(printf %03d $nx)
+  if [ -d "$dir" ] ; then
+    echo "skip existing $dir"
+    return
+  fi
+  cmd="make nx=$nx "$@" cleanrun"
+  echo "$cmd" | tee -a "$log"
+  sleep 10
+  eval "$cmd 2>&1" >> "$log"
+}
+
+run 32 bsx=32
+run 64 np=4
+run 128 np=16
+run 256 np=64
+run 512 bsx=64 np=64
+run 1024 bsx=64 np=256
