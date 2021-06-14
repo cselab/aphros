@@ -323,6 +323,29 @@ struct Vof<EB_>::Imp {
       }
     }
   }
+  // Removes orphan fragments, those for which the volume fraction
+  // in the 3x3x3 stencil does not exceed the threshold.
+  // fcu: volume fractions
+  // fcim: packed image vectors
+  // filterth: threshold for detecting orphan fragments
+  static void FilterOrphan(
+      FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, FieldCell<Scal>& fcim,
+      Scal filterth, const EB& eb) {
+    for (auto c : eb.Cells()) {
+      bool orphan = true;
+      for (auto cn : eb.Stencil(c)) {
+        if (fcu[cn] >= filterth) {
+          orphan = false;
+          break;
+        }
+      }
+      if (orphan) {
+        fcu[c] = 0;
+        fccl[c] = kClNone;
+        fcim[c] = TRM::Pack(MIdx(0));
+      }
+    }
+  }
   void CommRec(
       Sem& sem, FieldCell<Scal>& uc, FieldCell<Scal>& fccl,
       FieldCell<Scal>& fcim) {
@@ -502,6 +525,12 @@ struct Vof<EB_>::Imp {
     }
     if (par.sharpen && sem.Nested("sharpen")) {
       Sharpen();
+    }
+    if (par.filterth > 0) {
+      if (sem("filterorphan")) {
+        FilterOrphan(fcu_.iter_curr, fccl_, fcim_, par.filterth, eb);
+      }
+      CommRec(sem, fcu_.iter_curr, fccl_, fcim_);
     }
     if (modifier_) {
       if (sem("modify")) {

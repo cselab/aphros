@@ -23,6 +23,7 @@ struct ParsePar<Vof<M>> {
     p.vtkmerge = var.Int["vtkmerge"];
     p.vtkiso = var.Double["vtkiso"];
     p.clipth = var.Double["clipth"];
+    p.filterth = var.Double["filterth"];
     p.dim = var.Int["dim"];
     p.bcc_reflectpoly = var.Int["bcc_reflectpoly"];
     p.dumppolymarch_fill = var.Double["dumppolymarch_fill"];

@@ -21,6 +21,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   struct Par {
     size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
     Scal clipth = 1e-10; // vf clipping threshold
+    Scal filterth = 0; // orphan filtering threshold
     bool recolor = true; // run connected component labeling on every step
     bool recolor_unionfind = true; // use union-find algorithm
     bool recolor_reduce = true; // reduce set of colors to integers

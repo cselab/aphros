@@ -5,6 +5,8 @@ include $(shell ap.makesim)
 par.make par.conf: gen par.py
 	./gen
 
+conf: par.conf
+
 par.py:
 	touch "$@"
 

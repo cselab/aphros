@@ -178,7 +178,7 @@ struct UVof<M_>::Imp {
       }
     }
   }
-  // 2D
+  // Constructs iso-surface lines with marching cubes
   static void GetMarchTriangles(
       const std::array<Scal, 4>& uu, const std::array<Vect2, 4>& nn,
       const Vect2& xc, const Vect2& h, Scal iso,
@@ -201,7 +201,7 @@ struct UVof<M_>::Imp {
         uuz.data(), &nt, tri.data(), vc0.data(), vc1.data(), vw.data());
     assert(size_t(nt) * 3 * 3 <= tri.size());
 
-    // 3D triangles are stored in tri, vc0, vc1, vw describe 3D triangles.
+    // 3D triangles are stored in tri, vc0, vc1, vw.
     // Extract edges with z=0.
     vv.clear();
     vvn.clear();

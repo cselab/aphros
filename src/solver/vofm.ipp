@@ -590,6 +590,41 @@ struct Vofm<EB_>::Imp {
       }
     }
   }
+  // Removes orphan fragments, those for which the volume fraction
+  // in the 3x3x3 stencil does not exceed the threshold.
+  // fcu: volume fractions
+  // fccl: colors
+  // fcim: packed image vectors
+  // filterth: threshold for detecting orphan fragments
+  static void FilterOrphan(
+      const Multi<FieldCell<Scal>*>& fcu, const GRange<size_t>& layers,
+      const Multi<FieldCell<Scal>*>& fccl,
+      const Multi<FieldCell<Scal>*>& fcim, Scal filterth, const EB& eb) {
+    for (auto l : layers) {
+      for (auto c : eb.Cells()) {
+        if ((*fccl[l])[c] != kClNone) {
+          bool orphan = true;
+          for (auto ln : layers) {
+            for (auto cn : eb.Stencil(c)) {
+              if ((*fccl[l])[c] == (*fccl[ln])[cn] &&
+                  (*fcu[ln])[cn] >= filterth) {
+                orphan = false;
+                break;
+              }
+            }
+            if (!orphan) {
+              break;
+            }
+          }
+          if (orphan) {
+            (*fcu[l])[c] = 0;
+            (*fccl[l])[c] = kClNone;
+            (*fcim[l])[c] = TRM::Pack(MIdx(0));
+          }
+        }
+      }
+    }
+  }
   void CommRec(
       Sem& sem, const Multi<FieldCell<Scal>*>& mfcu,
       const Multi<FieldCell<Scal>*>& mfccl,
@@ -683,7 +718,7 @@ struct Vofm<EB_>::Imp {
     }
 
     using Scheme = typename Par::Scheme;
-    Multi<FieldCell<Scal>*> mfcu = fcu_.iter_curr;
+    const Multi<FieldCell<Scal>*> mfcu = fcu_.iter_curr;
     switch (par.scheme) {
       case Scheme::plain:
         AdvPlain(sem, mfcu, SweepType::plain);
@@ -695,15 +730,20 @@ struct Vofm<EB_>::Imp {
         AdvPlain(sem, mfcu, SweepType::weymouth);
         break;
     }
-
     if (par.sharpen && sem.Nested("sharpen")) {
       Sharpen(mfcu);
     }
+    if (par.filterth > 0) {
+      if (sem("filterorphan")) {
+        FilterOrphan(mfcu, layers, fccl_, fcim_, par.filterth, eb);
+      }
+      CommRec(sem, mfcu, fccl_, fcim_);
+    }
     if (modifier_) {
       if (sem("modify")) {
-        modifier_(fcu_.iter_curr, fccl_, layers, eb);
+        modifier_(mfcu, fccl_, layers, eb);
       }
-      CommRec(sem, fcu_.iter_curr, fccl_, fcim_);
+      CommRec(sem, mfcu, fccl_, fcim_);
     }
     if (sem("bcc_clear")) {
       if (par.cloverride) {
