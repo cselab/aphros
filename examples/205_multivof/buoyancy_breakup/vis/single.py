@@ -5,6 +5,11 @@ from paraview.simple import *
 paraview.simple._DisableFirstRenderCameraReset()
 
 import os
+import sys
+
+def printerr(m):
+    sys.stderr.write('{:}\n'.format(m))
+    sys.stderr.flush()
 
 
 parser = argparse.ArgumentParser()
@@ -44,7 +49,7 @@ vhex = [
 def rgb(h):
     return list(int(h[i:i + 2], 16) / 255. for i in (0, 2, 4))
 
-lw = 8
+lw = 4
 
 surfDisplay = Show(surf, renderView1, 'GeometryRepresentation')
 surfDisplay.Representation = 'Wireframe'
@@ -56,8 +61,11 @@ surfDisplay.Position = [0.0, 0.0, 0.0]
 
 tk = GetTimeKeeper()
 for i, f in enumerate(args.files):
-    tk.Time = i
     path = os.path.join(args.outdir,
                         os.path.splitext(os.path.basename(f))[0] + '.png')
-    print(path)
+    if os.path.isfile(path):
+        printerr("skip existing '{}'".format(path))
+        continue
+    tk.Time = i
+    printerr(path)
     SaveScreenshot(path)
