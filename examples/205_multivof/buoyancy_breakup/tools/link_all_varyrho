@@ -1,0 +1,10 @@
+#!/bin/sh -eu
+
+for d in rho* ; do
+  echo $d
+  for f in $d/*.png ; do
+    full=$(echo "$f" | tr '/' '_')
+    echo $full
+    ln -v -s $f $full
+  done
+done

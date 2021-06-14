@@ -1,0 +1,6 @@
+#!/bin/sh -eu
+
+for d in rho* ; do
+  echo "$d"
+  vis/single.py $d/sm_*.vtk $d/
+done
