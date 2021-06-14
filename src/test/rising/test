@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+
+import shutil
+import os
+import numpy as np
+
+import aphros
+from plot import read_lines, lines_to_points, directed_hausdorff
+
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        self.runcmd("make -f sim.makefile cleanrun m='128 32 1' bs='128 32 1' np=1")
+
+        return [
+            "sm_0003.vtk",
+        ]
+
+    def check(self, outdir, refdir, output_files):
+        eps = 0.001
+        out = os.path.join(outdir, output_files[0])
+        ref = os.path.join(refdir, output_files[0])
+
+        lines_a = read_lines(out)
+        lines_b = read_lines(ref)
+        pa = lines_to_points(lines_a)
+        pb = lines_to_points(lines_b)
+        error, _, _ = directed_hausdorff(pa, pb)
+
+        res = True
+        if error > eps:
+            self.printlog("error exceeded for '{}', {:} >= {:}".format(
+                out, error, eps))
+            res = False
+        else:
+            self.printlog("pass for '{}', {:} < {:}".format(out, error, eps))
+        return res
+
+    def plot(self, datadir, output_files):
+        exe = "plot.py"
+        assert os.path.isfile(exe), "{} not found".format(exe)
+        exerel = os.path.relpath(exe, datadir)
+        cmd = "{} '{};{}' '../ref/c1g3l4s.txt;ref (MooNMD);k;--' --dist 0 1".format(
+            exerel, output_files[0], datadir)
+        self.runcmd("cd '{}' && {}".format(datadir, cmd))
+
+
+    def clean(self, outdir, output_files):
+        self.runcmd("make -f sim.makefile cleanall")
+        super().clean(outdir, output_files)
+
+
+Test().main()

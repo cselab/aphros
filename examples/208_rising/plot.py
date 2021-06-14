@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 
 import aphros
-import matplotlib.pyplot as plt
-aphros.plot.ApplyParams(plt)
+try:
+    import matplotlib.pyplot as plt
+    aphros.plot.ApplyParams(plt)
+except Exception:
+    pass
 import numpy as np
 import argparse
 import os
+import sys
+
+def printerr(m):
+    sys.stderr.write('{:}\n'.format(m))
+    sys.stderr.flush()
 
 def read_lines_vtk(path, mirror=True):
     '''
@@ -45,7 +53,42 @@ def read_lines(path):
         return read_lines_vtk(path)
     if ext == ".txt":
         return read_lines_moonmd(path)
-    raise RuntimeError("Unknown extention: " + ext)
+    raise RuntimeError("Unknown extention: '{}' in path '{}'".format(ext, path))
+
+def lines_to_points(lines):
+    '''
+    lines: list of lines [line0_x, line0_y, line1_x, line1_y, ...]
+    where line0_x and line1_y are lists of coordinates
+
+    Returns:
+    list of points [[x0, y0], [x1, y1], ...] from line segments.
+    '''
+    xx = lines[::2]
+    yy = lines[1::2]
+    xx = np.hstack(xx)
+    yy = np.hstack(yy)
+    return np.vstack((xx, yy)).T
+
+def directed_hausdorff(a, b):
+    '''
+    Returns the directed Hausdorff distance between sets of points.
+    a, b: lists of points [[x0, y0], [x1, y1], ...]
+    '''
+    best_d = 0
+    best_ia = None
+    best_ib = None
+    a = np.array(a)
+    b = np.array(b)
+    for ia in range(len(a)):
+        dd = np.linalg.norm(a[ia] - b, axis=1)
+        ib = np.argmin(dd)
+        d = dd[ib]
+        if d > best_d:
+            best_d = d
+            best_ia = ia
+            best_ib = ib
+
+    return best_d, best_ia, best_ib
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -58,6 +101,11 @@ def parse_args():
                         type=str,
                         default="a.pdf",
                         help="Path to output image")
+    parser.add_argument('--dist',
+                        type=int,
+                        nargs=2,
+                        help="Print directed Hausdorff distance between"
+                        " lines of given indices")
     parser.add_argument('--figsize',
                         type=float,
                         nargs=2,
@@ -71,12 +119,15 @@ if __name__ == "__main__":
     ax = plt.Axes(fig, [0, 0, 0.7, 1])
     fig.add_axes(ax)
 
+    lines_all = []
+
     for plotarg in args.plots:
         plot = ['', '', '', '']
         for i, e in enumerate(plotarg.split(';')):
             plot[i] = e
         path, label, c, ls = plot
         lines = read_lines(path)
+        lines_all.append(lines)
         d = dict()
         if c: d['c'] = c
         if ls: d['ls'] = ls
@@ -84,8 +135,15 @@ if __name__ == "__main__":
         d['c'] = l.get_color()
         ax.plot(*lines, **d)
 
-    #lines = read_lines("ref/c1g3l4s.txt")
-    #ax.plot(*lines, c='k', ls='--', label='ref')
+    if args.dist is not None:
+        la, lb = args.dist
+        pa = lines_to_points(lines_all[la])
+        pb = lines_to_points(lines_all[lb])
+        d, ia, ib = directed_hausdorff(pa, pb)
+        ax.scatter(*pa[ia], c='k', s=0.5, zorder=100)
+        ax.scatter(*pb[ib], c='k', s=0.5, zorder=100)
+        print(d)
+
 
     ax.set_axis_off()
     ax.set_aspect(1)
@@ -94,5 +152,5 @@ if __name__ == "__main__":
               bbox_to_anchor=(1, 1),
               frameon=False)
 
-    print(args.output)
+    printerr(args.output)
     fig.savefig(args.output, dpi=300)
