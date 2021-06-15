@@ -132,18 +132,18 @@ static Vect GetIso(Vect x0, Vect x1, Scal f0, Scal f1) {
   return (x0 * f1 - x1 * f0) / (f1 - f0);
 }
 
-// cl0: color to filter
-// nr: normal
+/// Returns polygon with `fncl >= 0`
+// cl: color to select
 std::vector<Vect> GetPoly(
-    const FieldNode<Scal>& fncl, const Scal cl0, const IdxFace f, const M& m) {
+    const FieldNode<Scal>& fncl, const Scal cl, const IdxFace f, const M& m) {
   const size_t em = m.GetNumNodes(f);
   std::vector<Vect> xx;
   for (size_t e = 0; e < em; ++e) {
     const size_t ep = (e + 1) % em;
     const IdxNode n = m.GetNode(f, e);
     const IdxNode np = m.GetNode(f, ep);
-    const Scal l = (fncl[n] == cl0 ? 1 : -1);
-    const Scal lp = (fncl[np] == cl0 ? 1 : -1);
+    const Scal l = (fncl[n] == cl ? 1 : -1);
+    const Scal lp = (fncl[np] == cl ? 1 : -1);
     const Vect x = m.GetNode(n);
     const Vect xp = m.GetNode(np);
     if (l > 0) {
@@ -156,24 +156,26 @@ std::vector<Vect> GetPoly(
   return xx;
 }
 
-// cl0: color to filter
+// Returns normal of component with color cl.
+// cl: color to select
 // nr: normal
 Vect GetNormal(
-    const FieldNode<Scal>& fncl, const Scal cl0, const IdxCell c, const M& m) {
+    const FieldNode<Scal>& fncl, const Scal cl, const IdxCell c, const M& m) {
   Vect n(0);
   for (auto q : m.Nci(c)) {
     const IdxFace f = m.GetFace(c, q);
-    const auto xx = GetPoly(fncl, cl0, f, m);
+    const auto xx = GetPoly(fncl, cl, f, m);
     const Scal area = std::abs(R::GetArea(xx, m.GetNormal(f)));
     n += m.GetNormal(f) * area * m.GetOutwardFactor(c, q);
   }
   return -n / n.norm();
 }
 
-// cl0: color to filter
+// Returns line constant of component with color cl.
+// cl: color to select
 // nr: normal
 Scal GetAlpha(
-    const FieldNode<Scal>& fncl, const Scal cl0, const IdxCell c, const Vect nr,
+    const FieldNode<Scal>& fncl, const Scal cl, const IdxCell c, const Vect nr,
     const M& m) {
   Scal a = 0;
   Scal aw = 0;
@@ -184,8 +186,8 @@ Scal GetAlpha(
       const size_t ep = (e + 1) % em;
       const IdxNode n = m.GetNode(f, e);
       const IdxNode np = m.GetNode(f, ep);
-      const Scal l = (fncl[n] == cl0 ? 1 : -1);
-      const Scal lp = (fncl[np] == cl0 ? 1 : -1);
+      const Scal l = (fncl[n] == cl ? 1 : -1);
+      const Scal lp = (fncl[np] == cl ? 1 : -1);
       const Vect x = m.GetNode(n);
       const Vect xp = m.GetNode(np);
 
@@ -275,7 +277,9 @@ void ReadColorPlain(
   MIdx qsize;
   ReadPlain(path, qfccl, qsize);
   GIndex<IdxCell, M::dim> qbc(qsize);
-  std::cout << "qsize=" << qbc.GetSize() << std::endl;
+  if (m.IsRoot()) {
+    std::cout << "Read field of size " << qbc.GetSize() << std::endl;
+  }
   auto& bn = m.GetIndexNodes();
   const MIdx size = m.GetGlobalSize() + MIdx(1);
   for (auto n : m.Nodes()) {
@@ -474,22 +478,37 @@ void Run(M& m, Vars& var) {
 
 int main(int argc, const char** argv) {
   ArgumentParser parser("Constrained mean curvature flow");
-  parser.AddVariable<std::string>("path", "a.conf").Help("Path to config file");
-  auto args = parser.ParseArgs(argc, argv);
+  parser.AddVariable<std::string>("config").Help("Path to config file");
+  parser.AddVariable<int>("--nx", 16).Help("Mesh size in x-direction");
+  parser.AddVariable<std::string>("--extra", "")
+      .Help("Extra configuration (commands 'set ... ')");
+  parser.AddVariable<int>("--ny", 0).Help(
+      "Mesh size in y-direction. Defaults to NX");
+  parser.AddVariable<int>("--bs", 16).Help("Block size in all directions");
+  const auto args = parser.ParseArgs(argc, argv);
   if (const int* p = args.Int.Find("EXIT")) {
     return *p;
   }
 
-  auto path = args.String["path"];
-  std::ifstream fconf(path);
+  const auto confpath = args.String["config"];
+  std::ifstream fconf(confpath);
 
   if (!fconf.good()) {
-    throw std::runtime_error("Can't open config '" + path + "'");
+    throw std::runtime_error("Can't open config '" + confpath + "'");
   }
 
   std::stringstream conf;
   conf << fconf.rdbuf();
 
+  const int nx = args.Int["nx"];
+  const int ny = args.Int["ny"];
+  const MIdx mesh_size(nx, ny ? ny : nx, 1);
+  const MIdx block_size(args.Int["bs"], args.Int["bs"], 1);
+
   MpiWrapper mpi(&argc, &argv);
+  Subdomains<MIdx> sub(mesh_size, block_size, mpi.GetCommSize());
+  conf << sub.GetConfig() << '\n';
+  conf << args.String["extra"] << '\n';
+
   return RunMpiBasicString<M>(mpi, Run, conf.str());
 }

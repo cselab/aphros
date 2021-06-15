@@ -1,11 +1,6 @@
-set -eu
+#!/bin/sh -eu
+
 make
 ./clean
-
-#echo 1 > np
-#echo "" > add.conf
-
-echo 1 > np
-echo "" > add.conf
 
 ap.run ./main voronoi.conf
