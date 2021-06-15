@@ -1,10 +1,11 @@
 #!/bin/sh -eu
 
-for d in rho* ; do
+for d in rho*/ ; do
   echo $d
-  for f in $d/*.png ; do
-    full=$(echo "$f" | tr '/' '_')
-    echo $full
-    ln -v -s $f $full
+  for f in $d*.png ; do
+    link=$(echo "$f" | tr '/' '_')
+    if [ -f "$f" ] && ! [ -f "$link" ] ; then
+      ln -v -s "$f" "$link"
+    fi
   done
 done
