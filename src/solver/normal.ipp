@@ -425,7 +425,7 @@ struct UNormal<M_>::Imp {
         return u[ss - offset[dy]] + u[ss] + u[ss + offset[dy]];
       };
 
-      Vect2 n;
+      Vect2 n(0);
       n[dx] = hh(offset[dx]) - hh(-offset[dx]);
       n[dy] = (u[offset[dy]] - u[-offset[dy]] > 0 ? 2 : -2);
       n /= -n.norm1();

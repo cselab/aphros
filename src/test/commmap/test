@@ -16,7 +16,7 @@ class Test(aphros.TestBase):
 
     def run(self, case):
         if case == "main":
-            self.runcmd("./t.commmap > out 2>&1")
+            self.runcmd("./t.commmap > out")
             return ["out"]
         elif case == "manager":
             np = 2

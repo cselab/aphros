@@ -41,7 +41,7 @@ void Run(M& m, Vars&) {
     t.comm_map.ConvertSystem(t.fc_system, m);
   }
   if (sem.Nested()) {
-    t.comm_map.PrintStat(m);
+    t.comm_map.PrintStat(m, std::cout);
   }
 }
 

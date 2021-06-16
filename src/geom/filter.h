@@ -9,8 +9,8 @@
 template <class Range>
 class FilterIterator {
  public:
-  using Iterator = decltype(((const Range*)0)->begin());
-  using Value = decltype(**((Iterator*)0));
+  using Iterator = decltype(((const Range*)1)->begin());
+  using Value = decltype(**((Iterator*)1));
   using Func = std::function<bool(Value)>;
 
   class iterator {

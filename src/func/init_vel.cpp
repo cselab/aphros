@@ -83,9 +83,28 @@ class Couette : public ModuleInitVelocity<M> {
   }
 };
 
+template <class M>
+class SingleVortex : public ModuleInitVelocity<M> {
+ public:
+  using Vect = typename M::Vect;
+  SingleVortex() : ModuleInitVelocity<M>("single_vortex") {}
+  void operator()(FieldCell<Vect>& fcv, const Vars&, const M& m) override {
+    using Scal = typename M::Scal;
+    for (auto c : m.AllCellsM()) {
+      const Scal x = c.center[0] * M_PI;
+      const Scal y = c.center[1] * M_PI;
+      Scal& u = fcv[c][0];
+      Scal& v = fcv[c][1];
+      u = std::sin(x) * std::cos(y);
+      v = -std::cos(x) * std::sin(y);
+    }
+  }
+};
+
 #define XX(M)                                                             \
   RegisterModule<TaylorGreen<M>>(), RegisterModule<KelvinHelmholtz<M>>(), \
-      RegisterModule<Uniform<M>>(), RegisterModule<Couette<M>>(),
+      RegisterModule<Uniform<M>>(), RegisterModule<Couette<M>>(),         \
+      RegisterModule<SingleVortex<M>>(),
 
 #define COMMA ,
 #define X(dim) XX(MeshCartesian<double COMMA dim>)

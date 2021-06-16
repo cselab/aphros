@@ -2,6 +2,11 @@
 
 log=run.log
 
+ev () {
+  echo "$@" | tee -a "$log"
+  eval "$@ 2>&1" >> "$log"
+}
+
 run () {
   nx=$1
   shift
@@ -10,9 +15,8 @@ run () {
     echo "skip existing $dir"
     return
   fi
-  cmd="make nx=$nx "$@" cleanrun"
-  echo "$cmd" | tee -a "$log"
-  eval "$cmd" 2>&1 >> "$log"
+  ev "make nx=$nx "$@" cleanrun"
+  ev "mkdir -p $dir && rsync -a {gen,{s,sm}_*.vtk,std.conf,out,out.conf,stat.dat} $dir/"
 }
 
 run 32 bsx=32

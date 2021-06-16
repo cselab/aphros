@@ -154,7 +154,7 @@ void DistrMesh<M>::Reduce(const std::vector<size_t>& bb) {
 }
 
 template <class M>
-void DistrMesh<M>::ReduceShared(const std::vector<size_t>& bb) {
+void DistrMesh<M>::ReduceShared(const std::vector<size_t>&) {
   const size_t nreqs = mshared_->GetReduce().size();
   if (!nreqs) {
     return;

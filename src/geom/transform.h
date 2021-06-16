@@ -9,8 +9,8 @@
 template <class Value, class Range>
 class TransformIterator {
  public:
-  using Iterator = decltype(((const Range*)0)->begin());
-  using IterVal = decltype(**((Iterator*)0));
+  using Iterator = decltype(((const Range*)1)->begin());
+  using IterVal = decltype(**((Iterator*)1));
   using Func = std::function<Value(IterVal)>;
 
   class iterator {

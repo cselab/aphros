@@ -8,18 +8,10 @@ hook = hook/build/libhook.so
 
 include $(shell ap.makesim)
 
-conf: $(hook) b.dat export
+conf: $(hook) b.dat
 
 $(hook): hook
 	make -C hook
-
-export:
-	d=nx`printf %03d $(nx)` ; \
-	echo "mkdir -p $$d && rsync -a {gen,sm_*.vtk,std.conf,out,out.conf,stat.dat} $$d/" > $@
-	@chmod +x $@
-	cat $@
-
-.PHONY: export
 
 b.dat: gen
 	./$<

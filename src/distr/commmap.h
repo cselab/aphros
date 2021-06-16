@@ -568,7 +568,7 @@ class CommMap {
       }
     }
   }
-  void PrintStat(M& m) const {
+  void PrintStat(M& m, std::ostream& outstream) const {
     auto sem = m.GetSem(__func__);
     struct {
       FieldCell<int> fc_nci;
@@ -589,17 +589,17 @@ class CommMap {
       }
     }
     if (sem.Nested()) {
-      PrintField(std::cerr, s.fc_rank, m, "{:2g}");
+      PrintField(outstream, s.fc_rank, m, "{:2g}");
     }
     if (sem.Nested()) {
-      PrintField(std::cerr, s.fc_col, m, "{:3g}");
+      PrintField(outstream, s.fc_col, m, "{:3g}");
     }
     if (sem.Nested()) {
-      PrintField(std::cerr, t.fc_nci, m, " {:06d}");
+      PrintField(outstream, t.fc_nci, m, " {:06d}");
     }
     if (sem() && m.IsLead()) {
       auto& system = GetSystem();
-      StreamMpi out(std::cerr, comm);
+      StreamMpi out(outstream, comm);
       out << "\nrank=" << rank;
       for (const auto& p : system.send) {
         out << "\nsend to rank " << p.first;
@@ -627,6 +627,9 @@ class CommMap {
       out << "\nsystem.recv_sizes";
       out << "\n" << system.recv_sizes;
     }
+  }
+  void PrintStat(M& m) const {
+    PrintStat(m, std::cerr);
   }
   // Copies field to a flat array.
   void FieldToArray(const FieldCell<Scal>& fcu, Scal* buf) const {
