@@ -1,1 +1,1 @@
-rm -f *.{xmf,h5,csv,vtk}
+rm -f *.{xmf,h5,csv,vtk,raw}

@@ -36,9 +36,9 @@ void InitVfList(
   if (pp.empty()) {
     fc.Reinit(m, 0.);
   } else {
-    auto lsmax = [&pp](Vect x) -> std::pair<Scal, size_t> {
+    auto lsmax0 = [&pp](Vect x) -> std::pair<Scal, size_t> {
       Scal lmax = -std::numeric_limits<Scal>::max(); // maximum level-set
-      size_t imax = 0; // index of maximum
+      size_t imax0 = 0; // index of maximum
       for (size_t i = 0; i < pp.size(); ++i) {
         auto& p = pp[i];
         Scal li = p.ls(x);
@@ -50,27 +50,27 @@ void InitVfList(
         } else {
           if (li > lmax) {
             lmax = li;
-            imax = i;
+            imax0 = i;
           }
         }
       }
-      return {lmax, imax};
+      return {lmax, imax0};
     };
     if (approx == 0) { // stepwise
       for (auto c : m.Cells()) {
-        fc[c] = (lsmax(m.GetCenter(c)).first >= 0 ? 1 : 0);
+        fc[c] = (lsmax0(m.GetCenter(c)).first >= 0 ? 1 : 0);
       }
     } else if (approx == 1) { // level set
       for (auto c : m.Cells()) {
         const auto x = m.GetCenter(c);
-        const auto& p = pp[lsmax(x).second];
+        const auto& p = pp[lsmax0(x).second];
         fc[c] = GetLevelSetVolume<Scal>(p.ls, x, h);
       }
     } else if (approx == 2) { // overlap
 #if USEFLAG(OVERLAP)
       for (auto c : m.Cells()) {
         const auto x = m.GetCenter(c);
-        const auto& p = pp[lsmax(m.GetCenter(c)).second];
+        const auto& p = pp[lsmax0(m.GetCenter(c)).second];
         Vect qx = (x - p.c) / p.r;
         Vect qh = h / p.r;
         if (edim == 2 && M::dim == 3) {
@@ -86,7 +86,7 @@ void InitVfList(
     } else if (approx == 3) { // level-set on nodes
       FieldNode<Scal> fnl(m);
       for (auto n : m.Nodes()) {
-        fnl[n] = lsmax(m.GetNode(n)).first;
+        fnl[n] = lsmax0(m.GetNode(n)).first;
       }
       fc = GetPositiveVolumeFraction(fnl, m);
     } else {
@@ -106,6 +106,8 @@ void InitOverlappingComponents(
   constexpr Scal kClNone = -1; // no color
   const std::vector<Primitive> primitives =
       UPrimList<Vect>::GetPrimitives(primlist, m.flags.edim);
+  fassert_equal(fcu.size(), layers.size());
+  fassert_equal(fccl.size(), layers.size());
   for (auto l : layers) {
     fcu[l]->Reinit(m, 0);
     fccl[l]->Reinit(m, kClNone);
@@ -113,67 +115,69 @@ void InitOverlappingComponents(
   const auto h = m.GetCellSize();
   for (auto c : m.AllCellsM()) {
     const size_t none = -1;
-    size_t imax = none; // primitive with largest levelset in c
-    size_t imax2 = none; // primitive with second largest levelset in c
-    Scal lsmax = -std::numeric_limits<Scal>::max();
-    Scal lsmax2 = -std::numeric_limits<Scal>::max();
+    size_t imax0 = none; // primitive with largest levelset in c
+    size_t imax1 = none; // primitive with second largest levelset in c
+    Scal lsmax0 = -std::numeric_limits<Scal>::max();
+    Scal lsmax1 = -std::numeric_limits<Scal>::max();
     for (size_t i = 0; i < primitives.size(); ++i) {
       const Scal ls = primitives[i].ls(c.center);
-      if (ls > lsmax) {
-        imax = i;
-        lsmax = ls;
+      if (ls > lsmax0) {
+        imax0 = i;
+        lsmax0 = ls;
       }
     }
     for (size_t i = 0; i < primitives.size(); ++i) {
       const Scal ls = primitives[i].ls(c.center);
-      if (ls > lsmax2 && i != imax) {
-        imax2 = i;
-        lsmax2 = ls;
+      if (ls > lsmax1 && i != imax0) {
+        imax1 = i;
+        lsmax1 = ls;
       }
     }
-    const Scal umax =
-        (imax == none ? 0
-                      : GetLevelSetVolume<Scal, M::dim>(
-                            primitives[imax].ls, c.center, h));
-    const Scal umax2 =
-        (imax2 == none ? 0
+    fassert(imax0 != none);
+    const Scal umax0 =
+        (imax0 == none ? 0
                        : GetLevelSetVolume<Scal, M::dim>(
-                             primitives[imax2].ls, c.center, h));
-    if (umax + umax2 >= 1) { // two or more positive level-sets
-      auto f = [&](const Vect& x) -> Scal {
-        return primitives[imax].ls(x) - primitives[imax2].ls(x);
+                             primitives[imax0].ls, c.center, h));
+    const Scal umax1 =
+        (imax1 == none ? 0
+                       : GetLevelSetVolume<Scal, M::dim>(
+                             primitives[imax1].ls, c.center, h));
+    if (imax1 == none) {
+      (*fccl[0])[c] = imax0;
+      (*fcu[0])[c] = umax0;
+    } else if (umax0 + umax1 >= 1) { // two or more positive level-sets
+      auto f0 = [&](const Vect& x) -> Scal {
+        return primitives[imax0].ls(x) - primitives[imax1].ls(x);
       };
-      auto f2 = [&](const Vect& x) -> Scal {
-        return primitives[imax2].ls(x) - primitives[imax].ls(x);
+      auto f1 = [&](const Vect& x) -> Scal {
+        return primitives[imax1].ls(x) - primitives[imax0].ls(x);
       };
-      const Scal u = GetLevelSetVolume<Scal, M::dim>(f, c.center, h);
-      const Scal u2 = GetLevelSetVolume<Scal, M::dim>(f2, c.center, h);
-      if (u > 0) {
+      const Scal u0 = GetLevelSetVolume<Scal, M::dim>(f0, c.center, h);
+      const Scal u1 = GetLevelSetVolume<Scal, M::dim>(f1, c.center, h);
+      if (u0 > 0) {
         for (auto l : layers) {
           if ((*fccl[l])[c] == kClNone) {
-            (*fccl[l])[c] = imax;
-            (*fcu[l])[c] = u;
+            (*fccl[l])[c] = imax0;
+            (*fcu[l])[c] = u0;
             break;
           }
         }
       }
-      if (u2 > 0) {
+      if (u1 > 0) {
         for (auto l : layers) {
           if ((*fccl[l])[c] == kClNone) {
-            (*fccl[l])[c] = imax2;
-            (*fcu[l])[c] = u2;
+            (*fccl[l])[c] = imax1;
+            (*fcu[l])[c] = u1;
             break;
           }
         }
       }
-    } else if (umax > 0) {
-      (*fccl[0])[c] = imax;
-      (*fcu[0])[c] =
-          GetLevelSetVolume<Scal, M::dim>(primitives[imax].ls, c.center, h);
-    } else if (umax2 > 0) {
-      (*fccl[0])[c] = imax2;
-      (*fcu[0])[c] =
-          GetLevelSetVolume<Scal, M::dim>(primitives[imax2].ls, c.center, h);
+    } else if (umax0 > 0) {
+      (*fccl[0])[c] = imax0;
+      (*fcu[0])[c] = umax0;
+    } else if (umax1 > 0) {
+      (*fccl[0])[c] = imax1;
+      (*fcu[0])[c] = umax1;
     }
   }
 }

@@ -3,6 +3,7 @@
 *.vtk
 *.vts
 *.pvd
+*.raw
 arg
 job.id
 job.status
