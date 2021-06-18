@@ -107,6 +107,115 @@ void CalcMeanCurvatureFlowFlux(
   }
 }
 
+struct TrajEntry {
+  Scal volume = 0;
+  Vect center{Vect(0)};
+};
+
+// Returns trajectory entries for components of selected colors.
+// colors: colors to select
+//
+// Returns:
+// array of trajectory entries for each color in `colors`
+void CalcTraj(
+    const Vofm<M>::Plic& plic, const std::vector<Scal>& colors, M& m,
+    /*out*/
+    std::vector<TrajEntry>& entries) {
+  auto sem = m.GetSem();
+  struct {
+    std::map<Scal, TrajEntry> map;
+  } * ctx(sem);
+  auto& t = *ctx;
+  if (sem()) {
+    // Create empty entries for all colors
+    for (auto l : plic.layers) {
+      for (auto c : m.Cells()) {
+        const auto cl = (*plic.vfccl[l])[c];
+        if (cl != kClNone) {
+          t.map[cl];
+        }
+      }
+    }
+    for (auto l : plic.layers) {
+      for (auto c : m.CellsM()) {
+        const auto cl = (*plic.vfccl[l])[c];
+        if (cl != kClNone) {
+          auto& entry = t.map.at(cl);
+          entry.volume += (*plic.vfcu[l])[c] * c.volume();
+          entry.center += (*plic.vfcu[l])[c] * c.volume() * c.center();
+        }
+      }
+    }
+    entries.resize(colors.size());
+    for (size_t i = 0; i < colors.size(); ++i) {
+      auto it = t.map.find(colors[i]);
+      if (it != t.map.end()) {
+        entries[i] = it->second;
+      }
+      m.Reduce(&entries[i].volume, Reduction::sum);
+    }
+  }
+  if (sem()) {
+    for (auto& entry : entries) {
+      if (entry.volume > 0) {
+        entry.center /= entry.volume;
+      }
+    }
+  }
+}
+
+void WriteTrajHeader(std::ostream& out, size_t num_colors) {
+  bool first = true;
+  auto delim = [&]() {
+    if (first) {
+      first = false;
+    } else {
+      out << ' ';
+    }
+  };
+  delim();
+  out << "t";
+  delim();
+  out << "frame";
+  for (auto field : {"x", "y", "volume"}) {
+    for (size_t i = 0; i < num_colors; ++i) {
+      delim();
+      out << util::Format("{:}_{:}", field, i);
+    }
+  }
+  out << '\n';
+}
+
+void WriteTrajEntry(
+    std::ostream& out, Scal time, size_t frame,
+    const std::vector<TrajEntry>& entries) {
+  bool first = true;
+  auto delim = [&]() {
+    if (first) {
+      first = false;
+    } else {
+      out << ' ';
+    }
+  };
+  delim();
+  out << time;
+  delim();
+  out << frame;
+  for (auto& entry : entries) {
+    delim();
+    out << entry.center[0];
+  }
+  for (auto& entry : entries) {
+    delim();
+    out << entry.center[1];
+  }
+  for (auto& entry : entries) {
+    delim();
+    out << entry.volume;
+  }
+  out << '\n';
+}
+
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
   struct {
@@ -125,6 +234,11 @@ void Run(M& m, Vars& var) {
     size_t frame = 0;
     std::unique_ptr<Dumper> dumper;
     std::shared_ptr<linear::Solver<M>> linsolver;
+    // `traj[frame][cl]` is trajectory entry of component with color `cl`
+    std::vector<std::vector<TrajEntry>> traj;
+    std::ofstream trajfile;
+    bool dumptraj;
+    size_t dumptraj_colors;
   } * ctx(sem);
   auto& layers = ctx->layers;
   auto& t = *ctx;
@@ -138,6 +252,8 @@ void Run(M& m, Vars& var) {
     t.dumper = std::make_unique<Dumper>(var, "dump_");
     t.fc_src.Reinit(m, 0);
     t.fe_flux.Reinit(m, 0);
+    t.dumptraj = var.Int["dumptraj"];
+    t.dumptraj_colors = var.Int["dumptraj_colors"];
 
     t.linsolver = ULinear<M>::MakeLinearSolver(var, "symm", m);
 
@@ -156,6 +272,8 @@ void Run(M& m, Vars& var) {
     p.sharpen_cfl = var.Double["sharpen_cfl"];
     p.extrapolate_boundaries = var.Int["extrapolate_boundaries"];
     p.layers = var.Int["vofm_layers"];
+    p.clipth = var.Double["clipth"];
+    p.filterth = var.Double["filterth"];
     layers = GRange<size_t>(p.layers);
 
     Multi<FieldCell<Scal>> fccl(layers); // initial color
@@ -164,12 +282,16 @@ void Run(M& m, Vars& var) {
     InitOverlappingComponents(buf, fcu, fccl, layers, m);
     as.reset(new Vofm<M>(
         m, m, fcu, fccl, ctx->mebc_adv, &t.fe_flux, &t.fc_src, 0, t.dt, p));
-
     auto mod = [var](auto& fcu, auto& fccl, auto layers, auto& m) {
       auto buf = ReadPrimList(var.String["list_path"], m.IsRoot());
       InitOverlappingComponents(buf, fcu, fccl, layers, m);
     };
     as->AddModifier(mod);
+
+    if (t.dumptraj && m.IsRoot()) {
+      t.trajfile.open("traj.dat");
+      WriteTrajHeader(t.trajfile, t.dumptraj_colors);
+    }
 
     t.fck.Reinit(layers, m, 0);
     t.psm_par.dump_fr = 1;
@@ -224,6 +346,23 @@ void Run(M& m, Vars& var) {
   if (sem.Nested() && var.Int["dumppart"] && dump) {
     t.psm->DumpParticles(
         as->GetAlpha(), as->GetNormal(), t.frame, as->GetTime());
+  }
+  if (t.dumptraj) {
+    if (sem() && dump) {
+      t.traj.emplace_back();
+    }
+    if (sem.Nested() && dump) {
+      const auto plic = as->GetPlic();
+      std::vector<Scal> colors(t.dumptraj_colors);
+      std::iota(colors.begin(), colors.end(), 0);
+      CalcTraj(plic, colors, m, t.traj.back());
+    }
+    if (sem() && dump) {
+      if (m.IsRoot()) {
+        WriteTrajEntry(t.trajfile, as->GetTime(), t.frame, t.traj.back());
+        t.trajfile.flush();
+      }
+    }
   }
   if (sem("checkloop")) {
     if (dump) {

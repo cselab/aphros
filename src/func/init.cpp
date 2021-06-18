@@ -113,44 +113,72 @@ void InitOverlappingComponents(
     fccl[l]->Reinit(m, kClNone);
   }
   const auto h = m.GetCellSize();
+  auto levelset = [&](size_t i, Vect x) {
+    auto& p = primitives[i];
+    return p.ls(x) * (p.mod_minus ? -1 : 1);
+  };
   for (auto c : m.AllCellsM()) {
     const size_t none = -1;
     size_t imax0 = none; // primitive with largest levelset in c
     size_t imax1 = none; // primitive with second largest levelset in c
     Scal lsmax0 = -std::numeric_limits<Scal>::max();
     Scal lsmax1 = -std::numeric_limits<Scal>::max();
+    Vect image0(0); // image vector for periodic conditions
+    Vect image1(0); // image vector for periodic conditions
+
+    const auto wimages = [&]() { //
+      using MIdx = generic::MIdx<M::dim>;
+      MIdx begin(0);
+      MIdx size(1);
+      for (auto d : m.dirs) {
+        if (m.flags.is_periodic[d]) {
+          begin[d] = -1;
+          size[d] = 3;
+        }
+      }
+      return GBlock<int, M::dim>{begin, size};
+    }();
+
     for (size_t i = 0; i < primitives.size(); ++i) {
-      const Scal ls = primitives[i].ls(c.center);
-      if (ls > lsmax0) {
-        imax0 = i;
-        lsmax0 = ls;
+      for (auto wimage : wimages) {
+        const Vect image = Vect(wimage) * m.GetGlobalLength();
+        const Scal ls = levelset(i, c.center() + image);
+        if (ls > lsmax0) {
+          imax0 = i;
+          lsmax0 = ls;
+          image0 = image;
+        }
       }
     }
     for (size_t i = 0; i < primitives.size(); ++i) {
-      const Scal ls = primitives[i].ls(c.center);
-      if (ls > lsmax1 && i != imax0) {
-        imax1 = i;
-        lsmax1 = ls;
+      for (auto wimage : wimages) {
+        const Vect image = Vect(wimage) * m.GetGlobalLength();
+        const Scal ls = levelset(i, c.center() + image);
+        if (ls > lsmax1 && i != imax0) {
+          imax1 = i;
+          lsmax1 = ls;
+          image1 = image;
+        }
       }
     }
     fassert(imax0 != none);
     const Scal umax0 =
         (imax0 == none ? 0
                        : GetLevelSetVolume<Scal, M::dim>(
-                             primitives[imax0].ls, c.center, h));
+                             primitives[imax0].ls, c.center() + image0, h));
     const Scal umax1 =
         (imax1 == none ? 0
                        : GetLevelSetVolume<Scal, M::dim>(
-                             primitives[imax1].ls, c.center, h));
+                             primitives[imax1].ls, c.center() + image1, h));
     if (imax1 == none) {
       (*fccl[0])[c] = imax0;
       (*fcu[0])[c] = umax0;
     } else if (umax0 + umax1 >= 1) { // two or more positive level-sets
       auto f0 = [&](const Vect& x) -> Scal {
-        return primitives[imax0].ls(x) - primitives[imax1].ls(x);
+        return levelset(imax0, x + image0) - levelset(imax1, x + image1);
       };
       auto f1 = [&](const Vect& x) -> Scal {
-        return primitives[imax1].ls(x) - primitives[imax0].ls(x);
+        return levelset(imax1, x + image1) - levelset(imax0, x + image0);
       };
       const Scal u0 = GetLevelSetVolume<Scal, M::dim>(f0, c.center, h);
       const Scal u1 = GetLevelSetVolume<Scal, M::dim>(f1, c.center, h);
