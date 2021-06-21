@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+
+import aphros
+import numpy as np
+
+# radius of circle
+R = 0.3
+
+# radius of circles to construct Voronoi diagram
+Rinf = 100
+
+vf = aphros.Geometry()
+
+N = 5
+
+phase = np.pi / N
+
+vf.Sphere([0.5, 0.5, 0], [R] * 3, intersect=True)
+
+shift = 1e-3
+shift = 1e-3
+
+for i in range(N):
+    alpha = i * np.pi * 2 / N + phase
+    dx = np.cos(alpha) + shift
+    dy = np.sin(alpha) + shift
+    vf.Sphere([0.5 + dx, 0.5 + dy, 0], [Rinf] * 3)
+
+vf.GenerateFile("b.dat")

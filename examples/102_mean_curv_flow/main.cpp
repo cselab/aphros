@@ -86,6 +86,7 @@ void CalcMeanCurvatureFlowFlux(
   if (divfree && sem.Nested("proj")) {
     ProjectVolumeFlux(ff_flux, mebc, linsolver, m);
   }
+
   if (voidpenal && sem("void-penal")) {
     for (auto f : m.Faces()) {
       const IdxCell cm = m.GetCell(f, 0);
@@ -216,10 +217,35 @@ void WriteTrajEntry(
   out << '\n';
 }
 
+
+Scal GetTimeStep(M& m, Vars& var) {
+  const Scal cflst = var.Double["cflst"];
+  const Scal gamma = var.Double["gamma"];
+  const Scal h3 = std::pow(m.GetCellSize()[0], 3);
+  return cflst * std::sqrt(h3 / (4. * M_PI * std::abs(gamma)));
+}
+
+template <class M>
+void SetZeroBoundaryFlux(FieldFace<Scal>& fcu, const M& m) {
+  for (auto fb : m.Faces()) {
+    size_t nci;
+    if (m.IsBoundary(fb, nci)) {
+      const IdxCell c = m.GetCell(fb, nci);
+      for (auto q : m.Nci(c)) {
+        const IdxFace f = m.GetFace(c, q);
+        fcu[f] = 0;
+      }
+    }
+  }
+}
+
+
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
   struct {
     std::unique_ptr<Vofm<M>> as; // advection solver
+    Multi<FieldCell<Scal>> fcu0; // initial volume fraction
+    Multi<FieldCell<Scal>> fccl0; // initial color
     FieldCell<Scal> fc_src; // volume source
     FieldEmbed<Scal> fe_flux; // volume flux
     FieldCell<Vect> fc_vel; // velocity
@@ -246,8 +272,6 @@ void Run(M& m, Vars& var) {
   auto& as = ctx->as;
   const Scal tmax = var.Double["tmax"];
   const Scal dtmax = var.Double["dtmax"];
-  const Scal cfl = var.Double["cfl"];
-
   if (sem("init")) {
     t.dumper = std::make_unique<Dumper>(var, "dump_");
     t.fc_src.Reinit(m, 0);
@@ -275,16 +299,18 @@ void Run(M& m, Vars& var) {
     p.clipth = var.Double["clipth"];
     p.filterth = var.Double["filterth"];
     layers = GRange<size_t>(p.layers);
+    t.fcu0.resize(layers);
+    t.fccl0.resize(layers);
 
-    Multi<FieldCell<Scal>> fccl(layers); // initial color
-    Multi<FieldCell<Scal>> fcu(layers); // initial volume fraction
     auto buf = ReadPrimList(var.String["list_path"], m.IsRoot());
-    InitOverlappingComponents(buf, fcu, fccl, layers, m);
+    InitOverlappingComponents(buf, t.fcu0, t.fccl0, layers, m);
     as.reset(new Vofm<M>(
-        m, m, fcu, fccl, ctx->mebc_adv, &t.fe_flux, &t.fc_src, 0, t.dt, p));
-    auto mod = [var](auto& fcu, auto& fccl, auto layers, auto& m) {
-      auto buf = ReadPrimList(var.String["list_path"], m.IsRoot());
-      InitOverlappingComponents(buf, fcu, fccl, layers, m);
+        m, m, t.fcu0, t.fccl0, ctx->mebc_adv, &t.fe_flux, &t.fc_src, 0, t.dt, p));
+    auto mod = [&t](auto& fcu, auto& fccl, auto layers, auto&) {
+      for (auto l : layers) {
+        (*fcu[l]) = t.fcu0[l];
+        (*fccl[l]) = t.fccl0[l];
+      }
     };
     as->AddModifier(mod);
 
@@ -297,6 +323,10 @@ void Run(M& m, Vars& var) {
     t.psm_par.dump_fr = 1;
     t.psm_par.dim = 2;
     t.psm_par.ns = 2;
+
+    if (m.IsRoot()) {
+      std::cout << util::Format("meancurvflow dt={:}\n", GetTimeStep(m, var));
+    }
   }
   sem.LoopBegin();
   if (sem.Nested("start")) {
@@ -322,18 +352,36 @@ void Run(M& m, Vars& var) {
         t.linsolver, m);
   }
   if (sem("dt")) {
+    if (var.Int["anchored_boundaries"]) {
+      auto mod = [&t](auto& fcu, auto& fccl, auto layers, auto& m) {
+        for (auto fb : m.Faces()) {
+          size_t nci;
+          if (m.IsBoundary(fb, nci)) {
+            const IdxCell c = m.GetCell(fb, nci);
+            for (auto l : layers) {
+              (*fcu[l])[c] = t.fcu0[l][c];
+              (*fccl[l])[c] = t.fccl0[l][c];
+            }
+          }
+        }
+      };
+      as->AddModifier(mod);
+    }
     Scal maxv = 0;
     for (auto f : m.Faces()) {
       maxv = std::max(maxv, std::abs(t.fe_flux[f]));
     }
+    const Scal cfl = var.Double["cfl"];
     t.dt = cfl * m.GetCellSize().prod() / maxv;
+    t.dt = std::min(t.dt, GetTimeStep(m, var));
     m.Reduce(&t.dt, "min");
   }
   if (sem("mindt")) {
     t.dt = std::min(t.dt, dtmax);
     as->SetTimeStep(t.dt);
-    if (m.IsRoot()) {
-      std::cout << "t=" << as->GetTime() << " dt=" << t.dt << std::endl;
+    if (m.IsRoot() && t.step % var.Int["report_every"] == 0) {
+      std::cout << util::Format(
+          "step={:} t={:} dt={:}\n", t.step, as->GetTime(), t.dt);
     }
   }
   const bool dump = t.dumper->Try(as->GetTime(), as->GetTimeStep());
@@ -365,7 +413,7 @@ void Run(M& m, Vars& var) {
     }
   }
   if (sem("checkloop")) {
-    if (dump) {
+    if (var.Int["dumpfields"] && dump) {
       ++t.frame;
 
       t.fc_vel.Reinit(m, Vect(0));
@@ -377,6 +425,10 @@ void Run(M& m, Vars& var) {
       }
       m.Dump(&t.fc_vel, 0, "vx");
       m.Dump(&t.fc_vel, 1, "vy");
+      for (auto l : layers) {
+        m.Dump(as->GetPlic().vfcu[l], "u" + std::to_string(l));
+        m.Dump(as->GetPlic().vfccl[l], "cl" + std::to_string(l));
+      }
     }
     if (as->GetTime() >= tmax) {
       sem.LoopBreak();
