@@ -54,31 +54,52 @@ void CalcMeanCurvatureFlowFlux(
     for (auto f : m.Faces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
+      Scal um_sum = 0;
+      Scal up_sum = 0;
       std::set<Scal> s;
-      for (auto i : layers) {
-        Scal clm = (*fccl[i])[cm];
-        Scal clp = (*fccl[i])[cp];
-        if (clm != kClNone) s.insert(clm);
-        if (clp != kClNone) s.insert(clp);
+      for (auto l : layers) {
+        const Scal clm = (*fccl[l])[cm];
+        const Scal clp = (*fccl[l])[cp];
+        if (clm != kClNone) {
+          s.insert(clm);
+          um_sum += (*fcu[l])[cm];
+        }
+        if (clp != kClNone) {
+          s.insert(clp);
+          up_sum += (*fcu[l])[cp];
+        }
       }
+      um_sum = std::min(1., um_sum);
+      up_sum = std::min(1., up_sum);
       for (auto cl : s) {
         Scal um = 0;
         Scal up = 0;
-        Scal km = 0;
-        Scal kp = 0;
-        for (auto i : layers) {
-          if ((*fccl[i])[cm] == cl) {
-            um = (*fcu[i])[cm];
-            km = (*fck[i])[cm];
+        Scal km = GetNan<Scal>();
+        Scal kp = GetNan<Scal>();
+        Vect nm(0);
+        Vect np(0);
+        for (auto l : layers) {
+          if ((*fccl[l])[cm] == cl) {
+            um = (*fcu[l])[cm];
+            km = (*fck[l])[cm];
+            nm = (*fcn[l])[cm];
           }
-          if ((*fccl[i])[cp] == cl) {
-            up = (*fcu[i])[cp];
-            kp = (*fck[i])[cp];
+          if ((*fccl[l])[cp] == cl) {
+            up = (*fcu[l])[cp];
+            kp = (*fck[l])[cp];
+            np = (*fcn[l])[cp];
           }
         }
         if (!IsNan(km) || !IsNan(kp)) {
-          const Scal k = (IsNan(km) ? kp : IsNan(kp) ? km : (km + kp) * 0.5);
-          ff_flux[f] += (up - um) * k * m.GetArea(f) * gamma;
+          const Scal k = (std::abs(um - 0.5) < std::abs(up - 0.5) ? km : kp);
+          const Vect n = (std::abs(um - 0.5) < std::abs(up - 0.5) ? nm : np);
+          if (!IsNan(k) && !IsNan(n) && n.norm() > 0) {
+            ff_flux[f] -= n.dot(m.GetSurface(f)) * (k * gamma / n.norm());
+            if (std::abs(up_sum - um_sum) > 1e-2) {
+              ff_flux[f] +=
+                  n.dot(m.GetSurface(f)) * (voidpenal * gamma / n.norm());
+            }
+          }
         }
       }
     }
@@ -86,7 +107,7 @@ void CalcMeanCurvatureFlowFlux(
   if (divfree && sem.Nested("proj")) {
     ProjectVolumeFlux(ff_flux, mebc, linsolver, m);
   }
-
+  /*
   if (voidpenal && sem("void-penal")) {
     for (auto f : m.Faces()) {
       const IdxCell cm = m.GetCell(f, 0);
@@ -106,11 +127,14 @@ void CalcMeanCurvatureFlowFlux(
       ff_flux[f] += -(up - um) * voidpenal * m.GetArea(f);
     }
   }
+  */
 }
 
 struct TrajEntry {
   Scal volume = 0;
   Vect center{Vect(0)};
+  Scal k = 0; // average curvature
+  Scal cells_k = 0; // cells with defined curvature
 };
 
 // Returns trajectory entries for components of selected colors.
@@ -119,7 +143,8 @@ struct TrajEntry {
 // Returns:
 // array of trajectory entries for each color in `colors`
 void CalcTraj(
-    const Vofm<M>::Plic& plic, const std::vector<Scal>& colors, M& m,
+    const Vofm<M>::Plic& plic, const Multi<const FieldCell<Scal>*>& fck,
+    const std::vector<Scal>& colors, M& m,
     /*out*/
     std::vector<TrajEntry>& entries) {
   auto sem = m.GetSem();
@@ -144,9 +169,14 @@ void CalcTraj(
           auto& entry = t.map.at(cl);
           entry.volume += (*plic.vfcu[l])[c] * c.volume();
           entry.center += (*plic.vfcu[l])[c] * c.volume() * c.center();
+          if (!IsNan((*fck[l])[c])) {
+            entry.k += (*fck[l])[c];
+            entry.cells_k += 1;
+          }
         }
       }
     }
+    // Copy selected entries from map to array
     entries.resize(colors.size());
     for (size_t i = 0; i < colors.size(); ++i) {
       auto it = t.map.find(colors[i]);
@@ -154,12 +184,18 @@ void CalcTraj(
         entries[i] = it->second;
       }
       m.Reduce(&entries[i].volume, Reduction::sum);
+      for (auto d : M::dirs) {
+        m.Reduce(&entries[i].center[d], Reduction::sum);
+      }
+      m.Reduce(&entries[i].k, Reduction::sum);
+      m.Reduce(&entries[i].cells_k, Reduction::sum);
     }
   }
   if (sem()) {
     for (auto& entry : entries) {
       if (entry.volume > 0) {
         entry.center /= entry.volume;
+        entry.k /= entry.cells_k;
       }
     }
   }
@@ -178,7 +214,7 @@ void WriteTrajHeader(std::ostream& out, size_t num_colors) {
   out << "t";
   delim();
   out << "frame";
-  for (auto field : {"x", "y", "volume"}) {
+  for (auto field : {"x", "y", "volume", "k"}) {
     for (size_t i = 0; i < num_colors; ++i) {
       delim();
       out << util::Format("{:}_{:}", field, i);
@@ -214,9 +250,12 @@ void WriteTrajEntry(
     delim();
     out << entry.volume;
   }
+  for (auto& entry : entries) {
+    delim();
+    out << entry.k;
+  }
   out << '\n';
 }
-
 
 Scal GetTimeStep(M& m, Vars& var) {
   const Scal cflst = var.Double["cflst"];
@@ -239,7 +278,6 @@ void SetZeroBoundaryFlux(FieldFace<Scal>& fcu, const M& m) {
   }
 }
 
-
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem();
   struct {
@@ -250,6 +288,7 @@ void Run(M& m, Vars& var) {
     FieldEmbed<Scal> fe_flux; // volume flux
     FieldCell<Vect> fc_vel; // velocity
     Multi<FieldCell<Scal>> fck; // curvature
+    FieldCell<Scal> fck_single; // curvature from single layer
     MapEmbed<BCondFluid<Vect>> mebc_fluid; // face conditions
     MapEmbed<BCondAdvection<Scal>> mebc_adv; // face conditions
     GRange<size_t> layers;
@@ -291,21 +330,24 @@ void Run(M& m, Vars& var) {
       ctx->mebc_adv = std::get<1>(p);
     }
 
-    typename Vofm<M>::Par p;
-    p.sharpen = var.Int["sharpen"];
-    p.sharpen_cfl = var.Double["sharpen_cfl"];
-    p.extrapolate_boundaries = var.Int["extrapolate_boundaries"];
-    p.layers = var.Int["vofm_layers"];
-    p.clipth = var.Double["clipth"];
-    p.filterth = var.Double["filterth"];
-    layers = GRange<size_t>(p.layers);
+    typename Vofm<M>::Par parvof;
+    parvof.sharpen = var.Int["sharpen"];
+    parvof.sharpen_cfl = var.Double["sharpen_cfl"];
+    parvof.extrapolate_boundaries = var.Int["extrapolate_boundaries"];
+    parvof.layers = var.Int["vofm_layers"];
+    parvof.clipth = var.Double["clipth"];
+    parvof.filterth = var.Double["filterth"];
+    parvof.dim = M::dim;
+    //parvof.scheme = Vofm<M>::Par::Scheme::aulisa;
+    layers = GRange<size_t>(parvof.layers);
     t.fcu0.resize(layers);
     t.fccl0.resize(layers);
 
     auto buf = ReadPrimList(var.String["list_path"], m.IsRoot());
     InitOverlappingComponents(buf, t.fcu0, t.fccl0, layers, m);
     as.reset(new Vofm<M>(
-        m, m, t.fcu0, t.fccl0, ctx->mebc_adv, &t.fe_flux, &t.fc_src, 0, t.dt, p));
+        m, m, t.fcu0, t.fccl0, ctx->mebc_adv, &t.fe_flux, &t.fc_src, 0, t.dt,
+        parvof));
     auto mod = [&t](auto& fcu, auto& fccl, auto layers, auto&) {
       for (auto l : layers) {
         (*fcu[l]) = t.fcu0[l];
@@ -321,8 +363,7 @@ void Run(M& m, Vars& var) {
 
     t.fck.Reinit(layers, m, 0);
     t.psm_par.dump_fr = 1;
-    t.psm_par.dim = 2;
-    t.psm_par.ns = 2;
+    t.psm_par.dim = M::dim;
 
     if (m.IsRoot()) {
       std::cout << util::Format("meancurvflow dt={:}\n", GetTimeStep(m, var));
@@ -403,7 +444,7 @@ void Run(M& m, Vars& var) {
       const auto plic = as->GetPlic();
       std::vector<Scal> colors(t.dumptraj_colors);
       std::iota(colors.begin(), colors.end(), 0);
-      CalcTraj(plic, colors, m, t.traj.back());
+      CalcTraj(plic, t.fck, colors, m, t.traj.back());
     }
     if (sem() && dump) {
       if (m.IsRoot()) {
@@ -416,6 +457,7 @@ void Run(M& m, Vars& var) {
     if (var.Int["dumpfields"] && dump) {
       ++t.frame;
 
+      // Compute velocity from flux
       t.fc_vel.Reinit(m, Vect(0));
       for (auto c : m.AllCells()) {
         for (auto q : m.Nci(c)) {
@@ -423,8 +465,20 @@ void Run(M& m, Vars& var) {
           t.fc_vel[c] += m.GetNormal(f) * (t.fe_flux[f] * 0.5 / m.GetArea(f));
         }
       }
+      // Fill curvature from any layer
+      t.fck_single.Reinit(m, GetNan<Scal>());
+      const auto plic = as->GetPlic();
+      for (auto c : m.Cells()) {
+        for (auto l : layers) {
+          if (!IsNan(t.fck[l][c])) {
+            t.fck_single[c] = t.fck[l][c];
+            break;
+          }
+        }
+      }
       m.Dump(&t.fc_vel, 0, "vx");
       m.Dump(&t.fc_vel, 1, "vy");
+      m.Dump(&t.fck_single, "k");
       for (auto l : layers) {
         m.Dump(as->GetPlic().vfcu[l], "u" + std::to_string(l));
         m.Dump(as->GetPlic().vfccl[l], "cl" + std::to_string(l));
