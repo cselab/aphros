@@ -45,6 +45,8 @@ struct Vof<EB_>::Imp {
       , fca_(m, GetNan<Scal>())
       , fcn_(m, GetNan<Vect>())
       , fci_(m, false) {
+    par.dim = std::min(par.dim, M::dim);
+
     fcu_.time_curr = fcu;
 
     UpdateBc(mebc_);

@@ -51,6 +51,8 @@ struct Vofm<EB_>::Imp {
       , fcim_(layers, m, TRM::Pack(MIdx(0)))
       , fcim_unpack_(layers, m, MIdx(0))
       , mebc_(owner_->mebc_) {
+    par.dim = std::min(par.dim, M::dim);
+
     fcu0.assert_size(layers);
     fccl0.assert_size(layers);
     fcu_.time_curr = fcu0;
@@ -391,8 +393,7 @@ struct Vofm<EB_>::Imp {
         dd = {1, 0};
       }
     }
-    for (size_t id = 0; id < dd.size(); ++id) {
-      size_t d = dd[id]; // direction as index
+    for (auto d : dd) {
       if (sem("sweep")) {
         Sweep(
             mfcu, d, layers, owner_->fev_->GetFieldFace(), fccl_, fcim_, fcn_,
