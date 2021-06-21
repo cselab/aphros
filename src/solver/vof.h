@@ -34,7 +34,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
     size_t layers = 4;
     Scal avgnorm0 = 1; // original normal with sum(u)<avgnorm0
     Scal avgnorm1 = 1; // overriden normal with sum(u)>=acgnorm1
-    Scal coalth = 1.5;
+    Scal coalth = 1e10;
     int verb = 0;
     bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
     Scal dumppolymarch_fill = -1; // fill cells outside
