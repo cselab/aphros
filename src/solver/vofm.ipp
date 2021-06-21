@@ -42,7 +42,7 @@ struct Vofm<EB_>::Imp {
       , m(owner_->m)
       , eb(eb_)
       , layers(layers0)
-      , fcuu_(layers, m)
+      , fcuu_(layers, m, 0)
       , fccls_(m, kClNone)
       , fcn_(layers, m, GetNan<Vect>())
       , fca_(layers, m, GetNan<Scal>())
@@ -50,9 +50,6 @@ struct Vofm<EB_>::Imp {
       , fccl_(fccl0)
       , fcim_(layers, m, TRM::Pack(MIdx(0)))
       , fcim_unpack_(layers, m, MIdx(0))
-      , ffvu_(layers, m, 0)
-      , ffcl_(layers, m, kClNone)
-      , ffi_(layers, m, false)
       , mebc_(owner_->mebc_) {
     fcu0.assert_size(layers);
     fccl0.assert_size(layers);
@@ -106,13 +103,10 @@ struct Vofm<EB_>::Imp {
         auto& fcn = fcn_[i];
         auto& fci = fci_[i];
         auto& fccl = fccl_[i];
-
-        const int sw = 1; // stencil halfwidth
-        using MIdx = typename M::MIdx;
-        GBlock<IdxCell, dim> bo(MIdx(-sw), MIdx(sw * 2 + 1));
         for (auto c : eb.SuCells()) {
           if (fci[c]) {
-            auto uu = GetStencilValues<Scal>(layers, uc, fccl_, c, fccl[c], m);
+            const auto uu =
+                GetStencilValues<Scal>(layers, uc, fccl_, c, fccl[c], m);
             fcn[c] = UNormal<M>::GetNormalYoungs(uu);
             UNormal<M>::GetNormalHeight(uu, fcn[c]);
           } else {
@@ -364,7 +358,7 @@ struct Vofm<EB_>::Imp {
         }
         Sweep(
             mfcu, d, layers, ffv, fccl_, fcim_, fcn_, fca_, me_vf_,
-            SweepType::weymouth, nullptr, nullptr, fcuu_, 1., par.clipth, eb);
+            SweepType::weymouth, nullptr, nullptr, fcuu_, 1, par.clipth, eb);
       }
       CommRec(sem, mfcu, fccl_, fcim_);
       if (par.extrapolate_boundaries) {
@@ -465,7 +459,7 @@ struct Vofm<EB_>::Imp {
         // flux through full face that would give the same velocity
         const Scal v0 = v / eb.GetAreaFraction(f);
         const IdxCell c = m.GetCell(f, v > 0 ? 0 : 1); // upwind cell
-        if (fccl[c] != kClNone) {
+        if (v != 0 && fccl[c] != kClNone) {
           ffcl[f] = fccl[c];
           if (fcu[c] > 0 && fcu[c] < 1 && fcn[c].sqrnorm() > 0) {
             switch (type) {
@@ -598,8 +592,8 @@ struct Vofm<EB_>::Imp {
   // filterth: threshold for detecting orphan fragments
   static void FilterOrphan(
       const Multi<FieldCell<Scal>*>& fcu, const GRange<size_t>& layers,
-      const Multi<FieldCell<Scal>*>& fccl,
-      const Multi<FieldCell<Scal>*>& fcim, Scal filterth, const EB& eb) {
+      const Multi<FieldCell<Scal>*>& fccl, const Multi<FieldCell<Scal>*>& fcim,
+      Scal filterth, const EB& eb) {
     for (auto l : layers) {
       for (auto c : eb.Cells()) {
         if ((*fccl[l])[c] != kClNone) {
@@ -698,9 +692,6 @@ struct Vofm<EB_>::Imp {
   }
   void MakeIteration() {
     auto sem = m.GetSem("iter");
-    struct {
-      Multi<FieldCell<Scal>> fcclm; // previous color
-    } * ctx(sem);
     if (sem("init")) {
       for (auto l : layers) {
         auto& uc = fcu_.iter_curr[l];
@@ -714,7 +705,6 @@ struct Vofm<EB_>::Imp {
           fcuu[c] = (uc[c] < 0.5 ? 0 : 1);
         }
       }
-      ctx->fcclm = fccl_;
     }
 
     using Scheme = typename Par::Scheme;
@@ -868,10 +858,6 @@ struct Vofm<EB_>::Imp {
   Multi<FieldCell<Scal>> fccl_; // color
   Multi<FieldCell<Scal>> fcim_; // image
   Multi<FieldCell<MIdx>> fcim_unpack_; // image unpacked
-  Multi<FieldFace<Scal>> ffvu_; // flux: volume flux * field
-  Multi<FieldFace<Scal>> ffcl_; // flux color (from upwind cell)
-  Multi<FieldFace<bool>> ffi_; // interface mask
-                               // (1: upwind cell contains interface)
   size_t count_ = 0; // number of MakeIter() calls, used for splitting
 
   // boundary conditions
