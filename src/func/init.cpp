@@ -207,6 +207,32 @@ void InitOverlappingComponents(
       (*fccl[0])[c] = imax1;
       (*fcu[0])[c] = umax1;
     }
+    // Override with primitives having `mod_and == true`
+    for (size_t i = 0; i < primitives.size(); ++i) {
+      if (primitives[i].mod_and) {
+        for (auto wimage : wimages) {
+          const Vect image = Vect(wimage) * m.GetGlobalLength();
+          const Scal u = GetLevelSetVolume<Scal, M::dim>(
+              primitives[i].ls, c.center() + image, h);
+          if (u > 0) {
+            if (u == 1 || true) {
+              for (auto l : layers) {
+                (*fccl[l])[c] = kClNone;
+                (*fcu[l])[c] = 0;
+              }
+            }
+            for (auto l : layers) {
+              if ((*fccl[l])[c] == kClNone) {
+                (*fccl[l])[c] = i;
+                (*fcu[l])[c] = u;
+                break;
+              }
+            }
+          }
+        }
+      }
+      imax1 = none;
+    }
   }
 }
 
