@@ -931,6 +931,11 @@ void Vofm<EB_>::StartStep() {
 }
 
 template <class EB_>
+void Vofm<EB_>::Sharpen() {
+  imp->Sharpen(imp->fcu_.iter_curr);
+}
+
+template <class EB_>
 void Vofm<EB_>::MakeIteration() {
   imp->MakeIteration();
 }

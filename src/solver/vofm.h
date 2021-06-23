@@ -83,6 +83,8 @@ class Vofm final : public AdvectionSolver<typename EB_::M> {
                        const Multi<FieldCell<Scal>*>& fcu,
                        const Multi<FieldCell<Scal>*>& fccl,
                        GRange<size_t> layers, const EB&)>);
+  // Applies sharpening to current field at time time_curr
+  void Sharpen();
 
  private:
   struct Imp;

@@ -88,6 +88,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   void AddModifier(
       std::function<
           void(FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, const EB&)>);
+  // Applies sharpening to field iter_curr
   void Sharpen();
 
  private:

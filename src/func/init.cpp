@@ -215,12 +215,27 @@ void InitOverlappingComponents(
           const Scal u = GetLevelSetVolume<Scal, M::dim>(
               primitives[i].ls, c.center() + image, h);
           if (u > 0) {
-            if (u == 1 || true) {
+            if (u == 1) {
               for (auto l : layers) {
                 (*fccl[l])[c] = kClNone;
                 (*fcu[l])[c] = 0;
               }
             }
+            Scal sum = 0; // current sum of existing volume fractions
+            for (auto l : layers) {
+              if ((*fccl[l])[c] != kClNone) {
+                sum += (*fcu[l])[c];
+              }
+            }
+            // Reduce existing volume fractions to make space for the new one
+            if (sum > 0) {
+              for (auto l : layers) {
+                if ((*fccl[l])[c] != kClNone) {
+                  (*fcu[l])[c] *= (1 - u) / sum;
+                }
+              }
+            }
+            // Add new component
             for (auto l : layers) {
               if ((*fccl[l])[c] == kClNone) {
                 (*fccl[l])[c] = i;

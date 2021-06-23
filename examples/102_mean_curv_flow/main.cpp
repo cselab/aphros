@@ -1,13 +1,12 @@
 // Created by Petr Karnakov on 28.12.2019
 // Copyright 2019 ETH Zurich
 
-#undef NDEBUG
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <set>
 #include <string>
 
 #include <debug/isnan.h>
@@ -18,6 +17,7 @@
 #include <func/init_u.h>
 #include <linear/linear.h>
 #include <parse/argparse.h>
+#include <solver/approx_eb.h>
 #include <solver/curv.h>
 #include <solver/reconst.h>
 #include <solver/vofm.h>
@@ -32,46 +32,114 @@ using MIdx = typename M::MIdx;
 using R = Reconst<Scal>;
 constexpr Scal kClNone = Vofm<M>::kClNone;
 
+// Returns the number of colors found in stencil around cells `cc`
+template <class M>
+int GetNumColors(
+    const std::vector<IdxCell>& cc, const GRange<size_t>& layers,
+    const Multi<const FieldCell<Scal>*> fccl, const M& m) {
+  std::vector<Scal> colors;
+  for (auto c : cc) {
+    for (auto cn : m.Stencil(c)) {
+      for (auto l : layers) {
+        const Scal cl = (*fccl[l])[cn];
+        if (cl != kClNone &&
+            std::find(colors.begin(), colors.end(), cl) == colors.end()) {
+          colors.push_back(cl);
+        }
+      }
+    }
+  }
+  return colors.size();
+}
+
 // Computes flux proportional to curvature.
 // Output:
 // ff_flux: result
 template <class M>
 void CalcMeanCurvatureFlowFlux(
-    FieldFace<Scal>& ff_flux, const GRange<size_t>& layers,
-    const Multi<const FieldCell<Scal>*> fcu,
+    const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*> fcu,
     const Multi<const FieldCell<Scal>*> fccl,
     const Multi<const FieldCell<Vect>*> fcn,
     const Multi<const FieldCell<Scal>*> fca,
     const Multi<const FieldCell<Scal>*> fck,
     const MapEmbed<BCondFluid<Vect>>& mebc, Scal gamma, bool divfree,
-    Scal voidpenal, std::shared_ptr<linear::Solver<M>> linsolver, M& m) {
+    Scal voidpenal, Scal voidpenal_thres,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m,
+    /*out*/
+    FieldFace<Scal>& ff_flux, FieldCell<Scal>& fc_num_colors,
+    FieldCell<Scal>& fc_void) {
   (void)fcn;
   (void)fca;
   auto sem = m.GetSem();
+  struct {
+    // number of colors found in 3x3 stencil
+    FieldCell<Scal> fc_num_colors;
+    // number of colors found in 3x3 stencil around each adjacent cell
+    FieldFace<Scal> ff_num_colors;
+    // volume of void in cells nearing more than two interfaces
+    FieldCell<Scal> fc_void;
+    FieldFace<Scal> ff_void;
+  } * ctx(sem);
+  auto& t = *ctx;
 
   if (sem("calc")) {
-    ff_flux.Reinit(m, 0);
+    t.fc_num_colors.Reinit(m, 0);
+    t.ff_num_colors.Reinit(m, 0);
+    for (auto c : m.SuCells()) {
+      t.fc_num_colors[c] = GetNumColors({c}, layers, fccl, m);
+    }
+    t.fc_void.Reinit(m, 0);
+    t.ff_void.Reinit(m, 0);
+    for (auto c : m.SuCells()) {
+      if (t.fc_num_colors[c] > 2) {
+        auto& sum = t.fc_void[c];
+        sum = 0;
+        for (auto cn : m.Stencil5(c)) {
+          Scal u = 0;
+          for (auto l : layers) {
+            if ((*fccl[l])[cn] != kClNone) {
+              u += (*fcu[l])[cn];
+            }
+          }
+          u = std::min(1., u);
+          sum += 1 - u;
+        }
+      }
+    }
     for (auto f : m.Faces()) {
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      t.ff_num_colors[f] = std::max(t.fc_num_colors[cm], t.fc_num_colors[cp]);
+      t.ff_void[f] = std::max(t.fc_void[cm], t.fc_void[cp]);
+    }
+    fc_num_colors = t.fc_num_colors;
+    fc_void = t.fc_void;
+
+    ff_flux.Reinit(m, 0);
+    std::vector<Scal> colors; // colors found in adjacent cells
+    for (auto f : m.Faces()) {
+      colors.clear();
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       Scal um_sum = 0;
       Scal up_sum = 0;
-      std::set<Scal> s;
       for (auto l : layers) {
         const Scal clm = (*fccl[l])[cm];
         const Scal clp = (*fccl[l])[cp];
-        if (clm != kClNone) {
-          s.insert(clm);
+        if (clm != kClNone &&
+            std::find(colors.begin(), colors.end(), clm) == colors.end()) {
+          colors.push_back(clm);
           um_sum += (*fcu[l])[cm];
         }
-        if (clp != kClNone) {
-          s.insert(clp);
+        if (clp != kClNone &&
+            std::find(colors.begin(), colors.end(), clp) == colors.end()) {
+          colors.push_back(clp);
           up_sum += (*fcu[l])[cp];
         }
       }
       um_sum = std::min(1., um_sum);
       up_sum = std::min(1., up_sum);
-      for (auto cl : s) {
+      for (auto cl : colors) {
         Scal um = 0;
         Scal up = 0;
         Scal km = GetNan<Scal>();
@@ -95,10 +163,12 @@ void CalcMeanCurvatureFlowFlux(
           const Vect n = (std::abs(um - 0.5) < std::abs(up - 0.5) ? nm : np);
           if (!IsNan(k) && !IsNan(n) && n.norm() > 0) {
             ff_flux[f] -= n.dot(m.GetSurface(f)) * (k * gamma / n.norm());
-            if (std::abs(up_sum - um_sum) > 1e-2) {
+            /*
+            if (std::abs(up_sum - um_sum) > 0.01 && t.ff_num_colors[f] < 3) {
               ff_flux[f] +=
                   n.dot(m.GetSurface(f)) * (voidpenal * gamma / n.norm());
             }
+            */
           }
         }
       }
@@ -107,27 +177,28 @@ void CalcMeanCurvatureFlowFlux(
   if (divfree && sem.Nested("proj")) {
     ProjectVolumeFlux(ff_flux, mebc, linsolver, m);
   }
-  /*
   if (voidpenal && sem("void-penal")) {
     for (auto f : m.Faces()) {
-      const IdxCell cm = m.GetCell(f, 0);
-      const IdxCell cp = m.GetCell(f, 1);
-      Scal um = 0;
-      Scal up = 0;
-      for (auto l : layers) {
-        if ((*fccl[l])[cm] != kClNone) {
-          um += (*fcu[l])[cm];
+      if (t.ff_num_colors[f] <= 2 ||
+          (t.ff_num_colors[f] > 2 && t.ff_void[f] >= voidpenal_thres)) {
+        const IdxCell cm = m.GetCell(f, 0);
+        const IdxCell cp = m.GetCell(f, 1);
+        Scal um = 0;
+        Scal up = 0;
+        for (auto l : layers) {
+          if ((*fccl[l])[cm] != kClNone) {
+            um += (*fcu[l])[cm];
+          }
+          if ((*fccl[l])[cp] != kClNone) {
+            up += (*fcu[l])[cp];
+          }
         }
-        if ((*fccl[l])[cp] != kClNone) {
-          up += (*fcu[l])[cp];
-        }
+        um = std::min(1., um);
+        up = std::min(1., up);
+        ff_flux[f] += -(up - um) * voidpenal * m.GetArea(f);
       }
-      um = std::min(1., um);
-      up = std::min(1., up);
-      ff_flux[f] += -(up - um) * voidpenal * m.GetArea(f);
     }
   }
-  */
 }
 
 struct TrajEntry {
@@ -287,6 +358,9 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fc_src; // volume source
     FieldEmbed<Scal> fe_flux; // volume flux
     FieldCell<Vect> fc_vel; // velocity
+    FieldCell<Scal> fc_num_colors; // number of colors found in stencil
+    FieldCell<Scal> fc_void; // volume of voids in cells
+                             // nearing more than two interfaces
     Multi<FieldCell<Scal>> fck; // curvature
     FieldCell<Scal> fck_single; // curvature from single layer
     MapEmbed<BCondFluid<Vect>> mebc_fluid; // face conditions
@@ -348,10 +422,26 @@ void Run(M& m, Vars& var) {
     as.reset(new Vofm<M>(
         m, m, t.fcu0, t.fccl0, ctx->mebc_adv, &t.fe_flux, &t.fc_src, 0, t.dt,
         parvof));
-    auto mod = [&t](auto& fcu, auto& fccl, auto layers, auto&) {
+    auto mod = [&t](auto& fcu, auto& fccl, auto layers, auto& m) {
       for (auto l : layers) {
         (*fcu[l]) = t.fcu0[l];
         (*fccl[l]) = t.fccl0[l];
+      }
+      for (auto c : m.Cells()) {
+        if (GetNumColors({c}, layers, fccl, m) > 2) {
+          // Remove one color with the smallest volume fraction
+          size_t lmin = 0;
+          Scal umin = 2;
+          for (auto l : layers) {
+            if ((*fccl[l])[c] != kClNone && (*fcu[l])[c] > 0 &&
+                (*fcu[l])[c] < umin) {
+              lmin = l;
+              umin = (*fcu[l])[c];
+            }
+          }
+          (*fcu[lmin])[c] = 0;
+          (*fccl[lmin])[c] = kClNone;
+        }
       }
     };
     as->AddModifier(mod);
@@ -376,6 +466,19 @@ void Run(M& m, Vars& var) {
   if (sem.Nested("iter")) {
     as->MakeIteration();
   }
+  for (int i = 0; i < 5; ++i) {
+    if (sem.Nested("iter")) {
+      as->Sharpen();
+    }
+  }
+  if (sem.Nested("sharpen") && t.step == 0) {
+    auto sem2 = m.GetSem();
+    for (int i = 0; i < var.Int["init_sharpen_steps"]; ++i) {
+      if (sem2.Nested("sharpen")) {
+        as->Sharpen();
+      }
+    }
+  }
   if (sem.Nested("finish")) {
     as->FinishStep();
   }
@@ -387,22 +490,42 @@ void Run(M& m, Vars& var) {
   }
   if (sem.Nested("flux")) {
     CalcMeanCurvatureFlowFlux(
-        t.fe_flux.GetFieldFace(), layers, as->GetFieldM(), as->GetColor(),
-        as->GetNormal(), as->GetAlpha(), t.fck, ctx->mebc_fluid,
-        var.Double["gamma"], var.Int["divfree"], var.Double["voidpenal"],
-        t.linsolver, m);
+        layers, as->GetFieldM(), as->GetColor(), as->GetNormal(),
+        as->GetAlpha(), t.fck, ctx->mebc_fluid, var.Double["gamma"],
+        var.Int["divfree"], var.Double["voidpenal"],
+        var.Double["voidpenal_thres"], t.linsolver, m, t.fe_flux.GetFieldFace(),
+        t.fc_num_colors, t.fc_void);
   }
   if (sem("dt")) {
     if (var.Int["anchored_boundaries"]) {
       auto mod = [&t](auto& fcu, auto& fccl, auto layers, auto& m) {
-        for (auto fb : m.Faces()) {
+        for (auto f : m.Faces()) {
           size_t nci;
-          if (m.IsBoundary(fb, nci)) {
-            const IdxCell c = m.GetCell(fb, nci);
-            for (auto l : layers) {
-              (*fcu[l])[c] = t.fcu0[l][c];
-              (*fccl[l])[c] = t.fccl0[l][c];
+          if (m.IsBoundary(f, nci)) {
+            const IdxCell c = m.GetCell(f, nci);
+            for (auto cn : m.Stencil5(c)) {
+              for (auto l : layers) {
+                (*fcu[l])[cn] = t.fcu0[l][cn];
+                (*fccl[l])[cn] = t.fccl0[l][cn];
+              }
             }
+          }
+        }
+
+        for (auto c : m.Cells()) {
+          if (GetNumColors({c}, layers, fccl, m) > 2) {
+            // Remove one color with the smallest volume fraction
+            size_t lmin = 0;
+            Scal umin = 2;
+            for (auto l : layers) {
+              if ((*fccl[l])[c] != kClNone && (*fcu[l])[c] > 0 &&
+                  (*fcu[l])[c] < umin) {
+                lmin = l;
+                umin = (*fcu[l])[c];
+              }
+            }
+            (*fcu[lmin])[c] = 0;
+            (*fccl[lmin])[c] = kClNone;
           }
         }
       };
@@ -479,6 +602,8 @@ void Run(M& m, Vars& var) {
       m.Dump(&t.fc_vel, 0, "vx");
       m.Dump(&t.fc_vel, 1, "vy");
       m.Dump(&t.fck_single, "k");
+      m.Dump(&t.fc_num_colors, "ncolors");
+      m.Dump(&t.fc_void, "void");
       for (auto l : layers) {
         m.Dump(as->GetPlic().vfcu[l], "u" + std::to_string(l));
         m.Dump(as->GetPlic().vfccl[l], "cl" + std::to_string(l));

@@ -11,17 +11,18 @@ Rinf = 100
 
 vf = aphros.Geometry()
 
-N = 7
+N = 8
+
+shift = 1e-3
 
 phase = np.pi / N
 
 vf.Sphere([0.5, 0.5, 0], [R] * 3, intersect=True)
-#vf.Sphere([0.5, 0.5, 0], [R] * 3)
 
 for i in range(N):
     alpha = i * np.pi * 2 / N + phase
-    dx = np.cos(alpha)
-    dy = np.sin(alpha)
+    dx = np.cos(alpha) + shift
+    dy = np.sin(alpha) + shift
     vf.Sphere([0.5 + dx, 0.5 + dy, 0], [Rinf] * 3)
 
 vf.GenerateFile("b.dat")
