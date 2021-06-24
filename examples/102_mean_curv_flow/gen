@@ -11,7 +11,7 @@ Rinf = 100
 
 vf = aphros.Geometry()
 
-N = 8
+N = 7
 
 shift = 1e-3
 

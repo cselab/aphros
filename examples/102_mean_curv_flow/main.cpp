@@ -52,6 +52,63 @@ int GetNumColors(
   return colors.size();
 }
 
+template <class M>
+void ProjectVolumeFlux2(
+    FieldFace<typename M::Scal>& ff_flux, const FieldCell<bool>& fc_mask,
+    std::shared_ptr<linear::Solver<M>> linsolver, M& m) {
+  using Scal = typename M::Scal;
+  using ExprFace = generic::Vect<Scal, 3>;
+  using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
+
+  auto sem = m.GetSem();
+  struct {
+    FieldFace<ExprFace> ff_corr; // expression for corrected volume flux [i]
+    FieldCell<Expr> fc_system; // linear system for pressure [i]
+    FieldCell<Scal> fcp; // pressure (up to a constant)
+  } * ctx(sem);
+  auto& t = *ctx;
+
+  if (sem("init")) {
+    t.ff_corr.Reinit(m);
+    for (auto f : m.FacesM()) {
+      auto& e = t.ff_corr[f];
+      size_t nci;
+      const Scal h = m.GetCellSize()[0];
+      if (!m.IsBoundary(f, nci)) { // inner
+        const Scal a = -1 / sqr(h);
+        e[0] = -a;
+        e[1] = a;
+      } else { // boundary
+        e[0] = 0;
+        e[1] = 0;
+      }
+      e[2] = ff_flux[f];
+    }
+
+    t.fc_system.Reinit(m, Expr(0));
+    for (auto c : m.CellsM()) {
+      auto& e = t.fc_system[c];
+      if (fc_mask[c]) {
+        for (auto q : m.Nci(c)) {
+          m.AppendExpr(e, t.ff_corr[c.face(q)] * c.outward_factor(q), q);
+        }
+      } else {
+        e[0] = 1;
+        e.back() = 0;
+      }
+    }
+  }
+  if (sem.Nested("solve")) {
+    linsolver->Solve(t.fc_system, nullptr, t.fcp, m);
+  }
+  if (sem("apply")) {
+    for (auto f : m.FacesM()) {
+      const auto& e = t.ff_corr[f];
+      ff_flux[f] = e[0] * t.fcp[f.cm] + e[1] * t.fcp[f.cp] + e[2];
+    }
+  }
+}
+
 // Computes flux proportional to curvature.
 // Output:
 // ff_flux: result
@@ -78,7 +135,10 @@ void CalcMeanCurvatureFlowFlux(
     FieldFace<Scal> ff_num_colors;
     // volume of void in cells nearing more than two interfaces
     FieldCell<Scal> fc_void;
+    FieldCell<Scal> fc_sum;
     FieldFace<Scal> ff_void;
+    FieldCell<bool> fc_mask; // true in cells to solve Poisson
+                             // false in cells to set zero pressure
   } * ctx(sem);
   auto& t = *ctx;
 
@@ -106,6 +166,14 @@ void CalcMeanCurvatureFlowFlux(
         }
       }
     }
+    t.fc_sum.Reinit(m, 0);
+    for (auto c : m.AllCells()) {
+      for (auto l : layers) {
+        if ((*fccl[l])[c] != kClNone) {
+          t.fc_sum[c] += (*fcu[l])[c];
+        }
+      }
+    }
     for (auto f : m.Faces()) {
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
@@ -116,9 +184,16 @@ void CalcMeanCurvatureFlowFlux(
     fc_void = t.fc_void;
 
     ff_flux.Reinit(m, 0);
-    std::vector<Scal> colors; // colors found in adjacent cells
+    t.fc_mask.Reinit(m, false);
+    for (auto c : m.Cells()) {
+      t.fc_mask[c] = (t.fc_num_colors[c] != 1 || t.fc_sum[c] < voidpenal_thres);
+    }
+    // XXX output
+    for (auto c : m.AllCells()) {
+      fc_void[c] = t.fc_mask[c];
+    }
     for (auto f : m.Faces()) {
-      colors.clear();
+      std::vector<Scal> colors; // colors found in adjacent cells
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
       Scal um_sum = 0;
@@ -175,28 +250,25 @@ void CalcMeanCurvatureFlowFlux(
     }
   }
   if (divfree && sem.Nested("proj")) {
-    ProjectVolumeFlux(ff_flux, mebc, linsolver, m);
+    ProjectVolumeFlux2(ff_flux, t.fc_mask, linsolver, m);
   }
   if (voidpenal && sem("void-penal")) {
     for (auto f : m.Faces()) {
-      if (t.ff_num_colors[f] <= 2 ||
-          (t.ff_num_colors[f] > 2 && t.ff_void[f] >= voidpenal_thres)) {
-        const IdxCell cm = m.GetCell(f, 0);
-        const IdxCell cp = m.GetCell(f, 1);
-        Scal um = 0;
-        Scal up = 0;
-        for (auto l : layers) {
-          if ((*fccl[l])[cm] != kClNone) {
-            um += (*fcu[l])[cm];
-          }
-          if ((*fccl[l])[cp] != kClNone) {
-            up += (*fcu[l])[cp];
-          }
+      const IdxCell cm = m.GetCell(f, 0);
+      const IdxCell cp = m.GetCell(f, 1);
+      Scal um = 0;
+      Scal up = 0;
+      for (auto l : layers) {
+        if ((*fccl[l])[cm] != kClNone) {
+          um += (*fcu[l])[cm];
         }
-        um = std::min(1., um);
-        up = std::min(1., up);
-        ff_flux[f] += -(up - um) * voidpenal * m.GetArea(f);
+        if ((*fccl[l])[cp] != kClNone) {
+          up += (*fcu[l])[cp];
+        }
       }
+      um = std::min(1., um);
+      up = std::min(1., up);
+      ff_flux[f] += -(up - um) * voidpenal * m.GetArea(f);
     }
   }
 }
@@ -412,7 +484,7 @@ void Run(M& m, Vars& var) {
     parvof.clipth = var.Double["clipth"];
     parvof.filterth = var.Double["filterth"];
     parvof.dim = M::dim;
-    //parvof.scheme = Vofm<M>::Par::Scheme::aulisa;
+    // parvof.scheme = Vofm<M>::Par::Scheme::aulisa;
     layers = GRange<size_t>(parvof.layers);
     t.fcu0.resize(layers);
     t.fccl0.resize(layers);
@@ -512,6 +584,7 @@ void Run(M& m, Vars& var) {
           }
         }
 
+        /*
         for (auto c : m.Cells()) {
           if (GetNumColors({c}, layers, fccl, m) > 2) {
             // Remove one color with the smallest volume fraction
@@ -528,6 +601,7 @@ void Run(M& m, Vars& var) {
             (*fccl[lmin])[c] = kClNone;
           }
         }
+        */
       };
       as->AddModifier(mod);
     }
