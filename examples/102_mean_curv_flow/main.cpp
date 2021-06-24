@@ -32,9 +32,27 @@ using MIdx = typename M::MIdx;
 using R = Reconst<Scal>;
 constexpr Scal kClNone = Vofm<M>::kClNone;
 
-// Returns the number of colors found in stencil around cells `cc`
+// Returns the number of colors found in cells `cc`
 template <class M>
 int GetNumColors(
+    const std::vector<IdxCell>& cc, const GRange<size_t>& layers,
+    const Multi<const FieldCell<Scal>*> fccl, const M& m) {
+  std::vector<Scal> colors;
+  for (auto c : cc) {
+    for (auto l : layers) {
+      const Scal cl = (*fccl[l])[c];
+      if (cl != kClNone &&
+          std::find(colors.begin(), colors.end(), cl) == colors.end()) {
+        colors.push_back(cl);
+      }
+    }
+  }
+  return colors.size();
+}
+
+// Returns the number of colors found in stencil around cells `cc`
+template <class M>
+int GetNumColors3(
     const std::vector<IdxCell>& cc, const GRange<size_t>& layers,
     const Multi<const FieldCell<Scal>*> fccl, const M& m) {
   std::vector<Scal> colors;
@@ -54,8 +72,9 @@ int GetNumColors(
 
 template <class M>
 void ProjectVolumeFlux2(
-    FieldFace<typename M::Scal>& ff_flux, const FieldCell<bool>& fc_mask,
-    std::shared_ptr<linear::Solver<M>> linsolver, M& m) {
+    FieldFace<typename M::Scal>& ff_flux, const FieldCell<Scal>& fc_mask,
+    const FieldCell<Scal>& fc_src, std::shared_ptr<linear::Solver<M>> linsolver,
+    M& m) {
   using Scal = typename M::Scal;
   using ExprFace = generic::Vect<Scal, 3>;
   using Expr = generic::Vect<Scal, M::dim * 2 + 2>;
@@ -92,6 +111,7 @@ void ProjectVolumeFlux2(
         for (auto q : m.Nci(c)) {
           m.AppendExpr(e, t.ff_corr[c.face(q)] * c.outward_factor(q), q);
         }
+        e.back() -= fc_src[c];
       } else {
         e[0] = 1;
         e.back() = 0;
@@ -120,7 +140,7 @@ void CalcMeanCurvatureFlowFlux(
     const Multi<const FieldCell<Scal>*> fca,
     const Multi<const FieldCell<Scal>*> fck,
     const MapEmbed<BCondFluid<Vect>>& mebc, Scal gamma, bool divfree,
-    Scal voidpenal, Scal voidpenal_thres,
+    Scal voidpenal, bool anchored_boundaries,
     std::shared_ptr<linear::Solver<M>> linsolver, M& m,
     /*out*/
     FieldFace<Scal>& ff_flux, FieldCell<Scal>& fc_num_colors,
@@ -131,40 +151,22 @@ void CalcMeanCurvatureFlowFlux(
   struct {
     // number of colors found in 3x3 stencil
     FieldCell<Scal> fc_num_colors;
-    // number of colors found in 3x3 stencil around each adjacent cell
-    FieldFace<Scal> ff_num_colors;
+    // number of interface fragments in cell
+    FieldCell<Scal> fc_num_interfaces;
     // volume of void in cells nearing more than two interfaces
-    FieldCell<Scal> fc_void;
     FieldCell<Scal> fc_sum;
-    FieldFace<Scal> ff_void;
-    FieldCell<bool> fc_mask; // true in cells to solve Poisson
-                             // false in cells to set zero pressure
+    FieldCell<Scal> fc_mask; // non-zero in cells in which to solve Poisson
+                             // 2: void cell
+                             // 1: interface cell
+                             // 0: otherwise
+    FieldCell<Scal> fc_src;
   } * ctx(sem);
   auto& t = *ctx;
 
   if (sem("calc")) {
     t.fc_num_colors.Reinit(m, 0);
-    t.ff_num_colors.Reinit(m, 0);
     for (auto c : m.SuCells()) {
       t.fc_num_colors[c] = GetNumColors({c}, layers, fccl, m);
-    }
-    t.fc_void.Reinit(m, 0);
-    t.ff_void.Reinit(m, 0);
-    for (auto c : m.SuCells()) {
-      if (t.fc_num_colors[c] > 2) {
-        auto& sum = t.fc_void[c];
-        sum = 0;
-        for (auto cn : m.Stencil5(c)) {
-          Scal u = 0;
-          for (auto l : layers) {
-            if ((*fccl[l])[cn] != kClNone) {
-              u += (*fcu[l])[cn];
-            }
-          }
-          u = std::min(1., u);
-          sum += 1 - u;
-        }
-      }
     }
     t.fc_sum.Reinit(m, 0);
     for (auto c : m.AllCells()) {
@@ -174,46 +176,58 @@ void CalcMeanCurvatureFlowFlux(
         }
       }
     }
-    for (auto f : m.Faces()) {
-      const IdxCell cm = m.GetCell(f, 0);
-      const IdxCell cp = m.GetCell(f, 1);
-      t.ff_num_colors[f] = std::max(t.fc_num_colors[cm], t.fc_num_colors[cp]);
-      t.ff_void[f] = std::max(t.fc_void[cm], t.fc_void[cp]);
-    }
     fc_num_colors = t.fc_num_colors;
-    fc_void = t.fc_void;
 
-    ff_flux.Reinit(m, 0);
-    t.fc_mask.Reinit(m, false);
+    t.fc_num_interfaces.Reinit(m, 0);
     for (auto c : m.Cells()) {
-      t.fc_mask[c] = (t.fc_num_colors[c] != 1 || t.fc_sum[c] < voidpenal_thres);
+      for (auto l : layers) {
+        if ((*fccl[l])[c] != kClNone) {
+          const Scal k = (*fck[l])[c];
+          const Vect n = (*fcn[l])[c];
+          if (!IsNan(k) && !IsNan(n) && n.sqrnorm() > 0) {
+            t.fc_num_interfaces[c] += 1;
+          }
+        }
+      }
     }
+
+    t.fc_mask.Reinit(m, 0);
+    for (auto c : m.Cells()) {
+      t.fc_mask[c] = t.fc_num_colors[c] == 0      ? 2
+                     : t.fc_num_interfaces[c] > 0 ? 1
+                                                  : 0;
+    }
+
+    t.fc_src.Reinit(m, 0);
+    for (auto c : m.Cells()) {
+      if (GetNumColors({c}, layers, fccl, m) <= 2) {
+        t.fc_src[c] = -std::abs(1 - t.fc_sum[c]) * voidpenal;
+      }
+    }
+
     // XXX output
+    fc_void.Reinit(m, 0);
     for (auto c : m.AllCells()) {
       fc_void[c] = t.fc_mask[c];
     }
+
+    ff_flux.Reinit(m, 0);
     for (auto f : m.Faces()) {
       std::vector<Scal> colors; // colors found in adjacent cells
       const IdxCell cm = m.GetCell(f, 0);
       const IdxCell cp = m.GetCell(f, 1);
-      Scal um_sum = 0;
-      Scal up_sum = 0;
       for (auto l : layers) {
         const Scal clm = (*fccl[l])[cm];
         const Scal clp = (*fccl[l])[cp];
         if (clm != kClNone &&
             std::find(colors.begin(), colors.end(), clm) == colors.end()) {
           colors.push_back(clm);
-          um_sum += (*fcu[l])[cm];
         }
         if (clp != kClNone &&
             std::find(colors.begin(), colors.end(), clp) == colors.end()) {
           colors.push_back(clp);
-          up_sum += (*fcu[l])[cp];
         }
       }
-      um_sum = std::min(1., um_sum);
-      up_sum = std::min(1., up_sum);
       for (auto cl : colors) {
         Scal um = 0;
         Scal up = 0;
@@ -238,38 +252,26 @@ void CalcMeanCurvatureFlowFlux(
           const Vect n = (std::abs(um - 0.5) < std::abs(up - 0.5) ? nm : np);
           if (!IsNan(k) && !IsNan(n) && n.norm() > 0) {
             ff_flux[f] -= n.dot(m.GetSurface(f)) * (k * gamma / n.norm());
-            /*
-            if (std::abs(up_sum - um_sum) > 0.01 && t.ff_num_colors[f] < 3) {
-              ff_flux[f] +=
-                  n.dot(m.GetSurface(f)) * (voidpenal * gamma / n.norm());
+          }
+        }
+      }
+    }
+    if (anchored_boundaries) {
+      for (auto f : m.Faces()) {
+        size_t nci;
+        if (m.IsBoundary(f, nci)) {
+          const IdxCell c = m.GetCell(f, nci);
+          for (auto cn : m.Stencil5(c)) {
+            for (auto q : m.Nci(cn)) {
+              ff_flux[m.GetFace(cn, q)] = 0;
             }
-            */
           }
         }
       }
     }
   }
   if (divfree && sem.Nested("proj")) {
-    ProjectVolumeFlux2(ff_flux, t.fc_mask, linsolver, m);
-  }
-  if (voidpenal && sem("void-penal")) {
-    for (auto f : m.Faces()) {
-      const IdxCell cm = m.GetCell(f, 0);
-      const IdxCell cp = m.GetCell(f, 1);
-      Scal um = 0;
-      Scal up = 0;
-      for (auto l : layers) {
-        if ((*fccl[l])[cm] != kClNone) {
-          um += (*fcu[l])[cm];
-        }
-        if ((*fccl[l])[cp] != kClNone) {
-          up += (*fcu[l])[cp];
-        }
-      }
-      um = std::min(1., um);
-      up = std::min(1., up);
-      ff_flux[f] += -(up - um) * voidpenal * m.GetArea(f);
-    }
+    ProjectVolumeFlux2(ff_flux, t.fc_mask, t.fc_src, linsolver, m);
   }
 }
 
@@ -565,12 +567,12 @@ void Run(M& m, Vars& var) {
         layers, as->GetFieldM(), as->GetColor(), as->GetNormal(),
         as->GetAlpha(), t.fck, ctx->mebc_fluid, var.Double["gamma"],
         var.Int["divfree"], var.Double["voidpenal"],
-        var.Double["voidpenal_thres"], t.linsolver, m, t.fe_flux.GetFieldFace(),
-        t.fc_num_colors, t.fc_void);
+        var.Int["anchored_boundaries"], t.linsolver, m,
+        t.fe_flux.GetFieldFace(), t.fc_num_colors, t.fc_void);
   }
   if (sem("dt")) {
-    if (var.Int["anchored_boundaries"]) {
-      auto mod = [&t](auto& fcu, auto& fccl, auto layers, auto& m) {
+    auto mod = [&var, &t](auto& fcu, auto& fccl, auto layers, auto& m) {
+      if (var.Int["anchored_boundaries"]) {
         for (auto f : m.Faces()) {
           size_t nci;
           if (m.IsBoundary(f, nci)) {
@@ -583,28 +585,9 @@ void Run(M& m, Vars& var) {
             }
           }
         }
-
-        /*
-        for (auto c : m.Cells()) {
-          if (GetNumColors({c}, layers, fccl, m) > 2) {
-            // Remove one color with the smallest volume fraction
-            size_t lmin = 0;
-            Scal umin = 2;
-            for (auto l : layers) {
-              if ((*fccl[l])[c] != kClNone && (*fcu[l])[c] > 0 &&
-                  (*fcu[l])[c] < umin) {
-                lmin = l;
-                umin = (*fcu[l])[c];
-              }
-            }
-            (*fcu[lmin])[c] = 0;
-            (*fccl[lmin])[c] = kClNone;
-          }
-        }
-        */
-      };
-      as->AddModifier(mod);
-    }
+      }
+    };
+    as->AddModifier(mod);
     Scal maxv = 0;
     for (auto f : m.Faces()) {
       maxv = std::max(maxv, std::abs(t.fe_flux[f]));
@@ -619,7 +602,7 @@ void Run(M& m, Vars& var) {
     as->SetTimeStep(t.dt);
     if (m.IsRoot() && t.step % var.Int["report_every"] == 0) {
       std::cout << util::Format(
-          "step={:} t={:} dt={:}\n", t.step, as->GetTime(), t.dt);
+          "STEP={:04d} t={:.6f} dt={:}\n", t.step, as->GetTime(), t.dt);
     }
   }
   const bool dump = t.dumper->Try(as->GetTime(), as->GetTimeStep());
