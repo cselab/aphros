@@ -13,3 +13,5 @@ job.id.last
 add.conf
 b.dat
 traj.dat
+run.log
+sides*_nx*

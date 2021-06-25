@@ -1,0 +1,30 @@
+#!/bin/sh -eu
+
+log=run.log
+
+ev () {
+  echo "$@" | tee -a "$log"
+  eval "$@ 2>&1" >> "$log"
+}
+
+run () {
+  sides=$1
+  nx=$2
+  np=$3
+  shift 3
+  dir=sides${sides}_nx$(printf %03d $nx)
+  if [ -d "$dir" ] ; then
+    echo "skip existing $dir"
+    return
+  fi
+  ev "./clean"
+  ev "echo $np > np"
+  ev "ap.run ./main --nx $nx ""$@"
+  ev "mkdir -p $dir && rsync -a {gen,{s,sm}_*.vtk,std.conf,out,traj.dat} $dir/"
+}
+
+run 4 32 1
+run 4 64 1
+run 4 128 4
+run 4 256 16
+run 4 512 64

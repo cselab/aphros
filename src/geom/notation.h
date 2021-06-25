@@ -309,7 +309,7 @@ class IdxFaceMesh {
       return owner->m.GetArea(owner->idxface_);
     }
     Scal operator()() const {
-      return;
+      return Scal(*this);
     }
 
    private:

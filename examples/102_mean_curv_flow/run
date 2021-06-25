@@ -3,4 +3,4 @@
 make
 ./clean
 
-ap.run ./main voronoi.conf
+ap.run ./main

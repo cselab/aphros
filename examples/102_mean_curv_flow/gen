@@ -3,6 +3,12 @@
 import aphros
 import numpy as np
 
+from argparse import ArgumentParser
+
+parser = ArgumentParser()
+parser.add_argument('--sides', type=int, default=4, help="number of sides")
+args = parser.parse_args()
+
 # radius of circle
 R = 0.3
 
@@ -11,16 +17,17 @@ Rinf = 100
 
 vf = aphros.Geometry()
 
-N = 2
+sides = args.sides
 
-shift = 1e-3
+# small shift so that interface do not coincide with cell boundaries
+shift = 1e-4
 
-phase = np.pi / N
+phase = np.pi / sides
 
 vf.Sphere([0.5, 0.5, 0], [R] * 3, intersect=True)
 
-for i in range(N):
-    alpha = i * np.pi * 2 / N + phase
+for i in range(sides):
+    alpha = i * np.pi * 2 / sides + phase
     dx = np.cos(alpha) + shift
     dy = np.sin(alpha) + shift
     vf.Sphere([0.5 + dx, 0.5 + dy, 0], [Rinf] * 3)
