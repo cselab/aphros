@@ -1,0 +1,10 @@
+#!/bin/sh -eu
+
+radius=${1:-16}
+nx=128
+r=$(echo "$radius / $nx" | bc -l)
+cat > add.conf << EOF
+set string list_path "inline sphere 0.5 0.5 0 $r"
+EOF
+make m="$nx $nx 1" cleanrun > /dev/null 2>&1
+./plot.py --radius "$r"
