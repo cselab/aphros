@@ -1,8 +1,12 @@
 #!/bin/sh -eu
 
 sides=${1:-4}
-for f in sides${sides}_*/traj.dat ; do
-  echo $f
-  ./calc_rate --traj $f --sides $sides --print_error
-done
-./calc_rate --traj ./traj.dat --sides $sides --print_error
+out="error_sides${sides}"
+
+echo "nx error" > "$out"
+for f in sides${sides}_* ; do
+  nx=$(echo "$f" | sed -En 's/.*nx(\d*)/\1/p')
+  nx=$(echo "$nx" | awk '{print $1 + 0}')
+  error=$(./calc_rate --traj "$f/traj.dat" --sides $sides --slope_error)
+  echo $nx $error
+done | tee -a "$out"

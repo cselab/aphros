@@ -3,12 +3,21 @@
 import numpy as np
 import sys
 from argparse import ArgumentParser
+from scipy.stats import linregress
 
 header = ['t', 'A', 'dAdt', 'dAdt_exact', 'dAdt_error']
 parser = ArgumentParser(description="Prints columns {:}".format(header))
-parser.add_argument('--traj', type=str, default="traj.dat", help="path to traj.dat")
-parser.add_argument('--print_error', action='store_true', help="print L2 norm of dAdt_error and exit")
-parser.add_argument('--sides', type=int, default=4, help="number of sides to compute exact rate")
+parser.add_argument('--traj',
+                    type=str,
+                    default="traj.dat",
+                    help="path to traj.dat")
+parser.add_argument('--slope_error',
+                    action='store_true',
+                    help="print error from linear regression slope and exit")
+parser.add_argument('--sides',
+                    type=int,
+                    default=4,
+                    help="number of sides to compute exact rate")
 args = parser.parse_args()
 
 u = np.genfromtxt(args.traj, names=True)
@@ -26,9 +35,10 @@ dAdt = dA / dt
 ones = np.ones_like(dA)
 
 dAdt_error = dAdt - dAdt_exact
+dAdt_fit = linregress(t, A).slope
 
-if args.print_error:
-    print(np.mean(dAdt_error ** 2) ** 0.5)
+if args.slope_error:
+    print(abs(dAdt_fit - dAdt_exact))
 else:
     columns = {
         't': t[:-1],
