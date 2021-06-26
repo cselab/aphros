@@ -20,6 +20,7 @@ run () {
   fi
   cat > add.conf << EOF
 set double rho2 $rho
+set double mu2 $(echo "$rho * 0.005" | bc -l)
 set double cflst 1e5
 set double dtmax $(echo "2 * sqrt((1/$nx)^3 * $rho / (4*$pi*$sigma))" | bc -l)
 EOF
