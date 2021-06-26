@@ -1,1 +1,1 @@
-rm -f *.{xmf,h5,csv,vtk,raw}
+rm -f *.{xmf,h5,csv,vtk,raw} out traj.dat

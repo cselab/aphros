@@ -19,12 +19,15 @@ run () {
   fi
   ev "./clean"
   ev "echo $np > np"
+  ev "./gen --sides $sides"
   ev "ap.run ./main --nx $nx ""$@"
   ev "mkdir -p $dir && rsync -a {gen,{s,sm}_*.vtk,std.conf,out,traj.dat} $dir/"
 }
 
-run 4 32 1
-run 4 64 1
-run 4 128 4
-run 4 256 16
-run 4 512 64
+for sides in 4 8 6 ; do
+  run $sides 32 1
+  run $sides 64 1
+  run $sides 128 4
+  run $sides 256 16
+  run $sides 512 64
+done
