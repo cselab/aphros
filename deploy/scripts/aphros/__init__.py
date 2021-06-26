@@ -4,7 +4,7 @@ import aphros.io
 import aphros.stream
 from aphros.vtk import ReadVtkPoly
 
-ReadPlain = aphros.io.ReadPlain
+from aphros.io import *
 InitBasicFigure = aphros.plot.InitBasicFigure
 SaveBasicFigure = aphros.plot.SaveBasicFigure
 PlotFieldCoolwarm = aphros.plot.PlotFieldCoolwarm

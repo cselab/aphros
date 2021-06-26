@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import re
 import sys
 import argparse
 
@@ -13,7 +12,6 @@ aphros.plot.ApplyParams(plt)
 def printerr(m):
     sys.stderr.write('{:}\n'.format(m))
     sys.stderr.flush()
-
 
 def get_polar(u):
     '''
@@ -30,33 +28,10 @@ def get_polar(u):
     argsort = np.argsort(angle)
     return angle[argsort], u[iy, ix][argsort]
 
-def parse_xmf(xmfpath):
-    '''
-    Returns shape and path to `.raw` file
-    xmfpath: path to `.xmf` metadata file
-    '''
-    with open(xmfpath) as f:
-        text = ''.join(f.read().split('\n'))
-    m = re.findall(
-        '<Xdmf.*<Attribute.*'
-        '<DataItem.*<DataItem.*'
-        '<DataItem.*Dimensions="(\d*) (\d*) (\d*)".*?> *([a-z0-9_.]*)', text)[0]
-    shape = tuple(map(int, m[:3]))
-    rawpath = m[3]
-    return shape, rawpath
-
-def read_raw(xmfpath):
-    '''
-    Returns array from scalar field in raw format.
-    xmfpath: path to xmf metadata file
-    '''
-    shape, rawpath = parse_xmf(xmfpath)
-    u = np.fromfile(rawpath).reshape(shape)
-    return u
 
 def parse_args():
     parser = argparse.ArgumentParser(description="test")
-    parser.add_argument('--xmfpath',
+    parser.add_argument('--input',
                         type=str,
                         default="k_0000.xmf",
                         help="Path to xmf file with curvature field")
@@ -74,14 +49,14 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    k = read_raw(args.xmfpath)
+    k = aphros.read_raw(args.input)
     angle, k = get_polar(k[0, :, :])
 
     k_exact = 1 / args.radius
     k_error = (k - k_exact) / k_exact
 
     fig, ax = plt.subplots()
-    ax.plot(angle, k_error, lw=1)
+    ax.plot(angle, k_error, lw=0.5)
     ax.set_xlabel('angle')
     ax.set_ylabel('curvature error')
     plottools.adjust_ticks(ax)
