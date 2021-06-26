@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import sys
+from argparse import ArgumentParser
+
+header = ['t', 'A', 'dAdt', 'dAdt_exact', 'dAdt_error']
+parser = ArgumentParser(description="Prints columns {:}".format(header))
+parser.add_argument('--traj', type=str, default="traj.dat", help="path to traj.dat")
+parser.add_argument('--print_error', action='store_true', help="print L2 norm of dAdt_error and exit")
+parser.add_argument('--sides', type=int, default=4, help="number of sides to compute exact rate")
+args = parser.parse_args()
+
+u = np.genfromtxt(args.traj, names=True)
+
+t = u['t']
+A = u['volume_0']
+
+dAdt_exact = 2 * np.pi * (args.sides / 6 - 1)
+
+dt = t[1:] - t[:-1]
+dA = A[1:] - A[:-1]
+
+dAdt = dA / dt
+
+ones = np.ones_like(dA)
+
+dAdt_error = dAdt - dAdt_exact
+
+if args.print_error:
+    print(np.mean(dAdt_error ** 2) ** 0.5)
+else:
+    columns = {
+        't': t[:-1],
+        'A': A[:-1],
+        'dAdt': dAdt,
+        'dAdt_exact': dAdt_exact * ones,
+        'dAdt_error': dAdt_error,
+    }
+    print(' '.join(header))
+    u = np.vstack([columns[h] for h in header])
+    u = np.atleast_2d(u)
+    np.savetxt(sys.stdout, u.T)

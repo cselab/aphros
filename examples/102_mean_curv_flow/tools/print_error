@@ -1,0 +1,8 @@
+#!/bin/sh -eu
+
+sides=${1:-4}
+for f in sides${sides}_*/traj.dat ; do
+  echo $f
+  ./calc_rate --traj $f --sides $sides --print_error
+done
+./calc_rate --traj ./traj.dat --sides $sides --print_error
