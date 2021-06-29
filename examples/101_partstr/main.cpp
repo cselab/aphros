@@ -13,12 +13,12 @@
 using M = MeshCartesian<double, 3>;
 using Scal = typename M::Scal;
 using Vect = typename M::Vect;
+using MIdx = typename M::MIdx;
 
 void Run(M& m, Vars&) {
-  using PSM = PartStrMeshM<M>;
-  using Plic = generic::Plic<Vect>;
   auto sem = m.GetSem();
 
+  const GRange<size_t> layers{1};
   struct {
     FieldCell<Scal> fcu; // volume fraction
     FieldCell<Scal> fca; // plane constant
@@ -26,54 +26,37 @@ void Run(M& m, Vars&) {
     FieldCell<bool> fci; // interface mask
     FieldCell<Scal> fck; // curvature
     MapEmbed<BCondAdvection<Scal>> mebc;
-    typename PSM::Par par;
-    std::unique_ptr<PSM> psm;
+    typename PartStrMeshM<M>::Par par;
+    std::unique_ptr<curvature::Particles<M>> curv_part;
   } * ctx(sem);
   auto& t = *ctx;
-  auto& fcu = ctx->fcu;
-  auto& fca = ctx->fca;
-  auto& fcn = ctx->fcn;
-  auto& fci = ctx->fci;
-  auto& fck = ctx->fck;
-  auto& par = ctx->par;
-  auto& psm = ctx->psm;
 
   if (sem("init")) {
-    fcu.Reinit(m, 0);
-    fca.Reinit(m, 0);
-    fcn.Reinit(m, Vect(0.5));
-    fci.Reinit(m, true);
+    t.fcu.Reinit(m, 0);
+    t.fca.Reinit(m, 0);
+    t.fcn.Reinit(m, Vect(0.5));
+    t.fci.Reinit(m, true);
+    t.curv_part.reset(new curvature::Particles<M>(m, t.par, layers));
   }
   if (sem.Nested()) {
-    Plic plic{GRange<size_t>(1), &fcu,    &fca,    &fcn,  &fci,
-              nullptr,           nullptr, nullptr, t.mebc};
-    psm = UCurv<M>::CalcCurvPart(plic, par, &fck, m, m);
+    generic::Plic<Vect> plic{layers,  &t.fcu,  &t.fca,  &t.fcn, &t.fci,
+                             nullptr, nullptr, nullptr, t.mebc};
+    t.curv_part->CalcCurvature(&t.fck, plic, m, m);
   }
   if (sem.Nested()) {
-    psm->DumpParticles(&fca, &fcn, 0, 0);
+    t.curv_part->GetParticles()->DumpParticles(&t.fca, &t.fcn, 0, 0);
   }
   if (sem("dump")) {
-    m.Dump(&fck, "k");
+    m.Dump(&t.fck, "k");
   }
   if (sem()) {
   }
 }
 
 int main(int argc, const char** argv) {
-  std::string conf = R"EOF(
-set int bx 1
-set int by 1
-set int bz 1
-
-set int bsx 16
-set int bsy 16
-set int bsz 16
-
-set int px 1
-set int py 1
-set int pz 1
-)EOF";
-
   MpiWrapper mpi(&argc, &argv);
+  const MIdx mesh_size(16);
+  Subdomains<MIdx> sub(mesh_size, mesh_size, mpi.GetCommSize());
+  std::string conf = sub.GetConfig();
   return RunMpiBasicString<M>(mpi, Run, conf);
 }
