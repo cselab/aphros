@@ -5,6 +5,8 @@ nx=128
 r=$(echo "$radius / $nx" | bc -l)
 cat > add.conf << EOF
 set string list_path "inline sphere 0.5 0.5 0 $r"
+set int list_ls 2
+set string curvature heights
 EOF
 make m="$nx $nx 1" cleanrun
 ./plot.py --radius "$r"
