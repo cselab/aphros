@@ -21,96 +21,6 @@
 
 #include "curv.h"
 
-template <class M_>
-struct UCurv<M_>::Imp {
-  static constexpr size_t dim = M::dim;
-
-  // fcu: volume fraction [a]
-  // fcud2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [i]
-  static void CalcDiff2(
-      const FieldCell<Scal>& fcu, FieldCell<Vect>& fcud2, const M& m) {
-    fcud2.Reinit(m);
-    for (auto c : m.CellsM()) {
-      for (auto dr : m.dirs) {
-        const auto d = m.direction(dr);
-        const auto cmm = c - d - d;
-        const auto cpp = c + d + d;
-        fcud2[c][d] = fcu[cpp] - fcu[cmm];
-      }
-    }
-  }
-  // fcu: volume fraction [a]
-  // fcud2: volume fraction difference double (xpp-xmm, ...) [a]
-  // Output:
-  // fcud4: volume fraction difference quad (xp4-xm4, ...) [i]
-  static void CalcDiff4(
-      const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcud2,
-      FieldCell<Vect>& fcud4, const M& m) {
-    fcud4.Reinit(m);
-    for (auto c : m.CellsM()) {
-      for (auto dr : m.dirs) {
-        const auto d = m.direction(dr);
-        const auto cmm = c - d - d;
-        const auto cpp = c + d + d;
-        const Scal um4 = fcu[c] - fcud2[cmm][d];
-        const Scal up4 = fcud2[cpp][d] + fcu[c];
-        fcud4[c][d] = up4 - um4;
-      }
-    }
-  }
-  // fcu: volume fraction [a]
-  // fcud4: volume fraction difference double (xp4-xm4, ...) [a]
-  // Output:
-  // fcud6: volume fraction difference quad (xp6-xm6, ...) [i]
-  static void CalcDiff6(
-      const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcud4,
-      FieldCell<Vect>& fcud6, const M& m) {
-    fcud6.Reinit(m);
-    for (auto c : m.CellsM()) {
-      for (auto dr : m.dirs) {
-        const auto d = m.direction(dr);
-        const auto cmm = c - d - d;
-        const auto cpp = c + d + d;
-        const Scal um6 = fcu[cpp] - fcud4[cmm][d];
-        const Scal up6 = fcud4[cpp][d] + fcu[cmm];
-        fcud6[c][d] = up6 - um6;
-      }
-    }
-  }
-};
-
-template <class M>
-void UCurv<M>::CalcCurvHeight(
-    const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcn, size_t edim,
-    FieldCell<Scal>& fck, M& m) {
-  auto sem = m.GetSem();
-  struct {
-    FieldCell<Vect> fcud2; // volume fraction difference double
-    FieldCell<Vect> fcud4; // volume fraction difference quad
-    FieldCell<Vect> fch; // height functions
-  } * ctx(sem);
-  auto& fcud2 = ctx->fcud2;
-  auto& fcud4 = ctx->fcud4;
-  auto& fch = ctx->fch;
-
-  if (sem("diff2")) {
-    Imp::CalcDiff2(fcu, fcud2, m);
-    m.Comm(&fcud2);
-  }
-  if (sem("diff4")) {
-    Imp::CalcDiff4(fcu, fcud2, fcud4, m);
-    m.Comm(&fcud4);
-  }
-  if (sem("height")) {
-    UNormal<M>::CalcHeight(m, fcu, fcud2, fcud4, edim, fch);
-    m.Comm(&fch);
-  }
-  if (sem("curvcomm")) {
-    UNormal<M>::CalcCurvHeight(m, fcu, fch, fcn, edim, fck);
-    m.Comm(&fck);
-  }
-}
-
 namespace curvature {
 
 template <class M_>
@@ -176,13 +86,87 @@ template <class M_>
 struct Heights<M_>::Imp {
   Imp() {}
 
+  // fcu: volume fraction [a]
+  // fcud2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [i]
+  static void CalcDiff2(
+      const FieldCell<Scal>& fcu, FieldCell<Vect>& fcud2, const M& m) {
+    fcud2.Reinit(m);
+    for (auto c : m.CellsM()) {
+      for (auto dr : m.dirs) {
+        const auto d = m.direction(dr);
+        const auto cmm = c - d - d;
+        const auto cpp = c + d + d;
+        fcud2[c][d] = fcu[cpp] - fcu[cmm];
+      }
+    }
+  }
+  // fcu: volume fraction [a]
+  // fcud2: volume fraction difference double (xpp-xmm, ...) [a]
+  // Output:
+  // fcud4: volume fraction difference quad (xp4-xm4, ...) [i]
+  static void CalcDiff4(
+      const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcud2,
+      FieldCell<Vect>& fcud4, const M& m) {
+    fcud4.Reinit(m);
+    for (auto c : m.CellsM()) {
+      for (auto dr : m.dirs) {
+        const auto d = m.direction(dr);
+        const auto cmm = c - d - d;
+        const auto cpp = c + d + d;
+        const Scal um4 = fcu[c] - fcud2[cmm][d];
+        const Scal up4 = fcud2[cpp][d] + fcu[c];
+        fcud4[c][d] = up4 - um4;
+      }
+    }
+  }
+  // fcu: volume fraction [a]
+  // fcud4: volume fraction difference double (xp4-xm4, ...) [a]
+  // Output:
+  // fcud6: volume fraction difference quad (xp6-xm6, ...) [i]
+  static void CalcDiff6(
+      const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcud4,
+      FieldCell<Vect>& fcud6, const M& m) {
+    fcud6.Reinit(m);
+    for (auto c : m.CellsM()) {
+      for (auto dr : m.dirs) {
+        const auto d = m.direction(dr);
+        const auto cmm = c - d - d;
+        const auto cpp = c + d + d;
+        const Scal um6 = fcu[cpp] - fcud4[cmm][d];
+        const Scal up6 = fcud4[cpp][d] + fcu[cmm];
+        fcud6[c][d] = up6 - um6;
+      }
+    }
+  }
+
   template <class EB>
   void CalcCurvature(
-      const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
-      const EB& eb) {
+      const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m, const EB&) {
     auto sem = m.GetSem();
-    if (sem("copy")) {
-      // nop
+    struct {
+      FieldCell<Vect> fcud2; // difference of volume fractions with step 2
+      FieldCell<Vect> fcud4; // difference of volume fractions with step 4
+      FieldCell<Vect> fch; // height function
+    } * ctx(sem);
+    auto& t = *ctx;
+
+    if (sem("diff2")) {
+      Imp::CalcDiff2(*plic.vfcu[0], t.fcud2, m);
+      m.Comm(&t.fcud2);
+    }
+    if (sem("diff4")) {
+      Imp::CalcDiff4(*plic.vfcu[0], t.fcud2, t.fcud4, m);
+      m.Comm(&t.fcud4);
+    }
+    if (sem("height")) {
+      UNormal<M>::CalcHeight(
+          m, *plic.vfcu[0], t.fcud2, t.fcud4, m.GetEdim(), t.fch);
+      m.Comm(&t.fch);
+    }
+    if (sem("curvcomm")) {
+      UNormal<M>::CalcCurvHeight(
+          m, *plic.vfcu[0], t.fch, *plic.vfcn[0], m.GetEdim(), *fck[0]);
+      m.Comm(fck[0]);
     }
   }
 };
@@ -215,11 +199,10 @@ std::unique_ptr<Estimator<M>> MakeEstimator(
     const auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize()[0], var);
     const auto psm = ParsePar<PartStrMeshM<M>>()(ps, var);
     return std::make_unique<curvature::Particles<M>>(m, psm, layers);
-  }
-  else if (name == "heights") {
+  } else if (name == "heights") {
     return std::make_unique<curvature::Heights<M>>();
-  //} else if (name == "hybrid") {
-  //  return std::make_unique<curvature::Heights<M>>();
+    //} else if (name == "hybrid") {
+    //  return std::make_unique<curvature::Heights<M>>();
   }
   fassert(false, util::Format("Unknown curvature estimator '{}'", name));
 }
