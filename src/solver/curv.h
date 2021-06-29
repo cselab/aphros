@@ -41,7 +41,9 @@ class Particles : public Estimator<M_> {
   using Vect = typename M::Vect;
   using Plic = generic::Plic<Vect>;
 
-  Particles(const typename PartStrMeshM<M>::Par& par);
+  Particles(
+      M& m, const typename PartStrMeshM<M>::Par& par,
+      const GRange<size_t>& layers);
   Particles(const Particles&) = delete;
   ~Particles();
   // Computes curvature from volume fractions

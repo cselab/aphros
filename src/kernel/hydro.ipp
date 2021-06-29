@@ -667,7 +667,7 @@ void Hydro<M>::InitAdvection(
   fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
   auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
   psm_par_ = ParsePar<PartStrMeshM<M>>()(ps, var);
-  curv_estimator_.reset(new curvature::Particles<M>(psm_par_));
+  curv_estimator_.reset(new curvature::Particles<M>(m, psm_par_, layers));
 }
 
 template <class M>
@@ -1837,15 +1837,18 @@ void Hydro<M>::Dump(bool force) {
     }
   }
   auto dump_part = [&](auto* as) {
-    if (auto* p = dynamic_cast<const curvature::Particles<M>*>(
+    if (!as) {
+      return;
+    }
+    if (auto* curv = dynamic_cast<const curvature::Particles<M>*>(
             curv_estimator_.get())) {
       if (dumper_.Try(st_.t, st_.dt)) {
         if (var.Int["dumppart"] && sem.Nested("part-dump")) {
-          p->GetParticles()->DumpParticles(
+          curv->GetParticles()->DumpParticles(
               as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
         }
         if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
-          p->GetParticles()->DumpPartInter(
+          curv->GetParticles()->DumpPartInter(
               as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
         }
       }

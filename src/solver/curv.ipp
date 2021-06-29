@@ -114,7 +114,9 @@ namespace curvature {
 
 template <class M_>
 struct Particles<M_>::Imp {
-  Imp(const typename PartStrMeshM<M>::Par& par) : par_(par) {}
+  Imp(M& m, const typename PartStrMeshM<M>::Par& par,
+      const GRange<size_t>& layers)
+      : partstrmeshm_(new PartStrMeshM<M>(m, par, layers)) {}
 
   template <class EB>
   void CalcCurvature(
@@ -123,29 +125,25 @@ struct Particles<M_>::Imp {
     const auto& layers = plic.layers;
     auto sem = m.GetSem();
 
-    if (sem("init")) {
-      if (!psm_) {
-        psm_.reset(new PartStrMeshM<M>(m, par_, layers));
-      }
-    }
     if (sem.Nested("part")) {
-      psm_->Part(plic, eb);
+      partstrmeshm_->Part(plic, eb);
     }
     if (sem("copy")) {
       fck.assert_size(layers);
       for (auto l : layers) {
-        (*fck[l]) = *psm_->GetCurv()[l];
+        (*fck[l]) = *partstrmeshm_->GetCurv()[l];
       }
     }
   }
 
-  const typename PartStrMeshM<M>::Par& par_;
-  std::unique_ptr<PartStrMeshM<M>> psm_;
+  std::unique_ptr<PartStrMeshM<M>> partstrmeshm_;
 };
 
 template <class M_>
-Particles<M_>::Particles(const typename PartStrMeshM<M>::Par& par)
-    : imp(new Imp(par)) {}
+Particles<M_>::Particles(
+    M& m, const typename PartStrMeshM<M>::Par& par,
+    const GRange<size_t>& layers)
+    : imp(new Imp(m, par, layers)) {}
 
 template <class EB_>
 Particles<EB_>::~Particles() = default;
@@ -165,12 +163,12 @@ void Particles<M_>::CalcCurvature(
 
 template <class M_>
 std::unique_ptr<PartStrMeshM<M_>> Particles<M_>::ReleaseParticles() {
-  return std::move(imp->psm_);
+  return std::move(imp->partstrmeshm_);
 }
 
 template <class M_>
 const PartStrMeshM<M_>* Particles<M_>::GetParticles() const {
-  return imp->psm_.get();
+  return imp->partstrmeshm_.get();
 }
 
 } // namespace curvature
