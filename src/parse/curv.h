@@ -6,6 +6,7 @@
 #include <string>
 
 #include "parse/solver.h"
+#include "solver/curv.h"
 #include "solver/partstr.h"
 #include "solver/partstrmeshm.h"
 
@@ -31,12 +32,12 @@ struct ParsePar<PartStrMeshM<M>> {
   Par operator()(typename PartStr<Scal>::Par ps, const Vars& var) {
     Par p;
     p.ps = ps;
-    p.dump_fr = var.Int["part_dump_fr"];
     p.ns = var.Int["part_ns"];
     p.tol = var.Double["part_tol"];
     p.itermax = var.Int["part_itermax"];
     p.verb = var.Int["part_verb"];
     p.dim = var.Int["dim"];
+    p.dump_fr = var.Int["part_dump_fr"];
     p.vtkbin = var.Int["vtkbin"];
     p.vtkmerge = var.Int["vtkmerge"];
     return p;

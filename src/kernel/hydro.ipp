@@ -665,9 +665,7 @@ void Hydro<M>::InitAdvection(
 
   fck_.resize(layers);
   fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
-  auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
-  psm_par_ = ParsePar<PartStrMeshM<M>>()(ps, var);
-  curv_estimator_.reset(new curvature::Particles<M>(m, psm_par_, layers));
+  curv_estimator_ = curvature::MakeEstimator(var, m, layers);
 }
 
 template <class M>

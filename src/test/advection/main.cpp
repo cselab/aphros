@@ -99,7 +99,6 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
   FieldCell<Scal> fcnx_, fcny_, fcnz_; // normal to interface (tmp)
                                        // used for Vof dump
   Multi<FieldCell<Scal>> fck_; // curvature
-  typename PartStrMeshM<M>::Par psm_par_;
   std::unique_ptr<curvature::Estimator<M>> curv_estimator_;
   GRange<size_t> layers;
   Dumper dmf_; // fields
@@ -154,9 +153,7 @@ void Advection<M>::Init(Sem& sem) {
     }
     fck_.resize(layers);
     fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
-    auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
-    psm_par_ = ParsePar<PartStrMeshM<M>>()(ps, var);
-    curv_estimator_.reset(new curvature::Particles<M>(m, psm_par_, layers));
+    curv_estimator_ = curvature::MakeEstimator(var, m, layers);
   }
 }
 

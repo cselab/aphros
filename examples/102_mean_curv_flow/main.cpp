@@ -421,8 +421,7 @@ void Run(M& m, Vars& var) {
     MapEmbed<BCondFluid<Vect>> mebc_fluid; // face conditions
     MapEmbed<BCondAdvection<Scal>> mebc_adv; // face conditions
     GRange<size_t> layers;
-    typename PartStrMeshM<M>::Par psm_par;
-    std::unique_ptr<PartStrMeshM<M>> psm;
+    std::unique_ptr<curvature::Estimator<M>> curv;
     Scal dt = 0;
     size_t step = 0;
     size_t frame = 0;
@@ -490,8 +489,7 @@ void Run(M& m, Vars& var) {
     }
 
     t.fck.Reinit(layers, m, 0);
-    t.psm_par.dump_fr = 1;
-    t.psm_par.dim = M::dim;
+    t.curv = curvature::MakeEstimator(var, m, layers);
 
     if (m.IsRoot()) {
       std::cout << util::Format("meancurvflow dt={:}\n", GetTimeStep(m, var));
@@ -511,7 +509,7 @@ void Run(M& m, Vars& var) {
     as->PostStep();
   }
   if (sem.Nested()) {
-    t.psm = UCurv<M>::CalcCurvPart(as->GetPlic(), t.psm_par, t.fck, m, m);
+    t.curv->CalcCurvature(t.fck, as->GetPlic(), m, m);
   }
   if (sem.Nested("flux")) {
     CalcMeanCurvatureFlowFlux(
@@ -562,10 +560,6 @@ void Run(M& m, Vars& var) {
   }
   if (sem.Nested() && var.Int["dumppolymarch"] && dump) {
     as->DumpInterfaceMarch(GetDumpName("sm", ".vtk", t.frame));
-  }
-  if (sem.Nested() && var.Int["dumppart"] && dump) {
-    t.psm->DumpParticles(
-        as->GetAlpha(), as->GetNormal(), t.frame, as->GetTime());
   }
   if (t.dumptraj) {
     if (sem() && dump) {

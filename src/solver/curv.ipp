@@ -12,6 +12,7 @@
 #include "embed.h"
 #include "geom/block.h"
 #include "normal.h"
+#include "parse/curv.h"
 #include "reconst.h"
 #include "trackerm.h"
 #include "util/vof.h"
@@ -169,6 +170,58 @@ std::unique_ptr<PartStrMeshM<M_>> Particles<M_>::ReleaseParticles() {
 template <class M_>
 const PartStrMeshM<M_>* Particles<M_>::GetParticles() const {
   return imp->partstrmeshm_.get();
+}
+
+template <class M_>
+struct Heights<M_>::Imp {
+  Imp() {}
+
+  template <class EB>
+  void CalcCurvature(
+      const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
+      const EB& eb) {
+    auto sem = m.GetSem();
+    if (sem("copy")) {
+      // nop
+    }
+  }
+};
+
+template <class M_>
+Heights<M_>::Heights() = default;
+
+template <class EB_>
+Heights<EB_>::~Heights() = default;
+
+template <class M_>
+void Heights<M_>::CalcCurvature(
+    const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m, const M& eb) {
+  imp->CalcCurvature(fck, plic, m, eb);
+}
+
+template <class M_>
+void Heights<M_>::CalcCurvature(
+    const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
+    const Embed<M>& eb) {
+  imp->CalcCurvature(fck, plic, m, eb);
+}
+
+template <class M>
+std::unique_ptr<Estimator<M>> MakeEstimator(
+    const Vars& var, M& m, const GRange<size_t>& layers) {
+  using Scal = typename M::Scal;
+  const auto name = var.String("curvature", "particles");
+  if (name == "particles") {
+    const auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize()[0], var);
+    const auto psm = ParsePar<PartStrMeshM<M>>()(ps, var);
+    return std::make_unique<curvature::Particles<M>>(m, psm, layers);
+  }
+  else if (name == "heights") {
+    return std::make_unique<curvature::Heights<M>>();
+  //} else if (name == "hybrid") {
+  //  return std::make_unique<curvature::Heights<M>>();
+  }
+  fassert(false, util::Format("Unknown curvature estimator '{}'", name));
 }
 
 } // namespace curvature

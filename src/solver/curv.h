@@ -7,7 +7,9 @@
 
 #include "advection.h"
 #include "geom/mesh.h"
+#include "parse/vars.h"
 #include "partstrmeshm.h"
+#include "util/format.h"
 
 namespace curvature {
 
@@ -71,7 +73,8 @@ class Heights : public Estimator<M_> {
   using Vect = typename M::Vect;
   using Plic = generic::Plic<Vect>;
 
-  Heights() = default;
+  Heights();
+  ~Heights();
   // Computes curvature from volume fractions
   // and a piecewise linear reconstruction
   void CalcCurvature(
@@ -80,6 +83,10 @@ class Heights : public Estimator<M_> {
   void CalcCurvature(
       const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
       const Embed<M>& eb) override;
+
+ private:
+  struct Imp;
+  std::unique_ptr<Imp> imp;
 };
 
 // Hybrid curvature estimator using height functions where defined
@@ -102,6 +109,10 @@ class Hybrid : public Estimator<M_> {
       const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
       const Embed<M>& eb) override;
 };
+
+template <class M>
+std::unique_ptr<Estimator<M>> MakeEstimator(
+    const Vars& var, M& m, const GRange<size_t>& layers);
 
 } // namespace curvature
 

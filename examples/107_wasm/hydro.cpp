@@ -268,6 +268,7 @@ void Solver::Run() {
 
     auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
     psm_par = ParsePar<PartStrMeshM<M>>()(ps, var);
+    curv_estimator_.reset(new curvature::Particles<M>(m, psm_par_, layers));
   }
   if (sem("switch_coal") && s.to_switch_coal) {
     auto& p = vof_par;

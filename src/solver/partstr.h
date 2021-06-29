@@ -38,8 +38,8 @@ class PartStr {
   struct Par {
     Scal leq = 4; // length of partricle string relative to cell size
     Scal relax = 0.5; // relaxation factor
-    size_t npmax = 11; // maximum number particles in string
-    Scal segcirc = 1; // factor for shift to circular segment
+    size_t npmax = 7; // maximum number particles in string
+    Scal segcirc = 0; // factor for shift to circular segment
     Scal hc = 0; // cell size [length]
     bool dn = false; // normal displacement
   };
