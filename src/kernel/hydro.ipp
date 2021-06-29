@@ -667,6 +667,7 @@ void Hydro<M>::InitAdvection(
   fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
   auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
   psm_par_ = ParsePar<PartStrMeshM<M>>()(ps, var);
+  curv_estimator_.reset(new curvature::Particles<M>(psm_par_));
 }
 
 template <class M>
@@ -1836,14 +1837,15 @@ void Hydro<M>::Dump(bool force) {
     }
   }
   auto dump_part = [&](auto* as) {
-    if (as) {
-      if (psm_ && dumper_.Try(st_.t, st_.dt)) {
+    if (auto* p = dynamic_cast<const curvature::Particles<M>*>(
+            curv_estimator_.get())) {
+      if (dumper_.Try(st_.t, st_.dt)) {
         if (var.Int["dumppart"] && sem.Nested("part-dump")) {
-          psm_->DumpParticles(
+          p->GetParticles()->DumpParticles(
               as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
         }
         if (var.Int["dumppartinter"] && sem.Nested("partinter-dump")) {
-          psm_->DumpPartInter(
+          p->GetParticles()->DumpPartInter(
               as->GetAlpha(), as->GetNormal(), dumper_.GetN(), st_.t);
         }
       }
@@ -2305,7 +2307,11 @@ void Hydro<M>::StepAdvection() {
     as_->PostStep();
   }
   if (sem.Nested("curv")) {
-    psm_ = UCurv<M>::CalcCurvPart(as_.get(), psm_par_, fck_, m);
+    if (eb_) {
+      curv_estimator_->CalcCurvature(fck_, as_->GetPlic(), m, *eb_);
+    } else {
+      curv_estimator_->CalcCurvature(fck_, as_->GetPlic(), m, m);
+    }
   }
   if (var.Int["enable_bubgen"]) {
     if (sem.Nested("bubgen")) {

@@ -222,7 +222,7 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   FieldCell<Scal> fc_strain_; // double inner product of strain rate tensor
   Multi<FieldCell<Scal>> fck_; // curvature
   typename PartStrMeshM<M>::Par psm_par_;
-  std::unique_ptr<PartStrMeshM<M>> psm_;
+  std::unique_ptr<curvature::Estimator<M>> curv_estimator_;
 
   Scal bgt_ = -1.; // bubgen last time
   Scal erasevf_last_t_ = -std::numeric_limits<Scal>::max();

@@ -100,7 +100,7 @@ class Advection : public KernelMeshPar<M_, GPar<M_>> {
                                        // used for Vof dump
   Multi<FieldCell<Scal>> fck_; // curvature
   typename PartStrMeshM<M>::Par psm_par_;
-  std::unique_ptr<PartStrMeshM<M>> psm_;
+  std::unique_ptr<curvature::Estimator<M>> curv_estimator_;
   GRange<size_t> layers;
   Dumper dmf_; // fields
   Dumper dms_; // statistics
@@ -134,9 +134,6 @@ void Advection<M>::Init(Sem& sem) {
       ff_flux_[f] = par_.fv(x, 0.).dot(m.GetSurface(f));
     }
 
-    // cell conditions for advection (empty)
-    MapCell<std::shared_ptr<CondCell>> mc_cond;
-
     // source
     fc_src_.Reinit(m, 0.);
 
@@ -159,6 +156,7 @@ void Advection<M>::Init(Sem& sem) {
     fck_.InitAll(FieldCell<Scal>(m, GetNan<Scal>()));
     auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
     psm_par_ = ParsePar<PartStrMeshM<M>>()(ps, var);
+    curv_estimator_.reset(new curvature::Particles<M>(psm_par_));
   }
 }
 
@@ -255,7 +253,7 @@ void Advection<M>::Run() {
     as_->PostStep();
   }
   if (sem.Nested("curv")) {
-    psm_ = UCurv<M>::CalcCurvPart(as_.get(), psm_par_, fck_, m);
+    curv_estimator_->CalcCurvature(fck_, as_->GetPlic(), m, m);
   }
   if (sem("stat-loc")) {
     sumu_ = 0.;

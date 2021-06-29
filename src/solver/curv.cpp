@@ -6,3 +6,11 @@
 #define X(dim) template struct UCurv<MeshCartesian<double, dim>>;
 MULTIDIMX
 #undef X
+
+namespace curvature {
+
+#define X(dim) template class Particles<MeshCartesian<double, dim>>;
+MULTIDIMX
+#undef X
+
+} // namespace curvature

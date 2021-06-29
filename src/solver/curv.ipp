@@ -110,51 +110,67 @@ void UCurv<M>::CalcCurvHeight(
   }
 }
 
-template <class M>
-template <class EB>
-std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
-    const Plic& plic, const typename PartStrMeshM<M>::Par& par,
-    const Multi<FieldCell<Scal>*>& fck, M& m, const EB& eb) {
-  using PSM = PartStrMeshM<M>;
-  auto& layers = plic.layers;
+namespace curvature {
 
-  auto sem = m.GetSem();
-  struct {
-    std::unique_ptr<PSM> psm;
-  } * ctx(sem);
-  auto& psm = ctx->psm;
+template <class M_>
+struct Particles<M_>::Imp {
+  Imp(const typename PartStrMeshM<M>::Par& par) : par_(par) {}
 
-  if (sem("init")) {
-    psm.reset(new PSM(m, par, layers));
-  }
-  if (sem.Nested("part")) {
-    psm->Part(plic, eb);
-  }
-  if (sem("copy")) {
-    fck.assert_size(layers);
-    for (auto l : layers) {
-      (*fck[l]) = *psm->GetCurv()[l];
+  template <class EB>
+  void CalcCurvature(
+      const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
+      const EB& eb) {
+    const auto& layers = plic.layers;
+    auto sem = m.GetSem();
+
+    if (sem("init")) {
+      if (!psm_) {
+        psm_.reset(new PartStrMeshM<M>(m, par_, layers));
+      }
     }
-    return std::move(psm);
+    if (sem.Nested("part")) {
+      psm_->Part(plic, eb);
+    }
+    if (sem("copy")) {
+      fck.assert_size(layers);
+      for (auto l : layers) {
+        (*fck[l]) = *psm_->GetCurv()[l];
+      }
+    }
   }
-  return nullptr;
+
+  const typename PartStrMeshM<M>::Par& par_;
+  std::unique_ptr<PartStrMeshM<M>> psm_;
+};
+
+template <class M_>
+Particles<M_>::Particles(const typename PartStrMeshM<M>::Par& par)
+    : imp(new Imp(par)) {}
+
+template <class EB_>
+Particles<EB_>::~Particles() = default;
+
+template <class M_>
+void Particles<M_>::CalcCurvature(
+    const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m, const M& eb) {
+  imp->CalcCurvature(fck, plic, m, eb);
 }
 
-template <class M>
-std::unique_ptr<PartStrMeshM<M>> UCurv<M>::CalcCurvPart(
-    const AdvectionSolver<M>* asbase, const typename PartStrMeshM<M>::Par& par,
-    const Multi<FieldCell<Scal>*>& fck, M& m) {
-  if (auto as = dynamic_cast<const Vof<M>*>(asbase)) {
-    return CalcCurvPart(as->GetPlic(), par, fck, m, m);
-  }
-  if (auto as = dynamic_cast<const Vofm<M>*>(asbase)) {
-    return CalcCurvPart(as->GetPlic(), par, fck, m, m);
-  }
-  if (auto as = dynamic_cast<const Vof<Embed<M>>*>(asbase)) {
-    return CalcCurvPart(as->GetPlic(), par, fck, m, as->GetEmbed());
-  }
-  if (auto as = dynamic_cast<const Vofm<Embed<M>>*>(asbase)) {
-    return CalcCurvPart(as->GetPlic(), par, fck, m, as->GetEmbed());
-  }
-  fassert(false, "CalcCurvPart: unknown advection solver");
+template <class M_>
+void Particles<M_>::CalcCurvature(
+    const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
+    const Embed<M>& eb) {
+  imp->CalcCurvature(fck, plic, m, eb);
 }
+
+template <class M_>
+std::unique_ptr<PartStrMeshM<M_>> Particles<M_>::ReleaseParticles() {
+  return std::move(imp->psm_);
+}
+
+template <class M_>
+const PartStrMeshM<M_>* Particles<M_>::GetParticles() const {
+  return imp->psm_.get();
+}
+
+} // namespace curvature

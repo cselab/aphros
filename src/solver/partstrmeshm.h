@@ -51,16 +51,16 @@ class PartStrMeshM {
   // t: time
   void DumpParticles(
       const Multi<const FieldCell<Scal>*>& vfca,
-      const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t);
+      const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t) const;
   void DumpPartInter(
       const Multi<const FieldCell<Scal>*>& vfca,
-      const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t);
+      const Multi<const FieldCell<Vect>*>& vfcn, size_t id, Scal t) const;
   void DumpParticles(
       const FieldCell<Scal>& fca, const FieldCell<Vect>& fcn, size_t id,
-      Scal t);
+      Scal t) const;
   void DumpPartInter(
       const FieldCell<Scal>& fca, const FieldCell<Vect>& fcn, size_t id,
-      Scal t);
+      Scal t) const;
   // Returns curvature field from last call of Part()
   Multi<const FieldCell<Scal>*> GetCurv();
 
