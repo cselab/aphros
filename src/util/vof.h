@@ -19,42 +19,44 @@ class UVof {
   UVof();
   ~UVof();
 
+  struct DumpPolyArgs {
+    GRange<size_t> layers;
+    Multi<const FieldCell<Scal>*> fcu = nullptr; // volume fraction
+    Multi<const FieldCell<Scal>*> fccl = nullptr; // color
+    Multi<const FieldCell<Vect>*> fcn = nullptr; // normal
+    Multi<const FieldCell<Scal>*> fca = nullptr; // plane constant
+    Multi<const FieldCell<bool>*> fci = nullptr; // interface mask
+    std::string filename; // path to output VTK file
+    Scal time = 0; // time used in dump report if verbose
+    bool binary = true; // write binary data, else ASCII
+    bool merge = true; // merge close points
+    bool verbose = true; // print dump report to stderr on root
+    bool dump_cell_index = false; // dump global cell index `c`
+    bool dump_layer = false; // dump layer index `l`
+    bool dump_color = true; // dump color `cl`
+    std::vector<Multi<const FieldCell<Scal>*>> extra_fields;
+    std::vector<std::string> extra_names;
+  };
+
   // Dumps PLIC polygons from multiple layers.
-  // fn: filename
+  // filename: filename
   // t: time
   // bin: binary vtk
   // merge: merge close points
-  void DumpPoly(
-      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
-      const Multi<const FieldCell<Scal>*>& fccl,
-      const Multi<const FieldCell<Vect>*>& fcn,
-      const Multi<const FieldCell<Scal>*>& fca,
-      const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t,
-      bool bin, bool merge, M& m);
+  void DumpPoly(const DumpPolyArgs& args, M& m);
 
   // Dumps marching cube triangles from multiple layers.
-  // fn: filename
+  // filename: filename
   // t: time
   // bin: binary vtk
   // merge: merge close points
   // iso: isovalue for surface fcu=iso
+  // fcus [a]: sum of volume fractions, add triangles from SuCells if not null
   void DumpPolyMarch(
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Scal>*>& fccl,
-      const Multi<const FieldCell<Vect>*>& fcn,
-      const Multi<const FieldCell<Scal>*>& fca,
-      const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t,
-      bool bin, bool merge, Scal iso, const FieldCell<Scal>*, M& m);
-
-  // Dumps PLIC polygons from single layer.
-  // fn: filename
-  // t: time
-  // bin: binary vtk
-  // merge: merge close points
-  void DumpPoly(
-      const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcn,
-      const FieldCell<Scal>& fca, const FieldCell<bool>& fci, std::string fn,
-      Scal t, bool bin, bool merge, M& m);
+      const Multi<const FieldCell<Vect>*>& fcn, std::string filename, Scal time,
+      bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m);
 
   // Computes unique color for each connected component over all layers.
   // fcu: volume fraction

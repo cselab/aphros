@@ -289,10 +289,24 @@ struct Vofm<EB_>::Imp {
     LE, // Lagrange Explicit (aulisa2009)
     weymouth, // sum of fluxes and divergence (weymouth2010)
   };
-  void DumpInterface(std::string filename) {
-    uvof_.DumpPoly(
-        layers, fcu_.time_curr, fccl_, fcn_, fca_, fci_, filename,
-        owner_->GetTime(), par.vtkbin, par.vtkmerge, m);
+  void DumpInterface(
+      std::string filename,
+      std::vector<Multi<const FieldCell<Scal>*>> extra_fields,
+      std::vector<std::string> extra_names) {
+    typename UVof<M>::DumpPolyArgs args;
+    args.layers = layers;
+    args.fcu = fcu_.time_curr;
+    args.fccl = fccl_;
+    args.fcn = fcn_;
+    args.fca = fca_;
+    args.fci = fci_;
+    args.filename = filename;
+    args.time = owner_->GetTime();
+    args.binary = par.vtkbin;
+    args.merge = par.vtkmerge;
+    args.extra_fields = extra_fields;
+    args.extra_names = extra_names;
+    uvof_.DumpPoly(args, m);
   }
   void DumpInterfaceMarch(std::string filename) {
     auto sem = m.GetSem("dump-interface-march");
@@ -320,7 +334,7 @@ struct Vofm<EB_>::Imp {
     }
     if (sem.Nested()) {
       uvof_.DumpPolyMarch(
-          layers, fcut, fcclt, fcn_, fca_, fci_, filename, owner_->GetTime(),
+          layers, fcut, fcclt, fcn_, filename, owner_->GetTime(),
           par.vtkbin, par.vtkmerge, par.vtkiso,
           par.dumppolymarch_fill >= 0 ? &fcust : nullptr, m);
     }
@@ -1017,13 +1031,16 @@ void Vofm<EB_>::PostStep() {
 }
 
 template <class EB_>
-void Vofm<EB_>::DumpInterface(std::string fn) const {
-  return imp->DumpInterface(fn);
+void Vofm<EB_>::DumpInterface(
+    std::string filename,
+    std::vector<Multi<const FieldCell<Scal>*>> extra_fields,
+    std::vector<std::string> extra_names) const {
+  return imp->DumpInterface(filename, extra_fields, extra_names);
 }
 
 template <class EB_>
-void Vofm<EB_>::DumpInterfaceMarch(std::string fn) const {
-  return imp->DumpInterfaceMarch(fn);
+void Vofm<EB_>::DumpInterfaceMarch(std::string filename) const {
+  return imp->DumpInterfaceMarch(filename);
 }
 
 template <class EB_>

@@ -82,8 +82,15 @@ class AdvectionSolver : public UnsteadyIterativeSolver {
     return GetField(Step::time_curr);
   }
   virtual Plic GetPlic() const = 0;
-  virtual void DumpInterface(std::string /*filename*/) const {};
-  virtual void DumpInterfaceMarch(std::string /*filename*/) const {};
+  virtual void DumpInterface(
+      std::string /*filename*/,
+      std::vector<Multi<const FieldCell<Scal>*>> /*extra_fields*/,
+      std::vector<std::string> /*extra_names*/) const {
+    fassert(false, "not implemented");
+  };
+  virtual void DumpInterfaceMarch(std::string /*filename*/) const {
+    fassert(false, "not implemented");
+  };
 
  protected:
   M& m;

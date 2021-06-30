@@ -8,12 +8,11 @@ set string list_path "inline sphere 0.5 0.5 0 $r"
 set int list_ls 2
 set string curvature heights
 
-set string advection_solver vofm
+#set string advection_solver vofm
 set int enable_color 1
 
 set string list_path "inline 
 sphere 0.5 0.5 0 $r
-sphere 0.7 0.5 0 $r
 "
 
 EOF

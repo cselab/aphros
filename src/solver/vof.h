@@ -81,7 +81,10 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   static constexpr Scal kClNone = -1; // no color
   // Image vector, number of passes through periodic boundaries
   const FieldCell<MIdx>& GetImage() const;
-  void DumpInterface(std::string filename) const override;
+  void DumpInterface(
+      std::string filename,
+      std::vector<Multi<const FieldCell<Scal>*>> extra_fields,
+      std::vector<std::string> extra_names) const override;
   void DumpInterfaceMarch(std::string filename) const override;
   // Adds a function that modifies the fields at the next iteration
   // and after which is removed.

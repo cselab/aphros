@@ -284,8 +284,15 @@ struct HydroPost<M>::Imp {
     }
     if (var.Int["enable_advection"]) {
       if (var.Int["dumppoly"] && sem.Nested()) {
+        std::vector<Multi<const FieldCell<Scal>*>> extra_fields;
+        std::vector<std::string> extra_names;
+        if (var.Int("dumppoly_curv", false)) {
+          extra_fields.push_back(hydro->fck_);
+          extra_names.push_back("k");
+        }
         hydro->as_->DumpInterface(
-            GetDumpName("s", ".vtk", hydro->dumper_.GetN()));
+            GetDumpName("s", ".vtk", hydro->dumper_.GetN()), extra_fields,
+            extra_names);
       }
       if (var.Int["dumppolymarch"] && sem.Nested()) {
         hydro->as_->DumpInterfaceMarch(

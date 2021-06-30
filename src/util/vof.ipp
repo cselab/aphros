@@ -54,64 +54,114 @@ struct UVof<M_>::Imp {
   Imp() = default;
   ~Imp() = default;
 
-  static void DumpPoly(
-      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
-      const Multi<const FieldCell<Scal>*>& fccl,
-      const Multi<const FieldCell<Vect>*>& fcn,
-      const Multi<const FieldCell<Scal>*>& fca,
-      const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t,
-      bool bin, bool merge, M& m) {
+  static void DumpPoly(const DumpPolyArgs& args, M& m) {
     auto sem = m.GetSem("dumppoly");
     struct {
-      std::vector<std::vector<Vect>> dl; // polygons
-      std::vector<Scal> dlc; // cells index
-      std::vector<Scal> dll; // layer
-      std::vector<Scal> dlcl; // color
+      std::vector<std::vector<Vect>> polygons;
+      std::vector<Scal> d_cell;
+      std::map<std::string, std::vector<Scal>> data;
     } * ctx(sem);
-    auto& dl = ctx->dl;
-    auto& dlc = ctx->dlc;
-    auto& dll = ctx->dll;
-    auto& dlcl = ctx->dlcl;
+    auto& t = *ctx;
+
+    auto& fcu = args.fcu;
+    auto& fccl = args.fccl;
+    auto& fcn = args.fcn;
+    auto& fca = args.fca;
+    auto& fci = args.fci;
+    auto& layers = args.layers;
+
     if (sem("local")) {
-      auto h = m.GetCellSize();
-      for (auto i : layers) {
-        for (auto c : m.Cells()) {
-          Scal u = (*fcu[i])[c];
-          if (IsNan(u) || IsNan((*fcn[i])[c]) || IsNan((*fca[i])[c])) {
-            continue;
-          }
-          if ((*fci[i])[c]) {
-            dl.push_back(
-                R::GetCutPoly(m.GetCenter(c), (*fcn[i])[c], (*fca[i])[c], h));
-            dlc.push_back(m.GetHash(c));
-            dll.push_back(i);
-            dlcl.push_back(fccl[i] ? (*fccl[i])[c] : 0);
+      fcu.assert_size(layers);
+      fccl.assert_size(layers);
+      fcn.assert_size(layers);
+      fca.assert_size(layers);
+      fci.assert_size(layers);
+      fassert(args.filename.length());
+
+      auto for_each_cell = [&](auto body) {
+        for (auto l : args.layers) {
+          for (auto c : m.Cells()) {
+            if (!IsNan((*fcu[l])[c]) && !IsNan((*fcn[l])[c]) &&
+                !IsNan((*fca[l])[c]) && (*fci[l])[c]) {
+              body(l, c);
+            }
           }
         }
+      };
+
+      for_each_cell([&](size_t l, IdxCell c) { //
+        t.polygons.push_back(R::GetCutPoly(
+            m.GetCenter(c), (*fcn[l])[c], (*fca[l])[c], m.GetCellSize()));
+      });
+
+      for_each_cell([&](size_t, IdxCell c) { //
+        t.d_cell.push_back(m.GetHash(c));
+      });
+
+      if (args.dump_layer) {
+        auto pair = t.data.emplace("l", std::vector<Scal>());
+        auto& d = pair.first->second;
+        for_each_cell([&](size_t l, IdxCell) { //
+          d.push_back(l);
+        });
       }
-      m.Reduce(&dl, Reduction::concat);
-      m.Reduce(&dlc, Reduction::concat);
-      m.Reduce(&dll, Reduction::concat);
-      m.Reduce(&dlcl, Reduction::concat);
+      if (args.dump_color) {
+        auto pair = t.data.emplace("cl", std::vector<Scal>());
+        auto& d = pair.first->second;
+        for_each_cell([&](size_t l, IdxCell c) { //
+          d.push_back(fccl[l] ? (*fccl[l])[c] : 0);
+        });
+      }
+
+      fassert_equal(args.extra_fields.size(), args.extra_names.size());
+
+      for (size_t i = 0; i < args.extra_fields.size(); ++i) {
+        auto pair = t.data.emplace(args.extra_names[i], std::vector<Scal>());
+        auto& d = pair.first->second;
+        for_each_cell([&](size_t l, IdxCell c) { //
+          d.push_back((*args.extra_fields[i][l])[c]);
+        });
+      }
+
+      m.Reduce(&t.polygons, Reduction::concat);
+      m.Reduce(&t.d_cell, Reduction::concat);
+      for (auto& p : t.data) {
+        m.Reduce(&p.second, Reduction::concat);
+      }
     }
     if (sem("write")) {
       if (m.IsRoot()) {
-        std::vector<size_t> idx(dlc.size());
+        std::vector<size_t> idx(t.d_cell.size());
         std::iota(idx.begin(), idx.end(), 0);
-        std::stable_sort(idx.begin(), idx.end(), [&](size_t i1, size_t i2) {
-          return dlc[i1] < dlc[i2];
+        std::stable_sort(idx.begin(), idx.end(), [&](size_t i0, size_t i1) {
+          return t.d_cell[i0] < t.d_cell[i1];
         });
 
-        Reorder(dl, idx);
-        Reorder(dlc, idx);
-        Reorder(dll, idx);
-        Reorder(dlcl, idx);
+        // Sort output by the global cell index to make the output independent
+        // of the domain partitioning
+        Reorder(t.polygons, idx);
+        Reorder(t.d_cell, idx);
+        for (auto& p : t.data) {
+          Reorder(p.second, idx);
+        }
 
-        std::cerr << std::fixed << std::setprecision(8) << "dump"
-                  << " t=" << t << " to " << fn << std::endl;
+        if (args.verbose) {
+          std::cerr << std::fixed << std::setprecision(8) << "dump"
+                    << " t=" << args.time << " to " << args.filename
+                    << std::endl;
+        }
+
+        std::vector<const std::vector<Scal>*> fields;
+        std::vector<std::string> names;
+
+        for (auto& p : t.data) {
+          names.push_back(p.first);
+          fields.push_back(&p.second);
+        }
+
         WriteVtkPoly<Vect>(
-            fn, dl, nullptr, {&dlc, &dll, &dlcl}, {"c", "l", "cl"},
-            "Interface from PLIC", true, bin, merge);
+            args.filename, t.polygons, nullptr, fields, names,
+            "Interface from PLIC", true, args.binary, args.merge);
       }
     }
   }
@@ -448,17 +498,11 @@ struct UVof<M_>::Imp {
     }
     return res;
   }
-  // bcfill: if >=0. add triangles from
-  // fcus [a]: sum of volume fractions, add triangles from SuCells if not null
   static void DumpPolyMarch(
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Scal>*>& fccl,
-      const Multi<const FieldCell<Vect>*>& fcn,
-      const Multi<const FieldCell<Scal>*>& fca,
-      const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t,
+      const Multi<const FieldCell<Vect>*>& fcn, std::string filename, Scal time,
       bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m) {
-    (void)fca;
-    (void)fci;
     auto sem = m.GetSem("dumppolymarch");
     struct {
       std::vector<std::vector<Vect>> dl; // polygons
@@ -556,9 +600,9 @@ struct UVof<M_>::Imp {
     if (sem("write")) {
       if (m.IsRoot()) {
         std::cerr << std::fixed << std::setprecision(8) << "dump"
-                  << " t=" << t << " to " << fn << std::endl;
+                  << " t=" << time << " to " << filename << std::endl;
         WriteVtkPoly<Vect>(
-            fn, dl, &dln, {&dlc, &dll, &dlcl}, {"c", "l", "cl"},
+            filename, dl, &dln, {&dlc, &dll, &dlcl}, {"c", "l", "cl"},
             "Interface from marching cubes", true, bin, merge);
       }
     }
@@ -1124,36 +1168,18 @@ template <class M_>
 UVof<M_>::~UVof() = default;
 
 template <class M_>
-void UVof<M_>::DumpPoly(
-    const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
-    const Multi<const FieldCell<Scal>*>& fccl,
-    const Multi<const FieldCell<Vect>*>& fcn,
-    const Multi<const FieldCell<Scal>*>& fca,
-    const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, bool bin,
-    bool merge, M& m) {
-  imp->DumpPoly(layers, fcu, fccl, fcn, fca, fci, fn, t, bin, merge, m);
-}
-
-template <class M_>
-void UVof<M_>::DumpPoly(
-    const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcn,
-    const FieldCell<Scal>& fca, const FieldCell<bool>& fci, std::string fn,
-    Scal t, bool bin, bool merge, M& m) {
-  GRange<size_t> layers(0, 1);
-  const FieldCell<Scal>* fccl(nullptr);
-  imp->DumpPoly(layers, &fcu, fccl, &fcn, &fca, &fci, fn, t, bin, merge, m);
+void UVof<M_>::DumpPoly(const DumpPolyArgs& args, M& m) {
+  imp->DumpPoly(args, m);
 }
 
 template <class M_>
 void UVof<M_>::DumpPolyMarch(
     const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
     const Multi<const FieldCell<Scal>*>& fccl,
-    const Multi<const FieldCell<Vect>*>& fcn,
-    const Multi<const FieldCell<Scal>*>& fca,
-    const Multi<const FieldCell<bool>*>& fci, std::string fn, Scal t, bool bin,
-    bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m) {
+    const Multi<const FieldCell<Vect>*>& fcn, std::string filename, Scal t,
+    bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m) {
   imp->DumpPolyMarch(
-      layers, fcu, fccl, fcn, fca, fci, fn, t, bin, merge, iso, fcus, m);
+      layers, fcu, fccl, fcn, filename, t, bin, merge, iso, fcus, m);
 }
 
 template <class M_>
