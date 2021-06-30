@@ -465,6 +465,7 @@ void Run(M& m, Vars& var) {
     parvof.clipth = var.Double["clipth"];
     parvof.filterth = var.Double["filterth"];
     parvof.dim = M::dim;
+    parvof.vtkbin = true;
     // parvof.scheme = Vofm<M>::Par::Scheme::aulisa;
     layers = GRange<size_t>(parvof.layers);
     t.fcu0.resize(layers);
@@ -556,7 +557,7 @@ void Run(M& m, Vars& var) {
   }
   const bool dump = t.dumper->Try(as->GetTime(), as->GetTimeStep());
   if (sem.Nested() && var.Int["dumppoly"] && dump) {
-    as->DumpInterface(GetDumpName("s", ".vtk", t.frame));
+    as->DumpInterface(GetDumpName("s", ".vtk", t.frame), {t.fck}, {"k"});
   }
   if (sem.Nested() && var.Int["dumppolymarch"] && dump) {
     as->DumpInterfaceMarch(GetDumpName("sm", ".vtk", t.frame));

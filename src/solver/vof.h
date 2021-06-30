@@ -38,7 +38,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
     int verb = 0;
     bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
     Scal dumppolymarch_fill = -1; // fill cells outside
-    bool vtkbin = false;
+    bool vtkbin = true;
     bool vtkmerge = true;
     Scal vtkiso = 0.5;
     enum class Scheme { plain, aulisa, weymouth };
