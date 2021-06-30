@@ -86,117 +86,163 @@ const PartStrMeshM<M_>* Particles<M_>::GetParticles() const {
 template <class M_>
 struct Heights<M_>::Imp {
   Imp() {}
+  static constexpr Scal kClNone{Vofm<M>::kClNone};
 
   // fcu: volume fraction [a]
-  // fcdu2: volume fraction difference double (xpp-xmm, ypp-ymm, zpp-zmm) [i]
+  // Output:
+  // fcdu2: difference of volume fractions with step 2 (u[xpp]-u[xmm], ...) [i]
+  // fccl: updated with colors from neighbors
   static void CalcDiff2(
-      const FieldCell<Scal>& fcu, FieldCell<Vect>& fcdu2, const M& m) {
-    fcdu2.Reinit(m);
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
+      const Multi<FieldCell<Vect>*>& fcdu2, const Multi<FieldCell<Scal>*>& fccl,
+      const M& m) {
+    for (auto l : layers) {
+      fcdu2[l]->Reinit(m, Vect(0));
+    }
     for (auto c : m.CellsM()) {
       for (auto dr : m.dirs) {
         const auto d = m.direction(dr);
         const auto cmm = c - d - d;
         const auto cpp = c + d + d;
-        fcdu2[c][d] = fcu[cpp] - fcu[cmm];
+        for (int sign : {-1, 1}) {
+          const auto cn = sign > 0 ? cpp : cmm;
+          for (auto ln : layers) {
+            const auto cl = (*fccl[ln])[cn];
+            if (cl != kClNone) {
+              for (auto l : layers) {
+                if ((*fccl[l])[c] == cl) {
+                  (*fcdu2[l])[c][d] += sign * (*fcu[ln])[cn];
+                }
+              }
+              for (auto l : layers) {
+                if ((*fccl[l])[c] == kClNone) {
+                  (*fcdu2[l])[c][d] += sign * (*fcu[ln])[cn];
+                  (*fccl[l])[c] = cl;
+                  break;
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
   // fcu: volume fraction [a]
-  // fcdu2: volume fraction difference double (xpp-xmm, ...) [a]
+  // fcdu2: difference of volume fractions with step 2 (u[xpp]-u[xmm], ...) [a]
   // Output:
-  // fcdu4: volume fraction difference quad (xp4-xm4, ...) [i]
+  // fcdu4: difference of volume fractions with step 4 (u[xp4]-u[xm4], ...) [i]
+  // fccl: updated with colors from neighbors
   static void CalcDiff4(
-      const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcdu2,
-      FieldCell<Vect>& fcdu4, const M& m) {
-    fcdu4.Reinit(m);
-    for (auto c : m.CellsM()) {
-      for (auto dr : m.dirs) {
-        const auto d = m.direction(dr);
-        const auto cmm = c - d - d;
-        const auto cpp = c + d + d;
-        const Scal um4 = fcu[c] - fcdu2[cmm][d];
-        const Scal up4 = fcdu2[cpp][d] + fcu[c];
-        fcdu4[c][d] = up4 - um4;
-      }
+      const GRange<size_t>& layers, const Multi<const FieldCell<Vect>*>& fcdu2,
+      const Multi<FieldCell<Vect>*>& fcdu4, const Multi<FieldCell<Scal>*>& fccl,
+      const M& m) {
+    for (auto l : layers) {
+      fcdu4[l]->Reinit(m, Vect(0));
     }
-  }
-  // fcu: volume fraction [a]
-  // fcdu4: volume fraction difference double (xp4-xm4, ...) [a]
-  // Output:
-  // fcdu6: volume fraction difference quad (xp6-xm6, ...) [i]
-  static void CalcDiff6(
-      const FieldCell<Scal>& fcu, const FieldCell<Vect>& fcdu4,
-      FieldCell<Vect>& fcdu6, const M& m) {
-    fcdu6.Reinit(m);
     for (auto c : m.CellsM()) {
       for (auto dr : m.dirs) {
         const auto d = m.direction(dr);
         const auto cmm = c - d - d;
         const auto cpp = c + d + d;
-        const Scal um6 = fcu[cpp] - fcdu4[cmm][d];
-        const Scal up6 = fcdu4[cpp][d] + fcu[cmm];
-        fcdu6[c][d] = up6 - um6;
+        for (int sign : {-1, 1}) {
+          const auto cn = sign > 0 ? cpp : cmm;
+          for (auto ln : layers) {
+            const auto cl = (*fccl[ln])[cn];
+            if (cl != kClNone) {
+              for (auto l : layers) {
+                if ((*fccl[l])[c] == cl) {
+                  (*fcdu4[l])[c][d] += sign * (*fcdu2[ln])[cn][d];
+                }
+              }
+              for (auto l : layers) {
+                if ((*fccl[l])[c] == kClNone) {
+                  (*fcdu4[l])[c][d] += sign * (*fcdu2[ln])[cn][d];
+                  (*fccl[l])[c] = cl;
+                  break;
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
 
-  // Computes heights.
-  // S: the number of stages for stencils, column size is [-S*2,S*2]
+  // Computes height functions in interfacial cells.
   // fcu: volume fraction [a]
   // fcdu2: difference of volume fractions with step 2 [a]
   // fcdu4: difference of volume fractions with step 4 [a]
+  // fccl: colors
   // Output:
   // fch: fch[c][d] is absolute position of the interface
-  // from a column in direction d starting from an interfacial cell c
-  // otherwise, NaN
-  template <size_t S>
+  //      from a column in direction d starting from an interfacial cell c
+  //      otherwise, NaN
   static void CalcHeight(
-      M& m, const FieldCell<Scal>& fcu,
-      const std::array<const FieldCell<Vect>*, S> vfcud, FieldCell<Vect>& fch) {
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
+      const Multi<const FieldCell<Vect>*>& fcdu2,
+      const Multi<const FieldCell<Vect>*>& fcdu4,
+      const Multi<const FieldCell<Scal>*>& fccl,
+      const Multi<FieldCell<Vect>*>& fch, M& m) {
+    const size_t S = 2;
     auto I = [](Scal a) { return a > 0 && a < 1; }; // interface
 
-    fch.Reinit(m, GetNan<Vect>());
+    for (auto l : layers) {
+      fch[l]->Reinit(m, GetNan<Vect>());
+    }
 
-    for (auto c : m.CellsM()) {
-      if (!I(fcu[c])) {
-        continue;
-      }
-      for (size_t dr = 0; dr < m.GetEdim(); ++dr) {
-        const auto d = m.direction(dr);
-        const auto cm = c - d;
-        const auto cmm = c - d - d;
-        const auto cp = c + d;
-        const auto cpp = c + d + d;
-
-        const size_t si = (S + 1) * 4 + 1;
-        const size_t sih = (S + 1) * 2;
-
-        std::array<Scal, si> uu;
-
-        uu[sih] = fcu[c];
-        uu[sih - 1] = fcu[cm];
-        uu[sih + 1] = fcu[cp];
-        uu[sih - 2] = fcu[cmm];
-        uu[sih + 2] = fcu[cpp];
-
-        for (size_t s = 0; s < S; ++s) {
-          const size_t q = (s + 1) * 2;
-          const size_t ia = q + 1;
-          const size_t ib = q + 2;
-          const FieldCell<Vect>& fcdu = *vfcud[s];
-
-          uu[sih - ia] = uu[sih - ia + 2 * q] - fcdu[cm][d];
-          uu[sih + ia] = uu[sih + ia - 2 * q] + fcdu[cp][d];
-          uu[sih - ib] = uu[sih - ib + 2 * q] - fcdu[cmm][d];
-          uu[sih + ib] = uu[sih + ib - 2 * q] + fcdu[cpp][d];
+    auto get = [&](auto& fc, Scal cl, IdxCell c) {
+      for (auto l : layers) {
+        if ((*fccl[l])[c] == cl) {
+          return (*fc[l])[c];
         }
+      }
+      using T = decltype((*fc[0])[c]);
+      return T{0};
+    };
 
-        // |cm6|cm5|cm4|cm3|cmm| cm| c |cp |cpp|cp3|cp4|cp5|cp6|
-        // |   |   |   |   | * |   | c |   | * |   |   |   |   |
-        // |   |   | * |   |   |   | c |   |   |   | * |   |   |
+    for (auto l : layers) {
+      for (auto c : m.CellsM()) {
+        const Scal cl = (*fccl[l])[c];
+        if (cl == kClNone || !I((*fcu[l])[c])) {
+          continue;
+        }
+        for (size_t dr = 0; dr < m.GetEdim(); ++dr) {
+          const auto d = m.direction(dr);
+          const auto cm = c - d;
+          const auto cp = c + d;
+          const auto cmm = c - d - d;
+          const auto cpp = c + d + d;
 
-        const Scal s = UHeight<Scal>::Good(uu);
-        fch[c][d] = m.GetCenter(c)[d] + s * m.GetCellSize()[d];
+          const size_t si = (S + 1) * 4 + 1;
+          const size_t sih = (S + 1) * 2;
+
+          std::array<Scal, si> uu;
+
+          uu[sih] = get(fcu, cl, c);
+          uu[sih - 1] = get(fcu, cl, cm);
+          uu[sih + 1] = get(fcu, cl, cp);
+          uu[sih - 2] = get(fcu, cl, cmm);
+          uu[sih + 2] = get(fcu, cl, cpp);
+
+          for (size_t s = 0; s < S; ++s) {
+            const size_t q = (s + 1) * 2;
+            const size_t ia = q + 1;
+            const size_t ib = q + 2;
+            auto& fcdu = s == 0 ? fcdu2 : fcdu4;
+
+            uu[sih - ia] = uu[sih - ia + 2 * q] - get(fcdu, cl, cm)[d];
+            uu[sih + ia] = uu[sih + ia - 2 * q] + get(fcdu, cl, cp)[d];
+            uu[sih - ib] = uu[sih - ib + 2 * q] - get(fcdu, cl, cmm)[d];
+            uu[sih + ib] = uu[sih + ib - 2 * q] + get(fcdu, cl, cpp)[d];
+          }
+
+          // |cm6|cm5|cm4|cm3|cmm| cm| c |cp |cpp|cp3|cp4|cp5|cp6|
+          // |   |   |   |   | * |   | c |   | * |   |   |   |   |
+          // |   |   | * |   |   |   | c |   |   |   | * |   |   |
+
+          const Scal offset = UHeight<Scal>::Good(uu);
+          (*fch[l])[c][d] = m.GetCenter(c)[d] + offset * m.GetCellSize()[d];
+        }
       }
     }
   }
@@ -207,93 +253,99 @@ struct Heights<M_>::Imp {
   // Output: modified in cells with fci=1, resized to m
   // fck: curvature [i]
   static void CalcCurvHeight(
-      M& m, const FieldCell<Scal>& fcu, const FieldCell<Vect>& fch,
-      const FieldCell<Vect>& fcn, FieldCell<Scal>& fck) {
-    using MIdx = typename M::MIdx;
-    using Dir = typename M::Dir;
-    auto& bc = m.GetIndexCells();
-
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
+      const Multi<const FieldCell<Vect>*>& fch,
+      const Multi<const FieldCell<Vect>*>& fcn,
+      const Multi<const FieldCell<Scal>*>& fccl,
+      const Multi<FieldCell<Scal>*>& fck, M& m) {
     auto I = [](Scal a) { return a > 0 && a < 1; }; // interface
 
-    fck.Reinit(m, GetNan<Scal>());
+    auto shift = [](auto c, auto d, int i) {
+      return i == 0    ? c
+             : i == 1  ? c + d
+             : i == -1 ? c - d
+             : i == 2  ? c + d + d
+                       : c - d - d;
+    };
 
-    for (auto c : m.Cells()) {
-      if (!I(fcu[c])) {
-        continue;
-      }
+    for (auto l : layers) {
+      fck[l]->Reinit(m, GetNan<Scal>());
+    }
 
-      size_t di = fcn[c].abs().argmax(); // best direction index
-      Dir dn(di); // best direction
-      // directions of plane tangents ([d]irection [t]angents)
-      Dir dtx((size_t(dn) + 1) % M::dim);
-      Dir dty((size_t(dn) + 2) % M::dim);
-
-      MIdx w = bc.GetMIdx(c);
-
-      // offset in normal direction
-      MIdx on = MIdx(dn);
-      // offset in dtx,dty
-      MIdx otx = MIdx(dtx);
-      MIdx oty = MIdx(dty);
-      // mesh step
-      const Scal lx = m.GetCellSize()[size_t(dtx)];
-      const Scal ly = m.GetCellSize()[size_t(dty)];
-
-      // Evaluates height function from nearest interface
-      // o: offset from w
-      auto hh = [I, &w, &fch, &di, &bc, &on, &fcu](MIdx o) -> Scal {
-        const int si = 5; // stencil size
-        const int sih = si / 2;
-        int i = sih; // closest interface to center
-        while (i < si) {
-          auto cn = bc.GetIdx(w + o + on * (i - sih));
-          if (I(fcu[cn])) {
-            return fch[cn][di];
-          }
-          if (i > sih) {
-            i = si - i - 1;
-          } else {
-            i = si - i;
-          }
+    for (auto l : layers) {
+      for (auto c : m.CellsM()) {
+        const Scal cl = (*fccl[l])[c];
+        if (cl == kClNone || !I((*fcu[l])[c])) {
+          continue;
         }
-        return GetNan<Scal>();
-      };
 
-      // height function
-      const Scal hcc = hh(MIdx(0));
-      const Scal hmc = hh(-otx);
-      const Scal hpc = hh(otx);
-      const Scal hcm = hh(-oty);
-      const Scal hcp = hh(oty);
-      // corners: hxy
-      const Scal hmm = hh(-otx - oty);
-      const Scal hmp = hh(-otx + oty);
-      const Scal hpm = hh(otx - oty);
-      const Scal hpp = hh(otx + oty);
+        // best direction
+        const auto dn = m.direction((*fcn[l])[c].abs().argmax());
+        // directions of plane tangents ([d]irection [t]angents)
+        const auto dx = dn.next(1);
+        const auto dy = dn.next(2);
 
-      // first derivative (slope)
-      Scal hx = (hpc - hmc) / (2. * lx); // centered
-      Scal hy = (hcp - hcm) / (2. * ly);
-      // second derivative
-      const Scal fl = 0.2; // filter factor (Basilisk: fl=0.2)
-      Scal hxx = ((hpm - 2. * hcm + hmm) * fl + (hpc - 2. * hcc + hmc) +
-                  (hpp - 2. * hcp + hmp) * fl) /
-                 ((1 + 2 * fl) * lx * lx);
-      Scal hyy = ((hmp - 2. * hmc + hmm) * fl + (hcp - 2. * hcc + hcm) +
-                  (hpp - 2. * hpc + hpm) * fl) /
-                 ((1 + 2 * fl) * ly * ly);
-      Scal hxy = ((hpp - hmp) - (hpm - hmm)) / (4. * lx * ly);
-      // curvature
-      Scal k =
-          (2. * hx * hy * hxy - (sqr(hy) + 1.) * hxx - (sqr(hx) + 1.) * hyy) /
-          std::pow(sqr(hx) + sqr(hy) + 1., 3. / 2.);
+        // mesh step
+        const Scal lx = m.GetCellSize()[dx];
+        const Scal ly = m.GetCellSize()[dy];
 
-      if (fcn[c][di] < 0) {
-        k *= -1;
+        // Evaluates height function from nearest interface
+        // o: offset from w
+        auto hh = [&](auto cb) -> Scal {
+          const int si = 5; // stencil size
+          const int sih = si / 2;
+          int i = sih; // closest interface to center
+          while (i < si) {
+            const auto cn = shift(cb, dn, i - sih);
+            for (auto ln : layers) {
+              if ((*fccl[ln])[cn] == cl && I((*fcu[ln])[cn])) {
+                return (*fch[ln])[cn][dn];
+              }
+            }
+            if (i > sih) {
+              i = si - i - 1;
+            } else {
+              i = si - i;
+            }
+          }
+          return GetNan<Scal>();
+        };
+
+        // height function
+        const Scal hcc = hh(c);
+        const Scal hmc = hh(c - dx);
+        const Scal hpc = hh(c + dx);
+        const Scal hcm = hh(c - dy);
+        const Scal hcp = hh(c + dy);
+        // corners: hxy
+        const Scal hmm = hh(c - dx - dy);
+        const Scal hmp = hh(c - dx + dy);
+        const Scal hpm = hh(c + dx - dy);
+        const Scal hpp = hh(c + dx + dy);
+
+        // first derivative (slope)
+        const Scal hx = (hpc - hmc) / (2 * lx);
+        const Scal hy = (hcp - hcm) / (2 * ly);
+        // second derivative
+        const Scal fl = 0.2; // filter factor (Basilisk: fl=0.2)
+        const Scal hxx = ((hpm - 2 * hcm + hmm) * fl + (hpc - 2 * hcc + hmc) +
+                          (hpp - 2 * hcp + hmp) * fl) /
+                         ((1 + 2 * fl) * lx * lx);
+        const Scal hyy = ((hmp - 2 * hmc + hmm) * fl + (hcp - 2 * hcc + hcm) +
+                          (hpp - 2 * hpc + hpm) * fl) /
+                         ((1 + 2 * fl) * ly * ly);
+        const Scal hxy = ((hpp - hmp) - (hpm - hmm)) / (4 * lx * ly);
+        // curvature
+        Scal k =
+            (2 * hx * hy * hxy - (sqr(hy) + 1) * hxx - (sqr(hx) + 1) * hyy) /
+            std::pow(sqr(hx) + sqr(hy) + 1, 3. / 2.);
+
+        if ((*fcn[l])[c][dn] < 0) {
+          k *= -1;
+        }
+
+        (*fck[l])[c] = k;
       }
-
-      // curvature
-      fck[c] = k;
     }
   }
 
@@ -302,28 +354,57 @@ struct Heights<M_>::Imp {
       const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m, const EB&) {
     auto sem = m.GetSem();
     struct {
-      FieldCell<Vect> fcdu2; // difference of volume fractions with step 2
-      FieldCell<Vect> fcdu4; // difference of volume fractions with step 4
-      FieldCell<Vect> fch; // height function
+      Multi<FieldCell<Scal>> fccl; // extended colors, contain colors
+                                   // from current cell and neighbors
+      Multi<FieldCell<Vect>> fcdu2; // difference of volume
+                                    // fractions with step 2
+      Multi<FieldCell<Vect>> fcdu4; // difference of volume
+                                    // fractions with step 4
+      Multi<FieldCell<Vect>> fch; // height function
     } * ctx(sem);
     auto& t = *ctx;
+    auto& layers = plic.layers;
 
+    if (sem("init")) {
+      t.fccl.resize(layers);
+      if (!plic.vfccl[0]) { // no colors defined
+        fassert_equal(layers.size(), 1);
+        t.fccl[0].Reinit(m, 0);
+      } else {
+        for (auto l : layers) {
+          t.fccl[l] = *plic.vfccl[l];
+        }
+      }
+    }
     if (sem("diff2")) {
-      CalcDiff2(*plic.vfcu[0], t.fcdu2, m);
-      m.Comm(&t.fcdu2);
+      t.fcdu2.resize(layers);
+      CalcDiff2(layers, plic.vfcu, t.fcdu2, t.fccl, m);
+      for (auto l : layers) {
+        m.Comm(&t.fcdu2[l]);
+        m.Comm(&t.fccl[l]);
+      }
     }
     if (sem("diff4")) {
-      CalcDiff4(*plic.vfcu[0], t.fcdu2, t.fcdu4, m);
-      m.Comm(&t.fcdu4);
+      t.fcdu4.resize(layers);
+      CalcDiff4(layers, t.fcdu2, t.fcdu4, t.fccl, m);
+      for (auto l : layers) {
+        m.Comm(&t.fcdu4[l]);
+        m.Comm(&t.fccl[l]);
+      }
     }
     if (sem("height")) {
-      std::array<const FieldCell<Vect>*, 2> vfcdu = {&t.fcdu2, &t.fcdu4};
-      CalcHeight(m, *plic.vfcu[0], vfcdu, t.fch);
-      m.Comm(&t.fch);
+      t.fch.resize(layers);
+      CalcHeight(layers, plic.vfcu, t.fcdu2, t.fcdu4, t.fccl, t.fch, m);
+      for (auto l : layers) {
+        m.Comm(&t.fch[l]);
+        m.Comm(&t.fccl[l]);
+      }
     }
     if (sem("curvcomm")) {
-      CalcCurvHeight(m, *plic.vfcu[0], t.fch, *plic.vfcn[0], *fck[0]);
-      m.Comm(fck[0]);
+      CalcCurvHeight(layers, plic.vfcu, t.fch, plic.vfcn, t.fccl, fck, m);
+      for (auto l : layers) {
+        m.Comm(fck[l]);
+      }
     }
   }
 };
