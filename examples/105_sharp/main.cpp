@@ -185,7 +185,7 @@ void Run(M& m, Vars& var) {
       var.String["outputpath"]);
   const std::string* vtk_out = var.String.Find("vtk_out");
   if (vtk_out && sem.Nested()) {
-    t.solver->DumpInterface(*vtk_out);
+    t.solver->DumpInterface(*vtk_out, {}, {});
   }
   const std::string* vtk_out_march = var.String.Find("vtk_out_march");
   if (vtk_out_march && sem.Nested()) {
