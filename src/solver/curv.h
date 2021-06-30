@@ -99,7 +99,11 @@ class Hybrid : public Estimator<M_> {
   using Vect = typename M::Vect;
   using Plic = generic::Plic<Vect>;
 
-  Hybrid(const typename PartStrMeshM<M>::Par& par);
+  Hybrid(
+      M& m, const typename PartStrMeshM<M>::Par& par,
+      const GRange<size_t>& layers);
+  Hybrid(const Hybrid&) = delete;
+  ~Hybrid();
   // Computes curvature from volume fractions
   // and a piecewise linear reconstruction
   void CalcCurvature(
@@ -108,6 +112,12 @@ class Hybrid : public Estimator<M_> {
   void CalcCurvature(
       const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
       const Embed<M>& eb) override;
+  std::unique_ptr<PartStrMeshM<M>> ReleaseParticles();
+  const PartStrMeshM<M>* GetParticles() const;
+
+ private:
+  struct Imp;
+  std::unique_ptr<Imp> imp;
 };
 
 template <class M>

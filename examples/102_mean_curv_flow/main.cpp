@@ -451,6 +451,7 @@ void Run(M& m, Vars& var) {
     m.flags.is_periodic[0] = var.Int["hypre_periodic_x"];
     m.flags.is_periodic[1] = var.Int["hypre_periodic_y"];
     m.flags.linreport = var.Int["linreport"];
+    m.flags.edim = 2;
 
     {
       auto p = InitBc(var, m, {}, {});
@@ -464,9 +465,8 @@ void Run(M& m, Vars& var) {
     parvof.layers = var.Int["vofm_layers"];
     parvof.clipth = var.Double["clipth"];
     parvof.filterth = var.Double["filterth"];
-    parvof.dim = M::dim;
+    parvof.dim = 2;
     parvof.vtkbin = true;
-    // parvof.scheme = Vofm<M>::Par::Scheme::aulisa;
     layers = GRange<size_t>(parvof.layers);
     t.fcu0.resize(layers);
     t.fccl0.resize(layers);
@@ -647,9 +647,13 @@ int main(int argc, const char** argv) {
   conf << fconf.rdbuf();
 
   const int nx = args.Int["nx"];
-  const int ny = args.Int["ny"];
-  const MIdx mesh_size(nx, ny ? ny : nx);
-  const MIdx block_size(args.Int["bs"] ? args.Int["bs"] : std::min(64, nx));
+  const int ny = args.Int["ny"] ? args.Int["ny"] : args.Int["nx"];
+  MIdx mesh_size(1);
+  mesh_size[0] = nx;
+  mesh_size[1] = ny;
+  MIdx block_size(1);
+  block_size[0] = args.Int["bs"] ? args.Int["bs"] : std::min(64, nx);
+  block_size[1] = args.Int["bs"] ? args.Int["bs"] : std::min(64, ny);
 
   MpiWrapper mpi(&argc, &argv);
   Subdomains<MIdx> sub(mesh_size, block_size, mpi.GetCommSize());

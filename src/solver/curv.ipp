@@ -281,7 +281,7 @@ struct Heights<M_>::Imp {
 
         // best direction
         const auto dn = m.direction((*fcn[l])[c].abs().argmax());
-        // directions of plane tangents ([d]irection [t]angents)
+        // directions of tangents
         const auto dx = dn.next(1);
         const auto dy = dn.next(2);
 
@@ -428,6 +428,80 @@ void Heights<M_>::CalcCurvature(
   imp->CalcCurvature(fck, plic, m, eb);
 }
 
+template <class M_>
+struct Hybrid<M_>::Imp {
+  Imp(M& m, const typename PartStrMeshM<M>::Par& par,
+      const GRange<size_t>& layers)
+      : heights_(new Heights<M>())
+      , particles_(new Particles<M>(m, par, layers)) {}
+
+  template <class EB>
+  void CalcCurvature(
+      const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
+      const EB& eb) {
+    const auto& layers = plic.layers;
+    auto sem = m.GetSem();
+    struct {
+      Multi<FieldCell<Scal>> fck;
+    } * ctx(sem);
+    auto& t = *ctx;
+    if (sem.Nested("part")) {
+      heights_->CalcCurvature(fck, plic, m, eb);
+    }
+    // TODO: only seed particles in cells with undefined curvature from heights
+    if (sem("resize")) {
+      t.fck.resize(layers);
+    }
+    if (sem.Nested("part")) {
+      particles_->CalcCurvature(t.fck, plic, m, eb);
+    }
+    if (sem("update")) {
+      for (auto l : layers) {
+        for (auto c : m.AllCells()) {
+          if (IsNan((*fck[l])[c])) {
+            (*fck[l])[c] = t.fck[l][c];
+          }
+        }
+      }
+    }
+  }
+
+  std::unique_ptr<Heights<M>> heights_;
+  std::unique_ptr<Particles<M>> particles_;
+};
+
+template <class M_>
+Hybrid<M_>::Hybrid(
+    M& m, const typename PartStrMeshM<M>::Par& par,
+    const GRange<size_t>& layers)
+    : imp(new Imp(m, par, layers)) {}
+
+template <class EB_>
+Hybrid<EB_>::~Hybrid() = default;
+
+template <class M_>
+void Hybrid<M_>::CalcCurvature(
+    const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m, const M& eb) {
+  imp->CalcCurvature(fck, plic, m, eb);
+}
+
+template <class M_>
+void Hybrid<M_>::CalcCurvature(
+    const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
+    const Embed<M>& eb) {
+  imp->CalcCurvature(fck, plic, m, eb);
+}
+
+template <class M_>
+std::unique_ptr<PartStrMeshM<M_>> Hybrid<M_>::ReleaseParticles() {
+  return std::move(imp->particles_->ReleaseParticles());
+}
+
+template <class M_>
+const PartStrMeshM<M_>* Hybrid<M_>::GetParticles() const {
+  return imp->particles_->GetParticles();
+}
+
 template <class M>
 std::unique_ptr<Estimator<M>> MakeEstimator(
     const Vars& var, M& m, const GRange<size_t>& layers) {
@@ -439,8 +513,10 @@ std::unique_ptr<Estimator<M>> MakeEstimator(
     return std::make_unique<curvature::Particles<M>>(m, psm, layers);
   } else if (name == "heights") {
     return std::make_unique<curvature::Heights<M>>();
-    //} else if (name == "hybrid") {
-    //  return std::make_unique<curvature::Heights<M>>();
+  } else if (name == "hybrid") {
+    const auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize()[0], var);
+    const auto psm = ParsePar<PartStrMeshM<M>>()(ps, var);
+    return std::make_unique<curvature::Hybrid<M>>(m, psm, layers);
   }
   fassert(false, util::Format("Unknown curvature estimator '{}'", name));
 }

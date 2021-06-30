@@ -1,20 +1,19 @@
 #!/bin/sh -eu
 
 radius=${1:-16}
+extra=${2:-}
 nx=128
 r=$(echo "$radius / $nx" | bc -l)
 cat > add.conf << EOF
 set string list_path "inline sphere 0.5 0.5 0 $r"
-set int list_ls 2
-set string curvature heights
 
-#set string advection_solver vofm
-set int enable_color 1
-
-set string list_path "inline 
-sphere 0.5 0.5 0 $r
-"
-
+$extra
 EOF
 make m="$nx $nx 1" cleanrun
-./plot.py --radius "$r"
+
+kpath="k_0000.xmf"
+if ! [ -f "$kpath" ] ; then
+  kpath="k0_0000.xmf"
+fi
+
+./plot.py --radius "$r" --input "$kpath"

@@ -8,6 +8,7 @@ namespace curvature {
 #define XX(M)                                              \
   template class Particles<M>;                             \
   template class Heights<M>;                               \
+  template class Hybrid<M>;                                \
   template std::unique_ptr<Estimator<M>> MakeEstimator<M>( \
       const Vars&, M&, const GRange<size_t>&);
 
