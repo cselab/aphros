@@ -99,15 +99,13 @@ struct UVof<M_>::Imp {
       });
 
       if (args.dump_layer) {
-        auto pair = t.data.emplace("l", std::vector<Scal>());
-        auto& d = pair.first->second;
+        auto& d = t.data["l"];
         for_each_cell([&](size_t l, IdxCell) { //
           d.push_back(l);
         });
       }
       if (args.dump_color) {
-        auto pair = t.data.emplace("cl", std::vector<Scal>());
-        auto& d = pair.first->second;
+        auto& d = t.data["cl"];
         for_each_cell([&](size_t l, IdxCell c) { //
           d.push_back(fccl[l] ? (*fccl[l])[c] : 0);
         });
@@ -116,8 +114,7 @@ struct UVof<M_>::Imp {
       fassert_equal(args.extra_fields.size(), args.extra_names.size());
 
       for (size_t i = 0; i < args.extra_fields.size(); ++i) {
-        auto pair = t.data.emplace(args.extra_names[i], std::vector<Scal>());
-        auto& d = pair.first->second;
+        auto& d = t.data[args.extra_names[i]];
         for_each_cell([&](size_t l, IdxCell c) { //
           d.push_back((*args.extra_fields[i][l])[c]);
         });

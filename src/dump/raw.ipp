@@ -75,7 +75,6 @@ void Raw<M>::Write(
     const std::string& path, const std::vector<MIdx>& starts,
     const std::vector<MIdx>& sizes, const std::vector<std::vector<T>>& data,
     const MIdx global_size, Type type, const MpiWrapper& mpi) {
-  const auto dim = M::dim;
   const auto nblocks = data.size();
   fassert(nblocks > 0);
   MIdx comb_start(std::numeric_limits<IntIdx>::max());
@@ -213,7 +212,6 @@ void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
     m.GatherToLead(&t.dataptr);
   }
   if (sem("read") && m.IsLead()) {
-    const auto dim = M::dim;
     const auto nblocks = t.dataptr.size();
     fassert(nblocks > 0);
     MIdx comb_start(std::numeric_limits<IntIdx>::max());

@@ -24,14 +24,16 @@ class Estimator {
   Estimator() = default;
   Estimator(const Estimator&) = delete;
   virtual ~Estimator() {}
-  // Computes curvature from volume fractions
-  // and a piecewise linear reconstruction
+  // Computes curvature `fck` from volume fractions
+  // and a piecewise linear reconstruction `plic`
   virtual void CalcCurvature(
       const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
       const M& eb) = 0;
   virtual void CalcCurvature(
       const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
       const Embed<M>& eb) = 0;
+  // Dumps auxiliary fields described in `request` at frame number `frame`
+  virtual void DumpAux(std::string /*request*/, int /*frame*/, M&) {}
 };
 
 // Curvature estimator using particles fitted to piecewise linear interface
@@ -48,8 +50,6 @@ class Particles : public Estimator<M_> {
       const GRange<size_t>& layers);
   Particles(const Particles&) = delete;
   ~Particles();
-  // Computes curvature from volume fractions
-  // and a piecewise linear reconstruction
   void CalcCurvature(
       const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
       const M& eb) override;
@@ -58,6 +58,7 @@ class Particles : public Estimator<M_> {
       const Embed<M>& eb) override;
   std::unique_ptr<PartStrMeshM<M>> ReleaseParticles();
   const PartStrMeshM<M>* GetParticles() const;
+  void DumpAux(std::string request, int frame, M& m) override;
 
  private:
   struct Imp;
@@ -75,14 +76,13 @@ class Heights : public Estimator<M_> {
 
   Heights();
   ~Heights();
-  // Computes curvature from volume fractions
-  // and a piecewise linear reconstruction
   void CalcCurvature(
       const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
       const M& eb) override;
   void CalcCurvature(
       const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
       const Embed<M>& eb) override;
+  void DumpAux(std::string request, int frame, M& m) override;
 
  private:
   struct Imp;
@@ -104,8 +104,6 @@ class Hybrid : public Estimator<M_> {
       const GRange<size_t>& layers);
   Hybrid(const Hybrid&) = delete;
   ~Hybrid();
-  // Computes curvature from volume fractions
-  // and a piecewise linear reconstruction
   void CalcCurvature(
       const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
       const M& eb) override;
@@ -114,6 +112,7 @@ class Hybrid : public Estimator<M_> {
       const Embed<M>& eb) override;
   std::unique_ptr<PartStrMeshM<M>> ReleaseParticles();
   const PartStrMeshM<M>* GetParticles() const;
+  void DumpAux(std::string request, int frame, M& m) override;
 
  private:
   struct Imp;

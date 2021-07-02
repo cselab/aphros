@@ -5,6 +5,7 @@
 #include <exception>
 #include <fstream>
 #include <limits>
+#include <map>
 #include <memory>
 
 #include "approx.h"
@@ -15,6 +16,7 @@
 #include "parse/curv.h"
 #include "reconst.h"
 #include "trackerm.h"
+#include "util/format.h"
 #include "util/height.h"
 #include "util/vof.h"
 #include "vof.h"
@@ -82,6 +84,9 @@ template <class M_>
 const PartStrMeshM<M_>* Particles<M_>::GetParticles() const {
   return imp->partstrmeshm_.get();
 }
+
+template <class M_>
+void Particles<M_>::DumpAux(std::string, int, M&) {}
 
 template <class M_>
 struct Heights<M_>::Imp {
@@ -176,7 +181,7 @@ struct Heights<M_>::Imp {
   // Output:
   // fch: fch[c][d] is absolute position of the interface
   //      from a column in direction d starting from an interfacial cell c
-  //      otherwise, NaN
+  //      NaN if undefined
   static void CalcHeight(
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Vect>*>& fcdu2,
@@ -186,6 +191,7 @@ struct Heights<M_>::Imp {
     const size_t S = 2;
     auto I = [](Scal a) { return a > 0 && a < 1; }; // interface
 
+    fch.assert_size(layers);
     for (auto l : layers) {
       fch[l]->Reinit(m, GetNan<Vect>());
     }
@@ -241,7 +247,7 @@ struct Heights<M_>::Imp {
           // |   |   | * |   |   |   | c |   |   |   | * |   |   |
 
           const Scal offset = UHeight<Scal>::Good(uu);
-          (*fch[l])[c][d] = m.GetCenter(c)[d] + offset * m.GetCellSize()[d];
+          (*fch[l])[c][d] = c.center[d] + offset * m.GetCellSize()[d];
         }
       }
     }
@@ -261,13 +267,13 @@ struct Heights<M_>::Imp {
     auto I = [](Scal a) { return a > 0 && a < 1; }; // interface
 
     auto shift = [](auto c, auto d, int i) {
-      return i == 0    ? c
-             : i == 1  ? c + d
-             : i == -1 ? c - d
-             : i == 2  ? c + d + d
-                       : c - d - d;
+      return i == 0 ? c : //
+                 i == 1 ? c + d : //
+                     i == -1 ? c - d : //
+                         i == 2 ? c + d + d : c - d - d;
     };
 
+    fck.assert_size(layers);
     for (auto l : layers) {
       fck[l]->Reinit(m, GetNan<Scal>());
     }
@@ -406,11 +412,18 @@ struct Heights<M_>::Imp {
         m.Comm(fck[l]);
       }
     }
+    if (sem("savelast")) {
+      fc_height_ = t.fch;
+      fccl_ = t.fccl;
+    }
   }
+
+  Multi<FieldCell<Vect>> fc_height_; // last height to be used in DumpAux
+  Multi<FieldCell<Scal>> fccl_; // last colors to be used in DumpAux
 };
 
 template <class M_>
-Heights<M_>::Heights() = default;
+Heights<M_>::Heights() : imp(new Imp()) {}
 
 template <class EB_>
 Heights<EB_>::~Heights() = default;
@@ -426,6 +439,87 @@ void Heights<M_>::CalcCurvature(
     const Multi<FieldCell<Scal>*>& fck, const Plic& plic, M& m,
     const Embed<M>& eb) {
   imp->CalcCurvature(fck, plic, m, eb);
+}
+
+template <class M_>
+void Heights<M_>::DumpAux(std::string request, int frame, M& m) {
+  auto sem = m.GetSem();
+  struct {
+    std::map<std::string, std::vector<Scal>> data;
+  } * ctx(sem);
+  auto& t = *ctx;
+  constexpr Scal kClNone{Vofm<M>::kClNone};
+  if (sem()) {
+    auto& d_x = t.data["x"];
+    auto& d_y = t.data["y"];
+    auto& d_z = t.data["z"];
+    auto& d_hx = t.data["hx"];
+    auto& d_hy = t.data["hy"];
+    auto& d_hz = t.data["hz"];
+    auto& d_dir = t.data["dir"];
+    auto& d_cl = t.data["cl"];
+    const GRange<size_t> layers(imp->fc_height_.size());
+    using Vect3 = generic::Vect<Scal, 3>;
+    for (auto l : layers) {
+      for (auto c : m.CellsM()) {
+        auto cl = imp->fccl_[l][c];
+        const Vect3 h(imp->fc_height_[l][c]);
+        const Vect3 center(c.center());
+        if (cl != kClNone) {
+          for (auto d : m.dirs) {
+            if (!IsNan(h[d])) {
+              d_x.push_back(center[0]);
+              d_y.push_back(center[1]);
+              d_z.push_back(center[2]);
+              d_dir.push_back(d);
+              auto hh = center;
+              hh[d] = h[d];
+              d_hx.push_back(hh[0]);
+              d_hy.push_back(hh[1]);
+              d_hz.push_back(hh[2]);
+              d_cl.push_back(cl);
+            }
+          }
+        }
+      }
+    }
+    for (auto& p : t.data) {
+      m.Reduce(&p.second, Reduction::concat);
+    }
+  }
+  if (sem()) {
+    if (m.IsRoot()) {
+      std::ofstream csv(util::Format("h_{:04d}.csv", frame));
+      size_t size = 0;
+      { // write header
+        bool first = true;
+        for (auto& p : t.data) {
+          if (!first) {
+            csv << ',';
+          } else {
+            first = false;
+          }
+          csv << p.first;
+          size = p.second.size();
+        }
+        csv << '\n';
+      }
+      { // write rows
+        for (size_t i = 0; i < size; ++i) {
+          bool first = true;
+          for (auto& p : t.data) {
+            if (!first) {
+              csv << ',';
+            } else {
+              first = false;
+            }
+            csv << p.second[i];
+          }
+          csv << '\n';
+        }
+      }
+    }
+  }
 }
 
 template <class M_>
@@ -500,6 +594,11 @@ std::unique_ptr<PartStrMeshM<M_>> Hybrid<M_>::ReleaseParticles() {
 template <class M_>
 const PartStrMeshM<M_>* Hybrid<M_>::GetParticles() const {
   return imp->particles_->GetParticles();
+}
+
+template <class M_>
+void Hybrid<M_>::DumpAux(std::string request, int frame, M& m) {
+  imp->heights_->DumpAux(request, frame, m);
 }
 
 template <class M>

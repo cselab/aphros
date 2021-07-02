@@ -562,6 +562,9 @@ void Run(M& m, Vars& var) {
   if (sem.Nested() && var.Int["dumppolymarch"] && dump) {
     as->DumpInterfaceMarch(GetDumpName("sm", ".vtk", t.frame));
   }
+  if (sem.Nested() && var.Int["dumpaux"] && dump) {
+    t.curv->DumpAux("heights", t.frame, m);
+  }
   if (t.dumptraj) {
     if (sem() && dump) {
       t.traj.emplace_back();
