@@ -7,6 +7,9 @@ echo "nx error" > "$out"
 for f in sides${sides}_* ; do
   nx=$(echo "$f" | sed -En 's/.*nx(\d*)/\1/p')
   nx=$(echo "$nx" | awk '{print $1 + 0}')
-  error=$(./calc_rate --traj "$f/traj.dat" --sides $sides --slope_error)
-  echo $nx $error
+  traj=$f/traj.dat
+  if [ -f "$traj" ] ; then
+    error=$(./calc_rate --traj "$traj" --sides $sides --slope_error)
+    echo $nx $error
+  fi
 done | tee -a "$out"
