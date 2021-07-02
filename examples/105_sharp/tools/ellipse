@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+
+import numpy
+import sys
+import os
+import mmap
+import functools
+import operator
+
+me = "ellipse"
+def mmap_create(path, dtype, shape, order='F'):
+    with open(path, "wb+") as file:
+        size = functools.reduce(operator.mul, shape, 1) * dtype.itemsize
+        file.seek(size - 1, 0)
+        file.write(b'\0')
+        file.seek(0, 0)
+        buffer = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_WRITE)
+    return numpy.ndarray(shape, dtype, buffer, order=order)
+
+nx, ny, nz = 64, 64, 64
+path = "a"
+raw = path + ".raw"
+xmf = path + ".xmf"
+dtype = numpy.dtype('uint16')
+base = os.path.basename(path)
+u = mmap_create(raw, dtype, (nx, ny, nz))
+x, y, z = numpy.mgrid[:nx,:ny,:nz]
+x -= nx//2
+y -= ny//2
+z -= nz//2
+u.fill(0)
+u[x**2 + y**2 + z**2 < (nx//3)**2] = 1
+
+with open(xmf, "w") as f:
+    nx, ny, nz = u.shape
+    type = {numpy.dtype('float32') : "Float",
+            numpy.dtype('uint16') : "UShort",
+            numpy.dtype('int64') : "Int"}[u.dtype]
+    f.write("""<?xml version="1.0" ?>
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
+<Xdmf Version="2.0">
+ <Domain>
+   <Grid Name="mesh" GridType="Uniform">
+     <Topology TopologyType="3DCORECTMesh" Dimensions="%d %d %d"/>
+     <Geometry GeometryType="ORIGIN_DXDYDZ">
+       <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
+         0 0 0
+       </DataItem>
+       <DataItem Name="Spacing" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
+         1 1 1
+       </DataItem>
+     </Geometry>
+     <Attribute Name="u" AttributeType="Scalar" Center="Cell">
+       <DataItem ItemType="HyperSlab" Dimensions="%d %d %d" Type="HyperSlab">
+           <DataItem Dimensions="3 3" Format="XML">
+             0 0 0
+             1 1 1
+             %d %d %d
+           </DataItem>
+           <DataItem Dimensions="%d %d %d" Seek="0" Precision="2" NumberType="%s" Format="Binary">
+             %s
+           </DataItem>
+       </DataItem>
+     </Attribute>
+   </Grid>
+ </Domain>
+</Xdmf>""" % (nz + 1, ny + 1, nx + 1, nz, ny, nx, nz, ny, nx, nz, ny, nx, type, base + ".raw"))
