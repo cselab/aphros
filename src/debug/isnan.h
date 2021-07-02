@@ -25,16 +25,6 @@ bool IsFinite(const GField<T, Idx>& u) {
   return true;
 }
 
-template <class Scal, size_t dim>
-bool IsNan(const generic::Vect<Scal, dim>& a) {
-  for (size_t i = 0; i < dim; ++i) {
-    if (IsNan(a[i])) {
-      return true;
-    }
-  }
-  return false;
-}
-
 template <class T, class Idx>
 bool IsNan(const GField<T, Idx>& u) {
   for (auto i : u.GetRange()) {

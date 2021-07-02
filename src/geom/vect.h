@@ -17,16 +17,6 @@ T sqr(T a) {
 }
 
 template <class Scal>
-inline Scal GetNan() {
-  return std::numeric_limits<Scal>::quiet_NaN();
-}
-
-template <>
-inline double GetNan<double>() {
-  return std::numeric_limits<double>::quiet_NaN();
-}
-
-template <class Scal>
 bool IsFinite(Scal a) {
   return std::isfinite(a);
 }
@@ -449,6 +439,26 @@ const size_t Vect<Scal, dim>::dim;
 
 } // namespace generic
 
+template <class Scal, size_t dim>
+bool IsNan(const generic::Vect<Scal, dim>& v) {
+  for (size_t i = 0; i < dim; ++i) {
+    if (IsNan(v[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+template <class Scal, size_t dim>
+bool IsFinite(const generic::Vect<Scal, dim>& v) {
+  for (size_t i = 0; i < dim; ++i) {
+    if (!IsFinite(v[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // Specialization providing a strict total order,
 // to be used by ordered containers.
 template <class T, size_t dim>
@@ -479,7 +489,20 @@ struct Rect {
   Vect low, high;
 };
 
-template <>
-inline generic::Vect<double, 3> GetNan<generic::Vect<double, 3>>() {
-  return generic::Vect<double, 3>(GetNan<double>());
+struct GetNanHelper {
+  static auto Get(double*) {
+    return std::numeric_limits<double>::quiet_NaN();
+  }
+  static auto Get(float*) {
+    return std::numeric_limits<float>::quiet_NaN();
+  }
+  template <class T, size_t dim>
+  static auto Get(generic::Vect<T, dim>*) {
+    return generic::Vect<T, dim>(Get((T*)nullptr));
+  }
+};
+
+template <class T>
+T GetNan() {
+  return GetNanHelper::Get((T*)nullptr);
 }
