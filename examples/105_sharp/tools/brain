@@ -16,18 +16,18 @@ raw = path + ".raw"
 xmf = path + ".xmf"
 base = os.path.basename(path)
 atlas = "/u/ann.nrrd"
-sx = sy = sz = 8
+sx = sy = sz = 4
 a = adv.nrrd_data(atlas).copy()
 a = a[::sx, ::sy, ::sz]
 nx, ny, nz = a.shape
-nx = (nx)//b*b
-ny = (ny)//b*b
-nz = (nz)//b*b
+nx0 = (nx + b - 1)//b*b
+ny0 = (ny + b)//b*b
+nz0 = (nz + b - 1)//b*b
 a = a[:nx, :ny, :nz]
-a[a != 0] = 1
-print(a.shape)
-u = adv.mmap_create(raw, dtype, a.shape)
-numpy.copyto(u, a)
+a[a != 0] = numpy.iinfo(dtype).max
+u = adv.mmap_create(raw, dtype, (nx0, ny0, nz0))
+u.fill(0)
+numpy.copyto(u[:nx, :ny, :nz], a)
 
 with open(xmf, "w") as f:
     nx, ny, nz = u.shape

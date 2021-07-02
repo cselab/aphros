@@ -152,6 +152,8 @@ void Run(M& m, Vars& var) {
     t.par.sharpen = true;
     t.par.sharpen_cfl = var.Double["cfl"];
     t.par.dim = var.Int["dim"];
+    t.par.vtkbin = true;
+    t.par.vtkmerge = true;
     const FieldCell<Scal> fccl(m, 0);
     t.solver.reset(new Vof<M>(
         m, m, t.fcu, fccl, t.bc, &t.fe_flux, &t.fc_src, 0., 1., t.par));
