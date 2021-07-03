@@ -136,13 +136,7 @@ def adjust_ticks(ax, kx=0.25, ky=0.25, autoscale=True):
         ax.yaxis.set_major_locator(
             plticker.MultipleLocator(
                 base=roundauto(np.ptp(ax.get_yticks()) * ky)))
-    #ax.xaxis.set_major_locator(
-    #    plticker.MultipleLocator(base=np.ptp(ax.get_xticks()[:2]) * 2))
-    #ax.yaxis.set_major_locator(
-    #    plticker.MultipleLocator(base=np.ptp(ax.get_yticks()[:2]) * 2))
     if autoscale:
-        #ax.relim()
-        #ax.autoscale_view()
         ax.autoscale()
 
 
@@ -295,14 +289,15 @@ def code_to_style(code):
     return l[code[0]], c[code[1]], m[code[2]]
 
 def line_to_code(line):
-    l, c, m = get_styles()
-    el = line.get_linestyle()
-    ec = line.get_color()
-    em = line.get_marker()
-    if el in [None, 'None']: el = ''
-    if em in [None, 'None']: em = ''
-    def index(t, et):
-        if et in t:
-            return t.index(et)
+    ll, cc, mm = get_styles()
+    l = line.get_linestyle()
+    c = line.get_color()
+    m = line.get_marker()
+    if l in [None, 'None']: l = ''
+    if m in [None, 'None']: m = ''
+    if c == 'k': c = '#000000'
+    def index(tt, t):
+        if t in tt:
+            return tt.index(t)
         return None
-    return index(l, el), index(c, ec), index(m, em)
+    return index(ll, l), index(cc, c), index(mm, m)
