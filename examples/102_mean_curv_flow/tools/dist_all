@@ -4,13 +4,16 @@ set -eu
 
 MYDIR=$(dirname "$0")
 
+sides=$1
+
 e () {
   nx=$(printf %03d $1)
   nxm=$(($1 / 2))
   nxm=$(printf %03d $nxm)
-  out=dist$nx
-  dir=nx$nx
-  dirm=nx$nxm
+  mkdir -p "sides${sides}"
+  out=sides${sides}/dist$nx
+  dir=sides${sides}_nx$nx
+  dirm=sides${sides}_nx$nxm
   if ! [ -d "$dir" ] || ! [ -d "$dirm" ] ; then
     return
   fi

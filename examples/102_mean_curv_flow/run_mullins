@@ -20,7 +20,7 @@ run () {
   ev "./clean"
   ev "echo $np > np"
   ev "./gen --sides $sides"
-  ev "ap.run ./main --nx $nx ""$@"
+  ev "ap.run ./main --nx $nx""$@"
   ev "mkdir -p $dir && rsync -a {gen,{s,sm}_*.vtk,std.conf,out,traj.dat} $dir/"
 }
 

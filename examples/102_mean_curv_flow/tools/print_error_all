@@ -1,0 +1,8 @@
+#!/bin/sh -eu
+
+for sides in 4 6 8 ; do
+  dir=sides${sides}
+  echo "$dir"
+  mkdir -p "$dir"
+  ./print_error "$sides" "$dir/error"
+done

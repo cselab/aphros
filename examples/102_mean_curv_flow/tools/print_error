@@ -1,7 +1,7 @@
 #!/bin/sh -eu
 
 sides=${1:-4}
-out="error_sides${sides}"
+out=${2:-sides${sides}/error}
 
 echo "nx error" > "$out"
 for f in sides${sides}_* ; do

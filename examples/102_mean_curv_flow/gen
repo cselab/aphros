@@ -20,7 +20,7 @@ vf = aphros.Geometry()
 sides = args.sides
 
 # small shift so that interface do not coincide with cell boundaries
-shift = 1e-4
+shift = 1e-6
 
 phase = np.pi / sides
 
