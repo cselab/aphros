@@ -13,8 +13,13 @@ def printerr(m):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('files', nargs='+', help="Path to sm_*.vtk files")
-parser.add_argument('outdir', default='.', help="Path to output directory")
+parser.add_argument('--files0', nargs='*', help="Paths to sm_*.vtk files to render with color C0")
+parser.add_argument('--files1', nargs='*', help="Paths to sm_*.vtk files to render with color C1")
+parser.add_argument('--files2', nargs='*', help="Paths to sm_*.vtk files to render with color C2")
+parser.add_argument('--files3', nargs='*', help="Paths to sm_*.vtk files to render with color C3")
+parser.add_argument('--lw', default=4, help="Line width")
+parser.add_argument('--force', action='store_true', help="Force overwrite")
+parser.add_argument('--outdir', default='.', help="Path to output directory")
 args = parser.parse_args()
 
 renderView1 = CreateView('RenderView')
@@ -29,43 +34,36 @@ renderView1.CameraParallelProjection = 1
 renderView1.Background = [1., 1., 1.]
 renderView1.UseLight = 0
 
-surf = LegacyVTKReader(FileNames=args.files)
-
-#d3 category10
-vhex = [
-    "1f77b4",
-    "ff7f0e",
-    "2ca02c",
-    "d62728",
-    "9467bd",
-    "8c564b",
-    "e377c2",
-    "7f7f7f",
-    "bcbd22",
-    "17becf",
+# https://github.com/OrdnanceSurvey/GeoDataViz-Toolkit/tree/master/Colours
+colorscheme = [
+    "#FF1F5B", "#00CD6C", "#009ADE", "#AF58BA", "#FFC61E", "#F28522",
+    "#A0B1BA", "#A6761D", "#E9002D", "#FFAA00", "#00B000"
 ]
 
-
 def rgb(h):
-    return list(int(h[i:i + 2], 16) / 255. for i in (0, 2, 4))
+    return list(int(h[1:][i:i + 2], 16) / 255. for i in (0, 2, 4))
 
-lw = 4
-
-surfDisplay = Show(surf, renderView1, 'GeometryRepresentation')
-surfDisplay.Representation = 'Wireframe'
-surfDisplay.AmbientColor = rgb(vhex[0])
-surfDisplay.ColorArrayName = ['POINTS', '']
-surfDisplay.DiffuseColor = rgb(vhex[0])
-surfDisplay.LineWidth = lw
-surfDisplay.Position = [0.0, 0.0, 0.0]
+for i in range(4):
+    files = eval("args.files" + str(i))
+    if not files:
+        continue
+    surf = LegacyVTKReader(FileNames=files)
+    surfDisplay = Show(surf, renderView1, 'GeometryRepresentation')
+    surfDisplay.Representation = 'Wireframe'
+    surfDisplay.AmbientColor = rgb(colorscheme[i])
+    surfDisplay.ColorArrayName = ['POINTS', '']
+    surfDisplay.DiffuseColor = rgb(colorscheme[i])
+    surfDisplay.LineWidth = args.lw
+    surfDisplay.Position = [0.0, 0.0, 0.0]
 
 tk = GetTimeKeeper()
-for i, f in enumerate(args.files):
+for i, f in enumerate(args.files0):
     path = os.path.join(args.outdir,
                         os.path.splitext(os.path.basename(f))[0] + '.png')
-    if os.path.isfile(path):
+    if not args.force and os.path.isfile(path):
         printerr("skip existing '{}'".format(path))
         continue
     tk.Time = i
     printerr(path)
     SaveScreenshot(path)
+

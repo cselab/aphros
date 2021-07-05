@@ -12,7 +12,7 @@ run () {
   shift
   dir=rho${rho}
   sigma=0.01
-  nx=128
+  nx=256
   pi=3.1415926
   if [ -d "$dir" ] ; then
     echo "skip existing $dir"
@@ -24,15 +24,15 @@ set double mu2 $(echo "$rho * 0.005" | bc -l)
 set double cflst 1e5
 set double dtmax $(echo "2 * sqrt((1/$nx)^3 * $rho / (4*$pi*$sigma))" | bc -l)
 EOF
-  ev "make nx=128 bsx=32 np=16 cleanrun"
+  ev "make nx=${nx} bsx=32 np=64 cleanrun"
   ev "mkdir -p $dir && rsync -a {gen,{s,sm}_*.vtk,add.conf,std.conf,out,out.conf,stat.dat} $dir/"
 }
 
-run 0.16000
-run 0.08000
-run 0.04000
-run 0.02000
+#run 0.16000
+#run 0.08000
+#run 0.04000
+#run 0.02000
 run 0.01000
-run 0.00500
-run 0.00250
+#run 0.00500
+#run 0.00250
 run 0.00125
