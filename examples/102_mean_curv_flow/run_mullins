@@ -24,11 +24,10 @@ run () {
   ev "mkdir -p $dir && rsync -a {gen,{s,sm}_*.vtk,std.conf,out,traj.dat} $dir/"
 }
 
-for sides in 4 5 6 7 8 ; do
+for sides in 4 6 8 ; do
   run $sides 32 1
   run $sides 64 1
   run $sides 128 4
   run $sides 256 16
   run $sides 512 64
-  run $sides 1024 64
 done

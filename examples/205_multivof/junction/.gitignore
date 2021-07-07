@@ -2,3 +2,4 @@ add.conf
 b.dat
 *.vtk
 export
+vis/*.png
