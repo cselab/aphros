@@ -334,7 +334,7 @@ struct Vofm<EB_>::Imp {
     }
     if (sem.Nested()) {
       uvof_.DumpPolyMarch(
-          layers, fcut, fcclt, fcn_, filename, owner_->GetTime(),
+          layers, fcut, fcclt, fcn_, filename, owner_->GetTime(), par.vtkpoly,
           par.vtkbin, par.vtkmerge, par.vtkiso,
           par.dumppolymarch_fill >= 0 ? &fcust : nullptr, m);
     }

@@ -40,6 +40,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
     Scal dumppolymarch_fill = -1; // fill cells outside
     bool vtkbin = true;
     bool vtkmerge = true;
+    bool vtkpoly = true; // dump vtk polygins instead of lines
     Scal vtkiso = 0.5;
     enum class Scheme { plain, aulisa, weymouth };
     Scheme scheme = Scheme::weymouth;

@@ -467,6 +467,7 @@ void Run(M& m, Vars& var) {
     parvof.filterth = var.Double["filterth"];
     parvof.dim = 2;
     parvof.vtkbin = true;
+    parvof.vtkpoly = false;
     layers = GRange<size_t>(parvof.layers);
     t.fcu0.resize(layers);
     t.fccl0.resize(layers);

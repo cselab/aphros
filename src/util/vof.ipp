@@ -499,7 +499,8 @@ struct UVof<M_>::Imp {
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Vect>*>& fcn, std::string filename, Scal time,
-      bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m) {
+      bool poly, bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus,
+      M& m) {
     auto sem = m.GetSem("dumppolymarch");
     struct {
       std::vector<std::vector<Vect>> dl; // polygons
@@ -600,7 +601,7 @@ struct UVof<M_>::Imp {
                   << " t=" << time << " to " << filename << std::endl;
         WriteVtkPoly<Vect>(
             filename, dl, &dln, {&dlc, &dll, &dlcl}, {"c", "l", "cl"},
-            "Interface from marching cubes", true, bin, merge);
+            "Interface from marching cubes", poly, bin, merge);
       }
     }
   }
@@ -1174,9 +1175,10 @@ void UVof<M_>::DumpPolyMarch(
     const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
     const Multi<const FieldCell<Scal>*>& fccl,
     const Multi<const FieldCell<Vect>*>& fcn, std::string filename, Scal t,
-    bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m) {
+    bool poly, bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus,
+    M& m) {
   imp->DumpPolyMarch(
-      layers, fcu, fccl, fcn, filename, t, bin, merge, iso, fcus, m);
+      layers, fcu, fccl, fcn, filename, t, poly, bin, merge, iso, fcus, m);
 }
 
 template <class M_>

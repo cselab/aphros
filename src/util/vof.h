@@ -30,6 +30,7 @@ class UVof {
     Scal time = 0; // time used in dump report if verbose
     bool binary = true; // write binary data, else ASCII
     bool merge = true; // merge close points
+    bool poly = true; // dump vtk polygons instead of lines
     bool verbose = true; // print dump report to stderr on root
     bool dump_cell_index = false; // dump global cell index `c`
     bool dump_layer = false; // dump layer index `l`
@@ -56,7 +57,8 @@ class UVof {
       const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
       const Multi<const FieldCell<Scal>*>& fccl,
       const Multi<const FieldCell<Vect>*>& fcn, std::string filename, Scal time,
-      bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus, M& m);
+      bool poly, bool bin, bool merge, Scal iso, const FieldCell<Scal>* fcus,
+      M& m);
 
   // Computes unique color for each connected component over all layers.
   // fcu: volume fraction
