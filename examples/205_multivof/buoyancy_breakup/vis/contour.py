@@ -48,13 +48,12 @@ for i in range(4):
     if not files:
         continue
     surf = LegacyVTKReader(FileNames=files)
-    surfDisplay = Show(surf, renderView1, 'GeometryRepresentation')
+    surfDisplay = Show(surf, renderView1)
     surfDisplay.Representation = 'Wireframe'
     surfDisplay.AmbientColor = rgb(colorscheme[i])
     surfDisplay.ColorArrayName = ['POINTS', '']
     surfDisplay.DiffuseColor = rgb(colorscheme[i])
     surfDisplay.LineWidth = args.lw
-    surfDisplay.Position = [0.0, 0.0, 0.0]
 
 tk = GetTimeKeeper()
 for i, f in enumerate(args.files0):
