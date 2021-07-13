@@ -12,7 +12,7 @@ class Test(aphros.TestBase):
 
 class Test(aphros.TestBase):
     def __init__(self):
-        super().__init__(cases=["main", "manager", "manager_seq"])
+        super().__init__(cases=["main", "manager", "manager_seq", "rank_cubism", "rank_native"])
 
     def run(self, case):
         if case == "main":
@@ -26,6 +26,14 @@ class Test(aphros.TestBase):
             np = 2
             self.runcmd("./t.commmap.manager".format(np))
             return ["out_0"]
+        elif case == "rank_cubism":
+            np = 8
+            self.runcmd("ap.mpirun -n {} --oversubscribe ./t.commmap.rank --extra 'set string backend cubismnc'".format(np))
+            return ["out_{}".format(i) for i in range(np)]
+        elif case == "rank_native":
+            np = 8
+            self.runcmd("ap.mpirun -n {} --oversubscribe ./t.commmap.rank --extra 'set string backend native'".format(np))
+            return ["out_{}".format(i) for i in range(np)]
         else:
             raise NotImplementedError()
 

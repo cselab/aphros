@@ -729,6 +729,10 @@ class MeshCartesian {
   MPI_Comm GetMpiComm() const {
     return flags.comm;
   }
+  /// Sets implementation of GetMpiRankFromBlockId
+  void SetHandlerMpiRankFromId(std::function<int(int)>);
+  /// Returns MPI rank that owns block for which `GetId()` returns `id`
+  int GetMpiRankFromId(int id) const;
   void Reduce(std::unique_ptr<Op>&& o);
   void Reduce(Scal* u, std::string o);
   const std::vector<std::unique_ptr<Op>>& GetReduce() const;

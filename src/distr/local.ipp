@@ -114,6 +114,13 @@ Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
   is_periodic_[2] = var.Int["loc_periodic_z"];
 
   this->MakeKernels(proxies_);
+
+  for (auto& kernel : kernels_) {
+    auto& m = kernel->GetMesh();
+    m.SetHandlerMpiRankFromId([](int) -> int { //
+      return 0;
+    });
+  }
 }
 
 template <class M>

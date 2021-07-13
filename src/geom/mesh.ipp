@@ -25,6 +25,8 @@ struct MeshCartesian<_Scal, _dim>::Imp {
 
   Owner* owner;
 
+  std::function<int(int)> get_rank_from_id_;
+
   // Requests
   std::vector<std::unique_ptr<CommRequest>> commreq;
   std::vector<std::pair<std::unique_ptr<CommRequest>, std::string>> dump;
@@ -383,4 +385,14 @@ void MeshCartesian<Scal, dim>::ApplyNanFaces(FieldCell<T>& fc) {
     fc[cc[0]] = T(flags.nan_faces_value);
     fc[cc[1]] = T(flags.nan_faces_value);
   }
+}
+template <class Scal, size_t dim>
+void MeshCartesian<Scal, dim>::SetHandlerMpiRankFromId(
+    std::function<int(int)> func) {
+  imp->get_rank_from_id_ = func;
+}
+template <class Scal, size_t dim>
+int MeshCartesian<Scal, dim>::GetMpiRankFromId(int id) const {
+  fassert(imp->get_rank_from_id_, "GetMpiRankFromId() not implemnted");
+  return imp->get_rank_from_id_(id);
 }

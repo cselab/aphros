@@ -107,7 +107,7 @@ Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
   };
   const generic::Vect<bool, dim> is_periodic(true);
 
-  {
+  { // Gather blocks and tasks for communicatino map
     std::vector<typename CommManager<dim>::Block> cm_blocks;
     for (auto& k : kernels_) {
       auto& m = k->GetMesh();
@@ -117,12 +117,23 @@ Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
         cm_blocks, cell_to_rank, globalsize, is_periodic, mpi);
   }
 
-  {
+  { // Create communication tasks for communication of shared blocks
     auto& ms = *mshared_;
     std::vector<typename CommManager<dim>::Block> cm_blocks;
     cm_blocks.push_back({&ms.GetInBlockCells(), &ms.GetIndexCells()});
     tasks_shared_ = CommManager<dim>::GetTasks(
         cm_blocks, cell_to_rank, globalsize, is_periodic, mpi);
+  }
+
+  // Set implementation of GetMpiRankFromId()
+  for (auto& kernel : kernels_) {
+    auto& m = kernel->GetMesh();
+    m.SetHandlerMpiRankFromId([domain=domain_](int id) -> int {
+      const MIdx global_blocks = domain.nblocks * domain.nprocs;
+      const MIdx block = GIndex<int, dim>(global_blocks).GetMIdx(id);
+      const MIdx proc = block / domain.nblocks;
+      return GIndex<int, dim>(domain.nprocs).GetIdx(proc);
+    });
   }
 }
 
