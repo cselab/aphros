@@ -208,6 +208,7 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   std::unique_ptr<Embed<M>> eb_;
   std::unique_ptr<AdvectionSolver<M>> as_;
   std::unique_ptr<FluidSolver<M>> fs_;
+  std::unique_ptr<Labeling<M>> labeling_;
 
   FieldCell<Scal> fc_smvf_; // smoothed volume fraction used by CalcMixture()
   FieldFace<Scal> ff_smvf_; // interpolated fc_smvf_

@@ -176,15 +176,7 @@ class ModuleLabeling : public Module<ModuleLabeling<M>> {
   using Conf = typename Labeling<M>::Conf;
   using Module<ModuleLabeling>::Module;
   virtual std::unique_ptr<Labeling<M>> Make(const Conf&, const M& m) = 0;
-  static typename Labeling<M>::Conf ParseConf(const Vars& var) {
-    typename Labeling<M>::Conf conf;
-    conf.reduce = var.Int["vof_recolor_reduce"];
-    conf.grid = var.Int["vof_recolor_grid"];
-    conf.coalth = var.Double["vofm_coalth"];
-    conf.clfixed = var.Double["clfixed"];
-    conf.clfixed_x = Vect(var.Vect["clfixed_x"]);
-    return conf;
-  }
+  static Conf ParseConf(const Vars& var);
 };
 
 // Returns values over stencil centered at cell c.

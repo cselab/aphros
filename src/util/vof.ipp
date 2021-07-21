@@ -1214,6 +1214,18 @@ class LabelingPropagation : public Labeling<M> {
 };
 
 template <class M>
+auto ModuleLabeling<M>::ParseConf(const Vars& var) -> Conf {
+  typename Labeling<M>::Conf conf;
+  conf.verbose = var.Int["vof_recolor_verbose"];
+  conf.reduce = var.Int["vof_recolor_reduce"];
+  conf.grid = var.Int["vof_recolor_grid"];
+  conf.coalth = var.Double["vofm_coalth"];
+  conf.clfixed = var.Double["clfixed"];
+  conf.clfixed_x = Vect(var.Vect["clfixed_x"]);
+  return conf;
+}
+
+template <class M>
 class ModuleLabelingPropagation : public ModuleLabeling<M> {
  public:
   using Conf = typename Labeling<M>::Conf;

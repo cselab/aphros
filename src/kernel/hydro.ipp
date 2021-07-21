@@ -68,6 +68,7 @@
 #include "util/stat.h"
 #include "util/sysinfo.h"
 #include "util/timer.h"
+#include "util/vof.h"
 
 #include "hydro.h"
 
@@ -634,8 +635,31 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
 template <class M>
 void Hydro<M>::InitAdvection(
     const FieldCell<Scal>& fcvf, const FieldCell<Scal>& fccl) {
-  std::string solver = var.String["advection_solver"];
+  const std::string solver = var.String["advection_solver"];
+
+  const auto modname = var.String["labeling"];
+  if (auto* mod = ModuleLabeling<M>::GetInstance(modname)) {
+    auto conf = ModuleLabeling<M>::ParseConf(var);
+    labeling_ = mod->Make(conf, m);
+  } else {
+    std::string known;
+    for (auto p : ModuleLabeling<M>::GetInstances()) {
+      if (!known.empty()) {
+        known += ", ";
+      }
+      known += p.first;
+    }
+    fassert(
+        false,
+        util::Format(
+            "Unknown module labeling='{}' for connected component labeling. "
+            "Known modules: {}",
+            modname, known));
+  }
+
   auto par = ParseVofPar<M>(var);
+  par.labeling = labeling_.get();
+
   if (solver == "vof") {
     if (eb_) {
       as_.reset(new ASVEB(

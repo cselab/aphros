@@ -7,6 +7,10 @@
 MULTIDIMX
 #undef X
 
+#define X(dim) template class ModuleLabeling<MeshCartesian<double, dim>>;
+MULTIDIMX
+#undef X
+
 #define X(dim) \
   RegisterModule<ModuleLabelingPropagation<MeshCartesian<double, dim>>>(),
 bool kReg_propagation[] = {MULTIDIMX};
