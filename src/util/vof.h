@@ -5,9 +5,11 @@
 
 #include <memory>
 
+#include "parse/vars.h"
 #include "solver/advection.h"
 #include "solver/cond.h"
 #include "solver/multi.h"
+#include "util/module.h"
 
 template <class M_>
 class UVof {
@@ -123,6 +125,66 @@ class UVof {
  public:
   struct Imp;
   std::unique_ptr<Imp> imp;
+};
+
+template <class M>
+class Labeling {
+ public:
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  static constexpr Scal kClNone = -1;
+
+  struct Conf {
+    bool verbose = false; // report statistics of algorithm
+    bool reduce = true; // reduce color space trying to keep previous colors
+    bool grid = true; // use grid heuristic to speed up propagation
+    Scal coalth = 1e10; // coalescence is triggered if the sum of volume
+                        // fractions in two layers exceeds this value
+    Scal clfixed = kClNone; // clfixed: if >=0, override value for color in cell
+                            // nearest to clfixed_x
+    Vect clfixed_x{0};
+  };
+
+  Labeling(const Conf& conf_) : conf(conf_) {}
+  virtual ~Labeling() = default;
+  virtual void SetConf(const Conf& c) {
+    conf = c;
+  }
+  virtual const Conf& GetConf() {
+    return conf;
+  }
+  // Computes unique color for each connected component over all layers.
+  // fcu: volume fraction
+  // fccl: color to update
+  // fccl_stable: known colors to keep (may be same as fccl)
+  // mfcu: boundary conditions for u
+  // reduce: reduce color space trying to keep the previous color
+  virtual void Recolor(
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
+      const Multi<FieldCell<Scal>*>& fccl,
+      const Multi<const FieldCell<Scal>*>& fccl_stable,
+      const MapEmbed<BCond<Scal>>& mfcu, M& m) = 0;
+
+ protected:
+  Conf conf;
+};
+
+template <class M>
+class ModuleLabeling : public Module<ModuleLabeling<M>> {
+ public:
+  using Vect = typename M::Vect;
+  using Conf = typename Labeling<M>::Conf;
+  using Module<ModuleLabeling>::Module;
+  virtual std::unique_ptr<Labeling<M>> Make(const Conf&, const M& m) = 0;
+  static typename Labeling<M>::Conf ParseConf(const Vars& var) {
+    typename Labeling<M>::Conf conf;
+    conf.reduce = var.Int["vof_recolor_reduce"];
+    conf.grid = var.Int["vof_recolor_grid"];
+    conf.coalth = var.Double["vofm_coalth"];
+    conf.clfixed = var.Double["clfixed"];
+    conf.clfixed_x = Vect(var.Vect["clfixed_x"]);
+    return conf;
+  }
 };
 
 // Returns values over stencil centered at cell c.

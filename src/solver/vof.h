@@ -7,6 +7,51 @@
 
 #include "advection.h"
 
+template <class M>
+class Labeling;
+
+template <class M>
+struct VofPar {
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+
+  size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
+  Scal clipth = 1e-10; // vf clipping threshold
+  Scal filterth = 0; // orphan filtering threshold
+  bool recolor = true; // run connected component labeling on every step
+  bool recolor_unionfind = true; // use union-find algorithm
+  bool recolor_reduce = true; // reduce set of colors to integers
+  bool recolor_grid = true; // use grid heuristic
+  Scal clfixed = -1; // if >= 0, value for color at point clfixed_x
+  Vect clfixed_x = Vect(1e10);
+  bool cloverride = false; // XXX adhoc if clear1<1, override color with 0
+  bool sharpen = false;
+  Scal sharpen_cfl = 0.5;
+  size_t layers = 4;
+  Scal avgnorm0 = 1; // original normal with sum(u)<avgnorm0
+  Scal avgnorm1 = 1; // overriden normal with sum(u)>=acgnorm1
+  Scal coalth = 1e10;
+  int verb = 0;
+  bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
+  Scal dumppolymarch_fill = -1; // fill cells outside
+  bool vtkbin = true;
+  bool vtkmerge = true;
+  bool vtkpoly = true; // dump vtk polygins instead of lines
+  Scal vtkiso = 0.5;
+  enum class Scheme { plain, aulisa, weymouth };
+  Scheme scheme = Scheme::weymouth;
+  // Enables extrapolation to halo or cut cells,
+  // required for the contact angle model.
+  // Extrapolate volume fraction to excluded cells before computing normals
+  // Extrapolate volume fraction, plane constant and normals to cut cells
+  // after the advection step.
+  // If embedded boundaries are enabled, supports only periodic condtitions.
+  bool extrapolate_boundaries = false;
+  Labeling<M>* labeling = nullptr; // Pointer to implementation of
+                                   // connected component labeling.
+                                   // Defaults to Recolor().
+};
+
 template <class EB_>
 class Vof final : public AdvectionSolver<typename EB_::M> {
  public:
@@ -17,41 +62,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   using Vect = typename M::Vect;
   using MIdx = typename M::MIdx;
   using Plic = generic::Plic<Vect>;
-
-  struct Par {
-    size_t dim = 3; // dimension (dim=2 assumes zero velocity in z)
-    Scal clipth = 1e-10; // vf clipping threshold
-    Scal filterth = 0; // orphan filtering threshold
-    bool recolor = true; // run connected component labeling on every step
-    bool recolor_unionfind = true; // use union-find algorithm
-    bool recolor_reduce = true; // reduce set of colors to integers
-    bool recolor_grid = true; // use grid heuristic
-    Scal clfixed = -1; // if >= 0, value for color at point clfixed_x
-    Vect clfixed_x = Vect(1e10);
-    bool cloverride = false; // XXX adhoc if clear1<1, override color with 0
-    bool sharpen = false;
-    Scal sharpen_cfl = 0.5;
-    size_t layers = 4;
-    Scal avgnorm0 = 1; // original normal with sum(u)<avgnorm0
-    Scal avgnorm1 = 1; // overriden normal with sum(u)>=acgnorm1
-    Scal coalth = 1e10;
-    int verb = 0;
-    bool bcc_reflectpoly = true; // reflection for DumpPolyMarch
-    Scal dumppolymarch_fill = -1; // fill cells outside
-    bool vtkbin = true;
-    bool vtkmerge = true;
-    bool vtkpoly = true; // dump vtk polygins instead of lines
-    Scal vtkiso = 0.5;
-    enum class Scheme { plain, aulisa, weymouth };
-    Scheme scheme = Scheme::weymouth;
-    // Enables extrapolation to halo or cut cells,
-    // required for the contact angle model.
-    // Extrapolate volume fraction to excluded cells before computing normals
-    // Extrapolate volume fraction, plane constant and normals to cut cells
-    // after the advection step.
-    // If embedded boundaries are enabled, supports only periodic condtitions.
-    bool extrapolate_boundaries = false;
-  };
+  using Par = VofPar<M>;
 
   // Constructor
   Vof(M& m, const EB& eb, const FieldCell<Scal>& fcu,
@@ -61,7 +72,7 @@ class Vof final : public AdvectionSolver<typename EB_::M> {
   ~Vof();
   const EB& GetEmbed() const;
   const Par& GetPar() const;
-  void SetPar(Par);
+  void SetPar(VofPar<M>);
   void StartStep() override;
   void MakeIteration() override;
   void FinishStep() override;

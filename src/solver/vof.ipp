@@ -552,10 +552,15 @@ struct Vof<EB_>::Imp {
       BcApply(fccl_, me_cl_, m);
     }
     if (sem.Nested()) {
-      uvof_.Recolor(
-          layers, &fcu_.iter_curr, &fccl_, &fcclm, par.clfixed, par.clfixed_x,
-          par.coalth, me_cl_, par.verb, par.recolor_unionfind,
-          par.recolor_reduce, par.recolor_grid, m);
+      if (par.labeling) {
+        par.labeling->Recolor(
+            layers, &fcu_.iter_curr, &fccl_, &fcclm, me_cl_, m);
+      } else {
+        uvof_.Recolor(
+            layers, &fcu_.iter_curr, &fccl_, &fcclm, par.clfixed, par.clfixed_x,
+            par.coalth, me_cl_, par.verb, par.recolor_unionfind,
+            par.recolor_reduce, par.recolor_grid, m);
+      }
     }
     if (sem("propagate")) {
       auto& u = fcu_.iter_curr;

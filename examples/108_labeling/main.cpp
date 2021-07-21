@@ -27,6 +27,45 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using MIdx = typename M::MIdx;
 
+template <class M>
+class LabelingCustom : public Labeling<M> {
+ public:
+  using Base = Labeling<M>;
+  using Conf = typename Base::Conf;
+  using Scal = typename M::Scal;
+  using Base::conf;
+  LabelingCustom(const Conf& conf_, const M&) : Base(conf_) {}
+  ~LabelingCustom() {}
+  void Recolor(
+      const GRange<size_t>& layers, const Multi<const FieldCell<Scal>*>& fcu,
+      const Multi<FieldCell<Scal>*>& fccl,
+      const Multi<const FieldCell<Scal>*>& fccl_stable,
+      const MapEmbed<BCond<Scal>>& mebc_cl, M& m) override {
+    (void)layers;
+    (void)fcu;
+    (void)fccl;
+    (void)fccl_stable;
+    (void)mebc_cl;
+    if (m.IsRoot()) {
+      std::cerr << util::Format(
+          "Custom implementation of Labeling.\n"
+          "Warning: not implemented.\n");
+    }
+  }
+};
+
+template <class M>
+class ModuleLabelingCustom : public ModuleLabeling<M> {
+ public:
+  using Conf = typename Labeling<M>::Conf;
+  ModuleLabelingCustom() : ModuleLabeling<M>("custom") {}
+  std::unique_ptr<Labeling<M>> Make(const Conf& conf, const M& m) override {
+    return std::make_unique<LabelingCustom<M>>(conf, m);
+  }
+};
+
+bool kReg_custom[] = {RegisterModule<ModuleLabelingCustom<M>>()};
+
 void Init(
     GRange<size_t> layers, Multi<FieldCell<Scal>>& fcu, std::string prefix,
     const Vars& var, M& m) {
@@ -86,12 +125,25 @@ void Run(M& m, Vars& var) {
     MapEmbed<BCond<Scal>> mebc; // boundary conditions for volume fraction
     FieldCell<Scal> fcvf_sum; // sum of volume fractions from all layers
     FieldCell<Scal> fccl_sum; // colors from all layers
+    std::unique_ptr<Labeling<M>> labeling; // labeling algorithm
   } * ctx(sem);
   constexpr Scal kClNone = -1;
   auto& t = *ctx;
   if (sem()) {
     t.layers = GRange<size_t>(var.Int["layers"]);
     t.fccl.Reinit(t.layers, m, kClNone);
+
+    const auto modname = var.String["labeling"];
+    if (auto* mod = ModuleLabeling<M>::GetInstance(modname)) {
+      Labeling<M>::Conf conf;
+      conf.verbose = true;
+      t.labeling = mod->Make(conf, m);
+    } else {
+      fassert(
+          false,
+          util::Format(
+              "Connected component labeling module '{}' not found", modname));
+    }
   }
   if (sem.Nested()) {
     Init(t.layers, t.fcvf, "vf", var, m);
@@ -105,13 +157,7 @@ void Run(M& m, Vars& var) {
     }
   }
   if (sem.Nested()) {
-    const bool verbose = false;
-    const bool reduce = true;
-    const bool unionfind = false;
-    const bool grid = false;
-    UVof<M>().Recolor(
-        t.layers, t.fcvf, t.fccl, t.fccl, 0, Vect(0), 1e10, t.mebc, verbose,
-        unionfind, reduce, grid, m);
+    t.labeling->Recolor(t.layers, t.fcvf, t.fccl, t.fccl, t.mebc, m);
   }
   if (sem.Nested()) {
     Dump(t.layers, t.fcvf, "vf", "vf", m);
@@ -154,6 +200,19 @@ int main(int argc, const char** argv) {
   parser.AddVariable<int>("--nz", 1).Help("Mesh size in the z-direction");
   parser.AddVariable<int>("--bs", 32).Help("Block size");
   parser.AddVariable<int>("--layers", 4).Help("Number of layers");
+
+  auto instances = []() {
+    auto map = ModuleLabeling<M>::GetInstances();
+    std::vector<std::string> res;
+    for (auto p : map) {
+      res.push_back(p.first);
+    }
+    return res;
+  }();
+  parser.AddVariable<std::string>("--labeling", "propagation")
+      .Help("Algorithm for connected component labeling")
+      .Options(instances);
+
   auto args = parser.ParseArgs(argc, argv);
   if (const int* p = args.Int.Find("EXIT")) {
     return *p;
@@ -174,6 +233,8 @@ int main(int argc, const char** argv) {
   conf << "set string backend native\n";
   conf << "set double extent 1\n";
   conf << util::Format("set int layers {}\n", args.Int["layers"]);
+  conf << util::Format("set string labeling {}\n", args.String["labeling"]);
+
   conf << args.String["extra"] << '\n';
 
   return RunMpiBasicString<M>(mpi, Run, conf.str());

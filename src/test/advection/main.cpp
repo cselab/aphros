@@ -136,18 +136,19 @@ void Advection<M>::Init(Sem& sem) {
     // source
     fc_src_.Reinit(m, 0.);
 
-    std::string as = var.String["advection_solver"];
+    const std::string as = var.String["advection_solver"];
+    auto par = ParseVofPar<M>(var);
     if (as == "vof") {
-      auto p = ParsePar<ASV>()(var);
       const FieldCell<Scal> fccl(m, 0);
       as_.reset(new ASV(
-          m, m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
+          m, m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"],
+          par));
     } else if (as == "vofm") {
-      auto p = ParsePar<ASVM>()(var);
       const FieldCell<Scal> fccl(m, 0);
-      layers = GRange<size_t>(p.layers);
+      layers = GRange<size_t>(par.layers);
       as_.reset(new ASVM(
-          m, m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"], p));
+          m, m, fcu_, fccl, bc_, &ff_flux_, &fc_src_, 0., var.Double["dt"],
+          par));
     } else {
       fassert(false, "Unknown advection_solver=" + as);
     }

@@ -442,7 +442,7 @@ void Heights<M_>::CalcCurvature(
 }
 
 template <class M_>
-void Heights<M_>::DumpAux(std::string request, int frame, M& m) {
+void Heights<M_>::DumpAux(std::string, int frame, M& m) {
   auto sem = m.GetSem();
   struct {
     std::map<std::string, std::vector<Scal>> data;
