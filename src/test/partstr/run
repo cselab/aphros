@@ -7,6 +7,7 @@ r=ref
 
 # run 
 make -f sim.makefile cleanrun
+awk 'NR%17==1{print}' < partit_0000.csv  > partit.csv
 
 a=0
 for f in $r/* ; do
