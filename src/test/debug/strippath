@@ -2,7 +2,7 @@
 
  set -eu
 
-pre=$(dirname $(dirname $(pwd)))/
+pre=/src/
 while read v ; do
   v="${v#*$pre}"
   echo "$v" | sed 's/:[0-9]*\(: assertion\)/\1/g'
