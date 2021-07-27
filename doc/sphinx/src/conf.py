@@ -54,7 +54,7 @@ html_sidebars = {
    #'**' : ['localtoc.html']
 }
 
-htmlhelp_basename = 'hydrodoc'
+htmlhelp_basename = 'aphrosdoc'
 
 html_math_renderer = 'imgmath'
 imgmath_image_format = 'svg'
@@ -64,12 +64,12 @@ imgmath_use_preview = True
 # latex
 latex_elements = {}
 latex_documents = [
-    (master_doc, 'hydro.tex', u'Aphros documentation', author, 'manual'),
+    (master_doc, 'aphros.tex', u'Aphros documentation', author, 'manual'),
 ]
 
 # man
 man_pages = [
-    (master_doc, 'hydro', u'Aphros documentation', '', 1),
+    (master_doc, 'aphros', u'Aphros documentation', '', 1),
     ('log/index', 'ap.log', u'development log', '', 7),
     ('styleguide', 'ap.styleguide', u'coding style guide', '', 7),
 ]
@@ -91,8 +91,8 @@ for lib in glob.glob("lib?"):
 
 # texinfo
 texinfo_documents = [
-    (master_doc, 'hydro', u'Aphros documentation',
-     author, 'hydro', 'One line description of project.',
+    (master_doc, 'aphros', u'Aphros documentation',
+     author, 'aphros', 'One line description of project.',
      'Miscellaneous'),
 ]
 

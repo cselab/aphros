@@ -6,7 +6,7 @@ import includecode
 me = "test/includecode.py"
 def usg():
     sys.stderr.write("%s [-s] name file\n" % me)
-    sys.stderr.write("%s Simple /u/hydro/src/solver/simple.h\n" % me)
+    sys.stderr.write("%s Simple /u/aphros/src/solver/simple.h\n" % me)
     sys.exit(1)
 
 Get = includecode.GetFunc
