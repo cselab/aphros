@@ -8,7 +8,7 @@ that can represent multiple interfaces in the same cell.
 This enables simulations of foams, suspensions,
 and other multiphase systems where bubbles and drops that do not coalesce.
 
-The split conservative advection scheme [weymouth2010]_ operates on a volume
+The split conservative advection scheme :cite:t:`weymouth2010conservative` operates on a volume
 fraction field and uses the PLIC reconstruction to compute the fluxes.
 In three dimensions, one advection step is split into three sub-steps, or
 sweeps. To ensure conservation, a divergence term is added explicitly.

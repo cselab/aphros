@@ -11,6 +11,8 @@ extensions = [
               'sphinx.ext.viewcode',
               'includecode',
               'linkpath',
+              'sphinxcontrib.bibtex',
+              'sphinxcontrib.inkscapeconverter',
               ]
 
 templates_path = []
@@ -29,6 +31,7 @@ author = ''
 linkpath_github_root = "https://github.com/cselab/aphros/blob/master/"
 linkpath_link_github = True
 
+bibtex_bibfiles = ['main.bib']
 # short X.Y version
 #version = "0.1"
 # full version

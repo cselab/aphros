@@ -31,7 +31,7 @@ Available primitives and their parameters:
   Parameters:
   ``cx cy cz`` (center), ``nx ny nz`` (normal), ``r`` (radius), ``th`` (thickness);
 ``smooth_step``
-  Smooth step [almgren1997]_.
+  Smooth step :cite:t:`almgren1997cartesian`.
   Parameters:
   ``cx cy cz`` (center), ``nx ny nz`` (normal), ``tx ty tz`` (tangent),
   ``ln`` (size along normal), ``lt`` (size along tangent);
@@ -96,9 +96,3 @@ method of computing the volume fraction field from the level-set functions
 ``set int list_ls 3``
   linear approximation with normal and plane constant
   computed from the level-set on mesh nodes, supports modifiers.
-
-
-
-.. [almgren1997] Almgren et al. A Cartesian Grid Projection Method for the
-   Incompressible Euler Equations in Complex Geometries (1997)
-   `10.1137/S1064827594273730 <https://doi.org/10.1137/S1064827594273730>`_
