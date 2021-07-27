@@ -33,7 +33,7 @@ Key features:
 
 ### Documentation
 
-[Online version](<https://cselab.github.io/aphros/doc>) generated in [doc/sphinx](doc/sphinx).
+[Online version](https://cselab.github.io/aphros/doc) and [PDF](https://cselab.github.io/aphros/aphros.pdf) generated in [doc/sphinx](doc/sphinx).
 
 ### Requirements
 
