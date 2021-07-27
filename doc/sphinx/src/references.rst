@@ -4,3 +4,5 @@
    ============
 
 .. bibliography::
+   :all:
+   :style: unsrt
