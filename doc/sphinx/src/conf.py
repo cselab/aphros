@@ -3,7 +3,7 @@ import re
 import os
 import sys
 
-sys.path.append(os.path.abspath("./"))
+sys.path.append(os.path.abspath('./'))
 
 extensions = [
               'sphinx.ext.githubpages',
@@ -22,22 +22,20 @@ source_suffix = '.rst'
 
 master_doc = 'index'
 
-
 project = 'Aphros'
-copyright = '2020 ETH Zurich'
-#author = 'ETH Zurich'
-author = ''
+copyright = '2021, ETH Zurich'
+author = 'Petr Karnakov, Sergey Litvinov'
 
-linkpath_github_root = "https://github.com/cselab/aphros/blob/master/"
+linkpath_github_root = 'https://github.com/cselab/aphros/blob/master/'
 linkpath_link_github = True
 
 bibtex_bibfiles = ['main.bib']
 # short X.Y version
-#version = "0.1"
+version = '0.1.2'
 # full version
-#release = "0.1"
+release = '0.1.2'
 
-language = None
+language = 'en'
 
 pygments_style = 'sphinx'
 
@@ -62,9 +60,16 @@ imgmath_font_size = 15
 imgmath_use_preview = True
 
 # latex
-latex_elements = {}
+latex_elements = {
+    'maketitle':
+    r'''
+\date{Jul 27, 2021}
+\sphinxmaketitle
+        ''',
+}
 latex_documents = [
-    (master_doc, 'aphros.tex', u'Aphros documentation', author, 'manual'),
+    (master_doc, 'aphros.tex', u'Aphros documentation',
+     author.replace(', ', '\\and ').replace(' and ', '\\and and '), 'manual'),
 ]
 
 # man
@@ -75,10 +80,10 @@ man_pages = [
 ]
 
 
-for lib in glob.glob("lib?"):
+for lib in glob.glob('lib?'):
     sec = int(lib[3])
-    for p in glob.glob(lib + "/*.rst"):
-        if p in [lib + "/index.rst"]:
+    for p in glob.glob(lib + '/*.rst'):
+        if p in [lib + '/index.rst']:
             continue
         path = os.path.splitext(p)[0]
         name = os.path.basename(path)
@@ -96,5 +101,3 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
-
-todo_include_todos = True

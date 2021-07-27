@@ -1,22 +1,21 @@
 Introduction
 ============
 
-**Aphrós** is a finite volume solver for incompressible multiphase flows with
+**Aphros** is a finite volume solver for incompressible multiphase flows with
 surface tension. Key features:
 
 - implementation in C++14
 - abstractions for mesh elements (cells, faces and nodes),
   range-based loops over them
   and the corresponding data fields (cell-, face- and node-based fields)
-- convenient and fast development (no need to write x,y,z loops)
+- convenient and fast development (no need to write 3D loops)
   using only standard features of the language
   (without code generators or domain-specific languages)
 - scalability to thousands of compute nodes using MPI/OpenMP
   thanks to the Cubism library for distributed computing on structured grids
 - coroutines to enable encapsulation in the block-wise processing framework
 - individual solvers can be used separately as regular classes or functions
-- no Python bindings
-- fluid solver based on SIMPLE or Chorin's projections
+- fluid solver based on SIMPLE or Bell-Colella-Glaz methods
 - conservative split advection solver based on PLIC
 - method of particles for curvature estimation that outperforms
   standard techniques at low resolutions

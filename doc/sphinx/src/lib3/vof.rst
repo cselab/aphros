@@ -12,8 +12,7 @@ Parameters
 ----------
 
 .. includecode:: solver/vof.h
-  :struct: Par
-  :dedent: 2
+  :struct: VofPar
 
 Source
 ------
