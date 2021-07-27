@@ -8,7 +8,7 @@ Synopsis
 
 Marching cubes.
 
-.. code-block:: c++
+.. code-block:: cpp
 
    #include <march.h>
 
@@ -30,7 +30,7 @@ march_cube generates triangles for one cell, u[8] are values of the
 field in the nodes. Returns ntri -- the number of triangles, tri --
 vertices of the triangles in the form [x0 y0 z0 ... xn yn zn].
 
-.. code-block:: c++
+.. code-block:: cpp
 
    double cube[8] = {-1, 0, 0, 0, 0, 0, 0, 1};
    double tri[3 * 3 * MARCH_NTRI];

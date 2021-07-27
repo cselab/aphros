@@ -54,7 +54,7 @@ The following pseudocode implements the multilayer VOF method.
 One advection step is split in the spatial directions
 and in three dimensions consists of three substeps, or sweeps.
 
-.. code-block:: c++
+.. code-block:: cpp
 
     void Step() {
       for (d : {0, 1, 2}) {
@@ -68,7 +68,7 @@ Given the PLIC reconstruction of the interface,
 one sweep computes fluxes, updates the volume fractions
 and propagates the colors to downwind cells
 
-.. code-block:: c++
+.. code-block:: cpp
 
     auto Sweep(d, u, v, q, n, a) {
       // v: mixture flux
@@ -109,7 +109,7 @@ and propagates the colors to downwind cells
 Function ``Plic()`` builds the PLIC reconstruction in interfacial cells
 and returns normals *n* and plane constants *a*:
 
-.. code-block:: c++
+.. code-block:: cpp
 
     auto Plic() {
       for (c : cells) {
@@ -147,7 +147,7 @@ connected components.  The following function initializes the color field with
 unique values, then iteratively joins the colors from adjacent cells by taking
 the minimal color until equilibration.
 
-.. code-block:: c++
+.. code-block:: cpp
 
   auto Recolor(u, q) {
     q_new = InitUnique(u, q);
@@ -178,7 +178,7 @@ runs the same algorithm for corners from cubic subdomains.
 The colors propagate through the domain faster.
 
 
-.. code-block:: c++
+.. code-block:: cpp
 
   auto RecolorCorners(u, q, q_new) {
     // map: mapping from old color to new color
