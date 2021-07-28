@@ -153,9 +153,9 @@ The routines described above are sufficient to implement an advection solver.
   :comment:
   :impl:
 
-.. |ex103_0_0| image:: ../../../examples/103_embed_advection/case0/u_0000.svg
+.. |ex103_0_0| image:: ../../../examples/103_embed_advection/case0/u_0000.*
 
-.. |ex103_0_1| image:: ../../../examples/103_embed_advection/case0/u_0001.svg
+.. |ex103_0_1| image:: ../../../examples/103_embed_advection/case0/u_0001.*
 
 .. table:: Results of advection solver ``Advection0()``: 
   initial (left) and final (right). Instabilities develop near the boundary.
@@ -188,9 +188,9 @@ Using this function in the advection solver results in
   :comment:
   :impl:
 
-.. |ex103_1_1| image:: ../../../examples/103_embed_advection/case1/u_0001.svg
+.. |ex103_1_1| image:: ../../../examples/103_embed_advection/case1/u_0001.*
 
-.. |ex103_2_1| image:: ../../../examples/103_embed_advection/case2/u_0001.svg
+.. |ex103_2_1| image:: ../../../examples/103_embed_advection/case2/u_0001.*
 
 .. table:: Results of first order upwind scheme ``Advection1()`` (left)
   and second order upwind scheme ``Advection2()`` (right).
@@ -232,9 +232,9 @@ The following function implements a diffusion solver using this approximation
   :comment:
   :impl:
 
-.. |ex104_0_0| image:: ../../../examples/104_embed_diffusion/case0_gradlim0/u_0000.svg
+.. |ex104_0_0| image:: ../../../examples/104_embed_diffusion/case0_gradlim0/u_0000.*
 
-.. |ex104_0_1| image:: ../../../examples/104_embed_diffusion/case0_gradlim0/u_0001.svg
+.. |ex104_0_1| image:: ../../../examples/104_embed_diffusion/case0_gradlim0/u_0001.*
 
 .. table:: Results of diffusion solver ``Diffusion0()``: 
   initial (left) and final (right). Instabilities develop near the boundary.
@@ -258,9 +258,9 @@ See full example in :linkpath:`examples/104_embed_diffusion/main.cpp`.
   :impl:
 
 
-.. |ex104_1_1| image:: ../../../examples/104_embed_diffusion/case1_gradlim0/u_0001.svg
+.. |ex104_1_1| image:: ../../../examples/104_embed_diffusion/case1_gradlim0/u_0001.*
 
-.. |ex104_2_1| image:: ../../../examples/104_embed_diffusion/case2_gradlim0/u_0001.svg
+.. |ex104_2_1| image:: ../../../examples/104_embed_diffusion/case2_gradlim0/u_0001.*
 
 
 .. table:: Results of diffusion solver ``Diffusion1()`` (left)
@@ -280,9 +280,9 @@ Taylor-Couette flow
 
 See full example in :linkpath:`examples/201_taylor_couette`.
 
-.. |ex201_error| image:: ../../../examples/201_taylor_couette/ref/convergence/error.svg
+.. |ex201_error| image:: ../../../examples/201_taylor_couette/ref/convergence/error.*
 
-.. |ex201_field| image:: ../../../examples/201_taylor_couette/ref/single/field.svg
+.. |ex201_field| image:: ../../../examples/201_taylor_couette/ref/single/field.*
 
 .. table:: Error norms with grid refinement (left) and error field at :math:`R/h=25.6` (right).
   :align: center
@@ -299,9 +299,9 @@ Single-phase
 
 See full example in :linkpath:`examples/203_hydrostatic`.
 
-.. |ex203_pressure| image:: ../../../examples/203_hydrostatic/ref/single/pressure.svg
+.. |ex203_pressure| image:: ../../../examples/203_hydrostatic/ref/single/pressure.*
 
-.. |ex203_velocity| image:: ../../../examples/203_hydrostatic/ref/single/velocity.svg
+.. |ex203_velocity| image:: ../../../examples/203_hydrostatic/ref/single/velocity.*
 
 .. table:: Pressure (left) and velocity (right).
   :align: center
@@ -315,13 +315,13 @@ Multiphase
 
 See full example in :linkpath:`examples/203_hydrostatic`.
 
-.. |ex203m_density_init| image:: ../../../examples/203_hydrostatic/ref/multi/density_init.svg
+.. |ex203m_density_init| image:: ../../../examples/203_hydrostatic/ref/multi/density_init.*
 
-.. |ex203m_density| image:: ../../../examples/203_hydrostatic/ref/multi/density.svg
+.. |ex203m_density| image:: ../../../examples/203_hydrostatic/ref/multi/density.*
 
-.. |ex203m_pressure| image:: ../../../examples/203_hydrostatic/ref/multi/pressure.svg
+.. |ex203m_pressure| image:: ../../../examples/203_hydrostatic/ref/multi/pressure.*
 
-.. |ex203m_velocity| image:: ../../../examples/203_hydrostatic/ref/multi/velocity.svg
+.. |ex203m_velocity| image:: ../../../examples/203_hydrostatic/ref/multi/velocity.*
 
 .. table:: Initial density (top left), final density (top right), pressure (bottom left) and velocity (bottom right).
   :align: center
@@ -332,7 +332,7 @@ See full example in :linkpath:`examples/203_hydrostatic`.
   | |ex203m_pressure|      | |ex203m_velocity| |
   +------------------------+-------------------+
 
-.. |ex203m_history| image:: ../../../examples/203_hydrostatic/ref/multi/history.svg
+.. |ex203m_history| image:: ../../../examples/203_hydrostatic/ref/multi/history.*
 
 .. table:: Evolution of velocity norms.
   :align: center

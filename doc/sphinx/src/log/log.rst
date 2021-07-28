@@ -223,7 +223,7 @@ To fix, changed the map from ``hash->index`` to ``Vect->index``
 and introduced ``canonical(x)`` to get a single point from the cell of
 size ``tol``.
 
-.. image:: log10_vtkmerge/vtkmerge.svg
+.. image:: log10_vtkmerge/vtkmerge.*
   :align: center
   :width: 300
 

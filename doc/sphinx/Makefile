@@ -30,5 +30,9 @@ help:
 clean:
 	rm -rf build
 
-%: Makefile
-	$(SPHINXBUILD) $(SPHINXOPTS) -b $@ "$(SOURCEDIR)" "$(BUILDDIR)/$@"
+include img_pdf.mk
+latexpdf: $(IMG_PDF)
+%.pdf: %.svg; inkscape --export-filename=$@ $< || inkscape --export-pdf=$@ $<
+latexpdf: Makefile; $(SPHINXBUILD) $(SPHINXOPTS) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)/$@"
+man: Makefile; $(SPHINXBUILD) $(SPHINXOPTS) -b $@ "$(SOURCEDIR)" "$(BUILDDIR)/$@"
+singlehtml: Makefile; $(SPHINXBUILD) $(SPHINXOPTS) -b $@ "$(SOURCEDIR)" "$(BUILDDIR)/$@"

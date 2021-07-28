@@ -12,7 +12,6 @@ extensions = [
               'includecode',
               'linkpath',
               'sphinxcontrib.bibtex',
-              'sphinxcontrib.inkscapeconverter',
               ]
 
 templates_path = []
