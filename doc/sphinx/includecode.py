@@ -12,7 +12,6 @@ from sphinx.util.nodes import nested_parse_with_titles
 from sphinx.directives.code import container_wrapper, dedent_lines
 
 from sphinx import addnodes
-from sphinx.deprecation import RemovedInSphinx40Warning
 from sphinx.locale import __
 from sphinx.util import logging
 from sphinx.util import parselinenos

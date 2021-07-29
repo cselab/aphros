@@ -3,8 +3,7 @@ import re
 import os
 import sys
 
-sys.path.append(os.path.abspath('./'))
-
+sys.path.append(os.path.abspath('..'))
 extensions = [
               'sphinx.ext.githubpages',
               'sphinx.ext.imgmath',
