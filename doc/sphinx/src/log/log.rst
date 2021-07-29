@@ -247,9 +247,9 @@ See full example in :linkpath:`examples/208_rising`.
   :width: 300
 
 .. table:: Bubble shapes at :math:`t=3`
-  :align: center
-  :name: t:bubble
+   :align: center
+   :name: t:bubble
 
-  +----------+
-  | |log11|  |
-  +----------+
+   +----------+
+   | |log11|  |
+   +----------+

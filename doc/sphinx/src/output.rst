@@ -11,10 +11,10 @@ Simulations produce output of various types:
 * marching cubes triangles (polydata legacy VTK)
 * boundary conditions (polydata legacy VTK)
 
-Boundary conditions are written to ``bc.vtk`` if enabled by ``set int dumpbc 1``.
-It contains cell fields
-``block`` (block id), ``cond`` (conditions for advection)
-and ``condfluid`` (conditions for fluid, see :ref:`t:fluidcond`).
+Boundary conditions are written to ``bc.vtk`` if enabled by ``set int
+dumpbc 1``.  It contains cell fields ``block`` (block id), ``cond``
+(conditions for advection) and ``condfluid`` (conditions for fluid,
+see :ref:`t:fluid_boundary`).
 
 The output is implemented in function
 

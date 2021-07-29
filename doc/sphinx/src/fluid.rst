@@ -119,9 +119,8 @@ from a string.
 Value of ``id`` is written to field ``fluidcond`` in ``bc.vtk``
 (see :ref:`s:output`).
 
-.. _t:fluidcond:
 .. table:: Fluid boundary conditions.
-  :name: t:fluid_boundary
+   :name: t:fluid_boundary
 
    +---------------------+--------------------------+-----------------------------------+----+
    | class               | Parse() format           | description                       | id |

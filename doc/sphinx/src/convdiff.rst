@@ -124,7 +124,7 @@ Parameters of the solver are provided by
 where ``sc`` defines the interpolation scheme
 
 .. table:: Interpolation schemes.
-  :name: t:interp_schemes
+   :name: t:interp_schemes
 
    +--------------------+---------------------------------+
    | ``ConvSc::fou``    | First Order Upwind              |
@@ -135,9 +135,6 @@ where ``sc`` defines the interpolation scheme
    +--------------------+---------------------------------+
    | ``ConvSc::quick``  | QUICK                           |
    +--------------------+---------------------------------+
-
-
-
 
 Explicit solver
 ---------------
