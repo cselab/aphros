@@ -25,7 +25,7 @@ install: man1 man3 man7
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile all install web default man1 man3 man7 singlehtml_data
+.PHONY: help all install web default man1 man3 man7 singlehtml_data
 
 clean:
 	rm -rf build
