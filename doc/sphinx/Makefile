@@ -1,3 +1,5 @@
+.SUFFIXES:
+.PHONY: all clean default install latexpdf man1 man3 man7 singlehtml singlehtml_data web
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 SOURCEDIR     = src
@@ -19,17 +21,8 @@ singlehtml_data:
 	cp -r src/log/log??_* build/singlehtml/
 	rsync -iaR .././dashboard/*.{js,html,css} build/singlehtml/
 
-install: man1 man3 man7
-	mandb -q --user-db
-
-help:
-	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-
-.PHONY: help all install web default man1 man3 man7 singlehtml_data
-
-clean:
-	rm -rf build
-
+install: man1 man3 man7; mandb -q --user-db
+clean:; rm -rf build
 include img_pdf.mk
 latexpdf: $(IMG_PDF)
 %.pdf: %.svg; inkscape --export-filename=$@ $< || inkscape --export-pdf=$@ $<
