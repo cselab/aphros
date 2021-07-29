@@ -157,9 +157,10 @@ The routines described above are sufficient to implement an advection solver.
 
 .. |ex103_0_1| image:: ../../../examples/103_embed_advection/case0/u_0001.*
 
-.. table:: Results of advection solver ``Advection0()``: 
+.. table:: Results of advection solver ``Advection0()``:
   initial (left) and final (right). Instabilities develop near the boundary.
   :align: center
+  :name: t:results_of_advection
 
   +-------------+-------------+
   | |ex103_0_0| | |ex103_0_1| |
@@ -196,6 +197,7 @@ Using this function in the advection solver results in
   and second order upwind scheme ``Advection2()`` (right).
   Resdistribution from cut cells stabilizes the method in both cases.
   :align: center
+  :name: t:results_of_first0
 
   +-------------+-------------+
   | |ex103_1_1| | |ex103_2_1| |
@@ -236,9 +238,10 @@ The following function implements a diffusion solver using this approximation
 
 .. |ex104_0_1| image:: ../../../examples/104_embed_diffusion/case0_gradlim0/u_0001.*
 
-.. table:: Results of diffusion solver ``Diffusion0()``: 
+.. table:: Results of diffusion solver ``Diffusion0()``:
   initial (left) and final (right). Instabilities develop near the boundary.
   :align: center
+  :name: t:results_of_diffusion0
 
   +-------------+-------------+
   | |ex104_0_0| | |ex104_0_1| |
@@ -270,6 +273,7 @@ See full example in :linkpath:`examples/104_embed_diffusion/main.cpp`.
   and illustrates the usage of ``ExecFaces()``
   to execute the same lambda-function on indices of two types
   :align: center
+  :name: t:results_of_diffusion1
 
   +--------------+-------------+
   | |ex104_1_1|  | |ex104_2_1| |
@@ -286,6 +290,7 @@ See full example in :linkpath:`examples/201_taylor_couette`.
 
 .. table:: Error norms with grid refinement (left) and error field at :math:`R/h=25.6` (right).
   :align: center
+  :name: t:error_norms
 
   +---------------+---------------+
   | |ex201_error| | |ex201_field| |
@@ -305,6 +310,7 @@ See full example in :linkpath:`examples/203_hydrostatic`.
 
 .. table:: Pressure (left) and velocity (right).
   :align: center
+  :name: t:pressure
 
   +------------------+------------------+
   | |ex203_pressure| | |ex203_velocity| |
@@ -325,6 +331,7 @@ See full example in :linkpath:`examples/203_hydrostatic`.
 
 .. table:: Initial density (top left), final density (top right), pressure (bottom left) and velocity (bottom right).
   :align: center
+  :name: t:density
 
   +------------------------+-------------------+
   | |ex203m_density_init|  | |ex203m_density|  |
@@ -336,6 +343,7 @@ See full example in :linkpath:`examples/203_hydrostatic`.
 
 .. table:: Evolution of velocity norms.
   :align: center
+  :name: t:evolution
 
   +-------------------+
   | |ex203m_history|  |

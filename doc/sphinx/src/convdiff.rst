@@ -9,7 +9,7 @@ of a solver for the vector convection-diffusion equation
 
 .. math::
   \rho \Big(
-  \frac{\partial \mathbf{u}}{\partial t} 
+  \frac{\partial \mathbf{u}}{\partial t}
   + (\mathbf{v}\cdot\nabla) \mathbf{u}
   \Big)
   = \nabla \cdot (\mu \nabla \mathbf{u})
@@ -47,7 +47,7 @@ and volume flux :math:`\mathbf{v} \cdot \mathbf{S}_f`:
   :comment:
   :dedent: 2
 
-After an implementation is constructed, the solution 
+After an implementation is constructed, the solution
 is advanced by calling ``MakeIteration()``
 and the current velocity field is returned by
 
@@ -77,7 +77,7 @@ Furthermore, the current solution can be explicitly corrected
 with
 
 .. includecode:: src/solver/convdiffv.h
-  :func: CorrectVelocity 
+  :func: CorrectVelocity
   :dedent: 2
 
 Both these features are required for the pressure correction equation.
@@ -108,9 +108,9 @@ conditions and the initial fields:
   :func: ConvDiffVect
   :dedent: 2
 
-with the initial velocity ``fcvel``, 
+with the initial velocity ``fcvel``,
 face conditions ``mfc``,
-cell conditions ``mcc``, 
+cell conditions ``mcc``,
 density ``fcr``,
 viscosity ``fcd``,
 force ``fcs``,
@@ -124,6 +124,7 @@ Parameters of the solver are provided by
 where ``sc`` defines the interpolation scheme
 
 .. table:: Interpolation schemes.
+  :name: t:interp_schemes
 
    +--------------------+---------------------------------+
    | ``ConvSc::fou``    | First Order Upwind              |
@@ -155,6 +156,5 @@ corresponding to the discrete equation
 
 Here the solution is advanced by explicit formulas
 and the linear system is constructed
-only to implement ``Assemble()`` and 
+only to implement ``Assemble()`` and
 ``GetVelocityEquations()`` of the base class.
-

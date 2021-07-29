@@ -248,6 +248,7 @@ See full example in :linkpath:`examples/208_rising`.
 
 .. table:: Bubble shapes at :math:`t=3`
   :align: center
+  :name: t:bubble
 
   +----------+
   | |log11|  |

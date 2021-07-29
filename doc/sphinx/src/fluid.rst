@@ -68,9 +68,9 @@ conditions and the initial fields.
   :func: Simple
   :dedent: 2
 
-with the initial velocity ``fcw``, 
+with the initial velocity ``fcw``,
 face conditions ``mfc``,
-cell conditions ``mcc``, 
+cell conditions ``mcc``,
 density ``fcr``,
 viscosity ``fcd``,
 force ``fcf``,
@@ -95,9 +95,9 @@ conditions and the initial fields.
   :func: Proj
   :dedent: 2
 
-with the initial velocity ``fcw``, 
+with the initial velocity ``fcw``,
 face conditions ``mfc``,
-cell conditions ``mcc``, 
+cell conditions ``mcc``,
 density ``fcr``,
 viscosity ``fcd``,
 force ``fcf``,
@@ -121,6 +121,7 @@ Value of ``id`` is written to field ``fluidcond`` in ``bc.vtk``
 
 .. _t:fluidcond:
 .. table:: Fluid boundary conditions.
+  :name: t:fluid_boundary
 
    +---------------------+--------------------------+-----------------------------------+----+
    | class               | Parse() format           | description                       | id |
