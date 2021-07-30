@@ -5,7 +5,7 @@ bs ?= 16 16 16
 # number of tasks
 np ?= 1
 # time limit in minutes
-tl ?= 60
+tl ?= 1440
 # number of threads for openmp
 OMP_NUM_THREADS ?= 1
 

@@ -315,7 +315,9 @@ int main(int argc, const char** argv) {
   g_is_root = mpi.IsRoot();
 
   ArgumentParser parser(
-      "Sharpens the image using PLIC advection", mpi.IsRoot());
+      "Native implementation of Aphros Explorer. "
+      "Runs simulation and draws the result to PPM images.",
+      mpi.IsRoot());
   parser.AddSwitch({"--verbose", "-v"}).Help("Report steps");
   parser.AddSwitch("--stdout").Help("Output ppm to STDOUT");
   parser.AddVariable<std::string>("--extra", "")

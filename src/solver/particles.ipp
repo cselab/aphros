@@ -144,26 +144,17 @@ struct Particles<EB_>::Imp {
             tau = 0;
             break;
         }
-        const auto gl = m.GetGlobalLength();
-        // Implicit relaxation
+
+        // Update velocity from viscous drag, implicit in time.
         //   dv/dt = (u - v) / tau + g
         // particle velocity `v`, liquid velocity `u`,
         // relaxation time `tau`, gravity `g`
-        if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || eb.IsCut(c) ||
-            eb.IsExcluded(c)) {
-          s.v[i] = Vect(0);
-          s.removed[i] = 1;
-        } else {
-          s.v[i] = (fc_vel[c] + s.v[i] * (tau / dt) + conf.gravity * tau) /
-                   (1 + tau / dt);
-        }
-        if (s.x[i][1] > 0.8) {
-          s.removed[i] = 1;
-        }
-        const Vect x_old = s.x[i];
+        s.v[i] = (fc_vel[c] + s.v[i] * (tau / dt) + conf.gravity * tau) /
+                 (1 + tau / dt);
         s.x[i] += s.v[i] * dt;
 
         if (s.source[i] != 0) {
+          // Apply volume source
           const Scal pi = M_PI;
           const Scal k = 4. / 3 * pi;
           Scal vol = k * std::pow(s.r[i], 3);
@@ -171,6 +162,7 @@ struct Particles<EB_>::Imp {
           s.r[i] = std::pow(vol / k, 1. / 3);
         }
 
+        const auto gl = m.GetGlobalLength();
         for (size_t d = 0; d < m.GetEdim(); ++d) {
           if (m.flags.is_periodic[d]) {
             if (s.x[i][d] < 0) {
@@ -181,9 +173,10 @@ struct Particles<EB_>::Imp {
             }
           }
         }
+        // Remove particles that have left the domain
         if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || eb.IsCut(c) ||
             eb.IsExcluded(c)) {
-          s.x[i] = x_old;
+          s.removed[i] = 1;
         }
       }
       ClearRemoved(GetView(s));
