@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.10.2)
 
 project("mfer")
 
-#Require out - of - source build
+# Allow using <PackageName>_ROOT variables
+cmake_policy(SET CMP0074 NEW)
+
+# Require out - of - source build
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR
     "Aphros requires an out-of-source build. Run CMake from a separate build directory.")
@@ -141,7 +144,7 @@ function(add_object T)
   add_library(${T}_obj OBJECT ${ARGN})
   add_library(${T} INTERFACE)
   install(TARGETS ${T} EXPORT export DESTINATION lib)
-  install(TARGETS ${T}_obj EXPORT export DESTINATION lib)
+  #install(TARGETS ${T}_obj EXPORT export DESTINATION lib)
   if (USE_WARNINGS)
     target_compile_options(${T}_obj PRIVATE -Wall -Wextra -pedantic -Wshadow)
   endif()
