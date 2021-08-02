@@ -10,6 +10,10 @@ struct HydroPost {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
+  static bool GetFieldByName(
+      const Hydro<M>* hydro, std::string name, FieldCell<Scal>& fc_out,
+      const M& m);
+
   static FieldCell<Scal> GetField(
       const Hydro<M>* hydro, std::string name, const M& m);
 

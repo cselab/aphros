@@ -4,6 +4,7 @@
 #include <array>
 #include <iomanip>
 #include <iostream>
+#include <stack>
 #include <string>
 
 #include "dump/dumper.h"
@@ -13,19 +14,21 @@
 
 template <class M>
 struct HydroPost<M>::Imp {
-  static FieldCell<Scal> GetField(
-      const Hydro<M>* hydro, std::string name, const M& m) {
+  static bool GetFieldByName(
+      const Hydro<M>* hydro, std::string name, FieldCell<Scal>& fc_out,
+      const M& m) {
     if (name == "p" || name == "pressure") {
-      return hydro->fs_->GetPressure();
+      fc_out = hydro->fs_->GetPressure();
     }
     if (name == "omz" || name == "vorticity") {
       if (hydro->eb_) {
-        return UEmbed<M>::GetVortScal(
+        fc_out = UEmbed<M>::GetVortScal(
             hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(),
             *hydro->eb_);
       }
-      return UEmbed<M>::GetVortScal(
+      fc_out = UEmbed<M>::GetVortScal(
           hydro->fs_->GetVelocity(), hydro->fs_->GetVelocityCond(), m);
+      return true;
     }
     if (name == "ebvf" || name == "embed fraction") {
       FieldCell<Scal> fc(m, 1);
@@ -35,10 +38,11 @@ struct HydroPost<M>::Imp {
           fc[c] = eb.GetVolumeFraction(c);
         }
       }
-      return fc;
+      fc_out = fc;
+      return true;
     }
     if (name == "vf" || name == "volume fraction") {
-      return hydro->as_->GetField();
+      fc_out = hydro->as_->GetField();
     }
     if (name == "vmagn" || name == "velocity magnitude") {
       const auto& fcvel = hydro->fs_->GetVelocity();
@@ -46,23 +50,29 @@ struct HydroPost<M>::Imp {
       for (auto c : m.SuCells()) {
         fc[c] = fcvel[c].norm();
       }
-      return fc;
+      fc_out = fc;
+      return true;
     }
     if (name == "vx" || name == "velocity x") {
-      return GetComponent(hydro->fs_->GetVelocity(), 0);
+      fc_out = GetComponent(hydro->fs_->GetVelocity(), 0);
+      return true;
     }
     if (name == "vy" || name == "velocity y") {
-      return GetComponent(hydro->fs_->GetVelocity(), 1);
+      fc_out = GetComponent(hydro->fs_->GetVelocity(), 1);
+      return true;
     }
     if (auto& electro = hydro->electro_) {
       if (name == "elpot" || name == "electric potential") {
-        return electro->GetPotential();
+        fc_out = electro->GetPotential();
+        return true;
       }
       if (name == "elcurx" || name == "electric current x") {
-        return GetComponent(electro->GetCurrent(), 0);
+        fc_out = GetComponent(electro->GetCurrent(), 0);
+        return true;
       }
       if (name == "elcury" || name == "electric current y") {
-        return GetComponent(electro->GetCurrent(), 1);
+        fc_out = GetComponent(electro->GetCurrent(), 1);
+        return true;
       }
       if (name == "elcurmagn" || name == "electric current magnitude") {
         const auto& fccur = electro->GetCurrent();
@@ -70,33 +80,36 @@ struct HydroPost<M>::Imp {
         for (auto c : m.SuCells()) {
           fc[c] = fccur[c].norm();
         }
-        return fc;
+        fc_out = fc;
+        return true;
       }
     }
     if (auto& tracer = hydro->tracer_) {
       for (auto l : tracer->GetView().layers) {
         const auto sl = std::to_string(l);
         if (name == "tu" + sl || name == "tracer" + sl) {
-          return tracer->GetVolumeFraction()[l];
+          fc_out = tracer->GetVolumeFraction()[l];
+          return true;
         }
       }
     }
-    if (m.IsRoot()) {
+    return false;
+  }
+  static FieldCell<Scal> GetField(
+      const Hydro<M>* hydro, std::string name, const M& m) {
+    FieldCell<Scal> fc_res(m, 0);
+    const bool status = GetFieldByName(hydro, name, fc_res, m);
+    if (!status && m.IsRoot()) {
       std::cerr << "Unknown field '" + name + "'\n";
     }
-    return FieldCell<Scal>(m, 0);
+    return fc_res;
   };
   static void DumpFields(Hydro<M>* hydro, M& m) {
     auto sem = m.GetSem("dumpfields");
     struct {
-      Multi<FieldCell<Vect>> fcim;
-      FieldCell<Scal> fc_cellcond;
-      FieldCell<Scal> fcdiv; // divergence of velocity
-      FieldCell<Scal> fcdis; // energy dissipation
-      FieldCell<Scal> fc_ebvf; // embedded boundaries volume fraction
-      FieldCell<Scal> fc_tracer_sum; // sum of tracer_ fields starting from 1
-      FieldCell<Vect> fc_flux; // mixture flux
-      FieldCell<Scal> fc_vel_magn; // velocity magnitude
+      // containers that do not invalidate pointers on insertion
+      std::stack<FieldCell<Scal>> stack_fc;
+      std::stack<FieldCell<Vect>> stack_fcv;
     } * ctx(sem);
     auto& t = *ctx;
     const auto& var = hydro->var;
@@ -124,11 +137,12 @@ struct HydroPost<M>::Imp {
       dumpv(fc_vel, 1, "vy");
       dumpv(fc_vel, 2, "vz");
       if (dl.count("vm")) {
-        t.fc_vel_magn.Reinit(m, 0);
+        t.stack_fc.emplace(m, 0);
+        auto& fc_vel_magn = t.stack_fc.top();
         for (auto c : m.Cells()) {
-          t.fc_vel_magn[c] = fc_vel[c].norm();
+          fc_vel_magn[c] = fc_vel[c].norm();
         }
-        dump(t.fc_vel_magn, "vm");
+        dump(fc_vel_magn, "vm");
       }
       dump(hydro->fs_->GetPressure(), "p");
       dump(hydro->as_->GetField(), "vf");
@@ -137,12 +151,17 @@ struct HydroPost<M>::Imp {
       dump(hydro->fc_sig_, "sig");
       dump(hydro->fc_contang_, "contang");
       if (dl.count("cellcond")) {
-        auto& fc = t.fc_cellcond;
-        fc.Reinit(m, 0);
+        t.stack_fc.emplace(m, 0);
+        auto& fc_cellcond = t.stack_fc.top();
         for (auto& it : hydro->mc_velcond_) {
-          fc[it.first] = 1;
+          fc_cellcond[it.first] = 1;
         }
-        m.Dump(&fc, "cellcond");
+        m.Dump(&fc_cellcond, "cellcond");
+      }
+      if (dl.count("blockid")) {
+        t.stack_fc.emplace(m, m.GetId());
+        auto& fc_blockid = t.stack_fc.top();
+        m.Dump(&fc_blockid, "blockid");
       }
       if (dl.count("omx") || dl.count("omy") || dl.count("omz") ||
           dl.count("omm") || dl.count("omcalc")) {
@@ -172,31 +191,35 @@ struct HydroPost<M>::Imp {
         dump(hydro->fcomm_, "omm");
       }
       if (dl.count("fluxx") || dl.count("fluxy") || dl.count("fluxz")) {
-        t.fc_flux.Reinit(m, Vect(0));
+        t.stack_fcv.emplace(m, Vect(0));
+        auto& fc_flux = t.stack_fcv.top();
         auto& ffv = hydro->fs_->GetVolumeFlux();
         for (auto c : m.Cells()) {
           for (auto d : m.dirs) {
-            t.fc_flux[c][d] = ffv[m.GetFace(c, IdxNci(d * 2))];
+            fc_flux[c][d] = ffv[m.GetFace(c, IdxNci(d * 2))];
           }
         }
-        dumpv(t.fc_flux, 0, "fluxx");
-        dumpv(t.fc_flux, 1, "fluxy");
-        dumpv(t.fc_flux, 2, "fluxz");
+        dumpv(fc_flux, 0, "fluxx");
+        dumpv(fc_flux, 1, "fluxy");
+        dumpv(fc_flux, 2, "fluxz");
       }
       if (dl.count("dis") || dl.count("strain")) {
         hydro->fc_strain_ = hydro->CalcStrain(hydro->fs_->GetVelocity());
-        if (dl.count("strain")) m.Dump(&hydro->fc_strain_, "strain");
+        if (dl.count("strain")) {
+          m.Dump(&hydro->fc_strain_, "strain");
+        }
         if (dl.count("dis")) {
-          t.fcdis = hydro->fc_strain_;
+          t.stack_fc.push(hydro->fc_strain_);
+          auto& fc_dis = t.stack_fc.top();
           for (auto c : m.Cells()) {
-            t.fcdis[c] *= 2. * hydro->fc_mu_[c];
+            fc_dis[c] *= 2. * hydro->fc_mu_[c];
           }
-          m.Dump(&t.fcdis, "dis");
+          m.Dump(&fc_dis, "dis");
         }
       }
       if (dl.count("div")) {
-        t.fcdiv = hydro->GetDiv();
-        m.Dump(&t.fcdiv, "div");
+        t.stack_fc.push(hydro->GetDiv());
+        m.Dump(&t.stack_fc.top(), "div");
       }
       using ASV = typename Hydro<M>::ASV;
       using ASVEB = typename Hydro<M>::ASVEB;
@@ -231,17 +254,17 @@ struct HydroPost<M>::Imp {
         dump(as->GetColorSum(), "cls");
 
         // image vector
-        t.fcim.resize(hydro->layers);
-        t.fcim.Reinit(m);
         for (auto l : hydro->layers) {
-          auto& fcim = *as->GetImage()[l];
+          t.stack_fcv.emplace(m, Vect(0));
+          auto& fcim = t.stack_fcv.top();
+          auto& fcim_midx = *as->GetImage()[l];
           for (auto c : m.Cells()) {
-            t.fcim[l][c] = Vect(fcim[c]);
+            fcim[c] = Vect(fcim_midx[c]);
           }
           auto sl = std::to_string(l);
-          dumpv(t.fcim[l], 0, "imx" + sl);
-          dumpv(t.fcim[l], 1, "imy" + sl);
-          dumpv(t.fcim[l], 2, "imz" + sl);
+          dumpv(fcim, 0, "imx" + sl);
+          dumpv(fcim, 1, "imy" + sl);
+          dumpv(fcim, 2, "imz" + sl);
         }
       }
       // TODO add ASVMEB
@@ -249,12 +272,12 @@ struct HydroPost<M>::Imp {
       if (hydro->eb_) {
         auto& eb = *hydro->eb_;
         if (dl.count("ebvf")) {
-          auto& fc = t.fc_ebvf;
-          fc.Reinit(m, 0);
+          t.stack_fc.emplace(m, 0);
+          auto& fc_ebvf = t.stack_fc.top();
           for (auto c : eb.Cells()) {
-            fc[c] = eb.GetVolumeFraction(c);
+            fc_ebvf[c] = eb.GetVolumeFraction(c);
           }
-          m.Dump(&fc, "ebvf");
+          m.Dump(&fc_ebvf, "ebvf");
         }
       }
 
@@ -263,16 +286,17 @@ struct HydroPost<M>::Imp {
           dump(tracer->GetVolumeFraction()[l], "tu" + std::to_string(l));
         }
         if (dl.count("tusum")) {
-          t.fc_tracer_sum.Reinit(m, 0);
+          t.stack_fc.emplace(m, 0);
+          auto& fc_tracer_sum = t.stack_fc.top();
           for (auto l : tracer->GetView().layers) {
             if (l > 0) {
               const auto& fc = tracer->GetVolumeFraction()[l];
               for (auto c : m.Cells()) {
-                t.fc_tracer_sum[c] += fc[c];
+                fc_tracer_sum[c] += fc[c];
               }
             }
           }
-          dump(t.fc_tracer_sum, "tusum");
+          dump(fc_tracer_sum, "tusum");
         }
       }
       if (auto& electro = hydro->electro_) {
