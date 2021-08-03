@@ -102,11 +102,11 @@ in collaboration with Jean M. Favre at [CSCS](https://www.cscs.ch).
 
 |    |    |
 :---:|:---:
-[<img src="[[VIDTHUMB]]/coalescence.jpg" height=150>](https://www.youtube.com/watch?v=pRWGhGoQjyI) | [<img src="[[VIDTHUMB]]/taylor_green.jpg" height=150>]([[VIDEOS]]/taylor_green.mp4)
+[<img src="[[VIDTHUMB]]/coalescence.jpg" height=150>](https://www.youtube.com/watch?v=pRWGhGoQjyI) | [<img src="[[VIDTHUMB]]/taylor_green.jpg" height=150>](https://youtu.be/lCf_T0C5Kmg)
 Coalescence of bubbles [[conf]](examples/202_coalescence) [[ref:partstr]] | Taylor-Green vortex with bubbles [[ref:pasc19]] [[ref:datadriven]]
-[<img src="[[VIDTHUMB]]/vortex_bubble.jpg" height=200>]([[VIDEOS]]/vortex_bubble.mp4) | [<img src="[[VIDTHUMB]]/plunging_jet.jpg" height=200>]([[VIDEOS]]/plunging_jet.mp4)
+[<img src="[[VIDTHUMB]]/vortex_bubble.jpg" height=200>](https://www.youtube.com/watch?v=x9hk6pcicj0) | [<img src="[[VIDTHUMB]]/plunging_jet.jpg" height=200>](https://youtu.be/9NPoiHHFkh0)
 Bubble trapped by vortex ring [[ref:datadriven]] | Plunging jet [[ref:pasc19]]
-[<img src="[[VIDTHUMB]]/reactor.jpg" height=150>]([[VIDEOS]]/reactor.mp4) | [<img src="[[VIDTHUMB]]/mesh_bubbles.jpg" height=150>]([[VIDEOS]]/mesh_bubbles.mp4)
+[<img src="[[VIDTHUMB]]/reactor.jpg" height=150>](https://www.youtube.com/watch?v=xEo51gqLdds) | [<img src="[[VIDTHUMB]]/mesh_bubbles.jpg" height=150>](https://youtu.be/rs7OhSixm5c)
 Electrochemical reactor [[ref:ees]] | Bubbles through mesh
 [<img src="[[VIDTHUMB]]/rising_bubbles.jpg" height=150>](https://www.youtube.com/watch?v=WzOe0buD8uM) | [<img src="[[VIDTHUMB]]/foaming_waterfall.jpg" height=150>](https://www.youtube.com/watch?v=0Cj8pPYNJGY)
  Clustering of bubbles [[conf]](examples/205_multivof/clustering) [[ref:aps]] [[ref:cscs]] [[ref:multivof]] | Foaming waterfall [[conf]](examples/205_multivof/waterfall) [[ref:pasc20]] [[ref:multivof]]
