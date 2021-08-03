@@ -1,0 +1,42 @@
+.POSIX:
+.SUFFIXES:
+.SUFFIXES: .o
+.SUFFIXES: .c
+
+H = \
+vofi.h\
+
+CFLAGS = -O2 -g
+L = libvofi_static.a
+
+O = \
+checkconsistency.o\
+getcc.o\
+getdirs.o\
+getfh.o\
+getintersections.o\
+getlimits.o\
+getmin.o\
+getzero.o\
+integrate.o\
+interface.o\
+
+all: $L
+install: $L $H
+	mkdir -p -- "$(APHROS_PREFIX)/lib" "$(APHROS_PREFIX)/include"
+	cp -- $H "$(APHROS_PREFIX)/include"
+	cp -- $L "$(APHROS_PREFIX)/lib"
+$L: $O; ar rv $@ $O && ranlib $@
+.c.o:; $(CC) -c $(CFLAGS) $<
+clean:; rm -f -- $O $L
+interface.o: vofi.h
+integrate.o: vofi_GL.h
+getcc.o: vofi_stddecl.h
+getdirs.o: vofi_stddecl.h
+getfh.o: vofi_stddecl.h
+getintersections.o: vofi_stddecl.h
+getlimits.o: vofi_stddecl.h
+getmin.o: vofi_stddecl.h
+getzero.o: vofi_stddecl.h
+integrate.o: vofi_stddecl.h
+interface.o: vofi_stddecl.h
