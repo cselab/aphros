@@ -1,6 +1,4 @@
 add_subdirectory(table)
-add_subdirectory(vof)
-add_subdirectory(vofi)
 add_subdirectory(vtk)
 add_subdirectory(vtkcolor)
 
