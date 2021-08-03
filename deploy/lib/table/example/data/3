@@ -1,7 +1,0 @@
-put 1 10
-put 2 20
-put 3 30
-put 4 40
-array
-remove 4
-array
