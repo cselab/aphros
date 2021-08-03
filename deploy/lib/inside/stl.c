@@ -1,1 +1,0 @@
-../../../src/inside/stl.c

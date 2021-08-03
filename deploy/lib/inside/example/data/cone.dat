@@ -1,3 +1,0 @@
-# cx cy cz (center), tx ty tz (axis), r0 r1 (radius), t0 t1 (coordinates relative to center)
-cone 0 0 4   1 0 0   2.5 1.5 -7.03178e+00 2.334422e+01
-cone 0 0 -4   1 0 0   2.5 3.5  -7.03178e+00 2.334422e+01

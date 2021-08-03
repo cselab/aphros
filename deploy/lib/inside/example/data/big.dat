@@ -1,3 +1,0 @@
-# cx cy cz (center), tx ty tz (axis), r (radius), t0 t1 (coordinates relative to center)
-cylinder 0 0 4   1 0 0   2.5   -7.03178e+00 2.334422e+01
-cylinder 0 0 -4   1 0 0   2.5   -7.03178e+00 2.334422e+01
