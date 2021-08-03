@@ -224,6 +224,7 @@ struct Particles<EB_>::Imp {
       std::vector<Scal> recv_serial;
       std::vector<int> id;
     } * ctx(sem);
+    auto& t = *ctx;
     if (sem("local")) {
       const auto box = m.GetBoundingBox();
       std::vector<size_t> inside; // indices of particles inside box
@@ -247,41 +248,41 @@ struct Particles<EB_>::Imp {
         return res;
       };
 
-      ctx->gather_x = select(x, outside);
+      t.gather_x = select(x, outside);
       x = select(x, inside);
       for (auto& attr : attr_scal) {
-        ctx->gather_scal.push_back(select(*attr, outside));
+        t.gather_scal.push_back(select(*attr, outside));
         (*attr) = select(*attr, inside);
       }
       for (auto& attr : attr_vect) {
-        ctx->gather_vect.push_back(select(*attr, outside));
+        t.gather_vect.push_back(select(*attr, outside));
         (*attr) = select(*attr, inside);
       }
       // gather
-      m.Reduce(&ctx->gather_x, Reduction::concat);
-      for (auto& attr : ctx->gather_scal) {
+      m.Reduce(&t.gather_x, Reduction::concat);
+      for (auto& attr : t.gather_scal) {
         m.Reduce(&attr, Reduction::concat);
       }
-      for (auto& attr : ctx->gather_vect) {
+      for (auto& attr : t.gather_vect) {
         m.Reduce(&attr, Reduction::concat);
       }
-      ctx->id.push_back(m.GetId());
-      m.Reduce(&ctx->id, Reduction::concat);
+      t.id.push_back(m.GetId());
+      m.Reduce(&t.id, Reduction::concat);
     }
     if (sem()) {
       if (m.IsRoot()) {
-        const size_t gather_size = ctx->gather_x.size();
-        const size_t maxid = ctx->id.size();
+        const size_t gather_size = t.gather_x.size();
+        const size_t maxid = t.id.size();
 
-        // block id to index in `ctx->id`
-        std::vector<size_t> id_to_index(ctx->id.size());
-        for (size_t i = 0; i < ctx->id.size(); ++i) {
-          id_to_index[ctx->id[i]] = i;
+        // block id to index in `t.id`
+        std::vector<size_t> id_to_index(t.id.size());
+        for (size_t i = 0; i < t.id.size(); ++i) {
+          id_to_index[t.id[i]] = i;
         }
-        // index in `gather_x` to index in `ctx->id`.
+        // index in `gather_x` to index in `t.id`.
         std::vector<size_t> remote_index;
-        for (size_t k = 0; k < ctx->gather_x.size(); ++k) {
-          const size_t id = m.GetIdFromPoint(ctx->gather_x[k]);
+        for (size_t k = 0; k < t.gather_x.size(); ++k) {
+          const size_t id = m.GetIdFromPoint(t.gather_x[k]);
           fassert(id < maxid);
           remote_index.push_back(id_to_index[id]);
         }
@@ -308,21 +309,21 @@ struct Particles<EB_>::Imp {
           }
         };
 
-        scatterv(ctx->scatter_serial, ctx->gather_x);
+        scatterv(t.scatter_serial, t.gather_x);
         for (size_t i = 0; i < attr_scal.size(); ++i) {
-          scatter(ctx->scatter_serial, ctx->gather_scal[i]);
+          scatter(t.scatter_serial, t.gather_scal[i]);
         }
         for (size_t i = 0; i < attr_vect.size(); ++i) {
-          scatterv(ctx->scatter_serial, ctx->gather_vect[i]);
+          scatterv(t.scatter_serial, t.gather_vect[i]);
         }
       }
-      m.Scatter({&ctx->scatter_serial, &ctx->recv_serial});
+      m.Scatter({&t.scatter_serial, &t.recv_serial});
     }
     if (sem()) {
       const size_t nscal = dim + attr_scal.size() + attr_vect.size() * dim;
-      fassert_equal(ctx->recv_serial.size() % nscal, 0);
+      fassert_equal(t.recv_serial.size() % nscal, 0);
       // number of particles received
-      const size_t recv_size = ctx->recv_serial.size() / nscal;
+      const size_t recv_size = t.recv_serial.size() / nscal;
       ncomm = recv_size;
       auto deserial = [recv_size](auto& attr, auto& serial) {
         for (size_t i = 0; i < recv_size; ++i) {
@@ -341,17 +342,17 @@ struct Particles<EB_>::Imp {
           attr.push_back(v);
         }
       };
-      // ctx->recv_serial contains serialized particles from root
+      // t.recv_serial contains serialized particles from root
       // deserialize in reversed order
       for (size_t i = attr_vect.size(); i > 0;) {
         --i;
-        deserialv(*attr_vect[i], ctx->recv_serial);
+        deserialv(*attr_vect[i], t.recv_serial);
       }
       for (size_t i = attr_scal.size(); i > 0;) {
         --i;
-        deserial(*attr_scal[i], ctx->recv_serial);
+        deserial(*attr_scal[i], t.recv_serial);
       }
-      deserialv(x, ctx->recv_serial);
+      deserialv(x, t.recv_serial);
     }
     if (sem()) { // FIXME: empty stage
     }

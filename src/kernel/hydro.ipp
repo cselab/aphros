@@ -1462,8 +1462,8 @@ void Hydro<M>::Init() {
 }
 
 template <class M>
-Hydro<M>::Hydro(Vars& var0, const BlockInfoProxy& bi, Par& par)
-    : KernelMeshPar<M, Par>(var0, bi, par)
+Hydro<M>::Hydro(Vars& var_, const BlockInfoProxy& bi, Par& par)
+    : KernelMeshPar<M, Par>(var_, bi, par)
     , dumper_(var, "dump_field_")
     , dmptraj_(var, "dump_traj_")
     , dmptrep_(var, "dump_trep_")
