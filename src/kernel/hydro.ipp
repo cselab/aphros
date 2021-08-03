@@ -422,7 +422,7 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
           }
           view.x.push_back(m.GetCenter(c) + xrand * h);
           view.v.push_back(velocity);
-          view.r.push_back(radius[i] * 0.5);
+          view.r.push_back(radius[i]);
           view.source.push_back(0);
           view.rho.push_back(density);
           view.termvel.push_back(termvel[i]);
