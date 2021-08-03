@@ -1,0 +1,14 @@
+.POSIX:
+.SUFFIXES:
+.SUFFIXES: .c
+CFLAGS = -O2 -g
+OVERLAP_FLAGS = -L../.. -I../.. -loverlap -lstdc++ -lm
+GSL_FLAGS = `pkg-config --cflags --libs gsl`
+
+O = \
+gen \
+main \
+
+all: $O
+.c:; $(CC) -o $@ $(CXXFLAGS) $< $(OVERLAP_FLAGS) $(GSL_FLAGS)
+clean:; rm -f $O

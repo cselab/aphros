@@ -1,31 +1,6 @@
-/*!
- * Exact calculation of the overlap volume of spheres and mesh elements.
- * http://dx.doi.org/10.1016/j.jcp.2016.02.003
- *
- * Copyright (C) 2015-2017 Severin Strobl <severin.strobl@fau.de>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
-
-#ifndef OVERLAP_HPP
-#define OVERLAP_HPP
-
-// Eigen
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-// C++
 #include <algorithm>
 #include <array>
 #include <bitset>
@@ -41,11 +16,6 @@
 // typedefs
 typedef double scalar_t;
 typedef Eigen::Matrix<scalar_t, 3, 1, Eigen::DontAlign> vector_t;
-typedef Eigen::Matrix<scalar_t, 2, 1, Eigen::DontAlign> vector2_t;
-
-// Pretty-printing of Eigen matrices.
-static const Eigen::IOFormat pretty(
-    Eigen::StreamPrecision, Eigen::DontAlignCols, " ", ";\n", "", "", "[", "]");
 
 // constants
 const scalar_t pi = scalar_t(4) * std::atan(scalar_t(1.0));
@@ -249,15 +219,17 @@ inline double_prec<T> operator*(
 // Ref: J.R. Shewchuk - Lecture Notes on Geometric Robustness
 //      http://www.cs.berkeley.edu/~jrs/meshpapers/robnotes.pdf
 inline scalar_t orient2D(
-    const vector2_t& a, const vector2_t& b, const vector2_t& c) {
+       scalar_t A0, scalar_t A1,
+       scalar_t B0, scalar_t B1,
+       scalar_t C0, scalar_t C1) {
   typedef double_prec<scalar_t> real_t;
 
-  real_t a0(a[0]);
-  real_t a1(a[1]);
-  real_t b0(b[0]);
-  real_t b1(b[1]);
-  real_t c0(c[0]);
-  real_t c1(c[1]);
+  real_t a0(A0);
+  real_t a1(A1);
+  real_t b0(B0);
+  real_t b1(B1);
+  real_t c0(C0);
+  real_t c1(C1);
 
   real_t result = (a0 - c0) * (b1 - c1) - (a1 - c1) * (b0 - c0);
 
@@ -270,15 +242,9 @@ inline scalar_t orient2D(
 //      http://www.cs.berkeley.edu/~jrs/meshpapers/robnotes.pdf
 inline vector_t triangleNormal(
     const vector_t& a, const vector_t& b, const vector_t& c) {
-  scalar_t xy = orient2D(
-      vector2_t(a[0], a[1]), vector2_t(b[0], b[1]), vector2_t(c[0], c[1]));
-
-  scalar_t yz = orient2D(
-      vector2_t(a[1], a[2]), vector2_t(b[1], b[2]), vector2_t(c[1], c[2]));
-
-  scalar_t zx = orient2D(
-      vector2_t(a[2], a[0]), vector2_t(b[2], b[0]), vector2_t(c[2], c[0]));
-
+  scalar_t xy = orient2D(a[0], a[1], b[0], b[1], c[0], c[1]);
+  scalar_t yz = orient2D(a[1], a[2], b[1], b[2], c[1], c[2]);
+  scalar_t zx = orient2D(a[2], a[0], b[2], b[0], c[2], c[0]);
   return vector_t(yz, zx, xy).normalized();
 }
 
@@ -2145,5 +2111,3 @@ auto overlapArea(const Sphere& sOrig, const Element& elementOrig)
 
   return result;
 }
-
-#endif // OVERLAP_HPP

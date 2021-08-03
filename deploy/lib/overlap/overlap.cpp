@@ -1,4 +1,4 @@
-#include "overlap.hpp"
+#include "overlap.inc"
 
 extern "C" {
 #include "overlap.h"

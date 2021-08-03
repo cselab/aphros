@@ -1,0 +1,15 @@
+.POSIX:
+.SUFFIXES:
+.SUFFIXES: .o
+.SUFFIXES: .cpp
+CXX = g++
+CXXFLAGS = -O0 -g
+EIGEN_FLAGS = `pkg-config --cflags eigen3`
+
+O = overlap.o
+L = liboverlap.a
+$L: $O; ar rv $@ $O && ranlib $@
+.cpp.o:; $(CXX) -c $(CXXFLAGS) $(EIGEN_FLAGS) $<
+clean:; rm -f $L $O
+overlap.o: overlap.h
+overlap.o: overlap.inc
