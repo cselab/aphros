@@ -29,6 +29,12 @@ util_norm(double x, double y, double z)
   return sqrt(x*x + y*y + z*z);
 }
 
+static double
+util_squared_norm(double x, double y, double z)
+{
+  return x*x + y*y + z*z;
+}
+
 /* s . ((a - b) ~ (x - y)) */
 static double
 util_diff_dot_cross(vector_t s,

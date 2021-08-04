@@ -67,7 +67,7 @@ class Transformation {
 
 class Polygon {
  public:
-  Polygon() : vertices(), center(), normal() {}
+  Polygon() { };
   Polygon(
       const vector_t& v0, const vector_t& v1, const vector_t& v2,
       const vector_t& v3)
@@ -134,13 +134,14 @@ class Hexahedron {
       const vector_t& v0, const vector_t& v1, const vector_t& v2,
       const vector_t& v3, const vector_t& v4, const vector_t& v5,
       const vector_t& v6, const vector_t& v7)
-      : vertices{v0, v1, v2, v3, v4, v5, v6, v7} {
-    faces[0] = Polygon(v3, v2, v1, v0);
-    faces[1] = Polygon(v0, v1, v5, v4);
-    faces[2] = Polygon(v1, v2, v6, v5);
-    faces[3] = Polygon(v2, v3, v7, v6);
-    faces[4] = Polygon(v3, v0, v4, v7);
-    faces[5] = Polygon(v4, v5, v6, v7);
+    : vertices{v0, v1, v2, v3, v4, v5, v6, v7},
+      faces{Polygon(v3, v2, v1, v0),
+	    Polygon(v0, v1, v5, v4),
+	    Polygon(v1, v2, v6, v5),
+	    Polygon(v2, v3, v7, v6),
+	    Polygon(v3, v0, v4, v7),
+	    Polygon(v4, v5, v6, v7)}
+  {
     center[0] = (v0[0] + v1[0] + v2[0] + v3[0] + v4[0] + v5[0] + v6[0] + v7[0])/8;
     center[1] = (v0[1] + v1[1] + v2[1] + v3[1] + v4[1] + v5[1] + v6[1] + v7[1])/8;
     center[2] = (v0[2] + v1[2] + v2[2] + v3[2] + v4[2] + v5[2] + v6[2] + v7[2])/8;
@@ -172,8 +173,8 @@ class Hexahedron {
   }
 
  public:
-  std::array<vector_t, nrVertices> vertices;
-  std::array<Polygon, nrFaces> faces;
+  vector_t vertices[nrVertices];
+  Polygon faces[nrFaces];
   vector_t center;
   double volume;
 };
@@ -216,33 +217,25 @@ class AABB {
       : min(min), max(max) {}
 
   bool intersects(const AABB& aabb) const {
-    if ((min.array() > aabb.max.array()).any() ||
-	(max.array() < aabb.min.array()).any())
-      return false;
-
-    return true;
+    return
+      !(min[0] > aabb.max[0] ||
+	min[1] > aabb.max[1] ||
+	min[2] > aabb.max[2] ||
+	max[0] < aabb.min[0] ||
+	max[1] < aabb.min[1] ||
+	max[2] < aabb.min[2]);
   }
 
-  AABB overlap(const AABB& aabb) const {
-    return AABB(min.cwiseMax(aabb.min), max.cwiseMin(aabb.max));
-  }
-
-  bool contains(const vector_t& p) const {
-    if ((p.array() < min.array()).any() || (p.array() > max.array()).any())
-      return false;
-
-    return true;
-  }
-
-  void include(const vector_t& point) {
-    min = min.cwiseMin(point);
-    max = max.cwiseMax(point);
-  }
-
-  template <size_t N>
-  void include(const std::array<vector_t, N>& points) {
-    for (const auto& p : points)
-      include(p);
+  void include(int n, const vector_t *p) {
+    int i;
+    for (i = 0; i < n; i++) {
+      if (p[i][0] < min[0]) min[0] = p[i][0];
+      if (p[i][1] < min[1]) min[1] = p[i][1];
+      if (p[i][2] < min[2]) min[2] = p[i][2];
+      if (p[i][0] > max[0]) max[0] = p[i][0];
+      if (p[i][1] > max[1]) max[1] = p[i][1];
+      if (p[i][2] > max[2]) max[2] = p[i][2];
+    }
   }
 
  public:
@@ -281,14 +274,13 @@ inline bool contains(const Hexahedron& hex, const vector_t& p) {
   return true;
 }
 
-inline bool intersect(const Sphere& s, const Plane& p) {
-  double proj = p.normal.dot(s.center - p.center);
-
-  return proj * proj - s.radius * s.radius < double(0);
+inline bool intersect0(const Sphere& s, const vector_t& center, const vector_t &normal) {
+  double proj = normal.dot(s.center - center);
+  return proj * proj - s.radius * s.radius < 0;
 }
 
 inline bool intersect(const Sphere& s, const Polygon& poly) {
-  return intersect(s, Plane(poly.center, poly.normal)) &&
+  return intersect0(s, poly.center, poly.normal) &&
 	 contains(poly, s.center);
 }
 
@@ -297,9 +289,9 @@ inline std::pair<std::array<double, 2>, size_t> lineSphereIntersection(
   std::array<double, 2> solutions = {{DBL_MAX, DBL_MAX}};
 
   vector_t originRel(origin - s.center);
-  double a = direction.squaredNorm();
+  double a = util_squared_norm(direction[0], direction[1], direction[2]);
 
-  if (a == double(0)) return std::make_pair(solutions, 0);
+  if (a == 0.0) return std::make_pair(solutions, 0);
 
   double b = double(2) * direction.dot(originRel);
   double c = originRel.squaredNorm() - s.radius * s.radius;
@@ -384,7 +376,7 @@ inline double regularizedWedge(double r, double d, double alpha, double z) {
 
 inline double generalWedge(
     const Sphere& s, const Plane& p0, const Plane& p1, const vector_t& d) {
-  double dist(d.stableNorm());
+  double dist = util_stable_norm(d[0], d[1], d[2]);
   if (dist < tinyEpsilon) {
     // The wedge (almost) touches the center, the volume depends only on
     // the angle.
@@ -450,16 +442,6 @@ inline double generalWedge(
   }
 }
 
-template <typename T>
-struct array_size;
-
-template <typename T, size_t N>
-struct array_size<std::array<T, N>> {
-  static constexpr size_t value() {
-    return N;
-  }
-};
-
 // Depending on the dimensionality, either the volume or external surface area
 // of the general wedge is computed.
 double generalWedge(
@@ -486,7 +468,8 @@ double overlap(const Sphere& sOrig, const Hexahedron& elementOrig) {
       sOrig.center + vector_t::Constant(sOrig.radius));
 
   AABB eAABB;
-  eAABB.include(elementOrig.vertices);
+  eAABB.include(sizeof elementOrig.vertices / sizeof *elementOrig.vertices,
+		elementOrig.vertices);
 
   if (!sAABB.intersects(eAABB)) return double(0);
 
@@ -647,8 +630,9 @@ double overlap(const Sphere& sOrig, const Hexahedron& elementOrig) {
     std::array<std::pair<size_t, double>, 3> distances;
     for (size_t i = 0; i < 3; ++i)
       distances[i] =
-	  std::make_pair(i, intersectionPointsRelative[i].squaredNorm());
-
+	std::make_pair(i, util_squared_norm(intersectionPointsRelative[i][0],
+					    intersectionPointsRelative[i][1],
+					    intersectionPointsRelative[i][2]));
     std::sort(
 	distances.begin(), distances.end(),
 	[](const std::pair<size_t, double>& a,
