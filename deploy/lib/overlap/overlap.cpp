@@ -4,9 +4,8 @@
 #include <array>
 #include <bitset>
 #include <cassert>
-#include <numeric>
-#include <type_traits>
 
+typedef Eigen::Matrix<double, 3, 1, Eigen::DontAlign> vector_t;
 #include "double_prec.inc"
 #include "util.inc"
 #include "overlap.inc"

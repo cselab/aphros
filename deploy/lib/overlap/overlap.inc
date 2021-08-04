@@ -1,4 +1,3 @@
-typedef Eigen::Matrix<double, 3, 1, Eigen::DontAlign> vector_t;
 static const double pi = 3.141592653589793;
 static const double tinyEpsilon = 2 * DBL_EPSILON;
 static const double mediumEpsilon = 1e2 * tinyEpsilon;
@@ -165,11 +164,11 @@ class Hexahedron {
   }
 
   double calcVolume() const {
-    vector_t diagonal(vertices[6] - vertices[0]);
-    return diagonal.dot
-      (	       ((vertices[1] - vertices[0]).cross(vertices[2] - vertices[5])) +
-	       ((vertices[4] - vertices[0]).cross(vertices[5] - vertices[7])) +
-	       ((vertices[3] - vertices[0]).cross(vertices[7] - vertices[2])))/6;
+    vector_t d(vertices[6] - vertices[0]);
+    return
+      (util_diff_dot_cross(d, vertices[1], vertices[0], vertices[2], vertices[5]) +
+       util_diff_dot_cross(d, vertices[4], vertices[0], vertices[5], vertices[7]) +
+       util_diff_dot_cross(d, vertices[3], vertices[0], vertices[7], vertices[2]))/6;
   }
 
  public:
@@ -204,7 +203,6 @@ class Sphere {
 class Plane {
  public:
   Plane(const vector_t& c, const vector_t& n) : center(c), normal(n) {}
-
  public:
   vector_t center;
   vector_t normal;
@@ -213,9 +211,9 @@ class Plane {
 class AABB {
  public:
   AABB(
-      const vector_t& minimum = vector_t::Constant(DBL_MAX),
-      const vector_t& maximum = vector_t::Constant(-DBL_MAX))
-      : min(minimum), max(maximum) {}
+       const vector_t& min = vector_t(DBL_MAX, DBL_MAX, DBL_MAX),
+       const vector_t& max = vector_t(-DBL_MAX, -DBL_MAX, -DBL_MAX))
+      : min(min), max(max) {}
 
   bool intersects(const AABB& aabb) const {
     if ((min.array() > aabb.max.array()).any() ||
