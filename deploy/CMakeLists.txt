@@ -288,5 +288,3 @@ if (USE_AMGX)
         INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
         )
 endif ()
-
-add_subdirectory(lib)
