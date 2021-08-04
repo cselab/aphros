@@ -56,15 +56,6 @@ inline vector_t gramSchmidt(const vector_t& x, const vector_t& y) {
   return c;
 }
 
-class Transformation {
- public:
-  Transformation(const vector_t& t, const double& s)
-      : translation(t), scaling(s) {}
-
-  vector_t translation;
-  double scaling;
-};
-
 class Polygon {
  public:
   Polygon() { };
@@ -93,16 +84,16 @@ class Polygon {
     }
   }
 
-  void apply(const Transformation& t) {
+  void apply(const vector_t& translation, double scaling) {
     size_t i;
     for (i = 0; i < sizeof vertices/sizeof *vertices; i++) {
-      vertices[i][0] = t.scaling * (vertices[i][0] + t.translation[0]);
-      vertices[i][1] = t.scaling * (vertices[i][1] + t.translation[1]);
-      vertices[i][2] = t.scaling * (vertices[i][2] + t.translation[2]);
+      vertices[i][0] = scaling * (vertices[i][0] + translation[0]);
+      vertices[i][1] = scaling * (vertices[i][1] + translation[1]);
+      vertices[i][2] = scaling * (vertices[i][2] + translation[2]);
     }
-    center[0] = t.scaling * (center[0] + t.translation[0]);
-    center[1] = t.scaling * (center[1] + t.translation[1]);
-    center[2] = t.scaling * (center[2] + t.translation[2]);
+    center[0] = scaling * (center[0] + translation[0]);
+    center[1] = scaling * (center[1] + translation[1]);
+    center[2] = scaling * (center[2] + translation[2]);
   }
 
  public:
@@ -148,15 +139,15 @@ class Hexahedron {
     volume = calcVolume();
   }
 
-  void apply(const Transformation& t) {
+  void apply(const vector_t& translation, double scaling) {
     int i;
     for (i = 0; i < nrVertices; i++) {
-      vertices[i][0] = t.scaling * (vertices[i][0] + t.translation[0]);
-      vertices[i][1] = t.scaling * (vertices[i][1] + t.translation[1]);
-      vertices[i][2] = t.scaling * (vertices[i][2] + t.translation[2]);
+      vertices[i][0] = scaling * (vertices[i][0] + translation[0]);
+      vertices[i][1] = scaling * (vertices[i][1] + translation[1]);
+      vertices[i][2] = scaling * (vertices[i][2] + translation[2]);
     }
     for (i = 0; i < nrFaces; i++)
-      faces[i].apply(t);
+      faces[i].apply(translation, scaling);
     for (i = 0; i < 3; i++)
       center[i] =
 	(vertices[0][i] + vertices[1][i] + vertices[2][i] + vertices[3][i] +
@@ -474,12 +465,13 @@ double overlap(const Sphere& sOrig, const Hexahedron& elementOrig) {
   if (!sAABB.intersects(eAABB)) return double(0);
 
   // Use scaled and shifted versions of the sphere and the element.
-  Transformation transformation(-sOrig.center, double(1) / sOrig.radius);
+  vector_t translation = -sOrig.center;
+  double scaling = 1/sOrig.radius;
 
   Sphere s(double(0), double(0), double(0), double(1));
 
   Hexahedron element(elementOrig);
-  element.apply(transformation);
+  element.apply(translation, scaling);
 
   size_t vOverlap = 0;
   // Check whether the vertices lie on or outside of the sphere.
