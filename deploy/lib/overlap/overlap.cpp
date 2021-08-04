@@ -1,3 +1,14 @@
+#include <float.h>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <array>
+#include <bitset>
+#include <cassert>
+#include <numeric>
+#include <type_traits>
+
+#include "double_prec.inc"
+#include "util.inc"
 #include "overlap.inc"
 
 extern "C" {
@@ -18,9 +29,8 @@ double overlap_3d(double x, double y, double z, double r) {
   vector_t v5{x1, y0, z1};
   vector_t v6{x1, y1, z1};
   vector_t v7{x0, y1, z1};
-  vector_t c{x, y, z};
   Hexahedron hex{v0, v1, v2, v3, v4, v5, v6, v7};
-  Sphere s{c, r};
+  Sphere s{x, y, z, r};
   return overlap(s, hex);
 }
 
@@ -43,8 +53,7 @@ double overlap_2d(double x, double y, double r) {
   vector_t v5{x1, y0, z1};
   vector_t v6{x1, y1, z1};
   vector_t v7{x0, y1, z1};
-  vector_t c{x, y, 0};
   Hexahedron hex{v0, v1, v2, v3, v4, v5, v6, v7};
-  Sphere s{c, r};
+  Sphere s{x, y, 0, r};
   return overlap(s, hex) / eps;
 }

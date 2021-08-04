@@ -1,8 +1,10 @@
 set(T overlap)
 add_library(${T} SHARED
+  double_prec.inc
   overlap.cpp
   overlap.h
   overlap.inc
+  util.inc
 )
 set_property(TARGET ${T} PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_target_properties(${T} PROPERTIES PUBLIC_HEADER "overlap.h")

@@ -13,3 +13,5 @@ $L: $O; ar rv $@ $O && ranlib $@
 clean:; rm -f $L $O
 overlap.o: overlap.h
 overlap.o: overlap.inc
+overlap.o: double_prec.inc
+overlap.o: util.inc
