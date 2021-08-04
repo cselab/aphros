@@ -9,8 +9,8 @@ EIGEN_FLAGS = `pkg-config --cflags eigen3`
 
 O = \
 gen \
-gram \
 main \
+fail \
 
 all: $O
 .c:; $(CC) -o $@ $(CFLAGS) $< $(OVERLAP_FLAGS) $(GSL_FLAGS)
