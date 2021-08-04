@@ -42,8 +42,8 @@ inline double vangle(const vector_t& a, const vector_t& b) {
 inline vector_t gramSchmidt(const vector_t& x, const vector_t& y) {
   double s;
   vector_t c;
-  s = (x[0]*y[0] + x[1]*y[1] + x[2]*y[2])/
-    (x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+  s = x[0]*x[0] + x[1]*x[1] + x[2]*x[2];
+  s = (s == 0.0) ? 0.0 : (x[0]*y[0] + x[1]*y[1] + x[2]*y[2])/s;
   c[0] = y[0] - s*x[0];
   c[1] = y[1] - s*x[1];
   c[2] = y[2] - s*x[2];
