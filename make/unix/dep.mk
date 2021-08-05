@@ -871,7 +871,7 @@ $(WRK)/opencl/opencl.o: $(SRC)/util/mpi.h
 $(WRK)/opencl/opencl.o: $(SRC)/util/suspender.h
 $(WRK)/overlap/overlap.o: $(SRC)/geom/vect.h
 $(WRK)/overlap/overlap.o: $(SRC)/overlap/overlap.h
-$(WRK)/overlap/overlap.o: $(SRC)/overlap/overlap.hpp
+$(WRK)/overlap/overlap.o: $(SRC)/overlap/overlap.inc
 $(WRK)/parse/argparse.o: $(SRC)/parse/argparse.h
 $(WRK)/parse/argparse.o: $(SRC)/parse/vars.h
 $(WRK)/parse/argparse.o: $(SRC)/util/format.h

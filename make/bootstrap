@@ -37,10 +37,12 @@ trap 'rm -f $d $h $l $o $r; exit 2' 1 2 3 14 15
      -name '*.ipp' | sed 's,^\.\/,,g' | \
 	grep -v '^build[a-z_0-9]*\/';
     echo explorer.inc;
+    echo linear/conjugate_cl.inc;
+    echo opencl/kernels.inc;
     echo util/gitgen.cpp;
 } > $l
 ../make/obj $l | sort | uniq > $o
-grep '\.h$' $l | grep -v '^test\/' | fgrep -v 'aphros_c.h' | sort | uniq > $h
+grep '\.h$' $l | grep -v '^test\/' | fgrep -v aphros_c.h | sort | uniq > $h
 ../make/var H $h > ../make/hdr.mk
 ../make/list $l | ../make/dep > $d
 ../make/rule $l | sort | uniq > $r

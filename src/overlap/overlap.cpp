@@ -5,10 +5,10 @@
 #include <cassert>
 #include <cmath>
 using Scal = double;
-#include "overlap.hpp"
+#include "overlap.inc"
 #include "overlap.h"
 
-static Scal GetSphereOverlap0(
+Scal GetSphereOverlap(
     const generic::Vect<Scal, 3>& x, const generic::Vect<Scal, 3>& h,
     const generic::Vect<Scal, 3>& c, Scal r) {
   Scal vv[][3] = {{-1, -1, -1}, {1, -1, -1}, {1, 1, -1}, {-1, 1, -1},

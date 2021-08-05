@@ -871,7 +871,7 @@ opencl\opencl.obj: util\mpi.h
 opencl\opencl.obj: util\suspender.h
 overlap\overlap.obj: geom\vect.h
 overlap\overlap.obj: overlap\overlap.h
-overlap\overlap.obj: overlap\overlap.hpp
+overlap\overlap.obj: overlap\overlap.inc
 parse\argparse.obj: parse\argparse.h
 parse\argparse.obj: parse\vars.h
 parse\argparse.obj: util\format.h
