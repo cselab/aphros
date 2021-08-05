@@ -79,6 +79,7 @@ test\commhalo\main.obj: test\commhalo\main.cpp; $(CXX_RULE) test\commhalo\main.c
 test\comm\main.obj: test\comm\main.cpp; $(CXX_RULE) test\comm\main.cpp
 test\commmap\main.obj: test\commmap\main.cpp; $(CXX_RULE) test\commmap\main.cpp
 test\commmap\manager.obj: test\commmap\manager.cpp; $(CXX_RULE) test\commmap\manager.cpp
+test\commmap\rank.obj: test\commmap\rank.cpp; $(CXX_RULE) test\commmap\rank.cpp
 test\condface\main.obj: test\condface\main.cpp; $(CXX_RULE) test\condface\main.cpp
 test\debug\main.obj: test\debug\main.cpp; $(CXX_RULE) test\debug\main.cpp
 test\dump\dump_diff.obj: test\dump\dump_diff.cpp; $(CXX_RULE) test\dump\dump_diff.cpp

@@ -30,6 +30,7 @@ $(WRK)/inside/stl.o: $(WRK)/.dir
 $(WRK)/kernel/hydro.o: $(WRK)/.dir
 $(WRK)/linear/linear.o: $(WRK)/.dir
 $(WRK)/march/main.o: $(WRK)/.dir
+$(WRK)/overlap/overlap.o: $(WRK)/.dir
 $(WRK)/parse/argparse.o: $(WRK)/.dir
 $(WRK)/parse/codeblocks.o: $(WRK)/.dir
 $(WRK)/parse/conf2py.o: $(WRK)/.dir

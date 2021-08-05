@@ -31,6 +31,7 @@ inside\stl.obj\
 kernel\hydro.obj\
 linear\linear.obj\
 march\main.obj\
+overlap\overlap.obj\
 parse\argparse.obj\
 parse\codeblocks.obj\
 parse\conf2py.obj\

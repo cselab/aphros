@@ -11,7 +11,6 @@ BEGIN {
     skip["linear/conjugate_cl.cpp"]
     skip["opencl/opencl.cpp"]
     skip["main.c"]
-    skip["overlap/overlap.cpp"]
     skip["util/subcomm.cpp"]
     skip["util/subcomm_dummy.cpp"]
 }

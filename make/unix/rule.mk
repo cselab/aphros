@@ -79,6 +79,7 @@ $(WRK)/test/commhalo/main.o: $(SRC)/test/commhalo/main.cpp; $(CXX_RULE) $(SRC)/t
 $(WRK)/test/comm/main.o: $(SRC)/test/comm/main.cpp; $(CXX_RULE) $(SRC)/test/comm/main.cpp
 $(WRK)/test/commmap/main.o: $(SRC)/test/commmap/main.cpp; $(CXX_RULE) $(SRC)/test/commmap/main.cpp
 $(WRK)/test/commmap/manager.o: $(SRC)/test/commmap/manager.cpp; $(CXX_RULE) $(SRC)/test/commmap/manager.cpp
+$(WRK)/test/commmap/rank.o: $(SRC)/test/commmap/rank.cpp; $(CXX_RULE) $(SRC)/test/commmap/rank.cpp
 $(WRK)/test/condface/main.o: $(SRC)/test/condface/main.cpp; $(CXX_RULE) $(SRC)/test/condface/main.cpp
 $(WRK)/test/debug/main.o: $(SRC)/test/debug/main.cpp; $(CXX_RULE) $(SRC)/test/debug/main.cpp
 $(WRK)/test/dump/dump_diff.o: $(SRC)/test/dump/dump_diff.cpp; $(CXX_RULE) $(SRC)/test/dump/dump_diff.cpp

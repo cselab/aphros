@@ -31,6 +31,7 @@ $(WRK)/inside/stl.o\
 $(WRK)/kernel/hydro.o\
 $(WRK)/linear/linear.o\
 $(WRK)/march/main.o\
+$(WRK)/overlap/overlap.o\
 $(WRK)/parse/argparse.o\
 $(WRK)/parse/codeblocks.o\
 $(WRK)/parse/conf2py.o\
