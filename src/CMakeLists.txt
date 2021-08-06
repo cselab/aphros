@@ -196,8 +196,8 @@ function(get_link_libraries0 T)
     if (TARGET ${L})
       list(FIND VISITED ${L} V)
       if (${V} EQUAL -1)
-	get_link_libraries0(${L})
-	list(APPEND RES ${L})
+        get_link_libraries0(${L})
+        list(APPEND RES ${L})
       endif()
     endif()
   endforeach()
@@ -226,7 +226,7 @@ function(get_object_files VARNAME)
     list(APPEND LINKED "${SRC}")
     foreach (L ${LINKED})
       if (TARGET ${L}_obj)
-	list(APPEND RES "$<TARGET_OBJECTS:${L}_obj>")
+        list(APPEND RES "$<TARGET_OBJECTS:${L}_obj>")
       endif()
     endforeach()
   endforeach()
@@ -321,6 +321,7 @@ set(UseLibs
   use_dims
   use_mpi
   use_backend
+  use_overlap
 )
 set(StaticLibs
   inside
