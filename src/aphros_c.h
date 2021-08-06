@@ -16,6 +16,8 @@ char* aphros_ParserGetString(struct aphros_Parser*, const char*);
 double* aphros_ParserGetVect(struct aphros_Parser*, const char*, /**/ int*);
 const char* aphros_GetGitRev(void);
 const char* aphros_GetLogo(void);
+int aphros_GetSphereOverlap(
+    const double*, const double*, const double*, /**/ double*);
 
 #ifdef __cplusplus
 }
