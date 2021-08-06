@@ -5,7 +5,6 @@
 #include "distr/distrsolver.h"
 #include "kernel/hydro.h"
 #include "kernel/kernelmeshpar.h"
-#include "overlap/overlap.h"
 
 template <size_t dim>
 static void Run(MPI_Comm comm, Vars& var) {
@@ -49,13 +48,4 @@ static void Main(MPI_Comm comm, Vars& var) {
 
 int aphros_Main(int argc, const char** argv) {
   return RunMpi(argc, argv, Main);
-}
-
-int aphros_GetSphereOverlap(
-    const double* x, const double* h, const double* c, double s,
-    /**/ double* ans) {
-  *ans = GetSphereOverlap(
-      generic::Vect<double, 3>(x), generic::Vect<double, 3>(h),
-      generic::Vect<double, 3>(c), s);
-  return 0;
 }
