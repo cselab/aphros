@@ -23,7 +23,6 @@ l=/tmp/bootstrap.list.$$
 o=/tmp/bootstrap.obj.$$
 h=/tmp/bootstrap.hdr.$$
 d=/tmp/bootstrap.dep.$$
-r=/tmp/bootstrap.rule.$$
 
 trap 'rm -f $d $h $l $o; exit 2' 1 2 3 14 15
 {
