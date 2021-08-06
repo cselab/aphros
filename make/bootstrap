@@ -63,7 +63,7 @@ awk '{printf "$(WRK)/%s.o: $(WRK)/.dir\n", $1}' $o > ../make/unix/dir.dep.mk
 # windows
 awk '{printf "%s.obj: %s\n", $1, $2}' $d | \
     sed 's,/,\\,g' > ../make/windows/dep.mk
-awk '{printf "%s.obj\n", $1}' $o | sed 's,/,\\,g' | \
+../make/minus $o $b | awk '{printf "%s.obj\n", $1}' | sed 's,/,\\,g' | \
     ../make/var O > ../make/windows/obj.mk
 {
     awk '{printf "%s.obj: %s; %s %s\n", $1, $2, $3, $2}' $o;
