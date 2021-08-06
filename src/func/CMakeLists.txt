@@ -6,7 +6,7 @@ set(T "init")
 add_object(${T} init.cpp)
 object_link_libraries(${T}
     primlist vars suspender utilsystem
-    use_mpi use_overlap use_dims)
+    use_mpi overlap use_dims)
 object_link_libraries(${T} overlap)
 
 set(T "init_vel")

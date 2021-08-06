@@ -113,11 +113,6 @@ add_library(${T} INTERFACE)
 target_compile_definitions(${T} INTERFACE _USE_OPENCL_=$<BOOL:${USE_OPENCL}>)
 install(TARGETS ${T} EXPORT export)
 
-set(T "use_overlap")
-add_library(${T} INTERFACE)
-target_compile_definitions(${T} INTERFACE _USE_OVERLAP_=$<BOOL:${USE_OVERLAP}>)
-install(TARGETS ${T} EXPORT export)
-
 if (USE_HDF AND NOT USE_MPI)
   message(FATAL_ERROR "USE_HDF5 requires USE_MPI")
 endif()
@@ -321,7 +316,6 @@ set(UseLibs
   use_dims
   use_mpi
   use_backend
-  use_overlap
 )
 set(StaticLibs
   inside
