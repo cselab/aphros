@@ -206,7 +206,8 @@ static Scal orient2D(
 // the points a, b, and c.
 // Ref: J.R. Shewchuk - Lecture Notes on Geometric Robustness
 //      http://www.cs.berkeley.edu/~jrs/meshpapers/robnotes.pdf
-static void triangleNormal(const Scal* a, const Scal* b, const Scal* c, Scal* ans) {
+static void triangleNormal(
+    const Scal* a, const Scal* b, const Scal* c, Scal* ans) {
   ans[0] = orient2D(a[1], a[2], b[1], b[2], c[1], c[2]);
   ans[1] = orient2D(a[2], a[0], b[2], b[0], c[2], c[0]);
   ans[2] = orient2D(a[0], a[1], b[0], b[1], c[0], c[1]);
@@ -526,8 +527,9 @@ static bool intersect(const Sphere* s, const Polygon* poly) {
   return intersect0(s, poly->center, poly->normal) && contains(poly, s->center);
 }
 
-void lineSphereIntersection(const Scal* origin, const Scal* direction, const Sphere* s,
-			    int* nsol, Scal *sol) {
+void lineSphereIntersection(
+    const Scal* origin, const Scal* direction, const Sphere* s, int* nsol,
+    Scal* sol) {
   sol[0] = sol[1] = std::numeric_limits<Scal>::infinity();
   Scal originRel[3];
   originRel[0] = origin[0] - s->center[0];
@@ -936,22 +938,33 @@ static Scal overlap(const Sphere& sOrig, const Hexahedron& elementOrig) {
     Scal normal[3];
     triangleNormal(ip[0], ip[1], ip[2], normal);
 
-    std::array<std::pair<size_t, Scal>, 3> distances;
-    for (size_t i = 0; i < 3; ++i)
-      distances[i] =
-          std::make_pair(i, util_squared_norm(ip[i][0], ip[i][1], ip[i][2]));
-
-    std::sort(
-        distances.begin(), distances.end(),
-        [](const std::pair<size_t, Scal>& a, const std::pair<size_t, Scal>& b)
-            -> bool { return a.second < b.second; });
-
-    if (distances[1].second < distances[2].second * largeEpsilon) {
+    struct {
+      Scal d;
+      int i;
+    } d0, d1, d2, dt;
+    d0.d = util_squared_norm(ip[0][0], ip[0][1], ip[0][2]);
+    d1.d = util_squared_norm(ip[1][0], ip[1][1], ip[1][2]);
+    d2.d = util_squared_norm(ip[2][0], ip[2][1], ip[2][2]);
+    d0.i = 0;
+    d1.i = 1;
+    d2.i = 2;
+    if (d0.d > d2.d) {
+      dt = d0; d0 = d2; d2 = dt;
+    }
+    if (d0.d > d1.d) {
+      dt = d0; d0 = d1; d1 = dt;
+    }
+    if (d1.d > d2.d) {
+      dt = d1; d1 = d2; d2 = dt;
+    }
+    assert(d0.d <= d1.d && d1.d <= d2.d);
+    if (d1.d < d2.d * largeEpsilon) {
       // Use the general spherical wedge defined by the edge with the
       // non-degenerated intersection point and the normals of the
       // two faces forming it.
       Scal correction = generalWedge(
-          s, element, vertex_mapping[n][0][distances[2].first], eIntersections);
+          s, element, vertex_mapping[n][0][d2.i],
+          eIntersections);
 
       result -= correction;
 
