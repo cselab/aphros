@@ -49,7 +49,10 @@ grep '\.h$' $l | grep -v '^test\/' | fgrep -v aphros_c.h | sort | uniq > $h
 ../make/list $l | ../make/dep > $d
 
 # unix
-awk '{printf "$(WRK)/%s.o: $(SRC)/%s\n", $1, $2}' $d > ../make/unix/dep.mk
+{
+    awk '{printf "$(WRK)/%s.o: $(SRC)/%s\n", $1, $2}' $d;
+    awk '{printf "$(WRK)/%s: $(WRK)/$L\n", $1}' $b;
+} > ../make/unix/dep.mk
 grep '\/' $h | sed 's,\/.*,,g' | uniq | ../make/var D > ../make/unix/dir.mk
 grep '\/' $o | sed 's,\/.*,,g' | uniq | awk '{printf "$(WRK)/%s\n", $1}' | \
     ../make/var P > ../make/unix/dir.rule.mk
@@ -61,8 +64,10 @@ awk '{printf "$(WRK)/%s.o: $(WRK)/.dir\n", $1}' $o > ../make/unix/dir.dep.mk
 } > ../make/unix/rule.mk
 
 # windows
-awk '{printf "%s.obj: %s\n", $1, $2}' $d | \
-    sed 's,/,\\,g' > ../make/windows/dep.mk
+{
+    awk '{printf "%s.obj: %s\n", $1, $2}' $d;
+    awk '{printf "%s: $L\n", $1}' $b;
+} | sed 's,/,\\,g' > ../make/windows/dep.mk
 ../make/minus $o $b | awk '{printf "%s.obj\n", $1}' | sed 's,/,\\,g' | \
     ../make/var O > ../make/windows/obj.mk
 {
