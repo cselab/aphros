@@ -26,7 +26,7 @@ option(USE_HYPRE "Enable Hypre for linear systems" ON)
 option(USE_MPI "Enable MPI for distributed computation" ON)
 option(USE_OPENMP "Enable OpenMP" ON)
 option(USE_OPENCL "Enable OpenCL for GPU support" OFF)
-option(USE_OVERLAP "Enable Overlap library for exact initialization of ellipsoids." OFF)
+option(USE_OVERLAP "Enable Overlap library for exact initialization of ellipsoids." ON)
 option(USE_TESTS "Build tests and enable testing" ON)
 option(USE_WARNINGS "Enable compiler warnings" ON)
 
