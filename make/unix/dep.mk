@@ -30,6 +30,7 @@ $(WRK)/aphros_c/main.o: $(SRC)/kernel/hydro.h
 $(WRK)/aphros_c/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/aphros_c/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/aphros_c/main.o: $(SRC)/linear/linear.h
+$(WRK)/aphros_c/main.o: $(SRC)/overlap/overlap.h
 $(WRK)/aphros_c/main.o: $(SRC)/parse/curv.h
 $(WRK)/aphros_c/main.o: $(SRC)/parse/parser.h
 $(WRK)/aphros_c/main.o: $(SRC)/parse/proj.h

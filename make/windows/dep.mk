@@ -30,6 +30,7 @@ aphros_c\main.obj: kernel\hydro.h
 aphros_c\main.obj: kernel\kernelmesh.h
 aphros_c\main.obj: kernel\kernelmeshpar.h
 aphros_c\main.obj: linear\linear.h
+aphros_c\main.obj: overlap\overlap.h
 aphros_c\main.obj: parse\curv.h
 aphros_c\main.obj: parse\parser.h
 aphros_c\main.obj: parse\proj.h
