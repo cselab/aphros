@@ -48,4 +48,4 @@ VofPar<M> ParseVofPar(const Vars& var) {
     fassert(false, "Update: unknown vof_scheme=" + s);
   }
   return p;
-};
+}
