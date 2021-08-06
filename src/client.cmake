@@ -34,7 +34,14 @@ if (APHROS_USE_OPENMP)
 endif()
 
 if (APHROS_USE_MPI)
-  find_package(MPI REQUIRED)
+  find_package(MPI)
+  if (NOT ${MPI_FOUND})
+    message(FATAL_ERROR
+      "**********\n"
+      "MPI library wrapper is not found. Run `cmake` with -DUSE_HDF=0 to build aphros without MPI. Alternativly, you can install MPI by\n"
+      "$ sudo apt install mpich\n"
+      "**********\n")
+  endif()
   set(CMAKE_C_COMPILER ${MPI_C_COMPILER})
   set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
 endif()
