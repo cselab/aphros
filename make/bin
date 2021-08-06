@@ -1,6 +1,11 @@
 #!/usr/bin/awk -f
 
-/^main\.c$/ || /explorer\.cpp$/ || /^test\// {
+BEGIN {
+    bin["main.c"]
+    bin["explorer.cpp"]
+}
+
+($1 in bin) || /^test\// {
     if (sub(/\.cpp$/, "") || sub(/\.c/, ""))
 	print $1
 }

@@ -12,6 +12,7 @@ $(WRK)/march\
 $(WRK)/overlap\
 $(WRK)/parse\
 $(WRK)/solver\
+$(WRK)/test\
 $(WRK)/util\
 $(WRK)/young\
 
