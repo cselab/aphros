@@ -7,27 +7,27 @@
 
 #define X(dim)                        \
   template class ConvDiffVectGeneric< \
-      MeshCartesian<double, dim>,    \
+      MeshCartesian<double, dim>,     \
       ConvDiffScalImp<MeshCartesian<double, dim>>>;
 MULTIDIMX
 #undef X
 
 #define X(dim)                        \
   template class ConvDiffVectGeneric< \
-      MeshCartesian<double, dim>,    \
+      MeshCartesian<double, dim>,     \
       ConvDiffScalExp<MeshCartesian<double, dim>>>;
 MULTIDIMX
 #undef X
 
-#define X(dim)                            \
-  template class ConvDiffVectGeneric<     \
+#define X(dim)                           \
+  template class ConvDiffVectGeneric<    \
       Embed<MeshCartesian<double, dim>>, \
       ConvDiffScalImp<Embed<MeshCartesian<double, dim>>>>;
 MULTIDIMX
 #undef X
 
-#define X(dim)                            \
-  template class ConvDiffVectGeneric<     \
+#define X(dim)                           \
+  template class ConvDiffVectGeneric<    \
       Embed<MeshCartesian<double, dim>>, \
       ConvDiffScalExp<Embed<MeshCartesian<double, dim>>>>;
 MULTIDIMX

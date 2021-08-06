@@ -51,11 +51,11 @@ int aphros_Main(int argc, const char** argv) {
   return RunMpi(argc, argv, Main);
 }
 
-int aphros_GetSphereOverlap(const double *x, const double *h, const double *c, double s,
-			    /**/ double *ans) {
-  *ans = GetSphereOverlap(generic::Vect<double, 3>(x),
-			  generic::Vect<double, 3>(h),
-			  generic::Vect<double, 3>(c),
-			  s);
+int aphros_GetSphereOverlap(
+    const double* x, const double* h, const double* c, double s,
+    /**/ double* ans) {
+  *ans = GetSphereOverlap(
+      generic::Vect<double, 3>(x), generic::Vect<double, 3>(h),
+      generic::Vect<double, 3>(c), s);
   return 0;
 }

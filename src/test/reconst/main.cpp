@@ -445,8 +445,10 @@ void TestOverlap() {
   Scal r = 1.;
   fassert(GetSphereOverlap(Vect(0), h, c, r) == 1);
   fassert(GetSphereOverlap(Vect(1), h, c, r) == 0);
-  fassert(GetSphereOverlap(Vect(1., 0., 0.), h, c, r) == 4.9166179884618788e-01);
-  fassert(GetSphereOverlap(Vect(0.7, 0.7, 0.), h, c, r) == 6.1897116844761280e-01);
+  fassert(
+      GetSphereOverlap(Vect(1., 0., 0.), h, c, r) == 4.9166179884618788e-01);
+  fassert(
+      GetSphereOverlap(Vect(0.7, 0.7, 0.), h, c, r) == 6.1897116844761280e-01);
 }
 
 void TestArea() {

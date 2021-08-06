@@ -323,11 +323,11 @@ struct UEmbed {
     return ff;
   }
 
-// Computes vorticity of vector field.
-// fcv: vector field [s]
-// mf: boundary conditions for fcv
-// Returns:
-// fco: vorticity [i]
+  // Computes vorticity of vector field.
+  // fcv: vector field [s]
+  // mf: boundary conditions for fcv
+  // Returns:
+  // fco: vorticity [i]
   template <class MEB>
   static FieldCell<Vect> GetVort(
       const FieldCell<Vect>& fcv, const MapEmbed<BCond<Vect>>& mebc,

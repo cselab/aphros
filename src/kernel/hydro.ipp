@@ -744,27 +744,27 @@ void Hydro<M>::InitStat(const MEB& eb) {
   stat.AddMin(
       "pmin", "minimum pressure", //
       [&p](IdxCell c, const M&) { return p[c]; });
-  stat.AddNone("t", "time", [& fs_ = fs_]() { return fs_->GetTime(); });
+  stat.AddNone("t", "time", [&fs_ = fs_]() { return fs_->GetTime(); });
   stat.AddNone(
       "dt", "fluid time step", //
-      [& fs_ = fs_]() { return fs_->GetTimeStep(); });
+      [&fs_ = fs_]() { return fs_->GetTimeStep(); });
   stat.AddNone(
       "dta", "advection time step", //
-      [& as_ = as_]() { return as_->GetTimeStep(); });
+      [&as_ = as_]() { return as_->GetTimeStep(); });
   stat.AddNone(
       "wt", "wall-clock time", //
-      [& timer_ = timer_]() { return timer_.GetSeconds(); });
-  stat.AddNone("iter", "total fluid iteration number", [& st_ = st_]() {
+      [&timer_ = timer_]() { return timer_.GetSeconds(); });
+  stat.AddNone("iter", "total fluid iteration number", [&st_ = st_]() {
     return st_.iter;
   });
   stat.AddNone(
-      "step", "fluid step number", [& st_ = st_]() { return st_.step; });
-  stat.AddNone("meshvel", "moving mesh velocity", [& st_ = st_]() {
+      "step", "fluid step number", [&st_ = st_]() { return st_.step; });
+  stat.AddNone("meshvel", "moving mesh velocity", [&st_ = st_]() {
     return st_.meshvel;
   });
   stat.AddNone(
       "diff", "velocity difference between last two iterations", //
-      [& fs_ = fs_]() { return fs_->GetError(); });
+      [&fs_ = fs_]() { return fs_->GetError(); });
 
   stat.AddSumHidden("x*vol1", "", [&vf](IdxCell c, const M& mm) { //
     return mm.GetCenter(c) * mm.GetVolume(c) * (1 - vf[c]);
@@ -903,39 +903,39 @@ void Hydro<M>::InitStat(const MEB& eb) {
   if (var.Int["stat_dissip"]) {
     stat.AddSum(
         "dissip", "dissipation rate of mixture", //
-        [& str = fc_strain_, &mu = fc_mu_](IdxCell c, const M& mm) {
+        [&str = fc_strain_, &mu = fc_mu_](IdxCell c, const M& mm) {
           return 2 * mu[c] * str[c] * mm.GetVolume(c);
         });
     stat.AddSum(
         "dissip1", "dissipation rate of phase 1", //
-        [& str = fc_strain_, &mu = fc_mu_, &vf](IdxCell c, const M& mm) {
+        [&str = fc_strain_, &mu = fc_mu_, &vf](IdxCell c, const M& mm) {
           return 2 * mu[c] * str[c] * (1 - vf[c]) * mm.GetVolume(c);
         });
     stat.AddSum(
         "dissip2", "dissipation rate of phase 2", //
-        [& str = fc_strain_, &mu = fc_mu_, &vf](IdxCell c, const M& mm) {
+        [&str = fc_strain_, &mu = fc_mu_, &vf](IdxCell c, const M& mm) {
           return 2 * mu[c] * str[c] * vf[c] * mm.GetVolume(c);
         });
     stat.AddDerived(
         "edis", "dissipated energy of mixture", //
-        [& fs_ = fs_](const Stat<M>& s) {
+        [&fs_ = fs_](const Stat<M>& s) {
           return s["edis"] + fs_->GetTimeStep() * s["dissip"];
         });
     stat.AddDerived(
         "edis1", "dissipated energy of phase 1", //
-        [& fs_ = fs_](const Stat<M>& s) {
+        [&fs_ = fs_](const Stat<M>& s) {
           return s["edis1"] + fs_->GetTimeStep() * s["dissip1"];
         });
     stat.AddDerived(
         "edis2", "dissipated energy of phase 2", //
-        [& fs_ = fs_](const Stat<M>& s) {
+        [&fs_ = fs_](const Stat<M>& s) {
           return s["edis2"] + fs_->GetTimeStep() * s["dissip2"];
         });
   }
   if (var.Int["enstrophy"]) {
     stat.AddSum(
         "enstr", "enstrophy", //
-        [& omm = fcomm_, &rho = fc_rho_](IdxCell c, const M& mm) {
+        [&omm = fcomm_, &rho = fc_rho_](IdxCell c, const M& mm) {
           return 0.5 * sqr(omm[c]) * rho[c] * mm.GetVolume(c);
         });
   }
@@ -1055,32 +1055,32 @@ void Hydro<M>::InitStat(const MEB& eb) {
   if (particles_) {
     stat.AddSum(
         "particles_n", "number of particles",
-        [& p = particles_]() -> Scal { return p->GetView().x.size(); });
+        [&p = particles_]() -> Scal { return p->GetView().x.size(); });
     stat.AddSum(
         "particles_nrecv", "number of particles transferred at last step",
-        [& p = particles_]() -> Scal { return p->GetNumRecv(); });
+        [&p = particles_]() -> Scal { return p->GetNumRecv(); });
   }
   if (electro_) {
     stat.AddNone(
         "el_current", "electro total current", //
-        [& electro_ = electro_]() { return electro_->GetStat().current; });
+        [&electro_ = electro_]() { return electro_->GetStat().current; });
   }
   if (tracer_) {
     for (auto l : GRange<size_t>(tracer_->GetConf().layers)) {
       const auto sl = std::to_string(l);
       stat.AddSum(
           "tu" + sl + "_vol", "volume of tracer " + sl, //
-          [& tr = tracer_, l](IdxCell c, const MEB& meb) {
+          [&tr = tracer_, l](IdxCell c, const MEB& meb) {
             return tr->GetVolumeFraction()[l][c] * meb.GetVolume(c);
           });
       stat.AddMax(
           "tu" + sl + "_max", "maximum of tracer " + sl, //
-          [& tr = tracer_, l](IdxCell c, const MEB&) {
+          [&tr = tracer_, l](IdxCell c, const MEB&) {
             return tr->GetVolumeFraction()[l][c];
           });
       stat.AddMin(
           "tu" + sl + "_min", "minimum of tracer " + sl, //
-          [& tr = tracer_, l](IdxCell c, const MEB&) {
+          [&tr = tracer_, l](IdxCell c, const MEB&) {
             return tr->GetVolumeFraction()[l][c];
           });
     }
@@ -1411,7 +1411,7 @@ void Hydro<M>::Init() {
         new Events(this->var_mutable, m.IsRoot(), m.IsLead(), !silent_));
     events_->AddHandler(
         "vf_save_state",
-        [& path = vf_save_state_path_](std::string arg) { //
+        [&path = vf_save_state_path_](std::string arg) { //
           path = arg;
         });
     events_->Parse();

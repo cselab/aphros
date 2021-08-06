@@ -201,9 +201,8 @@ void Embed<M>::InitFaces(
     const Scal area = std::abs(R::GetArea(xx, m.GetNormal(f)));
 
     fft[f] =
-        (cut                           ? Type::cut
-         : xx.size() == em && area > 0 ? Type::regular
-                                       : Type::excluded);
+        (cut ? Type::cut
+             : xx.size() == em && area > 0 ? Type::regular : Type::excluded);
 
     if (exclude(f)) {
       fft[f] = Type::excluded;

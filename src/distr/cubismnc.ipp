@@ -346,7 +346,7 @@ Cubismnc<Par, M>::Cubismnc(
 
   for (auto& kernel : kernels_) {
     auto& m = kernel->GetMesh();
-    m.SetHandlerMpiRankFromId([domain=domain_](int id) -> int {
+    m.SetHandlerMpiRankFromId([domain = domain_](int id) -> int {
       const MIdx global_blocks = domain.nblocks * domain.nprocs;
       const MIdx block = GIndex<int, dim>(global_blocks).GetMIdx(id);
       const MIdx proc = block / domain.nblocks;

@@ -18,8 +18,7 @@ MULTIDIMX
 bool kReg_conjugate[] = {MULTIDIMX};
 #undef X
 
-#define X(dim) \
-  RegisterModule<ModuleLinearJacobi<MeshCartesian<double, dim>>>(),
+#define X(dim) RegisterModule<ModuleLinearJacobi<MeshCartesian<double, dim>>>(),
 bool kReg_jacobi[] = {MULTIDIMX};
 #undef X
 

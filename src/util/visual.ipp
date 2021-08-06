@@ -57,7 +57,7 @@ Colormap GetColormap(const Vars& var) {
 }
 
 void WritePpm(std::ostream& out, const CanvasView& view, bool binary) {
-  out << (binary ? "P6" :"P3") << '\n';
+  out << (binary ? "P6" : "P3") << '\n';
   out << view.size[0] << ' ' << view.size[1] << '\n';
   out << 255 << '\n';
   if (binary) {

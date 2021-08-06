@@ -1002,8 +1002,8 @@ template <class M>
 void InitVort(
     const FieldCell<typename M::Vect>&, FieldCell<typename M::Vect>&,
     FieldCell<typename M::Vect>*, const MapEmbed<BCondFluid<typename M::Vect>>&,
-    std::shared_ptr<linear::Solver<M>>, M&,
-    generic::Vect<typename M::Scal, 4>*, bool) {}
+    std::shared_ptr<linear::Solver<M>>, M&, generic::Vect<typename M::Scal, 4>*,
+    bool) {}
 
 // Computes velocity fcvel from vorticity fcvort
 template <class M>

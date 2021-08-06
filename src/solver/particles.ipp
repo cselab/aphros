@@ -41,8 +41,9 @@ struct Particles<EB_>::Imp {
       , eb(eb_)
       , conf(conf_)
       , time_(time)
-      , state_({init.x, init.v, init.r, init.source, init.rho, init.termvel,
-                init.removed}) {}
+      , state_(
+            {init.x, init.v, init.r, init.source, init.rho, init.termvel,
+             init.removed}) {}
   static ParticlesView GetView(State& s) {
     return {s.x, s.v, s.r, s.source, s.rho, s.termvel, s.removed};
   }

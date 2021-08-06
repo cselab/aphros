@@ -5,4 +5,3 @@
 
 #define X(dim) template class OpenCL<MeshCartesian<double, dim>>;
 MULTIDIMX
-

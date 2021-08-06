@@ -775,8 +775,7 @@ void Vof<EB_>::PostStep() {
 
 template <class EB_>
 void Vof<EB_>::DumpInterface(
-    std::string fn,
-    std::vector<Multi<const FieldCell<Scal>*>> extra_fields,
+    std::string fn, std::vector<Multi<const FieldCell<Scal>*>> extra_fields,
     std::vector<std::string> extra_names) const {
   return imp->DumpInterface(fn, extra_fields, extra_names);
 }

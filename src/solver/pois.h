@@ -26,7 +26,7 @@ void SolvePoisson(
     FieldCell<typename M::Scal>& fcu, const FieldCell<typename M::Scal>& fc_rhs,
     const MapEmbed<BCond<typename M::Scal>>& mebc,
     std::shared_ptr<linear::Solver<M>> linsolver, M& m,
-    bool centered_rhs=true) {
+    bool centered_rhs = true) {
   using Scal = typename M::Scal;
   using Expr = typename M::Expr;
   using ExprFace = typename M::ExprFace;

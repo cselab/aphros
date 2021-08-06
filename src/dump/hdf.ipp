@@ -104,8 +104,9 @@ void Hdf<M>::Write(const Field& fc, std::string path, M& m, std::string dname) {
     const size_t kDim = 4;
 
     auto harray = [](MIdx w, size_t s) -> std::array<hsize_t, kDim> {
-      return {static_cast<hsize_t>(M::dim > 2 ? w[2] : 0),
-              static_cast<hsize_t>(w[1]), static_cast<hsize_t>(w[0]), s};
+      return {
+          static_cast<hsize_t>(M::dim > 2 ? w[2] : 0),
+          static_cast<hsize_t>(w[1]), static_cast<hsize_t>(w[0]), s};
     };
 
     const auto gsize = harray(m.GetGlobalSize(), dim);
@@ -182,8 +183,9 @@ void Hdf<M>::Read(Field& fc, std::string path, M& m, std::string dname) {
     const size_t kDim = 4;
 
     auto harray = [](MIdx w, size_t s) -> std::array<hsize_t, kDim> {
-      return {static_cast<hsize_t>(M::dim > 2 ? w[2] : 0),
-              static_cast<hsize_t>(w[1]), static_cast<hsize_t>(w[0]), s};
+      return {
+          static_cast<hsize_t>(M::dim > 2 ? w[2] : 0),
+          static_cast<hsize_t>(w[1]), static_cast<hsize_t>(w[0]), s};
     };
 
     const hid_t dataset = H5Dopen2(file, dname.c_str(), H5P_DEFAULT);

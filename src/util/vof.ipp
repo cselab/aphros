@@ -1235,7 +1235,6 @@ class ModuleLabelingPropagation : public ModuleLabeling<M> {
   }
 };
 
-
 template <class M>
 class LabelingUnionFind : public Labeling<M> {
  public:

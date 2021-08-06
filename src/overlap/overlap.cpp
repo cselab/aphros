@@ -1,16 +1,16 @@
-#include <limits>
 #include <bitset>
 #include <cassert>
 #include <cmath>
+#include <limits>
 using Scal = double;
-#include "overlap.inc"
 #include "overlap.h"
+#include "overlap.inc"
 
 Scal GetSphereOverlap(
     const generic::Vect<Scal, 3>& x, const generic::Vect<Scal, 3>& h,
     const generic::Vect<Scal, 3>& c, Scal r) {
   Scal vv[][3] = {{-1, -1, -1}, {1, -1, -1}, {1, 1, -1}, {-1, 1, -1},
-		  {-1, -1, 1},  {1, -1, 1},  {1, 1, 1},  {-1, 1, 1}};
+                  {-1, -1, 1},  {1, -1, 1},  {1, 1, 1},  {-1, 1, 1}};
   bool ai = true; // all inside sphere
   bool ao = true; // all outside sphere
   auto hh = h * 0.5;
@@ -21,7 +21,7 @@ Scal GetSphereOverlap(
     v[2] = x[2] + v[2] * hh[2];
     bool in = generic::Vect<Scal, 3>(v[0], v[1], v[2]).sqrdist(c) < sqr(r);
     bool out =
-	generic::Vect<Scal, 3>(v[0], v[1], v[2]).sqrdist(c) > sqr(r + h.max());
+        generic::Vect<Scal, 3>(v[0], v[1], v[2]).sqrdist(c) > sqr(r + h.max());
     ai = ai && in;
     ao = ao && out;
   }
