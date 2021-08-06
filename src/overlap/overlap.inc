@@ -526,17 +526,18 @@ static bool intersect(const Sphere* s, const Polygon* poly) {
   return intersect0(s, poly->center, poly->normal) && contains(poly, s->center);
 }
 
-static std::pair<std::array<Scal, 2>, size_t> lineSphereIntersection(
-    const Scal* origin, const Scal* direction, const Sphere* s) {
-  std::array<Scal, 2> solutions = {
-      {std::numeric_limits<Scal>::infinity(),
-       std::numeric_limits<Scal>::infinity()}};
+void lineSphereIntersection(const Scal* origin, const Scal* direction, const Sphere* s,
+			    int* nsol, Scal *sol) {
+  sol[0] = sol[1] = std::numeric_limits<Scal>::infinity();
   Scal originRel[3];
   originRel[0] = origin[0] - s->center[0];
   originRel[1] = origin[1] - s->center[1];
   originRel[2] = origin[2] - s->center[2];
   Scal a = util_squared_norm(direction[0], direction[1], direction[2]);
-  if (a == 0.0) return std::make_pair(solutions, 0);
+  if (a == 0.0) {
+    *nsol = 0;
+    return;
+  }
   Scal b = 2 * (direction[0] * originRel[0] + direction[1] * originRel[1] +
                 direction[2] * originRel[2]);
   Scal c = util_squared_norm(originRel[0], originRel[1], originRel[2]) -
@@ -547,21 +548,19 @@ static std::pair<std::array<Scal, 2>, size_t> lineSphereIntersection(
     // Two real roots.
     Scal q = Scal(-0.5) * (b + std::copysign(std::sqrt(discriminant), b));
 
-    solutions[0] = q / a;
-    solutions[1] = c / q;
+    sol[0] = q / a;
+    sol[1] = c / q;
 
-    if (solutions[0] > solutions[1]) std::swap(solutions[0], solutions[1]);
-
-    return std::make_pair(solutions, 2);
+    if (sol[0] > sol[1]) std::swap(sol[0], sol[1]);
+    *nsol = 2;
   } else if (std::abs(discriminant) == Scal(0)) {
     // Scal real root.
-    solutions[0] = (Scal(-0.5) * b) / a;
-    solutions[1] = solutions[0];
-
-    return std::make_pair(solutions, 1);
+    sol[0] = (Scal(-0.5) * b) / a;
+    sol[1] = sol[0];
+    *nsol = 1;
   } else {
     // No real roots.
-    return std::make_pair(solutions, 0);
+    *nsol = 0;
   }
 }
 
@@ -804,8 +803,9 @@ static Scal overlap(const Sphere& sOrig, const Hexahedron& elementOrig) {
     direction[1] = element.vertices[edge_mapping[n][0][1]][1] - start[1];
     direction[2] = element.vertices[edge_mapping[n][0][1]][2] - start[2];
 
-    std::pair<std::array<Scal, 2>, size_t> solutions =
-        lineSphereIntersection(start, direction, &s);
+    int nsol;
+    Scal sol[2];
+    lineSphereIntersection(start, direction, &s, &nsol, sol);
 
     // No intersection between the edge and the sphere, where intersection
     // points close to the surface of the sphere are ignored.
@@ -813,25 +813,24 @@ static Scal overlap(const Sphere& sOrig, const Hexahedron& elementOrig) {
     // The sphere cuts the edge twice, no vertex is inside of the
     // sphere, but the case of the edge only touching the sphere has to
     // be avoided.
-    if (!solutions.second || (solutions.first[0] >= Scal(1) - mediumEpsilon) ||
-        solutions.first[1] <= mediumEpsilon ||
-        (solutions.first[0] > Scal(0) && solutions.first[1] < Scal(1) &&
-         (solutions.first[1] - solutions.first[0] < largeEpsilon))) {
+    if (!nsol || (sol[0] >= Scal(1) - mediumEpsilon) ||
+        sol[1] <= mediumEpsilon ||
+        (sol[0] > Scal(0) && sol[1] < Scal(1) &&
+         (sol[1] - sol[0] < largeEpsilon))) {
       continue;
     } else {
-      vMarked[edge_mapping[n][0][0]] = solutions.first[0] < Scal(0);
-
-      vMarked[edge_mapping[n][0][1]] = solutions.first[1] > Scal(1);
+      vMarked[edge_mapping[n][0][0]] = sol[0] < Scal(0);
+      vMarked[edge_mapping[n][0][1]] = sol[1] > Scal(1);
     }
 
     // Store the two intersection points of the edge with the sphere for
     // later usage.
     for (int i = 0; i < 3; i++) {
       eIntersections[n][0][i] =
-          solutions.first[0] * direction[i] +
+          sol[0] * direction[i] +
           (start[i] - element.vertices[edge_mapping[n][0][0]][i]);
       eIntersections[n][1][i] =
-          solutions.first[1] * direction[i] +
+          sol[1] * direction[i] +
           (start[i] - element.vertices[edge_mapping[n][0][1]][i]);
     }
 
