@@ -26,6 +26,7 @@ option(USE_HYPRE "Enable Hypre for linear systems" ON)
 option(USE_MPI "Enable MPI for distributed computation" ON)
 option(USE_OPENMP "Enable OpenMP" ON)
 option(USE_OPENCL "Enable OpenCL for GPU support" OFF)
+option(USE_OVERLAP "Enable Overlap library for exact initialization of ellipsoids. Requires Eigen3" OFF)
 option(USE_TESTS "Build tests and enable testing" ON)
 option(USE_WARNINGS "Enable compiler warnings" ON)
 
@@ -111,6 +112,11 @@ install(TARGETS ${T} EXPORT export)
 set(T "use_opencl")
 add_library(${T} INTERFACE)
 target_compile_definitions(${T} INTERFACE _USE_OPENCL_=$<BOOL:${USE_OPENCL}>)
+install(TARGETS ${T} EXPORT export)
+
+set(T "use_overlap")
+add_library(${T} INTERFACE)
+target_compile_definitions(${T} INTERFACE _USE_OVERLAP_=$<BOOL:${USE_OVERLAP}>)
 install(TARGETS ${T} EXPORT export)
 
 if (USE_HDF AND NOT USE_MPI)
@@ -281,7 +287,6 @@ set(ObjLibs
   march
   mesh
   normal
-  overlap
   parser
   parse_template
   particles
@@ -327,6 +332,10 @@ endif()
 
 if (USE_AMGX)
   set(ObjLibs ${ObjLibs} linear_amgx)
+endif()
+
+if (USE_OVERLAP)
+  set(ObjLibs ${ObjLibs} overlap)
 endif()
 
 if (USE_OPENCL)
