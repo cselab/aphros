@@ -19,12 +19,13 @@ then
     exit 1
 fi
 
+b=/tmp/bootstrap.bin.$$
+d=/tmp/bootstrap.dep.$$
+h=/tmp/bootstrap.hdr.$$
 l=/tmp/bootstrap.list.$$
 o=/tmp/bootstrap.obj.$$
-h=/tmp/bootstrap.hdr.$$
-d=/tmp/bootstrap.dep.$$
 
-trap 'rm -f $d $h $l $o; exit 2' 1 2 3 14 15
+trap 'rm -f $b $d $h $l $o; exit 2' 1 2 3 14 15
 {
     find . \
      -type f \
@@ -40,6 +41,8 @@ trap 'rm -f $d $h $l $o; exit 2' 1 2 3 14 15
     echo opencl/kernels.inc;
     echo util/gitgen.cpp;
 } > $l
+
+../make/bin $l | sort | uniq > $b
 ../make/obj $l | sort | uniq > $o
 grep '\.h$' $l | grep -v '^test\/' | fgrep -v aphros_c.h | sort | uniq > $h
 ../make/var H $h > ../make/hdr.mk
@@ -52,16 +55,22 @@ grep '\/' $o | sed 's,\/.*,,g' | uniq | awk '{printf "$(WRK)/%s\n", $1}' | \
     ../make/var P > ../make/unix/dir.rule.mk
 awk '{printf "$(WRK)/%s.o: $(WRK)/.dir\n", $1}' $o > ../make/unix/dir.dep.mk
 awk '{printf "$(WRK)/%s.o\n", $1}' $o | ../make/var O > ../make/unix/obj.mk
-awk '{printf "$(WRK)/%s.o: $(SRC)/%s; %s $(SRC)/%s\n", $1, $2, $3, $2}' $o > ../make/unix/rule.mk
+{
+    awk '{printf "$(WRK)/%s.o: $(SRC)/%s; %s $(SRC)/%s\n", $1, $2, $3, $2}' $o;
+    awk '{printf "$(WRK)/%s: $(WRK)/%s.o; $(LINK) $(WRK)/%s.o $(LINK_FLAGS)\n", $1, $1, $1}' $b;
+} > ../make/unix/rule.mk
 
 # windows
 awk '{printf "%s.obj: %s\n", $1, $2}' $d | \
     sed 's,/,\\,g' > ../make/windows/dep.mk
 awk '{printf "%s.obj\n", $1}' $o | sed 's,/,\\,g' | \
     ../make/var O > ../make/windows/obj.mk
-awk '{printf "%s.obj: %s; %s %s\n", $1, $2, $3, $2}' $o | \
-    sed 's,/,\\,g' > ../make/windows/rule.mk
+{
+    awk '{printf "%s.obj: %s; %s %s\n", $1, $2, $3, $2}' $o;
+    awk '{printf "$(WRK)/%s.exe: $(WRK)/%s.obj; $(LINK) $(WRK)/%s.obj $(LINK_FLAGS)\n", $1, $1, $1}' $b;
+} | sed 's,/,\\,g' > ../make/windows/rule.mk
+
 
 status=$?
-rm $d $h $l $o
+rm $b $d $h $l $o
 exit $status

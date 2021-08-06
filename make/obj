@@ -18,7 +18,7 @@ BEGIN {
 ($1 in skip) { next }
 /^test\//  { next }
 {
-    file = $1
+    file = $0
     if (sub(/\.cpp$/, ""))
 	print $0, file, "$(CXX_RULE)"
     else if (sub(/\.c$/, ""))

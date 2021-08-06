@@ -79,3 +79,5 @@ $(WRK)/util/timer.o: $(SRC)/util/timer.cpp; $(CXX_RULE) $(SRC)/util/timer.cpp
 $(WRK)/util/visual.o: $(SRC)/util/visual.cpp; $(CXX_RULE) $(SRC)/util/visual.cpp
 $(WRK)/util/vof.o: $(SRC)/util/vof.cpp; $(CXX_RULE) $(SRC)/util/vof.cpp
 $(WRK)/young/main.o: $(SRC)/young/main.c; $(CC_RULE) $(SRC)/young/main.c
+$(WRK)/explorer: $(WRK)/explorer.o; $(LINK) $(WRK)/explorer.o $(LINK_FLAGS)
+$(WRK)/main: $(WRK)/main.o; $(LINK) $(WRK)/main.o $(LINK_FLAGS)

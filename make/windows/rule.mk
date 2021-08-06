@@ -79,3 +79,5 @@ util\timer.obj: util\timer.cpp; $(CXX_RULE) util\timer.cpp
 util\visual.obj: util\visual.cpp; $(CXX_RULE) util\visual.cpp
 util\vof.obj: util\vof.cpp; $(CXX_RULE) util\vof.cpp
 young\main.obj: young\main.c; $(CC_RULE) young\main.c
+$(WRK)\explorer.exe: $(WRK)\explorer.obj; $(LINK) $(WRK)\explorer.obj $(LINK_FLAGS)
+$(WRK)\main.exe: $(WRK)\main.obj; $(LINK) $(WRK)\main.obj $(LINK_FLAGS)

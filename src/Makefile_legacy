@@ -12,6 +12,8 @@ CFLAGS = -O2 -g
 CXXFLAGS_STD = -std=c++14
 CC_RULE = $(CC) -c $(CFLAGS) -o $@
 CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(CXXFLAGS_HDF) -I$(SRC) $1 -o $@
+LINK = $(CXX)
+LINK_FLAGS = $(WRK)/$L $(LDFLAGS) $(LDFLAGS_HDF) -o $@
 1 = \
 -D_ALIGNBYTES_=16 \
 -D_USE_AMGX_=0 \
@@ -40,11 +42,8 @@ include $(SRC)/../make/unix/rule.mk
 include $(SRC)/../make/$(USE_MPI)mpi.mk
 include $(SRC)/../make/$(USE_HDF)hdf.mk
 
-LINK = $(CXX)
 $(WRK)/$L: $O $(O_MPI) ; mkdir -p $(WRK) && ar rv $@ $O $(O_MPI) && ranlib $@
 $(WRK)/$J: $O $(O_MPI) ; mkdir -p $(WRK) && emar rv $@ $O $(O_MPI)
-$(WRK)/main: $(WRK)/main.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(WRK)/main.o $(WRK)/$L $(LDFLAGS) $(LDFLAGS_HDF) -o $@
-$(WRK)/explorer: $(WRK)/explorer.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(WRK)/explorer.o $(WRK)/$L $(LDFLAGS) $(LDFLAGS_HDF) -o $@
 $(WRK)/.dir:; mkdir -p $P && > $@
 $(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@
 $(SRC)/explorer.inc:; out="$@" base=$(SRC)/../deploy/scripts/sim_base.conf wasm="$(SRC)/../examples/107_wasm/conf/std.conf" $(SRC)/explorer_gen

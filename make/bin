@@ -1,0 +1,6 @@
+#!/usr/bin/awk -f
+
+/^main\.c$/ || /explorer\.cpp$/ {
+    if (sub(/\.cpp$/, "") || sub(/\.c/, ""))
+	print $1
+}
