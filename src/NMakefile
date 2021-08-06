@@ -24,7 +24,6 @@ CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) /I. $1 /Fo$@
 -D_USE_HYPRE_=0 \
 -D_USE_MPI_=0 \
 -D_USE_OPENMP_=1 \
--D_USE_OVERLAP_=0 \
 
 all: $L main.exe explorer.exe
 O_MPI = util\subcomm_dummy.obj

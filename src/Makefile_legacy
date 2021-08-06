@@ -25,7 +25,6 @@ CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(CXXFLAGS_HDF) -I$(SRC) $1 -o 
 -D_USE_FPZIP_=0 \
 -D_USE_HYPRE_=0 \
 -D_USE_OPENMP_=0 \
--D_USE_OVERLAP_=1 \
 -D_USE_MPI_=$(USE_MPI) \
 -D_USE_HDF_=$(USE_HDF) \
 
@@ -41,8 +40,8 @@ include $(SRC)/../make/$(USE_MPI)mpi.mk
 include $(SRC)/../make/$(USE_HDF)hdf.mk
 
 LINK = $(CXX)
-$(WRK)/$L: $O $(O_MPI) ; mkdir -p $(WRK) && ar rv $@ $O $(O_MPI) $(O_OVERLAP) && ranlib $@
-$(WRK)/$J: $O $(O_MPI) ; mkdir -p $(WRK) && emar rv $@ $O $(O_MPI) $(O_OVERLAP)
+$(WRK)/$L: $O $(O_MPI) ; mkdir -p $(WRK) && ar rv $@ $O $(O_MPI) && ranlib $@
+$(WRK)/$J: $O $(O_MPI) ; mkdir -p $(WRK) && emar rv $@ $O $(O_MPI)
 $(WRK)/main: $(WRK)/main.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(WRK)/main.o $(WRK)/$L $(LDFLAGS) $(LDFLAGS_HDF) -o $@
 $(WRK)/explorer: $(WRK)/explorer.o $(WRK)/$L; mkdir -p $(WRK) && $(LINK) $(WRK)/explorer.o $(WRK)/$L $(LDFLAGS) $(LDFLAGS_HDF) -o $@
 $(WRK)/.dir:; mkdir -p $P && > $@

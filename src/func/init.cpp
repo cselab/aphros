@@ -67,7 +67,6 @@ void InitVfList(
         fc[c] = GetLevelSetVolume<Scal>(p.ls, x, h);
       }
     } else if (approx == 2) { // overlap
-#if USEFLAG(OVERLAP)
       for (auto c : m.Cells()) {
         const auto x = m.GetCenter(c);
         const auto& p = pp[lsmax0(m.GetCenter(c)).second];
@@ -80,9 +79,6 @@ void InitVfList(
         using Vect3 = generic::Vect<Scal, 3>;
         fc[c] = GetSphereOverlap(Vect3(qx), Vect3(qh), Vect3(0), 1);
       }
-#else
-      fassert(false, "overlap is disabled");
-#endif
     } else if (approx == 3) { // level-set on nodes
       FieldNode<Scal> fnl(m);
       for (auto n : m.Nodes()) {
