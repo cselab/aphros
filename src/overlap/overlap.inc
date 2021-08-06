@@ -652,8 +652,8 @@ static Scal generalWedge(
     Scal cross[3];
     Scal dUnit0[3];
     cross[0] = p0.normal[1] * p1.normal[2] - p1.normal[1] * p0.normal[2];
-    cross[0] = p1.normal[0] * p0.normal[2] - p0.normal[0] * p1.normal[2];
-    cross[1] = p0.normal[0] * p1.normal[1] - p1.normal[0] * p0.normal[1];
+    cross[1] = p1.normal[0] * p0.normal[2] - p0.normal[0] * p1.normal[2];
+    cross[2] = p0.normal[0] * p1.normal[1] - p1.normal[0] * p0.normal[1];
     gramSchmidt(cross, dUnit, dUnit0);
     dUnit[0] = dUnit0[0];
     dUnit[1] = dUnit0[1];
@@ -1011,12 +1011,12 @@ static Scal overlap(const Sphere& sOrig, const Hexahedron& elementOrig) {
       uint32_t e0 = face_mapping[e][0];
       uint32_t e1 = face_mapping[e][1];
 
-      Scal center[3];
-      center[0] =
+      Scal c[3];
+      c[0] =
           (intersectionPoints[e0][0] + intersectionPoints[e1][0]) / Scal(2);
-      center[1] =
+      c[1] =
           (intersectionPoints[e0][1] + intersectionPoints[e1][1]) / Scal(2);
-      center[2] =
+      c[2] =
           (intersectionPoints[e0][2] + intersectionPoints[e1][2]) / Scal(2);
 
       Scal neg_normal[3];
@@ -1024,9 +1024,9 @@ static Scal overlap(const Sphere& sOrig, const Hexahedron& elementOrig) {
       neg_normal[0] = -f.normal[0];
       neg_normal[1] = -f.normal[1];
       neg_normal[2] = -f.normal[2];
-      diff[0] = center[0] - s.center[0];
-      diff[1] = center[1] - s.center[1];
-      diff[2] = center[2] - s.center[2];
+      diff[0] = c[0] - s.center[0];
+      diff[1] = c[1] - s.center[1];
+      diff[2] = c[2] - s.center[2];
       Scal wedgeVolume =
           generalWedge(s, plane, Plane(f.center, neg_normal), diff);
 
