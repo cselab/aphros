@@ -714,7 +714,7 @@ static Scal generalWedge(
 // of the general wedge is computed.
 static Scal generalWedge(
     const Sphere& sphere, const Hexahedron& element, size_t edge,
-    const std::array<std::array<Scal[3], 2>, nrEdges>& intersections) {
+    const Scal intersections[][2][3]) {
   const Polygon* f0 = &element.faces[edge_mapping[edge][1][0]];
   const Polygon* f1 = &element.faces[edge_mapping[edge][1][1]];
 
@@ -791,7 +791,7 @@ static Scal overlap(const Sphere& sOrig, const Hexahedron& elementOrig) {
 
   // The intersection points between the single edges and the sphere, this
   // is needed later on.
-  std::array<std::array<Scal[3], 2>, nrEdges> eIntersections;
+  Scal eIntersections[nrEdges][2][3];
 
   // Process all edges of the element.
   for (size_t n = 0; n < nrEdges; ++n) {
