@@ -195,7 +195,7 @@ static const Scal largeEpsilon = 1e-10;
 
 // Ref: J.R. Shewchuk - Lecture Notes on Geometric Robustness
 //      http://www.cs.berkeley.edu/~jrs/meshpapers/robnotes.pdf
-inline Scal orient2D(
+static Scal orient2D(
     double_prec a0, double_prec a1, double_prec b0, double_prec b1,
     double_prec c0, double_prec c1) {
   double_prec result = (a0 - c0) * (b1 - c1) - (a1 - c1) * (b0 - c0);
@@ -206,7 +206,7 @@ inline Scal orient2D(
 // the points a, b, and c.
 // Ref: J.R. Shewchuk - Lecture Notes on Geometric Robustness
 //      http://www.cs.berkeley.edu/~jrs/meshpapers/robnotes.pdf
-void triangleNormal(const Scal* a, const Scal* b, const Scal* c, Scal* ans) {
+static void triangleNormal(const Scal* a, const Scal* b, const Scal* c, Scal* ans) {
   ans[0] = orient2D(a[1], a[2], b[1], b[2], c[1], c[2]);
   ans[1] = orient2D(a[2], a[0], b[2], b[0], c[2], c[0]);
   ans[2] = orient2D(a[0], a[1], b[0], b[1], c[0], c[1]);
@@ -221,7 +221,7 @@ void triangleNormal(const Scal* a, const Scal* b, const Scal* c, Scal* ans) {
 // Numerically robust routine to calculate the angle between normalized
 // vectors.
 // Ref: http://www.plunk.org/~hatch/rightway.php
-inline Scal vangle(const Scal* a, const Scal* b) {
+static Scal vangle(const Scal* a, const Scal* b) {
   if (a[0] * b[0] + a[1] * b[1] + a[2] * b[2] < 0)
     return pi -
            2 * asin(
@@ -231,7 +231,7 @@ inline Scal vangle(const Scal* a, const Scal* b) {
            asin(util_stable_norm(a[0] - b[0], a[1] - b[1], a[2] - b[2]) / 2);
 }
 
-void gramSchmidt(const Scal* x, const Scal* y, Scal* c) {
+static void gramSchmidt(const Scal* x, const Scal* y, Scal* c) {
   Scal s;
   s = x[0] * x[0] + x[1] * x[1] + x[2] * x[2];
   s = (s == 0.0) ? 0.0 : (x[0] * y[0] + x[1] * y[1] + x[2] * y[2]) / s;
@@ -461,7 +461,7 @@ class AABB {
 // The (convex!) polygon is assumed to be planar, making this a 2D problem.
 // Check the projection of the point onto the plane of the polygon for
 // containment within the polygon.
-bool contains(const Polygon* poly, const Scal* point) {
+static bool contains(const Polygon* poly, const Scal* point) {
   Scal proj[3];
   Scal dot = poly->normal[0] * (point[0] - poly->center[0]) +
              poly->normal[1] * (point[1] - poly->center[1]) +
@@ -502,7 +502,7 @@ bool contains(const Polygon* poly, const Scal* point) {
   return true;
 }
 
-inline bool contains(const Hexahedron* hex, const Scal* p) {
+static bool contains(const Hexahedron* hex, const Scal* p) {
   size_t i;
   Scal s;
   for (i = 0; i < sizeof hex->faces / sizeof *hex->faces; i++) {
@@ -514,7 +514,7 @@ inline bool contains(const Hexahedron* hex, const Scal* p) {
   return true;
 }
 
-inline bool intersect0(
+static bool intersect0(
     const Sphere* s, const Scal* center, const Scal* normal) {
   Scal proj = normal[0] * (s->center[0] - center[0]) +
               normal[1] * (s->center[1] - center[1]) +
@@ -522,11 +522,11 @@ inline bool intersect0(
   return proj * proj - s->radius * s->radius < 0;
 }
 
-inline bool intersect(const Sphere* s, const Polygon* poly) {
+static bool intersect(const Sphere* s, const Polygon* poly) {
   return intersect0(s, poly->center, poly->normal) && contains(poly, s->center);
 }
 
-inline std::pair<std::array<Scal, 2>, size_t> lineSphereIntersection(
+static std::pair<std::array<Scal, 2>, size_t> lineSphereIntersection(
     const Scal* origin, const Scal* direction, const Sphere* s) {
   std::array<Scal, 2> solutions = {
       {std::numeric_limits<Scal>::infinity(),
@@ -568,7 +568,7 @@ inline std::pair<std::array<Scal, 2>, size_t> lineSphereIntersection(
 // Calculate the volume of a regularized spherical wedge defined by the radius,
 // the distance of the intersection point from the center of the sphere and the
 // angle.
-inline Scal regularizedWedge(Scal r, Scal d, Scal alpha) {
+static Scal regularizedWedge(Scal r, Scal d, Scal alpha) {
 #ifndef NDEBUG
   // Clamp slight deviations of the angle to valid range.
   if (alpha < Scal(0) && alpha > -tinyEpsilon) alpha = Scal(0);
@@ -596,7 +596,7 @@ inline Scal regularizedWedge(Scal r, Scal d, Scal alpha) {
 
 // Wrapper around the above function handling correctly handling the case of
 // alpha > pi/2 and negative z.
-inline Scal regularizedWedge(Scal r, Scal d, Scal alpha, Scal z) {
+static Scal regularizedWedge(Scal r, Scal d, Scal alpha, Scal z) {
   if (z >= Scal(0)) {
     if (alpha > Scal(0.5 * pi)) {
       Scal h = r - z;
@@ -620,7 +620,7 @@ inline Scal regularizedWedge(Scal r, Scal d, Scal alpha, Scal z) {
   }
 }
 
-inline Scal generalWedge(
+static Scal generalWedge(
     const Sphere& s, const Plane& p0, const Plane& p1, const Scal* d) {
   Scal dist = util_stable_norm(d[0], d[1], d[2]);
   if (dist < tinyEpsilon) {
@@ -711,7 +711,7 @@ inline Scal generalWedge(
 
 // Depending on the dimensionality, either the volume or external surface area
 // of the general wedge is computed.
-Scal generalWedge(
+static Scal generalWedge(
     const Sphere& sphere, const Hexahedron& element, size_t edge,
     const std::array<std::array<Scal[3], 2>, nrEdges>& intersections) {
   const Polygon* f0 = &element.faces[edge_mapping[edge][1][0]];
@@ -734,7 +734,7 @@ Scal generalWedge(
   return generalWedge(sphere, p0, p1, diff);
 }
 
-Scal overlap(const Sphere& sOrig, const Hexahedron& elementOrig) {
+static Scal overlap(const Sphere& sOrig, const Hexahedron& elementOrig) {
   // Construct AABBs and perform a coarse overlap detection.
   Scal a[3];
   Scal b[3];
