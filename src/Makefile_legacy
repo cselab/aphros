@@ -6,6 +6,7 @@ L = libaphros_static.a
 J = libaphros_js.a
 USE_MPI = 0
 USE_HDF = 0
+USE_OPENMP = 1
 CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g
 CXXFLAGS_STD = -std=c++14
@@ -24,7 +25,7 @@ CXX_RULE = $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(CXXFLAGS_HDF) -I$(SRC) $1 -o 
 -D_USE_DIM4_=0 \
 -D_USE_FPZIP_=0 \
 -D_USE_HYPRE_=0 \
--D_USE_OPENMP_=0 \
+-D_USE_OPENMP_=${USE_OPENMP} \
 -D_USE_OVERLAP_=1 \
 -D_USE_MPI_=$(USE_MPI) \
 -D_USE_HDF_=$(USE_HDF) \
