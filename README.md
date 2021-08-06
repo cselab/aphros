@@ -42,7 +42,6 @@ python3-numpy
 
 Bundled optional dependencies:
 [hypre](https://github.com/hypre-space/hypre),
-[eigen](https://gitlab.com/libeigen/eigen),
 [overlap](https://github.com/severinstrobl/overlap),
 [fpzip](https://github.com/LLNL/fpzip)
 

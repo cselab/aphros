@@ -3,7 +3,6 @@ project("aphros-deploy")
 
 option(USE_FPZIP "Install fpzip. Used for compression of communication buffers (experimental)" OFF)
 option(USE_HYPRE "Install Hypre library providing linear solvers" ON)
-option(USE_EIGEN "Install Eigen. Used by Overlap library for exact initialization of ellipsoids" OFF)
 option(USE_AMGX "Install AMGX, linear solver on GPUs. Requires CUDA Toolkit" OFF)
 option(USE_GSL "Install utilities that require GSL: chmath, csv, split" OFF)
 option(USE_HDF5 "Install utilities that require HDF5: h5" OFF)
@@ -240,21 +239,6 @@ if (USE_HYPRE)
         -DCMAKE_INSTALL_NAME_DIR=${CMAKE_INSTALL_PREFIX}/lib
       INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
       SOURCE_SUBDIR src
-    )
-endif()
-
-if (USE_EIGEN)
-  set(eigen_tar "${CMAKE_CURRENT_SOURCE_DIR}/extern/eigen.tar.bz2")
-  set(eigen_url "")
-  ExternalProject_Add(eigen
-      URL ${eigen_tar}
-      CMAKE_ARGS
-        -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
-        -DINCLUDE_INSTALL_DIR:STRING=include
-        -DCMAKEPACKAGE_INSTALL_DIR:STRING=cmake
-        -DBUILD_TESTING=OFF
-        -DEIGEN_BUILD_PKGCONFIG=OFF
-      INSTALL_DIR ${CMAKE_INSTALL_PREFIX}
     )
 endif()
 

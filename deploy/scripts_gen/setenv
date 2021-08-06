@@ -29,7 +29,6 @@ if [ "${[[FLAGVAR]]:-x}" != "1" ] ; then
   export PATH="${[[PREFIXVAR]]}/bin:$PATH"
   export LD_LIBRARY_PATH="${[[PREFIXVAR]]}/lib:${LD_LIBRARY_PATH}"
   export PYTHONPATH="${[[PREFIXVAR]]}/bin:$PYTHONPATH"
-  export EIGEN3_INCLUDE_DIR="${[[PREFIXVAR]]}/include"
   export CMAKE_PREFIX_PATH="${[[PREFIXVAR]]}/cmake:${CMAKE_PREFIX_PATH}"
   export MANPATH="$(MANPATH= manpath -g):${[[PREFIXVAR]]}/man"
 

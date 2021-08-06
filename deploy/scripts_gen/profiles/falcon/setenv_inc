@@ -1,5 +1,4 @@
 module load gnu
 module load cmake
-module load eigen
 module load openmpi/2.1.2
 module load hdf5
