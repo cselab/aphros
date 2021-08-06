@@ -67,7 +67,7 @@ awk '{printf "%s.obj\n", $1}' $o | sed 's,/,\\,g' | \
     ../make/var O > ../make/windows/obj.mk
 {
     awk '{printf "%s.obj: %s; %s %s\n", $1, $2, $3, $2}' $o;
-    awk '{printf "$(WRK)/%s.exe: $(WRK)/%s.obj; $(LINK) $(WRK)/%s.obj $(LINK_FLAGS)\n", $1, $1, $1}' $b;
+    awk '{printf "%s.exe: %s.obj; $(LINK) %s.obj $(LINK_FLAGS)\n", $1, $1, $1}' $b;
 } | sed 's,/,\\,g' > ../make/windows/rule.mk
 
 
