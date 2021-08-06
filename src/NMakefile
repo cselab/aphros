@@ -3,7 +3,7 @@ L = libaphros_static.lib
 CXX = cl
 CC = cl
 LINK = $(CXX)
-LINK_FLAGS = $(LDFLAGS) $L /Fo$@
+LINK_FLAGS = $(LDFLAGS) $L /link /out:$@
 CXXFLAGS = /O2 /Zi /nologo
 CFLAGS = /O2 /Zi /nologo
 CXXFLAGS_STD = /std:c++14 /EHsc -DM_PI=3.141592653589793
