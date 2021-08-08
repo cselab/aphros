@@ -32,15 +32,16 @@ LINK_FLAGS = $(WRK)/$L $(LDFLAGS) $(LDFLAGS_HDF) -o $@
 -D_USE_HDF_=$(USE_HDF) \
 
 all: $(WRK)/$L $(WRK)/main $(WRK)/explorer
+include $(SRC)/../make/$(USE_HDF)hdf.mk
+include $(SRC)/../make/$(USE_MPI)mpi.mk
 include $(SRC)/../make/hdr.mk
+include $(SRC)/../make/unix/bin.mk
 include $(SRC)/../make/unix/dep.mk
 include $(SRC)/../make/unix/dir.dep.mk
 include $(SRC)/../make/unix/dir.mk
 include $(SRC)/../make/unix/dir.rule.mk
 include $(SRC)/../make/unix/obj.mk
 include $(SRC)/../make/unix/rule.mk
-include $(SRC)/../make/$(USE_MPI)mpi.mk
-include $(SRC)/../make/$(USE_HDF)hdf.mk
 
 $(WRK)/$L: $O $(O_MPI) ; mkdir -p $(WRK) && ar rv $@ $O $(O_MPI) && ranlib $@
 $(WRK)/$J: $O $(O_MPI) ; mkdir -p $(WRK) && emar rv $@ $O $(O_MPI)
@@ -62,7 +63,7 @@ install: $(WRK)/$L $(WRK)/main $(WRK)/explorer
 install_js: $(WRK)/$J
 	mkdir -p '$(APHROS_PREFIX)'/lib
 	cp $(WRK)/$J "$(APHROS_PREFIX)"/lib
+bin: $B
 clean:
-	-rm -f $O $(O_MPI) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/main $(WRK)/explorer
-	-rmdir $P
-
+	-rm -f $O $(O_MPI) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $B
+	-rmdir -p $P
