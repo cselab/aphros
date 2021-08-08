@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <sys/stat.h>
+#error windows is not supported
 
 int SystemBaseName(const char* path, char *fname) {
   char drive[_MAX_DRIVE];
