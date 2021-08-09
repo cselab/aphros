@@ -29,6 +29,7 @@ struct MeshCartesian<_Scal, _dim>::Imp {
 
   // Requests
   std::vector<std::unique_ptr<CommRequest>> commreq;
+  std::vector<CommPartRequest> commpartreq;
   std::vector<std::pair<std::unique_ptr<CommRequest>, std::string>> dump;
   UReduce<Scal> reduce;
   UReduce<Scal> reduce_lead;
@@ -230,6 +231,10 @@ void MeshCartesian<Scal, dim>::Comm(FieldCell<Vect>* f, CommStencil stencil) {
   Comm(f, -1, stencil);
 }
 template <class Scal, size_t dim>
+void MeshCartesian<Scal, dim>::CommPart(const CommPartRequest& req) {
+  imp->commpartreq.emplace_back(req);
+}
+template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Dump(const FieldCell<Scal>* f, std::string n) {
   auto ff = const_cast<FieldCell<Scal>*>(f);
   imp->dump.emplace_back(
@@ -253,6 +258,11 @@ auto MeshCartesian<Scal, dim>::GetComm() const
   return imp->commreq;
 }
 template <class Scal, size_t dim>
+auto MeshCartesian<Scal, dim>::GetCommPart() const
+    -> const std::vector<CommPartRequest>& {
+  return imp->commpartreq;
+}
+template <class Scal, size_t dim>
 auto MeshCartesian<Scal, dim>::GetDump() const -> const
     std::vector<std::pair<std::unique_ptr<CommRequest>, std::string>>& {
   return imp->dump;
@@ -260,6 +270,10 @@ auto MeshCartesian<Scal, dim>::GetDump() const -> const
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::ClearComm() {
   imp->commreq.clear();
+}
+template <class Scal, size_t dim>
+void MeshCartesian<Scal, dim>::ClearCommPart() {
+  imp->commpartreq.clear();
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::ClearDump() {

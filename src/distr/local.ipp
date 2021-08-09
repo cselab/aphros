@@ -69,6 +69,7 @@ class Local : public DistrMesh<M_> {
   void Scatter(const std::vector<size_t>& bb) override;
   void Bcast(const std::vector<size_t>& bb) override;
   void DumpWrite(const std::vector<size_t>& bb) override;
+  void TransferParticles(const std::vector<size_t>& bb) override;
 };
 
 template <class M>
@@ -483,5 +484,49 @@ void Local<M>::WriteBuffer(M& m) {
   }
   for (auto& on : m.GetDump()) {
     e += WriteBuffer(on.first.get(), e, m);
+  }
+}
+
+template <class M>
+void Local<M>::TransferParticles(const std::vector<size_t>& bb) {
+  const size_t nreq = kernels_.front()->GetMesh().GetCommPart().size();
+
+  for (auto b : bb) {
+    fassert_equal(kernels_[b]->GetMesh().GetCommPart().size(), nreq);
+  }
+
+  for (size_t q = 0; q < nreq; ++q) {
+    auto& mroot = kernels_.front()->GetMesh();
+    const auto halorad =
+        mroot.flags.particles_halo_radius * mroot.GetCellSize();
+    for (size_t b : bb) {
+      auto& m = kernels_[b]->GetMesh();
+      auto& req = m.GetCommPart()[q];
+      const auto& bbox = m.GetBoundingBox();
+      // TODO: consider periodic
+      const Rect<Vect> halobox(bbox.low - halorad, bbox.high + halorad);
+      std::vector<Vect> xx;
+      std::vector<std::vector<Scal>> attr_scal(req.attr_scal.size());
+      std::vector<std::vector<Vect>> attr_vect(req.attr_vect.size());
+      for (size_t bn : bb) {
+        auto& reqn = kernels_[bn]->GetMesh().GetCommPart()[q];
+        for (size_t i = 0; i < reqn.x->size(); ++i) {
+          const auto& x = (*reqn.x)[i];
+          if (halobox.low <= x && x < halobox.high) {
+            xx.push_back(x);
+            for (size_t a = 0; a < attr_scal.size(); ++a) {
+              attr_scal[a].push_back((*reqn.attr_scal[a])[i]);
+            }
+            for (size_t a = 0; a < attr_vect.size(); ++a) {
+              attr_vect[a].push_back((*reqn.attr_vect[a])[i]);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  for (auto b : bb) {
+    kernels_[b]->GetMesh().ClearCommPart();
   }
 }

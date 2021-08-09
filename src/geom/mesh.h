@@ -95,6 +95,9 @@ class MeshCartesian {
     Vect global_origin = Vect(0); // origin of global mesh
     MIdx global_blocks = MIdx(0); // number of blocks in global mesh
     Vect block_length = Vect(0); // length of one block (local mesh)
+    Scal particles_halo_radius = 2; // surplus to the size of the bounding box
+                                    // for transfer of particles
+                                    // relative to the cell size
     static int GetIdFromBlock(MIdx block, MIdx global_blocks) {
       return GIndex<int, dim>(global_blocks).GetIdx(block);
     };
@@ -716,6 +719,15 @@ class MeshCartesian {
       FieldCell<Vect>* field, CommStencil stencil = CommStencil::full_two);
   const std::vector<std::unique_ptr<CommRequest>>& GetComm() const;
   void ClearComm();
+
+  struct CommPartRequest {
+    std::vector<Vect>* x;
+    std::vector<std::vector<Scal>*> attr_scal;
+    std::vector<std::vector<Vect>*> attr_vect;
+  };
+  void CommPart(const CommPartRequest&);
+  const std::vector<CommPartRequest>& GetCommPart() const;
+  void ClearCommPart();
 
   void Dump(const FieldCell<Scal>* field, std::string name);
   void Dump(const FieldCell<Vect>* field, int component, std::string name);

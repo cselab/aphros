@@ -108,6 +108,11 @@ void DistrMesh<M>::ClearDump(const std::vector<size_t>& bb) {
 }
 
 template <class M>
+void DistrMesh<M>::TransferParticles(const std::vector<size_t>& bb) {
+  fassert(false, "TransferParticles: not implemented for current backend");
+}
+
+template <class M>
 void DistrMesh<M>::TimerReport(const std::vector<size_t>& bb) {
   auto& m = kernels_.front()->GetMesh();
   std::string fn = m.GetTimerReport();
@@ -524,6 +529,7 @@ void DistrMesh<M>::Run() {
     Scatter(bb);
     Bcast(bb);
     BcastFromLead(bb);
+    TransferParticles(bb);
 
     const std::string nameseq =
         kernels_.front()->GetMesh().GetSuspender().GetNameSequence();

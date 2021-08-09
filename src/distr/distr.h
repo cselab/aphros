@@ -68,6 +68,9 @@ class DistrMesh {
 
   DistrMesh(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   // Performs communication and returns indices of blocks with updated halos.
+  // inner: true to update halos in blocks without remote dependencies,
+  //        false to update halos in blocks that require
+  //        communication with remote processors
   virtual std::vector<size_t> TransferHalos(bool inner) = 0;
   virtual std::vector<size_t> TransferHalos() {
     auto bbi = TransferHalos(true);
@@ -94,6 +97,7 @@ class DistrMesh {
   virtual void DumpWrite(const std::vector<size_t>& bb);
   virtual void ClearComm(const std::vector<size_t>& bb);
   virtual void ClearDump(const std::vector<size_t>& bb);
+  virtual void TransferParticles(const std::vector<size_t>& bb);
   virtual bool Pending(const std::vector<size_t>& bb) const;
   // Returns mesh that consists of all local blocks
   // block: index of lower block
