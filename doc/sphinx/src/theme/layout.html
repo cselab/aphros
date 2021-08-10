@@ -86,14 +86,6 @@
       </div>
       {%- endif %}
 {%- endmacro %}
-
-{%- macro script() %}
-    <script id="documentation_options" data-url_root="{{ url_root }}" src="{{ pathto('_static/documentation_options.js', 1) }}"></script>
-    {%- for js in script_files %}
-    {{ js_tag(js) }}
-    {%- endfor %}
-{%- endmacro %}
-
 {%- macro css() %}
     <link rel="stylesheet" href="{{ pathto('_static/pygments.css', 1) }}" type="text/css" />
     <link rel="stylesheet" href="{{ pathto('_static/' + style, 1)|e }}" type="text/css" />
@@ -129,9 +121,6 @@
     {{- css() }}
     {%- endblock %}
     {%- if not embedded %}
-    {%- block scripts %}
-    {{- script() }}
-    {%- endblock %}
     {%- if pageurl %}
     <link rel="canonical" href="{{ pageurl|e }}" />
     {%- endif %}
