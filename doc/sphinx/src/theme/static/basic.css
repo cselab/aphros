@@ -81,3 +81,24 @@ dl {
 a.headerlink {
     visibility: hidden;
 }
+
+table.docutils {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border: 0;
+    border-collapse: collapse;
+}
+
+table.align-default {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+body div.math p {
+    text-align: center;
+}
+
+div.math:hover a.headerlink {
+    visibility: visible;
+}
+
