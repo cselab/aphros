@@ -40,7 +40,8 @@ pygments_style = 'sphinx'
 numfig = True
 
 # html
-html_theme = 'classic'
+html_theme = 'theme'
+html_theme_path = ['.']
 
 html_theme_options = {
       'body_max_width' : '800px',
