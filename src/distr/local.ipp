@@ -14,6 +14,8 @@
 #include "dump/output_paraview.h"
 #include "util/mpi.h"
 
+#include "util/format.h"
+
 template <class M_>
 class Local : public DistrMesh<M_> {
  public:
@@ -490,38 +492,68 @@ void Local<M>::WriteBuffer(M& m) {
 template <class M>
 void Local<M>::TransferParticles(const std::vector<size_t>& bb) {
   const size_t nreq = kernels_.front()->GetMesh().GetCommPart().size();
-
   for (auto b : bb) {
     fassert_equal(kernels_[b]->GetMesh().GetCommPart().size(), nreq);
   }
 
   for (size_t q = 0; q < nreq; ++q) {
     auto& mroot = kernels_.front()->GetMesh();
+    auto& reqroot = mroot.GetCommPart()[q];
+    const size_t nattr_scal = reqroot.attr_scal.size();
+    const size_t nattr_vect = reqroot.attr_vect.size();
+    // Check that the number of attributes is the same in all blocks.
+    // Check that the size of attributes equals the number of particles
+    for (size_t b : bb) {
+      auto& req = kernels_[b]->GetMesh().GetCommPart()[q];
+      fassert_equal(req.attr_scal.size(), nattr_scal);
+      fassert_equal(req.attr_vect.size(), nattr_vect);
+      for (size_t a = 0; a < nattr_scal; ++a) {
+        fassert_equal(req.attr_scal[a]->size(), req.x->size());
+      }
+      for (size_t a = 0; a < nattr_vect; ++a) {
+        fassert_equal(req.attr_vect[a]->size(), req.x->size());
+      }
+    }
+    // Temporary buffers for positions and attributes
+    std::vector<std::vector<Vect>> tmp_x(bb.size());
+    std::vector<std::vector<std::vector<Scal>>> tmp_attr_scal(
+        bb.size(), std::vector<std::vector<Scal>>(nattr_scal));
+    std::vector<std::vector<std::vector<Vect>>> tmp_attr_vect(
+        bb.size(), std::vector<std::vector<Vect>>(nattr_vect));
+    // Bounding box extended by halo radius
     const auto halorad =
         mroot.flags.particles_halo_radius * mroot.GetCellSize();
     for (size_t b : bb) {
       auto& m = kernels_[b]->GetMesh();
-      auto& req = m.GetCommPart()[q];
       const auto& bbox = m.GetBoundingBox();
       // TODO: consider periodic
       const Rect<Vect> halobox(bbox.low - halorad, bbox.high + halorad);
-      std::vector<Vect> xx;
-      std::vector<std::vector<Scal>> attr_scal(req.attr_scal.size());
-      std::vector<std::vector<Vect>> attr_vect(req.attr_vect.size());
+      // Traverse all blocks and collect particles inside `halobox` to tmp_*
       for (size_t bn : bb) {
         auto& reqn = kernels_[bn]->GetMesh().GetCommPart()[q];
         for (size_t i = 0; i < reqn.x->size(); ++i) {
           const auto& x = (*reqn.x)[i];
           if (halobox.low <= x && x < halobox.high) {
-            xx.push_back(x);
-            for (size_t a = 0; a < attr_scal.size(); ++a) {
-              attr_scal[a].push_back((*reqn.attr_scal[a])[i]);
+            tmp_x[b].push_back(x);
+            for (size_t a = 0; a < nattr_scal; ++a) {
+              tmp_attr_scal[b][a].push_back((*reqn.attr_scal[a])[i]);
             }
-            for (size_t a = 0; a < attr_vect.size(); ++a) {
-              attr_vect[a].push_back((*reqn.attr_vect[a])[i]);
+            for (size_t a = 0; a < nattr_vect; ++a) {
+              tmp_attr_vect[b][a].push_back((*reqn.attr_vect[a])[i]);
             }
           }
         }
+      }
+    }
+    // Copy particles from tmp_* to the request buffers
+    for (size_t b : bb) {
+      auto& req = kernels_[b]->GetMesh().GetCommPart()[q];
+      (*req.x) = tmp_x[b];
+      for (size_t a = 0; a < nattr_scal; ++a) {
+        (*req.attr_scal[a]) = tmp_attr_scal[b][a];
+      }
+      for (size_t a = 0; a < nattr_vect; ++a) {
+        (*req.attr_vect[a]) = tmp_attr_vect[b][a];
       }
     }
   }

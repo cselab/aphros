@@ -8,9 +8,11 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <random>
 #include <string>
 
 #include "distr/distrbasic.h"
+#include "dump/dump.h"
 #include "geom/mesh.h"
 #include "kernel/kernelmeshpar.h"
 #include "parse/argparse.h"
@@ -39,19 +41,50 @@ std::ofstream fout;
 
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
+  struct {
+    std::vector<Vect> x;
+    std::vector<Scal> owner_init; // block owning particles after initialization
+    std::vector<Scal> owner_comm; // block owning particles after communication
+    std::vector<std::pair<std::string, std::vector<Scal>>> csvdata;
+  } * ctx(sem);
+  auto& t = *ctx;
   if (sem()) {
-    if (m.IsLead()) {
+    std::default_random_engine gen(17 + m.GetId());
+    std::uniform_real_distribution<double> uniform;
+    const int npart = var.Int["npart"];
+    // Seed particles
+    for (int i = 0; i < npart; ++i) {
+      Vect x;
+      for (auto d : m.dirs) {
+        x[d] = uniform(gen);
+      }
+      t.x.push_back(x);
     }
+    t.owner_init.resize(t.x.size(), m.GetId());
   }
   if (sem()) {
-    std::vector<Vect> x;
-    std::vector<Scal> sa;
-    std::vector<Vect> va;
     typename M::CommPartRequest req;
-    req.x = &x;
-    req.attr_scal = {&sa};
-    req.attr_vect = {&va};
+    req.x = &t.x;
+    req.attr_scal = {&t.owner_init};
+    req.attr_vect = {};
     m.CommPart(req);
+  }
+  if (sem()) {
+    t.owner_comm.resize(t.x.size(), m.GetId());
+    // Add coordinates
+    for (auto d : m.dirs) {
+      const std::string name(1, M::Dir(d).letter());
+      t.csvdata.emplace_back(name, std::vector<Scal>());
+      for (auto x : t.x) {
+        t.csvdata.back().second.push_back(x[d]);
+      }
+    }
+    // Add other fields
+    t.csvdata.emplace_back("owner_init", t.owner_init);
+    t.csvdata.emplace_back("owner_comm", t.owner_comm);
+  }
+  if (sem.Nested()) {
+    DumpCsv(t.csvdata, "particles.csv", m);
   }
 }
 
@@ -73,6 +106,7 @@ int main(int argc, const char** argv) {
       .Options(instances);
   parser.AddVariable<int>("--block", 16).Help("Block size in all directions");
   parser.AddVariable<int>("--mesh", 32).Help("Mesh size in all directions");
+  parser.AddVariable<int>("--npart", 32).Help("Number of particles per block");
   parser.AddVariable<std::string>("--extra", "")
       .Help("Extra configuration (commands 'set ... ')");
   auto args = parser.ParseArgs(argc, argv);
@@ -89,6 +123,7 @@ int main(int argc, const char** argv) {
   conf += sub.GetConfig();
 
   conf += "\nset string backend " + args.String["backend"];
+  conf += "\nset int npart " + args.Int.GetStr("npart");
   conf += "\n" + args.String["extra"];
 
   return RunMpiBasicString<M>(mpi, Run, conf);
