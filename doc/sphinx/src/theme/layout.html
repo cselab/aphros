@@ -20,14 +20,15 @@
     {%- endfor %}
 {%- endmacro %}
 
-<head>
-  {%- block htmltitle %}
-  <title>{{ title|striptags|e }}{{ titlesuffix }}</title>
-  {%- endblock %}
-  {%- block css %}
-  {{- css() }}
-  {%- endblock %}
-</head>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    {%- block htmltitle %}
+    <title>{{ title|striptags|e }}{{ titlesuffix }}</title>
+    {%- endblock %}
+    {%- block css %}
+    {{- css() }}
+    {%- endblock %}
+  </head>
 
 <body>
   {% block body %} {% endblock %}
