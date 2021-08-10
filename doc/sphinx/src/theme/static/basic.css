@@ -1,0 +1,79 @@
+body {
+    margin: auto;
+    max-width: 44em;
+}
+
+a {
+  color: #0082BB;
+}
+
+h1, h2, h3, h4, h5 {
+    color: #009ADE;
+}
+
+img.math {
+    vertical-align: middle;
+}
+
+div.body div.math p {
+    text-align: center;
+}
+
+span.eqno {
+    float: right;
+}
+
+span.eqno a.headerlink {
+    position: absolute;
+    z-index: 1;
+}
+
+div.math:hover a.headerlink {
+    visibility: visible;
+}
+
+table.align-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+dl.citation > dt {
+    float: left;
+    margin-right: 0.5em;
+}
+
+dl.citation > dd {
+    margin-bottom: 0em;
+}
+
+dl.citation > dd:after {
+    content: "";
+    clear: both;
+}
+
+dl.field-list {
+    display: grid;
+    grid-template-columns: fit-content(30%) auto;
+}
+
+dl.field-list > dt {
+    font-weight: bold;
+    word-break: break-word;
+    padding-left: 0.5em;
+    padding-right: 5px;
+}
+
+dl.field-list > dt:after {
+    content: ":";
+}
+
+dl.field-list > dd {
+    padding-left: 0.5em;
+    margin-top: 0em;
+    margin-left: 0em;
+    margin-bottom: 0em;
+}
+
+dl {
+    margin-bottom: 15px;
+}

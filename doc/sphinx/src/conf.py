@@ -42,15 +42,6 @@ numfig = True
 # html
 html_theme = 'theme'
 html_theme_path = ['.']
-
-html_theme_options = {
-      'body_max_width' : '800px',
-      }
-
-html_sidebars = {
-   #'**' : ['localtoc.html']
-}
-
 htmlhelp_basename = 'aphrosdoc'
 
 html_math_renderer = 'imgmath'
