@@ -60,8 +60,7 @@ latex_elements = {
     'preamble':
     r'''
 \definecolor{TitleColor}{rgb}{0,0,0}
-\let\ORIincludegraphics\includegraphics
-\renewcommand{\includegraphics}[2][]{\ORIincludegraphics[scale=0.6,#1]{#2}}
+\renewcommand{\sphinxincludegraphics}[2][]{\includegraphics[scale=0.6,#1]{#2}}
 \sphinxpxdimen=.6bp
 '''
 }

@@ -37,4 +37,4 @@ Examples
 Source
 ------
 
-.. linkpath:: deploy/scripts/cawk
+.. linkpath::`deploy/scripts/cawk`
