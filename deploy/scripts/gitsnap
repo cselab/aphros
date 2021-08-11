@@ -1,0 +1,112 @@
+#!/bin/sh -eu
+
+: ${GITSNAP_STORAGE=/tmp/gitsnap}
+
+STORAGE=${GITSNAP_STORAGE}
+
+usage() {
+  me=$(basename "$0")
+  cat << EOF
+$me [help|list|save|load]
+Saves and loads snapshots of files tracked in a Git repository. Preserves timestamps and attributes.
+
+$me help
+    Print this help and exit
+$me list
+    Print all known snapshots in storage
+$me save NAME
+    Save tracked files in current Git repository to directory NAME in storage
+$me load NAME
+    Overwrite tracked files in current Git repository by files from directory NAME in storage
+$me rm NAME
+    Remove snapshot NAME
+EOF
+}
+
+eeval() {
+  echo "$@" 1>&2
+  eval "$@"
+}
+
+isgit() {
+  test "$(git rev-parse --is-inside-work-tree 2>/dev/null)" = "true"
+}
+
+checkgit() {
+  if ! isgit ; then
+    echoerr "not a git repository"
+    exit 1
+  fi
+}
+
+echoerr() {
+  echo "$@" 1>&2
+}
+
+if [ "$#" -lt 1 ] ; then
+  usage
+  exit 1
+fi
+
+case "$1" in
+  help)
+    usage
+    exit
+    ;;
+  list)
+    echoerr "Snapshots in $STORAGE"
+    if [ -d "$STORAGE" ] ; then
+      ls -1 "$STORAGE"
+    fi
+    ;;
+  save)
+    checkgit
+    if [ "$#" -lt 2 ] ; then
+      echoerr "Missing NAME"
+      exit 1
+    fi
+    name=$2
+    if ! [ -d "$STORAGE" ] ; then
+      eeval "mkdir -p '$STORAGE'"
+    fi
+    echoerr "Current repository: $(pwd)"
+    echoerr "Copying tracked files to $STORAGE/$name"
+    mkdir -p "$STORAGE/$name"
+    root=$(git rev-parse --show-toplevel)
+    files=$(cd "$root" && git ls-tree -r HEAD --name-only)
+    cd "$root" && rsync -aR $files "$STORAGE/$name"
+    ;;
+  load)
+    checkgit
+    if [ "$#" -lt 2 ] ; then
+      echoerr "Missing NAME"
+      exit 1
+    fi
+    name=$2
+    if ! [ -d "$STORAGE/$name" ] ; then
+      echoerr "Snapshot '$STORAGE/$name' not found"
+      exit 1
+    fi
+    echoerr "Current repository: $(pwd)"
+    dest=$(pwd)
+    echoerr "Overwriting tracked files with snapshot $STORAGE/$name"
+    root=$(git rev-parse --show-toplevel)
+    files=$(cd "$root" && git ls-tree -r HEAD --name-only)
+    cd "$STORAGE/$name/" && rsync -aPR $files "$root/"
+    ;;
+  rm)
+    if [ "$#" -lt 2 ] ; then
+      echoerr "Missing NAME"
+      exit 1
+    fi
+    name=$2
+    if ! [ -d "$STORAGE/$name" ] ; then
+      echoerr "Snapshot '$STORAGE/$name' not found"
+      exit 1
+    fi
+    eeval "rm -rf '$STORAGE/$name'"
+    ;;
+  *)
+    echoerr "Unknown command '$1'"
+    ;;
+esac

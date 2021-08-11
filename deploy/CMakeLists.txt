@@ -92,6 +92,7 @@ set(ScriptsList
     gettrajm
     gettrajsh
     getval
+    gitsnap
     hausdorff
     hist
     histbin
