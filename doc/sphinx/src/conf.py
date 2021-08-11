@@ -55,11 +55,16 @@ latex_elements = {
     r'''
 \date{Jul 27, 2021}
 \sphinxmaketitle
-        ''',
+    ''',
+    'tableofcontents': '',
+    'preamble':
+    r'''
+\definecolor{TitleColor}{rgb}{0,0,0}
+    '''
 }
 latex_documents = [
     (master_doc, 'aphros.tex', u'Aphros documentation',
-     author.replace(', ', '\\and ').replace(' and ', '\\and and '), 'manual'),
+     author.replace(', ', '\\and ').replace(' and ', '\\and and '), 'howto'),
 ]
 
 # man
