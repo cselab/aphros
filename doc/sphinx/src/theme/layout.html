@@ -1,37 +1,13 @@
 <!DOCTYPE html>
-{%- set url_root = pathto('', 1) %}
-{%- if url_root == '#' %}{% set url_root = '' %}{% endif %}
-{%- if not embedded and docstitle %}
-  {%- set titlesuffix = " &#8212; "|safe + docstitle|e %}
-{%- else %}
-  {%- set titlesuffix = "" %}
-{%- endif %}
-
-{%- macro css() %}
-    <link rel="stylesheet" href="{{ pathto('_static/pygments.css', 1) }}" type="text/css" />
-    <link rel="stylesheet" href="{{ pathto('_static/' + style, 1)|e }}" type="text/css" />
-    {%- for css in css_files %}
-      {%- if css|attr("filename") %}
-    {{ css_tag(css) }}
-      {%- else %}
-    <link rel="stylesheet" href="{{ pathto(css, 1)|e }}" type="text/css" />
-      {%- endif %}
-    {%- endfor %}
-{%- endmacro %}
-
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-    {%- block htmltitle %}
-    <title>{{ title|striptags|e }}{{ titlesuffix }}</title>
-    {%- endblock %}
-    {%- block css %}
-    {{- css() }}
-    {%- endblock %}
+    <title>Aphros</title>
+    <link rel="stylesheet" href="{{ pathto('_static/pygments.css', 1) }}" type="text/css" />
+    <link rel="stylesheet" href="{{ pathto('_static/' + style, 1)|e }}" type="text/css" />
   </head>
-
-<body>
-  {% block body %} {% endblock %}
-</body>
+  <body>
+    {% block body %} {% endblock %}
+  </body>
 </html>
