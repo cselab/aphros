@@ -49,7 +49,7 @@ void Run(M& m, Vars& var) {
   } * ctx(sem);
   auto& t = *ctx;
   if (sem()) {
-    std::default_random_engine gen(17 + m.GetId());
+    std::mt19937 gen(17 + m.GetId());
     std::uniform_real_distribution<double> uniform;
     const int npart = var.Int["npart"];
     // Seed particles
@@ -85,6 +85,9 @@ void Run(M& m, Vars& var) {
   }
   if (sem.Nested()) {
     DumpCsv(t.csvdata, "particles.csv", m);
+  }
+  if (sem()) {
+    DumpCsv(t.csvdata, util::Format("particles_{}.csv", m.GetId()));
   }
 }
 

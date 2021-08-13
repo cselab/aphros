@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+
+import os
+
+import aphros
+
+
+class Test(aphros.TestBase):
+    def __init__(self):
+        super().__init__()
+        self.parser.add_argument('--backend',
+                                 type=str,
+                                 default='native',
+                                 choices=['native', 'cubismnc', 'local'],
+                                 help="Communication backend")
+
+    def run(self):
+        self.runcmd("./t.particles --backend {}".format(self.args.backend))
+        return ["particles.csv"]
+
+    def check(self, outdir, refdir, output_files):
+        for f in output_files:
+            ref = os.path.join(refdir, f)
+            out = os.path.join(outdir, f)
+            self.runcmd("ap.diffnum '{}' '{}' 1e-8".format(ref, out))
+        return True
+
+Test().main()
