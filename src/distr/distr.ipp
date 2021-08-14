@@ -108,8 +108,11 @@ void DistrMesh<M>::ClearDump(const std::vector<size_t>& bb) {
 }
 
 template <class M>
-void DistrMesh<M>::TransferParticles(const std::vector<size_t>& bb) {
-  fassert(false, "TransferParticles: not implemented for current backend");
+void DistrMesh<M>::TransferParticles(const std::vector<size_t>&) {
+  const size_t nreq = kernels_.front()->GetMesh().GetCommPart().size();
+  if (nreq) {
+    fassert(false, "TransferParticles: not implemented for current backend");
+  }
 }
 
 template <class M>
