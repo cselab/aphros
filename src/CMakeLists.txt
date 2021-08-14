@@ -76,7 +76,6 @@ if (USE_HDF)
   if (USE_MPI)
     set(HDF5_PREFER_PARALLEL ON)
   endif()
-  set(HDF5_NO_FIND_PACKAGE_CONFIG_FILE ON)
   find_package(HDF5 COMPONENTS C HL)
   if (NOT ${HDF5_FOUND})
         message(FATAL_ERROR
