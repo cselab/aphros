@@ -59,9 +59,23 @@ latex_elements = {
     'tableofcontents': '',
     'preamble':
     r'''
-\definecolor{TitleColor}{rgb}{0,0,0}
 \renewcommand{\sphinxincludegraphics}[2][]{\includegraphics[scale=0.6,#1]{#2}}
 \sphinxpxdimen=.6bp
+\definecolor{TitleColor}{rgb}{0,0,0}
+\hypersetup{%
+    pdflang={en-US},
+    pdfsubject={%
+Aphros documentation. Finite volume solver for incompressible multiphase flows with surface tension. Foaming flows in complex geometries},
+    pdfkeywords={%
+CFD;%
+chemical engineering;%
+fluid;%
+high performance computing;%
+multiphase-flow;%
+paraview;%
+simulation;%
+surface tension},
+}
 '''
 }
 latex_documents = [
