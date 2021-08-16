@@ -520,48 +520,40 @@ void Local<M>::TransferParticles(const std::vector<size_t>& bb) {
         bb.size(), std::vector<std::vector<Scal>>(nattr_scal));
     std::vector<std::vector<std::vector<Vect>>> tmp_attr_vect(
         bb.size(), std::vector<std::vector<Vect>>(nattr_vect));
-    // Bounding box extended by halo radius
     const auto halorad =
         mroot.flags.particles_halo_radius * mroot.GetCellSize();
-    /*
+    // Traverse all inner particles and add them to blocks within `halorad`
     for (size_t b : bb) {
       auto& m = kernels_[b]->GetMesh();
-      const auto& bbox = m.GetBoundingBox();
-      // TODO: consider periodic
-      const Rect<Vect> halobox(bbox.low - halorad, bbox.high + halorad);
-    }
-    */
-    {
-      // Traverse all particles and add them to blocks within `halorad`
-      for (size_t b : bb) {
-        auto& m = kernels_[b]->GetMesh();
-        auto& reqn = m.GetCommPart()[q];
-        for (size_t i = 0; i < reqn.x->size(); ++i) {
-          const auto& x = (*reqn.x)[i];
-          const Vect halobox_xm = x - halorad;
-          const Vect halobox_xp = x + halorad;
-          const MIdx block_min(
-              (halobox_xm - m.flags.global_origin) / m.flags.block_length);
-          const MIdx block_max(
-              (halobox_xp - m.flags.global_origin) / m.flags.block_length);
-          const GBlock<int, M::dim> blocks(
-              block_min, block_max - block_min + MIdx(1));
-          for (MIdx block : blocks) {
-            /* TODO consider periodic
-            // FIXME: adhoc periodic canonical, revise without constant factor
-            const MIdx block_canon =
-                (block + m.flags.global_blocks * 100) % m.flags.global_blocks;
-            */
-            if (MIdx(0) <= block && block < m.flags.global_blocks) {
-              const size_t bdest = m.flags.GetIdFromBlock(block);
-              fassert(0 <= bdest && bdest < bb.size());
-              tmp_x[bdest].push_back(x);
-              for (size_t a = 0; a < nattr_scal; ++a) {
-                tmp_attr_scal[bdest][a].push_back((*reqn.attr_scal[a])[i]);
-              }
-              for (size_t a = 0; a < nattr_vect; ++a) {
-                tmp_attr_vect[bdest][a].push_back((*reqn.attr_vect[a])[i]);
-              }
+      auto& reqn = m.GetCommPart()[q];
+      for (size_t i = 0; i < reqn.x->size(); ++i) {
+        const auto& x = (*reqn.x)[i];
+        if (!m.IsInnerPoint(x)) {
+          continue;
+        }
+        const Vect halobox_xm = x - halorad;
+        const Vect halobox_xp = x + halorad;
+        const MIdx block_min(
+            (halobox_xm - m.flags.global_origin) / m.flags.block_length);
+        const MIdx block_max(
+            (halobox_xp - m.flags.global_origin) / m.flags.block_length);
+        const GBlock<int, M::dim> blocks(
+            block_min, block_max - block_min + MIdx(1));
+        for (MIdx block : blocks) {
+          /* TODO consider periodic
+          // FIXME: adhoc periodic canonical, revise without constant factor
+          const MIdx block_canon =
+              (block + m.flags.global_blocks * 100) % m.flags.global_blocks;
+          */
+          if (MIdx(0) <= block && block < m.flags.global_blocks) {
+            const size_t bdest = m.flags.GetIdFromBlock(block);
+            fassert(0 <= bdest && bdest < bb.size());
+            tmp_x[bdest].push_back(x);
+            for (size_t a = 0; a < nattr_scal; ++a) {
+              tmp_attr_scal[bdest][a].push_back((*reqn.attr_scal[a])[i]);
+            }
+            for (size_t a = 0; a < nattr_vect; ++a) {
+              tmp_attr_vect[bdest][a].push_back((*reqn.attr_vect[a])[i]);
             }
           }
         }

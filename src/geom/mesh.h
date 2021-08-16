@@ -340,6 +340,9 @@ class MeshCartesian {
     MIdx w = indexc_.GetMIdx(c);
     return blockci_.GetBegin() <= w && w < blockci_.GetEnd();
   }
+  bool IsInnerPoint(Vect x) {
+    return domain_.low <= x && x < domain_.high;
+  }
   bool IsBoundary(IdxFace f, /*out*/ size_t& nci) const {
     auto p = GetIndexFaces().GetMIdxDir(f);
     const size_t d = p.second.raw();
