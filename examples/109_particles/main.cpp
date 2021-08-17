@@ -35,41 +35,48 @@ void Run(M& m, Vars& var) {
     std::vector<Vect> x;
     std::vector<Vect> velocity;
     std::vector<Vect> force;
-    std::vector<bool> is_inner; // particle is inside block
+    std::vector<bool> is_inner; // particle is owned by current block
     std::vector<Scal> owner_init; // block owning particles after initialization
     std::vector<Scal> owner_comm; // block owning particles after communication
     std::vector<std::pair<std::string, std::vector<Scal>>> csvdata;
-    Scal sum_weight; // averaging weight, number of particles
-    Scal sum_dist; // sum of distances from domain center
+    Scal npart; // total number of particles inner particles
+    Scal dist_mean; // mean distance from axis
+    Scal dist_var; // variance of distance from z-axis
+    int step = 0;
   } * ctx(sem);
   auto& t = *ctx;
 
-  auto dump = [&](std::string path){
-    if (sem()) {
+  auto dump = [&](std::string path, bool only_inner){
+    if (sem("dump_local")) {
       t.csvdata.clear();
       t.owner_comm.resize(t.x.size(), m.GetId());
+      auto append = [&](std::string name, auto func) {
+        t.csvdata.emplace_back(name, std::vector<Scal>());
+        for (size_t i = 0; i < t.x.size(); ++i) {
+          if (!only_inner || t.is_inner[i]) {
+            func(t.csvdata.back().second, i);
+          }
+        }
+      };
       // Add coordinates
       for (auto d : m.dirs) {
         const std::string name(1, M::Dir(d).letter());
-        t.csvdata.emplace_back(name, std::vector<Scal>());
-        for (size_t i = 0; i < t.x.size(); ++i) {
-          if (t.is_inner[i]) {
-            t.csvdata.back().second.push_back(t.x[i][d]);
-          }
-        }
+        append(name, [&](auto& data, size_t i) { //
+          data.push_back(t.x[i][d]);
+        });
       }
       // Add other fields
-      t.csvdata.emplace_back("owner_init", std::vector<Scal>());
-      for (size_t i = 0; i < t.x.size(); ++i) {
-        if (t.is_inner[i]) {
-          t.csvdata.back().second.push_back(t.owner_init[i]);
-        }
-      }
-      t.csvdata.emplace_back("owner_comm", std::vector<Scal>());
-      for (size_t i = 0; i < t.x.size(); ++i) {
-        if (t.is_inner[i]) {
-          t.csvdata.back().second.push_back(t.owner_comm[i]);
-        }
+      append("owner_init", [&](auto& data, size_t i) { //
+        data.push_back(t.owner_init[i]);
+      });
+      append("owner_comm", [&](auto& data, size_t i) { //
+        data.push_back(t.owner_comm[i]);
+      });
+      append("inner", [&](auto& data, size_t i) { //
+        data.push_back(t.is_inner[i]);
+      });
+      if (m.IsRoot()) {
+        std::cerr << path << '\n';
       }
     }
     if (sem.Nested()) {
@@ -77,7 +84,7 @@ void Run(M& m, Vars& var) {
     }
   };
 
-  if (sem()) {
+  if (sem("init")) {
     const int ncirc = var.Int["ncirc"];
     const int naxis = var.Int["naxis"];
     // Seed particles on cylinder
@@ -98,67 +105,85 @@ void Run(M& m, Vars& var) {
     t.is_inner.resize(t.x.size(), true);
     m.flags.particles_halo_radius = var.Double["cutoff"] / m.GetCellSize()[0];
   }
-  dump("particles_0.csv");
-  for (int step = 0; step < var.Int["nsteps"]; ++step) {
-    if (sem()) {
-      typename M::CommPartRequest req;
-      req.x = &t.x;
-      req.attr_scal = {&t.owner_init};
-      req.attr_vect = {&t.velocity};
-      m.CommPart(req);
-    }
-    if (sem()) {
-      t.is_inner.resize(t.x.size());
-      for (size_t i = 0; i < t.x.size(); ++i) {
-        t.is_inner[i] = m.IsInnerPoint(t.x[i]);
+  dump("particles_0.csv", false);
+  sem.LoopBegin();
+  if (sem("commpart")) {
+    typename M::CommPartRequest req;
+    req.x = &t.x;
+    req.is_inner = &t.is_inner;
+    req.attr_scal = {&t.owner_init};
+    req.attr_vect = {&t.velocity};
+    m.CommPart(req);
+  }
+  dump(util::Format("particles_{:04d}.csv", t.step), false);
+  if (sem("stat_mean")) {
+    t.npart = 0;
+    t.dist_mean = 0;
+    for (size_t i = 0; i < t.x.size(); ++i) {
+      if (t.is_inner[i]) {
+        t.npart += 1;
+        Vect dx = t.x[i] - m.GetGlobalLength() * 0.5;
+        dx[2] = 0;
+        t.dist_mean += dx.norm();
       }
-      // Compute gravity force on inner particles within cutoff
-      const Scal cutoff = var.Double["cutoff"];
-      t.force.resize(t.x.size());
-      for (size_t i = 0; i < t.x.size(); ++i) {
-        if (t.is_inner[i]) {
-          auto& f = t.force[i];
-          f = Vect(0);
-          for (size_t j = 0; j < t.x.size(); ++j) {
-            const auto xi = t.x[i];
-            const auto xj = t.x[j];
-            if (xi != xj) {
-              const Scal dist = xi.dist(xj);;
-              if (dist < cutoff * 0.5) {
-                f += (xi - xj) / std::pow(dist + 0.01, 3);
-              }
+    }
+    m.Reduce(&t.npart, Reduction::sum);
+    m.Reduce(&t.dist_mean, Reduction::sum);
+  }
+  if (sem("stat_var")) {
+    t.dist_mean /= t.npart;
+    t.dist_var = 0;
+    for (size_t i = 0; i < t.x.size(); ++i) {
+      if (t.is_inner[i]) {
+        Vect dx = t.x[i] - m.GetGlobalLength() * 0.5;
+        dx[2] = 0;
+        t.dist_var += sqr(dx.norm() - t.dist_mean);
+      }
+    }
+    m.Reduce(&t.dist_var, Reduction::sum);
+  }
+  if (sem("stat_print")) {
+    t.dist_var /= t.npart;
+    if (m.IsRoot()) {
+      std::cout << util::Format(
+          "step={:02d} npart={} mean={:.8e} std={:.8e}\n", t.step, t.npart,
+          t.dist_mean, std::sqrt(t.dist_var));
+    }
+    if (++t.step > var.Int["nsteps"]) {
+      sem.LoopBreak();
+    }
+  }
+  if (sem("advance")) {
+    // Compute gravity force for inner particles within cutoff
+    const Scal cutoff = var.Double["cutoff"];
+    t.force.resize(t.x.size());
+    for (size_t i = 0; i < t.x.size(); ++i) {
+      if (t.is_inner[i]) {
+        auto& f = t.force[i];
+        f = Vect(0);
+        for (size_t j = 0; j < t.x.size(); ++j) {
+          const auto xi = t.x[i];
+          const auto xj = t.x[j];
+          if (xi != xj) {
+            const Scal dist = xi.dist(xj);;
+            if (dist < cutoff) {
+              f += (xi - xj) / std::pow(dist + 0.01, 3);
             }
           }
         }
       }
-      // Apply acceleration and displacement to inner particles
-      const Scal dt = var.Double["dt"];
-      for (size_t i = 0; i < t.x.size(); ++i) {
-        if (t.is_inner[i]) {
-          t.velocity[i] += dt * t.force[i];
-          t.x[i] += dt * t.velocity[i];
-        }
-      }
-
-      t.sum_weight = 0;
-      t.sum_dist = 0;
-      for (size_t i = 0; i < t.x.size(); ++i) {
-        if (t.is_inner[i]) {
-          t.sum_weight += 1;
-          t.sum_dist += t.x[i].dist(m.GetGlobalLength() * 0.5);
-        }
-      }
-      m.Reduce(&t.sum_weight, Reduction::sum);
-      m.Reduce(&t.sum_dist, Reduction::sum);
     }
-    if (sem()) {
-      if (m.IsRoot()) {
-        std::cout << util::Format(
-            "step={} dist={}\n", step, t.sum_dist / t.sum_weight);
+    // Apply acceleration and displacement to inner particles
+    const Scal dt = var.Double["dt"];
+    for (size_t i = 0; i < t.x.size(); ++i) {
+      if (t.is_inner[i]) {
+        t.velocity[i] += dt * t.force[i];
+        t.x[i] += dt * t.velocity[i];
+        //t.x[i] += Vect(0.02, 0, 0); // XXX
       }
     }
   }
-  dump("particles_1.csv");
+  sem.LoopEnd();
 }
 
 int main(int argc, const char** argv) {
@@ -180,13 +205,13 @@ int main(int argc, const char** argv) {
       .Options(instances);
   parser.AddVariable<int>("--block", 16).Help("Block size in all directions");
   parser.AddVariable<int>("--mesh", 32).Help("Mesh size in all directions");
-  parser.AddVariable<int>("--nsteps", 50).Help("Number of time steps to make");
+  parser.AddVariable<int>("--nsteps", 10).Help("Number of time steps to make");
   parser.AddVariable<int>("--ncirc", 64)
       .Help("Number of particles in along circle");
   parser.AddVariable<int>("--naxis", 32).Help(
       "Number of particles along axis in z-direction");
-  parser.AddVariable<double>("--cutoff", 0.25).Help("Cutoff radius of force");
-  parser.AddVariable<double>("--dt", 0.0005).Help("Time step");
+  parser.AddVariable<double>("--cutoff", 0.15).Help("Cutoff radius of force");
+  parser.AddVariable<double>("--dt", 0.001).Help("Time step");
   parser.AddVariable<std::string>("--extra", "")
       .Help("Extra configuration (commands 'set ... ')");
   auto args = parser.ParseArgs(argc, argv);

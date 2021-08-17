@@ -16,6 +16,11 @@
 
 #include "util/format.h"
 
+int ModPositive(int a, int divisor) {
+  const int res = a % divisor;
+  return res >= 0 ? res : res + divisor;
+}
+
 template <class M_>
 class Local : public DistrMesh<M_> {
  public:
@@ -505,12 +510,17 @@ void Local<M>::TransferParticles(const std::vector<size_t>& bb) {
     // Check that the size of attributes equals the number of particles
     for (size_t b : bb) {
       auto& req = kernels_[b]->GetMesh().GetCommPart()[q];
+      fassert(req.x);
+      fassert(req.is_inner);
+      fassert_equal(req.is_inner->size(), req.x->size());
       fassert_equal(req.attr_scal.size(), nattr_scal);
       fassert_equal(req.attr_vect.size(), nattr_vect);
       for (size_t a = 0; a < nattr_scal; ++a) {
+        fassert(req.attr_scal[a]);
         fassert_equal(req.attr_scal[a]->size(), req.x->size());
       }
       for (size_t a = 0; a < nattr_vect; ++a) {
+        fassert(req.attr_vect[a]);
         fassert_equal(req.attr_vect[a]->size(), req.x->size());
       }
     }
@@ -525,35 +535,44 @@ void Local<M>::TransferParticles(const std::vector<size_t>& bb) {
     // Traverse all inner particles and add them to blocks within `halorad`
     for (size_t b : bb) {
       auto& m = kernels_[b]->GetMesh();
-      auto& reqn = m.GetCommPart()[q];
-      for (size_t i = 0; i < reqn.x->size(); ++i) {
-        const auto& x = (*reqn.x)[i];
-        if (!m.IsInnerPoint(x)) {
+      auto& req = m.GetCommPart()[q]; // request on block `b`
+      for (size_t i = 0; i < req.x->size(); ++i) {
+        const Vect x = (*req.x)[i];
+        if (!(*req.is_inner)[i]) {
           continue;
         }
         const Vect halobox_xm = x - halorad;
         const Vect halobox_xp = x + halorad;
         const MIdx block_min(
-            (halobox_xm - m.flags.global_origin) / m.flags.block_length);
+            ((halobox_xm - m.flags.global_origin) / m.flags.block_length)
+                .floor());
         const MIdx block_max(
-            (halobox_xp - m.flags.global_origin) / m.flags.block_length);
+            ((halobox_xp - m.flags.global_origin) / m.flags.block_length)
+                .floor());
         const GBlock<int, M::dim> blocks(
             block_min, block_max - block_min + MIdx(1));
         for (MIdx block : blocks) {
-          /* TODO consider periodic
-          // FIXME: adhoc periodic canonical, revise without constant factor
-          const MIdx block_canon =
-              (block + m.flags.global_blocks * 100) % m.flags.global_blocks;
-          */
+          Vect xtrans = x;
+          for (size_t d : m.dirs) {
+            if (m.flags.is_periodic[d]) {
+              // canonical index of block from periodic conditions
+              const int canon = ModPositive(block[d], m.flags.global_blocks[d]);
+              if (canon != block[d]) {
+                const int image = (canon - block[d]) / m.flags.global_blocks[d];
+                xtrans[d] += image * m.GetGlobalLength()[d];
+                block[d] = canon;
+              }
+            }
+          }
           if (MIdx(0) <= block && block < m.flags.global_blocks) {
             const size_t bdest = m.flags.GetIdFromBlock(block);
-            fassert(0 <= bdest && bdest < bb.size());
-            tmp_x[bdest].push_back(x);
+            fassert(bdest < bb.size());
+            tmp_x[bdest].push_back(xtrans);
             for (size_t a = 0; a < nattr_scal; ++a) {
-              tmp_attr_scal[bdest][a].push_back((*reqn.attr_scal[a])[i]);
+              tmp_attr_scal[bdest][a].push_back((*req.attr_scal[a])[i]);
             }
             for (size_t a = 0; a < nattr_vect; ++a) {
-              tmp_attr_vect[bdest][a].push_back((*reqn.attr_vect[a])[i]);
+              tmp_attr_vect[bdest][a].push_back((*req.attr_vect[a])[i]);
             }
           }
         }
@@ -561,8 +580,13 @@ void Local<M>::TransferParticles(const std::vector<size_t>& bb) {
     }
     // Copy particles from tmp_* to the request buffers
     for (size_t b : bb) {
-      auto& req = kernels_[b]->GetMesh().GetCommPart()[q];
+      auto& m = kernels_[b]->GetMesh();
+      auto& req = m.GetCommPart()[q];
       (*req.x) = tmp_x[b];
+      req.is_inner->resize(req.x->size());
+      for (size_t i = 0; i < req.x->size(); ++i) {
+        (*req.is_inner)[i] = m.IsInnerPoint((*req.x)[i]);
+      }
       for (size_t a = 0; a < nattr_scal; ++a) {
         (*req.attr_scal[a]) = tmp_attr_scal[b][a];
       }

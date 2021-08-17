@@ -380,6 +380,20 @@ class Vect {
   Vect clip(const Vect& v0, const Vect& v1) const {
     return (*this).max(v0).min(v1);
   }
+  Vect ceil() const {
+    Vect r;
+    for (size_t i = 0; i < dim; ++i) {
+      r[i] = std::ceil(data_[i]);
+    }
+    return r;
+  }
+  Vect floor() const {
+    Vect r;
+    for (size_t i = 0; i < dim; ++i) {
+      r[i] = std::floor(data_[i]);
+    }
+    return r;
+  }
   template <class T = Scal>
   operator std::vector<T>() const {
     return std::vector<T>(data_.begin(), data_.end());

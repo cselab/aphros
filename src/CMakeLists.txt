@@ -24,6 +24,7 @@ option(USE_MPI "Enable MPI for distributed computation" ON)
 option(USE_OPENMP "Enable OpenMP" ON)
 option(USE_OPENCL "Enable OpenCL for GPU support" OFF)
 option(USE_TESTS "Build tests and enable testing" ON)
+option(USE_EXPLORER "Build native version of Aphros explorer" ON)
 option(USE_WARNINGS "Enable compiler warnings" ON)
 option(FIND_HDF "Automatically find HDF5" ON)
 
@@ -368,19 +369,21 @@ set_target_properties(${T} PROPERTIES PREFIX "ap.")
 target_link_libraries(${T} aphros_c)
 install(TARGETS ${T} EXPORT export DESTINATION bin)
 
-add_custom_command(
-  OUTPUT  explorer.inc
-  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/explorer_gen"
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-)
-add_custom_target(explorer_inc DEPENDS explorer.inc)
+if (USE_EXPLORER)
+  add_custom_command(
+    OUTPUT  explorer.inc
+    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/explorer_gen"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  )
+  add_custom_target(explorer_inc DEPENDS explorer.inc)
 
-set(T explorer)
-add_executable(${T} explorer.cpp)
-add_dependencies(${T} explorer_inc)
-target_link_libraries(${T} aphros)
-set_target_properties(${T} PROPERTIES PREFIX "ap.")
-install(TARGETS ${T} EXPORT export DESTINATION bin)
+  set(T explorer)
+  add_executable(${T} explorer.cpp)
+  add_dependencies(${T} explorer_inc)
+  target_link_libraries(${T} aphros)
+  set_target_properties(${T} PROPERTIES PREFIX "ap.")
+  install(TARGETS ${T} EXPORT export DESTINATION bin)
+endif()
 
 
 if (USE_TESTS)
