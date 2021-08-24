@@ -4,13 +4,6 @@ import aphros
 
 
 class Test(aphros.TestBase):
-    def run(self):
-        self.runcmd("echo 2 > np")
-        self.runcmd("ap.mpirun ./t.commmap > out")
-        return ["out"]
-
-
-class Test(aphros.TestBase):
     def __init__(self):
         super().__init__(cases=["main", "manager", "manager_seq", "rank_cubism", "rank_native"])
 
@@ -27,11 +20,11 @@ class Test(aphros.TestBase):
             self.runcmd("./t.commmap.manager".format(np))
             return ["out_0"]
         elif case == "rank_cubism":
-            np = 8
+            np = 4
             self.runcmd("ap.mpirun -n {} --oversubscribe ./t.commmap.rank --extra 'set string backend cubismnc'".format(np))
             return ["out_{}".format(i) for i in range(np)]
         elif case == "rank_native":
-            np = 8
+            np = 4
             self.runcmd("ap.mpirun -n {} --oversubscribe ./t.commmap.rank --extra 'set string backend native'".format(np))
             return ["out_{}".format(i) for i in range(np)]
         else:

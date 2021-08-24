@@ -345,6 +345,15 @@ Cubismnc<Par, M>::Cubismnc(
   comm_ = grid_.getCartComm();
   this->MakeKernels(proxies);
 
+  rank_from_id_ = [domain = domain_](int id) -> int {
+    const MIdx global_blocks = domain.nblocks * domain.nprocs;
+    const MIdx block = GIndex<int, dim>(global_blocks).GetMIdx(id);
+    const MIdx proc = block / domain.nblocks;
+    const MIdx proc_rev(proc[2], proc[1], proc[0]);
+    const MIdx nprocs = domain.nprocs;
+    const MIdx nprocs_rev(nprocs[2], nprocs[1], nprocs[0]);
+    return GIndex<int, dim>(nprocs_rev).GetIdx(proc_rev);
+  };
   for (auto& kernel : kernels_) {
     auto& m = kernel->GetMesh();
     m.SetHandlerMpiRankFromId([domain = domain_](int id) -> int {
