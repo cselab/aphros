@@ -62,7 +62,7 @@ install: $(WRK)/$L $(WRK)/main $(WRK)/explorer
 	cp $(WRK)/explorer '$(APHROS_PREFIX)'/bin/ap.explorer
 install_js: $(WRK)/$J
 	mkdir -p '$(APHROS_PREFIX)'/lib
-	cp $(WRK)/$J "$(APHROS_PREFIX)"/lib
+	cp $(WRK)/$J '$(APHROS_PREFIX)'/lib
 bin: $B
 clean:
 	-rm -f $O $(O_MPI) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $B
