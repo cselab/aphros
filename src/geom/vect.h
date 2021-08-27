@@ -16,6 +16,13 @@ T sqr(T a) {
   return a * a;
 }
 
+// Non-negative remainder of integer division
+template <class Int>
+Int mod_positive(Int a, Int divisor) {
+  const Int res = a % divisor;
+  return res >= 0 ? res : res + divisor;
+}
+
 template <class Scal>
 bool IsFinite(Scal a) {
   return std::isfinite(a);
@@ -25,6 +32,7 @@ template <class Scal>
 bool IsNan(Scal a) {
   return std::isnan(a);
 }
+
 
 namespace generic {
 
@@ -394,6 +402,14 @@ class Vect {
     }
     return r;
   }
+  Vect mod_positive(const Vect& divisor) const {
+    Vect res;
+    for (size_t i = 0; i < dim; ++i) {
+      res[i] = ::mod_positive<Scal>(data_[i], divisor[i]);
+    }
+    return res;
+  }
+
   template <class T = Scal>
   operator std::vector<T>() const {
     return std::vector<T>(data_.begin(), data_.end());

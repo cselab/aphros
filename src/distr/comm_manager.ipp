@@ -7,29 +7,6 @@
 
 #include "comm_manager.h"
 
-// Communication manager.
-// Assigns blocks to processors and enumerates halo cells.
-// For example, to exclude blocks with all excluded cells.
-//
-// The computational domain is a subset of cells.
-// Its bounding box is divided into equally sizes blocks.
-// Blocks that contain cells from the computational domain are
-// distributed among multiple processors.
-// Each block is assigned to only one processor,
-// while one processor may have multiple blocks.
-//
-// Each block is characterized by:
-// * extent in cell space
-// * processor
-// * cost
-//
-// The processors are assigned to blocks such that:
-// * the total cost of blocks owned by a processor is uniform
-// * the communication area is minimized
-// * regular enumeration is a special case if all blocks have the same cost
-//   and the number of blocks is divisible by the number of processors
-//   in each direction
-
 template <size_t dim_>
 struct CommManager<dim_>::Imp {
   using Rank = int;
@@ -44,7 +21,7 @@ struct CommManager<dim_>::Imp {
     return true;
   }
   static MIdx GetPeriodic(MIdx w, MIdx globalsize) {
-    return (w + globalsize * 16) % globalsize;
+    return w.mod_positive(globalsize);
   }
   // Returns list of cells to receive from each rank.
   // blocks: blocks on current rank

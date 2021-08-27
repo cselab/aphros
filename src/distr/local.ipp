@@ -16,11 +16,6 @@
 
 #include "util/format.h"
 
-int ModPositive(int a, int divisor) {
-  const int res = a % divisor;
-  return res >= 0 ? res : res + divisor;
-}
-
 template <class M_>
 class Local : public DistrMesh<M_> {
  public:
@@ -556,7 +551,8 @@ void Local<M>::TransferParticles(const std::vector<size_t>& bb) {
           for (size_t d : m.dirs) {
             if (m.flags.is_periodic[d]) {
               // canonical index of block from periodic conditions
-              const int canon = ModPositive(block[d], m.flags.global_blocks[d]);
+              const int canon =
+                  mod_positive(block[d], m.flags.global_blocks[d]);
               if (canon != block[d]) {
                 const int image = (canon - block[d]) / m.flags.global_blocks[d];
                 xtrans[d] += image * m.GetGlobalLength()[d];

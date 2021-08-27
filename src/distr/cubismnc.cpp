@@ -46,13 +46,13 @@ class ModuleDistrCubismnc : public ModuleDistr<M> {
       MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var) override {
     std::unique_ptr<DistrMesh<M>> r;
     // 3D
-    Try<32, 32, 32>(comm, kf, var, r);
+    //Try<32, 32, 32>(comm, kf, var, r);
     Try<16, 16, 16>(comm, kf, var, r);
-    Try<8, 8, 8>(comm, kf, var, r);
+    //Try<8, 8, 8>(comm, kf, var, r);
     // 2D
-    Try<32, 32, 1>(comm, kf, var, r);
-    Try<16, 16, 1>(comm, kf, var, r);
-    Try<8, 8, 1>(comm, kf, var, r);
+    //Try<32, 32, 1>(comm, kf, var, r);
+    //Try<16, 16, 1>(comm, kf, var, r);
+    //Try<8, 8, 1>(comm, kf, var, r);
     fassert(
         r, util::Format(
                "{}: no instance with bs={} {} {}, hl={}", __func__,

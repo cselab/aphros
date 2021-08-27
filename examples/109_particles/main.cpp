@@ -36,8 +36,9 @@ void Run(M& m, Vars& var) {
     std::vector<Vect> velocity;
     std::vector<Vect> force;
     std::vector<bool> is_inner; // particle is owned by current block
-    std::vector<Scal> owner_init; // block owning particles after initialization
-    std::vector<Scal> owner_comm; // block owning particles after communication
+    std::vector<Scal> block_init; // block owning particles after initialization
+    std::vector<Scal> block_comm; // block owning particles after communication
+    std::vector<Scal> rank_init; // rank owning particles after communication
     std::vector<std::pair<std::string, std::vector<Scal>>> csvdata;
     Scal npart; // total number of particles inner particles
     Scal dist_mean; // mean distance from axis
@@ -49,7 +50,7 @@ void Run(M& m, Vars& var) {
   auto dump = [&](std::string path, bool only_inner){
     if (sem("dump_local")) {
       t.csvdata.clear();
-      t.owner_comm.resize(t.x.size(), m.GetId());
+      t.block_comm.resize(t.x.size(), m.GetId());
       auto append = [&](std::string name, auto func) {
         t.csvdata.emplace_back(name, std::vector<Scal>());
         for (size_t i = 0; i < t.x.size(); ++i) {
@@ -58,7 +59,7 @@ void Run(M& m, Vars& var) {
           }
         }
       };
-      // Add coordinates
+      // Add positions
       for (auto d : m.dirs) {
         const std::string name(1, M::Dir(d).letter());
         append(name, [&](auto& data, size_t i) { //
@@ -66,11 +67,17 @@ void Run(M& m, Vars& var) {
         });
       }
       // Add other fields
-      append("owner_init", [&](auto& data, size_t i) { //
-        data.push_back(t.owner_init[i]);
+      append("block_init", [&](auto& data, size_t i) { //
+        data.push_back(t.block_init[i]);
       });
-      append("owner_comm", [&](auto& data, size_t i) { //
-        data.push_back(t.owner_comm[i]);
+      append("block_comm", [&](auto& data, size_t i) { //
+        data.push_back(t.block_comm[i]);
+      });
+      append("rank_init", [&](auto& data, size_t i) { //
+        data.push_back(m.GetMpiRankFromId(t.block_init[i]));
+      });
+      append("rank_comm", [&](auto& data, size_t i) { //
+        data.push_back(m.GetMpiRankFromId(t.block_comm[i]));
       });
       append("inner", [&](auto& data, size_t i) { //
         data.push_back(t.is_inner[i]);
@@ -100,18 +107,17 @@ void Run(M& m, Vars& var) {
         }
       }
     }
-    t.owner_init.resize(t.x.size(), m.GetId());
+    t.block_init.resize(t.x.size(), m.GetId());
     t.velocity.resize(t.x.size());
     t.is_inner.resize(t.x.size(), true);
     m.flags.particles_halo_radius = var.Double["cutoff"] / m.GetCellSize()[0];
   }
-  dump("particles_0.csv", false);
   sem.LoopBegin();
   if (sem("commpart")) {
     typename M::CommPartRequest req;
     req.x = &t.x;
     req.is_inner = &t.is_inner;
-    req.attr_scal = {&t.owner_init};
+    req.attr_scal = {&t.block_init};
     req.attr_vect = {&t.velocity};
     m.CommPart(req);
   }
@@ -177,9 +183,9 @@ void Run(M& m, Vars& var) {
     const Scal dt = var.Double["dt"];
     for (size_t i = 0; i < t.x.size(); ++i) {
       if (t.is_inner[i]) {
-        t.velocity[i] += dt * t.force[i];
-        t.x[i] += dt * t.velocity[i];
-        //t.x[i] += Vect(0.02, 0, 0); // XXX
+        //t.velocity[i] += dt * t.force[i];
+        //t.x[i] += dt * t.velocity[i];
+        t.x[i] += dt * Vect(3, 2, 1);
       }
     }
   }
