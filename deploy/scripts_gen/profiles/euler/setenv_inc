@@ -5,7 +5,6 @@ module load gcc
 module load cmake
 module load openmpi
 module load hdf5
-module load gsl
 module load python
 module load libszip
 
