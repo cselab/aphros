@@ -4,7 +4,6 @@ project("aphros-deploy")
 option(USE_FPZIP "Install fpzip. Used for compression of communication buffers (experimental)" OFF)
 option(USE_HYPRE "Install Hypre library providing linear solvers" ON)
 option(USE_AMGX "Install AMGX, linear solver on GPUs. Requires CUDA Toolkit" OFF)
-option(USE_GSL "Install utilities that require GSL: chmath, csv, split" OFF)
 option(USE_HDF5 "Install utilities that require HDF5: h5" OFF)
 
 set(NAMEPREFIX ap.)
