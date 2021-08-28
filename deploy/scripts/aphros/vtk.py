@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    pass
 import re
 import sys
 import inspect
