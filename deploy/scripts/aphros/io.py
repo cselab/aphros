@@ -1,8 +1,10 @@
-import numpy
 import os
 import re
-import numpy as np
 from aphros.vtk import ReadVtkPoly
+try:
+    import numpy as np
+except ImportError:
+    pass
 
 def ReadPlain(fn):
     '''
@@ -20,11 +22,11 @@ def ReadPlain(fn):
     with open(fn) as f:
         ll = f.readlines()
         # shape x,y,z
-        s = numpy.array(ll[0].split(), dtype=int)
+        s = np.array(ll[0].split(), dtype=int)
         # shape z,y,x
         ss = tuple(reversed(s))
         # data flat
-        u = numpy.array(ll[1].split(), dtype=float)
+        u = np.array(ll[1].split(), dtype=float)
         # data z,y,x
         u = u.reshape(ss)
         return u

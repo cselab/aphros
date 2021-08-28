@@ -4,7 +4,6 @@ import glob
 import os
 import re
 import sys
-import numpy as np
 from argparse import Namespace
 
 # https://github.com/OrdnanceSurvey/GeoDataViz-Toolkit/tree/master/Colours
@@ -25,6 +24,11 @@ except:
 try:
     import scipy
     import scipy.interpolate
+except ImportError:
+    pass
+
+try:
+    import numpy as np
 except ImportError:
     pass
 
