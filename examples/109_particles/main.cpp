@@ -20,6 +20,7 @@
 #include <util/distr.h>
 #include <util/filesystem.h>
 #include <util/format.h>
+#include <util/timer.h>
 #include <util/vof.h>
 
 using M = MeshCartesian<double, 3>;
@@ -43,11 +44,14 @@ void Run(M& m, Vars& var) {
     Scal npart; // total number of particles inner particles
     Scal dist_mean; // mean distance from axis
     Scal dist_var; // variance of distance from z-axis
+    Scal last_time = 0;
     int step = 0;
+    std::unique_ptr<SingleTimer> timer;
   } * ctx(sem);
   auto& t = *ctx;
 
-  auto dump = [&](std::string path, bool only_inner){
+  auto dump = [&t,&m](std::string path, bool only_inner) {
+    auto sem = m.GetSem("dump");
     if (sem("dump_local")) {
       t.csvdata.clear();
       t.block_comm.resize(t.x.size(), m.GetId());
@@ -114,6 +118,12 @@ void Run(M& m, Vars& var) {
   }
   sem.LoopBegin();
   if (sem("commpart")) {
+    if (m.IsRoot()) {
+      if (t.timer) {
+        t.last_time = t.timer->GetSeconds();
+      }
+      t.timer.reset(new SingleTimer());
+    }
     typename M::CommPartRequest req;
     req.x = &t.x;
     req.is_inner = &t.is_inner;
@@ -121,7 +131,9 @@ void Run(M& m, Vars& var) {
     req.attr_vect = {&t.velocity};
     m.CommPart(req);
   }
-  dump(util::Format("particles_{:04d}.csv", t.step), false);
+  if (sem.Nested("dump") && t.step % var.Int["dump_every"] == 0) {
+    dump(util::Format("particles_{:04d}.csv", t.step), false);
+  }
   if (sem("stat_mean")) {
     t.npart = 0;
     t.dist_mean = 0;
@@ -152,8 +164,8 @@ void Run(M& m, Vars& var) {
     t.dist_var /= t.npart;
     if (m.IsRoot()) {
       std::cout << util::Format(
-          "step={:02d} npart={} mean={:.8e} std={:.8e}\n", t.step, t.npart,
-          t.dist_mean, std::sqrt(t.dist_var));
+          "step={:02d} npart={} mean={:.8e} std={:.8e} time={:.5g}\n", t.step,
+          t.npart, t.dist_mean, std::sqrt(t.dist_var), t.last_time);
     }
     if (++t.step > var.Int["nsteps"]) {
       sem.LoopBreak();
@@ -183,9 +195,9 @@ void Run(M& m, Vars& var) {
     const Scal dt = var.Double["dt"];
     for (size_t i = 0; i < t.x.size(); ++i) {
       if (t.is_inner[i]) {
-        //t.velocity[i] += dt * t.force[i];
-        //t.x[i] += dt * t.velocity[i];
-        t.x[i] += dt * Vect(3, 2, 1);
+        t.velocity[i] += dt * t.force[i];
+        t.x[i] += dt * t.velocity[i];
+        //t.x[i] += dt * Vect(3, 2, 1);
       }
     }
   }
@@ -216,6 +228,8 @@ int main(int argc, const char** argv) {
       .Help("Number of particles in along circle");
   parser.AddVariable<int>("--naxis", 32).Help(
       "Number of particles along axis in z-direction");
+  parser.AddVariable<int>("--dump_every", 1)
+      .Help("Number of steps between dumps");
   parser.AddVariable<double>("--cutoff", 0.15).Help("Cutoff radius of force");
   parser.AddVariable<double>("--dt", 0.001).Help("Time step");
   parser.AddVariable<std::string>("--extra", "")
@@ -237,6 +251,7 @@ int main(int argc, const char** argv) {
   conf += "\nset int ncirc " + args.Int.GetStr("ncirc");
   conf += "\nset int naxis " + args.Int.GetStr("naxis");
   conf += "\nset int nsteps " + args.Int.GetStr("nsteps");
+  conf += "\nset int dump_every " + args.Int.GetStr("dump_every");
   conf += "\nset double cutoff " + args.Double.GetStr("cutoff");
   conf += "\nset double dt " + args.Double.GetStr("dt");
   conf += "\n" + args.String["extra"];

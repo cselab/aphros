@@ -851,7 +851,6 @@ void Cubismnc<Par, M>::DumpWrite(const std::vector<size_t>& bb) {
   }
 }
 
-// TODO: remove `bb` from arguemnts, unused
 template <class Par, class M>
 void Cubismnc<Par, M>::TransferParticles(const std::vector<size_t>&) {
   const size_t nreq = kernels_.front()->GetMesh().GetCommPart().size();
@@ -1005,20 +1004,6 @@ void Cubismnc<Par, M>::TransferParticles(const std::vector<size_t>&) {
         MPI_IN_PLACE, rank_to_count.data(), rank_to_count.size(), MPI_INT,
         MPI_SUM, comm));
 
-    for (size_t i = 0; i < rank_to_count.size(); ++i) {
-      if (rank_to_count[i] && int(i) != myrank) {
-        std::cerr << util::Format(
-            "rank {} needs to send {} messages to rank {}\n", myrank,
-            rank_to_count[i], i);
-      }
-    }
-
-    for (size_t i = 0; i < rank_to_count.size(); ++i) {
-      std::cerr << util::Format(
-          "rank {} needs to receive {} messages from other ranks\n", myrank,
-          rank_to_count[myrank]);
-    }
-
     // Initialize the request buffers with local particles
     for (auto& kernel : kernels_) {
       auto& m = kernel->GetMesh();
@@ -1036,6 +1021,15 @@ void Cubismnc<Par, M>::TransferParticles(const std::vector<size_t>&) {
         for (size_t a = 0; a < nattr_vect; ++a) {
           (*req.attr_vect[a]) = tmp_attr_vect.at(id)[a];
         }
+      } else {
+        req.x->clear();
+        req.is_inner->clear();
+        for (size_t a = 0; a < nattr_scal; ++a) {
+          req.attr_scal[a]->clear();
+        }
+        for (size_t a = 0; a < nattr_vect; ++a) {
+          req.attr_vect[a]->clear();
+        }
       }
     }
 
@@ -1050,8 +1044,6 @@ void Cubismnc<Par, M>::TransferParticles(const std::vector<size_t>&) {
       MPICALL(MPI_Recv(
           buf.data(), buf.size(), MPI_CHAR, rank, tag, comm,
           MPI_STATUS_IGNORE));
-      std::cerr << util::Format(
-          "Rank {}: receiving from rank {}\n", myrank, rank);
       // Current position in serial buffer
       auto pos = buf.begin();
       // Reads element from serial buffer to `elem`
@@ -1077,10 +1069,6 @@ void Cubismnc<Par, M>::TransferParticles(const std::vector<size_t>&) {
         deserialize(nscal);
         size_t nvect; // Number of vector attributes
         deserialize(nvect);
-
-        std::cerr << util::Format(
-            "Rank {}: receiving {} particles from rank {} to block {}\n",
-            myrank, npart, rank, id);
 
         fassert_equal(rank_from_id_(id), myrank);
         fassert_equal(nscal, nattr_scal);
