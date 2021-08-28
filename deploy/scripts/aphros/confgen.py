@@ -4,10 +4,12 @@ import argparse
 import math
 import os
 import sys
-import numpy as np
 import copy
 import subprocess
-
+try:
+    import numpy as np
+except ImportError:
+    pass
 
 def NormalizeType(v):
     if isinstance(v, (float, np.float, np.float32, np.float64)):
