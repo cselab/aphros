@@ -77,7 +77,14 @@ if (USE_HDF)
     set(HDF5_PREFER_PARALLEL ON)
   endif()
   set(HDF5_NO_FIND_PACKAGE_CONFIG_FILE ON)
-  find_package(HDF5 REQUIRED COMPONENTS C HL)
+  find_package(HDF5 COMPONENTS C HL)
+  if (NOT ${HDF5_FOUND})
+        message(FATAL_ERROR
+        "**********\n"
+        "HDF5 library is not found. Run `cmake` with -DUSE_HDF=0 to build aphros without HDF5. Alternativly, you can install HDF5 by\n"
+        "$ sudo apt install libhdf5-mpich-dev\n"
+        "**********\n")
+  endif()
   if (USE_MPI AND NOT HDF5_IS_PARALLEL)
     message(FATAL_ERROR "No parallel HDF5")
   endif()
