@@ -1,3 +1,17 @@
+set(T "report")
+add_object(${T} report.cpp)
+object_link_libraries(${T})
+
+set(T "distr")
+add_object(${T} distr.cpp)
+object_link_libraries(${T}
+    sysinfo report parser suspender vars histogram dumper git subcomm
+    dump_xmf dump_raw PRIVATE use_dims openmp)
+
+set(T "distr_particles")
+add_object(${T} distr_particles.cpp)
+object_link_libraries(${T} use_dims use_mpi)
+
 if (USE_BACKEND_LOCAL)
   set(T "local")
   add_object(${T} local.cpp)
@@ -7,7 +21,7 @@ endif()
 if (USE_BACKEND_CUBISM)
   set(T "cubismnc")
   add_object(${T} cubismnc.cpp)
-  object_link_libraries(${T} hdf distr use_mpi PRIVATE openmp)
+  object_link_libraries(${T} hdf distr distr_particles use_mpi PRIVATE openmp)
   object_compile_definitions(${T} PRIVATE _ALIGNBYTES_=16 _USE_HDF_)
   if (USE_WARNINGS)
     object_compile_options(${T} PRIVATE -Wall -Wextra -pedantic -Wno-shadow)
@@ -21,22 +35,12 @@ endif()
 if (USE_BACKEND_NATIVE)
   set(T "native")
   add_object(${T} native.cpp)
-  object_link_libraries(${T} distr dump_raw dump_xmf use_dims)
+  object_link_libraries(${T} distr distr_particles dump_raw dump_xmf use_dims)
 
   set(T "comm_manager")
   add_object(${T} comm_manager.cpp)
   object_link_libraries(${T} distr use_mpi)
 endif()
-
-set(T "report")
-add_object(${T} report.cpp)
-object_link_libraries(${T})
-
-set(T "distr")
-add_object(${T} distr.cpp)
-object_link_libraries(${T}
-    sysinfo report parser suspender vars histogram dumper git subcomm
-    dump_xmf dump_raw PRIVATE use_dims openmp)
 
 set(T "distrsolver")
 add_object(${T} distrsolver.cpp)

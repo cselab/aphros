@@ -65,6 +65,7 @@ class DistrMesh {
   bool isroot_ = false; // XXX: overwritten by derived classes
   std::vector<std::unique_ptr<KernelMesh<M>>> kernels_;
   std::unique_ptr<M> mshared_;
+  std::function<int(int)> rank_from_id_; // Returns MPI rank from block id
 
   DistrMesh(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var);
   // Performs communication and returns indices of blocks with updated halos.

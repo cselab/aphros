@@ -11,6 +11,7 @@
 
 #include "comm_manager.h"
 #include "distr.h"
+#include "distr_particles.h"
 #include "dump/dumper.h"
 #include "util/format.h"
 #include "util/mpi.h"
@@ -42,6 +43,7 @@ class Native : public DistrMesh<M_> {
   void Bcast(const std::vector<size_t>& bb) override;
   void Scatter(const std::vector<size_t>& bb) override;
   void DumpWrite(const std::vector<size_t>& bb) override;
+  void TransferParticles(const std::vector<size_t>& bb) override;
 
   using P::comm_;
   using P::domain_;
@@ -50,6 +52,7 @@ class Native : public DistrMesh<M_> {
   using P::kernelfactory_;
   using P::kernels_;
   using P::mshared_;
+  using P::rank_from_id_;
   using P::stage_;
   using P::var;
 
@@ -126,14 +129,15 @@ Native<M>::Native(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
   }
 
   // Set implementation of GetMpiRankFromId()
+  rank_from_id_ = [domain = domain_](int id) -> int {
+    const MIdx global_blocks = domain.nblocks * domain.nprocs;
+    const MIdx block = GIndex<int, dim>(global_blocks).GetMIdx(id);
+    const MIdx proc = block / domain.nblocks;
+    return GIndex<int, dim>(domain.nprocs).GetIdx(proc);
+  };
   for (auto& kernel : kernels_) {
     auto& m = kernel->GetMesh();
-    m.SetHandlerMpiRankFromId([domain = domain_](int id) -> int {
-      const MIdx global_blocks = domain.nblocks * domain.nprocs;
-      const MIdx block = GIndex<int, dim>(global_blocks).GetMIdx(id);
-      const MIdx proc = block / domain.nblocks;
-      return GIndex<int, dim>(domain.nprocs).GetIdx(proc);
-    });
+    m.SetHandlerMpiRankFromId(rank_from_id_);
   }
 }
 
@@ -691,6 +695,11 @@ void Native<M>::DumpWrite(const std::vector<size_t>& bb) {
     }
     P::DumpWrite(bb);
   }
+}
+
+template <class M>
+void Native<M>::TransferParticles(const std::vector<size_t>&) {
+  ::TransferParticles<M>(kernels_, comm_, rank_from_id_);
 }
 
 template <class M>

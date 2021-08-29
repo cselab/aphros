@@ -39,6 +39,7 @@ class Local : public DistrMesh<M_> {
   using P::kernelfactory_;
   using P::kernels_;
   using P::mshared_;
+  using P::rank_from_id_;
   using P::stage_;
   using P::var;
 
@@ -118,11 +119,12 @@ Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
 
   this->MakeKernels(proxies_);
 
+  rank_from_id_ = [](int id) -> int { //
+    return 0;
+  };
   for (auto& kernel : kernels_) {
     auto& m = kernel->GetMesh();
-    m.SetHandlerMpiRankFromId([](int) -> int { //
-      return 0;
-    });
+    m.SetHandlerMpiRankFromId(rank_from_id_);
   }
 }
 

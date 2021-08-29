@@ -248,6 +248,7 @@ set(ObjLibs
   convdiffvg
   curv
   distr
+  distr_particles
   distrbasic
   distrsolver
   dump
