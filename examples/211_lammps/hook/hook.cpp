@@ -22,6 +22,7 @@ void StepHook(Hydro<M>* hydro) {
   auto& m = hydro->m;
   auto& var = hydro->var;
   auto sem = m.GetSem();
+  auto* lmp = static_cast<SharedState*>(hydro->par_.ptr);
 
   // State persistent across all stages (sections `sem()`) of one call
   struct {
@@ -44,30 +45,61 @@ void StepHook(Hydro<M>* hydro) {
   if (sem()) {
     t.velocity_mean /= t.volume;
     std::cout << util::Format(
-        "StepHook: t={:} uservar={:} velocity_mean={:}\n\n",
-        hydro->fs_->GetTime(), var.Int["uservar"], t.velocity_mean);
-    Lammps* plmp = (Lammps*)hydro->par_.ptr;
-    lammps_gather_atoms(plmp->lmp, (char*)"x", 1, 3, plmp->x);
-    double** f = lammps_fix_external_get_force(plmp->lmp, "aphros_array");
-    for (long i = 0; i < plmp->natoms; i++) {
-      f[i][0] = 10 * plmp->x[3 * i];
-      f[i][1] = 10 * plmp->x[3 * i + 1];
-      f[i][2] = 10 * plmp->x[3 * i + 2];
+	"StepHook: t={:} uservar={:} velocity_mean={:}\n\n",
+	hydro->fs_->GetTime(), var.Int["uservar"], t.velocity_mean);
+    lammps_gather_atoms(lmp->lmp, (char*)"x", 1, 3, lmp->x);
+    double** f = lammps_fix_external_get_force(lmp->lmp, "aphros_array");
+    for (long i = 0; i < lmp->natoms; i++) {
+      f[i][0] = 10 * lmp->x[3 * i];
+      f[i][1] = 10 * lmp->x[3 * i + 1];
+      f[i][2] = 10 * lmp->x[3 * i + 2];
     }
-    lammps_command(plmp->lmp, "run 1");
+    lammps_command(lmp->lmp, "run 1");
   }
 }
 
 template <class M>
 void InitHook(Hydro<M>* hydro) {
-  static Lammps lmp;
-  lmp.lmp = lammps_open_no_mpi(0, NULL, NULL);
-  lammps_file(lmp.lmp, "in.lj");
-  lmp.natoms = lammps_get_natoms(lmp.lmp);
-  lmp.x = (double*)malloc(3 * lmp.natoms * sizeof *lmp.x);
-  hydro->par_.ptr = (void*)&lmp;
+  auto& m = hydro->m;
+  auto sem = m.GetSem();
+  if (sem()) {
+    if (m.IsLead()) { // Executed only on the lead block, once in each rank.
+		      // There is only one lead block in each rank.
+      // Allocate memory for the shared state and save pointer in the solver.
+      hydro->par_.ptr = new Lammps();
+      auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
+      lmp->lmp = lammps_open_no_mpi(0, NULL, NULL);
+      lammps_file(lmp->lmp, "in.lj");
+      lmp->natoms = lammps_get_natoms(lmp->lmp);
+      lmp->x = (double*)malloc(3 * lmp->natoms * sizeof(double));
+      if (lmp->x == NULL)
+	fassert(false, "fail to allocate memory for data");
+    }
+    if (m.IsRoot()) { // Executed only on the root block, once over all ranks.
+		      // There is only one root block over all ranks.
+      auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
+    }
+  }
+}
+
+template <class M>
+void FinalHook(Hydro<M>* hydro) {
+  auto& m = hydro->m;
+  auto sem = m.GetSem();
+  auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
+  if (sem()) {
+    if (m.IsRoot()) {
+      std::cout << util::Format(
+	  "FinalHook t={:} foo={:}\n\n", hydro->fs_->GetTime(), shared->foo);
+    }
+    if (m.IsLead()) {
+      free(lmp->x);
+      delete lmp;
+    }
+  }
 }
 
 using M = MeshCartesian<double, 3>;
 template void StepHook(Hydro<M>*);
 template void InitHook(Hydro<M>*);
+template void FinalHook(Hydro<M>*);
