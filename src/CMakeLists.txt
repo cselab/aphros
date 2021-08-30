@@ -25,6 +25,7 @@ option(USE_OPENMP "Enable OpenMP" ON)
 option(USE_OPENCL "Enable OpenCL for GPU support" OFF)
 option(USE_TESTS "Build tests and enable testing" ON)
 option(USE_WARNINGS "Enable compiler warnings" ON)
+option(FIND_HDF "Automatically find HDF5" ON)
 
 set(CMAKE_MACOSX_RPATH OFF)
 set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
@@ -34,6 +35,7 @@ set(CMAKE_LINK_DEPENDS_NO_SHARED ON)
 set(APHROS_USE_MPI ${USE_MPI})
 set(APHROS_USE_OPENMP ${USE_OPENMP})
 set(APHROS_USE_HDF ${USE_HDF})
+set(APHROS_FIND_HDF ${FIND_HDF})
 include(client.cmake)
 
 # git revision
