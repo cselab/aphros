@@ -16,13 +16,14 @@ struct Lammps {
 
 template <class M>
 void StepHook(Hydro<M>* hydro) {
+  fassert(0);  
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
   auto& m = hydro->m;
   auto& var = hydro->var;
   auto sem = m.GetSem();
-  auto* lmp = static_cast<SharedState*>(hydro->par_.ptr);
+  auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
 
   // State persistent across all stages (sections `sem()`) of one call
   struct {
@@ -60,6 +61,7 @@ void StepHook(Hydro<M>* hydro) {
 
 template <class M>
 void InitHook(Hydro<M>* hydro) {
+  fassert(0);
   auto& m = hydro->m;
   auto sem = m.GetSem();
   if (sem()) {
@@ -77,20 +79,21 @@ void InitHook(Hydro<M>* hydro) {
     }
     if (m.IsRoot()) { // Executed only on the root block, once over all ranks.
 		      // There is only one root block over all ranks.
-      auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
+      //auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
     }
   }
 }
 
 template <class M>
 void FinalHook(Hydro<M>* hydro) {
+  fassert(0);
   auto& m = hydro->m;
   auto sem = m.GetSem();
   auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
   if (sem()) {
     if (m.IsRoot()) {
       std::cout << util::Format(
-	  "FinalHook t={:} foo={:}\n\n", hydro->fs_->GetTime(), shared->foo);
+	  "FinalHook t={:} \n\n", hydro->fs_->GetTime());
     }
     if (m.IsLead()) {
       free(lmp->x);
