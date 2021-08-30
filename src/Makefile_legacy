@@ -4,14 +4,16 @@ SRC = .
 WRK = .
 L = libaphros_static.a
 J = libaphros_js.a
+K = libaphros_shared.so
 USE_MPI = 0
 USE_HDF = 0
 USE_OPENMP = 1
 CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g
 CXXFLAGS_STD = -std=c++14
-CC_RULE = $(CC) -c $(CFLAGS) -o $@
-CXX_RULE = $(ENV_HDF) $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) -I$(SRC) $1 -o $@
+FLAGS_FPIC = -fPIC
+CC_RULE = $(CC) -c $(CFLAGS) $(FLAGS_FPIC) -o $@
+CXX_RULE = $(ENV_HDF) $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(FLAGS_FPIC) -I$(SRC) $1 -o $@
 LINK = $(ENV_HDF) $(CXX)
 LINK_FLAGS = $(WRK)/$L $(LDFLAGS) -o $@
 1 = \
@@ -44,6 +46,7 @@ include $(SRC)/../make/unix/rule.mk
 
 $(WRK)/$L: $O $(O_MPI) ; mkdir -p $(WRK) && ar rv $@ $O $(O_MPI) && ranlib $@
 $(WRK)/$J: $O $(O_MPI) ; mkdir -p $(WRK) && emar rv $@ $O $(O_MPI)
+$(WRK)/$K: $O $(O_MPI) ; mkdir -p $(WRK) && $(LINK) -shared -o $@ $O $(O_MPI)
 $(WRK)/.dir:; mkdir -p $P && > $@
 $(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@
 $(SRC)/explorer.inc:; out="$@" base=$(SRC)/../deploy/scripts/sim_base.conf wasm="$(SRC)/../examples/107_wasm/conf/std.conf" $(SRC)/explorer_gen
@@ -61,8 +64,12 @@ install: $(WRK)/$L $(WRK)/main $(WRK)/explorer
 	cp $(WRK)/explorer '$(APHROS_PREFIX)'/bin/ap.explorer
 install_js: $(WRK)/$J
 	mkdir -p '$(APHROS_PREFIX)'/lib
-	cp $(WRK)/$J '$(APHROS_PREFIX)'/lib
+	cp $@ '$(APHROS_PREFIX)'/lib
+install_shared: $(WRK)/$K
+	mkdir -p '$(APHROS_PREFIX)'/lib
+	cp $@ '$(APHROS_PREFIX)'/lib
 bin: $B
+shared: $K
 clean:
-	-rm -f $O $(O_MPI) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $B
+	-rm -f $O $(O_MPI) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/$K $B
 	-rmdir -p $P
