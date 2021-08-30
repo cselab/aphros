@@ -11,6 +11,14 @@ static void* lmp;
 static long natoms;
 
 template <class M>
+void InitHook(Hydro<M>* hydro) {
+  auto& m = hydro->m;
+  if (m.IsRoot()) {
+    std::cout << util::Format("InitHook t={:}\n\n", hydro->fs_->GetTime());
+  }
+}
+
+template <class M>
 void StepHook(Hydro<M>* hydro) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
@@ -39,19 +47,23 @@ void StepHook(Hydro<M>* hydro) {
   }
   if (sem()) {
     t.velocity_mean /= t.volume;
-    std::cout << util::Format(
-        "StepHook: t={:} uservar={:} velocity_mean={:}\n\n",
-        hydro->fs_->GetTime(), var.Int["uservar"], t.velocity_mean);
+    if (m.IsRoot()) {
+      std::cout << util::Format(
+          "StepHook: t={:} uservar={:} velocity_mean={:}\n\n",
+          hydro->fs_->GetTime(), var.Int["uservar"], t.velocity_mean);
+    }
   }
 }
 
 template <class M>
-void InitHook(Hydro<M>* hydro) {
-  lmp = lammps_open_no_mpi(0, NULL, NULL);
-  lammps_file(lmp, path);
-  natoms = lammps_get_natoms(lmp);
+void FinalHook(Hydro<M>* hydro) {
+  auto& m = hydro->m;
+  if (m.IsRoot()) {
+    std::cout << util::Format("FinalHook t={:}\n\n", hydro->fs_->GetTime());
+  }
 }
 
 using M = MeshCartesian<double, 3>;
-template void StepHook(Hydro<M>*);
 template void InitHook(Hydro<M>*);
+template void StepHook(Hydro<M>*);
+template void FinalHook(Hydro<M>*);
