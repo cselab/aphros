@@ -56,7 +56,7 @@ if (APHROS_USE_HDF)
   if (APHROS_USE_MPI)
     set(HDF5_PREFER_PARALLEL ON)
   endif()
-  find_package(HDF5 REQUIRED COMPONENTS C HL)
+  find_package(HDF5 COMPONENTS C HL)
   if (NOT ${HDF5_FOUND})
         message(FATAL_ERROR
         "**********\n"
