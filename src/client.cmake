@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.3.0)
 
+# Allow using <PackageName>_ROOT variables
+cmake_policy(SET CMP0074 NEW)
+
 if (DEFINED ENV{APHROS_PREFIX})
   set(CMAKE_INSTALL_PREFIX $ENV{APHROS_PREFIX}
       CACHE PATH "Install path prefix. Detected from environment APHROS_PREFIX" FORCE)
@@ -47,6 +50,28 @@ if (APHROS_USE_MPI)
   endif()
   set(CMAKE_C_COMPILER ${MPI_C_COMPILER})
   set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
+endif()
+
+if (APHROS_USE_HDF)
+  if (APHROS_USE_MPI)
+    set(HDF5_PREFER_PARALLEL ON)
+  endif()
+  find_package(HDF5 REQUIRED COMPONENTS C HL)
+  if (NOT ${HDF5_FOUND})
+        message(FATAL_ERROR
+        "**********\n"
+        "HDF5 library is not found. Run cmake with \
+        -DUSE_HDF=0 \
+        -DUSE_BACKEND_CUBISM=0 \
+        -DUSE_BACKEND_LOCAL=1 \
+        -DUSE_BACKEND_NATIVE=1 \
+        to build aphros without HDF5. Alternativly, you can install HDF5 by\n"
+        "$ sudo apt install libhdf5-mpich-dev\n"
+        "**********\n")
+  endif()
+  if (APHROS_USE_MPI AND NOT HDF5_IS_PARALLEL)
+    message(FATAL_ERROR "No parallel HDF5")
+  endif()
 endif()
 
 # warnings

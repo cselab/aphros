@@ -31,6 +31,9 @@ void InitHook(Hydro<M>*) {}
 template <class M>
 void StepHook(Hydro<M>*) {}
 
+template <class M>
+void FinalHook(Hydro<M>*) {}
+
 #define XX(M)                                                                  \
   template void PostHook(const Vars&, const FieldCell<typename M::Vect>&, M&); \
   template void PostHook(                                                      \
@@ -45,7 +48,8 @@ void StepHook(Hydro<M>*) {}
       FieldCell<typename M::Vect>&, FieldFace<typename M::Scal>&,              \
       typename M::Scal t, typename M::Scal dt, const Vars&, const M&);         \
   template void InitHook(Hydro<M>*);                                           \
-  template void StepHook(Hydro<M>*);
+  template void StepHook(Hydro<M>*);                                           \
+  template void FinalHook(Hydro<M>*);
 
 #define COMMA ,
 #define X(dim) XX(MeshCartesian<double COMMA dim>)

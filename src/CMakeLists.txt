@@ -2,9 +2,6 @@ cmake_minimum_required(VERSION 3.10.2)
 
 project("mfer")
 
-# Allow using <PackageName>_ROOT variables
-cmake_policy(SET CMP0074 NEW)
-
 # Require out - of - source build
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR
@@ -36,6 +33,7 @@ set(CMAKE_LINK_DEPENDS_NO_SHARED ON)
 
 set(APHROS_USE_MPI ${USE_MPI})
 set(APHROS_USE_OPENMP ${USE_OPENMP})
+set(APHROS_USE_HDF ${USE_HDF})
 include(client.cmake)
 
 # git revision
@@ -73,26 +71,6 @@ endif()
 
 if (USE_HDF)
   set(T "hdf")
-  if (USE_MPI)
-    set(HDF5_PREFER_PARALLEL ON)
-  endif()
-  set(HDF5_NO_FIND_PACKAGE_CONFIG_FILE ON)
-  find_package(HDF5 COMPONENTS C HL)
-  if (NOT ${HDF5_FOUND})
-        message(FATAL_ERROR
-        "**********\n"
-        "HDF5 library is not found. Run cmake with \
-        -DUSE_HDF=0 \
-        -DUSE_BACKEND_CUBISM=0 \
-        -DUSE_BACKEND_LOCAL=1 \
-        -DUSE_BACKEND_NATIVE=1 \
-        to build aphros without HDF5. Alternativly, you can install HDF5 by\n"
-        "$ sudo apt install libhdf5-mpich-dev\n"
-        "**********\n")
-  endif()
-  if (USE_MPI AND NOT HDF5_IS_PARALLEL)
-    message(FATAL_ERROR "No parallel HDF5")
-  endif()
   add_library(${T} INTERFACE)
   target_include_directories(${T} INTERFACE ${HDF5_INCLUDE_DIRS})
   target_link_libraries(${T} INTERFACE ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES})

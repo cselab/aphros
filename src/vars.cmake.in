@@ -1,5 +1,6 @@
 set(APHROS_USE_MPI @USE_MPI@ CACHE BOOL "Enable MPI for distributed computation")
 set(APHROS_USE_OPENMP @USE_OPENMP@ CACHE BOOL "Enable OpenMP")
+set(APHROS_USE_HDF @USE_HDF@ CACHE BOOL "Enable HDF5 for output")
 set(APHROS_DIM1 @USE_DIM1@ CACHE BOOL "Enable 1D geometry")
 set(APHROS_DIM2 @USE_DIM2@ CACHE BOOL "Enable 2D geometry")
 set(APHROS_DIM3 @USE_DIM3@ CACHE BOOL "Enable 3D geometry")

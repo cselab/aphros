@@ -1,4 +1,5 @@
 m = 16 16 16
+bs = 8 8 8
 hook = hook/build/libhook.so
 
 $(hook): hook

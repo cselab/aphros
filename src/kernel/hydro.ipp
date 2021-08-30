@@ -1957,7 +1957,6 @@ void Hydro<M>::Run() {
       }
     }
   }
-
   CheckAbort(sem, ctx->nabort);
 
   if (sem("updatepar")) {
@@ -2052,6 +2051,9 @@ void Hydro<M>::Run() {
     } else {
       PostHook(var, fs_->GetVelocity(), m);
     }
+  }
+  if (sem.Nested("finalhook") && finished_) {
+    FinalHook(this);
   }
 }
 
@@ -2162,11 +2164,12 @@ void Hydro<M>::CheckAbort(Sem& sem, Scal& nabort) {
   }
 
   if (sem("abort-reduce")) {
-    if (nabort != 0.) {
+    if (nabort != 0) {
       if (m.IsRoot()) {
         std::cerr << "nabort = " << nabort << std::endl;
       }
       sem.LoopBreak();
+      finished_ = true;
     }
   }
 }
