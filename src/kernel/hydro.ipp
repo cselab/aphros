@@ -1957,6 +1957,9 @@ void Hydro<M>::Run() {
       }
     }
   }
+  if (sem.Nested("finalhook") && finished_) {
+    FinalHook(this);
+  }
 
   CheckAbort(sem, ctx->nabort);
 

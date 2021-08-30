@@ -41,3 +41,6 @@ void InitHook(Hydro<M>*);
 
 template <class M>
 void StepHook(Hydro<M>*);
+
+template <class M>
+void FinalHook(Hydro<M>*);
