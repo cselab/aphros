@@ -4,12 +4,15 @@
 #include <iostream>
 
 #include <kernel/hydro.h>
+#include <library.h>
 #include <util/format.h>
 #include <util/posthook.h>
-#include <library.h>
 
-static void* lmp;
-static long natoms;
+struct Lammps {
+  void* lmp;
+  long natoms;
+  double* x;
+};
 
 template <class M>
 void StepHook(Hydro<M>* hydro) {
@@ -43,14 +46,26 @@ void StepHook(Hydro<M>* hydro) {
     std::cout << util::Format(
         "StepHook: t={:} uservar={:} velocity_mean={:}\n\n",
         hydro->fs_->GetTime(), var.Int["uservar"], t.velocity_mean);
+    Lammps* plmp = (Lammps*)hydro->par_.ptr;
+    lammps_gather_atoms(plmp->lmp, (char*)"x", 1, 3, plmp->x);
+    double** f = lammps_fix_external_get_force(plmp->lmp, "aphros_array");
+    for (long i = 0; i < plmp->natoms; i++) {
+      f[i][0] = 10 * plmp->x[3 * i];
+      f[i][1] = 10 * plmp->x[3 * i + 1];
+      f[i][2] = 10 * plmp->x[3 * i + 2];
+    }
+    lammps_command(plmp->lmp, "run 1");
   }
 }
 
 template <class M>
 void InitHook(Hydro<M>* hydro) {
-  lmp = lammps_open_no_mpi(0, NULL, NULL);
-  lammps_file(lmp, "in.lj");
-  natoms = lammps_get_natoms(lmp);
+  static Lammps lmp;
+  lmp.lmp = lammps_open_no_mpi(0, NULL, NULL);
+  lammps_file(lmp.lmp, "in.lj");
+  lmp.natoms = lammps_get_natoms(lmp.lmp);
+  lmp.x = (double*)malloc(3 * lmp.natoms * sizeof *lmp.x);
+  hydro->par_.ptr = (void*)&lmp;
 }
 
 using M = MeshCartesian<double, 3>;
