@@ -16,7 +16,6 @@ struct Lammps {
 
 template <class M>
 void StepHook(Hydro<M>* hydro) {
-  fassert(0);  
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
 
@@ -61,7 +60,6 @@ void StepHook(Hydro<M>* hydro) {
 
 template <class M>
 void InitHook(Hydro<M>* hydro) {
-  fassert(0);
   auto& m = hydro->m;
   auto sem = m.GetSem();
   if (sem()) {
@@ -86,7 +84,6 @@ void InitHook(Hydro<M>* hydro) {
 
 template <class M>
 void FinalHook(Hydro<M>* hydro) {
-  fassert(0);
   auto& m = hydro->m;
   auto sem = m.GetSem();
   auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
