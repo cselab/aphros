@@ -11,7 +11,7 @@ cp library.h "$HOME"/.local/include/
 
 # Run
 
-LAMMPS configuration is [in.lj]
+LAMMPS configuration is [in.lj](in.lj), aphros configuration is in [std.conf](std.conf).
 
 ```
 make run
