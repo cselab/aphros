@@ -62,12 +62,9 @@ install: $(WRK)/$L $(WRK)/main $(WRK)/explorer
 	cp $(WRK)/$L '$(APHROS_PREFIX)'/lib
 	cp $(WRK)/main '$(APHROS_PREFIX)'/bin/ap.mfer
 	cp $(WRK)/explorer '$(APHROS_PREFIX)'/bin/ap.explorer
-install_js: $(WRK)/$J
-	mkdir -p '$(APHROS_PREFIX)'/lib
-	cp $@ '$(APHROS_PREFIX)'/lib
 install_shared: $(WRK)/$K
 	mkdir -p '$(APHROS_PREFIX)'/lib
-	cp $@ '$(APHROS_PREFIX)'/lib
+	cp $< '$(APHROS_PREFIX)'/lib
 bin: $B
 shared: $(WRK)/$K
 clean:
