@@ -149,7 +149,6 @@ class UReduce {
   using OpVT = OpT<std::vector<T>>;
 
   // Concatenation of std::vector<char>
-  // Result only on root block.
   class OpCat : public OpVT<char> {
    public:
     using P = OpVT<char>;
@@ -210,58 +209,86 @@ class UReduce {
   };
 
   // Concatenation of std::vector<T>.
-  // Result only on root block.
   template <class T>
   class OpCatT : public OpCat {
    public:
     using P = OpCat; // parent
     using Bytes = std::vector<char>;
-    // vt: buffer containing current value and used for result
+    // buf: buffer containing current value and used for result
     // OpCat::v_ initialized with nullptr // TODO: revise
-    OpCatT(std::vector<T>* vt) : OpCat(nullptr), vt_(vt) {}
-    // Serializes vt_ and appends to a
+    OpCatT(std::vector<T>* buf) : OpCat(nullptr), buf_(buf) {}
+    // Serializes buf_ and appends to a
     void Append(Bytes& a) const override {
-      Bytes v = Serialize(*vt_);
+      Bytes v = Serialize(*buf_);
       a.insert(a.end(), v.begin(), v.end());
     }
-    // Deserializes v to vt_
+    // Deserializes v to buf_
     void Set(const Bytes& v) override {
-      *vt_ = Deserialize(v);
+      *buf_ = Deserialize(v);
     }
 
    protected:
     using P::Append;
-    std::vector<T>* vt_;
+    std::vector<T>* buf_;
 
    private:
-    static Bytes Serialize(const std::vector<T>& vt) {
-      Bytes r; // result
-      for (const T& x : vt) {
+    static Bytes Serialize(const std::vector<T>& buf) {
+      Bytes res;
+      for (const T& x : buf) {
         const char* c = (const char*)(const void*)&x;
         for (size_t i = 0; i < sizeof(T); ++i) {
-          r.push_back(c[i]);
+          res.push_back(c[i]);
         }
       }
-      return r;
+      return res;
     }
-    static std::vector<T> Deserialize(const Bytes& v) {
-      std::vector<T> r; // result
-      assert(v.size() % sizeof(T) == 0);
+    static std::vector<T> Deserialize(const Bytes& src) {
+      std::vector<T> res; // result
+      assert(src.size() % sizeof(T) == 0);
       size_t k = 0;
-      while (k < v.size()) {
+      while (k < src.size()) {
         T x;
         char* c = (char*)(void*)&x;
         for (size_t i = 0; i < sizeof(T); ++i) {
-          c[i] = v[k++];
+          c[i] = src[k++];
         }
-        r.push_back(x);
+        res.push_back(x);
       }
-      return r;
+      return res;
+    }
+  };
+
+  // Concatenation of std::string.
+  class OpCatString : public OpCat {
+   public:
+    using P = OpCat; // parent
+    using Bytes = std::vector<char>;
+    // buf: buffer containing current value and used for result
+    OpCatString(std::string* buf) : OpCat(nullptr), buf_(buf) {}
+    // Serializes buf_ and appends to `dest`
+    void Append(Bytes& dest) const override {
+      const Bytes src = Serialize(*buf_);
+      dest.insert(dest.end(), src.begin(), src.end());
+    }
+    // Deserializes `src` to buf_
+    void Set(const Bytes& src) override {
+      *buf_ = Deserialize(src);
+    }
+
+   protected:
+    using P::Append;
+    std::string* buf_;
+
+   private:
+    static Bytes Serialize(const std::string& buf) {
+      return {buf.begin(), buf.end()};
+    }
+    static std::string Deserialize(const Bytes& buf) {
+      return {buf.begin(), buf.end()};
     }
   };
 
   // Concatenation of std::vector<std::vector<T>>.
-  // Result only on root block.
   template <class T>
   class OpCatVT : public OpCat {
    public:
@@ -332,6 +359,58 @@ class UReduce {
       return res;
     }
   };
+
+  // Concatenation of std::vector<std::string>.
+  class OpCatVectorString : public OpCat {
+   public:
+    using P = OpCat;
+    using Bytes = std::vector<char>;
+    // buf: buffer containing current value and used for result
+    OpCatVectorString(std::vector<std::string>* buf)
+        : OpCat(nullptr), buf_(buf) {}
+    void Append(Bytes& dest) const override {
+      const Bytes v = Serialize(*buf_);
+      dest.insert(dest.end(), v.begin(), v.end());
+    }
+    void Set(const Bytes& src) override {
+      *buf_ = Deserialize(src);
+    }
+
+   protected:
+    using P::Append;
+    std::vector<std::string>* buf_;
+
+   private:
+    static Bytes Serialize(const std::vector<std::string>& buf) {
+      Bytes res;
+      auto serialize = [&res](const auto elem) {
+        const char* ptr = reinterpret_cast<const char*>(&elem);
+        res.insert(res.end(), ptr, ptr + sizeof(elem));
+      };
+      for (const auto& str : buf) {
+        serialize(size_t(str.size()));
+        res.insert(res.end(), str.begin(), str.end());
+      }
+      return res;
+    }
+    static std::vector<std::string> Deserialize(const Bytes& src) {
+      std::vector<std::string> res;
+      auto pos = src.begin();
+      auto deserialize = [&pos](auto& elem) {
+        char* ptr = reinterpret_cast<char*>(&elem);
+        std::copy(pos, pos + sizeof(elem), ptr);
+        pos += sizeof(elem);
+      };
+      while (pos < src.end()) {
+        size_t size;
+        deserialize(size);
+        res.emplace_back(pos, pos + size);
+        pos += size;
+      }
+      return res;
+    }
+  };
+
   void Add(std::unique_ptr<Op>&& o) {
     reqs_.emplace_back(std::move(o));
   }

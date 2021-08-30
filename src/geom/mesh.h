@@ -772,9 +772,15 @@ class MeshCartesian {
   void Reduce(std::vector<T>* buf, ReductionType::Concat) {
     Reduce(std::make_unique<typename UReduce<Scal>::template OpCatT<T>>(buf));
   }
+  void Reduce(std::string* buf, ReductionType::Concat) {
+    Reduce(std::make_unique<typename UReduce<Scal>::OpCatString>(buf));
+  }
   template <class T>
   void Reduce(std::vector<std::vector<T>>* buf, ReductionType::Concat) {
     Reduce(std::make_unique<typename UReduce<Scal>::template OpCatVT<T>>(buf));
+  }
+  void Reduce(std::vector<std::string>* buf, ReductionType::Concat) {
+    Reduce(std::make_unique<typename UReduce<Scal>::OpCatVectorString>(buf));
   }
   void ClearReduce();
   void ReduceToLead(std::unique_ptr<Op>&& o);
