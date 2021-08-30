@@ -65,4 +65,15 @@ Info GetInfo(InfoSelect select) {
   return info;
 }
 
+Misc::Misc(int argc_, const char** argv_) : argc(argc_), argv(argv_) {
+  for (int i = 0; i < argc; ++i) {
+    if (argv[i][0] == '-' && argv[i][1] == '-' && argv[i][2] == '\0') {
+      arg_after_double_dash = i + 1;
+      break;
+    }
+  }
+}
+
+Misc misc;
+
 } // namespace sysinfo

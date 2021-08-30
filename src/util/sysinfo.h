@@ -37,4 +37,15 @@ struct InfoSelect {
 };
 Info GetInfo(InfoSelect);
 
+struct Misc {
+  Misc() = default;
+  Misc(int argc, const char** argv);
+
+  int argc = 0;
+  int arg_after_double_dash = 0; // Index immediately after first `--`
+  const char** argv = nullptr;
+};
+
+extern Misc misc; // Miscellaneous global variables
+
 } // namespace sysinfo

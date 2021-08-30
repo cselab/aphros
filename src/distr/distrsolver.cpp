@@ -12,10 +12,13 @@
 #include "util/git.h"
 #include "util/logger.h"
 #include "util/subcomm.h"
+#include "util/sysinfo.h"
 
 int RunMpi0(
     int argc, const char** argv,
     const std::function<void(MPI_Comm, Vars&)>& kernel) {
+  sysinfo::misc = sysinfo::Misc(argc, argv);
+
 #if USEFLAG(BACKEND_CUBISM)
   FORCE_LINK(distr_cubismnc);
 #endif
@@ -42,7 +45,7 @@ int RunMpi0(
         .Help("Path to configuration file");
     parser.AddSwitch("--logo").Help("Print logo");
     parser.AddSwitch("--exit").Help("Exit before reading the configuration");
-    return parser.ParseArgs(argc, argv);
+    return parser.ParseArgs(argc, argv, "--");
   }();
   if (const int* p = args.Int.Find("EXIT")) {
     return *p;
