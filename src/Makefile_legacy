@@ -69,7 +69,7 @@ install_shared: $(WRK)/$K
 	mkdir -p '$(APHROS_PREFIX)'/lib
 	cp $@ '$(APHROS_PREFIX)'/lib
 bin: $B
-shared: $K
+shared: $(WRK)/$K
 clean:
 	-rm -f $O $(O_MPI) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/$K $B
 	-rmdir -p $P
