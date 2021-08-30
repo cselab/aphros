@@ -37,22 +37,48 @@ std::ostream& operator<<(std::ostream& o, const std::vector<T>& v) {
   return o;
 }
 
-std::ofstream fout;
-
 void Run(M& m, Vars& var) {
   auto sem = m.GetSem("Run");
   struct {
     std::vector<Vect> x;
-    std::vector<Scal> owner_init; // block owning particles after initialization
-    std::vector<Scal> owner_comm; // block owning particles after communication
-    std::vector<std::pair<std::string, std::vector<Scal>>> csvdata;
+    std::vector<Scal> x_first; // first component of position
+    std::vector<Vect> x_copy;
+    std::vector<bool> is_inner; // true if particle is owned by current block
+    std::vector<std::string> msg;
+    std::ofstream fout;
   } * ctx(sem);
   auto& t = *ctx;
+
+  auto stat_to_string = [&]() -> std::string {
+    std::string res;
+    Vect x_mean(0);
+    Vect x_copy_mean(0);
+    Scal x_first_mean = 0;
+    size_t npart_inner = 0;
+    for (size_t i = 0; i < t.x.size(); ++i) {
+      if (t.is_inner[i]) {
+        x_mean += t.x[i];
+        x_copy_mean += t.x_copy[i];
+        x_first_mean += t.x_first[i];
+        ++npart_inner;
+      }
+    }
+    x_mean /= npart_inner;
+    x_copy_mean /= npart_inner;
+    x_first_mean /= npart_inner;
+    res += util::Format(
+        "block {:}, particles {:}, inner particles {:}, x_mean {:}, "
+        "x_copy_mean {:}, x_first_mean {:}\n",
+        m.GetId(), t.x.size(), npart_inner, x_mean, x_copy_mean, x_first_mean);
+    return res;
+  };
+
   if (sem()) {
     std::mt19937 gen(17 + m.GetId());
     std::uniform_real_distribution<double> uniform;
     const int npart = var.Int["npart"];
-    // Seed particles
+    // Seed particles uniformly throughout the domain,
+    // even outside the current block.
     for (int i = 0; i < npart; ++i) {
       Vect x;
       for (auto d : m.dirs) {
@@ -60,40 +86,54 @@ void Run(M& m, Vars& var) {
       }
       t.x.push_back(x);
     }
-    t.owner_init.resize(t.x.size(), m.GetId());
+    t.x_first.resize(t.x.size());
+    for (size_t i = 0; i < t.x.size(); ++i) {
+      t.x_first[i] = t.x[i][0];
+    }
+    t.x_copy = t.x;
+    t.is_inner.resize(t.x.size(), true);
+
+    if (m.IsRoot()) {
+      t.fout.open("stat.log");
+    }
   }
   if (sem()) {
+    t.msg = {stat_to_string()};
+    m.Reduce(&t.msg, Reduction::concat);
+
     typename M::CommPartRequest req;
     req.x = &t.x;
-    req.attr_scal = {&t.owner_init};
-    req.attr_vect = {};
+    req.is_inner = &t.is_inner;
+    req.attr_scal = {&t.x_first};
+    req.attr_vect = {&t.x_copy};
     m.CommPart(req);
   }
   if (sem()) {
-    t.owner_comm.resize(t.x.size(), m.GetId());
-    // Add coordinates
-    for (auto d : m.dirs) {
-      const std::string name(1, M::Dir(d).letter());
-      t.csvdata.emplace_back(name, std::vector<Scal>());
-      for (auto x : t.x) {
-        t.csvdata.back().second.push_back(x[d]);
+    if (m.IsRoot()) {
+      std::sort(t.msg.begin(), t.msg.end());
+      t.fout << "Before communication:\n";
+      for (auto& s : t.msg) {
+        t.fout << s;
       }
     }
-    // Add other fields
-    t.csvdata.emplace_back("owner_init", t.owner_init);
-    t.csvdata.emplace_back("owner_comm", t.owner_comm);
-  }
-  if (sem.Nested()) {
-    DumpCsv(t.csvdata, "particles.csv", m);
   }
   if (sem()) {
-    DumpCsv(t.csvdata, util::Format("particles_{}.csv", m.GetId()));
+    t.msg = {stat_to_string()};
+    m.Reduce(&t.msg, Reduction::concat);
+  }
+  if (sem()) {
+    if (m.IsRoot()) {
+      std::sort(t.msg.begin(), t.msg.end());
+      t.fout << "After communication:\n";
+      for (auto& s : t.msg) {
+        t.fout << s;
+      }
+    }
   }
 }
 
 int main(int argc, const char** argv) {
   MpiWrapper mpi(&argc, &argv);
-  fout.open(util::Format("out_{}", mpi.GetCommRank()));
 
   ArgumentParser parser("Test for particle communication", mpi.IsRoot());
   auto instances = []() {
@@ -109,7 +149,7 @@ int main(int argc, const char** argv) {
       .Options(instances);
   parser.AddVariable<int>("--block", 16).Help("Block size in all directions");
   parser.AddVariable<int>("--mesh", 32).Help("Mesh size in all directions");
-  parser.AddVariable<int>("--npart", 32).Help("Number of particles per block");
+  parser.AddVariable<int>("--npart", 128).Help("Number of particles per block");
   parser.AddVariable<std::string>("--extra", "")
       .Help("Extra configuration (commands 'set ... ')");
   auto args = parser.ParseArgs(argc, argv);

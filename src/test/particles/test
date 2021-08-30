@@ -13,10 +13,15 @@ class Test(aphros.TestBase):
                                  default='native',
                                  choices=['native', 'cubismnc', 'local'],
                                  help="Communication backend")
+        self.parser.add_argument('--np',
+                                 type=int,
+                                 default=1,
+                                 help="Number of MPI processes")
 
     def run(self):
-        self.runcmd("./t.particles --backend {}".format(self.args.backend))
-        return ["particles.csv"]
+        self.runcmd("ap.mpirun -n {:} ./t.particles --backend {}".format(
+            self.args.np, self.args.backend))
+        return ["stat.log"]
 
     def check(self, outdir, refdir, output_files):
         for f in output_files:

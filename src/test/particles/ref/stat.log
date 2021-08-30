@@ -1,0 +1,18 @@
+Before communication:
+block 0, particles 128, inner particles 128, x_mean (0.492171,0.487407,0.526154), x_copy_mean (0.492171,0.487407,0.526154), x_first_mean 0.492171
+block 1, particles 128, inner particles 128, x_mean (0.496089,0.483934,0.531895), x_copy_mean (0.496089,0.483934,0.531895), x_first_mean 0.496089
+block 2, particles 128, inner particles 128, x_mean (0.496087,0.517158,0.45985), x_copy_mean (0.496087,0.517158,0.45985), x_first_mean 0.496087
+block 3, particles 128, inner particles 128, x_mean (0.539046,0.518266,0.539715), x_copy_mean (0.539046,0.518266,0.539715), x_first_mean 0.539046
+block 4, particles 128, inner particles 128, x_mean (0.518496,0.505707,0.490007), x_copy_mean (0.518496,0.505707,0.490007), x_first_mean 0.518496
+block 5, particles 128, inner particles 128, x_mean (0.545945,0.521321,0.496747), x_copy_mean (0.545945,0.521321,0.496747), x_first_mean 0.545945
+block 6, particles 128, inner particles 128, x_mean (0.520508,0.486568,0.49373), x_copy_mean (0.520508,0.486568,0.49373), x_first_mean 0.520508
+block 7, particles 128, inner particles 128, x_mean (0.491539,0.530341,0.488792), x_copy_mean (0.491539,0.530341,0.488792), x_first_mean 0.491539
+After communication:
+block 0, particles 248, inner particles 120, x_mean (0.252388,0.228124,0.264725), x_copy_mean (0.252388,0.228124,0.264725), x_first_mean 0.252388
+block 1, particles 236, inner particles 127, x_mean (0.761418,0.241852,0.256166), x_copy_mean (0.761418,0.241852,0.256166), x_first_mean 0.761418
+block 2, particles 279, inner particles 139, x_mean (0.274068,0.751464,0.256307), x_copy_mean (0.274068,0.751464,0.256307), x_first_mean 0.274068
+block 3, particles 274, inner particles 137, x_mean (0.769357,0.74676,0.267843), x_copy_mean (0.769357,0.74676,0.267843), x_first_mean 0.769357
+block 4, particles 242, inner particles 116, x_mean (0.250339,0.278254,0.751145), x_copy_mean (0.250339,0.278254,0.751145), x_first_mean 0.250339
+block 5, particles 248, inner particles 127, x_mean (0.754192,0.235376,0.740143), x_copy_mean (0.754192,0.235376,0.740143), x_first_mean 0.754192
+block 6, particles 252, inner particles 129, x_mean (0.24546,0.728512,0.76998), x_copy_mean (0.24546,0.728512,0.76998), x_first_mean 0.24546
+block 7, particles 248, inner particles 129, x_mean (0.758253,0.755752,0.762499), x_copy_mean (0.758253,0.755752,0.762499), x_first_mean 0.758253
