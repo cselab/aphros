@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "distr.h"
+#include "distr_particles.h"
 #include "dump/output.h"
 #include "dump/output_paraview.h"
 #include "util/mpi.h"
@@ -119,7 +120,7 @@ Local<M>::Local(MPI_Comm comm, const KernelMeshFactory<M>& kf, Vars& var_)
 
   this->MakeKernels(proxies_);
 
-  rank_from_id_ = [](int id) -> int { //
+  rank_from_id_ = [](int) -> int { //
     return 0;
   };
   for (auto& kernel : kernels_) {
@@ -492,109 +493,6 @@ void Local<M>::WriteBuffer(M& m) {
 }
 
 template <class M>
-void Local<M>::TransferParticles(const std::vector<size_t>& bb) {
-  const size_t nreq = kernels_.front()->GetMesh().GetCommPart().size();
-  for (auto b : bb) {
-    fassert_equal(kernels_[b]->GetMesh().GetCommPart().size(), nreq);
-  }
-
-  for (size_t q = 0; q < nreq; ++q) {
-    auto& mroot = kernels_.front()->GetMesh();
-    auto& reqroot = mroot.GetCommPart()[q];
-    const size_t nattr_scal = reqroot.attr_scal.size();
-    const size_t nattr_vect = reqroot.attr_vect.size();
-    // Check that the number of attributes is the same in all blocks.
-    // Check that the size of attributes equals the number of particles
-    for (size_t b : bb) {
-      auto& req = kernels_[b]->GetMesh().GetCommPart()[q];
-      fassert(req.x);
-      fassert(req.is_inner);
-      fassert_equal(req.is_inner->size(), req.x->size());
-      fassert_equal(req.attr_scal.size(), nattr_scal);
-      fassert_equal(req.attr_vect.size(), nattr_vect);
-      for (size_t a = 0; a < nattr_scal; ++a) {
-        fassert(req.attr_scal[a]);
-        fassert_equal(req.attr_scal[a]->size(), req.x->size());
-      }
-      for (size_t a = 0; a < nattr_vect; ++a) {
-        fassert(req.attr_vect[a]);
-        fassert_equal(req.attr_vect[a]->size(), req.x->size());
-      }
-    }
-    // Temporary buffers for positions and attributes
-    std::vector<std::vector<Vect>> tmp_x(bb.size());
-    std::vector<std::vector<std::vector<Scal>>> tmp_attr_scal(
-        bb.size(), std::vector<std::vector<Scal>>(nattr_scal));
-    std::vector<std::vector<std::vector<Vect>>> tmp_attr_vect(
-        bb.size(), std::vector<std::vector<Vect>>(nattr_vect));
-    const auto halorad =
-        mroot.flags.particles_halo_radius * mroot.GetCellSize();
-    // Traverse all inner particles and add them to blocks within `halorad`
-    for (size_t b : bb) {
-      auto& m = kernels_[b]->GetMesh();
-      auto& req = m.GetCommPart()[q]; // request on block `b`
-      for (size_t i = 0; i < req.x->size(); ++i) {
-        const Vect x = (*req.x)[i];
-        if (!(*req.is_inner)[i]) {
-          continue;
-        }
-        const Vect halobox_xm = x - halorad;
-        const Vect halobox_xp = x + halorad;
-        const MIdx block_min(
-            ((halobox_xm - m.flags.global_origin) / m.flags.block_length)
-                .floor());
-        const MIdx block_max(
-            ((halobox_xp - m.flags.global_origin) / m.flags.block_length)
-                .floor());
-        const GBlock<int, M::dim> blocks(
-            block_min, block_max - block_min + MIdx(1));
-        for (MIdx block : blocks) {
-          Vect xtrans = x;
-          for (size_t d : m.dirs) {
-            if (m.flags.is_periodic[d]) {
-              // canonical index of block from periodic conditions
-              const int canon =
-                  mod_positive(block[d], m.flags.global_blocks[d]);
-              if (canon != block[d]) {
-                const int image = (canon - block[d]) / m.flags.global_blocks[d];
-                xtrans[d] += image * m.GetGlobalLength()[d];
-                block[d] = canon;
-              }
-            }
-          }
-          if (MIdx(0) <= block && block < m.flags.global_blocks) {
-            const size_t bdest = m.flags.GetIdFromBlock(block);
-            fassert(bdest < bb.size());
-            tmp_x[bdest].push_back(xtrans);
-            for (size_t a = 0; a < nattr_scal; ++a) {
-              tmp_attr_scal[bdest][a].push_back((*req.attr_scal[a])[i]);
-            }
-            for (size_t a = 0; a < nattr_vect; ++a) {
-              tmp_attr_vect[bdest][a].push_back((*req.attr_vect[a])[i]);
-            }
-          }
-        }
-      }
-    }
-    // Copy particles from tmp_* to the request buffers
-    for (size_t b : bb) {
-      auto& m = kernels_[b]->GetMesh();
-      auto& req = m.GetCommPart()[q];
-      (*req.x) = tmp_x[b];
-      req.is_inner->resize(req.x->size());
-      for (size_t i = 0; i < req.x->size(); ++i) {
-        (*req.is_inner)[i] = m.IsInnerPoint((*req.x)[i]);
-      }
-      for (size_t a = 0; a < nattr_scal; ++a) {
-        (*req.attr_scal[a]) = tmp_attr_scal[b][a];
-      }
-      for (size_t a = 0; a < nattr_vect; ++a) {
-        (*req.attr_vect[a]) = tmp_attr_vect[b][a];
-      }
-    }
-  }
-
-  for (auto b : bb) {
-    kernels_[b]->GetMesh().ClearCommPart();
-  }
+void Local<M>::TransferParticles(const std::vector<size_t>&) {
+  ::TransferParticles<M>(kernels_, comm_, rank_from_id_);
 }
