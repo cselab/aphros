@@ -39,6 +39,7 @@ $(WRK)/test/mesh/main\
 $(WRK)/test/openmp/main\
 $(WRK)/test/parser/codeblocks\
 $(WRK)/test/parser/main\
+$(WRK)/test/particles/main\
 $(WRK)/test/primlist/getmap\
 $(WRK)/test/primlist/parse\
 $(WRK)/test/range/main\

@@ -5,6 +5,7 @@ $(WRK)/color/color.o: $(WRK)/.dir
 $(WRK)/distr/comm_manager.o: $(WRK)/.dir
 $(WRK)/distr/distrbasic.o: $(WRK)/.dir
 $(WRK)/distr/distr.o: $(WRK)/.dir
+$(WRK)/distr/distr_particles.o: $(WRK)/.dir
 $(WRK)/distr/distrsolver.o: $(WRK)/.dir
 $(WRK)/distr/local.o: $(WRK)/.dir
 $(WRK)/distr/native.o: $(WRK)/.dir
@@ -96,6 +97,7 @@ $(WRK)/test/mesh/main.o: $(WRK)/.dir
 $(WRK)/test/openmp/main.o: $(WRK)/.dir
 $(WRK)/test/parser/codeblocks.o: $(WRK)/.dir
 $(WRK)/test/parser/main.o: $(WRK)/.dir
+$(WRK)/test/particles/main.o: $(WRK)/.dir
 $(WRK)/test/primlist/getmap.o: $(WRK)/.dir
 $(WRK)/test/primlist/parse.o: $(WRK)/.dir
 $(WRK)/test/range/main.o: $(WRK)/.dir

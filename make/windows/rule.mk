@@ -5,6 +5,7 @@ color\color.obj: color\color.c; $(CC_RULE) color\color.c
 distr\comm_manager.obj: distr\comm_manager.cpp; $(CXX_RULE) distr\comm_manager.cpp
 distr\distrbasic.obj: distr\distrbasic.cpp; $(CXX_RULE) distr\distrbasic.cpp
 distr\distr.obj: distr\distr.cpp; $(CXX_RULE) distr\distr.cpp
+distr\distr_particles.obj: distr\distr_particles.cpp; $(CXX_RULE) distr\distr_particles.cpp
 distr\distrsolver.obj: distr\distrsolver.cpp; $(CXX_RULE) distr\distrsolver.cpp
 distr\local.obj: distr\local.cpp; $(CXX_RULE) distr\local.cpp
 distr\native.obj: distr\native.cpp; $(CXX_RULE) distr\native.cpp
@@ -96,6 +97,7 @@ test\mesh\main.obj: test\mesh\main.cpp; $(CXX_RULE) test\mesh\main.cpp
 test\openmp\main.obj: test\openmp\main.cpp; $(CXX_RULE) test\openmp\main.cpp
 test\parser\codeblocks.obj: test\parser\codeblocks.cpp; $(CXX_RULE) test\parser\codeblocks.cpp
 test\parser\main.obj: test\parser\main.cpp; $(CXX_RULE) test\parser\main.cpp
+test\particles\main.obj: test\particles\main.cpp; $(CXX_RULE) test\particles\main.cpp
 test\primlist\getmap.obj: test\primlist\getmap.cpp; $(CXX_RULE) test\primlist\getmap.cpp
 test\primlist\parse.obj: test\primlist\parse.cpp; $(CXX_RULE) test\primlist\parse.cpp
 test\range\main.obj: test\range\main.cpp; $(CXX_RULE) test\range\main.cpp
@@ -177,6 +179,7 @@ test\mesh\main.exe: test\mesh\main.obj; $(LINK) test\mesh\main.obj $(LINK_FLAGS)
 test\openmp\main.exe: test\openmp\main.obj; $(LINK) test\openmp\main.obj $(LINK_FLAGS)
 test\parser\codeblocks.exe: test\parser\codeblocks.obj; $(LINK) test\parser\codeblocks.obj $(LINK_FLAGS)
 test\parser\main.exe: test\parser\main.obj; $(LINK) test\parser\main.obj $(LINK_FLAGS)
+test\particles\main.exe: test\particles\main.obj; $(LINK) test\particles\main.obj $(LINK_FLAGS)
 test\primlist\getmap.exe: test\primlist\getmap.obj; $(LINK) test\primlist\getmap.obj $(LINK_FLAGS)
 test\primlist\parse.exe: test\primlist\parse.obj; $(LINK) test\primlist\parse.obj $(LINK_FLAGS)
 test\range\main.exe: test\range\main.obj; $(LINK) test\range\main.obj $(LINK_FLAGS)

@@ -6,6 +6,7 @@ color\color.obj\
 distr\comm_manager.obj\
 distr\distrbasic.obj\
 distr\distr.obj\
+distr\distr_particles.obj\
 distr\distrsolver.obj\
 distr\local.obj\
 distr\native.obj\

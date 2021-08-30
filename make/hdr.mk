@@ -19,6 +19,7 @@ distr/comm_manager.h\
 distr/commmap.h\
 distr/distrbasic.h\
 distr/distr.h\
+distr/distr_particles.h\
 distr/distrsolver.h\
 distr/reduce.h\
 distr/report.h\

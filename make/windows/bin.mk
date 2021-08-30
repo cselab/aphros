@@ -39,6 +39,7 @@ test/mesh/main.exe\
 test/openmp/main.exe\
 test/parser/codeblocks.exe\
 test/parser/main.exe\
+test/particles/main.exe\
 test/primlist/getmap.exe\
 test/primlist/parse.exe\
 test/range/main.exe\

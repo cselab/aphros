@@ -5,6 +5,7 @@ $(WRK)/color/color.o: $(SRC)/color/color.c; $(CC_RULE) $(SRC)/color/color.c
 $(WRK)/distr/comm_manager.o: $(SRC)/distr/comm_manager.cpp; $(CXX_RULE) $(SRC)/distr/comm_manager.cpp
 $(WRK)/distr/distrbasic.o: $(SRC)/distr/distrbasic.cpp; $(CXX_RULE) $(SRC)/distr/distrbasic.cpp
 $(WRK)/distr/distr.o: $(SRC)/distr/distr.cpp; $(CXX_RULE) $(SRC)/distr/distr.cpp
+$(WRK)/distr/distr_particles.o: $(SRC)/distr/distr_particles.cpp; $(CXX_RULE) $(SRC)/distr/distr_particles.cpp
 $(WRK)/distr/distrsolver.o: $(SRC)/distr/distrsolver.cpp; $(CXX_RULE) $(SRC)/distr/distrsolver.cpp
 $(WRK)/distr/local.o: $(SRC)/distr/local.cpp; $(CXX_RULE) $(SRC)/distr/local.cpp
 $(WRK)/distr/native.o: $(SRC)/distr/native.cpp; $(CXX_RULE) $(SRC)/distr/native.cpp
@@ -96,6 +97,7 @@ $(WRK)/test/mesh/main.o: $(SRC)/test/mesh/main.cpp; $(CXX_RULE) $(SRC)/test/mesh
 $(WRK)/test/openmp/main.o: $(SRC)/test/openmp/main.cpp; $(CXX_RULE) $(SRC)/test/openmp/main.cpp
 $(WRK)/test/parser/codeblocks.o: $(SRC)/test/parser/codeblocks.cpp; $(CXX_RULE) $(SRC)/test/parser/codeblocks.cpp
 $(WRK)/test/parser/main.o: $(SRC)/test/parser/main.cpp; $(CXX_RULE) $(SRC)/test/parser/main.cpp
+$(WRK)/test/particles/main.o: $(SRC)/test/particles/main.cpp; $(CXX_RULE) $(SRC)/test/particles/main.cpp
 $(WRK)/test/primlist/getmap.o: $(SRC)/test/primlist/getmap.cpp; $(CXX_RULE) $(SRC)/test/primlist/getmap.cpp
 $(WRK)/test/primlist/parse.o: $(SRC)/test/primlist/parse.cpp; $(CXX_RULE) $(SRC)/test/primlist/parse.cpp
 $(WRK)/test/range/main.o: $(SRC)/test/range/main.cpp; $(CXX_RULE) $(SRC)/test/range/main.cpp
@@ -177,6 +179,7 @@ $(WRK)/test/mesh/main: $(WRK)/test/mesh/main.o; $(LINK) $(WRK)/test/mesh/main.o 
 $(WRK)/test/openmp/main: $(WRK)/test/openmp/main.o; $(LINK) $(WRK)/test/openmp/main.o $(LINK_FLAGS)
 $(WRK)/test/parser/codeblocks: $(WRK)/test/parser/codeblocks.o; $(LINK) $(WRK)/test/parser/codeblocks.o $(LINK_FLAGS)
 $(WRK)/test/parser/main: $(WRK)/test/parser/main.o; $(LINK) $(WRK)/test/parser/main.o $(LINK_FLAGS)
+$(WRK)/test/particles/main: $(WRK)/test/particles/main.o; $(LINK) $(WRK)/test/particles/main.o $(LINK_FLAGS)
 $(WRK)/test/primlist/getmap: $(WRK)/test/primlist/getmap.o; $(LINK) $(WRK)/test/primlist/getmap.o $(LINK_FLAGS)
 $(WRK)/test/primlist/parse: $(WRK)/test/primlist/parse.o; $(LINK) $(WRK)/test/primlist/parse.o $(LINK_FLAGS)
 $(WRK)/test/range/main: $(WRK)/test/range/main.o; $(LINK) $(WRK)/test/range/main.o $(LINK_FLAGS)
