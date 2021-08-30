@@ -6,6 +6,7 @@
 #include <kernel/hydro.h>
 #include <util/format.h>
 #include <util/posthook.h>
+#include <library.h>
 
 static void* lmp;
 static long natoms;
@@ -48,7 +49,7 @@ void StepHook(Hydro<M>* hydro) {
 template <class M>
 void InitHook(Hydro<M>* hydro) {
   lmp = lammps_open_no_mpi(0, NULL, NULL);
-  lammps_file(lmp, path);
+  lammps_file(lmp, "in.lj");
   natoms = lammps_get_natoms(lmp);
 }
 
