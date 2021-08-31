@@ -26,6 +26,7 @@ struct Particles<EB_>::Imp {
   struct State {
     // See description of attributes in ParticlesView.
     std::vector<Vect> x;
+    std::vector<bool> is_inner;
     std::vector<Vect> v;
     std::vector<Scal> r;
     std::vector<Scal> source;
@@ -41,14 +42,14 @@ struct Particles<EB_>::Imp {
       , eb(eb_)
       , conf(conf_)
       , time_(time)
-      , state_(
-            {init.x, init.v, init.r, init.source, init.rho, init.termvel,
-             init.removed}) {}
+      , state_({init.x, init.is_inner, init.v, init.r, init.source, init.rho,
+                init.termvel, init.removed}) {}
   static ParticlesView GetView(State& s) {
-    return {s.x, s.v, s.r, s.source, s.rho, s.termvel, s.removed};
+    return {s.x, s.is_inner, s.v, s.r, s.source, s.rho, s.termvel, s.removed};
   }
   static void CheckSize(const State& s) {
     const size_t n = s.x.size();
+    fassert_equal(s.is_inner.size(), n);
     fassert_equal(s.v.size(), n);
     fassert_equal(s.r.size(), n);
     fassert_equal(s.source.size(), n);
@@ -58,6 +59,7 @@ struct Particles<EB_>::Imp {
   }
   static void CheckSize(const ParticlesView& s) {
     const size_t n = s.x.size();
+    fassert_equal(s.is_inner.size(), n);
     fassert_equal(s.v.size(), n);
     fassert_equal(s.r.size(), n);
     fassert_equal(s.source.size(), n);
@@ -68,6 +70,7 @@ struct Particles<EB_>::Imp {
   template <class F>
   static void ForEachAttribute(const ParticlesView& view, F func) {
     func(view.x);
+    func(view.is_inner);
     func(view.v);
     func(view.r);
     func(view.source);
@@ -180,182 +183,31 @@ struct Particles<EB_>::Imp {
         }
       }
       ClearRemoved(GetView(s));
-    }
-    if (sem.Nested()) {
-      Comm(
-          s.x, {&s.r, &s.source, &s.rho, &s.termvel, &s.removed}, {&s.v}, m,
-          nrecv_);
+      typename M::CommPartRequest req;
+      req.x = &s.x;
+      req.is_inner = &s.is_inner;
+      req.attr_scal = {&s.r, &s.source, &s.rho, &s.termvel, &s.removed};
+      req.attr_vect = {&s.v};
+      m.CommPart(req);
     }
     if (sem("stat")) {
       time_ += dt;
     }
   }
-  static void Append(State& s, ParticlesView& app) {
+  static void Append(State& s, ParticlesView& other) {
     auto append = [](auto& v, const auto& a) {
       v.insert(v.end(), a.begin(), a.end());
     };
-    CheckSize(app);
-    append(s.x, app.x);
-    append(s.v, app.v);
-    append(s.r, app.r);
-    append(s.source, app.source);
-    append(s.rho, app.rho);
-    append(s.termvel, app.termvel);
-    append(s.removed, app.removed);
+    CheckSize(other);
+    append(s.x, other.x);
+    append(s.is_inner, other.is_inner);
+    append(s.v, other.v);
+    append(s.r, other.r);
+    append(s.source, other.source);
+    append(s.rho, other.rho);
+    append(s.termvel, other.termvel);
+    append(s.removed, other.removed);
     CheckSize(s);
-  }
-  // Exchanges particle positions and data between blocks
-  // such that the positions are inside the owning block.
-  // x: particle positions
-  // attr_scal: scalar attributes
-  // attr_vect: vector attributes
-  // Output:
-  // x,attr_scal,attr_vect: updated
-  // ncomm: number of recevied particles
-  static void Comm(
-      std::vector<Vect>& x, const std::vector<std::vector<Scal>*>& attr_scal,
-      const std::vector<std::vector<Vect>*>& attr_vect, M& m, size_t& ncomm) {
-    auto sem = m.GetSem("particles-comm");
-    struct {
-      std::vector<Vect> gather_x;
-      std::vector<std::vector<Scal>> gather_scal;
-      std::vector<std::vector<Vect>> gather_vect;
-      std::vector<std::vector<Scal>> scatter_serial;
-      std::vector<Scal> recv_serial;
-      std::vector<int> id;
-    } * ctx(sem);
-    auto& t = *ctx;
-    if (sem("local")) {
-      const auto box = m.GetBoundingBox();
-      std::vector<size_t> inside; // indices of particles inside box
-      std::vector<size_t> outside; // indices of particles outside box
-      for (size_t i = 0; i < x.size(); ++i) {
-        if (box.IsInside(x[i])) {
-          inside.push_back(i);
-        } else {
-          outside.push_back(i);
-        }
-      }
-
-      // Returns elements with indices from `outside`,
-      // and overwrites `attr` with elements from `inside`.
-      auto select = [](const auto& attr, const std::vector<size_t>& indices) {
-        using T = typename std::decay<decltype(attr[0])>::type;
-        std::vector<T> res;
-        for (auto i : indices) {
-          res.push_back(attr[i]);
-        }
-        return res;
-      };
-
-      t.gather_x = select(x, outside);
-      x = select(x, inside);
-      for (auto& attr : attr_scal) {
-        t.gather_scal.push_back(select(*attr, outside));
-        (*attr) = select(*attr, inside);
-      }
-      for (auto& attr : attr_vect) {
-        t.gather_vect.push_back(select(*attr, outside));
-        (*attr) = select(*attr, inside);
-      }
-      // gather
-      m.Reduce(&t.gather_x, Reduction::concat);
-      for (auto& attr : t.gather_scal) {
-        m.Reduce(&attr, Reduction::concat);
-      }
-      for (auto& attr : t.gather_vect) {
-        m.Reduce(&attr, Reduction::concat);
-      }
-      t.id.push_back(m.GetId());
-      m.Reduce(&t.id, Reduction::concat);
-    }
-    if (sem()) {
-      if (m.IsRoot()) {
-        const size_t gather_size = t.gather_x.size();
-        const size_t maxid = t.id.size();
-
-        // block id to index in `t.id`
-        std::vector<size_t> id_to_index(t.id.size());
-        for (size_t i = 0; i < t.id.size(); ++i) {
-          id_to_index[t.id[i]] = i;
-        }
-        // index in `gather_x` to index in `t.id`.
-        std::vector<size_t> remote_index;
-        for (size_t k = 0; k < t.gather_x.size(); ++k) {
-          const size_t id = m.GetIdFromPoint(t.gather_x[k]);
-          fassert(id < maxid);
-          remote_index.push_back(id_to_index[id]);
-        }
-
-        // FIXME: serialization, revise with m.Scatter() that takes Vect
-        auto scatter = [&remote_index, gather_size, maxid](
-                           std::vector<std::vector<Scal>>& vscatter,
-                           const std::vector<Scal>& vgather) {
-          fassert_equal(vgather.size(), gather_size);
-          vscatter.resize(maxid);
-          for (size_t i = 0; i < vgather.size(); ++i) {
-            vscatter[remote_index[i]].push_back(vgather[i]);
-          }
-        };
-        auto scatterv = [&remote_index, gather_size, maxid](
-                            std::vector<std::vector<Scal>>& vscatter,
-                            const std::vector<Vect>& vgather) {
-          fassert_equal(vgather.size(), gather_size);
-          vscatter.resize(maxid);
-          for (size_t i = 0; i < vgather.size(); ++i) {
-            for (auto d : M::dirs) {
-              vscatter[remote_index[i]].push_back(vgather[i][d]);
-            }
-          }
-        };
-
-        scatterv(t.scatter_serial, t.gather_x);
-        for (size_t i = 0; i < attr_scal.size(); ++i) {
-          scatter(t.scatter_serial, t.gather_scal[i]);
-        }
-        for (size_t i = 0; i < attr_vect.size(); ++i) {
-          scatterv(t.scatter_serial, t.gather_vect[i]);
-        }
-      }
-      m.Scatter({&t.scatter_serial, &t.recv_serial});
-    }
-    if (sem()) {
-      const size_t nscal = dim + attr_scal.size() + attr_vect.size() * dim;
-      fassert_equal(t.recv_serial.size() % nscal, 0);
-      // number of particles received
-      const size_t recv_size = t.recv_serial.size() / nscal;
-      ncomm = recv_size;
-      auto deserial = [recv_size](auto& attr, auto& serial) {
-        for (size_t i = 0; i < recv_size; ++i) {
-          attr.push_back(serial.back());
-          serial.pop_back();
-        }
-      };
-      auto deserialv = [recv_size](auto& attr, auto& serial) {
-        for (size_t i = 0; i < recv_size; ++i) {
-          Vect v;
-          for (size_t d = dim; d > 0;) {
-            --d;
-            v[d] = serial.back();
-            serial.pop_back();
-          }
-          attr.push_back(v);
-        }
-      };
-      // t.recv_serial contains serialized particles from root
-      // deserialize in reversed order
-      for (size_t i = attr_vect.size(); i > 0;) {
-        --i;
-        deserialv(*attr_vect[i], t.recv_serial);
-      }
-      for (size_t i = attr_scal.size(); i > 0;) {
-        --i;
-        deserial(*attr_scal[i], t.recv_serial);
-      }
-      deserialv(x, t.recv_serial);
-    }
-    if (sem()) { // FIXME: empty stage
-    }
   }
   void DumpCsv(std::string path) const {
     auto sem = m.GetSem("dumpcsv");

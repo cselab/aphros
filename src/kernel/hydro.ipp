@@ -421,6 +421,7 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
             xrand[d] = um(g);
           }
           view.x.push_back(m.GetCenter(c) + xrand * h);
+          view.is_inner.push_back(true);
           view.v.push_back(velocity);
           view.r.push_back(radius[i]);
           view.source.push_back(0);
@@ -453,13 +454,15 @@ void Hydro<M>::InitParticles() {
           "Unknown mode=" + mode + ". Known modes are tracer, stokes, termvel");
     }
     std::vector<Vect> p_x;
+    std::vector<bool> p_is_inner;
     std::vector<Vect> p_v;
     std::vector<Scal> p_r;
     std::vector<Scal> p_source;
     std::vector<Scal> p_rho;
     std::vector<Scal> p_termvel;
     std::vector<Scal> p_removed;
-    ParticlesView view{p_x, p_v, p_r, p_source, p_rho, p_termvel, p_removed};
+    ParticlesView view{p_x,      p_is_inner, p_v,       p_r,
+                       p_source, p_rho,      p_termvel, p_removed};
     SpawnParticles(view);
     if (eb_) {
       particles_.reset(new Particles<EB>(m, *eb_, view, fs_->GetTime(), conf));
@@ -2241,13 +2244,15 @@ void Hydro<M>::StepParticles() {
   }
   if (sem("spawn")) {
     std::vector<Vect> p_x;
+    std::vector<bool> p_is_inner;
     std::vector<Vect> p_v;
     std::vector<Scal> p_r;
     std::vector<Scal> p_source;
     std::vector<Scal> p_rho;
     std::vector<Scal> p_termvel;
     std::vector<Scal> p_removed;
-    ParticlesView view{p_x, p_v, p_r, p_source, p_rho, p_termvel, p_removed};
+    ParticlesView view{p_x,      p_is_inner, p_v,       p_r,
+                       p_source, p_rho,      p_termvel, p_removed};
     SpawnParticles(view);
     particles_->Append(view);
   }
