@@ -20,6 +20,7 @@ install(FILES distr/comm_manager.h DESTINATION ${APHROS_PREFIX}/include/aphros/d
 install(FILES distr/commmap.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES distr/distrbasic.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES distr/distr.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
+install(FILES distr/distr_particles.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES distr/distrsolver.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES distr/reduce.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)
 install(FILES distr/report.h DESTINATION ${APHROS_PREFIX}/include/aphros/distr)

@@ -9,6 +9,7 @@ BEGIN {
 {
     sub(/^\.\//, "")
     if (/^test\//) next
+    if (/^build\/test\//) next
     if ($0 == "aphros_c.h")
 	printf "install(FILES %s DESTINATION ${APHROS_PREFIX}/include/%s)\n",
 	    $0, dirname($0) | "sort"
