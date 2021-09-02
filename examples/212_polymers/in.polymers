@@ -13,7 +13,7 @@ bond_coeff      1 2.0 0.15 0 0
 fix             aphros_array       all external pf/array 1
 
 timestep        0.01
+mass            1 1.0
 
 dump            1 all image 1 *.ppm type type adiam 0.1 bond type 0.05 zoom 1.2
 dump_modify     1 pad 4
-

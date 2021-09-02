@@ -1,0 +1,61 @@
+BEGIN {
+    srand(12345)
+    nstep = 6
+    npoly = 20
+    step = 0.08
+    pi = 3.141592653589793
+
+    nbonds = npoly * (nstep - 1)
+    natoms = npoly * nstep
+
+    for (i = 0; i < npoly; i++) {
+	do {
+	    u = x[i * nstep] = rand()
+	    v = y[i * nstep] = rand()
+	    w = z[i * nstep] = rand()
+	    ready = 1
+	    for (j = 1; j < nstep; j++) {
+		u += step * rand()
+		v += step * rand()
+		w += step * rand()
+		if (!good(u, v, w)) {
+		    ready = 0
+		    break
+		}
+		x[i * nstep + j] = u
+		y[i * nstep + j] = v
+		z[i * nstep + j] = w
+	    }
+	} while (ready == 0)
+    }
+
+    printf \
+    "LAMMPS data file\n" \
+    "\n" \
+    "%d atoms\n" \
+    "%d bonds\n" \
+    "1 atom types\n" \
+    "1 bond types\n" \
+    "\n" \
+    "0 1 xlo xhi\n" \
+    "0 1 ylo yhi\n" \
+    "0 1 zlo zhi\n" \
+    "\n" \
+    "Atoms # bond\n" \
+	"\n", natoms, nbonds
+
+    for (i = 0; i < natoms; i++)
+	print i + 1, 0, 1, x[i], y[i], z[i], 0, 0, 0
+
+    printf \
+    "\n" \
+    "Bonds\n" \
+    "\n"
+    for (i = k = 0; i < npoly; i++)
+	for (j = 0; j < nstep - 1; j++)
+	    print ++k, 1, i * nb + j + 1, i * nb + j + 2
+}
+
+function good(x, y, z) {
+    return 0 < x && x < 1 && 0 < y && y < 1 &&  0 < z && z < 1
+}
