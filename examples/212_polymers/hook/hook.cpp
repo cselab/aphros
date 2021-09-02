@@ -7,11 +7,30 @@
 #include <library.h>
 #include <util/format.h>
 #include <util/posthook.h>
+#include <func/init_vel.h>
 
 struct Lammps {
   void* lmp;
   long natoms;
   double* x;
+  double* v;
+};
+
+template <class M>
+class CustomVelocity : public ModuleInitVelocity<M> {
+ public:
+  using Scal = typename M::Scal;
+  using Vect = typename M::Vect;
+  CustomVelocity() : ModuleInitVelocity<M>("custom") {}
+  void operator()(FieldCell<Vect>& fcv, const Vars&, const M& m) override {
+    for (auto c : m.AllCellsM()) {
+      const Vect x = c.center() * (2 * M_PI);
+      Vect& v = fcv[c];
+      v[0] = std::sin(x[0]) * std::cos(x[1]) * std::cos(x[2]);
+      v[1] = -std::cos(x[0]) * std::sin(x[1]) * std::cos(x[2]);
+      v[2] = 0;
+    }
+  }
 };
 
 template <class M>
@@ -20,7 +39,6 @@ void StepHook(Hydro<M>* hydro) {
   using Vect = typename M::Vect;
 
   auto& m = hydro->m;
-  auto& var = hydro->var;
   auto sem = m.GetSem();
   auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
 
@@ -43,16 +61,24 @@ void StepHook(Hydro<M>* hydro) {
     m.Reduce(&t.volume, Reduction::sum);
   }
   if (sem()) {
+    double x, y, z, u, v, w;
+    double** f;
     t.velocity_mean /= t.volume;
-    std::cout << util::Format(
-	"StepHook: t={:} uservar={:} velocity_mean={:}\n\n",
-	hydro->fs_->GetTime(), var.Int["uservar"], t.velocity_mean);
     lammps_gather_atoms(lmp->lmp, (char*)"x", 1, 3, lmp->x);
-    double** f = lammps_fix_external_get_force(lmp->lmp, "aphros_array");
+    lammps_gather_atoms(lmp->lmp, (char*)"v", 1, 3, lmp->v);
+    f = lammps_fix_external_get_force(lmp->lmp, "aphros_array");
+    const FieldCell<Vect>& fcv = hydro->fs_->GetVelocity();
     for (long i = 0; i < lmp->natoms; i++) {
-      f[i][0] = 10 * lmp->x[3 * i];
-      f[i][1] = 10 * lmp->x[3 * i + 1];
-      f[i][2] = 10 * lmp->x[3 * i + 2];
+      x = lmp->x[3 * i];
+      y = lmp->x[3 * i + 1];
+      z = lmp->x[3 * i + 2];
+      u = lmp->v[3 * i];
+      v = lmp->v[3 * i + 1];
+      w = lmp->v[3 * i + 2];      
+      const Vect& vel = fcv[m.GetCellFromPoint(Vect(x, y, z))];
+      f[i][0] = (vel[0] - u);
+      f[i][1] = (vel[1] - v);
+      f[i][2] = (vel[2] - w);
     }
     lammps_command(lmp->lmp, "run 1");
   }
@@ -64,7 +90,7 @@ void InitHook(Hydro<M>* hydro) {
   auto sem = m.GetSem();
   if (sem()) {
     if (m.IsLead()) { // Executed only on the lead block, once in each rank.
-		      // There is only one lead block in each rank.
+                      // There is only one lead block in each rank.
       // Allocate memory for the shared state and save pointer in the solver.
       int argc;
       int dash;
@@ -83,7 +109,7 @@ void InitHook(Hydro<M>* hydro) {
         argc = sysinfo::misc.argc - dash - 1;
         argv = sysinfo::misc.argv + dash - 1;
       }
-      path = "in.lj";
+      path = "in.polymers";
       for (a = argv; *++a != NULL;)
         if (a[0][0] == '-') switch (a[0][1]) {
           case 'i':
@@ -104,11 +130,12 @@ void InitHook(Hydro<M>* hydro) {
       lammps_file(lmp->lmp, path);
       lmp->natoms = lammps_get_natoms(lmp->lmp);
       lmp->x = (double*)malloc(3 * lmp->natoms * sizeof(double));
-      if (lmp->x == NULL)
-	fassert(false, "fail to allocate memory for data");
+      lmp->v = (double*)malloc(3 * lmp->natoms * sizeof(double));
+      if (lmp->x == NULL || lmp->v == NULL)
+        fassert(false, "fail to allocate memory for data");
     }
     if (m.IsRoot()) { // Executed only on the root block, once over all ranks.
-		      // There is only one root block over all ranks.
+                      // There is only one root block over all ranks.
       //auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
     }
   }
@@ -122,10 +149,11 @@ void FinalHook(Hydro<M>* hydro) {
   if (sem()) {
     if (m.IsRoot()) {
       std::cout << util::Format(
-	  "FinalHook t={:} \n\n", hydro->fs_->GetTime());
+          "FinalHook t={:} \n\n", hydro->fs_->GetTime());
     }
     if (m.IsLead()) {
       free(lmp->x);
+      free(lmp->v);
       delete lmp;
     }
   }
@@ -135,3 +163,6 @@ using M = MeshCartesian<double, 3>;
 template void StepHook(Hydro<M>*);
 template void InitHook(Hydro<M>*);
 template void FinalHook(Hydro<M>*);
+bool reg[] = {
+    RegisterModule<CustomVelocity<M>>(),
+};
