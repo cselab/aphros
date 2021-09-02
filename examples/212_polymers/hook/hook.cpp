@@ -76,9 +76,9 @@ void StepHook(Hydro<M>* hydro) {
       v = lmp->v[3 * i + 1];
       w = lmp->v[3 * i + 2];      
       const Vect& vel = fcv[m.GetCellFromPoint(Vect(x, y, z))];
-      f[i][0] = (vel[0] - u);
-      f[i][1] = (vel[1] - v);
-      f[i][2] = (vel[2] - w);
+      f[i][0] = (vel[0] - u)/64;
+      f[i][1] = (vel[1] - v)/64;
+      f[i][2] = (vel[2] - w)/64;
     }
     lammps_command(lmp->lmp, "run 1");
   }

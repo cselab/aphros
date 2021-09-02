@@ -1,7 +1,7 @@
 BEGIN {
     srand(12345)
-    nstep = 6
-    npoly = 20
+    nstep = 4
+    npoly = 500
     step = 0.08
     pi = 3.141592653589793
 
@@ -53,7 +53,7 @@ BEGIN {
     "\n"
     for (i = k = 0; i < npoly; i++)
 	for (j = 0; j < nstep - 1; j++)
-	    print ++k, 1, i * nb + j + 1, i * nb + j + 2
+	    print ++k, 1, i * nstep + j + 1, i * nstep + j + 2
 }
 
 function good(x, y, z) {
