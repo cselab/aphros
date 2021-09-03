@@ -1,35 +1,87 @@
 BEGIN {
+    L = 1
     nstep = 4
-    npoly = 500
-    natoms = npoly * nstep
-
-    for (i = 1; i in ARGV; i++) {
+    while (getline < ARGV[1] && $0 !~ /^Bonds/)
+        ;
+    getline < ARGV[1]
+    i = 0
+    while (getline < ARGV[1]) {
+        b0[i] = $3 - 1
+        b1[i] = $4 - 1
+        i++
+    }
+    for (i = 2; i in ARGV; i++) {
         while (getline < ARGV[i] && $0 !~  /^ITEM: ATOMS/) ;
+        j = 0
+        while (getline < ARGV[i]) {
+            x[j] = $3
+            y[j] = $4
+            z[j] = $5
+            j++
+        }
+        natoms = j
         vtk = ARGV[i]
         sub(/\.dump$/, ".vtk", vtk)
         vtk = "a_" vtk
-        printf(\
+        printf \
             "# vtk DataFile Version 2.0\n" \
             "created with he\n" \
             "ASCII\n" \
-            "DATASET UNSTRUCTURED_GRID\n" \
+            "DATASET POLYDATA\n" \
             "POINTS %d float\n", \
-            natoms) > vtk
-        while (getline < ARGV[i]) {
-            x = $3
-            y = $4
-            z = $5
-            print x, y, z >> vtk
+            natoms > vtk
+        for (j = 0; j in x; j++) {
+            print x[j], y[j], z[j] >> vtk
         }
-        printf "CELLS %d %d\n", npoly, npoly * (nstep + 1) >> vtk
-        for (j = 0; j < npoly; j++) {
-            printf "%d", nstep >> vtk
-            for (k = 0; k < nstep; k++)
-                printf " %d", j * nstep + k >> vtk
-            printf "\n" >> vtk
+        uf_ini(natoms)
+        for (j in b0)
+            if (small(b0[j], b1[j]))
+                uf_union(b0[j], b1[j])
+        delete nb
+        delete lb
+        for (cnt = j = 0; j < natoms; j++) {
+            k = uf_find(j)
+            if (lb[k] == 0)
+                lb[k] = ++cnt
+            l = nb[lb[k] - 1]++
+            ch[lb[k] - 1,l] = j
         }
-        printf "CELL_TYPES %d\n", npoly >> vtk
-        for (j = 0; j < npoly; j++)
-            print 4 >> vtk
+        for (npoly = size = j = 0; j < cnt; j++)
+            if (nb[j] > 1) {
+                size += nb[j] + 1
+                npoly ++
+            }
+        printf "LINES %d %d\n", npoly, size >> vtk
+        for (j = 0; j < cnt; j++)
+            if (nb[j] > 1) {
+                printf "%d", nb[j] >> vtk
+                for (k = 0; k < nb[j]; k++)
+                    printf " %d", ch[j, k] >> vtk
+                printf "\n" >> vtk
+            }
     }
+}
+
+function small(i, j,   d) {
+    d = (x[i] - x[j])**2 + (y[i] - y[j])**2 + (z[i] - z[j])**2
+    return d < (L/2)**2
+}
+
+function uf_ini(n,   i) {
+    for (i = 0; i < n; i++)
+        root[i] = i
+}
+
+function uf_union(a, b) {
+    a = uf_find(a)
+    b = uf_find(b)
+    if (a != b)
+        root[b] = a
+}
+
+function uf_find(a,    b) {
+    if (a == (b = root[a]))
+        return a
+    else
+        return root[a] = uf_find(b)
 }

@@ -19,5 +19,5 @@ mass            1 1.0
 dump            image all image 10 *.ppm type type atom no bond type 0.02 zoom 1.25 size 1024 1024 box no 0
 dump_modify     image pad 4
 
-dump            xyz all atom 10 *.dump
-dump_modify     xyz pad 4
+dump            dump all atom 10 *.dump
+dump_modify     dump pad 4
