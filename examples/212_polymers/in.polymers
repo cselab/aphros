@@ -16,5 +16,8 @@ fix             aphros_array       all external pf/array 1
 timestep        0.01
 mass            1 1.0
 
-dump            1 all image 10 *.ppm type type atom no bond type 0.02 zoom 1.25 size 1024 1024 box no 0
-dump_modify     1 pad 4
+dump            image all image 10 *.ppm type type atom no bond type 0.02 zoom 1.25 size 1024 1024 box no 0
+dump_modify     image pad 4
+
+dump            xyz all atom 10 *.dump
+dump_modify     xyz pad 4

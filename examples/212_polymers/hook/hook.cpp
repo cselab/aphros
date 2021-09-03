@@ -92,42 +92,11 @@ void InitHook(Hydro<M>* hydro) {
     if (m.IsLead()) { // Executed only on the lead block, once in each rank.
                       // There is only one lead block in each rank.
       // Allocate memory for the shared state and save pointer in the solver.
-      int argc;
-      int dash;
-      const char **argv;
-      const char *path;
-      const char **a;
-
+      const char *argv[] = {"aphros", "-screen", "none", NULL};
       hydro->par_.ptr = new Lammps();
       auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
-      dash = sysinfo::misc.arg_after_double_dash;
-      if (dash == 0) {
-        const char *argv_none[] = {"aphros", NULL};
-        argc = 0;
-        argv = argv_none;
-      } else {
-        argc = sysinfo::misc.argc - dash - 1;
-        argv = sysinfo::misc.argv + dash - 1;
-      }
-      path = "in.polymers";
-      for (a = argv; *++a != NULL;)
-        if (a[0][0] == '-') switch (a[0][1]) {
-          case 'i':
-            a++;
-            if ((path = *a) == NULL) {
-              fprintf(stderr, "hook: -i needs an argumetn\n");
-              fassert(0);
-            }
-            break;
-          case 'h':
-            setenv("PAGER", "cat", 1);
-            const char *argv_help[] = {"aphros", "-h", NULL};
-            lammps_open_no_mpi(2, const_cast<char**>(argv_help), NULL);
-            fassert(0);
-            break;
-          }
-      lmp->lmp = lammps_open_no_mpi(argc, const_cast<char**>(argv), NULL);
-      lammps_file(lmp->lmp, path);
+      lmp->lmp = lammps_open_no_mpi(3, const_cast<char**>(argv), NULL);
+      lammps_file(lmp->lmp, "in.polymers");
       lmp->natoms = lammps_get_natoms(lmp->lmp);
       lmp->x = (double*)malloc(3 * lmp->natoms * sizeof(double));
       lmp->v = (double*)malloc(3 * lmp->natoms * sizeof(double));

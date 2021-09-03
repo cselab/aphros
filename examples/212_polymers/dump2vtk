@@ -1,0 +1,35 @@
+BEGIN {
+    nstep = 4
+    npoly = 500
+    natoms = npoly * nstep
+
+    for (i = 1; i in ARGV; i++) {
+        while (getline < ARGV[i] && $0 !~  /^ITEM: ATOMS/) ;
+        vtk = ARGV[i]
+        sub(/\.dump$/, ".vtk", vtk)
+        vtk = "a_" vtk
+        printf(\
+            "# vtk DataFile Version 2.0\n" \
+            "created with he\n" \
+            "ASCII\n" \
+            "DATASET UNSTRUCTURED_GRID\n" \
+            "POINTS %d float\n", \
+            natoms) > vtk
+        while (getline < ARGV[i]) {
+            x = $3
+            y = $4
+            z = $5
+            print x, y, z >> vtk
+        }
+        printf "CELLS %d %d\n", npoly, npoly * (nstep + 1) >> vtk
+        for (j = 0; j < npoly; j++) {
+            printf "%d", nstep >> vtk
+            for (k = 0; k < nstep; k++)
+                printf " %d", j * nstep + k >> vtk
+            printf "\n" >> vtk
+        }
+        printf "CELL_TYPES %d\n", npoly >> vtk
+        for (j = 0; j < npoly; j++)
+            print 4 >> vtk
+    }
+}

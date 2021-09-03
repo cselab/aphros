@@ -15,3 +15,8 @@ To run the example and generate PPM images,
 ```
 make run
 ```
+
+Convert to lammps dumps to VTK:
+```
+awk -f dump2vtk *.dump
+```
