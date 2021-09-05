@@ -10,7 +10,7 @@ All tests
 
 Single test
 
-    cd [folder]
+    cd [directory]
     cmake .
     make 
     make test
@@ -22,7 +22,7 @@ Single test
   - CMakeLists.txt
   - data files (if needed)
 
-* All these files are placed in a separate folder
+* All these files are placed in a separate directory
 
 * No single file is aware of all tests
 

@@ -278,7 +278,7 @@ def WritePar(c):
 
 
 # Returns dict with parameters
-# b: folder containing 'par.conf'
+# b: directory containing 'par.conf'
 def ReadPar(b):
     f = os.path.join(b, GetParName())
     c = {}

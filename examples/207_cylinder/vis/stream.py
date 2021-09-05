@@ -47,7 +47,7 @@ if len(av) < 2 or av[1] == '-h':
     sys.stderr.write('''usage: {:} [sm_*.vtk]
 Plots isosurface.
 # Output:
-# a_*.png in current folder
+# a_*.png in current directory
 '''.format(av[0]))
     exit(1)
 
