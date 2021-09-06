@@ -8,7 +8,7 @@ mass		1 1.0
 fix		1 all nve
 comm_modify     cutoff 0.1
 bond_style      fene
-bond_coeff      1 0.8 0.2 0 0
+bond_coeff      1 0.32 0.2 0 0
 special_bonds   lj 0 1 1
 
 fix             aphros_array       all external pf/array 1
@@ -16,7 +16,7 @@ fix             aphros_array       all external pf/array 1
 timestep        0.01
 mass            1 1.0
 
-dump            image all image 10 *.ppm type type atom no bond type 0.02 zoom 1.25 size 1024 1024 box no 0
+dump            image all image 100 *.ppm type type atom no bond type 0.02 zoom 1.25 size 1024 1024 box no 0
 dump_modify     image pad 4
 
 dump            dump all atom 10 *.dump
