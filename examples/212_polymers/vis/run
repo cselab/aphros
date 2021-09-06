@@ -1,0 +1,1 @@
+./vis.py --aphros *.xmf --lammps a_*.vtk --force
