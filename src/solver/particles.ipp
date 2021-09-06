@@ -120,16 +120,18 @@ struct Particles<EB_>::Imp {
     }
     ResizeParticles(view, i);
   }
-  void Step(Scal dt, const FieldEmbed<Scal>& fev) {
+  void Step(
+      Scal dt, const FieldEmbed<Scal>& fev,
+      std::function<void(const ParticlesView&)> velocity_hook) {
     auto sem = m.GetSem("step");
     auto& s = state_;
     if (sem("local")) {
-      // convert flux to normal velocity component
+      // Convert volume flux to velocity face field.
       FieldFaceb<Scal> ff_vel = fev.template Get<FieldFaceb<Scal>>();
       eb.LoopFaces([&](auto cf) { //
         ff_vel[cf] /= eb.GetArea(cf);
       });
-      // restore vector velocity field
+      // Restore vector velocity field from face field.
       const FieldCell<Vect> fc_vel = UEB::AverageGradient(ff_vel, eb);
 
       for (size_t i = 0; i < s.x.size(); ++i) {
@@ -154,10 +156,11 @@ struct Particles<EB_>::Imp {
         // relaxation time `tau`, gravity `g`
         s.v[i] = (fc_vel[c] + s.v[i] * (tau / dt) + conf.gravity * tau) /
                  (1 + tau / dt);
+        velocity_hook(GetView(s));
         s.x[i] += s.v[i] * dt;
 
         if (s.source[i] != 0) {
-          // Apply volume source
+          // Apply volume source.
           const Scal pi = M_PI;
           const Scal k = 4. / 3 * pi;
           Scal vol = k * std::pow(s.r[i], 3);
@@ -176,7 +179,7 @@ struct Particles<EB_>::Imp {
             }
           }
         }
-        // Remove particles that have left the domain
+        // Remove particles that have left the domain.
         if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || eb.IsCut(c) ||
             eb.IsExcluded(c)) {
           s.removed[i] = 1;
@@ -194,7 +197,7 @@ struct Particles<EB_>::Imp {
       time_ += dt;
     }
   }
-  static void Append(State& s, ParticlesView& other) {
+  static void Append(State& s, const ParticlesView& other) {
     auto append = [](auto& v, const auto& a) {
       v.insert(v.end(), a.begin(), a.end());
     };
@@ -284,8 +287,10 @@ void Particles<EB_>::SetConf(Conf conf) {
 }
 
 template <class EB_>
-void Particles<EB_>::Step(Scal dt, const FieldEmbed<Scal>& fe_flux) {
-  imp->Step(dt, fe_flux);
+void Particles<EB_>::Step(
+    Scal dt, const FieldEmbed<Scal>& fe_flux,
+    std::function<void(const ParticlesView&)> velocity_hook) {
+  imp->Step(dt, fe_flux, velocity_hook);
 }
 
 template <class EB_>
@@ -294,7 +299,7 @@ auto Particles<EB_>::GetView() const -> ParticlesView {
 }
 
 template <class EB_>
-void Particles<EB_>::Append(ParticlesView& app) {
+void Particles<EB_>::Append(const ParticlesView& app) {
   imp->Append(imp->state_, app);
 }
 

@@ -386,12 +386,16 @@ void Hydro<M>::OverwriteBc() {
 template <class M>
 void Hydro<M>::SpawnParticles(ParticlesView& view) {
   const Vect sphere_c(var.Vect["particles_spawn_sphere_c"]);
-  const Scal sphere_r = var.Double["particles_spawn_sphere_r"];
-  // particles per unit time
+  Vect sphere_r;
+  if (auto* v = var.Vect.Find("particles_spawn_sphere_r")) {
+    sphere_r = Vect(*v);
+  } else {
+    sphere_r = Vect(var.Double["particles_spawn_sphere_r"]);
+  }
   const size_t edim = m.GetEdim();
   const Scal sphere_vol =
-      (edim == 3 ? 4. / 3. * M_PI * std::pow(sphere_r, 3)
-                 : M_PI * sqr(sphere_r));
+      (edim == 3 ? 4. / 3. * M_PI * sphere_r.prod()
+                 : M_PI * sphere_r[0] * sphere_r[1]);
   const Vect h = m.GetCellSize();
   const Scal cell_vol = (edim == 3 ? h.prod() : h[0] * h[1]);
   const Vect velocity(var.Vect["particles_spawn_velocity"]);
@@ -412,7 +416,7 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
     if (edim == 2 && M::dim > 2) {
       dx[2] = 0;
     }
-    if (dx.sqrnorm() < sqr(sphere_r)) {
+    if ((dx / sphere_r).sqrnorm() < 1) {
       for (size_t i = 0; i < num_rates; ++i) {
         const Scal prob = particles_dt_ * cell_vol * spawn_rate[i] / sphere_vol;
         if (u(g) < prob) {
@@ -1736,16 +1740,15 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     // growth of particles from tracer
     if (tracer_ && particles_) {
       auto view = particles_->GetView();
-      const size_t n = view.x.size();
-      if (tracer_) {
-        const size_t l = 0;
-        const auto& tu = tracer_->GetVolumeFraction()[l];
-        const auto h = m.GetCellSize();
-        for (size_t i = 0; i < n; ++i) {
+      const size_t l = 0;
+      const auto& tu = tracer_->GetVolumeFraction()[l];
+      const auto h = m.GetCellSize();
+      const Scal rate = var.Double["particles_growth_rate"];
+      for (size_t i = 0; i < view.x.size(); ++i) {
+        if (view.is_inner[i]) {
           const auto c = m.GetCellFromPoint(view.x[i]);
-          const Scal k = 0.1;
-          view.source[i] = tu[c] * k * h.prod();
-          fc_tracer_source[l][c] -= tu[c] * k;
+          view.source[i] = tu[c] * rate * h.prod();
+          fc_tracer_source[l][c] -= tu[c] * rate;
         }
       }
     }
@@ -2240,7 +2243,12 @@ void Hydro<M>::StepParticles() {
   auto sem = m.GetSem("particles-steps"); // sem nested
   sem.LoopBegin();
   if (sem.Nested("start")) {
-    particles_->Step(particles_dt_, fs_->GetVolumeFlux());
+    auto velocity_hook = [](const ParticlesView& view) {
+      for (size_t i = 0; i < view.x.size(); ++i) {
+        view.v[i] *= 0.2;
+      }
+    };
+    particles_->Step(particles_dt_, fs_->GetVolumeFlux(), velocity_hook);
   }
   if (sem("spawn")) {
     std::vector<Vect> p_x;

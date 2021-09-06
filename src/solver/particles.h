@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 
 #include "cond.h"
@@ -61,9 +62,11 @@ class ParticlesInterface {
   // Makes one time step.
   // dt: time step
   // fe_flux: mixture volume flux
-  // fcu: concentration of dissolved gas
-  virtual void Step(Scal dt, const FieldEmbed<Scal>& fe_flux) = 0;
-  virtual void Append(ParticlesView&) = 0;
+  // velocity_hook: function called after velocity is projected to particles
+  virtual void Step(
+      Scal dt, const FieldEmbed<Scal>& fe_flux,
+      std::function<void(const ParticlesView&)> velocity_hook) = 0;
+  virtual void Append(const ParticlesView&) = 0;
   // Returns view with pointers to fields.
   virtual ParticlesView GetView() const = 0;
   virtual Scal GetTime() const = 0;
@@ -93,8 +96,10 @@ class Particles : public ParticlesInterface<typename EB_::M> {
   ~Particles();
   const Conf& GetConf() const override;
   void SetConf(Conf) override;
-  void Step(Scal dt, const FieldEmbed<Scal>& fe_flux) override;
-  void Append(ParticlesView&) override;
+  void Step(
+      Scal dt, const FieldEmbed<Scal>& fe_flux,
+      std::function<void(const ParticlesView&)> velocity_hook) override;
+  void Append(const ParticlesView&) override;
   ParticlesView GetView() const override;
   Scal GetTime() const override;
   size_t GetNumRecv() const override;
