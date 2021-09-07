@@ -204,6 +204,8 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   std::vector<std::map<std::string, Scal>> bc_group_custom_;
   MapCell<std::shared_ptr<CondCell>> mc_cond_;
   MapCell<std::shared_ptr<CondCellFluid>> mc_velcond_;
+  FieldCell<Vect> fc_wall_dist_; // Vector from the cell center to the
+                                 // nearest wall.
 
   std::unique_ptr<Embed<M>> eb_;
   std::unique_ptr<AdvectionSolver<M>> as_;

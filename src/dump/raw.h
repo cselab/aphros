@@ -28,6 +28,13 @@ class Raw {
   template <class T>
   static void Write(
       const FieldCell<T>& fc, const Meta& meta, std::string path, M& m);
+  // Writes field to raw-file and metadata to xmf-file.
+  // fc: field to write
+  // field_name: dataset name to put in metadata
+  // raw_path: output path to file with extension `.raw`
+  template <class T>
+  static void WriteWithXmf(
+      const FieldCell<T>& fc, std::string fieldname, std::string rawpath, M& m);
   template <class T>
   static void Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m);
 };

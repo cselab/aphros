@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include "util/distr.h"
+#include "util/filesystem.h"
 #include "util/format.h"
 #include "util/logger.h"
 
@@ -183,6 +184,32 @@ void Raw<M>::Write(
   if (sem("write") && m.IsLead()) {
     MpiWrapper mpi(m.GetMpiComm());
     Write(path, t.starts, t.sizes, t.data, m.GetGlobalSize(), meta.type, mpi);
+  }
+  if (sem()) { // XXX empty stage
+  }
+}
+
+template <class M>
+template <class T>
+void Raw<M>::WriteWithXmf(
+    const FieldCell<T>& fc, std::string fieldname, std::string rawpath, M& m) {
+  using Xmf = Xmf<Vect>;
+  auto sem = m.GetSem();
+  struct {
+    Meta meta;
+  } * ctx(sem);
+  auto& t = *ctx;
+
+  if (sem("dump-xmf")) {
+    t.meta = Xmf::GetMeta(m);
+    t.meta.binpath = rawpath;
+    t.meta.name = fieldname;
+    if (m.IsRoot()) {
+      Xmf::WriteXmf(util::SplitExt(rawpath)[0] + ".xmf", t.meta);
+    }
+  }
+  if (sem.Nested("dump-raw")) {
+    dump::Raw<M>::Write(fc, t.meta, rawpath, m);
   }
   if (sem()) { // XXX empty stage
   }

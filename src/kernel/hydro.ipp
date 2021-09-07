@@ -242,17 +242,8 @@ void Hydro<M>::InitStepwiseBody(FieldCell<bool>& fc_innermask) {
     }
   }
   if (var.Int("dump_stepwise_body", 0)) {
-    const auto binpath = "stepwise.raw";
-    if (sem("dump-xmf")) {
-      t.meta = Xmf::GetMeta(m);
-      t.meta.binpath = binpath;
-      t.meta.name = "stepwise";
-      if (m.IsRoot()) {
-        Xmf::WriteXmf(util::SplitExt(binpath)[0] + ".xmf", t.meta);
-      }
-    }
-    if (sem.Nested("dump-raw")) {
-      dump::Raw<M>::Write(t.fcbody, t.meta, binpath, m);
+    if (sem.Nested()) {
+      dump::Raw<M>::WriteWithXmf(t.fcbody, "stepwise", "stepwise.raw", m);
     }
   }
 }
@@ -472,6 +463,26 @@ void Hydro<M>::InitParticles() {
       particles_.reset(new Particles<EB>(m, *eb_, view, fs_->GetTime(), conf));
     } else {
       particles_.reset(new Particles<M>(m, m, view, fs_->GetTime(), conf));
+    }
+
+    fc_wall_dist_.Reinit(m, GetNan<Vect>());
+    for (const auto& p : mebc_fluid_.GetMapFace()) {
+      const IdxFace f = p.first;
+      const auto& bc = p.second;
+      const auto nci = bc.nci;
+      auto cc = m.GetCellColumn(f, nci);
+      if (bc.type == BCondFluidType::wall ||
+          bc.type == BCondFluidType::slipwall ||
+          bc.type == BCondFluidType::symm) {
+        for (IdxCell c : {cc[2], cc[3]}) {
+          const Vect dist = m.GetCenter(f) - m.GetCenter(c);
+          auto& mindist = fc_wall_dist_[c];
+          if (IsNan(mindist) || dist.sqrnorm() < mindist.sqrnorm()) {
+            mindist = dist;
+          }
+        }
+      }
+      // TODO: consider mebc_fluid_.GetMapCell()
     }
   }
 }
@@ -1319,18 +1330,8 @@ void Hydro<M>::Init() {
           var.Int("initvort_zero_dirichlet", 0));
     }
     if (var.Int("initvort_dumppot", 0)) {
-      const auto binpath = "velpot.raw";
-      if (sem("dump-xmf")) {
-        t.meta = Xmf::GetMeta(m);
-        t.meta.binpath = binpath;
-        t.meta.name = "velpot";
-        if (m.IsRoot()) {
-          Xmf::WriteXmf(util::SplitExt(binpath)[0] + ".xmf", t.meta);
-        }
-        t.fcpot_scal = GetComponent(t.fcpot, 0);
-      }
-      if (sem.Nested("dump-raw")) {
-        dump::Raw<M>::Write(t.fcpot_scal, t.meta, binpath, m);
+      if (sem.Nested()) {
+        dump::Raw<M>::WriteWithXmf(t.fcpot_scal, "velpot", "velpot.raw", m);
       }
     }
   }
@@ -2245,7 +2246,7 @@ void Hydro<M>::StepParticles() {
   if (sem.Nested("start")) {
     auto velocity_hook = [](const ParticlesView& view) {
       for (size_t i = 0; i < view.x.size(); ++i) {
-        view.v[i] *= 0.2;
+        view.v[i] *= 0.05;
       }
     };
     particles_->Step(particles_dt_, fs_->GetVolumeFlux(), velocity_hook);
