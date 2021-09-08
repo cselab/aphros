@@ -28,6 +28,7 @@
 #include "dump/raw.h"
 #include "func/init.h"
 #include "func/init_contang.h"
+#include "func/init_u.h"
 #include "geom/mesh.h"
 #include "kernelmeshpar.h"
 #include "linear/linear.h"
@@ -2243,7 +2244,7 @@ template <class M>
 void Hydro<M>::StepParticles() {
   auto sem = m.GetSem("particles-steps"); // sem nested
   sem.LoopBegin();
-  if (sem.Nested("start")) {
+  if (sem.Nested()) {
     auto velocity_hook = [this](const ParticlesView& view) {
       // Move particles away from the wall.
       for (size_t i = 0; i < view.x.size(); ++i) {
@@ -2268,6 +2269,9 @@ void Hydro<M>::StepParticles() {
       }
     };
     particles_->Step(particles_dt_, fs_->GetVolumeFlux(), velocity_hook);
+  }
+  if (var.Int("particles_to_vof", 0) && sem.Nested()) {
+    ConvertParticlesToVof();
   }
   if (sem("spawn")) {
     std::vector<Vect> p_x;
@@ -2296,6 +2300,66 @@ void Hydro<M>::StepParticles() {
     }
   }
   sem.LoopEnd();
+}
+
+template <class M>
+void Hydro<M>::ConvertParticlesToVof() {
+  auto sem = m.GetSem();
+  struct Particle {
+    Vect x;
+    Scal r;
+  };
+
+  struct {
+    Scal nconv = 0;
+  } * ctx(sem);
+  auto& t = *ctx;
+
+  if (sem()) {
+    auto particles = particles_.get();
+    fassert(particles);
+    auto view = particles->GetView();
+
+    const Scal r0 = var.Double["particles_to_vof_radius"] * m.GetCellSize()[0];
+    const Scal dt = as_->GetTimeStep();
+
+    // Update particle radius and select particles to convert
+    std::vector<Particle> toconvert;
+    for (size_t i = 0; i < view.x.size(); ++i) {
+      if (view.r[i] > r0) {
+        toconvert.push_back({view.x[i] + view.v[i] * dt, view.r[i]});
+        view.removed[i] = true;
+      }
+    }
+    t.nconv += toconvert.size();
+    m.Reduce(&t.nconv, Reduction::sum);
+
+    auto mod = [this, toconvert](
+                   FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, auto&) {
+      (void)fccl;
+      auto ls = [&](const Vect& x) -> Scal {
+        Scal res = -std::numeric_limits<Scal>::max();
+        for (auto& p : toconvert) {
+          res = std::max(res, p.r - x.dist(p.x));
+        }
+        return res;
+      };
+      for (auto c : m.AllCellsM()) {
+        fcu[c] = std::max(
+            fcu[c],
+            GetLevelSetVolume<Scal, M::dim>(ls, c.center, m.GetCellSize()));
+      }
+    };
+    if (auto* as = dynamic_cast<Vof<M>*>(as_.get())) {
+      as->AddModifier(mod);
+    }
+  }
+  if (sem()) {
+    if (m.IsRoot() && var.Int("particles_to_vof_verbose", 0) && t.nconv) {
+      std::cout << util::Format("Converted {:} particles", t.nconv)
+                << std::endl;
+    }
+  }
 }
 
 template <class M>

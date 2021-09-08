@@ -152,12 +152,13 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   void ReportStepElectro();
   void ReportSysinfo(std::ostream& out);
   void ReportIter();
-  // Issue sem.LoopBreak if abort conditions met
+  // Issues sem.LoopBreak if abort conditions met
   void CheckAbort(Sem& sem, Scal& nabort);
   void StepFluid();
   void StepAdvection();
   void StepTracer();
   void StepParticles();
+  void ConvertParticlesToVof();
   void StepElectro();
   void StepBubgen();
   void StepEraseVolumeFraction(std::string prefix, Scal& last_t);
