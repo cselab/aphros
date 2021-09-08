@@ -101,7 +101,6 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   using ParticlesView = typename ParticlesInterface<M>::ParticlesView;
   static constexpr size_t dim = M::dim;
   using BlockInfoProxy = generic::BlockInfoProxy<dim>;
-  friend void StepHook<>(Hydro*);
 
   // TODO: issue warning if variable in Vars was not used
   // but differs from default (like in CMake)
@@ -259,6 +258,7 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   Scal tracer_dt_;
   Scal particles_dt_;
   std::string vf_save_state_path_;
+  std::function<void(const ParticlesView&)> particles_hook_;
 
   // electro
   std::unique_ptr<ElectroInterface<M>> electro_;

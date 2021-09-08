@@ -2244,9 +2244,27 @@ void Hydro<M>::StepParticles() {
   auto sem = m.GetSem("particles-steps"); // sem nested
   sem.LoopBegin();
   if (sem.Nested("start")) {
-    auto velocity_hook = [](const ParticlesView& view) {
+    auto velocity_hook = [this](const ParticlesView& view) {
+      // Move particles away from the wall.
       for (size_t i = 0; i < view.x.size(); ++i) {
-        view.v[i] *= 0.05;
+        if (view.is_inner[i]) {
+          //view.v[i] *= 0.2;
+          const IdxCell c = m.GetCellFromPoint(view.x[i]);
+          const Vect xc = m.GetCenter(c);
+          const Vect walldist = fc_wall_dist_[c];
+          if (IsFinite(walldist) && walldist.sqrnorm() > 0) {
+            const Vect walldir = walldist / walldist.norm();
+            // Distance from particle center to wall along `walldist`
+            const Scal dz = walldir.dot(walldist + xc - view.x[i]);
+            if (dz - view.r[i] < 0) {
+              // If particle intersects the wall, move it away
+              view.v[i] += walldir * (dz - view.r[i]) / particles_dt_;
+            }
+          }
+        }
+      }
+      if (particles_hook_) {
+        particles_hook_(view);
       }
     };
     particles_->Step(particles_dt_, fs_->GetVolumeFlux(), velocity_hook);
