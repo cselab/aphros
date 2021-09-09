@@ -75,7 +75,7 @@ template <class T>
 void Raw<M>::Write(
     const std::string& path, const std::vector<MIdx>& starts,
     const std::vector<MIdx>& sizes, const std::vector<std::vector<T>>& data,
-    const MIdx global_size, Type type, const MpiWrapper& mpi) {
+    const MIdx global_size, Type type, const MpiWrapper& mpi, bool nompi) {
   const auto nblocks = data.size();
   fassert(nblocks > 0);
   MIdx comb_start(std::numeric_limits<IntIdx>::max());
@@ -84,10 +84,10 @@ void Raw<M>::Write(
     comb_start = comb_start.min(starts[b]);
     comb_end = comb_start.max(starts[b] + sizes[b]);
   }
-  // size of block combined from all blocks on current rank
+  // Size of block combined from all blocks on current rank.
   const MIdx comb_size = comb_end - comb_start;
 
-  // XXX check the blocks on current rank constitute a rectangular subarray
+  // Check the blocks on current rank constitute a rectangular subarray.
   fassert_equal(comb_size % sizes[0], MIdx(0));
   fassert_equal((comb_size / sizes[0]).prod(), (int)nblocks);
 
@@ -119,44 +119,48 @@ void Raw<M>::Write(
   }
 
 #if USEFLAG(MPI)
-  const MPI_Datatype elemtype = GetMpiType(type);
-  MPI_Datatype filetype;
-  CreateSubarray(global_size, comb_size, comb_start, elemtype, &filetype);
+  if (!nompi) {
+    const MPI_Datatype elemtype = GetMpiType(type);
+    MPI_Datatype filetype;
+    CreateSubarray(global_size, comb_size, comb_start, elemtype, &filetype);
 
-  MPI_Datatype memtype;
-  CreateSubarray(comb_size, comb_size, MIdx(0), elemtype, &memtype);
+    MPI_Datatype memtype;
+    CreateSubarray(comb_size, comb_size, MIdx(0), elemtype, &memtype);
 
-  const MPI_Comm comm = mpi.GetComm();
-  MPI_File fh;
-  try {
-    MPICALL(MPI_File_open(
-        comm, path.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL,
-        &fh));
-  } catch (const std::exception& e) {
-    fassert(
-        false,
-        std::string() + e.what() + ", while opening file '" + path + "'");
-  }
-  MPICALL(
-      MPI_File_set_view(fh, 0, elemtype, filetype, "native", MPI_INFO_NULL));
+    const MPI_Comm comm = mpi.GetComm();
+    MPI_File fh;
+    try {
+      MPICALL(MPI_File_open(
+          comm, path.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL,
+          &fh));
+    } catch (const std::exception& e) {
+      fassert(
+          false,
+          std::string() + e.what() + ", while opening file '" + path + "'");
+    }
+    MPICALL(
+        MPI_File_set_view(fh, 0, elemtype, filetype, "native", MPI_INFO_NULL));
 
-  MPICALL(MPI_File_write_all(fh, buf.data(), 1, memtype, MPI_STATUS_IGNORE));
-  MPI_File_close(&fh);
-  MPI_Type_free(&memtype);
-  MPI_Type_free(&filetype);
+    MPICALL(MPI_File_write_all(fh, buf.data(), 1, memtype, MPI_STATUS_IGNORE));
+    MPI_File_close(&fh);
+    MPI_Type_free(&memtype);
+    MPI_Type_free(&filetype);
+  } else {
 #else
-  (void)mpi;
-  (void)global_size;
-  std::ofstream file(path, std::ios::binary);
-  fassert(file.good(), "Can't open file '" + path + "' for write");
-  file.write(buf.data(), buf.size());
+  {
 #endif
-}
+    (void)mpi;
+    (void)global_size;
+    std::ofstream file(path, std::ios::binary);
+    fassert(file.good(), "Can't open file '" + path + "' for writing");
+    file.write(buf.data(), buf.size());
+  }
+} // namespace dump
 
 template <class M>
 template <class T>
 void Raw<M>::Write(
-    const FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
+    const FieldCell<T>& fc, const Meta& meta, const std::string& path, M& m) {
   auto sem = m.GetSem();
   struct {
     std::vector<MIdx> starts;
@@ -192,8 +196,8 @@ void Raw<M>::Write(
 template <class M>
 template <class T>
 void Raw<M>::WriteWithXmf(
-    const FieldCell<T>& fc, std::string fieldname, std::string rawpath, M& m) {
-  using Xmf = Xmf<Vect>;
+    const FieldCell<T>& fc, const std::string& fieldname,
+    const std::string& rawpath, M& m) {
   auto sem = m.GetSem();
   struct {
     Meta meta;
@@ -217,7 +221,29 @@ void Raw<M>::WriteWithXmf(
 
 template <class M>
 template <class T>
-void Raw<M>::Read(FieldCell<T>& fc, const Meta& meta, std::string path, M& m) {
+void Raw<M>::WritePlainArrayWithXmf(
+    const std::string& rawpath, const std::string& fieldname, const T* data,
+    MIdx size) {
+  MpiWrapper mpi(MPI_COMM_WORLD); // Initialized but unused.
+  std::vector<MIdx> starts{MIdx(0)};
+  std::vector<MIdx> sizes{size};
+  std::vector<std::vector<T>> dataall{std::vector<T>(data, data + size.prod())};
+  Raw::Write(
+      rawpath, starts, sizes, dataall, size, dump::Type::Float64, mpi, true);
+
+  typename Xmf::Meta meta;
+  meta.name = fieldname;
+  meta.binpath = rawpath;
+  meta.dimensions = size;
+  meta.count = size;
+  meta.spacing = Vect(1. / size.max());
+  Xmf::WriteXmf(util::SplitExt(rawpath)[0] + ".xmf", meta);
+}
+
+template <class M>
+template <class T>
+void Raw<M>::Read(
+    FieldCell<T>& fc, const Meta& meta, const std::string& path, M& m) {
   auto sem = m.GetSem();
   struct {
     std::vector<MIdx> starts;

@@ -18,19 +18,6 @@
 #include "linear/linear.h"
 #include "util/posthook.h"
 
-// ranges (cells/faces)
-// [i]: inner
-// [s]: support
-// [a]: all
-
-// fields
-// p: pressure
-// gp: pressure gradient
-// w: velocity
-// v: volume flux
-// we: predicted velocity (after solving velocity equations)
-// ve: predicted volume flux
-
 template <class EB_>
 struct FluidDummy<EB_>::Imp {
   using Owner = FluidDummy<EB>;

@@ -65,6 +65,7 @@ class ParticlesInterface {
   // velocity_hook: function called after velocity is projected to particles
   virtual void Step(
       Scal dt, const FieldEmbed<Scal>& fe_flux,
+      const MapEmbed<BCond<Vect>>& mebc_velocity,
       std::function<void(const ParticlesView&)> velocity_hook) = 0;
   virtual void Append(const ParticlesView&) = 0;
   // Returns view with pointers to fields.
@@ -98,6 +99,7 @@ class Particles : public ParticlesInterface<typename EB_::M> {
   void SetConf(Conf) override;
   void Step(
       Scal dt, const FieldEmbed<Scal>& fe_flux,
+      const MapEmbed<BCond<Vect>>& mebc_velocity,
       std::function<void(const ParticlesView&)> velocity_hook) override;
   void Append(const ParticlesView&) override;
   ParticlesView GetView() const override;

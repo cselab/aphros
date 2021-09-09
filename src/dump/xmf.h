@@ -26,14 +26,14 @@ class Xmf {
   static std::string GetXmfTemplate();
 
   struct Meta {
-    std::string name{"u"};
-    std::string binpath;
-    Type type{Type::Float64};
+    std::string name{"u"}; // field name
+    std::string binpath; // path to data file
+    Type type{Type::Float64}; // type of data
     MIdx dimensions; // full size, number of cells
     MIdx start{0}; // hyperslab start
     MIdx stride{1}; // hyperslab stride
     MIdx count; // hypreslab size
-    IntIdx seek{0}; // number of bytes to skip
+    IntIdx seek{0}; // number of bytes to skip from the beginning of data file
     Vect origin{0}; // position of the grid node with zero index
     Vect spacing{1}; // spacing between grid nodes
   };

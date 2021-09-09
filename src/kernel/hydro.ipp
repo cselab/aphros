@@ -2268,7 +2268,9 @@ void Hydro<M>::StepParticles() {
         particles_hook_(view);
       }
     };
-    particles_->Step(particles_dt_, fs_->GetVolumeFlux(), velocity_hook);
+    particles_->Step(
+        particles_dt_, fs_->GetVolumeFlux(), fs_->GetVelocityCond(),
+        velocity_hook);
   }
   if (var.Int("particles_to_vof", 0) && sem.Nested()) {
     ConvertParticlesToVof();

@@ -16,6 +16,8 @@
 #include "util/format.h"
 #include "util/vof.h"
 
+#include "dump/raw.h"
+
 #include "particles.h"
 
 template <class EB_>
@@ -122,6 +124,7 @@ struct Particles<EB_>::Imp {
   }
   void Step(
       Scal dt, const FieldEmbed<Scal>& fev,
+      const MapEmbed<BCond<Vect>>& mebc_velocity,
       std::function<void(const ParticlesView&)> velocity_hook) {
     auto sem = m.GetSem("step");
     auto& s = state_;
@@ -133,6 +136,19 @@ struct Particles<EB_>::Imp {
       });
       // Restore vector velocity field from face field.
       const FieldCell<Vect> fc_vel = UEB::AverageGradient(ff_vel, eb);
+
+      if (m.IsRoot() && time_ == 0) {
+        using MIdx = typename M::MIdx;
+        const MIdx size(32);
+        GBlock<IdxCell, dim> block(size);
+        GIndex<IdxCell, dim> index(size);
+        FieldCell<Scal> fc(index);
+        for (MIdx w : block) {
+          const Vect x((Vect(w) + Vect(0.5)) / Vect(size));
+          fc[index.GetIdx(w)] = x.norm();
+        }
+        dump::Raw<M>::WritePlainArrayWithXmf("test.raw", "u", fc.data(), size);
+      }
 
       for (size_t i = 0; i < s.x.size(); ++i) {
         const auto c = m.GetCellFromPoint(s.x[i]);
@@ -289,8 +305,9 @@ void Particles<EB_>::SetConf(Conf conf) {
 template <class EB_>
 void Particles<EB_>::Step(
     Scal dt, const FieldEmbed<Scal>& fe_flux,
+    const MapEmbed<BCond<Vect>>& mebc_velocity,
     std::function<void(const ParticlesView&)> velocity_hook) {
-  imp->Step(dt, fe_flux, velocity_hook);
+  imp->Step(dt, fe_flux, mebc_velocity, velocity_hook);
 }
 
 template <class EB_>
