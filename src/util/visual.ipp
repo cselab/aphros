@@ -11,6 +11,7 @@
 #include "parse/codeblocks.h"
 #include "parse/parser.h"
 #include "parse/vars.h"
+#include "solver/approx_eb.h"
 #include "util/logger.h"
 #include "visual.h"
 
@@ -193,26 +194,6 @@ struct Visual<M>::Imp {
     }
   }
 
-  // Evaluates bilinear interpolant on points (0,0), (1,0), (0,1) and (1,1).
-  // x,y: target point
-  // u,ux,uy,uyx:  values of function for (x,y) = (0,0), (1,0), (0,1), (1,1)
-  // FIXME: this is a copy from approx_eb.ipp
-  template <class T, class Scal>
-  static T Bilinear(Scal x, Scal y, T u, T ux, T uy, T uyx) {
-    //                      //
-    //   y                  //
-    //   |                  //
-    //   |*uy    *uyx       //
-    //   |                  //
-    //   |                  //
-    //   |*u     *ux        //
-    //   |-------------x    //
-    //                      //
-    const auto v = u * (1 - x) + ux * x;
-    const auto vy = uy * (1 - x) + uyx * x;
-    return v * (1 - y) + vy * y;
-  }
-
   static void RenderToCanvasBilinear(
       CanvasView& view, const FieldCell<Float3>& fc_color, const M& m) {
     const MIdx msize = m.GetGlobalSize();
@@ -237,7 +218,8 @@ struct Visual<M>::Imp {
         const Scal fy = Scal(y - start[1]) / (end[1] - start[1]);
         for (int x = start[0]; x < end[0]; x++) {
           const Scal fx = Scal(x - start[0]) / (end[0] - start[0]);
-          auto qb = Bilinear(std::abs(fx), std::abs(fy), q, qx, qy, qyx);
+          auto qb =
+              interp::Bilinear(std::abs(fx), std::abs(fy), q, qx, qy, qyx);
           const Byte3 mq(qb * 255);
           Pixel v = 0xff000000 | (mq[0] << 0) | (mq[1] << 8) | (mq[2] << 16);
           view(x, y) = v;

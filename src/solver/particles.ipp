@@ -12,6 +12,7 @@
 #include <type_traits>
 
 #include "approx.h"
+#include "approx2.h"
 #include "approx_eb.h"
 #include "util/format.h"
 #include "util/vof.h"
@@ -127,26 +128,37 @@ struct Particles<EB_>::Imp {
       const MapEmbed<BCond<Vect>>& mebc_velocity,
       std::function<void(const ParticlesView&)> velocity_hook) {
     auto sem = m.GetSem("step");
+    struct {
+      FieldFace<Scal> ff_veln;
+    } * ctx(sem);
+    auto& t = *ctx;
     auto& s = state_;
+    if (sem()) {
+      t.ff_veln = fev.template Get<FieldFaceb<Scal>>();
+      for (auto f : m.Faces()) {
+        t.ff_veln[f] /= eb.GetArea(f);
+      }
+    }
+    if (sem.Nested()) {
+      Approx2<EB>::ExtrapolateToHaloFaces(t.ff_veln, mebc_velocity, m);
+    }
     if (sem("local")) {
-      // Convert volume flux to velocity face field.
-      FieldFaceb<Scal> ff_vel = fev.template Get<FieldFaceb<Scal>>();
-      eb.LoopFaces([&](auto cf) { //
-        ff_vel[cf] /= eb.GetArea(cf);
-      });
-      // Restore vector velocity field from face field.
-      const FieldCell<Vect> fc_vel = UEB::AverageGradient(ff_vel, eb);
-
       if (m.IsRoot() && time_ == 0) {
         using MIdx = typename M::MIdx;
-        const MIdx size(32);
+        const MIdx size(64);
         GBlock<IdxCell, dim> block(size);
         GIndex<IdxCell, dim> index(size);
         FieldCell<Scal> fc(index);
-        for (MIdx w : block) {
-          const Vect x((Vect(w) + Vect(0.5)) / Vect(size));
-          fc[index.GetIdx(w)] = x.norm();
-        }
+        const IdxCell c0 = m.GetIndexCells().GetIdx(MIdx(0));
+        auto callback = [&](const std::function<Vect(Vect x)>& func) {
+          const Vect h = m.GetCellSize();
+          for (MIdx w : block) {
+            Vect x((Vect(w) + Vect(0.5)) / Vect(size));
+            x = m.GetCenter(c0) - h * 0.5 + x * (2 * h);
+            fc[index.GetIdx(w)] = func(x)[0];
+          }
+        };
+        Approx2<EB>::EvalTrilinearFromFaceField(t.ff_veln, callback, m);
         dump::Raw<M>::WritePlainArrayWithXmf("test.raw", "u", fc.data(), size);
       }
 
@@ -170,8 +182,8 @@ struct Particles<EB_>::Imp {
         //   dv/dt = (u - v) / tau + g
         // particle velocity `v`, liquid velocity `u`,
         // relaxation time `tau`, gravity `g`
-        s.v[i] = (fc_vel[c] + s.v[i] * (tau / dt) + conf.gravity * tau) /
-                 (1 + tau / dt);
+        s.v[i] = Vect(0);//(fc_vel[c] + s.v[i] * (tau / dt) + conf.gravity * tau) /
+                 //(1 + tau / dt);
         velocity_hook(GetView(s));
         s.x[i] += s.v[i] * dt;
 

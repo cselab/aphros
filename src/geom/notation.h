@@ -236,6 +236,9 @@ class IdxFaceMesh {
   Direction direction() const {
     return Direction(size_t(m.GetIndexFaces().GetDir(idxface_)));
   }
+  Direction direction(Side side) const {
+    return Direction(size_t(m.GetIndexFaces().GetDir(idxface_)), side);
+  }
   auto cell(Side s) const {
     return m(m.GetCell(idxface_, s));
   }

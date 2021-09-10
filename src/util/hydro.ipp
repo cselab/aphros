@@ -908,7 +908,7 @@ void InitVort(
   auto& t = *ctx;
   if (sem("initpois")) {
     t.fcpot.Reinit(m);
-    t.mebc_vel = GetVelCond<M>(mebc_fluid);
+    t.mebc_vel = ConvertBCondFluidToVelocity<M>(mebc_fluid);
     t.mebc_pot = GetBCondZeroGrad<Scal>(t.mebc_vel);
     if (zero_dirichlet) {
       mebc_fluid.LoopPairs([&](auto p) {
@@ -963,7 +963,7 @@ void InitVort(
   auto& t = *ctx;
   if (sem("initpois")) {
     t.fcpot.Reinit(m);
-    t.mebc_vel = GetVelCond<M>(mebc_fluid);
+    t.mebc_vel = ConvertBCondFluidToVelocity<M>(mebc_fluid);
     t.mebc_pot_scal = GetBCondZeroGrad<Scal>(t.mebc_vel);
     if (zero_dirichlet) {
       mebc_fluid.LoopPairs([&](auto p) {

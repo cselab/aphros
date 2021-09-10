@@ -26,7 +26,7 @@ struct FluidDummy<EB_>::Imp {
   using UEB = UEmbed<M>;
 
   Imp(Owner* owner, const EB& eb0, const FieldCell<Vect>& fcvel,
-      const Vars& var0)
+      const MapEmbed<BCondFluid<Vect>>& mebc, const Vars& var0)
       : owner_(owner), m(owner_->m), eb(eb0), var(var0) {
     fcvel_ = fcvel;
     fcp_.Reinit(m, 0);
@@ -35,6 +35,7 @@ struct FluidDummy<EB_>::Imp {
     eb.LoopFaces([&](auto cf) { //
       fev_[cf] = ffwe[cf].dot(eb.GetSurface(cf));
     });
+    mebc_vel_ = ConvertBCondFluidToVelocity<M>(mebc);
   }
   double GetAutoTimeStep() const {
     Scal dt = std::numeric_limits<Scal>::max();
@@ -65,18 +66,18 @@ struct FluidDummy<EB_>::Imp {
   FieldEmbed<Scal> fev_; // volume flux
   FieldCell<Scal> fcp_; // pressure
   FieldCell<Vect> fcvel_; // velocity
-  MapEmbed<BCond<Vect>> mebc_vel;
+  MapEmbed<BCond<Vect>> mebc_vel_;
 };
 
 template <class EB_>
 FluidDummy<EB_>::FluidDummy(
     M& m_, const EB& eb, const FieldCell<Vect>& fcvel,
-    const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
-    const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* febp,
-    const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
-    double dt, const Vars& var)
+    const MapEmbed<BCondFluid<Vect>>& mebc, const FieldCell<Scal>* fcr,
+    const FieldCell<Scal>* fcd, const FieldCell<Vect>* fcf,
+    const FieldEmbed<Scal>* febp, const FieldCell<Scal>* fcsv,
+    const FieldCell<Scal>* fcsm, double t, double dt, const Vars& var)
     : Base(t, dt, m_, fcr, fcd, fcf, febp, fcsv, fcsm)
-    , imp(new Imp(this, eb, fcvel, var)) {}
+    , imp(new Imp(this, eb, fcvel, mebc, var)) {}
 
 template <class EB_>
 FluidDummy<EB_>::~FluidDummy() = default;
@@ -108,5 +109,5 @@ double FluidDummy<EB_>::GetAutoTimeStep() const {
 
 template <class EB_>
 auto FluidDummy<EB_>::GetVelocityCond() const -> const MapEmbed<BCond<Vect>>& {
-  return imp->mebc_vel;
+  return imp->mebc_vel_;
 }

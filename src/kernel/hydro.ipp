@@ -639,12 +639,12 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   } else if (fs == "dummy") {
     if (eb_) {
       fs_.reset(new FluidDummy<Embed<M>>(
-          m, *eb_, fc_vel, &fc_rho_, &fc_mu_, &fc_force_, &febp_, &fc_src_,
-          &fc_srcm_, 0., st_.dt, var));
+          m, *eb_, fc_vel, mebc_fluid_, &fc_rho_, &fc_mu_, &fc_force_, &febp_,
+          &fc_src_, &fc_srcm_, 0., st_.dt, var));
     } else {
       fs_.reset(new FluidDummy<M>(
-          m, m, fc_vel, &fc_rho_, &fc_mu_, &fc_force_, &febp_, &fc_src_,
-          &fc_srcm_, 0., st_.dt, var));
+          m, m, fc_vel, mebc_fluid_, &fc_rho_, &fc_mu_, &fc_force_, &febp_,
+          &fc_src_, &fc_srcm_, 0., st_.dt, var));
     }
   } else {
     fassert(false, "Unknown fluid_solver=" + fs);
