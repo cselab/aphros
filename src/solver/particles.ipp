@@ -162,6 +162,16 @@ struct Particles<EB_>::Imp {
         dump::Raw<M>::WritePlainArrayWithXmf("test.raw", "u", fc.data(), size);
       }
 
+      // Project liquid velocity to particles.
+      std::vector<Vect> v_liquid(s.x.size());
+      auto callback = [&](const std::function<Vect(Vect x)>& func) {
+        for (size_t i = 0; i < s.x.size(); ++i) {
+          v_liquid[i] = func(s.x[i]);
+        }
+      };
+      Approx2<EB>::EvalTrilinearFromFaceField(t.ff_veln, callback, m);
+
+      // Compute velocity on particles and advance positions.
       for (size_t i = 0; i < s.x.size(); ++i) {
         const auto c = m.GetCellFromPoint(s.x[i]);
         Scal tau = 0;
@@ -182,8 +192,8 @@ struct Particles<EB_>::Imp {
         //   dv/dt = (u - v) / tau + g
         // particle velocity `v`, liquid velocity `u`,
         // relaxation time `tau`, gravity `g`
-        s.v[i] = Vect(0);//(fc_vel[c] + s.v[i] * (tau / dt) + conf.gravity * tau) /
-                 //(1 + tau / dt);
+        s.v[i] = (v_liquid[i] + s.v[i] * (tau / dt) + conf.gravity * tau) /
+                 (1 + tau / dt);
         velocity_hook(GetView(s));
         s.x[i] += s.v[i] * dt;
 
