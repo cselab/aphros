@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <memory>
+#include <unordered_set>
 
 #include "cond.h"
 #include "geom/mesh.h"
@@ -74,7 +75,11 @@ class ParticlesInterface {
   // Returns the number of particles received at the last communication.
   virtual size_t GetNumRecv() const = 0;
   // Dumps current particles to CSV file.
-  virtual void DumpCsv(const std::string& path) const = 0;
+  // path: path to output file
+  // sel: set of fields to dump
+  virtual void DumpCsv(
+      const std::string& path,
+      const std::unordered_set<std::string>& sel) const = 0;
 };
 
 template <class EB_>
@@ -106,7 +111,9 @@ class Particles : public ParticlesInterface<typename EB_::M> {
   ParticlesView GetView() const override;
   Scal GetTime() const override;
   size_t GetNumRecv() const override;
-  void DumpCsv(const std::string& path) const override;
+  void DumpCsv(
+      const std::string& path,
+      const std::unordered_set<std::string>& sel) const override;
   // Reads recognized columns (position, velocity, radius, ...) from CSV file.
   static void ReadCsv(
       std::istream& fin, const ParticlesView& view, char deliimiter = ',');

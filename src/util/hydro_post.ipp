@@ -334,7 +334,8 @@ struct HydroPost<M>::Imp {
         }
       }
       if (sem.Nested()) {
-        hydro->particles_->DumpCsv(path);
+        hydro->particles_->DumpCsv(
+            path, GetWords(var.String["particles_dumplist"]));
       }
     }
     if (sem()) {

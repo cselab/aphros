@@ -254,11 +254,14 @@ struct Particles<EB_>::Imp {
     append(s.removed, other.removed);
     CheckSize(s);
   }
-  void DumpCsv(const std::string& path) const {
+  void DumpCsv(
+      const std::string& path,
+      const std::unordered_set<std::string>& sel) const {
     auto sem = m.GetSem("dumpcsv");
     struct {
       State s;
       std::vector<int> block;
+      std::vector<Scal> is_inner;
     } * ctx(sem);
     auto& t = *ctx;
     if (sem("gather")) {
@@ -267,6 +270,7 @@ struct Particles<EB_>::Imp {
       t.s = s;
       for (size_t i = 0; i < s.x.size(); ++i) {
         t.block.push_back(m.GetId());
+        t.is_inner.push_back(s.is_inner[i]);
       }
       m.Reduce(&t.s.x, Reduction::concat);
       m.Reduce(&t.s.v, Reduction::concat);
@@ -276,26 +280,49 @@ struct Particles<EB_>::Imp {
       m.Reduce(&t.s.termvel, Reduction::concat);
       m.Reduce(&t.s.removed, Reduction::concat);
       m.Reduce(&t.block, Reduction::concat);
+      m.Reduce(&t.is_inner, Reduction::concat);
     }
     if (sem("write") && m.IsRoot()) {
-      std::ofstream o(path);
-      o.precision(16);
-      // header
-      o << "x,y,z,vx,vy,vz,r,source,rho,termvel,removed,block";
-      o << std::endl;
-      // content
-      auto& s = t.s;
-      for (size_t i = 0; i < s.x.size(); ++i) {
-        o << s.x[i][0] << ',' << s.x[i][1] << ',' << s.x[i][2];
-        o << ',' << s.v[i][0] << ',' << s.v[i][1] << ',' << s.v[i][2];
-        o << ',' << s.r[i];
-        o << ',' << s.source[i];
-        o << ',' << s.rho[i];
-        o << ',' << s.termvel[i];
-        o << ',' << s.removed[i];
-        o << ',' << t.block[i];
-        o << "\n";
-      }
+      const auto& s = t.s;
+      std::vector<std::pair<std::string, std::vector<Scal>>> data;
+      // Dump halo particles if field "inner" is selected.
+      const bool dump_halo = sel.count("inner");
+      auto append_scal = [&](std::string name, const std::vector<auto>& v) {
+        if (sel.count(name)) {
+          std::vector<Scal> res;
+          for (size_t i = 0; i < v.size(); ++i) {
+            if (t.is_inner[i] || dump_halo) {
+              res.push_back(v[i]);
+            }
+          }
+          data.emplace_back(name, std::move(res));
+        }
+      };
+      auto append_vect = [&](std::string prefix, const std::vector<Vect>& v) {
+        for (auto d : m.dirs) {
+          const std::string dletter(1, GDir<dim>(d).letter());
+          const auto name = prefix + dletter;
+          if (sel.count(name)) {
+            std::vector<Scal> res;
+            for (size_t i = 0; i < v.size(); ++i) {
+              if (t.is_inner[i] || dump_halo) {
+                res.push_back(v[i][d]);
+              }
+            }
+            data.emplace_back(name, std::move(res));
+          }
+        }
+      };
+      append_vect("", s.x); // Position.
+      append_vect("v", s.v); // Velocity.
+      append_scal("r", s.r);
+      append_scal("source", s.source);
+      append_scal("rho", s.rho);
+      append_scal("termvel", s.termvel);
+      append_scal("removed", s.removed);
+      append_scal("block", t.block);
+      append_scal("inner", t.is_inner);
+      dump::DumpCsv(data, path);
     }
     if (sem()) {
     }
@@ -390,8 +417,9 @@ void Particles<EB_>::Append(const ParticlesView& app) {
 }
 
 template <class EB_>
-void Particles<EB_>::DumpCsv(const std::string& path) const {
-  imp->DumpCsv(path);
+void Particles<EB_>::DumpCsv(
+    const std::string& path, const std::unordered_set<std::string>& sel) const {
+  imp->DumpCsv(path, sel);
 }
 
 template <class EB_>
