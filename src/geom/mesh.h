@@ -731,14 +731,14 @@ class MeshCartesian {
 
   struct CommPartRequest {
     std::vector<Vect>* x = nullptr; // particle position
-    std::vector<bool>* is_inner = nullptr; // true if particle is owned by block
+    std::vector<bool>* inner = nullptr; // true if particle is owned by block
     std::vector<std::vector<Scal>*> attr_scal; // scalar attributes
     std::vector<std::vector<Vect>*> attr_vect; // vector attributes
   };
   // Requests exchange of particles between blocks.
-  // Particles with `is_inner` set to `true` are transfered to blocks
+  // Particles with `inner` set to `true` are transfered to blocks
   // within `flags.particles_halo_radius`.
-  // Then `is_inner` is set to `true` for particles with `IsInnerPoint()` true.
+  // Then `inner` is set to `true` for particles with `IsInnerPoint()` true.
   void CommPart(const CommPartRequest&);
   const std::vector<CommPartRequest>& GetCommPart() const;
   void ClearCommPart();

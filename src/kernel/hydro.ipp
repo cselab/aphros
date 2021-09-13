@@ -417,7 +417,7 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
             xrand[d] = um(g);
           }
           view.x.push_back(m.GetCenter(c) + xrand * h);
-          view.is_inner.push_back(true);
+          view.inner.push_back(true);
           view.v.push_back(velocity);
           view.r.push_back(radius[i]);
           view.source.push_back(0);
@@ -449,14 +449,14 @@ void Hydro<M>::InitParticles() {
         "Unknown mode=" + mode + ". Known modes are tracer, stokes, termvel");
   }
   std::vector<Vect> p_x;
-  std::vector<bool> p_is_inner;
+  std::vector<bool> p_inner;
   std::vector<Vect> p_v;
   std::vector<Scal> p_r;
   std::vector<Scal> p_source;
   std::vector<Scal> p_rho;
   std::vector<Scal> p_termvel;
   std::vector<Scal> p_removed;
-  ParticlesView view{p_x,      p_is_inner, p_v,       p_r,
+  ParticlesView view{p_x,      p_inner, p_v,       p_r,
                      p_source, p_rho,      p_termvel, p_removed};
   const auto init_csv = var.String["particles_init_csv"];
   if (init_csv.length() && m.IsRoot()) {
@@ -1751,10 +1751,37 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       const auto h = m.GetCellSize();
       const Scal rate = var.Double["particles_growth_rate"];
       for (size_t i = 0; i < view.x.size(); ++i) {
-        if (view.is_inner[i]) {
-          const auto c = m.GetCellFromPoint(view.x[i]);
-          view.source[i] = tu[c] * rate * h.prod();
-          fc_tracer_source[l][c] -= tu[c] * rate;
+        if (view.inner[i]) {
+          // Range of cells containing the particle.
+          MIdx wmin(((view.x[i] - Vect(view.r[i]) - m.flags.global_origin) / h)
+                        .floor());
+          MIdx wmax(((view.x[i] + Vect(view.r[i]) - m.flags.global_origin) / h)
+                        .floor());
+          // Cell containing the particle centroid.
+          const auto cpart = m(m.GetCellFromPoint(view.x[i]));
+          // Limit the range of cells to 5x5x5 stencil around the centroid.
+          const MIdx wcpart(cpart);
+          wmin = wmin.max(wcpart - MIdx(2));
+          wmax = wmax.min(wcpart + MIdx(2));
+          // Block of cells from range [wmin, wmax].
+          const GBlock<int, M::dim> wcells(wmin, wmax - wmin + MIdx(1));
+          const auto& index = m.GetIndexCells();
+          // Level-set describing the particle.
+          auto ls = [&](const Vect& x) -> Scal {
+            return view.r[i] - x.dist(view.x[i]);
+          };
+          for (MIdx w : wcells) {
+            const auto c = m(index.GetIdx(w));
+            // Volume fraction of intersection between particle and cell.
+            // Assume full intersection for small particles.
+            const Scal vf = //
+                view.r[i] < h[0]
+                    ? 1
+                    : GetLevelSetVolume<Scal, M::dim>(ls, c.center, h);
+            const Scal source = vf * tu[c] * rate;
+            view.source[i] += source * c.volume;
+            fc_tracer_source[l][c] -= source;
+          }
         }
       }
     }
@@ -2252,7 +2279,7 @@ void Hydro<M>::StepParticles() {
     auto velocity_hook = [this](const ParticlesView& view) {
       // Move particles away from the wall.
       for (size_t i = 0; i < view.x.size(); ++i) {
-        if (view.is_inner[i]) {
+        if (view.inner[i]) {
           //view.v[i] *= 0.2;
           const IdxCell c = m.GetCellFromPoint(view.x[i]);
           const Vect xc = m.GetCenter(c);
@@ -2281,14 +2308,14 @@ void Hydro<M>::StepParticles() {
   }
   if (sem("spawn")) {
     std::vector<Vect> p_x;
-    std::vector<bool> p_is_inner;
+    std::vector<bool> p_inner;
     std::vector<Vect> p_v;
     std::vector<Scal> p_r;
     std::vector<Scal> p_source;
     std::vector<Scal> p_rho;
     std::vector<Scal> p_termvel;
     std::vector<Scal> p_removed;
-    ParticlesView view{p_x,      p_is_inner, p_v,       p_r,
+    ParticlesView view{p_x,      p_inner, p_v,       p_r,
                        p_source, p_rho,      p_termvel, p_removed};
     SpawnParticles(view);
     particles_->Append(view);

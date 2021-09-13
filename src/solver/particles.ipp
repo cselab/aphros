@@ -30,7 +30,7 @@ struct Particles<EB_>::Imp {
   struct State {
     // See description of attributes in ParticlesView.
     std::vector<Vect> x;
-    std::vector<bool> is_inner;
+    std::vector<bool> inner;
     std::vector<Vect> v;
     std::vector<Scal> r;
     std::vector<Scal> source;
@@ -47,16 +47,16 @@ struct Particles<EB_>::Imp {
       , conf(conf_)
       , time_(time)
       , state_(
-            {init.x, init.is_inner, init.v, init.r, init.source, init.rho,
+            {init.x, init.inner, init.v, init.r, init.source, init.rho,
              init.termvel, init.removed}) {
     CheckSize(init);
   }
   static ParticlesView GetView(State& s) {
-    return {s.x, s.is_inner, s.v, s.r, s.source, s.rho, s.termvel, s.removed};
+    return {s.x, s.inner, s.v, s.r, s.source, s.rho, s.termvel, s.removed};
   }
   static void CheckSize(const State& s) {
     const size_t n = s.x.size();
-    fassert_equal(s.is_inner.size(), n);
+    fassert_equal(s.inner.size(), n);
     fassert_equal(s.v.size(), n);
     fassert_equal(s.r.size(), n);
     fassert_equal(s.source.size(), n);
@@ -66,7 +66,7 @@ struct Particles<EB_>::Imp {
   }
   static void CheckSize(const ParticlesView& s) {
     const size_t n = s.x.size();
-    fassert_equal(s.is_inner.size(), n);
+    fassert_equal(s.inner.size(), n);
     fassert_equal(s.v.size(), n);
     fassert_equal(s.r.size(), n);
     fassert_equal(s.source.size(), n);
@@ -77,7 +77,7 @@ struct Particles<EB_>::Imp {
   template <class F>
   static void ForEachAttribute(const ParticlesView& view, F func) {
     func(view.x);
-    func(view.is_inner);
+    func(view.inner);
     func(view.v);
     func(view.r);
     func(view.source);
@@ -230,7 +230,7 @@ struct Particles<EB_>::Imp {
       ClearRemoved(GetView(s));
       typename M::CommPartRequest req;
       req.x = &s.x;
-      req.is_inner = &s.is_inner;
+      req.inner = &s.inner;
       req.attr_scal = {&s.r, &s.source, &s.rho, &s.termvel, &s.removed};
       req.attr_vect = {&s.v};
       m.CommPart(req);
@@ -245,7 +245,7 @@ struct Particles<EB_>::Imp {
     };
     CheckSize(other);
     append(s.x, other.x);
-    append(s.is_inner, other.is_inner);
+    append(s.inner, other.inner);
     append(s.v, other.v);
     append(s.r, other.r);
     append(s.source, other.source);
@@ -261,7 +261,7 @@ struct Particles<EB_>::Imp {
     struct {
       State s;
       std::vector<int> block;
-      std::vector<Scal> is_inner;
+      std::vector<Scal> inner;
     } * ctx(sem);
     auto& t = *ctx;
     if (sem("gather")) {
@@ -270,7 +270,7 @@ struct Particles<EB_>::Imp {
       t.s = s;
       for (size_t i = 0; i < s.x.size(); ++i) {
         t.block.push_back(m.GetId());
-        t.is_inner.push_back(s.is_inner[i]);
+        t.inner.push_back(s.inner[i]);
       }
       m.Reduce(&t.s.x, Reduction::concat);
       m.Reduce(&t.s.v, Reduction::concat);
@@ -280,18 +280,18 @@ struct Particles<EB_>::Imp {
       m.Reduce(&t.s.termvel, Reduction::concat);
       m.Reduce(&t.s.removed, Reduction::concat);
       m.Reduce(&t.block, Reduction::concat);
-      m.Reduce(&t.is_inner, Reduction::concat);
+      m.Reduce(&t.inner, Reduction::concat);
     }
     if (sem("write") && m.IsRoot()) {
       const auto& s = t.s;
       std::vector<std::pair<std::string, std::vector<Scal>>> data;
       // Dump halo particles if field "inner" is selected.
       const bool dump_halo = sel.count("inner");
-      auto append_scal = [&](std::string name, const std::vector<auto>& v) {
+      auto append_scal = [&](std::string name, const auto& v) {
         if (sel.count(name)) {
           std::vector<Scal> res;
           for (size_t i = 0; i < v.size(); ++i) {
-            if (t.is_inner[i] || dump_halo) {
+            if (t.inner[i] || dump_halo) {
               res.push_back(v[i]);
             }
           }
@@ -305,7 +305,7 @@ struct Particles<EB_>::Imp {
           if (sel.count(name)) {
             std::vector<Scal> res;
             for (size_t i = 0; i < v.size(); ++i) {
-              if (t.is_inner[i] || dump_halo) {
+              if (t.inner[i] || dump_halo) {
                 res.push_back(v[i][d]);
               }
             }
@@ -321,7 +321,7 @@ struct Particles<EB_>::Imp {
       append_scal("termvel", s.termvel);
       append_scal("removed", s.removed);
       append_scal("block", t.block);
-      append_scal("inner", t.is_inner);
+      append_scal("inner", t.inner);
       dump::DumpCsv(data, path);
     }
     if (sem()) {
@@ -356,7 +356,7 @@ struct Particles<EB_>::Imp {
     }
     // Fill the remaining fields with default values.
     const size_t n = view.x.size();
-    view.is_inner.resize(n, true);
+    view.inner.resize(n, true);
     view.v.resize(n, Vect(0));
     view.r.resize(n, 0);
     view.source.resize(n, 0);

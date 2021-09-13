@@ -29,7 +29,7 @@ struct ParticlesView {
   using Scal = typename Vect_::Scal;
   using Vect = Vect_;
   std::vector<Vect>& x; // positions
-  std::vector<bool>& is_inner; // true if particle is owned by block
+  std::vector<bool>& inner; // true if particle is owned by block
   std::vector<Vect>& v; // velocity
   std::vector<Scal>& r; // radius
   std::vector<Scal>& source; // volume source
