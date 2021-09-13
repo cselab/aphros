@@ -30,7 +30,8 @@ void TestParse() {
   std::cout << cfa << std::endl;
   ParseAdvectionFaceCond("halo reflect", cfa);
   std::cout << cfa << std::endl;
-  for (auto s : Split("clear0 2, clear1 3, fill_vf 0.3, fill_cl 0.7", ',')) {
+  for (auto s :
+       SplitByDelimiter("clear0 2, clear1 3, fill_vf 0.3, fill_cl 0.7", ',')) {
     ParseAdvectionFaceCond(s, cfa);
   }
   std::cout << cfa << std::endl;

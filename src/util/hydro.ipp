@@ -737,7 +737,7 @@ InitBc(
     bool found_fluid = false;
     std::map<std::string, Scal> custom;
     BCondFluid<Vect> bc_fluid;
-    for (std::string s : Split(list, ',')) {
+    for (std::string s : SplitByDelimiter(list, ',')) {
       auto key_value = parse_key_value(s);
       if (known_keys.count(key_value.first)) {
         custom.insert(key_value);

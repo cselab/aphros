@@ -263,7 +263,7 @@ struct UInitEmbedBc {
         UI::ParseGroups(buf, eb, FieldCell<bool>());
     for (auto desc : res.vdesc) {
       std::map<std::string, Scal> map;
-      for (std::string s : Split(desc, ',')) {
+      for (std::string s : SplitByDelimiter(desc, ',')) {
         auto p = get_key_value(s);
         if (extra_keys.count(p.first)) {
           map[p.first] = p.second;
@@ -279,7 +279,7 @@ struct UInitEmbedBc {
       const auto group = cfbc.second;
       auto& bc = res.mebc[cf];
       bc.nci = me_nci[cf];
-      for (std::string s : Split(res.vdesc[group], ',')) {
+      for (std::string s : SplitByDelimiter(res.vdesc[group], ',')) {
         auto p = get_key_value(s);
         const std::string key = p.first;
         const Scal value = p.second;

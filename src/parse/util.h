@@ -25,12 +25,12 @@ inline std::set<std::string> GetWords(std::string s) {
   return r;
 }
 
-// Splits string by separator
-inline std::vector<std::string> Split(std::string str, char sep) {
+// Splits string by delimiter.
+inline std::vector<std::string> SplitByDelimiter(std::string str, char delim) {
   std::vector<std::string> ss;
   std::istringstream f(str);
   std::string s;
-  while (std::getline(f, s, sep)) {
+  while (std::getline(f, s, delim)) {
     ss.push_back(s);
   }
   return ss;

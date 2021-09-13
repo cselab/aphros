@@ -432,59 +432,61 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
 
 template <class M>
 void Hydro<M>::InitParticles() {
-  if (var.Int["enable_particles"]) {
-    typename ParticlesInterface<M>::Conf conf;
-    conf.mixture_density = var.Double["rho1"];
-    conf.mixture_viscosity = var.Double["mu1"];
-    conf.gravity = Vect(var.Vect["gravity"]);
-    const auto mode = var.String["particles_mode"];
-    if (mode == "tracer") {
-      conf.mode = ParticlesMode::tracer;
-    } else if (mode == "stokes") {
-      conf.mode = ParticlesMode::stokes;
-    } else if (mode == "termvel") {
-      conf.mode = ParticlesMode::termvel;
-    } else {
-      fassert(
-          false,
-          "Unknown mode=" + mode + ". Known modes are tracer, stokes, termvel");
-    }
-    std::vector<Vect> p_x;
-    std::vector<bool> p_is_inner;
-    std::vector<Vect> p_v;
-    std::vector<Scal> p_r;
-    std::vector<Scal> p_source;
-    std::vector<Scal> p_rho;
-    std::vector<Scal> p_termvel;
-    std::vector<Scal> p_removed;
-    ParticlesView view{p_x,      p_is_inner, p_v,       p_r,
-                       p_source, p_rho,      p_termvel, p_removed};
-    SpawnParticles(view);
-    if (eb_) {
-      particles_.reset(new Particles<EB>(m, *eb_, view, fs_->GetTime(), conf));
-    } else {
-      particles_.reset(new Particles<M>(m, m, view, fs_->GetTime(), conf));
-    }
+  typename ParticlesInterface<M>::Conf conf;
+  conf.mixture_density = var.Double["rho1"];
+  conf.mixture_viscosity = var.Double["mu1"];
+  conf.gravity = Vect(var.Vect["gravity"]);
+  const auto mode = var.String["particles_mode"];
+  if (mode == "tracer") {
+    conf.mode = ParticlesMode::tracer;
+  } else if (mode == "stokes") {
+    conf.mode = ParticlesMode::stokes;
+  } else if (mode == "termvel") {
+    conf.mode = ParticlesMode::termvel;
+  } else {
+    fassert(
+        false,
+        "Unknown mode=" + mode + ". Known modes are tracer, stokes, termvel");
+  }
+  std::vector<Vect> p_x;
+  std::vector<bool> p_is_inner;
+  std::vector<Vect> p_v;
+  std::vector<Scal> p_r;
+  std::vector<Scal> p_source;
+  std::vector<Scal> p_rho;
+  std::vector<Scal> p_termvel;
+  std::vector<Scal> p_removed;
+  ParticlesView view{p_x,      p_is_inner, p_v,       p_r,
+                     p_source, p_rho,      p_termvel, p_removed};
+  const auto init_csv = var.String["particles_init_csv"];
+  if (init_csv.length() && m.IsRoot()) {
+    Particles<M>::ReadCsv(init_csv, view);
+  }
+  SpawnParticles(view);
+  if (eb_) {
+    particles_.reset(new Particles<EB>(m, *eb_, view, fs_->GetTime(), conf));
+  } else {
+    particles_.reset(new Particles<M>(m, m, view, fs_->GetTime(), conf));
+  }
 
-    fc_wall_dist_.Reinit(m, GetNan<Vect>());
-    for (const auto& p : mebc_fluid_.GetMapFace()) {
-      const IdxFace f = p.first;
-      const auto& bc = p.second;
-      const auto nci = bc.nci;
-      auto cc = m.GetCellColumn(f, nci);
-      if (bc.type == BCondFluidType::wall ||
-          bc.type == BCondFluidType::slipwall ||
-          bc.type == BCondFluidType::symm) {
-        for (IdxCell c : {cc[2], cc[3]}) {
-          const Vect dist = m.GetCenter(f) - m.GetCenter(c);
-          auto& mindist = fc_wall_dist_[c];
-          if (IsNan(mindist) || dist.sqrnorm() < mindist.sqrnorm()) {
-            mindist = dist;
-          }
+  fc_wall_dist_.Reinit(m, GetNan<Vect>());
+  for (const auto& p : mebc_fluid_.GetMapFace()) {
+    const IdxFace f = p.first;
+    const auto& bc = p.second;
+    const auto nci = bc.nci;
+    auto cc = m.GetCellColumn(f, nci);
+    if (bc.type == BCondFluidType::wall ||
+        bc.type == BCondFluidType::slipwall ||
+        bc.type == BCondFluidType::symm) {
+      for (IdxCell c : {cc[2], cc[3]}) {
+        const Vect dist = m.GetCenter(f) - m.GetCenter(c);
+        auto& mindist = fc_wall_dist_[c];
+        if (IsNan(mindist) || dist.sqrnorm() < mindist.sqrnorm()) {
+          mindist = dist;
         }
       }
-      // TODO: consider mebc_fluid_.GetMapCell()
     }
+    // TODO: consider mebc_fluid_.GetMapCell()
   }
 }
 
@@ -1392,7 +1394,9 @@ void Hydro<M>::Init() {
 
     InitElectro();
 
-    InitParticles();
+    if (var.Int["enable_particles"]) {
+      InitParticles();
+    }
 
     st_.iter = 0;
     st_.step = 0;

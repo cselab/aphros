@@ -10,13 +10,14 @@
 #include <limits>
 #include <memory>
 #include <type_traits>
+#include <unordered_map>
 
 #include "approx.h"
 #include "approx2.h"
 #include "approx_eb.h"
 #include "util/format.h"
-#include "util/vof.h"
 
+#include "dump/dump.h"
 #include "dump/raw.h"
 
 #include "particles.h"
@@ -45,8 +46,11 @@ struct Particles<EB_>::Imp {
       , eb(eb_)
       , conf(conf_)
       , time_(time)
-      , state_({init.x, init.is_inner, init.v, init.r, init.source, init.rho,
-                init.termvel, init.removed}) {}
+      , state_(
+            {init.x, init.is_inner, init.v, init.r, init.source, init.rho,
+             init.termvel, init.removed}) {
+    CheckSize(init);
+  }
   static ParticlesView GetView(State& s) {
     return {s.x, s.is_inner, s.v, s.r, s.source, s.rho, s.termvel, s.removed};
   }
@@ -250,7 +254,7 @@ struct Particles<EB_>::Imp {
     append(s.removed, other.removed);
     CheckSize(s);
   }
-  void DumpCsv(std::string path) const {
+  void DumpCsv(const std::string& path) const {
     auto sem = m.GetSem("dumpcsv");
     struct {
       State s;
@@ -295,6 +299,49 @@ struct Particles<EB_>::Imp {
     }
     if (sem()) {
     }
+  }
+  static void ReadCsv(std::istream& in, const ParticlesView& view, char delim) {
+    const auto data = dump::ReadCsv<Scal>(in, delim);
+    auto set_component = [](std::vector<Vect>& dst, size_t d,
+                            const std::vector<Scal>& src) {
+      fassert(d < Vect::dim);
+      dst.resize(src.size());
+      for (size_t i = 0; i < src.size(); ++i) {
+        dst[i][d] = src[i];
+      }
+    };
+    for (const auto& p : data) {
+      const auto name = p.first;
+      for (size_t d = 0; d < Vect::dim; ++d) {
+        const std::string dletter(1, GDir<dim>(d).letter());
+        // Position.
+        if (name == dletter) {
+          set_component(view.x, d, p.second);
+        }
+        // Velocity.
+        if (name == "v" + dletter) {
+          set_component(view.v, d, p.second);
+        }
+      }
+      if (name == "r") {
+        view.r = p.second;
+      }
+    }
+    // Fill the remaining fields with default values.
+    const size_t n = view.x.size();
+    view.is_inner.resize(n, true);
+    view.v.resize(n, Vect(0));
+    view.r.resize(n, 0);
+    view.source.resize(n, 0);
+    view.rho.resize(n, 0);
+    view.termvel.resize(n, 0);
+    view.removed.resize(n, false);
+  }
+  static void ReadCsv(
+      const std::string& path, const ParticlesView& view, char delim) {
+    std::ifstream fin(path);
+    fassert(fin.good(), "Can't open file '" + path + "' for reading");
+    ReadCsv(fin, view, delim);
   }
 
   Owner* owner_;
@@ -343,8 +390,20 @@ void Particles<EB_>::Append(const ParticlesView& app) {
 }
 
 template <class EB_>
-void Particles<EB_>::DumpCsv(std::string path) const {
+void Particles<EB_>::DumpCsv(const std::string& path) const {
   imp->DumpCsv(path);
+}
+
+template <class EB_>
+void Particles<EB_>::ReadCsv(
+    std::istream& fin, const ParticlesView& view, char delim) {
+  Imp::ReadCsv(fin, view, delim);
+}
+
+template <class EB_>
+void Particles<EB_>::ReadCsv(
+    const std::string& path, const ParticlesView& view, char delim) {
+  Imp::ReadCsv(path, view, delim);
 }
 
 template <class EB_>

@@ -73,7 +73,8 @@ class ParticlesInterface {
   virtual Scal GetTime() const = 0;
   // Returns the number of particles received at the last communication.
   virtual size_t GetNumRecv() const = 0;
-  virtual void DumpCsv(std::string path) const = 0;
+  // Dumps current particles to CSV file.
+  virtual void DumpCsv(const std::string& path) const = 0;
 };
 
 template <class EB_>
@@ -105,7 +106,13 @@ class Particles : public ParticlesInterface<typename EB_::M> {
   ParticlesView GetView() const override;
   Scal GetTime() const override;
   size_t GetNumRecv() const override;
-  void DumpCsv(std::string path) const override;
+  void DumpCsv(const std::string& path) const override;
+  // Reads recognized columns (position, velocity, radius, ...) from CSV file.
+  static void ReadCsv(
+      std::istream& fin, const ParticlesView& view, char deliimiter = ',');
+  static void ReadCsv(
+      const std::string& path, const ParticlesView& view,
+      char deliimiter = ',');
 
  private:
   struct Imp;

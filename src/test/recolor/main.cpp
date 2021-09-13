@@ -23,7 +23,7 @@ void Dump(M& m, const FieldCell<Scal>& fc, std::string name, int i) {
   id = id % 1024 + (id / 1024) * 2;
   std::string sid = std::to_string(id);
   std::string op = name + "_" + sid + "_" + std::to_string(i) + ".dat";
-  Dump(fc, m.GetIndexCells(), m.GetAllBlockCells(), op);
+  dump::DumpFieldPlain(fc, m.GetIndexCells(), m.GetAllBlockCells(), op);
 }
 
 void Run(M& m, Vars& var) {
