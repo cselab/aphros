@@ -50,6 +50,13 @@ struct Particles<EB_>::Imp {
             {init.x, init.inner, init.v, init.r, init.source, init.rho,
              init.termvel, init.removed}) {
     CheckSize(init);
+    auto& s = state_;
+    typename M::CommPartRequest req;
+    req.x = &s.x;
+    req.inner = &s.inner;
+    req.attr_scal = {&s.r, &s.source, &s.rho, &s.termvel, &s.removed};
+    req.attr_vect = {&s.v};
+    m.CommPart(req);
   }
   static ParticlesView GetView(State& s) {
     return {s.x, s.inner, s.v, s.r, s.source, s.rho, s.termvel, s.removed};

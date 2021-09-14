@@ -53,6 +53,9 @@ class KernelMesh {
       : var(var_), var_mutable(var_), m(CreateMesh<M>(bi)) {
     m.flags.check_nan = var.Int["CHECKNAN"];
     m.flags.edim = var.Int["dim"];
+    var_mutable.Vect.Set("cell_length", m.GetCellSize());
+    var_mutable.Vect.Set("mesh_size", m.GetGlobalSize());
+    var_mutable.Vect.Set("domain_length", m.GetGlobalLength());
   }
   virtual ~KernelMesh() = default;
   virtual void Run() = 0;

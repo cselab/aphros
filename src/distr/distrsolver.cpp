@@ -82,15 +82,15 @@ int RunMpi0(
   };
 
   Vars var(hook_read); // parameter storage
-  Parser ip(var); // parser
-  ip.ParseFile(config);
+  Parser varparser(var); // parser
+  varparser.ParseFile(config);
   if (args.Int["config_verbose"]) {
     var.Int.Set("verbose", 1);
   }
   const auto extra = args.String["extra"];
-  if (extra.length()) {
+  if (!extra.empty()) {
     std::stringstream buf(extra);
-    ip.ParseStream(buf);
+    varparser.ParseStream(buf);
   }
 
   const std::string backend = var.String["backend"];

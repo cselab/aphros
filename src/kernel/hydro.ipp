@@ -1706,7 +1706,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
-    // source for bubble growth from tracers
+    // Source for bubble growth from tracers.
     if (tracer_) {
       const auto& conf = tracer_->GetConf();
       for (auto l : GRange<size_t>(conf.layers)) {
@@ -1743,45 +1743,59 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
-    // growth of particles from tracer
+    // Growth of particles from tracer.
     if (tracer_ && particles_) {
       auto view = particles_->GetView();
       const size_t l = 0;
       const auto& tu = tracer_->GetVolumeFraction()[l];
       const auto h = m.GetCellSize();
       const Scal rate = var.Double["particles_growth_rate"];
+      const auto& blockall = m.GetAllBlockCells();
+      const MIdx blockall_wmin = blockall.GetBegin();
+      const MIdx blockall_wmax = blockall.GetEnd() - MIdx(1);
+      // Traverse inner and halo particles.
+      // Accumulate the particle sources in `view.source[i]`
+      // and field sources in `fc_tracer_source[l][c]`.
+      // Particles sources are only valid for inner particles
+      // since they depend on the 5x5x5 stencil only available in inner cells.
       for (size_t i = 0; i < view.x.size(); ++i) {
-        if (view.inner[i]) {
-          // Range of cells containing the particle.
-          MIdx wmin(((view.x[i] - Vect(view.r[i]) - m.flags.global_origin) / h)
-                        .floor());
-          MIdx wmax(((view.x[i] + Vect(view.r[i]) - m.flags.global_origin) / h)
-                        .floor());
-          // Cell containing the particle centroid.
-          const auto cpart = m(m.GetCellFromPoint(view.x[i]));
-          // Limit the range of cells to 5x5x5 stencil around the centroid.
-          const MIdx wcpart(cpart);
-          wmin = wmin.max(wcpart - MIdx(2));
-          wmax = wmax.min(wcpart + MIdx(2));
-          // Block of cells from range [wmin, wmax].
-          const GBlock<int, M::dim> wcells(wmin, wmax - wmin + MIdx(1));
-          const auto& index = m.GetIndexCells();
-          // Level-set describing the particle.
-          auto ls = [&](const Vect& x) -> Scal {
-            return view.r[i] - x.dist(view.x[i]);
-          };
-          for (MIdx w : wcells) {
-            const auto c = m(index.GetIdx(w));
-            // Volume fraction of intersection between particle and cell.
-            // Assume full intersection for small particles.
-            const Scal vf = //
-                view.r[i] < h[0]
-                    ? 1
-                    : GetLevelSetVolume<Scal, M::dim>(ls, c.center, h);
-            const Scal source = vf * tu[c] * rate;
-            view.source[i] += source * c.volume;
-            fc_tracer_source[l][c] -= source;
+        view.source[i] = 0;
+        // Range of cells containing the particle.
+        MIdx wmin(((view.x[i] - Vect(view.r[i]) - m.flags.global_origin) / h)
+                      .floor());
+        MIdx wmax(((view.x[i] + Vect(view.r[i]) - m.flags.global_origin) / h)
+                      .floor());
+        // Cell containing the particle centroid.
+        const auto cpart = m(m.GetCellFromPoint(view.x[i]));
+        // Limit the range of cells to 5x5x5 stencil around the centroid.
+        const MIdx wcpart(cpart);
+        wmin = wmin.max(wcpart - MIdx(2));
+        wmax = wmax.min(wcpart + MIdx(2));
+        // Limit the range of cells to inner and halo cells of current block.
+        wmin = wmin.max(blockall_wmin);
+        wmax = wmax.min(blockall_wmax);
+        // Block of cells from range [wmin, wmax].
+        const GBlock<int, M::dim> wcells(wmin, wmax - wmin + MIdx(1));
+        const auto& index = m.GetIndexCells();
+        // Level-set describing the particle.
+        auto ls = [&](const Vect& x) -> Scal {
+          return view.r[i] - x.dist(view.x[i]);
+        };
+        for (MIdx w : wcells) {
+          const auto c = m(index.GetIdx(w));
+          // Volume fraction of intersection between particle and cell.
+          // Assume full intersection for small particles.
+          const Scal vf = //
+              view.r[i] < h[0]
+                  ? sqr(view.r[i] / h[0])
+                  : GetLevelSetVolume<Scal, M::dim>(ls, c.center, h);
+          const Scal src = vf * tu[c] * rate;
+          if (view.inner[i]) {
+            view.source[i] += src * c.volume;
           }
+          const auto k = 1;
+          fc_tracer_source[l][c] -= src * k;
+          fc_src_[c] += src * k;
         }
       }
     }
@@ -1921,7 +1935,7 @@ void Hydro<M>::Dump(bool force) {
   dump_part(dynamic_cast<ASVEB*>(as_.get()));
   dump_part(dynamic_cast<ASVM*>(as_.get()));
   dump_part(dynamic_cast<ASVMEB*>(as_.get()));
-  if (tracer_ && dumper_.Try(st_.t, st_.dt)) {
+  if (tracer_ && var.Int("dump_nucl", 0) && dumper_.Try(st_.t, st_.dt)) {
     if (sem("dump-nucl-gather")) {
       for (auto c : nucl_cells_) {
         t.nucl_points.push_back(m.GetCenter(c));
