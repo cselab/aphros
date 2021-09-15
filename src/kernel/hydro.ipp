@@ -1867,7 +1867,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
     }
     // Nucleation through concentration fields.
-    if (tracer_ && var.Int("enable_nucleation", 0)) {
+    if (tracer_ && var.Int["enable_nucleation"]) {
       const auto& conf = tracer_->GetConf();
       for (auto l : GRange<size_t>(conf.layers)) {
         const auto sl = std::to_string(l);
@@ -1884,6 +1884,47 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           }
         }
       }
+    }
+    if (tracer_ && particles_ && var.Int["enable_nucleation_points"]) {
+      const auto& conf = tracer_->GetConf();
+      std::vector<Vect> p_x;
+      std::vector<bool> p_inner;
+      std::vector<Vect> p_v;
+      std::vector<Scal> p_r;
+      std::vector<Scal> p_source;
+      std::vector<Scal> p_rho;
+      std::vector<Scal> p_termvel;
+      std::vector<Scal> p_removed;
+      ParticlesView view{p_x,      p_inner, p_v,       p_r,
+                         p_source, p_rho,   p_termvel, p_removed};
+      const Scal density = var.Double["particles_density"];
+      for (auto l : GRange<size_t>(conf.layers)) {
+        const auto sl = std::to_string(l);
+        // Threshold for nucleation.
+        const Scal cmax = var.Double["nucleation_cmax" + sl];
+        // Post-nucleation concentration.
+        const Scal cpost = var.Double["nucleation_cpost" + sl];
+        const auto& tu = tracer_->GetVolumeFraction()[l];
+        for (auto x : nucl_points_) {
+          const auto c = m(m.GetCellFromPoint(x));
+          if (tu[c] > cmax) {
+            // Volume fraction is reduced to `cpost` and a particle with
+            // the equivalent volume is created.
+            const Scal du = tu[c] - cpost;
+            const Scal vol = du * c.volume();
+            fc_tracer_source[l][c] -= du / tracer_dt_;
+            view.x.push_back(x);
+            view.inner.push_back(true);
+            view.v.push_back(Vect(0));
+            view.r.push_back(std::pow(vol * 3 / (4 * M_PI), 1. / 3));
+            view.source.push_back(0);
+            view.rho.push_back(density);
+            view.termvel.push_back(0);
+            view.removed.push_back(false);
+          }
+        }
+      }
+      particles_->Append(view);
     }
     if (tracer_ && electro_) {
       if (auto* coeff = var.Double.Find("flux_from_current")) {
