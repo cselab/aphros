@@ -114,10 +114,21 @@ class Particles : public ParticlesInterface<typename EB_::M> {
   void DumpCsv(
       const std::string& path,
       const std::unordered_set<std::string>& sel) const override;
+  struct ReadCsvStatus {
+    // Columns read from the CSV file.
+    bool x = false;
+    bool inner = false;
+    bool v = false;
+    bool r = false;
+    bool source = false;
+    bool rho = false;
+    bool termvel = false;
+    bool removed = false;
+  };
   // Reads recognized columns (position, velocity, radius, ...) from CSV file.
-  static void ReadCsv(
+  static ReadCsvStatus ReadCsv(
       std::istream& fin, const ParticlesView& view, char deliimiter = ',');
-  static void ReadCsv(
+  static ReadCsvStatus ReadCsv(
       const std::string& path, const ParticlesView& view,
       char deliimiter = ',');
 

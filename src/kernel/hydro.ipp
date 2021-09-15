@@ -460,7 +460,15 @@ void Hydro<M>::InitParticles() {
                      p_source, p_rho,      p_termvel, p_removed};
   const auto init_csv = var.String["particles_init_csv"];
   if (init_csv.length() && m.IsRoot()) {
-    Particles<M>::ReadCsv(init_csv, view);
+    auto status = Particles<M>::ReadCsv(init_csv, view);
+    if (!status.termvel) {
+      std::fill(
+          view.termvel.begin(), view.termvel.end(),
+          var.Vect["particles_termvel"][0]);
+    }
+    if (!status.r) {
+      std::fill(view.r.begin(), view.r.end(), var.Vect["particles_radius"][0]);
+    }
   }
   SpawnParticles(view);
   if (eb_) {

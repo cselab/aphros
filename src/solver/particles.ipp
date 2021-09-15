@@ -185,26 +185,53 @@ struct Particles<EB_>::Imp {
       // Compute velocity on particles and advance positions.
       for (size_t i = 0; i < s.x.size(); ++i) {
         const auto c = m.GetCellFromPoint(s.x[i]);
-        Scal tau = 0;
-        switch (conf.mode) {
-          case ParticlesMode::stokes:
-            tau = (s.rho[i] - conf.mixture_density) * sqr(2 * s.r[i]) /
-                  (18 * conf.mixture_viscosity);
-            break;
-          case ParticlesMode::termvel:
-            tau = s.termvel[i] / conf.gravity.norm();
-            break;
-          case ParticlesMode::tracer:
-            tau = 0;
-            break;
+        // Update velocity.
+        {
+          Vect& v = s.v[i];
+          const Vect g = conf.gravity;
+          const Vect u = v_liquid[i];
+          switch (conf.mode) {
+            case ParticlesMode::stokes: {
+              // Acceleration from Stokes drag and gravity, implicit in time
+              //   rho_p V dv/dt = 6 pi mu R (u - v) + (rho_p - rho) g V
+              // with particle volume `V`, particle density `rho_p`,
+              // particle velocity `v`, liquid velocity `u`,
+              // fluid viscosity `mu` and density `rho`,
+              // particle volume `V`, gravity `g`
+              // With notation for coefficients,
+              //   kt dv/dt = km (u - v) + kg g
+              const Scal r = s.r[i];
+              const Scal rho_p = s.rho[i];
+              const Scal rho = conf.mixture_density;
+              const Scal mu = conf.mixture_viscosity;
+              // XXX Generated in `gen/particles_stokes.py`.
+              v = (9 * dt * mu * u +
+                   g * (-2 * dt * sqr(r) * rho + 2 * dt * sqr(r) * rho_p) +
+                   2 * sqr(r) * rho_p * v) /
+                  (9 * dt * mu + 2 * sqr(r) * rho_p);
+              break;
+            }
+            case ParticlesMode::termvel:
+              // Given terminal velocity.
+              v = s.termvel[i] * g.normalized();
+              break;
+            case ParticlesMode::tracer:
+              v = u;
+              break;
+          }
         }
 
         // Update velocity from viscous drag, implicit in time.
         //   dv/dt = (u - v) / tau + g
         // particle velocity `v`, liquid velocity `u`,
         // relaxation time `tau`, gravity `g`
+        /*
         s.v[i] = (v_liquid[i] + s.v[i] * (tau / dt) + conf.gravity * tau) /
                  (1 + tau / dt);
+                 */
+        // s.v[i] += dt * (s.v[i] / tau + conf.gravity);
+        s.v[i] = 2. / 9 * (s.rho[i] - conf.mixture_density) /
+                 conf.mixture_viscosity * conf.gravity * sqr(s.r[i]);
         velocity_hook(GetView(s));
         s.x[i] += s.v[i] * dt;
 
@@ -334,7 +361,9 @@ struct Particles<EB_>::Imp {
     if (sem()) {
     }
   }
-  static void ReadCsv(std::istream& in, const ParticlesView& view, char delim) {
+  static ReadCsvStatus ReadCsv(
+      std::istream& in, const ParticlesView& view, char delim) {
+    ReadCsvStatus status;
     const auto data = dump::ReadCsv<Scal>(in, delim);
     auto set_component = [](std::vector<Vect>& dst, size_t d,
                             const std::vector<Scal>& src) {
@@ -351,14 +380,29 @@ struct Particles<EB_>::Imp {
         // Position.
         if (name == dletter) {
           set_component(view.x, d, p.second);
+          status.x = true;
         }
         // Velocity.
         if (name == "v" + dletter) {
           set_component(view.v, d, p.second);
+          status.v = true;
         }
       }
       if (name == "r") {
         view.r = p.second;
+        status.r = true;
+      }
+      if (name == "source") {
+        view.source = p.second;
+        status.source = true;
+      }
+      if (name == "rho") {
+        view.rho = p.second;
+        status.rho = true;
+      }
+      if (name == "termvel") {
+        view.termvel = p.second;
+        status.termvel = true;
       }
     }
     // Fill the remaining fields with default values.
@@ -370,12 +414,13 @@ struct Particles<EB_>::Imp {
     view.rho.resize(n, 0);
     view.termvel.resize(n, 0);
     view.removed.resize(n, false);
+    return status;
   }
-  static void ReadCsv(
+  static ReadCsvStatus ReadCsv(
       const std::string& path, const ParticlesView& view, char delim) {
     std::ifstream fin(path);
     fassert(fin.good(), "Can't open file '" + path + "' for reading");
-    ReadCsv(fin, view, delim);
+    return ReadCsv(fin, view, delim);
   }
 
   Owner* owner_;
@@ -430,15 +475,16 @@ void Particles<EB_>::DumpCsv(
 }
 
 template <class EB_>
-void Particles<EB_>::ReadCsv(
-    std::istream& fin, const ParticlesView& view, char delim) {
-  Imp::ReadCsv(fin, view, delim);
+auto Particles<EB_>::ReadCsv(
+    std::istream& fin, const ParticlesView& view, char delim) -> ReadCsvStatus {
+  return Imp::ReadCsv(fin, view, delim);
 }
 
 template <class EB_>
-void Particles<EB_>::ReadCsv(
-    const std::string& path, const ParticlesView& view, char delim) {
-  Imp::ReadCsv(path, view, delim);
+auto Particles<EB_>::ReadCsv(
+    const std::string& path, const ParticlesView& view, char delim)
+    -> ReadCsvStatus {
+  return Imp::ReadCsv(path, view, delim);
 }
 
 template <class EB_>
