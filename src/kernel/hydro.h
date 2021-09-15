@@ -128,6 +128,7 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   void InitElectro();
   void SpawnTracer();
   void InitParticles();
+  void InitNucleationPoints();
   void SpawnParticles(ParticlesView& view);
   void OverwriteBc();
   void InitFluid(const FieldCell<Vect>& fc_vel);
@@ -253,6 +254,7 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   Multi<FieldCell<Scal>> fc_tracer_source;
 
   std::set<IdxCell> nucl_cells_;
+  std::set<Vect> nucl_points_;
 
   std::unique_ptr<ParticlesInterface<M>> particles_;
   std::mt19937 randgen_;

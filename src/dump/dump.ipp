@@ -75,24 +75,24 @@ void DumpCsv(
 template <class M>
 void DumpCsv(
     const std::vector<std::pair<std::string, std::vector<typename M::Scal>>>&
-        indata,
+        data,
     std::string path, M& m, char delim) {
   using Scal = typename M::Scal;
   auto sem = m.GetSem("dumpcsv");
   struct {
     std::vector<std::pair<std::string, std::vector<Scal>>> data;
   } * ctx(sem);
-  auto& data = ctx->data;
+  auto& t = *ctx;
   if (sem("gather")) {
-    for (auto& d : indata) {
-      data.push_back({d.first, d.second});
-    }
     for (auto& d : data) {
+      t.data.push_back({d.first, d.second});
+    }
+    for (auto& d : t.data) {
       m.Reduce(&d.second, Reduction::concat);
     }
   }
   if (sem("write") && m.IsRoot()) {
-    DumpCsv(ctx->data, path, delim);
+    DumpCsv(t.data, path, delim);
   }
 }
 

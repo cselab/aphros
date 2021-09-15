@@ -342,6 +342,26 @@ class IdxFaceMesh {
   };
   const LazySurface surface{};
 
+  class LazyNormal {
+   public:
+    operator Vect() const {
+      auto owner = GetOwner(this, &IdxFaceMesh::normal);
+      return owner->m.GetNormal(owner->idxface_);
+    }
+    Vect operator()() const {
+      return Vect(*this);
+    }
+    Scal operator[](size_t i) const {
+      return Vect(*this)[i];
+    }
+
+   private:
+    friend IdxFaceMesh;
+    LazyNormal(const LazyNormal&) = default;
+    LazyNormal& operator=(const LazyNormal&) = default;
+  };
+  const LazyNormal normal{};
+
  private:
   IdxFace idxface_;
   const M& m;

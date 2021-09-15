@@ -154,6 +154,7 @@ struct Particles<EB_>::Imp {
       Approx2<EB>::ExtrapolateToHaloFaces(t.ff_veln, mebc_velocity, m);
     }
     if (sem("local")) {
+      /*
       if (m.IsRoot() && time_ == 0) {
         using MIdx = typename M::MIdx;
         const MIdx size(64);
@@ -172,6 +173,7 @@ struct Particles<EB_>::Imp {
         Approx2<EB>::EvalTrilinearFromFaceField(t.ff_veln, callback, m);
         dump::Raw<M>::WritePlainArrayWithXmf("test.raw", "u", fc.data(), size);
       }
+      */
 
       // Project liquid velocity to particles.
       std::vector<Vect> v_liquid(s.x.size());

@@ -23,6 +23,7 @@
 #include <thread>
 
 #include "debug/isnan.h"
+#include "dump/dump.h"
 #include "dump/dumper.h"
 #include "dump/hdf.h"
 #include "dump/raw.h"
@@ -496,6 +497,38 @@ void Hydro<M>::InitParticles() {
     }
     // TODO: consider mebc_fluid_.GetMapCell()
   }
+}
+
+// Nucleation points are randomly positioned on walls
+// with a given areal number density.
+template <class M>
+void Hydro<M>::InitNucleationPoints() {
+    // Areal number density of nucleation points.
+    const Scal numdens = var.Double("nucleation_number_density", 0);
+    if (numdens) {
+      std::uniform_real_distribution<Scal> uniform(0, 1);
+      // Traverse boundary faces and seed at most one point per face.
+      for (const auto& p : mebc_fluid_.GetMapFace()) {
+        const auto f = m(p.first);
+        const auto& bc = p.second;
+        if (m.IsInner(f.cell(bc.nci))) {
+          if (bc.type == BCondFluidType::wall ||
+              bc.type == BCondFluidType::slipwall) {
+            if (numdens * f.area > uniform(randgen_)) {
+              // Uniform displacement.
+              Vect dx(0);
+              for (size_t d : m.dirs) {
+                dx[d] = uniform(randgen_) - 0.5;
+              }
+              dx *= m.GetCellSize();
+              // Cancel out the component normal to the face.
+              dx = dx.orth(f.normal);
+              nucl_points_.insert(f.center() + dx);
+            }
+          }
+        }
+      }
+    }
 }
 
 template <class M>
@@ -1155,6 +1188,7 @@ void Hydro<M>::Init() {
     Multi<FieldCell<Scal>> tracer_vfcu;
     std::shared_ptr<linear::Solver<M>> linsolver_vort;
     FieldCell<bool> fc_innermask;
+    std::vector<std::pair<std::string, std::vector<Scal>>> nucl_data;
   } * ctx(sem);
   auto& t = *ctx;
   auto& fcvel = t.fcvel;
@@ -1406,6 +1440,10 @@ void Hydro<M>::Init() {
       InitParticles();
     }
 
+    if (tracer_ && var.Int["enable_nucleation_points"]) {
+      InitNucleationPoints();
+    }
+
     st_.iter = 0;
     st_.step = 0;
 
@@ -1464,6 +1502,27 @@ void Hydro<M>::Init() {
           DumpBcPoly("bc.vtk", me_group_, me_contang_, m, m);
         }
       }
+    }
+  }
+  if (var.Int["enable_nucleation_points"] && var.Int("dump_nucl", 0)) {
+    const std::string path = "nucl.csv";
+    if (sem("dump-nucl-local")) {
+      if (m.IsRoot()) {
+        std::cerr << util::Format("dump nucleation points to {}\n", path);
+      }
+      t.nucl_data.push_back({"x", {}});
+      t.nucl_data.push_back({"y", {}});
+      t.nucl_data.push_back({"z", {}});
+      for (auto xd : nucl_points_) {
+        using Vect3 = generic::Vect<Scal, 3>;
+        Vect3 x(xd);
+        t.nucl_data[0].second.push_back(x[0]);
+        t.nucl_data[1].second.push_back(x[1]);
+        t.nucl_data[2].second.push_back(x[2]);
+      }
+    }
+    if (sem.Nested()) {
+      dump::DumpCsv(t.nucl_data, path, m);
     }
   }
   if (eb_ && sem.Nested() && var.Int("dump_eb", 1)) {
@@ -1807,6 +1866,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
+    // Nucleation through concentration fields.
     if (tracer_ && var.Int("enable_nucleation", 0)) {
       const auto& conf = tracer_->GetConf();
       for (auto l : GRange<size_t>(conf.layers)) {
@@ -1878,7 +1938,7 @@ template <class M>
 void Hydro<M>::Dump(bool force) {
   auto sem = m.GetSem("dump");
   struct {
-    std::vector<Vect> nucl_points;
+    std::vector<std::pair<std::string, std::vector<Scal>>> nucl_data;
   } * ctx(sem);
   auto& t = *ctx;
   if (sem.Nested("fields")) {
@@ -1943,28 +2003,33 @@ void Hydro<M>::Dump(bool force) {
   dump_part(dynamic_cast<ASVEB*>(as_.get()));
   dump_part(dynamic_cast<ASVM*>(as_.get()));
   dump_part(dynamic_cast<ASVMEB*>(as_.get()));
-  if (tracer_ && var.Int("dump_nucl", 0) && dumper_.Try(st_.t, st_.dt)) {
-    if (sem("dump-nucl-gather")) {
-      for (auto c : nucl_cells_) {
-        t.nucl_points.push_back(m.GetCenter(c));
-      }
-      m.Reduce(&t.nucl_points, Reduction::concat);
-    }
-    if (sem("dump-nucl-write")) {
+  if (tracer_ && var.Int["enable_nucleation"] && var.Int("dump_nucl", 0) &&
+      dumper_.Try(st_.t, st_.dt)) {
+    const std::string path = GetDumpName("nucl", ".csv", dumper_.GetN(), -1);
+    if (sem("dump-nucl-local")) {
       if (m.IsRoot()) {
-        const std::string s = GetDumpName("nucl", ".csv", dumper_.GetN(), -1);
-        std::cerr << std::fixed << std::setprecision(8) << "dump"
-                  << " t=" << st_.t << " to " << s << std::endl;
-        std::ofstream o;
-        o.open(s);
-        o.precision(16);
-        o << "x,y,z\n";
-        for (auto x : t.nucl_points) {
-          using Vect3 = generic::Vect<Scal, 3>;
-          Vect3 xx(x);
-          o << xx[0] << ',' << xx[1] << ',' << xx[2] << '\n';
-        }
+        std::cerr << util::Format("dump t={:} to {}\n", st_.t, path);
       }
+      t.nucl_data.push_back({"x", {}});
+      t.nucl_data.push_back({"y", {}});
+      t.nucl_data.push_back({"z", {}});
+      for (auto c : nucl_cells_) {
+        using Vect3 = generic::Vect<Scal, 3>;
+        Vect3 x(m.GetCenter(c));
+        t.nucl_data[0].second.push_back(x[0]);
+        t.nucl_data[1].second.push_back(x[1]);
+        t.nucl_data[2].second.push_back(x[2]);
+      }
+      for (auto xd : nucl_points_) {
+        using Vect3 = generic::Vect<Scal, 3>;
+        Vect3 x(xd);
+        t.nucl_data[0].second.push_back(x[0]);
+        t.nucl_data[1].second.push_back(x[1]);
+        t.nucl_data[2].second.push_back(x[2]);
+      }
+    }
+    if (sem.Nested()) {
+      dump::DumpCsv(t.nucl_data, path, m);
     }
   }
 }
