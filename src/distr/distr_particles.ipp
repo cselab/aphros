@@ -273,7 +273,7 @@ void TransferParticlesMpi(
     std::vector<int> rank_to_count(mpi.GetCommSize());
 
     // Send messages
-    const int tag = 20210827;
+    const int tag = 276;
     for (auto& p : rank_to_msg) {
       const int rank = p.first;
       Msg& msg = p.second;
