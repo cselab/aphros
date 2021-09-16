@@ -2504,20 +2504,69 @@ void Hydro<M>::ConvertParticlesToVof() {
 
   struct {
     Scal nconv = 0;
+    std::vector<Scal> intersects_vof; // 1 if particle intersects a cell
+                                      // with large volume fraction
   } * ctx(sem);
   auto& t = *ctx;
 
   if (sem()) {
-    fassert(particles_);
+    const auto& fcu = as_->GetField();
     auto view = particles_->GetView();
+    const auto h = m.GetCellSize();
+    t.intersects_vof.resize(view.x.size(), 0);
+    const auto& blockall = m.GetAllBlockCells();
+    const MIdx blockall_wmin = blockall.GetBegin();
+    const MIdx blockall_wmax = blockall.GetEnd() - MIdx(1);
+    for (size_t i = 0; i < view.x.size(); ++i) {
+      if (view.inner[i]) {
+        // TODO: Avoid code duplication with growth of particles from tracer.
+        // Range of cells containing the particle.
+        MIdx wmin(((view.x[i] - Vect(view.r[i]) - m.flags.global_origin) / h)
+                      .floor());
+        MIdx wmax(((view.x[i] + Vect(view.r[i]) - m.flags.global_origin) / h)
+                      .floor());
+        // Cell containing the particle centroid.
+        const auto cpart = m(m.GetCellFromPoint(view.x[i]));
+        // Limit the range of cells to 5x5x5 stencil around the centroid.
+        const MIdx wcpart(cpart);
+        wmin = wmin.max(wcpart - MIdx(2));
+        wmax = wmax.min(wcpart + MIdx(2));
+        // Limit the range of cells to inner and halo cells of current block.
+        wmin = wmin.max(blockall_wmin);
+        wmax = wmax.min(blockall_wmax);
+        // Block of cells from range [wmin, wmax].
+        const GBlock<int, M::dim> wcells(wmin, wmax - wmin + MIdx(1));
+        const auto& index = m.GetIndexCells();
+        for (MIdx w : wcells) {
+          const auto c = m(index.GetIdx(w));
+          const Vect xc = c.center;
+          if (fcu[c] > 0.5 &&
+              xc.sqrdist(view.x[i]) < sqr(view.r[i] + h[0] * 0.5)) {
+            t.intersects_vof[i] = 1;
+          }
+        }
+      }
+    }
 
+    typename M::CommPartRequest req;
+    req.x = &view.x;
+    req.inner = &view.inner;
+    req.attr_scal = {&view.r,       &view.source,  &view.rho,
+                     &view.termvel, &view.removed, &t.intersects_vof};
+    req.attr_vect = {&view.v};
+    m.CommPart(req);
+  }
+
+  if (sem()) {
+    auto view = particles_->GetView();
     const Scal r0 = var.Double["particles_to_vof_radius"] * m.GetCellSize()[0];
     const Scal dt = as_->GetTimeStep();
 
-    // Update particle radius and select particles to convert
-    std::vector<Particle> toconvert;
+    std::vector<Particle> toconvert; // Particles to convert to vof.
     for (size_t i = 0; i < view.x.size(); ++i) {
-      if (view.r[i] > r0) {
+      // Convert if particle is sufficiently large
+      // or intersects a cell with large volume fraction.
+      if (view.r[i] > r0 || t.intersects_vof[i]) {
         toconvert.push_back({view.x[i] + view.v[i] * dt, view.r[i]});
         view.removed[i] = true;
       }
