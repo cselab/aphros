@@ -32,6 +32,7 @@ struct Particles<EB_>::Imp {
     std::vector<Vect> x;
     std::vector<bool> inner;
     std::vector<Vect> v;
+    std::vector<Scal> id;
     std::vector<Scal> r;
     std::vector<Scal> source;
     std::vector<Scal> rho;
@@ -47,7 +48,7 @@ struct Particles<EB_>::Imp {
       , conf(conf_)
       , time_(time)
       , state_(
-            {init.x, init.inner, init.v, init.r, init.source, init.rho,
+            {init.x, init.inner, init.v, init.id, init.r, init.source, init.rho,
              init.termvel, init.removed}) {
     CheckSize(init);
     auto& s = state_;
@@ -55,12 +56,14 @@ struct Particles<EB_>::Imp {
     m.CommPart(req);
   }
   static ParticlesView GetView(State& s) {
-    return {s.x, s.inner, s.v, s.r, s.source, s.rho, s.termvel, s.removed};
+    return {s.x,      s.inner, s.v,       s.id,     s.r,
+            s.source, s.rho,   s.termvel, s.removed};
   }
   static void CheckSize(const State& s) {
     const size_t n = s.x.size();
     fassert_equal(s.inner.size(), n);
     fassert_equal(s.v.size(), n);
+    fassert_equal(s.id.size(), n);
     fassert_equal(s.r.size(), n);
     fassert_equal(s.source.size(), n);
     fassert_equal(s.rho.size(), n);
@@ -71,6 +74,7 @@ struct Particles<EB_>::Imp {
     const size_t n = s.x.size();
     fassert_equal(s.inner.size(), n);
     fassert_equal(s.v.size(), n);
+    fassert_equal(s.id.size(), n);
     fassert_equal(s.r.size(), n);
     fassert_equal(s.source.size(), n);
     fassert_equal(s.rho.size(), n);
@@ -82,6 +86,7 @@ struct Particles<EB_>::Imp {
     func(view.x);
     func(view.inner);
     func(view.v);
+    func(view.id);
     func(view.r);
     func(view.source);
     func(view.rho);
@@ -150,7 +155,7 @@ struct Particles<EB_>::Imp {
       Approx2<EB>::ExtrapolateToHaloFaces(t.ff_veln, mebc_velocity, m);
     }
     if (sem("local")) {
-      /*
+      /* TODO: Move to an example.
       if (m.IsRoot() && time_ == 0) {
         using MIdx = typename M::MIdx;
         const MIdx size(64);
@@ -268,20 +273,68 @@ struct Particles<EB_>::Imp {
       time_ += dt;
     }
   }
-  static void Append(State& s, const ParticlesView& other) {
+  static void Append(State& s, const ParticlesView& view) {
     auto append = [](auto& v, const auto& a) {
       v.insert(v.end(), a.begin(), a.end());
     };
-    CheckSize(other);
-    append(s.x, other.x);
-    append(s.inner, other.inner);
-    append(s.v, other.v);
-    append(s.r, other.r);
-    append(s.source, other.source);
-    append(s.rho, other.rho);
-    append(s.termvel, other.termvel);
-    append(s.removed, other.removed);
+    CheckSize(view);
+    append(s.x, view.x);
+    append(s.inner, view.inner);
+    append(s.v, view.v);
+    append(s.id, view.id);
+    append(s.r, view.r);
+    append(s.source, view.source);
+    append(s.rho, view.rho);
+    append(s.termvel, view.termvel);
+    append(s.removed, view.removed);
     CheckSize(s);
+  }
+  static void SetUniqueIdForTail(
+      const ParticlesView& view, size_t& tail_size, Scal& global_max_id, M& m) {
+    auto sem = m.GetSem();
+    struct {
+      Scal max_id;
+      std::vector<Scal> count;
+      std::vector<std::vector<Scal>> cumsum_root; // Cumulative sum of
+                                                  // `tail_size` on root.
+                                                  // Empty on others.
+      std::vector<Scal> cumsum; // Value of cumulative sum on current block.
+      // TODO: Implement and use m.Scatter() for just `std::vector<Scal>`.
+      //       Here the arrays consists of single-element arrays.
+    } * ctx(sem);
+    auto& t = *ctx;
+    if (sem()) {
+      t.max_id = global_max_id;
+      for (auto& id : view.id) {
+        t.max_id = std::max(t.max_id, id);
+      }
+      m.Reduce(&t.max_id, Reduction::max);
+
+      t.count.push_back(static_cast<Scal>(tail_size));
+      m.Reduce(&t.count, Reduction::concat);
+    }
+    if (sem()) {
+      if (m.IsRoot()) {
+        Scal sum = 0;
+        for (size_t i = 0; i < t.count.size(); ++i) {
+          t.cumsum_root.push_back({sum});
+          sum += t.count[i];
+        }
+      }
+      m.Scatter({&t.cumsum_root, &t.cumsum});
+    }
+    if (sem()) {
+      // First available unique id.
+      const Scal id_start = std::floor(t.max_id) + 1 + t.cumsum[0];
+      for (size_t i = 0; i < tail_size; ++i) {
+        view.id[view.x.size() - tail_size + i] = id_start + i;
+      }
+      if (tail_size) {
+        global_max_id = id_start + (tail_size - 1);
+      }
+      tail_size = 0;
+      m.Reduce(&global_max_id, Reduction::max);
+    }
   }
   void DumpCsv(
       const std::string& path,
@@ -303,6 +356,7 @@ struct Particles<EB_>::Imp {
       }
       m.Reduce(&t.s.x, Reduction::concat);
       m.Reduce(&t.s.v, Reduction::concat);
+      m.Reduce(&t.s.id, Reduction::concat);
       m.Reduce(&t.s.r, Reduction::concat);
       m.Reduce(&t.s.source, Reduction::concat);
       m.Reduce(&t.s.rho, Reduction::concat);
@@ -342,6 +396,7 @@ struct Particles<EB_>::Imp {
           }
         }
       };
+      append_scal("id", s.id);
       append_vect("", s.x); // Position.
       append_vect("v", s.v); // Velocity.
       append_scal("r", s.r);
@@ -382,6 +437,10 @@ struct Particles<EB_>::Imp {
           set_component(view.v, d, p.second);
           status.v = true;
         }
+      }
+      if (name == "id") {
+        view.id = p.second;
+        status.id = true;
       }
       if (name == "r") {
         view.r = p.second;
@@ -425,6 +484,9 @@ struct Particles<EB_>::Imp {
   Scal time_;
   State state_;
   size_t nrecv_;
+  size_t last_appended_ = 0; // Number of particles appended since last call of
+                             // SetUniqueIdForAppended().
+  Scal global_max_id_ = 0; // Maximum particle id ever encountered.
 };
 
 template <class EB_>
@@ -461,6 +523,13 @@ auto Particles<EB_>::GetView() const -> ParticlesView {
 template <class EB_>
 void Particles<EB_>::Append(const ParticlesView& app) {
   imp->Append(imp->state_, app);
+  imp->last_appended_ += app.x.size();
+}
+
+template <class EB_>
+void Particles<EB_>::SetUniqueIdForAppended(M& m) {
+  imp->SetUniqueIdForTail(
+      GetView(), imp->last_appended_, imp->global_max_id_, m);
 }
 
 template <class EB_>

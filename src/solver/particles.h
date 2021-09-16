@@ -31,6 +31,7 @@ struct ParticlesView {
   std::vector<Vect>& x; // positions
   std::vector<bool>& inner; // true if particle is owned by block
   std::vector<Vect>& v; // velocity
+  std::vector<Scal>& id; // identifier
   std::vector<Scal>& r; // radius
   std::vector<Scal>& source; // volume source
   std::vector<Scal>& rho; // density
@@ -38,7 +39,7 @@ struct ParticlesView {
   std::vector<Scal>& removed; // 1 if particle is removed, else 0
                               // TODO: use type bool, needs support by Comm()
   std::vector<std::vector<Scal>*> GetAttrScal() const {
-    return {&r, &source, &rho, &termvel, &removed};
+    return {&id, &r, &source, &rho, &termvel, &removed};
   }
   std::vector<std::vector<Vect>*> GetAttrVect() const {
     return {&v};
@@ -85,7 +86,11 @@ class ParticlesInterface {
       Scal dt, const FieldEmbed<Scal>& fe_flux,
       const MapEmbed<BCond<Vect>>& mebc_velocity,
       std::function<void(const ParticlesView&)> velocity_hook) = 0;
-  virtual void Append(const ParticlesView&) = 0;
+  // Appends current state with particles from `view`.
+  virtual void Append(const ParticlesView& view) = 0;
+  // Updates `id` with a unique contigous index for particles appended since
+  // last call of SetUniqueIdForAppended().
+  virtual void SetUniqueIdForAppended(M& m) = 0;
   // Returns view with pointers to fields.
   virtual ParticlesView GetView() const = 0;
   virtual Scal GetTime() const = 0;
@@ -125,6 +130,7 @@ class Particles : public ParticlesInterface<typename EB_::M> {
       const MapEmbed<BCond<Vect>>& mebc_velocity,
       std::function<void(const ParticlesView&)> velocity_hook) override;
   void Append(const ParticlesView&) override;
+  void SetUniqueIdForAppended(M& m) override;
   ParticlesView GetView() const override;
   Scal GetTime() const override;
   size_t GetNumRecv() const override;
@@ -136,6 +142,7 @@ class Particles : public ParticlesInterface<typename EB_::M> {
     bool x = false;
     bool inner = false;
     bool v = false;
+    bool id = false;
     bool r = false;
     bool source = false;
     bool rho = false;

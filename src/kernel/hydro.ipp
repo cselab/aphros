@@ -420,6 +420,7 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
           view.x.push_back(m.GetCenter(c) + xrand * h);
           view.inner.push_back(true);
           view.v.push_back(velocity);
+          view.id.push_back(0);
           view.r.push_back(radius[i]);
           view.source.push_back(0);
           view.rho.push_back(density);
@@ -452,13 +453,14 @@ void Hydro<M>::InitParticles() {
   std::vector<Vect> p_x;
   std::vector<bool> p_inner;
   std::vector<Vect> p_v;
+  std::vector<Scal> p_id;
   std::vector<Scal> p_r;
   std::vector<Scal> p_source;
   std::vector<Scal> p_rho;
   std::vector<Scal> p_termvel;
   std::vector<Scal> p_removed;
-  ParticlesView view{p_x,      p_inner, p_v,       p_r,
-                     p_source, p_rho,      p_termvel, p_removed};
+  ParticlesView view{p_x,      p_inner, p_v,       p_id,     p_r,
+                     p_source, p_rho,   p_termvel, p_removed};
   const auto init_csv = var.String["particles_init_csv"];
   if (init_csv.length() && m.IsRoot()) {
     auto status = Particles<M>::ReadCsv(init_csv, view);
@@ -1890,12 +1892,13 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       std::vector<Vect> p_x;
       std::vector<bool> p_inner;
       std::vector<Vect> p_v;
+      std::vector<Scal> p_id;
       std::vector<Scal> p_r;
       std::vector<Scal> p_source;
       std::vector<Scal> p_rho;
       std::vector<Scal> p_termvel;
       std::vector<Scal> p_removed;
-      ParticlesView view{p_x,      p_inner, p_v,       p_r,
+      ParticlesView view{p_x,      p_inner, p_v,       p_id,     p_r,
                          p_source, p_rho,   p_termvel, p_removed};
       const Scal density = var.Double["particles_density"];
       for (auto l : GRange<size_t>(conf.layers)) {
@@ -1916,6 +1919,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             view.x.push_back(x);
             view.inner.push_back(true);
             view.v.push_back(Vect(0));
+            view.id.push_back(0);
             view.r.push_back(std::pow(vol * 3 / (4 * M_PI), 1. / 3));
             view.source.push_back(0);
             view.rho.push_back(density);
@@ -1966,6 +1970,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         });
       }
     }
+  }
+  if (particles_ && sem.Nested()) {
+    particles_->SetUniqueIdForAppended(m);
   }
   // FIXME move, but keep inside nested call
   if (!vf_save_state_path_.empty() && sem.Nested("vf_save_state")) {
@@ -2469,13 +2476,14 @@ void Hydro<M>::StepParticles() {
     std::vector<Vect> p_x;
     std::vector<bool> p_inner;
     std::vector<Vect> p_v;
+    std::vector<Scal> p_id;
     std::vector<Scal> p_r;
     std::vector<Scal> p_source;
     std::vector<Scal> p_rho;
     std::vector<Scal> p_termvel;
     std::vector<Scal> p_removed;
-    ParticlesView view{p_x,      p_inner, p_v,       p_r,
-                       p_source, p_rho,      p_termvel, p_removed};
+    ParticlesView view{p_x,      p_inner, p_v,       p_id,     p_r,
+                       p_source, p_rho,   p_termvel, p_removed};
     SpawnParticles(view);
     particles_->Append(view);
   }
