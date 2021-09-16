@@ -2431,8 +2431,39 @@ void Hydro<M>::StepParticles() {
         particles_dt_, fs_->GetVolumeFlux(), fs_->GetVelocityCond(),
         velocity_hook);
   }
-  if (var.Int("particles_to_vof", 0) && sem.Nested()) {
+  if (var.Int["particles_to_vof"] && sem.Nested("partilces_to_vof")) {
     ConvertParticlesToVof();
+  }
+  // Coalescence of particles.
+  if (var.Int["particles_coal"] && sem("particles_coal")) {
+    auto view = particles_->GetView();
+    for (size_t i = 0; i < view.x.size(); ++i) {
+      if (view.inner[i]) {
+        for (size_t j = 0; j < view.x.size(); ++j) {
+          const Vect xi = view.x[i];
+          const Vect xj = view.x[j];
+          if (i == j) {
+            continue;
+          }
+          const Scal ri = view.r[i];
+          const Scal rj = view.r[j];
+          if (xi.dist(xj) < view.r[i] + view.r[j]) {
+            // Remove the lexicographically minimal particle
+            // and enlarge the other one. Modify only inner particles.
+            const bool less = ri < rj || (ri == rj && xi.lexless(xj));
+            if (less) {
+              view.removed[i] = true;
+            } else  {
+              const Scal voli = std::pow(ri, 3);
+              const Scal volj = std::pow(rj, 3);
+              view.r[i] = std::pow(voli + volj, 1. / 3);
+              view.x[i] = (voli * xi + volj * xj) / (voli + volj);
+              view.v[i] = (voli * view.v[i] + volj * view.v[j]) / (voli + volj);
+            }
+          }
+        }
+      }
+    }
   }
   if (sem("spawn")) {
     std::vector<Vect> p_x;
@@ -2477,9 +2508,8 @@ void Hydro<M>::ConvertParticlesToVof() {
   auto& t = *ctx;
 
   if (sem()) {
-    auto particles = particles_.get();
-    fassert(particles);
-    auto view = particles->GetView();
+    fassert(particles_);
+    auto view = particles_->GetView();
 
     const Scal r0 = var.Double["particles_to_vof_radius"] * m.GetCellSize()[0];
     const Scal dt = as_->GetTimeStep();
