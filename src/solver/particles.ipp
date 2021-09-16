@@ -51,11 +51,7 @@ struct Particles<EB_>::Imp {
              init.termvel, init.removed}) {
     CheckSize(init);
     auto& s = state_;
-    typename M::CommPartRequest req;
-    req.x = &s.x;
-    req.inner = &s.inner;
-    req.attr_scal = {&s.r, &s.source, &s.rho, &s.termvel, &s.removed};
-    req.attr_vect = {&s.v};
+    const auto req = GetCommPartRequest<M>(GetView(s));
     m.CommPart(req);
   }
   static ParticlesView GetView(State& s) {
@@ -263,12 +259,9 @@ struct Particles<EB_>::Imp {
           s.removed[i] = 1;
         }
       }
-      ClearRemoved(GetView(s));
-      typename M::CommPartRequest req;
-      req.x = &s.x;
-      req.inner = &s.inner;
-      req.attr_scal = {&s.r, &s.source, &s.rho, &s.termvel, &s.removed};
-      req.attr_vect = {&s.v};
+      const auto& view = GetView(s);
+      ClearRemoved(view);
+      const auto req = GetCommPartRequest<M>(view);
       m.CommPart(req);
     }
     if (sem("stat")) {

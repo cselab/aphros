@@ -2548,12 +2548,8 @@ void Hydro<M>::ConvertParticlesToVof() {
       }
     }
 
-    typename M::CommPartRequest req;
-    req.x = &view.x;
-    req.inner = &view.inner;
-    req.attr_scal = {&view.r,       &view.source,  &view.rho,
-                     &view.termvel, &view.removed, &t.intersects_vof};
-    req.attr_vect = {&view.v};
+    auto req = GetCommPartRequest<M>(view);
+    req.attr_scal.push_back(&t.intersects_vof);
     m.CommPart(req);
   }
 

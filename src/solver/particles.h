@@ -37,9 +37,26 @@ struct ParticlesView {
   std::vector<Scal>& termvel; // terminal settling velocity
   std::vector<Scal>& removed; // 1 if particle is removed, else 0
                               // TODO: use type bool, needs support by Comm()
+  std::vector<std::vector<Scal>*> GetAttrScal() const {
+    return {&r, &source, &rho, &termvel, &removed};
+  }
+  std::vector<std::vector<Vect>*> GetAttrVect() const {
+    return {&v};
+  }
 };
 
 } // namespace generic
+
+template <class M>
+typename M::CommPartRequest GetCommPartRequest(
+    const generic::ParticlesView<typename M::Vect>& view) {
+  typename M::CommPartRequest res;
+  res.x = &view.x;
+  res.inner = &view.inner;
+  res.attr_scal = view.GetAttrScal();
+  res.attr_vect = view.GetAttrVect();
+  return res;
+}
 
 template <class M_>
 class ParticlesInterface {
