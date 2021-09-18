@@ -1,8 +1,5 @@
 # Coupling with LAMMPS
 
-LAMMPS polymers in Taylor-Green vortex.
-Movie on [YouTube](https://www.youtube.com/watch?v=scz2YVKmDaQ) produced with [ParaView](vis/vis.py).
-
 Install LAMMPS serial library
 ```
 git clone git@github.com:lammps/lammps.git
@@ -21,5 +18,5 @@ make run
 
 Convert to lammps dumps to VTK:
 ```
-awk -f dump2vtk *.dump
+awk -f dump2vtk input *.dump
 ```

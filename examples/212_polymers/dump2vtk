@@ -1,6 +1,5 @@
 BEGIN {
     L = 1
-    nstep = 4
     while (getline < ARGV[1] && $0 !~ /^Bonds/)
         ;
     getline < ARGV[1]
@@ -25,7 +24,7 @@ BEGIN {
         vtk = "a_" vtk
         printf \
             "# vtk DataFile Version 2.0\n" \
-            "created with he\n" \
+            "created with dump2vtk\n" \
             "ASCII\n" \
             "DATASET POLYDATA\n" \
             "POINTS %d float\n", \
