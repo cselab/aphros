@@ -68,7 +68,7 @@ struct Proj<EB_>::Imp {
   }
 
   void UpdateDerivedConditions() {
-    me_vel_ = GetVelCond<M>(mebc_);
+    me_vel_ = ConvertBCondFluidToVelocity<M>(mebc_);
     mebc_.LoopPairs([&](auto p) {
       const auto cf = p.first;
       const auto& bc = p.second;
@@ -441,50 +441,6 @@ struct Proj<EB_>::Imp {
           me_vel_);
     }
   }
-  static void CommFaces(FieldFace<Scal>& ff, M& m) {
-    auto sem = m.GetSem("commface");
-    struct {
-      std::array<FieldCell<Scal>, M::kCellNumNeighborFaces> vfc;
-    } * ctx(sem);
-    auto& vfc = ctx->vfc;
-    if (sem("comm")) {
-      for (size_t q = 0; q < M::kCellNumNeighborFaces; ++q) {
-        vfc[q].Reinit(m);
-      }
-      for (auto c : m.Cells()) {
-        for (auto q : m.Nci(c)) {
-          vfc[q.raw()][c] = ff[m.GetFace(c, q)];
-        }
-      }
-      for (size_t q = 0; q < M::kCellNumNeighborFaces; ++q) {
-        m.Comm(&vfc[q]);
-      }
-    }
-    if (sem("copy")) {
-      auto fft = ff;
-      for (auto c : m.AllCells()) {
-        for (auto q : m.Nci(c)) {
-          ff[m.GetFace(c, q)] = vfc[q.raw()][c];
-        }
-      }
-      for (auto f : m.Faces()) {
-        ff[f] = fft[f];
-      }
-    }
-    if (sem()) {
-      // FIXME: empty stage required to prevent destruction of ctx
-      // until communication is finished in outer blocks
-    }
-  }
-  static void CommFaces(FieldEmbed<Scal>& fe, M& m) {
-    auto sem = m.GetSem("commembed");
-    if (sem.Nested()) {
-      CommFaces(fe.GetFieldFace(), m);
-    }
-    if (sem()) {
-      m.Comm(&fe.GetFieldCell());
-    }
-  }
   void MakeIteration() {
     auto sem = m.GetSem("fluid-iter");
     auto& fcp_prev = fcp_.iter_prev;
@@ -515,7 +471,7 @@ struct Proj<EB_>::Imp {
     }
     if (!par.stokes) {
       if (sem.Nested()) {
-        CommFaces(ffvt, m);
+        CommFieldFace(ffvt, m);
       }
       if (sem("predicted-flux")) {
         FieldFaceb<Vect> ffvel(eb, Vect(0));
@@ -540,7 +496,7 @@ struct Proj<EB_>::Imp {
         fcvel = fcvel_.time_curr;
       }
       if (sem.Nested()) {
-        CommFaces(ffv, m);
+        CommFieldFace(ffv, m);
       }
       if (sem.Nested("proj")) {
         Advection(fcvel, fcvel_.time_curr, ffv, fc_accel_, dt);

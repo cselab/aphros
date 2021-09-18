@@ -36,8 +36,8 @@ void TransferParticlesLocal(
     for (auto& kernel : kernels) {
       auto& req = kernel->GetMesh().GetCommPart()[q];
       fassert(req.x);
-      fassert(req.is_inner);
-      fassert_equal(req.is_inner->size(), req.x->size());
+      fassert(req.inner);
+      fassert_equal(req.inner->size(), req.x->size());
       fassert_equal(req.attr_scal.size(), nattr_scal);
       fassert_equal(req.attr_vect.size(), nattr_vect);
       for (size_t a = 0; a < nattr_scal; ++a) {
@@ -63,7 +63,7 @@ void TransferParticlesLocal(
       auto& req = m.GetCommPart()[q];
       for (size_t i = 0; i < req.x->size(); ++i) {
         const Vect x = (*req.x)[i];
-        if (!(*req.is_inner)[i]) {
+        if (!(*req.inner)[i]) {
           continue;
         }
         const Vect halobox_xm = x - halorad;
@@ -111,9 +111,9 @@ void TransferParticlesLocal(
       const int id = m.GetId();
       fassert(id < kernels.size());
       (*req.x) = tmp_x[id];
-      req.is_inner->resize(req.x->size());
+      req.inner->resize(req.x->size());
       for (size_t i = 0; i < req.x->size(); ++i) {
-        (*req.is_inner)[i] = m.IsInnerPoint((*req.x)[i]);
+        (*req.inner)[i] = m.IsInnerPoint((*req.x)[i]);
       }
       for (size_t a = 0; a < nattr_scal; ++a) {
         (*req.attr_scal[a]) = tmp_attr_scal[id][a];
@@ -153,8 +153,8 @@ void TransferParticlesMpi(
     for (auto& kernel : kernels) {
       auto& req = kernel->GetMesh().GetCommPart()[q];
       fassert(req.x);
-      fassert(req.is_inner);
-      fassert_equal(req.is_inner->size(), req.x->size());
+      fassert(req.inner);
+      fassert_equal(req.inner->size(), req.x->size());
       fassert_equal(req.attr_scal.size(), nattr_scal);
       fassert_equal(req.attr_vect.size(), nattr_vect);
       for (size_t a = 0; a < nattr_scal; ++a) {
@@ -178,7 +178,7 @@ void TransferParticlesMpi(
       auto& req = m.GetCommPart()[q]; // Request on block `b`
       for (size_t i = 0; i < req.x->size(); ++i) {
         const Vect x = (*req.x)[i];
-        if (!(*req.is_inner)[i]) {
+        if (!(*req.inner)[i]) {
           continue;
         }
         const Vect halobox_xm = x - halorad;
@@ -273,7 +273,7 @@ void TransferParticlesMpi(
     std::vector<int> rank_to_count(mpi.GetCommSize());
 
     // Send messages
-    const int tag = 20210827;
+    const int tag = 276;
     for (auto& p : rank_to_msg) {
       const int rank = p.first;
       Msg& msg = p.second;
@@ -295,9 +295,9 @@ void TransferParticlesMpi(
       const int id = m.GetId();
       if (tmp_x.count(id)) {
         (*req.x) = tmp_x.at(id);
-        req.is_inner->resize(req.x->size());
+        req.inner->resize(req.x->size());
         for (size_t i = 0; i < req.x->size(); ++i) {
-          (*req.is_inner)[i] = m.IsInnerPoint((*req.x)[i]);
+          (*req.inner)[i] = m.IsInnerPoint((*req.x)[i]);
         }
         for (size_t a = 0; a < nattr_scal; ++a) {
           (*req.attr_scal[a]) = tmp_attr_scal.at(id)[a];
@@ -307,7 +307,7 @@ void TransferParticlesMpi(
         }
       } else {
         req.x->clear();
-        req.is_inner->clear();
+        req.inner->clear();
         for (size_t a = 0; a < nattr_scal; ++a) {
           req.attr_scal[a]->clear();
         }
@@ -368,10 +368,10 @@ void TransferParticlesMpi(
         for (size_t i = oldsize; i < newsize; ++i) {
           deserialize(x[i]);
         }
-        auto& is_inner = *req.is_inner;
-        is_inner.resize(newsize);
+        auto& inner = *req.inner;
+        inner.resize(newsize);
         for (size_t i = oldsize; i < newsize; ++i) {
-          is_inner[i] = m.IsInnerPoint(x[i]);
+          inner[i] = m.IsInnerPoint(x[i]);
         }
         for (size_t a = 0; a < nattr_scal; ++a) {
           auto& v = *req.attr_scal[a];

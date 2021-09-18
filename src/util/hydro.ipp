@@ -737,7 +737,7 @@ InitBc(
     bool found_fluid = false;
     std::map<std::string, Scal> custom;
     BCondFluid<Vect> bc_fluid;
-    for (std::string s : Split(list, ',')) {
+    for (std::string s : SplitByDelimiter(list, ',')) {
       auto key_value = parse_key_value(s);
       if (known_keys.count(key_value.first)) {
         custom.insert(key_value);
@@ -908,7 +908,7 @@ void InitVort(
   auto& t = *ctx;
   if (sem("initpois")) {
     t.fcpot.Reinit(m);
-    t.mebc_vel = GetVelCond<M>(mebc_fluid);
+    t.mebc_vel = ConvertBCondFluidToVelocity<M>(mebc_fluid);
     t.mebc_pot = GetBCondZeroGrad<Scal>(t.mebc_vel);
     if (zero_dirichlet) {
       mebc_fluid.LoopPairs([&](auto p) {
@@ -963,7 +963,7 @@ void InitVort(
   auto& t = *ctx;
   if (sem("initpois")) {
     t.fcpot.Reinit(m);
-    t.mebc_vel = GetVelCond<M>(mebc_fluid);
+    t.mebc_vel = ConvertBCondFluidToVelocity<M>(mebc_fluid);
     t.mebc_pot_scal = GetBCondZeroGrad<Scal>(t.mebc_vel);
     if (zero_dirichlet) {
       mebc_fluid.LoopPairs([&](auto p) {

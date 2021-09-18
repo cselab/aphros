@@ -43,7 +43,7 @@ void Run(M& m, Vars& var) {
     std::vector<Vect> x;
     std::vector<Scal> x_first; // first component of position
     std::vector<Vect> x_copy;
-    std::vector<bool> is_inner; // true if particle is owned by current block
+    std::vector<bool> inner; // true if particle is owned by current block
     std::vector<std::string> msg;
     std::ofstream fout;
   } * ctx(sem);
@@ -56,7 +56,7 @@ void Run(M& m, Vars& var) {
     Scal x_first_mean = 0;
     size_t npart_inner = 0;
     for (size_t i = 0; i < t.x.size(); ++i) {
-      if (t.is_inner[i]) {
+      if (t.inner[i]) {
         x_mean += t.x[i];
         x_copy_mean += t.x_copy[i];
         x_first_mean += t.x_first[i];
@@ -91,7 +91,7 @@ void Run(M& m, Vars& var) {
       t.x_first[i] = t.x[i][0];
     }
     t.x_copy = t.x;
-    t.is_inner.resize(t.x.size(), true);
+    t.inner.resize(t.x.size(), true);
 
     if (m.IsRoot()) {
       t.fout.open("stat.log");
@@ -103,7 +103,7 @@ void Run(M& m, Vars& var) {
 
     typename M::CommPartRequest req;
     req.x = &t.x;
-    req.is_inner = &t.is_inner;
+    req.inner = &t.inner;
     req.attr_scal = {&t.x_first};
     req.attr_vect = {&t.x_copy};
     m.CommPart(req);

@@ -121,7 +121,7 @@ struct BCondFluid {
 };
 
 template <class M>
-MapEmbed<BCond<typename M::Vect>> GetVelCond(
+MapEmbed<BCond<typename M::Vect>> ConvertBCondFluidToVelocity(
     const MapEmbed<BCondFluid<typename M::Vect>>& me_fluid) {
   using Vect = typename M::Vect;
   MapEmbed<BCond<Vect>> mebc;

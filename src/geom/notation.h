@@ -236,6 +236,9 @@ class IdxFaceMesh {
   Direction direction() const {
     return Direction(size_t(m.GetIndexFaces().GetDir(idxface_)));
   }
+  Direction direction(Side side) const {
+    return Direction(size_t(m.GetIndexFaces().GetDir(idxface_)), side);
+  }
   auto cell(Side s) const {
     return m(m.GetCell(idxface_, s));
   }
@@ -338,6 +341,26 @@ class IdxFaceMesh {
     LazySurface& operator=(const LazySurface&) = default;
   };
   const LazySurface surface{};
+
+  class LazyNormal {
+   public:
+    operator Vect() const {
+      auto owner = GetOwner(this, &IdxFaceMesh::normal);
+      return owner->m.GetNormal(owner->idxface_);
+    }
+    Vect operator()() const {
+      return Vect(*this);
+    }
+    Scal operator[](size_t i) const {
+      return Vect(*this)[i];
+    }
+
+   private:
+    friend IdxFaceMesh;
+    LazyNormal(const LazyNormal&) = default;
+    LazyNormal& operator=(const LazyNormal&) = default;
+  };
+  const LazyNormal normal{};
 
  private:
   IdxFace idxface_;

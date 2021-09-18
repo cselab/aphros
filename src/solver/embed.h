@@ -769,3 +769,14 @@ struct EmbedTraits<Embed<M>> {
   template <class T>
   using FieldFaceb = FieldEmbed<T>;
 };
+
+template <class M, class T>
+void CommFieldFace(FieldEmbed<T>& fe, M& m) {
+  auto sem = m.GetSem("commembed");
+  if (sem.Nested()) {
+    CommFieldFace<M, T>(fe.GetFieldFace(), m);
+  }
+  if (sem()) {
+    m.Comm(&fe.GetFieldCell());
+  }
+}

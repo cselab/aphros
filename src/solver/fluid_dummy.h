@@ -35,10 +35,10 @@ class FluidDummy final : public FluidSolver<typename EB_::M> {
   // par: parameters
   FluidDummy(
       M& m, const EB& eb, const FieldCell<Vect>& fcvel,
-      const FieldCell<Scal>* fcr, const FieldCell<Scal>* fcd,
-      const FieldCell<Vect>* fcf, const FieldEmbed<Scal>* ffbp,
-      const FieldCell<Scal>* fcsv, const FieldCell<Scal>* fcsm, double t,
-      double dt, const Vars& var);
+      const MapEmbed<BCondFluid<Vect>>& mebc, const FieldCell<Scal>* fcr,
+      const FieldCell<Scal>* fcd, const FieldCell<Vect>* fcf,
+      const FieldEmbed<Scal>* ffbp, const FieldCell<Scal>* fcsv,
+      const FieldCell<Scal>* fcsm, double t, double dt, const Vars& var);
   ~FluidDummy();
   void MakeIteration() override;
   const FieldCell<Vect>& GetVelocity(Step) const override;

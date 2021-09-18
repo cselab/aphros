@@ -348,7 +348,7 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
               fc_global[indexc.GetIdx(w)] = data[i++];
             }
           }
-          Dump(fc_global, indexc, blockc, path);
+          dump::DumpFieldPlain(fc_global, indexc, blockc, path);
         }
       }
       if (isroot_) {

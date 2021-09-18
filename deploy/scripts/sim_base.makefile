@@ -59,6 +59,7 @@ clean::
 cleandat::
 	rm -vf *_*.{xmf,h5,raw,vts,vtk,csv} p.pvd
 	rm -vf {vx,vy,vz,p,vf,cl,cls,div,omm}_*.dat
+	rm -vf trep_*.log
 	rm -vf bc.vtk bc_groups.dat eb.vtk
 	rm -vf stat.dat stat_summary out out.conf
 	rm -vf lsf.o* slurm*.out

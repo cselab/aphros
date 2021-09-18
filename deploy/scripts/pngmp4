@@ -1,0 +1,23 @@
+#!/bin/sh -eu
+
+prefix=${1-a}   # prefix for filename
+out=${2-a.mp4}  # output mp4
+extra=${3:-}
+: ${h=-1}       # height
+: ${w=-1}       # width
+: ${r=25}       # framerate
+: ${high=1}     # high quality
+: ${ext=png}
+
+if [ "$high" = "1" ] ; then
+  echo "Using high quality settings"
+  extra="-preset veryslow -crf 20 $extra"
+fi
+
+cmd="ffmpeg -r $r \
+-hide_banner -loglevel warning -stats \
+-pattern_type glob -i '$prefix*.$ext' \
+-c:v libx264 -pix_fmt yuv420p \
+-vf scale=$w:$h -y $extra '$(pwd)/$out'"
+echo "$cmd"
+eval "$cmd"

@@ -262,6 +262,9 @@ class Vect {
   Scal norm() const {
     return std::sqrt(sqrnorm());
   }
+  Vect normalized() const {
+    return *this / norm();
+  }
   Scal dot(const Vect& other) const {
     Scal sum = 0;
     for (size_t i = 0; i < dim; ++i) {

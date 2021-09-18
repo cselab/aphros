@@ -82,7 +82,7 @@ void Main(M& m, Vars& var) {
     ctx->data.emplace_back(std::string("exact"), exact);
   }
   if (sem.Nested()) {
-    DumpCsv(ctx->data, var.String["output_csv_omz"], m);
+    dump::DumpCsv(ctx->data, var.String["output_csv_omz"], m);
   }
   if (sem()) { // XXX empty stage
   }

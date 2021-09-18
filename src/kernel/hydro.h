@@ -101,7 +101,6 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   using ParticlesView = typename ParticlesInterface<M>::ParticlesView;
   static constexpr size_t dim = M::dim;
   using BlockInfoProxy = generic::BlockInfoProxy<dim>;
-  friend void StepHook<>(Hydro*);
 
   // TODO: issue warning if variable in Vars was not used
   // but differs from default (like in CMake)
@@ -129,6 +128,7 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   void InitElectro();
   void SpawnTracer();
   void InitParticles();
+  void InitNucleationPoints();
   void SpawnParticles(ParticlesView& view);
   void OverwriteBc();
   void InitFluid(const FieldCell<Vect>& fc_vel);
@@ -153,12 +153,13 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   void ReportStepElectro();
   void ReportSysinfo(std::ostream& out);
   void ReportIter();
-  // Issue sem.LoopBreak if abort conditions met
+  // Issues sem.LoopBreak if abort conditions met
   void CheckAbort(Sem& sem, Scal& nabort);
   void StepFluid();
   void StepAdvection();
   void StepTracer();
   void StepParticles();
+  void ConvertParticlesToVof();
   void StepElectro();
   void StepBubgen();
   void StepEraseVolumeFraction(std::string prefix, Scal& last_t);
@@ -204,6 +205,8 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   std::vector<std::map<std::string, Scal>> bc_group_custom_;
   MapCell<std::shared_ptr<CondCell>> mc_cond_;
   MapCell<std::shared_ptr<CondCellFluid>> mc_velcond_;
+  FieldCell<Vect> fc_wall_dist_; // Vector from the cell center to the
+                                 // nearest wall.
 
   std::unique_ptr<Embed<M>> eb_;
   std::unique_ptr<AdvectionSolver<M>> as_;
@@ -251,12 +254,14 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   Multi<FieldCell<Scal>> fc_tracer_source;
 
   std::set<IdxCell> nucl_cells_;
+  std::set<Vect> nucl_points_;
 
   std::unique_ptr<ParticlesInterface<M>> particles_;
   std::mt19937 randgen_;
   Scal tracer_dt_;
   Scal particles_dt_;
   std::string vf_save_state_path_;
+  std::function<void(const ParticlesView&)> particles_hook_;
 
   // electro
   std::unique_ptr<ElectroInterface<M>> electro_;

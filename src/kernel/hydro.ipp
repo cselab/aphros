@@ -23,11 +23,13 @@
 #include <thread>
 
 #include "debug/isnan.h"
+#include "dump/dump.h"
 #include "dump/dumper.h"
 #include "dump/hdf.h"
 #include "dump/raw.h"
 #include "func/init.h"
 #include "func/init_contang.h"
+#include "func/init_u.h"
 #include "geom/mesh.h"
 #include "kernelmeshpar.h"
 #include "linear/linear.h"
@@ -242,17 +244,8 @@ void Hydro<M>::InitStepwiseBody(FieldCell<bool>& fc_innermask) {
     }
   }
   if (var.Int("dump_stepwise_body", 0)) {
-    const auto binpath = "stepwise.raw";
-    if (sem("dump-xmf")) {
-      t.meta = Xmf::GetMeta(m);
-      t.meta.binpath = binpath;
-      t.meta.name = "stepwise";
-      if (m.IsRoot()) {
-        Xmf::WriteXmf(util::SplitExt(binpath)[0] + ".xmf", t.meta);
-      }
-    }
-    if (sem.Nested("dump-raw")) {
-      dump::Raw<M>::Write(t.fcbody, t.meta, binpath, m);
+    if (sem.Nested()) {
+      dump::Raw<M>::WriteWithXmf(t.fcbody, "stepwise", "stepwise.raw", m);
     }
   }
 }
@@ -386,12 +379,16 @@ void Hydro<M>::OverwriteBc() {
 template <class M>
 void Hydro<M>::SpawnParticles(ParticlesView& view) {
   const Vect sphere_c(var.Vect["particles_spawn_sphere_c"]);
-  const Scal sphere_r = var.Double["particles_spawn_sphere_r"];
-  // particles per unit time
+  Vect sphere_r;
+  if (auto* v = var.Vect.Find("particles_spawn_sphere_r")) {
+    sphere_r = Vect(*v);
+  } else {
+    sphere_r = Vect(var.Double["particles_spawn_sphere_r"]);
+  }
   const size_t edim = m.GetEdim();
   const Scal sphere_vol =
-      (edim == 3 ? 4. / 3. * M_PI * std::pow(sphere_r, 3)
-                 : M_PI * sqr(sphere_r));
+      (edim == 3 ? 4. / 3. * M_PI * sphere_r.prod()
+                 : M_PI * sphere_r[0] * sphere_r[1]);
   const Vect h = m.GetCellSize();
   const Scal cell_vol = (edim == 3 ? h.prod() : h[0] * h[1]);
   const Vect velocity(var.Vect["particles_spawn_velocity"]);
@@ -412,7 +409,7 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
     if (edim == 2 && M::dim > 2) {
       dx[2] = 0;
     }
-    if (dx.sqrnorm() < sqr(sphere_r)) {
+    if ((dx / sphere_r).sqrnorm() < 1) {
       for (size_t i = 0; i < num_rates; ++i) {
         const Scal prob = particles_dt_ * cell_vol * spawn_rate[i] / sphere_vol;
         if (u(g) < prob) {
@@ -421,8 +418,9 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
             xrand[d] = um(g);
           }
           view.x.push_back(m.GetCenter(c) + xrand * h);
-          view.is_inner.push_back(true);
+          view.inner.push_back(true);
           view.v.push_back(velocity);
+          view.id.push_back(0);
           view.r.push_back(radius[i]);
           view.source.push_back(0);
           view.rho.push_back(density);
@@ -436,40 +434,103 @@ void Hydro<M>::SpawnParticles(ParticlesView& view) {
 
 template <class M>
 void Hydro<M>::InitParticles() {
-  if (var.Int["enable_particles"]) {
-    typename ParticlesInterface<M>::Conf conf;
-    conf.mixture_density = var.Double["rho1"];
-    conf.mixture_viscosity = var.Double["mu1"];
-    conf.gravity = Vect(var.Vect["gravity"]);
-    const auto mode = var.String["particles_mode"];
-    if (mode == "tracer") {
-      conf.mode = ParticlesMode::tracer;
-    } else if (mode == "stokes") {
-      conf.mode = ParticlesMode::stokes;
-    } else if (mode == "termvel") {
-      conf.mode = ParticlesMode::termvel;
-    } else {
-      fassert(
-          false,
-          "Unknown mode=" + mode + ". Known modes are tracer, stokes, termvel");
+  typename ParticlesInterface<M>::Conf conf;
+  conf.mixture_density = var.Double["rho1"];
+  conf.mixture_viscosity = var.Double["mu1"];
+  conf.gravity = Vect(var.Vect["gravity"]);
+  const auto mode = var.String["particles_mode"];
+  if (mode == "tracer") {
+    conf.mode = ParticlesMode::tracer;
+  } else if (mode == "stokes") {
+    conf.mode = ParticlesMode::stokes;
+  } else if (mode == "termvel") {
+    conf.mode = ParticlesMode::termvel;
+  } else {
+    fassert(
+        false,
+        "Unknown mode=" + mode + ". Known modes are tracer, stokes, termvel");
+  }
+  std::vector<Vect> p_x;
+  std::vector<bool> p_inner;
+  std::vector<Vect> p_v;
+  std::vector<Scal> p_id;
+  std::vector<Scal> p_r;
+  std::vector<Scal> p_source;
+  std::vector<Scal> p_rho;
+  std::vector<Scal> p_termvel;
+  std::vector<Scal> p_removed;
+  ParticlesView view{p_x,      p_inner, p_v,       p_id,     p_r,
+                     p_source, p_rho,   p_termvel, p_removed};
+  const auto init_csv = var.String["particles_init_csv"];
+  if (init_csv.length() && m.IsRoot()) {
+    auto status = Particles<M>::ReadCsv(init_csv, view);
+    if (!status.termvel) {
+      std::fill(
+          view.termvel.begin(), view.termvel.end(),
+          var.Vect["particles_termvel"][0]);
     }
-    std::vector<Vect> p_x;
-    std::vector<bool> p_is_inner;
-    std::vector<Vect> p_v;
-    std::vector<Scal> p_r;
-    std::vector<Scal> p_source;
-    std::vector<Scal> p_rho;
-    std::vector<Scal> p_termvel;
-    std::vector<Scal> p_removed;
-    ParticlesView view{p_x,      p_is_inner, p_v,       p_r,
-                       p_source, p_rho,      p_termvel, p_removed};
-    SpawnParticles(view);
-    if (eb_) {
-      particles_.reset(new Particles<EB>(m, *eb_, view, fs_->GetTime(), conf));
-    } else {
-      particles_.reset(new Particles<M>(m, m, view, fs_->GetTime(), conf));
+    if (!status.r) {
+      std::fill(view.r.begin(), view.r.end(), var.Vect["particles_radius"][0]);
     }
   }
+  SpawnParticles(view);
+  if (eb_) {
+    particles_.reset(new Particles<EB>(m, *eb_, view, fs_->GetTime(), conf));
+  } else {
+    particles_.reset(new Particles<M>(m, m, view, fs_->GetTime(), conf));
+  }
+
+  fc_wall_dist_.Reinit(m, GetNan<Vect>());
+  for (const auto& p : mebc_fluid_.GetMapFace()) {
+    const IdxFace f = p.first;
+    const auto& bc = p.second;
+    const auto nci = bc.nci;
+    auto cc = m.GetCellColumn(f, nci);
+    if (bc.type == BCondFluidType::wall ||
+        bc.type == BCondFluidType::slipwall ||
+        bc.type == BCondFluidType::symm) {
+      for (IdxCell c : {cc[2], cc[3]}) {
+        const Vect dist = m.GetCenter(f) - m.GetCenter(c);
+        auto& mindist = fc_wall_dist_[c];
+        if (IsNan(mindist) || dist.sqrnorm() < mindist.sqrnorm()) {
+          mindist = dist;
+        }
+      }
+    }
+    // TODO: consider mebc_fluid_.GetMapCell()
+  }
+}
+
+// Nucleation points are randomly positioned on walls
+// with a given areal number density.
+template <class M>
+void Hydro<M>::InitNucleationPoints() {
+    // Areal number density of nucleation points.
+    const Scal numdens = var.Double("nucleation_number_density", 0);
+    if (numdens) {
+      std::uniform_real_distribution<Scal> uniform(0, 1);
+      // Traverse boundary faces and seed at most one point per face.
+      for (const auto& p : mebc_fluid_.GetMapFace()) {
+        const auto f = m(p.first);
+        const auto& bc = p.second;
+        if (m.IsInner(f.cell(bc.nci))) {
+          if (bc.type == BCondFluidType::wall ||
+              bc.type == BCondFluidType::slipwall) {
+            if (numdens * f.area > uniform(randgen_)) {
+              // Uniform displacement.
+              Vect dx(0);
+              for (size_t d : m.dirs) {
+                dx[d] = uniform(randgen_) - 0.5;
+              }
+              dx *= m.GetCellSize();
+              // Cancel out the component normal to the face.
+              dx = dx.orth(f.normal);
+              nucl_points_.insert(f.center() + dx);
+            }
+          }
+        }
+      }
+    }
 }
 
 template <class M>
@@ -623,12 +684,12 @@ void Hydro<M>::InitFluid(const FieldCell<Vect>& fc_vel) {
   } else if (fs == "dummy") {
     if (eb_) {
       fs_.reset(new FluidDummy<Embed<M>>(
-          m, *eb_, fc_vel, &fc_rho_, &fc_mu_, &fc_force_, &febp_, &fc_src_,
-          &fc_srcm_, 0., st_.dt, var));
+          m, *eb_, fc_vel, mebc_fluid_, &fc_rho_, &fc_mu_, &fc_force_, &febp_,
+          &fc_src_, &fc_srcm_, 0., st_.dt, var));
     } else {
       fs_.reset(new FluidDummy<M>(
-          m, m, fc_vel, &fc_rho_, &fc_mu_, &fc_force_, &febp_, &fc_src_,
-          &fc_srcm_, 0., st_.dt, var));
+          m, m, fc_vel, mebc_fluid_, &fc_rho_, &fc_mu_, &fc_force_, &febp_,
+          &fc_src_, &fc_srcm_, 0., st_.dt, var));
     }
   } else {
     fassert(false, "Unknown fluid_solver=" + fs);
@@ -1129,6 +1190,7 @@ void Hydro<M>::Init() {
     Multi<FieldCell<Scal>> tracer_vfcu;
     std::shared_ptr<linear::Solver<M>> linsolver_vort;
     FieldCell<bool> fc_innermask;
+    std::vector<std::pair<std::string, std::vector<Scal>>> nucl_data;
   } * ctx(sem);
   auto& t = *ctx;
   auto& fcvel = t.fcvel;
@@ -1315,18 +1377,8 @@ void Hydro<M>::Init() {
           var.Int("initvort_zero_dirichlet", 0));
     }
     if (var.Int("initvort_dumppot", 0)) {
-      const auto binpath = "velpot.raw";
-      if (sem("dump-xmf")) {
-        t.meta = Xmf::GetMeta(m);
-        t.meta.binpath = binpath;
-        t.meta.name = "velpot";
-        if (m.IsRoot()) {
-          Xmf::WriteXmf(util::SplitExt(binpath)[0] + ".xmf", t.meta);
-        }
-        t.fcpot_scal = GetComponent(t.fcpot, 0);
-      }
-      if (sem.Nested("dump-raw")) {
-        dump::Raw<M>::Write(t.fcpot_scal, t.meta, binpath, m);
+      if (sem.Nested()) {
+        dump::Raw<M>::WriteWithXmf(t.fcpot_scal, "velpot", "velpot.raw", m);
       }
     }
   }
@@ -1386,7 +1438,13 @@ void Hydro<M>::Init() {
 
     InitElectro();
 
-    InitParticles();
+    if (var.Int["enable_particles"]) {
+      InitParticles();
+    }
+
+    if (tracer_ && var.Int["enable_nucleation_points"]) {
+      InitNucleationPoints();
+    }
 
     st_.iter = 0;
     st_.step = 0;
@@ -1446,6 +1504,27 @@ void Hydro<M>::Init() {
           DumpBcPoly("bc.vtk", me_group_, me_contang_, m, m);
         }
       }
+    }
+  }
+  if (var.Int["enable_nucleation_points"] && var.Int("dump_nucl", 0)) {
+    const std::string path = "nucl.csv";
+    if (sem("dump-nucl-local")) {
+      if (m.IsRoot()) {
+        std::cerr << util::Format("dump nucleation points to {}\n", path);
+      }
+      t.nucl_data.push_back({"x", {}});
+      t.nucl_data.push_back({"y", {}});
+      t.nucl_data.push_back({"z", {}});
+      for (auto xd : nucl_points_) {
+        using Vect3 = generic::Vect<Scal, 3>;
+        Vect3 x(xd);
+        t.nucl_data[0].second.push_back(x[0]);
+        t.nucl_data[1].second.push_back(x[1]);
+        t.nucl_data[2].second.push_back(x[2]);
+      }
+    }
+    if (sem.Nested()) {
+      dump::DumpCsv(t.nucl_data, path, m);
     }
   }
   if (eb_ && sem.Nested() && var.Int("dump_eb", 1)) {
@@ -1696,7 +1775,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
-    // source for bubble growth from tracers
+    // Source for bubble growth from tracers.
     if (tracer_) {
       const auto& conf = tracer_->GetConf();
       for (auto l : GRange<size_t>(conf.layers)) {
@@ -1733,23 +1812,64 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
-    // growth of particles from tracer
+    // Growth of particles from tracer.
     if (tracer_ && particles_) {
       auto view = particles_->GetView();
-      const size_t n = view.x.size();
-      if (tracer_) {
-        const size_t l = 0;
-        const auto& tu = tracer_->GetVolumeFraction()[l];
-        const auto h = m.GetCellSize();
-        for (size_t i = 0; i < n; ++i) {
-          const auto c = m.GetCellFromPoint(view.x[i]);
-          const Scal k = 0.1;
-          view.source[i] = tu[c] * k * h.prod();
-          fc_tracer_source[l][c] -= tu[c] * k;
+      const size_t l = 0;
+      const auto& tu = tracer_->GetVolumeFraction()[l];
+      const auto h = m.GetCellSize();
+      const Scal rate = var.Double["particles_growth_rate"];
+      const auto& blockall = m.GetAllBlockCells();
+      const MIdx blockall_wmin = blockall.GetBegin();
+      const MIdx blockall_wmax = blockall.GetEnd() - MIdx(1);
+      // Traverse inner and halo particles.
+      // Accumulate the particle sources in `view.source[i]`
+      // and field sources in `fc_tracer_source[l][c]`.
+      // Particles sources are only valid for inner particles
+      // since they depend on the 5x5x5 stencil only available in inner cells.
+      for (size_t i = 0; i < view.x.size(); ++i) {
+        view.source[i] = 0;
+        // Range of cells containing the particle.
+        MIdx wmin(((view.x[i] - Vect(view.r[i]) - m.flags.global_origin) / h)
+                      .floor());
+        MIdx wmax(((view.x[i] + Vect(view.r[i]) - m.flags.global_origin) / h)
+                      .floor());
+        // Cell containing the particle centroid.
+        const auto cpart = m(m.GetCellFromPoint(view.x[i]));
+        // Limit the range of cells to 5x5x5 stencil around the centroid.
+        const MIdx wcpart(cpart);
+        wmin = wmin.max(wcpart - MIdx(2));
+        wmax = wmax.min(wcpart + MIdx(2));
+        // Limit the range of cells to inner and halo cells of current block.
+        wmin = wmin.max(blockall_wmin);
+        wmax = wmax.min(blockall_wmax);
+        // Block of cells from range [wmin, wmax].
+        const GBlock<int, M::dim> wcells(wmin, wmax - wmin + MIdx(1));
+        const auto& index = m.GetIndexCells();
+        // Level-set describing the particle.
+        auto ls = [&](const Vect& x) -> Scal {
+          return view.r[i] - x.dist(view.x[i]);
+        };
+        for (MIdx w : wcells) {
+          const auto c = m(index.GetIdx(w));
+          // Volume fraction of intersection between particle and cell.
+          // Assume full intersection for small particles.
+          const Scal vf = //
+              view.r[i] < h[0]
+                  ? sqr(view.r[i] / h[0])
+                  : GetLevelSetVolume<Scal, M::dim>(ls, c.center, h);
+          const Scal src = vf * tu[c] * rate;
+          if (view.inner[i]) {
+            view.source[i] += src * c.volume;
+          }
+          const auto k = 1;
+          fc_tracer_source[l][c] -= src * k;
+          fc_src_[c] += src * k;
         }
       }
     }
-    if (tracer_ && var.Int("enable_nucleation", 0)) {
+    // Nucleation through concentration fields.
+    if (tracer_ && var.Int["enable_nucleation"]) {
       const auto& conf = tracer_->GetConf();
       for (auto l : GRange<size_t>(conf.layers)) {
         const auto sl = std::to_string(l);
@@ -1766,6 +1886,49 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           }
         }
       }
+    }
+    if (tracer_ && particles_ && var.Int["enable_nucleation_points"]) {
+      const auto& conf = tracer_->GetConf();
+      std::vector<Vect> p_x;
+      std::vector<bool> p_inner;
+      std::vector<Vect> p_v;
+      std::vector<Scal> p_id;
+      std::vector<Scal> p_r;
+      std::vector<Scal> p_source;
+      std::vector<Scal> p_rho;
+      std::vector<Scal> p_termvel;
+      std::vector<Scal> p_removed;
+      ParticlesView view{p_x,      p_inner, p_v,       p_id,     p_r,
+                         p_source, p_rho,   p_termvel, p_removed};
+      const Scal density = var.Double["particles_density"];
+      for (auto l : GRange<size_t>(conf.layers)) {
+        const auto sl = std::to_string(l);
+        // Threshold for nucleation.
+        const Scal cmax = var.Double["nucleation_cmax" + sl];
+        // Post-nucleation concentration.
+        const Scal cpost = var.Double["nucleation_cpost" + sl];
+        const auto& tu = tracer_->GetVolumeFraction()[l];
+        for (auto x : nucl_points_) {
+          const auto c = m(m.GetCellFromPoint(x));
+          if (tu[c] > cmax) {
+            // Volume fraction is reduced to `cpost` and a particle with
+            // the equivalent volume is created.
+            const Scal du = tu[c] - cpost;
+            const Scal vol = du * c.volume();
+            fc_tracer_source[l][c] -= du / tracer_dt_;
+            view.x.push_back(x);
+            view.inner.push_back(true);
+            view.v.push_back(Vect(0));
+            view.id.push_back(0);
+            view.r.push_back(std::pow(vol * 3 / (4 * M_PI), 1. / 3));
+            view.source.push_back(0);
+            view.rho.push_back(density);
+            view.termvel.push_back(0);
+            view.removed.push_back(false);
+          }
+        }
+      }
+      particles_->Append(view);
     }
     if (tracer_ && electro_) {
       if (auto* coeff = var.Double.Find("flux_from_current")) {
@@ -1808,6 +1971,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
     }
   }
+  if (particles_ && sem.Nested()) {
+    particles_->SetUniqueIdForAppended(m);
+  }
   // FIXME move, but keep inside nested call
   if (!vf_save_state_path_.empty() && sem.Nested("vf_save_state")) {
     if (auto as = dynamic_cast<ASVMEB*>(as_.get())) {
@@ -1820,7 +1986,7 @@ template <class M>
 void Hydro<M>::Dump(bool force) {
   auto sem = m.GetSem("dump");
   struct {
-    std::vector<Vect> nucl_points;
+    std::vector<std::pair<std::string, std::vector<Scal>>> nucl_data;
   } * ctx(sem);
   auto& t = *ctx;
   if (sem.Nested("fields")) {
@@ -1885,28 +2051,33 @@ void Hydro<M>::Dump(bool force) {
   dump_part(dynamic_cast<ASVEB*>(as_.get()));
   dump_part(dynamic_cast<ASVM*>(as_.get()));
   dump_part(dynamic_cast<ASVMEB*>(as_.get()));
-  if (tracer_ && dumper_.Try(st_.t, st_.dt)) {
-    if (sem("dump-nucl-gather")) {
-      for (auto c : nucl_cells_) {
-        t.nucl_points.push_back(m.GetCenter(c));
-      }
-      m.Reduce(&t.nucl_points, Reduction::concat);
-    }
-    if (sem("dump-nucl-write")) {
+  if (tracer_ && var.Int["enable_nucleation"] && var.Int("dump_nucl", 0) &&
+      dumper_.Try(st_.t, st_.dt)) {
+    const std::string path = GetDumpName("nucl", ".csv", dumper_.GetN(), -1);
+    if (sem("dump-nucl-local")) {
       if (m.IsRoot()) {
-        const std::string s = GetDumpName("nucl", ".csv", dumper_.GetN(), -1);
-        std::cerr << std::fixed << std::setprecision(8) << "dump"
-                  << " t=" << st_.t << " to " << s << std::endl;
-        std::ofstream o;
-        o.open(s);
-        o.precision(16);
-        o << "x,y,z\n";
-        for (auto x : t.nucl_points) {
-          using Vect3 = generic::Vect<Scal, 3>;
-          Vect3 xx(x);
-          o << xx[0] << ',' << xx[1] << ',' << xx[2] << '\n';
-        }
+        std::cerr << util::Format("dump t={:} to {}\n", st_.t, path);
       }
+      t.nucl_data.push_back({"x", {}});
+      t.nucl_data.push_back({"y", {}});
+      t.nucl_data.push_back({"z", {}});
+      for (auto c : nucl_cells_) {
+        using Vect3 = generic::Vect<Scal, 3>;
+        Vect3 x(m.GetCenter(c));
+        t.nucl_data[0].second.push_back(x[0]);
+        t.nucl_data[1].second.push_back(x[1]);
+        t.nucl_data[2].second.push_back(x[2]);
+      }
+      for (auto xd : nucl_points_) {
+        using Vect3 = generic::Vect<Scal, 3>;
+        Vect3 x(xd);
+        t.nucl_data[0].second.push_back(x[0]);
+        t.nucl_data[1].second.push_back(x[1]);
+        t.nucl_data[2].second.push_back(x[2]);
+      }
+    }
+    if (sem.Nested()) {
+      dump::DumpCsv(t.nucl_data, path, m);
     }
   }
 }
@@ -2239,20 +2410,80 @@ template <class M>
 void Hydro<M>::StepParticles() {
   auto sem = m.GetSem("particles-steps"); // sem nested
   sem.LoopBegin();
-  if (sem.Nested("start")) {
-    particles_->Step(particles_dt_, fs_->GetVolumeFlux());
+  if (sem.Nested()) {
+    auto velocity_hook = [this](const ParticlesView& view) {
+      // Move particles away from the wall.
+      for (size_t i = 0; i < view.x.size(); ++i) {
+        if (view.inner[i]) {
+          //view.v[i] *= 0.2;
+          const IdxCell c = m.GetCellFromPoint(view.x[i]);
+          const Vect xc = m.GetCenter(c);
+          const Vect walldist = fc_wall_dist_[c];
+          if (IsFinite(walldist) && walldist.sqrnorm() > 0) {
+            const Vect walldir = walldist / walldist.norm();
+            // Distance from particle center to wall along `walldist`
+            const Scal dz = walldir.dot(walldist + xc - view.x[i]);
+            if (dz - view.r[i] < 0) {
+              // If particle intersects the wall, move it away
+              view.v[i] += walldir * (dz - view.r[i]) / particles_dt_;
+            }
+          }
+        }
+      }
+      if (particles_hook_) {
+        particles_hook_(view);
+      }
+    };
+    particles_->Step(
+        particles_dt_, fs_->GetVolumeFlux(), fs_->GetVelocityCond(),
+        velocity_hook);
+  }
+  if (var.Int["particles_to_vof"] && sem.Nested("partilces_to_vof")) {
+    ConvertParticlesToVof();
+  }
+  // Coalescence of particles.
+  if (var.Int["particles_coal"] && sem("particles_coal")) {
+    auto view = particles_->GetView();
+    for (size_t i = 0; i < view.x.size(); ++i) {
+      if (view.inner[i]) {
+        for (size_t j = 0; j < view.x.size(); ++j) {
+          const Vect xi = view.x[i];
+          const Vect xj = view.x[j];
+          if (i == j) {
+            continue;
+          }
+          const Scal ri = view.r[i];
+          const Scal rj = view.r[j];
+          if (xi.dist(xj) < view.r[i] + view.r[j]) {
+            // Remove the lexicographically minimal particle
+            // and enlarge the other one. Modify only inner particles.
+            const bool less = ri < rj || (ri == rj && xi.lexless(xj));
+            if (less) {
+              view.removed[i] = true;
+            } else  {
+              const Scal voli = std::pow(ri, 3);
+              const Scal volj = std::pow(rj, 3);
+              view.r[i] = std::pow(voli + volj, 1. / 3);
+              view.x[i] = (voli * xi + volj * xj) / (voli + volj);
+              view.v[i] = (voli * view.v[i] + volj * view.v[j]) / (voli + volj);
+            }
+          }
+        }
+      }
+    }
   }
   if (sem("spawn")) {
     std::vector<Vect> p_x;
-    std::vector<bool> p_is_inner;
+    std::vector<bool> p_inner;
     std::vector<Vect> p_v;
+    std::vector<Scal> p_id;
     std::vector<Scal> p_r;
     std::vector<Scal> p_source;
     std::vector<Scal> p_rho;
     std::vector<Scal> p_termvel;
     std::vector<Scal> p_removed;
-    ParticlesView view{p_x,      p_is_inner, p_v,       p_r,
-                       p_source, p_rho,      p_termvel, p_removed};
+    ParticlesView view{p_x,      p_inner, p_v,       p_id,     p_r,
+                       p_source, p_rho,   p_termvel, p_removed};
     SpawnParticles(view);
     particles_->Append(view);
   }
@@ -2269,6 +2500,110 @@ void Hydro<M>::StepParticles() {
     }
   }
   sem.LoopEnd();
+}
+
+template <class M>
+void Hydro<M>::ConvertParticlesToVof() {
+  auto sem = m.GetSem();
+  struct Particle {
+    Vect x;
+    Scal r;
+  };
+
+  struct {
+    Scal nconv = 0;
+    std::vector<Scal> intersects_vof; // 1 if particle intersects a cell
+                                      // with large volume fraction
+  } * ctx(sem);
+  auto& t = *ctx;
+
+  if (sem()) {
+    const auto& fcu = as_->GetField();
+    auto view = particles_->GetView();
+    const auto h = m.GetCellSize();
+    t.intersects_vof.resize(view.x.size(), 0);
+    const auto& blockall = m.GetAllBlockCells();
+    const MIdx blockall_wmin = blockall.GetBegin();
+    const MIdx blockall_wmax = blockall.GetEnd() - MIdx(1);
+    for (size_t i = 0; i < view.x.size(); ++i) {
+      if (view.inner[i]) {
+        // TODO: Avoid code duplication with growth of particles from tracer.
+        // Range of cells containing the particle.
+        MIdx wmin(((view.x[i] - Vect(view.r[i]) - m.flags.global_origin) / h)
+                      .floor());
+        MIdx wmax(((view.x[i] + Vect(view.r[i]) - m.flags.global_origin) / h)
+                      .floor());
+        // Cell containing the particle centroid.
+        const auto cpart = m(m.GetCellFromPoint(view.x[i]));
+        // Limit the range of cells to 5x5x5 stencil around the centroid.
+        const MIdx wcpart(cpart);
+        wmin = wmin.max(wcpart - MIdx(2));
+        wmax = wmax.min(wcpart + MIdx(2));
+        // Limit the range of cells to inner and halo cells of current block.
+        wmin = wmin.max(blockall_wmin);
+        wmax = wmax.min(blockall_wmax);
+        // Block of cells from range [wmin, wmax].
+        const GBlock<int, M::dim> wcells(wmin, wmax - wmin + MIdx(1));
+        const auto& index = m.GetIndexCells();
+        for (MIdx w : wcells) {
+          const auto c = m(index.GetIdx(w));
+          const Vect xc = c.center;
+          if (fcu[c] > 0.5 &&
+              xc.sqrdist(view.x[i]) < sqr(view.r[i] + h[0] * 0.5)) {
+            t.intersects_vof[i] = 1;
+          }
+        }
+      }
+    }
+
+    auto req = GetCommPartRequest<M>(view);
+    req.attr_scal.push_back(&t.intersects_vof);
+    m.CommPart(req);
+  }
+
+  if (sem()) {
+    auto view = particles_->GetView();
+    const Scal r0 = var.Double["particles_to_vof_radius"] * m.GetCellSize()[0];
+    const Scal dt = as_->GetTimeStep();
+
+    std::vector<Particle> toconvert; // Particles to convert to vof.
+    for (size_t i = 0; i < view.x.size(); ++i) {
+      // Convert if particle is sufficiently large
+      // or intersects a cell with large volume fraction.
+      if (view.r[i] > r0 || t.intersects_vof[i]) {
+        toconvert.push_back({view.x[i] + view.v[i] * dt, view.r[i]});
+        view.removed[i] = true;
+      }
+    }
+    t.nconv += toconvert.size();
+    m.Reduce(&t.nconv, Reduction::sum);
+
+    auto mod = [this, toconvert](
+                   FieldCell<Scal>& fcu, FieldCell<Scal>& fccl, auto&) {
+      (void)fccl;
+      auto ls = [&](const Vect& x) -> Scal {
+        Scal res = -std::numeric_limits<Scal>::max();
+        for (auto& p : toconvert) {
+          res = std::max(res, p.r - x.dist(p.x));
+        }
+        return res;
+      };
+      for (auto c : m.AllCellsM()) {
+        fcu[c] = std::max(
+            fcu[c],
+            GetLevelSetVolume<Scal, M::dim>(ls, c.center, m.GetCellSize()));
+      }
+    };
+    if (auto* as = dynamic_cast<Vof<M>*>(as_.get())) {
+      as->AddModifier(mod);
+    }
+  }
+  if (sem()) {
+    if (m.IsRoot() && var.Int("particles_to_vof_verbose", 0) && t.nconv) {
+      std::cout << util::Format("Converted {:} particles", t.nconv)
+                << std::endl;
+    }
+  }
 }
 
 template <class M>

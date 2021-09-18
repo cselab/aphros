@@ -106,6 +106,7 @@ set(ScriptsList
     part
     part0
     plain2vtk
+    pngmp4
     run
     run0
     scale

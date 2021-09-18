@@ -15,6 +15,45 @@
 #include "parse/vars.h"
 #include "solver.h"
 
+namespace interp {
+
+// Evaluates quadratic interpolant on points -1, 0, 1.
+// x: target point
+// um,u,up: values of function for x=-1, 0, 1.
+template <class Scal, class T>
+T Quad(Scal x, T um, T u, T up) {
+  return (um * (x - 1) + up * (x + 1)) * x * 0.5 - u * (x - 1) * (x + 1);
+}
+
+// Evaluates linear interpolant on points 0, 1.
+// x: target point
+// u,up: values of function for x=0, 1.
+template <class Scal, class T>
+T Linear(Scal x, T u, T up) {
+  return u * (1 - x) + up * x;
+}
+
+// Evaluates bilinear interpolant on points (0,0), (1,0), (0,1) and (1,1).
+// x,y: target point
+// u,ux,uy,uyx:  values of function for (x,y) = (0,0), (1,0), (0,1), (1,1)
+template <class T, class Scal>
+T Bilinear(Scal x, Scal y, T u, T ux, T uy, T uyx) {
+  //                      //
+  //   y                  //
+  //   |                  //
+  //   |*uy    *uyx       //
+  //   |                  //
+  //   |                  //
+  //   |*u     *ux        //
+  //   |-------------x    //
+  //                      //
+  const auto v = u * (1 - x) + ux * x;
+  const auto vy = uy * (1 - x) + uyx * x;
+  return v * (1 - y) + vy * y;
+}
+
+} // namespace interp
+
 template <class Vect_>
 struct ULinearFit {
   using Scal = typename Vect_::Scal;

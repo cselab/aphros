@@ -81,7 +81,7 @@ struct Simple<EB_>::Imp {
   }
 
   void UpdateDerivedConditions() {
-    me_vel_ = GetVelCond<M>(mebc_);
+    me_vel_ = ConvertBCondFluidToVelocity<M>(mebc_);
     mebc_.LoopPairs([&](auto p) {
       const auto cf = p.first;
       const auto& bc = p.second;

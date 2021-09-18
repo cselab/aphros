@@ -731,14 +731,14 @@ class MeshCartesian {
 
   struct CommPartRequest {
     std::vector<Vect>* x = nullptr; // particle position
-    std::vector<bool>* is_inner = nullptr; // true if particle is owned by block
+    std::vector<bool>* inner = nullptr; // true if particle is owned by block
     std::vector<std::vector<Scal>*> attr_scal; // scalar attributes
     std::vector<std::vector<Vect>*> attr_vect; // vector attributes
   };
   // Requests exchange of particles between blocks.
-  // Particles with `is_inner` set to `true` are transfered to blocks
+  // Particles with `inner` set to `true` are transfered to blocks
   // within `flags.particles_halo_radius`.
-  // Then `is_inner` is set to `true` for particles with `IsInnerPoint()` true.
+  // Then `inner` is set to `true` for particles with `IsInnerPoint()` true.
   void CommPart(const CommPartRequest&);
   const std::vector<CommPartRequest>& GetCommPart() const;
   void ClearCommPart();
@@ -893,3 +893,41 @@ class MeshCartesian {
   struct Imp;
   std::unique_ptr<Imp> imp;
 };
+
+// TODO: Make part of MeshCartesian, implement without Comm() for FieldCell.
+template <class M, class T>
+void CommFieldFace(FieldFace<T>& ff, M& m) {
+  auto sem = m.GetSem("commface");
+  struct {
+    std::array<FieldCell<T>, M::kCellNumNeighborFaces> vfc;
+  } * ctx(sem);
+  auto& vfc = ctx->vfc;
+  if (sem("comm")) {
+    for (size_t q = 0; q < M::kCellNumNeighborFaces; ++q) {
+      vfc[q].Reinit(m);
+    }
+    for (auto c : m.Cells()) {
+      for (auto q : m.Nci(c)) {
+        vfc[q.raw()][c] = ff[m.GetFace(c, q)];
+      }
+    }
+    for (size_t q = 0; q < M::kCellNumNeighborFaces; ++q) {
+      m.Comm(&vfc[q]);
+    }
+  }
+  if (sem("copy")) {
+    auto fft = ff;
+    for (auto c : m.AllCells()) {
+      for (auto q : m.Nci(c)) {
+        ff[m.GetFace(c, q)] = vfc[q.raw()][c];
+      }
+    }
+    for (auto f : m.Faces()) {
+      ff[f] = fft[f];
+    }
+  }
+  if (sem()) {
+    // FIXME: empty stage required to prevent destruction of ctx
+    // until communication is finished in outer blocks
+  }
+}

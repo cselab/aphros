@@ -10,11 +10,15 @@
 #include <limits>
 #include <memory>
 #include <type_traits>
+#include <unordered_map>
 
 #include "approx.h"
+#include "approx2.h"
 #include "approx_eb.h"
 #include "util/format.h"
-#include "util/vof.h"
+
+#include "dump/dump.h"
+#include "dump/raw.h"
 
 #include "particles.h"
 
@@ -26,8 +30,9 @@ struct Particles<EB_>::Imp {
   struct State {
     // See description of attributes in ParticlesView.
     std::vector<Vect> x;
-    std::vector<bool> is_inner;
+    std::vector<bool> inner;
     std::vector<Vect> v;
+    std::vector<Scal> id;
     std::vector<Scal> r;
     std::vector<Scal> source;
     std::vector<Scal> rho;
@@ -42,15 +47,23 @@ struct Particles<EB_>::Imp {
       , eb(eb_)
       , conf(conf_)
       , time_(time)
-      , state_({init.x, init.is_inner, init.v, init.r, init.source, init.rho,
-                init.termvel, init.removed}) {}
+      , state_(
+            {init.x, init.inner, init.v, init.id, init.r, init.source, init.rho,
+             init.termvel, init.removed}) {
+    CheckSize(init);
+    auto& s = state_;
+    const auto req = GetCommPartRequest<M>(GetView(s));
+    m.CommPart(req);
+  }
   static ParticlesView GetView(State& s) {
-    return {s.x, s.is_inner, s.v, s.r, s.source, s.rho, s.termvel, s.removed};
+    return {s.x,      s.inner, s.v,       s.id,     s.r,
+            s.source, s.rho,   s.termvel, s.removed};
   }
   static void CheckSize(const State& s) {
     const size_t n = s.x.size();
-    fassert_equal(s.is_inner.size(), n);
+    fassert_equal(s.inner.size(), n);
     fassert_equal(s.v.size(), n);
+    fassert_equal(s.id.size(), n);
     fassert_equal(s.r.size(), n);
     fassert_equal(s.source.size(), n);
     fassert_equal(s.rho.size(), n);
@@ -59,8 +72,9 @@ struct Particles<EB_>::Imp {
   }
   static void CheckSize(const ParticlesView& s) {
     const size_t n = s.x.size();
-    fassert_equal(s.is_inner.size(), n);
+    fassert_equal(s.inner.size(), n);
     fassert_equal(s.v.size(), n);
+    fassert_equal(s.id.size(), n);
     fassert_equal(s.r.size(), n);
     fassert_equal(s.source.size(), n);
     fassert_equal(s.rho.size(), n);
@@ -70,8 +84,9 @@ struct Particles<EB_>::Imp {
   template <class F>
   static void ForEachAttribute(const ParticlesView& view, F func) {
     func(view.x);
-    func(view.is_inner);
+    func(view.inner);
     func(view.v);
+    func(view.id);
     func(view.r);
     func(view.source);
     func(view.rho);
@@ -120,44 +135,111 @@ struct Particles<EB_>::Imp {
     }
     ResizeParticles(view, i);
   }
-  void Step(Scal dt, const FieldEmbed<Scal>& fev) {
+  void Step(
+      Scal dt, const FieldEmbed<Scal>& fev,
+      const MapEmbed<BCond<Vect>>& mebc_velocity,
+      std::function<void(const ParticlesView&)> velocity_hook) {
     auto sem = m.GetSem("step");
+    struct {
+      FieldFace<Scal> ff_veln;
+    } * ctx(sem);
+    auto& t = *ctx;
     auto& s = state_;
+    if (sem()) {
+      t.ff_veln = fev.template Get<FieldFaceb<Scal>>();
+      for (auto f : m.Faces()) {
+        t.ff_veln[f] /= eb.GetArea(f);
+      }
+    }
+    if (sem.Nested()) {
+      Approx2<EB>::ExtrapolateToHaloFaces(t.ff_veln, mebc_velocity, m);
+    }
     if (sem("local")) {
-      // convert flux to normal velocity component
-      FieldFaceb<Scal> ff_vel = fev.template Get<FieldFaceb<Scal>>();
-      eb.LoopFaces([&](auto cf) { //
-        ff_vel[cf] /= eb.GetArea(cf);
-      });
-      // restore vector velocity field
-      const FieldCell<Vect> fc_vel = UEB::AverageGradient(ff_vel, eb);
+      /* TODO: Move to an example.
+      if (m.IsRoot() && time_ == 0) {
+        using MIdx = typename M::MIdx;
+        const MIdx size(64);
+        GBlock<IdxCell, dim> block(size);
+        GIndex<IdxCell, dim> index(size);
+        FieldCell<Scal> fc(index);
+        const IdxCell c0 = m.GetIndexCells().GetIdx(MIdx(0));
+        auto callback = [&](const std::function<Vect(Vect x)>& func) {
+          const Vect h = m.GetCellSize();
+          for (MIdx w : block) {
+            Vect x((Vect(w) + Vect(0.5)) / Vect(size));
+            x = m.GetCenter(c0) - h * 0.5 + x * (2 * h);
+            fc[index.GetIdx(w)] = func(x)[0];
+          }
+        };
+        Approx2<EB>::EvalTrilinearFromFaceField(t.ff_veln, callback, m);
+        dump::Raw<M>::WritePlainArrayWithXmf("test.raw", "u", fc.data(), size);
+      }
+      */
 
+      // Project liquid velocity to particles.
+      std::vector<Vect> v_liquid(s.x.size());
+      auto callback = [&](const std::function<Vect(Vect x)>& func) {
+        for (size_t i = 0; i < s.x.size(); ++i) {
+          v_liquid[i] = func(s.x[i]);
+        }
+      };
+      Approx2<EB>::EvalTrilinearFromFaceField(t.ff_veln, callback, m);
+
+      // Compute velocity on particles and advance positions.
       for (size_t i = 0; i < s.x.size(); ++i) {
         const auto c = m.GetCellFromPoint(s.x[i]);
-        Scal tau = 0;
-        switch (conf.mode) {
-          case ParticlesMode::stokes:
-            tau = (s.rho[i] - conf.mixture_density) * sqr(2 * s.r[i]) /
-                  (18 * conf.mixture_viscosity);
-            break;
-          case ParticlesMode::termvel:
-            tau = s.termvel[i] / conf.gravity.norm();
-            break;
-          case ParticlesMode::tracer:
-            tau = 0;
-            break;
+        // Update velocity.
+        {
+          Vect& v = s.v[i];
+          const Vect g = conf.gravity;
+          const Vect u = v_liquid[i];
+          switch (conf.mode) {
+            case ParticlesMode::stokes: {
+              // Acceleration from Stokes drag and gravity, implicit in time
+              //   rho_p V dv/dt = 6 pi mu R (u - v) + (rho_p - rho) g V
+              // with particle volume `V`, particle density `rho_p`,
+              // particle velocity `v`, liquid velocity `u`,
+              // fluid viscosity `mu` and density `rho`,
+              // particle volume `V`, gravity `g`
+              // With notation for coefficients,
+              //   kt dv/dt = km (u - v) + kg g
+              const Scal r = s.r[i];
+              const Scal rho_p = s.rho[i];
+              const Scal rho = conf.mixture_density;
+              const Scal mu = conf.mixture_viscosity;
+              // XXX Generated in `gen/particles_stokes.py`.
+              v = (9 * dt * mu * u +
+                   g * (-2 * dt * sqr(r) * rho + 2 * dt * sqr(r) * rho_p) +
+                   2 * sqr(r) * rho_p * v) /
+                  (9 * dt * mu + 2 * sqr(r) * rho_p);
+              break;
+            }
+            case ParticlesMode::termvel:
+              // Given terminal velocity.
+              v = s.termvel[i] * g.normalized();
+              break;
+            case ParticlesMode::tracer:
+              v = u;
+              break;
+          }
         }
 
         // Update velocity from viscous drag, implicit in time.
         //   dv/dt = (u - v) / tau + g
         // particle velocity `v`, liquid velocity `u`,
         // relaxation time `tau`, gravity `g`
-        s.v[i] = (fc_vel[c] + s.v[i] * (tau / dt) + conf.gravity * tau) /
+        /*
+        s.v[i] = (v_liquid[i] + s.v[i] * (tau / dt) + conf.gravity * tau) /
                  (1 + tau / dt);
+                 */
+        // s.v[i] += dt * (s.v[i] / tau + conf.gravity);
+        s.v[i] = 2. / 9 * (s.rho[i] - conf.mixture_density) /
+                 conf.mixture_viscosity * conf.gravity * sqr(s.r[i]);
+        velocity_hook(GetView(s));
         s.x[i] += s.v[i] * dt;
 
         if (s.source[i] != 0) {
-          // Apply volume source
+          // Apply volume source.
           const Scal pi = M_PI;
           const Scal k = 4. / 3 * pi;
           Scal vol = k * std::pow(s.r[i], 3);
@@ -176,44 +258,92 @@ struct Particles<EB_>::Imp {
             }
           }
         }
-        // Remove particles that have left the domain
+        // Remove particles that have left the domain.
         if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || eb.IsCut(c) ||
             eb.IsExcluded(c)) {
           s.removed[i] = 1;
         }
       }
-      ClearRemoved(GetView(s));
-      typename M::CommPartRequest req;
-      req.x = &s.x;
-      req.is_inner = &s.is_inner;
-      req.attr_scal = {&s.r, &s.source, &s.rho, &s.termvel, &s.removed};
-      req.attr_vect = {&s.v};
+      const auto& view = GetView(s);
+      ClearRemoved(view);
+      const auto req = GetCommPartRequest<M>(view);
       m.CommPart(req);
     }
     if (sem("stat")) {
       time_ += dt;
     }
   }
-  static void Append(State& s, ParticlesView& other) {
+  static void Append(State& s, const ParticlesView& view) {
     auto append = [](auto& v, const auto& a) {
       v.insert(v.end(), a.begin(), a.end());
     };
-    CheckSize(other);
-    append(s.x, other.x);
-    append(s.is_inner, other.is_inner);
-    append(s.v, other.v);
-    append(s.r, other.r);
-    append(s.source, other.source);
-    append(s.rho, other.rho);
-    append(s.termvel, other.termvel);
-    append(s.removed, other.removed);
+    CheckSize(view);
+    append(s.x, view.x);
+    append(s.inner, view.inner);
+    append(s.v, view.v);
+    append(s.id, view.id);
+    append(s.r, view.r);
+    append(s.source, view.source);
+    append(s.rho, view.rho);
+    append(s.termvel, view.termvel);
+    append(s.removed, view.removed);
     CheckSize(s);
   }
-  void DumpCsv(std::string path) const {
+  static void SetUniqueIdForTail(
+      const ParticlesView& view, size_t& tail_size, Scal& global_max_id, M& m) {
+    auto sem = m.GetSem();
+    struct {
+      Scal max_id;
+      std::vector<Scal> count;
+      std::vector<std::vector<Scal>> cumsum_root; // Cumulative sum of
+                                                  // `tail_size` on root.
+                                                  // Empty on others.
+      std::vector<Scal> cumsum; // Value of cumulative sum on current block.
+      // TODO: Implement and use m.Scatter() for just `std::vector<Scal>`.
+      //       Here the arrays consists of single-element arrays.
+    } * ctx(sem);
+    auto& t = *ctx;
+    if (sem()) {
+      t.max_id = global_max_id;
+      for (auto& id : view.id) {
+        t.max_id = std::max(t.max_id, id);
+      }
+      m.Reduce(&t.max_id, Reduction::max);
+
+      t.count.push_back(static_cast<Scal>(tail_size));
+      m.Reduce(&t.count, Reduction::concat);
+    }
+    if (sem()) {
+      if (m.IsRoot()) {
+        Scal sum = 0;
+        for (size_t i = 0; i < t.count.size(); ++i) {
+          t.cumsum_root.push_back({sum});
+          sum += t.count[i];
+        }
+      }
+      m.Scatter({&t.cumsum_root, &t.cumsum});
+    }
+    if (sem()) {
+      // First available unique id.
+      const Scal id_start = std::floor(t.max_id) + 1 + t.cumsum[0];
+      for (size_t i = 0; i < tail_size; ++i) {
+        view.id[view.x.size() - tail_size + i] = id_start + i;
+      }
+      if (tail_size) {
+        global_max_id = id_start + (tail_size - 1);
+      }
+      tail_size = 0;
+      m.Reduce(&global_max_id, Reduction::max);
+    }
+  }
+  void DumpCsv(
+      const std::string& path,
+      const std::unordered_set<std::string>& sel) const {
     auto sem = m.GetSem("dumpcsv");
     struct {
       State s;
       std::vector<int> block;
+      std::vector<Scal> inner;
     } * ctx(sem);
     auto& t = *ctx;
     if (sem("gather")) {
@@ -222,38 +352,129 @@ struct Particles<EB_>::Imp {
       t.s = s;
       for (size_t i = 0; i < s.x.size(); ++i) {
         t.block.push_back(m.GetId());
+        t.inner.push_back(s.inner[i]);
       }
       m.Reduce(&t.s.x, Reduction::concat);
       m.Reduce(&t.s.v, Reduction::concat);
+      m.Reduce(&t.s.id, Reduction::concat);
       m.Reduce(&t.s.r, Reduction::concat);
       m.Reduce(&t.s.source, Reduction::concat);
       m.Reduce(&t.s.rho, Reduction::concat);
       m.Reduce(&t.s.termvel, Reduction::concat);
       m.Reduce(&t.s.removed, Reduction::concat);
       m.Reduce(&t.block, Reduction::concat);
+      m.Reduce(&t.inner, Reduction::concat);
     }
     if (sem("write") && m.IsRoot()) {
-      std::ofstream o(path);
-      o.precision(16);
-      // header
-      o << "x,y,z,vx,vy,vz,r,source,rho,termvel,removed,block";
-      o << std::endl;
-      // content
-      auto& s = t.s;
-      for (size_t i = 0; i < s.x.size(); ++i) {
-        o << s.x[i][0] << ',' << s.x[i][1] << ',' << s.x[i][2];
-        o << ',' << s.v[i][0] << ',' << s.v[i][1] << ',' << s.v[i][2];
-        o << ',' << s.r[i];
-        o << ',' << s.source[i];
-        o << ',' << s.rho[i];
-        o << ',' << s.termvel[i];
-        o << ',' << s.removed[i];
-        o << ',' << t.block[i];
-        o << "\n";
-      }
+      const auto& s = t.s;
+      std::vector<std::pair<std::string, std::vector<Scal>>> data;
+      // Dump halo particles if field "inner" is selected.
+      const bool dump_halo = sel.count("inner");
+      auto append_scal = [&](std::string name, const auto& v) {
+        if (sel.count(name)) {
+          std::vector<Scal> res;
+          for (size_t i = 0; i < v.size(); ++i) {
+            if (t.inner[i] || dump_halo) {
+              res.push_back(v[i]);
+            }
+          }
+          data.emplace_back(name, std::move(res));
+        }
+      };
+      auto append_vect = [&](std::string prefix, const std::vector<Vect>& v) {
+        for (auto d : m.dirs) {
+          const std::string dletter(1, GDir<dim>(d).letter());
+          const auto name = prefix + dletter;
+          if (sel.count(name)) {
+            std::vector<Scal> res;
+            for (size_t i = 0; i < v.size(); ++i) {
+              if (t.inner[i] || dump_halo) {
+                res.push_back(v[i][d]);
+              }
+            }
+            data.emplace_back(name, std::move(res));
+          }
+        }
+      };
+      append_scal("id", s.id);
+      append_vect("", s.x); // Position.
+      append_vect("v", s.v); // Velocity.
+      append_scal("r", s.r);
+      append_scal("source", s.source);
+      append_scal("rho", s.rho);
+      append_scal("termvel", s.termvel);
+      append_scal("removed", s.removed);
+      append_scal("block", t.block);
+      append_scal("inner", t.inner);
+      dump::DumpCsv(data, path);
     }
     if (sem()) {
     }
+  }
+  static ReadCsvStatus ReadCsv(
+      std::istream& in, const ParticlesView& view, char delim) {
+    ReadCsvStatus status;
+    const auto data = dump::ReadCsv<Scal>(in, delim);
+    auto set_component = [](std::vector<Vect>& dst, size_t d,
+                            const std::vector<Scal>& src) {
+      fassert(d < Vect::dim);
+      dst.resize(src.size());
+      for (size_t i = 0; i < src.size(); ++i) {
+        dst[i][d] = src[i];
+      }
+    };
+    for (const auto& p : data) {
+      const auto name = p.first;
+      for (size_t d = 0; d < Vect::dim; ++d) {
+        const std::string dletter(1, GDir<dim>(d).letter());
+        // Position.
+        if (name == dletter) {
+          set_component(view.x, d, p.second);
+          status.x = true;
+        }
+        // Velocity.
+        if (name == "v" + dletter) {
+          set_component(view.v, d, p.second);
+          status.v = true;
+        }
+      }
+      if (name == "id") {
+        view.id = p.second;
+        status.id = true;
+      }
+      if (name == "r") {
+        view.r = p.second;
+        status.r = true;
+      }
+      if (name == "source") {
+        view.source = p.second;
+        status.source = true;
+      }
+      if (name == "rho") {
+        view.rho = p.second;
+        status.rho = true;
+      }
+      if (name == "termvel") {
+        view.termvel = p.second;
+        status.termvel = true;
+      }
+    }
+    // Fill the remaining fields with default values.
+    const size_t n = view.x.size();
+    view.inner.resize(n, true);
+    view.v.resize(n, Vect(0));
+    view.r.resize(n, 0);
+    view.source.resize(n, 0);
+    view.rho.resize(n, 0);
+    view.termvel.resize(n, 0);
+    view.removed.resize(n, false);
+    return status;
+  }
+  static ReadCsvStatus ReadCsv(
+      const std::string& path, const ParticlesView& view, char delim) {
+    std::ifstream fin(path);
+    fassert(fin.good(), "Can't open file '" + path + "' for reading");
+    return ReadCsv(fin, view, delim);
   }
 
   Owner* owner_;
@@ -263,6 +484,9 @@ struct Particles<EB_>::Imp {
   Scal time_;
   State state_;
   size_t nrecv_;
+  size_t last_appended_ = 0; // Number of particles appended since last call of
+                             // SetUniqueIdForAppended().
+  Scal global_max_id_ = 0; // Maximum particle id ever encountered.
 };
 
 template <class EB_>
@@ -284,8 +508,11 @@ void Particles<EB_>::SetConf(Conf conf) {
 }
 
 template <class EB_>
-void Particles<EB_>::Step(Scal dt, const FieldEmbed<Scal>& fe_flux) {
-  imp->Step(dt, fe_flux);
+void Particles<EB_>::Step(
+    Scal dt, const FieldEmbed<Scal>& fe_flux,
+    const MapEmbed<BCond<Vect>>& mebc_velocity,
+    std::function<void(const ParticlesView&)> velocity_hook) {
+  imp->Step(dt, fe_flux, mebc_velocity, velocity_hook);
 }
 
 template <class EB_>
@@ -294,13 +521,34 @@ auto Particles<EB_>::GetView() const -> ParticlesView {
 }
 
 template <class EB_>
-void Particles<EB_>::Append(ParticlesView& app) {
+void Particles<EB_>::Append(const ParticlesView& app) {
   imp->Append(imp->state_, app);
+  imp->last_appended_ += app.x.size();
 }
 
 template <class EB_>
-void Particles<EB_>::DumpCsv(std::string path) const {
-  imp->DumpCsv(path);
+void Particles<EB_>::SetUniqueIdForAppended(M& m) {
+  imp->SetUniqueIdForTail(
+      GetView(), imp->last_appended_, imp->global_max_id_, m);
+}
+
+template <class EB_>
+void Particles<EB_>::DumpCsv(
+    const std::string& path, const std::unordered_set<std::string>& sel) const {
+  imp->DumpCsv(path, sel);
+}
+
+template <class EB_>
+auto Particles<EB_>::ReadCsv(
+    std::istream& fin, const ParticlesView& view, char delim) -> ReadCsvStatus {
+  return Imp::ReadCsv(fin, view, delim);
+}
+
+template <class EB_>
+auto Particles<EB_>::ReadCsv(
+    const std::string& path, const ParticlesView& view, char delim)
+    -> ReadCsvStatus {
+  return Imp::ReadCsv(path, view, delim);
 }
 
 template <class EB_>
