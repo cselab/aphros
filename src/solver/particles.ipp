@@ -188,8 +188,7 @@ struct Particles<EB_>::Imp {
       // Compute velocity on particles and advance positions.
       for (size_t i = 0; i < s.x.size(); ++i) {
         const auto c = m.GetCellFromPoint(s.x[i]);
-        // Update velocity.
-        {
+        { // Update velocity.
           Vect& v = s.v[i];
           const Vect g = conf.gravity;
           const Vect u = v_liquid[i];
@@ -222,20 +221,8 @@ struct Particles<EB_>::Imp {
               v = u;
               break;
           }
+          velocity_hook(GetView(s));
         }
-
-        // Update velocity from viscous drag, implicit in time.
-        //   dv/dt = (u - v) / tau + g
-        // particle velocity `v`, liquid velocity `u`,
-        // relaxation time `tau`, gravity `g`
-        /*
-        s.v[i] = (v_liquid[i] + s.v[i] * (tau / dt) + conf.gravity * tau) /
-                 (1 + tau / dt);
-                 */
-        // s.v[i] += dt * (s.v[i] / tau + conf.gravity);
-        s.v[i] = 2. / 9 * (s.rho[i] - conf.mixture_density) /
-                 conf.mixture_viscosity * conf.gravity * sqr(s.r[i]);
-        velocity_hook(GetView(s));
         s.x[i] += s.v[i] * dt;
 
         if (s.source[i] != 0) {
