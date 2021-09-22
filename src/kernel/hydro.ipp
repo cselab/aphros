@@ -2415,7 +2415,6 @@ void Hydro<M>::StepParticles() {
       // Move particles away from the wall.
       for (size_t i = 0; i < view.x.size(); ++i) {
         if (view.inner[i]) {
-          //view.v[i] *= 0.2;
           const IdxCell c = m.GetCellFromPoint(view.x[i]);
           const Vect xc = m.GetCenter(c);
           const Vect walldist = fc_wall_dist_[c];

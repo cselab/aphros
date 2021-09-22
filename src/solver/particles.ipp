@@ -47,9 +47,8 @@ struct Particles<EB_>::Imp {
       , eb(eb_)
       , conf(conf_)
       , time_(time)
-      , state_(
-            {init.x, init.inner, init.v, init.id, init.r, init.source, init.rho,
-             init.termvel, init.removed}) {
+      , state_({init.x, init.inner, init.v, init.id, init.r, init.source,
+                init.rho, init.termvel, init.removed}) {
     CheckSize(init);
     auto& s = state_;
     const auto req = GetCommPartRequest<M>(GetView(s));
@@ -185,44 +184,46 @@ struct Particles<EB_>::Imp {
       };
       Approx2<EB>::EvalTrilinearFromFaceField(t.ff_veln, callback, m);
 
-      // Compute velocity on particles and advance positions.
+      // Update velocity.
+      for (size_t i = 0; i < s.x.size(); ++i) {
+        Vect& v = s.v[i];
+        const Vect g = conf.gravity;
+        const Vect u = v_liquid[i];
+        switch (conf.mode) {
+          case ParticlesMode::stokes: {
+            // Acceleration from Stokes drag and gravity, implicit in time
+            //   rho_p V dv/dt = 6 pi mu R (u - v) + (rho_p - rho) g V
+            // with particle volume `V`, particle density `rho_p`,
+            // particle velocity `v`, liquid velocity `u`,
+            // fluid viscosity `mu` and density `rho`,
+            // particle volume `V`, gravity `g`
+            // With notation for coefficients,
+            //   kt dv/dt = km (u - v) + kg g
+            const Scal r = s.r[i];
+            const Scal rho_p = s.rho[i];
+            const Scal rho = conf.mixture_density;
+            const Scal mu = conf.mixture_viscosity;
+            // XXX Generated in `gen/particles_stokes.py`.
+            v = (9 * dt * mu * u +
+                 g * (-2 * dt * sqr(r) * rho + 2 * dt * sqr(r) * rho_p) +
+                 2 * sqr(r) * rho_p * v) /
+                (9 * dt * mu + 2 * sqr(r) * rho_p);
+            break;
+          }
+          case ParticlesMode::termvel:
+            // Given terminal velocity.
+            v = s.termvel[i] * g.normalized();
+            break;
+          case ParticlesMode::tracer:
+            v = u;
+            break;
+        }
+      }
+      velocity_hook(GetView(s));
+
+      // Update positions and radius.
       for (size_t i = 0; i < s.x.size(); ++i) {
         const auto c = m.GetCellFromPoint(s.x[i]);
-        { // Update velocity.
-          Vect& v = s.v[i];
-          const Vect g = conf.gravity;
-          const Vect u = v_liquid[i];
-          switch (conf.mode) {
-            case ParticlesMode::stokes: {
-              // Acceleration from Stokes drag and gravity, implicit in time
-              //   rho_p V dv/dt = 6 pi mu R (u - v) + (rho_p - rho) g V
-              // with particle volume `V`, particle density `rho_p`,
-              // particle velocity `v`, liquid velocity `u`,
-              // fluid viscosity `mu` and density `rho`,
-              // particle volume `V`, gravity `g`
-              // With notation for coefficients,
-              //   kt dv/dt = km (u - v) + kg g
-              const Scal r = s.r[i];
-              const Scal rho_p = s.rho[i];
-              const Scal rho = conf.mixture_density;
-              const Scal mu = conf.mixture_viscosity;
-              // XXX Generated in `gen/particles_stokes.py`.
-              v = (9 * dt * mu * u +
-                   g * (-2 * dt * sqr(r) * rho + 2 * dt * sqr(r) * rho_p) +
-                   2 * sqr(r) * rho_p * v) /
-                  (9 * dt * mu + 2 * sqr(r) * rho_p);
-              break;
-            }
-            case ParticlesMode::termvel:
-              // Given terminal velocity.
-              v = s.termvel[i] * g.normalized();
-              break;
-            case ParticlesMode::tracer:
-              v = u;
-              break;
-          }
-          velocity_hook(GetView(s));
-        }
         s.x[i] += s.v[i] * dt;
 
         if (s.source[i] != 0) {
