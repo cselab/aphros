@@ -1570,16 +1570,17 @@ void Hydro<M>::CalcDt() {
   struct {
     Scal dtmin;
   } * ctx(sem);
+  auto& t = *ctx;
 
   if (sem("local")) {
     st_.t = fs_->GetTime();
-    ctx->dtmin = fs_->GetAutoTimeStep();
-    m.Reduce(&ctx->dtmin, Reduction::min);
+    t.dtmin = fs_->GetAutoTimeStep();
+    m.Reduce(&t.dtmin, Reduction::min);
   }
   if (sem("reduce")) {
     // set from cfl if defined
     if (auto* cfl = var.Double.Find("cfl")) {
-      st_.dt = ctx->dtmin * (*cfl);
+      st_.dt = t.dtmin * (*cfl);
       st_.dt = std::min<Scal>(st_.dt, var.Double["dtmax"]);
     }
 
@@ -1601,7 +1602,7 @@ void Hydro<M>::CalcDt() {
 
     // set from cfla if defined
     if (auto* cfla = var.Double.Find("cfla")) {
-      st_.dta = ctx->dtmin * (*cfla);
+      st_.dta = t.dtmin * (*cfla);
       st_.dta = std::min<Scal>(st_.dta, var.Double["dtmax"]);
     }
     // round up dta to such that dt / dta is integer
@@ -1609,16 +1610,26 @@ void Hydro<M>::CalcDt() {
     st_.dta = dt / std::max(1, int(dt / st_.dta + 0.5));
     as_->SetTimeStep(st_.dta);
 
+    // Update tracer time step.
     if (tracer_) {
-      if (auto* cflt = var.Double.Find("cflt")) {
-        tracer_dt_ = ctx->dtmin * (*cflt);
-        // round up dta to such that dt / dta is integer
-        const Scal dtwhole =
-            fs_->GetTime() + fs_->GetTimeStep() - tracer_->GetTime();
-        tracer_dt_ = dtwhole / std::max(1, int(dtwhole / tracer_dt_ + 0.5));
-      } else {
-        tracer_dt_ = fs_->GetTimeStep();
+      Scal& dt = tracer_dt_;
+      dt = fs_->GetTimeStep();
+      if (auto* cfl = var.Double.Find("cfl_tracer_advection")) {
+        dt = std::min(dt, t.dtmin * (*cfl));
       }
+      if (auto* cfl = var.Double.Find("cfl_tracer_diffusion")) {
+        Scal diffusion = 0;
+        for (auto d : var.Vect["tracer_diffusion"]) {
+          diffusion = std::max(diffusion, d);
+        }
+        if (diffusion > 0) {
+          dt = std::min<Scal>(dt, (*cfl) * sqr(m.GetCellSize()[0]) / diffusion);
+        }
+      }
+      // Round up such that fluid time step is a multiple of dt.
+      const Scal dtwhole =
+          fs_->GetTime() - tracer_->GetTime() + fs_->GetTimeStep();
+      dt = dtwhole / std::max<Scal>(1, std::ceil(dtwhole / dt));
     }
 
     if (particles_) {
