@@ -451,6 +451,7 @@ struct Particles<EB_>::Imp {
     const size_t n = view.x.size();
     view.inner.resize(n, true);
     view.v.resize(n, Vect(0));
+    view.id.resize(n, 0);
     view.r.resize(n, 0);
     view.source.resize(n, 0);
     view.rho.resize(n, 0);
