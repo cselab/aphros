@@ -238,6 +238,8 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
     size_t step = 0;
     size_t iter = 0;
     Vect meshvel = {};
+    Scal total_src2 = 0; // Total source of volume of component 2 over time.
+    Scal tmp_sum_src2 = 0;
   };
   StatHydro st_;
   std::ofstream fstat_;

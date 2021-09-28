@@ -1147,6 +1147,9 @@ void Hydro<M>::InitStat(const MEB& eb) {
           [&tr = tracer_, l](IdxCell c, const MEB&) {
             return tr->GetVolumeFraction()[l][c];
           });
+      stat.AddNone(
+          "total_src2", "total source of component 2", //
+          [&st_ = st_]() { return st_.total_src2; });
     }
   }
 
@@ -1612,10 +1615,9 @@ void Hydro<M>::CalcDt() {
 
     // Update tracer time step.
     if (tracer_) {
-      Scal& dt = tracer_dt_;
-      dt = fs_->GetTimeStep();
+      tracer_dt_ = fs_->GetTimeStep();
       if (auto* cfl = var.Double.Find("cfl_tracer_advection")) {
-        dt = std::min(dt, t.dtmin * (*cfl));
+        tracer_dt_ = std::min(tracer_dt_, t.dtmin * (*cfl));
       }
       if (auto* cfl = var.Double.Find("cfl_tracer_diffusion")) {
         Scal diffusion = 0;
@@ -1623,13 +1625,14 @@ void Hydro<M>::CalcDt() {
           diffusion = std::max(diffusion, d);
         }
         if (diffusion > 0) {
-          dt = std::min<Scal>(dt, (*cfl) * sqr(m.GetCellSize()[0]) / diffusion);
+          tracer_dt_ = std::min<Scal>(
+              tracer_dt_, (*cfl) * sqr(m.GetCellSize()[0]) / diffusion);
         }
       }
-      // Round up such that fluid time step is a multiple of dt.
+      // Round up such that fluid time step is a multiple of `tracer_dt_`.
       const Scal dtwhole =
           fs_->GetTime() - tracer_->GetTime() + fs_->GetTimeStep();
-      dt = dtwhole / std::max<Scal>(1, std::ceil(dtwhole / dt));
+      tracer_dt_ = dtwhole / std::max<Scal>(1, std::ceil(dtwhole / tracer_dt_));
     }
 
     if (particles_) {
@@ -1796,8 +1799,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         if (rate) {
           auto apply = [&](const auto& meb, auto as) {
             if (as) {
-              const auto& fcvf = as->GetField();
               const auto& tu = tracer_->GetVolumeFraction()[l];
+              const auto& fcvf = as->GetField();
               for (auto c : meb.Cells()) {
                 if (meb.IsRegular(c)) {
                   auto src2 = tu[c] * rate * fcvf[c];
@@ -1816,12 +1819,18 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
               }
             }
           };
-          apply(m, dynamic_cast<ASV*>(as_.get()));
           if (eb_) {
             apply(*eb_, dynamic_cast<ASVEB*>(as_.get()));
+          } else {
+            apply(m, dynamic_cast<ASV*>(as_.get()));
           }
         }
       }
+      st_.tmp_sum_src2 = 0;
+      for (auto c : m.Cells()) {
+        st_.tmp_sum_src2 += fc_src2_[c] * m.GetVolume(c);
+      }
+      m.Reduce(&st_.tmp_sum_src2, Reduction::sum);
     }
     // Growth of particles from tracer.
     if (tracer_ && particles_) {
@@ -1981,6 +1990,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         });
       }
     }
+  }
+  if (sem("reduce")) {
+    st_.total_src2 += st_.tmp_sum_src2 * st_.dt;
   }
   if (particles_ && sem.Nested()) {
     particles_->SetUniqueIdForAppended(m);
