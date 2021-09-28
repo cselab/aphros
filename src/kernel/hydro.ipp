@@ -1791,6 +1791,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     }
     // Source for bubble growth from tracers.
     if (tracer_) {
+      auto clip = [](Scal a, Scal low, Scal high) {
+        return a < low ? low : a > high ? high : a;
+      };
       const auto& conf = tracer_->GetConf();
       for (auto l : GRange<size_t>(conf.layers)) {
         fc_tracer_source[l].Reinit(m, 0);
@@ -1803,17 +1806,17 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
               const auto& fcvf = as->GetField();
               for (auto c : meb.Cells()) {
                 if (meb.IsRegular(c)) {
-                  auto src2 = tu[c] * rate * fcvf[c];
+                  auto src2 = clip(tu[c] * rate * fcvf[c], 0, tu[c] / st_.dt);
                   fc_src2_[c] += src2;
-                  fc_tracer_source[l][c] += -src2;
+                  fc_tracer_source[l][c] -= src2;
                   fc_src_[c] += src2;
                 }
               }
               for (auto c : nucl_cells_) {
                 if (meb.IsRegular(c)) {
-                  auto src2 = tu[c] * rate;
+                  auto src2 = clip(tu[c] * rate * fcvf[c], 0, tu[c] / st_.dt);
                   fc_src2_[c] += src2;
-                  fc_tracer_source[l][c] += -src2;
+                  fc_tracer_source[l][c] -= src2;
                   fc_src_[c] += src2;
                 }
               }
