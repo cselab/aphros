@@ -153,10 +153,12 @@ struct Tracer<EB_>::Imp {
           }
         }
       }
-      for (auto c : eb.Cells()) {
-        for (auto l : layers) {
-          auto& u = vfcu_[l][c];
-          u = Clip(u, 0, 1);
+      if (conf.clip) {
+        for (auto c : eb.Cells()) {
+          for (auto l : layers) {
+            auto& u = vfcu_[l][c];
+            u = Clip(u, 0, 1);
+          }
         }
       }
       for (auto l : layers) {

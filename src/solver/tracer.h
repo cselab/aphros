@@ -48,6 +48,7 @@ class TracerInterface {
     Vect gravity;
     ConvSc scheme = ConvSc::superbee;
     Multi<const FieldCell<Scal>*> fc_source;
+    bool clip = false;
   };
 
   virtual ~TracerInterface() {}

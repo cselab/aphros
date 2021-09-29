@@ -514,18 +514,22 @@ void Hydro<M>::InitNucleationPoints() {
         const auto f = m(p.first);
         const auto& bc = p.second;
         if (m.IsInner(f.cell(bc.nci))) {
-          if (bc.type == BCondFluidType::wall ||
-              bc.type == BCondFluidType::slipwall) {
-            if (numdens * f.area > uniform(randgen_)) {
-              // Uniform displacement.
-              Vect dx(0);
-              for (size_t d : m.dirs) {
-                dx[d] = uniform(randgen_) - 0.5;
+          if (const size_t* group = me_group_.find(f)) {
+            const auto& custom = bc_group_custom_[*group];
+            const auto it = custom.find("nucleation");
+            if (it != custom.end()) {
+              const Scal factor = it->second;
+              if (numdens * factor * f.area > uniform(randgen_)) {
+                // Uniform displacement.
+                Vect dx(0);
+                for (size_t d : m.dirs) {
+                  dx[d] = uniform(randgen_) - 0.5;
+                }
+                dx *= m.GetCellSize();
+                // Cancel out the component normal to the face.
+                dx = dx.orth(f.normal);
+                nucl_points_.insert(f.center() + dx);
               }
-              dx *= m.GetCellSize();
-              // Cancel out the component normal to the face.
-              dx = dx.orth(f.normal);
-              nucl_points_.insert(f.center() + dx);
             }
           }
         }
@@ -1297,6 +1301,7 @@ void Hydro<M>::Init() {
     std::set<std::string> known_keys = {
         "electro_dirichlet", "electro_neumann",   "tracer0_dirichlet",
         "tracer0_neumann",   "tracer1_dirichlet", "tracer1_neumann",
+        "nucleation", // factor to `nucleation_number_density`
     };
     if (eb_) {
       auto initbc = InitBc(var, *eb_, known_keys, t.fc_innermask);
@@ -1976,11 +1981,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           for (auto l : GRange<size_t>(conf.layers)) {
             auto sl = std::to_string(l);
             const auto& trvf = tracer_->GetVolumeFraction()[l];
-            // TODO: add cmax
-            auto k =
-                trvf[c] >= 0 ? //
-                    (*coeff) * ff_current[cf] * std::max<Scal>(0, 1 - trvf[c])
-                             : 0;
+            auto k = trvf[c] >= 0 ? (*coeff) * ff_current[cf] : 0;
             if (auto* ptr = getptr("tracer" + sl + "_dirichlet")) {
               vmebc[l][cf] = BCond<Scal>(BCondType::dirichlet, nci, (*ptr) * k);
             }
