@@ -540,10 +540,16 @@ void Hydro<M>::InitNucleationPoints() {
 template <class M>
 void Hydro<M>::InitElectro() {
   if (var.Int["enable_electro"]) {
-    if (!linsolver_symm_) {
-      linsolver_symm_ = ULinear<M>::MakeLinearSolver(var, "symm", m);
+    if (!linsolver_electro_) {
+      if (var.String.Find("linsolver_electro")) {
+        linsolver_electro_ = ULinear<M>::MakeLinearSolver(var, "electro", m);
+      } else if (linsolver_symm_) {
+        linsolver_electro_ = linsolver_symm_;
+      } else {
+        linsolver_electro_ = ULinear<M>::MakeLinearSolver(var, "symm", m);
+      }
     }
-    typename ElectroInterface<M>::Conf conf{var, linsolver_symm_};
+    typename ElectroInterface<M>::Conf conf{var, linsolver_electro_};
     if (eb_) {
       electro_.reset(
           new Electro<EB>(m, *eb_, mebc_electro_, fs_->GetTime(), conf));
@@ -1130,8 +1136,16 @@ void Hydro<M>::InitStat(const MEB& eb) {
   }
   if (electro_) {
     stat.AddNone(
-        "el_current", "electro total current", //
+        "el_current", "total electric current", //
         [&electro_ = electro_]() { return electro_->GetStat().current; });
+    stat.AddNone(
+        "el_potential", "potential difference between min and max", //
+        [&electro_ = electro_]() { return electro_->GetStat().potential; });
+    if (var.Int["enable_electro_control"]) {
+      stat.AddNone(
+          "el_potential_control", "electric potential from controller", //
+          [&st_ = st_]() { return st_.electro_control_potential; });
+    }
   }
   if (tracer_) {
     for (auto l : GRange<size_t>(tracer_->GetConf().layers)) {
@@ -1297,11 +1311,12 @@ void Hydro<M>::Init() {
       std::cerr << "viscosity dt=" << GetViscosityDt() << '\n';
     }
 
-    // boundary conditions
+    // Known names of keys for custom boundary conditions.
     std::set<std::string> known_keys = {
         "electro_dirichlet", "electro_neumann",   "tracer0_dirichlet",
         "tracer0_neumann",   "tracer1_dirichlet", "tracer1_neumann",
         "nucleation", // factor to `nucleation_number_density`
+        "electro_control", // factor to potential from controller
     };
     if (eb_) {
       auto initbc = InitBc(var, *eb_, known_keys, t.fc_innermask);
@@ -1357,6 +1372,19 @@ void Hydro<M>::Init() {
               "Unknown electro conditions for group" + std::to_string(group));
         }
       });
+      if (var.Int["enable_electro_control"]) {
+        me_group_.LoopPairs([&](auto cf_group) {
+          auto cf = cf_group.first;
+          size_t group = cf_group.second;
+          const auto& custom = bc_group_custom_[group];
+          const auto it = custom.find("electro_control");
+          if (it != custom.end()) {
+            electro_control_factor_[cf] = it->second;
+          }
+        });
+        st_.electro_control_potential =
+            var.Double["electro_control_initial_potential"];
+      }
     }
 
     // boundary conditions for smoothing of volume fraction
@@ -1959,7 +1987,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       particles_->Append(view);
     }
     if (tracer_ && electro_) {
-      if (auto* coeff = var.Double.Find("flux_from_current")) {
+      if (const Scal coeff = var.Double["flux_from_current"]) {
         auto& vmebc = tracer_->GetBCondMutable();
         auto& ff_current = electro_->GetFaceCurrent();
         me_group_.LoopPairs([&](auto cf_group) {
@@ -1981,7 +2009,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           for (auto l : GRange<size_t>(conf.layers)) {
             auto sl = std::to_string(l);
             const auto& trvf = tracer_->GetVolumeFraction()[l];
-            auto k = trvf[c] >= 0 ? (*coeff) * ff_current[cf] : 0;
+            auto k = trvf[c] >= 0 ? coeff * ff_current[cf] : 0;
             if (auto* ptr = getptr("tracer" + sl + "_dirichlet")) {
               vmebc[l][cf] = BCond<Scal>(BCondType::dirichlet, nci, (*ptr) * k);
             }
@@ -1993,6 +2021,21 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           }
         });
       }
+    }
+    if (electro_ && var.Int["enable_electro_control"]) {
+      mebc_electro_.LoopPairs([&](auto& p) {
+        const auto cf = p.first;
+        auto& bc = p.second;
+        if (bc.type == BCondType::dirichlet) {
+          if (const Scal* factor = electro_control_factor_.find(cf)) {
+            bc.val = (*factor) * st_.electro_control_potential;
+          }
+        }
+      });
+      const Scal current = var.Double["electro_control_current"];
+      const Scal rate = var.Double["electro_control_rate"];
+      st_.electro_control_potential +=
+          (current - electro_->GetStat().current) * rate;
     }
   }
   if (sem("reduce")) {

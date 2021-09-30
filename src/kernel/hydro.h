@@ -240,6 +240,7 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
     Vect meshvel = {};
     Scal total_src2 = 0; // Total source of volume of component 2 over time.
     Scal tmp_sum_src2 = 0;
+    Scal electro_control_potential = 0;
   };
   StatHydro st_;
   std::ofstream fstat_;
@@ -251,6 +252,7 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   std::unique_ptr<Events> events_; // events from var
   SingleTimer timer_;
   std::shared_ptr<linear::Solver<M>> linsolver_symm_;
+  std::shared_ptr<linear::Solver<M>> linsolver_electro_;
 
   std::unique_ptr<TracerInterface<M>> tracer_;
   Multi<FieldCell<Scal>> fc_tracer_source;
@@ -267,6 +269,8 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
 
   // electro
   std::unique_ptr<ElectroInterface<M>> electro_;
+  MapEmbed<Scal> electro_control_factor_; // Factors to control potential
+                                          // extracted from boundary conditions.
 
   ModulePostStep<M>* module_post_step_ = nullptr;
 };

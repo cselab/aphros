@@ -23,6 +23,9 @@ class ElectroInterface {
 
   struct Stat {
     Scal current = 0;
+    Scal potential_min = 0;
+    Scal potential_max = 0;
+    Scal potential = 0; // Potential difference.
   };
 
   virtual ~ElectroInterface() {}

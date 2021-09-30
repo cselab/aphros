@@ -19,11 +19,7 @@ auto ULinear<M_>::MakeLinearSolver(
   FORCE_LINK(linear_conjugate);
   FORCE_LINK(linear_jacobi);
 
-  auto addprefix = [prefix](std::string name) {
-    return "hypre_" + prefix + "_" + name;
-  };
-
-  const std::string name = var.String("linsolver_" + prefix, "hypre");
+  const std::string name = var.String["linsolver_" + prefix];
   if (auto* mod = linear::ModuleLinear<M>::GetInstance(name)) {
     return mod->Make(var, prefix, m);
   }

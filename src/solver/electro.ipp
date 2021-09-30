@@ -83,16 +83,30 @@ struct Electro<EB_>::Imp {
       fc_current_ = UEB::AverageGradient(ff_current_, eb);
 
       stat_.current = 0;
+      stat_.potential_min = std::numeric_limits<Scal>::max();
+      stat_.potential_max = -std::numeric_limits<Scal>::max();
       mebc_pot_.LoopBCond(eb, [&](auto cf, IdxCell c, auto& bc) {
         const auto nci = bc.nci;
         if (m.IsInner(c)) {
-          const Scal cur_in = ff_current_[cf] * (nci == 0 ? -1 : 1);
-          if (cur_in > 0) {
-            stat_.current += cur_in * eb.GetArea(cf);
+          const Scal current = ff_current_[cf] * (nci == 0 ? -1 : 1);
+          if (current < 0) {
+            stat_.current -= current * eb.GetArea(cf);
+          }
+          const Scal pot = fc_pot_[c];
+          if (pot < stat_.potential_min) {
+            stat_.potential_min = std::min(stat_.potential_min, pot);
+          }
+          if (pot > stat_.potential_max) {
+            stat_.potential_max = std::max(stat_.potential_max, pot);
           }
         }
       });
       m.Reduce(&stat_.current, "sum");
+      m.Reduce(&stat_.potential_min, "min");
+      m.Reduce(&stat_.potential_max, "max");
+    }
+    if (sem()) {
+      stat_.potential = stat_.potential_max - stat_.potential_min;
     }
   }
 

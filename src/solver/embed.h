@@ -215,6 +215,15 @@ class MapEmbed {
       lambda(p);
     }
   }
+  template <class F>
+  void LoopPairs(F lambda) {
+    for (auto& p : df_) {
+      lambda(p);
+    }
+    for (auto& p : dc_) {
+      lambda(p);
+    }
+  }
   // Iterates over faces and passes the index of neighbor cell.
   // Value should have member variable `nci`.
   // lambda: function void(IdxFace or IdxCell, IdxCell, BC)
