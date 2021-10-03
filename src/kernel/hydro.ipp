@@ -1165,10 +1165,10 @@ void Hydro<M>::InitStat(const MEB& eb) {
           [&tr = tracer_, l](IdxCell c, const MEB&) {
             return tr->GetVolumeFraction()[l][c];
           });
-      stat.AddNone(
-          "total_src2", "total source of component 2", //
-          [&st_ = st_]() { return st_.total_src2; });
     }
+    stat.AddNone(
+        "total_src2", "total source of component 2", //
+        [& st_ = st_]() { return st_.total_src2; });
   }
 
   stat_->SortNames();
