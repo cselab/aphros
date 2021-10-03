@@ -51,6 +51,7 @@ conf: a.conf base.conf add.conf std.conf
 	@test -f np || ( c='echo $(np) > np' && echo "$$c" && eval "$$c" )
 	@test -f tl || ( c='echo $(tl) > tl' && echo "$$c" && eval "$$c" )
 	@test -f mesh.conf || ( c='ap.part $(m) $(bs) $(np) > mesh.conf' && echo "$$c" && eval "$$c" )
+	ap.conf2py a.conf > /dev/null
 
 clean::
 	rm -vf job.id.last job.status arg job.id
