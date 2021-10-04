@@ -1835,8 +1835,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       }
     }
 
-    // source for uniform bubble growth
-    if (auto* rate = var.Double.Find("growth_rate")) {
+    // Source of uniform bubble growth.
+    if (auto* rate = var.Double.Find("uniform_growth_rate")) {
       if (auto as = dynamic_cast<ASV*>(as_.get())) {
         auto& fcn = as->GetNormal();
         auto& fca = as->GetAlpha();
@@ -1854,11 +1854,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
-    // Source for bubble growth from tracers.
+    // Source of bubble growth from tracers.
     if (tracer_) {
-      auto clip = [](Scal a, Scal low, Scal high) {
-        return a < low ? low : a > high ? high : a;
-      };
       const auto& conf = tracer_->GetConf();
       for (auto l : GRange<size_t>(conf.layers)) {
         fc_tracer_source[l].Reinit(m, 0);
@@ -1866,12 +1863,15 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         const Scal rate = var.Double("growth_rate_tracer" + sl, 0);
         if (rate) {
           auto apply = [&](const auto& meb, auto as) {
+            const Scal dt = st_.dt;
             if (as) {
-              const auto& tu = tracer_->GetVolumeFraction()[l];
+              const auto& fctu = tracer_->GetVolumeFraction()[l];
               const auto& fcvf = as->GetField();
               for (auto c : meb.Cells()) {
                 if (meb.IsRegular(c)) {
-                  auto src2 = clip(tu[c] * rate * fcvf[c], 0, tu[c] / st_.dt);
+                  Scal src2 = fctu[c] * rate * fcvf[c];
+                  src2 = std::min(src2, std::max(0., fctu[c] / dt));
+                  src2 = std::max(src2, -fcvf[c] / dt);
                   fc_src2_[c] += src2;
                   fc_tracer_source[l][c] -= src2;
                   fc_src_[c] += src2;
@@ -1879,7 +1879,9 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
               }
               for (auto c : nucl_cells_) {
                 if (meb.IsRegular(c)) {
-                  auto src2 = clip(tu[c] * rate * fcvf[c], 0, tu[c] / st_.dt);
+                  Scal src2 = fctu[c] * rate * fcvf[c];
+                  src2 = std::min(src2, std::max(0., fctu[c] / dt));
+                  src2 = std::max(src2, 0.);
                   fc_src2_[c] += src2;
                   fc_tracer_source[l][c] -= src2;
                   fc_src_[c] += src2;
@@ -1947,12 +1949,13 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
                   ? sqr(view.r[i] / h[0])
                   : GetLevelSetVolume<Scal, M::dim>(ls, c.center, h);
           const Scal src = vf * tu[c] * rate;
-          if (view.inner[i]) {
-            view.source[i] += src * c.volume;
+          if (src > 0) {
+            if (view.inner[i]) {
+              view.source[i] += src * c.volume;
+            }
+            fc_tracer_source[l][c] -= src;
+            fc_src_[c] += src;
           }
-          const auto k = 1;
-          fc_tracer_source[l][c] -= src * k;
-          fc_src_[c] += src * k;
         }
       }
     }
@@ -2041,8 +2044,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           const auto& conf = tracer_->GetConf();
           for (auto l : GRange<size_t>(conf.layers)) {
             auto sl = std::to_string(l);
-            const auto& trvf = tracer_->GetVolumeFraction()[l];
-            auto k = trvf[c] >= 0 ? coeff * ff_current[cf] : 0;
+            const Scal k = coeff * ff_current[cf];
             if (auto* ptr = getptr("tracer" + sl + "_dirichlet")) {
               vmebc[l][cf] = BCond<Scal>(BCondType::dirichlet, nci, (*ptr) * k);
             }
@@ -2807,6 +2809,7 @@ void Hydro<M>::InitTracerFields(Multi<FieldCell<Scal>>& vfcu) {
   struct {
     Vars vart;
   } * ctx(sem);
+  auto& t = *ctx;
   if (sem("init")) {
     vfcu.resize(var.Int["tracer_layers"]);
     vfcu.InitAll(FieldCell<Scal>(m, 0));
@@ -2814,13 +2817,14 @@ void Hydro<M>::InitTracerFields(Multi<FieldCell<Scal>>& vfcu) {
   for (int l = 0; l < var.Int["tracer_layers"]; ++l) {
     const std::string prefix = "tracer" + std::to_string(l);
     if (sem("var" + std::to_string(l))) {
-      ctx->vart.String.Set("init_vf", var.String[prefix + "_init"]);
-      ctx->vart.String.Set("list_path", var.String[prefix + "_list_path"]);
-      ctx->vart.Int.Set("dim", var.Int["dim"]);
-      ctx->vart.Int.Set("list_ls", 3);
+      t.vart.String.Set("init_vf", var.String[prefix + "_init"]);
+      t.vart.Double.Set("init_vf_value", var.Double(prefix + "_init_value", 0));
+      t.vart.String.Set("list_path", var.String[prefix + "_list_path"]);
+      t.vart.Int.Set("dim", var.Int["dim"]);
+      t.vart.Int.Set("list_ls", 3);
     }
     if (sem.Nested("field" + std::to_string(l))) {
-      InitVf(vfcu[l], ctx->vart, m, !silent_);
+      InitVf(vfcu[l], t.vart, m, !silent_);
     }
     if (sem("factor" + std::to_string(l))) {
       auto k = var.Double[prefix + "_factor"];

@@ -494,17 +494,20 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
     };
   } else if (v == "grid") { // see init_cl.h for grid of different colors
     return [](FieldCell<Scal>& fc, const M& m) {
-      for (auto c : m.Cells()) {
-        fc[c] = 1;
-      }
+      fc.Reinit(m, 1);
     };
   } else if (v == "readplain") {
-    return [](FieldCell<Scal>& fc, const M& m) { fc.Reinit(m, 1); };
+    return [](FieldCell<Scal>& fc, const M& m) { //
+      fc.Reinit(m, 1);
+    };
   } else if (v == "zero") {
     return [](FieldCell<Scal>& fc, const M& m) {
-      for (auto c : m.Cells()) {
-        fc[c] = 0;
-      }
+      fc.Reinit(m, 0);
+    };
+  } else if (v == "uniform") {
+    return [value = par.Double["init_vf_value"]](
+               FieldCell<Scal>& fc, const M& m) { //
+      fc.Reinit(m, value);
     };
   } else {
     fassert(false, "Unknown init_vf=" + v);
