@@ -2011,7 +2011,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             view.r.push_back(std::pow(vol * 3 / (4 * M_PI), 1. / 3));
             view.source.push_back(0);
             view.rho.push_back(density);
-            view.termvel.push_back(0);
+            // FIXME: Tracer id written to `termvel`, add a new particle field.
+            view.termvel.push_back(l);
             view.removed.push_back(false);
           }
         }
