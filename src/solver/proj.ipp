@@ -565,13 +565,26 @@ struct Proj<EB_>::Imp {
       Project(fcp_curr, ffv, dt);
     }
     if (sem("cell-acceleration")) {
-      // add new acceleration to cell velocity
+      // Add new acceleration to cell velocity.
       fc_accel_ = GetAcceleration(fcp_curr);
       for (auto c : eb.Cells()) {
         if (eb.IsExcluded(c)) continue;
         fcvel[c] += fc_accel_[c] * dt;
       }
       m.Comm(&fcvel);
+    }
+    if (!m.flags.fc_innermask.empty() && sem("clear-excluded")) {
+      // Clear velocity and flux in excluded cells and faces.
+      for (auto c : m.AllCells()) {
+        if (m.IsExcluded(c)) {
+          fcvel[c] = Vect(0);
+        }
+      }
+      for (auto f : m.AllFaces()) {
+        if (m.IsExcluded(f)) {
+          ffv[f] = 0;
+        }
+      }
     }
     if (sem("iter_diff")) {
       iter_diff_ = 0;

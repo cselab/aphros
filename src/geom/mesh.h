@@ -99,9 +99,10 @@ class MeshCartesian {
                                     // for transfer of particles
                                     // relative to the cell size.
     MPI_Comm comm;
-    FieldCell<bool> fc_innermask; // Inner cells mask. Cells with `false`
-                                  // are excluded and should not be
-                                  // updated by solvers.
+    FieldCell<bool> fc_innermask; // Inner cells mask. False if cell is excluded
+                                  // should not be updated by solvers.
+    FieldFace<bool> ff_innermask; // Inner faces mask.
+                                  // True if adjacent to an inner cell.
 
     static int GetIdFromBlock(MIdx block, MIdx global_blocks) {
       return GIndex<int, dim>(global_blocks).GetIdx(block);
@@ -122,8 +123,11 @@ class MeshCartesian {
       return w;
     }
     // Sets mask with `true` in inner cells and `false` in excluded cells.
-    void SetInnerMask(const FieldCell<bool>& fc_innermask_) {
+    void SetInnerMask(
+        const FieldCell<bool>& fc_innermask_,
+        const FieldFace<bool>& ff_innermask_) {
       fc_innermask = fc_innermask_;
+      ff_innermask = ff_innermask_;
     }
   };
 
@@ -527,6 +531,9 @@ class MeshCartesian {
   }
   bool IsExcluded(IdxCell c) const {
     return !flags.fc_innermask.empty() && !flags.fc_innermask[c];
+  }
+  bool IsExcluded(IdxFace f) const {
+    return !flags.ff_innermask.empty() && !flags.ff_innermask[f];
   }
   IdxCell GetRegularNeighbor(IdxCell c) const {
     return c;

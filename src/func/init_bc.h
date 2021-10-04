@@ -122,6 +122,8 @@ struct UInitEmbedBc {
       MapEmbed<size_t>, MapEmbed<size_t>, std::vector<std::string>>
   ParseGroups(
       std::istream& fin, const MEB& eb, const FieldCell<bool>& fc_innermask) {
+    (void) fc_innermask; // XXX: Unused in favor of m.IsExcluded().
+                         // TODO: remove `fc_innermask`
     auto& m = eb.GetMesh();
     const std::vector<CodeBlock> bb = ParseCodeBlocks(fin);
     std::vector<std::string> vdesc;
@@ -152,32 +154,24 @@ struct UInitEmbedBc {
         }
         return lmax;
       };
-      auto is_stepwise = [&](IdxFace f, size_t& nci) -> bool {
-        if (!fc_innermask.empty()) {
-          if (m.IsBoundary(f, nci)) {
-            const auto c = m.GetCell(f, nci);
-            return fc_innermask[c];
-          } else {
-            const auto cm = m.GetCell(f, 0);
-            const auto cp = m.GetCell(f, 1);
-            if (fc_innermask[cm] != fc_innermask[cp]) {
-              nci = (fc_innermask[cm] ? 0 : 1);
-              return true;
-            }
+      auto is_boundary = [&](IdxFace f, size_t& nci) -> bool {
+        if (m.IsExcluded(f)) {
+          return false;
+        } else if (m.IsBoundary(f, nci)) {
+          return true;
+        } else {
+          const auto cm = m.GetCell(f, 0);
+          const auto cp = m.GetCell(f, 1);
+          if (m.IsExcluded(cm) != m.IsExcluded(cp)) {
+            nci = (m.IsExcluded(cp) ? 0 : 1);
+            return true;
           }
         }
         return false;
       };
-      auto is_boundary = [&](IdxFace f, size_t& nci) -> bool {
-        if (m.IsBoundary(f, nci)) {
-          const auto c = m.GetCell(f, nci);
-          return fc_innermask.empty() || fc_innermask[c];
-        }
-        return false;
-      };
-      for (auto f : eb.SuFaces()) {
+      for (auto f : eb.SuFacesM()) {
         size_t nci;
-        if (is_boundary(f, nci) || is_stepwise(f, nci)) {
+        if (is_boundary(f, nci)) {
           auto ls = lsmax(eb.GetFaceCenter(f));
           if (ls > 0) {
             me_group[f] = group;

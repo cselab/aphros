@@ -202,11 +202,12 @@ void Hydro<M>::InitEmbed() {
   }
 }
 template <class M>
-void Hydro<M>::InitStepwiseBody(FieldCell<bool>& fc_innermask) {
+void Hydro<M>::InitStepwiseBody(
+    FieldCell<bool>& fc_innermask, FieldFace<bool>& ff_innermask) {
   auto sem = m.GetSem("stepwise");
   using Xmf = dump::Xmf<Vect>;
   struct {
-    FieldCell<Scal> fcbody; // 1 inside body
+    FieldCell<Scal> fc_inner; // 1 inner cells, 0 inside solid body
     Vars varbody;
     typename Xmf::Meta meta;
   } * ctx(sem);
@@ -219,33 +220,44 @@ void Hydro<M>::InitStepwiseBody(FieldCell<bool>& fc_innermask) {
     varbody.Int.Set("list_ls", 3);
   }
   if (sem.Nested("body-mask")) {
-    InitVf(t.fcbody, t.varbody, m, !silent_);
-  }
-  if (sem()) {
-    // clear cells outside domain
-    for (auto f : m.AllFaces()) {
-      size_t nci;
-      if (m.IsBoundary(f, nci)) {
-        auto cc = m.GetCellColumn(f, nci);
-        t.fcbody[cc[0]] = 1;
-        t.fcbody[cc[1]] = 1;
-      }
-    }
+    // Fill volume fraction of body in `t.fc_inner`.
+    // Halos cells are filled from periodic boundary conditions.
+    InitVf(t.fc_inner, t.varbody, m, !silent_);
   }
   if (sem("body-bc")) {
-    fc_innermask.Reinit(m, true);
-    for (auto c : m.AllCells()) {
-      fc_innermask[c] = (t.fcbody[c] < 0.5);
-    }
     if (var.Int["body_init_inverse"]) {
       for (auto c : m.AllCells()) {
-        fc_innermask[c] = !fc_innermask[c];
+        t.fc_inner[c] = 1 - t.fc_inner[c];
+      }
+    }
+    // Set volume fraction of body outside the domain to 1.
+    const MIdx gs = m.GetGlobalSize();
+    for (auto c : m.AllCellsM()) {
+      for (auto d : m.dirs) {
+        if (!m.flags.is_periodic[d] && (c[d] < 0 || c[d] >= gs[d])) {
+          t.fc_inner[c] = 0;
+        }
+      }
+    }
+
+    fc_innermask.Reinit(m);
+    for (auto c : m.AllCells()) {
+      fc_innermask[c] = (t.fc_inner[c] > 0.5);
+    }
+    // Inner faces are those adjacent to an inner cell.
+    ff_innermask.Reinit(m, false);
+    for (auto c : m.AllCellsM()) {
+      if (fc_innermask[c]) {
+        for (auto q : m.Nci(c)) {
+          ff_innermask[c.face(q)] = true;
+        }
       }
     }
   }
   if (var.Int("dump_stepwise_body", 0)) {
     if (sem.Nested()) {
-      dump::Raw<M>::WriteWithXmf(t.fcbody, "stepwise", "stepwise.raw", m);
+      // Dump scalar field which is 1 in inner cells and 0 in excluded cells.
+      dump::Raw<M>::WriteWithXmf(t.fc_inner, "stepwise", "stepwise.raw", m);
     }
   }
 }
@@ -1213,6 +1225,7 @@ void Hydro<M>::Init() {
     Multi<FieldCell<Scal>> tracer_vfcu;
     std::shared_ptr<linear::Solver<M>> linsolver_vort;
     FieldCell<bool> fc_innermask;
+    FieldFace<bool> ff_innermask;
     std::vector<std::pair<std::string, std::vector<Scal>>> nucl_data;
   } * ctx(sem);
   auto& t = *ctx;
@@ -1250,7 +1263,7 @@ void Hydro<M>::Init() {
     InitVf(fcvf, var, m, !silent_);
   }
   if (sem.Nested("stepwise") && var.Int("enable_stepwise_body", 0)) {
-    InitStepwiseBody(t.fc_innermask);
+    InitStepwiseBody(t.fc_innermask, t.ff_innermask);
   }
   if (sem.Nested()) {
     if (var.Int["enable_tracer"]) {
@@ -1259,7 +1272,8 @@ void Hydro<M>::Init() {
   }
   if (sem("fields")) {
     if (!t.fc_innermask.empty()) {
-      m.flags.SetInnerMask(t.fc_innermask);
+      // XXX: Must be set before InitBc().
+      m.flags.SetInnerMask(t.fc_innermask, t.ff_innermask);
     }
     if (eb_) {
       auto& eb = *eb_;
