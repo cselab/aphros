@@ -540,8 +540,12 @@ void Hydro<M>::InitNucleationPoints() {
                   dx[d] = uniform(randgen_) - 0.5;
                 }
                 dx *= m.GetCellSize();
+                // Normal towards inner cell.
+                const Vect normal = (bc.nci == 0 ? -1 : 1) * f.normal();
                 // Cancel out the component normal to the face.
-                dx = dx.orth(f.normal);
+                dx = dx.orth(normal);
+                // Move inside the inner cell.
+                dx += normal * (m.GetCellSize()[0] * 1e-3);
                 nucl_points_.insert(f.center() + dx);
               }
             }
