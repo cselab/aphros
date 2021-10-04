@@ -396,6 +396,7 @@ void TransferParticlesMpi(
     for (auto& p : rank_to_msg) {
       MPI_Wait(&p.second.req, MPI_STATUS_IGNORE);
     }
+    MPI_Barrier(comm);
   }
 
   for (auto& kernel : kernels) {
