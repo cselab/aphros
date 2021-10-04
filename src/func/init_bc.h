@@ -153,7 +153,7 @@ struct UInitEmbedBc {
         return lmax;
       };
       auto is_stepwise = [&](IdxFace f, size_t& nci) -> bool {
-        if (fc_innermask.size()) {
+        if (!fc_innermask.empty()) {
           if (m.IsBoundary(f, nci)) {
             const auto c = m.GetCell(f, nci);
             return fc_innermask[c];

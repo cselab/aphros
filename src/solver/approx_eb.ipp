@@ -1604,7 +1604,8 @@ auto UEmbed<M>::GetVort(
     grad[d] = AverageGradient(ffg, m);
   }
 
-  for (auto c : m.Cells()) {
+  for (auto c : eb.Cells()) {
+    if (eb.IsExcluded(c)) continue;
     r[c][0] = grad[2][c][1] - grad[1][c][2];
     r[c][1] = grad[0][c][2] - grad[2][c][0];
     r[c][2] = grad[1][c][0] - grad[0][c][1];

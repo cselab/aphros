@@ -1256,6 +1256,9 @@ void Hydro<M>::Init() {
     }
   }
   if (sem("fields")) {
+    if (!t.fc_innermask.empty()) {
+      m.flags.SetInnerMask(t.fc_innermask);
+    }
     if (eb_) {
       auto& eb = *eb_;
       for (auto c : m.AllCells()) {

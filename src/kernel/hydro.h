@@ -267,7 +267,6 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   std::string vf_save_state_path_;
   std::function<void(const ParticlesView&)> particles_hook_;
 
-  // electro
   std::unique_ptr<ElectroInterface<M>> electro_;
   MapEmbed<Scal> electro_control_factor_; // Factors to control potential
                                           // extracted from boundary conditions.

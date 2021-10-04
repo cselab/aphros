@@ -152,6 +152,7 @@ struct Proj<EB_>::Imp {
         ffu.CheckHalo(0);
         fc_sum.Reinit(eb, 0);
         for (auto c : eb.Cells()) {
+          if (eb.IsExcluded(c)) continue;
           Scal sum = 0;
           eb.LoopNci(c, [&](auto q) {
             const auto cf = eb.GetFace(c, q);
@@ -180,6 +181,7 @@ struct Proj<EB_>::Imp {
     }
     if (sem("comm")) {
       for (auto c : eb.Cells()) {
+        if (eb.IsExcluded(c)) continue;
         fcvel[c] += fc_accel[c] * dt;
       }
       m.Comm(&fcvel);
@@ -205,6 +207,7 @@ struct Proj<EB_>::Imp {
         ffg.CheckHalo(0);
         fc_sum.Reinit(eb, 0);
         for (auto c : eb.Cells()) {
+          if (eb.IsExcluded(c)) continue;
           Scal sum = 0;
           eb.LoopNci(c, [&](auto q) {
             const auto cf = eb.GetFace(c, q);
@@ -261,6 +264,7 @@ struct Proj<EB_>::Imp {
           fcl.Reinit(eb, Expr::GetUnit(0));
           ffg.CheckHalo(0);
           for (auto c : eb.Cells()) {
+            if (eb.IsExcluded(c)) continue;
             Expr sum(0);
             eb.LoopNci(c, [&](auto q) {
               const auto cf = eb.GetFace(c, q);
@@ -273,6 +277,7 @@ struct Proj<EB_>::Imp {
         }
         if (sem("time")) {
           for (auto c : eb.Cells()) {
+            if (eb.IsExcluded(c)) continue;
             Expr td(0); // time derivative
             td[0] = 1 / dt;
             td.back() = -fcvel_time_prev[c][d] / dt;
@@ -364,6 +369,7 @@ struct Proj<EB_>::Imp {
     // initialize as diagonal system
     FieldCell<Expr> fce(m, Expr::GetUnit(0));
     for (auto c : eb.Cells()) {
+      if (eb.IsExcluded(c)) continue;
       Expr sum(0);
       eb.LoopNci(c, [&](auto q) {
         const auto cf = eb.GetFace(c, q);
@@ -410,6 +416,7 @@ struct Proj<EB_>::Imp {
     fca.SetName(FILELINE + ":fca");
     // cell force
     for (auto c : eb.Cells()) {
+      if (eb.IsExcluded(c)) continue;
       fca[c] += (*owner_->fcf_)[c] / (*owner_->fcr_)[c];
     }
     if (par.explviscous) {
@@ -417,6 +424,7 @@ struct Proj<EB_>::Imp {
       UFluid<M>::AppendExplViscous(
           fc_force, fcvel_.iter_curr, me_vel_, ffvisc_, eb);
       for (auto c : eb.Cells()) {
+        if (eb.IsExcluded(c)) continue;
         fca[c] += fc_force[c] / (*owner_->fcr_)[c];
       }
     }
@@ -504,6 +512,7 @@ struct Proj<EB_>::Imp {
     } else {
       if (sem("acceleration")) {
         for (auto c : eb.SuCells()) {
+          if (eb.IsExcluded(c)) continue;
           fcvel[c] += fc_accel_[c] * dt;
         }
         m.Comm(&fcvel);
@@ -537,6 +546,7 @@ struct Proj<EB_>::Imp {
       }
       // subtract old acceleration from cell velocity
       for (auto c : eb.AllCells()) {
+        if (eb.IsExcluded(c)) continue;
         fcvel[c] -= fc_accel_[c] * dt;
       }
       // compute volume flux from cell velocity
@@ -558,6 +568,7 @@ struct Proj<EB_>::Imp {
       // add new acceleration to cell velocity
       fc_accel_ = GetAcceleration(fcp_curr);
       for (auto c : eb.Cells()) {
+        if (eb.IsExcluded(c)) continue;
         fcvel[c] += fc_accel_[c] * dt;
       }
       m.Comm(&fcvel);

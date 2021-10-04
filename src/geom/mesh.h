@@ -85,19 +85,24 @@ class MeshCartesian {
   }
 
   struct Flags {
-    size_t edim = dim; // effective dimension
+    size_t edim = dim; // Effective dimension.
     bool linreport = false;
-    bool check_nan = false; // check_nan field read by CHECKNAN macro
+    bool check_nan = false; // Check_nan field read by CHECKNAN macro.
     bool check_symmetry = false;
     Scal check_symmetry_dump_threshold = 1e-5;
     Scal nan_faces_value = 1e100;
     std::array<bool, dim> is_periodic = {};
-    Vect global_origin = Vect(0); // origin of global mesh
-    MIdx global_blocks = MIdx(0); // number of blocks in global mesh
-    Vect block_length = Vect(0); // length of one block (local mesh)
-    Scal particles_halo_radius = 2; // surplus to the size of the bounding box
+    Vect global_origin = Vect(0); // Origin of global mesh.
+    MIdx global_blocks = MIdx(0); // Number of blocks in global mesh.
+    Vect block_length = Vect(0); // Length of one block (local mesh).
+    Scal particles_halo_radius = 2; // Surplus to the size of the bounding box
                                     // for transfer of particles
-                                    // relative to the cell size
+                                    // relative to the cell size.
+    MPI_Comm comm;
+    FieldCell<bool> fc_innermask; // Inner cells mask. Cells with `false`
+                                  // are excluded and should not be
+                                  // updated by solvers.
+
     static int GetIdFromBlock(MIdx block, MIdx global_blocks) {
       return GIndex<int, dim>(global_blocks).GetIdx(block);
     };
@@ -116,7 +121,10 @@ class MeshCartesian {
       w = w.min(global_blocks - MIdx(1));
       return w;
     }
-    MPI_Comm comm;
+    // Sets mask with `true` in inner cells and `false` in excluded cells.
+    void SetInnerMask(const FieldCell<bool>& fc_innermask_) {
+      fc_innermask = fc_innermask_;
+    }
   };
 
   // begin: begin, lower corner cell index
@@ -517,8 +525,8 @@ class MeshCartesian {
   bool IsCut(IdxCell) const {
     return false;
   }
-  bool IsExcluded(IdxCell) const {
-    return false;
+  bool IsExcluded(IdxCell c) const {
+    return !flags.fc_innermask.empty() && !flags.fc_innermask[c];
   }
   IdxCell GetRegularNeighbor(IdxCell c) const {
     return c;
