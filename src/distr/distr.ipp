@@ -145,7 +145,11 @@ void DistrMesh<M>::Reduce(const std::vector<size_t>& bb) {
   }
 
   for (auto b : bb) {
-    fassert_equal(kernels_[b]->GetMesh().GetReduce().size(), nreqs);
+    auto& m = kernels_[b]->GetMesh();
+    fassert_equal(
+        m.GetReduce().size(), nreqs,
+        util::Format(
+            ", Error at stage='{}'", m.GetSuspender().GetNameSequence()));
   }
 
   for (size_t i = 0; i < nreqs; ++i) {

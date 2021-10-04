@@ -251,27 +251,29 @@ void Hydro<M>::InitStepwiseBody(FieldCell<bool>& fc_innermask) {
 }
 template <class M>
 void Hydro<M>::SpawnTracer() {
-  auto& conf = tracer_->GetConf();
-  const auto tracer_layers = GRange<size_t>(conf.layers);
-  const Vect sphere_c(var.Vect["tracer_spawn_sphere_c"]);
   const Scal sphere_r = var.Double["tracer_spawn_sphere_r"];
-  const size_t edim = m.GetEdim();
-  auto vfcu = tracer_->GetVolumeFraction();
-  for (auto l : tracer_layers) {
-    const std::string prefix = "tracer" + std::to_string(l);
-    auto k = var.Double[prefix + "_factor"];
-    for (auto c : m.AllCells()) {
-      const auto xc = m.GetCenter(c);
-      Vect dx = xc - sphere_c;
-      if (edim == 2 && M::dim > 2) {
-        dx[2] = 0;
-      }
-      if (dx.sqrnorm() < sqr(sphere_r)) {
-        vfcu[l][c] = k;
+  if (sphere_r > 0) {
+    auto& conf = tracer_->GetConf();
+    const auto tracer_layers = GRange<size_t>(conf.layers);
+    const Vect sphere_c(var.Vect["tracer_spawn_sphere_c"]);
+    const size_t edim = m.GetEdim();
+    auto vfcu = tracer_->GetVolumeFraction();
+    for (auto l : tracer_layers) {
+      const std::string prefix = "tracer" + std::to_string(l);
+      auto k = var.Double[prefix + "_factor"];
+      for (auto c : m.AllCells()) {
+        const auto xc = m.GetCenter(c);
+        Vect dx = xc - sphere_c;
+        if (edim == 2 && M::dim > 2) {
+          dx[2] = 0;
+        }
+        if (dx.sqrnorm() < sqr(sphere_r)) {
+          vfcu[l][c] = k;
+        }
       }
     }
+    tracer_->SetVolumeFraction(vfcu);
   }
-  tracer_->SetVolumeFraction(vfcu);
 }
 
 template <class M>
@@ -1608,6 +1610,7 @@ void Hydro<M>::CalcDt() {
   auto sem = m.GetSem("calcdt");
   struct {
     Scal dtmin;
+    Scal tmin;
   } * ctx(sem);
   auto& t = *ctx;
 
@@ -1617,34 +1620,40 @@ void Hydro<M>::CalcDt() {
     m.Reduce(&t.dtmin, Reduction::min);
   }
   if (sem("reduce")) {
-    // set from cfl if defined
+    // Determine fluid time step.
+    // Set from cfl if defined.
     if (auto* cfl = var.Double.Find("cfl")) {
       st_.dt = t.dtmin * (*cfl);
       st_.dt = std::min<Scal>(st_.dt, var.Double["dtmax"]);
     }
 
-    { // constraint from surface tension
+    { // Constraint from surface tension.
       const auto dt = GetSurfaceTensionDt();
       if (dt > 0) {
         st_.dt = std::min<Scal>(st_.dt, dt);
       }
     }
 
-    { // constraint from viscosity
+    { // Constraint from viscosity.
       const auto dt = GetViscosityDt();
       if (dt > 0) {
         st_.dt = std::min<Scal>(st_.dt, dt);
       }
     }
-
+    // FIXME: Without this reduction the time step turns out slighly
+    //        different on various blocks. Which shouldn't happen.
+    m.Reduce(&st_.dt, Reduction::min);
+  }
+  if (sem("reduce2")) {
     fs_->SetTimeStep(st_.dt);
 
-    // set from cfla if defined
+    // Determine advection time step.
+    // Set from cfla if defined.
     if (auto* cfla = var.Double.Find("cfla")) {
       st_.dta = t.dtmin * (*cfla);
       st_.dta = std::min<Scal>(st_.dta, var.Double["dtmax"]);
     }
-    // round up dta to such that dt / dta is integer
+    // Round up dta to such that dt / dta is integer.
     const Scal dt = fs_->GetTime() + fs_->GetTimeStep() - as_->GetTime();
     st_.dta = dt / std::max(1, int(dt / st_.dta + 0.5));
     as_->SetTimeStep(st_.dta);
@@ -1668,12 +1677,12 @@ void Hydro<M>::CalcDt() {
       // Round up such that fluid time step is a multiple of `tracer_dt_`.
       const Scal dtwhole =
           fs_->GetTime() - tracer_->GetTime() + fs_->GetTimeStep();
-      tracer_dt_ = dtwhole / std::max<Scal>(1, std::ceil(dtwhole / tracer_dt_));
+      tracer_dt_ = dtwhole / std::max<Scal>(1, int(dtwhole / tracer_dt_ + 0.5));
     }
 
     if (particles_) {
       if (auto* cflp = var.Double.Find("cflp")) {
-        particles_dt_ = ctx->dtmin * (*cflp);
+        particles_dt_ = t.dtmin * (*cflp);
         // round up dta to such that dt / dta is integer
         const Scal dtwhole =
             fs_->GetTime() + fs_->GetTimeStep() - particles_->GetTime();
@@ -1683,9 +1692,11 @@ void Hydro<M>::CalcDt() {
         particles_dt_ = fs_->GetTimeStep();
       }
     }
+    t.tmin = fs_->GetTime();
+    m.Reduce(&t.tmin, Reduction::min);
   }
   if (sem()) {
-    // FIXME: empty stage
+    fassert_equal(fs_->GetTime(), t.tmin);
   }
 }
 

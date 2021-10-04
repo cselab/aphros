@@ -598,7 +598,7 @@ struct Proj<EB_>::Imp {
     Scal dt = std::numeric_limits<Scal>::max();
     for (auto f : eb.Faces()) {
       const Scal vel = fev_.time_curr[f] / m.GetArea(f);
-      if (vel != 0.) {
+      if (vel != 0) {
         dt = std::min<Scal>(dt, std::abs(m.GetCellSize()[0] / vel));
       }
     }
