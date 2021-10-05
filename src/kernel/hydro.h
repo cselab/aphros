@@ -256,7 +256,7 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   std::shared_ptr<linear::Solver<M>> linsolver_electro_;
 
   std::unique_ptr<TracerInterface<M>> tracer_;
-  Multi<FieldCell<Scal>> fc_tracer_source;
+  Multi<FieldCell<Scal>> fc_tracer_source_;
 
   std::set<IdxCell> nucl_cells_;
   std::set<Vect> nucl_points_;

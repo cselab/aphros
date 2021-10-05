@@ -662,8 +662,8 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
       }
     });
 
-    fc_tracer_source.Reinit(tracer_layers, m, 0);
-    conf.fc_source = fc_tracer_source;
+    fc_tracer_source_.Reinit(tracer_layers, m, 0);
+    conf.fc_source = fc_tracer_source_;
 
     if (eb_) {
       tracer_.reset(new Tracer<EB>(m, *eb_, vfcu, vmebc, fs_->GetTime(), conf));
@@ -1854,38 +1854,44 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
+    // Clear tracer source.
+    if (tracer_) {
+      const auto& conf = tracer_->GetConf();
+      for (auto l : GRange<size_t>(conf.layers)) {
+        fc_tracer_source_[l].Reinit(m, 0);
+      }
+    }
     // Source of bubble growth from tracers.
     if (tracer_) {
       const auto& conf = tracer_->GetConf();
       for (auto l : GRange<size_t>(conf.layers)) {
-        fc_tracer_source[l].Reinit(m, 0);
         const auto sl = std::to_string(l);
         const Scal rate = var.Double("growth_rate_tracer" + sl, 0);
         if (rate) {
           auto apply = [&](const auto& meb, auto as) {
+            if (!as) return;
             const Scal dt = st_.dt;
-            if (as) {
-              const auto& fctu = tracer_->GetVolumeFraction()[l];
-              const auto& fcvf = as->GetField();
-              for (auto c : meb.Cells()) {
-                if (meb.IsRegular(c)) {
-                  Scal src2 = fctu[c] * rate * fcvf[c];
-                  src2 = std::min(src2, std::max(0., fctu[c] / dt));
-                  src2 = std::max(src2, -fcvf[c] / dt);
-                  fc_src2_[c] += src2;
-                  fc_tracer_source[l][c] -= src2;
-                  fc_src_[c] += src2;
-                }
+            const Scal dta = as_->GetTimeStep();
+            const auto& fctu = tracer_->GetVolumeFraction()[l];
+            const auto& fcvf = as->GetField();
+            for (auto c : meb.Cells()) {
+              if (meb.IsRegular(c)) {
+                Scal src2 = fctu[c] * rate * fcvf[c] / dt;
+                src2 = std::min(src2, std::max(0., fctu[c] / tracer_dt_));
+                src2 = std::max(src2, -fcvf[c] / dta);
+                fc_src2_[c] += src2;
+                fc_tracer_source_[l][c] -= src2;
+                fc_src_[c] += src2;
               }
-              for (auto c : nucl_cells_) {
-                if (meb.IsRegular(c)) {
-                  Scal src2 = fctu[c] * rate * fcvf[c];
-                  src2 = std::min(src2, std::max(0., fctu[c] / dt));
-                  src2 = std::max(src2, 0.);
-                  fc_src2_[c] += src2;
-                  fc_tracer_source[l][c] -= src2;
-                  fc_src_[c] += src2;
-                }
+            }
+            for (auto c : nucl_cells_) {
+              if (meb.IsRegular(c)) {
+                Scal src2 = fctu[c] * rate * fcvf[c] / dt;
+                src2 = std::min(src2, std::max(0., fctu[c] / tracer_dt_));
+                src2 = std::max(src2, 0.);
+                fc_src2_[c] += src2;
+                fc_tracer_source_[l][c] -= src2;
+                fc_src_[c] += src2;
               }
             }
           };
@@ -1896,17 +1902,49 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           }
         }
       }
-      st_.tmp_sum_src2 = 0;
-      for (auto c : m.Cells()) {
-        st_.tmp_sum_src2 += fc_src2_[c] * m.GetVolume(c);
+    }
+    if (tracer_) {
+      const auto& conf = tracer_->GetConf();
+      for (auto l : GRange<size_t>(conf.layers)) {
+        const Scal factor = var.Double("tracer_interface_diffusion_factor", 0);
+        if (factor) {
+          auto apply = [&](const auto& meb, auto as) {
+            if (!as) return;
+            const Scal dta = as_->GetTimeStep();
+            const auto& fctu = tracer_->GetVolumeFraction()[l];
+            const auto& fcn = as->GetNormal();
+            const auto& fca = as->GetAlpha();
+            const auto& fcvf = as->GetField();
+            const Vect h = m.GetCellSize();
+            for (auto c : meb.CellsM()) {
+              if (meb.IsRegular(c) && fcvf[c] > 0 && fcvf[c] < 1 &&
+                  !IsNan(fca[c])) {
+                using R = Reconst<Scal>;
+                auto area = std::abs(
+                    R::GetArea(R::GetCutPoly2(fcn[c], fca[c], h), fcn[c]));
+                const Scal d = conf.diffusion[l] * factor;
+                Scal src2 = fctu[c] * d * area / (h[0] * c.volume);
+                src2 = std::min(src2, std::max(0., fctu[c] / tracer_dt_));
+                src2 = std::max(src2, -fcvf[c] / dta);
+                fc_src2_[c] += src2;
+                fc_tracer_source_[l][c] -= src2;
+                fc_src_[c] += src2;
+              }
+            }
+          };
+          if (eb_) {
+            apply(*eb_, dynamic_cast<ASVEB*>(as_.get()));
+          } else {
+            apply(m, dynamic_cast<ASV*>(as_.get()));
+          }
+        }
       }
-      m.Reduce(&st_.tmp_sum_src2, Reduction::sum);
     }
     // Growth of particles from tracer.
     if (tracer_ && particles_) {
       auto view = particles_->GetView();
       const size_t l = 0;
-      const auto& tu = tracer_->GetVolumeFraction()[l];
+      const auto& fctu = tracer_->GetVolumeFraction()[l];
       const auto h = m.GetCellSize();
       const Scal rate = var.Double["particles_growth_rate"];
       const auto& blockall = m.GetAllBlockCells();
@@ -1914,7 +1952,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       const MIdx blockall_wmax = blockall.GetEnd() - MIdx(1);
       // Traverse inner and halo particles.
       // Accumulate the particle sources in `view.source[i]`
-      // and field sources in `fc_tracer_source[l][c]`.
+      // and field sources in `fc_tracer_source_[l][c]`.
       // Particles sources are only valid for inner particles
       // since they depend on the 5x5x5 stencil only available in inner cells.
       for (size_t i = 0; i < view.x.size(); ++i) {
@@ -1948,12 +1986,12 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
               view.r[i] < h[0]
                   ? sqr(view.r[i] / h[0])
                   : GetLevelSetVolume<Scal, M::dim>(ls, c.center, h);
-          const Scal src = vf * tu[c] * rate;
+          const Scal src = vf * fctu[c] * rate / st_.dt;
           if (src > 0) {
             if (view.inner[i]) {
               view.source[i] += src * c.volume;
             }
-            fc_tracer_source[l][c] -= src;
+            fc_tracer_source_[l][c] -= src;
             fc_src_[c] += src;
           }
         }
@@ -2006,7 +2044,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             // the equivalent volume is created.
             const Scal du = tu[c] - cpost;
             const Scal vol = du * c.volume();
-            fc_tracer_source[l][c] -= du / tracer_dt_;
+            fc_tracer_source_[l][c] -= du / tracer_dt_;
             view.x.push_back(x);
             view.inner.push_back(true);
             view.v.push_back(Vect(0));
@@ -2071,6 +2109,14 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
       const Scal rate = var.Double["electro_control_rate"];
       st_.electro_control_potential +=
           (current - electro_->GetStat().current) * rate;
+    }
+    // Compute total source of second component for statistics.
+    if (tracer_) {
+      st_.tmp_sum_src2 = 0;
+      for (auto c : m.Cells()) {
+        st_.tmp_sum_src2 += fc_src2_[c] * m.GetVolume(c);
+      }
+      m.Reduce(&st_.tmp_sum_src2, Reduction::sum);
     }
   }
   if (sem("reduce")) {
