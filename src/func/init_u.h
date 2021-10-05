@@ -21,40 +21,40 @@
 #include "solver/multi.h"
 #include "solver/reconst.h"
 
-// Volume fraction cut by interface defined by level-set function
-// ls: level-set function, interface ls=0, ls>0 for volume fraction 1
+// Returns volume fraction of cell overlapping with positive levelset.
+// levelset: levelset function, =0 on interface.
 // xc: cell center
 // h: cell size
 template <class Scal, size_t dim>
 static Scal GetLevelSetVolume(
-    std::function<Scal(const generic::Vect<Scal, dim>&)> ls,
+    std::function<Scal(const generic::Vect<Scal, dim>&)> levelset,
     const generic::Vect<Scal, dim>& xc, const generic::Vect<Scal, dim>& h) {
   using Vect = generic::Vect<Scal, dim>;
   using MIdx = generic::Vect<IntIdx, dim>;
 
-  const Scal dx = 1e-3; // step to compute gradient relative to h
+  const Scal dx = 1e-3; // Step to compute gradient relative to h.
 
-  GBlock<size_t, dim> b(MIdx(2));
-  const Scal lsc = ls(xc);
-  // traverse nodes of cell
+  const GBlock<size_t, dim> b(MIdx(2));
+  const Scal lxc = levelset(xc);
+  // Traverse nodes of the cell.
   for (auto w : b) {
-    const Vect x = xc + (Vect(w) - Vect(0.5)) * h;
-    if ((lsc > 0.) != (ls(x) > 0.)) { // cell crossed by interface
-      // linear approximation
-      // ls(x) = ls(xc) + (x - xc).dot(grad(ls, xc))
-      Vect n; // normal
-      for (size_t i = 0; i < dim; ++i) {
+    const Vect xn = xc + (Vect(w) - Vect(0.5)) * h; // Cell node.
+    if ((lxc > 0) != (levelset(xn) > 0)) { // Cell is crossed by interface.
+      // Linear approximation:
+      //   levelset(x) = levelset(xc) + (x - xc).dot(grad(levelset, xc))
+      Vect normal;
+      for (size_t d = 0; d < dim; ++d) {
         Vect xp(xc), xm(xc);
-        const Scal dxh = dx * h[i];
-        xp[i] += dxh * 0.5;
-        xm[i] -= dxh * 0.5;
-        n[i] = (ls(xp) - ls(xm)) / dxh;
+        const Scal dxh = dx * h[d];
+        xp[d] += dxh * 0.5;
+        xm[d] -= dxh * 0.5;
+        normal[d] = (levelset(xp) - levelset(xm)) / dxh;
       }
-      return Reconst<Scal>::GetLineU(n, lsc, h);
+      return Reconst<Scal>::GetLineU(normal, lxc, h);
     }
   }
 
-  return lsc > 0. ? 1. : 0.;
+  return lxc > 0. ? 1. : 0.;
 }
 
 // Returns point at which interpolant has value 0.

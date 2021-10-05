@@ -1942,57 +1942,66 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
     }
     // Growth of particles from tracer.
     if (tracer_ && particles_) {
+      const auto& conf = tracer_->GetConf();
       auto view = particles_->GetView();
-      const size_t l = 0;
-      const auto& fctu = tracer_->GetVolumeFraction()[l];
-      const auto h = m.GetCellSize();
-      const Scal rate = var.Double["particles_growth_rate"];
-      const auto& blockall = m.GetAllBlockCells();
-      const MIdx blockall_wmin = blockall.GetBegin();
-      const MIdx blockall_wmax = blockall.GetEnd() - MIdx(1);
-      // Traverse inner and halo particles.
-      // Accumulate the particle sources in `view.source[i]`
-      // and field sources in `fc_tracer_source_[l][c]`.
-      // Particles sources are only valid for inner particles
-      // since they depend on the 5x5x5 stencil only available in inner cells.
-      for (size_t i = 0; i < view.x.size(); ++i) {
-        view.source[i] = 0;
-        // Range of cells containing the particle.
-        MIdx wmin(((view.x[i] - Vect(view.r[i]) - m.flags.global_origin) / h)
-                      .floor());
-        MIdx wmax(((view.x[i] + Vect(view.r[i]) - m.flags.global_origin) / h)
-                      .floor());
-        // Cell containing the particle centroid.
-        const auto cpart = m(m.GetCellFromPoint(view.x[i]));
-        // Limit the range of cells to 5x5x5 stencil around the centroid.
-        const MIdx wcpart(cpart);
-        wmin = wmin.max(wcpart - MIdx(2));
-        wmax = wmax.min(wcpart + MIdx(2));
-        // Limit the range of cells to inner and halo cells of current block.
-        wmin = wmin.max(blockall_wmin);
-        wmax = wmax.min(blockall_wmax);
-        // Block of cells from range [wmin, wmax].
-        const GBlock<int, M::dim> wcells(wmin, wmax - wmin + MIdx(1));
-        const auto& index = m.GetIndexCells();
-        // Level-set describing the particle.
-        auto ls = [&](const Vect& x) -> Scal {
-          return view.r[i] - x.dist(view.x[i]);
-        };
-        for (MIdx w : wcells) {
-          const auto c = m(index.GetIdx(w));
-          // Volume fraction of intersection between particle and cell.
-          // Assume full intersection for small particles.
-          const Scal vf = //
-              view.r[i] < h[0]
-                  ? sqr(view.r[i] / h[0])
-                  : GetLevelSetVolume<Scal, M::dim>(ls, c.center, h);
-          const Scal src = vf * fctu[c] * rate / st_.dt;
-          if (src > 0) {
-            if (view.inner[i]) {
-              view.source[i] += src * c.volume;
+      for (auto l : GRange<size_t>(conf.layers)) {
+        const auto& fctu = tracer_->GetVolumeFraction()[l];
+        const auto h = m.GetCellSize();
+        const Scal factor = var.Double["particles_growth_diffusion_factor"];
+        const Scal rate = var.Double["particles_growth_rate"];
+        const auto& blockall = m.GetAllBlockCells();
+        const MIdx blockall_wmin = blockall.GetBegin();
+        const MIdx blockall_wmax = blockall.GetEnd() - MIdx(1);
+        // Traverse inner and halo particles.
+        // Accumulate the particle sources in `view.source[i]`
+        // and field sources in `fc_tracer_source_[l][c]`.
+        // Particles sources are only valid for inner particles
+        // since they depend on the 5x5x5 stencil only available in inner cells.
+        // To ensure that `fc_tracer_source_` is correctly updated from halo
+        // particles, the particle source must be a sum of contributions from
+        // cells, i.e. sum of values for each pair (i,c).
+        for (size_t i = 0; i < view.x.size(); ++i) {
+          view.source[i] = 0;
+          // Range of cells intersecting with the particle.
+          MIdx wmin(((view.x[i] - Vect(view.r[i]) - m.flags.global_origin) / h)
+                        .floor());
+          MIdx wmax(((view.x[i] + Vect(view.r[i]) - m.flags.global_origin) / h)
+                        .floor());
+          // Cell containing the particle centroid.
+          const auto cpart = m(m.GetCellFromPoint(view.x[i]));
+          // Limit the range of cells to 5x5x5 stencil around the centroid.
+          const MIdx wcpart(cpart);
+          wmin = wmin.max(wcpart - MIdx(2));
+          wmax = wmax.min(wcpart + MIdx(2));
+          // Limit the range of cells to inner and halo cells of current block.
+          wmin = wmin.max(blockall_wmin);
+          wmax = wmax.min(blockall_wmax);
+          // Block of cells from range [wmin, wmax].
+          const GBlock<int, M::dim> wcells(wmin, wmax - wmin + MIdx(1));
+          const auto& index = m.GetIndexCells();
+          // Level-set function positive inside the particle.
+          auto ls = [&](const Vect& x) -> Scal {
+            return view.r[i] - x.dist(view.x[i]);
+          };
+          for (MIdx w : wcells) {
+            const auto c = m(index.GetIdx(w));
+            // Volume fraction of intersection between particle and cell.
+            const Scal vf = //
+                view.r[i] < h[0]
+                    ? view.r[i] / h[0] * 0.5
+                    : GetLevelSetVolume<Scal, M::dim>(ls, c.center, h);
+            const Scal u = fctu[c]; // Concentration.
+            if (u > 0 && vf > 0) {
+              const Scal d = conf.diffusion[l] * factor;
+              Scal src = d / c.volume * u * vf * h[0] * rate;
+              src = std::min(src, std::max(0., u / tracer_dt_));
+
+              if (view.inner[i]) {
+                view.source[i] += src * c.volume;
+              }
+              fc_tracer_source_[l][c] -= src;
+              fc_src_[c] += src;
             }
-            fc_tracer_source_[l][c] -= src;
-            fc_src_[c] += src;
           }
         }
       }
