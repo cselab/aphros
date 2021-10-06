@@ -165,6 +165,16 @@ struct Tracer<EB_>::Imp {
         m.Comm(&vfcu_[l]);
       }
     }
+    if (!m.flags.fc_innermask.empty() && sem("clear-excluded")) {
+      // Clear fields in excluded cells.
+      for (auto c : m.AllCells()) {
+        if (m.IsExcluded(c)) {
+          for (auto l : layers) {
+            vfcu_[l][c] = 0;
+          }
+        }
+      }
+    }
     if (sem("stat")) {
       time_ += dt;
     }

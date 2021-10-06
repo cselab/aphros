@@ -59,6 +59,7 @@ struct Electro<EB_>::Imp {
       const auto ffg = UEB::GradientImplicit(fc_pot_, mebc_pot_, eb);
       t.fcl.Reinit(m, Expr::GetUnit(0));
       for (auto c : eb.Cells()) {
+        if (eb.IsExcluded(c)) continue;
         Expr sum(0);
         eb.LoopNci(c, [&](auto q) {
           const auto cf = eb.GetFace(c, q);
@@ -71,6 +72,14 @@ struct Electro<EB_>::Imp {
     }
     if (sem.Nested("solve")) {
       conf.linsolver->Solve(t.fcl, &fc_pot_, fc_pot_, m);
+    }
+    if (!m.flags.fc_innermask.empty() && sem("clear-excluded")) {
+      // Clear field in excluded cells.
+      for (auto c : m.AllCells()) {
+        if (m.IsExcluded(c)) {
+          fc_pot_[c] = 0;
+        }
+      }
     }
     if (sem("post")) {
       time_ += dt;
