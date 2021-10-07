@@ -241,8 +241,10 @@ void Hydro<M>::InitStepwiseBody(
     }
 
     fc_innermask.Reinit(m);
+    const Scal thres = var.Double["stepwise_threshold"];
     for (auto c : m.AllCells()) {
-      fc_innermask[c] = (t.fc_inner[c] > 0.5);
+      t.fc_inner[c] = (t.fc_inner[c] > thres ? 1 : 0);
+      fc_innermask[c] = t.fc_inner[c];
     }
     // Inner faces are those adjacent to an inner cell.
     ff_innermask.Reinit(m, false);
@@ -254,7 +256,7 @@ void Hydro<M>::InitStepwiseBody(
       }
     }
   }
-  if (var.Int("dump_stepwise_body", 0)) {
+  if (var.Int["dump_stepwise_body"]) {
     if (sem.Nested()) {
       // Dump scalar field which is 1 in inner cells and 0 in excluded cells.
       dump::Raw<M>::WriteWithXmf(t.fc_inner, "stepwise", "stepwise.raw", m);
@@ -1266,7 +1268,7 @@ void Hydro<M>::Init() {
   if (sem.Nested()) {
     InitVf(fcvf, var, m, !silent_);
   }
-  if (sem.Nested("stepwise") && var.Int("enable_stepwise_body", 0)) {
+  if (sem.Nested("stepwise") && var.Int["enable_stepwise_body"]) {
     InitStepwiseBody(t.fc_innermask, t.ff_innermask);
   }
   if (sem.Nested()) {
