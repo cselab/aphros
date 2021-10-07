@@ -102,16 +102,17 @@ def get_params():
         'font.serif': 'cmr10',
         'mathtext.fontset': 'cm',
         'mathtext.rm': 'serif',
-        'figure.figsize': (3.2, 2.4),
+        'figure.figsize': (2.3, 1.8),
         'figure.autolayout': True,
         'axes.autolimit_mode': 'round_numbers',
         'axes.xmargin': 0,
         'axes.ymargin': 0,
         'axes.spines.top': False,
         'axes.spines.right': False,
+        'axes.unicode_minus': False,
         'axes.prop_cycle': cycler(color=colorscheme),
         'lines.markersize': 3,
-        'lines.linewidth': 1.5,
+        'lines.linewidth': 1.25,
     }
     return params
 
