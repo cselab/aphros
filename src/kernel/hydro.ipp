@@ -981,7 +981,7 @@ void Hydro<M>::InitStat(const MEB& eb) {
   stat.AddDerived(
       "pavg2", "average pressure of phase 2", //
       [div](const Stat<M>& s) { return div(s["p*vol2"], s["vol2"]); });
-  // XXX: relies on alphabetical order, "vol2_0" < "vol2_diff"
+  // XXX: relies on lexicographical order, "vol2_0" < "vol2_diff"
   //      to have "vol2_0" defined before "vol2_diff"
   stat.AddDerived(
       "vol2_0", "initial volume of phase 2", //
@@ -1184,6 +1184,26 @@ void Hydro<M>::InitStat(const MEB& eb) {
           "tu" + sl + "_min", "minimum of tracer " + sl, //
           [&tr = tracer_, l](IdxCell c, const MEB&) {
             return tr->GetVolumeFraction()[l][c];
+          });
+      stat.AddSum(
+          "tu" + sl + "_outrate", "outlet volumetric rate of tracer " + sl, //
+          [&ffv, &fcu = tracer_->GetVolumeFraction()[l], this, &meb = eb, l]() {
+            Scal sum = 0;
+            mebc_fluid_.LoopBCond(meb, [&](auto cf, IdxCell c, auto bc) { //
+              if (m.IsInner(c)) {
+                if (bc.type == BCondFluidType::outlet ||
+                    bc.type == BCondFluidType::outletpressure) {
+                  sum += fcu[c] * ffv[cf] * (bc.nci == 0 ? 1 : -1);
+                }
+              }
+            });
+            return sum;
+          });
+      stat.AddDerived(
+          "tu" + sl + "_outvol", "outlet volume of tracer " + sl, //
+          [this, sl](const Stat<M>& s) {
+            return s["tu" + sl + "_outvol"] +
+                   s["tu" + sl + "_outrate"] * st_.dt;
           });
     }
     stat.AddNone(
@@ -1873,14 +1893,13 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           auto apply = [&](const auto& meb, auto as) {
             if (!as) return;
             const Scal dt = st_.dt;
-            const Scal dta = as_->GetTimeStep();
             const auto& fctu = tracer_->GetVolumeFraction()[l];
             const auto& fcvf = as->GetField();
             for (auto c : meb.Cells()) {
               if (meb.IsRegular(c)) {
                 Scal src2 = fctu[c] * rate * fcvf[c] / dt;
-                src2 = std::min(src2, std::max(0., fctu[c] / tracer_dt_));
-                src2 = std::max(src2, -fcvf[c] / dta);
+                src2 = std::min(src2, std::max(0., fctu[c] / dt));
+                src2 = std::max(src2, -fcvf[c] / dt);
                 fc_src2_[c] += src2;
                 fc_tracer_source_[l][c] -= src2;
                 fc_src_[c] += src2;
@@ -1889,7 +1908,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             for (auto c : nucl_cells_) {
               if (meb.IsRegular(c)) {
                 Scal src2 = fctu[c] * rate * fcvf[c] / dt;
-                src2 = std::min(src2, std::max(0., fctu[c] / tracer_dt_));
+                src2 = std::min(src2, std::max(0., fctu[c] / dt));
                 src2 = std::max(src2, 0.);
                 fc_src2_[c] += src2;
                 fc_tracer_source_[l][c] -= src2;
@@ -1912,7 +1931,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         if (factor) {
           auto apply = [&](const auto& meb, auto as) {
             if (!as) return;
-            const Scal dta = as_->GetTimeStep();
+            const Scal dt = st_.dt;
             const auto& fctu = tracer_->GetVolumeFraction()[l];
             const auto& fcn = as->GetNormal();
             const auto& fca = as->GetAlpha();
@@ -1926,8 +1945,8 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
                     R::GetArea(R::GetCutPoly2(fcn[c], fca[c], h), fcn[c]));
                 const Scal d = conf.diffusion[l] * factor;
                 Scal src2 = fctu[c] * d * area / (h[0] * c.volume);
-                src2 = std::min(src2, std::max(0., fctu[c] / tracer_dt_));
-                src2 = std::max(src2, -fcvf[c] / dta);
+                src2 = std::min(src2, std::max(0., fctu[c] / dt));
+                src2 = std::max(src2, -fcvf[c] / dt);
                 fc_src2_[c] += src2;
                 fc_tracer_source_[l][c] -= src2;
                 fc_src_[c] += src2;
@@ -2055,7 +2074,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
             // the equivalent volume is created.
             const Scal du = tu[c] - cpost;
             const Scal vol = du * c.volume();
-            fc_tracer_source_[l][c] -= du / tracer_dt_;
+            fc_tracer_source_[l][c] -= du / st_.dt;
             view.x.push_back(x);
             view.inner.push_back(true);
             view.v.push_back(Vect(0));
@@ -2079,8 +2098,6 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           auto cf = cf_group.first;
           size_t group = cf_group.second;
           auto nci = mebc_fluid_[cf].nci;
-          const IdxCell c = GetCell(cf, nci, m);
-
           const auto& custom = bc_group_custom_[group];
           auto getptr = [&](std::string key) -> const Scal* {
             auto it = custom.find(key);
