@@ -56,7 +56,15 @@ struct Electro<EB_>::Imp {
         t.ff_resist[cf] = 1 / (1 / r2 * ff_vf[cf] + 1 / r1 * (1 - ff_vf[cf]));
       });
 
-      const auto ffg = UEB::GradientImplicit(fc_pot_, mebc_pot_, eb);
+      // FIXME: Don't rely on `time_`.
+      //        Zero initial guess causes wrong dirichlet boundary conditions
+      //        at first step if second order.
+      FieldFaceb<ExprFace> ffg;
+      if (time_ == 0) {
+        ffg = UEB::GradientImplicit(mebc_pot_, eb);
+      } else {
+        ffg = UEB::GradientImplicit(fc_pot_, mebc_pot_, eb);
+      }
       t.fcl.Reinit(m, Expr::GetUnit(0));
       for (auto c : eb.Cells()) {
         if (eb.IsExcluded(c)) continue;
