@@ -26,7 +26,8 @@ assert not unknown, "invalid columns {:}\nvalid columns are {:}".format(
     unknown, head)
 
 if args.header:
-    print(' '.join(cc))
+    sys.stdout.write(' '.join(cc) + '\n')
+    sys.stdout.flush()
 
 ii = [head.index(c) for c in cc]
 
