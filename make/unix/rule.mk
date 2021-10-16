@@ -3,6 +3,7 @@ $(WRK)/aphros_c/main.o: $(SRC)/aphros_c/main.cpp; $(CXX_RULE) $(SRC)/aphros_c/ma
 $(WRK)/aphros_c/parser.o: $(SRC)/aphros_c/parser.cpp; $(CXX_RULE) $(SRC)/aphros_c/parser.cpp
 $(WRK)/color/color.o: $(SRC)/color/color.c; $(CC_RULE) $(SRC)/color/color.c
 $(WRK)/distr/comm_manager.o: $(SRC)/distr/comm_manager.cpp; $(CXX_RULE) $(SRC)/distr/comm_manager.cpp
+$(WRK)/distr/cubismnc.o: $(SRC)/distr/cubismnc.cpp; $(CXX_RULE) $(SRC)/distr/cubismnc.cpp
 $(WRK)/distr/distrbasic.o: $(SRC)/distr/distrbasic.cpp; $(CXX_RULE) $(SRC)/distr/distrbasic.cpp
 $(WRK)/distr/distr.o: $(SRC)/distr/distr.cpp; $(CXX_RULE) $(SRC)/distr/distr.cpp
 $(WRK)/distr/distr_particles.o: $(SRC)/distr/distr_particles.cpp; $(CXX_RULE) $(SRC)/distr/distr_particles.cpp
@@ -20,6 +21,7 @@ $(WRK)/func/init_contang.o: $(SRC)/func/init_contang.cpp; $(CXX_RULE) $(SRC)/fun
 $(WRK)/func/init.o: $(SRC)/func/init.cpp; $(CXX_RULE) $(SRC)/func/init.cpp
 $(WRK)/func/init_vel.o: $(SRC)/func/init_vel.cpp; $(CXX_RULE) $(SRC)/func/init_vel.cpp
 $(WRK)/func/primlist.o: $(SRC)/func/primlist.cpp; $(CXX_RULE) $(SRC)/func/primlist.cpp
+$(WRK)/gen/wave_lamb.o: $(SRC)/gen/wave_lamb.c; $(CC_RULE) $(SRC)/gen/wave_lamb.c
 $(WRK)/geom/mesh.o: $(SRC)/geom/mesh.cpp; $(CXX_RULE) $(SRC)/geom/mesh.cpp
 $(WRK)/inside/bbox.o: $(SRC)/inside/bbox.c; $(CC_RULE) $(SRC)/inside/bbox.c
 $(WRK)/inside/err.o: $(SRC)/inside/err.c; $(CC_RULE) $(SRC)/inside/err.c
@@ -30,9 +32,15 @@ $(WRK)/inside/ply.o: $(SRC)/inside/ply.c; $(CC_RULE) $(SRC)/inside/ply.c
 $(WRK)/inside/predicate.o: $(SRC)/inside/predicate.c; $(CC_RULE) $(SRC)/inside/predicate.c
 $(WRK)/inside/stl.o: $(SRC)/inside/stl.c; $(CC_RULE) $(SRC)/inside/stl.c
 $(WRK)/kernel/hydro.o: $(SRC)/kernel/hydro.cpp; $(CXX_RULE) $(SRC)/kernel/hydro.cpp
+$(WRK)/linear/conjugate_cl.o: $(SRC)/linear/conjugate_cl.cpp; $(CXX_RULE) $(SRC)/linear/conjugate_cl.cpp
+$(WRK)/linear/hypre.o: $(SRC)/linear/hypre.cpp; $(CXX_RULE) $(SRC)/linear/hypre.cpp
+$(WRK)/linear/hypresub.o: $(SRC)/linear/hypresub.cpp; $(CXX_RULE) $(SRC)/linear/hypresub.cpp
+$(WRK)/linear/linear_amgx.o: $(SRC)/linear/linear_amgx.cpp; $(CXX_RULE) $(SRC)/linear/linear_amgx.cpp
+$(WRK)/linear/linear_hypre.o: $(SRC)/linear/linear_hypre.cpp; $(CXX_RULE) $(SRC)/linear/linear_hypre.cpp
 $(WRK)/linear/linear.o: $(SRC)/linear/linear.cpp; $(CXX_RULE) $(SRC)/linear/linear.cpp
 $(WRK)/main.o: $(SRC)/main.c; $(CC_RULE) $(SRC)/main.c
 $(WRK)/march/main.o: $(SRC)/march/main.c; $(CC_RULE) $(SRC)/march/main.c
+$(WRK)/opencl/opencl.o: $(SRC)/opencl/opencl.cpp; $(CXX_RULE) $(SRC)/opencl/opencl.cpp
 $(WRK)/overlap/overlap.o: $(SRC)/overlap/overlap.cpp; $(CXX_RULE) $(SRC)/overlap/overlap.cpp
 $(WRK)/parse/argparse.o: $(SRC)/parse/argparse.cpp; $(CXX_RULE) $(SRC)/parse/argparse.cpp
 $(WRK)/parse/codeblocks.o: $(SRC)/parse/codeblocks.cpp; $(CXX_RULE) $(SRC)/parse/codeblocks.cpp
@@ -132,6 +140,8 @@ $(WRK)/util/linear.o: $(SRC)/util/linear.cpp; $(CXX_RULE) $(SRC)/util/linear.cpp
 $(WRK)/util/logger.o: $(SRC)/util/logger.cpp; $(CXX_RULE) $(SRC)/util/logger.cpp
 $(WRK)/util/mpi.o: $(SRC)/util/mpi.cpp; $(CXX_RULE) $(SRC)/util/mpi.cpp
 $(WRK)/util/posthook_default.o: $(SRC)/util/posthook_default.cpp; $(CXX_RULE) $(SRC)/util/posthook_default.cpp
+$(WRK)/util/subcomm_dummy.o: $(SRC)/util/subcomm_dummy.cpp; $(CXX_RULE) $(SRC)/util/subcomm_dummy.cpp
+$(WRK)/util/subcomm.o: $(SRC)/util/subcomm.cpp; $(CXX_RULE) $(SRC)/util/subcomm.cpp
 $(WRK)/util/suspender.o: $(SRC)/util/suspender.cpp; $(CXX_RULE) $(SRC)/util/suspender.cpp
 $(WRK)/util/sysinfo.o: $(SRC)/util/sysinfo.cpp; $(CXX_RULE) $(SRC)/util/sysinfo.cpp
 $(WRK)/util/system.o: $(SRC)/util/system.c; $(CC_RULE) $(SRC)/util/system.c

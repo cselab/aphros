@@ -112,6 +112,7 @@ distr\comm_manager.obj: geom\vect.h
 distr\comm_manager.obj: kernel\kernelmesh.h
 distr\comm_manager.obj: kernel\kernelmeshpar.h
 distr\comm_manager.obj: parse\parser.h
+distr\comm_manager.obj: parse\util.h
 distr\comm_manager.obj: parse\vars.h
 distr\comm_manager.obj: util\distr.h
 distr\comm_manager.obj: util\format.h
@@ -155,6 +156,7 @@ distr\cubismnc.obj: geom\rangemulti.h
 distr\cubismnc.obj: geom\transform.h
 distr\cubismnc.obj: geom\vect.h
 distr\cubismnc.obj: kernel\kernelmesh.h
+distr\cubismnc.obj: parse\util.h
 distr\cubismnc.obj: parse\vars.h
 distr\cubismnc.obj: util\compressor.h
 distr\cubismnc.obj: util\format.h
@@ -189,6 +191,7 @@ distr\distrbasic.obj: geom\vect.h
 distr\distrbasic.obj: kernel\kernelmesh.h
 distr\distrbasic.obj: kernel\kernelmeshpar.h
 distr\distrbasic.obj: parse\parser.h
+distr\distrbasic.obj: parse\util.h
 distr\distrbasic.obj: parse\vars.h
 distr\distrbasic.obj: util\distr.h
 distr\distrbasic.obj: util\format.h
@@ -225,6 +228,7 @@ distr\distr.obj: geom\rangemulti.h
 distr\distr.obj: geom\transform.h
 distr\distr.obj: geom\vect.h
 distr\distr.obj: kernel\kernelmesh.h
+distr\distr.obj: parse\util.h
 distr\distr.obj: parse\vars.h
 distr\distr_particles.obj: distr\distr.h
 distr\distr_particles.obj: distr\distr_particles.ipp
@@ -246,6 +250,7 @@ distr\distr_particles.obj: geom\rangemulti.h
 distr\distr_particles.obj: geom\transform.h
 distr\distr_particles.obj: geom\vect.h
 distr\distr_particles.obj: kernel\kernelmesh.h
+distr\distr_particles.obj: parse\util.h
 distr\distr_particles.obj: parse\vars.h
 distr\distr_particles.obj: util\format.h
 distr\distr_particles.obj: util\logger.h
@@ -279,6 +284,7 @@ distr\distrsolver.obj: kernel\kernelmesh.h
 distr\distrsolver.obj: kernel\kernelmeshpar.h
 distr\distrsolver.obj: parse\argparse.h
 distr\distrsolver.obj: parse\parser.h
+distr\distrsolver.obj: parse\util.h
 distr\distrsolver.obj: parse\vars.h
 distr\distrsolver.obj: util\distr.h
 distr\distrsolver.obj: util\format.h
@@ -325,6 +331,7 @@ distr\local.obj: geom\rangemulti.h
 distr\local.obj: geom\transform.h
 distr\local.obj: geom\vect.h
 distr\local.obj: kernel\kernelmesh.h
+distr\local.obj: parse\util.h
 distr\local.obj: parse\vars.h
 distr\local.obj: util\format.h
 distr\local.obj: util\logger.h
@@ -360,6 +367,7 @@ distr\native.obj: geom\vect.h
 distr\native.obj: kernel\kernelmesh.h
 distr\native.obj: kernel\kernelmeshpar.h
 distr\native.obj: parse\parser.h
+distr\native.obj: parse\util.h
 distr\native.obj: parse\vars.h
 distr\native.obj: util\distr.h
 distr\native.obj: util\format.h
@@ -392,6 +400,8 @@ dump\dump.obj: geom\rangein.h
 dump\dump.obj: geom\rangemulti.h
 dump\dump.obj: geom\transform.h
 dump\dump.obj: geom\vect.h
+dump\dump.obj: parse\util.h
+dump\dump.obj: util\format.h
 dump\dump.obj: util\logger.h
 dump\dump.obj: util\macros.h
 dump\dump.obj: util\mpi.h
@@ -437,6 +447,7 @@ dump\raw.obj: geom\rangemulti.h
 dump\raw.obj: geom\transform.h
 dump\raw.obj: geom\vect.h
 dump\raw.obj: util\distr.h
+dump\raw.obj: util\filesystem.h
 dump\raw.obj: util\format.h
 dump\raw.obj: util\logger.h
 dump\raw.obj: util\macros.h
@@ -676,11 +687,14 @@ kernel\hydro.obj: debug\isnan.h
 kernel\hydro.obj: debug\linear.h
 kernel\hydro.obj: distr\reduce.h
 kernel\hydro.obj: dump\dumper.h
+kernel\hydro.obj: dump\dump.h
 kernel\hydro.obj: dump\hdf.h
 kernel\hydro.obj: dump\raw.h
 kernel\hydro.obj: dump\xmf.h
 kernel\hydro.obj: func\init_contang.h
 kernel\hydro.obj: func\init.h
+kernel\hydro.obj: func\init_u.h
+kernel\hydro.obj: func\primlist.h
 kernel\hydro.obj: geom\blockface.h
 kernel\hydro.obj: geom\block.h
 kernel\hydro.obj: geom\dir.h
@@ -819,6 +833,7 @@ linear\linear_amgx.obj: linear\amgx.h
 linear\linear_amgx.obj: linear\linear_amgx.h
 linear\linear_amgx.obj: linear\linear.h
 linear\linear_amgx.obj: parse\parser.h
+linear\linear_amgx.obj: parse\util.h
 linear\linear_amgx.obj: parse\vars.h
 linear\linear_amgx.obj: util\distr.h
 linear\linear_amgx.obj: util\format.h
@@ -1290,6 +1305,9 @@ solver\normal.obj: util\macros.h
 solver\normal.obj: util\mpi.h
 solver\normal.obj: util\suspender.h
 solver\particles.obj: distr\reduce.h
+solver\particles.obj: dump\dump.h
+solver\particles.obj: dump\raw.h
+solver\particles.obj: dump\xmf.h
 solver\particles.obj: geom\blockface.h
 solver\particles.obj: geom\block.h
 solver\particles.obj: geom\dir.h
@@ -1305,8 +1323,9 @@ solver\particles.obj: geom\rangein.h
 solver\particles.obj: geom\rangemulti.h
 solver\particles.obj: geom\transform.h
 solver\particles.obj: geom\vect.h
+solver\particles.obj: parse\util.h
 solver\particles.obj: parse\vars.h
-solver\particles.obj: solver\advection.h
+solver\particles.obj: solver\approx2.h
 solver\particles.obj: solver\approx_eb.h
 solver\particles.obj: solver\approx.h
 solver\particles.obj: solver\cond.h
@@ -1319,10 +1338,8 @@ solver\particles.obj: solver\solver.h
 solver\particles.obj: util\format.h
 solver\particles.obj: util\logger.h
 solver\particles.obj: util\macros.h
-solver\particles.obj: util\module.h
 solver\particles.obj: util\mpi.h
 solver\particles.obj: util\suspender.h
-solver\particles.obj: util\vof.h
 solver\partstrmeshm.obj: debug\isnan.h
 solver\partstrmeshm.obj: distr\reduce.h
 solver\partstrmeshm.obj: dump\dumper.h
@@ -1641,6 +1658,7 @@ test\advection\main.obj: kernel\kernelmeshpar.h
 test\advection\main.obj: parse\curv.h
 test\advection\main.obj: parse\parser.h
 test\advection\main.obj: parse\solver.h
+test\advection\main.obj: parse\util.h
 test\advection\main.obj: parse\vars.h
 test\advection\main.obj: parse\vof.h
 test\advection\main.obj: solver\advection.h
@@ -1708,6 +1726,7 @@ test\approx\main.obj: geom\rangein.h
 test\approx\main.obj: geom\rangemulti.h
 test\approx\main.obj: geom\transform.h
 test\approx\main.obj: geom\vect.h
+test\approx\main.obj: parse\util.h
 test\approx\main.obj: parse\vars.h
 test\approx\main.obj: solver\approx_eb.h
 test\approx\main.obj: solver\approx.h
@@ -1803,6 +1822,7 @@ test\benchmark_mpi\main.obj: geom\vect.h
 test\benchmark_mpi\main.obj: kernel\kernelmesh.h
 test\benchmark_mpi\main.obj: kernel\kernelmeshpar.h
 test\benchmark_mpi\main.obj: parse\parser.h
+test\benchmark_mpi\main.obj: parse\util.h
 test\benchmark_mpi\main.obj: parse\vars.h
 test\benchmark_mpi\main.obj: util\distr.h
 test\benchmark_mpi\main.obj: util\logger.h
@@ -1874,6 +1894,7 @@ test\commhalo\main.obj: geom\vect.h
 test\commhalo\main.obj: kernel\kernelmesh.h
 test\commhalo\main.obj: kernel\kernelmeshpar.h
 test\commhalo\main.obj: parse\parser.h
+test\commhalo\main.obj: parse\util.h
 test\commhalo\main.obj: parse\vars.h
 test\commhalo\main.obj: util\distr.h
 test\commhalo\main.obj: util\logger.h
@@ -1909,6 +1930,7 @@ test\comm\main.obj: kernel\kernelmesh.h
 test\comm\main.obj: kernel\kernelmeshpar.h
 test\comm\main.obj: linear\linear.h
 test\comm\main.obj: parse\parser.h
+test\comm\main.obj: parse\util.h
 test\comm\main.obj: parse\vars.h
 test\comm\main.obj: solver\approx_eb.h
 test\comm\main.obj: solver\cond.h
@@ -1951,6 +1973,7 @@ test\commmap\main.obj: kernel\kernelmesh.h
 test\commmap\main.obj: kernel\kernelmeshpar.h
 test\commmap\main.obj: parse\argparse.h
 test\commmap\main.obj: parse\parser.h
+test\commmap\main.obj: parse\util.h
 test\commmap\main.obj: parse\vars.h
 test\commmap\main.obj: util\distr.h
 test\commmap\main.obj: util\format.h
@@ -1986,6 +2009,7 @@ test\commmap\manager.obj: kernel\kernelmesh.h
 test\commmap\manager.obj: kernel\kernelmeshpar.h
 test\commmap\manager.obj: parse\argparse.h
 test\commmap\manager.obj: parse\parser.h
+test\commmap\manager.obj: parse\util.h
 test\commmap\manager.obj: parse\vars.h
 test\commmap\manager.obj: util\distr.h
 test\commmap\manager.obj: util\format.h
@@ -2021,6 +2045,7 @@ test\commmap\rank.obj: kernel\kernelmesh.h
 test\commmap\rank.obj: kernel\kernelmeshpar.h
 test\commmap\rank.obj: parse\argparse.h
 test\commmap\rank.obj: parse\parser.h
+test\commmap\rank.obj: parse\util.h
 test\commmap\rank.obj: parse\vars.h
 test\commmap\rank.obj: util\distr.h
 test\commmap\rank.obj: util\format.h
@@ -2139,6 +2164,7 @@ test\dump\dump_diff.obj: kernel\kernelmesh.h
 test\dump\dump_diff.obj: kernel\kernelmeshpar.h
 test\dump\dump_diff.obj: parse\argparse.h
 test\dump\dump_diff.obj: parse\parser.h
+test\dump\dump_diff.obj: parse\util.h
 test\dump\dump_diff.obj: parse\vars.h
 test\dump\dump_diff.obj: util\distr.h
 test\dump\dump_diff.obj: util\filesystem.h
@@ -2179,6 +2205,7 @@ test\dump\dump_gen.obj: kernel\kernelmesh.h
 test\dump\dump_gen.obj: kernel\kernelmeshpar.h
 test\dump\dump_gen.obj: parse\argparse.h
 test\dump\dump_gen.obj: parse\parser.h
+test\dump\dump_gen.obj: parse\util.h
 test\dump\dump_gen.obj: parse\vars.h
 test\dump\dump_gen.obj: util\distr.h
 test\dump\dump_gen.obj: util\filesystem.h
@@ -2229,6 +2256,7 @@ test\embed_approx\main.obj: geom\vect.h
 test\embed_approx\main.obj: inside\inside.h
 test\embed_approx\main.obj: kernel\kernelmesh.h
 test\embed_approx\main.obj: kernel\kernelmeshpar.h
+test\embed_approx\main.obj: parse\util.h
 test\embed_approx\main.obj: parse\vars.h
 test\embed_approx\main.obj: solver\approx_eb.h
 test\embed_approx\main.obj: solver\approx_eb.ipp
@@ -2268,6 +2296,7 @@ test\embed_convdiff\main.obj: kernel\kernelmesh.h
 test\embed_convdiff\main.obj: kernel\kernelmeshpar.h
 test\embed_convdiff\main.obj: linear\linear.h
 test\embed_convdiff\main.obj: parse\parser.h
+test\embed_convdiff\main.obj: parse\util.h
 test\embed_convdiff\main.obj: parse\vars.h
 test\embed_convdiff\main.obj: solver\approx2.h
 test\embed_convdiff\main.obj: solver\approx_eb.h
@@ -2313,6 +2342,7 @@ test\embed_grad\main.obj: geom\vect.h
 test\embed_grad\main.obj: kernel\kernelmesh.h
 test\embed_grad\main.obj: kernel\kernelmeshpar.h
 test\embed_grad\main.obj: parse\parser.h
+test\embed_grad\main.obj: parse\util.h
 test\embed_grad\main.obj: parse\vars.h
 test\embed_grad\main.obj: solver\approx_eb.h
 test\embed_grad\main.obj: solver\cond.h
@@ -2352,6 +2382,7 @@ test\embed_interpolate\main.obj: geom\vect.h
 test\embed_interpolate\main.obj: kernel\kernelmesh.h
 test\embed_interpolate\main.obj: kernel\kernelmeshpar.h
 test\embed_interpolate\main.obj: parse\parser.h
+test\embed_interpolate\main.obj: parse\util.h
 test\embed_interpolate\main.obj: parse\vars.h
 test\embed_interpolate\main.obj: solver\approx_eb.h
 test\embed_interpolate\main.obj: solver\approx.h
@@ -2503,6 +2534,7 @@ test\fluid\main.obj: kernel\kernelmesh.h
 test\fluid\main.obj: kernel\kernelmeshpar.h
 test\fluid\main.obj: linear\linear.h
 test\fluid\main.obj: parse\parser.h
+test\fluid\main.obj: parse\util.h
 test\fluid\main.obj: parse\vars.h
 test\fluid\main.obj: solver\approx_eb.h
 test\fluid\main.obj: solver\approx.h
@@ -2620,6 +2652,7 @@ test\inner\main.obj: geom\vect.h
 test\inner\main.obj: kernel\kernelmesh.h
 test\inner\main.obj: kernel\kernelmeshpar.h
 test\inner\main.obj: parse\parser.h
+test\inner\main.obj: parse\util.h
 test\inner\main.obj: parse\vars.h
 test\inner\main.obj: util\distr.h
 test\inner\main.obj: util\logger.h
@@ -2658,6 +2691,7 @@ test\linear\main.obj: kernel\kernelmeshpar.h
 test\linear\main.obj: linear\linear.h
 test\linear\main.obj: parse\argparse.h
 test\linear\main.obj: parse\parser.h
+test\linear\main.obj: parse\util.h
 test\linear\main.obj: parse\vars.h
 test\linear\main.obj: solver\approx_eb.h
 test\linear\main.obj: solver\cond.h
@@ -2718,6 +2752,7 @@ test\openmp\main.obj: geom\vect.h
 test\openmp\main.obj: kernel\kernelmesh.h
 test\openmp\main.obj: kernel\kernelmeshpar.h
 test\openmp\main.obj: parse\parser.h
+test\openmp\main.obj: parse\util.h
 test\openmp\main.obj: parse\vars.h
 test\openmp\main.obj: util\distr.h
 test\openmp\main.obj: util\logger.h
@@ -2764,6 +2799,7 @@ test\particles\main.obj: kernel\kernelmeshpar.h
 test\particles\main.obj: linear\linear.h
 test\particles\main.obj: parse\argparse.h
 test\particles\main.obj: parse\parser.h
+test\particles\main.obj: parse\util.h
 test\particles\main.obj: parse\vars.h
 test\particles\main.obj: solver\approx_eb.h
 test\particles\main.obj: solver\cond.h
@@ -2820,6 +2856,7 @@ test\recolor\main.obj: geom\vect.h
 test\recolor\main.obj: kernel\kernelmesh.h
 test\recolor\main.obj: kernel\kernelmeshpar.h
 test\recolor\main.obj: parse\parser.h
+test\recolor\main.obj: parse\util.h
 test\recolor\main.obj: parse\vars.h
 test\recolor\main.obj: solver\advection.h
 test\recolor\main.obj: solver\approx_eb.h
@@ -2948,6 +2985,7 @@ test\stat\main.obj: geom\vect.h
 test\stat\main.obj: kernel\kernelmesh.h
 test\stat\main.obj: kernel\kernelmeshpar.h
 test\stat\main.obj: parse\parser.h
+test\stat\main.obj: parse\util.h
 test\stat\main.obj: parse\vars.h
 test\stat\main.obj: solver\approx_eb.h
 test\stat\main.obj: solver\cond.h
@@ -3330,6 +3368,7 @@ util\visual.obj: geom\blockface.h
 util\visual.obj: geom\block.h
 util\visual.obj: geom\dir.h
 util\visual.obj: geom\field.h
+util\visual.obj: geom\filter.h
 util\visual.obj: geom\idx.h
 util\visual.obj: geom\loop.h
 util\visual.obj: geom\map.h
@@ -3343,6 +3382,11 @@ util\visual.obj: geom\vect.h
 util\visual.obj: parse\codeblocks.h
 util\visual.obj: parse\parser.h
 util\visual.obj: parse\vars.h
+util\visual.obj: solver\approx_eb.h
+util\visual.obj: solver\cond.h
+util\visual.obj: solver\embed.h
+util\visual.obj: solver\reconst.h
+util\visual.obj: solver\solver.h
 util\visual.obj: util\logger.h
 util\visual.obj: util\macros.h
 util\visual.obj: util\mpi.h

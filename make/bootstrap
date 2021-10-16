@@ -57,7 +57,7 @@ grep '\/' $h | sed 's,\/.*,,g' | uniq | ../make/var D > ../make/unix/dir.mk
 grep '\/' $o | sed 's,\/.*,,g' | uniq | awk '{printf "$(WRK)/%s\n", $1}' | \
     ../make/var P > ../make/unix/dir.rule.mk
 awk '{printf "$(WRK)/%s.o: $(WRK)/.dir\n", $1}' $o > ../make/unix/dir.dep.mk
-../make/minus $o $b | awk '{printf "$(WRK)/%s.o\n", $1}' | ../make/var O > ../make/unix/obj.mk
+../make/minus $o $b ../make/skip | awk '{printf "$(WRK)/%s.o\n", $1}' | ../make/var O > ../make/unix/obj.mk
 awk '{printf "$(WRK)/%s\n", $1}' $b | ../make/var B > ../make/unix/bin.mk
 {
     awk '{printf "$(WRK)/%s.o: $(SRC)/%s; %s $(SRC)/%s\n", $1, $2, $3, $2}' $o;
@@ -69,7 +69,7 @@ awk '{printf "$(WRK)/%s\n", $1}' $b | ../make/var B > ../make/unix/bin.mk
     awk '{printf "%s.obj: %s\n", $1, $2}' $d;
     awk '{printf "%s: $L\n", $1}' $b;
 } | sed 's,/,\\,g' > ../make/windows/dep.mk
-../make/minus $o $b | awk '{printf "%s.obj\n", $1}' | sed 's,/,\\,g' | \
+../make/minus $o $b ../make/skip | awk '{printf "%s.obj\n", $1}' | sed 's,/,\\,g' | \
     ../make/var O > ../make/windows/obj.mk
 awk '{printf "%s.exe\n", $1}' $b | ../make/var B > ../make/windows/bin.mk
 {

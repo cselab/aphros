@@ -112,6 +112,7 @@ $(WRK)/distr/comm_manager.o: $(SRC)/geom/vect.h
 $(WRK)/distr/comm_manager.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/distr/comm_manager.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/distr/comm_manager.o: $(SRC)/parse/parser.h
+$(WRK)/distr/comm_manager.o: $(SRC)/parse/util.h
 $(WRK)/distr/comm_manager.o: $(SRC)/parse/vars.h
 $(WRK)/distr/comm_manager.o: $(SRC)/util/distr.h
 $(WRK)/distr/comm_manager.o: $(SRC)/util/format.h
@@ -155,6 +156,7 @@ $(WRK)/distr/cubismnc.o: $(SRC)/geom/rangemulti.h
 $(WRK)/distr/cubismnc.o: $(SRC)/geom/transform.h
 $(WRK)/distr/cubismnc.o: $(SRC)/geom/vect.h
 $(WRK)/distr/cubismnc.o: $(SRC)/kernel/kernelmesh.h
+$(WRK)/distr/cubismnc.o: $(SRC)/parse/util.h
 $(WRK)/distr/cubismnc.o: $(SRC)/parse/vars.h
 $(WRK)/distr/cubismnc.o: $(SRC)/util/compressor.h
 $(WRK)/distr/cubismnc.o: $(SRC)/util/format.h
@@ -189,6 +191,7 @@ $(WRK)/distr/distrbasic.o: $(SRC)/geom/vect.h
 $(WRK)/distr/distrbasic.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/distr/distrbasic.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/distr/distrbasic.o: $(SRC)/parse/parser.h
+$(WRK)/distr/distrbasic.o: $(SRC)/parse/util.h
 $(WRK)/distr/distrbasic.o: $(SRC)/parse/vars.h
 $(WRK)/distr/distrbasic.o: $(SRC)/util/distr.h
 $(WRK)/distr/distrbasic.o: $(SRC)/util/format.h
@@ -225,6 +228,7 @@ $(WRK)/distr/distr.o: $(SRC)/geom/rangemulti.h
 $(WRK)/distr/distr.o: $(SRC)/geom/transform.h
 $(WRK)/distr/distr.o: $(SRC)/geom/vect.h
 $(WRK)/distr/distr.o: $(SRC)/kernel/kernelmesh.h
+$(WRK)/distr/distr.o: $(SRC)/parse/util.h
 $(WRK)/distr/distr.o: $(SRC)/parse/vars.h
 $(WRK)/distr/distr_particles.o: $(SRC)/distr/distr.h
 $(WRK)/distr/distr_particles.o: $(SRC)/distr/distr_particles.ipp
@@ -246,6 +250,7 @@ $(WRK)/distr/distr_particles.o: $(SRC)/geom/rangemulti.h
 $(WRK)/distr/distr_particles.o: $(SRC)/geom/transform.h
 $(WRK)/distr/distr_particles.o: $(SRC)/geom/vect.h
 $(WRK)/distr/distr_particles.o: $(SRC)/kernel/kernelmesh.h
+$(WRK)/distr/distr_particles.o: $(SRC)/parse/util.h
 $(WRK)/distr/distr_particles.o: $(SRC)/parse/vars.h
 $(WRK)/distr/distr_particles.o: $(SRC)/util/format.h
 $(WRK)/distr/distr_particles.o: $(SRC)/util/logger.h
@@ -279,6 +284,7 @@ $(WRK)/distr/distrsolver.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/distr/distrsolver.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/distr/distrsolver.o: $(SRC)/parse/argparse.h
 $(WRK)/distr/distrsolver.o: $(SRC)/parse/parser.h
+$(WRK)/distr/distrsolver.o: $(SRC)/parse/util.h
 $(WRK)/distr/distrsolver.o: $(SRC)/parse/vars.h
 $(WRK)/distr/distrsolver.o: $(SRC)/util/distr.h
 $(WRK)/distr/distrsolver.o: $(SRC)/util/format.h
@@ -325,6 +331,7 @@ $(WRK)/distr/local.o: $(SRC)/geom/rangemulti.h
 $(WRK)/distr/local.o: $(SRC)/geom/transform.h
 $(WRK)/distr/local.o: $(SRC)/geom/vect.h
 $(WRK)/distr/local.o: $(SRC)/kernel/kernelmesh.h
+$(WRK)/distr/local.o: $(SRC)/parse/util.h
 $(WRK)/distr/local.o: $(SRC)/parse/vars.h
 $(WRK)/distr/local.o: $(SRC)/util/format.h
 $(WRK)/distr/local.o: $(SRC)/util/logger.h
@@ -360,6 +367,7 @@ $(WRK)/distr/native.o: $(SRC)/geom/vect.h
 $(WRK)/distr/native.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/distr/native.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/distr/native.o: $(SRC)/parse/parser.h
+$(WRK)/distr/native.o: $(SRC)/parse/util.h
 $(WRK)/distr/native.o: $(SRC)/parse/vars.h
 $(WRK)/distr/native.o: $(SRC)/util/distr.h
 $(WRK)/distr/native.o: $(SRC)/util/format.h
@@ -392,6 +400,8 @@ $(WRK)/dump/dump.o: $(SRC)/geom/rangein.h
 $(WRK)/dump/dump.o: $(SRC)/geom/rangemulti.h
 $(WRK)/dump/dump.o: $(SRC)/geom/transform.h
 $(WRK)/dump/dump.o: $(SRC)/geom/vect.h
+$(WRK)/dump/dump.o: $(SRC)/parse/util.h
+$(WRK)/dump/dump.o: $(SRC)/util/format.h
 $(WRK)/dump/dump.o: $(SRC)/util/logger.h
 $(WRK)/dump/dump.o: $(SRC)/util/macros.h
 $(WRK)/dump/dump.o: $(SRC)/util/mpi.h
@@ -437,6 +447,7 @@ $(WRK)/dump/raw.o: $(SRC)/geom/rangemulti.h
 $(WRK)/dump/raw.o: $(SRC)/geom/transform.h
 $(WRK)/dump/raw.o: $(SRC)/geom/vect.h
 $(WRK)/dump/raw.o: $(SRC)/util/distr.h
+$(WRK)/dump/raw.o: $(SRC)/util/filesystem.h
 $(WRK)/dump/raw.o: $(SRC)/util/format.h
 $(WRK)/dump/raw.o: $(SRC)/util/logger.h
 $(WRK)/dump/raw.o: $(SRC)/util/macros.h
@@ -676,11 +687,14 @@ $(WRK)/kernel/hydro.o: $(SRC)/debug/isnan.h
 $(WRK)/kernel/hydro.o: $(SRC)/debug/linear.h
 $(WRK)/kernel/hydro.o: $(SRC)/distr/reduce.h
 $(WRK)/kernel/hydro.o: $(SRC)/dump/dumper.h
+$(WRK)/kernel/hydro.o: $(SRC)/dump/dump.h
 $(WRK)/kernel/hydro.o: $(SRC)/dump/hdf.h
 $(WRK)/kernel/hydro.o: $(SRC)/dump/raw.h
 $(WRK)/kernel/hydro.o: $(SRC)/dump/xmf.h
 $(WRK)/kernel/hydro.o: $(SRC)/func/init_contang.h
 $(WRK)/kernel/hydro.o: $(SRC)/func/init.h
+$(WRK)/kernel/hydro.o: $(SRC)/func/init_u.h
+$(WRK)/kernel/hydro.o: $(SRC)/func/primlist.h
 $(WRK)/kernel/hydro.o: $(SRC)/geom/blockface.h
 $(WRK)/kernel/hydro.o: $(SRC)/geom/block.h
 $(WRK)/kernel/hydro.o: $(SRC)/geom/dir.h
@@ -819,6 +833,7 @@ $(WRK)/linear/linear_amgx.o: $(SRC)/linear/amgx.h
 $(WRK)/linear/linear_amgx.o: $(SRC)/linear/linear_amgx.h
 $(WRK)/linear/linear_amgx.o: $(SRC)/linear/linear.h
 $(WRK)/linear/linear_amgx.o: $(SRC)/parse/parser.h
+$(WRK)/linear/linear_amgx.o: $(SRC)/parse/util.h
 $(WRK)/linear/linear_amgx.o: $(SRC)/parse/vars.h
 $(WRK)/linear/linear_amgx.o: $(SRC)/util/distr.h
 $(WRK)/linear/linear_amgx.o: $(SRC)/util/format.h
@@ -1290,6 +1305,9 @@ $(WRK)/solver/normal.o: $(SRC)/util/macros.h
 $(WRK)/solver/normal.o: $(SRC)/util/mpi.h
 $(WRK)/solver/normal.o: $(SRC)/util/suspender.h
 $(WRK)/solver/particles.o: $(SRC)/distr/reduce.h
+$(WRK)/solver/particles.o: $(SRC)/dump/dump.h
+$(WRK)/solver/particles.o: $(SRC)/dump/raw.h
+$(WRK)/solver/particles.o: $(SRC)/dump/xmf.h
 $(WRK)/solver/particles.o: $(SRC)/geom/blockface.h
 $(WRK)/solver/particles.o: $(SRC)/geom/block.h
 $(WRK)/solver/particles.o: $(SRC)/geom/dir.h
@@ -1305,8 +1323,9 @@ $(WRK)/solver/particles.o: $(SRC)/geom/rangein.h
 $(WRK)/solver/particles.o: $(SRC)/geom/rangemulti.h
 $(WRK)/solver/particles.o: $(SRC)/geom/transform.h
 $(WRK)/solver/particles.o: $(SRC)/geom/vect.h
+$(WRK)/solver/particles.o: $(SRC)/parse/util.h
 $(WRK)/solver/particles.o: $(SRC)/parse/vars.h
-$(WRK)/solver/particles.o: $(SRC)/solver/advection.h
+$(WRK)/solver/particles.o: $(SRC)/solver/approx2.h
 $(WRK)/solver/particles.o: $(SRC)/solver/approx_eb.h
 $(WRK)/solver/particles.o: $(SRC)/solver/approx.h
 $(WRK)/solver/particles.o: $(SRC)/solver/cond.h
@@ -1319,10 +1338,8 @@ $(WRK)/solver/particles.o: $(SRC)/solver/solver.h
 $(WRK)/solver/particles.o: $(SRC)/util/format.h
 $(WRK)/solver/particles.o: $(SRC)/util/logger.h
 $(WRK)/solver/particles.o: $(SRC)/util/macros.h
-$(WRK)/solver/particles.o: $(SRC)/util/module.h
 $(WRK)/solver/particles.o: $(SRC)/util/mpi.h
 $(WRK)/solver/particles.o: $(SRC)/util/suspender.h
-$(WRK)/solver/particles.o: $(SRC)/util/vof.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/debug/isnan.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/distr/reduce.h
 $(WRK)/solver/partstrmeshm.o: $(SRC)/dump/dumper.h
@@ -1641,6 +1658,7 @@ $(WRK)/test/advection/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/advection/main.o: $(SRC)/parse/curv.h
 $(WRK)/test/advection/main.o: $(SRC)/parse/parser.h
 $(WRK)/test/advection/main.o: $(SRC)/parse/solver.h
+$(WRK)/test/advection/main.o: $(SRC)/parse/util.h
 $(WRK)/test/advection/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/advection/main.o: $(SRC)/parse/vof.h
 $(WRK)/test/advection/main.o: $(SRC)/solver/advection.h
@@ -1708,6 +1726,7 @@ $(WRK)/test/approx/main.o: $(SRC)/geom/rangein.h
 $(WRK)/test/approx/main.o: $(SRC)/geom/rangemulti.h
 $(WRK)/test/approx/main.o: $(SRC)/geom/transform.h
 $(WRK)/test/approx/main.o: $(SRC)/geom/vect.h
+$(WRK)/test/approx/main.o: $(SRC)/parse/util.h
 $(WRK)/test/approx/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/approx/main.o: $(SRC)/solver/approx_eb.h
 $(WRK)/test/approx/main.o: $(SRC)/solver/approx.h
@@ -1803,6 +1822,7 @@ $(WRK)/test/benchmark_mpi/main.o: $(SRC)/geom/vect.h
 $(WRK)/test/benchmark_mpi/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/benchmark_mpi/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/benchmark_mpi/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/benchmark_mpi/main.o: $(SRC)/parse/util.h
 $(WRK)/test/benchmark_mpi/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/benchmark_mpi/main.o: $(SRC)/util/distr.h
 $(WRK)/test/benchmark_mpi/main.o: $(SRC)/util/logger.h
@@ -1874,6 +1894,7 @@ $(WRK)/test/commhalo/main.o: $(SRC)/geom/vect.h
 $(WRK)/test/commhalo/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/commhalo/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/commhalo/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/commhalo/main.o: $(SRC)/parse/util.h
 $(WRK)/test/commhalo/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/commhalo/main.o: $(SRC)/util/distr.h
 $(WRK)/test/commhalo/main.o: $(SRC)/util/logger.h
@@ -1909,6 +1930,7 @@ $(WRK)/test/comm/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/comm/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/comm/main.o: $(SRC)/linear/linear.h
 $(WRK)/test/comm/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/comm/main.o: $(SRC)/parse/util.h
 $(WRK)/test/comm/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/comm/main.o: $(SRC)/solver/approx_eb.h
 $(WRK)/test/comm/main.o: $(SRC)/solver/cond.h
@@ -1951,6 +1973,7 @@ $(WRK)/test/commmap/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/commmap/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/commmap/main.o: $(SRC)/parse/argparse.h
 $(WRK)/test/commmap/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/commmap/main.o: $(SRC)/parse/util.h
 $(WRK)/test/commmap/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/commmap/main.o: $(SRC)/util/distr.h
 $(WRK)/test/commmap/main.o: $(SRC)/util/format.h
@@ -1986,6 +2009,7 @@ $(WRK)/test/commmap/manager.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/commmap/manager.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/commmap/manager.o: $(SRC)/parse/argparse.h
 $(WRK)/test/commmap/manager.o: $(SRC)/parse/parser.h
+$(WRK)/test/commmap/manager.o: $(SRC)/parse/util.h
 $(WRK)/test/commmap/manager.o: $(SRC)/parse/vars.h
 $(WRK)/test/commmap/manager.o: $(SRC)/util/distr.h
 $(WRK)/test/commmap/manager.o: $(SRC)/util/format.h
@@ -2021,6 +2045,7 @@ $(WRK)/test/commmap/rank.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/commmap/rank.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/commmap/rank.o: $(SRC)/parse/argparse.h
 $(WRK)/test/commmap/rank.o: $(SRC)/parse/parser.h
+$(WRK)/test/commmap/rank.o: $(SRC)/parse/util.h
 $(WRK)/test/commmap/rank.o: $(SRC)/parse/vars.h
 $(WRK)/test/commmap/rank.o: $(SRC)/util/distr.h
 $(WRK)/test/commmap/rank.o: $(SRC)/util/format.h
@@ -2139,6 +2164,7 @@ $(WRK)/test/dump/dump_diff.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/dump/dump_diff.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/dump/dump_diff.o: $(SRC)/parse/argparse.h
 $(WRK)/test/dump/dump_diff.o: $(SRC)/parse/parser.h
+$(WRK)/test/dump/dump_diff.o: $(SRC)/parse/util.h
 $(WRK)/test/dump/dump_diff.o: $(SRC)/parse/vars.h
 $(WRK)/test/dump/dump_diff.o: $(SRC)/util/distr.h
 $(WRK)/test/dump/dump_diff.o: $(SRC)/util/filesystem.h
@@ -2179,6 +2205,7 @@ $(WRK)/test/dump/dump_gen.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/dump/dump_gen.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/dump/dump_gen.o: $(SRC)/parse/argparse.h
 $(WRK)/test/dump/dump_gen.o: $(SRC)/parse/parser.h
+$(WRK)/test/dump/dump_gen.o: $(SRC)/parse/util.h
 $(WRK)/test/dump/dump_gen.o: $(SRC)/parse/vars.h
 $(WRK)/test/dump/dump_gen.o: $(SRC)/util/distr.h
 $(WRK)/test/dump/dump_gen.o: $(SRC)/util/filesystem.h
@@ -2229,6 +2256,7 @@ $(WRK)/test/embed_approx/main.o: $(SRC)/geom/vect.h
 $(WRK)/test/embed_approx/main.o: $(SRC)/inside/inside.h
 $(WRK)/test/embed_approx/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/embed_approx/main.o: $(SRC)/kernel/kernelmeshpar.h
+$(WRK)/test/embed_approx/main.o: $(SRC)/parse/util.h
 $(WRK)/test/embed_approx/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/embed_approx/main.o: $(SRC)/solver/approx_eb.h
 $(WRK)/test/embed_approx/main.o: $(SRC)/solver/approx_eb.ipp
@@ -2268,6 +2296,7 @@ $(WRK)/test/embed_convdiff/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/embed_convdiff/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/embed_convdiff/main.o: $(SRC)/linear/linear.h
 $(WRK)/test/embed_convdiff/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/embed_convdiff/main.o: $(SRC)/parse/util.h
 $(WRK)/test/embed_convdiff/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/embed_convdiff/main.o: $(SRC)/solver/approx2.h
 $(WRK)/test/embed_convdiff/main.o: $(SRC)/solver/approx_eb.h
@@ -2313,6 +2342,7 @@ $(WRK)/test/embed_grad/main.o: $(SRC)/geom/vect.h
 $(WRK)/test/embed_grad/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/embed_grad/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/embed_grad/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/embed_grad/main.o: $(SRC)/parse/util.h
 $(WRK)/test/embed_grad/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/embed_grad/main.o: $(SRC)/solver/approx_eb.h
 $(WRK)/test/embed_grad/main.o: $(SRC)/solver/cond.h
@@ -2352,6 +2382,7 @@ $(WRK)/test/embed_interpolate/main.o: $(SRC)/geom/vect.h
 $(WRK)/test/embed_interpolate/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/embed_interpolate/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/embed_interpolate/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/embed_interpolate/main.o: $(SRC)/parse/util.h
 $(WRK)/test/embed_interpolate/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/embed_interpolate/main.o: $(SRC)/solver/approx_eb.h
 $(WRK)/test/embed_interpolate/main.o: $(SRC)/solver/approx.h
@@ -2503,6 +2534,7 @@ $(WRK)/test/fluid/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/fluid/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/fluid/main.o: $(SRC)/linear/linear.h
 $(WRK)/test/fluid/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/fluid/main.o: $(SRC)/parse/util.h
 $(WRK)/test/fluid/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/fluid/main.o: $(SRC)/solver/approx_eb.h
 $(WRK)/test/fluid/main.o: $(SRC)/solver/approx.h
@@ -2620,6 +2652,7 @@ $(WRK)/test/inner/main.o: $(SRC)/geom/vect.h
 $(WRK)/test/inner/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/inner/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/inner/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/inner/main.o: $(SRC)/parse/util.h
 $(WRK)/test/inner/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/inner/main.o: $(SRC)/util/distr.h
 $(WRK)/test/inner/main.o: $(SRC)/util/logger.h
@@ -2658,6 +2691,7 @@ $(WRK)/test/linear/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/linear/main.o: $(SRC)/linear/linear.h
 $(WRK)/test/linear/main.o: $(SRC)/parse/argparse.h
 $(WRK)/test/linear/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/linear/main.o: $(SRC)/parse/util.h
 $(WRK)/test/linear/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/linear/main.o: $(SRC)/solver/approx_eb.h
 $(WRK)/test/linear/main.o: $(SRC)/solver/cond.h
@@ -2718,6 +2752,7 @@ $(WRK)/test/openmp/main.o: $(SRC)/geom/vect.h
 $(WRK)/test/openmp/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/openmp/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/openmp/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/openmp/main.o: $(SRC)/parse/util.h
 $(WRK)/test/openmp/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/openmp/main.o: $(SRC)/util/distr.h
 $(WRK)/test/openmp/main.o: $(SRC)/util/logger.h
@@ -2764,6 +2799,7 @@ $(WRK)/test/particles/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/particles/main.o: $(SRC)/linear/linear.h
 $(WRK)/test/particles/main.o: $(SRC)/parse/argparse.h
 $(WRK)/test/particles/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/particles/main.o: $(SRC)/parse/util.h
 $(WRK)/test/particles/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/particles/main.o: $(SRC)/solver/approx_eb.h
 $(WRK)/test/particles/main.o: $(SRC)/solver/cond.h
@@ -2820,6 +2856,7 @@ $(WRK)/test/recolor/main.o: $(SRC)/geom/vect.h
 $(WRK)/test/recolor/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/recolor/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/recolor/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/recolor/main.o: $(SRC)/parse/util.h
 $(WRK)/test/recolor/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/recolor/main.o: $(SRC)/solver/advection.h
 $(WRK)/test/recolor/main.o: $(SRC)/solver/approx_eb.h
@@ -2948,6 +2985,7 @@ $(WRK)/test/stat/main.o: $(SRC)/geom/vect.h
 $(WRK)/test/stat/main.o: $(SRC)/kernel/kernelmesh.h
 $(WRK)/test/stat/main.o: $(SRC)/kernel/kernelmeshpar.h
 $(WRK)/test/stat/main.o: $(SRC)/parse/parser.h
+$(WRK)/test/stat/main.o: $(SRC)/parse/util.h
 $(WRK)/test/stat/main.o: $(SRC)/parse/vars.h
 $(WRK)/test/stat/main.o: $(SRC)/solver/approx_eb.h
 $(WRK)/test/stat/main.o: $(SRC)/solver/cond.h
@@ -3330,6 +3368,7 @@ $(WRK)/util/visual.o: $(SRC)/geom/blockface.h
 $(WRK)/util/visual.o: $(SRC)/geom/block.h
 $(WRK)/util/visual.o: $(SRC)/geom/dir.h
 $(WRK)/util/visual.o: $(SRC)/geom/field.h
+$(WRK)/util/visual.o: $(SRC)/geom/filter.h
 $(WRK)/util/visual.o: $(SRC)/geom/idx.h
 $(WRK)/util/visual.o: $(SRC)/geom/loop.h
 $(WRK)/util/visual.o: $(SRC)/geom/map.h
@@ -3343,6 +3382,11 @@ $(WRK)/util/visual.o: $(SRC)/geom/vect.h
 $(WRK)/util/visual.o: $(SRC)/parse/codeblocks.h
 $(WRK)/util/visual.o: $(SRC)/parse/parser.h
 $(WRK)/util/visual.o: $(SRC)/parse/vars.h
+$(WRK)/util/visual.o: $(SRC)/solver/approx_eb.h
+$(WRK)/util/visual.o: $(SRC)/solver/cond.h
+$(WRK)/util/visual.o: $(SRC)/solver/embed.h
+$(WRK)/util/visual.o: $(SRC)/solver/reconst.h
+$(WRK)/util/visual.o: $(SRC)/solver/solver.h
 $(WRK)/util/visual.o: $(SRC)/util/logger.h
 $(WRK)/util/visual.o: $(SRC)/util/macros.h
 $(WRK)/util/visual.o: $(SRC)/util/mpi.h

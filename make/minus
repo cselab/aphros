@@ -1,8 +1,9 @@
 #!/usr/bin/awk -f
 
 BEGIN {
-    while (getline < ARGV[2])
-	s[$1]
+    for (i = 2; i in ARGV; i++)
+	while (getline < ARGV[i])
+	    s[$1]
     while (getline < ARGV[1])
 	if (!($1 in s))
 	    print

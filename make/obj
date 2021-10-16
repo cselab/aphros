@@ -1,19 +1,5 @@
 #!/usr/bin/awk -f
 
-BEGIN {
-    skip["distr/cubismnc.cpp"]
-    skip["gen/wave_lamb.c"]
-    skip["linear/hypre.cpp"]
-    skip["linear/hypresub.cpp"]
-    skip["linear/linear_amgx.cpp"]
-    skip["linear/linear_hypre.cpp"]
-    skip["linear/conjugate_cl.cpp"]
-    skip["opencl/opencl.cpp"]
-    skip["util/subcomm.cpp"]
-    skip["util/subcomm_dummy.cpp"]
-}
-
-($1 in skip) { next }
 {
     file = $0
     if (sub(/\.cpp$/, ""))

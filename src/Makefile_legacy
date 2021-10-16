@@ -8,6 +8,7 @@ K = libaphros_shared.so
 USE_MPI = 0
 USE_HDF = 0
 USE_OPENMP = 1
+USE_OPENCL = 0
 CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g
 CXXFLAGS_STD = -std=c++14
@@ -15,7 +16,7 @@ FLAGS_FPIC = -fPIC
 CC_RULE = $(CC) -c $(CFLAGS) $(FLAGS_FPIC) -o $@
 CXX_RULE = $(ENV_HDF) $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(FLAGS_FPIC) -I$(SRC) $1 -o $@
 LINK = $(ENV_HDF) $(CXX)
-LINK_FLAGS = $(WRK)/$L $(LDFLAGS) -o $@
+LINK_FLAGS = $(WRK)/$L $(LDFLAGS) $(LDFLAGS_OPENCL) -o $@
 1 = \
 -D_ALIGNBYTES_=16 \
 -D_USE_AMGX_=0 \
@@ -29,11 +30,13 @@ LINK_FLAGS = $(WRK)/$L $(LDFLAGS) -o $@
 -D_USE_DIM4_=0 \
 -D_USE_FPZIP_=0 \
 -D_USE_HYPRE_=0 \
+-D_USE_OPENCL_=${USE_OPENCL} \
 -D_USE_OPENMP_=${USE_OPENMP} \
 -D_USE_MPI_=$(USE_MPI) \
 -D_USE_HDF_=$(USE_HDF) \
 
 all: $(WRK)/$L $(WRK)/main $(WRK)/explorer
+include $(SRC)/../make/$(USE_OPENCL)opencl.mk
 include $(SRC)/../make/$(USE_HDF)hdf.$(USE_MPI)mpi.mk
 include $(SRC)/../make/hdr.mk
 include $(SRC)/../make/unix/bin.mk
@@ -44,12 +47,16 @@ include $(SRC)/../make/unix/dir.rule.mk
 include $(SRC)/../make/unix/obj.mk
 include $(SRC)/../make/unix/rule.mk
 
-$(WRK)/$L: $O $(O_MPI) ; mkdir -p $(WRK) && ar rv $@ $O $(O_MPI) && ranlib $@
-$(WRK)/$J: $O $(O_MPI) ; mkdir -p $(WRK) && emar rv $@ $O $(O_MPI)
-$(WRK)/$K: $O $(O_MPI) ; mkdir -p $(WRK) && $(LINK) -shared -o $@ $O $(O_MPI)
+$(WRK)/$L: $O $(O_MPI) $(O_OPENCL); mkdir -p $(WRK) && ar rv $@ $O $(O_MPI) $(O_OPENCL) && ranlib $@
+$(WRK)/$J: $O $(O_MPI) $(O_OPENCL); mkdir -p $(WRK) && emar rv $@ $O $(O_MPI) $(O_OPENCL)
+$(WRK)/$K: $O $(O_MPI) $(O_OPENCL); mkdir -p $(WRK) && $(LINK) -shared -o $@ $O $(O_MPI) $(O_OPENCL)
 $(WRK)/.dir:; mkdir -p $P && > $@
 $(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@
 $(SRC)/explorer.inc:; out="$@" base=$(SRC)/../deploy/scripts/sim_base.conf wasm="$(SRC)/../examples/107_wasm/conf/std.conf" $(SRC)/explorer_gen
+$(SRC)/linear/conjugate_cl.inc: $(SRC)/linear/conjugate_cl.cl
+	$(SRC)/linear/kernel.gen $< $@
+$(SRC)/opencl/kernels.inc: $(SRC)/opencl/kernels.cl
+	cd $(SRC)/opencl && ./kernels.gen
 install: $(WRK)/$L $(WRK)/main $(WRK)/explorer
 	mkdir -p '$(APHROS_PREFIX)'/lib '$(APHROS_PREFIX)'/bin '$(APHROS_PREFIX)'/include
 	for i in $D; \
@@ -68,5 +75,5 @@ install_shared: $(WRK)/$K
 bin: $B
 shared: $(WRK)/$K
 clean:
-	-rm -f $O $(O_MPI) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/$K $B
+	-rm -f $O $(O_MPI) $(O_OPENCL) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/$K $B
 	-rmdir -p $P

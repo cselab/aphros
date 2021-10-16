@@ -3,6 +3,7 @@ $(WRK)/aphros_c/main.o: $(WRK)/.dir
 $(WRK)/aphros_c/parser.o: $(WRK)/.dir
 $(WRK)/color/color.o: $(WRK)/.dir
 $(WRK)/distr/comm_manager.o: $(WRK)/.dir
+$(WRK)/distr/cubismnc.o: $(WRK)/.dir
 $(WRK)/distr/distrbasic.o: $(WRK)/.dir
 $(WRK)/distr/distr.o: $(WRK)/.dir
 $(WRK)/distr/distr_particles.o: $(WRK)/.dir
@@ -20,6 +21,7 @@ $(WRK)/func/init_contang.o: $(WRK)/.dir
 $(WRK)/func/init.o: $(WRK)/.dir
 $(WRK)/func/init_vel.o: $(WRK)/.dir
 $(WRK)/func/primlist.o: $(WRK)/.dir
+$(WRK)/gen/wave_lamb.o: $(WRK)/.dir
 $(WRK)/geom/mesh.o: $(WRK)/.dir
 $(WRK)/inside/bbox.o: $(WRK)/.dir
 $(WRK)/inside/err.o: $(WRK)/.dir
@@ -30,9 +32,15 @@ $(WRK)/inside/ply.o: $(WRK)/.dir
 $(WRK)/inside/predicate.o: $(WRK)/.dir
 $(WRK)/inside/stl.o: $(WRK)/.dir
 $(WRK)/kernel/hydro.o: $(WRK)/.dir
+$(WRK)/linear/conjugate_cl.o: $(WRK)/.dir
+$(WRK)/linear/hypre.o: $(WRK)/.dir
+$(WRK)/linear/hypresub.o: $(WRK)/.dir
+$(WRK)/linear/linear_amgx.o: $(WRK)/.dir
+$(WRK)/linear/linear_hypre.o: $(WRK)/.dir
 $(WRK)/linear/linear.o: $(WRK)/.dir
 $(WRK)/main.o: $(WRK)/.dir
 $(WRK)/march/main.o: $(WRK)/.dir
+$(WRK)/opencl/opencl.o: $(WRK)/.dir
 $(WRK)/overlap/overlap.o: $(WRK)/.dir
 $(WRK)/parse/argparse.o: $(WRK)/.dir
 $(WRK)/parse/codeblocks.o: $(WRK)/.dir
@@ -132,6 +140,8 @@ $(WRK)/util/linear.o: $(WRK)/.dir
 $(WRK)/util/logger.o: $(WRK)/.dir
 $(WRK)/util/mpi.o: $(WRK)/.dir
 $(WRK)/util/posthook_default.o: $(WRK)/.dir
+$(WRK)/util/subcomm_dummy.o: $(WRK)/.dir
+$(WRK)/util/subcomm.o: $(WRK)/.dir
 $(WRK)/util/suspender.o: $(WRK)/.dir
 $(WRK)/util/sysinfo.o: $(WRK)/.dir
 $(WRK)/util/system.o: $(WRK)/.dir

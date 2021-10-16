@@ -3,6 +3,7 @@ aphros_c\main.obj: aphros_c\main.cpp; $(CXX_RULE) aphros_c\main.cpp
 aphros_c\parser.obj: aphros_c\parser.cpp; $(CXX_RULE) aphros_c\parser.cpp
 color\color.obj: color\color.c; $(CC_RULE) color\color.c
 distr\comm_manager.obj: distr\comm_manager.cpp; $(CXX_RULE) distr\comm_manager.cpp
+distr\cubismnc.obj: distr\cubismnc.cpp; $(CXX_RULE) distr\cubismnc.cpp
 distr\distrbasic.obj: distr\distrbasic.cpp; $(CXX_RULE) distr\distrbasic.cpp
 distr\distr.obj: distr\distr.cpp; $(CXX_RULE) distr\distr.cpp
 distr\distr_particles.obj: distr\distr_particles.cpp; $(CXX_RULE) distr\distr_particles.cpp
@@ -20,6 +21,7 @@ func\init_contang.obj: func\init_contang.cpp; $(CXX_RULE) func\init_contang.cpp
 func\init.obj: func\init.cpp; $(CXX_RULE) func\init.cpp
 func\init_vel.obj: func\init_vel.cpp; $(CXX_RULE) func\init_vel.cpp
 func\primlist.obj: func\primlist.cpp; $(CXX_RULE) func\primlist.cpp
+gen\wave_lamb.obj: gen\wave_lamb.c; $(CC_RULE) gen\wave_lamb.c
 geom\mesh.obj: geom\mesh.cpp; $(CXX_RULE) geom\mesh.cpp
 inside\bbox.obj: inside\bbox.c; $(CC_RULE) inside\bbox.c
 inside\err.obj: inside\err.c; $(CC_RULE) inside\err.c
@@ -30,9 +32,15 @@ inside\ply.obj: inside\ply.c; $(CC_RULE) inside\ply.c
 inside\predicate.obj: inside\predicate.c; $(CC_RULE) inside\predicate.c
 inside\stl.obj: inside\stl.c; $(CC_RULE) inside\stl.c
 kernel\hydro.obj: kernel\hydro.cpp; $(CXX_RULE) kernel\hydro.cpp
+linear\conjugate_cl.obj: linear\conjugate_cl.cpp; $(CXX_RULE) linear\conjugate_cl.cpp
+linear\hypre.obj: linear\hypre.cpp; $(CXX_RULE) linear\hypre.cpp
+linear\hypresub.obj: linear\hypresub.cpp; $(CXX_RULE) linear\hypresub.cpp
+linear\linear_amgx.obj: linear\linear_amgx.cpp; $(CXX_RULE) linear\linear_amgx.cpp
+linear\linear_hypre.obj: linear\linear_hypre.cpp; $(CXX_RULE) linear\linear_hypre.cpp
 linear\linear.obj: linear\linear.cpp; $(CXX_RULE) linear\linear.cpp
 main.obj: main.c; $(CC_RULE) main.c
 march\main.obj: march\main.c; $(CC_RULE) march\main.c
+opencl\opencl.obj: opencl\opencl.cpp; $(CXX_RULE) opencl\opencl.cpp
 overlap\overlap.obj: overlap\overlap.cpp; $(CXX_RULE) overlap\overlap.cpp
 parse\argparse.obj: parse\argparse.cpp; $(CXX_RULE) parse\argparse.cpp
 parse\codeblocks.obj: parse\codeblocks.cpp; $(CXX_RULE) parse\codeblocks.cpp
@@ -132,6 +140,8 @@ util\linear.obj: util\linear.cpp; $(CXX_RULE) util\linear.cpp
 util\logger.obj: util\logger.cpp; $(CXX_RULE) util\logger.cpp
 util\mpi.obj: util\mpi.cpp; $(CXX_RULE) util\mpi.cpp
 util\posthook_default.obj: util\posthook_default.cpp; $(CXX_RULE) util\posthook_default.cpp
+util\subcomm_dummy.obj: util\subcomm_dummy.cpp; $(CXX_RULE) util\subcomm_dummy.cpp
+util\subcomm.obj: util\subcomm.cpp; $(CXX_RULE) util\subcomm.cpp
 util\suspender.obj: util\suspender.cpp; $(CXX_RULE) util\suspender.cpp
 util\sysinfo.obj: util\sysinfo.cpp; $(CXX_RULE) util\sysinfo.cpp
 util\system.obj: util\system.c; $(CC_RULE) util\system.c
