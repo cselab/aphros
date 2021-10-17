@@ -13,6 +13,9 @@ auto ULinear<M_>::MakeLinearSolver(
 #if USEFLAG(HYPRE)
   FORCE_LINK(linear_hypre);
 #endif
+#if USEFLAG(AMGX)
+  FORCE_LINK(linear_amgx);
+#endif
   FORCE_LINK(linear_conjugate);
   FORCE_LINK(linear_jacobi);
 
