@@ -1,0 +1,3 @@
+CXXFLAGS_BACKEND_CUBISM = -I$(APHROS_PREFIX)/include
+LDFLAGS_BACKEND_CUBISM = $(APHROS_PREFIX)/lib/libamgxsh.so
+O_BACKEND_CUBISM = $(WRK)/distr/cubismnc.o
