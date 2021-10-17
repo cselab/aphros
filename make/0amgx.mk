@@ -1,0 +1,2 @@
+LDFLAGS_AMGX =
+O_AMGX =

@@ -7,10 +7,10 @@
 #include <iostream>
 #include <vector>
 
-#include "amgx.h"
 #include "distr/commmap.h"
 #include "distr/distrsolver.h"
 #include "linear_amgx.h"
+#include "amgx.h"
 
 DECLARE_FORCE_LINK_TARGET(linear_amgx);
 
