@@ -5,19 +5,20 @@ WRK = .
 L = libaphros_static.a
 J = libaphros_js.a
 K = libaphros_shared.so
-USE_MPI = 0
-USE_HDF = 0
-USE_OPENMP = 1
-USE_OPENCL = 0
 USE_AMGX = 0
+USE_HDF = 0
+USE_HYPRE = 0
+USE_MPI = 0
+USE_OPENCL = 0
+USE_OPENMP = 1
 CXXFLAGS = -O2 -g
 CFLAGS = -O2 -g
 CXXFLAGS_STD = -std=c++14
 FLAGS_FPIC = -fPIC
 CC_RULE = $(CC) -c $(CFLAGS) $(FLAGS_FPIC) -o $@
-CXX_RULE = $(ENV_HDF) $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(CXXFLAGS_AMGX) $(FLAGS_FPIC) -I$(SRC) $1 -o $@
+CXX_RULE = $(ENV_HDF) $(CXX) -c $(CXXFLAGS) $(CXXFLAGS_STD) $(CXXFLAGS_AMGX) $(CXXFLAGS_HYPRE) $(FLAGS_FPIC) -I$(SRC) $1 -o $@
 LINK = $(ENV_HDF) $(CXX)
-LINK_FLAGS = $(WRK)/$L $(LDFLAGS) $(LDFLAGS_AMGX) $(LDFLAGS_OPENCL) -o $@
+LINK_FLAGS = $(WRK)/$L $(LDFLAGS) $(LDFLAGS_AMGX) $(LDFLAGS_OPENCL) $(LDFLAGS_HYPRE) -o $@
 1 = \
 -D_ALIGNBYTES_=16 \
 -D_USE_AVX_=0 \
@@ -29,17 +30,18 @@ LINK_FLAGS = $(WRK)/$L $(LDFLAGS) $(LDFLAGS_AMGX) $(LDFLAGS_OPENCL) -o $@
 -D_USE_DIM3_=1 \
 -D_USE_DIM4_=0 \
 -D_USE_FPZIP_=0 \
--D_USE_HYPRE_=0 \
 -D_USE_AMGX_=${USE_AMGX} \
 -D_USE_HDF_=$(USE_HDF) \
+-D_USE_HYPRE_=${USE_HYPRE} \
 -D_USE_MPI_=$(USE_MPI) \
 -D_USE_OPENCL_=${USE_OPENCL} \
 -D_USE_OPENMP_=${USE_OPENMP} \
 
 all: $(WRK)/$L $(WRK)/main $(WRK)/explorer
 include $(SRC)/../make/$(USE_AMGX)amgx.mk
-include $(SRC)/../make/$(USE_OPENCL)opencl.mk
+include $(SRC)/../make/$(USE_HYPRE)hypre.mk
 include $(SRC)/../make/$(USE_HDF)hdf.$(USE_MPI)mpi.mk
+include $(SRC)/../make/$(USE_OPENCL)opencl.mk
 include $(SRC)/../make/hdr.mk
 include $(SRC)/../make/unix/bin.mk
 include $(SRC)/../make/unix/dep.mk
@@ -49,9 +51,9 @@ include $(SRC)/../make/unix/dir.rule.mk
 include $(SRC)/../make/unix/obj.mk
 include $(SRC)/../make/unix/rule.mk
 
-$(WRK)/$L: $O $(O_MPI) $(O_OPENCL) $(O_AMGX); mkdir -p $(WRK) && ar rv $@ $O $(O_MPI) $(O_OPENCL) $(O_AMGX) && ranlib $@
-$(WRK)/$J: $O $(O_MPI) $(O_OPENCL) $(O_AMGX); mkdir -p $(WRK) && emar rv $@ $O $(O_MPI) $(O_OPENCL) $(O_AMGX)
-$(WRK)/$K: $O $(O_MPI) $(O_OPENCL) $(O_AMGX); mkdir -p $(WRK) && $(LINK) -shared -o $@ $O $(O_MPI) $(O_OPENCL) $(O_AMGX)
+$(WRK)/$L: $O $(O_MPI) $(O_OPENCL) $(O_AMGX) $(O_HYPRE); mkdir -p $(WRK) && ar rv $@ $O $(O_MPI) $(O_OPENCL) $(O_AMGX) $(O_HYPRE) && ranlib $@
+$(WRK)/$J: $O $(O_MPI) $(O_OPENCL) $(O_AMGX) $(O_HYPRE); mkdir -p $(WRK) && emar rv $@ $O $(O_MPI) $(O_OPENCL) $(O_AMGX) $(O_HYPRE)
+$(WRK)/$K: $O $(O_MPI) $(O_OPENCL) $(O_AMGX) $(O_HYPRE); mkdir -p $(WRK) && $(LINK) -shared -o $@ $O $(O_MPI) $(O_OPENCL) $(O_AMGX) $(O_HYPRE)
 $(WRK)/.dir:; mkdir -p $P && > $@
 $(SRC)/util/gitgen.cpp:; $(SRC)/gitrev $@
 $(SRC)/explorer.inc:; out="$@" base=$(SRC)/../deploy/scripts/sim_base.conf wasm="$(SRC)/../examples/107_wasm/conf/std.conf" $(SRC)/explorer_gen
@@ -77,5 +79,5 @@ install_shared: $(WRK)/$K
 bin: $B
 shared: $(WRK)/$K
 clean:
-	-rm -f $O $(O_MPI) $(O_OPENCL) $(O_AMGX) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/$K $B
+	-rm -f $O $(O_MPI) $(O_OPENCL) $(O_AMGX) $(O_HYPRE) $(WRK)/.dir $(WRK)/$L $(WRK)/$J $(WRK)/$K $B
 	-rmdir -p $P
