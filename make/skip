@@ -1,0 +1,10 @@
+distr/cubismnc
+gen/wave_lamb
+linear/hypre
+linear/hypresub
+linear/linear_amgx
+linear/linear_hypre
+linear/conjugate_cl
+opencl/opencl
+util/subcomm
+util/subcomm_dummy
