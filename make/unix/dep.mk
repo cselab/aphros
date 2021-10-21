@@ -710,7 +710,6 @@ $(WRK)/kernel/hydro.o: $(SRC)/geom/rangein.h
 $(WRK)/kernel/hydro.o: $(SRC)/geom/rangemulti.h
 $(WRK)/kernel/hydro.o: $(SRC)/geom/transform.h
 $(WRK)/kernel/hydro.o: $(SRC)/geom/vect.h
-$(WRK)/kernel/hydro.o: $(SRC)/hydro.h
 $(WRK)/kernel/hydro.o: $(SRC)/kernel/hydro.h
 $(WRK)/kernel/hydro.o: $(SRC)/kernel/hydro.ipp
 $(WRK)/kernel/hydro.o: $(SRC)/kernel/kernelmesh.h
@@ -2082,7 +2081,6 @@ $(WRK)/test/condface/main.o: $(SRC)/geom/rangein.h
 $(WRK)/test/condface/main.o: $(SRC)/geom/rangemulti.h
 $(WRK)/test/condface/main.o: $(SRC)/geom/transform.h
 $(WRK)/test/condface/main.o: $(SRC)/geom/vect.h
-$(WRK)/test/condface/main.o: $(SRC)/hydro.h
 $(WRK)/test/condface/main.o: $(SRC)/linear/linear.h
 $(WRK)/test/condface/main.o: $(SRC)/parse/codeblocks.h
 $(WRK)/test/condface/main.o: $(SRC)/parse/util.h
@@ -2105,6 +2103,7 @@ $(WRK)/test/condface/main.o: $(SRC)/solver/vof.h
 $(WRK)/test/condface/main.o: $(SRC)/solver/vofm.h
 $(WRK)/test/condface/main.o: $(SRC)/util/convdiff.h
 $(WRK)/test/condface/main.o: $(SRC)/util/format.h
+$(WRK)/test/condface/main.o: $(SRC)/util/hydro.h
 $(WRK)/test/condface/main.o: $(SRC)/util/hydro.ipp
 $(WRK)/test/condface/main.o: $(SRC)/util/logger.h
 $(WRK)/test/condface/main.o: $(SRC)/util/macros.h
@@ -3182,7 +3181,6 @@ $(WRK)/util/hydro.o: $(SRC)/geom/rangein.h
 $(WRK)/util/hydro.o: $(SRC)/geom/rangemulti.h
 $(WRK)/util/hydro.o: $(SRC)/geom/transform.h
 $(WRK)/util/hydro.o: $(SRC)/geom/vect.h
-$(WRK)/util/hydro.o: $(SRC)/hydro.h
 $(WRK)/util/hydro.o: $(SRC)/linear/linear.h
 $(WRK)/util/hydro.o: $(SRC)/parse/codeblocks.h
 $(WRK)/util/hydro.o: $(SRC)/parse/util.h
@@ -3282,6 +3280,7 @@ $(WRK)/util/hydro.o: $(SRC)/solver/vof.h
 $(WRK)/util/hydro.o: $(SRC)/solver/vofm.h
 $(WRK)/util/hydro.o: $(SRC)/util/convdiff.h
 $(WRK)/util/hydro.o: $(SRC)/util/format.h
+$(WRK)/util/hydro.o: $(SRC)/util/hydro.h
 $(WRK)/util/hydro.o: $(SRC)/util/hydro.ipp
 $(WRK)/util/hydro.o: $(SRC)/util/logger.h
 $(WRK)/util/hydro.o: $(SRC)/util/macros.h

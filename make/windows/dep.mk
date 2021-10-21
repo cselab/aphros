@@ -710,7 +710,6 @@ kernel\hydro.obj: geom\rangein.h
 kernel\hydro.obj: geom\rangemulti.h
 kernel\hydro.obj: geom\transform.h
 kernel\hydro.obj: geom\vect.h
-kernel\hydro.obj: hydro.h
 kernel\hydro.obj: kernel\hydro.h
 kernel\hydro.obj: kernel\hydro.ipp
 kernel\hydro.obj: kernel\kernelmesh.h
@@ -2082,7 +2081,6 @@ test\condface\main.obj: geom\rangein.h
 test\condface\main.obj: geom\rangemulti.h
 test\condface\main.obj: geom\transform.h
 test\condface\main.obj: geom\vect.h
-test\condface\main.obj: hydro.h
 test\condface\main.obj: linear\linear.h
 test\condface\main.obj: parse\codeblocks.h
 test\condface\main.obj: parse\util.h
@@ -2105,6 +2103,7 @@ test\condface\main.obj: solver\vof.h
 test\condface\main.obj: solver\vofm.h
 test\condface\main.obj: util\convdiff.h
 test\condface\main.obj: util\format.h
+test\condface\main.obj: util\hydro.h
 test\condface\main.obj: util\hydro.ipp
 test\condface\main.obj: util\logger.h
 test\condface\main.obj: util\macros.h
@@ -3182,7 +3181,6 @@ util\hydro.obj: geom\rangein.h
 util\hydro.obj: geom\rangemulti.h
 util\hydro.obj: geom\transform.h
 util\hydro.obj: geom\vect.h
-util\hydro.obj: hydro.h
 util\hydro.obj: linear\linear.h
 util\hydro.obj: parse\codeblocks.h
 util\hydro.obj: parse\util.h
@@ -3282,6 +3280,7 @@ util\hydro.obj: solver\vof.h
 util\hydro.obj: solver\vofm.h
 util\hydro.obj: util\convdiff.h
 util\hydro.obj: util\format.h
+util\hydro.obj: util\hydro.h
 util\hydro.obj: util\hydro.ipp
 util\hydro.obj: util\logger.h
 util\hydro.obj: util\macros.h
