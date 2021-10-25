@@ -1,8 +1,6 @@
 // Created by Petr Karnakov on 30.05.2018
 // Copyright 2018 ETH Zurich
 
-#undef NDEBUG
-#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -18,8 +16,8 @@ namespace simple {
 
 void Simple() {
   std::cout << "\n" << __func__ << std::endl;
-  Vars par;
-  Parser parser(par);
+  Vars var;
+  Parser parser(var);
 
   std::stringstream s;
   s << "set string a 1" << std::endl;
@@ -30,10 +28,23 @@ void Simple() {
   parser.ParseStream(s);
   parser.PrintVars(std::cout);
 
-  assert(par.String["a"] == "1");
-  assert(par.Int["b"] == 1);
-  assert(par.Double["c"] == 1.);
-  assert(par.Vect["d"] == std::vector<double>({1}));
+  fassert_equal(var.String["a"], "1");
+  fassert_equal(var.Int["b"], 1);
+  fassert_equal(var.Double["c"], 1.);
+  fassert(var.Vect["d"] == std::vector<double>({1}));
+
+  // FindByKey
+  fassert_equal(var.FindByKey("a").type, "string");
+  fassert_equal(var.FindByKey("b").type, "int");
+  fassert_equal(var.FindByKey("c").type, "double");
+  fassert_equal(var.FindByKey("d").type, "vect");
+  fassert(var.FindByKey("b").found);
+  fassert_equal(var.FindByKey("b").value, "1");
+  fassert_equal(var.FindByKey("b").key, "b");
+
+  // GenerateSetCommand
+  fassert_equal(Parser::GenerateSetCommand(var, "a", "aa"), "set string aa 1");
+  fassert_equal(Parser::GenerateSetCommand(var, "a"), "set string a 1");
 }
 
 } // namespace simple
@@ -66,12 +77,12 @@ void TestConfig() {
   {
     Parser parser(var);
     std::stringstream s(R"EOF(
-  set double height 1.2
-  set int size 3
-  set vect elems 1 2 3
-  set vect gravity 4 5 6
-  set string name name
-  set int enable_fluid 3
+set double height 1.2
+set int size 3
+set vect elems 1 2 3
+set vect gravity 4 5 6
+set string name name
+set int enable_fluid 3
   )EOF");
     parser.ParseStream(s);
   }
@@ -111,9 +122,9 @@ void TestArgumentParser() {
 
   std::cout << "\nKnown args:\n";
   parser.GetKnownArgs().ForEachMap([](const auto& map) {
-    for (auto it = map.cbegin(); it != map.cend(); ++it) {
-      std::cout << map.GetTypeName() << ' ' << it->first << ' '
-                << map.GetStr(it->first) << '\n';
+    for (auto p : map) {
+      std::cout << map.GetTypeName() << ' ' << p.first << ' '
+                << map.GetStr(p.first) << '\n';
     }
   });
 
@@ -127,9 +138,9 @@ void TestArgumentParser() {
       "8", // bsy
   });
   args.ForEachMap([](const auto& map) {
-    for (auto it = map.cbegin(); it != map.cend(); ++it) {
-      std::cout << map.GetTypeName() << ' ' << it->first << ' '
-                << map.GetStr(it->first) << '\n';
+    for (auto p : map) {
+      std::cout << map.GetTypeName() << ' ' << p.first << ' '
+                << map.GetStr(p.first) << '\n';
     }
   });
 }

@@ -256,6 +256,24 @@ std::string Vars::GetStr(std::string t, Key k) const {
   return "";
 }
 
+auto Vars::FindByKey(std::string key) const -> EntryAsString {
+  EntryAsString res;
+  res.found = false;
+  res.key = key;
+  auto check = [&](auto& map){
+    if (map.Contains(key)) {
+      res.found = true;
+      res.type = map.GetTypeName();
+      res.value = map.GetStr(key);
+    }
+  };
+  check(String);
+  check(Int);
+  check(Double);
+  check(Vect);
+  return res;
+}
+
 void Vars::SetStr(std::string t, Key k, std::string v) {
   std::string e = GetTypeName(k); // existing type
   if (e != "" && e != t) {

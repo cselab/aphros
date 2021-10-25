@@ -38,6 +38,12 @@ class Vars {
     auto end() {
       return m_.end();
     }
+    auto begin() const {
+      return m_.begin();
+    }
+    auto end() const {
+      return m_.end();
+    }
     auto cbegin() const {
       return m_.cbegin();
     }
@@ -63,9 +69,16 @@ class Vars {
 
   std::string GetStr(std::string type, Key) const;
   void SetStr(std::string type, Key, std::string val);
-  // Returns type name of variable by key
-  // (if multiple types found, returns one; if none, returns "")
+  // Returns type name of variable by key.
+  // If multiple types found, returns one; if none, returns "".
   std::string GetTypeName(Key) const;
+  struct EntryAsString {
+    bool found;
+    std::string type;
+    std::string key;
+    std::string value;
+  };
+  EntryAsString FindByKey(std::string key) const;
   // Deletes entry by key for all types, returns true if found
   bool Del(Key);
   template <class F>

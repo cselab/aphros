@@ -234,7 +234,7 @@ void Parser::Imp::CmdDel(std::string s) {
   std::string cmd, key;
   std::stringstream b(s);
   b >> cmd >> key;
-  fassert(var_.Del(key), "CmdDel(): unknown variable '" + key + "'");
+  fassert(var_.Del(key), "CmdDel(): undefined variable '" + key + "'");
 }
 
 void Parser::Imp::CmdInclude(std::string s, std::string curpath) {
@@ -348,15 +348,34 @@ void Parser::ParseFile(std::string path, std::string dir) {
   }
 }
 
+std::string Parser::GenerateSetCommand(
+    const Vars& var, const std::string& key, const std::string new_key) {
+  auto entry = var.FindByKey(key);
+  fassert(entry.found, "GenerateSetCommand(): undefined variable '" + key + "'");
+  if (!new_key.empty()) {
+    entry.key = new_key;
+  }
+  if (entry.value.find("\n") != std::string::npos) {
+    entry.value = "\"" + entry.value +"\n\"";
+  }
+  return util::Format("set {} {} {}", entry.type, entry.key, entry.value);
+}
+
+void Parser::WriteSetCommand(
+    std::ostream& out, const Vars& var, const std::string& key,
+    const std::string new_key) {
+  out << GenerateSetCommand(var, key, new_key) << '\n';
+}
+
 template <class T>
-void Parser::PrintMap(const Vars::Map<T>& m, std::ostream& out) {
-  for (auto it = m.cbegin(); it != m.cend(); ++it) {
-    const std::string val = m.GetStr(it->first);
-    out << "set " << m.GetTypeName() << " " << it->first << " ";
-    if (val.find("\n") != std::string::npos) {
-      out << "\"" << val << "\n\"";
+void Parser::PrintMap(const Vars::Map<T>& map, std::ostream& out) {
+  for (auto p : map) {
+    const std::string value = map.GetStr(p.first);
+    out << "set " << map.GetTypeName() << " " << p.first << " ";
+    if (value.find("\n") != std::string::npos) {
+      out << "\"" << value << "\n\"";
     } else {
-      out << val;
+      out << value;
     }
     out << std::endl;
   }

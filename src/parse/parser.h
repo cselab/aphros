@@ -39,6 +39,17 @@ class Parser {
   static void PrintVars(const Vars& var, std::ostream& out);
   // Prints commands "set" for variables in all maps.
   void PrintVars(std::ostream& out) const;
+  // Returns command `set TYPE KEY VALUE`
+  // where `KEY` is `key`, and `TYPE` and `VALUE` correspond
+  // to a variable `key` found in `var`.
+  // If `new_key` is not empty, replaces `KEY` with `new_key.`
+  // If `key` is not found, throws exception.
+  static std::string GenerateSetCommand(
+      const Vars& var, const std::string& key, const std::string new_key = "");
+  // Writes a new line with command returned by `GenerateSetCommand()` to stream.
+  static void WriteSetCommand(
+      std::ostream& out, const Vars& var, const std::string& key,
+      const std::string new_key = "");
 
  private:
   struct Imp;
