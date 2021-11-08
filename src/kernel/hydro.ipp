@@ -1189,7 +1189,7 @@ void Hydro<M>::InitStat(const MEB& eb) {
           "tu" + sl + "_outrate", "outlet volumetric rate of tracer " + sl, //
           [&ffv, &fcu = tracer_->GetVolumeFraction()[l], this, &meb = eb, l]() {
             Scal sum = 0;
-            mebc_fluid_.LoopBCond(meb, [&](auto cf, IdxCell c, auto bc) { //
+            mebc_fluid_.LoopBCond(meb, [&, this](auto cf, IdxCell c, auto bc) {
               if (m.IsInner(c)) {
                 if (bc.type == BCondFluidType::outlet ||
                     bc.type == BCondFluidType::outletpressure) {

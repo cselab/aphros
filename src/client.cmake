@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.3.0)
 
 # Allow using <PackageName>_ROOT variables
-cmake_policy(SET CMP0074 NEW)
+if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12")
+  cmake_policy(SET CMP0074 NEW)
+endif()
 
 if (DEFINED ENV{APHROS_PREFIX})
   set(CMAKE_INSTALL_PREFIX $ENV{APHROS_PREFIX}
