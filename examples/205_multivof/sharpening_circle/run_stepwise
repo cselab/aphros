@@ -3,6 +3,8 @@ set -eu
 d=stepwise
 echo "include stepwise.conf" > add.conf
 make cleanrun
+mkdir -p $d
+mv stat.dat $d/
+(cd $d && ../vis/plot_volume_error.py --output volume_error.pdf)
 (cd vis && rm -vf *.png && ./vis_vf.py ../s_*.vtk)
-(cd vis && mkdir -p "$d" && mv -v a_*.png "$d")
-(vis/plot_volume_error.py --output vis/$d/volume_error.pdf)
+mv vis/a_*.png $d/

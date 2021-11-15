@@ -28,11 +28,11 @@ plottools.apply_params(plt)
 
 stat = load_stat(os.path.join(args.dir, "stat.dat"))
 
-fig, ax = plt.subplots(figsize=(1.9,1.5))
+fig, ax = plt.subplots(figsize=(1.4,1.2))
 yscpow = args.yscpow
 if args.ylim:
     ax.set_ylim(*args.ylim)
 ax.set_xlabel('step')
 ax.set_ylabel(r'volume error $[10^{{{:}}}]$'.format(yscpow))
 ax.plot(stat.step, stat.vol2_diff * 10 ** (-yscpow))
-plottools.savefig(fig, args.output)
+plottools.savefig(fig, args.output, transparent=True)
