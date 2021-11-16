@@ -1,6 +1,5 @@
 #!/usr/bin/env pvbatch
 
-
 # state file generated using paraview version 5.8.0
 from paraview.simple import *
 paraview.simple._DisableFirstRenderCameraReset()
@@ -15,6 +14,9 @@ parser.add_argument('files', nargs='+', help="list of data files 'sm_*.vtk'")
 parser.add_argument('--force',
                     action="store_true",
                     help="overwrite existing files")
+parser.add_argument('--cover',
+                    action="store_true",
+                    help="use settings for cover")
 parser.add_argument('--draft', action="store_true", help="less samples")
 parser.add_argument('--resolution',
                     nargs=2,
@@ -22,7 +24,6 @@ parser.add_argument('--resolution',
                     default=[1920, 1080],
                     help="image resolution")
 args = parser.parse_args()
-
 
 source_bcvtk = LegacyVTKReader(
     FileNames=paratools.ReplaceFilename(args.files[:1], "bc.vtk"))
@@ -33,8 +34,12 @@ source_sm, = sources_ft
 light1 = CreateLight()
 light1.Intensity = 8.0
 light1.Type = 'Positional'
-light1.Position = [0.006431806423015062, 1.4778652489672959, 1.6991249052313981]
-light1.FocalPoint = [1.9781192660676643, -0.1963031716820185, -1.997106578269941]
+light1.Position = [
+    0.006431806423015062, 1.4778652489672959, 1.6991249052313981
+]
+light1.FocalPoint = [
+    1.9781192660676643, -0.1963031716820185, -1.997106578269941
+]
 #light1.DiffuseColor = [0.95, 0.75, 0.95]
 light1.DiffuseColor = [1, 1, 1]
 light1.ConeAngle = 27.601142162393426
@@ -44,7 +49,9 @@ light2 = CreateLight()
 light2.Intensity = 8.0
 light2.Type = 'Positional'
 light2.Position = [2.7913862587239078, 0.21806733382668228, 1.3226099304191168]
-light2.FocalPoint = [-0.08931695523427821, 0.6885663380128587, -2.1172589913563358]
+light2.FocalPoint = [
+    -0.08931695523427821, 0.6885663380128587, -2.1172589913563358
+]
 #light2.DiffuseColor = [0.8, 1.0, 0.8]
 light2.DiffuseColor = [1, 1, 1]
 light2.Radius = 2.0
@@ -85,13 +92,23 @@ renderView1 = CreateView('RenderView')
 renderView1.ViewSize = args.resolution
 renderView1.AxesGrid = 'GridAxes3DActor'
 renderView1.OrientationAxesVisibility = 0
-renderView1.CenterOfRotation = [1.0549999475479126, 0.5143125029280782, 0.025687895948067307]
 renderView1.UseLight = 0
 renderView1.KeyLightWarmth = 0.5
 renderView1.FillLightWarmth = 0.5
-renderView1.CameraPosition = [0.5450666131665406, 0.26691967145900836, 0.3104520152186882]
-renderView1.CameraFocalPoint = [2.7119908810557116, 2.7184911650856627, -2.7954705446201813]
-renderView1.CameraViewUp = [0.5120912672272875, 0.4635107901442511, 0.7231322710606981]
+if args.cover:
+    renderView1.CameraPosition = [0.58541, 0.055019, 0.58551]
+    renderView1.CameraFocalPoint = [2.8025, 5.2331, -4.2809]
+    renderView1.CameraViewUp = [0.35988, 0.55249, 0.75183]
+else:
+    renderView1.CameraPosition = [
+        0.5450666131665406, 0.26691967145900836, 0.3104520152186882
+    ]
+    renderView1.CameraFocalPoint = [
+        2.7119908810557116, 2.7184911650856627, -2.7954705446201813
+    ]
+    renderView1.CameraViewUp = [
+        0.5120912672272875, 0.4635107901442511, 0.7231322710606981
+    ]
 renderView1.CameraViewAngle = 60.0
 renderView1.CameraFocalDisk = 1.0
 renderView1.CameraParallelScale = 1.1676301748696558
@@ -133,8 +150,8 @@ box = paratools.GetBoundingBox(contouter)
 bottom = Plane()
 bottom_z = box[0][2] - 0.001
 bottom.Origin = [-3.0, -3.0, bottom_z]
-bottom.Point1 = [3.0, -3.0, bottom_z]
-bottom.Point2 = [-3.0, 3.0, bottom_z]
+bottom.Point1 = [6.0, -3.0, bottom_z]
+bottom.Point2 = [-3.0, 6.0, bottom_z]
 bottomDisplay = Show(bottom, renderView1, 'GeometryRepresentation')
 bottomDisplay.Representation = 'Surface'
 bottomDisplay.AmbientColor = [0.85] * 3

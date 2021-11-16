@@ -25,7 +25,7 @@ parser.add_argument('--force',
 parser.add_argument('--camera',
                     type=str,
                     default="aps",
-                    choices=("aps", "close", "close2"))
+                    choices=("aps", "close", "close2", "cover"))
 parser.add_argument('--draft',
                     action="store_true",
                     help="few samples and low resolution")
@@ -111,6 +111,10 @@ elif args.camera == "close2":
     renderView1.CameraViewUp = [
         -0.1847806328745186, 0.9655687359221463, -0.18312054479004014
     ]
+elif args.camera == "cover":
+    renderView1.CameraPosition = [1.331, 3.0769, 3.8146]
+    renderView1.CameraFocalPoint = [0.95301, 0.71242, -0.1667]
+    renderView1.CameraViewUp = [-0.11556, 0.85882, -0.49908]
 else:
     assert False, "Unknown camera={}".format(args.camera)
 
