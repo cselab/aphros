@@ -90,8 +90,6 @@ int RunMpi0(
 
   var.String.Set("git_rev", GetGitRev());
   var.String.Set("git_diff", GetGitDiff());
-  var.String.Set("git_msg", GetGitMsg());
-  var.String.Set("logo", GetLogo());
 
   const auto extra = args.String["extra"];
   if (!extra.empty()) {
