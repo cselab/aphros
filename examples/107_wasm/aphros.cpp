@@ -17,6 +17,7 @@
 #include "geom/rangemulti.h"
 #include "kernel/hydro.h"
 #include "kernel/kernelmeshpar.h"
+#include "util/git.h"
 #include "util/hydro_post.h"
 #include "util/timer.h"
 #include "util/visual.h"
@@ -279,6 +280,11 @@ void SetMesh(int nx) {
   conf << g_extra_config << '\n';
   conf << sub.GetConfig();
   Parser(g_var).ParseStream(conf);
+
+  g_var.String.Set("git_rev", GetGitRev());
+  g_var.String.Set("git_diff", GetGitDiff());
+  g_var.String.Set("git_msg", GetGitMsg());
+  g_var.String.Set("logo", GetLogo());
 
   std::shared_ptr<State> new_state;
   Hydro<M>::Par par;
