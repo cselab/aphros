@@ -400,21 +400,21 @@ struct Imp {
     }
     AssertPolygonPoints(points);
 
-    const Vect o(Vect3(d["ox"], d["oy"], d["oz"])); // origin
-    Vect n(Vect3(d["nx"], d["ny"], d["nz"])); // normal
+    const Vect3 o(d["ox"], d["oy"], d["oz"]); // origin
+    Vect3 n(d["nx"], d["ny"], d["nz"]); // normal
     n /= n.norm();
     // direction of two-dimensional x-axis
-    Vect u(Vect3(d["ux"], d["uy"], d["uz"]));
+    Vect3 u(d["ux"], d["uy"], d["uz"]);
     u -= n.dot(u) * n;
     u /= u.norm();
-    const Vect v = n.cross(u);
+    const Vect3 v = n.cross(u);
     const Scal n0 = d["n0"];
     const Scal n1 = d["n1"];
 
     // TODO: add bounding box heuristic
     res.ls = [edim, o, n, u, v, n0, n1, points](const Vect& x) -> Scal {
-      Vect dx = x - o;
-      for (size_t i = edim; i < dim; ++i) {
+      Vect3 dx = Vect3(x) - o;
+      for (size_t i = edim; i < dx.size(); ++i) {
         dx[i] = 0;
       }
       const Scal dn = n.dot(dx);

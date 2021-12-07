@@ -19,6 +19,7 @@ struct HydroPost<M>::Imp {
       const M& m) {
     if (name == "p" || name == "pressure") {
       fc_out = hydro->fs_->GetPressure();
+      return true;
     }
     if (name == "omz" || name == "vorticity") {
       if (hydro->eb_) {
@@ -43,6 +44,7 @@ struct HydroPost<M>::Imp {
     }
     if (name == "vf" || name == "volume fraction") {
       fc_out = hydro->as_->GetField();
+      return true;
     }
     if (name == "vmagn" || name == "velocity magnitude") {
       const auto& fcvel = hydro->fs_->GetVelocity();
