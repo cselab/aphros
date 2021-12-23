@@ -19,11 +19,11 @@ def ReadVtkPoly(f, verbose=False):
     f: `str` or file-like
         Path to legacy VTK file or file-like object.
     Returns:
-    points: `numpy.ndarray`, (num_points, 3)
-        Points (vertices).
-    poly: `list` [`list` [ `int` ]], (num_cells, ...)
+    points: `numpy.ndarray`, shape (num_points, 3)
+        List of points.
+    poly: `list` [`list` [ `int` ]], shape (num_cells, ...)
         Polygons as lists of indices in `points`.
-    cell_fields: `dict` [`str`, `numpy.ndarray`] , (num_cells,)
+    cell_fields: `dict` [`str`, `numpy.ndarray`] , shape (num_cells,)
         Cell felds indexed by name. Each field has shape (num_cells,).
     """
     def Assert(cond, msg=""):
@@ -160,3 +160,48 @@ def ReadVtkPoly(f, verbose=False):
         f.close()
 
     return points, poly, cell_fields
+
+def WriteVtkPoly(f, points, poly, comment=""):
+    """
+    Writes polygons to ASCII legacy VTK file.
+    f: `str` or file-like
+        Path to output legacy VTK file or file-like object.
+    points: `numpy.ndarray`, shape (num_points, 3)
+        List of 3D points.
+    poly: `list` [`list` [ `int` ]], shape (num_cells, ...)
+        Polygons as lists of indices in `points`.
+    """
+    path = None
+    if type(f) is str:
+        path = f
+        f = open(path, 'wb')
+    else:
+        pass # expect file-like
+
+    def write(data):
+        if type(data) is str:
+            data = data.encode()
+        f.write(data)
+
+    write("# vtk DataFile Version 2.0\n")
+
+    write(comment + '\n')
+
+    write("ASCII\n")
+
+    write("DATASET POLYDATA\n")
+
+    num_points = len(points)
+    write("POINTS {:} float\n".format(num_points))
+    for x in points:
+        write("{:} {:} {:}\n".format(*x))
+
+    num_poly = len(poly)
+    num_poly_data = len(poly) + sum([len(p) for p in poly])
+    write("POLYGONS {:} {:}\n".format(num_poly, num_poly_data))
+    for p in poly:
+        write(' '.join(map(str, [len(p)] + p)) + '\n')
+
+    if path:
+        f.close()
+
