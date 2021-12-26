@@ -306,6 +306,19 @@ struct HydroPost<M>::Imp {
         dumpv(electro->GetCurrent(), 0, "elcurx");
         dumpv(electro->GetCurrent(), 1, "elcury");
         dumpv(electro->GetCurrent(), 2, "elcurz");
+        if (dl.count("elcurfx") || dl.count("elcurfy") || dl.count("elcurfz")) {
+          t.stack_fcv.emplace(m, Vect(0));
+          auto& fccur = t.stack_fcv.top();
+          auto& ffcur = electro->GetFaceCurrent();
+          for (auto c : m.Cells()) {
+            for (auto d : m.dirs) {
+              fccur[c][d] = ffcur[m.GetFace(c, IdxNci(d * 2))];
+            }
+          }
+          dumpv(fccur, 0, "elcurfx");
+          dumpv(fccur, 1, "elcurfy");
+          dumpv(fccur, 2, "elcurfz");
+        }
       }
     }
     if (var.Int["enable_advection"]) {
