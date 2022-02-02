@@ -130,7 +130,7 @@ jobs:
 
   build-mac:
     macos:
-      xcode: 11.3.0
+      xcode: 12.4.0
     working_directory: ~/aphros
     steps:
       - restore_cache:

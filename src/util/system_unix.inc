@@ -2,7 +2,6 @@
 // Copyright 2021 ETH Zurich
 
 #define POSIX_C_SOURCE 200809L
-#define _XOPEN_SOURCE 500
 #include <stdio.h>
 #include <stdlib.h>
 #include <libgen.h>
