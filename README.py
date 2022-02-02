@@ -114,8 +114,8 @@ Electrochemical reactor [[ref:ees]] | Bubbles through mesh
  Clustering of bubbles [[conf]](examples/205_multivof/clustering) [[ref:aps]] [[ref:cscs]] [[ref:multivof]] | Foaming waterfall [[conf]](examples/205_multivof/waterfall) [[ref:pasc20]] [[ref:multivof]]
 [<img src="[[VIDTHUMB]]/bidisperse.jpg" height=150>](https://www.youtube.com/watch?v=2fm_JX9-Wbg) | [<img src="[[VIDTHUMB]]/crystal.jpg" height=45>](https://www.youtube.com/watch?v=8iPmOsXnXAM)
  Bidisperse foam [[conf]](examples/205_multivof/bidisperse) [[ref:multivof]] | Microfluidic crystals [[conf]](examples/205_multivof/crystal) [[ref:multivof]]
-[<img src="[[VIDTHUMB]]/lammps_polymers.jpg" height=200>](https://www.youtube.com/watch?v=scz2YVKmDaQ) |
-LAMMPS polymers in Taylor-Green vortex [[conf]](examples/212_polymers) |
+[<img src="[[VIDTHUMB]]/lammps_polymers.jpg" height=200>](https://www.youtube.com/watch?v=scz2YVKmDaQ) | [<img src="[[VIDTHUMB]]/korali_pipe.jpg" height=200>](https://www.youtube.com/watch?v=O5Dhnjrfe8A)
+LAMMPS polymers in Taylor-Green vortex [[conf]](examples/212_polymers) | Bubble pipe optimization [[ref:korali]]
 
 |     |
 |:---:|
@@ -127,6 +127,8 @@ LAMMPS polymers in Taylor-Green vortex [[conf]](examples/212_polymers) |
 Aphros is developed and maintained by researchers at [ETH Zurich](https://ethz.ch/en.html)
 
 * [Petr Karnakov](https://www.cse-lab.ethz.ch/member/petr-karnakov/)
+  [<img src="[[IMAGES]]/twitter.png" height=16>](https://twitter.com/pkarnakov)
+  [<img src="[[IMAGES]]/youtube.png" height=16>](https://www.youtube.com/channel/UCFCRbISdZGWum5E5q-kuOPw)
 * [Dr. Sergey Litvinov](https://www.cse-lab.ethz.ch/member/sergey-litvinov/)
 * [Dr. Fabian Wermelinger](https://www.cse-lab.ethz.ch/member/fabian-wermelinger/)
 
@@ -136,47 +138,49 @@ under the supervision of
 
 ## Publications
 
-[[item:ees]] S. M. H. Hashemi, P. Karnakov, P. Hadikhani, E. Chinello, S.
-  Litvinov, C.  Moser, P. Koumoutsakos, and D. Psaltis, "A versatile and
-  membrane-less electrochemical reactor for the electrolysis of water and
-  brine", _Energy & environmental science_, 2019
+[[item:ees]] Hashemi SMH, Karnakov P, Hadikhani P, Chinello E, Litvinov S, Moser C, Koumoutsakos P, Psaltis D.
+  A versatile and membrane-less electrochemical reactor for the electrolysis of water and brine.
+  _Energy & environmental science_. 2019
   [10.1039/C9EE00219G](https://doi.org/10.1039/C9EE00219G)
-[[item:pasc19]] P. Karnakov, F. Wermelinger, M. Chatzimanolakis, S. Litvinov,
-  and P.  Koumoutsakos, "A high performance computing framework for multiphase,
-  turbulent flows on structured grids" in _Proceedings of the platform for
-  advanced scientific computing conference on – PASC ’19_, 2019
+[[item:pasc19]] Karnakov P, Wermelinger F, Chatzimanolakis M, Litvinov S, Koumoutsakos P.
+  A high performance computing framework for multiphase, turbulent flows on structured grids.
+  _Proceedings of the platform for advanced scientific computing conference on – PASC ’19_. 2019
   [10.1145/3324989.3325727](https://doi.org/10.1145/3324989.3325727)
   [[pdf]]([[PDF]]/pasc2019.pdf)
-[[item:icmf]] P. Karnakov, S. Litvinov, P. Koumoutsakos
-  "Coalescence and transport of bubbles and drops"
-  _10th International Conference on Multiphase Flow (ICMF)_, 2019
+[[item:icmf]] Karnakov P, Litvinov S, Koumoutsakos P.
+  Coalescence and transport of bubbles and drops.
+  _10th International Conference on Multiphase Flow (ICMF)_. 2019
   [[pdf]]([[PDF]]/icmf2019.pdf)
-[[item:partstr]] P. Karnakov, S. Litvinov, and P. Koumoutsakos, "A hybrid
-  particle volume-of-fluid method for curvature estimation in multiphase
-  flows”, _International journal of multiphase flow_, 2020
+[[item:partstr]] Karnakov P, Litvinov S, and Koumoutsakos P.
+  A hybrid particle volume-of-fluid method for curvature estimation in multiphase flows.
+  _International journal of multiphase flow_. 2020
   [10.1016/j.ijmultiphaseflow.2020.103209](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209)
-  [arXiv:1906.00314](https://arxiv.org/abs/1906.00314)
-[[item:datadriven]] Z. Wan, P. Karnakov, P. Koumoutsakos, T. Sapsis, "Bubbles in
-  Turbulent Flows: Data-driven, kinematic models with history terms”,
-  _International journal of multiphase flow_, 2020
+  [arXiv:1906.00314](https://arxiv.org/pdf/1906.00314)
+[[item:datadriven]] Wan Z, Karnakov P, Koumoutsakos P, Sapsis T.
+  Bubbles in Turbulent Flows: Data-driven, kinematic models with history terms.
+  _International journal of multiphase flow_. 2020
   [10.1016/j.ijmultiphaseflow.2020.103286](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103286)
-  [arXiv:1910.02068](https://arxiv.org/abs/1910.02068)
-[[item:aps]] P. Karnakov, S. Litvinov, J. M. Favre, P. Koumoutsakos
-  "V0018: Breaking waves: to foam or not to foam?"
+  [arXiv:1910.02068](https://arxiv.org/pdf/1910.02068)
+[[item:aps]] Karnakov P, Litvinov S, Favre JM, Koumoutsakos P.
+  V0018: Breaking waves: to foam or not to foam?
   _Gallery of Fluid Motion Award_
   [video](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)
   [article](http://dx.doi.org/10.1103/physrevfluids.5.110503)
 [[item:cscs]] Annual report 2019 of the Swiss National Supercomputing Centre (cover page)
   [[link]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019)
-[[item:pasc20]] P. Karnakov, F. Wermelinger, S. Litvinov,
-  and P.  Koumoutsakos, "Aphros: High Performance Software for Multiphase Flows with Large Scale
-  Bubble and Drop Clusters" in _Proceedings of the platform for
-  advanced scientific computing conference on – PASC ’20_, 2020
+[[item:pasc20]] Karnakov P, Wermelinger F, Litvinov S, Koumoutsakos P.
+  Aphros: High Performance Software for Multiphase Flows with Large Scale Bubble and Drop Clusters.
+  _Proceedings of the platform for advanced scientific computing conference on – PASC ’20_. 2020
   [10.1145/3394277.3401856](https://doi.org/10.1145/3394277.3401856)
   [[pdf]]([[PDF]]/pasc2020.pdf)
-[[item:multivof]] P. Karnakov, S. Litvinov, P. Koumoutsakos
-"Computing foaming flows across scales: from breaking waves to microfluidics", 2021
-[arXiv:2103.01513](https://arxiv.org/abs/2103.01513)
+[[item:korali]] Martin SM, Wälchli D, Arampatzis G, Economides AE, Karnakov P, Koumoutsakos P.
+  Korali: Efficient and scalable software framework for Bayesian uncertainty quantification and stochastic optimization.
+  _Computer Methods in Applied Mechanics and Engineering_. 2021
+  [10.1016/j.cma.2021.114264](https://doi.org/10.1016/j.cma.2021.114264)
+[[item:multivof]] Karnakov P, Litvinov S, Koumoutsakos P.
+  Computing foaming flows across scales: from breaking waves to microfluidics.
+  _Science Advances_. 2022
+  [10.1126/sciadv.abm0590](https://doi.org/10.1126/sciadv.abm0590)
 '''
 
 m_refs = list(re.finditer("\[\[ref:[^]]*\]\]", text))
