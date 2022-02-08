@@ -124,17 +124,18 @@ LAMMPS polymers in Taylor-Green vortex [[conf]](examples/212_polymers) | Bubble 
 
 ## Developers
 
-Aphros is developed and maintained by researchers at [ETH Zurich](https://ethz.ch/en.html)
+Aphros is developed and maintained by researchers at [ETH Zurich](https://www.cse-lab.ethz.ch) and [Harvard University](https://cse-lab.seas.harvard.edu/)
 
 * [Petr Karnakov](https://www.cse-lab.ethz.ch/member/petr-karnakov/)
   [<img src="[[IMAGES]]/twitter.png" height=16>](https://twitter.com/pkarnakov)
   [<img src="[[IMAGES]]/youtube.png" height=16>](https://www.youtube.com/channel/UCFCRbISdZGWum5E5q-kuOPw)
-* [Dr. Sergey Litvinov](https://www.cse-lab.ethz.ch/member/sergey-litvinov/)
-* [Dr. Fabian Wermelinger](https://www.cse-lab.ethz.ch/member/fabian-wermelinger/)
+* [Sergey Litvinov](https://www.cse-lab.ethz.ch/member/sergey-litvinov/)
 
 under the supervision of
 
-* [Prof. Petros Koumoutsakos](https://www.cse-lab.ethz.ch/member/petros-koumoutsakos/)
+* [Prof. Petros Koumoutsakos](https://www.seas.harvard.edu/person/petros-koumoutsakos)
+
+Other contributors are: Fabian Wermelinger (Cubism backend)
 
 ## Publications
 
