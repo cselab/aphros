@@ -1,7 +1,7 @@
 // Created by Sergey Litvinov on 08.03.2021
 // Copyright 2021 ETH Zurich
 
-#define POSIX_C_SOURCE 200809L
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <libgen.h>
@@ -77,12 +77,12 @@ int SystemHasHyperthreads(void) {
 
 int SystemIsDir(const char* path) {
   struct stat info;
-  return (stat(path, &info) == 0) && (info.st_mode & S_IFDIR);
+  return stat(path, &info) == 0 && S_ISDIR(info.st_mode);
 }
 
 int SystemIsFile(const char* path) {
   struct stat info;
-  return (stat(path, &info) == 0) && (info.st_mode & (S_IFREG | S_IFLNK));
+  return stat(path, &info) == 0 && (S_ISREG(info.st_mode) || S_ISLNK(info.st_mode)) ;
 }
 
 int SystemJoin(const char *a, const char *b, char *c) {

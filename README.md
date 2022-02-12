@@ -75,12 +75,12 @@ docker run -v `pwd`:`pwd` -w `pwd` aphros
 
 Build without dependencies and tests on unix-like systems
 (`APHROS_PREFIX` is the installation directory, with `USE_MPI=1`,
-`USE_HDF=1`, `USE_OPENCL=1` builds with MPI, parallel HDF5 library,
-and OpenCL):
+`USE_HDF=1`, `USE_OPENCL=1`, `USE_AVX=1` builds with MPI, parallel
+HDF5 library, OpenCL, and AVX extensions):
 
 ```
 cd src
-make -f Makefile_legacy install APHROS_PREFIX=$HOME/.local USE_MPI=0 USE_HDF=0 USE_OPENCL=0
+make -f Makefile_legacy install APHROS_PREFIX=$HOME/.local USE_MPI=0 USE_HDF=0 USE_OPENCL=0 USE_AVX=0
 ```
 
 on Windows using Microsoft C++ toolset (NMAKE, LINK, and CL):

@@ -53,12 +53,12 @@ int SystemHasHyperthreads(void) {
 
 int SystemIsDir(const char* path) {
   struct stat info;
-  return (stat(path, &info) == 0) && (info.st_mode & S_IFDIR);
+  return stat(path, &info) == 0 && S_ISDIR(info.st_mode);
 }
 
 int SystemIsFile(const char* path) {
   struct stat info;
-  return (stat(path, &info) == 0) && (info.st_mode & S_IFREG);
+  return stat(path, &info) == 0 && (S_ISREG(info.st_mode) || S_ISLNK(info.st_mode));
 }
 
 int SystemJoin(const char *a, const char *b, char *c) {
