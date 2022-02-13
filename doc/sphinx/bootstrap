@@ -15,7 +15,7 @@ sub(/^\.\..* image:: /, "") {
     input = dirname "/" basename ".svg"
     output = dirname "/" basename ".pdf"
     if (1 == getline < input)
-	print output " \\" | "sort"
+    print output " \\" | "sort"
 }
 
 END {
