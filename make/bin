@@ -6,6 +6,6 @@ BEGIN {
 }
 
 ($1 in bin) || /^test\// {
-    if (sub(/\.cpp$/, "") || sub(/\.c/, ""))
+    if (sub(/\.cpp$/, "") || sub(/\.c$/, ""))
 	print $1
 }
