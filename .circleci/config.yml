@@ -145,9 +145,13 @@ jobs:
             git fetch
             git checkout << pipeline.git.revision >>
       - run:
+          name: Install dependencies
+          command: |
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install open-mpi
+      - run:
           name: Build source
           command: |
-            cd src && make -j4 -f Makefile_legacy
+            cd src && make -j4 -f Makefile_legacy USE_MPI=1
       - run:
           name: Run executable
           command: |
