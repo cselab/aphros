@@ -1,24 +1,8 @@
 from aphros.par import *
-import aphros.plot
 import aphros.io
-import aphros.stream
 from aphros.vtk import ReadVtkPoly
 
 from aphros.io import *
-InitBasicFigure = aphros.plot.InitBasicFigure
-SaveBasicFigure = aphros.plot.SaveBasicFigure
-PlotFieldCoolwarm = aphros.plot.PlotFieldCoolwarm
-
-InitFigure = aphros.plot.InitFigure
-SaveFigure = aphros.plot.SaveFigure
-ApplyParams = aphros.plot.ApplyParams
-PlotField = aphros.plot.PlotField
-PlotFieldText = aphros.plot.PlotFieldText
-
-ReplaceFilename = aphros.plot.ReplaceFilename
-GetStep = aphros.plot.GetStep
-GetSteps = aphros.plot.GetSteps
-stream = aphros.stream.stream
 
 import aphros.confgen
 Geometry = aphros.confgen.Geometry
