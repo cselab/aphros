@@ -284,6 +284,20 @@ struct HydroPost<M>::Imp {
           }
           m.Dump(&fc_ebvf, "ebvf");
         }
+        // Face area.
+        if (dl.count("ebsx") || dl.count("ebsy") || dl.count("ebsz")) {
+          t.stack_fcv.emplace(m, Vect(0));
+          auto& fcs = t.stack_fcv.top();
+          for (auto c : m.Cells()) {
+            for (auto d : m.dirs) {
+              const IdxFace f = m.GetFace(c, IdxNci(d * 2));
+              fcs[c][d] = eb.GetArea(f);
+            }
+          }
+          dumpv(fcs, 0, "ebsx");
+          dumpv(fcs, 1, "ebsy");
+          dumpv(fcs, 2, "ebsz");
+        }
       }
 
       if (auto& tracer = hydro->tracer_) {
