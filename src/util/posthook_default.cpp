@@ -29,6 +29,9 @@ template <class M>
 void InitHook(Hydro<M>*) {}
 
 template <class M>
+void PreStepHook(Hydro<M>*) {}
+
+template <class M>
 void StepHook(Hydro<M>*) {}
 
 template <class M>
@@ -48,6 +51,7 @@ void FinalHook(Hydro<M>*) {}
       FieldCell<typename M::Vect>&, FieldFace<typename M::Scal>&,              \
       typename M::Scal t, typename M::Scal dt, const Vars&, const M&);         \
   template void InitHook(Hydro<M>*);                                           \
+  template void PreStepHook(Hydro<M>*);                                           \
   template void StepHook(Hydro<M>*);                                           \
   template void FinalHook(Hydro<M>*);
 

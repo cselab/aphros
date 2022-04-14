@@ -2332,6 +2332,9 @@ void Hydro<M>::Run() {
   if (sem.Nested("mixture")) {
     CalcMixture(as_->GetField());
   }
+  if (sem.Nested("prestephook")) {
+    PreStepHook(this);
+  }
   if (sem.Nested("fs-start")) {
     fs_->StartStep();
   }
