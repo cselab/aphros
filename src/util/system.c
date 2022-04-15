@@ -7,3 +7,13 @@
 #else
 #include "system_unix.inc"
 #endif
+
+int SystemIsDir(const char* path) {
+  struct stat info;
+  return stat(path, &info) == 0 && S_ISDIR(info.st_mode);
+}
+
+int SystemIsFile(const char* path) {
+  struct stat info;
+  return stat(path, &info) == 0 && (S_ISREG(info.st_mode) || S_ISLNK(info.st_mode));
+}

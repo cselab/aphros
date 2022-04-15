@@ -4,6 +4,16 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#if !defined(S_ISREG) && defined(S_IFMT) && defined(S_IFREG)
+  #define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+#if !defined(S_ISDIR) && defined(S_IFMT) && defined(S_IFDIR)
+  #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif
+#if !define(S_ISLNK)
+#define S_ISLNK(m) 0
+#endif
+
 int SystemBaseName(const char* path, char *fname) {
   char drive[_MAX_DRIVE];
   char dir[_MAX_DIR];
@@ -49,16 +59,6 @@ int SystemGetHostName(char* name, size_t len) {
 int SystemHasHyperthreads(void) {
   // TODO
   return 0;
-}
-
-int SystemIsDir(const char* path) {
-  struct stat info;
-  return stat(path, &info) == 0 && S_ISDIR(info.st_mode);
-}
-
-int SystemIsFile(const char* path) {
-  struct stat info;
-  return stat(path, &info) == 0 && (S_ISREG(info.st_mode) || S_ISLNK(info.st_mode));
 }
 
 int SystemJoin(const char *a, const char *b, char *c) {
