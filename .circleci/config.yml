@@ -151,7 +151,7 @@ jobs:
       - run:
           name: Build source
           command: |
-            cd src && make -f Makefile_legacy clean && make -j4 -f Makefile_legacy USE_MPI=1 USE_HDF=1 CXX=h5pcc ENV_HDF= LDFLAGS=-lstdc++
+            cd src && make -j4 -f Makefile_legacy USE_MPI=1 USE_HDF=1 CXX=h5pcc ENV_HDF= LDFLAGS=-lstdc++
       - run:
           name: Run executable
           command: |
