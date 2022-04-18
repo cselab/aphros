@@ -147,11 +147,11 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            HOMEBREW_NO_AUTO_UPDATE=1 brew install open-mpi
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5-mpi
       - run:
           name: Build source
           command: |
-            cd src && make -j4 -f Makefile_legacy USE_MPI=1
+            cd src && make -f Makefile_legacy clean && make -j4 -f Makefile_legacy USE_MPI=1 USE_HDF=1 CXX=h5pcc ENV_HDF= LDFLAGS=-lstdc++
       - run:
           name: Run executable
           command: |
