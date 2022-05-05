@@ -45,6 +45,8 @@ $(WRK)/overlap/overlap.o: $(WRK)/.dir
 $(WRK)/parse/argparse.o: $(WRK)/.dir
 $(WRK)/parse/codeblocks.o: $(WRK)/.dir
 $(WRK)/parse/conf2py.o: $(WRK)/.dir
+$(WRK)/parse/evalexpr.o: $(WRK)/.dir
+$(WRK)/parse/eval.o: $(WRK)/.dir
 $(WRK)/parse/parser.o: $(WRK)/.dir
 $(WRK)/parse/template.o: $(WRK)/.dir
 $(WRK)/parse/vars.o: $(WRK)/.dir
@@ -131,6 +133,7 @@ $(WRK)/util/filesystem.o: $(WRK)/.dir
 $(WRK)/util/fixed_allocator.o: $(WRK)/.dir
 $(WRK)/util/fluid.o: $(WRK)/.dir
 $(WRK)/util/format.o: $(WRK)/.dir
+$(WRK)/util/gitgen.o: $(WRK)/.dir
 $(WRK)/util/gitgen.o: $(WRK)/.dir
 $(WRK)/util/git.o: $(WRK)/.dir
 $(WRK)/util/histogram.o: $(WRK)/.dir

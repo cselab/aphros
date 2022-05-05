@@ -936,6 +936,7 @@ parse\conf2py.obj: parse\vars.h
 parse\conf2py.obj: util\format.h
 parse\conf2py.obj: util\logger.h
 parse\conf2py.obj: util\macros.h
+parse\parser.obj: parse\evalexpr.h
 parse\parser.obj: parse\parser.h
 parse\parser.obj: parse\vars.h
 parse\parser.obj: util\filesystem.h

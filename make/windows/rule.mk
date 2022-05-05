@@ -45,6 +45,8 @@ overlap\overlap.obj: overlap\overlap.cpp; $(CXX_RULE) overlap\overlap.cpp
 parse\argparse.obj: parse\argparse.cpp; $(CXX_RULE) parse\argparse.cpp
 parse\codeblocks.obj: parse\codeblocks.cpp; $(CXX_RULE) parse\codeblocks.cpp
 parse\conf2py.obj: parse\conf2py.cpp; $(CXX_RULE) parse\conf2py.cpp
+parse\evalexpr.obj: parse\evalexpr.cpp; $(CXX_RULE) parse\evalexpr.cpp
+parse\eval.obj: parse\eval.cpp; $(CXX_RULE) parse\eval.cpp
 parse\parser.obj: parse\parser.cpp; $(CXX_RULE) parse\parser.cpp
 parse\template.obj: parse\template.cpp; $(CXX_RULE) parse\template.cpp
 parse\vars.obj: parse\vars.cpp; $(CXX_RULE) parse\vars.cpp
@@ -131,6 +133,7 @@ util\filesystem.obj: util\filesystem.cpp; $(CXX_RULE) util\filesystem.cpp
 util\fixed_allocator.obj: util\fixed_allocator.cpp; $(CXX_RULE) util\fixed_allocator.cpp
 util\fluid.obj: util\fluid.cpp; $(CXX_RULE) util\fluid.cpp
 util\format.obj: util\format.cpp; $(CXX_RULE) util\format.cpp
+util\gitgen.obj: util\gitgen.cpp; $(CXX_RULE) util\gitgen.cpp
 util\gitgen.obj: util\gitgen.cpp; $(CXX_RULE) util\gitgen.cpp
 util\git.obj: util\git.cpp; $(CXX_RULE) util\git.cpp
 util\histogram.obj: util\histogram.cpp; $(CXX_RULE) util\histogram.cpp

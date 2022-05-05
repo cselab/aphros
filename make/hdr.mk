@@ -79,6 +79,7 @@ parse/argparse.h\
 parse/codeblocks.h\
 parse/config.h\
 parse/curv.h\
+parse/evalexpr.h\
 parse/parser.h\
 parse/proj.h\
 parse/simple.h\

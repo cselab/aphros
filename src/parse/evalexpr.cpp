@@ -123,7 +123,10 @@ T Eval(Iterator begin, Iterator end, Iterator origin) {
     switch (*pos) {
       case '+':
       case '-':
-        return EvalOp<T>(begin, pos, *pos, pos + 1, end, origin);
+        if (*(pos - 1) != 'e' && *(pos - 1) != 'E') {
+          return EvalOp<T>(begin, pos, *pos, pos + 1, end, origin);
+        }
+        break;
       default:
         break;
     }

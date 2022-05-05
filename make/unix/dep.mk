@@ -936,6 +936,7 @@ $(WRK)/parse/conf2py.o: $(SRC)/parse/vars.h
 $(WRK)/parse/conf2py.o: $(SRC)/util/format.h
 $(WRK)/parse/conf2py.o: $(SRC)/util/logger.h
 $(WRK)/parse/conf2py.o: $(SRC)/util/macros.h
+$(WRK)/parse/parser.o: $(SRC)/parse/evalexpr.h
 $(WRK)/parse/parser.o: $(SRC)/parse/parser.h
 $(WRK)/parse/parser.o: $(SRC)/parse/vars.h
 $(WRK)/parse/parser.o: $(SRC)/util/filesystem.h

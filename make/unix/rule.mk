@@ -45,6 +45,8 @@ $(WRK)/overlap/overlap.o: $(SRC)/overlap/overlap.cpp; $(CXX_RULE) $(SRC)/overlap
 $(WRK)/parse/argparse.o: $(SRC)/parse/argparse.cpp; $(CXX_RULE) $(SRC)/parse/argparse.cpp
 $(WRK)/parse/codeblocks.o: $(SRC)/parse/codeblocks.cpp; $(CXX_RULE) $(SRC)/parse/codeblocks.cpp
 $(WRK)/parse/conf2py.o: $(SRC)/parse/conf2py.cpp; $(CXX_RULE) $(SRC)/parse/conf2py.cpp
+$(WRK)/parse/evalexpr.o: $(SRC)/parse/evalexpr.cpp; $(CXX_RULE) $(SRC)/parse/evalexpr.cpp
+$(WRK)/parse/eval.o: $(SRC)/parse/eval.cpp; $(CXX_RULE) $(SRC)/parse/eval.cpp
 $(WRK)/parse/parser.o: $(SRC)/parse/parser.cpp; $(CXX_RULE) $(SRC)/parse/parser.cpp
 $(WRK)/parse/template.o: $(SRC)/parse/template.cpp; $(CXX_RULE) $(SRC)/parse/template.cpp
 $(WRK)/parse/vars.o: $(SRC)/parse/vars.cpp; $(CXX_RULE) $(SRC)/parse/vars.cpp
@@ -131,6 +133,7 @@ $(WRK)/util/filesystem.o: $(SRC)/util/filesystem.cpp; $(CXX_RULE) $(SRC)/util/fi
 $(WRK)/util/fixed_allocator.o: $(SRC)/util/fixed_allocator.cpp; $(CXX_RULE) $(SRC)/util/fixed_allocator.cpp
 $(WRK)/util/fluid.o: $(SRC)/util/fluid.cpp; $(CXX_RULE) $(SRC)/util/fluid.cpp
 $(WRK)/util/format.o: $(SRC)/util/format.cpp; $(CXX_RULE) $(SRC)/util/format.cpp
+$(WRK)/util/gitgen.o: $(SRC)/util/gitgen.cpp; $(CXX_RULE) $(SRC)/util/gitgen.cpp
 $(WRK)/util/gitgen.o: $(SRC)/util/gitgen.cpp; $(CXX_RULE) $(SRC)/util/gitgen.cpp
 $(WRK)/util/git.o: $(SRC)/util/git.cpp; $(CXX_RULE) $(SRC)/util/git.cpp
 $(WRK)/util/histogram.o: $(SRC)/util/histogram.cpp; $(CXX_RULE) $(SRC)/util/histogram.cpp

@@ -1,6 +1,6 @@
 set(T parser)
 add_object(${T} parser.cpp codeblocks.cpp)
-object_link_libraries(${T} vars filesystem)
+object_link_libraries(${T} vars filesystem evalexpr)
 
 set(T vars)
 add_object(${T} vars.cpp)

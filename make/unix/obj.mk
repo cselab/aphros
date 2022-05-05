@@ -36,6 +36,8 @@ $(WRK)/overlap/overlap.o\
 $(WRK)/parse/argparse.o\
 $(WRK)/parse/codeblocks.o\
 $(WRK)/parse/conf2py.o\
+$(WRK)/parse/evalexpr.o\
+$(WRK)/parse/eval.o\
 $(WRK)/parse/parser.o\
 $(WRK)/parse/template.o\
 $(WRK)/parse/vars.o\
@@ -65,6 +67,7 @@ $(WRK)/util/filesystem.o\
 $(WRK)/util/fixed_allocator.o\
 $(WRK)/util/fluid.o\
 $(WRK)/util/format.o\
+$(WRK)/util/gitgen.o\
 $(WRK)/util/gitgen.o\
 $(WRK)/util/git.o\
 $(WRK)/util/histogram.o\

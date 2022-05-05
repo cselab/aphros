@@ -8,6 +8,14 @@ set vect d 1
 TestFile
 set string c a b   s c
 set string dumplist p vx vy vf
+set string expr0 12
+set string expr1 18
+set string expr2 19
+set string expr3 -1
+set string expr4 90
+set string expr5 0.9
+set string expr6 4.5
+set string expr7 4
 set string from_c.conf 
 set string from_d.conf 
 set string multi "inline 

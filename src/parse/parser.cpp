@@ -7,6 +7,7 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "evalexpr.h"
 #include "parser.h"
 #include "util/filesystem.h"
 #include "util/format.h"
@@ -54,9 +55,9 @@ struct Parser::Imp {
       varname_braced,
       stop
     };
-    S s = S::normal; // state
+    S s = S::normal; // State.
     size_t i = 0;
-    std::string res; // result
+    std::string res; // Result.
     std::string varname;
     const char kEnd = 0;
     try {
@@ -89,6 +90,9 @@ struct Parser::Imp {
             if (c == '{') {
               s = S::varname_braced;
               next();
+            } else if (c == '(') {
+              res += '$';
+              s = S::normal;
             } else if (IsNameChar(c)) {
               s = S::varname;
             } else {
@@ -126,7 +130,124 @@ struct Parser::Imp {
           }
           case S::expand: {
             res += GetStr(varname);
-            varname = "";
+            varname.clear();
+            s = S::normal;
+            break;
+          }
+          case S::stop:
+            break;
+        }
+      }
+    } catch (const std::runtime_error& e) {
+      fassert(false, "error while parsing '" + str + "'\n" + e.what());
+    }
+    return res;
+  }
+  std::string EvalExpressions(std::string str) const {
+    // Evaluates arithmetic expressions inside $((...)).
+    // Assumes that all other occurances of '$' have escape '\'.
+    enum class S {
+      normal,
+      dollar,
+      escape,
+      paren1,
+      expr,
+      parenclose1,
+      evalexpr,
+      stop
+    };
+    S s = S::normal; // State.
+    size_t i = 0;
+    int depth = 0; // Depth of nested parentheses inside $((...)).
+    std::string res; // Result.
+    std::string expr;
+    const char kEnd = 0;
+    try {
+      while (s != S::stop) {
+        char c = (i < str.size() ? str[i] : kEnd);
+        auto next = [&i]() { ++i; };
+        switch (s) {
+          case S::normal: {
+            if (c == '\\') {
+              s = S::escape;
+              next();
+            } else if (c == '$') {
+              s = S::dollar;
+              next();
+            } else if (c == kEnd) {
+              s = S::stop;
+            } else {
+              res += c;
+              next();
+            }
+            break;
+          }
+          case S::escape: {
+            res += c;
+            next();
+            s = S::normal;
+            break;
+          }
+          case S::dollar: {
+            if (c == '(') {
+              s = S::paren1;
+              next();
+            } else {
+              throw std::runtime_error(util::Format(
+                  "unexpected character '{}' following $ while parsing '{}'", c,
+                  str));
+            }
+            break;
+          }
+          case S::paren1: {
+            if (c == '(') {
+              s = S::expr;
+              depth = 0;
+              expr.clear();
+              next();
+            } else {
+              throw std::runtime_error(util::Format(
+                  "unexpected character '{}' following ( while parsing '{}'", c,
+                  str));
+            }
+            break;
+          }
+          case S::expr: {
+            if (c == ')') {
+              if (depth > 0) {
+                --depth;
+                expr += c;
+              } else {
+                s = S::parenclose1;
+              }
+              next();
+            } else if (c == '(') {
+              ++depth;
+              expr += c;
+              next();
+            } else if (c == kEnd) {
+              throw std::runtime_error(util::Format(
+                  "unexpected end of string while parsing '{}'", str));
+            } else {
+              expr += c;
+              next();
+            }
+            break;
+          }
+          case S::parenclose1: {
+            if (c == ')') {
+              s = S::evalexpr;
+              next();
+            } else {
+              throw std::runtime_error(util::Format(
+                  "unexpected character '{}' after ')' inside $(()) while "
+                  "parsing '{}'",
+                  c, str));
+            }
+            break;
+          }
+          case S::evalexpr: {
+            res += util::Format("{:.14g}", EvalExpr<double>(expr));
             s = S::normal;
             break;
           }
@@ -166,6 +287,7 @@ void Parser::Imp::Cmd(std::string s, std::string curpath, int line) {
   try {
     s = RemoveComment(s);
     s = ExpandVariables(s);
+    s = EvalExpressions(s);
     std::stringstream b(s);
     std::string cmd;
     b >> cmd;

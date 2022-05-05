@@ -36,6 +36,8 @@ overlap\overlap.obj\
 parse\argparse.obj\
 parse\codeblocks.obj\
 parse\conf2py.obj\
+parse\evalexpr.obj\
+parse\eval.obj\
 parse\parser.obj\
 parse\template.obj\
 parse\vars.obj\
@@ -65,6 +67,7 @@ util\filesystem.obj\
 util\fixed_allocator.obj\
 util\fluid.obj\
 util\format.obj\
+util\gitgen.obj\
 util\gitgen.obj\
 util\git.obj\
 util\histogram.obj\
