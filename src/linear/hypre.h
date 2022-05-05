@@ -8,11 +8,12 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <HYPRE_struct_ls.h>
 
 class Hypre {
  public:
   static constexpr size_t dim = 3;
-  using MIdx = std::array<int, dim>;
+  using MIdx = std::array<HYPRE_Int, dim>;
   using Scal = double;
   struct Block { // linear system ax=r
     MIdx l; // lower corner

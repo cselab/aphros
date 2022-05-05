@@ -3,7 +3,6 @@
 
 #undef NDEBUG
 
-#include <HYPRE_struct_ls.h>
 #include <util/logger.h>
 #include <cassert>
 #include <iostream>
@@ -37,7 +36,7 @@ struct Hypre::Imp {
   HypreData hd;
   std::string solver_;
   Scal res_;
-  int iter_;
+  HYPRE_Int iter_;
 };
 
 Hypre::Imp::Imp(MPI_Comm comm, const std::vector<Block>& bb0, MIdx gs, MIdx per)
@@ -80,7 +79,7 @@ Hypre::Imp::Imp(MPI_Comm comm, const std::vector<Block>& bb0, MIdx gs, MIdx per)
     HYPRE_StructGridSetExtents(hd.grid, b.l.data(), b.u.data());
   }
   // Periodic
-  std::vector<int> nper(per.size());
+  std::vector<HYPRE_Int> nper(per.size());
   for (size_t i = 0; i < dim; ++i) {
     nper[i] = per[i] ? gs[i] : 0;
   }
@@ -97,7 +96,7 @@ Hypre::Imp::Imp(MPI_Comm comm, const std::vector<Block>& bb0, MIdx gs, MIdx per)
   HYPRE_StructMatrixCreate(comm, hd.grid, hd.stencil, &hd.a);
   HYPRE_StructMatrixInitialize(hd.a);
   for (auto& b : bb) {
-    std::vector<int> sti(stencil.size()); // stencil index (1-to-1)
+    std::vector<HYPRE_Int> sti(stencil.size()); // stencil index (1-to-1)
     for (size_t i = 0; i < sti.size(); ++i) {
       sti[i] = (int)i;
     }
@@ -190,7 +189,7 @@ void Hypre::Imp::Update() {
   std::vector<MIdx> stencil = bb[0].stencil;
   // Matrix
   for (auto& b : bb) {
-    std::vector<int> sti(stencil.size()); // stencil index (1-to-1)
+    std::vector<HYPRE_Int> sti(stencil.size()); // stencil index (1-to-1)
     for (size_t i = 0; i < sti.size(); ++i) {
       sti[i] = (int)i;
     }

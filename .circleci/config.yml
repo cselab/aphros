@@ -147,11 +147,11 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5-mpi
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5-mpi hypre
       - run:
           name: Build source
           command: |
-            cd src && make -j4 -f Makefile_legacy USE_MPI=1 USE_HDF=1
+            cd src && make -j4 -f Makefile_legacy USE_MPI=1 USE_HDF=1 USE_HYPRE=1 LDFLAGS_HYPRE=-lHYPRE
       - run:
           name: Run executable
           command: |
