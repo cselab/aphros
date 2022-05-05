@@ -80,6 +80,7 @@ install(FILES parse/argparse.h DESTINATION ${APHROS_PREFIX}/include/aphros/parse
 install(FILES parse/codeblocks.h DESTINATION ${APHROS_PREFIX}/include/aphros/parse)
 install(FILES parse/config.h DESTINATION ${APHROS_PREFIX}/include/aphros/parse)
 install(FILES parse/curv.h DESTINATION ${APHROS_PREFIX}/include/aphros/parse)
+install(FILES parse/evalexpr.h DESTINATION ${APHROS_PREFIX}/include/aphros/parse)
 install(FILES parse/parser.h DESTINATION ${APHROS_PREFIX}/include/aphros/parse)
 install(FILES parse/proj.h DESTINATION ${APHROS_PREFIX}/include/aphros/parse)
 install(FILES parse/simple.h DESTINATION ${APHROS_PREFIX}/include/aphros/parse)

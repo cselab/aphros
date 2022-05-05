@@ -6,6 +6,10 @@ set(T vars)
 add_object(${T} vars.cpp)
 object_link_libraries(${T} logger)
 
+set(T evalexpr)
+add_object(${T} evalexpr.cpp)
+object_link_libraries(${T} logger format)
+
 set(T parse_template)
 add_object(${T} template.cpp)
 

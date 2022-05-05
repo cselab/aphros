@@ -258,6 +258,7 @@ set(ObjLibs
   dumper
   electro
   embed
+  evalexpr
   events
   filesystem
   fluid_dummy
