@@ -15,9 +15,7 @@ if os.path.isfile(inc):
         EXTRA = "  ".join(f.readlines())
 
 
-o = """#!/bin/sh
-
-# Source this file to append environment variables.
+o = """# Source this file to append environment variables.
 
 if [ "${[[FLAGVAR]]:-x}" != "1" ] ; then
   : ${LD_LIBRARY_PATH=}
@@ -30,15 +28,17 @@ if [ "${[[FLAGVAR]]:-x}" != "1" ] ; then
   export LD_LIBRARY_PATH="${[[PREFIXVAR]]}/lib:${LD_LIBRARY_PATH}"
   export PYTHONPATH="${[[PREFIXVAR]]}/bin:$PYTHONPATH"
   export CMAKE_PREFIX_PATH="${[[PREFIXVAR]]}/cmake:${CMAKE_PREFIX_PATH}"
-  export MANPATH="$(MANPATH= manpath -g):${[[PREFIXVAR]]}/man"
-
+  if manpath -g 2>/dev/null 1>/dev/null; then
+    export MANPATH="$(MANPATH= manpath -g):${[[PREFIXVAR]]}/man"
+  fi
   export OMP_NUM_THREADS=1
-
   [[EXTRA]]
   export [[FLAGVAR]]=1
-  echo "[[FLAGVAR]]=$[[FLAGVAR]]" 1>&2
-  echo "[[PREFIXVAR]]=$[[PREFIXVAR]]" 1>&2
-  echo "[[PROFILEVAR]]=$[[PROFILEVAR]]" 1>&2
+  cat >&2 <<-!
+	[[FLAGVAR]]=$[[FLAGVAR]]
+	[[PREFIXVAR]]=$[[PREFIXVAR]]
+	[[PROFILEVAR]]=$[[PROFILEVAR]]
+	!
 fi
 """
 
