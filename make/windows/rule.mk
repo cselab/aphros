@@ -134,7 +134,6 @@ util\fixed_allocator.obj: util\fixed_allocator.cpp; $(CXX_RULE) util\fixed_alloc
 util\fluid.obj: util\fluid.cpp; $(CXX_RULE) util\fluid.cpp
 util\format.obj: util\format.cpp; $(CXX_RULE) util\format.cpp
 util\gitgen.obj: util\gitgen.cpp; $(CXX_RULE) util\gitgen.cpp
-util\gitgen.obj: util\gitgen.cpp; $(CXX_RULE) util\gitgen.cpp
 util\git.obj: util\git.cpp; $(CXX_RULE) util\git.cpp
 util\histogram.obj: util\histogram.cpp; $(CXX_RULE) util\histogram.cpp
 util\hydro_post.obj: util\hydro_post.cpp; $(CXX_RULE) util\hydro_post.cpp

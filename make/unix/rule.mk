@@ -134,7 +134,6 @@ $(WRK)/util/fixed_allocator.o: $(SRC)/util/fixed_allocator.cpp; $(CXX_RULE) $(SR
 $(WRK)/util/fluid.o: $(SRC)/util/fluid.cpp; $(CXX_RULE) $(SRC)/util/fluid.cpp
 $(WRK)/util/format.o: $(SRC)/util/format.cpp; $(CXX_RULE) $(SRC)/util/format.cpp
 $(WRK)/util/gitgen.o: $(SRC)/util/gitgen.cpp; $(CXX_RULE) $(SRC)/util/gitgen.cpp
-$(WRK)/util/gitgen.o: $(SRC)/util/gitgen.cpp; $(CXX_RULE) $(SRC)/util/gitgen.cpp
 $(WRK)/util/git.o: $(SRC)/util/git.cpp; $(CXX_RULE) $(SRC)/util/git.cpp
 $(WRK)/util/histogram.o: $(SRC)/util/histogram.cpp; $(CXX_RULE) $(SRC)/util/histogram.cpp
 $(WRK)/util/hydro_post.o: $(SRC)/util/hydro_post.cpp; $(CXX_RULE) $(SRC)/util/hydro_post.cpp

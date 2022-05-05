@@ -68,7 +68,6 @@ util\fixed_allocator.obj\
 util\fluid.obj\
 util\format.obj\
 util\gitgen.obj\
-util\gitgen.obj\
 util\git.obj\
 util\histogram.obj\
 util\hydro_post.obj\

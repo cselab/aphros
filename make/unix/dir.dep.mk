@@ -134,7 +134,6 @@ $(WRK)/util/fixed_allocator.o: $(WRK)/.dir
 $(WRK)/util/fluid.o: $(WRK)/.dir
 $(WRK)/util/format.o: $(WRK)/.dir
 $(WRK)/util/gitgen.o: $(WRK)/.dir
-$(WRK)/util/gitgen.o: $(WRK)/.dir
 $(WRK)/util/git.o: $(WRK)/.dir
 $(WRK)/util/histogram.o: $(WRK)/.dir
 $(WRK)/util/hydro_post.o: $(WRK)/.dir

@@ -68,7 +68,6 @@ $(WRK)/util/fixed_allocator.o\
 $(WRK)/util/fluid.o\
 $(WRK)/util/format.o\
 $(WRK)/util/gitgen.o\
-$(WRK)/util/gitgen.o\
 $(WRK)/util/git.o\
 $(WRK)/util/histogram.o\
 $(WRK)/util/hydro_post.o\
