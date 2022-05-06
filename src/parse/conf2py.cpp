@@ -32,6 +32,15 @@ int main(int argc, const char** argv) {
     parser.ParseFile(ipath);
   }
 
+  auto float_to_str = [](double a) {
+    std::string s = util::Format("{:.16g}", a);
+    if (s.find_first_of('.') == std::string::npos &&
+        s.find_first_of('e') == std::string::npos) {
+      s += '.';
+    }
+    return s;
+  };
+
   const auto opath = args.String["output"];
   std::ofstream fout;
   if (opath != "-") {
@@ -49,14 +58,14 @@ int main(int argc, const char** argv) {
     out << util::Format("{} = {:}\n", a.first, a.second);
   }
   for (auto a : var.Double) {
-    out << util::Format("{} = {:.16g}\n", a.first, a.second);
+    out << util::Format("{} = {}\n", a.first, float_to_str(a.second));
   }
   for (auto a : var.Vect) {
     std::string val;
     bool first = true;
     for (auto q : a.second) {
       auto sep = first ? "" : ", ";
-      val += util::Format("{}{:.16g}", sep, q);
+      val += util::Format("{}{}", sep, float_to_str(q));
       first = false;
     }
     out << util::Format("{} = [{}]\n", a.first, val);
