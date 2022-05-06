@@ -171,5 +171,5 @@ workflows:
       - examples:
           requires:
             - build
-      - build-win
-      - build-mac
+      #- build-win
+      #- build-mac
