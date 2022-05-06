@@ -49,14 +49,14 @@ int main(int argc, const char** argv) {
     out << util::Format("{} = {:}\n", a.first, a.second);
   }
   for (auto a : var.Double) {
-    out << util::Format("{} = {:.20f}\n", a.first, a.second);
+    out << util::Format("{} = {:.16g}\n", a.first, a.second);
   }
   for (auto a : var.Vect) {
     std::string val;
     bool first = true;
     for (auto q : a.second) {
       auto sep = first ? "" : ", ";
-      val += util::Format("{}{:.20f}", sep, q);
+      val += util::Format("{}{:.16g}", sep, q);
       first = false;
     }
     out << util::Format("{} = [{}]\n", a.first, val);

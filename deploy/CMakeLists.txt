@@ -107,6 +107,7 @@ set(ScriptsList
     part0
     plain2vtk
     pngmp4
+    py2conf
     run
     run0
     scale
