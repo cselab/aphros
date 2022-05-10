@@ -23,14 +23,7 @@ func\init_vel.obj: func\init_vel.cpp; $(CXX_RULE) func\init_vel.cpp
 func\primlist.obj: func\primlist.cpp; $(CXX_RULE) func\primlist.cpp
 gen\wave_lamb.obj: gen\wave_lamb.c; $(CC_RULE) gen\wave_lamb.c
 geom\mesh.obj: geom\mesh.cpp; $(CXX_RULE) geom\mesh.cpp
-inside\bbox.obj: inside\bbox.c; $(CC_RULE) inside\bbox.c
-inside\err.obj: inside\err.c; $(CC_RULE) inside\err.c
 inside\main.obj: inside\main.c; $(CC_RULE) inside\main.c
-inside\memory.obj: inside\memory.c; $(CC_RULE) inside\memory.c
-inside\off.obj: inside\off.c; $(CC_RULE) inside\off.c
-inside\ply.obj: inside\ply.c; $(CC_RULE) inside\ply.c
-inside\predicate.obj: inside\predicate.c; $(CC_RULE) inside\predicate.c
-inside\stl.obj: inside\stl.c; $(CC_RULE) inside\stl.c
 kernel\hydro.obj: kernel\hydro.cpp; $(CXX_RULE) kernel\hydro.cpp
 linear\conjugate_cl.obj: linear\conjugate_cl.cpp; $(CXX_RULE) linear\conjugate_cl.cpp
 linear\hypre.obj: linear\hypre.cpp; $(CXX_RULE) linear\hypre.cpp

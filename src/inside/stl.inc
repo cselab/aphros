@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "err.h"
 #include "memory.h"
 
 #define USED(x) \
@@ -14,7 +13,6 @@
   else {        \
   }
 
-enum { SIZE = 999 };
 int stl_read(
     FILE* f, int* status, int* pnt, int** ptri, int* pnv, double** pver) {
   enum { Stl, FacetStart, OuterStart, FacetEnd, OuterEnd, Vertex, End };

@@ -8,12 +8,47 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "bbox.h"
-#include "err.h"
 #include "inside.h"
-#include "memory.h"
-#include "predicate.h"
+
+static char me[] = "inside";
+#define MALLOC(n, p)                                    \
+  do {                                                  \
+    *(p) = memory_malloc(n * sizeof(**(p)));            \
+    if (*(p) == NULL) ERR(("alloc failed, n = %d", n)); \
+  } while (0)
+#define FREE(p) memory_free(p)
+#define REALLOC(n, p)                                     \
+  do {                                                    \
+    *(p) = memory_realloc(*(p), n * sizeof(**(p)));       \
+    if (*(p) == NULL) ERR(("realloc failed, n = %d", n)); \
+  } while (0)
+
+int err_print(const char* fmt, ...);
+void err_exit(int);
+#define ERR(x)                                              \
+  do {                                                      \
+    fprintf(stderr, "%s: %s:%d: ", me, __FILE__, __LINE__); \
+    err_print x;                                            \
+    fputs("\n", stderr);                                    \
+    err_exit(2);                                            \
+  } while (0)
+
+#define MSG(x)                                      \
+  do {                                              \
+    fprintf(stderr, "%s:%d: ", __FILE__, __LINE__); \
+    err_print x;                                    \
+    fputs("\n", stderr);                            \
+
+enum { X, Y, Z };
+enum { SIZE = 999 };
+
+#include "err.inc"
+#include "memory.inc"
+#include "bbox.inc"
+#include "off.inc"
+#include "ply.inc"
+#include "predicate_c.inc"
+#include "stl.inc"
 
 #define SIZE (9999)
 
@@ -28,8 +63,6 @@ static double tri_point_distance2(
     const double[3], const double[3], const double[3], const double p[3]);
 static double max_dbl(double, double);
 
-static char me[] = "inside";
-enum { X, Y, Z };
 
 struct Inside {
   int nt;
@@ -447,7 +480,6 @@ static double sq(double x) {
   return x * x;
 }
 static double edg(const double* a, const double* b) {
-  enum { X, Y, Z };
   return sqrt(sq(a[X] - b[X]) + sq(a[Y] - b[Y]) + sq(a[Z] - b[Z]));
 }
 double max_edg(const double* u, const double* v, const double* w) {
@@ -498,7 +530,6 @@ static double edg_point_distance2(
 static double tri_point_distance2(
     const double a[3], const double b[3], const double c[3],
     const double p[3]) {
-  enum { X, Y, Z };
   double u[3], v[3], q[3];
   double A, B, C, D, E, det;
   double t1, t2;

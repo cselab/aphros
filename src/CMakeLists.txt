@@ -248,14 +248,14 @@ set(ObjLibs
   convdiffvg
   curv
   distr
-  distr_particles
   distrbasic
+  distr_particles
   distrsolver
   dump
+  dumper
   dump_hdf
   dump_raw
   dump_xmf
-  dumper
   electro
   embed
   evalexpr
@@ -271,6 +271,7 @@ set(ObjLibs
   init
   init_contang
   init_vel
+  inside
   linear
   logger
   march
@@ -313,7 +314,6 @@ set(UseLibs
   use_backend
 )
 set(StaticLibs
-  inside
 )
 
 if (USE_HYPRE)

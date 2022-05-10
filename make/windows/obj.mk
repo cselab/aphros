@@ -21,14 +21,7 @@ func\init.obj\
 func\init_vel.obj\
 func\primlist.obj\
 geom\mesh.obj\
-inside\bbox.obj\
-inside\err.obj\
 inside\main.obj\
-inside\memory.obj\
-inside\off.obj\
-inside\ply.obj\
-inside\predicate.obj\
-inside\stl.obj\
 kernel\hydro.obj\
 linear\linear.obj\
 march\main.obj\

@@ -21,14 +21,7 @@ $(WRK)/func/init.o\
 $(WRK)/func/init_vel.o\
 $(WRK)/func/primlist.o\
 $(WRK)/geom/mesh.o\
-$(WRK)/inside/bbox.o\
-$(WRK)/inside/err.o\
 $(WRK)/inside/main.o\
-$(WRK)/inside/memory.o\
-$(WRK)/inside/off.o\
-$(WRK)/inside/ply.o\
-$(WRK)/inside/predicate.o\
-$(WRK)/inside/stl.o\
 $(WRK)/kernel/hydro.o\
 $(WRK)/linear/linear.o\
 $(WRK)/march/main.o\

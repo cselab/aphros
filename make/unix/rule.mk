@@ -23,14 +23,7 @@ $(WRK)/func/init_vel.o: $(SRC)/func/init_vel.cpp; $(CXX_RULE) $(SRC)/func/init_v
 $(WRK)/func/primlist.o: $(SRC)/func/primlist.cpp; $(CXX_RULE) $(SRC)/func/primlist.cpp
 $(WRK)/gen/wave_lamb.o: $(SRC)/gen/wave_lamb.c; $(CC_RULE) $(SRC)/gen/wave_lamb.c
 $(WRK)/geom/mesh.o: $(SRC)/geom/mesh.cpp; $(CXX_RULE) $(SRC)/geom/mesh.cpp
-$(WRK)/inside/bbox.o: $(SRC)/inside/bbox.c; $(CC_RULE) $(SRC)/inside/bbox.c
-$(WRK)/inside/err.o: $(SRC)/inside/err.c; $(CC_RULE) $(SRC)/inside/err.c
 $(WRK)/inside/main.o: $(SRC)/inside/main.c; $(CC_RULE) $(SRC)/inside/main.c
-$(WRK)/inside/memory.o: $(SRC)/inside/memory.c; $(CC_RULE) $(SRC)/inside/memory.c
-$(WRK)/inside/off.o: $(SRC)/inside/off.c; $(CC_RULE) $(SRC)/inside/off.c
-$(WRK)/inside/ply.o: $(SRC)/inside/ply.c; $(CC_RULE) $(SRC)/inside/ply.c
-$(WRK)/inside/predicate.o: $(SRC)/inside/predicate.c; $(CC_RULE) $(SRC)/inside/predicate.c
-$(WRK)/inside/stl.o: $(SRC)/inside/stl.c; $(CC_RULE) $(SRC)/inside/stl.c
 $(WRK)/kernel/hydro.o: $(SRC)/kernel/hydro.cpp; $(CXX_RULE) $(SRC)/kernel/hydro.cpp
 $(WRK)/linear/conjugate_cl.o: $(SRC)/linear/conjugate_cl.cpp; $(CXX_RULE) $(SRC)/linear/conjugate_cl.cpp
 $(WRK)/linear/hypre.o: $(SRC)/linear/hypre.cpp; $(CXX_RULE) $(SRC)/linear/hypre.cpp

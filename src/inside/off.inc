@@ -5,10 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "err.h"
 #include "memory.h"
 
-enum { SIZE = 999 };
 int off_read(
     FILE* f, int* status, int* pnt, int** ptri, int* pnv, double** pver) {
   enum { Off, Numbers, Ver, Tri, End };

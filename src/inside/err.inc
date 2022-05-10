@@ -5,8 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "err.h"
-
 int err_print(const char* fmt, ...) {
   va_list ap;
 

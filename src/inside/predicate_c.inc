@@ -3,11 +3,8 @@
 
 #include <math.h>
 #include <stdlib.h>
-#include "err.h"
 #include "predicate.h"
 #include "predicate.inc"
-
-enum { X, Y, Z };
 
 #define SIGN(x) ((x) > 0 ? 1 : -1)
 #define ORIENT1D(a, b) ((a) > (b) ? 1 : (a) < (b) ? -1 : 0)

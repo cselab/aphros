@@ -86,6 +86,7 @@ class Solver : public KernelMeshPar<M, Par> {
   typename PartStrMeshM<M>::Par psm_par;
   GRange<size_t> layers;
   typename Vof<M>::Par vof_par;
+  std::unique_ptr<curvature::Estimator<M>> curv_estimator_;
 };
 
 struct State {
@@ -265,10 +266,7 @@ void Solver::Run() {
           m, m, fcu, fccl, bc_vof, &fluid->GetVolumeFlux(), &fc_src, 0, s.dt,
           p));
     }
-
-    auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
-    psm_par = ParsePar<PartStrMeshM<M>>()(ps, var);
-    curv_estimator_.reset(new curvature::Particles<M>(m, psm_par_, layers));
+    curv_estimator_ = curvature::MakeEstimator(var, m, layers);
   }
   if (sem("switch_coal") && s.to_switch_coal) {
     auto& p = vof_par;
@@ -319,7 +317,7 @@ void Solver::Run() {
     m.Reduce(&maxvel, Reduction::max);
   }
   if (sem.Nested("curv")) {
-    UCurv<M>::CalcCurvPart(vof.get(), psm_par, fc_curv, m);
+    curv_estimator_->CalcCurvature(fc_curv, vof->GetPlic(), m, m);
   }
   if (sem("flux")) {
     const Scal rho1 = var.Double["rho1"];
@@ -392,7 +390,7 @@ void Solver::Run() {
     s.to_spawn = false;
 
     if (s.render) {
-      auto bc_vel = GetVelCond<M>(bc_fluid);
+      auto bc_vel = ConvertBCondFluidToVelocity<M>(bc_fluid);
       RenderField(
           *g_canvas, vof->GetField(), fluid->GetVelocity(), bc_vel, bc_vort,
           fluid->GetPressure(), var.Int["visinterp"], m);
@@ -612,7 +610,6 @@ int GetLines(uint16_t* data, int max_size) {
 }
 
 int main() {
-  FORCE_LINK(distr_local);
   FORCE_LINK(distr_native);
 
   aphros_SetErrorHandler(ErrorHandler);

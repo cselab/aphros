@@ -23,14 +23,7 @@ $(WRK)/func/init_vel.o: $(WRK)/.dir
 $(WRK)/func/primlist.o: $(WRK)/.dir
 $(WRK)/gen/wave_lamb.o: $(WRK)/.dir
 $(WRK)/geom/mesh.o: $(WRK)/.dir
-$(WRK)/inside/bbox.o: $(WRK)/.dir
-$(WRK)/inside/err.o: $(WRK)/.dir
 $(WRK)/inside/main.o: $(WRK)/.dir
-$(WRK)/inside/memory.o: $(WRK)/.dir
-$(WRK)/inside/off.o: $(WRK)/.dir
-$(WRK)/inside/ply.o: $(WRK)/.dir
-$(WRK)/inside/predicate.o: $(WRK)/.dir
-$(WRK)/inside/stl.o: $(WRK)/.dir
 $(WRK)/kernel/hydro.o: $(WRK)/.dir
 $(WRK)/linear/conjugate_cl.o: $(WRK)/.dir
 $(WRK)/linear/hypre.o: $(WRK)/.dir

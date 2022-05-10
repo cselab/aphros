@@ -321,7 +321,6 @@ int GetLines(int embed, uint16_t* data, int max_size) {
 }
 
 int main() {
-  FORCE_LINK(distr_local);
   FORCE_LINK(distr_native);
   FORCE_LINK(init_contang);
   FORCE_LINK(init_vel);

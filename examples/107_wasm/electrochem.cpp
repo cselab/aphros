@@ -94,6 +94,7 @@ class Solver : public KernelMeshPar<M, Par> {
   std::unique_ptr<TracerInterface<M>> tracer;
   std::default_random_engine gen{21};
   std::set<IdxCell> nucl_cells;
+  std::unique_ptr<curvature::Estimator<M>> curv_estimator_;
 };
 
 struct State {
@@ -384,6 +385,8 @@ void Solver::Run() {
 
     auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize().norminf(), var);
     psm_par = ParsePar<PartStrMeshM<M>>()(ps, var);
+    auto layers = GRange<size_t>(1);
+    curv_estimator_ = curvature::MakeEstimator(var, m, layers);
   }
   if (sem.Nested("fluid-start")) {
     fluid->StartStep();
@@ -421,7 +424,7 @@ void Solver::Run() {
     m.Reduce(&maxvel, Reduction::max);
   }
   if (sem.Nested("curv")) {
-    UCurv<M>::CalcCurvPart(vof.get(), psm_par, &fc_curv, m);
+    curv_estimator_->CalcCurvature(&fc_curv, vof->GetPlic(), m, m);
   }
   if (sem("flux")) {
     const Scal rho1 = var.Double["rho1"];
@@ -596,7 +599,7 @@ void Solver::Run() {
     s.to_spawn = false;
 
     if (s.render) {
-      auto bc_vel = GetVelCond<M>(bc_fluid);
+      auto bc_vel = ConvertBCondFluidToVelocity<M>(bc_fluid);
       RenderField(
           this, *g_canvas, vof->GetField(), fluid->GetVelocity(), bc_vel,
           bc_vort, fluid->GetPressure(), electro->GetPotential(), bc_electro,
@@ -821,7 +824,6 @@ int GetLines(uint16_t* data, int max_size) {
 }
 
 int main() {
-  FORCE_LINK(distr_local);
   FORCE_LINK(distr_native);
 
   aphros_SetErrorHandler(ErrorHandler);

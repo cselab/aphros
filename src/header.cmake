@@ -57,8 +57,6 @@ install(FILES geom/rangemulti.h DESTINATION ${APHROS_PREFIX}/include/aphros/geom
 install(FILES geom/transform.h DESTINATION ${APHROS_PREFIX}/include/aphros/geom)
 install(FILES geom/unique.h DESTINATION ${APHROS_PREFIX}/include/aphros/geom)
 install(FILES geom/vect.h DESTINATION ${APHROS_PREFIX}/include/aphros/geom)
-install(FILES inside/bbox.h DESTINATION ${APHROS_PREFIX}/include/aphros/inside)
-install(FILES inside/err.h DESTINATION ${APHROS_PREFIX}/include/aphros/inside)
 install(FILES inside/inside.h DESTINATION ${APHROS_PREFIX}/include/aphros/inside)
 install(FILES inside/memory.h DESTINATION ${APHROS_PREFIX}/include/aphros/inside)
 install(FILES inside/predicate.h DESTINATION ${APHROS_PREFIX}/include/aphros/inside)
