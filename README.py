@@ -182,6 +182,26 @@ Other contributors are: Fabian Wermelinger (Cubism backend)
   Computing foaming flows across scales: from breaking waves to microfluidics.
   _Science Advances_. 2022
   [10.1126/sciadv.abm0590](https://doi.org/10.1126/sciadv.abm0590)
+
+## Citing
+
+If you use Aphros in your work, please consider using the following
+```
+@article{aphros2022,
+  author = {Petr Karnakov  and Sergey Litvinov  and Petros Koumoutsakos},
+  title = {Computing foaming flows across scales: From breaking waves to microfluidics},
+  journal = {Science Advances},
+  volume = {8},
+  number = {5},
+  pages = {eabm0590},
+  year = {2022},
+  doi = {10.1126/sciadv.abm0590},
+  URL = {https://www.science.org/doi/abs/10.1126/sciadv.abm0590},
+  eprint = {https://www.science.org/doi/pdf/10.1126/sciadv.abm0590},
+}
+```
+
+
 '''
 
 m_refs = list(re.finditer("\[\[ref:[^]]*\]\]", text))

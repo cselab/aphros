@@ -177,6 +177,7 @@ function UpdateSlider(elem) {
   current.innerHTML = `${slider.name} (${slider.variable}=${slider.value})`;
   SetRuntimeConfig(`set double ${slider.variable} ${slider.value}`);
   SetRuntimeConfig(GetInputConfig(true));
+  UpdateTitle();
 }
 
 function UpdateSliders() {
