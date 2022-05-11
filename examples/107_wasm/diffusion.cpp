@@ -254,7 +254,6 @@ int SetCanvas(int nx, int ny) {
 }
 
 int main() {
-  FORCE_LINK(distr_local);
   FORCE_LINK(distr_native);
 
   SetCanvas(500, 500);
