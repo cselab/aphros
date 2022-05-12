@@ -81,6 +81,7 @@ struct Parser::Imp {
             break;
           }
           case S::escape: {
+            res += '\\';
             res += c;
             next();
             s = S::normal;
@@ -145,7 +146,6 @@ struct Parser::Imp {
   }
   std::string EvalExpressions(std::string str) const {
     // Evaluates arithmetic expressions inside $((...)).
-    // Assumes that all other occurances of '$' have escape '\'.
     enum class S {
       normal,
       dollar,
@@ -193,9 +193,10 @@ struct Parser::Imp {
               s = S::paren1;
               next();
             } else {
-              throw std::runtime_error(util::Format(
-                  "unexpected character '{}' following $ while parsing '{}'", c,
-                  str));
+              res += '$';
+              res += c;
+              s = S::normal;
+              next();
             }
             break;
           }
@@ -299,6 +300,10 @@ void Parser::Imp::Cmd(std::string s, std::string curpath, int line) {
       CmdDel(s);
     } else if (cmd == "include") {
       CmdInclude(s, curpath);
+    } else if (cmd == "eval") {
+      std::stringstream rest;
+      rest << b.rdbuf();
+      Cmd(rest.str(), curpath, line);
     } else if (cmd == "") {
       // nop
     } else {

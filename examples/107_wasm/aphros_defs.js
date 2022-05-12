@@ -96,31 +96,6 @@ function ApplyConfig() {
   UpdateTitle();
 }
 
-function SetSigma(sigma) {
-  let c = `
-set double sigma ${sigma}
-`;
-  SetRuntimeConfig(c);
-  return c;
-}
-
-function SetMu(mu) {
-  let c = `
-set double mu1 ${mu}
-set double mu2 ${mu * 0.01}
-`;
-  SetRuntimeConfig(c);
-  return c;
-}
-
-function SetGravity(g) {
-  let c = `
-set vect gravity 0 ${-g}
-`;
-  SetRuntimeConfig(c);
-  return c;
-}
-
 function TogglePause() {
   let s = Module.ccall('TogglePause', 'number', []);
   let button = document.getElementById('button_pause');

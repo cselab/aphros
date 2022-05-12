@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=640, initial-scale=0.55">
+    <title>Aphros parser</title>
+    <style>
+      html, body {
+        font-family: Arial, Helvetica, sans-serif;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        display: flex;
+        flex-flow: column;
+      }
+      h1 {
+        text-align: center;
+      }
+      .row, .row2 {
+        flex: 1;
+        display: flex;
+        flex-flow: row;
+      }
+      .row2 {
+        flex: 0.25;
+      }
+      .col {
+        flex: 1;
+        display: flex;
+        flex-flow: column;
+        margin: 0px 3px;
+      }
+      label {
+        display: block;
+        padding-left: 2px;
+        padding-top: 2px;
+      }
+      textarea {
+        flex: 1;
+        display: block;
+        margin: 2px 0;
+        padding: 1px;
+        border: 1px solid;
+        font-family: monospace;
+      }
+
+      .button {
+        display: inline-block;
+        color: #000000;
+        background: #ffffff;
+        vertical-align: baseline;
+        border-radius: 0;
+        border: none;
+        border: 0.15em solid #808080;
+        margin: 0 0;
+        padding: 0;
+        text-align: center;
+        text-decoration: none;
+        font-size: 1.2em;
+        height: 1.8em;
+        width: 3.25em;
+        touch-action: manipulation;
+      }
+      .button:hover {
+        border-color: #000000;
+      }
+      .button:active {
+        background: #808080;
+      }
+      .pressed {
+        border: 0.22em solid #000000;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <div style="color:red;">
+        This demo needs JavaScript
+      </div>
+    </noscript>
+
+    <div style="text-align: center; padding: 5px;">
+      <input type="button" class="button" id="button_url" title="Sends encoded configuration to tinyurl.com" value="tinyurl" onclick="UpdateShortUrl();">
+      <input type="text" id="text_shorturl" readonly style="width:250px;height:1.8em;">
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <label for="ta1">Input</label>
+        <textarea id="input_conf" oninput="textarea_updated=true;">
+</textarea>
+      </div>
+      <div class="col" style="width:100%;">
+        <label for="ta2">Output</label>
+        <textarea id="output"></textarea>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="col">
+        <label for="ta2">Error</label>
+        <textarea id="outputerr"></textarea>
+      </div>
+    </div>
+
+    <script src="libs/lz-string.js"></script>
+    <script src="parser_defs.js"></script>
+    <script async src="parser.js"></script>
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
+  </body>
+</html>
