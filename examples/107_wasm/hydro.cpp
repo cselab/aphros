@@ -83,7 +83,6 @@ class Solver : public KernelMeshPar<M, Par> {
   std::unique_ptr<Vofm<M>> vof;
   std::unique_ptr<Proj<M>> fluid;
   Scal maxvel;
-  typename PartStrMeshM<M>::Par psm_par;
   GRange<size_t> layers;
   typename Vof<M>::Par vof_par;
   std::unique_ptr<curvature::Estimator<M>> curv_estimator_;
@@ -265,8 +264,8 @@ void Solver::Run() {
       vof.reset(new Vofm<M>(
           m, m, fcu, fccl, bc_vof, &fluid->GetVolumeFlux(), &fc_src, 0, s.dt,
           p));
+      curv_estimator_ = curvature::MakeEstimator(var, m, layers);
     }
-    curv_estimator_ = curvature::MakeEstimator(var, m, layers);
   }
   if (sem("switch_coal") && s.to_switch_coal) {
     auto& p = vof_par;
@@ -279,6 +278,7 @@ void Solver::Run() {
     vof.reset(new Vofm<M>(
         m, m, fcu, fccl, bc_vof, &fluid->GetVolumeFlux(), &fc_src,
         vof->GetTime(), vof->GetTimeStep(), p));
+    curv_estimator_ = curvature::MakeEstimator(var, m, layers);
     vof->AddModifier([fcus](
                          const Multi<FieldCell<Scal>*>& fcu0,
                          const Multi<FieldCell<Scal>*>& fccl0,

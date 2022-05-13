@@ -22,9 +22,9 @@ Key features:
 
 ## [Gallery of interactive simulations](https://github.com/cselab/aphros/wiki/Aphros-Explorer)
 
- [<img src="https://cselab.github.io/aphros/images/aphros_tile9.jpg" width=120>](https://github.com/cselab/aphros/wiki/Aphros-Explorer) | [<img src="https://cselab.github.io/aphros/images/thumb/curv.jpg" height=120>](https://cselab.github.io/aphros/curv.html) | [<img src="https://cselab.github.io/aphros/images/thumb/hydro.jpg" height=120>](https://cselab.github.io/aphros/wasm/hydro.html) | [<img src="https://cselab.github.io/aphros/images/thumb/electrochem.jpg" height=120>](https://cselab.github.io/aphros/wasm/electrochem.html)
-:---:|:---:|:---:|:---:
-[Gallery wiki](https://github.com/cselab/aphros/wiki/Aphros-Explorer) | [Curvature](https://cselab.github.io/aphros/curv.html) | [Multi-VOF](https://cselab.github.io/aphros/wasm/hydro.html) | [Electrochemistry](https://cselab.github.io/aphros/wasm/electrochem.html)
+ [<img src="https://cselab.github.io/aphros/images/aphros_tile9.jpg" width=120>](https://github.com/cselab/aphros/wiki/Aphros-Explorer) | [<img src="https://cselab.github.io/aphros/images/thumb/curv.jpg" height=120>](https://cselab.github.io/aphros/curv.html) | [<img src="https://cselab.github.io/aphros/images/thumb/hydro.jpg" height=120>](https://cselab.github.io/aphros/wasm/hydro.html) | [<img src="https://cselab.github.io/aphros/images/thumb/electrochem.jpg" height=120>](https://cselab.github.io/aphros/wasm/electrochem.html) | [<img src="https://cselab.github.io/aphros/images/thumb/parser.jpg" height=120>](https://cselab.github.io/aphros/wasm/parser.html?config=M4UwLgBAlgdpUQAwChSQCYHsCuAjANiBOhAIwB0ArKuBAG4gDGkdZEATBAMw2TBgAnWAHMIwCGBAAPMLzGCRYgPoBbCACJkECPlghSWnXs4ASYMk1p5QmKOB4IJhCdZm5_G6JB0AhvkcAFAEmJABUHACUEXJYeIQQoihWDMwJAj50UGAAno6JQA=)
+:---:|:---:|:---:|:---:|:---:
+[Gallery wiki](https://github.com/cselab/aphros/wiki/Aphros-Explorer) | [Curvature](https://cselab.github.io/aphros/curv.html) | [Multi-VOF](https://cselab.github.io/aphros/wasm/hydro.html) | [Electrochemistry](https://cselab.github.io/aphros/wasm/electrochem.html) | [Parser](https://cselab.github.io/aphros/wasm/parser.html?config=M4UwLgBAlgdpUQAwChSQCYHsCuAjANiBOhAIwB0ArKuBAG4gDGkdZEATBAMw2TBgAnWAHMIwCGBAAPMLzGCRYgPoBbCACJkECPlghSWnXs4ASYMk1p5QmKOB4IJhCdZm5_G6JB0AhvkcAFAEmJABUHACUEXJYeIQQoihWDMwJAj50UGAAno6JQA=)
 
 ### Documentation
 
