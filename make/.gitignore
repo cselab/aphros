@@ -1,0 +1,12 @@
+hdr.mk
+unix/bin.mk
+unix/dep.mk
+unix/dir.dep.mk
+unix/dir.mk
+unix/dir.rule.mk
+unix/obj.mk
+unix/rule.mk
+windows/bin.mk
+windows/dep.mk
+windows/obj.mk
+windows/rule.mk

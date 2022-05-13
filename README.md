@@ -73,13 +73,14 @@ docker run -v `pwd`:`pwd` -w `pwd` aphros
 
 ### Minimal build without CMake
 
-Build without dependencies and tests on unix-like systems
+Build without dependencies and tests on Unix-like systems
 (`APHROS_PREFIX` is the installation directory, with `USE_MPI=1`,
 `USE_HDF=1`, `USE_OPENCL=1`, `USE_AVX=1` builds with MPI, parallel
 HDF5 library, OpenCL, and AVX extensions):
 
 ```
 cd src
+../make/bootstrap
 make -f Makefile_legacy install APHROS_PREFIX=$HOME/.local USE_MPI=0 USE_HDF=0 USE_OPENCL=0 USE_AVX=0
 ```
 
@@ -87,6 +88,7 @@ on Windows using Microsoft C++ toolset (NMAKE, LINK, and CL):
 
 ```
 cd src
+../make/bootstrap # Requires sh and awk.
 nmake /f NMakefile
 ```
 
