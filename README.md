@@ -18,7 +18,7 @@ Key features:
 - Multi-VOF for scalable coalescence prevention
 [[demo]](https://cselab.github.io/aphros/wasm/hydro.html)
 [[8]](https://doi.org/10.1145/3394277.3401856)
-[[10]](https://doi.org/10.1126/sciadv.abm0590)
+[[11]](https://doi.org/10.1126/sciadv.abm0590)
 
 ## [Gallery of interactive simulations](https://github.com/cselab/aphros/wiki/Aphros-Explorer)
 
@@ -95,8 +95,7 @@ nmake /f NMakefile
 ## Videos
 
 Examples of simulations visualized using
-[ParaView](https://www.paraview.org/) and [OSPRay](https://www.ospray.org/)
-in collaboration with Jean M. Favre at [CSCS](https://www.cscs.ch).
+[ParaView](https://www.paraview.org/) and [OSPRay](https://www.ospray.org/).
 Links `[conf]` lead to the solver configuration.
 
 |    |    |
@@ -108,16 +107,16 @@ Bubble trapped by vortex ring [[5]](https://doi.org/10.1016/j.ijmultiphaseflow.2
 [<img src="https://cselab.github.io/aphros/videos/preview/thumb/reactor.jpg" height=150>](https://www.youtube.com/watch?v=xEo51gqLdds) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/mesh_bubbles.jpg" height=150>](https://www.youtube.com/watch?v=rs7OhSixm5c)
 Electrochemical reactor [[1]](https://doi.org/10.1039/C9EE00219G) | Bubbles through mesh
 [<img src="https://cselab.github.io/aphros/videos/preview/thumb/rising_bubbles.jpg" height=150>](https://www.youtube.com/watch?v=WzOe0buD8uM) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/foaming_waterfall.jpg" height=150>](https://www.youtube.com/watch?v=0Cj8pPYNJGY)
- Clustering of bubbles [[conf]](examples/205_multivof/clustering) [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) [[7]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019) [[10]](https://doi.org/10.1126/sciadv.abm0590) | Foaming waterfall [[conf]](examples/205_multivof/waterfall) [[8]](https://doi.org/10.1145/3394277.3401856) [[10]](https://doi.org/10.1126/sciadv.abm0590)
+ Clustering of bubbles [[conf]](examples/205_multivof/clustering) [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) [[7]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019) [[11]](https://doi.org/10.1126/sciadv.abm0590) | Foaming waterfall [[conf]](examples/205_multivof/waterfall) [[8]](https://doi.org/10.1145/3394277.3401856) [[11]](https://doi.org/10.1126/sciadv.abm0590)
 [<img src="https://cselab.github.io/aphros/videos/preview/thumb/bidisperse.jpg" height=150>](https://www.youtube.com/watch?v=2fm_JX9-Wbg) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/crystal.jpg" height=45>](https://www.youtube.com/watch?v=8iPmOsXnXAM)
- Bidisperse foam [[conf]](examples/205_multivof/bidisperse) [[10]](https://doi.org/10.1126/sciadv.abm0590) | Microfluidic crystals [[conf]](examples/205_multivof/crystal) [[10]](https://doi.org/10.1126/sciadv.abm0590)
+ Bidisperse foam [[conf]](examples/205_multivof/bidisperse) [[11]](https://doi.org/10.1126/sciadv.abm0590) | Microfluidic crystals [[conf]](examples/205_multivof/crystal) [[11]](https://doi.org/10.1126/sciadv.abm0590)
 [<img src="https://cselab.github.io/aphros/videos/preview/thumb/lammps_polymers.jpg" height=200>](https://www.youtube.com/watch?v=scz2YVKmDaQ) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/korali_pipe.jpg" height=200>](https://www.youtube.com/watch?v=O5Dhnjrfe8A)
-LAMMPS polymers in Taylor-Green vortex [[conf]](examples/212_polymers) | Bubble pipe optimization [[9]](https://doi.org/10.1016/j.cma.2021.114264)
+LAMMPS polymers in Taylor-Green vortex [[conf]](examples/212_polymers) | Bubble pipe optimization [[10]](https://doi.org/10.1016/j.cma.2021.114264)
 
 |     |
 |:---:|
 |[<img src="https://cselab.github.io/aphros/videos/preview/thumb/breaking_waves.jpg" height=300>](https://www.youtube.com/watch?v=iGdphpztCJQ)|
-|APS Gallery of Fluid Motion 2019 award winner<br> Breaking waves: to foam or not to foam? [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)|
+|APS Gallery of Fluid Motion 2019 award winner<br> Breaking waves: to foam or not to foam? [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018)<br> Collaboration with Jean M. Favre at [CSCS](https://www.cscs.ch).|
 
 ## Developers
 
@@ -126,6 +125,7 @@ Aphros is developed and maintained by researchers at [ETH Zurich](https://www.cs
 * [Petr Karnakov](https://www.cse-lab.ethz.ch/member/petr-karnakov/)
   [<img src="https://cselab.github.io/aphros/images/twitter.png" height=16>](https://twitter.com/pkarnakov)
   [<img src="https://cselab.github.io/aphros/images/youtube.png" height=16>](https://www.youtube.com/channel/UCFCRbISdZGWum5E5q-kuOPw)
+  (thesis [[9]](https://doi.org/10.3929/ethz-b-000547518))
 * [Sergey Litvinov](https://www.cse-lab.ethz.ch/member/sergey-litvinov/)
 
 under the supervision of
@@ -171,11 +171,15 @@ Other contributors are: Fabian Wermelinger (Cubism backend)
   _Proceedings of the platform for advanced scientific computing conference on – PASC ’20_. 2020
   [10.1145/3394277.3401856](https://doi.org/10.1145/3394277.3401856)
   [[pdf]](https://cselab.github.io/aphros/pdf/pasc2020.pdf)
-9. Martin SM, Wälchli D, Arampatzis G, Economides AE, Karnakov P, Koumoutsakos P.
+9. Karnakov P. The multilayer volume-of-fluid method for multiphase
+  flows across scales: breaking waves, microfluidics, and membrane-less
+  electrolyzers. _PhD thesis_. ETH Zurich. 2021
+  [10.3929/ethz-b-000547518](https://doi.org/10.3929/ethz-b-000547518)
+10. Martin SM, Wälchli D, Arampatzis G, Economides AE, Karnakov P, Koumoutsakos P.
   Korali: Efficient and scalable software framework for Bayesian uncertainty quantification and stochastic optimization.
   _Computer Methods in Applied Mechanics and Engineering_. 2021
   [10.1016/j.cma.2021.114264](https://doi.org/10.1016/j.cma.2021.114264)
-10. Karnakov P, Litvinov S, Koumoutsakos P.
+11. Karnakov P, Litvinov S, Koumoutsakos P.
   Computing foaming flows across scales: from breaking waves to microfluidics.
   _Science Advances_. 2022
   [10.1126/sciadv.abm0590](https://doi.org/10.1126/sciadv.abm0590)

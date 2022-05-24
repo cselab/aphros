@@ -100,8 +100,7 @@ nmake /f NMakefile
 ## Videos
 
 Examples of simulations visualized using
-[ParaView](https://www.paraview.org/) and [OSPRay](https://www.ospray.org/)
-in collaboration with Jean M. Favre at [CSCS](https://www.cscs.ch).
+[ParaView](https://www.paraview.org/) and [OSPRay](https://www.ospray.org/).
 Links `[conf]` lead to the solver configuration.
 
 |    |    |
@@ -122,7 +121,7 @@ LAMMPS polymers in Taylor-Green vortex [[conf]](examples/212_polymers) | Bubble 
 |     |
 |:---:|
 |[<img src="[[VIDTHUMB]]/breaking_waves.jpg" height=300>](https://www.youtube.com/watch?v=iGdphpztCJQ)|
-|APS Gallery of Fluid Motion 2019 award winner<br> Breaking waves: to foam or not to foam? [[ref:aps]]|
+|APS Gallery of Fluid Motion 2019 award winner<br> Breaking waves: to foam or not to foam? [[ref:aps]]<br> Collaboration with Jean M. Favre at [CSCS](https://www.cscs.ch).|
 
 ## Developers
 
@@ -131,6 +130,7 @@ Aphros is developed and maintained by researchers at [ETH Zurich](https://www.cs
 * [Petr Karnakov](https://www.cse-lab.ethz.ch/member/petr-karnakov/)
   [<img src="[[IMAGES]]/twitter.png" height=16>](https://twitter.com/pkarnakov)
   [<img src="[[IMAGES]]/youtube.png" height=16>](https://www.youtube.com/channel/UCFCRbISdZGWum5E5q-kuOPw)
+  (thesis [[ref:thesis]])
 * [Sergey Litvinov](https://www.cse-lab.ethz.ch/member/sergey-litvinov/)
 
 under the supervision of
@@ -176,6 +176,10 @@ Other contributors are: Fabian Wermelinger (Cubism backend)
   _Proceedings of the platform for advanced scientific computing conference on – PASC ’20_. 2020
   [10.1145/3394277.3401856](https://doi.org/10.1145/3394277.3401856)
   [[pdf]]([[PDF]]/pasc2020.pdf)
+[[item:thesis]] Karnakov P. The multilayer volume-of-fluid method for multiphase
+  flows across scales: breaking waves, microfluidics, and membrane-less
+  electrolyzers. _PhD thesis_. ETH Zurich. 2021
+  [10.3929/ethz-b-000547518](https://doi.org/10.3929/ethz-b-000547518)
 [[item:korali]] Martin SM, Wälchli D, Arampatzis G, Economides AE, Karnakov P, Koumoutsakos P.
   Korali: Efficient and scalable software framework for Bayesian uncertainty quantification and stochastic optimization.
   _Computer Methods in Applied Mechanics and Engineering_. 2021
