@@ -50,7 +50,7 @@ void Run(M& m, Vars& var) {
   } * ctx(sem);
   auto& t = *ctx;
 
-  auto dump = [&t,&m](std::string path, bool only_inner) {
+  auto dump = [&t, &m](std::string path, bool only_inner) {
     auto sem = m.GetSem("dump");
     if (sem("dump_local")) {
       t.csvdata.clear();
@@ -91,7 +91,7 @@ void Run(M& m, Vars& var) {
       }
     }
     if (sem.Nested()) {
-      DumpCsv(t.csvdata, path, m);
+      dump::DumpCsv(t.csvdata, path, m);
     }
   };
 
@@ -126,7 +126,7 @@ void Run(M& m, Vars& var) {
     }
     typename M::CommPartRequest req;
     req.x = &t.x;
-    req.is_inner = &t.is_inner;
+    req.inner = &t.is_inner;
     req.attr_scal = {&t.block_init};
     req.attr_vect = {&t.velocity};
     m.CommPart(req);
@@ -172,7 +172,7 @@ void Run(M& m, Vars& var) {
     }
   }
   if (sem("advance")) {
-    // Compute gravity force for inner particles within cutoff
+    // Compute gravity force for inner particles within cutoff.
     const Scal cutoff = var.Double["cutoff"];
     t.force.resize(t.x.size());
     for (size_t i = 0; i < t.x.size(); ++i) {
@@ -183,7 +183,8 @@ void Run(M& m, Vars& var) {
           const auto xi = t.x[i];
           const auto xj = t.x[j];
           if (xi != xj) {
-            const Scal dist = xi.dist(xj);;
+            const Scal dist = xi.dist(xj);
+            ;
             if (dist < cutoff) {
               f += (xi - xj) / std::pow(dist + 0.01, 3);
             }
@@ -197,7 +198,6 @@ void Run(M& m, Vars& var) {
       if (t.is_inner[i]) {
         t.velocity[i] += dt * t.force[i];
         t.x[i] += dt * t.velocity[i];
-        //t.x[i] += dt * Vect(3, 2, 1);
       }
     }
   }
@@ -208,8 +208,7 @@ int main(int argc, const char** argv) {
   MpiWrapper mpi(&argc, &argv);
   fout.open(util::Format("out_{}", mpi.GetCommRank()));
 
-  ArgumentParser parser(
-      "Particles with gravity initialized on a cylinder", mpi.IsRoot());
+  ArgumentParser parser("Simulation of charged particles", mpi.IsRoot());
   auto instances = []() {
     auto map = ModuleDistr<M>::GetInstances();
     std::vector<std::string> res;
@@ -218,7 +217,7 @@ int main(int argc, const char** argv) {
     }
     return res;
   }();
-  parser.AddVariable<std::string>("--backend", "local")
+  parser.AddVariable<std::string>("--backend", "native")
       .Help("Communication backend")
       .Options(instances);
   parser.AddVariable<int>("--block", 16).Help("Block size in all directions");
@@ -226,8 +225,8 @@ int main(int argc, const char** argv) {
   parser.AddVariable<int>("--nsteps", 10).Help("Number of time steps to make");
   parser.AddVariable<int>("--ncirc", 64)
       .Help("Number of particles in along circle");
-  parser.AddVariable<int>("--naxis", 32).Help(
-      "Number of particles along axis in z-direction");
+  parser.AddVariable<int>("--naxis", 32)
+      .Help("Number of particles along axis in z-direction");
   parser.AddVariable<int>("--dump_every", 1)
       .Help("Number of steps between dumps");
   parser.AddVariable<double>("--cutoff", 0.15).Help("Cutoff radius of force");

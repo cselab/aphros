@@ -1,0 +1,4 @@
+#!/bin/sh -eu
+
+./vis.py ../particles_*.csv "$@"
+ap.pngmp4 a particles.mp4
