@@ -93,8 +93,9 @@ struct Particles<EB_>::Imp {
     func(view.removed);
   }
   static void SwapParticles(const ParticlesView& view, size_t i, size_t j) {
-    ForEachAttribute(view, [&](auto& v) { //
-      std::swap(v[i], v[j]);
+    ForEachAttribute(view, [&](auto& v) {
+      using std::swap;
+      swap(v[i], v[j]);
     });
   }
   static void ResizeParticles(const ParticlesView& view, size_t size) {
