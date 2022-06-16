@@ -183,17 +183,18 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   bool initialized_ = false;
   bool finished_ = false;
   bool silent_ = false;
-  bool dumpstat_ = true; // write statistics to stat.dat, stat_summary
+  bool dumpstat_ = true; // Write statistics to stat.dat, stat_summary.
 
   GRange<size_t> layers;
-  FieldCell<Scal> fc_mu_; // viscosity
-  FieldCell<Scal> fc_rho_; // density
-  FieldCell<Scal> fc_src_; // source of mixture volume
-  FieldCell<Scal> fc_src2_; // source of second phase volume
-  FieldCell<Scal> fc_srcm_; // mass source
-  FieldCell<Vect> fc_force_; // force
-  FieldCell<Scal> fc_phi_; // distance from eb
-  FieldEmbed<Scal> febp_; // balanced force projections
+  FieldCell<Scal> fc_mu_; // Viscosity.
+  FieldCell<Scal> fc_rho_; // Density.
+  FieldCell<Scal> fc_src_; // Source of mixture volume.
+  FieldCell<Scal> fc_src2_; // Source of second phase volume.
+  FieldCell<Scal> fc_srcm_; // Mass source.
+  FieldCell<Vect> fc_force_; // Force.
+  FieldCell<Scal> fc_phi_; // Distance from embedded boundaries.
+  FieldEmbed<Scal> febp_; // Balanced force projections.
+  FieldCell<Vect> fc_momentum_part_; // Momentum added by particles.
 
   MapEmbed<BCondAdvection<Scal>> mebc_adv_;
   MapEmbed<BCond<Scal>> mebc_vfsm_;

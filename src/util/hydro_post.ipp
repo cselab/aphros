@@ -129,7 +129,7 @@ struct HydroPost<M>::Imp {
       };
       auto dumpv = [&dl, &m](
                        const FieldCell<Vect>& fc, size_t i, std::string name) {
-        if (dl.count(name)) {
+        if (dl.count(name) && i < M::dim) {
           m.Dump(&fc, i, name);
         }
       };
@@ -319,6 +319,11 @@ struct HydroPost<M>::Imp {
           dumpv(fccur, 1, "elcurfy");
           dumpv(fccur, 2, "elcurfz");
         }
+      }
+      if (hydro->particles_) {
+        dumpv(hydro->fc_momentum_part_, 0, "mompartx");
+        dumpv(hydro->fc_momentum_part_, 1, "momparty");
+        dumpv(hydro->fc_momentum_part_, 2, "mompartz");
       }
     }
     if (var.Int["enable_advection"]) {

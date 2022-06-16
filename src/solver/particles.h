@@ -82,10 +82,12 @@ class ParticlesInterface {
   // dt: time step
   // fe_flux: mixture volume flux
   // velocity_hook: function called after velocity is projected to particles
+  // fc_momentum_part: field that accumulates momentum added by particles
   virtual void Step(
       Scal dt, const FieldEmbed<Scal>& fe_flux,
       const MapEmbed<BCond<Vect>>& mebc_velocity,
-      std::function<void(const ParticlesView&)> velocity_hook) = 0;
+      std::function<void(const ParticlesView&)> velocity_hook,
+      FieldCell<Vect>* fc_momentum_part = nullptr) = 0;
   // Appends current state with particles from `view`.
   virtual void Append(const ParticlesView& view) = 0;
   // Updates `id` with a unique contigous index for particles appended since
@@ -128,7 +130,8 @@ class Particles : public ParticlesInterface<typename EB_::M> {
   void Step(
       Scal dt, const FieldEmbed<Scal>& fe_flux,
       const MapEmbed<BCond<Vect>>& mebc_velocity,
-      std::function<void(const ParticlesView&)> velocity_hook) override;
+      std::function<void(const ParticlesView&)> velocity_hook,
+      FieldCell<Vect>* fc_momentum_part = nullptr) override;
   void Append(const ParticlesView&) override;
   void SetUniqueIdForAppended(M& m) override;
   ParticlesView GetView() const override;

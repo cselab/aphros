@@ -515,6 +515,8 @@ void Hydro<M>::InitParticles() {
     }
     // TODO: consider mebc_fluid_.GetMapCell()
   }
+
+  fc_momentum_part_.Reinit(m, Vect(0));
 }
 
 // Nucleation points are randomly positioned on walls
@@ -1846,7 +1848,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
           GetBCondZeroGrad<Scal>(mebc_fluid_), fck_, fc_vf0, ffvf, as_.get());
     }
 
-    // zero force in z if 2D
+    // Zero force in z if 2D.
     const size_t edim = var.Int["dim"];
     if (edim < M::dim) {
       for (auto f : m.Faces()) {
@@ -1876,6 +1878,15 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
+    // Momentum from particles added to mixture.
+    if (particles_ && !fc_momentum_part_.empty()) {
+      const Scal dt = st_.dt;
+      const Scal factor = var.Double("particles_momentum_factor", 1);
+      for (auto c : m.Cells()) {
+        fc_force_[c] += fc_momentum_part_[c] * (factor / m.GetVolume(c) * dt);
+      }
+      fc_momentum_part_.Reinit(m, Vect(0));
+    }
     // Clear tracer source.
     if (tracer_) {
       const auto& conf = tracer_->GetConf();
@@ -1883,7 +1894,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         fc_tracer_source_[l].Reinit(m, 0);
       }
     }
-    // Source of bubble growth from tracers.
+    // Bubble growth from tracers at nucleation cites.
     if (tracer_) {
       const auto& conf = tracer_->GetConf();
       for (auto l : GRange<size_t>(conf.layers)) {
@@ -1924,6 +1935,7 @@ void Hydro<M>::CalcMixture(const FieldCell<Scal>& fc_vf0) {
         }
       }
     }
+    // Bubble growth from tracers by diffusion.
     if (tracer_) {
       const auto& conf = tracer_->GetConf();
       for (auto l : GRange<size_t>(conf.layers)) {
@@ -2532,7 +2544,7 @@ void Hydro<M>::CheckAbort(Sem& sem, Scal& nabort) {
 
 template <class M>
 void Hydro<M>::StepFluid() {
-  auto sem = m.GetSem("iter"); // sem nested
+  auto sem = m.GetSem("iter");
   if (sem("iter")) {
     OverwriteBc();
   }
@@ -2565,7 +2577,7 @@ void Hydro<M>::StepFluid() {
 
 template <class M>
 void Hydro<M>::StepTracer() {
-  auto sem = m.GetSem("tracer-steps"); // sem nested
+  auto sem = m.GetSem("tracer-steps");
   sem.LoopBegin();
   if (sem("spawn")) {
     SpawnTracer();
@@ -2590,7 +2602,7 @@ void Hydro<M>::StepTracer() {
 
 template <class M>
 void Hydro<M>::StepParticles() {
-  auto sem = m.GetSem("particles-steps"); // sem nested
+  auto sem = m.GetSem("particles-steps");
   sem.LoopBegin();
   if (sem.Nested()) {
     auto velocity_hook = [this](const ParticlesView& view) {
@@ -2617,9 +2629,9 @@ void Hydro<M>::StepParticles() {
     };
     particles_->Step(
         particles_dt_, fs_->GetVolumeFlux(), fs_->GetVelocityCond(),
-        velocity_hook);
+        velocity_hook, &fc_momentum_part_);
   }
-  if (var.Int["particles_to_vof"] && sem.Nested("partilces_to_vof")) {
+  if (var.Int["particles_to_vof"] && sem.Nested("particles_to_vof")) {
     ConvertParticlesToVof();
   }
   // Coalescence of particles.
@@ -2804,7 +2816,7 @@ void Hydro<M>::StepElectro() {
 
 template <class M>
 void Hydro<M>::StepAdvection() {
-  auto sem = m.GetSem("steps"); // sem nested
+  auto sem = m.GetSem("steps");
   sem.LoopBegin();
   if (auto as = dynamic_cast<ASVM*>(as_.get())) {
     const Scal* const voidpenal = var.Double.Find("voidpenal");

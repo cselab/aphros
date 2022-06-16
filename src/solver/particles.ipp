@@ -47,8 +47,9 @@ struct Particles<EB_>::Imp {
       , eb(eb_)
       , conf(conf_)
       , time_(time)
-      , state_({init.x, init.inner, init.v, init.id, init.r, init.source,
-                init.rho, init.termvel, init.removed}) {
+      , state_(
+            {init.x, init.inner, init.v, init.id, init.r, init.source, init.rho,
+             init.termvel, init.removed}) {
     CheckSize(init);
     auto& s = state_;
     const auto req = GetCommPartRequest<M>(GetView(s));
@@ -138,7 +139,8 @@ struct Particles<EB_>::Imp {
   void Step(
       Scal dt, const FieldEmbed<Scal>& fev,
       const MapEmbed<BCond<Vect>>& mebc_velocity,
-      std::function<void(const ParticlesView&)> velocity_hook) {
+      std::function<void(const ParticlesView&)> velocity_hook,
+      FieldCell<Vect>* fc_momentum_part) {
     auto sem = m.GetSem("step");
     struct {
       FieldFace<Scal> ff_veln;
@@ -147,7 +149,7 @@ struct Particles<EB_>::Imp {
     auto& s = state_;
     if (sem()) {
       t.ff_veln = fev.template Get<FieldFaceb<Scal>>();
-      for (auto f : m.Faces()) {
+      for (auto f : eb.Faces()) {
         t.ff_veln[f] /= eb.GetArea(f);
       }
     }
@@ -176,7 +178,7 @@ struct Particles<EB_>::Imp {
       }
       */
 
-      // Project liquid velocity to particles.
+      // Project mixture velocity to particles.
       std::vector<Vect> v_liquid(s.x.size());
       auto callback = [&](const std::function<Vect(Vect x)>& func) {
         for (size_t i = 0; i < s.x.size(); ++i) {
@@ -184,6 +186,9 @@ struct Particles<EB_>::Imp {
         }
       };
       Approx2<EB>::EvalTrilinearFromFaceField(t.ff_veln, callback, m);
+
+      // Previous velocity of particles.
+      const std::vector<Vect> vprev = s.v;
 
       // Update velocity.
       for (size_t i = 0; i < s.x.size(); ++i) {
@@ -220,6 +225,24 @@ struct Particles<EB_>::Imp {
             break;
         }
       }
+
+      if (conf.mode == ParticlesMode::stokes && fc_momentum_part) {
+        for (size_t i = 0; i < s.x.size(); ++i) {
+          if (!s.inner[i]) {
+            continue;
+          }
+          const IdxCell c = m.GetCellFromPoint(s.x[i]);
+          if (!eb.IsRegular(c)) {
+            continue;
+          }
+          const Scal pi = M_PI;
+          const Scal vol = M::dim == 2 ? pi * sqr(s.r[i])
+                                       : 4. / 3 * pi * std::pow(s.r[i], 3);
+          const Scal mass = vol * s.rho[i];
+          (*fc_momentum_part)[c] -= (s.v[i] - vprev[i]) * mass * dt;
+        }
+      }
+
       velocity_hook(GetView(s));
 
       // Update positions and radius.
@@ -237,6 +260,7 @@ struct Particles<EB_>::Imp {
         }
 
         const auto gl = m.GetGlobalLength();
+        // Translate particles through periodic domain.
         for (size_t d = 0; d < m.GetEdim(); ++d) {
           if (m.flags.is_periodic[d]) {
             if (s.x[i][d] < 0) {
@@ -501,8 +525,9 @@ template <class EB_>
 void Particles<EB_>::Step(
     Scal dt, const FieldEmbed<Scal>& fe_flux,
     const MapEmbed<BCond<Vect>>& mebc_velocity,
-    std::function<void(const ParticlesView&)> velocity_hook) {
-  imp->Step(dt, fe_flux, mebc_velocity, velocity_hook);
+    std::function<void(const ParticlesView&)> velocity_hook,
+    FieldCell<Vect>* fc_momentum_part) {
+  imp->Step(dt, fe_flux, mebc_velocity, velocity_hook, fc_momentum_part);
 }
 
 template <class EB_>
