@@ -564,7 +564,7 @@ struct PartStrMeshM<M_>::Imp {
         std::string fn = GetDumpName("sp", ".vtk", frame);
         std::cerr << std::fixed << std::setprecision(8) << "dump"
                   << " t=" << time << " to " << fn << std::endl;
-        WriteVtkPoly<Vect>(
+        dump::Vtk<Vect>::WriteVtkPoly(
             fn, dl, nullptr, {&dlc}, {"c"},
             "Lines of interface around particles", false, par.vtkbin,
             par.vtkmerge);

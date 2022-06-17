@@ -315,7 +315,7 @@ struct UInitEmbedBc {
     }
     if (sem("write")) {
       if (m.IsRoot()) {
-        WriteVtkPoly<Vect>(
+        dump::Vtk<Vect>::WriteVtkPoly(
             filename, dpoly, nullptr, {&dgroup, &dface}, {"group", "face"},
             "Boundary conditions", true, true, true);
       }

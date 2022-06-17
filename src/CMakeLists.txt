@@ -267,6 +267,7 @@ set(ObjLibs
   dumper
   dump_hdf
   dump_raw
+  dump_vtk
   dump_xmf
   electro
   embed

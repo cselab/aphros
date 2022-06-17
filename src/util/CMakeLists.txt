@@ -1,4 +1,4 @@
-set(T suspender)
+set(T "suspender")
 add_object(${T} suspender.cpp)
 
 set(T "utilsystem")
@@ -11,7 +11,7 @@ object_compile_definitions(${T} PRIVATE _USE_AMGX_=$<BOOL:${USE_AMGX}>)
 
 set(T "utilhydro")
 add_object(${T} hydro.cpp)
-object_link_libraries(${T} vars dumper approx vof vofm use_dims)
+object_link_libraries(${T} vars dumper approx vof vofm use_dims dump_vtk)
 
 set(T "utillinear")
 add_object(${T} linear.cpp)
@@ -31,7 +31,7 @@ object_link_libraries(${T} convdiffvg)
 
 set(T "utilvof")
 add_object(${T} vof.cpp)
-object_link_libraries(${T} march approx)
+object_link_libraries(${T} march approx dump_vtk)
 
 set(T "utildistr")
 add_object(${T} distr.cpp)
@@ -48,7 +48,7 @@ object_link_libraries(${T} vars parser)
 set(T "timer")
 add_object(${T} timer.cpp)
 
-set(T gitgen)
+set(T "gitgen")
 add_object(${T} gitgen.cpp)
 add_dependencies(${T} gitrev)
 
@@ -86,6 +86,6 @@ object_link_libraries(${T} logger)
 set(T "allocator")
 add_object(${T} fixed_allocator.cpp)
 
-set(T hydro_post)
+set(T "hydro_post")
 add_object(${T} hydro_post.cpp)
 object_link_libraries(${T} PUBLIC dump visual PRIVATE use_dims use_mpi)

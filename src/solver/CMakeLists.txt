@@ -8,7 +8,7 @@ object_link_libraries(${T} solver suspender use_dims use_mpi)
 
 set(T "embed")
 add_object(${T} embed.cpp)
-object_link_libraries(${T} suspender mesh)
+object_link_libraries(${T} suspender mesh dump_vtk)
 
 set(T "approx_eb")
 add_object(${T} approx_eb.cpp)
@@ -40,7 +40,7 @@ object_link_libraries(${T} partstrmeshm normal vof vofm)
 
 set(T "partstrmeshm")
 add_object(${T} partstrmeshm.cpp)
-object_link_libraries(${T} dumper suspender use_mpi use_dims)
+object_link_libraries(${T} dumper suspender use_mpi use_dims dump_vtk)
 
 set(T "convdiffi")
 add_object(${T} convdiffi.cpp)
