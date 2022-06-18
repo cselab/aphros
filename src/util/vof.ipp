@@ -157,7 +157,7 @@ struct UVof<M_>::Imp {
         }
 
         dump::Vtk<Vect>::WriteVtkPoly(
-            args.filename, t.polygons, nullptr, fields, names,
+            args.filename, t.polygons, nullptr, fields, names, {}, {},
             "Interface from PLIC", true, args.binary, args.merge);
       }
     }
@@ -600,7 +600,7 @@ struct UVof<M_>::Imp {
         std::cerr << std::fixed << std::setprecision(8) << "dump"
                   << " t=" << time << " to " << filename << std::endl;
         dump::Vtk<Vect>::WriteVtkPoly(
-            filename, dl, &dln, {&dlc, &dll, &dlcl}, {"c", "l", "cl"},
+            filename, dl, &dln, {&dlc, &dll, &dlcl}, {"c", "l", "cl"}, {}, {},
             "Interface from marching cubes", poly, bin, merge);
       }
     }

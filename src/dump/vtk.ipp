@@ -10,6 +10,7 @@
 #include <unordered_set>
 
 #include "geom/vect.h"
+#include "util/logger.h"
 #include "vtk.h"
 
 // Returns true if machine is little endian.
@@ -29,38 +30,50 @@ T SwapEnd(T a) {
   return a;
 }
 
-// Converts to index representation.
-// vv: polygons as lists of points
-// Returns:
-// xx: points
-// pp: polygons as lists of indices
-template <class Vect>
+// Converts polygons to lists of indices.
+// poly_points: polygons as lists of points
+//
+// Output:
+// points: points
+// poly_indices: polygons as lists of indices
+template <class Scal, class Vect>
 void ConvertPointsToIndices(
-    const std::vector<std::vector<Vect>>& vv,
-    const std::vector<std::vector<Vect>>* vvn, std::vector<Vect>& xx,
-    std::vector<Vect>& nn, std::vector<std::vector<size_t>>& pp) {
-  xx.resize(0);
-  nn.resize(0);
-  pp.resize(0);
-  for (auto& v : vv) {
-    pp.emplace_back();
+    const std::vector<std::vector<Vect>>& poly_points,
+    const std::vector<std::vector<Vect>>* poly_normals,
+    const std::vector<const std::vector<Scal>*>& poly_pointdata,
+    /*out*/
+    std::vector<Vect>& points, std::vector<Vect>& normals,
+    std::vector<std::vector<size_t>>& poly_indices,
+    std::vector<std::vector<Scal>>& pointdata) {
+  points.clear();
+  poly_indices.clear();
+  normals.clear();
+  pointdata.clear();
+
+  for (auto& v : poly_points) {
+    poly_indices.emplace_back();
     for (auto& x : v) {
-      pp.back().push_back(xx.size());
-      xx.push_back(x);
+      poly_indices.back().push_back(points.size());
+      points.push_back(x);
     }
   }
-  if (vvn) {
-    for (auto& v : *vvn) {
-      for (auto& x : v) {
-        nn.push_back(x);
+  if (poly_normals) {
+    normals.reserve(points.size());
+    for (auto& v : *poly_normals) {
+      for (auto& n : v) {
+        normals.push_back(n);
       }
     }
+  }
+  pointdata.reserve(poly_pointdata.size());
+  for (auto ptr : poly_pointdata) {
+    pointdata.push_back(*ptr);
   }
 }
 
 template <class V, class T = typename V::value_type>
-void RemoveDuplicatesUnordered(std::vector<V>& pp) {
-  // returns hash up to permutation of elements in V
+void RemoveDuplicatesUnordered(std::vector<V>& poly_indices) {
+  // Returns hash up to permutation of elements in V.
   struct HashPoly {
     size_t operator()(const V& p) const noexcept {
       size_t h = 1;
@@ -71,26 +84,31 @@ void RemoveDuplicatesUnordered(std::vector<V>& pp) {
     }
   };
   std::unordered_set<V, HashPoly> ppu;
-  for (auto& p : pp) {
+  for (auto& p : poly_indices) {
     ppu.insert(p);
   }
-  pp.clear();
+  poly_indices.clear();
   for (auto p : ppu) {
-    pp.push_back(p);
+    poly_indices.push_back(p);
   }
 }
 
 // Converts to index representation merging closely located points.
-// vv: polygons as lists of points
+// poly_points: polygons as lists of points
 // tol: positive tolerance for matching coordinates of points
-// Returns:
-// xx: points
-// pp: polygons as lists of indices
-template <class Scal, class Vect = generic::Vect<Scal, 3>>
+//
+// Output:
+// points: points
+// poly_indices: polygons as lists of indices
+template <class Scal, class Vect>
 void ConvertPointsToIndicesMerged(
-    const std::vector<std::vector<Vect>>& vv,
-    const std::vector<std::vector<Vect>>* vvn, Scal tol, std::vector<Vect>& xx,
-    std::vector<Vect>& nn, std::vector<std::vector<size_t>>& pp) {
+    const std::vector<std::vector<Vect>>& poly_points,
+    const std::vector<std::vector<Vect>>* poly_normals,
+    const std::vector<const std::vector<Scal>*>& poly_pointdata, Scal tol,
+    /*out*/
+    std::vector<Vect>& points, std::vector<Vect>& normals,
+    std::vector<std::vector<size_t>>& poly_indices,
+    std::vector<std::vector<Scal>>& pointdata) {
   static constexpr auto dim = Vect::dim;
   struct Hash {
     size_t operator()(const Vect& x) const noexcept {
@@ -102,7 +120,7 @@ void ConvertPointsToIndicesMerged(
     }
   };
 
-  std::unordered_map<Vect, size_t, Hash> index; // point to index in `xx`
+  std::unordered_map<Vect, size_t, Hash> index; // Point to index in `points`.
 
   auto floor = [](Vect x) {
     for (size_t i = 0; i < dim; ++i) {
@@ -132,39 +150,52 @@ void ConvertPointsToIndicesMerged(
     return nullptr;
   };
 
-  xx.resize(0);
-  nn.resize(0);
-  pp.resize(0);
-  for (size_t i = 0; i < vv.size(); ++i) {
-    auto& v = vv[i];
-    pp.emplace_back();
+  points.clear();
+  normals.clear();
+  poly_indices.clear();
+  pointdata.clear();
+  pointdata.resize(poly_pointdata.size());
+  size_t cnt = 0; // Absolute index of point.
+  for (size_t i = 0; i < poly_points.size(); ++i) {
+    auto& v = poly_points[i];
+    poly_indices.emplace_back();
     for (size_t j = 0; j < v.size(); ++j) {
       auto& x = v[j];
-      const auto* p = findtol(x);
-      if (p) {
-        pp.back().push_back(*p);
-      } else {
-        const auto nextindex = xx.size();
+      const size_t* p = findtol(x);
+      if (p) { // Use index of existing point.
+        poly_indices.back().push_back(*p);
+      } else { // Add new point.
+        const size_t nextindex = points.size();
         index[canonical(x)] = nextindex;
-        pp.back().push_back(nextindex);
-        xx.push_back(x);
-        if (vvn) {
-          nn.push_back((*vvn)[i][j]);
+        poly_indices.back().push_back(nextindex);
+        points.push_back(x);
+        for (size_t id = 0; id < poly_pointdata.size(); ++id) {
+          pointdata[id].push_back((*poly_pointdata[id])[cnt]);
+        }
+        if (poly_normals) {
+          normals.push_back((*poly_normals)[i][j]);
         }
       }
+      ++cnt;
     }
+  }
+  // Check size of point-datasets.
+  for (auto& d : poly_pointdata) {
+    fassert_equal(d->size(), cnt);
   }
 }
 
 namespace dump {
 
 template <class Vect_>
-void Vtk<Vect_>::WriteVtkPoly(
+void Vtk<Vect_>::WriteVtkPolyRaw(
     const std::string& path, const std::vector<Vect>& points,
     const std::vector<Vect>& normals,
     const std::vector<std::vector<size_t>>& poly_indices,
     const std::vector<const std::vector<typename Vect::Scal>*>& celldata,
-    const std::vector<std::string>& celldata_names, const std::string& comment,
+    const std::vector<std::string>& celldata_names,
+    const std::vector<const std::vector<Scal>*>& pointdata,
+    const std::vector<std::string>& pointdata_names, const std::string& comment,
     bool poly, bool binary) {
   std::ofstream f(path.c_str(), std::ios::binary);
 
@@ -201,7 +232,7 @@ void Vtk<Vect_>::WriteVtkPoly(
     }
   }
 
-  size_t np = 0; // total number of vortices
+  size_t np = 0; // Total number of points.
   for (auto& p : poly_indices) {
     np += p.size();
   }
@@ -225,20 +256,18 @@ void Vtk<Vect_>::WriteVtkPoly(
     }
   }
 
-  // check data size
+  // Check data size.
   for (auto& d : celldata) {
-    (void)d;
-    assert(d->size() == poly_indices.size());
+    fassert_equal(d->size(), poly_indices.size());
   }
 
-  // cell-based datasets
+  // Cell-datasets.
   for (size_t i = 0; i < celldata.size(); ++i) {
-    auto& d = *(celldata[i]);
-    auto& n = celldata_names[i];
+    const auto& d = *(celldata[i]);
     if (i == 0) {
       f << "CELL_DATA " << d.size() << "\n";
     }
-    f << "SCALARS " << n << " float\n"
+    f << "SCALARS " << celldata_names[i] << " float\n"
       << "LOOKUP_TABLE default\n";
     if (binary) {
       for (auto& a : d) {
@@ -251,12 +280,10 @@ void Vtk<Vect_>::WriteVtkPoly(
     }
   }
 
-  // normals
+  // Normals.
   if (!normals.empty()) {
     f << "POINT_DATA " << normals.size() << "\n";
-    f << "VECTORS "
-      << "normals"
-      << " float\n";
+    f << "VECTORS normals float\n";
     if (binary) {
       for (auto& n : normals) {
         WFloat(n[0]);
@@ -269,6 +296,25 @@ void Vtk<Vect_>::WriteVtkPoly(
       }
     }
   }
+
+  // Point-datasets.
+  for (size_t i = 0; i < pointdata.size(); ++i) {
+    const auto& d = *(pointdata[i]);
+    if (i == 0) {
+      f << "POINT_DATA " << d.size() << "\n";
+    }
+    f << "SCALARS " << pointdata_names[i] << " float\n"
+      << "LOOKUP_TABLE default\n";
+    if (binary) {
+      for (auto& a : d) {
+        WFloat(a);
+      }
+    } else {
+      for (auto& a : d) {
+        f << a << "\n";
+      }
+    }
+  }
 }
 
 template <class Vect_>
@@ -276,19 +322,30 @@ void Vtk<Vect_>::WriteVtkPoly(
     const std::string& path, const std::vector<std::vector<Vect>>& poly_points,
     const std::vector<std::vector<Vect>>* poly_normals,
     const std::vector<const std::vector<Scal>*>& celldata,
-    const std::vector<std::string>& celldata_names, const std::string& comment,
+    const std::vector<std::string>& celldata_names,
+    const std::vector<const std::vector<Scal>*>& poly_pointdata,
+    const std::vector<std::string>& pointdata_names, const std::string& comment,
     bool poly, bool binary, bool merge, Scal merge_tol) {
-  std::vector<Vect> xx;
-  std::vector<Vect> nn;
-  std::vector<std::vector<size_t>> pp;
+  std::vector<Vect> points;
+  std::vector<Vect> normals;
+  std::vector<std::vector<size_t>> poly_indices;
+  std::vector<std::vector<Scal>> pointdata;
   if (merge) {
     ConvertPointsToIndicesMerged(
-        poly_points, poly_normals, merge_tol, xx, nn, pp);
+        poly_points, poly_normals, poly_pointdata, merge_tol, //
+        /*out*/ points, normals, poly_indices, pointdata);
   } else {
-    ConvertPointsToIndices(poly_points, poly_normals, xx, nn, pp);
+    ConvertPointsToIndices(
+        poly_points, poly_normals, poly_pointdata, //
+        /*out*/ points, normals, poly_indices, pointdata);
   }
-  WriteVtkPoly(
-      path, xx, nn, pp, celldata, celldata_names, comment, poly, binary);
+  std::vector<const std::vector<Scal>*> pointdata_ptr;
+  for (const auto& d : pointdata) {
+    pointdata_ptr.push_back(&d);
+  }
+  WriteVtkPolyRaw(
+      path, points, normals, poly_indices, celldata, celldata_names,
+      pointdata_ptr, pointdata_names, comment, poly, binary);
 }
 
 } // namespace dump

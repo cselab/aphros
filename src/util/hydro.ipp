@@ -829,8 +829,8 @@ void DumpBcPoly(
     if (m.IsRoot()) {
       dump::Vtk<Vect>::WriteVtkPoly(
           filename, dpoly, nullptr, {&dgroup, &dcontang, &dface},
-          {"group", "contang", "face"}, "Boundary conditions", true, true,
-          true);
+          {"group", "contang", "face"}, {}, {}, "Boundary conditions", true,
+          true, true);
     }
   }
 }

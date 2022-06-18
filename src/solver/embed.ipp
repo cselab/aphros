@@ -112,7 +112,7 @@ void Embed<M>::DumpPoly(
   if (sem("write")) {
     if (m.IsRoot()) {
       dump::Vtk<Vect>::WriteVtkPoly(
-          fn, dl, nullptr, {&dld, &dls, &dlf}, {"dir", "area", "face"},
+          fn, dl, nullptr, {&dld, &dls, &dlf}, {"dir", "area", "face"}, {}, {},
           "Embedded boundary", true, vtkbin, vtkmerge);
     }
   }
