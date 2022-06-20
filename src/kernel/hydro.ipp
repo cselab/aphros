@@ -497,6 +497,7 @@ void Hydro<M>::InitParticles() {
   }
 
   fc_wall_dist_.Reinit(m, GetNan<Vect>());
+  // Find displacement to nearest boundary.
   for (const auto& p : mebc_fluid_.GetMapFace()) {
     const IdxFace f = p.first;
     const auto& bc = p.second;
@@ -507,13 +508,22 @@ void Hydro<M>::InitParticles() {
         bc.type == BCondFluidType::symm) {
       for (IdxCell c : {cc[2], cc[3]}) {
         const Vect dist = m.GetCenter(f) - m.GetCenter(c);
-        auto& mindist = fc_wall_dist_[c];
+        Vect& mindist = fc_wall_dist_[c];
         if (IsNan(mindist) || dist.sqrnorm() < mindist.sqrnorm()) {
           mindist = dist;
         }
       }
     }
-    // TODO: consider mebc_fluid_.GetMapCell()
+  }
+  if (eb_) { // Update with displacement to nearest cut face.
+    const auto& eb = *eb_;
+    for (auto c : eb.AllCells()) {
+      Vect& mindist = fc_wall_dist_[c];
+      const Vect cutdx = eb.GetDisplacementToCutFace(c);
+      if (IsNan(mindist) || cutdx.sqrnorm() < mindist.sqrnorm()) {
+        mindist = cutdx;
+      }
+    }
   }
 
   fc_momentum_part_.Reinit(m, Vect(0));
@@ -2613,11 +2623,11 @@ void Hydro<M>::StepParticles() {
           const Vect xc = m.GetCenter(c);
           const Vect walldist = fc_wall_dist_[c];
           if (IsFinite(walldist) && walldist.sqrnorm() > 0) {
-            const Vect walldir = walldist / walldist.norm();
-            // Distance from particle center to wall along `walldist`
+            const Vect walldir = walldist.normalized();
+            // Distance from particle center to wall along `walldir`.
             const Scal dz = walldir.dot(walldist + xc - view.x[i]);
             if (dz - view.r[i] < 0) {
-              // If particle intersects the wall, move it away
+              // If particle with its radius intersects the wall, move it away.
               view.v[i] += walldir * (dz - view.r[i]) / particles_dt_;
             }
           }

@@ -223,20 +223,23 @@ template <class M>
 template <class T>
 void Raw<M>::WritePlainArrayWithXmf(
     const std::string& rawpath, const std::string& fieldname, const T* data,
-    MIdx size) {
+    MIdx meshsize, Vect xlower, Vect xupper) {
   MpiWrapper mpi(MPI_COMM_WORLD); // Initialized but unused.
   std::vector<MIdx> starts{MIdx(0)};
-  std::vector<MIdx> sizes{size};
-  std::vector<std::vector<T>> dataall{std::vector<T>(data, data + size.prod())};
+  std::vector<MIdx> sizes{meshsize};
+  std::vector<std::vector<T>> dataall{
+      std::vector<T>(data, data + meshsize.prod())};
   Raw::Write(
-      rawpath, starts, sizes, dataall, size, dump::Type::Float64, mpi, true);
+      rawpath, starts, sizes, dataall, meshsize, dump::Type::Float64, mpi,
+      true);
 
   typename Xmf::Meta meta;
   meta.name = fieldname;
   meta.binpath = rawpath;
-  meta.dimensions = size;
-  meta.count = size;
-  meta.spacing = Vect(1. / size.max());
+  meta.dimensions = meshsize;
+  meta.count = meshsize;
+  meta.origin = xlower;
+  meta.spacing = (xupper - xlower) / Vect(meshsize);
   Xmf::WriteXmf(util::SplitExt(rawpath)[0] + ".xmf", meta);
 }
 

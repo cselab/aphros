@@ -136,6 +136,50 @@ struct Particles<EB_>::Imp {
     }
     ResizeParticles(view, i);
   }
+  static void WriteVelocityFromFlux(
+      const std::string& pathprefix, const FieldEmbed<Scal>& fe_flux,
+      const MapEmbed<BCond<Vect>>& mebc_velocity, //
+      typename M::MIdx meshsize, Vect xlower, Vect xupper, const EB& eb, M& m) {
+    using MIdx = typename M::MIdx;
+    auto sem = m.GetSem(__func__);
+    struct {
+      FieldFace<Scal> ff_veln; // Normal velocity.
+    } * ctx(sem);
+    auto& t = *ctx;
+    if (sem()) {
+      t.ff_veln = fe_flux.template Get<FieldFaceb<Scal>>();
+      for (auto f : eb.Faces()) {
+        t.ff_veln[f] /= eb.GetArea(f);
+      }
+    }
+    if (sem.Nested()) {
+      Approx2<EB>::ExtrapolateToHaloFaces(t.ff_veln, mebc_velocity, m);
+    }
+    if (sem() && m.IsRoot()) {
+      const GBlock<IdxCell, dim> block(meshsize);
+      const GIndex<IdxCell, dim> index(meshsize);
+      std::array<FieldCell<Scal>, M::dim> fc;
+      for (auto d : M::dirs) {
+        fc[d].Reinit(index);
+      }
+      auto callback = [&](const std::function<Vect(Vect x)>& func) {
+        for (MIdx w : block) {
+          const Vect x(xlower + (Vect(w) + Vect(0.5)) / Vect(meshsize));
+          for (auto d : M::dirs) {
+            fc[d][index.GetIdx(w)] = func(x)[d];
+          }
+        }
+      };
+      Approx2<EB>::EvalTrilinearFromFaceField(t.ff_veln, callback, m);
+      for (size_t d = 0; d < M::dim; ++d) {
+        using Dir = typename M::Dir;
+        const std::string name = std::string("v") + Dir(d).letter();
+        dump::Raw<M>::WritePlainArrayWithXmf(
+            pathprefix + name + ".raw", name, fc[d].data(), meshsize, xlower,
+            xupper);
+      }
+    }
+  }
   void Step(
       Scal dt, const FieldEmbed<Scal>& fev,
       const MapEmbed<BCond<Vect>>& mebc_velocity,
@@ -157,27 +201,6 @@ struct Particles<EB_>::Imp {
       Approx2<EB>::ExtrapolateToHaloFaces(t.ff_veln, mebc_velocity, m);
     }
     if (sem("local")) {
-      /* TODO: Move to an example.
-      if (m.IsRoot() && time_ == 0) {
-        using MIdx = typename M::MIdx;
-        const MIdx size(64);
-        GBlock<IdxCell, dim> block(size);
-        GIndex<IdxCell, dim> index(size);
-        FieldCell<Scal> fc(index);
-        const IdxCell c0 = m.GetIndexCells().GetIdx(MIdx(0));
-        auto callback = [&](const std::function<Vect(Vect x)>& func) {
-          const Vect h = m.GetCellSize();
-          for (MIdx w : block) {
-            Vect x((Vect(w) + Vect(0.5)) / Vect(size));
-            x = m.GetCenter(c0) - h * 0.5 + x * (2 * h);
-            fc[index.GetIdx(w)] = func(x)[0];
-          }
-        };
-        Approx2<EB>::EvalTrilinearFromFaceField(t.ff_veln, callback, m);
-        dump::Raw<M>::WritePlainArrayWithXmf("test.raw", "u", fc.data(), size);
-      }
-      */
-
       // Project mixture velocity to particles.
       std::vector<Vect> v_liquid(s.x.size());
       auto callback = [&](const std::function<Vect(Vect x)>& func) {
@@ -272,8 +295,7 @@ struct Particles<EB_>::Imp {
           }
         }
         // Remove particles that have left the domain.
-        if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || eb.IsCut(c) ||
-            eb.IsExcluded(c)) {
+        if (!m.GetGlobalBoundingBox().IsInside(s.x[i]) || eb.IsExcluded(c)) {
           s.removed[i] = 1;
         }
       }
@@ -564,6 +586,15 @@ auto Particles<EB_>::ReadCsv(
     const std::string& path, const ParticlesView& view, char delim)
     -> ReadCsvStatus {
   return Imp::ReadCsv(path, view, delim);
+}
+
+template <class EB_>
+void Particles<EB_>::WriteVelocityFromFlux(
+    const std::string& pathprefix, const FieldEmbed<Scal>& fe_flux,
+    const MapEmbed<BCond<Vect>>& mebc_velocity, typename M::MIdx meshsize,
+    Vect xlower, Vect xupper, const EB& eb, M& m) {
+  return Imp::WriteVelocityFromFlux(
+      pathprefix, fe_flux, mebc_velocity, meshsize, xlower, xupper, eb, m);
 }
 
 template <class EB_>

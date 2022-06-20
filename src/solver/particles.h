@@ -158,6 +158,15 @@ class Particles : public ParticlesInterface<typename EB_::M> {
   static ReadCsvStatus ReadCsv(
       const std::string& path, const ParticlesView& view,
       char deliimiter = ',');
+  // Writes velocity field interpolated from flux to a uniform mesh.
+  // pathprefix: prefix of output path, will be appended by `vx.raw`, etc
+  // fe_flux: flux on faces and cut faces
+  // meshsize: size of target uniform mesh
+  // xlower, xupper: extent of target uniform mesh
+  static void WriteVelocityFromFlux(
+      const std::string& pathprefix, const FieldEmbed<Scal>& fe_flux,
+      const MapEmbed<BCond<Vect>>& mebc_velocity, //
+      typename M::MIdx meshsize, Vect xlower, Vect xupper, const EB& eb, M& m);
 
  private:
   struct Imp;

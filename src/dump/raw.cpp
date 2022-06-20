@@ -25,7 +25,7 @@ namespace dump {
       const std::string&, M&);                                                 \
   template void Raw<M>::WritePlainArrayWithXmf(                                \
       const std::string& rawpath, const std::string& fieldname,                \
-      const typename M::Scal* data, MIdx size);
+      const typename M::Scal* data, MIdx meshsize, Vect xlower, Vect xupper);
 
 #define COMMA ,
 #define X(dim) XX(MeshCartesian<double COMMA dim>)

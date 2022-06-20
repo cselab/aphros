@@ -545,11 +545,16 @@ class Embed {
   Vect GetCellCenter(IdxCell c) const {
     return fc_cell_center_[c];
   }
-  // Signed distance from m.GetCenter(c) to the nearest cut cell.
+  // Signed distance from m.GetCenter(c) to the nearest cut face.
   // Positive inside the domain.
   // Defined in cells reachable by Stencil5() from cut cells.
   Scal GetSignedDistance(IdxCell c) const {
     return fc_sdf_[c];
+  }
+  // Displacement vector from m.GetCenter(c) to the nearest cut face.
+  // Defined in cells reachable by Stencil5() from cut cells.
+  Vect GetDisplacementToCutFace(IdxCell c) const {
+    return fc_cutdx_[c];
   }
   Scal ClipGradDenom(Scal dn) const {
     return (dn > 0 ? 1 : -1) *
@@ -763,7 +768,8 @@ class Embed {
   FieldCell<Scal> fcv_; // volume of cut cell
   FieldCell<Vect> fc_face_center_;
   FieldCell<Vect> fc_cell_center_;
-  FieldCell<Scal> fc_sdf_; // signed distance to cut cell
+  FieldCell<Scal> fc_sdf_; // signed distance to cut face
+  FieldCell<Vect> fc_cutdx_; // displacement to nearest cut face
   FieldCell<Scal> fcvst3_; // sum of volume of neighbors in stencil 3x3x3
 };
 

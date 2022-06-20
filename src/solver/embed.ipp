@@ -37,6 +37,7 @@ void Embed<M>::Init(const FieldNode<Scal>& fnl) {
     }
 
     fc_sdf_.Reinit(eb, GetNan<Scal>());
+    fc_cutdx_.Reinit(eb, GetNan<Vect>());
     for (auto c : eb.Cells()) {
       const Vect x = m.GetCenter(c);
       auto& sdf = fc_sdf_[c];
@@ -47,11 +48,13 @@ void Embed<M>::Init(const FieldNode<Scal>& fnl) {
           const Scal dist = dx.norm();
           if (IsNan(sdf) || std::abs(sdf) > dist) {
             sdf = dist * sgn;
+            fc_cutdx_[c] = dx;
           }
         }
       }
     }
     m.Comm(&fc_sdf_);
+    m.Comm(&fc_cutdx_);
   }
   if (sem()) {
   }

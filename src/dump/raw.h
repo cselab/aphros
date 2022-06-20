@@ -48,11 +48,13 @@ class Raw {
 
   // Dumps a multidimensional array to `rawpath` and writes metadata
   // to an XMF file in the same directory.
+  // The mesh is uniform of size `meshsize` and
+  // extends between `xlower` and `xupper`.
   // The domain will have extent 1 and origin at 0.
   template <class T>
   static void WritePlainArrayWithXmf(
       const std::string& rawpath, const std::string& fieldname, const T* data,
-      MIdx size);
+      MIdx meshsize, Vect xlower, Vect xupper);
 
   template <class T>
   static void Read(

@@ -152,6 +152,9 @@ struct HydroPost<M>::Imp {
       dump(hydro->fc_mu_, "mu");
       dump(hydro->fc_sig_, "sig");
       dump(hydro->fc_contang_, "contang");
+      dumpv(hydro->fc_wall_dist_, 0, "walldistx");
+      dumpv(hydro->fc_wall_dist_, 1, "walldisty");
+      dumpv(hydro->fc_wall_dist_, 2, "walldistz");
       if (dl.count("cellcond")) {
         t.stack_fc.emplace(m, 0);
         auto& fc_cellcond = t.stack_fc.top();
