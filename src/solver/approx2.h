@@ -111,9 +111,10 @@ struct Approx2 {
   }
 
   // Evaluates a trilinear interpolant constructed from a scalar face field.
-  // Assumes that halo cells a filled for all faces adjacent to inner faces.
+  // Assumes that face values adjacent to halo cells are filled.
   // The scalar face field stores normal components of a vector field.
   // The interpolant takes a point and returns a vector.
+  // Points must be inside inner cells.
   // ffu: face scalar field
   // callback: function that takes the interpolant function as a parameter
   static void EvalTrilinearFromFaceField(
@@ -125,27 +126,35 @@ struct Approx2 {
       const auto c = m(m.GetCellFromPoint(x));
       Vect res;
       for (auto di : m.dirs) {
-        // FIXME: Specific for 3D.
         const Vect delta = (x - c.center) / h;
         const auto d = m.direction(di);
         const auto du = d.next(1).orient(delta);
-        const auto dv = d.next(2).orient(delta);
-        const IdxCellMesh<M> cc[] = {c, c + du, c + dv, c + du + dv};
-        const IdxFace fm[] = {
-            cc[0].face(-d), cc[1].face(-d), cc[2].face(-d), cc[3].face(-d)};
-        const IdxFace fp[] = {
-            cc[0].face(d), cc[1].face(d), cc[2].face(d), cc[3].face(d)};
-        const Scal vm = interp::Bilinear(
-            std::abs(delta[du]), std::abs(delta[dv]), //
-            ffu[fm[0]], ffu[fm[1]], ffu[fm[2]], ffu[fm[3]]);
-        const Scal vp = interp::Bilinear(
-            std::abs(delta[du]), std::abs(delta[dv]), //
-            ffu[fp[0]], ffu[fp[1]], ffu[fp[2]], ffu[fp[3]]);
-        const Scal a = delta[d] + 0.5;
-        res[di] = vm * (1 - a) + vp * a;
+        Scal vm, vp;
+        if (M::dim == 2) {
+          const IdxCellMesh<M> cc[] = {c, c + du};
+          const IdxFace fm[] = {cc[0].face(-d), cc[1].face(-d)};
+          const IdxFace fp[] = {cc[0].face(d), cc[1].face(d)};
+          vm = interp::Linear(std::abs(delta[du]), ffu[fm[0]], ffu[fm[1]]);
+          vp = interp::Linear(std::abs(delta[du]), ffu[fp[0]], ffu[fp[1]]);
+        } else {
+          const auto dv = d.next(2).orient(delta);
+          const IdxCellMesh<M> cc[] = {c, c + du, c + dv, c + du + dv};
+          const IdxFace fm[] = {
+              cc[0].face(-d), cc[1].face(-d), cc[2].face(-d), cc[3].face(-d)};
+          const IdxFace fp[] = {
+              cc[0].face(d), cc[1].face(d), cc[2].face(d), cc[3].face(d)};
+          vm = interp::Bilinear(
+              std::abs(delta[du]), std::abs(delta[dv]), //
+              ffu[fm[0]], ffu[fm[1]], ffu[fm[2]], ffu[fm[3]]);
+          vp = interp::Bilinear(
+              std::abs(delta[du]), std::abs(delta[dv]), //
+              ffu[fp[0]], ffu[fp[1]], ffu[fp[2]], ffu[fp[3]]);
+        }
+        res[di] = interp::Linear(delta[d] + 0.5, vm, vp);
       }
       return res;
     };
     callback(func);
   }
+
 };
