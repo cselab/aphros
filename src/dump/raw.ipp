@@ -148,9 +148,10 @@ void Raw<M>::Write(
   } else {
 #else
   {
-#endif
     (void)mpi;
+    (void)nompi;
     (void)global_size;
+#endif
     std::ofstream file(path, std::ios::binary);
     fassert(file.good(), "Can't open file '" + path + "' for writing");
     file.write(buf.data(), buf.size());
@@ -229,18 +230,22 @@ void Raw<M>::WritePlainArrayWithXmf(
   std::vector<MIdx> sizes{meshsize};
   std::vector<std::vector<T>> dataall{
       std::vector<T>(data, data + meshsize.prod())};
-  Raw::Write(
-      rawpath, starts, sizes, dataall, meshsize, dump::Type::Float64, mpi,
-      true);
 
-  typename Xmf::Meta meta;
+  using Scal = typename M::Scal;
+  using Vect3 = generic::Vect<Scal, 3>;
+  using MIdx3 = generic::MIdx<3>;
+  using Xmf3 = dump::Xmf<Vect3>;
+  typename Xmf3::Meta meta;
   meta.name = fieldname;
   meta.binpath = rawpath;
-  meta.dimensions = meshsize;
-  meta.count = meshsize;
-  meta.origin = xlower;
-  meta.spacing = (xupper - xlower) / Vect(meshsize);
-  Xmf::WriteXmf(util::SplitExt(rawpath)[0] + ".xmf", meta);
+  meta.dimensions = MIdx3(1).max(MIdx3(meshsize));
+  meta.count = meta.dimensions;
+  meta.origin = Vect3(xlower);
+  meta.spacing = Vect3((xupper - xlower) / Vect(meshsize));
+  meta.spacing = meta.spacing.max(Vect3(meta.spacing.min()));
+  meta.type = dump::Type::Float64;
+  Raw::Write(rawpath, starts, sizes, dataall, meshsize, meta.type, mpi, true);
+  Xmf3::WriteXmf(util::SplitExt(rawpath)[0] + ".xmf", meta);
 }
 
 template <class M>

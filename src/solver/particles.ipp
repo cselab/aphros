@@ -163,8 +163,9 @@ struct Particles<EB_>::Imp {
         fc[d].Reinit(index);
       }
       auto callback = [&](const std::function<Vect(Vect x)>& func) {
+        const Vect h = (xupper - xlower) / Vect(meshsize);
         for (MIdx w : block) {
-          const Vect x(xlower + (Vect(w) + Vect(0.5)) / Vect(meshsize));
+          const Vect x(xlower + (Vect(w) + Vect(0.5)) * h);
           for (auto d : M::dirs) {
             fc[d][index.GetIdx(w)] = func(x)[d];
           }
