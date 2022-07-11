@@ -49,6 +49,7 @@ grep '\.h$' $l | grep -v '^test\/' | fgrep -v aphros_c.h | sort | uniq > $h
 ../make/list $l | ../make/dep > $d
 
 # unix
+mkdir -p ../make/unix
 {
     awk '{printf "$(WRK)/%s.o: $(SRC)/%s\n", $1, $2}' $d;
     awk '{printf "$(WRK)/%s: $(WRK)/$L\n", $1}' $b;
@@ -65,6 +66,7 @@ awk '{printf "$(WRK)/%s\n", $1}' $b | ../make/var B > ../make/unix/bin.mk
 } > ../make/unix/rule.mk
 
 # windows
+mkdir -p ../make/windows
 {
     awk '{printf "%s.obj: %s\n", $1, $2}' $d;
     awk '{printf "%s: $L\n", $1}' $b;
