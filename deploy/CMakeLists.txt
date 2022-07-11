@@ -101,6 +101,10 @@ set(ScriptsList
     line
     makearg
     makesim
+    merge_hdf_xmf
+    merge_hdf_xmf_all
+    merge_raw_xmf
+    merge_raw_xmf_all
     mpirun
     order
     part
@@ -112,6 +116,8 @@ set(ScriptsList
     run0
     scale
     spawn
+    split_hdf_xmf_all
+    split_raw_xmf_all
     statcopy
     submit0
     sysinfo

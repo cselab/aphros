@@ -1,0 +1,3 @@
+#!/bin/sh
+
+ap.merge_raw_xmf_all --exe ap.merge_hdf_xmf "$@"

@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+
+import argparse
+import numpy as np
+import os
+import sys
+import xml.dom.minidom
+
+
+def printerr(m):
+    sys.stderr.write(str(m) + '\n')
+    sys.stderr.flush()
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Merges multiple XMF metadata files and "
+        "the corresponding RAW data files into one",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('--output',
+                        type=str,
+                        default="all.xmf",
+                        help="Path to output XMF file")
+    parser.add_argument('--attr',
+                        nargs='*',
+                        type=str,
+                        help="Names of attributes to extract. Defaults to all")
+    parser.add_argument('--inputs',
+                        nargs='*',
+                        type=str,
+                        help="Input XMF files")
+    parser.add_argument('--noxmf',
+                        action='store_false',
+                        dest='xmf',
+                        help="Skip writing XMF file")
+    parser.add_argument('--noraw',
+                        action='store_false',
+                        dest='raw',
+                        help=r"Skip writing RAW file")
+    return parser.parse_args()
+
+
+class Entry:
+    attr = None  # Object for Attribute tag.
+    dataitem = None  # Object for DataItem tag.
+    binpath = None  # Path to binary datafile.
+    count = None  # Data size in bytes.
+    seek = 0  # Data offset in bytes.
+    dtype = None  # Data type.
+    data = None  # Data array.
+    precision = None  # Number of bytes per element.
+    name = None  # Name of attirbute.
+    dirname = None  # Directory containing XMF file.
+
+
+def main():
+    args = parse_args()
+
+    assert len(args.inputs)
+
+    # Parse XMF and load data attributes.
+    docs = []
+    entries = []
+    for path in args.inputs:
+        doc = xml.dom.minidom.parse(path)
+        docs.append(doc)
+        qattr = doc.getElementsByTagName("Attribute")
+        for attr in qattr:
+            qdata = attr.getElementsByTagName("DataItem")
+            for dataitem in qdata:
+                if dataitem.getAttribute("Format") == "Binary":
+                    entry = Entry()
+                    entry.attr = attr
+                    entry.dataitem = dataitem
+                    entry.binpath = dataitem.firstChild.data.strip()
+                    entry.precision = int(dataitem.getAttribute("Precision"))
+                    entry.dtype = \
+                            np.float32 if entry.precision == 4 else np.float64
+                    dim = dataitem.getAttribute("Dimensions")
+                    dim = list(map(int, dim.split()))
+                    entry.count = np.prod(dim)
+                    entry.seek = int(dataitem.getAttribute("Seek"))
+                    entry.name = attr.getAttribute("Name")
+                    entry.dirname = os.path.dirname(path)
+                    entries.append(entry)
+
+    binout = os.path.splitext(args.output)[0] + '.raw'
+
+    if args.attr:
+        name_to_entry = dict()
+        for entry in entries:
+            name_to_entry[entry.name] = entry
+        unknown = [name for name in args.attr if name not in name_to_entry]
+        assert not unknown, "Requested attributes {:} not found in {:}".format(
+            ','.join(unknown), ','.join(list(name_to_entry)))
+        entries = [e for e in entries if e.name in args.attr]
+
+    if args.raw:
+        # TODO: Read-write without memory.
+        # Read data.
+        for entry in entries:
+            binpath = os.path.join(entry.dirname, entry.binpath)
+            entry.data = np.fromfile(binpath,
+                                     dtype=entry.dtype,
+                                     offset=entry.seek,
+                                     count=entry.count)
+        # Write data.
+        with open(binout, 'wb') as f:
+            for entry in entries:
+                entry.data.tofile(f)
+
+    # Write selected attributes to first document.
+    firstdoc = docs[0].cloneNode(deep=True)
+    firstgrid = firstdoc.getElementsByTagName("Grid")[0]
+    for q in firstgrid.getElementsByTagName("Attribute"):
+        firstgrid.removeChild(q)
+    seek = 0
+    for i, entry in enumerate(entries):
+        entry.dataitem.setAttribute("Seek", str(seek))
+        entry.dataitem.firstChild.data = binout
+        seek += entry.count * entry.precision
+        firstgrid.appendChild(entry.attr)
+
+    if args.xmf:
+        with open(args.output, 'w') as f:
+            firstdoc.writexml(f)
+
+
+if __name__ == "__main__":
+    main()

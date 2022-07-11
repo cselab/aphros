@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import subprocess
+import sys
+
+
+def printerr(m):
+    sys.stderr.write(str(m) + '\n')
+    sys.stderr.flush()
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Splits sequence of XMF and RAW files"
+        " with multiple attributes into multiple files"
+        ". Expects input filenames of form PREFIX_STEP.xmf"
+        " and for each STEP generates filenames from ATTR"
+        ". Writes output files to current directory",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('--inputs',
+                        nargs='*',
+                        type=str,
+                        help="Input XMF files with multiple attributes")
+    parser.add_argument('--attr',
+                        nargs='*',
+                        type=str,
+                        help="Names of attributes to read")
+    parser.add_argument('--force',
+                        action='store_true',
+                        help="Overwrite existing files")
+    parser.add_argument('--exe',
+                        default="ap.merge_raw_xmf",
+                        help="Path to executable")
+    parser.add_argument('--norun',
+                        action='store_true',
+                        help="Only print commands without running them")
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    cmds = []
+    outs = []
+    for path in args.inputs:
+        sp = os.path.basename(path).split('_')
+        assert sp, "Expected filename of form PREFIX_STEP.xmf"
+        tail = '_' + '_'.join(sp[1:])
+        for name in args.attr:
+            out = name + tail
+            cmd = [args.exe, '--attr', name, '--inputs', path, '--output', out]
+            outs.append(out)
+            cmds.append(cmd)
+
+    if args.norun:
+        for cmd in cmds:
+            print(' '.join(cmd))
+        return
+
+    for i, (cmd, out) in enumerate(zip(cmds, outs)):
+        if not args.force and os.path.isfile(out):
+            printerr("skip existing '{}'".format(out))
+            continue
+        printerr("{:}/{:}: {}".format(i + 1, len(outs), out))
+        subprocess.run(cmd, check=True)
+
+
+if __name__ == "__main__":
+    main()

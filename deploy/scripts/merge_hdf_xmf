@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+
+import argparse
+import h5py
+import numpy as np
+import os
+import sys
+import xml.dom.minidom
+
+
+def printerr(m):
+    sys.stderr.write(str(m) + '\n')
+    sys.stderr.flush()
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Merges multiple XMF metadata files and "
+        "the corresponding HDF5 data files into one",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('--output',
+                        type=str,
+                        default="all.xmf",
+                        help="Path to output XMF file")
+    parser.add_argument('--attr',
+                        nargs='*',
+                        type=str,
+                        help="Names of attributes to extract. Defaults to all")
+    parser.add_argument('--inputs',
+                        nargs='*',
+                        type=str,
+                        help="Input XMF files")
+    parser.add_argument('--noxmf',
+                        action='store_false',
+                        dest='xmf',
+                        help="Skip writing XMF file")
+    parser.add_argument('--nohdf',
+                        action='store_false',
+                        dest='hdf',
+                        help="Skip writing HDF5 file")
+    return parser.parse_args()
+
+
+class Entry:
+    attr = None  # Object for Attribute tag.
+    dataitem = None  # Object for DataItem tag.
+    hdfpath = None  # Path to binary datafile.
+    hdfname = None  # Name of dataset in input HDF5.
+    hdfnameout = None  # Name of dataset in output HDF5.
+    count = None  # Data size in bytes.
+    dtype = None  # Data type.
+    precision = None  # Number of bytes per element.
+    name = None  # Name of attirbute.
+    dirname = None  # Directory containing XMF file.
+
+
+def main():
+    args = parse_args()
+
+    assert len(args.inputs)
+
+    # Parse XMF and load data attributes.
+    docs = []
+    entries = []
+    for path in args.inputs:
+        doc = xml.dom.minidom.parse(path)
+        docs.append(doc)
+        qattr = doc.getElementsByTagName("Attribute")
+        for attr in qattr:
+            qdata = attr.getElementsByTagName("DataItem")
+            for dataitem in qdata:
+                if dataitem.getAttribute("Format") == "HDF":
+                    entry = Entry()
+                    entry.attr = attr
+                    entry.name = attr.getAttribute("Name")
+                    entry.dataitem = dataitem
+                    hdfpart = dataitem.firstChild.data.strip().rpartition(':/')
+                    entry.hdfpath = hdfpart[0]
+                    entry.hdfname = hdfpart[2]
+                    entry.precision = int(dataitem.getAttribute("Precision"))
+                    entry.dtype = \
+                            np.float32 if entry.precision == 4 else np.float64
+                    dim = dataitem.getAttribute("Dimensions")
+                    dim = list(map(int, dim.split()))
+                    entry.count = np.prod(dim)
+                    entry.dirname = os.path.dirname(path)
+                    entry.hdfnameout = entry.hdfname + '_' + entry.name
+                    entries.append(entry)
+
+    hdfout = os.path.splitext(args.output)[0] + '.h5'
+
+    if args.attr:
+        name_to_entry = dict()
+        for entry in entries:
+            name_to_entry[entry.name] = entry
+        unknown = [name for name in args.attr if name not in name_to_entry]
+        assert not unknown, "Requested attributes {:} not found in {:}".format(
+            ','.join(unknown), ','.join(list(name_to_entry)))
+        entries = [e for e in entries if e.name in args.attr]
+
+    if args.hdf:
+        with h5py.File(hdfout, 'w') as fout:
+            for entry in entries:
+                hdfpath = os.path.join(entry.dirname, entry.hdfpath)
+                with h5py.File(hdfpath, 'r') as fin:
+                    u = fin[entry.hdfname]
+                    fout.create_dataset(entry.hdfnameout, data=u)
+
+    # Write selected attributes to first document.
+    firstdoc = docs[0].cloneNode(deep=True)
+    firstgrid = firstdoc.getElementsByTagName("Grid")[0]
+    for q in firstgrid.getElementsByTagName("Attribute"):
+        firstgrid.removeChild(q)
+    for i, entry in enumerate(entries):
+        entry.dataitem.firstChild.data = hdfout + ':/' + entry.hdfnameout
+        firstgrid.appendChild(entry.attr)
+
+    if args.xmf:
+        with open(args.output, 'w') as f:
+            firstdoc.writexml(f)
+
+
+if __name__ == "__main__":
+    main()
