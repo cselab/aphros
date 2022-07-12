@@ -204,7 +204,7 @@ struct Heights<M_>::Imp {
         }
       }
       using T = decltype((*fc[0])[c]);
-      return T{0};
+      return T{};
     };
 
     for (auto l : layers) {
