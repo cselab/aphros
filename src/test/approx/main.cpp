@@ -497,7 +497,7 @@ std::unique_ptr<M> CreateMesh(Scal h) {
 // TODO: rename AllCells to Cells(2)
 
 std::unique_ptr<EB> CreateEmbed(M& m) {
-  auto peb = std::make_unique<EB>(m, 0);
+  auto peb = std::make_unique<EB>(m);
   FieldNode<Scal> fnl(m);
   auto block = m.GetInBlockCells().GetSize();
   auto h = m.GetCellSize();

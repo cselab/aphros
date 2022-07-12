@@ -234,9 +234,9 @@ The following function implements a diffusion solver using this approximation
   :comment:
   :impl:
 
-.. |ex104_0_0| image:: ../../../examples/104_embed_diffusion/case0_gradlim0/u_0000.*
+.. |ex104_0_0| image:: ../../../examples/104_embed_diffusion/case0/u_0000.*
 
-.. |ex104_0_1| image:: ../../../examples/104_embed_diffusion/case0_gradlim0/u_0001.*
+.. |ex104_0_1| image:: ../../../examples/104_embed_diffusion/case0/u_0001.*
 
 .. table:: Results of diffusion solver ``Diffusion0()``: initial
            (left) and final (right). Instabilities develop near the
@@ -262,9 +262,9 @@ See full example in :linkpath:`examples/104_embed_diffusion/main.cpp`.
   :impl:
 
 
-.. |ex104_1_1| image:: ../../../examples/104_embed_diffusion/case1_gradlim0/u_0001.*
+.. |ex104_1_1| image:: ../../../examples/104_embed_diffusion/case1/u_0001.*
 
-.. |ex104_2_1| image:: ../../../examples/104_embed_diffusion/case2_gradlim0/u_0001.*
+.. |ex104_2_1| image:: ../../../examples/104_embed_diffusion/case2/u_0001.*
 
 
 .. table:: Results of diffusion solver ``Diffusion1()`` (left) using

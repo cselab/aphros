@@ -185,7 +185,7 @@ void Hydro<M>::InitEmbed() {
       FieldNode<Scal> fnl;
     } * ctx(sem);
     if (sem("ctor")) {
-      eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
+      eb_.reset(new Embed<M>(m));
     }
     if (sem.Nested("levelset")) {
       UEB::InitLevelSet(ctx->fnl, m, var, m.IsRoot() && !silent_);

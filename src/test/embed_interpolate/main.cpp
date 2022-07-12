@@ -66,7 +66,7 @@ void EmbedInterpolate<M>::Run() {
   auto& pomz = ctx->pomz;
   auto& pomz_interp = ctx->pomz_interp;
   if (sem("ctor")) {
-    eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
+    eb_.reset(new Embed<M>(m));
   }
   if (sem.Nested("levelset")) {
     UEmbed<M>::InitLevelSet(ctx->fnl, m, var, m.IsRoot());

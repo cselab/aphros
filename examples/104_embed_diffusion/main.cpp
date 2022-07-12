@@ -133,7 +133,7 @@ void Run(M& m, Vars& var) {
       auto x = m.GetNode(n);
       fnl[n] = (0.4 - (Vect(0.5, 0.5, 0) - Vect(x[0], x[1], 0.)).norm());
     }
-    ctx->eb_.reset(new Embed<M>(m, var.Double["gradlim"]));
+    ctx->eb_.reset(new Embed<M>(m));
     m.Dump(&fcu, "u");
   }
   if (sem.Nested("eb-init")) {
@@ -206,14 +206,12 @@ set double cfl 0.25
 
   ArgumentParser parser("Diffusion example with embedded boundaries");
   parser.AddVariable<int>("case", 0).Help("Case to run, choices: 0, 1, 2");
-  parser.AddVariable<double>("gradlim", 0).Help("Value of gradient limiter");
   auto args = parser.ParseArgs(argc, argv);
   if (const int* p = args.Int.Find("EXIT")) {
     return *p;
   }
 
   conf += "\nset int case " + args.Int.GetStr("case");
-  conf += "\nset double gradlim " + args.Double.GetStr("gradlim");
 
   MpiWrapper mpi(&argc, &argv);
   return RunMpiBasicString<M>(mpi, Run, conf);

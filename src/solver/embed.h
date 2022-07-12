@@ -297,8 +297,7 @@ class Embed {
   using Type = typename M::Type;
   // Constructor
   // fnl: level-set function on nodes, interface at fnl=0
-  Embed(M& m_, Scal gradlim) : m(m_), eb(*this), gradlim_(gradlim) {}
-  explicit Embed(M& m_) : Embed(m_, 0.5) {}
+  explicit Embed(M& m_) : m(m_), eb(*this) {}
   // Initializes embedded boundaries with level-set function.
   // Suspendable, requires communication.
   // fnl: level-set function [a]
@@ -551,10 +550,6 @@ class Embed {
   Scal GetSignedDistance(IdxCell c) const {
     return fc_sdf_[c];
   }
-  Scal ClipGradDenom(Scal dn) const {
-    return (dn > 0 ? 1 : -1) *
-           std::max(std::abs(dn), m.GetCellSize()[0] * gradlim_);
-  }
   void DumpPoly(std::string filename, bool vtkbin, bool vtkmerge) const {
     DumpPoly(
         filename, ffs_, fft_, fcs_, fct_, fcn_, fca_, ffpoly_, vtkbin, vtkmerge,
@@ -747,7 +742,6 @@ class Embed {
 
   M& m;
   const Embed& eb;
-  const Scal gradlim_;
   // nodes
   FieldNode<Scal> fnl_; // level-set
   // faces

@@ -35,7 +35,7 @@ void Main(M& m, Vars& var) {
   auto& eb_ = ctx->eb_;
   auto& fcu = ctx->fcu;
   if (sem("ctor")) {
-    eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
+    eb_.reset(new Embed<M>(m));
   }
   if (sem.Nested("levelset")) {
     UEmbed<M>::InitLevelSet(ctx->fnl, m, var, false);

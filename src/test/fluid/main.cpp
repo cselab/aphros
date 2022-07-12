@@ -74,7 +74,7 @@ void Main(M& m, Vars& var) {
   } * ctx(sem);
   auto& eb_ = ctx->eb_;
   if (sem("ctor")) {
-    eb_.reset(new Embed<M>(m, 0));
+    eb_.reset(new Embed<M>(m));
   }
   if (sem.Nested("levelset")) {
     UEmbed<M>::InitLevelSet(ctx->fnl, m, var, false);
