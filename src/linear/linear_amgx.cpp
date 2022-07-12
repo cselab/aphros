@@ -9,6 +9,7 @@
 
 #include "distr/commmap.h"
 #include "distr/distrsolver.h"
+#include "util/make_unique.h"
 #include "linear_amgx.h"
 #include "amgx.h"
 
@@ -24,9 +25,9 @@ struct SolverAmgx<M>::Imp {
       : owner_(owner), conf(owner_->conf), extra(extra_) {
     if (m.IsLead()) {
       if (extra.log_path.length()) {
-        logfile_ = std::make_unique<std::ofstream>(extra.log_path);
+        logfile_ = MakeUnique<std::ofstream>(extra.log_path);
       }
-      amgx_ = std::make_unique<Amgx::Library>(logfile_.get());
+      amgx_ = MakeUnique<Amgx::Library>(logfile_.get());
     }
   }
   Info Solve(
@@ -156,7 +157,7 @@ class ModuleLinearAmgx : public ModuleLinear<M> {
     extra.config_extra = var.String[addprefix("config_extra")];
     extra.log_path = var.String[addprefix("log_path")];
     extra.mode = var.String[addprefix("mode")];
-    return std::make_unique<linear::SolverAmgx<M>>(
+    return MakeUnique<linear::SolverAmgx<M>>(
         this->GetConf(var, prefix), extra, m);
   }
 };

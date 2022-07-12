@@ -8,6 +8,7 @@
 
 #include "hypre.h"
 #include "linear_hypre.h"
+#include "util/make_unique.h"
 
 DECLARE_FORCE_LINK_TARGET(linear_hypre);
 
@@ -123,7 +124,7 @@ struct SolverHypre<M>::Imp {
       }
 
       const HypreMIdx per = MIdx(m.flags.is_periodic);
-      t.hypre = std::make_unique<Hypre>(
+      t.hypre = MakeUnique<Hypre>(
           m.GetMpiComm(), blocks, m.GetGlobalSize(), per);
 
       t.hypre->Solve(conf.tol, extra.print, extra.solver, conf.maxiter);
@@ -187,7 +188,7 @@ class ModuleLinearHypre : public ModuleLinear<M> {
     typename SolverHypre<M>::Extra extra;
     extra.solver = var.String[addprefix("solver")];
     extra.print = var.Int["hypre_print"];
-    return std::make_unique<linear::SolverHypre<M>>(
+    return MakeUnique<linear::SolverHypre<M>>(
         this->GetConf(var, prefix), extra, m);
   }
 };

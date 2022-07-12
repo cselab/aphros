@@ -18,6 +18,7 @@
 #include "trackerm.h"
 #include "util/format.h"
 #include "util/height.h"
+#include "util/make_unique.h"
 #include "util/vof.h"
 #include "vof.h"
 #include "vofm.h"
@@ -609,13 +610,13 @@ std::unique_ptr<Estimator<M>> MakeEstimator(
   if (name == "particles") {
     const auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize()[0], var);
     const auto psm = ParsePar<PartStrMeshM<M>>()(ps, var);
-    return std::make_unique<curvature::Particles<M>>(m, psm, layers);
+    return MakeUnique<curvature::Particles<M>>(m, psm, layers);
   } else if (name == "heights") {
-    return std::make_unique<curvature::Heights<M>>();
+    return MakeUnique<curvature::Heights<M>>();
   } else if (name == "hybrid") {
     const auto ps = ParsePar<PartStr<Scal>>()(m.GetCellSize()[0], var);
     const auto psm = ParsePar<PartStrMeshM<M>>()(ps, var);
-    return std::make_unique<curvature::Hybrid<M>>(m, psm, layers);
+    return MakeUnique<curvature::Hybrid<M>>(m, psm, layers);
   }
   fassert(false, util::Format("Unknown curvature estimator '{}'", name));
 }

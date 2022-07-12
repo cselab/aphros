@@ -22,6 +22,7 @@
 #include "solver/approx.h"
 #include "solver/reconst.h"
 #include "solver/trackerm.h"
+#include "util/make_unique.h"
 #include "vof.h"
 
 template <class T>
@@ -1231,7 +1232,7 @@ class ModuleLabelingPropagation : public ModuleLabeling<M> {
   using Conf = typename Labeling<M>::Conf;
   ModuleLabelingPropagation() : ModuleLabeling<M>("propagation") {}
   std::unique_ptr<Labeling<M>> Make(const Conf& conf, const M& m) override {
-    return std::make_unique<LabelingPropagation<M>>(conf, m);
+    return MakeUnique<LabelingPropagation<M>>(conf, m);
   }
 };
 
@@ -1261,7 +1262,7 @@ class ModuleLabelingUnionFind : public ModuleLabeling<M> {
   using Conf = typename Labeling<M>::Conf;
   ModuleLabelingUnionFind() : ModuleLabeling<M>("unionfind") {}
   std::unique_ptr<Labeling<M>> Make(const Conf& conf, const M& m) override {
-    return std::make_unique<LabelingUnionFind<M>>(conf, m);
+    return MakeUnique<LabelingUnionFind<M>>(conf, m);
   }
 };
 

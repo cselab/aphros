@@ -22,6 +22,7 @@
 #include "rangein.h"
 #include "rangemulti.h"
 #include "transform.h"
+#include "util/make_unique.h"
 #include "util/mpi.h"
 #include "util/suspender.h"
 #include "vect.h"
@@ -785,44 +786,44 @@ class MeshCartesian {
   void Reduce(std::pair<Scal, int>* buf, ReductionType::MinLoc);
   template <class T>
   void Reduce(std::vector<T>* buf, ReductionType::Concat) {
-    Reduce(std::make_unique<typename UReduce<Scal>::template OpCatT<T>>(buf));
+    Reduce(MakeUnique<typename UReduce<Scal>::template OpCatT<T>>(buf));
   }
   void Reduce(std::string* buf, ReductionType::Concat) {
-    Reduce(std::make_unique<typename UReduce<Scal>::OpCatString>(buf));
+    Reduce(MakeUnique<typename UReduce<Scal>::OpCatString>(buf));
   }
   template <class T>
   void Reduce(std::vector<std::vector<T>>* buf, ReductionType::Concat) {
-    Reduce(std::make_unique<typename UReduce<Scal>::template OpCatVT<T>>(buf));
+    Reduce(MakeUnique<typename UReduce<Scal>::template OpCatVT<T>>(buf));
   }
   void Reduce(std::vector<std::string>* buf, ReductionType::Concat) {
-    Reduce(std::make_unique<typename UReduce<Scal>::OpCatVectorString>(buf));
+    Reduce(MakeUnique<typename UReduce<Scal>::OpCatVectorString>(buf));
   }
   void ClearReduce();
   void ReduceToLead(std::unique_ptr<Op>&& o);
   template <class T>
   void GatherToLead(std::vector<T>* buf) {
     ReduceToLead(
-        std::make_unique<typename UReduce<Scal>::template OpCatT<T>>(buf));
+        MakeUnique<typename UReduce<Scal>::template OpCatT<T>>(buf));
   }
   template <class T>
   void GatherToLead(std::vector<std::vector<T>>* buf) {
     ReduceToLead(
-        std::make_unique<typename UReduce<Scal>::template OpCatVT<T>>(buf));
+        MakeUnique<typename UReduce<Scal>::template OpCatVT<T>>(buf));
   }
   const std::vector<std::unique_ptr<Op>>& GetReduceToLead() const;
   void ClearReduceToLead();
   void Bcast(std::unique_ptr<Op>&& o);
   template <class T>
   void Bcast(T* elem) {
-    Bcast(std::make_unique<typename UReduce<Scal>::template OpCatRaw<T>>(elem));
+    Bcast(MakeUnique<typename UReduce<Scal>::template OpCatRaw<T>>(elem));
   }
   template <class T>
   void Bcast(std::vector<T>* buf) {
-    Bcast(std::make_unique<typename UReduce<Scal>::template OpCatT<T>>(buf));
+    Bcast(MakeUnique<typename UReduce<Scal>::template OpCatT<T>>(buf));
   }
   template <class T>
   void Bcast(std::vector<std::vector<T>>* buf) {
-    Bcast(std::make_unique<typename UReduce<Scal>::template OpCatVT<T>>(buf));
+    Bcast(MakeUnique<typename UReduce<Scal>::template OpCatVT<T>>(buf));
   }
   const std::vector<std::unique_ptr<Op>>& GetBcast() const;
   void ClearBcast();
@@ -830,7 +831,7 @@ class MeshCartesian {
   template <class T>
   void BcastFromLead(T* elem) {
     BcastFromLead(
-        std::make_unique<typename UReduce<Scal>::template OpCatRaw<T>>(elem));
+        MakeUnique<typename UReduce<Scal>::template OpCatRaw<T>>(elem));
   }
   const std::vector<std::unique_ptr<Op>>& GetBcastFromLead() const;
   void ClearBcastFromLead();

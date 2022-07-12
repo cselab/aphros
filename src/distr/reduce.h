@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "util/logger.h"
+#include "util/make_unique.h"
 
 namespace ReductionType {
 struct Sum {};
@@ -418,13 +419,13 @@ class UReduce {
   // o: operation
   void Add(Scal* u, std::string o) {
     if (o == "sum") {
-      reqs_.push_back(std::make_unique<OpSum>(u));
+      reqs_.push_back(MakeUnique<OpSum>(u));
     } else if (o == "prod") {
-      reqs_.push_back(std::make_unique<OpProd>(u));
+      reqs_.push_back(MakeUnique<OpProd>(u));
     } else if (o == "max") {
-      reqs_.push_back(std::make_unique<OpMax>(u));
+      reqs_.push_back(MakeUnique<OpMax>(u));
     } else if (o == "min") {
-      reqs_.push_back(std::make_unique<OpMin>(u));
+      reqs_.push_back(MakeUnique<OpMin>(u));
     } else {
       fassert(false, "Reduce: unknown operation: '" + o);
     }
@@ -440,7 +441,7 @@ class UReduce {
   template <class T>
   static std::unique_ptr<OpCatT<T>> Make(
       std::vector<T>* buf, ReductionType::Concat) {
-    return std::make_unique<OpCatT<T>>(buf);
+    return MakeUnique<OpCatT<T>>(buf);
   }
 
  private:

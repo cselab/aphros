@@ -6,6 +6,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include "util/make_unique.h"
 
 // TODO: Sequence like
 //   GetSem();
@@ -48,7 +49,7 @@ class Suspender {
       State& state = *owner_.pos_;
       std::unique_ptr<BaseHolder>& holder = state.context;
       if (!holder) {
-        holder = std::make_unique<Holder<T>>(new T());
+        holder = MakeUnique<Holder<T>>(new T());
       }
       return dynamic_cast<Holder<T>*>(holder.get())->Get();
     }

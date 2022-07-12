@@ -135,6 +135,7 @@ install(FILES util/hydro_post.h DESTINATION ${APHROS_PREFIX}/include/aphros/util
 install(FILES util/linear.h DESTINATION ${APHROS_PREFIX}/include/aphros/util)
 install(FILES util/logger.h DESTINATION ${APHROS_PREFIX}/include/aphros/util)
 install(FILES util/macros.h DESTINATION ${APHROS_PREFIX}/include/aphros/util)
+install(FILES util/make_unique.h DESTINATION ${APHROS_PREFIX}/include/aphros/util)
 install(FILES util/metrics.h DESTINATION ${APHROS_PREFIX}/include/aphros/util)
 install(FILES util/module.h DESTINATION ${APHROS_PREFIX}/include/aphros/util)
 install(FILES util/mpi.h DESTINATION ${APHROS_PREFIX}/include/aphros/util)

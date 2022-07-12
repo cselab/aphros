@@ -13,6 +13,7 @@
 #include "opencl/opencl.h"
 #include "parse/vars.h"
 #include "util/format.h"
+#include "util/make_unique.h"
 
 DECLARE_FORCE_LINK_TARGET(linear_conjugate_cl);
 
@@ -29,7 +30,7 @@ struct SolverConjugateCL<M>::Imp {
   Imp(Owner* owner, const Extra& extra_, const M& m, const Vars& var)
       : owner_(owner), conf(owner_->conf), extra(extra_) {
     if (m.IsLead()) {
-      shared_obj_ = std::make_unique<Shared>(m, var);
+      shared_obj_ = MakeUnique<Shared>(m, var);
       shared = shared_obj_.get();
     }
   }
@@ -220,7 +221,7 @@ class ModuleLinearConjugateCL : public ModuleLinear<M> {
     };
     typename linear::SolverConjugateCL<M>::Extra extra;
     extra.residual_max = var.Int[addprefix("maxnorm")];
-    return std::make_unique<linear::SolverConjugateCL<M>>(
+    return MakeUnique<linear::SolverConjugateCL<M>>(
         this->GetConf(var, prefix), extra, m, var);
   }
 };

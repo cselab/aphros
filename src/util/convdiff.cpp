@@ -7,6 +7,7 @@
 #include "solver/convdiffi.h"
 #include "solver/convdiffvg.h"
 #include "solver/embed.h"
+#include "util/make_unique.h"
 
 template <class MEB>
 std::unique_ptr<ConvDiffVect<MEB>> GetConvDiff<MEB>::operator()(
@@ -17,9 +18,9 @@ std::unique_ptr<ConvDiffVect<MEB>> GetConvDiff<MEB>::operator()(
 
   switch (conv) {
     case Conv::imp:
-      return std::make_unique<CDI>(m, eb, args);
+      return MakeUnique<CDI>(m, eb, args);
     case Conv::exp:
-      return std::make_unique<CDE>(m, eb, args);
+      return MakeUnique<CDE>(m, eb, args);
   }
   fassert(false);
 }

@@ -2,6 +2,7 @@
 // Copyright 2020 ETH Zurich
 
 #include "mesh.h"
+#include "util/make_unique.h"
 
 template <class Scal, size_t dim>
 constexpr generic::Range<size_t> MeshCartesian<Scal, dim>::dirs;
@@ -217,13 +218,13 @@ void MeshCartesian<Scal, dim>::Comm(std::unique_ptr<CommRequest>&& r) {
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Comm(FieldCell<Scal>* f, CommStencil stencil) {
   fassert_equal(f->size(), indexc_.size());
-  Comm(std::make_unique<CommRequestScal>(f, stencil));
+  Comm(MakeUnique<CommRequestScal>(f, stencil));
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Comm(
     FieldCell<Vect>* f, int d, CommStencil stencil) {
   fassert_equal(f->size(), indexc_.size());
-  Comm(std::make_unique<CommRequestVect>(f, d, stencil));
+  Comm(MakeUnique<CommRequestVect>(f, d, stencil));
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Comm(FieldCell<Vect>* f, CommStencil stencil) {
@@ -238,14 +239,14 @@ template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Dump(const FieldCell<Scal>* f, std::string n) {
   auto ff = const_cast<FieldCell<Scal>*>(f);
   imp->dump.emplace_back(
-      std::make_unique<CommRequestScal>(ff, CommStencil::none), n);
+      MakeUnique<CommRequestScal>(ff, CommStencil::none), n);
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Dump(
     const FieldCell<Vect>* f, int d, std::string n) {
   auto ff = const_cast<FieldCell<Vect>*>(f);
   imp->dump.emplace_back(
-      std::make_unique<CommRequestVect>(ff, d, CommStencil::none), n);
+      MakeUnique<CommRequestVect>(ff, d, CommStencil::none), n);
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Dump(
@@ -312,12 +313,12 @@ void MeshCartesian<Scal, dim>::Reduce(Scal* buf, ReductionType::Min) {
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Reduce(
     std::pair<Scal, int>* buf, ReductionType::MaxLoc) {
-  Reduce(std::make_unique<typename UReduce<Scal>::OpMaxloc>(buf));
+  Reduce(MakeUnique<typename UReduce<Scal>::OpMaxloc>(buf));
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::Reduce(
     std::pair<Scal, int>* buf, ReductionType::MinLoc) {
-  Reduce(std::make_unique<typename UReduce<Scal>::OpMinloc>(buf));
+  Reduce(MakeUnique<typename UReduce<Scal>::OpMinloc>(buf));
 }
 template <class Scal, size_t dim>
 void MeshCartesian<Scal, dim>::ClearReduce() {

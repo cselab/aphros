@@ -18,6 +18,7 @@
 #include "solver/embed.h"
 #include "solver/solver.h"
 #include "util/fluid.h"
+#include "util/make_unique.h"
 
 using M = MeshCartesian<double, 3>;
 using Scal = typename M::Scal;
@@ -490,14 +491,14 @@ Field Eval(
 std::unique_ptr<M> CreateMesh(Scal h) {
   const MIdx size(16);
   Rect<Vect> dom(Vect(0), Vect(h) * Vect(size));
-  return std::make_unique<M>(MIdx(0), size, dom, 2, true, true, size, 0);
+  return MakeUnique<M>(MIdx(0), size, dom, 2, true, true, size, 0);
 }
 
 // TODO: rename SuCells to Cells(1)
 // TODO: rename AllCells to Cells(2)
 
 std::unique_ptr<EB> CreateEmbed(M& m) {
-  auto peb = std::make_unique<EB>(m, 0);
+  auto peb = MakeUnique<EB>(m, 0);
   FieldNode<Scal> fnl(m);
   auto block = m.GetInBlockCells().GetSize();
   auto h = m.GetCellSize();

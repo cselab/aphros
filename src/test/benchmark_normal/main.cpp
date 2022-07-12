@@ -16,6 +16,7 @@
 #include "solver/normal.ipp"
 #include "solver/solver.h"
 #include "util/format.h"
+#include "util/make_unique.h"
 #include "util/sysinfo.h"
 #include "util/timer.h"
 
@@ -257,7 +258,7 @@ static bool Run(
   auto create = [&](auto* kernel) {
     if (current++ == test) {
       using T = typename std::remove_pointer<decltype(kernel)>::type;
-      ptr = std::make_unique<T>(m);
+      ptr = MakeUnique<T>(m);
     }
   };
 

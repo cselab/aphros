@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "linear.h"
+#include "util/make_unique.h"
 
 DECLARE_FORCE_LINK_TARGET(linear_conjugate);
 DECLARE_FORCE_LINK_TARGET(linear_jacobi);
@@ -247,7 +248,7 @@ class ModuleLinearConjugate : public ModuleLinear<M> {
     };
     typename linear::SolverConjugate<M>::Extra extra;
     extra.residual_max = var.Int[addprefix("maxnorm")];
-    return std::make_unique<linear::SolverConjugate<M>>(
+    return MakeUnique<linear::SolverConjugate<M>>(
         this->GetConf(var, prefix), extra, m);
   }
 };
@@ -259,7 +260,7 @@ class ModuleLinearJacobi : public ModuleLinear<M> {
   std::unique_ptr<Solver<M>> Make(
       const Vars& var, std::string prefix, const M& m) override {
     typename linear::SolverJacobi<M>::Extra extra;
-    return std::make_unique<linear::SolverJacobi<M>>(
+    return MakeUnique<linear::SolverJacobi<M>>(
         this->GetConf(var, prefix), extra, m);
   }
 };

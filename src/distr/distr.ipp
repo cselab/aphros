@@ -16,6 +16,7 @@
 #include "report.h"
 #include "util/filesystem.h"
 #include "util/format.h"
+#include "util/make_unique.h"
 
 template <class M>
 M DistrMesh<M>::CreateSharedMesh(
@@ -42,7 +43,7 @@ void DistrMesh<M>::MakeKernels(const std::vector<BlockInfoProxy>& proxies) {
   {
     fassert(!proxies.empty());
     auto& p = proxies.front();
-    mshared_ = std::make_unique<M>(
+    mshared_ = MakeUnique<M>(
         CreateSharedMesh(p.index, p.cellsize, p.halos, isroot_, domain_));
   }
 
