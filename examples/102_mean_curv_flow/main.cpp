@@ -472,7 +472,7 @@ void Run(M& m, Vars& var) {
     t.fcu0.resize(layers);
     t.fccl0.resize(layers);
 
-    auto buf = ReadPrimList(var.String["list_path"], m.IsRoot());
+    std::stringstream buf(ReadPrimList(var.String["list_path"], m.IsRoot()));
     InitOverlappingComponents(buf, t.fcu0, t.fccl0, layers, m);
     as.reset(new Vofm<M>(
         m, m, t.fcu0, t.fccl0, ctx->mebc_adv, &t.fe_flux, &t.fc_src, 0, t.dt,

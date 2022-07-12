@@ -219,7 +219,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
 
 // Reads list of primitives from either file `list_path`
 // or inline if "inline" is the first word of `list_path`
-std::stringstream ReadPrimList(std::string list_path, bool verbose);
+std::string ReadPrimList(std::string list_path, bool verbose);
 
 template <class M>
 void InitVf(
@@ -236,10 +236,8 @@ void InitVf(
   if (init_vf == "list") {
     if (sem("list-bcast")) {
       if (m.IsRoot()) {
-        auto buf = ReadPrimList(var.String["list_path"], verbose);
-        ctx->buf = std::vector<char>(
-            std::istreambuf_iterator<char>(buf),
-            std::istreambuf_iterator<char>());
+        const std::string buf = ReadPrimList(var.String["list_path"], verbose);
+        ctx->buf = std::vector<char>(buf.begin(), buf.end());
       }
       m.Bcast(&ctx->buf);
     }

@@ -515,7 +515,7 @@ std::function<void(FieldCell<typename M::Scal>&, const M&)> CreateInitU(
   return std::function<void(FieldCell<Scal>&, const M&)>();
 }
 
-std::stringstream ReadPrimList(std::string list_path, bool verbose) {
+std::string ReadPrimList(std::string list_path, bool verbose) {
   std::stringstream path(list_path);
   std::stringstream res;
   std::string fname;
@@ -534,7 +534,7 @@ std::stringstream ReadPrimList(std::string list_path, bool verbose) {
     fassert(fin.good(), "Can't open list of primitives '" + fname + "'");
     res << fin.rdbuf();
   }
-  return res;
+  return res.str();
 }
 
 #define XX(M)                                                                 \

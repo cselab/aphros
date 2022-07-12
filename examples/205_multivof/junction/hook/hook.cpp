@@ -32,7 +32,7 @@ template <class M>
 void InitHook(Hydro<M>* hydro) {
   auto& var = hydro->var;
   auto mod = [&var](auto& fcu, auto& fccl, auto layers, auto& m) {
-    auto buf = ReadPrimList(var.String["list_path"], m.IsRoot());
+    std::stringstream buf(ReadPrimList(var.String["list_path"], m.IsRoot()));
     InitOverlappingComponents(buf, fcu, fccl, layers, m);
   };
   if (auto* as = dynamic_cast<Vofm<M>*>(hydro->as_.get())) {
