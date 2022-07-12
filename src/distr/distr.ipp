@@ -87,7 +87,9 @@ DistrMesh<M>::~DistrMesh() {}
 
 template <class M>
 void DistrMesh<M>::RunKernels(const std::vector<size_t>& bb) {
+#ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic, 1)
+#endif
   for (size_t i = 0; i < bb.size(); ++i) {
     kernels_[bb[i]]->Run();
   }
