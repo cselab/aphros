@@ -61,7 +61,7 @@ std::tuple<T, T, T, T> GetStat(const FieldCell<T>& fcg, const EB& eb) {
     max = Max(max, g);
   }
   mean /= sumv;
-  return {mean, sum, min, max};
+  return std::make_tuple(mean, sum, min, max);
 }
 
 template <class T>

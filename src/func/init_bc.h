@@ -187,7 +187,7 @@ struct UInitEmbedBc {
         }
       }
     }
-    return {me_group, me_nci, vdesc};
+    return std::make_tuple(me_group, me_nci, vdesc);
   }
 
   // Returns boundary conditions from descriptors.
