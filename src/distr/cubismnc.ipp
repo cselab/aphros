@@ -21,7 +21,11 @@
 #include "CubismNoCopy/BlockLabMPI.h"
 #include "CubismNoCopy/Grid.h"
 #include "CubismNoCopy/GridMPI.h"
+
+#if USEFLAG(HDF)
 #include "CubismNoCopy/HDF5Dumper_MPI.h"
+#endif
+
 #include "CubismNoCopy/StencilInfo.h"
 
 template <class T>
@@ -801,11 +805,14 @@ void Cubismnc<Par, M>::DumpWrite(const std::vector<size_t>& bb) {
   auto& mfirst = kernels_.front()->GetMesh();
   if (mfirst.GetDump().size()) {
     std::string dumpformat = var.String["dumpformat"];
+#if USEFLAG(HDF)
     if (dumpformat == "default") {
       dumpformat = "hdf";
     }
+#endif
 
     if (dumpformat == "hdf") {
+#if USEFLAG(HDF)
       // Create FieldView's for dump
       const size_t n_fields = mfirst.GetDump().size();
       std::vector<BlockInfo> infos = grid_.getBlocksInfo(); // all blocks
@@ -846,6 +853,9 @@ void Cubismnc<Par, M>::DumpWrite(const std::vector<size_t>& bb) {
                   << std::endl;
       }
       ++frame_;
+#else
+      fassert(false, "Compiled without HDF5. Use 'set string dumpformat raw'.");
+#endif
     } else {
       P::DumpWrite(bb);
     }
