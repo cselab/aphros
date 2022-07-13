@@ -21,11 +21,11 @@ class Test(aphros.TestBase):
             return ["out_0"]
         elif case == "rank_cubism":
             np = 4
-            self.runcmd("ap.mpirun -n {} --oversubscribe ./t.commmap.rank --extra 'set string backend cubismnc'".format(np))
+            self.runcmd("ap.mpirun -n {} ./t.commmap.rank --extra 'set string backend cubismnc'".format(np))
             return ["out_{}".format(i) for i in range(np)]
         elif case == "rank_native":
             np = 4
-            self.runcmd("ap.mpirun -n {} --oversubscribe ./t.commmap.rank --extra 'set string backend native'".format(np))
+            self.runcmd("ap.mpirun -n {} ./t.commmap.rank --extra 'set string backend native'".format(np))
             return ["out_{}".format(i) for i in range(np)]
         else:
             raise NotImplementedError()
