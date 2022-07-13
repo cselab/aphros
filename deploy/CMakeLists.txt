@@ -65,6 +65,13 @@ endif ()
 
 set_property(CACHE Profile PROPERTY STRINGS ${ProfileValues})
 
+set(URL_HYPRE "https://github.com/hypre-space/hypre/archive/v2.18.2.tar.gz"
+    CACHE STRING "URL or path to HDF5 source code")
+set(URL_FPZIP "https://github.com/LLNL/fpzip/releases/download/1.3.0/fpzip-1.3.0.tar.gz"
+    CACHE STRING "URL or path to FPZIP source code")
+set(URL_AMGX "https://github.com/NVIDIA/AMGX"
+    CACHE STRING "URL of AMGX git repository")
+
 # Scripts
 set(ScriptsDir "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
 set(ScriptsProfileDir "${ScriptsDir}/profiles/${Profile}")
@@ -232,7 +239,7 @@ include(ExternalProject)
 
 if (USE_HYPRE)
   ExternalProject_Add(hypre
-      URL "https://github.com/hypre-space/hypre/archive/v2.18.2.tar.gz"
+      URL "${URL_HYPRE}"
       CMAKE_ARGS
         -DHYPRE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
@@ -246,7 +253,7 @@ endif()
 
 if (USE_FPZIP)
     ExternalProject_Add(fpzip
-        URL "https://github.com/LLNL/fpzip/releases/download/1.3.0/fpzip-1.3.0.tar.gz"
+        URL "${URL_FPZIP}"
         CMAKE_ARGS
         -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
         -DCMAKE_INSTALL_CMAKEDIR:STRING=cmake/fpzip
@@ -263,7 +270,7 @@ set(CUDA_ARCH 60 CACHE STRING "Cuda architecture version to be passed to AMGX")
 set_property(CACHE CUDA_ARCH PROPERTY STRINGS 60 70)
 if (USE_AMGX)
     ExternalProject_Add(amgx
-        GIT_REPOSITORY "https://github.com/NVIDIA/AMGX"
+        GIT_REPOSITORY "${URL_AMGX}"
         GIT_TAG v2.1.x
         GIT_SHALLOW ON
         PATCH_COMMAND git apply "${CMAKE_CURRENT_SOURCE_DIR}/amgx_no_comm_report.patch"
