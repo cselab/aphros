@@ -232,6 +232,7 @@ int main(int argc, const char** argv) {
   conf += R"EOF(
 set string backend native
 set string dumpformat raw
+set int dumpmerge 0
 set string eb_init list
 set string eb_list_path body.dat
 set string bc_path bc.dat

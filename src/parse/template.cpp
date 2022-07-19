@@ -39,7 +39,16 @@ std::map<std::string, std::string> ParseTemplate(
   size_t j = 0;
   std::string key;
   std::string value;
+  auto is_ws = [](char c) { //
+    return c == ' ' || c == '\n';
+  };
   while (i < fmt.size() && j < txt.size()) {
+    while (i < fmt.size() && is_ws(fmt[i])) {
+      ++i;
+    }
+    while (j < txt.size() && is_ws(txt[j])) {
+      ++j;
+    }
     if (fmt[i] == '{') {
       if (fmt[i] == txt[j]) {
         std::stringstream msg;

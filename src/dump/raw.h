@@ -28,15 +28,21 @@ class Raw {
   // data: data buffers for each block
   // global_size: total size of the array
   // type: type of entries to write
+  // seek: number of bytes to skip from the beginning of data file
   // nompi: use a version without MPI even if supported
   template <class T>
-  static void Write(
+  static void WriteBlocks(
       const std::string& path, const std::vector<MIdx>& starts,
       const std::vector<MIdx>& sizes, const std::vector<std::vector<T>>& data,
-      MIdx global_size, Type type, const MpiWrapper& mpi, bool nompi = false);
+      MIdx global_size, Type type, size_t seek, const MpiWrapper& mpi,
+      bool nompi = false);
   template <class T>
-  static void Write(
+  static void WriteMeshBlocks(
       const FieldCell<T>& fc, const Meta& meta, const std::string& path, M& m);
+  template <class T>
+  static void WriteMeshBlocksMulti(
+      const std::vector<const FieldCell<T>*>& fclist,
+      const std::vector<Meta>& metalist, const std::string& path, M& m);
   // Writes field to raw-file and metadata to xmf-file.
   // fc: field to write
   // field_name: dataset name to put in metadata

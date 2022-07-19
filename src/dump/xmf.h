@@ -23,7 +23,11 @@ class Xmf {
   using MIdx = generic::MIdx<Vect::dim>;
   static constexpr size_t dim = Vect::dim;
 
-  static std::string GetXmfTemplate();
+  static std::string GetXmfTemplate(std::string attr);
+  static std::string GetXmfAttributeTemplate();
+  // Replaces '{key*}' with '{key0} ... {key[DIM-1]}' (if reversed=false)
+  // or '{key[DIM-1]} ... {key0}' (if reversed=true)
+  static std::string ExpandAsterisk(std::string, bool reversed);
 
   struct Meta {
     std::string name{"u"}; // field name
@@ -43,6 +47,9 @@ class Xmf {
 
   static void WriteXmf(std::ostream&, const Meta&);
   static void WriteXmf(const std::string& xmfpath, const Meta&);
+  static void WriteXmfMulti(std::ostream&, const std::vector<Meta>&);
+  static void WriteXmfMulti(
+      const std::string& xmfpath, const std::vector<Meta>&);
 
   static Meta ReadXmf(std::istream&);
   static Meta ReadXmf(const std::string& xmfpath);

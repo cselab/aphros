@@ -72,10 +72,11 @@ static void CreateSubarray(
 
 template <class M>
 template <class T>
-void Raw<M>::Write(
+void Raw<M>::WriteBlocks(
     const std::string& path, const std::vector<MIdx>& starts,
     const std::vector<MIdx>& sizes, const std::vector<std::vector<T>>& data,
-    const MIdx global_size, Type type, const MpiWrapper& mpi, bool nompi) {
+    const MIdx global_size, Type type, size_t seek, const MpiWrapper& mpi,
+    bool nompi) {
   const auto nblocks = data.size();
   fassert(nblocks > 0);
   MIdx comb_start(std::numeric_limits<IntIdx>::max());
@@ -138,8 +139,8 @@ void Raw<M>::Write(
           false,
           std::string() + e.what() + ", while opening file '" + path + "'");
     }
-    MPICALL(
-        MPI_File_set_view(fh, 0, elemtype, filetype, "native", MPI_INFO_NULL));
+    MPICALL(MPI_File_set_view(
+        fh, seek, elemtype, filetype, "native", MPI_INFO_NULL));
 
     MPICALL(MPI_File_write_all(fh, buf.data(), 1, memtype, MPI_STATUS_IGNORE));
     MPI_File_close(&fh);
@@ -154,13 +155,14 @@ void Raw<M>::Write(
 #endif
     std::ofstream file(path, std::ios::binary);
     fassert(file.good(), "Can't open file '" + path + "' for writing");
+    file.seekp(seek);
     file.write(buf.data(), buf.size());
   }
-} // namespace dump
+}
 
 template <class M>
 template <class T>
-void Raw<M>::Write(
+void Raw<M>::WriteMeshBlocks(
     const FieldCell<T>& fc, const Meta& meta, const std::string& path, M& m) {
   auto sem = m.GetSem();
   struct {
@@ -188,7 +190,9 @@ void Raw<M>::Write(
   }
   if (sem("write") && m.IsLead()) {
     MpiWrapper mpi(m.GetMpiComm());
-    Write(path, t.starts, t.sizes, t.data, m.GetGlobalSize(), meta.type, mpi);
+    WriteBlocks(
+        path, t.starts, t.sizes, t.data, m.GetGlobalSize(), meta.type,
+        meta.seek, mpi, false);
   }
   if (sem()) { // XXX empty stage
   }
@@ -214,7 +218,7 @@ void Raw<M>::WriteWithXmf(
     }
   }
   if (sem.Nested("dump-raw")) {
-    dump::Raw<M>::Write(fc, t.meta, rawpath, m);
+    dump::Raw<M>::WriteMeshBlocks(fc, t.meta, rawpath, m);
   }
   if (sem()) { // XXX empty stage
   }
@@ -244,7 +248,8 @@ void Raw<M>::WritePlainArrayWithXmf(
   meta.spacing = Vect3((xupper - xlower) / Vect(meshsize));
   meta.spacing = meta.spacing.max(Vect3(meta.spacing.min()));
   meta.type = dump::Type::Float64;
-  Raw::Write(rawpath, starts, sizes, dataall, meshsize, meta.type, mpi, true);
+  Raw::WriteBlocks(
+      rawpath, starts, sizes, dataall, meshsize, meta.type, 0, mpi, true);
   Xmf3::WriteXmf(util::SplitExt(rawpath)[0] + ".xmf", meta);
 }
 

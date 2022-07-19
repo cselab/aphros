@@ -11,13 +11,13 @@ namespace dump {
   template class Raw<M>;                                                       \
   template void Raw<M>::Read(                                                  \
       FieldCell<typename M::Scal>&, const Meta& meta, const std::string&, M&); \
-  template void Raw<M>::Write(                                                 \
+  template void Raw<M>::WriteBlocks(                                           \
       const std::string& path, const std::vector<typename M::MIdx>& starts,    \
       const std::vector<typename M::MIdx>& sizes,                              \
       const std::vector<std::vector<typename M::Scal>>& data,                  \
-      typename M::MIdx global_size, Type type, const MpiWrapper& mpi,          \
-      bool nompi);                                                             \
-  template void Raw<M>::Write(                                                 \
+      typename M::MIdx global_size, Type type, size_t seek,                    \
+      const MpiWrapper& mpi, bool nompi);                                      \
+  template void Raw<M>::WriteMeshBlocks(                                       \
       const FieldCell<typename M::Scal>&, const Meta& meta,                    \
       const std::string&, M&);                                                 \
   template void Raw<M>::WriteWithXmf(                                          \

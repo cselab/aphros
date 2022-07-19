@@ -92,7 +92,7 @@ void Run(M& m, Vars& var) {
       }
     }
     if (sem.Nested("write")) {
-      Raw::Write(t.fc_write, t.meta, output, m);
+      Raw::WriteMeshBlocks(t.fc_write, t.meta, output, m);
     }
   } else {
     fassert(false, "Unkown format=" + format);

@@ -132,7 +132,7 @@ void Run(M& m, Vars& var) {
         }
       }
       if (sem.Nested("write")) {
-        Raw::Write(t.fc_write, t.outmeta, path, m);
+        Raw::WriteMeshBlocks(t.fc_write, t.outmeta, path, m);
       }
       if (sem("writexmf")) {
         Xmf::WriteXmf(util::SplitExt(path)[0] + ".xmf", t.outmeta);

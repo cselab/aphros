@@ -13,29 +13,29 @@ meta.spacing=(0.01,0.02,0.03)
 <?xml version="1.0" ?>
 <!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
 <Xdmf Version="2.0">
- <Domain>
-   <Grid Name="mesh" GridType="Uniform">
-     <Topology TopologyType="3DCORECTMesh" Dimensions="626 513 513"/>
-     <Geometry GeometryType="ORIGIN_DXDYDZ">
-       <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
-         -0.3 -0.2 -0.1
-       </DataItem>
-       <DataItem Name="Spacing" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
-         0.03 0.02 0.01
-       </DataItem>
-     </Geometry>
-     <Attribute Name="u" AttributeType="Scalar" Center="Cell">
-       <DataItem ItemType="HyperSlab" Dimensions="625 512 512" Type="HyperSlab">
-           <DataItem Dimensions="3 3" Format="XML">
-             0 0 0
-             4 4 4
-             625 512 512
-           </DataItem>
-           <DataItem Dimensions="2500 2048 2048" Seek="0" Precision="2" NumberType="UShort" Format="Binary">
-             ./a.raw
-           </DataItem>
-       </DataItem>
-     </Attribute>
-   </Grid>
- </Domain>
+  <Domain>
+    <Grid Name="mesh" GridType="Uniform">
+      <Topology TopologyType="3DCORECTMesh" Dimensions="626 513 513"/>
+      <Geometry GeometryType="ORIGIN_DXDYDZ">
+        <DataItem Name="Origin" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
+          -0.3 -0.2 -0.1
+        </DataItem>
+        <DataItem Name="Spacing" Dimensions="3" NumberType="Float" Precision="8" Format="XML">
+          0.03 0.02 0.01
+        </DataItem>
+      </Geometry>
+      <Attribute Name="u" AttributeType="Scalar" Center="Cell">
+        <DataItem ItemType="HyperSlab" Dimensions="625 512 512" Type="HyperSlab">
+          <DataItem Dimensions="3 3" Format="XML">
+            0 0 0
+            4 4 4
+            625 512 512
+          </DataItem>
+          <DataItem Dimensions="2500 2048 2048" Seek="0" Precision="2" NumberType="UShort" Format="Binary">
+            ./a.raw
+          </DataItem>
+        </DataItem>
+      </Attribute>
+    </Grid>
+  </Domain>
 </Xdmf>

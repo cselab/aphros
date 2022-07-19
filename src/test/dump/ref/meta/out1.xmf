@@ -1,29 +1,29 @@
 <?xml version="1.0" ?>
 <!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
 <Xdmf Version="2.0">
- <Domain>
-   <Grid Name="mesh" GridType="Uniform">
-     <Topology TopologyType="1DCORECTMesh" Dimensions="9"/>
-     <Geometry GeometryType="ORIGIN_DX">
-       <DataItem Name="Origin" Dimensions="1" NumberType="Float" Precision="8" Format="XML">
-         0
-       </DataItem>
-       <DataItem Name="Spacing" Dimensions="1" NumberType="Float" Precision="8" Format="XML">
-         1
-       </DataItem>
-     </Geometry>
-     <Attribute Name="u" AttributeType="Scalar" Center="Cell">
-       <DataItem ItemType="HyperSlab" Dimensions="8" Type="HyperSlab">
-           <DataItem Dimensions="3 1" Format="XML">
-             0
-             1
-             8
-           </DataItem>
-           <DataItem Dimensions="8" Seek="0" Precision="8" NumberType="Double" Format="Binary">
-             u.raw
-           </DataItem>
-       </DataItem>
-     </Attribute>
-   </Grid>
- </Domain>
+  <Domain>
+    <Grid Name="mesh" GridType="Uniform">
+      <Topology TopologyType="1DCORECTMesh" Dimensions="9"/>
+      <Geometry GeometryType="ORIGIN_DX">
+        <DataItem Name="Origin" Dimensions="1" NumberType="Float" Precision="8" Format="XML">
+          0
+        </DataItem>
+        <DataItem Name="Spacing" Dimensions="1" NumberType="Float" Precision="8" Format="XML">
+          1
+        </DataItem>
+      </Geometry>
+      <Attribute Name="u" AttributeType="Scalar" Center="Cell">
+        <DataItem ItemType="HyperSlab" Dimensions="8" Type="HyperSlab">
+          <DataItem Dimensions="3 1" Format="XML">
+            0
+            1
+            8
+          </DataItem>
+          <DataItem Dimensions="8" Seek="0" Precision="8" NumberType="Double" Format="Binary">
+            u.raw
+          </DataItem>
+        </DataItem>
+      </Attribute>
+    </Grid>
+  </Domain>
 </Xdmf>

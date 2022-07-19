@@ -285,6 +285,7 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
   auto& mfirst = kernels_.front()->GetMesh();
   if (mfirst.GetDump().size()) {
     std::string dumpformat = var.String["dumpformat"];
+    const bool dumpmerge = var.Int["dumpmerge"];
     if (dumpformat == "default") {
       dumpformat = "raw";
     }
@@ -373,6 +374,10 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
       }
 
       const auto& dumpfirst = mfirst.GetDump();
+      using Vect3 = generic::Vect<Scal, 3>;
+      using Xmf3 = dump::Xmf<Vect3>;
+      std::vector<typename Xmf3::Meta> metalist;
+      const std::string pathmerge = GetDumpName("data", ".raw", frame_);
       for (size_t idump = 0; idump < dumpfirst.size(); ++idump) {
         std::vector<std::vector<Scal>> data;
         const auto* req = dumpfirst[idump].first.get();
@@ -416,12 +421,11 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
         }
 
         const std::string path =
-            GetDumpName(dumpfirst[idump].second, ".raw", frame_);
+            dumpmerge ? pathmerge
+                      : GetDumpName(dumpfirst[idump].second, ".raw", frame_);
 
         using Xmf = dump::Xmf<Vect>;
-        using Vect3 = generic::Vect<Scal, 3>;
         using MIdx3 = generic::MIdx<3>;
-        using Xmf3 = dump::Xmf<Vect3>;
 
         typename Xmf3::Meta meta3;
         {
@@ -432,15 +436,26 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
           meta3.dimensions = MIdx3(1).max(MIdx3(meta.dimensions));
           meta3.count = meta3.dimensions;
           meta3.spacing = Vect3(meta.spacing.min());
+          if (dumpmerge) {
+            meta3.seek =
+                idump * meta3.count.prod() * dump::GetPrecision(meta3.type);
+          }
         }
 
-        dump::Raw<M>::Write(
+        dump::Raw<M>::WriteBlocks(
             path, starts, sizes, data, mfirst.GetGlobalSize(), meta3.type,
-            MpiWrapper(comm_));
+            meta3.seek, MpiWrapper(comm_), false);
 
         if (isroot_) {
-          Xmf3::WriteXmf(util::SplitExt(path)[0] + ".xmf", meta3);
+          if (dumpmerge) {
+            metalist.push_back(meta3);
+          } else {
+            Xmf3::WriteXmf(util::SplitExt(path)[0] + ".xmf", meta3);
+          }
         }
+      }
+      if (dumpmerge && isroot_) {
+        Xmf3::WriteXmfMulti(util::SplitExt(pathmerge)[0] + ".xmf", metalist);
       }
       ++frame_;
     } else {
