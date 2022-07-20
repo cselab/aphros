@@ -38,7 +38,7 @@ void TestReadXmf() {
   std::cout << NAMEVALUE(meta.origin) << std::endl;
   std::cout << NAMEVALUE(meta.spacing) << std::endl;
 
-  Xmf::WriteXmf(std::cout, meta);
+  Xmf::WriteXmf(std::cout, meta, false);
 }
 
 int main() {

@@ -214,7 +214,7 @@ void Raw<M>::WriteWithXmf(
     t.meta.binpath = rawpath;
     t.meta.name = fieldname;
     if (m.IsRoot()) {
-      Xmf::WriteXmf(util::SplitExt(rawpath)[0] + ".xmf", t.meta);
+      Xmf::WriteXmf(util::SplitExt(rawpath)[0] + ".xmf", t.meta, false);
     }
   }
   if (sem.Nested("dump-raw")) {
@@ -250,7 +250,7 @@ void Raw<M>::WritePlainArrayWithXmf(
   meta.type = dump::Type::Float64;
   Raw::WriteBlocks(
       rawpath, starts, sizes, dataall, meshsize, meta.type, 0, mpi, true);
-  Xmf3::WriteXmf(util::SplitExt(rawpath)[0] + ".xmf", meta);
+  Xmf3::WriteXmf(util::SplitExt(rawpath)[0] + ".xmf", meta, false);
 }
 
 template <class M>

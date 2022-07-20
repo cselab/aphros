@@ -51,7 +51,7 @@ int Run(const Vars& args) {
   meta.origin = args_vect("origin");
   meta.spacing = args_vect("spacing");
 
-  Xmf::WriteXmf(args.String["output"], meta);
+  Xmf::WriteXmf(args.String["output"], meta, false);
   return 0;
 }
 

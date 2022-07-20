@@ -64,10 +64,11 @@ void Run(M& m, Vars& var) {
   auto format = get_format(output);
   if (format == "h5") {
     if (sem.Nested("write")) {
-      Hdf<M>::Write(t.fc_write, output, m);
+      dump::Hdf<M>::Write(t.fc_write, output, m);
     }
     if (sem("writexmf") && m.IsRoot()) {
-      Hdf<M>::WriteXmf(util::SplitExt(output)[0] + ".xmf", "u", output, m);
+      dump::Hdf<M>::WriteXmf(
+          util::SplitExt(output)[0] + ".xmf", "u", output, m);
     }
   } else if (format == "raw") {
     if (sem("writexmf")) {
@@ -81,7 +82,7 @@ void Run(M& m, Vars& var) {
         t.meta.type = dump::Type::Float64;
       }
       if (m.IsRoot()) {
-        Xmf::WriteXmf(util::SplitExt(output)[0] + ".xmf", t.meta);
+        Xmf::WriteXmf(util::SplitExt(output)[0] + ".xmf", t.meta, false);
       }
       if (t.meta.type == dump::Type::UInt16) {
         for (auto c : m.Cells()) {

@@ -10,6 +10,7 @@
 #include <stdexcept>
 
 #include "distr.h"
+#include "dump/hdf.h"
 #include "dump/raw.h"
 #include "dump/xmf.h"
 #include "reduce.h"
@@ -363,7 +364,9 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
                   << std::endl;
       }
       ++frame_;
-    } else if (dumpformat == "raw") {
+    } else if (dumpformat == "raw" || dumpformat == "hdf") {
+      const bool is_raw = (dumpformat == "raw");
+      const std::string ext = is_raw ? ".raw" : ".h5";
       std::vector<MIdx> starts;
       std::vector<MIdx> sizes;
       for (auto b : bb) {
@@ -377,7 +380,7 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
       using Vect3 = generic::Vect<Scal, 3>;
       using Xmf3 = dump::Xmf<Vect3>;
       std::vector<typename Xmf3::Meta> metalist;
-      const std::string pathmerge = GetDumpName("data", ".raw", frame_);
+      const std::string pathmerge = GetDumpName("data", ext, frame_);
       for (size_t idump = 0; idump < dumpfirst.size(); ++idump) {
         std::vector<std::vector<Scal>> data;
         const auto* req = dumpfirst[idump].first.get();
@@ -402,7 +405,7 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
                 dynamic_cast<const typename M::CommRequestVect*>(req)) {
           fassert(
               req_vect->d != -1,
-              "Dump only supports vector fields with selected one component");
+              "Dump only supports vector fields with one selected component");
           for (auto b : bb) {
             const auto& m = kernels_[b]->GetMesh();
             const auto bc = m.GetInBlockCells();
@@ -422,7 +425,7 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
 
         const std::string path =
             dumpmerge ? pathmerge
-                      : GetDumpName(dumpfirst[idump].second, ".raw", frame_);
+                      : GetDumpName(dumpfirst[idump].second, ext, frame_);
 
         using Xmf = dump::Xmf<Vect>;
         using MIdx3 = generic::MIdx<3>;
@@ -442,20 +445,28 @@ void DistrMesh<M>::DumpWrite(const std::vector<size_t>& bb) {
           }
         }
 
-        dump::Raw<M>::WriteBlocks(
-            path, starts, sizes, data, mfirst.GetGlobalSize(), meta3.type,
-            meta3.seek, MpiWrapper(comm_), false);
+        if (is_raw) {
+          dump::Raw<M>::WriteBlocks(
+              path, starts, sizes, data, mfirst.GetGlobalSize(), meta3.type,
+              meta3.seek, MpiWrapper(comm_), false);
+        } else {
+          const bool append = (idump != 0); // Append on subsequent calls.
+          dump::Hdf<M>::WriteBlocks(
+              path, starts, sizes, data, mfirst.GetGlobalSize(), meta3.type,
+              meta3.name, MpiWrapper(comm_), append);
+        }
 
         if (isroot_) {
           if (dumpmerge) {
             metalist.push_back(meta3);
           } else {
-            Xmf3::WriteXmf(util::SplitExt(path)[0] + ".xmf", meta3);
+            Xmf3::WriteXmf(util::SplitExt(path)[0] + ".xmf", meta3, !is_raw);
           }
         }
       }
       if (dumpmerge && isroot_) {
-        Xmf3::WriteXmfMulti(util::SplitExt(pathmerge)[0] + ".xmf", metalist);
+        Xmf3::WriteXmfMulti(
+            util::SplitExt(pathmerge)[0] + ".xmf", metalist, !is_raw);
       }
       ++frame_;
     } else {

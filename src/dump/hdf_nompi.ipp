@@ -5,6 +5,8 @@
 #include "hdf.h"
 #include "util/logger.h"
 
+namespace dump {
+
 template <class M>
 template <class Field>
 void Hdf<M>::Write(const Field&, std::string, M&, std::string) {}
@@ -26,3 +28,12 @@ void Hdf<M>::WriteXmf(
 template <class M>
 void Hdf<M>::WriteXmf(
     std::string, std::string, std::string, const M&, std::string) {}
+
+template <class M>
+void Hdf<M>::WriteBlocks(
+    const std::string& path, const std::vector<MIdx>& starts,
+    const std::vector<MIdx>& sizes, const std::vector<std::vector<Scal>>& data,
+    MIdx global_size, Type type, std::string dname, const MpiWrapper& mpi,
+    bool append) {}
+
+} // namespace dump

@@ -81,13 +81,13 @@ void EmbedInterpolate<M>::Run() {
     eb_->DumpPoly(var.Int["vtkbin"], var.Int["vtkmerge"]);
   }
   if (sem.Nested()) {
-    Hdf<M>::Read(ctx->fcvx, var.String["input_hdf_vx"], m);
+    dump::Hdf<M>::Read(ctx->fcvx, var.String["input_hdf_vx"], m);
   }
   if (sem.Nested()) {
-    Hdf<M>::Read(ctx->fcvy, var.String["input_hdf_vy"], m);
+    dump::Hdf<M>::Read(ctx->fcvy, var.String["input_hdf_vy"], m);
   }
   if (sem.Nested()) {
-    Hdf<M>::Read(ctx->fcomz, var.String["input_hdf_omz"], m);
+    dump::Hdf<M>::Read(ctx->fcomz, var.String["input_hdf_omz"], m);
   }
   if (sem("reduce_x")) {
     auto& eb = *eb_;

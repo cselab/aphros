@@ -55,7 +55,7 @@ void Run(M& m, Vars& var) {
     if (sem.Nested("read")) {
       auto format = GetFormat(path, var.String["format"]);
       if (format == "h5") {
-        Hdf<M>::Read(fc_buf, path, m);
+        dump::Hdf<M>::Read(fc_buf, path, m);
       } else if (format == "raw") {
         Raw::Read(fc_buf, t.meta, path, m);
       } else {
@@ -116,7 +116,7 @@ int main(int argc, const char** argv) {
     MIdx res;
     const auto format = GetFormat(path, args.String.GetStr("format"));
     if (format == "h5") {
-      const auto shape = Hdf<M>::GetShape(path);
+      const auto shape = dump::Hdf<M>::GetShape(path);
       res[0] = shape[2];
       res[1] = shape[1];
       res[2] = shape[0];

@@ -53,6 +53,7 @@ set int CHECKNAN 1
 set int dim 3
 
 set string dumpformat default
+set int dumpmerge 0
 
 set int comm_size 8
 

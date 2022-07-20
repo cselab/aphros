@@ -55,7 +55,7 @@ void Run(M& m, Vars& var) {
   if (sem.Nested("init_system")) {
     const auto system_in = var.String["system_in"];
     if (system_in.length()) {
-      Hdf<M>::Read(t.fc_system, system_in, m);
+      dump::Hdf<M>::Read(t.fc_system, system_in, m);
     } else {
       // resistivity
       t.ff_rho.Reinit(m);
@@ -87,7 +87,7 @@ void Run(M& m, Vars& var) {
   if (sem.Nested("dump_system")) {
     const auto system_out = var.String["system_out"];
     if (system_out.length()) {
-      Hdf<M>::Write(t.fc_system, system_out, m);
+      dump::Hdf<M>::Write(t.fc_system, system_out, m);
     }
   }
   if (sem.Nested("init_rhs")) {
@@ -199,7 +199,7 @@ int main(int argc, const char** argv) {
 
   const std::string system_in = args.String["system_in"];
   if (system_in.length()) {
-    const auto shape = Hdf<M>::GetShape(system_in);
+    const auto shape = dump::Hdf<M>::GetShape(system_in);
     mesh_size[0] = shape[2];
     mesh_size[1] = shape[1];
     mesh_size[2] = shape[0];

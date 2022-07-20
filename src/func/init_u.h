@@ -251,7 +251,7 @@ void InitVf(
     }
   } else if (init_vf == "hdf") {
     if (sem.Nested()) {
-      Hdf<M>::Read(fcu, var.String["init_vf_hdf_path"], m);
+      dump::Hdf<M>::Read(fcu, var.String["init_vf_hdf_path"], m);
     }
   } else {
     if (sem("local")) {

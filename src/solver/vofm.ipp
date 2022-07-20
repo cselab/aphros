@@ -829,10 +829,10 @@ struct Vofm<EB_>::Imp {
         return GetFieldPath(dirpath, field, l);
       };
       if (sem.Nested()) {
-        Hdf<M>::Write(fcu_.time_curr[l], fieldpath("vf"), m);
+        dump::Hdf<M>::Write(fcu_.time_curr[l], fieldpath("vf"), m);
       }
       if (sem.Nested()) {
-        Hdf<M>::Write(fccl_[l], fieldpath("cl"), m);
+        dump::Hdf<M>::Write(fccl_[l], fieldpath("cl"), m);
       }
     }
   }
@@ -848,10 +848,10 @@ struct Vofm<EB_>::Imp {
         return GetFieldPath(dirpath, field, l);
       };
       if (sem.Nested()) {
-        Hdf<M>::Read(fcu_.time_curr[l], fieldpath("vf"), m);
+        dump::Hdf<M>::Read(fcu_.time_curr[l], fieldpath("vf"), m);
       }
       if (sem.Nested()) {
-        Hdf<M>::Read(fccl_[l], fieldpath("cl"), m);
+        dump::Hdf<M>::Read(fccl_[l], fieldpath("cl"), m);
       }
       if (sem()) {
         m.Comm(&fcu_.time_curr[l]);

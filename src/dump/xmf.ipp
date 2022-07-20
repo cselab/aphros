@@ -12,7 +12,7 @@
 namespace dump {
 
 template <class Vect>
-std::string Xmf<Vect>::GetXmfAttributeTemplate() {
+std::string Xmf<Vect>::GetXmfRawAttributeTemplate() {
   const std::string fmt =
       R"EOF(      <Attribute Name="{name}" AttributeType="Scalar" Center="Cell">
         <DataItem ItemType="HyperSlab" Dimensions="{countd*}" Type="HyperSlab">
@@ -24,6 +24,18 @@ std::string Xmf<Vect>::GetXmfAttributeTemplate() {
           <DataItem Dimensions="{dim*}" Seek="{seek}" Precision="{precision}" NumberType="{type}" Format="Binary">
             {binpath}
           </DataItem>
+        </DataItem>
+      </Attribute>
+)EOF";
+  return ExpandAsterisk(fmt, true);
+}
+
+template <class Vect>
+std::string Xmf<Vect>::GetXmfHdfAttributeTemplate() {
+  const std::string fmt =
+      R"EOF(      <Attribute Name="{name}" AttributeType="Scalar" Center="Cell">
+        <DataItem Dimensions="{dim*}" Precision="{precision}" NumberType="{type}" Format="HDF">
+          {binpath}:/{dname}
         </DataItem>
       </Attribute>
 )EOF";
@@ -71,11 +83,11 @@ std::string Xmf<Vect>::ExpandAsterisk(std::string fmt, bool reversed) {
       ++i;
       if (key.length() && key.back() == '*') {
         const auto keybase = key.substr(0, key.length() - 1);
-        for (size_t d = 0; d < dim; ++d) {
+        for (size_t d = 0; d < Vect::dim; ++d) {
           if (d) {
             res += ' ';
           }
-          const size_t dd = reversed ? dim - d - 1 : d;
+          const size_t dd = reversed ? Vect::dim - d - 1 : d;
           res += '{' + keybase + std::to_string(dd) + '}';
         }
       } else {
@@ -104,7 +116,7 @@ auto Xmf<Vect>::GetMeta(const M& m, MIdx start, MIdx stride) -> Meta {
 
 template <class Vect>
 auto Xmf<Vect>::ReadXmf(std::istream& buf) -> Meta {
-  const std::string fmt = GetXmfTemplate(GetXmfAttributeTemplate());
+  const std::string fmt = GetXmfTemplate(GetXmfRawAttributeTemplate());
   std::stringstream sstr;
   sstr << buf.rdbuf();
   const std::string txt = sstr.str();
@@ -118,7 +130,7 @@ auto Xmf<Vect>::ReadXmf(std::istream& buf) -> Meta {
     std::stringstream(get(key)) >> value;
   };
   auto convvect = [&conv](std::string key, auto& value) {
-    for (size_t d = 0; d < dim; ++d) {
+    for (size_t d = 0; d < Vect::dim; ++d) {
       conv(key + std::to_string(d), value[d]);
     }
   };
@@ -158,7 +170,7 @@ auto Xmf<Vect>::ReadXmf(const std::string& xmfpath) -> Meta {
 
 template <class Vect>
 void Xmf<Vect>::WriteXmfMulti(
-    std::ostream& buf, const std::vector<Meta>& metalist) {
+    std::ostream& buf, const std::vector<Meta>& metalist, bool hdf) {
   auto conv = [](std::map<std::string, std::string>& map, std::string key,
                  const auto& value) {
     std::stringstream s;
@@ -169,7 +181,7 @@ void Xmf<Vect>::WriteXmfMulti(
   auto convvect = [&conv](
                       std::map<std::string, std::string>& map, std::string key,
                       const auto& value) {
-    for (size_t d = 0; d < dim; ++d) {
+    for (size_t d = 0; d < Vect::dim; ++d) {
       conv(map, key + std::to_string(d), value[d]);
     }
   };
@@ -178,7 +190,7 @@ void Xmf<Vect>::WriteXmfMulti(
   const auto firstmeta = metalist[0];
 
   std::map<std::string, std::string> map;
-  conv(map, "dim", dim);
+  conv(map, "dim", Vect::dim);
   convvect(map, "nodes", firstmeta.count + MIdx(1));
   const std::string geomtypes[] = {
       "ORIGIN_DX",
@@ -186,7 +198,7 @@ void Xmf<Vect>::WriteXmfMulti(
       "ORIGIN_DXDYDZ",
       "ORIGIN_DXDYDZDW",
   };
-  conv(map, "geomtype", geomtypes[dim - 1]);
+  conv(map, "geomtype", geomtypes[Vect::dim - 1]);
   convvect(map, "origin", firstmeta.origin);
   convvect(map, "spacing", firstmeta.spacing);
 
@@ -194,8 +206,9 @@ void Xmf<Vect>::WriteXmfMulti(
   for (auto& meta : metalist) {
     std::map<std::string, std::string> attrmap;
     conv(attrmap, "name", meta.name);
+    conv(attrmap, "dname", meta.name);
     convvect(attrmap, "countd", meta.count);
-    conv(attrmap, "dim", dim);
+    conv(attrmap, "dim", Vect::dim);
     convvect(attrmap, "dim", meta.dimensions);
     convvect(attrmap, "start", meta.start);
     convvect(attrmap, "stride", meta.stride);
@@ -204,33 +217,35 @@ void Xmf<Vect>::WriteXmfMulti(
     conv(attrmap, "precision", GetPrecision(meta.type));
     conv(attrmap, "type", TypeToString(meta.type));
     conv(attrmap, "binpath", meta.binpath);
-    attr += parse::SubstituteTemplate(GetXmfAttributeTemplate(), attrmap);
+    if (hdf) {
+      attr += parse::SubstituteTemplate(GetXmfHdfAttributeTemplate(), attrmap);
+    } else {
+      attr += parse::SubstituteTemplate(GetXmfRawAttributeTemplate(), attrmap);
+    }
   }
 
   buf << parse::SubstituteTemplate(GetXmfTemplate(attr), map);
 }
 
 template <class Vect>
-void Xmf<Vect>::WriteXmf(std::ostream& buf, const Meta& meta) {
-  WriteXmfMulti(buf, {meta});
+void Xmf<Vect>::WriteXmf(std::ostream& buf, const Meta& meta, bool hdf) {
+  WriteXmfMulti(buf, {meta}, hdf);
 }
 
 template <class Vect>
-void Xmf<Vect>::WriteXmf(const std::string& xmfpath, const Meta& meta) {
+void Xmf<Vect>::WriteXmf(
+    const std::string& xmfpath, const Meta& meta, bool hdf) {
   std::ofstream f(xmfpath);
   fassert(f.good(), "Can't open file '" + xmfpath + "' for writing");
-  WriteXmf(f, meta);
+  WriteXmf(f, meta, hdf);
 }
 
 template <class Vect>
 void Xmf<Vect>::WriteXmfMulti(
-    const std::string& xmfpath, const std::vector<Meta>& metalist) {
+    const std::string& xmfpath, const std::vector<Meta>& metalist, bool hdf) {
   std::ofstream f(xmfpath);
   fassert(f.good(), "Can't open file '" + xmfpath + "' for writing");
-  WriteXmfMulti(f, metalist);
+  WriteXmfMulti(f, metalist, hdf);
 }
-
-template <class Vect>
-constexpr size_t Xmf<Vect>::dim;
 
 } // namespace dump

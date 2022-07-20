@@ -21,10 +21,10 @@ class Xmf {
   using Vect = Vect_;
   using Scal = typename Vect::Scal;
   using MIdx = generic::MIdx<Vect::dim>;
-  static constexpr size_t dim = Vect::dim;
 
   static std::string GetXmfTemplate(std::string attr);
-  static std::string GetXmfAttributeTemplate();
+  static std::string GetXmfRawAttributeTemplate();
+  static std::string GetXmfHdfAttributeTemplate();
   // Replaces '{key*}' with '{key0} ... {key[DIM-1]}' (if reversed=false)
   // or '{key[DIM-1]} ... {key0}' (if reversed=true)
   static std::string ExpandAsterisk(std::string, bool reversed);
@@ -45,11 +45,11 @@ class Xmf {
   template <class M>
   static Meta GetMeta(const M& m, MIdx start = MIdx(0), MIdx stride = MIdx(1));
 
-  static void WriteXmf(std::ostream&, const Meta&);
-  static void WriteXmf(const std::string& xmfpath, const Meta&);
-  static void WriteXmfMulti(std::ostream&, const std::vector<Meta>&);
+  static void WriteXmf(std::ostream&, const Meta&, bool hdf);
+  static void WriteXmf(const std::string& xmfpath, const Meta&, bool hdf);
+  static void WriteXmfMulti(std::ostream&, const std::vector<Meta>&, bool hdf);
   static void WriteXmfMulti(
-      const std::string& xmfpath, const std::vector<Meta>&);
+      const std::string& xmfpath, const std::vector<Meta>&, bool hdf);
 
   static Meta ReadXmf(std::istream&);
   static Meta ReadXmf(const std::string& xmfpath);

@@ -5,6 +5,9 @@
 
 #include <string>
 #include "geom/mesh.h"
+#include "xmf.h"
+
+namespace dump {
 
 template <class M>
 class Hdf {
@@ -21,6 +24,20 @@ class Hdf {
   static void Write(
       const Field& fc, std::string path, M& m,
       std::string dname = kDefaultName);
+  // Writes blocks forming a multidimensional array to file.
+  // path: path to HDF file
+  // starts: index of start for each block
+  // sizes: size of each block
+  // data: data buffers for each block
+  // global_size: total size of the array
+  // type: type of entries to write
+  // dname: dataset name
+  // append: append existing file (true), create or truncate file (false)
+  static void WriteBlocks(
+      const std::string& path, const std::vector<MIdx>& starts,
+      const std::vector<MIdx>& sizes,
+      const std::vector<std::vector<Scal>>& data, MIdx global_size, Type type,
+      std::string dname, const MpiWrapper& mpi, bool append);
   // Reads HDF file with one scalar field. Dimensions of the dataset
   // must match the global mesh size: (nz, ny, nx, 1).
   //
@@ -50,3 +67,5 @@ class Hdf {
       std::string xmfpath, std::string name, std::string hdfpath, const M& m,
       std::string dname = kDefaultName);
 };
+
+} // namespace dump

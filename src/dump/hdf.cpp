@@ -9,6 +9,8 @@
 #include "hdf_nompi.ipp"
 #endif
 
+namespace dump {
+
 #define XX(M)                                                            \
   template class Hdf<M>;                                                 \
   template void Hdf<M>::Read(                                            \
@@ -27,3 +29,5 @@
 #define COMMA ,
 #define X(dim) XX(MeshCartesian<double COMMA dim>)
 MULTIDIMX
+
+} // namespace dump

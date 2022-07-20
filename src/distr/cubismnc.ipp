@@ -802,10 +802,10 @@ void Cubismnc<Par, M>::DumpWrite(const std::vector<size_t>& bb) {
   if (mfirst.GetDump().size()) {
     std::string dumpformat = var.String["dumpformat"];
     if (dumpformat == "default") {
-      dumpformat = "hdf";
+      dumpformat = "raw";
     }
 
-    if (dumpformat == "hdf") {
+    if (dumpformat == "hdf_cubism") {
       // Create FieldView's for dump
       const size_t n_fields = mfirst.GetDump().size();
       std::vector<BlockInfo> infos = grid_.getBlocksInfo(); // all blocks

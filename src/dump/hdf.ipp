@@ -3,10 +3,14 @@
 
 #include <hdf5.h>
 #include <mpi.h>
+#include <algorithm>
 #include <fstream>
 
 #include "hdf.h"
 #include "util/logger.h"
+#include "xmf.h"
+
+namespace dump {
 
 template <class Scal>
 generic::Vect<Scal, 1>& GetVect(Scal& src) {
@@ -94,7 +98,7 @@ void Hdf<M>::Write(const Field& fc, std::string path, M& m, std::string dname) {
       H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
       return H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
     }();
-    fassert(file >= 0, "cannot open file '" + path + "'");
+    fassert(file >= 0, "Cannot open file '" + path + "'");
 
     const size_t nblocks = ctx->data.size();
     fassert_equal(ctx->data.size(), nblocks);
@@ -173,7 +177,7 @@ void Hdf<M>::Read(Field& fc, std::string path, M& m, std::string dname) {
       H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
       return H5Fopen(path.c_str(), H5F_ACC_RDONLY, fapl);
     }();
-    fassert(file >= 0, "cannot open file '" + path + "'");
+    fassert(file >= 0, "Cannot open file '" + path + "'");
 
     const size_t nblocks = ctx->dataptr.size();
     fassert_equal(ctx->dataptr.size(), nblocks);
@@ -240,7 +244,7 @@ std::vector<size_t> Hdf<M>::GetShape(std::string path, std::string dname) {
   const hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
   const hid_t file = H5Fopen(path.c_str(), H5F_ACC_RDONLY, fapl);
   H5Pclose(fapl);
-  fassert(file >= 0, "cannot open file '" + path + "'");
+  fassert(file >= 0, "Cannot open file '" + path + "'");
   const hid_t dataset = H5Dopen2(file, dname.c_str(), H5P_DEFAULT);
   const hid_t fspace = H5Dget_space(dataset);
   const size_t ndims = H5Sget_simple_extent_ndims(fspace);
@@ -254,8 +258,13 @@ std::vector<size_t> Hdf<M>::GetShape(std::string path, std::string dname) {
 
 template <class M>
 void Hdf<M>::WriteXmf(
-    std::string xmfpath, std::string name, Vect origin, Vect spacing, MIdx dims,
-    std::string hdfpath, std::string dname) {
+    std::string xmfpath, std::string name, Vect qorigin, Vect qspacing,
+    MIdx qdims, std::string hdfpath, std::string dname) {
+  using MIdx3 = generic::MIdx<3>;
+  using Vect3 = generic::Vect<Scal, 3>;
+  const MIdx3 dims(qdims);
+  const Vect3 origin(qorigin);
+  const Vect3 spacing(qspacing);
   std::ofstream f(xmfpath);
   f.precision(20);
   f << "<?xml version='1.0' ?>\n";
@@ -301,3 +310,64 @@ void Hdf<M>::WriteXmf(
       xmfpath, name, Vect(0), m.GetCellSize(), m.GetGlobalSize(), hdfpath,
       dname);
 }
+
+template <class M>
+void Hdf<M>::WriteBlocks(
+    const std::string& path, const std::vector<MIdx>& starts,
+    const std::vector<MIdx>& sizes, const std::vector<std::vector<Scal>>& data,
+    MIdx global_size, Type type, std::string dname, const MpiWrapper& mpi,
+    bool append) {
+  fassert_equal(sizeof(Scal), GetPrecision(type));
+  const auto hdf_type =
+      (sizeof(Scal) == 4 ? H5T_NATIVE_FLOAT : H5T_NATIVE_DOUBLE);
+  const MPI_Comm comm = mpi.GetComm();
+
+  MPICALL(MPI_Barrier(comm));
+  fassert(H5open() >= 0);
+  const hid_t file = [&comm, &path, append]() {
+    const Fapl fapl(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
+    if (append) {
+      return H5Fopen(path.c_str(), H5F_ACC_RDWR, fapl);
+    }
+    return H5Fcreate(path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
+  }();
+  fassert(file >= 0, "Cannot open file '" + path + "'");
+
+  const size_t nblocks = starts.size();
+  fassert_equal(starts.size(), nblocks);
+  fassert_equal(sizes.size(), nblocks);
+  fassert_equal(data.size(), nblocks);
+
+  auto harray = [](MIdx w) -> std::array<hsize_t, Vect::dim> {
+    std::reverse(w.data(), w.data() + w.size());
+    return w;
+  };
+
+  const auto gsize = harray(global_size);
+  const hid_t fspace = H5Screate_simple(Vect::dim, gsize.data(), NULL);
+  const hid_t dataset = H5Dcreate(
+      file, dname.c_str(), hdf_type, fspace, H5P_DEFAULT, H5P_DEFAULT,
+      H5P_DEFAULT);
+  for (size_t i = 0; i < nblocks; ++i) {
+    const auto count = harray(sizes[i]);
+    const auto offset = harray(starts[i]);
+
+    H5Sselect_hyperslab(
+        fspace, H5S_SELECT_SET, offset.data(), NULL, count.data(), NULL);
+
+    const hid_t mspace = H5Screate_simple(Vect::dim, count.data(), NULL);
+    const hid_t fapl = H5Pcreate(H5P_DATASET_XFER);
+    H5Pset_dxpl_mpio(fapl, H5FD_MPIO_COLLECTIVE);
+
+    H5Dwrite(dataset, hdf_type, mspace, fspace, fapl, data[i].data());
+
+    H5Pclose(fapl);
+    H5Sclose(mspace);
+  }
+  H5Sclose(fspace);
+  H5Dclose(dataset);
+  H5Fclose(file);
+}
+
+} // namespace dump
