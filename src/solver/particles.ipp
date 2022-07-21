@@ -19,6 +19,7 @@
 
 #include "dump/dump.h"
 #include "dump/raw.h"
+#include "dump/vtk.h"
 
 #include "particles.h"
 
@@ -372,10 +373,10 @@ struct Particles<EB_>::Imp {
       m.Reduce(&global_max_id, Reduction::max);
     }
   }
-  void DumpCsv(
-      const std::string& path,
-      const std::unordered_set<std::string>& sel) const {
-    auto sem = m.GetSem("dumpcsv");
+  void DumpParticles(
+      const std::string& path, const std::unordered_set<std::string>& sel,
+      bool vtk) const {
+    auto sem = m.GetSem("dumppart");
     struct {
       State s;
       std::vector<int> block;
@@ -442,7 +443,11 @@ struct Particles<EB_>::Imp {
       append_scal("removed", s.removed);
       append_scal("block", t.block);
       append_scal("inner", t.inner);
-      dump::DumpCsv(data, path);
+      if (vtk) {
+        dump::Vtk<Vect>::WriteVtkPoints(data, path, "Particles", true);
+      } else {
+        dump::DumpCsv(data, path);
+      }
     }
     if (sem()) {
     }
@@ -571,9 +576,10 @@ void Particles<EB_>::SetUniqueIdForAppended(M& m) {
 }
 
 template <class EB_>
-void Particles<EB_>::DumpCsv(
-    const std::string& path, const std::unordered_set<std::string>& sel) const {
-  imp->DumpCsv(path, sel);
+void Particles<EB_>::DumpParticles(
+    const std::string& path, const std::unordered_set<std::string>& sel,
+    bool vtk) const {
+  imp->DumpParticles(path, sel, vtk);
 }
 
 template <class EB_>

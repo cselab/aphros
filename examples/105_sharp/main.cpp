@@ -88,7 +88,7 @@ void Run(M& m, Vars& var) {
     if (sem.Nested("read")) {
       auto format = GetFormat(path, var.String["format"]);
       if (format == "h5") {
-        Hdf<M>::Read(fc_buf, path, m);
+        dump::Hdf<M>::Read(fc_buf, path, m);
       } else if (format == "raw") {
         Raw::Read(fc_buf, t.meta, path, m);
       } else {
@@ -107,7 +107,7 @@ void Run(M& m, Vars& var) {
     auto format = GetFormat(path, var.String["format"]);
     if (format == "h5") {
       if (sem.Nested("write")) {
-        Hdf<M>::Write(fc_buf(), path, m);
+        dump::Hdf<M>::Write(fc_buf(), path, m);
       }
     } else if (format == "raw") {
       if (sem("outmeta")) {
@@ -135,7 +135,7 @@ void Run(M& m, Vars& var) {
         Raw::WriteMeshBlocks(t.fc_write, t.outmeta, path, m);
       }
       if (sem("writexmf")) {
-        Xmf::WriteXmf(util::SplitExt(path)[0] + ".xmf", t.outmeta);
+        Xmf::WriteXmf(util::SplitExt(path)[0] + ".xmf", t.outmeta, false);
       }
     } else {
       fassert(false, "Unknown format=" + format);
@@ -279,7 +279,7 @@ int main(int argc, const char** argv) {
   const auto input = args.String.GetStr("input");
   const auto inputformat = GetFormat(input, args.String.GetStr("format"));
   if (inputformat == "h5") {
-    const auto shape = Hdf<M>::GetShape(input);
+    const auto shape = dump::Hdf<M>::GetShape(input);
     nx = shape[2];
     ny = shape[1];
     nz = shape[0];

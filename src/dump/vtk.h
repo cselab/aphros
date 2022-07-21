@@ -55,6 +55,14 @@ class Vtk {
       const std::vector<std::string>& pointdata_names,
       const std::string& comment, bool poly, bool binary, bool merge,
       Scal merge_tol = 1e-8);
+
+  // Writes legacy VTK point data.
+  // data: mapping from field name to data array.
+  // Point coordinates will be read from data['x'], data['y'], data['z'].
+  // Non-existing coordinate arrays will be replaces with zeros.
+  static void WriteVtkPoints(
+      const std::vector<std::pair<std::string, std::vector<Scal>>>& data,
+      const std::string& path, const std::string& comment, bool binary);
 };
 
 } // namespace dump

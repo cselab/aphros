@@ -101,9 +101,9 @@ class ParticlesInterface {
   // Dumps current particles to CSV file.
   // path: path to output file
   // sel: set of fields to dump
-  virtual void DumpCsv(
-      const std::string& path,
-      const std::unordered_set<std::string>& sel) const = 0;
+  virtual void DumpParticles(
+      const std::string& path, const std::unordered_set<std::string>& sel,
+      bool vtk) const = 0;
 };
 
 template <class EB_>
@@ -137,9 +137,9 @@ class Particles : public ParticlesInterface<typename EB_::M> {
   ParticlesView GetView() const override;
   Scal GetTime() const override;
   size_t GetNumRecv() const override;
-  void DumpCsv(
-      const std::string& path,
-      const std::unordered_set<std::string>& sel) const override;
+  void DumpParticles(
+      const std::string& path, const std::unordered_set<std::string>& sel,
+      bool vtk) const override;
   struct ReadCsvStatus {
     // Columns read from the CSV file.
     bool x = false;

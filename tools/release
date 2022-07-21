@@ -1,5 +1,4 @@
-#!/bin/sh -e
-set -e
+#!/bin/sh -eu
 
 : ${v=0.1}
 

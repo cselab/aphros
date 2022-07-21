@@ -347,8 +347,9 @@ struct HydroPost<M>::Imp {
       }
     }
     if (hydro->particles_ && var.Int["dump_particles"]) {
+      const bool dumpvtk = var.Int["particles_dumpvtk"];
       const std::string path =
-          GetDumpName("part", ".csv", hydro->dumper_.GetN());
+          GetDumpName("part", dumpvtk ? ".vtk" : ".csv", hydro->dumper_.GetN());
       if (sem()) {
         if (m.IsRoot()) {
           std::cerr << std::fixed << std::setprecision(8) << "dump"
@@ -357,8 +358,8 @@ struct HydroPost<M>::Imp {
         }
       }
       if (sem.Nested()) {
-        hydro->particles_->DumpCsv(
-            path, GetWords(var.String["particles_dumplist"]));
+        hydro->particles_->DumpParticles(
+            path, GetWords(var.String["particles_dumplist"]), dumpvtk);
       }
     }
     if (sem()) {

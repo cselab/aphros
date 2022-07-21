@@ -348,4 +348,87 @@ void Vtk<Vect_>::WriteVtkPoly(
       pointdata_ptr, pointdata_names, comment, poly, binary);
 }
 
+template <class Vect_>
+void Vtk<Vect_>::WriteVtkPoints(
+    const std::vector<std::pair<std::string, std::vector<Scal>>>& data,
+    const std::string& path, const std::string& comment, bool binary) {
+  std::ofstream f(path.c_str(), std::ios::binary);
+
+  const size_t npoints = data.size() ? data[0].second.size() : 0;
+
+  // Check data size.
+  for (const auto& v : data) {
+    fassert_equal(v.second.size(), npoints);
+  }
+
+  auto WFloat = [&f](float a) {
+    if (IsLittleEnd()) {
+      a = SwapEnd(a);
+    }
+    f.write((char*)&a, sizeof(float));
+  };
+
+  f.precision(16);
+  f << "# vtk DataFile Version 2.0\n";
+  f << comment << "\n";
+  f << (binary ? "BINARY" : "ASCII") << "\n";
+  f << "DATASET POLYDATA\n";
+
+  std::vector<Vect> points(npoints, Vect(0));
+  std::vector<std::vector<Scal>> pointdata;
+  std::vector<std::string> pointdata_names;
+  // Copy recognized coordinates from `data` to `points`
+  // and remaining fields to `pointdata`.
+  for (const auto& p : data) {
+    bool coord = false;
+    for (size_t d = 0; d < std::min<size_t>(Vect::dim, 3); ++d) {
+      const auto* name = (d == 0 ? "x" : d == 1 ? "y" : "z");
+      if (p.first == name) {
+        coord = true;
+        for (size_t i = 0; i < npoints; ++i) {
+          points[i][d] = p.second[i];
+        }
+      }
+    }
+    if (!coord) {
+      pointdata_names.push_back(p.first);
+      pointdata.push_back(p.second);
+    }
+  }
+
+  // Write points.
+  f << "POINTS " << points.size() << " float\n";
+  if (binary) {
+    for (auto& x : points) {
+      WFloat(x[0]);
+      WFloat(x[1]);
+      WFloat(Vect::dim > 2 ? x[2] : 0);
+    }
+    f << "\n";
+  } else {
+    for (auto& x : points) {
+      f << x[0] << " " << x[1] << " " << (Vect::dim > 2 ? x[2] : 0) << '\n';
+    }
+  }
+
+  // Point-datasets.
+  for (size_t i = 0; i < pointdata.size(); ++i) {
+    const auto& v = pointdata[i];
+    if (i == 0) {
+      f << "POINT_DATA " << v.size() << "\n";
+    }
+    f << "SCALARS " << pointdata_names[i] << " float\n"
+      << "LOOKUP_TABLE default\n";
+    if (binary) {
+      for (auto& a : v) {
+        WFloat(a);
+      }
+    } else {
+      for (auto& a : v) {
+        f << a << "\n";
+      }
+    }
+  }
+}
+
 } // namespace dump
