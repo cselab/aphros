@@ -533,40 +533,40 @@ void Hydro<M>::InitParticles() {
 // with a given areal number density.
 template <class M>
 void Hydro<M>::InitNucleationPoints() {
-    // Areal number density of nucleation points.
-    const Scal numdens = var.Double("nucleation_number_density", 0);
-    if (numdens) {
-      std::uniform_real_distribution<Scal> uniform(0, 1);
-      // Traverse boundary faces and seed at most one point per face.
-      for (const auto& p : mebc_fluid_.GetMapFace()) {
-        const auto f = m(p.first);
-        const auto& bc = p.second;
-        if (m.IsInner(f.cell(bc.nci))) {
-          if (const size_t* group = me_group_.find(f)) {
-            const auto& custom = bc_group_custom_[*group];
-            const auto it = custom.find("nucleation");
-            if (it != custom.end()) {
-              const Scal factor = it->second;
-              if (numdens * factor * f.area > uniform(randgen_)) {
-                // Uniform displacement.
-                Vect dx(0);
-                for (size_t d : m.dirs) {
-                  dx[d] = uniform(randgen_) - 0.5;
-                }
-                dx *= m.GetCellSize();
-                // Normal towards inner cell.
-                const Vect normal = (bc.nci == 0 ? -1 : 1) * f.normal();
-                // Cancel out the component normal to the face.
-                dx = dx.orth(normal);
-                // Move inside the inner cell.
-                dx += normal * (m.GetCellSize()[0] * 1e-3);
-                nucl_points_.insert(f.center() + dx);
+  // Areal number density of nucleation points.
+  const Scal numdens = var.Double("nucleation_number_density", 0);
+  if (numdens) {
+    std::uniform_real_distribution<Scal> uniform(0, 1);
+    // Traverse boundary faces and seed at most one point per face.
+    for (const auto& p : mebc_fluid_.GetMapFace()) {
+      const auto f = m(p.first);
+      const auto& bc = p.second;
+      if (m.IsInner(f.cell(bc.nci))) {
+        if (const size_t* group = me_group_.find(f)) {
+          const auto& custom = bc_group_custom_[*group];
+          const auto it = custom.find("nucleation");
+          if (it != custom.end()) {
+            const Scal factor = it->second;
+            if (numdens * factor * f.area > uniform(randgen_)) {
+              // Uniform displacement.
+              Vect dx(0);
+              for (size_t d : m.dirs) {
+                dx[d] = uniform(randgen_) - 0.5;
               }
+              dx *= m.GetCellSize();
+              // Normal towards inner cell.
+              const Vect normal = (bc.nci == 0 ? -1 : 1) * f.normal();
+              // Cancel out the component normal to the face.
+              dx = dx.orth(normal);
+              // Move inside the inner cell.
+              dx += normal * (m.GetCellSize()[0] * 1e-3);
+              nucl_points_.insert(f.center() + dx);
             }
           }
         }
       }
     }
+  }
 }
 
 template <class M>
@@ -1220,7 +1220,7 @@ void Hydro<M>::InitStat(const MEB& eb) {
     }
     stat.AddNone(
         "total_src2", "total source of component 2", //
-        [& st_ = st_]() { return st_.total_src2; });
+        [&st_ = st_]() { return st_.total_src2; });
   }
 
   stat_->SortNames();
@@ -1629,6 +1629,9 @@ void Hydro<M>::Init() {
   if (var.Int["dumpinit"]) {
     if (sem.Nested()) {
       Dump(true);
+    }
+    if (sem()) {
+      m.DumpCommit();
     }
   }
   if (sem()) {
@@ -2410,6 +2413,7 @@ void Hydro<M>::Run() {
     (*module_post_step_)(this, m);
   }
   if (sem("inc")) {
+    m.DumpCommit();
     ++st_.step;
     if (var.Int("return_after_each_step", 0)) {
       sem.LoopBreak();
@@ -2421,6 +2425,9 @@ void Hydro<M>::Run() {
     if (var.Int["dumplast"]) {
       Dump(true);
     }
+  }
+  if (sem()) {
+    m.DumpCommit();
   }
 
   if (sem.Nested("posthook") && finished_) {
@@ -2663,7 +2670,7 @@ void Hydro<M>::StepParticles() {
             const bool less = ri < rj || (ri == rj && xi.lexless(xj));
             if (less) {
               view.removed[i] = true;
-            } else  {
+            } else {
               const Scal voli = std::pow(ri, 3);
               const Scal volj = std::pow(rj, 3);
               view.r[i] = std::pow(voli + volj, 1. / 3);

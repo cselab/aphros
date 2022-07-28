@@ -151,6 +151,7 @@ void Run(M& m, Vars& var) {
           m.Dump(&t.comps[i++], "feg.zp");
         }
         m.Dump(&t.comps[i++], "feg.c");
+        m.DumpCommit();
       }
 
       if (var.Int["dump_system"]) {

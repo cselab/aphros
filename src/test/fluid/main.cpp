@@ -61,6 +61,7 @@ void Test(M& m, MEB& eb, std::string name) {
     m.Dump(&t.fc_force, 0, "fx");
     m.Dump(&t.fc_force, 1, "fy");
     m.Dump(&t.fc_force, 2, "fz");
+    m.DumpCommit();
   }
   if (sem()) {
   }

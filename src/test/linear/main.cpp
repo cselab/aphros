@@ -131,6 +131,7 @@ void Run(M& m, Vars& var) {
       m.Dump(&t.fc_sol, "sol");
       m.Dump(&t.fc_sol_exact, "exact");
       m.Dump(&t.fc_diff, "diff");
+      m.DumpCommit();
     }
     if (var.Int["VERBOSE"] && m.IsRoot()) {
       std::cout << "\nmax_diff_exact=" << t.norms[0][2];

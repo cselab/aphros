@@ -120,6 +120,7 @@ void Run(M& m, Vars& var) {
       m.Dump(&cd->GetVelocity(), 1, "vy");
       m.Dump(&cd->GetVelocity(), 2, "vz");
       m.Dump(&fcdiv, "div");
+      m.DumpCommit();
       ++frame;
     }
   }

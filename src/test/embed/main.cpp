@@ -132,6 +132,7 @@ void Run(M& m, Vars& var) {
     if (sem("dump")) {
       // FIXME: Dump and Comm in one stage ignores Comm
       m.Dump(&fcu, "u");
+      m.DumpCommit();
       ++frame;
     }
   }

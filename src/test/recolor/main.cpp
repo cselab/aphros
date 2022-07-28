@@ -84,6 +84,7 @@ void Run(M& m, Vars& var) {
         ctx->fcim[c] = ctx->trm->GetImage(0, c)[1];
       }
       m.Dump(&ctx->fcim, "im");
+      m.DumpCommit();
     }
     if (sem.Nested()) {
       Smoothen(fcu, mfc, m, 1);

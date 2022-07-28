@@ -510,11 +510,13 @@ void DistrMesh<M>::Run() {
     ReportOpenmp();
   }
   while (true) {
+    const auto& mf = kernels_.front()->GetMesh();
+
     multitimer_all_.Push();
     multitimer_report_.Push();
 
     std::vector<size_t> bb;
-    if (kernels_.front()->GetMesh().GetDump().size() > 0) {
+    if (mf.GetDump().size() > 0) {
       bb = TransferHalos(); // all blocks, sync communication
       // ApplyNanFaces(bb);
       DumpWrite(bb);
@@ -540,7 +542,6 @@ void DistrMesh<M>::Run() {
 
     // Print current stage name
     if (isroot_ && var.Int["verbose"]) {
-      const auto& mf = kernels_.front()->GetMesh();
       std::cerr << "*** STAGE"
                 << " #" << stage_ << " depth=" << mf.GetSuspender().GetDepth()
                 << " " << mf.GetSuspender().GetNameSequence() << " ***"

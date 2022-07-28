@@ -763,6 +763,7 @@ class MeshCartesian {
   void Dump(std::unique_ptr<CommRequest>&& request, std::string name);
   const std::vector<std::pair<std::unique_ptr<CommRequest>, std::string>>&
   GetDump() const;
+  void DumpCommit();
   void ClearDump();
 
   using Op = typename UReduce<Scal>::Op;

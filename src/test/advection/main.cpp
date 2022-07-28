@@ -192,6 +192,7 @@ void Advection<M>::Dump(Sem& sem) {
       if (m.IsRoot()) {
         dmf_.Report(std::cout);
       }
+      m.DumpCommit();
     }
   }
   if (sem("dumpwrite")) {

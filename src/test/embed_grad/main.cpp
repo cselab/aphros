@@ -144,6 +144,7 @@ void Run(M& m, Vars& var) {
     fcu = UEB::RedistributeCutCells(fcu, eb);
     PrintStat(GetStat<Scal>(fcu, eb));
     m.Dump(&fcu, "u");
+    m.DumpCommit();
   }
 }
 
