@@ -7,6 +7,23 @@
 #include <memory>
 #include <string>
 
+class BaseHolder {
+ public:
+  virtual ~BaseHolder() = default;
+};
+// Container for user-defined context object implementing Type Erasure.
+template <class T>
+class Holder : public BaseHolder {
+ public:
+  Holder(T* raw) : ptr_(raw) {}
+  T* Get() {
+    return ptr_.get();
+  }
+
+ private:
+  std::unique_ptr<T> ptr_;
+};
+
 // TODO: Sequence like
 //   GetSem();
 //   sem = GetSem();
@@ -82,22 +99,6 @@ class Suspender {
   bool Pending() const;
 
  private:
-  class BaseHolder {
-   public:
-    virtual ~BaseHolder() = default;
-  };
-  // Container for user-defined context object
-  template <class T>
-  class Holder : public BaseHolder {
-   public:
-    Holder(T* raw) : ptr_(raw) {}
-    T* Get() {
-      return ptr_.get();
-    }
-
-   private:
-    std::unique_ptr<T> ptr_;
-  };
   struct State { // state of a suspended function
     int current; // current stage index
     int target; // target stage index

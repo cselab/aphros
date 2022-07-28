@@ -44,9 +44,9 @@ static MIdx2 GetViewCoords(Vect x, const CanvasView& view, const M& m) {
 }
 
 struct State {
-  State(MPI_Comm comm, Vars& var, typename Hydro<M>::Par par_)
+  State(MPI_Comm comm, Vars& var, typename Hydro<M>::Par& par_)
       : par(par_), distrsolver(comm, var, par) {}
-  typename Hydro<M>::Par par;
+  typename Hydro<M>::Par& par;
   DistrSolver<M, Hydro<M>> distrsolver;
   bool render = true;
   int frame = 0;

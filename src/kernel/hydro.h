@@ -74,6 +74,7 @@ template <class M>
 struct GPar {
   void* ptr = nullptr; // opaque pointer to data
   std::function<void(void* ptr, Hydro<M>* hydro)> step_callback;
+  std::unique_ptr<BaseHolder> hook_context_shared;
 };
 
 template <class M>
@@ -274,4 +275,6 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
                                           // extracted from boundary conditions.
 
   ModulePostStep<M>* module_post_step_ = nullptr;
+
+  std::unique_ptr<BaseHolder> hook_context_;
 };

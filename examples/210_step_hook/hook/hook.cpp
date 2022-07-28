@@ -7,10 +7,16 @@
 #include <util/format.h>
 #include <util/posthook.h>
 
-// Data to be shared among all local blocks
-struct SharedState {
+// Shared context, one for each processor.
+struct HookContextShared {
   int foo;
 };
+
+// Local context, one for each block.
+struct HookContext {
+  int bar;
+};
+
 
 template <class M>
 void InitHook(Hydro<M>* hydro) {
@@ -19,17 +25,35 @@ void InitHook(Hydro<M>* hydro) {
   if (sem()) {
     if (m.IsLead()) { // Executed only on the lead block, once in each rank.
                       // There is only one lead block in each rank.
-      // Allocate memory for the shared state and save pointer in the solver.
-      hydro->par_.ptr = new SharedState();
-      auto* shared = static_cast<SharedState*>(hydro->par_.ptr);
-      shared->foo = 1000;
+      // Create shared context.
+      hydro->par_.hook_context_shared =
+          std::make_unique<Holder<HookContextShared>>(new HookContextShared());
+      auto* hsctx = dynamic_cast<Holder<HookContextShared>*>(
+                        hydro->par_.hook_context_shared.get())
+                        ->Get();
+      hsctx->foo = 1000 * (m.GetId() + 1);
     }
     if (m.IsRoot()) { // Executed only on the root block, once over all ranks.
                       // There is only one root block over all ranks.
-      auto* shared = static_cast<SharedState*>(hydro->par_.ptr);
+      auto* hsctx = dynamic_cast<Holder<HookContextShared>*>(
+                        hydro->par_.hook_context_shared.get())
+                        ->Get();
       std::cout << util::Format(
-          "InitHook t={:} foo={:}\n\n", hydro->fs_->GetTime(), shared->foo);
+          "InitHook t={:} foo={:}\n\n", hydro->fs_->GetTime(), hsctx->foo);
     }
+    // Create local context.
+    hydro->hook_context_ =
+        std::make_unique<Holder<HookContext>>(new HookContext());
+    auto* hctx =
+        dynamic_cast<Holder<HookContext>*>(hydro->hook_context_.get())->Get();
+    hctx->bar = 1000 * (m.GetId() + 1);
+  }
+  if (sem()) {
+    auto* hsctx = dynamic_cast<Holder<HookContextShared>*>(
+                      hydro->par_.hook_context_shared.get())
+                      ->Get();
+    std::cout << util::Format(
+        "InitHook t={:} foo={:}\n\n", hydro->fs_->GetTime(), hsctx->foo);
   }
 }
 
@@ -41,7 +65,11 @@ void StepHook(Hydro<M>* hydro) {
   auto& m = hydro->m;
   auto& var = hydro->var;
   auto sem = m.GetSem();
-  auto* shared = static_cast<SharedState*>(hydro->par_.ptr);
+  auto* hsctx = dynamic_cast<Holder<HookContextShared>*>(
+                    hydro->par_.hook_context_shared.get())
+                    ->Get();
+  auto* hctx =
+      dynamic_cast<Holder<HookContext>*>(hydro->hook_context_.get())->Get();
 
   // State persistent across all stages (sections `sem()`) of one call
   struct {
@@ -60,16 +88,19 @@ void StepHook(Hydro<M>* hydro) {
       m.Reduce(&t.velocity_mean[d], Reduction::sum);
     }
     m.Reduce(&t.volume, Reduction::sum);
-    shared->foo += 1; // Increment once in each block.
+    hsctx->foo += 1; // Increment once in each block.
+    hctx->bar += 1; // Increment once in each block.
   }
   if (sem()) {
     t.velocity_mean /= t.volume;
     if (m.IsRoot()) {
       std::cout << util::Format(
-          "StepHook: t={:} uservar={:} foo={:} velocity_mean={:}\n\n",
-          hydro->fs_->GetTime(), var.Int["uservar"], shared->foo,
-          t.velocity_mean);
+          "StepHook: t={:} uservar={:} velocity_mean={:}\n",
+          hydro->fs_->GetTime(), var.Int["uservar"], t.velocity_mean);
     }
+    std::cout << util::Format(
+        "HookContext: id={:} foo={:} bar={:}\n", m.GetId(), hsctx->foo,
+        hctx->bar);
   }
 }
 
@@ -77,14 +108,16 @@ template <class M>
 void FinalHook(Hydro<M>* hydro) {
   auto& m = hydro->m;
   auto sem = m.GetSem();
-  auto* shared = static_cast<SharedState*>(hydro->par_.ptr);
+  auto* hsctx = dynamic_cast<Holder<HookContextShared>*>(
+                    hydro->par_.hook_context_shared.get())
+                    ->Get();
+  auto* hctx =
+      dynamic_cast<Holder<HookContext>*>(hydro->hook_context_.get())->Get();
   if (sem()) {
     if (m.IsRoot()) {
       std::cout << util::Format(
-          "FinalHook t={:} foo={:}\n\n", hydro->fs_->GetTime(), shared->foo);
-    }
-    if (m.IsLead()) {
-      delete shared;
+          "FinalHook t={:} foo={:} bar={:}\n\n", hydro->fs_->GetTime(), hsctx->foo,
+          hctx->bar);
     }
   }
 }
