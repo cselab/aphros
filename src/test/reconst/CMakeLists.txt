@@ -9,5 +9,5 @@ add_executable(plane plane.cpp)
 
 set(T levelset)
 add_executable(${T} levelset.cpp)
-target_link_libraries(${T} use_mpi)
+target_link_libraries(${T} aphros)
 add_test_current(NAME ${T} COMMAND run_levelset)

@@ -66,12 +66,7 @@ Vect GetIso(Vect x0, Vect x1, Scal f0, Scal f1) {
 }
 
 template <class Scal>
-Scal GetPositiveEdgeFraction(Scal l0, Scal l1) {
-  if (l0 * l1 < 0) {
-    return l0 < l1 ? l1 / (l1 - l0) : l0 / (l0 - l1);
-  }
-  return l0 + l1 > 0;
-}
+Scal GetPositiveEdgeFraction(Scal l0, Scal l1);
 
 // Returns fraction of face area for which ls>0.
 // ee: fraction of edge length for which ls>0
@@ -82,119 +77,19 @@ Scal GetPositiveEdgeFraction(Scal l0, Scal l1) {
 //   -------
 //     1
 template <class Scal>
-Scal GetFaceAreaFraction(std::array<Scal, 4> ee) {
-  using R = Reconst<Scal>;
-  // face center is x=0 y=0
-  // line equation
-  //   n.dot(x) = a
-  if (ee[0] < ee[2]) std::swap(ee[0], ee[2]);
-  if (ee[1] < ee[3]) std::swap(ee[1], ee[3]);
+Scal GetFaceAreaFraction(std::array<Scal, 4> ee);
 
-  constexpr size_t ni = 4;
-
-  const std::array<Scal, ni> xx{-0.5, ee[1] - 0.5, 0.5, ee[3] - 0.5};
-  const std::array<Scal, ni> yy{ee[0] - 0.5, -0.5, ee[2] - 0.5, 0.5};
-
-  // normal
-  Scal nx = ee[0] - ee[2];
-  Scal ny = ee[1] - ee[3];
-
-  Scal a = 0;
-  size_t aw = 0;
-  for (size_t i = 0; i < ni; ++i) {
-    const auto& e = ee[i];
-    if (e > 0 && e < 1) {
-      a += xx[i] * nx + yy[i] * ny;
-      ++aw;
-    }
-  }
-  if (aw == 0 || nx + ny == 0) {
-    return (ee[0] + ee[1] + ee[2] + ee[3]) / ni;
-  }
-  a /= aw;
-
-  if (nx > ny) {
-    std::swap(nx, ny);
-  }
-  using Vect2 = generic::Vect<Scal, 2>;
-  if (a < 0) {
-    return R::GetLineU0(Vect2{nx, ny}, a);
-  }
-  return 1 - R::GetLineU0(Vect2{nx, ny}, -a);
-}
-
-// Computes face area for which ls > 0.
+// Returns face field containing face area for which ls > 0.
 // fnl: level-set function ls on nodes [i]
 template <class M>
 FieldFace<typename M::Scal> GetPositiveAreaFraction(
-    const FieldNode<typename M::Scal>& fnl, const M& m) {
-  using Scal = typename M::Scal;
-  FieldFace<Scal> ffs(m, 0);
-  for (auto f : m.Faces()) {
-    constexpr size_t em = 4;
-    std::array<Scal, em> ll;
-    for (size_t e = 0; e < em; ++e) {
-      const size_t ep = (e + 1) % em;
-      const IdxNode n = m.GetNode(f, e);
-      const IdxNode np = m.GetNode(f, ep);
-      ll[e] = GetPositiveEdgeFraction(fnl[n], fnl[np]);
-      ffs[f] = GetFaceAreaFraction(ll);
-    }
-  }
-  return ffs;
-}
+    const FieldNode<typename M::Scal>& fnl, const M& m);
 
-// fnl: level-set function ls computed on nodes [i]
+// Returns volume fraction field field from level-set function on nodes.
+// fnl: level-set function computed on nodes [i]
 template <class M>
 FieldCell<typename M::Scal> GetPositiveVolumeFraction(
-    const FieldNode<typename M::Scal>& fnl, const M& m) {
-  using Scal = typename M::Scal;
-  using Vect = typename M::Vect;
-  using R = Reconst<Scal>;
-  auto ffs = GetPositiveAreaFraction(fnl, m);
-  FieldCell<Scal> fcu(m, 0);
-  for (auto c : m.Cells()) {
-    Vect nn(0); // normal
-    for (auto q : m.Nci(c)) {
-      const IdxFace f = m.GetFace(c, q);
-      nn += m.GetNormal(f) * ffs[f] * m.GetOutwardFactor(c, q);
-    }
-    Scal u = 0;
-    if (nn.norm1() == 0) {
-      for (auto q : m.Nci(c)) {
-        u += ffs[m.GetFace(c, q)];
-      }
-      u /= m.Nci(c).size();
-    } else {
-      nn /= -nn.norm1();
-      Scal a = 0; // plane constant
-      size_t aw = 0;
-      for (auto q : m.Nci(c)) {
-        const IdxFace f = m.GetFace(c, q);
-        const size_t em = m.GetNumNodes(f);
-        for (size_t e = 0; e < em; ++e) {
-          const size_t ep = (e + 1) % em; // next node
-          const IdxNode n = m.GetNode(f, e);
-          const IdxNode np = m.GetNode(f, ep);
-          const Scal l = fnl[n];
-          const Scal lp = fnl[np];
-          const Vect x = m.GetNode(n);
-          const Vect xp = m.GetNode(np);
-
-          if (l * lp < 0) {
-            a += nn.dot(GetIso(x, xp, l, lp) - m.GetCenter(c));
-            aw += 1;
-          }
-        }
-      }
-      assert(aw > 0);
-      a /= aw;
-      u = R::GetLineU(nn, a, m.GetCellSize());
-    }
-    fcu[c] = u;
-  }
-  return fcu;
-}
+    const FieldNode<typename M::Scal>& fnl, const M& m);
 
 // Fills volume fraction field from list of primitives.
 // fc: field to fill
