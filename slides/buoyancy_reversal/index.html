@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Buoyancy reversal</title>
+    <link rel="stylesheet" href="../dist/reset.css">
+    <link rel="stylesheet" href="../dist/reveal.css">
+    <link rel="stylesheet" href="../dist/theme/white2.css">
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h1>Buoyancy reversal</h1>
+          <style>
+            .row{display:flex;}
+            .column{flex:32%;}
+            .katex{font-size:1em;}
+          </style>
+          <div class="row">
+            <div class="column">
+              \[
+                \begin{aligned}
+                  \frac{D\mathbf{u}}{Dt} &amp; = -\nabla p + B(\chi)\mathbf{e}_y + \frac{1}{\mathrm{Re}}\nabla^2\mathbf{u} \\
+                  \nabla\cdot\mathbf{u} &amp; = 0 \\
+                  \frac{D\chi}{Dt} &amp; = D\nabla^2\chi
+                \end{aligned}
+              \]
+              <div style="display:flex;align-items:center;justify-content:center;">
+                <div style="width:50px;height:20px;background-color:#1c1c1c"></div>
+                &nbsp;
+                <div>$\chi=1$</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:center;">
+                <div style="width:50px;height:20px;background-color:#701823;"></div>
+                &nbsp;
+                <div>$\chi=0$</div>
+              </div>
+              <p>
+                $\mathrm{Re}=1000$<br/>
+                $D=10^{-5}$
+              </p>
+            </div>
+            <div class="column">
+              <video controls>
+                <source src="media/reversal0.mp4" type="video/mp4">
+              </video>
+              <span class="color0">without buoyancy reversal</span>
+              <img src="media/reversal0.svg">
+            </div>
+            <div class="column">
+              <video controls>
+                <source src="media/reversal1.mp4" type="video/mp4">
+              </video>
+              <span class="color1">with buoyancy reversal</span>
+              <img src="media/reversal1.svg">
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="../dist/reveal.js"></script>
+    <script src="../plugin/notes/notes.js"></script>
+    <script src="../plugin/markdown/markdown.js"></script>
+    <script src="../plugin/highlight/highlight.js"></script>
+    <script src="../plugin/math/math.js"></script>
+    <script>
+      Reveal.initialize({
+              controls: false,
+              progress: false,
+              slideNumber: 'c',
+              history: true,
+              center: true,
+              transition: 'none',
+              transitionSpeed: 'fast',
+              backgroundTransition: 'none',
+              hash: true,
+              plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealMath.KaTeX ]
+            });
+    </script>
+  </body>
+</html>

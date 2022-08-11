@@ -1,0 +1,14 @@
+figure.figsize: 2.2, 1.8
+figure.autolayout: True
+font.size: 9
+font.family: sans-serif
+pdf.fonttype: 42
+svg.hashsalt : None
+axes.autolimit_mode: round_numbers
+axes.xmargin: 0
+axes.spines.top: False
+axes.spines.right: False
+axes.unicode_minus: False
+axes.prop_cycle: cycler('color', ['ff1f5b', '00cd6c', '009ade', 'af58ba', 'ffc61e', 'f28522', 'a0b1ba', 'a6761d', 'e9002d', 'ffaa00', '00b000'])
+lines.markersize: 2
+lines.linewidth: 1
