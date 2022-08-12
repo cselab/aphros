@@ -10,9 +10,6 @@
 #include "parse/vars.h"
 
 int main(int argc, const char** argv) {
-// FIXME: This program terminates with segfault
-//        if the type of a variable changes in a subsequent `set`.
-//        Should print and error instead.
   ArgumentParser argparser("Converts configuration to Python");
   argparser.AddVariable<std::string>("input", "-")
       .Help(
@@ -29,10 +26,15 @@ int main(int argc, const char** argv) {
   Vars var;
   Parser parser(var);
   const auto ipath = args.String["input"];
-  if (ipath == "-") {
-    parser.ParseStream(std::cin);
-  } else {
-    parser.ParseFile(ipath);
+  try {
+    if (ipath == "-") {
+      parser.ParseStream(std::cin);
+    } else {
+      parser.ParseFile(ipath);
+    }
+  } catch (const std::runtime_error& e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
   }
 
   auto float_to_str = [](double a) {

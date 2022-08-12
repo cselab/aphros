@@ -52,7 +52,7 @@ class KernelMesh {
   KernelMesh(Vars& var_, const generic::BlockInfoProxy<M::dim>& bi)
       : var(var_), var_mutable(var_), m(CreateMesh<M>(bi)) {
     m.flags.check_nan = var.Int["CHECKNAN"];
-    m.flags.edim = var.Int["dim"];
+    m.flags.edim = std::min<size_t>(var.Int["dim"], M::dim);
     var_mutable.Vect.Set("cell_length", m.GetCellSize());
     var_mutable.Vect.Set("mesh_size", m.GetGlobalSize());
     var_mutable.Vect.Set("domain_length", m.GetGlobalLength());

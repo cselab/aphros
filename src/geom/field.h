@@ -200,50 +200,47 @@ using FieldFace = GField<T, IdxFace>;
 template <class T>
 using FieldNode = GField<T, IdxNode>;
 
-// Write component of vector field
-// to given scalar field (resize if needed).
-// Requires: defined Vect::value_type.
+// Writes one component of vector field to given scalar field.
 template <class Vect, class Idx>
 void GetComponent(
-    const GField<Vect, Idx>& fv, size_t n,
-    GField<typename Vect::value_type, Idx>& fs) {
-  fs.Reinit(fv.GetRange());
-  for (auto i : fv.GetRange()) {
-    fs[i] = fv[i][n];
+    const GField<Vect, Idx>& fvect, size_t comp,
+    GField<typename Vect::value_type, Idx>& fscal) {
+  fassert(comp < Vect::dim);
+  fscal.Reinit(fvect.GetRange());
+  for (auto i : fvect.GetRange()) {
+    fscal[i] = fvect[i][comp];
   }
-  fs.SetHalo(fv.GetHalo());
+  fscal.SetHalo(fvect.GetHalo());
 }
 
-// Return component of vector field.
-// Requires: defined Vect::value_type.
+// Returns component of vector field.
 template <class Vect, class Idx>
 GField<typename Vect::value_type, Idx> GetComponent(
-    const GField<Vect, Idx>& fv, size_t n) {
+    const GField<Vect, Idx>& fvect, size_t comp) {
   using Scal = typename Vect::value_type;
-  GField<Scal, Idx> fs(fv.GetRange());
-  GetComponent(fv, n, fs);
-  return fs;
+  GField<Scal, Idx> fscal(fvect.GetRange());
+  GetComponent(fvect, comp, fscal);
+  return fscal;
 }
 
-// Set component of vector field.
-// Requires: defined Vect::value_type.
+// Sets component of vector field.
 template <class Vect, class Idx>
 void SetComponent(
-    GField<Vect, Idx>& fv, size_t n,
-    const GField<typename Vect::value_type, Idx>& fs) {
-  for (auto i : fv.GetRange()) {
-    fv[i][n] = fs[i];
+    GField<Vect, Idx>& fvect, size_t comp,
+    const GField<typename Vect::value_type, Idx>& fscal) {
+  fassert_equal(fscal.size(), fvect.size());
+  for (auto i : fvect.GetRange()) {
+    fvect[i][comp] = fscal[i];
   }
-  fv.SetHalo(std::min(fv.GetHalo(), fs.GetHalo()));
+  fvect.SetHalo(std::min(fvect.GetHalo(), fscal.GetHalo()));
 }
 
-// Set component of vector field.
-// Requires: defined Vect::value_type.
+// Sets component of vector field.
 template <class Vect, class Idx>
 void SetComponent(
-    GField<Vect, Idx>& fv, size_t n, const typename Vect::value_type& s) {
-  for (auto i : fv.GetRange()) {
-    fv[i][n] = s;
+    GField<Vect, Idx>& fvect, size_t comp, const typename Vect::value_type& s) {
+  for (auto i : fvect.GetRange()) {
+    fvect[i][comp] = s;
   }
 }
 

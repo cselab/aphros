@@ -31,9 +31,8 @@ void Hdf<M>::WriteXmf(
 
 template <class M>
 void Hdf<M>::WriteBlocks(
-    const std::string& path, const std::vector<MIdx>& starts,
-    const std::vector<MIdx>& sizes, const std::vector<std::vector<Scal>>& data,
-    MIdx global_size, Type type, std::string dname, const MpiWrapper& mpi,
-    bool append) {}
+    const std::string&, const std::vector<MIdx>&, const std::vector<MIdx>&,
+    const std::vector<std::vector<Scal>>&, MIdx, Type, std::string,
+    const MpiWrapper&, bool) {}
 
 } // namespace dump

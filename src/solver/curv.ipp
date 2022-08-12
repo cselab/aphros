@@ -618,6 +618,7 @@ std::unique_ptr<Estimator<M>> MakeEstimator(
     return std::make_unique<curvature::Hybrid<M>>(m, psm, layers);
   }
   fassert(false, util::Format("Unknown curvature estimator '{}'", name));
+  return nullptr;
 }
 
 } // namespace curvature

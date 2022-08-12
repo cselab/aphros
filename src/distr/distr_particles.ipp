@@ -108,7 +108,7 @@ void TransferParticlesLocal(
     for (auto& kernel : kernels) {
       auto& m = kernel->GetMesh();
       auto& req = m.GetCommPart()[q];
-      const int id = m.GetId();
+      const size_t id = m.GetId();
       fassert(id < kernels.size());
       (*req.x) = tmp_x[id];
       req.inner->resize(req.x->size());

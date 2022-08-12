@@ -82,6 +82,9 @@ class Direction {
   IdxNci nci() const {
     return IdxNci(index_ * 2 + side_.raw());
   }
+  char letter() const {
+    return GDir<dim>(index_).letter();
+  }
 
  private:
   size_t index_; // direction, [0, dim - 1]

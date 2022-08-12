@@ -294,7 +294,10 @@ class Stat {
             out << n;
             break;
           case Type::vect:
-            out << n << ".x " << n << ".y " << n << ".z";
+            for (size_t i : M::dirs) {
+              if (i) out << ' ';
+              out << n << '.' << M::direction(i).letter();
+            }
             break;
         }
       }
@@ -313,7 +316,10 @@ class Stat {
             break;
           case Type::vect:
             auto& v = values_vect_.at(n);
-            out << v[0] << ' ' << v[1] << ' ' << v[2];
+            for (size_t i : M::dirs) {
+              if (i) out << ' ';
+              out << v[i];
+            }
             break;
         }
       }

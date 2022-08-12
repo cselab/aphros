@@ -24,4 +24,5 @@ auto ULinear<M_>::MakeLinearSolver(
     return mod->Make(var, prefix, m);
   }
   fassert(false, "Unknown linsolver_" + prefix + "=" + name);
+  return nullptr;
 }
