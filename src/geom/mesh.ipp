@@ -4,7 +4,23 @@
 #include "mesh.h"
 
 template <class Scal, size_t dim>
+constexpr size_t MeshCartesian<Scal, dim>::dim;
+template <class Scal, size_t dim>
 constexpr generic::Range<size_t> MeshCartesian<Scal, dim>::dirs;
+template <class Scal, size_t dim>
+constexpr size_t MeshCartesian<Scal, dim>::kCellNumNeighborFaces;
+template <class Scal, size_t dim>
+constexpr size_t MeshCartesian<Scal, dim>::kCellNumNeighborNodes;
+template <class Scal, size_t dim>
+constexpr size_t MeshCartesian<Scal, dim>::kFaceNumNeighborNodes;
+template <class Scal, size_t dim>
+constexpr size_t MeshCartesian<Scal, dim>::kFaceNumNeighborCells;
+template <class Scal, size_t dim>
+constexpr size_t MeshCartesian<Scal, dim>::kNumStencil;
+template <class Scal, size_t dim>
+constexpr size_t MeshCartesian<Scal, dim>::kNumStencil5;
+template <class Scal, size_t dim>
+constexpr bool MeshCartesian<Scal, dim>::kIsEmbed;
 
 template <class _Scal, size_t _dim>
 struct MeshCartesian<_Scal, _dim>::Imp {
