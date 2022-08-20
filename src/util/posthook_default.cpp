@@ -11,13 +11,6 @@ void PostHook(
     const Vars&, const FieldCell<typename M::Vect>&, M&, const Embed<M>&) {}
 
 template <class M>
-void InitVelHook(FieldCell<typename M::Vect>&, const Vars&, const M&) {}
-
-template <class M>
-void InitVelHook(
-    FieldCell<typename M::Vect>&, const Vars&, const M&, const Embed<M>&) {}
-
-template <class M>
 void InitEmbedHook(FieldNode<typename M::Scal>&, const Vars&, const M&) {}
 
 template <class M>
@@ -27,6 +20,15 @@ void FluidDummyHook(
 
 template <class M>
 void InitHook(Hydro<M>*) {}
+
+template <class M>
+void InitVelHook(
+    FieldCell<typename M::Vect>&, Hydro<M>*, const Vars&, const M&) {}
+
+template <class M>
+void InitVelHook(
+    FieldCell<typename M::Vect>&, Hydro<M>*, const Vars&, const M&,
+    const Embed<M>&) {}
 
 template <class M>
 void PreStepHook(Hydro<M>*) {}
@@ -42,9 +44,9 @@ void FinalHook(Hydro<M>*) {}
   template void PostHook(                                                      \
       const Vars&, const FieldCell<typename M::Vect>&, M&, const Embed<M>&);   \
   template void InitVelHook(                                                   \
-      FieldCell<typename M::Vect>&, const Vars&, const M&);                    \
+      FieldCell<typename M::Vect>&, Hydro<M>*, const Vars&, const M&);                    \
   template void InitVelHook(                                                   \
-      FieldCell<typename M::Vect>&, const Vars&, const M&, const Embed<M>&);   \
+      FieldCell<typename M::Vect>&, Hydro<M>*, const Vars&, const M&, const Embed<M>&);   \
   template void InitEmbedHook(                                                 \
       FieldNode<typename M::Scal>&, const Vars&, const M&);                    \
   template void FluidDummyHook(                                                \

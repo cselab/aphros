@@ -16,15 +16,6 @@ void PostHook(
     const Embed<M>& eb);
 
 template <class M>
-void InitVelHook(
-    FieldCell<typename M::Vect>& fcvel, const Vars& var, const M& m);
-
-template <class M>
-void InitVelHook(
-    FieldCell<typename M::Vect>& fcvel, const Vars& var, const M& m,
-    const Embed<M>& eb);
-
-template <class M>
 void InitEmbedHook(
     FieldNode<typename M::Scal>& fn_levelset, const Vars& var, const M& m);
 
@@ -38,6 +29,16 @@ class Hydro;
 
 template <class M>
 void InitHook(Hydro<M>*);
+
+template <class M>
+void InitVelHook(
+    FieldCell<typename M::Vect>& fcvel, Hydro<M>*, const Vars& var, const M& m);
+
+template <class M>
+void InitVelHook(
+    FieldCell<typename M::Vect>& fcvel, Hydro<M>*, const Vars& var, const M& m,
+    const Embed<M>& eb);
+
 
 template <class M>
 void PreStepHook(Hydro<M>*);

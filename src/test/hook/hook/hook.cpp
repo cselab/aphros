@@ -3,11 +3,13 @@
 
 #include <iostream>
 
+#include <kernel/hydro.h>
 #include <parse/config.h>
 #include <util/posthook.h>
 
 template <class M>
-void InitVelHook(FieldCell<typename M::Vect>&, const Vars& var, const M&) {
+void InitVelHook(
+    FieldCell<typename M::Vect>&, Hydro<M>*, const Vars& var, const M&) {
   struct : public ConfigBase {
     VAR_INT(var0);
     VAR_DOUBLE(var1);
@@ -21,4 +23,5 @@ void InitVelHook(FieldCell<typename M::Vect>&, const Vars& var, const M&) {
 }
 
 using M = MeshCartesian<double, 3>;
-template void InitVelHook(FieldCell<typename M::Vect>&, const Vars&, const M&);
+template void InitVelHook(
+    FieldCell<typename M::Vect>&, Hydro<M>*, const Vars&, const M&);
