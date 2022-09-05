@@ -2426,15 +2426,16 @@ void Hydro<M>::Run() {
       Dump(true);
     }
   }
-  if (sem()) {
-    m.DumpCommit();
-  }
-
   if (sem.Nested("posthook") && finished_) {
     if (eb_) {
-      PostHook(var, fs_->GetVelocity(), m, *eb_);
+      PostHook(var, fs_->GetVelocity(), this, m, *eb_);
     } else {
-      PostHook(var, fs_->GetVelocity(), m);
+      PostHook(var, fs_->GetVelocity(), this, m);
+    }
+  }
+  if (sem() && finished_) {
+    if (var.Int["dumplast"]) {
+      m.DumpCommit();
     }
   }
   if (sem.Nested("finalhook") && finished_) {

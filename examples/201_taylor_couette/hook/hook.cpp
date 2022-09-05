@@ -3,7 +3,17 @@
 
 #include <fstream>
 
+#include <kernel/hydro.h>
 #include <util/posthook.h>
+
+// Local context, one for each block.
+template <class M>
+struct HookContext {
+  using Scal = typename M::Scal;
+  FieldCell<Scal> fc_theta;
+  FieldCell<Scal> fc_theta_exact;
+  FieldCell<Scal> fc_theta_error;
+};
 
 template <class M>
 std::vector<generic::Vect<typename M::Scal, 3>> GetNorms(
@@ -56,45 +66,55 @@ std::vector<generic::Vect<typename M::Scal, 3>> GetNorms(
 }
 
 template <class M>
+void InitHook(Hydro<M>* hydro) {
+  auto& m = hydro->m;
+  auto sem = m.GetSem();
+  if (sem()) {
+    // Create local context.
+    hydro->hook_context_ =
+        std::make_unique<Holder<HookContext<M>>>(new HookContext<M>());
+  }
+}
+
+template <class M>
 void PostHook(
-    const Vars& var, const FieldCell<typename M::Vect>& fcvel, M& m,
-    const Embed<M>& eb) {
+    const Vars& var, const FieldCell<typename M::Vect>& fcvel, Hydro<M>* hydro,
+    M& m, const Embed<M>& eb) {
   using Scal = typename M::Scal;
   using Vect = typename M::Vect;
   auto sem = m.GetSem();
   struct {
-    FieldCell<Scal> fc_theta;
-    FieldCell<Scal> fc_theta_exact;
-    FieldCell<Scal> fc_theta_error;
     std::vector<generic::Vect<Scal, 3>> vnorms;
   } * ctx(sem);
-  auto& fc_theta = ctx->fc_theta;
-  auto& fc_theta_exact = ctx->fc_theta_exact;
-  auto& fc_theta_error = ctx->fc_theta_error;
-  auto& vnorms = ctx->vnorms;
+  auto& t = *ctx;
+  auto* hctx =
+      dynamic_cast<Holder<HookContext<M>>*>(hydro->hook_context_.get())->Get();
+  auto& ht = *hctx;
   const Vect xc(0.5, 0.5, 0);
   const Scal r0 = 0.2;
   const Scal r1 = 0.4;
   if (sem()) {
-    fc_theta.Reinit(eb, 0);
-    fc_theta_error.Reinit(eb, 0);
-    fc_theta_exact.Reinit(eb, 0);
+    auto* hctx =
+        dynamic_cast<Holder<HookContext<M>>*>(hydro->hook_context_.get())->Get();
+    ht.fc_theta.Reinit(eb, 0);
+    ht.fc_theta_error.Reinit(eb, 0);
+    ht.fc_theta_exact.Reinit(eb, 0);
 
     for (auto c : eb.Cells()) {
       Vect dx = m.GetCenter(c) - xc;
       dx[2] = 0;
       const Vect dxuni = dx / dx.norm();
-      fc_theta[c] = dxuni.cross_third(fcvel[c]);
+      ht.fc_theta[c] = dxuni.cross_third(fcvel[c]);
       const Scal r = dx.norm();
-      fc_theta_exact[c] = r * (sqr(r1 / r) - 1) / (sqr(r1 / r0) - 1) / r0;
-      fc_theta_error[c] = fc_theta[c] - fc_theta_exact[c];
+      ht.fc_theta_exact[c] = r * (sqr(r1 / r) - 1) / (sqr(r1 / r0) - 1) / r0;
+      ht.fc_theta_error[c] = ht.fc_theta[c] - ht.fc_theta_exact[c];
     }
-    m.Dump(&fc_theta, "theta");
-    m.Dump(&fc_theta_exact, "theta_exact");
-    m.Dump(&fc_theta_error, "theta_error");
+    m.Dump(&ht.fc_theta, "theta");
+    m.Dump(&ht.fc_theta_exact, "theta_exact");
+    m.Dump(&ht.fc_theta_error, "theta_error");
   }
   if (sem.Nested()) {
-    vnorms = GetNorms({&fc_theta_error}, m, eb);
+    t.vnorms = GetNorms({&ht.fc_theta_error}, m, eb);
   }
   if (sem()) {
     if (m.IsRoot()) {
@@ -102,11 +122,10 @@ void PostHook(
       auto nx = m.GetGlobalSize()[0];
       auto cells_per_diameter = nx * r0 * 2;
       fout << cells_per_diameter << " ";
-      const auto v = vnorms[0];
+      const auto v = t.vnorms[0];
       fout << v[0] << " " << v[1] << " " << v[2] << std::endl;
     }
   }
-  (void)var;
 }
 
 using M = MeshCartesian<double, 3>;
@@ -114,4 +133,6 @@ using Scal = typename M::Scal;
 using Vect = typename M::Vect;
 using EB = Embed<M>;
 
-template void PostHook(const Vars&, const FieldCell<Vect>&, M&, const EB&);
+template void InitHook(Hydro<M>*);
+template void PostHook(
+    const Vars&, const FieldCell<Vect>&, Hydro<M>*, M&, const EB&);

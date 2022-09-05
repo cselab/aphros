@@ -8,14 +8,6 @@
 #include "solver/embed.h"
 
 template <class M>
-void PostHook(const Vars& var, const FieldCell<typename M::Vect>& fcvel, M& m);
-
-template <class M>
-void PostHook(
-    const Vars& var, const FieldCell<typename M::Vect>& fcvel, M& m,
-    const Embed<M>& eb);
-
-template <class M>
 void InitEmbedHook(
     FieldNode<typename M::Scal>& fn_levelset, const Vars& var, const M& m);
 
@@ -39,6 +31,14 @@ void InitVelHook(
     FieldCell<typename M::Vect>& fcvel, Hydro<M>*, const Vars& var, const M& m,
     const Embed<M>& eb);
 
+template <class M>
+void PostHook(
+    const Vars& var, const FieldCell<typename M::Vect>& fcvel, Hydro<M>*, M& m);
+
+template <class M>
+void PostHook(
+    const Vars& var, const FieldCell<typename M::Vect>& fcvel, Hydro<M>*, M& m,
+    const Embed<M>& eb);
 
 template <class M>
 void PreStepHook(Hydro<M>*);

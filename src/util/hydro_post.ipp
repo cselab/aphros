@@ -108,14 +108,14 @@ struct HydroPost<M>::Imp {
   };
   static void DumpFields(Hydro<M>* hydro, M& m) {
     auto sem = m.GetSem("dumpfields");
-    struct {
-      // containers that do not invalidate pointers on insertion
-      std::stack<FieldCell<Scal>> stack_fc;
-      std::stack<FieldCell<Vect>> stack_fcv;
-    } * ctx(sem);
-    auto& t = *ctx;
     const auto& var = hydro->var;
+    auto& stack_fc = hydro->dump_stack_fc_;
+    auto& stack_fcv = hydro->dump_stack_fcv_;
     if (sem("dump")) {
+      // Clear containers for temporary fields.
+      stack_fc = std::stack<FieldCell<Scal>>();
+      stack_fcv = std::stack<FieldCell<Vect>>();
+
       if (m.IsRoot()) {
         hydro->dumper_.Report(std::cerr);
       }
@@ -139,8 +139,8 @@ struct HydroPost<M>::Imp {
       dumpv(fc_vel, 1, "vy");
       dumpv(fc_vel, 2, "vz");
       if (dl.count("vm")) {
-        t.stack_fc.emplace(m, 0);
-        auto& fc_vel_magn = t.stack_fc.top();
+        stack_fc.emplace(m, 0);
+        auto& fc_vel_magn = stack_fc.top();
         for (auto c : m.Cells()) {
           fc_vel_magn[c] = fc_vel[c].norm();
         }
@@ -156,16 +156,16 @@ struct HydroPost<M>::Imp {
       dumpv(hydro->fc_wall_dist_, 1, "walldisty");
       dumpv(hydro->fc_wall_dist_, 2, "walldistz");
       if (dl.count("cellcond")) {
-        t.stack_fc.emplace(m, 0);
-        auto& fc_cellcond = t.stack_fc.top();
+        stack_fc.emplace(m, 0);
+        auto& fc_cellcond = stack_fc.top();
         for (auto& it : hydro->mc_velcond_) {
           fc_cellcond[it.first] = 1;
         }
         m.Dump(&fc_cellcond, "cellcond");
       }
       if (dl.count("blockid")) {
-        t.stack_fc.emplace(m, m.GetId());
-        auto& fc_blockid = t.stack_fc.top();
+        stack_fc.emplace(m, m.GetId());
+        auto& fc_blockid = stack_fc.top();
         m.Dump(&fc_blockid, "blockid");
       }
       if (dl.count("omx") || dl.count("omy") || dl.count("omz") ||
@@ -196,8 +196,8 @@ struct HydroPost<M>::Imp {
         dump(hydro->fcomm_, "omm");
       }
       if (dl.count("fluxx") || dl.count("fluxy") || dl.count("fluxz")) {
-        t.stack_fcv.emplace(m, Vect(0));
-        auto& fc_flux = t.stack_fcv.top();
+        stack_fcv.emplace(m, Vect(0));
+        auto& fc_flux = stack_fcv.top();
         auto& ffv = hydro->fs_->GetVolumeFlux();
         for (auto c : m.Cells()) {
           for (auto d : m.dirs) {
@@ -214,8 +214,8 @@ struct HydroPost<M>::Imp {
           m.Dump(&hydro->fc_strain_, "strain");
         }
         if (dl.count("dis")) {
-          t.stack_fc.push(hydro->fc_strain_);
-          auto& fc_dis = t.stack_fc.top();
+          stack_fc.push(hydro->fc_strain_);
+          auto& fc_dis = stack_fc.top();
           for (auto c : m.Cells()) {
             fc_dis[c] *= 2. * hydro->fc_mu_[c];
           }
@@ -223,8 +223,8 @@ struct HydroPost<M>::Imp {
         }
       }
       if (dl.count("div")) {
-        t.stack_fc.push(hydro->GetDiv());
-        m.Dump(&t.stack_fc.top(), "div");
+        stack_fc.push(hydro->GetDiv());
+        m.Dump(&stack_fc.top(), "div");
       }
       using ASV = typename Hydro<M>::ASV;
       using ASVEB = typename Hydro<M>::ASVEB;
@@ -260,8 +260,8 @@ struct HydroPost<M>::Imp {
 
         // image vector
         for (auto l : hydro->layers) {
-          t.stack_fcv.emplace(m, Vect(0));
-          auto& fcim = t.stack_fcv.top();
+          stack_fcv.emplace(m, Vect(0));
+          auto& fcim = stack_fcv.top();
           auto& fcim_midx = *as->GetImage()[l];
           for (auto c : m.Cells()) {
             fcim[c] = Vect(fcim_midx[c]);
@@ -277,8 +277,8 @@ struct HydroPost<M>::Imp {
       if (hydro->eb_) {
         auto& eb = *hydro->eb_;
         if (dl.count("ebvf")) {
-          t.stack_fc.emplace(m, 0);
-          auto& fc_ebvf = t.stack_fc.top();
+          stack_fc.emplace(m, 0);
+          auto& fc_ebvf = stack_fc.top();
           for (auto c : eb.Cells()) {
             fc_ebvf[c] = eb.GetVolumeFraction(c);
           }
@@ -286,8 +286,8 @@ struct HydroPost<M>::Imp {
         }
         // Face area.
         if (dl.count("ebsx") || dl.count("ebsy") || dl.count("ebsz")) {
-          t.stack_fcv.emplace(m, Vect(0));
-          auto& fcs = t.stack_fcv.top();
+          stack_fcv.emplace(m, Vect(0));
+          auto& fcs = stack_fcv.top();
           for (auto c : m.Cells()) {
             for (auto d : m.dirs) {
               const IdxFace f = m.GetFace(c, IdxNci(d * 2));
@@ -305,8 +305,8 @@ struct HydroPost<M>::Imp {
           dump(tracer->GetVolumeFraction()[l], "tu" + std::to_string(l));
         }
         if (dl.count("tusum")) {
-          t.stack_fc.emplace(m, 0);
-          auto& fc_tracer_sum = t.stack_fc.top();
+          stack_fc.emplace(m, 0);
+          auto& fc_tracer_sum = stack_fc.top();
           for (auto l : tracer->GetView().layers) {
             if (l > 0) {
               const auto& fc = tracer->GetVolumeFraction()[l];
@@ -324,8 +324,8 @@ struct HydroPost<M>::Imp {
         dumpv(electro->GetCurrent(), 1, "elcury");
         dumpv(electro->GetCurrent(), 2, "elcurz");
         if (dl.count("elcurfx") || dl.count("elcurfy") || dl.count("elcurfz")) {
-          t.stack_fcv.emplace(m, Vect(0));
-          auto& fccur = t.stack_fcv.top();
+          stack_fcv.emplace(m, Vect(0));
+          auto& fccur = stack_fcv.top();
           auto& ffcur = electro->GetFaceCurrent();
           for (auto c : m.Cells()) {
             for (auto d : m.dirs) {

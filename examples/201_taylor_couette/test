@@ -34,16 +34,17 @@ class Test(aphros.TestBase):
         return [er]
 
     def run(self, case):
-        ret = []
+        res = []
         if case == Cases.single:
-            ret += self.run_nx(64)
-            ret.append("theta_error_0001.h5")
+            res += self.run_nx(64)
+            res.append("theta_error_0000.raw")
+            res.append("theta_error_0000.xmf")
         elif case == Cases.convergence:
             nx = 32
             while nx <= self.args.maxnx:
-                ret += self.run_nx(nx)
+                res += self.run_nx(nx)
                 nx *= 2
-        return ret
+        return res
 
     def check(self, outdir, refdir, output_files):
         return True
@@ -111,15 +112,13 @@ class Test(aphros.TestBase):
     def plot_error_field(self, datadir, refdir, files):
         import aphros.plot
         import numpy as np
-        import h5py
 
-        f = os.path.join(datadir, "theta_error_0001.h5")
+        f = os.path.join(datadir, "theta_error_0000.xmf")
         if not os.path.isfile(f):
+            self.printlog("File '{:}' not found. Skiping field plot".format(f))
             return
-        with h5py.File(f, 'r') as h:
-            u = h['data']
-            u = np.array(u)
-            u = u[0, :, :, 0]
+        u = aphros.read_raw(f)
+        u = u[0, :, :]
 
         fig, ax = aphros.plot.GetSquareFigure(aspect=0.885)
 

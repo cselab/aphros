@@ -29,3 +29,4 @@ tl
 output
 !Makefile
 hook/build
+*.raw

@@ -257,6 +257,13 @@ class Hydro : public KernelMeshPar<M_, GPar<M_>> {
   std::shared_ptr<linear::Solver<M>> linsolver_symm_;
   std::shared_ptr<linear::Solver<M>> linsolver_electro_;
 
+  // Containers for temporary dump fields that do not invalidate pointers on
+  // insertion. Used to be in ctx in DumpFields(). But after introduction of
+  // m.DumpCommit(), temporary fields need to persist after the call of
+  // DumpFields().
+  std::stack<FieldCell<Scal>> dump_stack_fc_;
+  std::stack<FieldCell<Vect>> dump_stack_fcv_;
+
   std::unique_ptr<TracerInterface<M>> tracer_;
   Multi<FieldCell<Scal>> fc_tracer_source_;
 
