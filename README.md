@@ -124,7 +124,7 @@ Aphros is developed and maintained by researchers at [ETH Zurich](https://www.cs
 
 * [Petr Karnakov](https://www.cse-lab.ethz.ch/member/petr-karnakov/)
   [<img src="https://cselab.github.io/aphros/images/twitter.png" height=16>](https://twitter.com/pkarnakov)
-  [<img src="https://cselab.github.io/aphros/images/youtube.png" height=16>](https://www.youtube.com/channel/UCFCRbISdZGWum5E5q-kuOPw)
+  [<img src="https://cselab.github.io/aphros/images/youtube.png" height=16>](https://www.youtube.com/@pkarnakov)
   (thesis [[9]](https://doi.org/10.3929/ethz-b-000547518))
 * [Sergey Litvinov](https://www.cse-lab.ethz.ch/member/sergey-litvinov/)
 
