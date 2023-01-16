@@ -127,7 +127,7 @@ LAMMPS polymers in Taylor-Green vortex [[conf]](examples/212_polymers) | Bubble 
 
 Aphros is developed and maintained by researchers at [ETH Zurich](https://www.cse-lab.ethz.ch) and [Harvard University](https://cse-lab.seas.harvard.edu/)
 
-* [Petr Karnakov](https://www.cse-lab.ethz.ch/member/petr-karnakov/)
+* [Petr Karnakov](https://cse-lab.seas.harvard.edu/people/petr-karnakov)
   [<img src="[[IMAGES]]/twitter.png" height=16>](https://twitter.com/pkarnakov)
   [<img src="[[IMAGES]]/youtube.png" height=16>](https://www.youtube.com/@pkarnakov)
   (thesis [[ref:thesis]])
