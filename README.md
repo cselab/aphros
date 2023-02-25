@@ -102,16 +102,18 @@ Links `[conf]` lead to the solver configuration.
 :---:|:---:
 [<img src="https://cselab.github.io/aphros/videos/preview/thumb/coalescence.jpg" height=150>](https://www.youtube.com/watch?v=pRWGhGoQjyI) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/taylor_green.jpg" height=150>](https://www.youtube.com/watch?v=lCf_T0C5Kmg)
 Coalescence of bubbles [[conf]](examples/202_coalescence) [[4]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103209) | Taylor-Green vortex with bubbles [[2]](https://doi.org/10.1145/3324989.3325727) [[5]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103286)
+[<img src="https://cselab.github.io/aphros/videos/preview/thumb/reactor.jpg" height=150>](https://www.youtube.com/watch?v=xEo51gqLdds) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/reactor_full2.jpg" height=150>](https://www.youtube.com/watch?v=Rm-xDGpIEJA)
+Bubble jump-off [[1]](https://doi.org/10.1039/C9EE00219G) | Electrochemical reactor [[9]](https://doi.org/10.3929/ethz-b-000547518)
 [<img src="https://cselab.github.io/aphros/videos/preview/thumb/vortex_bubble.jpg" height=200>](https://www.youtube.com/watch?v=x9hk6pcicj0) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/plunging_jet.jpg" height=200>](https://www.youtube.com/watch?v=9NPoiHHFkh0)
 Bubble trapped by vortex ring [[5]](https://doi.org/10.1016/j.ijmultiphaseflow.2020.103286) | Plunging jet [[2]](https://doi.org/10.1145/3324989.3325727)
-[<img src="https://cselab.github.io/aphros/videos/preview/thumb/reactor.jpg" height=150>](https://www.youtube.com/watch?v=xEo51gqLdds) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/mesh_bubbles.jpg" height=150>](https://www.youtube.com/watch?v=rs7OhSixm5c)
-Electrochemical reactor [[1]](https://doi.org/10.1039/C9EE00219G) | Bubbles through mesh
 [<img src="https://cselab.github.io/aphros/videos/preview/thumb/rising_bubbles.jpg" height=150>](https://www.youtube.com/watch?v=WzOe0buD8uM) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/foaming_waterfall.jpg" height=150>](https://www.youtube.com/watch?v=0Cj8pPYNJGY)
  Clustering of bubbles [[conf]](examples/205_multivof/clustering) [[6]](https://doi.org/10.1103/APS.DFD.2019.GFM.V0018) [[7]](https://www.cscs.ch/publications/annual-reports/cscs-annual-report-2019) [[11]](https://doi.org/10.1126/sciadv.abm0590) | Foaming waterfall [[conf]](examples/205_multivof/waterfall) [[8]](https://doi.org/10.1145/3394277.3401856) [[11]](https://doi.org/10.1126/sciadv.abm0590)
 [<img src="https://cselab.github.io/aphros/videos/preview/thumb/bidisperse.jpg" height=150>](https://www.youtube.com/watch?v=2fm_JX9-Wbg) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/crystal.jpg" height=45>](https://www.youtube.com/watch?v=8iPmOsXnXAM)
  Bidisperse foam [[conf]](examples/205_multivof/bidisperse) [[11]](https://doi.org/10.1126/sciadv.abm0590) | Microfluidic crystals [[conf]](examples/205_multivof/crystal) [[11]](https://doi.org/10.1126/sciadv.abm0590)
 [<img src="https://cselab.github.io/aphros/videos/preview/thumb/lammps_polymers.jpg" height=200>](https://www.youtube.com/watch?v=scz2YVKmDaQ) | [<img src="https://cselab.github.io/aphros/videos/preview/thumb/korali_pipe.jpg" height=200>](https://www.youtube.com/watch?v=O5Dhnjrfe8A)
 LAMMPS polymers in Taylor-Green vortex [[conf]](examples/212_polymers) | Bubble pipe optimization [[10]](https://doi.org/10.1016/j.cma.2021.114264)
+[<img src="https://cselab.github.io/aphros/videos/preview/thumb/mesh_bubbles.jpg" height=150>](https://www.youtube.com/watch?v=rs7OhSixm5c) |
+Bubbles through mesh |
 
 |     |
 |:---:|
