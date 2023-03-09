@@ -12,9 +12,9 @@ except ImportError:
     pass
 
 def NormalizeType(v):
-    if isinstance(v, (float, np.float, np.float32, np.float64)):
+    if isinstance(v, (float, np.float32, np.float64)):
         v = float(v)
-    elif isinstance(v, (int, np.int, np.int32, np.int64)):
+    elif isinstance(v, (int, np.int32, np.int64)):
         v = int(v)
     elif isinstance(v, str):
         v = str(v)
