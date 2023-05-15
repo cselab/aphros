@@ -1,3 +1,7 @@
+#include <cstdint>
+
+using uint32_t = std::uint32_t;
+
 static Scal util_max(Scal x, Scal y) {
   return x > y ? x : y;
 }

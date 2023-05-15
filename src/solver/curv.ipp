@@ -588,7 +588,7 @@ void Hybrid<M_>::CalcCurvature(
 
 template <class M_>
 std::unique_ptr<PartStrMeshM<M_>> Hybrid<M_>::ReleaseParticles() {
-  return std::move(imp->particles_->ReleaseParticles());
+  return imp->particles_->ReleaseParticles();
 }
 
 template <class M_>

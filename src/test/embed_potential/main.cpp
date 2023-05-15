@@ -83,7 +83,7 @@ void Run(M& m, Vars& var) {
     FieldNode<Scal> fnl;
     std::shared_ptr<linear::Solver<M>> linsolver;
     typename UInitEmbedBc<M>::PlainBc bc;
-    std::array<FieldCell<Scal>, M::dim + 1> comps;
+    std::array<FieldCell<Scal>, 2 * M::dim + 1> comps;
     FieldCell<Scal> fc_residual;
     size_t nsteps;
     FieldCell<Scal> fc_gradexp;
