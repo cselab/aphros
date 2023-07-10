@@ -190,7 +190,7 @@ void Hydro<M>::InitEmbed() {
     if (sem.Nested("levelset")) {
       UEB::InitLevelSet(ctx->fnl, m, var, m.IsRoot() && !silent_);
     }
-    if (sem("hook")) {
+    if (sem.Nested("embedhook")) {
       InitEmbedHook(ctx->fnl, var, m);
     }
     if (sem.Nested("smoothen")) {

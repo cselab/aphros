@@ -4,7 +4,7 @@
 #include "posthook.h"
 
 template <class M>
-void InitEmbedHook(FieldNode<typename M::Scal>&, const Vars&, const M&) {}
+void InitEmbedHook(FieldNode<typename M::Scal>&, const Vars&, M&) {}
 
 template <class M>
 void FluidDummyHook(
@@ -40,25 +40,24 @@ void PostHook(
 template <class M>
 void FinalHook(Hydro<M>*) {}
 
-#define XX(M)                                                          \
-  template void PostHook(                                              \
-      const Vars&, const FieldCell<typename M::Vect>&, Hydro<M>*, M&); \
-  template void PostHook(                                              \
-      const Vars&, const FieldCell<typename M::Vect>&, Hydro<M>*, M&,  \
-      const Embed<M>&);                                                \
-  template void InitVelHook(                                           \
-      FieldCell<typename M::Vect>&, Hydro<M>*, const Vars&, const M&); \
-  template void InitVelHook(                                           \
-      FieldCell<typename M::Vect>&, Hydro<M>*, const Vars&, const M&,  \
-      const Embed<M>&);                                                \
-  template void InitEmbedHook(                                         \
-      FieldNode<typename M::Scal>&, const Vars&, const M&);            \
-  template void FluidDummyHook(                                        \
-      FieldCell<typename M::Vect>&, FieldFace<typename M::Scal>&,      \
-      typename M::Scal t, typename M::Scal dt, const Vars&, const M&); \
-  template void InitHook(Hydro<M>*);                                   \
-  template void PreStepHook(Hydro<M>*);                                \
-  template void StepHook(Hydro<M>*);                                   \
+#define XX(M)                                                                 \
+  template void PostHook(                                                     \
+      const Vars&, const FieldCell<typename M::Vect>&, Hydro<M>*, M&);        \
+  template void PostHook(                                                     \
+      const Vars&, const FieldCell<typename M::Vect>&, Hydro<M>*, M&,         \
+      const Embed<M>&);                                                       \
+  template void InitVelHook(                                                  \
+      FieldCell<typename M::Vect>&, Hydro<M>*, const Vars&, const M&);        \
+  template void InitVelHook(                                                  \
+      FieldCell<typename M::Vect>&, Hydro<M>*, const Vars&, const M&,         \
+      const Embed<M>&);                                                       \
+  template void InitEmbedHook(FieldNode<typename M::Scal>&, const Vars&, M&); \
+  template void FluidDummyHook(                                               \
+      FieldCell<typename M::Vect>&, FieldFace<typename M::Scal>&,             \
+      typename M::Scal t, typename M::Scal dt, const Vars&, const M&);        \
+  template void InitHook(Hydro<M>*);                                          \
+  template void PreStepHook(Hydro<M>*);                                       \
+  template void StepHook(Hydro<M>*);                                          \
   template void FinalHook(Hydro<M>*);
 
 #define COMMA ,

@@ -9,7 +9,7 @@
 
 template <class M>
 void InitEmbedHook(
-    FieldNode<typename M::Scal>& fn_levelset, const Vars& var, const M& m);
+    FieldNode<typename M::Scal>& fn_levelset, const Vars& var, M& m);
 
 template <class M>
 void FluidDummyHook(
