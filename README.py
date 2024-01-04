@@ -64,6 +64,14 @@ cd src
 make
 ```
 
+### Code Ocean
+
+The [Code Ocean](https://codeocean.com/) platform hosts the following compute capsule
+
+* [Computing foaming flows across scales: from breaking waves to microfluidics](https://codeocean.com/capsule/7188369/tree/v1)
+
+which builds Aphros in a Linux environment, runs a set of examples, and visualizes the results.
+
 ### Docker
 
 Instead of building the code in your system, you can build a Docker
@@ -127,7 +135,7 @@ Bubbles through mesh |
 
 ## Developers
 
-Aphros is developed and maintained by researchers at [ETH Zurich](https://www.cse-lab.ethz.ch) and [Harvard University](https://cse-lab.seas.harvard.edu/)
+Aphros is developed by researchers at [ETH Zurich](https://www.cse-lab.ethz.ch) and [Harvard University](https://cse-lab.seas.harvard.edu/)
 
 * [Petr Karnakov](https://cse-lab.seas.harvard.edu/people/petr-karnakov)
   [<img src="[[IMAGES]]/twitter.png" height=16>](https://twitter.com/pkarnakov)
@@ -135,7 +143,7 @@ Aphros is developed and maintained by researchers at [ETH Zurich](https://www.cs
   (thesis [[ref:thesis]])
 * [Sergey Litvinov](https://www.cse-lab.ethz.ch/member/sergey-litvinov/)
 
-under the supervision of
+advised by
 
 * [Prof. Petros Koumoutsakos](https://www.seas.harvard.edu/person/petros-koumoutsakos)
 
