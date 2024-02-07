@@ -7,6 +7,9 @@
 #define XX(M)                                                                 \
   template void InitVf(                                                       \
       FieldCell<typename M::Scal>& fcu, const Vars& var, M& m, bool verbose); \
+  template void InitVfList(                                                   \
+      FieldCell<typename M::Scal>& fcu, std::istream& primlist, int approx,   \
+      size_t edim, const M& m, bool verbose);                                 \
   template std::function<void(                                                \
       FieldCell<typename M::Scal>&, const FieldCell<typename M::Scal>&,       \
       const M&)>                                                              \
