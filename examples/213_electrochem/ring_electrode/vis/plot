@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+
+import numpy as np
+from glob import glob
+import argparse
+from argparse import Namespace
+import re
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import aphros
+import os
+import plottools
+
+
+def load_traj(csv_paths, dumpdt):
+    res = Namespace()
+    res.t = []
+    res.x = []
+    res.y = []
+    res.z = []
+    res.r = []
+    for path in csv_paths:
+        u = np.genfromtxt(path, names=True, delimiter=',')
+        u = np.atleast_1d(u)
+        if u.size:
+            step = int(re.findall("_(\d*)\.csv", path)[0])
+            res.t.append(step * dumpdt)
+            res.x.append(float(u['x'][0]))
+            res.y.append(float(u['y'][0]))
+            res.z.append(float(u['z'][0]))
+            res.r.append(float(u['r'][0]))
+    res.t = np.array(res.t)
+    res.x = np.array(res.x)
+    res.y = np.array(res.y)
+    res.z = np.array(res.z)
+    res.r = np.array(res.r)
+    res.vol = np.array(4 / 3 * np.pi * res.r**3)
+    return res
+
+
+def load_stat(path):
+    u = np.genfromtxt(path, names=True)
+    res = Namespace(**{k: u[k] for k in u.dtype.names})
+    return res
+
+
+def resample(xnew, x, y):
+    return np.interp(xnew, x, y)
+
+def load_dir(path, maxr):
+    conf = aphros.ReadConfig(os.path.join(path, "out.conf"))
+    h = conf.cell_length[0]
+    dumpdt = conf.dump_field_dt
+
+    traj_part = load_traj(sorted(glob(os.path.join(path, "part_*.csv"))),
+                          dumpdt)
+    traj_field = load_traj(sorted(glob(os.path.join(path, "traj_*.csv"))),
+                           dumpdt)
+    #stat = load_stat(os.path.join(args.dir, "stat.dat"))
+    stat = None
+    traj_t = np.hstack((traj_part.t, traj_field.t))
+    traj_vol = np.hstack((traj_part.vol, traj_field.vol))
+    traj_r = np.hstack((traj_part.r, traj_field.r))
+
+    sel = np.where(traj_r < maxr)
+    traj_t = traj_t[sel]
+    traj_vol = traj_vol[sel]
+    traj_r = traj_r[sel]
+
+    return traj_t, traj_r, traj_vol, stat, conf
+
+parser = argparse.ArgumentParser()
+parser.add_argument('dir', nargs='?', type=str, default='.')
+parser.add_argument('--output', type=str, default="radius.pdf")
+parser.add_argument('--xlim', nargs='*', type=float, default=[])
+parser.add_argument('--maxr', type=float, default=1)
+parser.add_argument('--ylim_radius', nargs='*', type=float, default=[])
+parser.add_argument('--ylim_pot', nargs='*', type=float, default=[])
+parser.add_argument('--ref_radius', type=str, default="")
+parser.add_argument('--ref_shift_t',
+                    type=float,
+                    default=0.1,
+                    help="Shift of dimensionless time")
+parser.add_argument('--ref_unit_t',
+                    type=float,
+                    default=2.8,
+                    help="Actual time unit in minutes")
+parser.add_argument('--ref_unit_r',
+                    type=float,
+                    default=0.410,
+                    help="Electrode outer radius")
+parser.add_argument('--ref_unit_t0',
+                    type=float,
+                    default=33.62 / 60.,
+                    help="Expected time unit in minutes")
+args = parser.parse_args()
+
+plottools.apply_params(plt)
+#plt.rcParams.update({'lines.linewidth' : 1})
+
+traj_t, traj_r, traj_vol, stat, conf = load_dir(args.dir, args.maxr)
+
+#stat_vol = stat.tu0_vol
+#stat_vol -= stat_vol[0]
+
+tlabel = "$tD\,/\,r_e^2$"
+electro = conf.enable_electro
+
+'''
+# Volume.
+fig, ax = plt.subplots()
+ax.plot(traj_t, traj_vol, label='bubble')
+ax.plot(stat.t, stat_vol, label='dissolved')
+linear_t = np.linspace(0, stat.t.max())
+r_inner = conf.sim_r_inner
+r_outer = conf.sim_r_outer
+area = np.pi * (r_outer**2 - r_inner**2)
+flux = conf.sim_volume_rate
+linear_vol = flux * area * linear_t
+sum_t = linear_t
+sum_vol = resample(sum_t, stat.t, stat_vol) + resample(sum_t, traj_t, traj_vol)
+ax.plot(sum_t, sum_vol, c='r', ls='-', label='sum')
+if args.xlim:
+    ax.set_xlim(*args.xlim)
+ax.set_xlabel(tlabel)
+ax.set_ylabel('volume')
+ax.legend()
+fig.tight_layout()
+fpath = 'vol.pdf' if args.dir == '.' else args.dir + '_vol.pdf'
+print(fpath)
+fig.savefig(fpath)
+'''
+
+# Radius.
+fig, ax = plt.subplots()
+ax.plot(traj_t, traj_r, label='bubble, t={:.1f}'.format(traj_t.max()))
+if args.ref_radius:
+    unit_t = args.ref_unit_t
+    unit_r = args.ref_unit_r
+    shift_t = args.ref_shift_t
+    uref = np.genfromtxt(args.ref_radius, names=True, delimiter=',')
+    ut = uref['t']
+    ur = uref['r']
+    sel = np.where(ur / unit_r < args.maxr)
+    ut = ut[sel]
+    ur = ur[sel]
+    explabel = "exp, speedup={:.2f}".format(args.ref_unit_t / args.ref_unit_t0)
+    ax.plot(ut / unit_t + args.ref_shift_t,
+            ur / unit_r,
+            label=explabel,
+            ls='--')
+if args.xlim:
+    ax.set_xlim(*args.xlim)
+if args.ylim_radius:
+    ax.set_ylim(*args.ylim_radius)
+ax.set_xlabel(tlabel)
+ax.set_ylabel(r'$r\,/\,r_e$')
+plottools.adjust_ticks(ax, autoscale=True)
+plottools.savefig(fig, os.path.splitext(args.output)[0] + "_radius.pdf")
+plottools.savelegend(fig,
+                     ax,
+                     os.path.splitext(args.output)[0] + "_leg.pdf",
+                     detect_codes=True)
+
+'''
+if electro:
+    fig, ax = plt.subplots()
+    if args.xlim:
+        ax.set_xlim(*args.xlim)
+    ax.set_xlabel(tlabel)
+    ax.set_ylabel('current')
+    ax.plot(stat.t[1:], stat.el_current[1:])
+    fig.tight_layout()
+    fpath = 'current.pdf' if args.dir == '.' else args.dir + '_current.pdf'
+    print(fpath)
+    fig.savefig(fpath)
+'''
+
+'''
+if electro:
+    fig, ax = plt.subplots()
+    if args.xlim:
+        ax.set_xlim(*args.xlim)
+    if args.ylim_pot:
+        ax.set_ylim(*args.ylim_pot)
+    ax.set_xlabel(tlabel)
+    ax.set_ylabel('E')
+    ax.plot(stat.t, stat.el_potential)
+    plottools.adjust_ticks(ax, autoscale=True)
+    plottools.savefig(fig, os.path.splitext(args.output)[0] + "_potential.pdf")
+'''

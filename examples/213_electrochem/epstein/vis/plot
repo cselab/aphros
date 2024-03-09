@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+
+import numpy as np
+from glob import glob
+import argparse
+from argparse import Namespace
+import re
+import os
+import plottools
+import matplotlib.pyplot as plt
+import aphros
+
+
+def load_traj(csv_paths, dumpdt):
+    res = Namespace()
+    res.t = []
+    res.x = []
+    res.y = []
+    res.z = []
+    res.r = []
+    for path in csv_paths:
+        u = np.genfromtxt(path, names=True, delimiter=',')
+        u = np.atleast_1d(u)
+        if u.size:
+            step = int(re.findall("_(\d*)\.csv", path)[0])
+            res.t.append(step * dumpdt)
+            res.x.append(float(u['x'][0]))
+            res.y.append(float(u['y'][0]))
+            res.z.append(float(u['z'][0]))
+            res.r.append(float(u['r'][0]))
+    res.t = np.array(res.t)
+    res.x = np.array(res.x)
+    res.y = np.array(res.y)
+    res.z = np.array(res.z)
+    res.r = np.array(res.r)
+    res.vol = np.array(4 / 3 * np.pi * res.r**3)
+    return res
+
+
+def resample(xnew, x, y):
+    return np.interp(xnew, x, y)
+
+
+def load_dir(path):
+    conf = aphros.ReadConfig(os.path.join(path, "out.conf"))
+    h = conf.cell_length[0]
+    dumpdt = conf.dump_field_dt
+
+    traj_part = load_traj(sorted(glob(os.path.join(path, "part_*.csv"))),
+                          dumpdt)
+    traj_field = load_traj(sorted(glob(os.path.join(path, "traj_*.csv"))),
+                           dumpdt)
+    traj_t = np.hstack((traj_part.t, traj_field.t))
+    traj_vol = np.hstack((traj_part.vol, traj_field.vol))
+    traj_r = np.hstack((traj_part.r, traj_field.r))
+    switch_t = None
+    if traj_part.t.size and traj_field.t.size:
+        switch_t = (max(traj_part.t) + min(traj_field.t)) * 0.5
+    return traj_t, traj_r, traj_vol, switch_t
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('dir', nargs='*', type=str, default='.')
+parser.add_argument('--output', type=str, default="radius.pdf")
+parser.add_argument('--xlim', nargs='*', type=float, default=[])
+parser.add_argument('--ylim', nargs='*', type=float, default=[])
+parser.add_argument('--markers', action='store_true')
+args = parser.parse_args()
+
+plottools.apply_params(plt)
+plt.rcParams.update({'lines.linewidth' : 1})
+
+commonpath = os.path.join(args.dir[0], "out.conf")
+print("Reading commmon parameters from '" + commonpath + "'")
+commonconf = aphros.ReadConfig(commonpath)
+
+markers = plottools.get_marker_cycle()
+fig, ax = plt.subplots()
+
+# Numerical solutions from input.
+for i, path in enumerate(args.dir):
+    traj_t, traj_r, _, switch_t = load_dir(path)
+    zorder = -i
+    line, = ax.plot(traj_t,
+                    traj_r,
+                    label=path,
+                    marker=next(markers),
+                    markevery=(i * 2 + 0 if args.markers else traj_t.size, 7),
+                    zorder=zorder)
+    if switch_t:
+        ax.axvline(switch_t, c=line.get_color(), ls='--', lw=0.5)
+
+# Analytical solution.
+linear_t = np.linspace(0, commonconf.tmax)
+t = linear_t
+ci = commonconf.sim_init_c
+gamma = (ci / (2 * np.pi))**0.5
+k = gamma + (1 + gamma**2)**0.5
+r = k * (2 * t * ci)**0.5
+ax.plot(t, r, label='EP', ls='--', c='k')
+
+if args.xlim:
+    ax.set_xlim(*args.xlim)
+if args.ylim:
+    ax.set_ylim(*args.ylim)
+ax.set_xlabel(r'$t$')
+ax.set_ylabel(r'$R$')
+
+plottools.savefig(fig, args.output)
+plottools.savelegend(fig,
+                     ax,
+                     os.path.splitext(args.output)[0] + "_leg.pdf",
+                     detect_codes=True)

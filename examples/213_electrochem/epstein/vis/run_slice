@@ -1,0 +1,7 @@
+#!/bin/sh -eu
+cmap=yellow
+vmax=0.1
+levels=20
+./colorbar.py --size 1.5 0.5 --vmax $vmax --ticks 3 --horizontal --levels $levels $cmap
+./slice.py --res 1080 1080 --colormap $cmap --levels $levels --vmax $vmax ../tu0_*.xmf
+ap.pngmp4 a tu0.mp4

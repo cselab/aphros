@@ -117,7 +117,7 @@ Links `[conf]` lead to the solver configuration.
 [<img src="[[VIDTHUMB]]/coalescence.jpg" height=150>](https://www.youtube.com/watch?v=pRWGhGoQjyI) | [<img src="[[VIDTHUMB]]/taylor_green.jpg" height=150>](https://www.youtube.com/watch?v=lCf_T0C5Kmg)
 Coalescence of bubbles [[conf]](examples/202_coalescence) [[ref:partstr]] | Taylor-Green vortex with bubbles [[ref:pasc19]] [[ref:datadriven]]
 [<img src="[[VIDTHUMB]]/reactor.jpg" height=150>](https://www.youtube.com/watch?v=xEo51gqLdds) | [<img src="[[VIDTHUMB]]/reactor_full2.jpg" height=150>](https://www.youtube.com/watch?v=Rm-xDGpIEJA)
-Bubble jump-off [[ref:ees]] | Electrochemical reactor [[ref:thesis]]
+Bubble jump-off [[ref:ees]] | Electrochemical reactor [[conf]](examples/213_electrochem/reactor) [[ref:thesis]]
 [<img src="[[VIDTHUMB]]/vortex_bubble.jpg" height=200>](https://www.youtube.com/watch?v=x9hk6pcicj0) | [<img src="[[VIDTHUMB]]/plunging_jet.jpg" height=200>](https://www.youtube.com/watch?v=9NPoiHHFkh0)
 Bubble trapped by vortex ring [[ref:datadriven]] | Plunging jet [[ref:pasc19]]
 [<img src="[[VIDTHUMB]]/rising_bubbles.jpg" height=150>](https://www.youtube.com/watch?v=WzOe0buD8uM) | [<img src="[[VIDTHUMB]]/foaming_waterfall.jpg" height=150>](https://www.youtube.com/watch?v=0Cj8pPYNJGY)

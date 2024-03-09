@@ -1,0 +1,7 @@
+cmap=coolwarm
+vmin=-0.5
+vmax=0
+levels=20
+./colorbar.py $cmap --ticks 3 --levels $levels --size 1.5 0.5 --horizontal --vmin $vmin --vmax $vmax --output elpot_cbar.pdf
+./slice.py --colormap $cmap --levels $levels --vmin $vmin --vmax $vmax ../elpot_*0.xmf
+ap.pngmp4 a elpot.mp4

@@ -1,0 +1,3 @@
+#./rs
+./plot nx032 nx064 nx128 nx256 --output nopart.pdf
+./plot nx032_part nx064_part nx128_part nx256_part --output part.pdf

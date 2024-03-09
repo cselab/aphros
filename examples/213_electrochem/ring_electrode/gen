@@ -1,0 +1,184 @@
+#!/usr/bin/env python3
+
+import aphros
+import math
+
+def assert_close(a, b):
+    assert abs(a - b) / (abs(a) + abs(b)) < 1e-8, \
+        "expected close {:} and {:}".format(a, b)
+
+
+class Default(aphros.Parameters):
+    np = 512
+    nx = 256
+    bs = 16
+    tl = 1440
+    dumpdt = 0.1
+    dtmax = 0.01
+    dumplist = "tu0 elpot"
+    tmax = 30
+
+    Oh = 1 # Ohnesorge number
+    Sc = 5 # Schmidt number
+
+    electro = True  # Enable electric current.
+    particles = True  # Growth through Lagrangian particles.
+    nucleation = False  # Enable nucleation from random sites.
+    galvanostatic = True # Fixed current if true. Otherwise fixed potential.
+
+    rho = 0.01
+    domain_lx = 8.
+    domain_ly = 4.
+    domain_lz = 8.
+    gravity = 0
+    volume_rate = 0.615792 # Volume rate of dissolved gas.
+    diffusion = 1.  # Diffusion coefficient.
+    r_inner = 0.9  # Inner radius of electrode.
+    r_outer = 1.  # Outer radius of eletcrode.
+    r_bubble = 0.001  # Initial radius of bubble.
+    bubble_resistivity = 1000.  # Electrical resistivity of bubbles.
+    potential = 1.  # Applied potential.
+    charge_to_volume = 1.
+    nucl_cmax = 0.1 # Nucleation threshold.
+    ostwald = 0.0187572 # Ostwald coefficient.
+    init_c = -ostwald # Initial concentration
+
+
+par = Default("par.py")
+
+domain = aphros.AdjustedDomain(lx=par.domain_lx,
+                               ly=par.domain_ly,
+                               lz=par.domain_lz,
+                               nx=par.nx,
+                               nproc=par.np,
+                               nproc_factor=0.7,
+                               size_factor=1,
+                               bs=par.bs)
+
+lx = domain.lx
+ly = domain.ly
+lz = domain.lz
+lxh = lx * 0.5
+lyh = ly * 0.5
+lzh = lz * 0.5
+
+inf = ly * 100
+eps = 1e-4
+
+par.tmax = float(par.tmax)
+par.Oh = float(par.Oh)
+par.Sc = float(par.Sc)
+
+conf = aphros.Config()
+conf.extent = domain.extent
+conf.rho1 = 1.
+conf.rho2 = conf.rho1 * par.rho
+conf.mu1 = par.Sc * par.diffusion * conf.rho1
+conf.mu2 = conf.mu1 * par.rho
+conf.dump_field_dt = par.dumpdt
+conf.dump_traj_dt = par.dumpdt
+conf.tmax = par.tmax
+conf.dumplist = par.dumplist
+conf.sigma = (conf.mu1 / par.Oh) ** 2 / (conf.rho1 * par.r_outer)
+conf.dtmax = min(par.dtmax, par.dumpdt)
+electrode_area = math.pi * (par.r_outer**2 - par.r_inner**2)
+current = par.volume_rate / par.charge_to_volume
+
+Oh = conf.mu1 / (conf.rho1 * par.r_outer * conf.sigma)**0.5
+Sc = conf.mu1 / (par.diffusion * conf.rho1)
+assert_close(par.Oh, Oh)
+assert_close(par.Sc, Sc)
+
+conf.tracer0_init = "uniform"
+conf.tracer0_init_value = float(par.init_c)
+conf.tracer_diffusion = [par.diffusion]
+conf.tracer_interface_diffusion_factor = 1.
+conf.gravity = [0, -par.gravity, 0]
+conf.sim_r_inner = par.r_inner
+conf.sim_r_outer = par.r_outer
+conf.sim_Oh = par.Oh
+conf.sim_Sc = par.Sc
+conf.sim_electrode_area = electrode_area
+conf.sim_current = current
+conf.sim_volume_rate = par.volume_rate
+conf.sim_init_c = par.init_c
+
+if par.particles:
+    # Growth through Lagrangian particles.
+    conf.enable_particles = 1
+    conf.particles_to_vof = 1
+    conf.particles_coal = 1
+    conf.particles_density = par.rho
+    conf.particles_mode = "stokes"
+    conf.particles_growth_diffusion_factor = 1.
+
+
+    if par.nucleation:
+        conf.enable_nucleation_points = 1
+        conf.nucleation_number_density = 10000.
+        conf.dump_nucl = 1
+        conf.nucleation_cmax0 = par.nucl_cmax
+        conf.nucleation_cpost0 = 0
+    else:
+        # Initial particles.
+        conf.particles_init_csv = "partinit.csv"
+        with open(conf.particles_init_csv, 'w') as f:
+            f.write('''x,y,z,r
+                        {:},{:},{:},{:}'''.format(lxh, par.r_bubble, lzh,
+                                                  par.r_bubble))
+
+if not par.particles:
+    # Initial volume fraction.
+    conf.init_vf = "list"
+    conf.list_path = "inline {:}".format(aphros.Geometry().Sphere(
+        [lxh, par.r_bubble, lzh], [par.r_bubble] * 3).Generate())
+
+if par.electro:
+    conf.enable_electro = 1
+    conf.resist1 = 1.
+    conf.resist2 = float(par.bubble_resistivity)
+    conf.flux_from_current = 1.
+
+bc = aphros.BoundaryConditions()
+if par.electro:
+    bc_tracer_ring = ", tracer0_neumann {:}".format(par.charge_to_volume)
+else:
+    bc_tracer_ring = ", tracer0_neumann {:}".format(
+        par.charge_to_volume * current / electrode_area)
+bc_tracer_side = ", tracer0_neumann 0"
+bc_electro_outlet = ", electro_dirichlet 0"
+if par.galvanostatic:
+    bc_electro_ring = ", electro_neumann {:}".format(-current / electrode_area)
+else:
+    bc_electro_ring = ", electro_dirichlet {:}".format(-par.potential)
+bc_electro_side = ", electro_neumann 0"
+bc_nucleation = ", nucleation 1" if par.nucleation else ""
+# Boundary conditions.
+# Default everywhere.
+bc.Wall(aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]),
+        extra=bc_tracer_side + bc_electro_side)
+# Default bottom.
+bc.Wall(aphros.Geometry().Box([0, 0, 0], [inf, eps, inf]),
+        extra=bc_tracer_side + bc_electro_side)
+# Ring electrode, outer circle
+bc.Wall(aphros.Geometry().Sphere([lxh, 0, lzh], [par.r_outer] * 3),
+        extra=bc_tracer_ring + bc_electro_ring)
+# Wall within inner circle
+bc.Wall(aphros.Geometry().Sphere([lxh, 0, lzh], [par.r_inner] * 3),
+        extra=bc_tracer_side + bc_electro_side)
+# Nucleation site
+hh = domain.h * 0.5
+bc.Wall(aphros.Geometry().Sphere([lxh + hh, 0, lzh + hh], [hh] * 3),
+        extra=bc_tracer_side + bc_electro_side + bc_nucleation)
+# Outlet top.
+bc.Outlet(aphros.Geometry().Box([0, ly, 0], [inf, eps, inf]),
+          extra=bc_tracer_side + bc_electro_outlet)
+
+conf.bc_path = 'inline{}\n'.format(''.join(
+    ['\n  ' + l for l in bc.Generate().split('\n')]))
+
+conf.GenerateFile("par.conf")
+
+domain = aphros.PartitionDomain(domain)
+domain.GenerateMeshConfig()
+aphros.GenerateJobConfig(domain.nproc, par.tl)

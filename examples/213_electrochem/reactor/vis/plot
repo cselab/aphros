@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+
+import numpy as np
+from glob import glob
+import argparse
+from argparse import Namespace
+import re
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import aphros
+import os
+import plottools
+import sys
+
+from tqdm import tqdm
+
+myname = os.path.splitext(os.path.basename(__file__))[0]
+
+def load_part(csv_paths, dumpdt):
+    res = dict()
+    for path in tqdm(csv_paths):
+        u = np.genfromtxt(path, names=True, delimiter=',')
+        u = np.atleast_1d(u)
+        step = int(re.findall("_(\d*)\.csv", path)[0])
+        t = step * dumpdt
+        res[t] = u
+    return res
+
+def load_stat(path):
+    u = np.genfromtxt(path, names=True)
+    res = Namespace(**{k: u[k] for k in u.dtype.names})
+    return res
+
+def resample(xnew, x, y):
+    return np.interp(xnew, x, y)
+
+
+@plottools.default_cache(Namespace(update=False, cachedir='.'),
+                         myname,
+                         arg0=True)
+def load_dir(path):
+    conf = aphros.ReadConfig(os.path.join(path, "out.conf"))
+    stat = load_stat(os.path.join(args.dir, "stat.dat"))
+    dumpdt = conf.dump_field_dt
+    part = load_part(sorted(glob(os.path.join(path, "part_*.csv"))), dumpdt)
+    traj = load_part(sorted(glob(os.path.join(path, "traj_*.csv"))), dumpdt)
+    return stat, part, traj, conf
+
+def radius_to_vol(r):
+    return 4 / 3 * np.pi * r**3
+
+
+def vol_to_radius(vol):
+    return (3 / (4 * np.pi) * vol)**(1 / 3)
+
+
+def vol_from_part(part, conf):
+    part_t = []
+    part0_vol = []
+    part0_outvol = []
+    tm = None
+    lx = conf.domain_length[0]
+    # XXX: `termvel` stores the tracer id (0 or 1)
+    for it, t in enumerate(sorted(part)):
+        if it % 10 == 0:
+            sys.stderr.write('.'); sys.stderr.flush();
+        u = part[t]
+        outvol0 = 0
+        if tm is not None:
+            um = part[tm]
+            um = um[(um['termvel'] == 0) & (um['x'] > lx * 0.9)]
+            removed_id = set(um['id']) - set(u['id'])
+            if removed_id:
+                removed_i = np.where(np.in1d(um['id'], list(removed_id)))
+                outvol0 = sum(radius_to_vol(um['r'][removed_i]))
+        tm = t
+        part_t.append(t)
+        part0_vol.append(sum(radius_to_vol(u['r'][u['termvel'] == 0])))
+        part0_outvol.append(outvol0)
+    sys.stderr.write('\n')
+    part0_outvol = np.cumsum(part0_outvol)
+    return part_t, part0_vol, part0_outvol
+
+def vol_from_traj(part, conf):
+    traj_t = []
+    traj0_vol = []
+    traj0_outvol = []
+    tm = None
+    lx = conf.domain_length[0]
+    ly = conf.domain_length[1]
+    removed_cl_seen = set()
+    for it, t in enumerate(sorted(traj)):
+        if it % 10 == 0:
+            sys.stderr.write('.'); sys.stderr.flush();
+        u = traj[t]
+        outvol0 = 0
+        if tm is not None:
+            um = traj[tm]
+            um = um[(um['y'] > ly * 0.5) & (um['x'] > lx * 0.95)]
+            removed_cl = set(um['cl']) - removed_cl_seen
+            if removed_cl:
+                removed_cl_seen |= removed_cl
+                removed_i = np.where(np.in1d(um['cl'], list(removed_cl)))
+                outvol0 = sum(radius_to_vol(um['r'][removed_i]))
+        tm = t
+        traj_t.append(t)
+        traj0_vol.append(sum(radius_to_vol(u['r'][u['y'] > ly * 0.5])))
+        traj0_outvol.append(outvol0)
+    sys.stderr.write('\n')
+    traj0_outvol = np.cumsum(traj0_outvol)
+    return traj_t, traj0_vol, traj0_outvol
+
+parser = argparse.ArgumentParser()
+parser.add_argument('dir', nargs='?', type=str, default='.')
+parser.add_argument('--output', type=str, default="reactor.pdf")
+parser.add_argument('--xlim', nargs='*', type=float, default=[])
+parser.add_argument('--hist_t', type=float)
+args = parser.parse_args()
+
+plottools.apply_params(plt)
+#plt.rcParams.update({'lines.linewidth' : 1})
+
+stat, part, traj, conf = load_dir(args.dir)
+
+tlabel = "$tU/W$"
+
+# Radius histogram.
+fig, ax = plt.subplots()
+hist_t = max(part.keys()) if args.hist_t is None else args.hist_t
+times = np.array(list(part.keys()))
+hist_t = times[np.argmin(abs(hist_t - times))]
+print("Histrogram at t={:} dump={:}".format(hist_t,
+                                            round(hist_t /
+                                                  conf.dump_field_dt)))
+bins = np.linspace(0, 5 * conf.cell_length[0], 21)
+ax.axvline(2 * conf.cell_length[0], ls='--', c='k', lw=1)
+ax.hist(part[hist_t]['r'], color='C1', bins=bins)
+ax.hist(traj[hist_t]['r'], color='C5', bins=bins)
+ax.set_xlabel("$R / W$")
+ax.set_ylabel("count")
+ax.set_yscale('log')
+plottools.savefig(fig, os.path.splitext(args.output)[0] + "_hist.pdf")
+
+# Current.
+fig, ax = plt.subplots()
+if args.xlim:
+    ax.set_xlim(*args.xlim)
+ax.set_xlabel(tlabel)
+ax.set_ylabel('current')
+ax.plot(stat.t, stat.el_current)
+curdens = conf.sim_flux_top
+area = conf.sim_area_top
+ax.axhline(curdens * area)
+ax.set_ylim(0)
+plottools.savefig(fig, os.path.splitext(args.output)[0] + "_current.pdf")
+
+# Volume.
+fig, ax = plt.subplots()
+if args.xlim:
+    ax.set_xlim(*args.xlim)
+ax.set_xlabel(tlabel)
+ax.set_ylabel('volume')
+
+curdensact = stat.el_current / area
+
+stat_dt = stat.t[1:] - stat.t[:-1]
+stat_dt = np.hstack((stat_dt, (stat_dt[-1])))
+stat_gen0_vol = np.cumsum(stat_dt * curdensact) * area
+
+part_t, part0_vol, part0_outvol = vol_from_part(part, conf)
+traj_t, traj0_vol, traj0_outvol = vol_from_traj(traj, conf)
+
+lin_t = np.linspace(0, stat.t.max())
+lin_gen0_vol = resample(lin_t, stat.t, stat_gen0_vol)
+lin_part0_vol = resample(lin_t, part_t, part0_vol)
+lin_part0_outvol = resample(lin_t, part_t, part0_outvol)
+lin_traj0_vol = resample(lin_t, traj_t, traj0_vol)
+lin_traj0_outvol = resample(lin_t, traj_t, traj0_outvol)
+lin_tu0_vol = resample(lin_t, stat.t, stat.tu0_vol)
+lin_tu0_outvol = resample(lin_t, stat.t, stat.tu0_outvol)
+
+#ax.plot(lin_t, lin_gen0_vol, label='generated')
+markers = plottools.get_marker_cycle()
+ax.plot(lin_t,
+        lin_tu0_vol,
+        marker=next(markers),
+        markevery=10,
+        label="dissolved")
+ax.plot(lin_t,
+        lin_tu0_outvol,
+        marker=next(markers),
+        markevery=10,
+        label="dissolved out")
+ax.plot(lin_t,
+        lin_part0_vol + lin_traj0_vol,
+        marker=next(markers),
+        markevery=10,
+        label="bubbles")
+ax.plot(lin_t,
+        lin_part0_outvol + lin_traj0_outvol,
+        marker=next(markers),
+        markevery=10,
+        label="bubbles out")
+
+plottools.adjust_ticks(ax)
+plottools.savefig(fig, os.path.splitext(args.output)[0] + "_volume.pdf")
+plottools.savelegend(fig,
+                     ax,
+                     os.path.splitext(args.output)[0] + "_volume_leg.pdf",
+                     detect_codes=True)

@@ -1,0 +1,255 @@
+#!/usr/bin/env python3
+
+import aphros
+import numpy
+import numpy as np
+from scipy.interpolate import make_interp_spline
+
+
+def V(x, y, z):
+    return np.array([x, y, z])
+
+
+class Default(aphros.Parameters):
+    np = 256
+    ny = 128
+    bs = 16
+    tl = 1440
+    dumpdt = 0.1
+    dumplist = "omm ebvf vm"
+    tmax = 2000
+    Re = 1000
+    Ca = 0.04
+    rho = 0.01
+
+    dim = 3
+
+    resist = 1000  # Resistivity of bubbles.
+
+    Win = 0.2  # Width of inlet.
+    Lin = 0.71
+    Wout = 1  # Width of device.
+    Lout = 0  # Buffer after last bone.
+    Wbone = 0.2  # Width of bone.
+    Lbone = 0.15  # Length of bone, distance between posts.
+    Lshift = 0.4  # Shift between bones.
+    Lstart = 0.  # Buffer before first bone.
+    H = 0.2  # Height (depth) of the device.
+
+    Sc_top = 160  # Schmidt number for gas from top electrode.
+    Sc_btm = 400  # Schmidt number for gas from bottom electrode.
+    flux_top = 0.0002 * 3  # Target flux of dissolved gas through top electrode.
+
+    inletvel = 1.  # Inlet velocity.
+
+    tracer_interface_diffusion_factor = 0.1
+
+    electro = True
+    stepwise = True
+    particles = True
+    nucleation = True
+    nucldens = 10000.  # Areal number density of nucleation sites.
+    resistivity_estimate = 0.6  # Estimate of average resistivity depending
+    # on distance between bones.
+    nucl_cmax = 0.05
+
+
+def AppendVolcano(g, par, domain):
+    """
+    Appends a Volcano electrolyzer to geometry.
+    g: instance of aphros.Geometry
+    Returns:
+    box_top, box_btm: insances of aphros.Geometry describing
+                         boxes containing the two electrodes
+    """
+    lx = domain.lx
+    ly = domain.ly
+    lz = domain.lz
+    inf = lx * 10
+    eps = 1e-4
+    epsh = 0.5 * domain.h if par.stepwise else eps
+    lxh = lx * 0.5
+    lyh = ly * 0.5
+    lzh = lz * 0.5
+    H = par.H if par.dim == 3 else inf
+    Hh = H * 0.5
+
+    Wgap = par.Win + par.Wbone  # Distance between centers of bones.
+
+    # Add inlet.
+    g.Box(V(lxh, lyh, lzh), V(inf, par.Win / 2, Hh))
+    # Add device after inlet.
+    g.Box(V(lx, lyh, lzh), V(lx - par.Lin, par.Wout / 2, Hh))
+    # Subtract box containin all top and bottom bones.
+    g.Box(V(lx, lyh + Wgap / 2, lzh),
+          V(lx - par.Lin, par.Wbone / 2, Hh),
+          intersect=True,
+          invert=True)
+    g.Box(V(lx, lyh - Wgap / 2, lzh),
+          V(lx - par.Lin, par.Wbone / 2, Hh),
+          intersect=True,
+          invert=True)
+    # Bone is a gap between two posts, liquid flows in bones.
+    nbones = int((lx - par.Lin + par.Lbone) / par.Lshift)
+    dLout = lx - (par.Lin + (nbones - 1) * par.Lshift + par.Lbone + par.Lout)
+    # Subtract box near outlet.
+    g.Box(V(lx, lyh, lzh), V(dLout, Wgap / 2, Hh), intersect=True, invert=True)
+    for i in range(nbones):
+        bonestart = i * par.Lshift
+        g.Box(
+            V(par.Lin + par.Lbone / 2 + par.Lstart + bonestart, lyh + Wgap / 2,
+              lzh), V(par.Lbone / 2, par.Wbone / 2, Hh))
+        g.Box(
+            V(par.Lin + par.Lbone / 2 + par.Lstart + bonestart, lyh - Wgap / 2,
+              lzh), V(par.Lbone / 2, par.Wbone / 2, Hh))
+
+    hh = domain.h * 0.5
+    box_top = aphros.Geometry().Box(  #
+        [(par.Lin + lx - dLout) / 2, lyh + (Wgap + par.Wbone) / 2, lzh],
+        [(lx - par.Lin - dLout) / 2, epsh * 2, Hh - epsh])
+    box_btm = aphros.Geometry().Box(  #
+        [(par.Lin + lx - dLout) / 2, lyh - (Wgap + par.Wbone) / 2, lzh],
+        [(lx - par.Lin - dLout) / 2, epsh * 2, Hh - epsh])
+
+    area_top = (nbones + 1) * par.Lbone * par.H
+
+    return box_top, box_btm, area_top
+
+
+par = Default("par.py")
+
+lx = 4
+ly = 1
+lz = 0.25
+
+domain = aphros.AdjustedDomain(lx=lx,
+                               ly=ly,
+                               lz=lz,
+                               ny=par.ny,
+                               nproc_factor=0.7,
+                               size_factor=1,
+                               nproc=par.np,
+                               bs=par.bs)
+
+lx = domain.lx
+ly = domain.ly
+lz = domain.lz
+lxh = lx * 0.5
+lyh = ly * 0.5
+lzh = lz * 0.5
+
+inf = ly * 100
+eps = 1e-4
+
+geom = aphros.Geometry()
+box_top, box_btm, area_top = AppendVolcano(geom, par, domain)
+
+conf = aphros.Config()
+conf.extent = domain.extent
+conf.mu1 = par.Win / par.Re
+conf.mu2 = conf.mu1 * par.rho
+conf.rho1 = 1.
+conf.rho2 = conf.rho1 * par.rho
+conf.dump_field_dt = par.dumpdt
+conf.dump_traj_dt = par.dumpdt
+conf.tmax = float(par.tmax)
+conf.dumplist = par.dumplist
+conf.sigma = conf.mu1 / par.Ca
+
+potential = par.flux_top * par.resistivity_estimate
+
+conf.sim_Re = par.Re
+conf.sim_Ca = par.Ca
+conf.sim_Sc_top = par.Sc_top
+conf.sim_Sc_btm = par.Sc_btm
+conf.sim_Win = par.Win
+conf.sim_H = par.H
+conf.sim_nucldens = par.nucldens
+conf.sim_nucl_cmax = par.nucl_cmax
+conf.sim_potential = potential
+conf.sim_area_top = area_top
+conf.sim_flux_top = par.flux_top
+conf.sim_resistivity_estimate = par.resistivity_estimate
+conf.sim_inletvel = par.inletvel
+
+if par.stepwise:
+    conf.body_init = "list"
+    conf.enable_embed = 0
+    conf.enable_stepwise_body = 1
+    conf.dump_stepwise_body = 1
+    conf.stepwise_threshold = 0.001
+    conf.body_list_path = 'inline{}\n'.format(''.join(
+        ['\n  ' + l for l in geom.Generate().split('\n')]))
+else:
+    conf.eb_list_path = 'inline{}\n'.format(''.join(
+        ['\n  ' + l for l in geom.Generate().split('\n')]))
+
+conf.enable_tracer = 1
+conf.tracer_override_mixture = 0
+conf.tracer_layers = 2
+conf.tracer_density = [1.] * 2
+conf.tracer_viscosity = [0.] * 2
+nu1 = conf.mu1 / conf.rho1
+diffusion_top = nu1 / par.Sc_top
+diffusion_btm = nu1 / par.Sc_btm
+conf.tracer_diffusion = [diffusion_top, diffusion_btm]
+conf.tracer0_init = "list"
+conf.tracer0_list_path = "b.dat"
+conf.tracer1_init = "list"
+conf.tracer1_list_path = "b.dat"
+conf.dumplist += " tu0 tu1"
+conf.tracer_interface_diffusion_factor = par.tracer_interface_diffusion_factor
+
+if par.electro:
+    conf.enable_electro = 1
+    conf.dumplist += " elpot"
+    conf.resist1 = 1.
+    conf.resist2 = float(par.resist)
+    conf.tracer0_init = "zero"
+    conf.tracer1_init = "zero"
+    conf.flux_from_current = 1.
+    conf.hypre_electro_tol = potential * 0.1
+
+if par.particles:
+    conf.enable_particles = 1
+    conf.particles_mode = "tracer"
+    conf.particles_density = par.rho
+    conf.particles_to_vof = 1
+    conf.particles_coal = 1
+    conf.particles_to_vof_radius = 2.
+    conf.particles_growth_diffusion_factor = 1.
+
+if par.nucleation:
+    conf.enable_nucleation_points = 1
+    conf.nucleation_number_density = par.nucldens
+    conf.nucleation_cmax0 = par.nucl_cmax
+    conf.nucleation_cpost0 = 0.
+    conf.nucleation_cmax1 = par.nucl_cmax
+    conf.nucleation_cpost1 = 0.
+    conf.dump_nucl = 1
+
+bc = aphros.BoundaryConditions()
+bcel = ", electro_neumann 0, tracer0_neumann 0, tracer1_neumann 0"
+bc.Wall(aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]), extra=bcel)
+
+bc.Inlet(aphros.Geometry().Box([0, 0, 0], [eps, inf, inf]),
+         velocity=[par.inletvel, 0, 0],
+         extra=bcel)
+bc.Outlet(aphros.Geometry().Box([lx, 0, 0], [eps, inf, inf]), extra=bcel)
+
+bc_nucleation = ", nucleation 1" if par.nucleation else ""
+bc_top = ", electro_dirichlet 0, tracer0_neumann 1, tracer1_neumann 0"
+bc_btm = ", electro_dirichlet {:}, tracer0_neumann 0, tracer1_neumann 0.5".format(
+    potential)
+bc.Wall(box_top, extra=bc_top + bc_nucleation)
+bc.Wall(box_btm, extra=bc_btm + bc_nucleation)
+
+bc.GenerateFile("bc.dat")
+conf.bc_path = 'inline{}\n'.format(''.join(
+    ['\n  ' + l for l in bc.Generate().split('\n')]))
+
+conf.GenerateFile("par.conf")
+
+domain = aphros.PartitionDomain(domain)
+domain.GenerateMeshConfig()
+aphros.GenerateJobConfig(domain.nproc, par.tl)

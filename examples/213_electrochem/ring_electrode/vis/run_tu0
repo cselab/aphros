@@ -1,0 +1,9 @@
+#!/bin/sh -eu
+
+cmap=rainbow
+vmin=-0.02
+vmax=0.2
+levels=20
+./colorbar.py $cmap --ticks 3 --levels $levels --size 1.5 0.5 --horizontal --vmin $vmin --vmax $vmax --output tu0_cbar.pdf
+./slice.py --colormap $cmap --levels $levels --vmin $vmin --vmax $vmax ../tu0_*0.xmf
+ap.pngmp4 a tu0.mp4

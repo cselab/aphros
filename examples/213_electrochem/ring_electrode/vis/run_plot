@@ -1,0 +1,5 @@
+#./rs
+ylimr="--ylim_radius 0 1.2"
+./plot lx8_current03_cm1 --output I5.pdf --ref_shift_t -0.15 --ref_unit_t 1.23 --ref_radius ref/penas2019_fig3_I05.csv $ylimr --ylim_pot 0 0.2
+./plot lx8_current06_cm1 --output I10.pdf --ref_shift_t 0.5 --ref_unit_t 1.58 --ref_radius ref/penas2019_fig3_I10.csv $ylimr --ylim_pot 0 0.5
+./plot lx8_current12_cm1 --output I20.pdf --ref_shift_t 0.11 --ref_unit_t 1.24 --ref_radius ref/penas2019_fig3_I20.csv $ylimr --ylim_pot 0 0.7

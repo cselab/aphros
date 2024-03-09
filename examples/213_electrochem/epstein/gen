@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+
+import aphros
+import math
+
+def assert_close(a, b):
+    assert abs(a - b) / (abs(a) + abs(b)) < 1e-8, \
+        "expected close {:} and {:}".format(a, b)
+
+
+class Default(aphros.Parameters):
+    np = 256
+    nx = 128
+    bs = 16
+    tl = 300
+    dumpdt = 0.05
+    dtmax = 0.01
+    dumplist = "tu0"
+    tmax = 2
+
+    Oh = 1 # Ohnesorge number
+    Sc = 1 # Schmidt number
+
+    particles = False # Growth through Lagragian particle.
+
+    rho = 0.01
+    extent = 8.
+    diffusion = 1.  # Diffusion coefficient.
+    r_ref = 1. # Characteristic length.
+    r_bubble = 0.001  # Initial radius of bubble.
+    init_c = 0.1 # initial concentration
+
+
+par = Default("par.py")
+
+domain = aphros.AdjustedDomain(lx=par.extent,
+                               ly=par.extent,
+                               lz=par.extent,
+                               nx=par.nx,
+                               nproc=par.np,
+                               nproc_factor=0.7,
+                               size_factor=1,
+                               bs=par.bs)
+
+lx = domain.lx
+ly = domain.ly
+lz = domain.lz
+lxh = lx * 0.5
+lyh = ly * 0.5
+lzh = lz * 0.5
+
+inf = ly * 100
+
+if not par.particles:
+    par.r_bubble = max(par.r_bubble, domain.h)
+
+par.tmax = float(par.tmax)
+par.Oh = float(par.Oh)
+par.Sc = float(par.Sc)
+
+conf = aphros.Config()
+conf.extent = domain.extent
+conf.rho1 = 1.
+conf.rho2 = conf.rho1 * par.rho
+conf.mu1 = par.Sc * par.diffusion * conf.rho1
+conf.mu2 = conf.mu1 * par.rho
+conf.dump_field_dt = par.dumpdt
+conf.dump_traj_dt = par.dumpdt
+conf.tmax = par.tmax
+conf.dumplist = par.dumplist
+conf.sigma = (conf.mu1 / par.Oh) ** 2 / (conf.rho1 * par.r_ref)
+conf.dtmax = min(par.dtmax, par.dumpdt)
+
+Oh = conf.mu1 / (conf.rho1 * par.r_ref * conf.sigma)**0.5
+Sc = conf.mu1 / (par.diffusion * conf.rho1)
+assert_close(par.Oh, Oh)
+assert_close(par.Sc, Sc)
+
+conf.enable_tracer = 1
+conf.tracer_layers = 1
+conf.tracer_interface_diffusion_factor = 1.
+conf.tracer0_init = "uniform"
+conf.tracer0_init_value = float(par.init_c)
+conf.tracer_diffusion = [par.diffusion]
+
+
+conf.sim_r_bubble = par.r_bubble
+conf.sim_Oh = par.Oh
+conf.sim_Sc = par.Sc
+conf.sim_init_c = par.init_c
+
+if par.particles:
+    # Growth through Lagrangian particles.
+    conf.enable_particles = 1
+    conf.particles_to_vof = 1
+    conf.particles_coal = 1
+    conf.particles_growth_diffusion_factor = 1.
+    conf.particles_density = par.rho
+    conf.particles_mode = "tracer"
+    # Initial particles.
+    conf.particles_init_csv = "partinit.csv"
+    with open(conf.particles_init_csv, 'w') as f:
+        f.write('''x,y,z,r
+                    {:},{:},{:},{:}'''.format(lxh, lyh, lzh, par.r_bubble))
+else:
+    # Initial volume fraction.
+    conf.init_vf = "list"
+    conf.list_path = "inline {:}".format(aphros.Geometry().Sphere(
+        [lxh, lyh, lzh], [par.r_bubble] * 3).Generate())
+
+bc_tracer = ", tracer0_neumann 0"
+bc = aphros.BoundaryConditions()
+bc.Outlet(aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]), extra=bc_tracer)
+#bc.OutletPressure(aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]), pressure=0, extra=bc_tracer)
+conf.bc_path = 'inline{}\n'.format(''.join(
+    ['\n  ' + l for l in bc.Generate().split('\n')]))
+
+conf.GenerateFile("par.conf")
+
+domain = aphros.PartitionDomain(domain)
+domain.GenerateMeshConfig()
+aphros.GenerateJobConfig(domain.nproc, par.tl)
+
