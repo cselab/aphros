@@ -3,6 +3,7 @@
 BEGIN {
     bin["main.c"]
     bin["explorer.cpp"]
+    bin["parse/conf2py.cpp"]
 }
 
 ($1 in bin) || /^test\// {
