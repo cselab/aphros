@@ -63,10 +63,11 @@ if (APHROS_USE_MPI AND APHROS_FIND_HDF)
         message(FATAL_ERROR
         "**********\n"
         "HDF5 library is not found. Run cmake with \
-        -DUSE_HDF=0 \
+        -DFIND_HDF=0 \
         -DUSE_BACKEND_CUBISM=0 \
         -DUSE_BACKEND_LOCAL=1 \
         -DUSE_BACKEND_NATIVE=1 \
+        -DUSE_HDF=0 \
         to build aphros without HDF5. Alternativly, you can install HDF5 by\n"
         "$ sudo apt install libhdf5-mpich-dev hdf5-tools\n"
         "**********\n")
@@ -75,10 +76,11 @@ if (APHROS_USE_MPI AND APHROS_FIND_HDF)
         message(FATAL_ERROR
         "**********\n"
         "A serial HDF5 library is found, but aphros needs a parallel HDF5. Run cmake with \
-        -DUSE_HDF=0 \
+        -DFIND_HDF=0 \
         -DUSE_BACKEND_CUBISM=0 \
         -DUSE_BACKEND_LOCAL=1 \
         -DUSE_BACKEND_NATIVE=1 \
+        -DUSE_HDF=0 \
         to build aphros without HDF5. Alternativly, you can install parallel HDF5 by\n"
         "$ sudo apt install libhdf5-mpich-dev hdf5-tools\n"
         "**********\n")
