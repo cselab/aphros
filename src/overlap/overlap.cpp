@@ -3,6 +3,7 @@
 #include <cmath>
 #include <limits>
 using Scal = double;
+#include "util/macros.h"
 #include "overlap.h"
 #include "overlap.inc"
 

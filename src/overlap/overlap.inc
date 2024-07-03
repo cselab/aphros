@@ -67,6 +67,7 @@ struct double_prec_constant<double> {
   static const uint32_t value = 134217729;
 };
 
+#if USEFLAG(AVX)
 // For GCC and Clang an attribute can be used to control the FP precision...
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__ICC) && \
     !defined(__INTEL_COMPILER)
@@ -79,6 +80,9 @@ struct double_prec_constant<double> {
 #if defined(__ICC) || defined(__INTEL_COMPILER)
 #define ENFORCE_EXACT_FPMATH_ATTR
 #define USE_EXACT_FPMATH_PRAGMA 1
+#endif
+#else
+#define ENFORCE_EXACT_FPMATH_ATTR
 #endif
 
 class double_prec;
