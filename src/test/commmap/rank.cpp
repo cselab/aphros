@@ -1,7 +1,12 @@
 // Created by Petr Karnakov on 11.11.2020
 // Copyright 2020 ETH Zurich
 
+#ifdef _OPENMP
 #include <omp.h>
+#else
+int omp_get_max_threads() { return 1; }
+#endif
+
 #include <array>
 #include <fstream>
 #include <iostream>
