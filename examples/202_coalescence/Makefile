@@ -1,7 +1,7 @@
 # mesh size
 m = 256 256 256
 # number of processors
-np = 256
+np = 64
 # job time limit in minutes
 tl = 600
 
