@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3.0)
+cmake_minimum_required(VERSION 3.10.2)
 
 # Allow using <PackageName>_ROOT variables
 if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12")
