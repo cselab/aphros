@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+
+
+# Reh: Reynolds number by channel height and average velocity
+def Exp():
+    # SI units
+
+    sig = 73e-3  # surface tension
+    g = 9.8
+    # water
+    rho = 1000  # density
+    mu = 1e-3  # dynamic viscosity
+    nu = mu / rho  # kinematic viscosity
+
+    # box width
+    W = 0.27
+
+    Ga = g * W**3 / nu**2
+    Eo = rho * g * W**2 / sig
+
+    time_unit = (W / g) ** 0.5
+
+    for key in sorted(locals()):
+        print("{:} \t=\t {:}".format(key, locals()[key]))
+    print("\n")
+
+    return locals()
+
+
+def Sim(c):
+    Ga, Eo = (c["Ga"], c["Eo"])
+
+    # domain
+    W = 1.0  # width
+    L = 2.0  # length
+    assert L >= W
+
+    g = 1
+    # time
+    tun = (W / g) ** 0.5  # unit
+    tmax = tun * 60.0
+    dumpdt = tun * 0.025
+
+    dumpdt_phys = c["time_unit"] * dumpdt / tun
+
+    # liquid
+    rho0 = 1.0  # density
+    mu0 = (g * W**3 / Ga) ** 0.5  # viscosity
+    sig = rho0 * g * W**2 / Eo
+
+    # gas, ratio to liquid
+    mu = 0.01
+    rho = 0.01
+
+    # mesh
+    nn = 256
+    nx = nn * 2
+    ny = nn
+    nz = nn
+
+    # block size
+    bs = 16
+    # cores
+    np = 4096
+    # time limit (minutes)
+    tl = 1440
+
+    for key in sorted(locals()):
+        print("{:} \t=\t {:}".format(key, locals()[key]))
+    print("\n")
+
+    return locals()
+
+
+def Gen(c):
+    W = c["W"]
+    L = c["L"]
+
+    tmax = c["tmax"]
+    dumpdt = c["dumpdt"]
+
+    rho1 = c["rho0"]
+    mu1 = c["mu0"]
+    rho2 = rho1 * c["rho"]
+    mu2 = mu1 * c["mu"]
+    sig = c["sig"]
+    g = -c["g"]
+
+    pi = 3.1415926
+    wang_eps = 0.65  # k*a
+    wang_k = pi * 2  # 2*pi/lambda,  lambda=1
+    wang_a = wang_eps / wang_k
+
+    with open("par.conf", "w") as f:
+        f.write(
+            """\
+# Domain.
+set double extent {L}
+
+# Time.
+set double tmax {tmax}
+set double dump_field_dt {dumpdt}
+set double dump_part_dt {dumpdt}
+
+# Physical.
+set double rho1 {rho1}
+set double rho2 {rho2}
+set double mu1 {mu1}
+set double mu2 {mu2}
+set double sigma {sig}
+set vect gravity 0 {g} 0
+
+set string init_vf solitonwang
+set string vel_init solitonwang
+set double soliton_xc 0.5
+set double soliton_yc 0.5
+set double soliton_xw 1
+set double soliton_yh {wang_a}
+set double soliton_eps {wang_eps}
+
+set int vel_init_random 1
+set double random_amp 0.1
+set vect random_vel 1 1 0
+
+set string advection_solver vofm
+""".format(
+                **locals()
+            )
+        )
+
+    with open("par.make", "w") as f:
+        f.write(
+            """m = {nx} {ny} {nz}
+bs = {bs} {bs} {bs}
+np = {np}
+tl = {tl}
+""".format(
+                **c
+            )
+        )
+
+
+c = Exp()
+c = Sim(c)
+Gen(c)
