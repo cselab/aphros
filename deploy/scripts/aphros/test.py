@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import difflib
 import filecmp
 import os
 import shutil
@@ -81,8 +82,26 @@ class TestBase:
             ref = os.path.join(refdir, f)
             if not filecmp.cmp(out, ref):
                 self.printlog("Files '{}' and '{}' differ".format(out, ref))
+                self._print_diff(ref, out)
                 r = False
         return r
+
+    def _print_diff(self, ref, out, maxlines=50):
+        """
+        Prints the beginning of a unified diff if both files are text.
+        """
+        try:
+            with open(ref) as f:
+                a = f.readlines()
+            with open(out) as f:
+                b = f.readlines()
+        except UnicodeDecodeError:
+            return
+        diff = list(difflib.unified_diff(a, b, ref, out))
+        for line in diff[:maxlines]:
+            self.printlog(line, end="" if line.endswith("\n") else "\n")
+        if len(diff) > maxlines:
+            self.printlog("... {} more lines".format(len(diff) - maxlines))
 
     def update(self, outdir, refdir, output_files):
         """
