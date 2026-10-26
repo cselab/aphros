@@ -5,6 +5,9 @@ if (USE_MPI)
   add_executable(${T} main.cpp)
   target_link_libraries(${T} aphros openmp)
   add_test_current(COMMAND ./test main)
+  # With more threads than ranks, the number of subdomains
+  # (ranks / threads) is zero, and the test aborts.
+  set_tests_properties(${name} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=1)
 endif()
 
 set(T t.${name}.manager)
