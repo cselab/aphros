@@ -35,7 +35,7 @@ void Run(M& m, Vars&) {
   auto& t = *ctx;
 
   if (sem()) {
-    t.fc_system.Reinit(m);
+    t.fc_system.Reinit(m, Expr(0));
     int i = 0;
     for (auto c : m.Cells()) {
       t.fc_system[c][0] = m.GetId() * m.GetInBlockCells().size() + (i++);
