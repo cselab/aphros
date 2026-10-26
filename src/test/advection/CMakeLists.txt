@@ -5,7 +5,13 @@ install(TARGETS ${T} DESTINATION "${APHROS_PREFIX}/bin")
 target_link_libraries(${T} aphros)
 
 
-foreach(comm local cubismnc native)
+set(comms local)
+if (USE_BACKEND_CUBISM)
+  list(APPEND comms cubismnc)
+endif()
+list(APPEND comms native)
+
+foreach(comm ${comms})
   foreach(block 8 16 32)
     add_test_current(
         NAME 2d-${comm}${block}
