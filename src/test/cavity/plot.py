@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import glob
 import os
 import re
+
+import matplotlib.pyplot as plt
 import stream
+
 
 # Read uniform grid data
 # p: path
@@ -32,6 +35,7 @@ def Read(p):
         u = u.reshape(ss)
         return u
 
+
 # u: numpy array (2d or 3d slice)
 def Get2d(u):
     if u is None:
@@ -41,28 +45,33 @@ def Get2d(u):
         return u
     else:
         assert len(s) == 3
-        return u[0,:,:].reshape((s[1], s[2]))
+        return u[0, :, :].reshape((s[1], s[2]))
+
 
 def PlotInit():
-    fig, ax = plt.subplots(figsize=(5,5))
+    fig, ax = plt.subplots(figsize=(5, 5))
     return fig, ax
 
+
 def PlotSave2(fig, ax, po):
-    ax.set_aspect('equal')
+    ax.set_aspect("equal")
     fig.tight_layout()
     fig.savefig(po, dpi=300)
     plt.close()
+
 
 def PlotSave1(fig, ax, po):
     fig.tight_layout()
     fig.savefig(po, dpi=300)
     plt.close()
 
+
 # u: 2d numpy array
 # po: output path
 def PlotField(ax, u):
-    u = np.clip(u, 0., 1.)
-    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest')
+    u = np.clip(u, 0.0, 1.0)
+    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation="nearest")
+
 
 # sx, sy: number of cells
 def PlotGrid(ax, x1, y1):
@@ -70,19 +79,20 @@ def PlotGrid(ax, x1, y1):
     ax.set_yticks(y1)
     plt.setp(ax.get_xticklabels(), visible=False)
     plt.setp(ax.get_yticklabels(), visible=False)
-    ax.tick_params(axis='both', which='both', length=0)
+    ax.tick_params(axis="both", which="both", length=0)
     ax.grid(True)
+
 
 def PlotStream(x1, y1, vx, vy, o):
     psi = stream.stream(vx, vy)
     fig, ax = PlotInit()
-    plt.contour(x1, y1, psi, 36, colors='k',
-                linestyles="solid", linewidths=1.)
-    ax.imshow(np.flipud(p), extent=(0, 1, 0, 1), interpolation='nearest')
+    plt.contour(x1, y1, psi, 36, colors="k", linestyles="solid", linewidths=1.0)
+    ax.imshow(np.flipud(p), extent=(0, 1, 0, 1), interpolation="nearest")
     PlotSave2(fig, ax, o)
 
+
 def PlotVy(ax, d, l=None):
-    if (l is None):
+    if l is None:
         l = d
 
     os.path.isdir(d) or os.mkdir(d)
@@ -91,13 +101,15 @@ def PlotVy(ax, d, l=None):
     vy = np.loadtxt(d + "vy")
     ax.plot(x, vy, label=l)
 
+
 def SaveVy(x1, vy, d):
     os.path.isdir(d) or os.mkdir(d)
     d = os.path.join(d, "")
-    ny = vx.shape[1];
-    vy1 = vy[ny // 2,:]
+    ny = vx.shape[1]
+    vy1 = vy[ny // 2, :]
     np.savetxt(d + "x", x1)
     np.savetxt(d + "vy", vy1)
+
 
 def FigVy(x, vy, o):
     SaveVy(x, vy, "ch")
@@ -113,17 +125,18 @@ def FigVy(x, vy, o):
     ax.legend(loc="best")
     PlotSave1(fig, ax, o)
 
-pre = 'p'
+
+pre = "p"
 ff = sorted(glob.glob(pre + "*.dat"))[0:]
-#pp = pp[1:2]
+# pp = pp[1:2]
 for f in ff:
     suf = re.findall(pre + "(.*)", f)[0]
-    vx = Get2d(Read('vx' + suf))
-    vy = Get2d(Read('vy' + suf))
-    p = Get2d(Read('p' + suf))
+    vx = Get2d(Read("vx" + suf))
+    vy = Get2d(Read("vy" + suf))
+    p = Get2d(Read("p" + suf))
     [sx, sy] = vx.shape
-    hx = 1. / sx
-    hy = 1. / sy
+    hx = 1.0 / sx
+    hy = 1.0 / sy
     # nodes, 1 means 1d
     xn1 = np.arange(sx + 1) * hx
     yn1 = np.arange(sy + 1) * hy

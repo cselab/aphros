@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import numpy as np
 import os
 
 import aphros
@@ -13,8 +12,7 @@ class Test(aphros.TestBase):
 
     def check(self, outdir, refdir, output_files):
         for f in [f for f in output_files if f.endswith(".dat")]:
-            self.runcmd("ap.diffnum '{}' '{}' 1e-3".format(
-                os.path.join(refdir, f), os.path.join(outdir, f)))
+            self.runcmd("ap.diffnum '{}' '{}' 1e-3".format(os.path.join(refdir, f), os.path.join(outdir, f)))
         return True
 
     def plot(self, datadir, output_files):

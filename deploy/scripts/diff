@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
-import numpy as np
-import sys
 import os
+import sys
+
+import numpy as np
+
 
 # Read uniform grid data
 # p: path
@@ -27,16 +29,18 @@ def Read(p):
         u = u.reshape(ss)
         return u
 
+
 v = sys.argv
 
 if len(v) < 3:
-  sys.stderr.write(
-"""usage: {:} a.dat b.dat [eps=1e-8]
+    sys.stderr.write(
+        """usage: {:} a.dat b.dat [eps=1e-8]
 Compares fields in plain format. Returns 1 if max difference > eps.
 STDOUT:
   max-norm of difference
-""".format(sys.argv[0]))
-  exit(1)
+""".format(sys.argv[0])
+    )
+    exit(1)
 
 a = v[1]
 b = v[2]

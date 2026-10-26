@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 
-import numpy as np
-import sys
 import argparse
+import sys
 
 import aphros
-import plottools
 import matplotlib.pyplot as plt
+import numpy as np
+import plottools
+
 aphros.plot.ApplyParams(plt)
 
+
 def printerr(m):
-    sys.stderr.write('{:}\n'.format(m))
+    sys.stderr.write("{:}\n".format(m))
     sys.stderr.flush()
 
+
 def get_polar(u):
-    '''
+    """
     Returns profile versus angle relative to the domain center ignoring NaN.
     u: 2D array, shape (ny, nx)
-    '''
+    """
     iy, ix = np.where(np.isfinite(u))
     shape = u.shape
     cx = (shape[0] - 1) * 0.5
@@ -31,20 +34,10 @@ def get_polar(u):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="test")
-    parser.add_argument('--input',
-                        type=str,
-                        default="k_0000.xmf",
-                        help="Path to xmf file with curvature field")
-    parser.add_argument('--output',
-                        type=str,
-                        default="curvature.pdf",
-                        help="Path to output image")
-    parser.add_argument('--radius',
-                        type=float,
-                        default="1",
-                        help="Radius of circle to compute exact curvature")
+    parser.add_argument("--input", type=str, default="k_0000.xmf", help="Path to xmf file with curvature field")
+    parser.add_argument("--output", type=str, default="curvature.pdf", help="Path to output image")
+    parser.add_argument("--radius", type=float, default="1", help="Radius of circle to compute exact curvature")
     return parser.parse_args()
-
 
 
 if __name__ == "__main__":
@@ -57,8 +50,8 @@ if __name__ == "__main__":
 
     fig, ax = plt.subplots()
     ax.plot(angle, k_error, lw=0.5)
-    ax.set_xlabel('angle')
-    ax.set_ylabel('curvature error')
+    ax.set_xlabel("angle")
+    ax.set_ylabel("curvature error")
     plottools.adjust_ticks(ax)
     printerr(args.output)
     fig.tight_layout()

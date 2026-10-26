@@ -2,12 +2,13 @@
 
 # source: https://gist.github.com/pv/8036995
 
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
-from scipy.spatial import Voronoi, voronoi_plot_2d
-import sys
 import os
+import sys
+
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.spatial import Voronoi, voronoi_plot_2d
+
 
 # Write uniform grid data
 # u -- 2d or 3d array
@@ -17,12 +18,13 @@ import os
 def WritePlain(u, path):
     s = u.shape
     assert len(s) in [2, 3]
-    if (len(s) == 2):
+    if len(s) == 2:
         u = u.reshape((s[0], s[1], 1))
-    with open(path, 'w') as f:
+    with open(path, "w") as f:
         f.write("{:} {:} {:}\n".format(*u.shape))
         u = u.flatten()
-        np.savetxt(f, u, newline='', fmt='%.16g ')
+        np.savetxt(f, u, newline="", fmt="%.16g ")
+
 
 def voronoi_finite_polygons_2d(vor, radius=None):
     """
@@ -85,7 +87,7 @@ def voronoi_finite_polygons_2d(vor, radius=None):
 
             # Compute the missing endpoint of an infinite ridge
 
-            t = vor.points[p2] - vor.points[p1] # tangent
+            t = vor.points[p2] - vor.points[p1]  # tangent
             t /= np.linalg.norm(t)
             n = np.array([-t[1], t[0]])  # normal
 
@@ -99,7 +101,7 @@ def voronoi_finite_polygons_2d(vor, radius=None):
         # sort region counterclockwise
         vs = np.asarray([new_vertices[v] for v in new_region])
         c = vs.mean(axis=0)
-        angles = np.arctan2(vs[:,1] - c[1], vs[:,0] - c[0])
+        angles = np.arctan2(vs[:, 1] - c[1], vs[:, 0] - c[0])
         new_region = np.array(new_region)[np.argsort(angles)]
 
         # finish
@@ -107,8 +109,9 @@ def voronoi_finite_polygons_2d(vor, radius=None):
 
     return new_regions, np.asarray(new_vertices)
 
+
 # make up data points
-'''
+"""
 np.random.seed(1234)
 nx = 10
 ny = 10
@@ -120,18 +123,18 @@ points = np.array(points)
 points = points.reshape(2, nx * ny)
 points = points.T
 points += (np.random.rand(nx * ny, 2) - 0.5) * gap
-'''
+"""
 
 av = sys.argv
 
 if len(av) < 2:
-    sys.stderr.write('''./voronoi.py POINTS
+    sys.stderr.write("""./voronoi.py POINTS
 Creates 2D Voronoi diagram from points.
 POINTS: table with two columns (e.g. points0)
 Output:
   %.dat: field in aphros plain data format (e.g. points0.dat)
   %.png: image of the diagram (e.g. points0.png)
-''')
+""")
     exit(1)
 
 points_path = av[1]
@@ -144,14 +147,14 @@ regions, vertices = voronoi_finite_polygons_2d(vor)
 
 resx = 256
 dpi = 100
-fig = plt.figure(figsize=(resx/dpi,resx/dpi))
-ax = plt.Axes(fig, [0., 0., 1., 1.])
+fig = plt.figure(figsize=(resx / dpi, resx / dpi))
+ax = plt.Axes(fig, [0.0, 0.0, 1.0, 1.0])
 ax.set_xlim(0, 1)
 ax.set_ylim(0, 1)
 ax.set_axis_off()
 fig.add_axes(ax)
 
-for i,region in enumerate(regions):
+for i, region in enumerate(regions):
     polygon = vertices[region]
     c = "#{:02x}{:02x}{:02x}".format(i, i, i)
     ax.fill(*zip(*polygon), c=c, antialiased=False)
@@ -160,11 +163,11 @@ fig.canvas.draw()
 
 data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
 data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-data = data[:,:,0]
+data = data[:, :, 0]
 data = np.flipud(data)
 WritePlain(data, basename + ".dat")
 
-voronoi_plot_2d(vor, ax, show_vertices=False, line_colors='#ffffff')
+voronoi_plot_2d(vor, ax, show_vertices=False, line_colors="#ffffff")
 ax.set_xlim(0, 1)
 ax.set_ylim(0, 1)
 fig.savefig(basename + ".png")

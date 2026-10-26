@@ -3,27 +3,31 @@
 import os
 import sys
 
+
 def sh(s, fatal=True, silent=True):
     if not silent:
         print(s)
     r = os.system(s)
     assert not fatal or r == 0
 
+
 av = sys.argv
 
 
 if len(av) != 3 or av[1] == "-h":
-    print("""usage: DUMMY DATOUT
-Generates script which: 
+    print(
+        """usage: {} DUMMY DATOUT
+Generates script which:
 - copies the content of DUMMY to its current directory,
-- executes './run' 
+- executes './run'
 - moves 'dat' to DATOUT
 Paths converted to absolute.
 STDIN: additional commands
 DATOUT: suffix for output
 
 STDOUT: task
-""".format(os.path.basename(av[0])))
+""".format(os.path.basename(av[0]))
+    )
     exit(1)
 
 # DUMMY
@@ -33,11 +37,12 @@ if not os.path.isdir(dm):
 # DATOUT
 od = os.path.abspath(os.path.realpath(av[2]))
 # additional commands
-cmd = sys.stdin.read()  
+cmd = sys.stdin.read()
 
 # log
 l = "out"
-sys.stdout.write("""#!/bin/bash
+sys.stdout.write(
+    """#!/bin/bash
 
 set -eu
 
@@ -58,4 +63,5 @@ mv dat "{od}"
 
 cd ../
 rm -r $w
-""".format(**locals()))
+""".format(**locals())
+)

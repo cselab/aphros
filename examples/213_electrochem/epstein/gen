@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
+
 import aphros
-import math
+
 
 def assert_close(a, b):
-    assert abs(a - b) / (abs(a) + abs(b)) < 1e-8, \
-        "expected close {:} and {:}".format(a, b)
+    assert abs(a - b) / (abs(a) + abs(b)) < 1e-8, "expected close {:} and {:}".format(a, b)
 
 
 class Default(aphros.Parameters):
@@ -18,29 +18,24 @@ class Default(aphros.Parameters):
     dumplist = "tu0"
     tmax = 2
 
-    Oh = 1 # Ohnesorge number
-    Sc = 1 # Schmidt number
+    Oh = 1  # Ohnesorge number
+    Sc = 1  # Schmidt number
 
-    particles = False # Growth through Lagragian particle.
+    particles = False  # Growth through Lagragian particle.
 
     rho = 0.01
-    extent = 8.
-    diffusion = 1.  # Diffusion coefficient.
-    r_ref = 1. # Characteristic length.
+    extent = 8.0
+    diffusion = 1.0  # Diffusion coefficient.
+    r_ref = 1.0  # Characteristic length.
     r_bubble = 0.001  # Initial radius of bubble.
-    init_c = 0.1 # initial concentration
+    init_c = 0.1  # initial concentration
 
 
 par = Default("par.py")
 
-domain = aphros.AdjustedDomain(lx=par.extent,
-                               ly=par.extent,
-                               lz=par.extent,
-                               nx=par.nx,
-                               nproc=par.np,
-                               nproc_factor=0.7,
-                               size_factor=1,
-                               bs=par.bs)
+domain = aphros.AdjustedDomain(
+    lx=par.extent, ly=par.extent, lz=par.extent, nx=par.nx, nproc=par.np, nproc_factor=0.7, size_factor=1, bs=par.bs
+)
 
 lx = domain.lx
 ly = domain.ly
@@ -60,7 +55,7 @@ par.Sc = float(par.Sc)
 
 conf = aphros.Config()
 conf.extent = domain.extent
-conf.rho1 = 1.
+conf.rho1 = 1.0
 conf.rho2 = conf.rho1 * par.rho
 conf.mu1 = par.Sc * par.diffusion * conf.rho1
 conf.mu2 = conf.mu1 * par.rho
@@ -71,14 +66,14 @@ conf.dumplist = par.dumplist
 conf.sigma = (conf.mu1 / par.Oh) ** 2 / (conf.rho1 * par.r_ref)
 conf.dtmax = min(par.dtmax, par.dumpdt)
 
-Oh = conf.mu1 / (conf.rho1 * par.r_ref * conf.sigma)**0.5
+Oh = conf.mu1 / (conf.rho1 * par.r_ref * conf.sigma) ** 0.5
 Sc = conf.mu1 / (par.diffusion * conf.rho1)
 assert_close(par.Oh, Oh)
 assert_close(par.Sc, Sc)
 
 conf.enable_tracer = 1
 conf.tracer_layers = 1
-conf.tracer_interface_diffusion_factor = 1.
+conf.tracer_interface_diffusion_factor = 1.0
 conf.tracer0_init = "uniform"
 conf.tracer0_init_value = float(par.init_c)
 conf.tracer_diffusion = [par.diffusion]
@@ -94,30 +89,29 @@ if par.particles:
     conf.enable_particles = 1
     conf.particles_to_vof = 1
     conf.particles_coal = 1
-    conf.particles_growth_diffusion_factor = 1.
+    conf.particles_growth_diffusion_factor = 1.0
     conf.particles_density = par.rho
     conf.particles_mode = "tracer"
     # Initial particles.
     conf.particles_init_csv = "partinit.csv"
-    with open(conf.particles_init_csv, 'w') as f:
-        f.write('''x,y,z,r
-                    {:},{:},{:},{:}'''.format(lxh, lyh, lzh, par.r_bubble))
+    with open(conf.particles_init_csv, "w") as f:
+        f.write(
+            """x,y,z,r
+                    {:},{:},{:},{:}""".format(lxh, lyh, lzh, par.r_bubble)
+        )
 else:
     # Initial volume fraction.
     conf.init_vf = "list"
-    conf.list_path = "inline {:}".format(aphros.Geometry().Sphere(
-        [lxh, lyh, lzh], [par.r_bubble] * 3).Generate())
+    conf.list_path = "inline {:}".format(aphros.Geometry().Sphere([lxh, lyh, lzh], [par.r_bubble] * 3).Generate())
 
 bc_tracer = ", tracer0_neumann 0"
 bc = aphros.BoundaryConditions()
 bc.Outlet(aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]), extra=bc_tracer)
-#bc.OutletPressure(aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]), pressure=0, extra=bc_tracer)
-conf.bc_path = 'inline{}\n'.format(''.join(
-    ['\n  ' + l for l in bc.Generate().split('\n')]))
+# bc.OutletPressure(aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]), pressure=0, extra=bc_tracer)
+conf.bc_path = "inline{}\n".format("".join(["\n  " + l for l in bc.Generate().split("\n")]))
 
 conf.GenerateFile("par.conf")
 
 domain = aphros.PartitionDomain(domain)
 domain.GenerateMeshConfig()
 aphros.GenerateJobConfig(domain.nproc, par.tl)
-

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 import os
-import numpy as np
+
 import aphros
+import numpy as np
 from aphros.io import ReadPlain
 
 
@@ -19,27 +20,27 @@ class Test(aphros.TestBase):
 
     def run(self, case):
         def Slice(fin, fout, midy=False):
-          u = ReadPlain(fin)
-          ly = 1.
-          ny = u.shape[1]
-          hy = ly / ny
-          if midy:
-            u = u[0, ny // 2, :]
-          else:
-            u = u[0, :, -1]
-          x = np.linspace(hy * 0.5, ly - hy * 0.5, ny)
-          np.savetxt(fout, np.transpose((x, u)))
+            u = ReadPlain(fin)
+            ly = 1.0
+            ny = u.shape[1]
+            hy = ly / ny
+            if midy:
+                u = u[0, ny // 2, :]
+            else:
+                u = u[0, :, -1]
+            x = np.linspace(hy * 0.5, ly - hy * 0.5, ny)
+            np.savetxt(fout, np.transpose((x, u)))
 
         self.runcmd("make -f sim.makefile cleanall")
-        with open("add.conf", 'w') as f:
-            for conf in case.split('_'):
+        with open("add.conf", "w") as f:
+            for conf in case.split("_"):
                 f.write("include {}.conf\n".format(conf))
         self.runcmd("make -f sim.makefile run")
 
-        Slice('vx_0000.dat', 'vx', False)
-        Slice('p_0000.dat', 'p', True)
+        Slice("vx_0000.dat", "vx", False)
+        Slice("p_0000.dat", "p", True)
 
-        return ['vx', 'p']
+        return ["vx", "p"]
 
     def check(self, outdir, refdir, output_files):
         for f in output_files:
@@ -50,4 +51,3 @@ class Test(aphros.TestBase):
 
 
 Test().main()
-

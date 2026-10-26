@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-import pint
 import math
+
+import pint
 
 
 def pprint(expr, desc=None):
     res = eval(expr, globals()).to_base_units()
-    print("{} = {:.6g}".format(
-        '    ' + expr if not desc else desc + ':\n    ' + expr, res))
+    print("{} = {:.6g}".format("    " + expr if not desc else desc + ":\n    " + expr, res))
 
 
 ureg = pint.UnitRegistry()
@@ -32,21 +32,21 @@ L = re
 mu = 1e-3 * ureg.Pa * ureg.s
 rho = 1000 * ureg.kg / ureg.m**3
 nu = mu / rho
-#E = 2.1 * ureg.V  # typical cell potential
-#Rcell = E / I  # cell resistance
-#vel_D = re / t_D  # diffusion velocity
-#g = 9.8 * ureg.m / ureg.s**2
+# E = 2.1 * ureg.V  # typical cell potential
+# Rcell = E / I  # cell resistance
+# vel_D = re / t_D  # diffusion velocity
+# g = 9.8 * ureg.m / ureg.s**2
 
 charge_to_mol = 1 / (n * F)  # charge to amount of substance of dissolved gas
 charge_to_c = charge_to_mol * mol_to_c
 
-Oh = mu / (rho * L * sigma)**0.5
+Oh = mu / (rho * L * sigma) ** 0.5
 Sc = nu / D
-#Ca = mu * vel_D / sigma
-#Re = L * vel_D / nu
-#Eo = rho * g * L**2 / sigma
-#Ga = g * L**3 / nu**2
-#g_tilde = g / L * t_D**2
+# Ca = mu * vel_D / sigma
+# Re = L * vel_D / nu
+# Eo = rho * g * L**2 / sigma
+# Ga = g * L**3 / nu**2
+# g_tilde = g / L * t_D**2
 
 molflux = (I / A) / (n * F)
 molrate = molflux * A  # molar rate of dissolved gas
@@ -67,21 +67,21 @@ pprint("molrate", "molar rate of dissolved gas")
 pprint("cflux", "concentration flux of dissolved gas")
 pprint("crate", "concentration rate of dissolved gas")
 pprint("t_D", "diffusion time")
-#pprint("vel_D", "diffusion velocity")
-#pprint("E", "cell potential")
-#pprint("Rcell", "cell resistance")
+# pprint("vel_D", "diffusion velocity")
+# pprint("E", "cell potential")
+# pprint("Rcell", "cell resistance")
 pprint("sigma", "surface tension")
 pprint("k_H2", "Henry coefficient")
 pprint("lambda_H2", "Ostwald coefficient")
-#pprint("g", "gravity")
+# pprint("g", "gravity")
 
 print("\nDimensionless:")
 pprint("cflux_tilde", "molar flux of dissolved gas")
 pprint("crate_tilde", "molar rate of dissolved gas")
-#pprint("g_tilde", "gravity")
-#pprint("Ca", "Capillary number")
-#pprint("Re", "Reynolds number")
-#pprint("Eo", "Eötvös number")
-#pprint("Ga", "Galilei number")
+# pprint("g_tilde", "gravity")
+# pprint("Ca", "Capillary number")
+# pprint("Re", "Reynolds number")
+# pprint("Eo", "Eötvös number")
+# pprint("Ga", "Galilei number")
 pprint("Oh", "Ohnesorge number")
 pprint("Sc", "Schmidt number")

@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.2  # no major tag v10
-      - name: Check formatting (clang-format)
+      - name: Check formatting and lint (clang-format, ruff)
         run: tools/format --check
 
   linux:

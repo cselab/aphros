@@ -23,10 +23,7 @@ def report(re, n="residual"):
     re = re.flatten()
     nr = np.linalg.norm
     l = len(re)
-    Log("{:}: L1: {:}, L2: {:}, Linf: {:}".format(n,
-                                                  nr(re, ord=1) / l,
-                                                  nr(re, ord=2) / (l**0.5),
-                                                  nr(re, ord=np.inf)))
+    Log("{:}: L1: {:}, L2: {:}, Linf: {:}".format(n, nr(re, ord=1) / l, nr(re, ord=2) / (l**0.5), nr(re, ord=np.inf)))
 
 
 # vorticity: dv/dx - du/dy
@@ -35,10 +32,10 @@ def vort(u, v):
     vx = 0.5 * (np.roll(v, -1, axis=1) - np.roll(v, 1, axis=1))
     uy = 0.5 * (np.roll(u, -1, axis=0) - np.roll(u, 1, axis=0))
     om = vx - uy
-    #om[:,0] = 0.
-    #om[:,-1] = 0.
-    om[0, :] = 0.
-    om[-1, :] = 0.
+    # om[:,0] = 0.
+    # om[:,-1] = 0.
+    om[0, :] = 0.0
+    om[-1, :] = 0.0
     return om
 
 
@@ -51,13 +48,19 @@ def stream_jacobi(u, v, itmax=50000, tol=1e-8):
     f = -vort(u, v)
     s = np.zeros_like(f)
     it = 0
-    r = tol + 1.
+    r = tol + 1.0
     lastit = 0
     while r > tol and it < itmax:
         pold = s
         sor = 1.0
-        resid = (np.roll(s, -1, axis=0) + np.roll(s, 1, axis=0) + np.roll(
-            s, -1, axis=1) + np.roll(s, 1, axis=1) - 4. * s - f) / 4.
+        resid = (
+            np.roll(s, -1, axis=0)
+            + np.roll(s, 1, axis=0)
+            + np.roll(s, -1, axis=1)
+            + np.roll(s, 1, axis=1)
+            - 4.0 * s
+            - f
+        ) / 4.0
         s = pold + sor * resid
         # boundary conditions: derivatives
         s[:, 0] = s[:, 1] + (v[:, 0] + v[:, 1]) * 0.5
@@ -66,7 +69,7 @@ def stream_jacobi(u, v, itmax=50000, tol=1e-8):
         s[-1, :] = s[-2, :] + (u[-1, :] + u[-2, :]) * 0.5
         # center at zero
         s -= s.mean()
-        r = (resid[1:-1, 1:-1]**2).mean()**0.5
+        r = (resid[1:-1, 1:-1] ** 2).mean() ** 0.5
         # report
         if it >= lastit + itmax // 10:
             Log("i={:06d}, r={:.5e}".format(it, r))
@@ -87,7 +90,7 @@ def stream_direct(u, v):
     ones = np.ones_like(i).astype(float)
 
     # inner: laplacian
-    dc = -4. * ones.copy()
+    dc = -4.0 * ones.copy()
     dxp = ones.copy()
     dxm = ones.copy()
     dyp = ones.copy()
@@ -102,16 +105,16 @@ def stream_direct(u, v):
     # boundary conditions: derivatives
     # laplacian = (xp - c) - (c - xm) + (yp - c) - (c - ym)
     # subtract gradients at the sides
-    #dxp[:,-1] -= 1. ; dc[:,-1] += 1.
-    #dxm[:, 0] -= 1. ; dc[:, 0] += 1.
-    dyp[-1, :] -= 1.
-    dc[-1, :] += 1.
-    dym[0, :] -= 1.
-    dc[0, :] += 1.
+    # dxp[:,-1] -= 1. ; dc[:,-1] += 1.
+    # dxm[:, 0] -= 1. ; dc[:, 0] += 1.
+    dyp[-1, :] -= 1.0
+    dc[-1, :] += 1.0
+    dym[0, :] -= 1.0
+    dc[0, :] += 1.0
 
     # add given values
-    #f[:,-1] += (v[:,-1] + v[:,-2]) * 0.5
-    #f[:, 0] -= (v[:, 0] + v[:, 1]) * 0.5
+    # f[:,-1] += (v[:,-1] + v[:,-2]) * 0.5
+    # f[:, 0] -= (v[:, 0] + v[:, 1]) * 0.5
     f[-1, :] += -(u[-1, :] + u[-2, :]) * 0.5
     f[0, :] -= -(u[0, :] + u[1, :]) * 0.5
 
@@ -129,7 +132,7 @@ def stream_direct(u, v):
     indptr = np.concatenate(([0], np.cumsum(rowsize)))
 
     # fix s[0] = 0
-    data[0] += 1.
+    data[0] += 1.0
 
     # solve ax=b
     a = sp.csr_matrix((data, indices, indptr))
@@ -141,8 +144,8 @@ def stream_direct(u, v):
     # compute u,v
     su = 0.5 * (np.roll(s, -1, axis=0) - np.roll(s, 1, axis=0))
     sv = -0.5 * (np.roll(s, -1, axis=1) - np.roll(s, 1, axis=1))
-    su[0, :] = (s[1, :] - s[0, :])
-    su[-1, :] = (s[-1, :] - s[-2, :])
+    su[0, :] = s[1, :] - s[0, :]
+    su[-1, :] = s[-1, :] - s[-2, :]
     report((su - u) / (abs(u)).mean(), "|u-su|/mean(|u|)")
     report((sv - v) / (abs(v)).mean(), "|v-sv|/mean(|v|)")
 
@@ -150,12 +153,12 @@ def stream_direct(u, v):
 
 
 stream = stream_direct
-#stream = stream_jacobi
+# stream = stream_jacobi
 
 
 def interp_to_uniform(xp, yp, fields=[], n=None):
     if n is None:
-        n = int(len(xp)**0.5 + 0.5)
+        n = int(len(xp) ** 0.5 + 0.5)
 
     x1 = np.linspace(xp.min(), xp.max(), n)
     y1 = np.linspace(yp.min(), yp.max() - 1e-6 * yp.ptp(), n)

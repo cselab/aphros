@@ -2,13 +2,11 @@
 
 import os
 
-DEFINE_SUBMIT_CMD = \
-"""
+DEFINE_SUBMIT_CMD = """
 cmd="sh $job & ; echo $! > job_pid"
 """
 
-DEFINE_JOB_ID = \
-"""
+DEFINE_JOB_ID = """
 id=`cat job_pid`
 """
 
@@ -55,8 +53,8 @@ echo "pending" > job.status
 """
 
 for name in [
-        "DEFINE_SUBMIT_CMD",
-        "DEFINE_JOB_ID",
+    "DEFINE_SUBMIT_CMD",
+    "DEFINE_JOB_ID",
 ]:
     o = o.replace(name, locals()[name])
 

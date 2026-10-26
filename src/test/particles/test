@@ -8,19 +8,17 @@ import aphros
 class Test(aphros.TestBase):
     def __init__(self):
         super().__init__()
-        self.parser.add_argument('--backend',
-                                 type=str,
-                                 default='native',
-                                 choices=['native', 'cubismnc', 'local'],
-                                 help="Communication backend")
-        self.parser.add_argument('--np',
-                                 type=int,
-                                 default=1,
-                                 help="Number of MPI processes")
+        self.parser.add_argument(
+            "--backend",
+            type=str,
+            default="native",
+            choices=["native", "cubismnc", "local"],
+            help="Communication backend",
+        )
+        self.parser.add_argument("--np", type=int, default=1, help="Number of MPI processes")
 
     def run(self):
-        self.runcmd("ap.mpirun -n {:} ./t.particles --backend {}".format(
-            self.args.np, self.args.backend))
+        self.runcmd("ap.mpirun -n {:} ./t.particles --backend {}".format(self.args.np, self.args.backend))
         return ["stat.log"]
 
     def check(self, outdir, refdir, output_files):
@@ -29,5 +27,6 @@ class Test(aphros.TestBase):
             out = os.path.join(outdir, f)
             self.runcmd("ap.diffnum '{}' '{}' 1e-8".format(ref, out))
         return True
+
 
 Test().main()

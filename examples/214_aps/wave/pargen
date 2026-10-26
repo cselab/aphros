@@ -123,9 +123,7 @@ set double random_amp 0.1
 set vect random_vel 1 1 0
 
 set string advection_solver vofm
-""".format(
-                **locals()
-            )
+""".format(**locals())
         )
 
     with open("par.make", "w") as f:
@@ -134,9 +132,7 @@ set string advection_solver vofm
 bs = {bs} {bs} {bs}
 np = {np}
 tl = {tl}
-""".format(
-                **c
-            )
+""".format(**c)
         )
 
 

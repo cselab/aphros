@@ -43,13 +43,13 @@ fi
 """
 
 for name in [
-        "PREFIX",
-        "EXTRA",
-        "PROFILE",
-        "FLAGVAR",
-        "PREFIXVAR",
-        "PROFILEVAR",
+    "PREFIX",
+    "EXTRA",
+    "PROFILE",
+    "FLAGVAR",
+    "PREFIXVAR",
+    "PROFILEVAR",
 ]:
-    o = o.replace('[[' + name + ']]', locals()[name])
+    o = o.replace("[[" + name + "]]", locals()[name])
 
 print(o)

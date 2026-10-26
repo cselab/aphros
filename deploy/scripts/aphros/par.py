@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-import math
 import os
-import sys
 
 
 # Returns dictionary with standard parameters {k : (v,h)}
@@ -26,37 +24,38 @@ def StdParAll():
     nx = [int, "mesh size"]
     cpr = [float, "cells per bubble radius"]
     br = [0.125, "bubble radius relative to dom"]
-    tmax = [1., "total time"]
+    tmax = [1.0, "total time"]
     nfr = [100, "number of frames"]
-    mu0 = [1., "dynamic viscosity of carrier fluid"]
-    mu = [1., "dynamic viscosity of bubble relative to carrier"]
-    rho0 = [1., "density of carrier fluid"]
-    rho = [1., "density of bubble relative to carrier"]
+    mu0 = [1.0, "dynamic viscosity of carrier fluid"]
+    mu = [1.0, "dynamic viscosity of bubble relative to carrier"]
+    rho0 = [1.0, "density of carrier fluid"]
+    rho = [1.0, "density of bubble relative to carrier"]
     dim = [3, "dimension, 2 or 3"]
     chsm = [1, "ch smooth steps [rhor>10: 1, rhor>100: 2]"]
     gesm = [1, "ge smooth steps"]
     wallx = [0, "wall in x direction, else periodic"]
     wally = [0, "wall in y direction, else periodic"]
     wallz = [0, "wall in z direction, else periodic"]
-    vel0 = [[1., 0.8, 0.6], "direction of velocity"]
-    g0 = [[0., -1., 0.], "direction of gravity"]
-    bcoh = [[0., 0., 0.], "offset of bubble center relative to h"]
-    bcod = [[0., 0., 0.], "offset of bubble center relative to dom"]
-    bcor = [[0., 0., 0.], "offset of bubble center relative to br"]
-    bryk = [1., "stretching factor for bubble size in y"]
-    dom = [1., "domain size"]
+    vel0 = [[1.0, 0.8, 0.6], "direction of velocity"]
+    g0 = [[0.0, -1.0, 0.0], "direction of gravity"]
+    bcoh = [[0.0, 0.0, 0.0], "offset of bubble center relative to h"]
+    bcod = [[0.0, 0.0, 0.0], "offset of bubble center relative to dom"]
+    bcor = [[0.0, 0.0, 0.0], "offset of bubble center relative to br"]
+    bryk = [1.0, "stretching factor for bubble size in y"]
+    dom = [1.0, "domain size"]
     ch = [1, "run ch", [0, 1]]
     ge = [1, "run ge", [0, 1]]
     pos = ["corner", "initial position of bubbles", ["center", "corner"]]
     mode = [
-        "vel", '''timescale; vel: velocity magnitude D;
+        "vel",
+        """timescale; vel: velocity magnitude D;
 osc: oscillation frequency sqrt[7] / pi;
-mu: viscosity mu = rho * D ^ 2, pois: velocity magnitude dom''',
-        ['vel', 'osc', 'mu', 'pois']
+mu: viscosity mu = rho * D ^ 2, pois: velocity magnitude dom""",
+        ["vel", "osc", "mu", "pois"],
     ]
     pois = [0, "Poiseuille profile by force along x", [0, 1]]
-    b2rr = [0., "second bubble radius relative to br"]
-    b2xr = [[2., 0., 0.], "second bubble displacement realative to br"]
+    b2rr = [0.0, "second bubble radius relative to br"]
+    b2xr = [[2.0, 0.0, 0.0], "second bubble displacement realative to br"]
     out = [str, "directory for task and output"]
     meshvel = [0, "moving mesh in ch", [0, 1]]
     nb = [1, "number of bubbles"]
@@ -66,8 +65,8 @@ mu: viscosity mu = rho * D ^ 2, pois: velocity magnitude dom''',
     dumpdefault = [0, "add dumpformat=default to ch"]
     part_np = [7, "particles in one string"]
     part_ns = [3, "strings per cell"]
-    part_hp = [4., "string length"]
-    part_circ = [0., "segcirc factor"]
+    part_hp = [4.0, "string length"]
+    part_circ = [0.0, "segcirc factor"]
     part_eps = [1e-5, "convergence tolerance"]
     part_eta = [0.5, "relaxation factor"]
     part_itermax = [20, "maximum number of iterations"]
@@ -105,7 +104,7 @@ def GetGa(x, rho, mu, sig):
 # Returns a selection from StdParAll().
 # kk: list of names
 def GetStdPar(*kk):
-    if type(kk) == str:
+    if type(kk) is str:
         kk = [kk]
     d = StdParAll()
     r = dict()  # result
@@ -122,9 +121,7 @@ def IsClose(a, b):
 # cc: dict with parameters as in StdParAll()
 # desc: description for command line help
 def GetArgs(cc, desc=None):
-    p = argparse.ArgumentParser(
-        description=desc,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p = argparse.ArgumentParser(description=desc, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     for k in sorted(cc):
         c = cc[k]
@@ -138,21 +135,15 @@ def GetArgs(cc, desc=None):
             t = type(v)
             v = v
 
-        n = '-' + k
+        n = "-" + k
 
-        if t == list:
-            m = ('X', 'Y', 'Z')
+        if t is list:
+            m = ("X", "Y", "Z")
             assert v is None or len(v) == len(m)
             t = type(v[0]) if v is not None else float
-            p.add_argument(n,
-                           nargs=len(m),
-                           choices=o,
-                           metavar=m,
-                           default=v,
-                           help=h,
-                           type=t)
+            p.add_argument(n, nargs=len(m), choices=o, metavar=m, default=v, help=h, type=t)
         else:
-            p.add_argument(n, nargs='?', choices=o, default=v, help=h, type=t)
+            p.add_argument(n, nargs="?", choices=o, default=v, help=h, type=t)
 
     a = p.parse_args()
     return a
@@ -160,7 +151,7 @@ def GetArgs(cc, desc=None):
 
 def norm(v):
     assert len(v) == 3
-    return sum([a**2 for a in v])**0.5
+    return sum([a**2 for a in v]) ** 0.5
 
 
 # Returns dictionary with derived parameters.
@@ -173,9 +164,9 @@ def GetPar(a):
     nx = a.nx
     np = a.np
     brh = a.brh
-    vel0 = a.vel0 if a.dim == 3 else [a.vel0[0], a.vel0[1], 0.]
+    vel0 = a.vel0 if a.dim == 3 else [a.vel0[0], a.vel0[1], 0.0]
     dom = a.dom
-    #mu = max(a.mu0, a.mu0 * a.mu)
+    # mu = max(a.mu0, a.mu0 * a.mu)
     rho = max(a.rho0, a.rho0 * a.rho)
     tmax = a.tmax
 
@@ -198,16 +189,16 @@ def GetPar(a):
         sig = rho * bd**3
 
     # viscosity
-    mu = (sig * rho * bd / la)**0.5
+    mu = (sig * rho * bd / la) ** 0.5
     # velocity magnitude
-    vm = (we * sig / (bd * rho))**0.5
+    vm = (we * sig / (bd * rho)) ** 0.5
     # velocity
     vel = [x * vm / norm(vel0) for x in vel0]
 
-    assert IsClose(we, rho * norm(vel)**2 * bd / sig)
+    assert IsClose(we, rho * norm(vel) ** 2 * bd / sig)
     assert IsClose(la, rho * sig * bd / mu**2)
 
-    if a.rho > 1.:  # droplet, phase 2 heavier
+    if a.rho > 1.0:  # droplet, phase 2 heavier
         mu0 = mu / a.mu
     else:  # bubble
         mu0 = mu
@@ -229,7 +220,7 @@ def GetPar(a):
         b2c = [b2c[i] - c[i] + dc[i] for i in r3]
 
     # derived variables to return
-    kk = ['sig', 'vel', 'dumpdt', 'br', 'bc', 'b2r', 'b2c', 'mu0']
+    kk = ["sig", "vel", "dumpdt", "br", "bc", "b2r", "b2c", "mu0"]
     for k in kk:
         d[k] = locals()[k]
 
@@ -247,13 +238,13 @@ def GetBubText(cc, rr):
 
 
 def GetBubName():
-    return 'b.dat'
+    return "b.dat"
 
 
 def WriteBub(cc, rr):
     t = GetBubText(cc, rr)
     n = GetBubName()
-    open(n, 'w').write(t)
+    open(n, "w").write(t)
 
 
 def GetParName():
@@ -265,7 +256,7 @@ def GetDictPy(c):
     t = ""
     for k in sorted(c):
         v = c[k]
-        v = '"{:}"'.format(v) if type(v) == str else str(v)
+        v = '"{:}"'.format(v) if type(v) is str else str(v)
         t += "{:} = {:}\n".format(k, v)
 
     return t
@@ -274,7 +265,7 @@ def GetDictPy(c):
 # Writes file with parameters to current directory
 # c: dict with parameters
 def WritePar(c):
-    open(GetParName(), 'w').write(GetDictPy(c))
+    open(GetParName(), "w").write(GetDictPy(c))
 
 
 # Returns dict with parameters
@@ -288,7 +279,7 @@ def ReadPar(b):
 
 # Writes file with dimension
 def WriteDim(dim):
-    open("dim", 'w').write(str(dim))
+    open("dim", "w").write(str(dim))
 
 
 # Block size
@@ -300,15 +291,15 @@ def GetBs(dim):
 # c: dict with parameters, output of ReadPar()
 # Required parameters: np, dim, nx
 def GetMakeArg(c):
-    np = c['np']
+    np = c["np"]
     loc = True if np == 1 else False
-    dim = c['dim']
-    d3 = (dim == 3)
+    dim = c["dim"]
+    d3 = dim == 3
 
     # minimal size in z
     mz = 1 if loc else 2
 
-    nx = c['nx']
+    nx = c["nx"]
     ny = nx
     nz = nx if d3 else mz
 

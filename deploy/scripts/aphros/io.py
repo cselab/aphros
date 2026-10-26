@@ -1,6 +1,8 @@
 import os
 import re
+
 from aphros.vtk import ReadVtkPoly
+
 try:
     import numpy as np
 except ImportError:
@@ -8,7 +10,7 @@ except ImportError:
 
 
 def ReadPlain(fn):
-    '''
+    """
     Reads uniform grid data.
     p: path
 
@@ -18,7 +20,7 @@ def ReadPlain(fn):
 
     Returns:
     array of shape (nx, ny, nz) or None if file not found
-    '''
+    """
     assert os.path.isfile(fn), "No such file: '{:}'".format(fn)
     with open(fn) as f:
         ll = f.readlines()
@@ -34,17 +36,15 @@ def ReadPlain(fn):
 
 
 def parse_raw_xmf(xmfpath):
-    '''
+    """
     Returns shape and path to `.raw` file
     xmfpath: path to `.xmf` metadata file
-    '''
+    """
     with open(xmfpath) as f:
-        text = ''.join(f.read().split('\n'))
+        text = "".join(f.read().split("\n"))
     m = re.findall(
-        '<Xdmf.*<Attribute.*'
-        '<DataItem.*<DataItem.*'
-        '<DataItem.*Dimensions="(\d*) (\d*) (\d*)".*?> *([a-z0-9_.]*)',
-        text)[0]
+        r'<Xdmf.*<Attribute.*<DataItem.*<DataItem.*<DataItem.*Dimensions="(\d*) (\d*) (\d*)".*?> *([a-z0-9_.]*)', text
+    )[0]
     shape = tuple(map(int, m[:3]))
     rawpath = m[3]
     rawpath = os.path.join(os.path.dirname(xmfpath), rawpath)
@@ -52,30 +52,25 @@ def parse_raw_xmf(xmfpath):
 
 
 def read_raw(xmfpath):
-    '''
+    """
     Returns array from scalar field in raw format.
     xmfpath: path to xmf metadata file
-    '''
+    """
     shape, rawpath = parse_raw_xmf(xmfpath)
     u = np.fromfile(rawpath).reshape(shape)
     return u
 
 
-def write_raw_xmf(xmfpath,
-                  rawpath,
-                  count,
-                  spacing=(1, 1, 1),
-                  name='data',
-                  precision=8):
-    '''
+def write_raw_xmf(xmfpath, rawpath, count, spacing=(1, 1, 1), name="data", precision=8):
+    """
     Writes XMF metadata for a `.raw` datafile.
     xmfpath: path to output `.xmf` file
     rawpath: path to binary `.raw` file to be linked
     count: array size as (Nz, Ny, Nx)
     name: name of field
-    '''
+    """
 
-    txt = '''\
+    txt = """\
 <?xml version="1.0" ?>
 <!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
 <Xdmf Version="2.0">
@@ -105,54 +100,51 @@ def write_raw_xmf(xmfpath,
    </Grid>
  </Domain>
 </Xdmf>
-'''
+"""
 
     def tostrrev(v):
-        return ' '.join(map(str, reversed(v)))
+        return " ".join(map(str, reversed(v)))
+
     def tostr(v):
-        return ' '.join(map(str, v))
+        return " ".join(map(str, v))
 
     info = dict()
     dim = 3
-    info['name'] = name
-    info['dim'] = dim
-    info['origin'] = tostrrev([0] * dim)
-    info['spacing'] = tostrrev(spacing)
-    info['start'] = tostrrev([0] * dim)
-    info['stride'] = tostrrev([1] * dim)
-    info['count'] = tostr(count)
-    info['bindim'] = tostr(count)
-    info['countd'] = tostr(count)
-    info['nodes'] = tostr([a + 1 for a in count])
-    info['precision'] = precision
+    info["name"] = name
+    info["dim"] = dim
+    info["origin"] = tostrrev([0] * dim)
+    info["spacing"] = tostrrev(spacing)
+    info["start"] = tostrrev([0] * dim)
+    info["stride"] = tostrrev([1] * dim)
+    info["count"] = tostr(count)
+    info["bindim"] = tostr(count)
+    info["countd"] = tostr(count)
+    info["nodes"] = tostr([a + 1 for a in count])
+    info["precision"] = precision
     if precision == 8:
-        info['type'] = 'Double'
+        info["type"] = "Double"
     else:
-        info['type'] = 'Float'
-    info['binpath'] = rawpath
-    info['seek'] = '0'
-    info['geomtype'] = 'ORIGIN_DXDYDZ'
+        info["type"] = "Float"
+    info["binpath"] = rawpath
+    info["seek"] = "0"
+    info["geomtype"] = "ORIGIN_DXDYDZ"
     # Remove '*' which are only used in `aphros/src/dump/xmf.ipp`.
-    txt = txt.replace('*}', '}')
+    txt = txt.replace("*}", "}")
     txt = txt.format(**info)
 
-    with open(xmfpath, 'w') as f:
+    with open(xmfpath, "w") as f:
         f.write(txt)
 
 
-def write_raw_with_xmf(u,
-                       xmfpath,
-                       rawpath=None,
-                       spacing=(1, 1, 1),
-                       name='data'):
-    '''
+def write_raw_with_xmf(u, xmfpath, rawpath=None, spacing=(1, 1, 1), name="data"):
+    """
     Writes binary data in raw format with XMF metadata.
     u: np.ndarray to write, shape (Nz, Ny, Nx)
     spacing: cell size
     name: name of field
-    '''
+    """
     if len(u.shape) != 3:
-        u = u.reshape((1, ) + u.shape)
+        u = u.reshape((1,) + u.shape)
     if len(spacing) != 3:
         spacing = list(spacing) + [min(spacing)]
     precision = 8 if u.dtype == np.float64 else 4
@@ -164,11 +156,11 @@ def write_raw_with_xmf(u,
 
 
 def read_lines_vtk(path):
-    '''
+    """
     Returns array of lines from `sm_*.vtk` generated with `spacedim=2`
     [line0_x, line0_y, line1_x, line1_y, ...]
     where line0_x and line1_y are lists of coordinates
-    '''
+    """
     points, poly, _ = ReadVtkPoly(path)
     # [[[x0a, y0b], [x0a, y0b]], ...]
     lines = points[poly][:, :, :2]
@@ -180,10 +172,10 @@ def read_lines_vtk(path):
 
 
 def walk_line(edges, i, j, visited, points):
-    '''
+    """
     Returns line containing all adjacent segments starting from edge
     `(points[i], points[j])`.
-    '''
+    """
     if (i, j) in visited:
         return []
     tail = [points[i], points[j]]
@@ -219,8 +211,10 @@ def join_lines(points, poly):
     # edges[i] is indices of points adjacent to points[i] through a line segment
     edges = [[] for i in range(len(points))]
     for i, j in poly:
-        if j not in edges[i]: edges[i].append(j)
-        if i not in edges[j]: edges[j].append(i)
+        if j not in edges[i]:
+            edges[i].append(j)
+        if i not in edges[j]:
+            edges[j].append(i)
     # visited contains (i,j) if `(points[i], points[j])` is visited
     visited = set()
     res = []
@@ -234,12 +228,12 @@ def join_lines(points, poly):
 
 
 def read_joined_lines_vtk(path):
-    '''
+    """
     Returns array of lines from `sm_*.vtk` generated with `spacedim=2`
     joining adjacent line segments.
     [line0_x, line0_y, line1_x, line1_y, ...]
     where line0_x and line1_y are lists of coordinates
-    '''
+    """
     points, poly, _ = ReadVtkPoly(path)
     joined = join_lines(points, poly)
     lines = []
