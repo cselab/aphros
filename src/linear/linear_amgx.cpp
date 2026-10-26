@@ -7,10 +7,10 @@
 #include <iostream>
 #include <vector>
 
+#include "amgx.h"
 #include "distr/commmap.h"
 #include "distr/distrsolver.h"
 #include "linear_amgx.h"
-#include "amgx.h"
 
 DECLARE_FORCE_LINK_TARGET(linear_amgx);
 
@@ -35,7 +35,7 @@ struct SolverAmgx<M>::Imp {
     auto sem = m.GetSem(__func__);
     struct {
       Info info;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     if (sem.Nested()) {
       if (!comm_map_init_called_) {
@@ -108,9 +108,8 @@ struct SolverAmgx<M>::Imp {
       m.Comm(&fc_sol);
       if (m.flags.linreport && m.IsRoot()) {
         std::cerr << std::scientific;
-        std::cerr << "linear(amgx) '" + fc_system.GetName() + "':"
-                  << " res=" << t.info.residual << " iter=" << t.info.iter
-                  << std::endl;
+        std::cerr << "linear(amgx) '" + fc_system.GetName() + "':" << " res="
+                  << t.info.residual << " iter=" << t.info.iter << std::endl;
       }
     }
     if (sem()) {

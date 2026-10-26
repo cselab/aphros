@@ -156,5 +156,4 @@ struct Approx2 {
     };
     callback(func);
   }
-
 };

@@ -4,7 +4,9 @@
 #ifdef _OPENMP
 #include <omp.h>
 #else
-int omp_get_max_threads() { return 1; }
+int omp_get_max_threads() {
+  return 1;
+}
 #endif
 
 #include <algorithm>
@@ -28,7 +30,7 @@ void Run(M& m, Vars&) {
   struct {
     CommMap<M> comm_map;
     FieldCell<Expr> fc_system;
-  } * ctx(sem);
+  }* ctx(sem);
 
   auto& t = *ctx;
 

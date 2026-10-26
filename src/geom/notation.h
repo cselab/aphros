@@ -9,12 +9,12 @@
 #include "vect.h"
 
 template <class U, class T>
-constexpr ptrdiff_t GetOffset(T U::*member) {
+constexpr ptrdiff_t GetOffset(T U::* member) {
   return (char*)&((U*)nullptr->*member) - (char*)nullptr;
 }
 
 template <class U, class T>
-constexpr U* GetOwner(T* ptr, T U::*member) {
+constexpr U* GetOwner(T* ptr, T U::* member) {
   return (U*)((char*)ptr - GetOffset(member));
 }
 

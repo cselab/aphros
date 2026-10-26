@@ -60,7 +60,7 @@ struct UVof<M_>::Imp {
       std::vector<std::vector<Vect>> polygons;
       std::vector<Scal> d_cell;
       std::map<std::string, std::vector<Scal>> data;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
 
     auto& fcu = args.fcu;
@@ -90,8 +90,9 @@ struct UVof<M_>::Imp {
       };
 
       for_each_cell([&](size_t l, IdxCell c) { //
-        t.polygons.push_back(R::GetCutPoly(
-            m.GetCenter(c), (*fcn[l])[c], (*fca[l])[c], m.GetCellSize()));
+        t.polygons.push_back(
+            R::GetCutPoly(
+                m.GetCenter(c), (*fcn[l])[c], (*fca[l])[c], m.GetCellSize()));
       });
 
       for_each_cell([&](size_t, IdxCell c) { //
@@ -508,7 +509,7 @@ struct UVof<M_>::Imp {
       std::vector<Scal> dlc; // cells index
       std::vector<Scal> dll; // layer
       std::vector<Scal> dlcl; // color
-    } * ctx(sem);
+    }* ctx(sem);
     auto& dl = ctx->dl;
     auto& dln = ctx->dln;
     auto& dlc = ctx->dlc;
@@ -616,7 +617,7 @@ struct UVof<M_>::Imp {
     auto sem = m.GetSem("pair_to_map");
     struct {
       std::vector<Scal> keys, values;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     if (sem("local")) {
       map.clear();
@@ -657,7 +658,7 @@ struct UVof<M_>::Imp {
     struct {
       std::vector<Scal> merge0; // colors from corners
       std::vector<Scal> merge1; // colors from parents
-    } * ctx(sem);
+    }* ctx(sem);
     auto& merge0 = ctx->merge0;
     auto& merge1 = ctx->merge1;
     if (sem("local")) {
@@ -744,7 +745,7 @@ struct UVof<M_>::Imp {
     struct {
       std::vector<std::vector<Scal>> vvcl; // colors from all blocks
       std::vector<Scal> vcl, vcl_new; // colors on current block
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     if (sem("gather")) {
       // Gather all colors in domain
@@ -828,7 +829,7 @@ struct UVof<M_>::Imp {
     auto sem = m.GetSem("recolor_init");
     struct {
       std::pair<typename M::Scal, int> cldist; // color,mesh_id
-    } * ctx(sem);
+    }* ctx(sem);
     auto& cldist = ctx->cldist;
     if (sem("clfixed")) {
       // block nearest to clfixed_x
@@ -892,7 +893,7 @@ struct UVof<M_>::Imp {
       std::map<Scal, Scal> stable_map;
       Scal iters;
       Multi<FieldCell<Scal>> fccl_new;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     auto& fccl_new = ctx->fccl_new;
     if (sem.Nested()) {
@@ -992,7 +993,7 @@ struct UVof<M_>::Imp {
       Multi<FieldCell<Scal>> fccl_new; // tmp color
       Multi<FieldCell<IdxCell>> fcc; // root cell
       Multi<FieldCell<char>> fcl; // root layer
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     auto& fccl_new = ctx->fccl_new;
     auto& fcc = ctx->fcc;

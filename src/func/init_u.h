@@ -122,7 +122,7 @@ void InitVf(
   auto sem = m.GetSem("initvf");
   struct {
     std::vector<char> buf;
-  } * ctx(sem);
+  }* ctx(sem);
 
   if (sem("zero")) {
     fcu.Reinit(m, 0);

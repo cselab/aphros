@@ -13,7 +13,7 @@
 #include "util/histogram.h"
 #include "util/subcomm.h"
 
-//#define DEB(x) x
+// #define DEB(x) x
 #define DEB(x)
 
 #define MSI MPI_STATUS_IGNORE

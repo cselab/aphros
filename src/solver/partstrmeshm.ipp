@@ -452,7 +452,7 @@ struct PartStrMeshM<M_>::Imp {
       std::vector<Vect> dpx; // position
       std::vector<size_t> dpc; // cell index
       std::vector<Scal> dpk; // curvature
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
 
     if (sem("local")) {
@@ -523,7 +523,7 @@ struct PartStrMeshM<M_>::Imp {
     struct {
       std::vector<std::vector<Vect>> dl; // lines
       std::vector<Scal> dlc; // cell indices
-    } * ctx(sem);
+    }* ctx(sem);
     auto& dl = ctx->dl;
     auto& dlc = ctx->dlc;
 

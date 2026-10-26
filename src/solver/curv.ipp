@@ -268,9 +268,12 @@ struct Heights<M_>::Imp {
 
     auto shift = [](auto c, auto d, int i) {
       return i == 0 ? c : //
-                 i == 1 ? c + d : //
-                     i == -1 ? c - d : //
-                         i == 2 ? c + d + d : c - d - d;
+                 i == 1 ? c + d
+                        : //
+                 i == -1 ? c - d
+                         : //
+                 i == 2 ? c + d + d
+                        : c - d - d;
     };
 
     fck.assert_size(layers);
@@ -367,7 +370,7 @@ struct Heights<M_>::Imp {
       Multi<FieldCell<Vect>> fcdu4; // difference of volume
                                     // fractions with step 4
       Multi<FieldCell<Vect>> fch; // height function
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     auto& layers = plic.layers;
 
@@ -446,7 +449,7 @@ void Heights<M_>::DumpAux(std::string, int frame, M& m) {
   auto sem = m.GetSem();
   struct {
     std::map<std::string, std::vector<Scal>> data;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   constexpr Scal kClNone{Vofm<M>::kClNone};
   if (sem()) {
@@ -537,7 +540,7 @@ struct Hybrid<M_>::Imp {
     auto sem = m.GetSem();
     struct {
       Multi<FieldCell<Scal>> fck;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     if (sem.Nested("part")) {
       heights_->CalcCurvature(fck, plic, m, eb);

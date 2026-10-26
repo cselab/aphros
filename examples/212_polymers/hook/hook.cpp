@@ -3,11 +3,11 @@
 
 #include <iostream>
 
+#include <func/init_vel.h>
 #include <kernel/hydro.h>
 #include <library.h>
 #include <util/format.h>
 #include <util/posthook.h>
-#include <func/init_vel.h>
 
 struct Lammps {
   void* lmp;
@@ -46,7 +46,7 @@ void StepHook(Hydro<M>* hydro) {
   struct {
     Vect velocity_mean{0};
     Scal volume = 0;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem()) {
@@ -74,11 +74,11 @@ void StepHook(Hydro<M>* hydro) {
       z = lmp->x[3 * i + 2];
       u = lmp->v[3 * i];
       v = lmp->v[3 * i + 1];
-      w = lmp->v[3 * i + 2];      
+      w = lmp->v[3 * i + 2];
       const Vect& vel = fcv[m.GetCellFromPoint(Vect(x, y, z))];
-      f[i][0] = (vel[0] - u)/16;
-      f[i][1] = (vel[1] - v)/16;
-      f[i][2] = (vel[2] - w)/16;
+      f[i][0] = (vel[0] - u) / 16;
+      f[i][1] = (vel[1] - v) / 16;
+      f[i][2] = (vel[2] - w) / 16;
     }
     lammps_command(lmp->lmp, "run 1");
   }
@@ -86,13 +86,13 @@ void StepHook(Hydro<M>* hydro) {
 
 template <class M>
 void InitHook(Hydro<M>* hydro) {
-    auto& m = hydro->m;
+  auto& m = hydro->m;
   auto sem = m.GetSem();
   if (sem()) {
     if (m.IsLead()) { // Executed only on the lead block, once in each rank.
                       // There is only one lead block in each rank.
       // Allocate memory for the shared state and save pointer in the solver.
-      const char *argv[] = {"aphros", "-screen", "none", NULL};
+      const char* argv[] = {"aphros", "-screen", "none", NULL};
       hydro->par_.ptr = new Lammps();
       auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
       lmp->lmp = lammps_open_no_mpi(3, const_cast<char**>(argv), NULL);
@@ -105,7 +105,7 @@ void InitHook(Hydro<M>* hydro) {
     }
     if (m.IsRoot()) { // Executed only on the root block, once over all ranks.
                       // There is only one root block over all ranks.
-      //auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
+      // auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
     }
   }
 }
@@ -117,8 +117,7 @@ void FinalHook(Hydro<M>* hydro) {
   auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
   if (sem()) {
     if (m.IsRoot()) {
-      std::cout << util::Format(
-          "FinalHook t={:} \n\n", hydro->fs_->GetTime());
+      std::cout << util::Format("FinalHook t={:} \n\n", hydro->fs_->GetTime());
     }
     if (m.IsLead()) {
       free(lmp->x);

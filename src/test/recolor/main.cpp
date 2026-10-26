@@ -36,7 +36,7 @@ void Run(M& m, Vars& var) {
     MapEmbed<BCond<Scal>> mfc;
     std::unique_ptr<TRM> trm;
     FieldCell<Scal> fcim;
-  } * ctx(sem);
+  }* ctx(sem);
 
   auto& fcu = ctx->fcu;
   auto& fccl = ctx->fccl;

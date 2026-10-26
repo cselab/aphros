@@ -46,7 +46,7 @@ void Run(M& m, Vars& var) {
     std::vector<bool> inner; // true if particle is owned by current block
     std::vector<std::string> msg;
     std::ofstream fout;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   auto stat_to_string = [&]() -> std::string {

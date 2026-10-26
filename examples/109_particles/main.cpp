@@ -47,7 +47,7 @@ void Run(M& m, Vars& var) {
     Scal last_time = 0;
     int step = 0;
     std::unique_ptr<SingleTimer> timer;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   auto dump = [&t, &m](std::string path, bool only_inner) {

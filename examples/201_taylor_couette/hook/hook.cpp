@@ -25,7 +25,7 @@ std::vector<generic::Vect<typename M::Scal, 3>> GetNorms(
   struct {
     std::vector<V> vr;
     Scal vol;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& vr = ctx->vr;
   auto& vol = ctx->vol;
   if (sem("local")) {
@@ -85,7 +85,7 @@ void PostHook(
   auto sem = m.GetSem();
   struct {
     std::vector<generic::Vect<Scal, 3>> vnorms;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   auto* hctx =
       dynamic_cast<Holder<HookContext<M>>*>(hydro->hook_context_.get())->Get();
@@ -95,7 +95,8 @@ void PostHook(
   const Scal r1 = 0.4;
   if (sem()) {
     auto* hctx =
-        dynamic_cast<Holder<HookContext<M>>*>(hydro->hook_context_.get())->Get();
+        dynamic_cast<Holder<HookContext<M>>*>(hydro->hook_context_.get())
+            ->Get();
     ht.fc_theta.Reinit(eb, 0);
     ht.fc_theta_error.Reinit(eb, 0);
     ht.fc_theta_exact.Reinit(eb, 0);

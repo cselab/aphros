@@ -73,7 +73,7 @@ void Embed<M>::DumpPoly(
     std::vector<Scal> dld; // direction
     std::vector<Scal> dls; // area
     std::vector<Scal> dlf; // 0: cell, 1: face
-  } * ctx(sem);
+  }* ctx(sem);
   auto& dl = ctx->dl;
   auto& dld = ctx->dld;
   auto& dls = ctx->dls;
@@ -129,7 +129,7 @@ void Embed<M>::DumpPlaneSection(
   auto sem = m.GetSem("dumpplanesection");
   struct {
     std::vector<std::vector<Vect>> dl;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& dl = ctx->dl;
   if (sem("local")) {
     for (auto c : m.Cells()) {
@@ -204,8 +204,9 @@ void Embed<M>::InitFaces(
     const Scal area = std::abs(R::GetArea(xx, m.GetNormal(f)));
 
     fft[f] =
-        (cut ? Type::cut
-             : xx.size() == em && area > 0 ? Type::regular : Type::excluded);
+        (cut                           ? Type::cut
+         : xx.size() == em && area > 0 ? Type::regular
+                                       : Type::excluded);
 
     if (exclude(f)) {
       fft[f] = Type::excluded;

@@ -122,8 +122,8 @@ struct UInitEmbedBc {
       MapEmbed<size_t>, MapEmbed<size_t>, std::vector<std::string>>
   ParseGroups(
       std::istream& fin, const MEB& eb, const FieldCell<bool>& fc_innermask) {
-    (void) fc_innermask; // XXX: Unused in favor of m.IsExcluded().
-                         // TODO: remove `fc_innermask`
+    (void)fc_innermask; // XXX: Unused in favor of m.IsExcluded().
+                        // TODO: remove `fc_innermask`
     auto& m = eb.GetMesh();
     const std::vector<CodeBlock> bb = ParseCodeBlocks(fin);
     std::vector<std::string> vdesc;
@@ -298,7 +298,7 @@ struct UInitEmbedBc {
       std::vector<std::vector<Vect>> dpoly;
       std::vector<Scal> dgroup;
       std::vector<Scal> dface;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& dpoly = ctx->dpoly;
     auto& dgroup = ctx->dgroup;
     auto& dface = ctx->dface;

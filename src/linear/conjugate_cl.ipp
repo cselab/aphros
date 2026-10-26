@@ -40,7 +40,7 @@ struct SolverConjugateCL<M>::Imp {
     struct {
       int iter = 0;
       Info info;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     auto& ms = m.GetShared();
     if (sem()) {

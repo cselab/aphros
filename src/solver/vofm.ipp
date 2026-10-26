@@ -314,7 +314,7 @@ struct Vofm<EB_>::Imp {
       Multi<FieldCell<Scal>> fcut; // volume fraction
       Multi<FieldCell<Scal>> fcclt; // color
       FieldCell<Scal> fcust; // sum of  volume fraction
-    } * ctx(sem);
+    }* ctx(sem);
     auto& fcut = ctx->fcut;
     auto& fcclt = ctx->fcclt;
     auto& fcust = ctx->fcust;

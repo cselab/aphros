@@ -25,7 +25,7 @@ struct UDebug {
     struct {
       std::vector<V> vr;
       Scal nc;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& vr = ctx->vr;
     auto& nc = ctx->nc;
     if (sem("local")) {
@@ -72,7 +72,7 @@ struct UDebug {
     auto sem = m.GetSem(__func__);
     struct {
       std::array<FieldCell<Scal>, vdim> vfck; // coefficient of neighbors
-    } * ctx(sem);
+    }* ctx(sem);
     auto& vfck = ctx->vfck;
     if (sem("comm")) {
       for (size_t i = 0; i < vdim; ++i) {
@@ -107,7 +107,7 @@ struct UDebug {
       FieldCell<Scal> fc_const;
       std::vector<generic::Vect<Scal, 3>> vnorms;
       Scal sum_const;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& fc_asymm = ctx->fc_asymm;
     auto& fc_diag = ctx->fc_diag;
     auto& fc_nondiag = ctx->fc_nondiag;

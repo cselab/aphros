@@ -40,7 +40,7 @@ struct SolverHypre<M>::Imp {
       std::vector<std::vector<Scal>*> ptr_x;
       std::vector<Info*> ptr_info;
       std::unique_ptr<Hypre> hypre;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     if (m.flags.check_symmetry &&
         (extra.solver == "pcg" || extra.solver == "pcg+smg")) {
@@ -145,9 +145,8 @@ struct SolverHypre<M>::Imp {
       m.Comm(&fc_sol);
       if (m.flags.linreport && m.IsRoot()) {
         std::cerr << std::scientific;
-        std::cerr << "linear(hypre) '" + fc_system.GetName() + "':"
-                  << " res=" << t.info.residual << " iter=" << t.info.iter
-                  << std::endl;
+        std::cerr << "linear(hypre) '" + fc_system.GetName() + "':" << " res="
+                  << t.info.residual << " iter=" << t.info.iter << std::endl;
       }
     }
     if (sem()) {

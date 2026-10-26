@@ -78,7 +78,7 @@ void Trackerm<M_>::Update(
   auto sem = m.GetSem("trackerm");
   struct {
     Multi<FieldCell<Scal>> fcimm; // image previous [a]
-  } * ctx(sem);
+  }* ctx(sem);
   auto& fcimm = ctx->fcimm;
   if (sem("update")) {
     fcimm = fcim_; // save previous

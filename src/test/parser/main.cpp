@@ -119,7 +119,14 @@ void TestArgumentParser() {
 
   std::cout << "\nParsed args:\n";
   auto args = parser.ParseArgs({
-      "--double0", "5.4", "--double", "3.4", "--int", "4", "-i", "7",
+      "--double0",
+      "5.4",
+      "--double",
+      "3.4",
+      "--int",
+      "4",
+      "-i",
+      "7",
       "16", // nx
       "8", // ny
       "8", // nz

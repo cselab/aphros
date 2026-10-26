@@ -6,8 +6,8 @@
 #include <sstream>
 #include <string>
 
-#include "func/init_u.h"
 #include "func/init.ipp"
+#include "func/init_u.h"
 #include "geom/vect.h"
 
 using Scal = double;

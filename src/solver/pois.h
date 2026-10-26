@@ -35,7 +35,7 @@ void SolvePoisson(
     Scal avg_rhs = 0;
     Scal sum_vol = 0;
     FieldCell<Expr> fcl;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem("reduce")) {
     for (auto c : m.Cells()) {

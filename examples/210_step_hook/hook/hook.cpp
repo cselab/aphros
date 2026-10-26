@@ -17,7 +17,6 @@ struct HookContext {
   int bar;
 };
 
-
 template <class M>
 void InitHook(Hydro<M>* hydro) {
   auto& m = hydro->m;
@@ -75,7 +74,7 @@ void StepHook(Hydro<M>* hydro) {
   struct {
     Vect velocity_mean{0};
     Scal volume = 0;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem()) {
@@ -116,8 +115,8 @@ void FinalHook(Hydro<M>* hydro) {
   if (sem()) {
     if (m.IsRoot()) {
       std::cout << util::Format(
-          "FinalHook t={:} foo={:} bar={:}\n\n", hydro->fs_->GetTime(), hsctx->foo,
-          hctx->bar);
+          "FinalHook t={:} foo={:} bar={:}\n\n", hydro->fs_->GetTime(),
+          hsctx->foo, hctx->bar);
     }
   }
 }

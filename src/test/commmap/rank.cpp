@@ -4,7 +4,9 @@
 #ifdef _OPENMP
 #include <omp.h>
 #else
-int omp_get_max_threads() { return 1; }
+int omp_get_max_threads() {
+  return 1;
+}
 #endif
 
 #include <array>

@@ -81,7 +81,7 @@ void DumpCsv(
   auto sem = m.GetSem("dumpcsv");
   struct {
     std::vector<std::pair<std::string, std::vector<Scal>>> data;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem("gather")) {
     for (auto& d : data) {

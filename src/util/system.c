@@ -15,5 +15,6 @@ int SystemIsDir(const char* path) {
 
 int SystemIsFile(const char* path) {
   struct stat info;
-  return stat(path, &info) == 0 && (S_ISREG(info.st_mode) || S_ISLNK(info.st_mode));
+  return stat(path, &info) == 0 &&
+         (S_ISREG(info.st_mode) || S_ISLNK(info.st_mode));
 }

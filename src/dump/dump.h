@@ -54,7 +54,7 @@ std::vector<std::pair<std::string, std::vector<Scal>>> ReadCsv(
 template <class Scal>
 void DumpCsv(
     const std::vector<std::pair<std::string, std::vector<Scal>>>& data,
-    std::string path, char delim=',');
+    std::string path, char delim = ',');
 
 // Creates one CSV file with scalar fields gathered from all blocks.
 // data: pairs {name, values}

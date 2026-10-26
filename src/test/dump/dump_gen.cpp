@@ -26,7 +26,7 @@ void Run(M& m, Vars& var) {
   struct {
     FieldCell<Scal> fc_write;
     Xmf::Meta meta;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   auto get_format = [&var](std::string path) {
     const auto ext = util::SplitExt(path)[1];

@@ -132,7 +132,7 @@ struct Proj<EB_>::Imp {
     auto sem = m.GetSem("advection");
     struct {
       FieldCell<Scal> fc_sum;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& fc_sum = ctx->fc_sum;
     for (size_t d = 0; d < dim; ++d) {
       if (sem("local" + std::to_string(d))) {
@@ -197,7 +197,7 @@ struct Proj<EB_>::Imp {
     auto sem = m.GetSem("diffusion");
     struct {
       FieldCell<Scal> fc_sum;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& fc_sum = ctx->fc_sum;
     for (size_t d = 0; d < dim; ++d) {
       if (sem("local" + std::to_string(d))) {
@@ -247,7 +247,7 @@ struct Proj<EB_>::Imp {
       FieldCell<Scal> fcu;
       FieldCell<Scal> fcu_guess;
       FieldCell<Expr> fcl;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& fcu = ctx->fcu;
     auto& fcu_guess = ctx->fcu_guess;
     auto& fcl = ctx->fcl;
@@ -386,7 +386,7 @@ struct Proj<EB_>::Imp {
     struct {
       FieldFaceb<ExprFace> ffvc; // expression for corrected volume flux [i]
       FieldCell<Expr> fcpcs; // linear system for pressure [i]
-    } * ctx(sem);
+    }* ctx(sem);
     if (sem("local")) {
       ctx->ffvc = GetFlux(ffv, dt);
       ctx->fcpcs = GetFluxSum(ctx->ffvc, *owner_->fcsv_);

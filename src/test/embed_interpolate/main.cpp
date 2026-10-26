@@ -61,7 +61,7 @@ void EmbedInterpolate<M>::Run() {
     std::vector<Vect> px;
     std::vector<Scal> pomz;
     std::vector<Scal> pomz_interp;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& px = ctx->px;
   auto& pomz = ctx->pomz;
   auto& pomz_interp = ctx->pomz_interp;

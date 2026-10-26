@@ -173,7 +173,7 @@ void PrintField(
     std::vector<std::string> res;
     std::vector<std::vector<char>> resbuf;
     std::vector<int> meshid;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem()) {
     t.res = FieldToStrings(fcu, m, fmt);
@@ -285,7 +285,7 @@ class CommMap {
       // Pointers to objects from other local blocks:
       std::vector<const M*> meshes;
       std::vector<State*> states;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
 
     const auto comm = m.GetMpiComm();
@@ -503,7 +503,7 @@ class CommMap {
       std::vector<const FieldCell<Expr>*> fields;
       std::vector<Buffers*> buffers;
       int col_current = 0;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
 
     if (sem("gather")) {
@@ -572,7 +572,7 @@ class CommMap {
     auto sem = m.GetSem(__func__);
     struct {
       FieldCell<int> fc_nci;
-    } * ctx(sem);
+    }* ctx(sem);
     const auto comm = m.GetMpiComm();
     const int rank = MpiWrapper::GetCommRank(comm);
     auto& t = *ctx;

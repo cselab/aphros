@@ -4,11 +4,11 @@
 #pragma once
 
 #include <mpi.h>
+#include <HYPRE_struct_ls.h>
 #include <array>
 #include <memory>
 #include <string>
 #include <vector>
-#include <HYPRE_struct_ls.h>
 
 class Hypre {
  public:

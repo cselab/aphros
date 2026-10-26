@@ -41,7 +41,7 @@ struct Electro<EB_>::Imp {
       FieldCell<Scal> fc_rhs;
       FieldCell<Expr> fcl;
       FieldFaceb<Scal> ff_resist;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     if (sem("local")) {
       t.fc_rhs.Reinit(m, 0);

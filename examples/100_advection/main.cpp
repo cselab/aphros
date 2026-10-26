@@ -22,7 +22,7 @@ void Run(M& m, Vars&) {
     FieldCell<Scal> fc_src; // volume source
     FieldEmbed<Scal> fe_flux; // volume flux
     MapEmbed<BCondAdvection<Scal>> mf_cond; // face conditions
-  } * ctx(sem);
+  }* ctx(sem);
 
   auto& as = ctx->as;
   const Scal tmax = 1.;

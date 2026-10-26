@@ -1216,7 +1216,7 @@ void UEmbed<M>::RedistributeConstTerms(
   auto sem = m.GetSem("redistr");
   struct {
     FieldCell<Scal> fcu;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& fcu = ctx->fcu;
   auto get = [&fce](IdxCell c) -> Scal& { //
     return fce[c].back();

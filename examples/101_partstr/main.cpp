@@ -28,7 +28,7 @@ void Run(M& m, Vars&) {
     MapEmbed<BCondAdvection<Scal>> mebc;
     typename PartStrMeshM<M>::Par par;
     std::unique_ptr<curvature::Particles<M>> curv_part;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem("init")) {
