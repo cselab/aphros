@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    env:
+      # Allow more MPI ranks than cores.
+      OMPI_MCA_rmaps_base_oversubscribe: 1
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install packages
+        run: |
+          sudo apt-get -qq update
+          sudo apt-get -qq install --yes --no-install-recommends \
+            cmake g++ make openmpi-bin libopenmpi-dev libhdf5-openmpi-dev python3-numpy
+      - name: Install ap.setenv
+        working-directory: deploy
+        run: |
+          ./install_setenv --no-bin-symlink "$HOME/aphros"
+          # Non-interactive bash in later steps sources BASH_ENV.
+          echo "BASH_ENV=$HOME/aphros/bin/ap.setenv" >> "$GITHUB_ENV"
+      - name: Build dependencies
+        run: |
+          cmake -S deploy -B deploy/build -DUSE_HYPRE=0
+          cmake --build deploy/build -j
+          cmake --install deploy/build
+      - name: Build
+        run: |
+          cmake -S src -B src/build -DUSE_HYPRE=0 -DUSE_BACKEND_CUBISM=0
+          cmake --build src/build -j
+          cmake --install src/build
+      - name: Test
+        working-directory: src/build
+        run: ctest -j "$(nproc)" --output-on-failure
+      - name: Build examples
+        if: ${{ !cancelled() }}
+        working-directory: examples
+        run: make build VERBOSE=1 -j "$(nproc)"
