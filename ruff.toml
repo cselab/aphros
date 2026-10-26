@@ -1,0 +1,25 @@
+line-length = 120
+target-version = "py38"
+
+[lint]
+select = [
+    "E",  # Style errors
+    "W",  # Style warnings
+    "F",  # Logical errors
+    "I",  # Import sorting
+]
+ignore = [
+    "E741",  # Ambiguous variable name
+    "E402",  # Module level import not at top of file
+    "E501",  # Line too long
+    "F403",  # Star import
+    "F405",  # Name may come from star import
+    "E722",  # Bare except
+    "E731",  # Lambda assignment
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Re-exports
+
+[format]
+quote-style = "double"

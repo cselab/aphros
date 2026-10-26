@@ -4,15 +4,13 @@ import os
 def GetVal(path, colname, t0):
     s = os.path.join(path, "stat.dat")
 
-    res = 0.
-
     # best
     tb = None
     vb = None
 
     with open(s) as f:
         head = f.readline().split()
-        it = head.index('t')
+        it = head.index("t")
         iv = head.index(colname)
         for l in f:
             t = float(l.split()[it])

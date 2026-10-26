@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import aphros
 from argparse import Namespace
+
+import aphros
 
 
 class Default(aphros.Parameters):
@@ -11,9 +12,9 @@ class Default(aphros.Parameters):
     bs = 16
     tmax = 500
     rho = 0.01
-    lx = 2.
-    ly = 1.
-    lz = 1.
+    lx = 2.0
+    ly = 1.0
+    lz = 1.0
     dumpdt = 0.05
 
 
@@ -36,7 +37,7 @@ def Exp():
 
     ###
     Re = U * W / nu
-    Fr = (U**2 / (gravity * H))**0.5
+    Fr = (U**2 / (gravity * H)) ** 0.5
     We = rho * U**2 * W / sigma
     HW = H / W  # height to thickness ratio
 
@@ -48,7 +49,7 @@ def Exp():
 
 
 def Sim(c):
-    Re, We, Fr, HW = (c['Re'], c['We'], c['Fr'], c['HW'])
+    Re, We, Fr, HW = (c["Re"], c["We"], c["Fr"], c["HW"])
 
     # domain
     lx = par.lx
@@ -57,7 +58,7 @@ def Sim(c):
     lys = 0.5  # position of free surface
     lmax = max([lx, ly, lz])
 
-    U = 1.  # velocity
+    U = 1.0  # velocity
     W = 0.05  # waterfall thickness
     H = HW * W
 
@@ -66,13 +67,13 @@ def Sim(c):
     # time
     tun = 1 / U  # unit
     # time unit in Exp() SI units
-    tun_phys = ((c['W'] / W) / c['gravity'])**0.5
+    tun_phys = ((c["W"] / W) / c["gravity"]) ** 0.5
 
     tmax = tun * par.tmax
     dumpdt = tun * par.dumpdt
 
     # liquid
-    rho0 = 1.  # density
+    rho0 = 1.0  # density
     mu0 = U * W / Re  # viscosity
 
     sigma = (rho0 * U**2 * W) / We
@@ -116,8 +117,6 @@ def Gen(c):
     iny1 = iny0 + c.W
     inyc = (iny0 + iny1) * 0.5
     inyr = (iny1 - iny0) * 0.5
-    inz0 = lz * 0.5 - lz * 1
-    inz1 = lz * 0.5 + lz * 1
 
     outy0 = eps
     outy1 = lys * 0.5
@@ -131,15 +130,10 @@ def Gen(c):
     vf.GenerateFile("b.dat")
 
     bc = aphros.BoundaryConditions()
-    bc.Symm(aphros.Geometry()\
-            .Box([0, 0, 0], [eps, inf, inf])\
-            .Box([c.lx, 0, 0], [eps, inf, inf]))
-    bc.SlipWall(aphros.Geometry().Box([0, 0, 0], [inf, eps, inf]),
-                extra=" , fill_vf 0")
-    bc.SlipWall(aphros.Geometry().Box([0, c.ly, 0], [inf, eps, inf]),
-                extra=", clear1 0.5 , fill_vf 0")
-    bc.Inlet(aphros.Geometry().Box([0, inyc, 0], [eps, inyr, inf]),
-             velocity=[c.U, 0, 0])
+    bc.Symm(aphros.Geometry().Box([0, 0, 0], [eps, inf, inf]).Box([c.lx, 0, 0], [eps, inf, inf]))
+    bc.SlipWall(aphros.Geometry().Box([0, 0, 0], [inf, eps, inf]), extra=" , fill_vf 0")
+    bc.SlipWall(aphros.Geometry().Box([0, c.ly, 0], [inf, eps, inf]), extra=", clear1 0.5 , fill_vf 0")
+    bc.Inlet(aphros.Geometry().Box([0, inyc, 0], [eps, inyr, inf]), velocity=[c.U, 0, 0])
     bc.Outlet(aphros.Geometry().Box([0, outyc, 0], [inf, outyr, inf]))
     bc.GenerateFile("bc.dat")
 
@@ -157,12 +151,14 @@ def Gen(c):
     conf.gravity = [0, -c.gravity, 0]
     conf.GenerateFile("par.conf")
 
-    with open("par.make", 'w') as f:
-        f.write('''m = {nx} {ny} {nz}
+    with open("par.make", "w") as f:
+        f.write(
+            """m = {nx} {ny} {nz}
 bs = {bs} {bs} {bsz}
 np = {np}
 tl = {tl}
-'''.format(**vars(c)))
+""".format(**vars(c))
+        )
 
 
 c = Exp()

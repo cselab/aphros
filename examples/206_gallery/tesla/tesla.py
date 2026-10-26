@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-import numpy as np
-import aphros
 import os
+
+import aphros
+import numpy as np
 
 
 def V(x, y=None, z=None):
@@ -14,9 +15,9 @@ def V(x, y=None, z=None):
 
 
 def Basis(angle_rad):
-    '''
+    """
     Returns basis (eu,ev) produced by rotation of Cartasian basis by `angle_rad`
-    '''
+    """
     eu = V(np.cos(angle_rad), np.sin(angle_rad))
     ev = V(-eu[1], eu[0])
     return eu, ev
@@ -25,28 +26,30 @@ def Basis(angle_rad):
 def Dot(u, v):
     return (u * v).sum()
 
+
 def Dist(u, v):
     return Dot(u - v, u - v) ** 0.5
+
 
 def Cross(u, v):
     return u[0] * v[1] - u[1] * v[0]
 
 
 def Intersection(pu, u, pv, v):
-    '''
+    """
     Intersection point of two lines (pu,u) and (pv,v)
     specified by a point (pu) and direction (u)
-    '''
+    """
     kv = Cross(u, pu - pv) / Cross(u, v)
     return pv + kv * v
 
 
 def ClipBox(box_c, box_r, box_angle_deg, line_p, line_d):
-    '''
+    """
     Clip box by line
     box_c, box_r: center and half-size
     line_p, line_d: line point and direction
-    '''
+    """
     eu, ev = Basis(np.radians(box_angle_deg))
     inter = Intersection(box_c + ev * box_r[1], eu, line_p, line_d)
     corner = box_c - eu * box_r[0] + ev * box_r[1]
@@ -55,8 +58,9 @@ def ClipBox(box_c, box_r, box_angle_deg, line_p, line_d):
     box_r = box_r + V(-dist * 0.5, 0)
     return box_c, box_r, box_angle_deg
 
+
 def Valve(g, start, L, W, Ro, Ri, angle_rad, shift=V(0, 0)):
-    '''
+    """
     Appends a Tesla valve to geometry.
     g: aphros.Geometry instance
     start: center of the left edge, (x,y)
@@ -69,7 +73,7 @@ def Valve(g, start, L, W, Ro, Ri, angle_rad, shift=V(0, 0)):
     forward: pipe direction, True if forward
     Returns:
     end: center of the right edge, (x,y)
-    '''
+    """
 
     eu, ev = Basis(angle_rad)
 
@@ -77,13 +81,12 @@ def Valve(g, start, L, W, Ro, Ri, angle_rad, shift=V(0, 0)):
     Wh = W / 2
     angle_deg = np.degrees(angle_rad)
 
-
     end = start + eu * L
 
     inf = L * 10
 
     sgnx = 1 if eu[0] > 0 else -1
-    sgny =  1 if eu[1] > 0 else -1
+    sgny = 1 if eu[1] > 0 else -1
 
     shift = shift * V(sgnx, sgny)
 
@@ -124,6 +127,7 @@ class Default(aphros.Parameters):
     template = "tesla_template.conf"
     output = "tesla.conf"
 
+
 path = "par.py"
 if os.path.isfile(path):
     par = Default(path)
@@ -144,7 +148,7 @@ extent = par.extent
 
 e = Valve(g, V(cx, cy), L, W=W, Ro=Ro, Ri=Ri, angle_rad=angle_rad, shift=par.shift)
 
-e = Valve(g, V(extent-cx, extent - cy - 1.5), L, W=W, Ro=Ro, Ri=Ri, angle_rad=3.14-angle_rad, shift=par.shift)
+e = Valve(g, V(extent - cx, extent - cy - 1.5), L, W=W, Ro=Ro, Ri=Ri, angle_rad=3.14 - angle_rad, shift=par.shift)
 
 body = g.Generate()
 
@@ -152,7 +156,7 @@ if par.template:
     with open(par.template) as f:
         t = f.read()
     t = t.replace("BODY", body)
-    with open(par.output, 'w') as f:
+    with open(par.output, "w") as f:
         f.write(t)
 else:
     g.GenerateFile(par.output)

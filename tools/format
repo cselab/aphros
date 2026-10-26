@@ -1,21 +1,39 @@
 #!/bin/sh
 
-# Formats tracked C/C++ sources with a pinned version of clang-format.
-# With --check, only reports files that need formatting.
+# Formats tracked sources with pinned versions of clang-format (C/C++)
+# and ruff (Python, including scripts without extension).
+# With --check, only reports problems; also runs the ruff linter.
 
 set -eu
 
 cd "$(dirname "$0")/.."
 
 : ${CLANG_FORMAT="uvx --from clang-format==23.1.3 clang-format"}
+: ${RUFF="uvx ruff@0.17.2"}
 
-files () {
+cpp_files () {
   git ls-files -- '*.h' '*.hpp' '*.ipp' '*.cpp' '*.c' \
     ':!:doc/' ':!:src/CubismNoCopy/' ':!:src/overlap/'
 }
 
+py_files () {
+  git ls-files | while IFS= read -r f ; do
+    if ! [ -f "$f" ] || [ -L "$f" ] ; then
+      continue
+    fi
+    case "$f" in
+      *.py) echo "$f" ;;
+      *) if head -n 1 "$f" | grep -q '^#!.*python' ; then echo "$f" ; fi ;;
+    esac
+  done
+}
+
 if [ "${1:-}" = "--check" ] ; then
-  files | xargs $CLANG_FORMAT --dry-run --Werror
+  cpp_files | xargs $CLANG_FORMAT --dry-run --Werror
+  py_files | xargs $RUFF format --check
+  py_files | xargs $RUFF check
 else
-  files | xargs $CLANG_FORMAT -i
+  cpp_files | xargs $CLANG_FORMAT -i
+  py_files | xargs $RUFF check --fix --select I
+  py_files | xargs $RUFF format
 fi

@@ -7,26 +7,18 @@ import aphros
 
 class Test(aphros.TestBase):
     def __init__(self):
-        cases = [
-            "periodic", "slipwall", "surfsymm", "surfwall", "wall", "inlet",
-            "inletflux"
-        ]
+        cases = ["periodic", "slipwall", "surfsymm", "surfwall", "wall", "inlet", "inletflux"]
         cases = cases + [c + "_proj" for c in cases]
         super().__init__(cases=cases)
-        self.parser.add_argument('--block',
-                                 '-b',
-                                 type=int,
-                                 default=16,
-                                 choices=[8, 16],
-                                 help="Block size.")
+        self.parser.add_argument("--block", "-b", type=int, default=16, choices=[8, 16], help="Block size.")
 
     def run(self, case):
-        with open("add.conf", 'w') as f:
-            f.write("include _{}.conf\n".format(case.partition('_')[0]))
+        with open("add.conf", "w") as f:
+            f.write("include _{}.conf\n".format(case.partition("_")[0]))
             if "proj" in case:
                 f.write("include _proj.conf\n")
         self.runcmd("make -f sim.makefile cleanrun")
-        if "surf" in case  or "periodic" in case:
+        if "surf" in case or "periodic" in case:
             r = ["s_0000.vtk"]
         else:
             r = ["p_0000.vts"]
@@ -41,5 +33,6 @@ class Test(aphros.TestBase):
             else:
                 self.runcmd("ap.diffnum '{}' '{}' 2e-12".format(ref, out))
         return True
+
 
 Test().main()

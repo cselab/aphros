@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 import aphros
-import numpy
 import numpy as np
-from scipy.interpolate import make_interp_spline
 
 
 def V(x, y, z):
@@ -33,14 +31,14 @@ class Default(aphros.Parameters):
     Wbone = 0.2  # Width of bone.
     Lbone = 0.15  # Length of bone, distance between posts.
     Lshift = 0.4  # Shift between bones.
-    Lstart = 0.  # Buffer before first bone.
+    Lstart = 0.0  # Buffer before first bone.
     H = 0.2  # Height (depth) of the device.
 
     Sc_top = 160  # Schmidt number for gas from top electrode.
     Sc_btm = 400  # Schmidt number for gas from bottom electrode.
     flux_top = 0.0002 * 3  # Target flux of dissolved gas through top electrode.
 
-    inletvel = 1.  # Inlet velocity.
+    inletvel = 1.0  # Inlet velocity.
 
     tracer_interface_diffusion_factor = 0.1
 
@@ -48,7 +46,7 @@ class Default(aphros.Parameters):
     stepwise = True
     particles = True
     nucleation = True
-    nucldens = 10000.  # Areal number density of nucleation sites.
+    nucldens = 10000.0  # Areal number density of nucleation sites.
     resistivity_estimate = 0.6  # Estimate of average resistivity depending
     # on distance between bones.
     nucl_cmax = 0.05
@@ -81,14 +79,8 @@ def AppendVolcano(g, par, domain):
     # Add device after inlet.
     g.Box(V(lx, lyh, lzh), V(lx - par.Lin, par.Wout / 2, Hh))
     # Subtract box containin all top and bottom bones.
-    g.Box(V(lx, lyh + Wgap / 2, lzh),
-          V(lx - par.Lin, par.Wbone / 2, Hh),
-          intersect=True,
-          invert=True)
-    g.Box(V(lx, lyh - Wgap / 2, lzh),
-          V(lx - par.Lin, par.Wbone / 2, Hh),
-          intersect=True,
-          invert=True)
+    g.Box(V(lx, lyh + Wgap / 2, lzh), V(lx - par.Lin, par.Wbone / 2, Hh), intersect=True, invert=True)
+    g.Box(V(lx, lyh - Wgap / 2, lzh), V(lx - par.Lin, par.Wbone / 2, Hh), intersect=True, invert=True)
     # Bone is a gap between two posts, liquid flows in bones.
     nbones = int((lx - par.Lin + par.Lbone) / par.Lshift)
     dLout = lx - (par.Lin + (nbones - 1) * par.Lshift + par.Lbone + par.Lout)
@@ -97,19 +89,22 @@ def AppendVolcano(g, par, domain):
     for i in range(nbones):
         bonestart = i * par.Lshift
         g.Box(
-            V(par.Lin + par.Lbone / 2 + par.Lstart + bonestart, lyh + Wgap / 2,
-              lzh), V(par.Lbone / 2, par.Wbone / 2, Hh))
+            V(par.Lin + par.Lbone / 2 + par.Lstart + bonestart, lyh + Wgap / 2, lzh),
+            V(par.Lbone / 2, par.Wbone / 2, Hh),
+        )
         g.Box(
-            V(par.Lin + par.Lbone / 2 + par.Lstart + bonestart, lyh - Wgap / 2,
-              lzh), V(par.Lbone / 2, par.Wbone / 2, Hh))
+            V(par.Lin + par.Lbone / 2 + par.Lstart + bonestart, lyh - Wgap / 2, lzh),
+            V(par.Lbone / 2, par.Wbone / 2, Hh),
+        )
 
-    hh = domain.h * 0.5
     box_top = aphros.Geometry().Box(  #
         [(par.Lin + lx - dLout) / 2, lyh + (Wgap + par.Wbone) / 2, lzh],
-        [(lx - par.Lin - dLout) / 2, epsh * 2, Hh - epsh])
+        [(lx - par.Lin - dLout) / 2, epsh * 2, Hh - epsh],
+    )
     box_btm = aphros.Geometry().Box(  #
         [(par.Lin + lx - dLout) / 2, lyh - (Wgap + par.Wbone) / 2, lzh],
-        [(lx - par.Lin - dLout) / 2, epsh * 2, Hh - epsh])
+        [(lx - par.Lin - dLout) / 2, epsh * 2, Hh - epsh],
+    )
 
     area_top = (nbones + 1) * par.Lbone * par.H
 
@@ -122,14 +117,7 @@ lx = 4
 ly = 1
 lz = 0.25
 
-domain = aphros.AdjustedDomain(lx=lx,
-                               ly=ly,
-                               lz=lz,
-                               ny=par.ny,
-                               nproc_factor=0.7,
-                               size_factor=1,
-                               nproc=par.np,
-                               bs=par.bs)
+domain = aphros.AdjustedDomain(lx=lx, ly=ly, lz=lz, ny=par.ny, nproc_factor=0.7, size_factor=1, nproc=par.np, bs=par.bs)
 
 lx = domain.lx
 ly = domain.ly
@@ -148,7 +136,7 @@ conf = aphros.Config()
 conf.extent = domain.extent
 conf.mu1 = par.Win / par.Re
 conf.mu2 = conf.mu1 * par.rho
-conf.rho1 = 1.
+conf.rho1 = 1.0
 conf.rho2 = conf.rho1 * par.rho
 conf.dump_field_dt = par.dumpdt
 conf.dump_traj_dt = par.dumpdt
@@ -178,17 +166,15 @@ if par.stepwise:
     conf.enable_stepwise_body = 1
     conf.dump_stepwise_body = 1
     conf.stepwise_threshold = 0.001
-    conf.body_list_path = 'inline{}\n'.format(''.join(
-        ['\n  ' + l for l in geom.Generate().split('\n')]))
+    conf.body_list_path = "inline{}\n".format("".join(["\n  " + l for l in geom.Generate().split("\n")]))
 else:
-    conf.eb_list_path = 'inline{}\n'.format(''.join(
-        ['\n  ' + l for l in geom.Generate().split('\n')]))
+    conf.eb_list_path = "inline{}\n".format("".join(["\n  " + l for l in geom.Generate().split("\n")]))
 
 conf.enable_tracer = 1
 conf.tracer_override_mixture = 0
 conf.tracer_layers = 2
-conf.tracer_density = [1.] * 2
-conf.tracer_viscosity = [0.] * 2
+conf.tracer_density = [1.0] * 2
+conf.tracer_viscosity = [0.0] * 2
 nu1 = conf.mu1 / conf.rho1
 diffusion_top = nu1 / par.Sc_top
 diffusion_btm = nu1 / par.Sc_btm
@@ -203,11 +189,11 @@ conf.tracer_interface_diffusion_factor = par.tracer_interface_diffusion_factor
 if par.electro:
     conf.enable_electro = 1
     conf.dumplist += " elpot"
-    conf.resist1 = 1.
+    conf.resist1 = 1.0
     conf.resist2 = float(par.resist)
     conf.tracer0_init = "zero"
     conf.tracer1_init = "zero"
-    conf.flux_from_current = 1.
+    conf.flux_from_current = 1.0
     conf.hypre_electro_tol = potential * 0.1
 
 if par.particles:
@@ -216,37 +202,33 @@ if par.particles:
     conf.particles_density = par.rho
     conf.particles_to_vof = 1
     conf.particles_coal = 1
-    conf.particles_to_vof_radius = 2.
-    conf.particles_growth_diffusion_factor = 1.
+    conf.particles_to_vof_radius = 2.0
+    conf.particles_growth_diffusion_factor = 1.0
 
 if par.nucleation:
     conf.enable_nucleation_points = 1
     conf.nucleation_number_density = par.nucldens
     conf.nucleation_cmax0 = par.nucl_cmax
-    conf.nucleation_cpost0 = 0.
+    conf.nucleation_cpost0 = 0.0
     conf.nucleation_cmax1 = par.nucl_cmax
-    conf.nucleation_cpost1 = 0.
+    conf.nucleation_cpost1 = 0.0
     conf.dump_nucl = 1
 
 bc = aphros.BoundaryConditions()
 bcel = ", electro_neumann 0, tracer0_neumann 0, tracer1_neumann 0"
 bc.Wall(aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]), extra=bcel)
 
-bc.Inlet(aphros.Geometry().Box([0, 0, 0], [eps, inf, inf]),
-         velocity=[par.inletvel, 0, 0],
-         extra=bcel)
+bc.Inlet(aphros.Geometry().Box([0, 0, 0], [eps, inf, inf]), velocity=[par.inletvel, 0, 0], extra=bcel)
 bc.Outlet(aphros.Geometry().Box([lx, 0, 0], [eps, inf, inf]), extra=bcel)
 
 bc_nucleation = ", nucleation 1" if par.nucleation else ""
 bc_top = ", electro_dirichlet 0, tracer0_neumann 1, tracer1_neumann 0"
-bc_btm = ", electro_dirichlet {:}, tracer0_neumann 0, tracer1_neumann 0.5".format(
-    potential)
+bc_btm = ", electro_dirichlet {:}, tracer0_neumann 0, tracer1_neumann 0.5".format(potential)
 bc.Wall(box_top, extra=bc_top + bc_nucleation)
 bc.Wall(box_btm, extra=bc_btm + bc_nucleation)
 
 bc.GenerateFile("bc.dat")
-conf.bc_path = 'inline{}\n'.format(''.join(
-    ['\n  ' + l for l in bc.Generate().split('\n')]))
+conf.bc_path = "inline{}\n".format("".join(["\n  " + l for l in bc.Generate().split("\n")]))
 
 conf.GenerateFile("par.conf")
 

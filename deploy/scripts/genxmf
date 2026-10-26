@@ -6,42 +6,45 @@
 # STDOUT:
 # base.xmf
 
-import h5py
 import os
 import re
 import sys
 
+import h5py
+
 av = sys.argv
 
 if len(av) < 2:
- print('''usage: {:} data.h5 [extent]
+    print(
+        """usage: {:} data.h5 [extent]
 Generate data.xmf with uniform mesh.
-'''.format(av[0]))
- exit(1)
+""".format(av[0])
+    )
+    exit(1)
 
 hfn = av[1]
 hfs = "data"
 m = re.findall("(.*?)_.*?.h5", os.path.basename(hfn))
 field = m[0] if len(m) else "data"
-extent = float(av[2]) if len(av) > 2 else 1.
+extent = float(av[2]) if len(av) > 2 else 1.0
 
-h = h5py.File(hfn, 'r')
+h = h5py.File(hfn, "r")
 u = h[hfs]
 
-ncz,ncy,ncx,ncc = u.shape
+ncz, ncy, ncx, ncc = u.shape
 
 nx = ncx + 1
 ny = ncy + 1
 nz = ncz + 1
-bx = 0. 
-by = 0. 
-bz = 0. 
+bx = 0.0
+by = 0.0
+bz = 0.0
 dx = extent / max(ncx, ncy, ncz)
 dy = dx
 dz = dx
 prec = "float"
 
-t = '''<?xml version='1.0' ?>
+t = """<?xml version='1.0' ?>
 <!DOCTYPE Xdmf SYSTEM 'Xdmf.dtd' []>
 <Xdmf Version='2.0'>
  <Domain>
@@ -63,10 +66,10 @@ t = '''<?xml version='1.0' ?>
    </Grid>
  </Domain>
 </Xdmf>
-'''.format(**locals())
+""".format(**locals())
 
 fn = os.path.splitext(hfn)[0] + ".xmf"
 if os.path.isfile(fn):
-  fn = os.path.splitext(hfn)[0] + ".uni.xmf"
+    fn = os.path.splitext(hfn)[0] + ".uni.xmf"
 print(fn)
-open(fn, 'w').write(t)
+open(fn, "w").write(t)

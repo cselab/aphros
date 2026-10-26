@@ -38,14 +38,7 @@ else:
     nz = None
     bsz = None
 
-domain = aphros.AdjustedDomain(lx=lx,
-                               ly=ly,
-                               lz=lz,
-                               nx=par.nx,
-                               nz=nz,
-                               bsz=bsz,
-                               nproc=par.np,
-                               bs=par.bs)
+domain = aphros.AdjustedDomain(lx=lx, ly=ly, lz=lz, nx=par.nx, nz=nz, bsz=bsz, nproc=par.np, bs=par.bs)
 
 lx = domain.lx
 ly = domain.ly
@@ -71,11 +64,9 @@ bc.SlipWall(aphros.Geometry().Box([0, 0, 0], [inf, inf, inf]))
 bc.Inlet(aphros.Geometry().Box([0, 0, 0], [eps, inf, inf]), velocity=[1, 0, 0])
 bc.Outlet(aphros.Geometry().Box([lx, 0, 0], [eps, inf, inf]))
 if par.body == "sphere":
-    bc.Wall(aphros.Geometry().Box(center, [R + hx, R + hx, R + hx]),
-            velocity=[0, 0, 0])
+    bc.Wall(aphros.Geometry().Box(center, [R + hx, R + hx, R + hx]), velocity=[0, 0, 0])
 else:
-    bc.Wall(aphros.Geometry().Box(center, [R + hx, R + hx, inf]),
-            velocity=[0, 0, 0])
+    bc.Wall(aphros.Geometry().Box(center, [R + hx, R + hx, inf]), velocity=[0, 0, 0])
 
 par.spacedim = max(par.spacedim, par.dim)
 
@@ -83,13 +74,13 @@ conf = aphros.Config()
 conf.spacedim = par.spacedim
 conf.tmax = float(par.tmax)
 conf.extent = domain.extent
-conf.mu1 = 1. / par.Re
+conf.mu1 = 1.0 / par.Re
 conf.eb_list_path = "inline\n{}\n".format(body.Generate())
 conf.bc_path = "inline\n{}\n".format(bc.Generate())
 conf.dump_field_dt = float(par.dumpdt)
 conf.dumplist = par.dumplist
 if par.dim == 3:
-    conf.dumplist += ' ' + par.dumplist3d
+    conf.dumplist += " " + par.dumplist3d
 if par.body == "sphere":
     conf.hypre_periodic_z = 0
 conf.GenerateFile("par.conf")

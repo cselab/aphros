@@ -6,24 +6,19 @@ import sys
 parser = argparse.ArgumentParser(
     description="Runs Python code and writes the defined local variables "
     "of permitted types (float, int, string, list) as configuration",
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
 parser.add_argument(
-    'input',
-    type=str,
-    nargs='?',
-    default='-',
-    help="Path to python script. If set to '-', read from stdin")
+    "input", type=str, nargs="?", default="-", help="Path to python script. If set to '-', read from stdin"
+)
 parser.add_argument(
-    'output',
-    type=str,
-    nargs='?',
-    default='-',
-    help="Path to output configuration file. If set to '-', write to stdout")
+    "output", type=str, nargs="?", default="-", help="Path to output configuration file. If set to '-', write to stdout"
+)
 args = parser.parse_args()
 
 var = dict()
 
-inp = sys.stdin if args.input == '-' else open(args.input, 'r')
+inp = sys.stdin if args.input == "-" else open(args.input, "r")
 
 textpy = inp.read()
 exec(textpy, {}, var)
@@ -36,7 +31,8 @@ for k in var:
 var = {k: v for k, v in var.items() if type(v) in types}
 
 from aphros import Config
+
 textconf = Config(var).Generate()
 
-out = sys.stdout if args.output == '-' else open(args.output, 'w')
-out.write(textconf + '\n')
+out = sys.stdout if args.output == "-" else open(args.output, "w")
+out.write(textconf + "\n")

@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
 
-import scipy
 import argparse
-import os
 import glob
+import os
 import sys
 
 import aphros
+import scipy
+
 
 def printerr(msg):
     sys.stderr.write(str(msg) + "\n")
 
-parser = argparse.ArgumentParser(
-    description=
-    "Prints the Hausdorff distance between sm_*.vtk files in two directories"
-)
-parser.add_argument('dir1', type=str)
-parser.add_argument('dir2', type=str)
+
+parser = argparse.ArgumentParser(description="Prints the Hausdorff distance between sm_*.vtk files in two directories")
+parser.add_argument("dir1", type=str)
+parser.add_argument("dir2", type=str)
 args = parser.parse_args()
 
 files1 = sorted(glob.glob(os.path.join(args.dir1, "sm_*.vtk")))

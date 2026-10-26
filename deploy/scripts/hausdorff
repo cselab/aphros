@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-import scipy
 import argparse
 
 import aphros
+import scipy
 
-parser = argparse.ArgumentParser(
-    description="Computes the Hausdorff distance between two sm_*.vtk files")
-parser.add_argument('vtk_a', type=str)
-parser.add_argument('vtk_b', type=str)
+parser = argparse.ArgumentParser(description="Computes the Hausdorff distance between two sm_*.vtk files")
+parser.add_argument("vtk_a", type=str)
+parser.add_argument("vtk_b", type=str)
 args = parser.parse_args()
 
 xa, _, _ = aphros.ReadVtkPoly(args.vtk_a)

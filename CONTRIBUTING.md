@@ -19,11 +19,9 @@ tools/format --check
 
 ### Python
 
-Format all python files found recursively in current directory
-
-```
-yapf -ir .
-```
+`tools/format` also formats Python files (`*.py` and scripts with a
+Python shebang) with ruff; `tools/format --check` also runs the ruff
+linter. Configuration is in `ruff.toml`.
 
 ## Add copyright notice
 

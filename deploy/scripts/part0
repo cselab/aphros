@@ -46,7 +46,8 @@ v = sys.argv
 vn = 1 + 2 * dim + 1
 
 if len(v) != vn:
-    print("""usage: {:} nx ny nz bsx bsy bsz nproc
+    print(
+        """usage: {:} nx ny nz bsx bsy bsz nproc
 Partition mesh minimizing the communication area.
 ARGS:
   nx,ny,nz: mesh size
@@ -55,15 +56,16 @@ ARGS:
 STDOUT:
   px,py,pz: processors, nproc=px*py*pz
   bx,by,bz: blocks per processor, px*bx*bsx=nx
-""".format(v[0]))
+""".format(v[0])
+    )
     exit(1)
 
 nx, ny, nz, bsx, bsy, bsz, nproc = map(int, v[1:])
 
 i = 1
-n = list(map(int, v[i:i + dim]))
+n = list(map(int, v[i : i + dim]))
 i += dim
-bs = list(map(int, v[i:i + dim]))
+bs = list(map(int, v[i : i + dim]))
 i += dim
 nproc = int(v[i])
 i += 1
@@ -71,8 +73,7 @@ assert i == vn
 
 # check n divisible by bs
 if not IsDivisible(n, bs):
-    sys.stderr.write(
-        "Error: mesh size {:} not divisible by block size {:}\n".format(n, bs))
+    sys.stderr.write("Error: mesh size {:} not divisible by block size {:}\n".format(n, bs))
     exit(1)
 
 # b*p
@@ -80,9 +81,7 @@ bp = Div(n, bs)
 
 # check bp divisible by nproc
 if Prod(bp) % nproc != 0:
-    sys.stderr.write(
-        "Error: number of blocks {:} not divisible by nproc={:}\n".format(
-            Prod(bp), nproc))
+    sys.stderr.write("Error: number of blocks {:} not divisible by nproc={:}\n".format(Prod(bp), nproc))
     exit(1)
 
 # divisors of nproc
@@ -105,7 +104,7 @@ for px in divisors:
 
         assert all(p[i] * b[i] * bs[i] == n[i] for i in rd)
 
-        if (best_p is None or Quality(p) > Quality(best_p)):
+        if best_p is None or Quality(p) > Quality(best_p):
             best_p = p
 
 assert best_p, "Can't partition"

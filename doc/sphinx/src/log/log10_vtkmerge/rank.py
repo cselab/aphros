@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-import numpy as np
-import aphros
 from collections import defaultdict
 
+import aphros
+
 path = "sm_0000.vtk"
-points,poly,fields = aphros.ReadVtkPoly(path)
+points, poly, fields = aphros.ReadVtkPoly(path)
 
 ranks = defaultdict(int)
 
@@ -15,15 +15,17 @@ for p in poly:
 
 counts = defaultdict(int)
 
-for i,r in ranks.items():
+for i, r in ranks.items():
     counts[r] += 1
 
 for r in sorted(counts):
     print(r, counts[r])
 
-with open("a.csv", 'w') as f:
+with open("a.csv", "w") as f:
+
     def W(l):
-        f.write(str(l) + '\n')
-    W('x,y,z,rank')
+        f.write(str(l) + "\n")
+
+    W("x,y,z,rank")
     for i in ranks:
-        W('{:},{:},{:},{:}'.format(*points[i], ranks[i]))
+        W("{:},{:},{:},{:}".format(*points[i], ranks[i]))

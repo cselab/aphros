@@ -1,10 +1,9 @@
-from aphros.par import *
+import aphros.confgen
 import aphros.io
+from aphros.io import *
+from aphros.par import *
 from aphros.vtk import ReadVtkPoly
 
-from aphros.io import *
-
-import aphros.confgen
 Geometry = aphros.confgen.Geometry
 BoundaryConditions = aphros.confgen.BoundaryConditions
 Bc = aphros.confgen.BoundaryConditions
@@ -18,5 +17,4 @@ GenerateJobConfig = aphros.confgen.GenerateJobConfig
 AdjustDomainToProcessors = aphros.confgen.AdjustDomainToProcessors
 CheckDomain = aphros.confgen.CheckDomain
 from aphros.confgen import Parameters
-
 from aphros.test import TestBase

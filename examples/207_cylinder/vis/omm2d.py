@@ -1,13 +1,12 @@
 #!/usr/bin/env pvbatch
 
+import os
+import re
+import sys
+
+import numpy as np
 from paraview.simple import *
 
-from glob import glob
-import sys
-import re
-import math
-import os
-import numpy as np
 
 def Log(s):
     s += "\n"
@@ -15,14 +14,18 @@ def Log(s):
     o.write(s)
     o.flush()
 
+
 # natural sort
-def natkey(s, _nsre=re.compile('([0-9]+)')):
-    return [int(text) if text.isdigit() else text.lower()
-            for text in re.split(_nsre, s)]
+def natkey(s, _nsre=re.compile("([0-9]+)")):
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(_nsre, s)]
+
 
 def natsorted(v):
     return sorted(v, key=natkey)
+
+
 # Returns sorted list of files in base by pattern pre_*.xmf
+
 
 # Sets time of datasets to step i
 def SetTime(i):
@@ -31,6 +34,7 @@ def SetTime(i):
         s = vft[j]
         s.ForcedTime = vt[j][i]
         s.UpdatePipeline()
+
 
 # Returns bounding box of object o
 def GetBox(o):
@@ -43,13 +47,16 @@ def GetBox(o):
 
 
 av = sys.argv
-if len(av) < 2 or av[1] == '-h':
-    sys.stderr.write('''usage: {:} [sm_*.vtk]
+if len(av) < 2 or av[1] == "-h":
+    sys.stderr.write(
+        """usage: {:} [sm_*.vtk]
 Plots isosurface.
 # Output:
 # a_*.png in current directory
-'''.format(av[0]))
+""".format(av[0])
+    )
     exit(1)
+
 
 def CheckFlag(name):
     if name in av:
@@ -59,10 +66,10 @@ def CheckFlag(name):
 
 
 cam = 1  # view from side perspective
-if CheckFlag('-C1'):
+if CheckFlag("-C1"):
     cam = 1
 
-draft = CheckFlag('-draft')
+draft = CheckFlag("-draft")
 
 # sm input
 ff = natsorted(av[1:])
@@ -103,18 +110,18 @@ C1 = [
     [lx * 0.3, ly * 0.5, 0],
     [0, 1, 0],
     2,
-    ]
+]
 
 CC = [C1]
 C = CC[cam - 1]
 
 # Create a new 'Render View'
-renderView1 = CreateView('RenderView')
+renderView1 = CreateView("RenderView")
 renderView1.ViewSize = [2000, 1000]
 if draft:
     renderView1.ViewSize[0] = renderView1.ViewSize[0] // 2
     renderView1.ViewSize[1] = renderView1.ViewSize[1] // 2
-renderView1.AxesGrid = 'GridAxes3DActor'
+renderView1.AxesGrid = "GridAxes3DActor"
 renderView1.OrientationAxesVisibility = 0
 renderView1.StereoType = 0
 renderView1.CameraPosition = C[0]
@@ -122,7 +129,7 @@ renderView1.CameraFocalPoint = C[1]
 renderView1.CameraViewUp = C[2]
 renderView1.CameraParallelScale = C[3]
 renderView1.CameraParallelProjection = 1
-renderView1.Background = [1.]*3
+renderView1.Background = [1.0] * 3
 renderView1.UseLight = 0
 renderView1.KeyLightWarmth = 0.5
 renderView1.FillLightWarmth = 0.5
@@ -138,9 +145,9 @@ renderView1.OSPRayMaterialLibrary = materialLibrary1
 # ----------------------------------------------------------------
 
 omm = XDMFReader(FileNames=ff)
-ommname = 'omz'
+ommname = "omz"
 omm.CellArrayStatus = [ommname]
-omm.GridStatus = ['Grid_1']
+omm.GridStatus = ["Grid_1"]
 
 
 # list of all sources
@@ -163,36 +170,62 @@ k = 0.5
 ommDisplay = Show(omm, renderView1)
 
 ommLUT = GetColorTransferFunction(ommname)
-ommLUT.AutomaticRescaleRangeMode = 'Never'
-if ommname == 'omz':
-    ommLUT.RGBPoints = [-25.0*k, 0.231373, 0.298039, 0.752941, 0*k, 0.865003, 0.865003, 0.865003, 25.0*k, 0.705882, 0.0156863, 0.14902]
+ommLUT.AutomaticRescaleRangeMode = "Never"
+if ommname == "omz":
+    ommLUT.RGBPoints = [
+        -25.0 * k,
+        0.231373,
+        0.298039,
+        0.752941,
+        0 * k,
+        0.865003,
+        0.865003,
+        0.865003,
+        25.0 * k,
+        0.705882,
+        0.0156863,
+        0.14902,
+    ]
 else:
-    ommLUT.RGBPoints = [0.0*k, 0.231373, 0.298039, 0.752941, 12.500000000000004*k, 0.865003, 0.865003, 0.865003, 25.0*k, 0.705882, 0.0156863, 0.14902]
+    ommLUT.RGBPoints = [
+        0.0 * k,
+        0.231373,
+        0.298039,
+        0.752941,
+        12.500000000000004 * k,
+        0.865003,
+        0.865003,
+        0.865003,
+        25.0 * k,
+        0.705882,
+        0.0156863,
+        0.14902,
+    ]
 ommLUT.ScalarRangeInitialized = 1.0
 
 ommPWF = GetOpacityTransferFunction(ommname)
-if ommname == 'omz':
-    ommPWF.Points = [-25.0*k, 1.0, 0.5, 0.0, 25.0*k, 1.0, 0.5, 0.0]
+if ommname == "omz":
+    ommPWF.Points = [-25.0 * k, 1.0, 0.5, 0.0, 25.0 * k, 1.0, 0.5, 0.0]
 else:
-    ommPWF.Points = [0.0*k, 1.0, 0.5, 0.0, 25.0*k, 1.0, 0.5, 0.0]
+    ommPWF.Points = [0.0 * k, 1.0, 0.5, 0.0, 25.0 * k, 1.0, 0.5, 0.0]
 ommPWF.ScalarRangeInitialized = 1
 
 # trace defaults for the display properties.
-ommDisplay.Representation = 'Surface'
-ommDisplay.ColorArrayName = ['CELLS', ommname]
+ommDisplay.Representation = "Surface"
+ommDisplay.ColorArrayName = ["CELLS", ommname]
 ommDisplay.LookupTable = ommLUT
 
-ebvtk = LegacyVTKReader(FileNames=['../eb.vtk'])
+ebvtk = LegacyVTKReader(FileNames=["../eb.vtk"])
 ebvtk = Clip(Input=ebvtk)
-ebvtk.ClipType = 'Scalar'
-ebvtk.Scalars = ['CELLS', 'face']
+ebvtk.ClipType = "Scalar"
+ebvtk.Scalars = ["CELLS", "face"]
 ebvtk.Value = 0.5
 ebvtkDisplay = Show(ebvtk, renderView1)
-ebvtkDisplay.Representation = 'Wireframe'
+ebvtkDisplay.Representation = "Wireframe"
 ebvtkDisplay.AmbientColor = [0.0, 0.0, 0.0]
-ebvtkDisplay.ColorArrayName = ['POINTS', '']
+ebvtkDisplay.ColorArrayName = ["POINTS", ""]
 ebvtkDisplay.DiffuseColor = [0.0, 0.0, 0.0]
-ebvtkDisplay.LineWidth = 5.
+ebvtkDisplay.LineWidth = 5.0
 
 #####################################################
 ### END OF STATE FILE

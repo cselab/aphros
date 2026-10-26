@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
-import argparse
-import math
-import os
-import sys
 import copy
+import os
 import subprocess
+
 try:
     import numpy as np
 except ImportError:
     pass
+
 
 def NormalizeType(v):
     if isinstance(v, (float, np.float32, np.float64)):
@@ -45,23 +44,23 @@ class Config:
             elif isinstance(v, int):
                 t.append("set int {:} {:}".format(k, v))
             elif isinstance(v, list):
-                v = ' '.join(["{:.20g}".format(a) for a in v])
+                v = " ".join(["{:.20g}".format(a) for a in v])
                 t.append("set vect {:} {:}".format(k, v))
             elif isinstance(v, str):
-                if '\n' in v:
+                if "\n" in v:
                     v = '"' + v + '"'
                 t.append("set string {:} {:}".format(k, v))
             else:
                 assert False, "unknown type of value '{:}'".format(str(v))
-        return '\n'.join(t)
+        return "\n".join(t)
 
     def GenerateFile(self, path):
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             f.write(self.Generate())
 
 
 def VectToStr(v):
-    return ' '.join(map(str, v))
+    return " ".join(map(str, v))
 
 
 class Domain:
@@ -87,23 +86,26 @@ class Domain:
     nproc: `int`
         Number of processors.
     """
-    def __init__(self,
-                 lx=None,
-                 ly=None,
-                 lz=None,
-                 nx=None,
-                 ny=None,
-                 nz=None,
-                 h=None,
-                 extent=None,
-                 bsx=None,
-                 bsy=None,
-                 bsz=None,
-                 bs=32,
-                 bx=None,
-                 by=None,
-                 bz=None,
-                 nproc=None):
+
+    def __init__(
+        self,
+        lx=None,
+        ly=None,
+        lz=None,
+        nx=None,
+        ny=None,
+        nz=None,
+        h=None,
+        extent=None,
+        bsx=None,
+        bsy=None,
+        bsz=None,
+        bs=32,
+        bx=None,
+        by=None,
+        bz=None,
+        nproc=None,
+    ):
         conf = locals()
 
         def tryline(line):
@@ -119,41 +121,43 @@ class Domain:
 
         # TODO: detect conflicting parameters
 
-        trylines([
-            "extent = max(lx, ly, lz)",
-            "nmax = max(nx, ny, nz)",
-            "bsx = bs if bsx is None else bsx",
-            "bsy = bs if bsy is None else bsy",
-            "bsz = bs if bsz is None else bsz",
-            "bs = bsx",
-            "h = lz / nz",
-            "h = lx / nx",
-            "h = ly / ny",
-            "h = extent / nmax",
-            "lx = float(nx * h)",
-            "ly = float(ny * h)",
-            "lz = float(nz * h)",
-            "nx = int(lx / h + 0.5)",
-            "ny = int(ly / h + 0.5)",
-            "nz = int(lz / h + 0.5)",
-            "bx = (nx + bsx - 1) // bsx",
-            "by = (ny + bsy - 1) // bsy",
-            "bz = (nz + bsz - 1) // bsz",
-            "nx = bx * bsx",
-            "ny = by * bsy",
-            "nz = bz * bsz",
-            "lx = float(nx * h)",
-            "ly = float(ny * h)",
-            "lz = float(nz * h)",
-            "extent = max(lx, ly, lz)",
-            "nmax = max(nx, ny, nz)",
-            "px = 1",
-            "py = 1",
-            "pz = 1",
-        ])
+        trylines(
+            [
+                "extent = max(lx, ly, lz)",
+                "nmax = max(nx, ny, nz)",
+                "bsx = bs if bsx is None else bsx",
+                "bsy = bs if bsy is None else bsy",
+                "bsz = bs if bsz is None else bsz",
+                "bs = bsx",
+                "h = lz / nz",
+                "h = lx / nx",
+                "h = ly / ny",
+                "h = extent / nmax",
+                "lx = float(nx * h)",
+                "ly = float(ny * h)",
+                "lz = float(nz * h)",
+                "nx = int(lx / h + 0.5)",
+                "ny = int(ly / h + 0.5)",
+                "nz = int(lz / h + 0.5)",
+                "bx = (nx + bsx - 1) // bsx",
+                "by = (ny + bsy - 1) // bsy",
+                "bz = (nz + bsz - 1) // bsz",
+                "nx = bx * bsx",
+                "ny = by * bsy",
+                "nz = bz * bsz",
+                "lx = float(nx * h)",
+                "ly = float(ny * h)",
+                "lz = float(nz * h)",
+                "extent = max(lx, ly, lz)",
+                "nmax = max(nx, ny, nz)",
+                "px = 1",
+                "py = 1",
+                "pz = 1",
+            ]
+        )
 
         for k, v in conf.items():
-            if k in ['self']:
+            if k in ["self"]:
                 continue
             setattr(self, k, v)
 
@@ -192,7 +196,7 @@ set int bsz {bsz}
 """.format(**vars(self))
 
     def GenerateMeshConfig(self, path="mesh.conf"):
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             f.write(self.GetMeshConfig())
 
 
@@ -250,12 +254,7 @@ def PartitionDomain(domain):
     return newdomain
 
 
-def AdjustedDomain(verbose=True,
-                   decrease_nproc=True,
-                   increase_size=False,
-                   nproc_factor=0.9,
-                   size_factor=1.1,
-                   **kwargs):
+def AdjustedDomain(verbose=True, decrease_nproc=True, increase_size=False, nproc_factor=0.9, size_factor=1.1, **kwargs):
     domain = Domain(**kwargs)
     newdomain = AdjustDomainToProcessors(
         domain,
@@ -287,18 +286,13 @@ def CheckDomain(domain, fatal=True):
     for check in checks:
         if not eval(check):
             failed.append(check)
-    assert not failed, \
-            "While checking domain\n{:}\nthe following checks failed\n{:}".format(
-        domain, failed)
+    assert not failed, "While checking domain\n{:}\nthe following checks failed\n{:}".format(domain, failed)
     return failed
 
 
-def AdjustDomainToProcessors(domain,
-                             decrease_nproc=True,
-                             increase_size=False,
-                             nproc_factor=0.9,
-                             size_factor=1.1,
-                             verbose=True):
+def AdjustDomainToProcessors(
+    domain, decrease_nproc=True, increase_size=False, nproc_factor=0.9, size_factor=1.1, verbose=True
+):
     """
     Adjusts the domain size and the number of processors
     to make the number of blocks divisible by `domain.nproc`.
@@ -324,15 +318,17 @@ def AdjustDomainToProcessors(domain,
             for bx in b_range(domain.bx):
                 for nproc in nproc_range(domain.nproc):
                     if (bx * by * bz) % nproc == 0:
-                        d = Domain(bx=bx,
-                                   by=by,
-                                   bz=bz,
-                                   h=domain.h,
-                                   bsx=domain.bsx,
-                                   bsy=domain.bsy,
-                                   bsz=domain.bsz,
-                                   bs=domain.bs,
-                                   nproc=nproc)
+                        d = Domain(
+                            bx=bx,
+                            by=by,
+                            bz=bz,
+                            h=domain.h,
+                            bsx=domain.bsx,
+                            bsy=domain.bsy,
+                            bsz=domain.bsz,
+                            bs=domain.bs,
+                            nproc=nproc,
+                        )
                         return d
     return None
 
@@ -345,25 +341,22 @@ class Geometry:
         self.lines.append(line)
 
     def __Prefix(self, intersect=False, invert=False):
-        s = ''
+        s = ""
         if intersect:
-            s += '&'
+            s += "&"
         if invert:
-            s += '-'
+            s += "-"
         return s
 
     def Box(self, center, halfsize, rotation_z=0, **kwargs):
         s = self.__Prefix(**kwargs)
-        s += "box {:}   {:}   {:}".format(VectToStr(center),
-                                          VectToStr(halfsize), rotation_z)
+        s += "box {:}   {:}   {:}".format(VectToStr(center), VectToStr(halfsize), rotation_z)
         self.__Append(s)
         return self
 
     def RoundBox(self, center, halfsize, roundradius=0, **kwargs):
         s = self.__Prefix(**kwargs)
-        s += "roundbox {:}   {:}   {:}".format(VectToStr(center),
-                                               VectToStr(halfsize),
-                                               roundradius)
+        s += "roundbox {:}   {:}   {:}".format(VectToStr(center), VectToStr(halfsize), roundradius)
         self.__Append(s)
         return self
 
@@ -375,81 +368,77 @@ class Geometry:
 
     def Cylinder(self, center, normal, radius, normalrange, **kwargs):
         s = self.__Prefix(**kwargs)
-        s += "cylinder {:}   {:}   {:}   {:}".format(VectToStr(center),
-                                                     VectToStr(normal), radius,
-                                                     VectToStr(normalrange))
+        s += "cylinder {:}   {:}   {:}   {:}".format(
+            VectToStr(center), VectToStr(normal), radius, VectToStr(normalrange)
+        )
         self.__Append(s)
         return self
 
-    def Polygon(self, origin, normal, right, normalrange, scale, polygon,
-                **kwargs):
-        '''
+    def Polygon(self, origin, normal, right, normalrange, scale, polygon, **kwargs):
+        """
         polygon: `list(list(float))`, polygon as list of 2D vertices
             If first and last vertices do not coincide,
             appended by the first vertex to make a loop
-        '''
-        assert all(len(p) == 2 for p in polygon), \
-                "expected 2D points, got '{:}'".format(polygon)
-        assert len(polygon) >= 3, \
-                "expected polygon of at least 3 vertices, got '{:}'".format(polygon)
+        """
+        assert all(len(p) == 2 for p in polygon), "expected 2D points, got '{:}'".format(polygon)
+        assert len(polygon) >= 3, "expected polygon of at least 3 vertices, got '{:}'".format(polygon)
         if polygon[0] != polygon[-1]:
             polygon.append(polygon[0])
         coords = [x for p in polygon for x in p]
         s = self.__Prefix(**kwargs)
         s += "polygon {:}   {:}   {:}   {:}   {:}   {:}".format(
-            VectToStr(origin), VectToStr(normal), VectToStr(right),
-            VectToStr(normalrange), scale, VectToStr(coords))
+            VectToStr(origin), VectToStr(normal), VectToStr(right), VectToStr(normalrange), scale, VectToStr(coords)
+        )
         self.__Append(s)
         return self
 
     def Polygon2(self, origin, right, scale, polygon, **kwargs):
-        '''
+        """
         polygon: `list(list(float))`, polygon as list of 2D vertices
             If first and last vertices do not coincide,
             appended by the first vertex to make a loop
-        '''
-        assert all(len(p) == 2 for p in polygon), \
-                "expected 2D points, got '{:}'".format(polygon)
-        assert len(polygon) >= 3, \
-                "expected polygon of at least 3 vertices, got '{:}'".format(polygon)
+        """
+        assert all(len(p) == 2 for p in polygon), "expected 2D points, got '{:}'".format(polygon)
+        assert len(polygon) >= 3, "expected polygon of at least 3 vertices, got '{:}'".format(polygon)
         if polygon[0] != polygon[-1]:
             polygon.append(polygon[0])
         coords = [x for p in polygon for x in p]
         s = self.__Prefix(**kwargs)
-        s += "polygon2 {:}   {:}   {:}   {:}".format(VectToStr(origin),
-                                                     VectToStr(right), scale,
-                                                     VectToStr(coords))
+        s += "polygon2 {:}   {:}   {:}   {:}".format(VectToStr(origin), VectToStr(right), scale, VectToStr(coords))
         self.__Append(s)
         return self
 
-    def Ruled(self, origin, normal, right, normalrange, scale0, scale1,
-              polygon0, polygon1, **kwargs):
-        '''
+    def Ruled(self, origin, normal, right, normalrange, scale0, scale1, polygon0, polygon1, **kwargs):
+        """
         polygon0,polygon1: `list(list(float))`
             Polygon as lists of 2D vertices used on the opposite
             sides of the ruled surface scaled by `scale0` and `scale1`
             respectively.
-        '''
+        """
         for polygon in [polygon0, polygon1]:
-            assert all(len(p) == 2 for p in polygon), \
-                    "expected 2D points, got '{:}'".format(polygon)
-            assert len(polygon) >= 3, \
-                    "expected polygons of at least 3 vertices, got '{:}'".format(polygon)
+            assert all(len(p) == 2 for p in polygon), "expected 2D points, got '{:}'".format(polygon)
+            assert len(polygon) >= 3, "expected polygons of at least 3 vertices, got '{:}'".format(polygon)
             if polygon[0] != polygon[-1]:
                 polygon.append(polygon[0])
         coords = [x for p in polygon0 + polygon1 for x in p]
         s = self.__Prefix(**kwargs)
         s += "ruled {:}   {:}   {:}   {:}   {:} {:}   {:}".format(
-            VectToStr(origin), VectToStr(normal), VectToStr(right),
-            VectToStr(normalrange), scale0, scale1, VectToStr(coords))
+            VectToStr(origin),
+            VectToStr(normal),
+            VectToStr(right),
+            VectToStr(normalrange),
+            scale0,
+            scale1,
+            VectToStr(coords),
+        )
         self.__Append(s)
         return self
 
     def Generate(self):
-        return '\n'.join(self.lines)
+        return "\n".join(self.lines)
 
     def GenerateFile(self, path):
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             f.write(self.Generate())
 
 
@@ -458,8 +447,8 @@ class BoundaryConditions:
         self.lines = []
 
     def __Indent(self, text):
-        lines = text.split('\n')
-        return '\n'.join(["  " + line for line in lines])
+        lines = text.split("\n")
+        return "\n".join(["  " + line for line in lines])
 
     def __Append(self, line, geom):
         line = "{:} {{\n{:}\n}}".format(line, self.__Indent(geom.Generate()))
@@ -474,8 +463,7 @@ class BoundaryConditions:
         self.__Append(s, geom)
 
     def WallRotationMagn(self, geom, center, omega):
-        s = "wall_rotation_magn {:} {:}".format(VectToStr(center),
-                                                VectToStr(omega))
+        s = "wall_rotation_magn {:} {:}".format(VectToStr(center), VectToStr(omega))
         self.__Append(s, geom)
 
     def SlipWall(self, geom, extra=""):
@@ -495,8 +483,7 @@ class BoundaryConditions:
         self.__Append(s, geom)
 
     def InletRotation(self, geom, veln, center, omega, extra=""):
-        s = "inlet_rotation {:}   {:}   {:}{}".format(veln, VectToStr(center),
-                                                      VectToStr(omega), extra)
+        s = "inlet_rotation {:}   {:}   {:}{}".format(veln, VectToStr(center), VectToStr(omega), extra)
         self.__Append(s, geom)
 
     def Outlet(self, geom, extra=""):
@@ -515,10 +502,10 @@ class BoundaryConditions:
         self.__Append(desc, geom)
 
     def Generate(self):
-        return '\n'.join(self.lines)
+        return "\n".join(self.lines)
 
     def GenerateFile(self, path):
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             f.write(self.Generate())
 
 
@@ -529,9 +516,10 @@ class Parameters:
     >>> par = Parameters()
     >>> par.extent = 1
     """
+
     def __init__(self, path=None):
         for k in dir(self):
-            if not k.startswith('_') and k not in ['exec']:
+            if not k.startswith("_") and k not in ["exec"]:
                 setattr(self, k, getattr(self, k))
         if path:
             self.execfile(path)
@@ -555,13 +543,14 @@ def ReadConfig(fpath):
     Returns Config from configuration file (commands "set ...").
     fpath: path to configuration file
     """
-    code = subprocess.check_output(['ap.conf2py', fpath])
+    code = subprocess.check_output(["ap.conf2py", fpath])
     d = dict()
     exec(code, None, d)
     return Config(d)
 
+
 def GenerateJobConfig(nproc, time_limit_minutes, basedir="."):
-    with open(os.path.join(basedir, "np"), 'w') as f:
+    with open(os.path.join(basedir, "np"), "w") as f:
         f.write(str(nproc))
-    with open(os.path.join(basedir, "tl"), 'w') as f:
+    with open(os.path.join(basedir, "tl"), "w") as f:
         f.write(str(time_limit_minutes))

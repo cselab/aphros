@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import glob
 import os
 import re
+
+import matplotlib.pyplot as plt
+
 
 # Read uniform grid data
 # p: path
@@ -31,6 +34,7 @@ def Read(p):
         u = u.reshape(ss)
         return u
 
+
 # u: numpy array (2d or 3d slice)
 def Get2d(u):
     if u is None:
@@ -40,33 +44,37 @@ def Get2d(u):
         return u
     else:
         assert len(s) == 3
-        return u[0,:,:].reshape((s[1], s[2]))
+        return u[0, :, :].reshape((s[1], s[2]))
+
 
 def PlotInit():
     plt.close()
-    fig, ax = plt.subplots(figsize=(5,5))
+    fig, ax = plt.subplots(figsize=(5, 5))
     return fig, ax
 
+
 def PlotSave(fig, ax, po):
-    ax.set_aspect('equal')
+    ax.set_aspect("equal")
     fig.tight_layout()
     fig.savefig(po, dpi=300)
     plt.close()
 
+
 from matplotlib.colors import LinearSegmentedColormap
+
 
 # u: 2d numpy array
 # po: output path
 def PlotFieldGray(ax, u, vmin=None, vmax=None):
-    cmap = LinearSegmentedColormap.from_list('mycmap', ['#ffffff', '#000000'])
-    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest',
-              vmin=vmin, vmax=vmax, cmap=cmap)
+    cmap = LinearSegmentedColormap.from_list("mycmap", ["#ffffff", "#000000"])
+    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation="nearest", vmin=vmin, vmax=vmax, cmap=cmap)
+
 
 # u: 2d numpy array
 # po: output path
 def PlotField(ax, u, vmin=None, vmax=None):
-    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation='nearest',
-              vmin=vmin, vmax=vmax)
+    ax.imshow(np.flipud(u), extent=(0, 1, 0, 1), interpolation="nearest", vmin=vmin, vmax=vmax)
+
 
 # sx, sy: number of cells
 def PlotGrid(ax, x1, y1):
@@ -74,8 +82,9 @@ def PlotGrid(ax, x1, y1):
     ax.set_yticks(y1)
     plt.setp(ax.get_xticklabels(), visible=False)
     plt.setp(ax.get_yticklabels(), visible=False)
-    ax.tick_params(axis='both', which='both', length=0)
-    ax.grid(True, lw=0.5, c='0.', alpha=0.08)
+    ax.tick_params(axis="both", which="both", length=0)
+    ax.grid(True, lw=0.5, c="0.", alpha=0.08)
+
 
 def PlotLines(ax, xa, ya, xb, yb):
     xa = xa.flatten()
@@ -85,7 +94,8 @@ def PlotLines(ax, xa, ya, xb, yb):
     xy = np.vstack((xa, xb, ya, yb))
     xy = xy.T
     xy = xy.reshape((xa.size * 2, 2))
-    ax.plot(*xy, c='k', alpha=0.9, lw=1)
+    ax.plot(*xy, c="k", alpha=0.9, lw=1)
+
 
 # assume 0 < nx < ny, a < 0
 def GetLineEnds(nx, ny, a):
@@ -102,7 +112,7 @@ def GetLineEnds(nx, ny, a):
     if len(e) < 2 and -0.5 <= xr[1] and xr[1] <= 0.5:
         e.append([0.5, xr[1]])
 
-    if len(e) == 1: # if only one point found, set second to the same
+    if len(e) == 1:  # if only one point found, set second to the same
         e.append(e[0])
 
     return e
@@ -130,7 +140,7 @@ def GetLines(xc, yc, a, nx, ny, hx, hy, u):
     yb = []
     for i in range(len(xc)):
         th = 1e-5
-        if u[i] > th and u[i] < 1. - th:
+        if u[i] > th and u[i] < 1.0 - th:
             e = GetLineEnds(nx[i] * hx, ny[i] * hy, a[i])
             if len(e) == 2:
                 xa.append(xc[i] + e[0][0] * hx)
@@ -145,13 +155,16 @@ def GetLines(xc, yc, a, nx, ny, hx, hy, u):
 
     return xa, ya, xb, yb
 
+
 def CmpCurv(x, y, u, k, kp, po):
     cx = (x * u).sum() / u.sum()
     cy = (y * u).sum() / u.sum()
     th = 1e-3
-    ii = np.where((u > th) & (u < 1. - th))
-    x = x[ii];   y = y[ii]
-    dx = x - cx; dy = y - cy
+    ii = np.where((u > th) & (u < 1.0 - th))
+    x = x[ii]
+    y = y[ii]
+    dx = x - cx
+    dy = y - cy
     an = np.arctan2(dy, dx)
     deg = np.degrees(an)
     k = k[ii]
@@ -160,23 +173,24 @@ def CmpCurv(x, y, u, k, kp, po):
     s = np.argsort(an)
 
     [sx, sy] = u.shape
-    hx = 1. / sx
-    hy = 1. / sy
+    hx = 1.0 / sx
+    hy = 1.0 / sy
     r = ((u.sum() * hx * hy) / np.pi) ** 0.5
-    ke = 1. / r
+    ke = 1.0 / r
 
     fig, ax = plt.subplots()
-    ax.axhline(y=1., c='k')
+    ax.axhline(y=1.0, c="k")
     ax.plot(deg[s], k[s] / ke, label="height")
     ax.plot(deg[s], kp[s] / ke, label="particles")
     ax.set_xlabel(r"angle [deg]")
     ax.set_ylabel(r"normalized curvature")
     ax.legend()
-    ax.set_ylim(0., 2.)
+    ax.set_ylim(0.0, 2.0)
     ax.grid()
     fig.tight_layout()
     fig.savefig(po, dpi=300)
     plt.close()
+
 
 # Plot particle strings
 # ax: axes to plot on
@@ -185,24 +199,23 @@ def CmpCurv(x, y, u, k, kp, po):
 # Output:
 # plots particles on ax with color c
 def PlotPart(ax, p, sk=1):
-    d = np.loadtxt(p, skiprows=1, delimiter=',')
+    d = np.loadtxt(p, skiprows=1, delimiter=",")
     if d.size == 0:
         return None
-    x,y,z,c = d.T
+    x, y, z, c = d.T
     c = c.astype(int)
-
 
     # separate particles strings by cell
     tt = dict()  # lists of indices in x
     for i in range(len(c)):
         ci = c[i]
-        if not ci in tt:
+        if ci not in tt:
             tt[ci] = []
         tt[ci].append(i)
 
     # map cell index to color
     nc = 16
-    c = (c * (2 ** 31 - 1) % nc).astype(float) / (nc - 1)
+    c = (c * (2**31 - 1) % nc).astype(float) / (nc - 1)
 
     cmap = plt.get_cmap("Set1")
 
@@ -215,20 +228,20 @@ def PlotPart(ax, p, sk=1):
             # connecting lines
             ax.plot(x[ti], y[ti], c=cl, zorder=10, lw=1, alpha=0.5)
             # points
-            ax.scatter(x[ti], y[ti], c=cl, s=2, lw=0.3, zorder=11, edgecolor='black')
+            ax.scatter(x[ti], y[ti], c=cl, s=2, lw=0.3, zorder=11, edgecolor="black")
         n += 1
 
 
-pre = 'vf'
+pre = "vf"
 pp = sorted(glob.glob(pre + "*.dat"))
-#pp = pp[1:2]
+# pp = pp[1:2]
 for p in pp:
     print(p)
     suf = re.findall(pre + "(.*)", p)[0]
     u = Get2d(Read(p))
     [sx, sy] = u.shape
-    hx = 1. / sx
-    hy = 1. / sy
+    hx = 1.0 / sx
+    hy = 1.0 / sy
     # nodes, 1 means 1d
     xn1 = np.arange(sx + 1) * hx
     yn1 = np.arange(sy + 1) * hy
@@ -242,12 +255,11 @@ for p in pp:
     print(po)
     fig, ax = PlotInit()
     PlotGrid(ax, xn1, yn1)
-    PlotFieldGray(ax, u, vmin=0., vmax=1.)
+    PlotFieldGray(ax, u, vmin=0.0, vmax=1.0)
     # plot partilces
-    n = re.findall("_(\d*)\.", suf)[0]
+    n = re.findall(r"_(\d*)\.", suf)[0]
     pa = "partit.{:}.csv".format(n)
     if os.path.isfile(pa):
         print(pa)
         PlotPart(ax, pa, sk=1)
     PlotSave(fig, ax, po)
-

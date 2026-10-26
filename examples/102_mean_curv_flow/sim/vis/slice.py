@@ -1,13 +1,12 @@
 #!/usr/bin/env pvbatch
 
+import os
+import re
+import sys
+
+import numpy as np
 from paraview.simple import *
 
-from glob import glob
-import sys
-import re
-import math
-import os
-import numpy as np
 
 def Log(s):
     s += "\n"
@@ -15,14 +14,18 @@ def Log(s):
     o.write(s)
     o.flush()
 
+
 # natural sort
-def natkey(s, _nsre=re.compile('([0-9]+)')):
-    return [int(text) if text.isdigit() else text.lower()
-            for text in re.split(_nsre, s)]
+def natkey(s, _nsre=re.compile("([0-9]+)")):
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(_nsre, s)]
+
 
 def natsorted(v):
     return sorted(v, key=natkey)
+
+
 # Returns sorted list of files in base by pattern pre_*.xmf
+
 
 # Sets time of datasets to step i
 def SetTime(i):
@@ -31,6 +34,7 @@ def SetTime(i):
         s = vft[j]
         s.ForcedTime = vt[j][i]
         s.UpdatePipeline()
+
 
 # Returns bounding box of object o
 def GetBox(o):
@@ -46,12 +50,14 @@ ospray = 1
 vort = 1
 
 av = sys.argv
-if len(av) < 2 or av[1] == '-h':
-    sys.stderr.write('''usage: {:} [sm_*.vtk]
+if len(av) < 2 or av[1] == "-h":
+    sys.stderr.write(
+        """usage: {:} [sm_*.vtk]
 Plots isosurface.
 # Output:
 # a_*.png in current directory
-'''.format(av[0]))
+""".format(av[0])
+    )
     exit(1)
 
 # vf input
@@ -81,21 +87,16 @@ paraview.simple._DisableFirstRenderCameraReset()
 materialLibrary1 = GetMaterialLibrary()
 
 # Create a new 'Render View'
-renderView1 = CreateView('RenderView')
-renderView1.ViewSize = [512,512]
+renderView1 = CreateView("RenderView")
+renderView1.ViewSize = [512, 512]
 renderView1.OrientationAxesVisibility = 0
-renderView1.CameraPosition =\
-[0.5,0.5,1]
-renderView1.CameraFocalPoint =\
-[0.5,0.5,0]
-renderView1.CameraViewUp =\
-[0.0, 1.0, 0.0]
+renderView1.CameraPosition = [0.5, 0.5, 1]
+renderView1.CameraFocalPoint = [0.5, 0.5, 0]
+renderView1.CameraViewUp = [0.0, 1.0, 0.0]
 renderView1.CameraParallelScale = 0.5
 renderView1.CameraParallelProjection = 1
-renderView1.Background = [1.0]*3
+renderView1.Background = [1.0] * 3
 renderView1.OSPRayMaterialLibrary = materialLibrary1
-
-
 
 
 # ----------------------------------------------------------------
@@ -128,13 +129,11 @@ vft = [surf]
 surf = GenerateSurfaceNormals(Input=surf)
 
 surfDisplay = Show(surf, renderView1)
-surfDisplay.Representation = 'Wireframe'
-surfDisplay.ColorArrayName = ['POINTS', '']
+surfDisplay.Representation = "Wireframe"
+surfDisplay.ColorArrayName = ["POINTS", ""]
 surfDisplay.LineWidth = 1
-surfDisplay.DiffuseColor = [0.]*3
-surfDisplay.AmbientColor = [0.]*3
-
-
+surfDisplay.DiffuseColor = [0.0] * 3
+surfDisplay.AmbientColor = [0.0] * 3
 
 
 #####################################################

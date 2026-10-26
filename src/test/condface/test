@@ -2,6 +2,7 @@
 
 import aphros
 
+
 class Test(aphros.TestBase):
     def __init__(self):
         super().__init__()

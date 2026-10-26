@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
+
 import pint
-import math
 
 
 def pprint(expr, desc=None, compact=False):
     res = eval(expr, globals()).to_base_units()
     if compact:
         res = res.to_compact()
-    print("{} = {:.6g}".format(
-        '    ' + expr if not desc else desc + ':\n    ' + expr, res))
+    print("{} = {:.6g}".format("    " + expr if not desc else desc + ":\n    " + expr, res))
 
 
 ureg = pint.UnitRegistry()

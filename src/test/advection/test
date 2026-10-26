@@ -1,32 +1,19 @@
 #!/usr/bin/env python3
 
-import shutil
 import os
-import numpy as np
 
 import aphros
+import numpy as np
 
 
 class Test(aphros.TestBase):
     def __init__(self):
         super().__init__(cases=["2d", "3d"])
-        self.parser.add_argument('--block',
-                                 '-b',
-                                 type=int,
-                                 default=32,
-                                 choices=[8, 16, 32],
-                                 help="Block size")
-        self.parser.add_argument('--comm',
-                                 '-c',
-                                 default='cubismnc',
-                                 choices=['local', 'cubismnc', 'native'],
-                                 help="Communication backend")
-        self.parser.add_argument('--nproc',
-                                 '-n',
-                                 type=int,
-                                 default=2,
-                                 choices=[1, 2, 4],
-                                 help="Number of processors")
+        self.parser.add_argument("--block", "-b", type=int, default=32, choices=[8, 16, 32], help="Block size")
+        self.parser.add_argument(
+            "--comm", "-c", default="cubismnc", choices=["local", "cubismnc", "native"], help="Communication backend"
+        )
+        self.parser.add_argument("--nproc", "-n", type=int, default=2, choices=[1, 2, 4], help="Number of processors")
 
     def run(self, case):
         self.runcmd("make -f $(ap.makesim) cleanall")
@@ -38,29 +25,32 @@ class Test(aphros.TestBase):
         bs = [b, b, 1] if dim == 2 else [8, 8, 8]
         nproc = 1 if b == 32 or self.args.comm == "local" else self.args.nproc
 
-        with open("a.conf", 'w') as f:
+        with open("a.conf", "w") as f:
             f.write("include {}.conf\n".format(case))
             f.write("set string backend {}\n".format(self.args.comm))
 
-        with open("np", 'w') as f:
+        with open("np", "w") as f:
             f.write(str(nproc))
 
         self.runcmd("ap.create_base_conf")
-        self.runcmd("ap.part " + ' '.join(map(str, m + bs + [nproc])) +
-                    " > mesh.conf")
+        self.runcmd("ap.part " + " ".join(map(str, m + bs + [nproc])) + " > mesh.conf")
         self.runcmd("ap.run ./t.advection")
 
-        return [
-            "a_0001.dat",
-            "k_0001.dat",
-            "nx_0001.dat",
-            "ny_0001.dat",
-            "nz_0001.dat",
-            "u_0001.dat",
-        ] if dim == 2 else [
-            "u_0000.dat",
-            "u_0002.dat",
-        ]
+        return (
+            [
+                "a_0001.dat",
+                "k_0001.dat",
+                "nx_0001.dat",
+                "ny_0001.dat",
+                "nz_0001.dat",
+                "u_0001.dat",
+            ]
+            if dim == 2
+            else [
+                "u_0000.dat",
+                "u_0002.dat",
+            ]
+        )
 
     def check(self, outdir, refdir, output_files):
         r = True
@@ -77,8 +67,7 @@ class Test(aphros.TestBase):
             error = cmp(out, ref)
             eps = 1e-11
             if error > eps:
-                self.printlog("error exceeded for '{}', {:} >= {:}".format(
-                    out, error, eps))
+                self.printlog("error exceeded for '{}', {:} >= {:}".format(out, error, eps))
                 r = False
             else:
                 self.printlog("pass for '{}', {:} < {:}".format(f, error, eps))

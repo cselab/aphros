@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 
-import numpy
-import sys
 import os
-import mmap
-import functools
-import operator
+
 import adv
+import numpy
 
 me = "ellipse"
 b = 16
@@ -20,9 +17,9 @@ sx = sy = sz = 4
 a = adv.nrrd_data(atlas).copy()
 a = a[::sx, ::sy, ::sz]
 nx, ny, nz = a.shape
-nx0 = (nx + b - 1)//b*b
-ny0 = (ny + b)//b*b
-nz0 = (nz + b - 1)//b*b
+nx0 = (nx + b - 1) // b * b
+ny0 = (ny + b) // b * b
+nz0 = (nz + b - 1) // b * b
 a = a[:nx, :ny, :nz]
 a[a != 0] = numpy.iinfo(dtype).max
 u = adv.mmap_create(raw, dtype, (nx0, ny0, nz0))
@@ -31,10 +28,9 @@ numpy.copyto(u[:nx, :ny, :nz], a)
 
 with open(xmf, "w") as f:
     nx, ny, nz = u.shape
-    type = {numpy.dtype('float32') : "Float",
-            numpy.dtype('uint16') : "UShort",
-            numpy.dtype('int64') : "Int"}[u.dtype]
-    f.write("""<?xml version="1.0" ?>
+    type = {numpy.dtype("float32"): "Float", numpy.dtype("uint16"): "UShort", numpy.dtype("int64"): "Int"}[u.dtype]
+    f.write(
+        """<?xml version="1.0" ?>
 <!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
 <Xdmf Version="2.0">
  <Domain>
@@ -62,4 +58,6 @@ with open(xmf, "w") as f:
      </Attribute>
    </Grid>
  </Domain>
-</Xdmf>""" % (nz + 1, ny + 1, nx + 1, nz, ny, nx, nz, ny, nx, nz, ny, nx, type, base + ".raw"))
+</Xdmf>"""
+        % (nz + 1, ny + 1, nx + 1, nz, ny, nx, nz, ny, nx, nz, ny, nx, type, base + ".raw")
+    )
