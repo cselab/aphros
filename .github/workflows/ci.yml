@@ -6,6 +6,14 @@ on:
   pull_request:
 
 jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2  # no major tag v10
+      - name: Check formatting (clang-format)
+        run: tools/format --check
+
   linux:
     runs-on: ubuntu-24.04
     env:
