@@ -64,20 +64,20 @@ def readData(name):
 def getSubspace(data, nranks, args):
     nstats = len(data)
     if args.ranks:
-        ridx = np.array(args.ranks, dtype=np.int)
+        ridx = np.array(args.ranks, dtype=int)
     else:
-        ridx = np.arange(nranks, dtype=np.int)
+        ridx = np.arange(nranks, dtype=int)
     if args.stats_name and not args.stats:
         keys = list(data.keys())
         sidx = []
         for key in args.stats_name:
             if key in keys:
                 sidx.append(keys.index(key))
-        sidx = np.array(sidx, dtype=np.int)
+        sidx = np.array(sidx, dtype=int)
     elif args.stats:
-        sidx = np.array(args.stats, dtype=np.int)
+        sidx = np.array(args.stats, dtype=int)
     else:
-        sidx = np.arange(nstats, dtype=np.int)
+        sidx = np.arange(nstats, dtype=int)
     nstats = len(sidx)
     return nstats, ridx, sidx
 

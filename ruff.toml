@@ -7,6 +7,7 @@ select = [
     "W",  # Style warnings
     "F",  # Logical errors
     "I",  # Import sorting
+    "NPY001",  # Deprecated NumPy type aliases
 ]
 ignore = [
     "E741",  # Ambiguous variable name
