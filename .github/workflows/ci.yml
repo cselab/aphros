@@ -8,6 +8,7 @@ on:
 jobs:
   format:
     runs-on: ubuntu-24.04
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.2  # no major tag v10
@@ -16,12 +17,14 @@ jobs:
 
   linux:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     env:
       # Allow more MPI ranks than cores.
       OMPI_MCA_rmaps_base_oversubscribe: 1
     steps:
       - uses: actions/checkout@v7
       - name: Install packages
+        timeout-minutes: 3
         run: |
           sudo apt-get -qq update
           sudo apt-get -qq install --yes --no-install-recommends \
