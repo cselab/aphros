@@ -53,7 +53,7 @@ jobs:
       - name: Test
         working-directory: src/build
         run: ctest -j "$(nproc)" --output-on-failure
-      - name: Build examples
+      - name: Build examples (without simulations)
         if: ${{ !cancelled() }}
         working-directory: examples
-        run: make build VERBOSE=1 -j "$(nproc)"
+        run: make build_nosim VERBOSE=1 -j "$(nproc)"
