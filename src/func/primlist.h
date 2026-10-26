@@ -47,12 +47,6 @@ struct VelocityPrimitive {
   static constexpr size_t dim = Vect::dim;
 
   VelocityPrimitive() : inter([](const Rect<Vect>&) { return true; }) {}
-  friend std::ostream& operator<<(
-      std::ostream& o, const VelocityPrimitive<Vect>& p) {
-    o << "name='" << p.name << "'";
-    o << " mod='" << (p.mod_minus ? "-" : "") << (p.mod_and ? "&" : "") << "'";
-    return o;
-  }
 
   std::function<Vect(const Vect&)> velocity; // velocity
   // true if rectangle contains points with non-zero velocity
