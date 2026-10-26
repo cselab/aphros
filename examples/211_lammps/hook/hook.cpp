@@ -28,7 +28,7 @@ void StepHook(Hydro<M>* hydro) {
   struct {
     Vect velocity_mean{0};
     Scal volume = 0;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem()) {
@@ -45,8 +45,8 @@ void StepHook(Hydro<M>* hydro) {
   if (sem()) {
     t.velocity_mean /= t.volume;
     std::cout << util::Format(
-	"StepHook: t={:} uservar={:} velocity_mean={:}\n\n",
-	hydro->fs_->GetTime(), var.Int["uservar"], t.velocity_mean);
+        "StepHook: t={:} uservar={:} velocity_mean={:}\n\n",
+        hydro->fs_->GetTime(), var.Int["uservar"], t.velocity_mean);
     lammps_gather_atoms(lmp->lmp, (char*)"x", 1, 3, lmp->x);
     double** f = lammps_fix_external_get_force(lmp->lmp, "aphros_array");
     for (long i = 0; i < lmp->natoms; i++) {
@@ -60,23 +60,23 @@ void StepHook(Hydro<M>* hydro) {
 
 template <class M>
 void InitHook(Hydro<M>* hydro) {
-    auto& m = hydro->m;
+  auto& m = hydro->m;
   auto sem = m.GetSem();
   if (sem()) {
     if (m.IsLead()) { // Executed only on the lead block, once in each rank.
-		      // There is only one lead block in each rank.
+                      // There is only one lead block in each rank.
       // Allocate memory for the shared state and save pointer in the solver.
       int argc;
       int dash;
-      const char **argv;
-      const char *path;
-      const char **a;
+      const char** argv;
+      const char* path;
+      const char** a;
 
       hydro->par_.ptr = new Lammps();
       auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
       dash = sysinfo::misc.arg_after_double_dash;
       if (dash == 0) {
-        const char *argv_none[] = {"aphros", NULL};
+        const char* argv_none[] = {"aphros", NULL};
         argc = 0;
         argv = argv_none;
       } else {
@@ -86,30 +86,29 @@ void InitHook(Hydro<M>* hydro) {
       path = "in.lj";
       for (a = argv; *++a != NULL;)
         if (a[0][0] == '-') switch (a[0][1]) {
-          case 'i':
-            a++;
-            if ((path = *a) == NULL) {
-              fprintf(stderr, "hook: -i needs an argumetn\n");
+            case 'i':
+              a++;
+              if ((path = *a) == NULL) {
+                fprintf(stderr, "hook: -i needs an argumetn\n");
+                fassert(0);
+              }
+              break;
+            case 'h':
+              setenv("PAGER", "cat", 1);
+              const char* argv_help[] = {"aphros", "-h", NULL};
+              lammps_open_no_mpi(2, const_cast<char**>(argv_help), NULL);
               fassert(0);
-            }
-            break;
-          case 'h':
-            setenv("PAGER", "cat", 1);
-            const char *argv_help[] = {"aphros", "-h", NULL};
-            lammps_open_no_mpi(2, const_cast<char**>(argv_help), NULL);
-            fassert(0);
-            break;
+              break;
           }
       lmp->lmp = lammps_open_no_mpi(argc, const_cast<char**>(argv), NULL);
       lammps_file(lmp->lmp, path);
       lmp->natoms = lammps_get_natoms(lmp->lmp);
       lmp->x = (double*)malloc(3 * lmp->natoms * sizeof(double));
-      if (lmp->x == NULL)
-	fassert(false, "fail to allocate memory for data");
+      if (lmp->x == NULL) fassert(false, "fail to allocate memory for data");
     }
     if (m.IsRoot()) { // Executed only on the root block, once over all ranks.
-		      // There is only one root block over all ranks.
-      //auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
+                      // There is only one root block over all ranks.
+      // auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
     }
   }
 }
@@ -121,8 +120,7 @@ void FinalHook(Hydro<M>* hydro) {
   auto* lmp = static_cast<Lammps*>(hydro->par_.ptr);
   if (sem()) {
     if (m.IsRoot()) {
-      std::cout << util::Format(
-	  "FinalHook t={:} \n\n", hydro->fs_->GetTime());
+      std::cout << util::Format("FinalHook t={:} \n\n", hydro->fs_->GetTime());
     }
     if (m.IsLead()) {
       free(lmp->x);

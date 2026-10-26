@@ -97,9 +97,11 @@ struct Parser::Imp {
             } else if (IsNameChar(c)) {
               s = S::varname;
             } else {
-              throw std::runtime_error(util::Format(
-                  "unexpected character '{}' following $ while parsing '{}'", c,
-                  str));
+              throw std::runtime_error(
+                  util::Format(
+                      "unexpected character '{}' following $ while parsing "
+                      "'{}'",
+                      c, str));
             }
             break;
           }
@@ -123,9 +125,11 @@ struct Parser::Imp {
               throw std::runtime_error(
                   util::Format("unmatched brace {{ while parsing '{}'", str));
             } else {
-              throw std::runtime_error(util::Format(
-                  "unexpected character '{}' inside {{}} while parsing '{}'", c,
-                  str));
+              throw std::runtime_error(
+                  util::Format(
+                      "unexpected character '{}' inside {{}} while parsing "
+                      "'{}'",
+                      c, str));
             }
             break;
           }
@@ -207,9 +211,11 @@ struct Parser::Imp {
               expr.clear();
               next();
             } else {
-              throw std::runtime_error(util::Format(
-                  "unexpected character '{}' following ( while parsing '{}'", c,
-                  str));
+              throw std::runtime_error(
+                  util::Format(
+                      "unexpected character '{}' following ( while parsing "
+                      "'{}'",
+                      c, str));
             }
             break;
           }
@@ -227,8 +233,9 @@ struct Parser::Imp {
               expr += c;
               next();
             } else if (c == kEnd) {
-              throw std::runtime_error(util::Format(
-                  "unexpected end of string while parsing '{}'", str));
+              throw std::runtime_error(
+                  util::Format(
+                      "unexpected end of string while parsing '{}'", str));
             } else {
               expr += c;
               next();
@@ -240,10 +247,11 @@ struct Parser::Imp {
               s = S::evalexpr;
               next();
             } else {
-              throw std::runtime_error(util::Format(
-                  "unexpected character '{}' after ')' inside $(()) while "
-                  "parsing '{}'",
-                  c, str));
+              throw std::runtime_error(
+                  util::Format(
+                      "unexpected character '{}' after ')' inside $(()) while "
+                      "parsing '{}'",
+                      c, str));
             }
             break;
           }

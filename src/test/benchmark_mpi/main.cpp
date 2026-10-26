@@ -14,7 +14,7 @@ void Run(M& m, Vars&) {
   struct {
     std::vector<Scal> v;
     std::vector<char> r;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& v = ctx->v;
   auto& r = ctx->r;
   for (auto i = 0; i < 10; ++i) {

@@ -37,11 +37,13 @@ void err_exit(int);
   do {                                              \
     fprintf(stderr, "%s:%d: ", __FILE__, __LINE__); \
     err_print x;                                    \
-    fputs("\n", stderr);                            \
+    fputs("\n", stderr);
 
 enum { X, Y, Z };
 enum { SIZE = 999 };
 
+// Order matters: the included files depend on each other.
+// clang-format off
 #include "err.inc"
 #include "memory.inc"
 #include "bbox.inc"
@@ -49,6 +51,7 @@ enum { SIZE = 999 };
 #include "ply.inc"
 #include "predicate_c.inc"
 #include "stl.inc"
+// clang-format on
 
 #define SIZE (9999)
 
@@ -62,7 +65,6 @@ static double edg(const double*, const double*);
 static double tri_point_distance2(
     const double[3], const double[3], const double[3], const double p[3]);
 static double max_dbl(double, double);
-
 
 struct Inside {
   int nt;

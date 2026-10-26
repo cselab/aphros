@@ -169,7 +169,7 @@ void Raw<M>::WriteMeshBlocks(
     std::vector<MIdx> starts;
     std::vector<MIdx> sizes;
     std::vector<std::vector<T>> data;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem("gather")) {
@@ -206,7 +206,7 @@ void Raw<M>::WriteWithXmf(
   auto sem = m.GetSem();
   struct {
     Meta meta;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem("dump-xmf")) {
@@ -263,7 +263,7 @@ void Raw<M>::Read(
     std::vector<MIdx> sizes;
     std::vector<T> data;
     std::vector<std::vector<T>*> dataptr;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem("gather")) {

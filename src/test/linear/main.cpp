@@ -39,7 +39,7 @@ void Run(M& m, Vars& var) {
     double time_stop;
     Scal mean_diff;
     Scal sumw;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem()) {
     // exact solution

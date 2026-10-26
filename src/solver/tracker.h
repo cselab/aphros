@@ -54,7 +54,7 @@ void Tracker<M_>::Update(
 
   struct {
     FieldCell<Scal> fccl0;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& fccl0 = ctx->fccl0;
 
   if (sem("")) {

@@ -35,7 +35,7 @@ void Test(M& m, MEB& eb, std::string name) {
   struct {
     FieldCell<Vect> fc_force;
     FieldCell<Vect> fc_vel;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem()) {
     std::cout << name << " " << typeid(MEB).name() << std::endl;
@@ -72,7 +72,7 @@ void Main(M& m, Vars& var) {
   struct {
     FieldNode<Scal> fnl;
     std::unique_ptr<Embed<M>> eb_;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& eb_ = ctx->eb_;
   if (sem("ctor")) {
     eb_.reset(new Embed<M>(m, 0));

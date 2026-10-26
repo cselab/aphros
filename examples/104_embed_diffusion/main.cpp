@@ -110,7 +110,7 @@ void Run(M& m, Vars& var) {
     Scal diff;
     Scal dt;
     std::unique_ptr<Embed<M>> eb_;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& fnl = ctx->fnl;
   auto& fcu = ctx->fcu;
   auto& mebc = ctx->mebc;

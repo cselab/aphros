@@ -40,7 +40,7 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fcdiv;
     FieldNode<Scal> fnl;
     size_t frame = 0;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& cd = ctx->cd;
   auto& fev = ctx->fev;
   auto& fcdiv = ctx->fcdiv;

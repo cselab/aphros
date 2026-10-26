@@ -35,7 +35,7 @@ void Run(M& m, Vars& var) {
     MapEmbed<BCondFluid<Vect>> mebc;
     MapEmbed<size_t> me_group;
     MapEmbed<Scal> me_contang;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& fcu = ctx->fcu;
   auto& feu = ctx->feu;
   auto& frame = ctx->frame;

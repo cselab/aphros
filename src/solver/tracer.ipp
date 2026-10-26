@@ -78,7 +78,7 @@ struct Tracer<EB_>::Imp {
     auto sem = m.GetSem("step");
     struct {
       Multi<FieldCell<Scal>> vfct; // change of conserved quantity
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     if (sem("local")) {
       t.vfct.Reinit(layers, m, 0);

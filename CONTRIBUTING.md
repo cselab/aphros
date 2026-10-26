@@ -4,10 +4,17 @@
 
 ### C++
 
-Run clang-format for C/C++ files found recursively in current directory
+Format tracked C/C++ files with the pinned version of clang-format
+(requires [uv](https://docs.astral.sh/uv/))
 
 ```
-ap.format
+tools/format
+```
+
+Check without changing files (as in CI)
+
+```
+tools/format --check
 ```
 
 ### Python

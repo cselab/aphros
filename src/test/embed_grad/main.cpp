@@ -101,7 +101,7 @@ void Run(M& m, Vars& var) {
     FieldCell<Vect> fcg;
     FieldCell<Scal> fcu;
     FieldNode<Scal> fnl;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& fcg = ctx->fcg;
   auto& fcu = ctx->fcu;
 

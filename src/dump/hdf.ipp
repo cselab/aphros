@@ -66,7 +66,7 @@ void Hdf<M>::Write(const Field& fc, std::string path, M& m, std::string dname) {
     std::vector<MIdx> origin;
     std::vector<MIdx> size;
     std::vector<std::vector<Scal>> data;
-  } * ctx(sem);
+  }* ctx(sem);
 
   if (sem("gather")) {
     const auto bc = m.GetInBlockCells();
@@ -152,7 +152,7 @@ void Hdf<M>::Read(Field& fc, std::string path, M& m, std::string dname) {
     std::vector<MIdx> size;
     std::vector<Scal> data;
     std::vector<std::vector<Scal>*> dataptr;
-  } * ctx(sem);
+  }* ctx(sem);
 
   if (sem("gather")) {
     const auto bc = m.GetInBlockCells();

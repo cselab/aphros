@@ -807,7 +807,7 @@ void DumpBcPoly(
     std::vector<Scal> dgroup;
     std::vector<Scal> dcontang;
     std::vector<Scal> dface;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& dpoly = ctx->dpoly;
   auto& dgroup = ctx->dgroup;
   auto& dcontang = ctx->dcontang;
@@ -843,7 +843,7 @@ void GetFluidCellCond(
 
   struct {
     std::pair<typename M::Scal, int> pdist;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& pdist = ctx->pdist;
 
   if (sem("reduce")) {
@@ -904,7 +904,7 @@ void InitVort(
     MapEmbed<BCond<Scal>> mebc_pot; // potential conditions
     FieldCell<Scal> fcvort_scal; // one component of vorticity
     FieldCell<Scal> fcpot; // velocity potential
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem("initpois")) {
     t.fcpot.Reinit(m);
@@ -959,7 +959,7 @@ void InitVort(
     FieldCell<Scal> fcvort_scal; // one component of vorticity
     FieldCell<Vect> fcpot; // velocity potential
     FieldCell<Scal> fcpot_scal; // one component of potential
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem("initpois")) {
     t.fcpot.Reinit(m);
@@ -1191,7 +1191,7 @@ void DumpTraj(
     std::vector<std::vector<Scal>> table; // color reduce: vector
     std::unique_ptr<SA> sphavg; // spherical averages
     std::vector<typename SA::Sph> vsph;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   auto& sphavg = ctx->sphavg;
   auto& vsph = ctx->vsph;
@@ -1483,7 +1483,7 @@ void ProjectVolumeFlux(
     FieldCell<Expr> fc_system; // linear system for pressure [i]
     FieldFace<bool> ffbd; // true for faces with boundary conditions
     FieldCell<Scal> fcp; // pressure (up to a constant)
-  } * ctx(sem);
+  }* ctx(sem);
   auto& ffe = ctx->ffe;
   auto& fc_system = ctx->fc_system;
   auto& ffbd = ctx->ffbd;
@@ -1545,7 +1545,7 @@ std::map<typename M::Scal, typename M::Scal> CalcArea(
   struct {
     std::vector<Scal> vcl; // color
     std::vector<Scal> vs; // area
-  } * ctx(sem);
+  }* ctx(sem);
   auto& vcl = ctx->vcl;
   auto& vs = ctx->vs;
   if (sem("area")) {
@@ -1606,7 +1606,7 @@ std::map<typename M::Scal, typename M::Scal> CalcVolume(
   struct {
     std::vector<Scal> vcl; // color
     std::vector<Scal> vvol; // volume
-  } * ctx(sem);
+  }* ctx(sem);
   auto& vcl = ctx->vcl;
   auto& vvol = ctx->vvol;
   if (sem("volume")) {

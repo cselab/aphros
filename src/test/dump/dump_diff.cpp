@@ -41,7 +41,7 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fc_diff;
     std::vector<generic::Vect<Scal, 3>> norms;
     Raw::Meta meta;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   auto read = [&](FieldCell<Scal>& fc_buf, std::string path) {

@@ -444,7 +444,7 @@ void Test<M>::TestShared() {
   auto sem = m.GetSem("shared");
   struct {
     FieldCell<Scal> fc;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   auto& ms = m.GetShared();
   if (sem()) {

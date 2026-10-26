@@ -916,7 +916,7 @@ void CommFieldFace(FieldFace<T>& ff, M& m) {
   auto sem = m.GetSem("commface");
   struct {
     std::array<FieldCell<T>, M::kCellNumNeighborFaces> vfc;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& vfc = ctx->vfc;
   if (sem("comm")) {
     for (size_t q = 0; q < M::kCellNumNeighborFaces; ++q) {

@@ -31,7 +31,7 @@ void DumpCsv(
   struct {
     std::vector<std::string> csv_names;
     std::vector<std::vector<Scal>> csv_data;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem()) {
     t.csv_names.clear();
@@ -80,7 +80,7 @@ void DumpRaw(
   using Xmf = dump::Xmf<Vect>;
   struct {
     Raw::Meta meta;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem("writexmf")) {
     t.meta = Xmf::GetMeta(m);
@@ -110,7 +110,7 @@ void Run(M& m, Vars& var) {
     Scal sum2;
     Scal max;
     std::set<std::string> dumpformats;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem()) {
     t.dumpformats = GetWords(var.String["dumpformats"]);

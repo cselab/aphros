@@ -26,7 +26,7 @@ void Main(M& m, Vars& var) {
     std::unique_ptr<Stat<M>> stat;
     FieldCell<Scal> vf;
     std::ofstream fout;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& eb_ = ctx->eb_;
   auto& vf = ctx->vf;
   if (sem()) {

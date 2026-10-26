@@ -8,8 +8,7 @@
 #define XX(M)                                                       \
   template void TransferParticles(                                  \
       const std::vector<std::unique_ptr<KernelMesh<M>>>&, MPI_Comm, \
-      const std::function<int(int)>&);                              \
-  \
+      const std::function<int(int)>&);
 
 #define COMMA ,
 #define X(dim) XX(MeshCartesian<double COMMA dim>)

@@ -15,7 +15,7 @@ void Run(M& m, Vars&) {
   struct {
     FieldCell<Scal> fc;
     std::ofstream out;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& fc = ctx->fc;
   auto& out = ctx->out;
   auto& ic = m.GetIndexCells();

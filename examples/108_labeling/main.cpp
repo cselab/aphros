@@ -72,7 +72,7 @@ void Init(
   auto sem = m.GetSem();
   struct {
     Vars var;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem()) {
     fcu.Reinit(layers, m, 0);
@@ -126,7 +126,7 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fcvf_sum; // sum of volume fractions from all layers
     FieldCell<Scal> fccl_sum; // colors from all layers
     std::unique_ptr<Labeling<M>> labeling; // labeling algorithm
-  } * ctx(sem);
+  }* ctx(sem);
   constexpr Scal kClNone = -1;
   auto& t = *ctx;
   if (sem()) {

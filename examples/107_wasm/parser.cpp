@@ -12,8 +12,8 @@
 #include <memory>
 #include <sstream>
 
-#include "util/logger.h"
 #include "parse/parser.h"
+#include "util/logger.h"
 
 Vars g_var;
 std::string g_var_str;
@@ -29,8 +29,7 @@ int SetConfig(const char* str) {
   Vars var;
   try {
     Parser(var).ParseStream(buf);
-  }
-  catch(const std::runtime_error& e) {
+  } catch (const std::runtime_error& e) {
     std::cerr << e.what() << std::endl;
     return 1;
   }

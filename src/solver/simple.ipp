@@ -316,7 +316,7 @@ struct Simple<EB_>::Imp {
       FieldCell<Scal> fck; // diag coeff of velocity equation
       FieldCell<Scal> fcpc; // pressurue correction
       FieldFaceb<Scal> ffk; // diag coeff of velocity equation
-    } * ctx(sem);
+    }* ctx(sem);
     auto& fcgp = ctx->fcgp;
     auto& fcvel_corr = ctx->fcvel_corr;
     auto& fck = ctx->fck;

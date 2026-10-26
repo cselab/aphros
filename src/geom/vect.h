@@ -33,7 +33,6 @@ bool IsNan(Scal a) {
   return std::isnan(a);
 }
 
-
 namespace generic {
 
 template <class Scal_, size_t dim_>

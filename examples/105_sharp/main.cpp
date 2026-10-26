@@ -74,7 +74,7 @@ void Run(M& m, Vars& var) {
 
     // write buffer
     FieldCell<Scal> fc_write;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   auto read = [&](FieldCell<Scal>& fc_buf, std::string path) {

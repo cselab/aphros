@@ -36,7 +36,7 @@ void CalcPotential(
   auto sem = m.GetSem();
   struct {
     FieldEmbed<ExprFace> feg;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem("init")) {
@@ -89,7 +89,7 @@ void Run(M& m, Vars& var) {
     FieldCell<Scal> fc_gradexp;
     FieldCell<Expr> fc_system;
     std::array<FieldCell<Scal>, Expr::dim> fc_system_comps;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem("ctor")) {

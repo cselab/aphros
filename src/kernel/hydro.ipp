@@ -183,7 +183,7 @@ void Hydro<M>::InitEmbed() {
     auto sem = m.GetSem("embed");
     struct {
       FieldNode<Scal> fnl;
-    } * ctx(sem);
+    }* ctx(sem);
     if (sem("ctor")) {
       eb_.reset(new Embed<M>(m, var.Double["embed_gradlim"]));
     }
@@ -210,7 +210,7 @@ void Hydro<M>::InitStepwiseBody(
     FieldCell<Scal> fc_inner; // 1 inner cells, 0 inside solid body
     Vars varbody;
     typename Xmf::Meta meta;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem()) {
     auto& varbody = t.varbody;
@@ -615,9 +615,10 @@ void Hydro<M>::InitTracer(Multi<FieldCell<Scal>>& vfcu) {
     if (var.Int["tracer_use_termvel"]) {
       const Scal mixture_density = var.Double["rho1"];
       for (auto l : tracer_layers) {
-        conf.diameter[l] = std::sqrt(std::abs(
-            18 * conf.viscosity[l] * termvel[l] /
-            (conf.gravity.norm() * (conf.density[l] - mixture_density))));
+        conf.diameter[l] = std::sqrt(
+            std::abs(
+                18 * conf.viscosity[l] * termvel[l] /
+                (conf.gravity.norm() * (conf.density[l] - mixture_density))));
       }
     } else {
       conf.diameter = multi(var.Vect["tracer_diameter"]);
@@ -1265,7 +1266,7 @@ void Hydro<M>::Init() {
     FieldCell<bool> fc_innermask;
     FieldFace<bool> ff_innermask;
     std::vector<std::pair<std::string, std::vector<Scal>>> nucl_data;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   auto& fcvel = t.fcvel;
   auto& fcvf = t.fcvf;
@@ -1666,7 +1667,7 @@ void Hydro<M>::CalcDt() {
   struct {
     Scal dtmin;
     Scal tmin;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem("local")) {
@@ -2191,7 +2192,7 @@ void Hydro<M>::Dump(bool force) {
   auto sem = m.GetSem("dump");
   struct {
     std::vector<std::pair<std::string, std::vector<Scal>>> nucl_data;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem.Nested("fields")) {
     if (dumper_.Try(st_.t, st_.dt) || force) {
@@ -2291,7 +2292,7 @@ void Hydro<M>::Run() {
   auto sem = m.GetSem("run");
   struct {
     Scal nabort;
-  } * ctx(sem);
+  }* ctx(sem);
 
   if (sem.Nested("init") && !initialized_) {
     Init();
@@ -2725,7 +2726,7 @@ void Hydro<M>::ConvertParticlesToVof() {
     Scal nconv = 0;
     std::vector<Scal> intersects_vof; // 1 if particle intersects a cell
                                       // with large volume fraction
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem()) {
@@ -2915,7 +2916,7 @@ void Hydro<M>::InitTracerFields(Multi<FieldCell<Scal>>& vfcu) {
   auto sem = m.GetSem("tracerfields");
   struct {
     Vars vart;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem("init")) {
     vfcu.resize(var.Int["tracer_layers"]);
@@ -2951,7 +2952,7 @@ void Hydro<M>::StepBubgen() {
     std::shared_ptr<FieldCell<Scal>> fcvf; // volume fraction
     Vars var;
     bool verbose = false;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (bubgen_.Try(st_.t, st_.dt)) {
     if (sem("as-bubgen-var")) {
@@ -3062,7 +3063,7 @@ void Hydro<M>::ReportSysinfo(std::ostream& out) {
     std::vector<std::vector<char>> hostname;
     std::vector<size_t> cuda_mem;
     std::vector<uint16_t> cuda_uuid;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (var.Int("report_sysinfo", 0)) {
     if (sem()) {
@@ -3123,7 +3124,7 @@ void Hydro<M>::StepEraseColor(std::string prefix) {
   auto sem = m.GetSem();
   struct {
     Scal cl = std::numeric_limits<Scal>::max();
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   auto apply = [this, &rect, &t, &sem](auto* as, const auto& eb) {
     if (as) {

@@ -31,7 +31,7 @@ void Main(M& m, Vars& var) {
     std::unique_ptr<Embed<M>> eb_;
     std::vector<std::pair<std::string, std::vector<Scal>>> data;
     FieldCell<Scal> fcu;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& eb_ = ctx->eb_;
   auto& fcu = ctx->fcu;
   if (sem("ctor")) {

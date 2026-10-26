@@ -20,7 +20,7 @@ using Vect = generic::Vect<Scal, 3>;
 
 void TestSolveLinear() {
   constexpr size_t N = 4;
-  std::array<Scal, N* N> a = {
+  std::array<Scal, N * N> a = {
       0, 0, 0.1, 9.8, 0.7, 1, 0.8, 0.3, 1, 0, 0.3, 0.2, 1, 0, 0.3, 0.1,
   };
   std::array<Scal, N> b = {

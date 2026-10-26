@@ -267,7 +267,7 @@ void Run(M& m, Vars& var) {
     Scal dt = 0.01;
     size_t step = 0;
     size_t frame = 0;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& fcs = ctx->fcs;
   auto& ffv = ctx->ffv;
   auto& fck = ctx->fck;

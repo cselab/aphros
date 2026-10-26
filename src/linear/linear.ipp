@@ -37,7 +37,7 @@ struct SolverConjugate<M>::Imp {
 
       int iter = 0;
       Info info;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     if (sem("init")) {
       if (fc_init) {
@@ -165,7 +165,7 @@ struct SolverJacobi<M>::Imp {
       Scal maxdiff;
       int iter = 0;
       Info info;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     if (sem("init")) {
       if (fc_init) {
@@ -206,9 +206,8 @@ struct SolverJacobi<M>::Imp {
       m.Comm(&fc_sol);
       if (m.flags.linreport && m.IsRoot()) {
         std::cerr << std::scientific;
-        std::cerr << "linear(jacobi) '" + fc_system.GetName() + "':"
-                  << " res=" << t.info.residual << " iter=" << t.info.iter
-                  << std::endl;
+        std::cerr << "linear(jacobi) '" + fc_system.GetName() + "':" << " res="
+                  << t.info.residual << " iter=" << t.info.iter << std::endl;
       }
     }
     if (sem()) {

@@ -499,7 +499,7 @@ struct Vof<EB_>::Imp {
     auto sem = m.GetSem("iter");
     struct {
       FieldCell<Scal> fcclm; // previous color
-    } * ctx(sem);
+    }* ctx(sem);
     auto& fcclm = ctx->fcclm;
     if (sem("init")) {
       auto& uc = fcu_.iter_curr;
@@ -631,7 +631,7 @@ struct Vof<EB_>::Imp {
     struct {
       FieldCell<Scal> fcut; // volume fraction
       FieldCell<Scal> fcclt; // color
-    } * ctx(sem);
+    }* ctx(sem);
     auto& fcut = ctx->fcut;
     auto& fcclt = ctx->fcclt;
     if (sem("copy")) {

@@ -30,7 +30,7 @@ class UFluid {
       Scal fluxin; // total inlet volume flux
       Scal fluxout; // total outlet volume flux
       Scal areaout; // total outlet area
-    } * ctx(sem);
+    }* ctx(sem);
     auto& fluxin = ctx->fluxin;
     auto& fluxout = ctx->fluxout;
     auto& areaout = ctx->areaout;
@@ -123,7 +123,7 @@ class UFluid {
       std::vector<Scal> flux_target;
       std::vector<Scal> flux_current;
       std::vector<Scal> area;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& flux_target = ctx->flux_target;
     auto& flux_current = ctx->flux_current;
     auto& area = ctx->area;
@@ -189,7 +189,7 @@ class UFluid {
       Scal inlet_area = 0;
       Scal outlet_pressure = 0;
       Scal outlet_area = 0;
-    } * ctx(sem);
+    }* ctx(sem);
 
     if (sem("local")) {
       auto& t = *ctx;
@@ -277,7 +277,7 @@ class UFluid {
       Scal inlet_area = 0;
       Scal outlet_flux = 0;
       Scal outlet_area = 0;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
 
     if (sem("reduce")) {

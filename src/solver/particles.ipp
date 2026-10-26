@@ -145,7 +145,7 @@ struct Particles<EB_>::Imp {
     auto sem = m.GetSem(__func__);
     struct {
       FieldFace<Scal> ff_veln; // Normal velocity.
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     if (sem()) {
       t.ff_veln = fe_flux.template Get<FieldFaceb<Scal>>();
@@ -190,7 +190,7 @@ struct Particles<EB_>::Imp {
     auto sem = m.GetSem("step");
     struct {
       FieldFace<Scal> ff_veln;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     auto& s = state_;
     if (sem()) {
@@ -338,7 +338,7 @@ struct Particles<EB_>::Imp {
       std::vector<Scal> cumsum; // Value of cumulative sum on current block.
       // TODO: Implement and use m.Scatter() for just `std::vector<Scal>`.
       //       Here the arrays consists of single-element arrays.
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     if (sem()) {
       t.max_id = global_max_id;
@@ -381,7 +381,7 @@ struct Particles<EB_>::Imp {
       State s;
       std::vector<int> block;
       std::vector<Scal> inner;
-    } * ctx(sem);
+    }* ctx(sem);
     auto& t = *ctx;
     if (sem("gather")) {
       CheckSize(state_);

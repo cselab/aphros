@@ -79,7 +79,7 @@ void ProjectVolumeFluxMasked(
     FieldFace<ExprFace> ff_corr; // expression for corrected volume flux [i]
     FieldCell<Expr> fc_system; // linear system for pressure [i]
     FieldCell<Scal> fcp; // pressure (up to a constant)
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem("init")) {
@@ -156,7 +156,7 @@ void CalcMeanCurvatureFlowFlux(
                              // 1: interface cell
                              // 0: otherwise
     FieldCell<Scal> fc_src; // source term for flux projection
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
 
   if (sem("calc")) {
@@ -279,7 +279,7 @@ void CalcTraj(
   auto sem = m.GetSem();
   struct {
     std::map<Scal, TrajEntry> map;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& t = *ctx;
   if (sem()) {
     // Create empty entries for all colors
@@ -432,7 +432,7 @@ void Run(M& m, Vars& var) {
     std::ofstream trajfile;
     bool dumptraj;
     size_t dumptraj_colors;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& layers = ctx->layers;
   auto& t = *ctx;
 

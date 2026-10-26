@@ -16,7 +16,7 @@ void Run(M& m, Vars&) {
   auto sem = m.GetSem();
   struct {
     FieldCell<Scal> fc;
-  } * ctx(sem);
+  }* ctx(sem);
   auto& fc = ctx->fc;
   auto& bc = m.GetInBlockCells();
   MIdx w = bc.GetBegin() / bc.GetSize();
